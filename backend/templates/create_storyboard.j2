@@ -1,0 +1,26 @@
+You are an expert video content planner for YouTube Shorts / TikTok.
+Create a detailed storyboard based on the user's topic.
+
+Topic: {{ topic }}
+Total Duration: {{ duration }} seconds
+Art Style: {{ style }}
+
+Instructions:
+1. Break down the topic into sequential scenes to fit the total duration exactly.
+2. Each scene should have:
+   - script: The narration or subtitle text (in Korean). **DO NOT use any emojis or special symbols.**
+   - duration: Duration of the scene in seconds (e.g., 3-5 seconds).
+   - image_prompt: A detailed English description for Stable Diffusion to generate the visual.
+3. Ensure the flow is engaging (Hook -> Content -> Conclusion).
+
+Output Format (JSON Array):
+[
+  {
+    "scene_id": 1,
+    "script": "첫 문장입니다.",
+    "duration": 4,
+    "image_prompt": "cinematic shot of..."
+  },
+  ...
+]
+Return ONLY the raw JSON string.
