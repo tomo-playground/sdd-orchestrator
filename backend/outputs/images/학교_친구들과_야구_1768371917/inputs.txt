@@ -1,9 +1,0 @@
-file 'scene_0.png'
-duration 1
-file 'scene_1.png'
-duration 2
-file 'scene_2.png'
-duration 1
-file 'scene_3.png'
-duration 1
-file 'scene_3.png'
