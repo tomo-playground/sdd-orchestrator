@@ -55,10 +55,7 @@ const SAMPLE_PERSONAS = [
 ];
 
 const RESOLUTIONS = {
-  standard: { w: 512, h: 912, label: "Standard", desc: "Fast generation" },
-  hd: { w: 720, h: 1280, label: "HD", desc: "Balanced quality" },
   square: { w: 512, h: 512, label: "Square (1:1)", desc: "Webtoon Style" },
-  ultra: { w: 1024, h: 1824, label: "Ultra", desc: "Best for SDXL" },
 };
 
 const LANGUAGES = [
@@ -74,7 +71,7 @@ export default function Home() {
   
   // --- Global Settings ---
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("standard");
+  const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("square");
   const [selectedLora, setSelectedLora] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly");
 
@@ -370,35 +367,24 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 gap-6">
             <div className="flex flex-col gap-3">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Target Resolution</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
-                    {(Object.keys(RESOLUTIONS) as Array<keyof typeof RESOLUTIONS>).map((key) => (
-                        <button key={key} onClick={() => setResolution(key)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${resolution === key ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 shadow-md" : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800"}`}>
-                            <span className="text-[10px] font-black">{RESOLUTIONS[key].label}</span>
-                        </button>
-                    ))}
-                </div>
-                
-                {resolution === "square" && (
-                    <div className="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                                <Monitor className="w-4 h-4" /> SNS Overlay
-                            </label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={overlaySettings.enabled} onChange={(e) => setOverlaySettings({...overlaySettings, enabled: e.target.checked})} className="sr-only peer" />
-                                <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                            </label>
-                        </div>
-                        {overlaySettings.enabled && (
-                            <div className="grid grid-cols-1 gap-2">
-                                <input type="text" placeholder="Profile Name" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.profile_name} onChange={(e) => setOverlaySettings({...overlaySettings, profile_name: e.target.value})} />
-                                <input type="text" placeholder="Likes (e.g. 12.5k)" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.likes_count} onChange={(e) => setOverlaySettings({...overlaySettings, likes_count: e.target.value})} />
-                                <input type="text" placeholder="Caption / Hashtags" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.caption} onChange={(e) => setOverlaySettings({...overlaySettings, caption: e.target.value})} />
-                            </div>
-                        )}
+                <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                            <Monitor className="w-4 h-4" /> SNS Overlay
+                        </label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={overlaySettings.enabled} onChange={(e) => setOverlaySettings({...overlaySettings, enabled: e.target.checked})} className="sr-only peer" />
+                            <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
                     </div>
-                )}
+                    {overlaySettings.enabled && (
+                        <div className="grid grid-cols-1 gap-2">
+                            <input type="text" placeholder="Profile Name" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.profile_name} onChange={(e) => setOverlaySettings({...overlaySettings, profile_name: e.target.value})} />
+                            <input type="text" placeholder="Likes (e.g. 12.5k)" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.likes_count} onChange={(e) => setOverlaySettings({...overlaySettings, likes_count: e.target.value})} />
+                            <input type="text" placeholder="Caption / Hashtags" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.caption} onChange={(e) => setOverlaySettings({...overlaySettings, caption: e.target.value})} />
+                        </div>
+                    )}
+                </div>
             </div>
             <div className="flex flex-col gap-3">
                 <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">LoRA Model</label>
@@ -431,7 +417,18 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center p-8 bg-zinc-50 dark:bg-black font-sans text-zinc-900 dark:text-zinc-100 pb-20">
       <audio ref={audioRef} hidden />
-      <audio ref={bgmPlayerRef} hidden onEnded={() => setPlayingBgm(null)} />
+      <audio 
+        ref={bgmPlayerRef} 
+        hidden 
+        onEnded={() => setPlayingBgm(null)} 
+        onTimeUpdate={(e) => {
+          if (e.currentTarget.currentTime >= 3) {
+            e.currentTarget.pause();
+            e.currentTarget.currentTime = 0;
+            setPlayingBgm(null);
+          }
+        }}
+      />
 
       <main className="flex w-full max-w-7xl flex-col items-center gap-6 mt-10">
         <div className="flex flex-col items-center gap-2">
