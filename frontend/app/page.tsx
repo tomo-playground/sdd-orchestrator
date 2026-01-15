@@ -548,8 +548,8 @@ export default function Home() {
                     {/* Step 1: Cast & Characters (Redesigned) */}
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {characters.map((char, idx) => (
-                            <div key={char.id} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4 relative overflow-hidden group">
-                                <div className="flex items-center justify-between px-1 z-10">
+                            <div key={char.id} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                                <div className="flex items-center justify-between px-1">
                                     <label className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                                         <User className="w-4 h-4" /> {char.role}
                                     </label>
@@ -557,8 +557,30 @@ export default function Home() {
                                         <Dices className="w-3.5 h-3.5" /> Random
                                     </button>
                                 </div>
+
+                                {/* Character Image Preview */}
+                                <div 
+                                    className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all ${char.image ? "cursor-zoom-in hover:opacity-95" : ""}`}
+                                    onClick={() => char.image && setPreviewImage(char.image)}
+                                >
+                                    {char.isLoading ? (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10">
+                                            <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+                                        </div>
+                                    ) : char.image ? (
+                                        <>
+                                            <Image src={char.image} alt={char.role} fill className="object-cover" unoptimized />
+                                            <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] text-white font-bold z-20">Seed: {char.seed}</div>
+                                        </>
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 gap-2 font-bold uppercase text-[10px] opacity-50">
+                                            <ImageIcon className="w-12 h-12" />
+                                            <p>No Actor Image</p>
+                                        </div>
+                                    )}
+                                </div>
                                 
-                                <div className="relative z-10 space-y-3">
+                                <div className="space-y-3">
                                     <textarea 
                                         className="w-full p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs resize-none focus:ring-1 focus:ring-indigo-400 font-medium" 
                                         rows={2} 
@@ -597,23 +619,6 @@ export default function Home() {
                                     <button onClick={() => handleGenerateActor(idx)} disabled={char.isLoading} className="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg text-xs uppercase tracking-wider">
                                         {char.isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Generate Look
                                     </button>
-                                </div>
-
-                                {/* Character Image Preview Background */}
-                                <div 
-                                    className={`absolute inset-0 z-0 bg-zinc-100 dark:bg-zinc-950 transition-all ${char.image ? "cursor-zoom-in" : ""}`}
-                                    onClick={() => char.image && setPreviewImage(char.image)}
-                                >
-                                    {char.image ? (
-                                        <>
-                                            <Image src={char.image} alt={char.role} fill className="object-cover opacity-40 group-hover:opacity-20 transition-opacity" unoptimized />
-                                            <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] text-white font-bold z-20">Seed: {char.seed}</div>
-                                        </>
-                                    ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                                            <ImageIcon className="w-20 h-20 text-zinc-400" />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         ))}
