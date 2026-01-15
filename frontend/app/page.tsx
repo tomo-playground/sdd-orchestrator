@@ -237,7 +237,7 @@ export default function Home() {
       const skipOpt = !!translatedCharacterDesc;
 
       const res = await axios.post(`${API_BASE}/generate`, {
-        prompt: finalPrompt, styles: selectedStyles, lora: selectedLora || null, width: size.w, height: size.h, seed: -1, skip_optimization: skipOpt
+        prompt: finalPrompt, styles: selectedStyles, lora: selectedLora || null, width: size.w, height: size.h, seed: -1, skip_optimization: skipOpt, negative_prompt: negativePrompt
       });
       if (res.data.images?.[0]) {
         setCharacterImageUrl(`data:image/png;base64,${res.data.images[0]}`);
@@ -274,6 +274,7 @@ export default function Home() {
             const res = await axios.post(`${API_BASE}/generate`, { 
                 prompt: combinedPrompt, 
                 persona: basePersona, // Still pass separately for backend optimization
+                negative_prompt: negativePrompt,
                 styles: selectedStyles, 
                 lora: selectedLora || null, 
                 width: size.w, height: size.h, 
@@ -318,6 +319,7 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/generate`, { 
         prompt: combinedPrompt, 
         persona: basePersona,
+        negative_prompt: negativePrompt,
         styles: selectedStyles, 
         lora: selectedLora || null, 
         width: size.w, height: size.h, 
@@ -336,6 +338,72 @@ export default function Home() {
       handleGenerate();
     }
   };
+
+  // --- Visual Settings Component (Common) ---
+  const VisualSettingsSection = () => (
+    <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-6">
+        <div className="flex items-center justify-between px-1">
+            <label className="text-sm font-bold flex items-center gap-2"><Palette className="w-4 h-4" /> {activeTab === "storyboard" ? "Step 1: " : ""}Visual Style & Settings</label>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Target Resolution</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(Object.keys(RESOLUTIONS) as Array<keyof typeof RESOLUTIONS>).map((key) => (
+                        <button key={key} onClick={() => setResolution(key)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${resolution === key ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 shadow-md" : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800"}`}>
+                            <span className="text-[10px] font-black">{RESOLUTIONS[key].label}</span>
+                        </button>
+                    ))}
+                </div>
+                
+                {resolution === "square" && (
+                    <div className="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                                <Monitor className="w-4 h-4" /> SNS Overlay
+                            </label>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={overlaySettings.enabled} onChange={(e) => setOverlaySettings({...overlaySettings, enabled: e.target.checked})} className="sr-only peer" />
+                                <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        {overlaySettings.enabled && (
+                            <div className="grid grid-cols-1 gap-2">
+                                <input type="text" placeholder="Profile Name" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.profile_name} onChange={(e) => setOverlaySettings({...overlaySettings, profile_name: e.target.value})} />
+                                <input type="text" placeholder="Likes (e.g. 12.5k)" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.likes_count} onChange={(e) => setOverlaySettings({...overlaySettings, likes_count: e.target.value})} />
+                                <input type="text" placeholder="Caption / Hashtags" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.caption} onChange={(e) => setOverlaySettings({...overlaySettings, caption: e.target.value})} />
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">LoRA Model</label>
+                <div className="relative">
+                    <select value={selectedLora} onChange={(e) => setSelectedLora(e.target.value)} className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium appearance-none focus:ring-1 focus:ring-zinc-400">
+                        <option value="">None (Default)</option>
+                        {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
+                    </select>
+                    <Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                </div>
+            </div>
+        </div>
+        <div className="flex flex-col gap-3">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
+            <div className="flex flex-wrap gap-2">
+                {STYLE_PRESETS.map((style) => (
+                    <button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>
+                        {style}
+                    </button>
+                ))}
+            </div>
+        </div>
+        <div>
+            <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings (Negative Prompt)</button>
+            {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
+        </div>
+    </section>
+  );
 
   return (
     <div className="flex min-h-screen flex-col items-center p-8 bg-zinc-50 dark:bg-black font-sans text-zinc-900 dark:text-zinc-100 pb-20">
@@ -362,11 +430,14 @@ export default function Home() {
 
         {activeTab === "storyboard" ? (
           <div className="w-full flex flex-col gap-10">
-            {/* Step 1: Persona */}
+            {/* Step 1: Visual Settings */}
+            <VisualSettingsSection />
+
+            {/* Step 2: Persona */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
                 <div className="flex items-center justify-between px-1">
-                    <label className="text-sm font-bold flex items-center gap-2"><User className="w-4 h-4" /> Step 1: Define Protagonist</label>
+                    <label className="text-sm font-bold flex items-center gap-2"><User className="w-4 h-4" /> Step 2: Define Protagonist</label>
                     <button onClick={setRandomPersona} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
                         <Dices className="w-3.5 h-3.5" /> Suggest Persona
                     </button>
@@ -384,15 +455,18 @@ export default function Home() {
 
                 <button onClick={handleGenerateCharacter} disabled={isCharLoading} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg">{isCharLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Generate Character</button>
               </div>
-              <div className="aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
+              <div 
+                className={`aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center ${characterImageUrl ? "cursor-zoom-in hover:opacity-95 transition-opacity" : ""}`}
+                onClick={() => characterImageUrl && setPreviewImage(characterImageUrl)}
+              >
                 {characterImageUrl ? <><Image src={characterImageUrl} alt="Base Character" fill className="object-cover" unoptimized /><div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-white font-bold">Seed: {fixedSeed}</div></> : <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30"><ImageIcon className="w-12 h-12" /><p className="text-xs">Character View</p></div>}
               </div>
             </section>
 
-            {/* Step 2: Planning */}
+            {/* Step 3: Planning */}
             <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between px-1">
-                <label className="text-sm font-bold flex items-center gap-2"><Clapperboard className="w-4 h-4" /> Step 2: Story Planning & Language</label>
+                <label className="text-sm font-bold flex items-center gap-2"><Clapperboard className="w-4 h-4" /> Step 3: Story Planning & Language</label>
                 <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
                     <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Topic
                 </button>
@@ -432,67 +506,6 @@ export default function Home() {
                     <button onClick={handleCreateStoryboard} disabled={isStoryLoading || !storyTopic} className="px-10 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest text-xs hover:opacity-90 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">{isStoryLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Plan Story with AI"}</button>
                 </div>
               </div>
-            </section>
-
-            {/* Step 3: Visual Settings */}
-            <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-6">
-                <div className="flex items-center justify-between px-1">
-                    <label className="text-sm font-bold flex items-center gap-2"><Palette className="w-4 h-4" /> Step 3: Visual Style & Settings</label>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Target Resolution</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {(Object.keys(RESOLUTIONS) as Array<keyof typeof RESOLUTIONS>).map((key) => (
-                                <button key={key} onClick={() => setResolution(key)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${resolution === key ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 shadow-md" : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800"}`}>
-                                    <span className="text-[10px] font-black">{RESOLUTIONS[key].label}</span>
-                                </button>
-                            ))}
-                        </div>
-                        
-                        {/* SNS Overlay Settings (Visible for Square Mode) */}
-                        {resolution === "square" && (
-                            <div className="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                                        <Monitor className="w-4 h-4" /> SNS Overlay
-                                    </label>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={overlaySettings.enabled} onChange={(e) => setOverlaySettings({...overlaySettings, enabled: e.target.checked})} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                                    </label>
-                                </div>
-                                {overlaySettings.enabled && (
-                                    <div className="grid grid-cols-1 gap-2">
-                                        <input type="text" placeholder="Profile Name" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.profile_name} onChange={(e) => setOverlaySettings({...overlaySettings, profile_name: e.target.value})} />
-                                        <input type="text" placeholder="Likes (e.g. 12.5k)" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.likes_count} onChange={(e) => setOverlaySettings({...overlaySettings, likes_count: e.target.value})} />
-                                        <input type="text" placeholder="Caption / Hashtags" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.caption} onChange={(e) => setOverlaySettings({...overlaySettings, caption: e.target.value})} />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">LoRA Model</label>
-                        <div className="relative">
-                            <select value={selectedLora} onChange={(e) => setSelectedLora(e.target.value)} className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium appearance-none focus:ring-1 focus:ring-zinc-400">
-                                <option value="">None (Default)</option>
-                                {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
-                            </select>
-                            <Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
-                        </div>
-                    </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
-                    <div className="flex flex-wrap gap-2">
-                        {STYLE_PRESETS.map((style) => (
-                            <button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>
-                                {style}
-                            </button>
-                        ))}
-                    </div>
-                </div>
             </section>
 
             {/* Step 4: Editing */}
@@ -601,6 +614,8 @@ export default function Home() {
           <div className="w-full flex flex-col gap-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-5 flex flex-col gap-6">
+                    <VisualSettingsSection />
+
                     <section className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
                         <div className="flex items-center justify-between px-1">
                             <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Creation Prompt</label>
@@ -615,46 +630,12 @@ export default function Home() {
                             </button>
                         </div>
                     </section>
-                    
-                    <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-6">
-                        <div>
-                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3 block">Resolution (9:16)</label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {(Object.keys(RESOLUTIONS) as Array<keyof typeof RESOLUTIONS>).map((key) => {
-                                    return (
-                                        <button key={key} onClick={() => setResolution(key)} className={`flex flex-col items-center p-3 rounded-2xl border transition-all ${resolution === key ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 shadow-md" : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800"}`}>
-                                            <span className="text-xs font-black">{RESOLUTIONS[key].label}</span>
-                                            <span className="text-[9px] opacity-60 font-bold">{RESOLUTIONS[key].w}x{RESOLUTIONS[key].h}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div>
-                            <div className="flex items-center justify-between mb-2 px-1">
-                                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 block flex items-center gap-1.5"><Palette className="w-3 h-3" /> Art Styles</label>
-                                <button onClick={setRandomPrompt} disabled={isRandomLoading || loading} className="text-[10px] flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors"><Dices className={`w-3 h-3 ${isRandomLoading ? "animate-spin" : ""}`} /> Random</button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">{STYLE_PRESETS.map((style) => (<button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>{style}</button>))}</div>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 block">LoRA Model</label>
-                            <div className="relative">
-                                <select value={selectedLora} onChange={(e) => setSelectedLora(e.target.value)} className="w-full p-3 pl-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium appearance-none focus:ring-1 focus:ring-zinc-400">
-                                    <option value="">None (Default)</option>
-                                    {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
-                                </select>
-                                <Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                            </div>
-                        </div>
-                        <div>
-                            <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings</button>
-                            {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
-                        </div>
-                    </section>
                 </div>
                 <div className="lg:col-span-7 flex flex-col gap-6">
-                    <div className="relative w-full aspect-[9/16] overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all duration-500 max-w-sm mx-auto">
+                    <div 
+                        className={`relative w-full aspect-[9/16] overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all duration-500 max-w-sm mx-auto ${imageUrl ? "cursor-zoom-in hover:opacity-95" : ""}`}
+                        onClick={() => imageUrl && setPreviewImage(imageUrl)}
+                    >
                         {loading ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10"><Loader2 className="w-10 h-10 animate-spin text-zinc-400" /><p className="text-sm font-medium text-zinc-500 animate-pulse">Processing...</p></div> : !imageUrl ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-300 dark:text-zinc-700 font-bold uppercase text-[10px]"><ImageIcon className="w-16 h-16 opacity-20" /><p>Image Viewer</p></div> : <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in zoom-in-95 duration-700" unoptimized />}
                     </div>
                     {translatedPrompt && (
