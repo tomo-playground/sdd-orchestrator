@@ -310,7 +310,9 @@ async def generate_audio(request: AudioGenerateRequest):
 
 @app.post("/generate")
 async def generate_image(request: GenerateRequest):
+    logger.info(f"🎨 [Image Gen] Prompt: {request.prompt[:50]}...")
     final_pos, final_neg = request.prompt, request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    
     if gemini_client:
         try:
             template = template_env.get_template("optimize_prompt.j2")
@@ -324,16 +326,33 @@ async def generate_image(request: GenerateRequest):
                 res_json = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
                 cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
             final_pos, final_neg = res_json.get("positive_prompt", final_pos), res_json.get("negative_prompt", final_neg)
-        except: pass
+        except Exception as e:
+            logger.warning(f"⚠️ Prompt Optimization Failed: {e}")
     
-    payload = {"prompt": f"{final_pos}, <lora:{request.lora}:1>" if request.lora else final_pos, "negative_prompt": final_neg, "steps": 20, "width": request.width, "height": request.height, "sampler_name": "Euler a", "cfg_scale": 7, "seed": request.seed}
+    payload = {
+        "prompt": f"{final_pos}, <lora:{request.lora}:1>" if request.lora else final_pos,
+        "negative_prompt": final_neg,
+        "steps": 20,
+        "width": request.width,
+        "height": request.height,
+        "sampler_name": "Euler a",
+        "cfg_scale": 7,
+        "seed": request.seed
+    }
+    
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.post(SD_URL, json=payload, timeout=60.0)
+            logger.info("📡 Sending request to SD WebUI...")
+            r = await client.post(SD_URL, json=payload, timeout=120.0)
+            r.raise_for_status()
+            logger.info("✅ SD WebUI Response Received")
+            
             data = r.json()
             info = json.loads(data.get("info", "{}"))
             return {"images": data.get("images", []), "seed": info.get("seed", request.seed), "translated_prompt": final_pos, "negative_prompt": final_neg}
-        except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"❌ Image Generation Failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/storyboard/create")
 async def create_storyboard(request: StoryboardRequest):
@@ -390,6 +409,7 @@ async def create_video(request: VideoRequest):
         out_w, out_h = (1080, 1920) if is_square_source else (request.width, request.height)
 
         # Asset Paths for FFmpeg (Escaped)
+        # Fix: Using double backslash for escaping correctly in Python strings
         abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/").replace(":", "\\:")
 
         for i in range(num_scenes):
@@ -414,9 +434,7 @@ async def create_video(request: VideoRequest):
                 filters.append(f"[bg{i}]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[bg_blur{i}]")
                 filters.append(f"[fg{i}]scale={out_w}:-1[fg_scaled{i}]")
                 filters.append(f"[bg_blur{i}][fg_scaled{i}]overlay=(W-w)/2:(H-h)/2-{img_y_shift}:format=auto[v{i}_base]")
-                # Trim video to match audio length exactly
                 filters.append(f"[v{i}_base]trim=duration={clip_dur},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_trimmed]")
-                # Draw text
                 filters.append(f"[v{i}_trimmed]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':fontcolor=white:fontsize=45:line_spacing=15:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw]")
             else:
                 text_y_pos = "h-th-150"
@@ -429,7 +447,6 @@ async def create_video(request: VideoRequest):
                 tts_p = temp_dir / f"tts_{i}.mp3"
                 if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
             clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
-            # Pad audio with silence if shorter than video, then trim to exact length
             filters.append(f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]")
 
         if num_scenes > 1:
@@ -470,9 +487,7 @@ async def create_video(request: VideoRequest):
             filters.append(f"{map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]")
             map_a = "[a_f]"
             
-        # Join all filters with semicolon
         filter_complex_str = ";".join(filters)
-        
         cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex_str, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
         
         result = subprocess.run(cmd, capture_output=True, text=True)
