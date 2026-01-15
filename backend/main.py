@@ -410,16 +410,19 @@ async def create_video(request: VideoRequest):
     try:
         input_args = []
         num_scenes = len(request.scenes)
-        TRANSITION_DUR = 0.7
+        TRANSITION_DUR = 0.5 # Faster transition for shorts
 
         for i, scene in enumerate(request.scenes):
             img_path = temp_dir / f"scene_{i}.png"
             tts_path = temp_dir / f"tts_{i}.mp3"
             txt_file = temp_dir / f"text_{i}.txt"
             img_path.write_bytes(base64.b64decode(scene["image_url"].split(",")[1]))
+            
+            # Script processing
             raw_script = scene.get('script', '')
             clean_script = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
-            wrapped_script = wrap_text(clean_script, width=25)
+            # Split long lines for subtitles
+            wrapped_script = wrap_text(clean_script, width=20) 
             txt_file.write_text(wrapped_script, encoding="utf-8-sig")
             
             has_valid_tts = False
@@ -434,19 +437,16 @@ async def create_video(request: VideoRequest):
             if has_valid_tts: input_args.extend(["-i", str(tts_path)])
             else: input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
 
-        # Use a list to build filter complex safely
         filters = []
-        is_square_source = (request.width == request.height)
-        out_w, out_h = (1080, 1920) if is_square_source else (request.width, request.height)
-
+        # Force Square 1:1 Output
+        out_w, out_h = (1080, 1080)
+        
         # Asset Paths for FFmpeg (Escaped)
-        # Fix: Using double backslash for escaping correctly in Python strings
         abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/").replace(":", "\\:")
 
         for i in range(num_scenes):
             v_idx, base_dur = i * 2, request.scenes[i].get('duration', 3)
             
-            # Text Path per scene
             txt_file = temp_dir / f"text_{i}.txt"
             abs_txt_path = str(txt_file.resolve()).replace("\\", "/").replace(":", "\\:")
             
@@ -455,63 +455,74 @@ async def create_video(request: VideoRequest):
                 if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
             
             clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
-            total_frames = int(clip_dur * 25)
+            
+            # 1. Image Processing: ZoomPan effect for dynamism
+            filters.append(f"[{v_idx}:v]scale=8000:-1,zoompan=z='min(zoom+0.0015,1.5)':d={int(clip_dur*25)+25}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={out_w}x{out_h},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_zoom]")
+            
+            # 2. Subtitles: Trendy Style (Yellow, Thick Border, Shadow)
+            # Removed box=1 (background box) for cleaner look
+            text_style = f"fontcolor=yellow:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3:line_spacing=20"
+            text_y_pos = "(h-text_h)/2+350" # Lower middle position
+            
+            filters.append(f"[v{i}_zoom]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':{text_style}:x=(w-text_w)/2:y={text_y_pos},trim=duration={clip_dur}[v{i}_raw]")
 
-            if is_square_source:
-                img_y_shift = 120
-                text_y_pos = 1420 if i % 2 == 0 else 220
-                
-                filters.append(f"[{v_idx}:v]split=2[bg{i}][fg{i}]")
-                filters.append(f"[bg{i}]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[bg_blur{i}]")
-                filters.append(f"[fg{i}]scale={out_w}:-1[fg_scaled{i}]")
-                filters.append(f"[bg_blur{i}][fg_scaled{i}]overlay=(W-w)/2:(H-h)/2-{img_y_shift}:format=auto[v{i}_base]")
-                filters.append(f"[v{i}_base]trim=duration={clip_dur},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_trimmed]")
-                filters.append(f"[v{i}_trimmed]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':fontcolor=white:fontsize=45:line_spacing=15:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw]")
-            else:
-                text_y_pos = "h-th-150"
-                filters.append(f"[{v_idx}:v]scale={out_w*2}:{out_h*2},zoompan=z='min(zoom+0.0015,1.5)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={out_w}x{out_h},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_zp]")
-                filters.append(f"[v{i}_zp]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':fontcolor=white:fontsize=40:line_spacing=12:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw]")
-
+        # Audio Chain
         for i in range(num_scenes):
-            a_idx, base_dur = i * 2 + 1, request.scenes[i].get('duration', 3)
+            a_idx = i * 2 + 1
+            clip_dur = request.scenes[i].get('duration', 3)
             if request.scenes[i].get('script'):
                 tts_p = temp_dir / f"tts_{i}.mp3"
-                if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
-            clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
+                if tts_p.exists(): clip_dur = max(clip_dur, get_audio_duration(tts_p) + 0.5)
+            clip_dur += (TRANSITION_DUR if i < num_scenes - 1 else 0)
             filters.append(f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]")
 
+        # Concat with Crossfade
         if num_scenes > 1:
             curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
             for i in range(1, num_scenes):
-                p_dur = request.scenes[i-1].get('duration', 3)
+                # Calculate offset based on previous clip's actual duration (minus transition overlap)
+                prev_dur = request.scenes[i-1].get('duration', 3)
                 if request.scenes[i-1].get('script'):
                     tts_p = temp_dir / f"tts_{i-1}.mp3"
-                    if tts_p.exists(): p_dur = max(p_dur, get_audio_duration(tts_p) + 0.5)
-                acc_offset += p_dur
+                    if tts_p.exists(): prev_dur = max(prev_dur, get_audio_duration(tts_p) + 0.5)
+                
+                acc_offset += prev_dur
+                
                 filters.append(f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={TRANSITION_DUR}:offset={acc_offset}[v{i}_m]")
                 curr_v = f"[v{i}_m]"
                 filters.append(f"{curr_a}[a{i}_raw]acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_m]")
                 curr_a = f"[a{i}_m]"
             map_v, map_a = curr_v, curr_a
-            l_dur = request.scenes[-1].get('duration', 3)
+            
+            # Calculate total duration for BGM fade out
+            last_dur = request.scenes[-1].get('duration', 3)
             if request.scenes[-1].get('script'):
                 tts_p = temp_dir / f"tts_{num_scenes-1}.mp3"
-                if tts_p.exists(): l_dur = max(l_dur, get_audio_duration(tts_p) + 0.5)
-            total_dur = acc_offset + l_dur
-        else: map_v, map_a, total_dur = "[v0_raw]", "[a0_raw]", request.scenes[0].get('duration', 3)
+                if tts_p.exists(): last_dur = max(last_dur, get_audio_duration(tts_p) + 0.5)
+            total_dur = acc_offset + last_dur
+        else:
+            map_v, map_a = "[v0_raw]", "[a0_raw]"
+            total_dur = request.scenes[0].get('duration', 3)
+            if request.scenes[0].get('script'):
+                tts_p = temp_dir / f"tts_0.mp3"
+                if tts_p.exists(): total_dur = max(total_dur, get_audio_duration(tts_p) + 0.5)
 
         bgm_path = AUDIO_DIR / request.bgm_file if request.bgm_file else None
         next_input_idx = num_scenes * 2
-        filters.append(f"{map_v}drawtext=text='Shorts Producer AI':fontcolor=white@0.3:fontsize=18:x=w-tw-30:y=h-th-30[v_w]")
+        
+        # Watermark
+        filters.append(f"{map_v}drawtext=text='Shorts Producer AI':fontcolor=white@0.5:fontsize=24:x=w-tw-40:y=40[v_w]")
         current_v = "[v_w]"
 
-        if is_square_source and request.overlay_settings and request.overlay_settings.enabled:
+        # SNS Overlay (If enabled)
+        if request.overlay_settings and request.overlay_settings.enabled:
             overlay_img_path = temp_dir / "custom_overlay.png"
             create_dynamic_overlay(request.overlay_settings, overlay_img_path)
             input_args.extend(["-i", str(overlay_img_path)])
             filters.append(f"{current_v}[{next_input_idx}:v]overlay=0:0[v_o]")
             current_v, next_input_idx = "[v_o]", next_input_idx + 1
             
+        # BGM Mixing
         if bgm_path and bgm_path.exists():
             input_args.extend(["-i", str(bgm_path)])
             filters.append(f"[{next_input_idx}:a]volume=0.15,afade=t=out:st={max(0, total_dur-2)}:d=2[bgm_f]")
@@ -519,8 +530,9 @@ async def create_video(request: VideoRequest):
             map_a = "[a_f]"
             
         filter_complex_str = ";".join(filters)
-        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex_str, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
+        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex_str, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-c:a", "aac", "-b:a", "192k", str(video_path)]
         
+        logger.info(f"Running FFmpeg: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             logger.error(f"FFmpeg Stderr: {result.stderr}")
