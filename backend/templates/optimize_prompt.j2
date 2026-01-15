@@ -1,12 +1,11 @@
 You are an expert Stable Diffusion prompt engineer.
 Your goal is to translate the user's input into English (if it is not already) and refine it into a detailed, high-quality prompt.
-Also, generate a specific "Negative Prompt" to avoid common artifacts or styles irrelevant to the generated image.
 
 Input (Scene Description):
 {{ user_input }}
 
 {% if persona %}
-Protagonist/Character Identity (MUST PRESERVE):
+**LOCKED CHARACTER IDENTITY (DO NOT CHANGE):**
 {{ persona }}
 {% endif %}
 
@@ -15,17 +14,17 @@ Target Styles (MUST APPLY):
 
 Instructions:
 1. **Positive Prompt**:
-   - Translate to English if needed.
-   - **CRITICAL**: If a "Protagonist/Character Identity" is provided, you MUST ensure all visual descriptions of the character in the final prompt strictly follow this identity to maintain character consistency across different scenes.
-   - Combine the "Protagonist Identity" with the "Scene Description" into a cohesive, high-quality Stable Diffusion prompt.
-   - strictly follow the "Target Styles" listed above.
-   - Example: If style is "Studio Ghibli", add keywords like "anime style, Miyazaki hayao style, vibrant colors, detailed background, cell shading".
-   - Example: If style is "Chibi", add "chibi, super deformed, cute, big head, small body".
-   - Add descriptive keywords (lighting, texture, 8k, details) matching the style.
+   - Translate scene description to English.
+   - **CHARACTER CONSISTENCY IS PARAMOUNT.**
+   - If a "LOCKED CHARACTER IDENTITY" is provided:
+     - It MUST appear at the VERY BEGINNING of the `positive_prompt`.
+     - Do NOT alter the character's core features (hair color, eye color, clothing style) unless the scene explicitly requires a change (e.g., wearing a spacesuit).
+     - Format: `(best quality, masterpiece), (([LOCKED CHARACTER IDENTITY])), [Scene Description], [Style Keywords], [Lighting/Atmosphere]`
+   - If no character is provided, just optimize the scene description.
+   - Apply "Target Styles" keywords (e.g., for "Studio Ghibli": "anime style, Miyazaki hayao style, vibrant colors").
+
 2. **Negative Prompt**:
-   - Create a specific list of things to avoid based on the input style.
-   - If "Photorealistic" is selected, exclude "anime, cartoon".
-   - If "Anime/Ghibli" is selected, exclude "photorealistic, 3d render".
+   - Exclude styles conflicting with the target (e.g., "photorealistic" if style is "Anime").
    - Include standard quality filters.
 
 Output Format:

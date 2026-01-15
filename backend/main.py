@@ -78,6 +78,7 @@ class StoryboardRequest(BaseModel):
     duration: int = 30
     style: str = "Cinematic"
     language: str = "Korean"
+    structure: str = "Free Flow" # Narrative Pattern
 
 class VideoRequest(BaseModel):
     scenes: list[dict]
@@ -282,8 +283,8 @@ async def create_storyboard(request: StoryboardRequest):
     if not gemini_client: raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
         template = template_env.get_template("create_storyboard.j2")
-        system_instruction = f"SYSTEM: Professional storyboarder and scriptwriter. Write rich, narrative 'script' in {request.language}. Each scene script should be about 2-3 sentences. NO EMOJIS."
-        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=f"{system_instruction}\n\n{template.render(topic=request.topic, duration=request.duration, style=request.style)}")
+        system_instruction = f"SYSTEM: Professional storyboarder and scriptwriter. Write CONCISE, punchy scripts in {request.language} (max 40 chars). NO EMOJIS."
+        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=f"{system_instruction}\n\n{template.render(topic=request.topic, duration=request.duration, style=request.style, structure=request.structure)}")
         return {"scenes": json.loads(res.text.strip().replace("```json", "").replace("```", ""))}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
@@ -300,97 +301,159 @@ async def create_video(request: VideoRequest):
     if not os.path.exists(font_path): font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
 
     try:
-        # Step 1: Assets Preparation
+        # Step 1: Assets Preparation (Image, TTS, Text File)
         input_args = []
-        filter_parts = []
-        total_duration = 0
-        
         num_scenes = len(request.scenes)
+        TRANSITION_DUR = 0.7  # Crossfade duration (seconds)
+
         for i, scene in enumerate(request.scenes):
             img_path = temp_dir / f"scene_{i}.png"
             tts_path = temp_dir / f"tts_{i}.mp3"
             txt_file = temp_dir / f"text_{i}.txt"
             
+            # Save Image
             img_path.write_bytes(base64.b64decode(scene["image_url"].split(",")[1]))
+            
+            # Save Text (Cleaned)
             raw_script = scene.get('script', '')
-            # Clean text specifically for FFmpeg drawtext filter
             txt_for_drawtext = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
-            # For TTS, use more permissive cleaning (only basic safety)
             txt_for_tts = raw_script.replace("'", "").strip()
-            
-            logger.info(f"🎤 Scene {i} TTS: voice={request.voice}, text_len={len(txt_for_tts)}")
-            
             wrapped_txt = wrap_text(txt_for_drawtext, width=25)
             txt_file.write_text(wrapped_txt, encoding="utf-8")
             
-            audio_dur = 0
+            # Generate TTS
             has_valid_tts = False
             if txt_for_tts:
                 try:
                     communicate = edge_tts.Communicate(txt_for_tts, request.voice)
                     await communicate.save(str(tts_path))
                     if tts_path.exists() and tts_path.stat().st_size > 0:
-                        audio_dur = get_audio_duration(tts_path)
                         has_valid_tts = True
-                    else:
-                        logger.warning(f"⚠️ TTS file for scene {i} is empty.")
                 except Exception as e:
                     logger.error(f"❌ TTS Error for scene {i}: {e}")
 
-            scene_dur = max(scene.get('duration', 3), audio_dur + 0.5)
-            total_frames = int(scene_dur * 25)
-            actual_dur = total_frames / 25.0
-            
-            input_args.extend(["-loop", "1", "-t", str(actual_dur), "-i", str(img_path)])
+            # Inputs for FFmpeg: [Image, TTS(or silence)]
+            input_args.extend(["-loop", "1", "-i", str(img_path)])
             if has_valid_tts:
                 input_args.extend(["-i", str(tts_path)])
             else:
                 input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
+
+        # Step 2: Build Filter Complex for Crossfade
+        filter_complex = ""
+        
+        # 2.1 Video Processing (ZoomPan + Subtitles)
+        w, h = request.width, request.height
+        for i in range(num_scenes):
+            v_idx = i * 2
             
-            v_idx, a_idx = i*2, i*2 + 1
-            w, h = request.width, request.height
+            # Calculate Duration
+            # Base duration from TTS or user setting
+            base_dur = request.scenes[i].get('duration', 3)
+            if request.scenes[i].get('script'): # If there's script, ensure min duration covers it
+                tts_p = temp_dir / f"tts_{i}.mp3"
+                if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
             
-            v_part = (
+            # Actual duration needed for clip = Base + Transition Overlap (if not last)
+            clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
+            total_frames = int(clip_dur * 25)
+            
+            # Zigzag Text Position
+            text_y_pos = "h-th-100" if i % 2 == 0 else "100"
+
+            filter_complex += (
                 f"[{v_idx}:v]scale={w*2}:{h*2},zoompan=z='min(zoom+0.0015,1.5)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={w}x{h},"
-                f"fps=25,trim=duration={actual_dur},setpts=PTS-STARTPTS,"
-                f"drawtext=fontfile='{font_path}':textfile='{txt_file}':fontcolor=yellow:fontsize=32:line_spacing=12:borderw=4:bordercolor=black:x=(w-text_w)/2:y=h-th-100[v{i}];"
+                f"fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS,"
+                f"drawtext=fontfile='{font_path}':textfile='{txt_file}':fontcolor=white:fontsize=32:line_spacing=12:borderw=2:bordercolor=black:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw];"
             )
-            filter_parts.append(v_part)
-            
-            if has_valid_tts:
-                a_part = f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,atrim=duration={actual_dur},asetpts=PTS-STARTPTS,apad=whole_dur={actual_dur}[a{i}];"
-            else:
-                # Use the directly provided anullsrc from input_args
-                a_part = f"[{a_idx}:a]atrim=duration={actual_dur},asetpts=PTS-STARTPTS[a{i}];"
-            filter_parts.append(a_part)
-            
-            total_duration += actual_dur
 
-        # Concat all scenes
-        v_concat = "".join([f"[v{i}]" for i in range(num_scenes)])
-        a_concat = "".join([f"[a{i}]" for i in range(num_scenes)])
-        filter_parts.append(f"{v_concat}concat=n={num_scenes}:v=1:a=0[v_full];")
-        filter_parts.append(f"{a_concat}concat=n={num_scenes}:v=0:a=1[a_full];")
+        # 2.2 Audio Processing (Pad to match video length)
+        for i in range(num_scenes):
+            a_idx = i * 2 + 1
+            # Recalculate same duration logic
+            base_dur = request.scenes[i].get('duration', 3)
+            if request.scenes[i].get('script'):
+                tts_p = temp_dir / f"tts_{i}.mp3"
+                if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
+            
+            clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
+            
+            # Process Audio
+            filter_complex += f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad=whole_dur={clip_dur},atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw];"
 
-        # Step 2: Final Processing (BGM & Watermark)
+        # 2.3 Crossfade Logic (Iterative)
+        if num_scenes > 1:
+            # Initialize with first scene
+            curr_v = "[v0_raw]"
+            curr_a = "[a0_raw]"
+            
+            # Start offset calculation
+            # First scene ends at its base_dur (without transition overlap for next)
+            # Actually, xfade offset is relative to START of the stream.
+            # Scene 0 plays for base_dur. Scene 1 starts fading in at base_dur.
+            
+            accumulated_offset = 0
+            
+            for i in range(1, num_scenes):
+                # Calculate offset for THIS transition
+                # Previous scene's functional duration (before fade out starts)
+                prev_base_dur = request.scenes[i-1].get('duration', 3)
+                if request.scenes[i-1].get('script'):
+                    tts_p = temp_dir / f"tts_{i-1}.mp3"
+                    if tts_p.exists(): prev_base_dur = max(prev_base_dur, get_audio_duration(tts_p) + 0.5)
+                
+                accumulated_offset += prev_base_dur
+                
+                # Apply Xfade
+                next_v = f"[v{i}_raw]"
+                filter_complex += f"{curr_v}{next_v}xfade=transition=fade:duration={TRANSITION_DUR}:offset={accumulated_offset}[v{i}_merged];"
+                curr_v = f"[v{i}_merged]"
+                
+                # Apply Acrossfade (Audio)
+                next_a = f"[a{i}_raw]"
+                # Acrossfade does not use offset time, it overlaps streams directly. 
+                # Since we padded streams, we just need to tell it how much to overlap.
+                # BUT wait, acrossfade consumes inputs. So a chain works: A+B -> AB, AB+C -> ABC
+                filter_complex += f"{curr_a}{next_a}acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_merged];"
+                curr_a = f"[a{i}_merged]"
+            
+            map_v = curr_v
+            map_a = curr_a
+            # Update accumulated offset to final duration for BGM fadeout
+            last_dur = request.scenes[-1].get('duration', 3)
+            if request.scenes[-1].get('script'):
+                tts_p = temp_dir / f"tts_{num_scenes-1}.mp3"
+                if tts_p.exists(): last_dur = max(last_dur, get_audio_duration(tts_p) + 0.5)
+            accumulated_offset += last_dur
+
+        else:
+            # Single scene case
+            map_v = "[v0_raw]"
+            map_a = "[a0_raw]"
+            accumulated_offset = request.scenes[0].get('duration', 3)
+
+        # Step 4: Add BGM & Watermark
         bgm_path = AUDIO_DIR / request.bgm_file if request.bgm_file else None
         watermark_vf = "drawtext=text='Shorts Producer AI':fontcolor=white@0.3:fontsize=18:x=w-tw-30:y=h-th-30"
         
         final_input_idx = num_scenes * 2
         if bgm_path and bgm_path.exists():
             input_args.extend(["-i", str(bgm_path)])
-            bgm_fade_out_start = max(0, total_duration - 2)
-            filter_parts.append(f"[v_full]{watermark_vf}[v_final];")
-            filter_parts.append(f"[{final_input_idx}:a]volume=0.15,afade=t=out:st={bgm_fade_out_start}:d=2[bgm_faded];")
-            filter_parts.append(f"[a_full][bgm_faded]amix=inputs=2:duration=first:dropout_transition=2[a_final]")
+            filter_complex += f"{map_v}{watermark_vf}[v_final];"
+            # Fade out BGM at end
+            filter_complex += f"[{final_input_idx}:a]volume=0.15,afade=t=out:st={max(0, accumulated_offset-2)}:d=2[bgm_faded];"
+            # Mix
+            filter_complex += f"{map_a}[bgm_faded]amix=inputs=2:duration=first:dropout_transition=2[a_final]"
             map_v, map_a = "[v_final]", "[a_final]"
         else:
-            filter_parts.append(f"[v_full]{watermark_vf}[v_final]")
-            map_v, map_a = "[v_final]", "[a_full]"
+            filter_complex += f"{map_v}{watermark_vf}[v_final]"
+            map_v, map_a = "[v_final]", map_a
 
-        # Step 3: Execute FFmpeg
-        full_filter = "".join(filter_parts)
-        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", full_filter, "-map", map_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
+        # Execute FFmpeg
+        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex, "-map", map_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
+        
+        # Debug: Log command for troubleshooting
+        # logger.info(f"FFmpeg Command: {' '.join(cmd)}")
         
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:

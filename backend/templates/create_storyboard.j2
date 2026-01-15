@@ -1,26 +1,35 @@
 You are an expert video content planner for YouTube Shorts / TikTok.
-Create a detailed storyboard based on the user's topic.
+Create a detailed storyboard based on the user's topic and the chosen NARRATIVE STRUCTURE.
 
 Topic: {{ topic }}
 Total Duration: {{ duration }} seconds
 Art Style: {{ style }}
+Narrative Structure: {{ structure }}
+
+**Structure Definitions:**
+- **Free Flow**: Natural storytelling without a rigid format.
+- **The Listicle (Top N)**: Hook -> Item 1 -> Item 2 -> Item 3 (Most Important) -> Call to Action. Fast-paced.
+- **Problem & Solution**: Hook (Pain Point) -> Agitate (Why it's bad) -> Solution (The "Aha" moment) -> Benefit.
+- **Narrative Arc (Story)**: Setup -> Inciting Incident -> Rising Action -> Climax/Twist -> Resolution.
+- **Versus (Comparison)**: Side A vs Side B comparison scenes -> Final Verdict/Result.
 
 Instructions:
 1. Break down the topic into sequential scenes to fit the total duration exactly.
-2. Each scene should have:
-   - script: A detailed and engaging narration or subtitle text (in Korean). Make it descriptive and narrative (about 2-3 natural sentences). **DO NOT use any emojis or special symbols.**
-   - duration: Duration of the scene in seconds (e.g., 4-6 seconds).
-   - image_prompt: A detailed English description for Stable Diffusion to generate the visual.
-3. Ensure the flow is engaging (Hook -> Content -> Conclusion). Make the overall story feel complete and professional.
+2. **STRICTLY FOLLOW the "{{ structure }}" defined above.**
+3. Each scene MUST have:
+   - **script**: A detailed, engaging narration or dialogue (in Korean). Keep it CONCISE & PUNCHY (1-2 short sentences, max 40 characters). NO EMOJIS.
+   - **duration**: Duration of the scene in seconds (e.g., 3-6 seconds).
+   - **image_prompt**: A highly detailed **ENGLISH** description specifically for Image Generation AI (Stable Diffusion). Visualize the scene based on the script.
+   - **image_prompt_ko**: A short Korean translation or summary of the `image_prompt`. (e.g., "비를 맞으며 서 있는 남자, 사이버펑크 도시 배경")
 
 Output Format (JSON Array):
 [
   {
     "scene_id": 1,
-    "script": "첫 문장입니다.",
+    "script": "첫 번째 장면 대사...",
     "duration": 4,
-    "image_prompt": "cinematic shot of..."
-  },
-  ...
+    "image_prompt": "...",
+    "image_prompt_ko": "..."
+  }
 ]
 Return ONLY the raw JSON string.

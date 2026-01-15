@@ -62,6 +62,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"single" | "storyboard">("single");
   const [currentStep, setCurrentStep] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showProjectList, setShowProjectList] = useState(false); // Project Browser Modal State
   
   // --- Global Settings ---
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -74,6 +75,7 @@ export default function Home() {
   const [storyTopic, setStoryTopic] = useState("");
   const [storyDuration, setStoryDuration] = useState(30);
   const [storyLanguage, setStoryLanguage] = useState("Korean");
+  const [storyStructure, setStoryStructure] = useState("Free Flow"); // New state
   const [storyScenes, setStoryScenes] = useState<any[]>([]);
   const [characterDesc, setCharacterDesc] = useState("A cute character with orange hair");
   const [fixedSeed, setFixedSeed] = useState<number>(-1);
@@ -221,7 +223,7 @@ export default function Home() {
     try {
       const p = fixedSeed !== -1 ? `${storyTopic}. Character: ${characterDesc}` : storyTopic;
       const res = await axios.post(`${API_BASE}/storyboard/create`, {
-        topic: p, duration: storyDuration, language: storyLanguage, style: selectedStyles.join(", ")
+        topic: p, duration: storyDuration, language: storyLanguage, style: selectedStyles.join(", "), structure: storyStructure
       });
       setStoryScenes(res.data.scenes || []);
       setCurrentStep(1); // Storyboard mode usually starts at step 1 in this UI
@@ -231,15 +233,22 @@ export default function Home() {
   const startAutopilot = async () => {
     setIsAutopilotRunning(true); setAutopilotProgress(0);
     const newScenes = [...storyScenes]; const size = RESOLUTIONS[resolution];
+    const basePersona = fixedSeed !== -1 ? characterDesc : ""; // Get base persona description
+
     for (let i = 0; i < newScenes.length; i++) {
         try {
+            // Stronger prompt engineering: [Character Desc] + [Scene Action/Background]
+            const combinedPrompt = basePersona 
+                ? `((${basePersona})), ${newScenes[i].image_prompt}` 
+                : newScenes[i].image_prompt;
+
             const res = await axios.post(`${API_BASE}/generate`, { 
-                prompt: newScenes[i].image_prompt, 
-                persona: fixedSeed !== -1 ? characterDesc : null,
+                prompt: combinedPrompt, 
+                persona: basePersona, // Still pass separately for backend optimization
                 styles: selectedStyles, 
                 lora: selectedLora || null, 
                 width: size.w, height: size.h, 
-                seed: fixedSeed 
+                seed: fixedSeed // Keep the same seed for consistency
             });
             if (res.data.images?.[0]) { newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`; setStoryScenes([...newScenes]); }
             setAutopilotProgress(((i + 1) / newScenes.length) * 100);
@@ -271,9 +280,14 @@ export default function Home() {
     setRegeneratingIndex(idx);
     try {
       const scene = storyScenes[idx]; const size = RESOLUTIONS[resolution];
+      const basePersona = fixedSeed !== -1 ? characterDesc : "";
+      const combinedPrompt = basePersona 
+        ? `((${basePersona})), ${scene.image_prompt}` 
+        : scene.image_prompt;
+
       const res = await axios.post(`${API_BASE}/generate`, { 
-        prompt: scene.image_prompt, 
-        persona: fixedSeed !== -1 ? characterDesc : null,
+        prompt: combinedPrompt, 
+        persona: basePersona,
         styles: selectedStyles, 
         lora: selectedLora || null, 
         width: size.w, height: size.h, 
@@ -362,6 +376,18 @@ export default function Home() {
                             <span className="text-[10px] text-zinc-400 font-bold">SEC</span>
                         </div>
                     </div>
+                    <div className="flex-1 min-w-[140px]">
+                        <div className="relative h-full">
+                            <select value={storyStructure} onChange={(e) => setStoryStructure(e.target.value)} className="w-full h-full px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-zinc-400 cursor-pointer">
+                                <option value="Free Flow">Free Flow (Basic)</option>
+                                <option value="The Listicle (Top N)">Listicle (Top 3)</option>
+                                <option value="Problem & Solution">Problem & Solution</option>
+                                <option value="Narrative Arc (Story)">Storytelling (Drama)</option>
+                                <option value="Versus (Comparison)">Versus (A vs B)</option>
+                            </select>
+                            <Layout className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                        </div>
+                    </div>
                     <button onClick={handleCreateStoryboard} disabled={isStoryLoading || !storyTopic} className="px-10 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest text-xs hover:opacity-90 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">{isStoryLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Plan Story with AI"}</button>
                 </div>
               </div>
@@ -436,7 +462,23 @@ export default function Home() {
                       </div>
                       <div className="flex-1 flex flex-col gap-3">
                         <div className="flex items-center gap-3"><span className="px-2.5 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider">Scene {idx + 1}</span><div className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-zinc-400" /><input type="number" className="w-10 bg-transparent border-none p-0 text-xs font-bold text-zinc-500 focus:ring-0" value={scene.duration} onChange={(e) => { const ns = [...storyScenes]; ns[idx].duration = Number(e.target.value); setStoryScenes(ns); }} /> <span className="text-[10px] font-bold text-zinc-400">SEC</span></div></div>
-                        <div className="space-y-3"><textarea className="w-full p-0 bg-transparent border-none text-sm font-semibold leading-relaxed focus:ring-0 resize-none text-zinc-800 dark:text-zinc-200" rows={2} value={scene.script} onChange={(e) => { const ns = [...storyScenes]; ns[idx].script = e.target.value; setStoryScenes(ns); }} /><div className="text-[10px] text-zinc-400 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800"><span className="text-emerald-500 font-bold uppercase tracking-widest mr-2">Prompt</span><textarea className="w-full p-0 bg-transparent border-none focus:ring-0 resize-none mt-1" rows={2} value={scene.image_prompt} onChange={(e) => { const ns = [...storyScenes]; ns[idx].image_prompt = e.target.value; setStoryScenes(ns); }} /></div></div>
+                        <div className="space-y-3"><textarea className="w-full p-0 bg-transparent border-none text-sm font-semibold leading-relaxed focus:ring-0 resize-none text-zinc-800 dark:text-zinc-200" rows={2} value={scene.script} onChange={(e) => { const ns = [...storyScenes]; ns[idx].script = e.target.value; setStoryScenes(ns); }} />                        <div className="text-[10px] text-zinc-400 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-emerald-500 font-bold uppercase tracking-widest mr-2">Prompt</span>
+                            {scene.image_prompt_ko && (
+                              <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-medium">
+                                <Eye className="w-3 h-3" /> {scene.image_prompt_ko}
+                              </div>
+                            )}
+                          </div>
+                          <textarea 
+                            className="w-full p-0 bg-transparent border-none focus:ring-0 resize-none mt-1" 
+                            rows={2} 
+                            value={scene.image_prompt} 
+                            title={scene.image_prompt_ko || "No Korean description available"}
+                            onChange={(e) => { const ns = [...storyScenes]; ns[idx].image_prompt = e.target.value; setStoryScenes(ns); }} 
+                          />
+                        </div></div>
                       </div>
                     </div>
                   ))}
@@ -528,6 +570,7 @@ export default function Home() {
             <div className="flex items-center justify-between mb-6 px-2">
                 <h2 className="text-xl font-bold flex items-center gap-2"><History className="w-5 h-5 text-zinc-400" /> Recent Production</h2>
                 <div className="flex gap-2">
+                    <button onClick={() => setShowProjectList(true)} className="px-5 py-2.5 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all flex items-center gap-2 shadow-sm active:scale-95"><Boxes className="w-4 h-4" /> Load Project</button>
                     <button onClick={handleSaveProject} className="px-5 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-all flex items-center gap-2 shadow-lg active:scale-95"><Save className="w-4 h-4" /> Save Project</button>
                 </div>
             </div>
@@ -542,6 +585,42 @@ export default function Home() {
                 ))}
             </div>
         </section>
+
+        {/* Project Browser Modal */}
+        {showProjectList && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+                <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-8 flex flex-col max-h-[80vh]">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold flex items-center gap-2"><Boxes className="w-5 h-5 text-indigo-500" /> Saved Projects</h3>
+                        <button onClick={() => setShowProjectList(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                        {projects.length === 0 ? (
+                            <div className="text-center py-20 text-zinc-400 text-sm font-medium">No saved projects found.</div>
+                        ) : (
+                            projects.map((proj: any) => (
+                                <div key={proj.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-indigo-500 transition-all group">
+                                    <div>
+                                        <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{proj.title}</h4>
+                                        <p className="text-[10px] text-zinc-400 mt-1 flex items-center gap-2">
+                                            <Clock className="w-3 h-3" /> {new Date(proj.updated_at * 1000).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { handleLoadProject(proj.id); setShowProjectList(false); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors">Load</button>
+                                        <button onClick={async () => {
+                                            if(!confirm("Delete this project?")) return;
+                                            await axios.delete(`${API_BASE}/projects/${proj.id}`);
+                                            fetchData();
+                                        }} className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
       </main>
     </div>
   );
