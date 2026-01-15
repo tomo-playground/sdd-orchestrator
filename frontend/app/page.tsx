@@ -15,12 +15,17 @@ import Image from "next/image";
 const API_BASE = "http://localhost:8000";
 const STYLE_PRESETS = [
   "Studio Ghibli",
+  "Makoto Shinkai",
   "Korean Webtoon",
+  "Romance Fantasy Webtoon",
   "Manhwa Style",
+  "Vintage Anime (90s)",
   "Chibi",
   "Photorealistic",
   "Cyberpunk",
+  "Unreal Engine 5",
   "Watercolor",
+  "Flat Design (Vector)",
   "Pixel Art",
   "Oil Painting",
   "Cinematic",
@@ -86,7 +91,7 @@ export default function Home() {
     caption: "설레는 순간들... #럽스타그램"
   });
   const [storyScenes, setStoryScenes] = useState<any[]>([]);
-  const [characterDesc, setCharacterDesc] = useState("A cute character with orange hair");
+  const [characterDesc, setCharacterDesc] = useState("주황색 머리에 파란 눈을 가진 장난기 가득한 소년");
   const [translatedCharacterDesc, setTranslatedCharacterDesc] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [fixedSeed, setFixedSeed] = useState<number>(-1);
@@ -94,6 +99,8 @@ export default function Home() {
   const [selectedVoice, setSelectedVoice] = useState("ko-KR-SunHiNeural");
   
   const [prompt, setPrompt] = useState(SAMPLE_PROMPTS[0]);
+  const [translatedSinglePrompt, setTranslatedSinglePrompt] = useState("");
+  const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [translatedPrompt, setTranslatedPrompt] = useState<string | null>(null);
   const [activeNegativePrompt, setActiveNegativePrompt] = useState<string | null>(null);
@@ -195,19 +202,35 @@ export default function Home() {
     } catch { alert("Load failed"); }
   };
 
+  const handleTranslateSingle = async () => {
+    if (!prompt) return;
+    setIsTranslatingSingle(true);
+    try {
+        const res = await axios.post(`${API_BASE}/prompt/translate`, {
+            text: prompt,
+            styles: selectedStyles
+        });
+        setTranslatedSinglePrompt(res.data.translated_prompt);
+    } catch (e) { console.error(e); alert("Translation failed"); } finally { setIsTranslatingSingle(false); }
+  };
+
   const handleGenerate = async () => {
     if (!prompt) return;
     setLoading(true); setImageUrl(null); setTranslatedPrompt(null); setActiveNegativePrompt(null);
     try {
       const size = RESOLUTIONS[resolution];
+      const finalPrompt = translatedSinglePrompt || prompt;
+      const skipOpt = !!translatedSinglePrompt;
+
       const response = await axios.post(`${API_BASE}/generate`, {
-        prompt, 
+        prompt: `${finalPrompt}, masterpiece, best quality`, 
         persona: null,
         lora: selectedLora || null, 
         negative_prompt: negativePrompt,
         styles: selectedStyles, 
         width: size.w, height: size.h, 
-        seed: -1
+        seed: -1,
+        skip_optimization: skipOpt
       });
       if (response.data.images?.[0]) {
         setImageUrl(`data:image/png;base64,${response.data.images[0]}`);
@@ -268,8 +291,8 @@ export default function Home() {
         try {
             // Stronger prompt engineering: [Character Desc] + [Scene Action/Background]
             const combinedPrompt = basePersona 
-                ? `((${basePersona}:1.5)), (consistency:1.3), ${newScenes[i].image_prompt}` 
-                : newScenes[i].image_prompt;
+                ? `((${basePersona}:1.2)), ${newScenes[i].image_prompt}, masterpiece, best quality` 
+                : `${newScenes[i].image_prompt}, masterpiece, best quality`;
 
             const res = await axios.post(`${API_BASE}/generate`, { 
                 prompt: combinedPrompt, 
@@ -313,8 +336,8 @@ export default function Home() {
       const scene = storyScenes[idx]; const size = RESOLUTIONS[resolution];
       const basePersona = fixedSeed !== -1 ? characterDesc : "";
       const combinedPrompt = basePersona 
-        ? `((${basePersona}:1.5)), (consistency:1.3), ${scene.image_prompt}` 
-        : scene.image_prompt;
+        ? `((${basePersona}:1.2)), ${scene.image_prompt}, masterpiece, best quality` 
+        : `${scene.image_prompt}, masterpiece, best quality`;
 
       const res = await axios.post(`${API_BASE}/generate`, { 
         prompt: combinedPrompt, 
@@ -623,12 +646,21 @@ export default function Home() {
                                 <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Prompt
                             </button>
                         </div>
-                        <div className="relative">
-                            <textarea className="w-full p-4 pr-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all resize-none text-sm leading-relaxed" placeholder="Describe the image..." rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
-                            <button onClick={handleGenerate} disabled={loading || !prompt} className="absolute bottom-4 right-4 p-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center">
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                            </button>
-                        </div>
+                        
+                        <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all resize-none text-sm leading-relaxed" placeholder="Describe the image..." rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+                        
+                        <button onClick={handleTranslateSingle} disabled={isTranslatingSingle || !prompt} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
+
+                        {translatedSinglePrompt && (
+                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
+                                <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedSinglePrompt} onChange={(e) => setTranslatedSinglePrompt(e.target.value)} />
+                            </div>
+                        )}
+
+                        <button onClick={handleGenerate} disabled={loading || !prompt} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2 shadow-lg">
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Generate Image
+                        </button>
                     </section>
                     
                     {/* Image Result */}
