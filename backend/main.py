@@ -70,6 +70,14 @@ class OverlaySettings(BaseModel):
     likes_count: str = "12.5k"
     caption: str = "설레는 순간들... #럽스타그램"
 
+class CharacterInfo(BaseModel):
+    id: int
+    role: str
+    desc: str
+    translatedDesc: str = ""
+    voice: str
+    seed: int = -1
+
 class GenerateRequest(BaseModel):
     prompt: str
     persona: str | None = None
@@ -92,15 +100,16 @@ class StoryboardRequest(BaseModel):
     style: str = "Cinematic"
     language: str = "Korean"
     structure: str = "Free Flow" # Narrative Pattern
+    characters: list[CharacterInfo] = []
 
 class VideoRequest(BaseModel):
     scenes: list[dict]
     project_name: str = "my_shorts"
     bgm_file: str | None = None
-    voice: str = "ko-KR-SunHiNeural"
     width: int = 512
     height: int = 512
     overlay_settings: OverlaySettings | None = None
+    characters: list[CharacterInfo] = []
 
 class ProjectSaveRequest(BaseModel):
     id: str | None = None
@@ -391,7 +400,10 @@ async def create_storyboard(request: StoryboardRequest):
     try:
         template = template_env.get_template("create_storyboard.j2")
         system_instruction = f"SYSTEM: Professional storyboarder and scriptwriter. Write CONCISE, punchy scripts in {request.language} (max 40 chars). NO EMOJIS."
-        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=f"{system_instruction}\n\n{template.render(topic=request.topic, duration=request.duration, style=request.style, structure=request.structure)}")
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp", 
+            contents=f"{system_instruction}\n\n{template.render(topic=request.topic, duration=request.duration, style=request.style, structure=request.structure, characters=request.characters)}"
+        )
         return {"scenes": json.loads(res.text.strip().replace("```json", "").replace("```", ""))}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
@@ -428,7 +440,15 @@ async def create_video(request: VideoRequest):
             has_valid_tts = False
             if txt_for_tts := raw_script.replace("'", "").strip():
                 try:
-                    communicate = edge_tts.Communicate(txt_for_tts, request.voice)
+                    # Determine voice based on speaker
+                    speaker = scene.get('speaker', 'Narrator')
+                    voice = "ko-KR-SunHiNeural" # Default
+                    if speaker == "A" and len(request.characters) > 0:
+                        voice = request.characters[0].voice
+                    elif speaker == "B" and len(request.characters) > 1:
+                        voice = request.characters[1].voice
+                        
+                    communicate = edge_tts.Communicate(txt_for_tts, voice)
                     await communicate.save(str(tts_path))
                     if tts_path.exists() and tts_path.stat().st_size > 0: has_valid_tts = True
                 except: pass
@@ -442,13 +462,13 @@ async def create_video(request: VideoRequest):
         out_w, out_h = (1080, 1080)
         
         # Asset Paths for FFmpeg (Escaped)
-        abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/").replace(":", "\\:")
+        abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\", "/").replace(":", "\\:")
 
         for i in range(num_scenes):
             v_idx, base_dur = i * 2, request.scenes[i].get('duration', 3)
             
             txt_file = temp_dir / f"text_{i}.txt"
-            abs_txt_path = str(txt_file.resolve()).replace("\\", "/").replace(":", "\\:")
+            abs_txt_path = str(txt_file.resolve()).replace("\", "/").replace(":", "\\:")
             
             if request.scenes[i].get('script'):
                 tts_p = temp_dir / f"tts_{i}.mp3"
@@ -464,7 +484,7 @@ async def create_video(request: VideoRequest):
             text_style = f"fontcolor=yellow:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3:line_spacing=20"
             text_y_pos = "(h-text_h)/2+350" # Lower middle position
             
-            filters.append(f"[v{i}_zoom]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':{text_style}:x=(w-text_w)/2:y={text_y_pos},trim=duration={clip_dur}[v{i}_raw]")
+            filters.append(f"[{v_idx}_zoom]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':{text_style}:x=(w-text_w)/2:y={text_y_pos},trim=duration={clip_dur}[v{i}_raw]")
 
         # Audio Chain
         for i in range(num_scenes):

@@ -7,7 +7,7 @@ import {
   Square as SquareIcon, Sparkles, ImageIcon, Clapperboard, Image as LucideImage, 
   User, Clock, Music, Trash2, Edit3, UserCircle, RefreshCw, Volume2, Download, 
   CheckCircle2, Globe, Play, Film, Save, History, Boxes, Eye, Plus, X, ChevronRight, Settings2,
-  PlayCircle, PauseCircle, Layout
+  PlayCircle, PauseCircle, Layout, Mic, UserPlus
 } from "lucide-react";
 import Image from "next/image";
 
@@ -62,6 +62,18 @@ const LANGUAGES = [
   { label: "Korean", value: "Korean", voice: "ko-KR-SunHiNeural" },
 ];
 
+interface Character {
+  id: number;
+  role: string;
+  desc: string;
+  translatedDesc: string;
+  image: string | null;
+  voice: string;
+  seed: number;
+  isTranslating: boolean;
+  isLoading: boolean;
+}
+
 export default function Home() {
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<"single" | "storyboard">("single");
@@ -74,6 +86,7 @@ export default function Home() {
   const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("square");
   const [selectedLora, setSelectedLora] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly");
+  const [narratorVoice, setNarratorVoice] = useState("ko-KR-SunHiNeural"); // Default Narrator
 
   // --- Logic States ---
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -88,13 +101,13 @@ export default function Home() {
     caption: "설레는 순간들... #럽스타그램"
   });
   const [storyScenes, setStoryScenes] = useState<any[]>([]);
-  const [characterDesc, setCharacterDesc] = useState("주황색 머리에 파란 눈을 가진 장난기 가득한 소년");
-  const [translatedCharacterDesc, setTranslatedCharacterDesc] = useState("");
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [fixedSeed, setFixedSeed] = useState<number>(-1);
-  const [characterImageUrl, setCharacterImageUrl] = useState<string | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState("ko-KR-SunHiNeural");
   
+  // New Multi-Character State
+  const [characters, setCharacters] = useState<Character[]>([
+    { id: 0, role: "Actor A (Main)", desc: "주황색 머리에 파란 눈을 가진 장난기 가득한 소년", translatedDesc: "", image: null, voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
+    { id: 1, role: "Actor B (Side)", desc: "검은색 긴 생머리에 안경을 쓴 차분한 소녀", translatedDesc: "", image: null, voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
+  ]);
+
   const [prompt, setPrompt] = useState(SAMPLE_PROMPTS[0]);
   const [translatedSinglePrompt, setTranslatedSinglePrompt] = useState("");
   const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
@@ -144,18 +157,20 @@ export default function Home() {
   };
 
   useEffect(() => { fetchData(); }, []);
-  useEffect(() => {
-    const lang = LANGUAGES.find(l => l.value === storyLanguage);
-    if (lang) setSelectedVoice(lang.voice);
-  }, [storyLanguage]);
 
   const toggleStyle = (style: string) => {
     setSelectedStyles(prev => prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]);
   };
 
-  const setRandomPersona = () => {
+  const updateCharacter = (idx: number, field: keyof Character, value: any) => {
+    const newChars = [...characters];
+    newChars[idx] = { ...newChars[idx], [field]: value };
+    setCharacters(newChars);
+  };
+
+  const setRandomPersona = (idx: number) => {
     const random = SAMPLE_PERSONAS[Math.floor(Math.random() * SAMPLE_PERSONAS.length)];
-    setCharacterDesc(random);
+    updateCharacter(idx, "desc", random);
   };
 
   const setRandomPrompt = async () => {
@@ -178,7 +193,7 @@ export default function Home() {
     try {
         const res = await axios.post(`${API_BASE}/projects/save`, {
             id: projectId, title: storyTopic || "Untitled",
-            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characterDesc, fixedSeed, selectedStyles, aspectRatio: resolution, selectedLora, selectedVoice, negativePrompt, overlaySettings }
+            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, negativePrompt, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
     } catch { alert("Save failed"); }
@@ -190,10 +205,11 @@ export default function Home() {
         const c = res.data.content;
         setProjectId(res.data.id);
         setStoryTopic(c.storyTopic); setStoryDuration(c.storyDuration); setStoryLanguage(c.storyLanguage);
-        setStoryScenes(c.storyScenes); setCharacterDesc(c.characterDesc); setFixedSeed(c.fixedSeed);
-        setSelectedStyles(c.selectedStyles || []); setAspectRatio(c.aspectRatio || "square");
+        setStoryScenes(c.storyScenes); 
+        if (c.characters) setCharacters(c.characters);
+        if (c.narratorVoice) setNarratorVoice(c.narratorVoice);
+        setSelectedStyles(c.selectedStyles || []); setResolution("square");
         setSelectedLora(c.selectedLora || ""); setNegativePrompt(c.negativePrompt || "low quality...");
-        setSelectedVoice(c.selectedVoice);
         if (c.overlaySettings) setOverlaySettings(c.overlaySettings);
         setActiveTab("storyboard");
     } catch { alert("Load failed"); }
@@ -237,68 +253,95 @@ export default function Home() {
     } catch { alert("Error"); } finally { setLoading(false); }
   };
 
-  const handleTranslateCharacter = async () => {
-    if (!characterDesc) return;
-    setIsTranslating(true);
+  const handleTranslateActor = async (idx: number) => {
+    const char = characters[idx];
+    if (!char.desc) return;
+    updateCharacter(idx, "isTranslating", true);
     try {
         const res = await axios.post(`${API_BASE}/prompt/translate`, {
-            text: characterDesc,
+            text: char.desc,
             styles: selectedStyles
         });
-        setTranslatedCharacterDesc(res.data.translated_prompt);
-    } catch (e) { console.error(e); alert("Translation failed"); } finally { setIsTranslating(false); }
+        updateCharacter(idx, "translatedDesc", res.data.translated_prompt);
+    } catch (e) { console.error(e); alert("Translation failed"); } 
+    finally { updateCharacter(idx, "isTranslating", false); }
   };
 
-  const handleGenerateCharacter = async () => {
-    setIsCharLoading(true);
+  const handleGenerateActor = async (idx: number) => {
+    const char = characters[idx];
+    updateCharacter(idx, "isLoading", true);
     try {
       const size = RESOLUTIONS[resolution];
-      const finalPrompt = translatedCharacterDesc || `Character reference: ${characterDesc}`;
-      const skipOpt = !!translatedCharacterDesc;
+      const finalPrompt = char.translatedDesc || `Character reference: ${char.desc}`;
+      const skipOpt = !!char.translatedDesc;
 
       const res = await axios.post(`${API_BASE}/generate`, {
         prompt: finalPrompt, styles: selectedStyles, lora: selectedLora || null, width: size.w, height: size.h, seed: -1, skip_optimization: skipOpt, negative_prompt: negativePrompt
       });
       if (res.data.images?.[0]) {
-        setCharacterImageUrl(`data:image/png;base64,${res.data.images[0]}`);
-        setFixedSeed(res.data.seed);
+        updateCharacter(idx, "image", `data:image/png;base64,${res.data.images[0]}`);
+        updateCharacter(idx, "seed", res.data.seed);
       }
-    } catch { alert("Character failed"); } finally { setIsCharLoading(false); }
+    } catch { alert("Character failed"); } 
+    finally { updateCharacter(idx, "isLoading", false); }
   };
 
   const handleCreateStoryboard = async () => {
     if (!storyTopic) return;
     setIsStoryLoading(true);
     try {
-      const p = fixedSeed !== -1 ? `${storyTopic}. Character: ${characterDesc}` : storyTopic;
       const res = await axios.post(`${API_BASE}/storyboard/create`, {
-        topic: p, duration: storyDuration, language: storyLanguage, style: selectedStyles.join(", "), structure: storyStructure
+        topic: storyTopic, 
+        duration: storyDuration, 
+        language: storyLanguage, 
+        style: selectedStyles.join(", "), 
+        structure: storyStructure,
+        characters: characters 
       });
       setStoryScenes(res.data.scenes || []);
-      setCurrentStep(1); // Storyboard mode usually starts at step 1 in this UI
+      setCurrentStep(1); 
     } catch { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
   };
 
   const startAutopilot = async () => {
     setIsAutopilotRunning(true); setAutopilotProgress(0);
     const newScenes = [...storyScenes]; const size = RESOLUTIONS[resolution];
-    const basePersona = fixedSeed !== -1 ? characterDesc : ""; // Get base persona description
-
+    
     for (let i = 0; i < newScenes.length; i++) {
         try {
-            // Stronger prompt engineering: [Character Desc] + [Scene Action/Background]
-            const combinedPrompt = basePersona 
-                ? `((${basePersona}:1.2)), ${newScenes[i].image_prompt}, masterpiece, best quality` 
-                : `${newScenes[i].image_prompt}, masterpiece, best quality`;
+            const scene = newScenes[i];
+            const focus = scene.visual_focus || "A";
+            
+            let charPrompt = "";
+            let seedToUse = -1;
+            
+            const charA = characters[0];
+            const charB = characters[1];
+
+            if (focus === "A") {
+                charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))`;
+                seedToUse = charA.seed;
+            } else if (focus === "B") {
+                charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))`;
+                seedToUse = charB.seed;
+            } else if (focus === "Both") {
+                charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
+                seedToUse = charA.seed; 
+            } else { 
+                charPrompt = "(No humans:1.2), (Scenery:1.3)";
+                seedToUse = -1;
+            }
+
+            const combinedPrompt = `${charPrompt}, ${scene.image_prompt}, masterpiece, best quality`;
 
             const res = await axios.post(`${API_BASE}/generate`, { 
                 prompt: combinedPrompt, 
-                persona: basePersona, // Still pass separately for backend optimization
+                persona: null, 
                 negative_prompt: negativePrompt,
                 styles: selectedStyles, 
                 lora: selectedLora || null, 
                 width: size.w, height: size.h, 
-                seed: fixedSeed // Keep the same seed for consistency
+                seed: seedToUse
             });
             if (res.data.images?.[0]) { newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`; setStoryScenes([...newScenes]); }
             setAutopilotProgress(((i + 1) / newScenes.length) * 100);
@@ -311,9 +354,14 @@ export default function Home() {
     setIsVideoLoading(true); setVideoStatus("🎬 Rendering...");
     try {
       const res = await axios.post(`${API_BASE}/video/create`, {
-        scenes: storyScenes, project_name: storyTopic.substring(0, 10).replace(/\s/g, "_") || "my_shorts",
-        bgm_file: selectedBgm || null, voice: selectedVoice, width: RESOLUTIONS[resolution].w, height: RESOLUTIONS[resolution].h,
-        overlay_settings: overlaySettings
+        scenes: storyScenes, 
+        project_name: storyTopic.substring(0, 10).replace(/\s/g, "_") || "my_shorts",
+        bgm_file: selectedBgm || null, 
+        width: RESOLUTIONS[resolution].w, 
+        height: RESOLUTIONS[resolution].h,
+        overlay_settings: overlaySettings,
+        characters: characters,
+        narrator_voice: narratorVoice
       });
       setVideoUrl(res.data.video_url); fetchData();
     } catch { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
@@ -322,7 +370,13 @@ export default function Home() {
   const handlePreviewVoice = async (idx: number) => {
     setPreviewLoadingIndex(idx);
     try {
-        const res = await axios.post(`${API_BASE}/audio/preview`, { text: storyScenes[idx].script, voice: selectedVoice });
+        const scene = storyScenes[idx];
+        const speaker = scene.speaker || "A";
+        let voiceToUse = narratorVoice;
+        if (speaker === "A") voiceToUse = characters[0].voice;
+        else if (speaker === "B") voiceToUse = characters[1].voice;
+        
+        const res = await axios.post(`${API_BASE}/audio/preview`, { text: scene.script, voice: voiceToUse });
         if (audioRef.current) { audioRef.current.src = res.data.url; audioRef.current.play(); }
     } catch { console.error("Preview fail"); } finally { setPreviewLoadingIndex(null); }
   };
@@ -331,19 +385,36 @@ export default function Home() {
     setRegeneratingIndex(idx);
     try {
       const scene = storyScenes[idx]; const size = RESOLUTIONS[resolution];
-      const basePersona = fixedSeed !== -1 ? characterDesc : "";
-      const combinedPrompt = basePersona 
-        ? `((${basePersona}:1.2)), ${scene.image_prompt}, masterpiece, best quality` 
-        : `${scene.image_prompt}, masterpiece, best quality`;
+      const focus = scene.visual_focus || "A"; 
+      let charPrompt = "";
+      let seedToUse = -1;
+      const charA = characters[0];
+      const charB = characters[1];
+
+      if (focus === "A") {
+          charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))`;
+          seedToUse = charA.seed;
+      } else if (focus === "B") {
+          charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))`;
+          seedToUse = charB.seed;
+      } else if (focus === "Both") {
+          charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
+          seedToUse = charA.seed;
+      } else { 
+          charPrompt = "(No humans:1.2), (Scenery:1.3)";
+          seedToUse = -1;
+      }
+
+      const combinedPrompt = `${charPrompt}, ${scene.image_prompt}, masterpiece, best quality`;
 
       const res = await axios.post(`${API_BASE}/generate`, { 
         prompt: combinedPrompt, 
-        persona: basePersona,
+        persona: null,
         negative_prompt: negativePrompt,
         styles: selectedStyles, 
         lora: selectedLora || null, 
         width: size.w, height: size.h, 
-        seed: fixedSeed 
+        seed: seedToUse
       });
       if (res.data.images?.[0]) {
         const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.images[0]}`;
@@ -386,6 +457,24 @@ export default function Home() {
                     )}
                 </div>
             </div>
+            
+            {/* New: Narrator Voice Selection */}
+            <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2"><Mic className="w-3.5 h-3.5" /> Narrator Voice</label>
+                <div className="relative">
+                    <select 
+                        value={narratorVoice} 
+                        onChange={(e) => setNarratorVoice(e.target.value)} 
+                        className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-zinc-400 cursor-pointer"
+                    >
+                        <option value="ko-KR-SunHiNeural">SunHi (F)</option>
+                        <option value="ko-KR-InJoonNeural">InJoon (M)</option>
+                        <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (M)</option>
+                    </select>
+                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                </div>
+            </div>
+
             <div className="flex flex-col gap-3">
                 <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">LoRA Model</label>
                 <div className="relative">
@@ -393,7 +482,7 @@ export default function Home() {
                         <option value="">None (Default)</option>
                         {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
                     </select>
-                    <Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                    < Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                 </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -456,34 +545,78 @@ export default function Home() {
 
                 {activeTab === "storyboard" ? (
                 <div className="w-full flex flex-col gap-10">
-                    {/* Step 1: Persona (Restored as Step 1) */}
+                    {/* Step 1: Cast & Characters (Redesigned) */}
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-                        <div className="flex items-center justify-between px-1">
-                            <label className="text-sm font-bold flex items-center gap-2"><User className="w-4 h-4" /> Step 1: Define Protagonist</label>
-                            <button onClick={setRandomPersona} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                                <Dices className="w-3.5 h-3.5" /> Suggest Persona
-                            </button>
-                        </div>
-                        <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm resize-none focus:ring-1 focus:ring-zinc-400 font-medium" rows={3} value={characterDesc} onChange={(e) => setCharacterDesc(e.target.value)} />
-                        
-                        <button onClick={handleTranslateCharacter} disabled={isTranslating || !characterDesc} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
+                        {characters.map((char, idx) => (
+                            <div key={char.id} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4 relative overflow-hidden group">
+                                <div className="flex items-center justify-between px-1 z-10">
+                                    <label className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                        <User className="w-4 h-4" /> {char.role}
+                                    </label>
+                                    <button onClick={() => setRandomPersona(idx)} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                                        <Dices className="w-3.5 h-3.5" /> Random
+                                    </button>
+                                </div>
+                                
+                                <div className="relative z-10 space-y-3">
+                                    <textarea 
+                                        className="w-full p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs resize-none focus:ring-1 focus:ring-indigo-400 font-medium" 
+                                        rows={2} 
+                                        value={char.desc} 
+                                        placeholder={`Describe ${char.role}...`}
+                                        onChange={(e) => updateCharacter(idx, "desc", e.target.value)} 
+                                    />
+                                    
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleTranslateActor(idx)} disabled={char.isTranslating || !char.desc} className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-1 text-[10px] uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
+                                            {char.isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate
+                                        </button>
+                                        <div className="relative flex-1">
+                                            <select 
+                                                value={char.voice} 
+                                                onChange={(e) => updateCharacter(idx, "voice", e.target.value)} 
+                                                className="w-full py-2 pl-2 pr-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-[10px] font-bold appearance-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                            >
+                                                <option value="ko-KR-SunHiNeural">SunHi (F)</option>
+                                                <option value="ko-KR-InJoonNeural">InJoon (M)</option>
+                                                <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (M)</option>
+                                            </select>
+                                            <Mic className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
+                                        </div>
+                                    </div>
 
-                        {translatedCharacterDesc && (
-                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
-                                <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedCharacterDesc} onChange={(e) => setTranslatedCharacterDesc(e.target.value)} />
+                                    {char.translatedDesc && (
+                                        <textarea 
+                                            className="w-full p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-[10px] resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" 
+                                            rows={2} 
+                                            value={char.translatedDesc} 
+                                            onChange={(e) => updateCharacter(idx, "translatedDesc", e.target.value)} 
+                                        />
+                                    )}
+
+                                    <button onClick={() => handleGenerateActor(idx)} disabled={char.isLoading} className="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg text-xs uppercase tracking-wider">
+                                        {char.isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Generate Look
+                                    </button>
+                                </div>
+
+                                {/* Character Image Preview Background */}
+                                <div 
+                                    className={`absolute inset-0 z-0 bg-zinc-100 dark:bg-zinc-950 transition-all ${char.image ? "cursor-zoom-in" : ""}`}
+                                    onClick={() => char.image && setPreviewImage(char.image)}
+                                >
+                                    {char.image ? (
+                                        <>
+                                            <Image src={char.image} alt={char.role} fill className="object-cover opacity-40 group-hover:opacity-20 transition-opacity" unoptimized />
+                                            <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] text-white font-bold z-20">Seed: {char.seed}</div>
+                                        </>
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                                            <ImageIcon className="w-20 h-20 text-zinc-400" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-
-                        <button onClick={handleGenerateCharacter} disabled={isCharLoading} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg">{isCharLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Generate Character</button>
-                    </div>
-                    <div 
-                        className={`aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center ${characterImageUrl ? "cursor-zoom-in hover:opacity-95 transition-opacity" : ""}`}
-                        onClick={() => characterImageUrl && setPreviewImage(characterImageUrl)}
-                    >
-                        {characterImageUrl ? <><Image src={characterImageUrl} alt="Base Character" fill className="object-cover" unoptimized /><div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-white font-bold">Seed: {fixedSeed}</div></> : <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30"><ImageIcon className="w-12 h-12" /><p className="text-xs">Character View</p></div>}
-                    </div>
+                        ))}
                     </section>
 
                     {/* Step 2: Planning */}
@@ -531,22 +664,13 @@ export default function Home() {
                     </div>
                     </section>
 
-                    {/* Step 3: Scenes (Renamed from Step 4) */}
+                    {/* Step 3: Scenes */}
                     {storyScenes.length > 0 && (
                     <div className="flex flex-col gap-6">
                         <div className="flex items-center justify-between px-2 text-center md:text-left flex-wrap gap-4">
                         <h3 className="font-bold text-lg w-full md:w-auto">Step 3: Storyboard Scenes</h3>
 
                         <div className="flex gap-2 items-center flex-wrap">
-                            <div className="relative">
-                                <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-purple-500 cursor-pointer">
-                                    <option value="ko-KR-SunHiNeural">SunHi (KR)</option>
-                                    <option value="ko-KR-InJoonNeural">InJoon (KR)</option>
-                                    <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (KR)</option>
-                                </select>
-                                <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                            </div>
-                            
                             {/* Enhanced BGM Selection */}
                             <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
                                 <select value={selectedBgm} onChange={(e) => setSelectedBgm(e.target.value)} className="bg-transparent border-none text-xs font-bold px-3 py-1.5 focus:ring-0 cursor-pointer min-w-[120px]">
@@ -609,6 +733,19 @@ export default function Home() {
                                         <Eye className="w-3 h-3" /> {scene.image_prompt_ko}
                                     </div>
                                     )}
+                                    <div className="flex items-center gap-2">
+                                        <select value={scene.visual_focus || "A"} onChange={(e) => { const ns = [...storyScenes]; ns[idx].visual_focus = e.target.value; setStoryScenes(ns); }} className="bg-transparent border border-zinc-200 dark:border-zinc-700 text-[9px] font-bold rounded-lg px-1.5 py-0.5">
+                                            <option value="A">Focus: A</option>
+                                            <option value="B">Focus: B</option>
+                                            <option value="Both">Focus: Both</option>
+                                            <option value="Landscape">Landscape</option>
+                                        </select>
+                                        <select value={scene.speaker || "A"} onChange={(e) => { const ns = [...storyScenes]; ns[idx].speaker = e.target.value; setStoryScenes(ns); }} className="bg-transparent border border-zinc-200 dark:border-zinc-700 text-[9px] font-bold rounded-lg px-1.5 py-0.5">
+                                            <option value="A">Speaker: A</option>
+                                            <option value="B">Speaker: B</option>
+                                            <option value="Narrator">Narrator</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <textarea 
                                     className="w-full p-0 bg-transparent border-none focus:ring-0 resize-none mt-1" 
@@ -635,53 +772,38 @@ export default function Home() {
                 </div>
                 ) : (
                 <div className="w-full flex flex-col gap-6">
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Prompt Input Section */}
-                        <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-                            <div className="flex items-center justify-between px-1">
-                                <label className="text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Creation Prompt</label>
-                                <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                                    <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Prompt
-                                </button>
-                            </div>
-                            
-                            <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-1 focus:ring-zinc-400 transition-all resize-none text-sm leading-relaxed font-medium" placeholder="Describe the image..." rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
-                            
-                            <button onClick={handleTranslateSingle} disabled={isTranslatingSingle || !prompt} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
-
-                            {translatedSinglePrompt && (
-                                <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                                    <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
-                                    <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedSinglePrompt} onChange={(e) => setTranslatedSinglePrompt(e.target.value)} />
-                                </div>
-                            )}
-
-                            <button onClick={handleGenerate} disabled={loading || !prompt} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2 shadow-lg">
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Generate Image
+                    {/* Prompt Input */}
+                    <section className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                        <div className="flex items-center justify-between px-1">
+                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Creation Prompt</label>
+                            <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                                <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Prompt
                             </button>
                         </div>
+                        
+                        <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all resize-none text-sm leading-relaxed" placeholder="Describe the image..." rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+                        
+                        <button onClick={handleTranslateSingle} disabled={isTranslatingSingle || !prompt} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
 
-                        {/* Image Viewer Section */}
-                        <div 
-                            className={`aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center ${imageUrl ? "cursor-zoom-in hover:opacity-95 transition-opacity" : ""}`}
-                            onClick={() => imageUrl && setPreviewImage(imageUrl)}
-                        >
-                            {loading ? (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10">
-                                    <Loader2 className="w-10 h-10 animate-spin text-zinc-400" />
-                                    <p className="text-sm font-medium text-zinc-500 animate-pulse">Processing...</p>
-                                </div>
-                            ) : !imageUrl ? (
-                                <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30">
-                                    <ImageIcon className="w-12 h-12" />
-                                    <p className="text-xs font-bold uppercase tracking-widest">Image Viewer</p>
-                                </div>
-                            ) : (
-                                <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in zoom-in-95 duration-700" unoptimized />
-                            )}
-                        </div>
+                        {translatedSinglePrompt && (
+                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
+                                <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedSinglePrompt} onChange={(e) => setTranslatedSinglePrompt(e.target.value)} />
+                            </div>
+                        )}
+
+                        <button onClick={handleGenerate} disabled={loading || !prompt} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2 shadow-lg">
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Generate Image
+                        </button>
                     </section>
-
+                    
+                    {/* Image Result */}
+                    <div 
+                        className={`relative w-full aspect-[9/16] overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all duration-500 max-w-sm mx-auto ${imageUrl ? "cursor-zoom-in hover:opacity-95" : ""}`}
+                        onClick={() => imageUrl && setPreviewImage(imageUrl)}
+                    >
+                        {loading ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10"><Loader2 className="w-10 h-10 animate-spin text-zinc-400" /><p className="text-sm font-medium text-zinc-500 animate-pulse">Processing...</p></div> : !imageUrl ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-300 dark:text-zinc-700 font-bold uppercase text-[10px]"><ImageIcon className="w-16 h-16 opacity-20" /><p>Image Viewer</p></div> : <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in zoom-in-95 duration-700" unoptimized />}
+                    </div>
                     {translatedPrompt && (
                         <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
                             <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Prompt Logic</p>
