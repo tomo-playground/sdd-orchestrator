@@ -339,16 +339,16 @@ export default function Home() {
     }
   };
 
-  // --- Visual Settings Component (Common) ---
+  // --- Visual Settings Component (Global Sidebar) ---
   const VisualSettingsSection = () => (
-    <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-6">
+    <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-6 h-fit sticky top-6">
         <div className="flex items-center justify-between px-1">
-            <label className="text-sm font-bold flex items-center gap-2"><Palette className="w-4 h-4" /> {activeTab === "storyboard" ? "Step 1: " : ""}Visual Style & Settings</label>
+            <label className="text-sm font-bold flex items-center gap-2"><Palette className="w-4 h-4" /> Visual Style & Settings</label>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
             <div className="flex flex-col gap-3">
                 <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Target Resolution</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
                     {(Object.keys(RESOLUTIONS) as Array<keyof typeof RESOLUTIONS>).map((key) => (
                         <button key={key} onClick={() => setResolution(key)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${resolution === key ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 shadow-md" : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800"}`}>
                             <span className="text-[10px] font-black">{RESOLUTIONS[key].label}</span>
@@ -387,20 +387,20 @@ export default function Home() {
                     <Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                 </div>
             </div>
-        </div>
-        <div className="flex flex-col gap-3">
-            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
-            <div className="flex flex-wrap gap-2">
-                {STYLE_PRESETS.map((style) => (
-                    <button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>
-                        {style}
-                    </button>
-                ))}
+            <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
+                <div className="flex flex-wrap gap-2">
+                    {STYLE_PRESETS.map((style) => (
+                        <button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>
+                            {style}
+                        </button>
+                    ))}
+                </div>
             </div>
-        </div>
-        <div>
-            <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings (Negative Prompt)</button>
-            {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
+            <div>
+                <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings (Negative Prompt)</button>
+                {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
+            </div>
         </div>
     </section>
   );
@@ -410,7 +410,7 @@ export default function Home() {
       <audio ref={audioRef} hidden />
       <audio ref={bgmPlayerRef} hidden onEnded={() => setPlayingBgm(null)} />
 
-      <main className="flex w-full max-w-4xl flex-col items-center gap-6 mt-10">
+      <main className="flex w-full max-w-7xl flex-col items-center gap-6 mt-10">
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-4xl font-bold tracking-tight text-center">
             Shorts Producer AI
@@ -423,199 +423,199 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 p-1 bg-zinc-200 dark:bg-zinc-800 rounded-xl mb-4 shadow-inner">
-          <button onClick={() => setActiveTab("single")} className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === "single" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}><LucideImage className="w-4 h-4" /> Single Image</button>
-          <button onClick={() => setActiveTab("storyboard")} className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === "storyboard" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}><Clapperboard className="w-4 h-4" /> Storyboard Mode</button>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <div className="lg:col-span-4 flex flex-col gap-6">
+                <VisualSettingsSection />
+            </div>
 
-        {activeTab === "storyboard" ? (
-          <div className="w-full flex flex-col gap-10">
-            {/* Step 1: Visual Settings */}
-            <VisualSettingsSection />
-
-            {/* Step 2: Persona */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-                <div className="flex items-center justify-between px-1">
-                    <label className="text-sm font-bold flex items-center gap-2"><User className="w-4 h-4" /> Step 2: Define Protagonist</label>
-                    <button onClick={setRandomPersona} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                        <Dices className="w-3.5 h-3.5" /> Suggest Persona
-                    </button>
+            <div className="lg:col-span-8 flex flex-col gap-6">
+                <div className="flex items-center gap-2 p-1 bg-zinc-200 dark:bg-zinc-800 rounded-xl mb-4 shadow-inner w-fit">
+                    <button onClick={() => setActiveTab("single")} className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === "single" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}><LucideImage className="w-4 h-4" /> Single Image</button>
+                    <button onClick={() => setActiveTab("storyboard")} className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === "storyboard" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}><Clapperboard className="w-4 h-4" /> Storyboard Mode</button>
                 </div>
-                <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm resize-none focus:ring-1 focus:ring-zinc-400 font-medium" rows={3} value={characterDesc} onChange={(e) => setCharacterDesc(e.target.value)} />
-                
-                <button onClick={handleTranslateCharacter} disabled={isTranslating || !characterDesc} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
 
-                {translatedCharacterDesc && (
-                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
-                        <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedCharacterDesc} onChange={(e) => setTranslatedCharacterDesc(e.target.value)} />
-                    </div>
-                )}
-
-                <button onClick={handleGenerateCharacter} disabled={isCharLoading} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg">{isCharLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Generate Character</button>
-              </div>
-              <div 
-                className={`aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center ${characterImageUrl ? "cursor-zoom-in hover:opacity-95 transition-opacity" : ""}`}
-                onClick={() => characterImageUrl && setPreviewImage(characterImageUrl)}
-              >
-                {characterImageUrl ? <><Image src={characterImageUrl} alt="Base Character" fill className="object-cover" unoptimized /><div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-white font-bold">Seed: {fixedSeed}</div></> : <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30"><ImageIcon className="w-12 h-12" /><p className="text-xs">Character View</p></div>}
-              </div>
-            </section>
-
-            {/* Step 3: Planning */}
-            <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-              <div className="flex items-center justify-between px-1">
-                <label className="text-sm font-bold flex items-center gap-2"><Clapperboard className="w-4 h-4" /> Step 3: Story Planning & Language</label>
-                <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                    <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Topic
-                </button>
-              </div>
-              <div className="flex flex-col gap-4">
-                <div className="relative flex-1">
-                  <textarea 
-                    className="w-full p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all text-base font-medium resize-none shadow-inner" 
-                    placeholder="Enter a detailed topic or scenario for your shorts..." 
-                    rows={3}
-                    value={storyTopic} 
-                    onChange={(e) => setStoryTopic(e.target.value)} 
-                  />
-                </div>
-                <div className="flex flex-col md:flex-row gap-3">
-                    <div className="flex-1 flex gap-2">
-                        <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-6 border border-zinc-100 dark:border-zinc-800 shadow-sm flex-1 justify-center">
-                            <Clock className="w-4 h-4 text-zinc-400" />
-                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mr-2">Duration</span>
-                            <input type="number" min={10} max={60} className="w-10 bg-transparent border-none text-sm font-bold text-center focus:ring-0" value={storyDuration} onChange={(e) => setStoryDuration(Number(e.target.value))} />
-                            <span className="text-[10px] text-zinc-400 font-bold">SEC</span>
-                        </div>
-                    </div>
-                    <div className="flex-1 min-w-[140px]">
-                        <div className="relative h-full">
-                            <select value={storyStructure} onChange={(e) => setStoryStructure(e.target.value)} className="w-full h-full px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-zinc-400 cursor-pointer">
-                                <option value="Free Flow">Free Flow (Basic)</option>
-                                <option value="The Listicle (Top N)">Listicle (Top 3)</option>
-                                <option value="Problem & Solution">Problem & Solution</option>
-                                <option value="Narrative Arc (Story)">Storytelling (Drama)</option>
-                                <option value="Versus (Comparison)">Versus (A vs B)</option>
-                                <option value="Romance / Couple Vlog">Couple Vlog (Romance)</option>
-                            </select>
-                            <Layout className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                        </div>
-                    </div>
-                    <button onClick={handleCreateStoryboard} disabled={isStoryLoading || !storyTopic} className="px-10 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest text-xs hover:opacity-90 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">{isStoryLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Plan Story with AI"}</button>
-                </div>
-              </div>
-            </section>
-
-            {/* Step 4: Editing */}
-            {storyScenes.length > 0 && (
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between px-2 text-center md:text-left flex-wrap gap-4">
-                  <h3 className="font-bold text-lg w-full md:w-auto">Step 4: Storyboard Scenes</h3>
-
-                  <div className="flex gap-2 items-center flex-wrap">
-                    <div className="relative">
-                        <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-purple-500 cursor-pointer">
-                            <option value="ko-KR-SunHiNeural">SunHi (KR)</option>
-                            <option value="ko-KR-InJoonNeural">InJoon (KR)</option>
-                            <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (KR)</option>
-                        </select>
-                        <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                    </div>
-                    
-                    {/* Enhanced BGM Selection with Preview */}
-                    <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                        <select value={selectedBgm} onChange={(e) => setSelectedBgm(e.target.value)} className="bg-transparent border-none text-xs font-bold px-3 py-1.5 focus:ring-0 cursor-pointer min-w-[120px]">
-                            <option value="">No BGM</option>
-                            {bgmList.map(bgm => <option key={bgm.name} value={bgm.name}>{bgm.name}</option>)}
-                        </select>
-                        {selectedBgm && (
-                            <button 
-                                onClick={() => {
-                                    const bgm = bgmList.find(b => b.name === selectedBgm);
-                                    if (!bgm) return;
-                                    if (playingBgm === selectedBgm) {
-                                        bgmPlayerRef.current?.pause();
-                                        setPlayingBgm(null);
-                                    } else if (bgmPlayerRef.current) {
-                                        bgmPlayerRef.current.src = bgm.url;
-                                        bgmPlayerRef.current.play();
-                                        setPlayingBgm(selectedBgm);
-                                    }
-                                }}
-                                className="p-1.5 text-zinc-500 hover:text-indigo-600 transition-colors"
-                            >
-                                {playingBgm === selectedBgm ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                {activeTab === "storyboard" ? (
+                <div className="w-full flex flex-col gap-10">
+                    {/* Step 1: Persona (Restored as Step 1) */}
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                        <div className="flex items-center justify-between px-1">
+                            <label className="text-sm font-bold flex items-center gap-2"><User className="w-4 h-4" /> Step 1: Define Protagonist</label>
+                            <button onClick={setRandomPersona} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                                <Dices className="w-3.5 h-3.5" /> Suggest Persona
                             </button>
+                        </div>
+                        <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm resize-none focus:ring-1 focus:ring-zinc-400 font-medium" rows={3} value={characterDesc} onChange={(e) => setCharacterDesc(e.target.value)} />
+                        
+                        <button onClick={handleTranslateCharacter} disabled={isTranslating || !characterDesc} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
+
+                        {translatedCharacterDesc && (
+                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
+                                <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedCharacterDesc} onChange={(e) => setTranslatedCharacterDesc(e.target.value)} />
+                            </div>
+                        )}
+
+                        <button onClick={handleGenerateCharacter} disabled={isCharLoading} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg">{isCharLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Generate Character</button>
+                    </div>
+                    <div 
+                        className={`aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center ${characterImageUrl ? "cursor-zoom-in hover:opacity-95 transition-opacity" : ""}`}
+                        onClick={() => characterImageUrl && setPreviewImage(characterImageUrl)}
+                    >
+                        {characterImageUrl ? <><Image src={characterImageUrl} alt="Base Character" fill className="object-cover" unoptimized /><div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-white font-bold">Seed: {fixedSeed}</div></> : <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30"><ImageIcon className="w-12 h-12" /><p className="text-xs">Character View</p></div>}
+                    </div>
+                    </section>
+
+                    {/* Step 2: Planning */}
+                    <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center justify-between px-1">
+                        <label className="text-sm font-bold flex items-center gap-2"><Clapperboard className="w-4 h-4" /> Step 2: Story Planning & Language</label>
+                        <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                            <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Topic
+                        </button>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <div className="relative flex-1">
+                        <textarea 
+                            className="w-full p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all text-base font-medium resize-none shadow-inner" 
+                            placeholder="Enter a detailed topic or scenario for your shorts..." 
+                            rows={3}
+                            value={storyTopic} 
+                            onChange={(e) => setStoryTopic(e.target.value)} 
+                        />
+                        </div>
+                        <div className="flex flex-col md:flex-row gap-3">
+                            <div className="flex-1 flex gap-2">
+                                <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-6 border border-zinc-100 dark:border-zinc-800 shadow-sm flex-1 justify-center">
+                                    <Clock className="w-4 h-4 text-zinc-400" />
+                                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mr-2">Duration</span>
+                                    <input type="number" min={10} max={60} className="w-10 bg-transparent border-none text-sm font-bold text-center focus:ring-0" value={storyDuration} onChange={(e) => setStoryDuration(Number(e.target.value))} />
+                                    <span className="text-[10px] text-zinc-400 font-bold">SEC</span>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-w-[140px]">
+                                <div className="relative h-full">
+                                    <select value={storyStructure} onChange={(e) => setStoryStructure(e.target.value)} className="w-full h-full px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-zinc-400 cursor-pointer">
+                                        <option value="Free Flow">Free Flow (Basic)</option>
+                                        <option value="The Listicle (Top N)">Listicle (Top 3)</option>
+                                        <option value="Problem & Solution">Problem & Solution</option>
+                                        <option value="Narrative Arc (Story)">Storytelling (Drama)</option>
+                                        <option value="Versus (Comparison)">Versus (A vs B)</option>
+                                        <option value="Romance / Couple Vlog">Couple Vlog (Romance)</option>
+                                    </select>
+                                    <Layout className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                                </div>
+                            </div>
+                            <button onClick={handleCreateStoryboard} disabled={isStoryLoading || !storyTopic} className="px-10 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest text-xs hover:opacity-90 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">{isStoryLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Plan Story with AI"}</button>
+                        </div>
+                    </div>
+                    </section>
+
+                    {/* Step 3: Scenes (Renamed from Step 4) */}
+                    {storyScenes.length > 0 && (
+                    <div className="flex flex-col gap-6">
+                        <div className="flex items-center justify-between px-2 text-center md:text-left flex-wrap gap-4">
+                        <h3 className="font-bold text-lg w-full md:w-auto">Step 3: Storyboard Scenes</h3>
+
+                        <div className="flex gap-2 items-center flex-wrap">
+                            <div className="relative">
+                                <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-purple-500 cursor-pointer">
+                                    <option value="ko-KR-SunHiNeural">SunHi (KR)</option>
+                                    <option value="ko-KR-InJoonNeural">InJoon (KR)</option>
+                                    <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (KR)</option>
+                                </select>
+                                <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                            </div>
+                            
+                            {/* Enhanced BGM Selection */}
+                            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                                <select value={selectedBgm} onChange={(e) => setSelectedBgm(e.target.value)} className="bg-transparent border-none text-xs font-bold px-3 py-1.5 focus:ring-0 cursor-pointer min-w-[120px]">
+                                    <option value="">No BGM</option>
+                                    {bgmList.map(bgm => <option key={bgm.name} value={bgm.name}>{bgm.name}</option>)}
+                                </select>
+                                {selectedBgm && (
+                                    <button 
+                                        onClick={() => {
+                                            const bgm = bgmList.find(b => b.name === selectedBgm);
+                                            if (!bgm) return;
+                                            if (playingBgm === selectedBgm) {
+                                                bgmPlayerRef.current?.pause();
+                                                setPlayingBgm(null);
+                                            } else if (bgmPlayerRef.current) {
+                                                bgmPlayerRef.current.src = bgm.url;
+                                                bgmPlayerRef.current.play();
+                                                setPlayingBgm(selectedBgm);
+                                            }
+                                        }}
+                                        className="p-1.5 text-zinc-500 hover:text-indigo-600 transition-colors"
+                                    >
+                                        {playingBgm === selectedBgm ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                                    </button>
+                                )}
+                            </div>
+
+                            <button onClick={startAutopilot} disabled={isAutopilotRunning || isVideoLoading} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg">{isAutopilotRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : "Autopilot"}</button>
+                            {storyScenes.every(s => s.image_url) && <button onClick={handleCreateVideo} disabled={isVideoLoading} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg">{isVideoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Produce 🎬"}</button>}
+                        </div>
+                        </div>
+
+                        {(isAutopilotRunning || isVideoLoading) && (
+                            <div className="w-full bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3">
+                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                    <span className="flex items-center gap-2 text-indigo-500"><Loader2 className="w-3 h-3 animate-spin" /> {isVideoLoading ? videoStatus : "Autopilot Active"}</span>
+                                    <span>{isAutopilotRunning ? `${Math.round(autopilotProgress)}%` : ""}</span>
+                                </div>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-indigo-500 h-full transition-all duration-500" style={{ width: isAutopilotRunning ? `${autopilotProgress}%` : "100%" }} /></div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-4">
+                        {storyScenes.map((scene, idx) => (
+                            <div key={idx} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row gap-6 relative group transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                <button onClick={() => handlePreviewVoice(idx)} disabled={previewLoadingIndex === idx} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-blue-500 transition-colors shadow-sm"><Volume2 className="w-4 h-4" /></button>
+                                <button onClick={() => handleRegenerateScene(idx)} disabled={regeneratingIndex !== null} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-emerald-500 transition-colors shadow-sm"><RefreshCw className={`w-4 h-4 ${regeneratingIndex === idx ? "animate-spin" : ""}`} /></button>
+                            </div>
+                            <div className={`w-full md:w-48 aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all ${scene.image_url ? "cursor-zoom-in hover:opacity-90 hover:ring-4 ring-indigo-500/30" : ""}`} onClick={() => scene.image_url && setPreviewImage(scene.image_url)}>
+                                {scene.image_url ? <><Image src={scene.image_url} alt={`Scene ${idx}`} fill className="object-cover" unoptimized />{regeneratingIndex === idx && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}<div className="absolute top-2 left-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 drop-shadow-md bg-white rounded-full" /></div></> : <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 gap-2 font-bold uppercase text-[10px] opacity-20"><ImageIcon className="w-8 h-8" /> Pending</div>}
+                            </div>
+                            <div className="flex-1 flex flex-col gap-3">
+                                <div className="flex items-center gap-3"><span className="px-2.5 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider">Scene {idx + 1}</span><div className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-zinc-400" /><input type="number" className="w-10 bg-transparent border-none p-0 text-xs font-bold text-zinc-500 focus:ring-0" value={scene.duration} onChange={(e) => { const ns = [...storyScenes]; ns[idx].duration = Number(e.target.value); setStoryScenes(ns); }} /> <span className="text-[10px] font-bold text-zinc-400">SEC</span></div></div>
+                                <div className="space-y-3"><textarea className="w-full p-0 bg-transparent border-none text-sm font-semibold leading-relaxed focus:ring-0 resize-none text-zinc-800 dark:text-zinc-200" rows={2} value={scene.script} onChange={(e) => { const ns = [...storyScenes]; ns[idx].script = e.target.value; setStoryScenes(ns); }} />                        <div className="text-[10px] text-zinc-400 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-emerald-500 font-bold uppercase tracking-widest mr-2">Prompt</span>
+                                    {scene.image_prompt_ko && (
+                                    <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-medium">
+                                        <Eye className="w-3 h-3" /> {scene.image_prompt_ko}
+                                    </div>
+                                    )}
+                                </div>
+                                <textarea 
+                                    className="w-full p-0 bg-transparent border-none focus:ring-0 resize-none mt-1" 
+                                    rows={2} 
+                                    value={scene.image_prompt} 
+                                    title={scene.image_prompt_ko || "No Korean description available"}
+                                    onChange={(e) => { const ns = [...storyScenes]; ns[idx].image_prompt = e.target.value; setStoryScenes(ns); }} 
+                                />
+                                </div></div>
+                            </div>
+                            </div>
+                        ))}
+                        </div>
+
+                        {videoUrl && (
+                            <div className="p-8 bg-zinc-900 rounded-[40px] border border-zinc-800 shadow-2xl animate-in zoom-in-95 duration-500 mt-6">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-6 block text-center">New Produced Video</label>
+                                <video src={videoUrl} controls className="w-full max-w-sm mx-auto rounded-3xl shadow-2xl border border-white/10" />
+                                <div className="mt-6 flex justify-center"><a href={videoUrl} download className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all"><Download className="w-4 h-4" /> Download MP4</a></div>
+                            </div>
                         )}
                     </div>
-
-                    <button onClick={startAutopilot} disabled={isAutopilotRunning || isVideoLoading} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg">{isAutopilotRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : "Autopilot"}</button>
-                    {storyScenes.every(s => s.image_url) && <button onClick={handleCreateVideo} disabled={isVideoLoading} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg">{isVideoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Produce 🎬"}</button>}
-                  </div>
+                    )}
                 </div>
-
-                {(isAutopilotRunning || isVideoLoading) && (
-                    <div className="w-full bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                            <span className="flex items-center gap-2 text-indigo-500"><Loader2 className="w-3 h-3 animate-spin" /> {isVideoLoading ? videoStatus : "Autopilot Active"}</span>
-                            <span>{isAutopilotRunning ? `${Math.round(autopilotProgress)}%` : ""}</span>
-                        </div>
-                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-indigo-500 h-full transition-all duration-500" style={{ width: isAutopilotRunning ? `${autopilotProgress}%` : "100%" }} /></div>
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-4">
-                  {storyScenes.map((scene, idx) => (
-                    <div key={idx} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row gap-6 relative group transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
-                      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => handlePreviewVoice(idx)} disabled={previewLoadingIndex === idx} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-blue-500 transition-colors shadow-sm"><Volume2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleRegenerateScene(idx)} disabled={regeneratingIndex !== null} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-emerald-500 transition-colors shadow-sm"><RefreshCw className={`w-4 h-4 ${regeneratingIndex === idx ? "animate-spin" : ""}`} /></button>
-                      </div>
-                      <div className={`w-full md:w-48 aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all ${scene.image_url ? "cursor-zoom-in hover:opacity-90 hover:ring-4 ring-indigo-500/30" : ""}`} onClick={() => scene.image_url && setPreviewImage(scene.image_url)}>
-                        {scene.image_url ? <><Image src={scene.image_url} alt={`Scene ${idx}`} fill className="object-cover" unoptimized />{regeneratingIndex === idx && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}<div className="absolute top-2 left-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 drop-shadow-md bg-white rounded-full" /></div></> : <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 gap-2 font-bold uppercase text-[10px] opacity-20"><ImageIcon className="w-8 h-8" /> Pending</div>}
-                      </div>
-                      <div className="flex-1 flex flex-col gap-3">
-                        <div className="flex items-center gap-3"><span className="px-2.5 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider">Scene {idx + 1}</span><div className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-zinc-400" /><input type="number" className="w-10 bg-transparent border-none p-0 text-xs font-bold text-zinc-500 focus:ring-0" value={scene.duration} onChange={(e) => { const ns = [...storyScenes]; ns[idx].duration = Number(e.target.value); setStoryScenes(ns); }} /> <span className="text-[10px] font-bold text-zinc-400">SEC</span></div></div>
-                        <div className="space-y-3"><textarea className="w-full p-0 bg-transparent border-none text-sm font-semibold leading-relaxed focus:ring-0 resize-none text-zinc-800 dark:text-zinc-200" rows={2} value={scene.script} onChange={(e) => { const ns = [...storyScenes]; ns[idx].script = e.target.value; setStoryScenes(ns); }} />                        <div className="text-[10px] text-zinc-400 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-emerald-500 font-bold uppercase tracking-widest mr-2">Prompt</span>
-                            {scene.image_prompt_ko && (
-                              <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-medium">
-                                <Eye className="w-3 h-3" /> {scene.image_prompt_ko}
-                              </div>
-                            )}
-                          </div>
-                          <textarea 
-                            className="w-full p-0 bg-transparent border-none focus:ring-0 resize-none mt-1" 
-                            rows={2} 
-                            value={scene.image_prompt} 
-                            title={scene.image_prompt_ko || "No Korean description available"}
-                            onChange={(e) => { const ns = [...storyScenes]; ns[idx].image_prompt = e.target.value; setStoryScenes(ns); }} 
-                          />
-                        </div></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {videoUrl && (
-                    <div className="p-8 bg-zinc-900 rounded-[40px] border border-zinc-800 shadow-2xl animate-in zoom-in-95 duration-500 mt-6">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-6 block text-center">New Produced Video</label>
-                        <video src={videoUrl} controls className="w-full max-w-sm mx-auto rounded-3xl shadow-2xl border border-white/10" />
-                        <div className="mt-6 flex justify-center"><a href={videoUrl} download className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all"><Download className="w-4 h-4" /> Download MP4</a></div>
-                    </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="w-full flex flex-col gap-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                    <VisualSettingsSection />
-
+                ) : (
+                <div className="w-full flex flex-col gap-6">
+                    {/* Prompt Input */}
                     <section className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
                         <div className="flex items-center justify-between px-1">
                             <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Creation Prompt</label>
@@ -630,8 +630,8 @@ export default function Home() {
                             </button>
                         </div>
                     </section>
-                </div>
-                <div className="lg:col-span-7 flex flex-col gap-6">
+                    
+                    {/* Image Result */}
                     <div 
                         className={`relative w-full aspect-[9/16] overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all duration-500 max-w-sm mx-auto ${imageUrl ? "cursor-zoom-in hover:opacity-95" : ""}`}
                         onClick={() => imageUrl && setPreviewImage(imageUrl)}
@@ -645,9 +645,9 @@ export default function Home() {
                         </div>
                     )}
                 </div>
+                )}
             </div>
-          </div>
-        )}
+        </div>
 
         {/* Produced History & Monitor - Simpler placement */}
         <section className="w-full mt-10 border-t border-zinc-200 dark:border-zinc-800 pt-10">
