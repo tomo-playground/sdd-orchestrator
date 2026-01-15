@@ -87,6 +87,8 @@ export default function Home() {
   });
   const [storyScenes, setStoryScenes] = useState<any[]>([]);
   const [characterDesc, setCharacterDesc] = useState("A cute character with orange hair");
+  const [translatedCharacterDesc, setTranslatedCharacterDesc] = useState("");
+  const [isTranslating, setIsTranslating] = useState(false);
   const [fixedSeed, setFixedSeed] = useState<number>(-1);
   const [characterImageUrl, setCharacterImageUrl] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState("ko-KR-SunHiNeural");
@@ -215,12 +217,27 @@ export default function Home() {
     } catch { alert("Error"); } finally { setLoading(false); }
   };
 
+  const handleTranslateCharacter = async () => {
+    if (!characterDesc) return;
+    setIsTranslating(true);
+    try {
+        const res = await axios.post(`${API_BASE}/prompt/translate`, {
+            text: characterDesc,
+            styles: selectedStyles
+        });
+        setTranslatedCharacterDesc(res.data.translated_prompt);
+    } catch (e) { console.error(e); alert("Translation failed"); } finally { setIsTranslating(false); }
+  };
+
   const handleGenerateCharacter = async () => {
     setIsCharLoading(true);
     try {
       const size = RESOLUTIONS[resolution];
+      const finalPrompt = translatedCharacterDesc || `Character reference: ${characterDesc}`;
+      const skipOpt = !!translatedCharacterDesc;
+
       const res = await axios.post(`${API_BASE}/generate`, {
-        prompt: `Character reference: ${characterDesc}`, styles: selectedStyles, lora: selectedLora || null, width: size.w, height: size.h, seed: -1
+        prompt: finalPrompt, styles: selectedStyles, lora: selectedLora || null, width: size.w, height: size.h, seed: -1, skip_optimization: skipOpt
       });
       if (res.data.images?.[0]) {
         setCharacterImageUrl(`data:image/png;base64,${res.data.images[0]}`);
@@ -355,7 +372,17 @@ export default function Home() {
                     </button>
                 </div>
                 <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm resize-none focus:ring-1 focus:ring-zinc-400 font-medium" rows={3} value={characterDesc} onChange={(e) => setCharacterDesc(e.target.value)} />
-                <button onClick={handleGenerateCharacter} disabled={isCharLoading} className="w-full py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-bold hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">{isCharLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Generate Character</button>
+                
+                <button onClick={handleTranslateCharacter} disabled={isTranslating || !characterDesc} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
+
+                {translatedCharacterDesc && (
+                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
+                        <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedCharacterDesc} onChange={(e) => setTranslatedCharacterDesc(e.target.value)} />
+                    </div>
+                )}
+
+                <button onClick={handleGenerateCharacter} disabled={isCharLoading} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg">{isCharLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Generate Character</button>
               </div>
               <div className="aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
                 {characterImageUrl ? <><Image src={characterImageUrl} alt="Base Character" fill className="object-cover" unoptimized /><div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-white font-bold">Seed: {fixedSeed}</div></> : <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30"><ImageIcon className="w-12 h-12" /><p className="text-xs">Character View</p></div>}

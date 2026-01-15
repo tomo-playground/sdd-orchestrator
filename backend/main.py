@@ -79,6 +79,12 @@ class GenerateRequest(BaseModel):
     width: int = 512
     height: int = 512
     seed: int = -1
+    skip_optimization: bool = False
+
+class PromptTranslateRequest(BaseModel):
+    text: str
+    styles: list[str] = []
+    persona: str | None = None
 
 class StoryboardRequest(BaseModel):
     topic: str
@@ -308,12 +314,37 @@ async def generate_audio(request: AudioGenerateRequest):
         return {"filename": filename}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/prompt/translate")
+async def translate_prompt(request: PromptTranslateRequest):
+    if not gemini_client:
+        return {"translated_prompt": request.text, "negative_prompt": DEFAULT_NEGATIVE_PROMPT}
+    try:
+        template = template_env.get_template("optimize_prompt.j2")
+        rendered = template.render(user_input=request.text, persona=request.persona, target_styles=", ".join(request.styles))
+        h = hashlib.sha256(rendered.encode()).hexdigest()
+        cache_file = CACHE_DIR / f"{h}.json"
+        
+        if cache_file.exists():
+            res_json = json.loads(cache_file.read_text(encoding="utf-8"))
+        else:
+            res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=rendered)
+            res_json = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
+            cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
+            
+        return {
+            "translated_prompt": res_json.get("positive_prompt", request.text), 
+            "negative_prompt": res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
+        }
+    except Exception as e:
+        logger.error(f"Translation failed: {e}")
+        return {"translated_prompt": request.text, "negative_prompt": DEFAULT_NEGATIVE_PROMPT}
+
 @app.post("/generate")
 async def generate_image(request: GenerateRequest):
     logger.info(f"🎨 [Image Gen] Prompt: {request.prompt[:50]}...")
     final_pos, final_neg = request.prompt, request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
     
-    if gemini_client:
+    if gemini_client and not request.skip_optimization:
         try:
             template = template_env.get_template("optimize_prompt.j2")
             rendered = template.render(user_input=request.prompt, persona=request.persona, target_styles=", ".join(request.styles))
