@@ -15,13 +15,14 @@ Target Styles (MUST APPLY):
 Instructions:
 1. **Positive Prompt**:
    - Translate scene description to English.
-   - **CHARACTER CONSISTENCY IS PARAMOUNT.**
+   - **CHARACTER CONSISTENCY IS CRITICAL.**
    - If a "LOCKED CHARACTER IDENTITY" is provided:
-     - It MUST appear at the VERY BEGINNING of the `positive_prompt`.
-     - Do NOT alter the character's core features (hair color, eye color, clothing style) unless the scene explicitly requires a change (e.g., wearing a spacesuit).
-     - Format: `(best quality, masterpiece), (([LOCKED CHARACTER IDENTITY])), [Scene Description], [Style Keywords], [Lighting/Atmosphere]`
+     - It MUST appear at the START of the `positive_prompt` with high weight.
+     - **NEVER** change the character's core features (hair color, eye color, outfit).
+     - **NEVER** add new people unless explicitly asked.
+     - Format: `(best quality, masterpiece), (([LOCKED CHARACTER IDENTITY]:1.5)), [Scene Description], [Style Keywords]`
    - If no character is provided, just optimize the scene description.
-   - Apply "Target Styles" keywords (e.g., for "Studio Ghibli": "anime style, Miyazaki hayao style, vibrant colors").
+   - Apply "Target Styles" keywords.
 
 2. **Negative Prompt**:
    - Exclude styles conflicting with the target (e.g., "photorealistic" if style is "Anime").

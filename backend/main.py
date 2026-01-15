@@ -149,7 +149,7 @@ def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path)
     if font_large is None:
         font_large = font_medium = font_small = ImageFont.load_default()
 
-    # --- Header ---
+    # Header
     header_h = 160
     draw.rectangle([(0, 0), (W, header_h)], fill=ui_bg_color)
     profile_r = 45
@@ -162,7 +162,7 @@ def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path)
         dx = 980 + (i * 15)
         draw.ellipse([(dx-dot_r, 80-dot_r), (dx+dot_r, 80+dot_r)], fill=text_color)
 
-    # --- Footer ---
+    # Footer
     footer_y = 1530
     draw.rectangle([(0, footer_y), (W, 1920)], fill=ui_bg_color)
     icon_y = footer_y + 60
@@ -191,7 +191,7 @@ def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path)
     draw.text((60, icon_y + 160), settings.profile_name, fill=text_color, font=font_medium)
     try:
         name_len = draw.textlength(settings.profile_name, font=font_medium)
-    except: name_len = 150 # Fallback
+    except: name_len = 150
     draw.text((60 + name_len + 15, icon_y + 160), settings.caption, fill=(80, 80, 80, 255), font=font_medium)
     img.save(output_path)
 
@@ -273,6 +273,12 @@ async def get_video_list():
         videos.append({"name": f.name, "url": f"http://localhost:8000/outputs/videos/{f.name}", "created_at": f.stat().st_mtime})
     videos.sort(key=lambda x: x["created_at"], reverse=True)
     return {"videos": videos}
+
+@app.delete("/video/{filename}")
+async def delete_video(filename: str):
+    file_path = VIDEO_DIR / filename
+    if file_path.exists(): file_path.unlink(); return {"status": "success"}
+    raise HTTPException(status_code=404)
 
 @app.get("/random-prompt")
 async def get_random_prompt():
@@ -362,13 +368,12 @@ async def create_video(request: VideoRequest):
             txt_file = temp_dir / f"text_{i}.txt"
             img_path.write_bytes(base64.b64decode(scene["image_url"].split(",")[1]))
             raw_script = scene.get('script', '')
-            txt_for_drawtext = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
-            txt_for_tts = raw_script.replace("'", "").strip()
-            wrapped_txt = wrap_text(txt_for_drawtext, width=25)
-            txt_file.write_text(wrapped_txt, encoding="utf-8")
+            clean_script = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
+            wrapped_script = wrap_text(clean_script, width=25)
+            txt_file.write_text(wrapped_script, encoding="utf-8-sig")
             
             has_valid_tts = False
-            if txt_for_tts:
+            if txt_for_tts := raw_script.replace("'", "").strip():
                 try:
                     communicate = edge_tts.Communicate(txt_for_tts, request.voice)
                     await communicate.save(str(tts_path))
@@ -379,51 +384,44 @@ async def create_video(request: VideoRequest):
             if has_valid_tts: input_args.extend(["-i", str(tts_path)])
             else: input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
 
-        filter_complex = ""
+        # Use a list to build filter complex safely
+        filters = []
         is_square_source = (request.width == request.height)
         out_w, out_h = (1080, 1920) if is_square_source else (request.width, request.height)
+
+        # Asset Paths for FFmpeg (Escaped)
+        abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/").replace(":", "\\:")
 
         for i in range(num_scenes):
             v_idx, base_dur = i * 2, request.scenes[i].get('duration', 3)
             
-            # Retrieve text content directly
-            raw_script = request.scenes[i].get('script', '')
-            # Clean and wrap text
-            clean_script = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
-            wrapped_script = wrap_text(clean_script, width=25)
-            
-            # Escape text for FFmpeg drawtext: ' -> \', : -> \:, % -> \%, , -> \,
-            escaped_text = wrapped_script.replace("%", "\\%").replace(":", "\\:").replace("'", "'\\''").replace(",", "\\,")
+            # Text Path per scene
+            txt_file = temp_dir / f"text_{i}.txt"
+            abs_txt_path = str(txt_file.resolve()).replace("\\", "/").replace(":", "\\:")
             
             if request.scenes[i].get('script'):
                 tts_p = temp_dir / f"tts_{i}.mp3"
                 if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
             
             clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
-            total_frames, text_y_pos = int(clip_dur * 25), "h-th-150"
-            
-            # Font path
-            abs_font_path = str(pathlib.Path(font_path).resolve()).replace(":", "\\:").replace("'", "'\\''")
+            total_frames = int(clip_dur * 25)
 
             if is_square_source:
                 img_y_shift = 120
                 text_y_pos = 1420 if i % 2 == 0 else 220
                 
-                filter_complex += (
-                    f"[{v_idx}:v]split=2[bg{i}][fg{i}];"
-                    f"[bg{i}]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[bg_blur{i}];"
-                    f"[fg{i}]scale={out_w}:-1[fg_scaled{i}];"
-                    f"[bg_blur{i}][fg_scaled{i}]overlay=(W-w)/2:(H-h)/2-{img_y_shift}:format=auto,"
-                    f"trim=duration={clip_dur},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS,"
-                    f"drawtext=fontfile='{abs_font_path}':text='{escaped_text}':fontcolor=white:fontsize=45:line_spacing=15:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw];"
-                )
+                filters.append(f"[{v_idx}:v]split=2[bg{i}][fg{i}]")
+                filters.append(f"[bg{i}]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[bg_blur{i}]")
+                filters.append(f"[fg{i}]scale={out_w}:-1[fg_scaled{i}]")
+                filters.append(f"[bg_blur{i}][fg_scaled{i}]overlay=(W-w)/2:(H-h)/2-{img_y_shift}:format=auto[v{i}_base]")
+                # Trim video to match audio length exactly
+                filters.append(f"[v{i}_base]trim=duration={clip_dur},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_trimmed]")
+                # Draw text
+                filters.append(f"[v{i}_trimmed]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':fontcolor=white:fontsize=45:line_spacing=15:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw]")
             else:
                 text_y_pos = "h-th-150"
-                filter_complex += (
-                    f"[{v_idx}:v]scale={out_w*2}:{out_h*2},zoompan=z='min(zoom+0.0015,1.5)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={out_w}x{out_h},"
-                    f"fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS,"
-                    f"drawtext=fontfile='{abs_font_path}':text='{escaped_text}':fontcolor=white:fontsize=40:line_spacing=12:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw];"
-                )
+                filters.append(f"[{v_idx}:v]scale={out_w*2}:{out_h*2},zoompan=z='min(zoom+0.0015,1.5)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={out_w}x{out_h},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_zp]")
+                filters.append(f"[v{i}_zp]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':fontcolor=white:fontsize=40:line_spacing=12:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw]")
 
         for i in range(num_scenes):
             a_idx, base_dur = i * 2 + 1, request.scenes[i].get('duration', 3)
@@ -431,7 +429,8 @@ async def create_video(request: VideoRequest):
                 tts_p = temp_dir / f"tts_{i}.mp3"
                 if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
             clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
-            filter_complex += f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw];"
+            # Pad audio with silence if shorter than video, then trim to exact length
+            filters.append(f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]")
 
         if num_scenes > 1:
             curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
@@ -441,9 +440,9 @@ async def create_video(request: VideoRequest):
                     tts_p = temp_dir / f"tts_{i-1}.mp3"
                     if tts_p.exists(): p_dur = max(p_dur, get_audio_duration(tts_p) + 0.5)
                 acc_offset += p_dur
-                filter_complex += f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={TRANSITION_DUR}:offset={acc_offset}[v{i}_m];"
+                filters.append(f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={TRANSITION_DUR}:offset={acc_offset}[v{i}_m]")
                 curr_v = f"[v{i}_m]"
-                filter_complex += f"{curr_a}[a{i}_raw]acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_m];"
+                filters.append(f"{curr_a}[a{i}_raw]acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_m]")
                 curr_a = f"[a{i}_m]"
             map_v, map_a = curr_v, curr_a
             l_dur = request.scenes[-1].get('duration', 3)
@@ -455,28 +454,37 @@ async def create_video(request: VideoRequest):
 
         bgm_path = AUDIO_DIR / request.bgm_file if request.bgm_file else None
         next_input_idx = num_scenes * 2
-        filter_complex += f"{map_v}drawtext=text='Shorts Producer AI':fontcolor=white@0.3:fontsize=18:x=w-tw-30:y=h-th-30[v_w];"
+        filters.append(f"{map_v}drawtext=text='Shorts Producer AI':fontcolor=white@0.3:fontsize=18:x=w-tw-30:y=h-th-30[v_w]")
         current_v = "[v_w]"
 
         if is_square_source and request.overlay_settings and request.overlay_settings.enabled:
             overlay_img_path = temp_dir / "custom_overlay.png"
             create_dynamic_overlay(request.overlay_settings, overlay_img_path)
             input_args.extend(["-i", str(overlay_img_path)])
-            filter_complex += f"{current_v}[{next_input_idx}:v]overlay=0:0[v_o];"
+            filters.append(f"{current_v}[{next_input_idx}:v]overlay=0:0[v_o]")
             current_v, next_input_idx = "[v_o]", next_input_idx + 1
             
         if bgm_path and bgm_path.exists():
             input_args.extend(["-i", str(bgm_path)])
-            filter_complex += f"[{next_input_idx}:a]volume=0.15,afade=t=out:st={max(0, total_dur-2)}:d=2[bgm_f]";
-            filter_complex += f"{map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]"
+            filters.append(f"[{next_input_idx}:a]volume=0.15,afade=t=out:st={max(0, total_dur-2)}:d=2[bgm_f]")
+            filters.append(f"{map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]")
             map_a = "[a_f]"
             
-        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
+        # Join all filters with semicolon
+        filter_complex_str = ";".join(filters)
+        
+        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex_str, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
+        
         result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0: raise Exception(f"FFmpeg failed: {result.stderr}")
+        if result.returncode != 0:
+            logger.error(f"FFmpeg Stderr: {result.stderr}")
+            raise Exception(f"FFmpeg failed: {result.stderr}")
+            
         shutil.rmtree(temp_dir)
         return {"video_url": f"http://localhost:8000/outputs/videos/{video_filename}"}
     except Exception as e:
+        import traceback
+        logger.error(f"Video Create Error: {traceback.format_exc()}")
         if temp_dir.exists(): shutil.rmtree(temp_dir)
         raise HTTPException(status_code=500, detail=str(e))
 

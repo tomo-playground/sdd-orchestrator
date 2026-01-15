@@ -251,7 +251,7 @@ export default function Home() {
         try {
             // Stronger prompt engineering: [Character Desc] + [Scene Action/Background]
             const combinedPrompt = basePersona 
-                ? `((${basePersona})), ${newScenes[i].image_prompt}` 
+                ? `((${basePersona}:1.5)), (consistency:1.3), ${newScenes[i].image_prompt}` 
                 : newScenes[i].image_prompt;
 
             const res = await axios.post(`${API_BASE}/generate`, { 
@@ -295,7 +295,7 @@ export default function Home() {
       const scene = storyScenes[idx]; const size = RESOLUTIONS[resolution];
       const basePersona = fixedSeed !== -1 ? characterDesc : "";
       const combinedPrompt = basePersona 
-        ? `((${basePersona})), ${scene.image_prompt}` 
+        ? `((${basePersona}:1.5)), (consistency:1.3), ${scene.image_prompt}` 
         : scene.image_prompt;
 
       const res = await axios.post(`${API_BASE}/generate`, { 
