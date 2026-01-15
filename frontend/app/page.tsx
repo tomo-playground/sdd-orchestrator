@@ -635,38 +635,53 @@ export default function Home() {
                 </div>
                 ) : (
                 <div className="w-full flex flex-col gap-6">
-                    {/* Prompt Input */}
-                    <section className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-                        <div className="flex items-center justify-between px-1">
-                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Creation Prompt</label>
-                            <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                                <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Prompt
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Prompt Input Section */}
+                        <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                            <div className="flex items-center justify-between px-1">
+                                <label className="text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4" /> Creation Prompt</label>
+                                <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                                    <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Prompt
+                                </button>
+                            </div>
+                            
+                            <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-1 focus:ring-zinc-400 transition-all resize-none text-sm leading-relaxed font-medium" placeholder="Describe the image..." rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+                            
+                            <button onClick={handleTranslateSingle} disabled={isTranslatingSingle || !prompt} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
+
+                            {translatedSinglePrompt && (
+                                <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
+                                    <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedSinglePrompt} onChange={(e) => setTranslatedSinglePrompt(e.target.value)} />
+                                </div>
+                            )}
+
+                            <button onClick={handleGenerate} disabled={loading || !prompt} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2 shadow-lg">
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Generate Image
                             </button>
                         </div>
-                        
-                        <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all resize-none text-sm leading-relaxed" placeholder="Describe the image..." rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
-                        
-                        <button onClick={handleTranslateSingle} disabled={isTranslatingSingle || !prompt} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
 
-                        {translatedSinglePrompt && (
-                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
-                                <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedSinglePrompt} onChange={(e) => setTranslatedSinglePrompt(e.target.value)} />
-                            </div>
-                        )}
-
-                        <button onClick={handleGenerate} disabled={loading || !prompt} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2 shadow-lg">
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Generate Image
-                        </button>
+                        {/* Image Viewer Section */}
+                        <div 
+                            className={`aspect-square relative rounded-3xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center ${imageUrl ? "cursor-zoom-in hover:opacity-95 transition-opacity" : ""}`}
+                            onClick={() => imageUrl && setPreviewImage(imageUrl)}
+                        >
+                            {loading ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10">
+                                    <Loader2 className="w-10 h-10 animate-spin text-zinc-400" />
+                                    <p className="text-sm font-medium text-zinc-500 animate-pulse">Processing...</p>
+                                </div>
+                            ) : !imageUrl ? (
+                                <div className="text-zinc-400 flex flex-col items-center gap-2 opacity-30">
+                                    <ImageIcon className="w-12 h-12" />
+                                    <p className="text-xs font-bold uppercase tracking-widest">Image Viewer</p>
+                                </div>
+                            ) : (
+                                <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in zoom-in-95 duration-700" unoptimized />
+                            )}
+                        </div>
                     </section>
-                    
-                    {/* Image Result */}
-                    <div 
-                        className={`relative w-full aspect-[9/16] overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all duration-500 max-w-sm mx-auto ${imageUrl ? "cursor-zoom-in hover:opacity-95" : ""}`}
-                        onClick={() => imageUrl && setPreviewImage(imageUrl)}
-                    >
-                        {loading ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10"><Loader2 className="w-10 h-10 animate-spin text-zinc-400" /><p className="text-sm font-medium text-zinc-500 animate-pulse">Processing...</p></div> : !imageUrl ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-300 dark:text-zinc-700 font-bold uppercase text-[10px]"><ImageIcon className="w-16 h-16 opacity-20" /><p>Image Viewer</p></div> : <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in zoom-in-95 duration-700" unoptimized />}
-                    </div>
+
                     {translatedPrompt && (
                         <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
                             <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Prompt Logic</p>
