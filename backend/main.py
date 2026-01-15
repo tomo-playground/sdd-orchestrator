@@ -20,6 +20,7 @@ from google import genai
 from jinja2 import Environment, FileSystemLoader
 import edge_tts
 from gradio_client import Client as GradioClient
+from PIL import Image, ImageDraw, ImageFont
 
 # 환경 변수 로드
 load_dotenv()
@@ -63,6 +64,12 @@ if GEMINI_API_KEY:
         logger.error(f"❌ [Gemini] 초기화 실패: {e}")
 
 # 데이터 모델
+class OverlaySettings(BaseModel):
+    enabled: bool = False
+    profile_name: str = "Daily_Romance"
+    likes_count: str = "12.5k"
+    caption: str = "설레는 순간들... #럽스타그램"
+
 class GenerateRequest(BaseModel):
     prompt: str
     persona: str | None = None
@@ -87,6 +94,7 @@ class VideoRequest(BaseModel):
     voice: str = "ko-KR-SunHiNeural"
     width: int = 512
     height: int = 512
+    overlay_settings: OverlaySettings | None = None
 
 class ProjectSaveRequest(BaseModel):
     id: str | None = None
@@ -111,11 +119,87 @@ def get_audio_duration(path):
 def wrap_text(text, width=20):
     return "\n".join(textwrap.wrap(text, width=width))
 
+# Dynamic Overlay Generator
+def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path):
+    W, H = 1080, 1920
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    ui_bg_color = (255, 255, 255, 255)
+    text_color = (38, 38, 38, 255)
+    
+    # --- Font Loading Strategy ---
+    font_candidates = [
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+        "/Library/Fonts/AppleGothic.ttf",
+        "arial.ttf"
+    ]
+    
+    font_large = font_medium = font_small = None
+    for f_path in font_candidates:
+        if os.path.exists(f_path) or f_path == "arial.ttf":
+            try:
+                font_large = ImageFont.truetype(f_path, 40, index=0)
+                font_medium = ImageFont.truetype(f_path, 35, index=0)
+                font_small = ImageFont.truetype(f_path, 28, index=0)
+                break
+            except: continue
+    
+    if font_large is None:
+        font_large = font_medium = font_small = ImageFont.load_default()
+
+    # --- Header ---
+    header_h = 160
+    draw.rectangle([(0, 0), (W, header_h)], fill=ui_bg_color)
+    profile_r = 45
+    profile_center = (80, header_h // 2)
+    draw.ellipse([(profile_center[0]-profile_r, profile_center[1]-profile_r), (profile_center[0]+profile_r, profile_center[1]+profile_r)], fill=(220, 220, 220, 255))
+    draw.text((150, 55), settings.profile_name, fill=text_color, font=font_large)
+    draw.text((150, 105), "Sponsored", fill=(150, 150, 150, 255), font=font_small)
+    dot_r = 4
+    for i in range(3):
+        dx = 980 + (i * 15)
+        draw.ellipse([(dx-dot_r, 80-dot_r), (dx+dot_r, 80+dot_r)], fill=text_color)
+
+    # --- Footer ---
+    footer_y = 1530
+    draw.rectangle([(0, footer_y), (W, 1920)], fill=ui_bg_color)
+    icon_y = footer_y + 60
+    
+    # Heart
+    cx, cy = 80, icon_y + 25
+    draw.ellipse([(cx-20, cy-20), (cx, cy)], fill=(255, 60, 60, 255))
+    draw.ellipse([(cx-10, cy-20), (cx+10, cy)], fill=(255, 60, 60, 255))
+    draw.polygon([(cx-20, cy-10), (cx+10, cy-10), (cx-5, cy+15)], fill=(255, 60, 60, 255))
+
+    # Comment Bubble
+    c_x, c_y = 180, icon_y + 10
+    draw.ellipse([(c_x, c_y), (c_x + 40, c_y + 35)], outline=text_color, width=3)
+    draw.polygon([(c_x + 10, c_y + 30), (c_x + 15, c_y + 40), (c_x + 25, c_y + 30)], fill=text_color)
+
+    # Share Plane
+    s_x, s_y = 300, icon_y + 10
+    draw.polygon([(s_x, s_y), (s_x + 40, s_y + 15), (s_x, s_y + 35), (s_x + 10, s_y + 18)], outline=text_color, fill=None, width=3)
+
+    # Bookmark
+    b_x, b_y = 960, icon_y + 10
+    draw.polygon([(b_x, b_y), (b_x + 30, b_y), (b_x + 30, b_y + 40), (b_x + 15, b_y + 30), (b_x, b_y + 40)], outline=text_color, fill=None, width=3)
+
+    # Text Info
+    draw.text((60, icon_y + 100), f"좋아요 {settings.likes_count}", fill=text_color, font=font_medium)
+    draw.text((60, icon_y + 160), settings.profile_name, fill=text_color, font=font_medium)
+    try:
+        name_len = draw.textlength(settings.profile_name, font=font_medium)
+    except: name_len = 150 # Fallback
+    draw.text((60 + name_len + 15, icon_y + 160), settings.caption, fill=(80, 80, 80, 255), font=font_medium)
+    img.save(output_path)
+
 # --- FastAPI 앱 설정 ---
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
-app.mount("/assets", StaticFiles(directory="assets"), name="assets") # 추가: BGM 접근용
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 @app.get("/loras")
 async def get_loras():
@@ -124,23 +208,17 @@ async def get_loras():
             r = await client.get(SD_LORA_URL, timeout=5.0)
             if r.status_code == 200:
                 data = r.json()
-                # Ensure data is a list (Standard A1111 API)
-                if isinstance(data, dict):
-                    data = data.get("loras", [])
-                
+                if isinstance(data, dict): data = data.get("loras", [])
                 if isinstance(data, list):
                     loras = []
                     for item in data:
                         if isinstance(item, dict):
                             name = item.get("name") or item.get("alias")
                             if name: loras.append(name)
-                        elif isinstance(item, str):
-                            loras.append(item)
+                        elif isinstance(item, str): loras.append(item)
                     return {"loras": sorted(list(set(loras)))}
             return {"loras": []}
-    except Exception as e:
-        logger.error(f"Lora fetch error: {e}")
-        return {"loras": []}
+    except: return {"loras": []}
 
 @app.get("/config")
 async def get_config():
@@ -149,46 +227,25 @@ async def get_config():
             r = await client.get(SD_CONFIG_URL, timeout=5.0)
             if r.status_code == 200:
                 data = r.json()
-                if isinstance(data, dict):
-                    return {"model": data.get("sd_model_checkpoint", "Unknown")}
+                if isinstance(data, dict): return {"model": data.get("sd_model_checkpoint", "Unknown")}
             return {"model": "Offline"}
-    except Exception as e:
-        logger.error(f"Config fetch error: {e}")
-        return {"model": "Offline"}
+    except: return {"model": "Offline"}
 
 @app.get("/audio/list")
 async def get_audio_list():
     try:
-        extensions = ["*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a", "*.M4A"]
         files = []
-        for ext in extensions:
+        for ext in ["*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a", "*.M4A"]:
             for f in AUDIO_DIR.glob(ext):
-                files.append({
-                    "name": f.name,
-                    "url": f"http://localhost:8000/assets/audio/{f.name}"
-                })
+                files.append({"name": f.name, "url": f"http://localhost:8000/assets/audio/{f.name}"})
         return {"audios": sorted(files, key=lambda x: x["name"])}
-    except Exception as e:
-        return {"audios": []}
-
-@app.delete("/projects/{project_id}")
-async def delete_project(project_id: str):
-    file_path = PROJECTS_DIR / f"{project_id}.json"
-    if file_path.exists():
-        file_path.unlink()
-        return {"status": "success"}
-    raise HTTPException(status_code=404)
+    except: return {"audios": []}
 
 @app.post("/projects/save")
 async def save_project(request: ProjectSaveRequest):
     project_id = request.id or f"proj_{int(time.time())}"
     file_path = PROJECTS_DIR / f"{project_id}.json"
-    project_data = {
-        "id": project_id,
-        "title": request.title,
-        "updated_at": time.time(),
-        "content": request.data
-    }
+    project_data = {"id": project_id, "title": request.title, "updated_at": time.time(), "content": request.data}
     file_path.write_text(json.dumps(project_data, ensure_ascii=False, indent=2))
     return project_data
 
@@ -216,12 +273,6 @@ async def get_video_list():
         videos.append({"name": f.name, "url": f"http://localhost:8000/outputs/videos/{f.name}", "created_at": f.stat().st_mtime})
     videos.sort(key=lambda x: x["created_at"], reverse=True)
     return {"videos": videos}
-
-@app.delete("/video/{filename}")
-async def delete_video(filename: str):
-    file_path = VIDEO_DIR / filename
-    if file_path.exists(): file_path.unlink(); return {"status": "success"}
-    raise HTTPException(status_code=404)
 
 @app.get("/random-prompt")
 async def get_random_prompt():
@@ -301,169 +352,131 @@ async def create_video(request: VideoRequest):
     if not os.path.exists(font_path): font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
 
     try:
-        # Step 1: Assets Preparation (Image, TTS, Text File)
         input_args = []
         num_scenes = len(request.scenes)
-        TRANSITION_DUR = 0.7  # Crossfade duration (seconds)
+        TRANSITION_DUR = 0.7
 
         for i, scene in enumerate(request.scenes):
             img_path = temp_dir / f"scene_{i}.png"
             tts_path = temp_dir / f"tts_{i}.mp3"
             txt_file = temp_dir / f"text_{i}.txt"
-            
-            # Save Image
             img_path.write_bytes(base64.b64decode(scene["image_url"].split(",")[1]))
-            
-            # Save Text (Cleaned)
             raw_script = scene.get('script', '')
             txt_for_drawtext = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
             txt_for_tts = raw_script.replace("'", "").strip()
             wrapped_txt = wrap_text(txt_for_drawtext, width=25)
             txt_file.write_text(wrapped_txt, encoding="utf-8")
             
-            # Generate TTS
             has_valid_tts = False
             if txt_for_tts:
                 try:
                     communicate = edge_tts.Communicate(txt_for_tts, request.voice)
                     await communicate.save(str(tts_path))
-                    if tts_path.exists() and tts_path.stat().st_size > 0:
-                        has_valid_tts = True
-                except Exception as e:
-                    logger.error(f"❌ TTS Error for scene {i}: {e}")
+                    if tts_path.exists() and tts_path.stat().st_size > 0: has_valid_tts = True
+                except: pass
 
-            # Inputs for FFmpeg: [Image, TTS(or silence)]
             input_args.extend(["-loop", "1", "-i", str(img_path)])
-            if has_valid_tts:
-                input_args.extend(["-i", str(tts_path)])
-            else:
-                input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
+            if has_valid_tts: input_args.extend(["-i", str(tts_path)])
+            else: input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
 
-        # Step 2: Build Filter Complex for Crossfade
         filter_complex = ""
-        
-        # 2.1 Video Processing (ZoomPan + Subtitles)
-        w, h = request.width, request.height
-        for i in range(num_scenes):
-            v_idx = i * 2
-            
-            # Calculate Duration
-            # Base duration from TTS or user setting
-            base_dur = request.scenes[i].get('duration', 3)
-            if request.scenes[i].get('script'): # If there's script, ensure min duration covers it
-                tts_p = temp_dir / f"tts_{i}.mp3"
-                if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
-            
-            # Actual duration needed for clip = Base + Transition Overlap (if not last)
-            clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
-            total_frames = int(clip_dur * 25)
-            
-            # Zigzag Text Position
-            text_y_pos = "h-th-100" if i % 2 == 0 else "100"
+        is_square_source = (request.width == request.height)
+        out_w, out_h = (1080, 1920) if is_square_source else (request.width, request.height)
 
-            filter_complex += (
-                f"[{v_idx}:v]scale={w*2}:{h*2},zoompan=z='min(zoom+0.0015,1.5)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={w}x{h},"
-                f"fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS,"
-                f"drawtext=fontfile='{font_path}':textfile='{txt_file}':fontcolor=white:fontsize=32:line_spacing=12:borderw=2:bordercolor=black:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw];"
-            )
-
-        # 2.2 Audio Processing (Pad to match video length)
         for i in range(num_scenes):
-            a_idx = i * 2 + 1
-            # Recalculate same duration logic
-            base_dur = request.scenes[i].get('duration', 3)
+            v_idx, base_dur = i * 2, request.scenes[i].get('duration', 3)
+            
+            # Retrieve text content directly
+            raw_script = request.scenes[i].get('script', '')
+            # Clean and wrap text
+            clean_script = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
+            wrapped_script = wrap_text(clean_script, width=25)
+            
+            # Escape text for FFmpeg drawtext: ' -> \', : -> \:, % -> \%, , -> \,
+            escaped_text = wrapped_script.replace("%", "\\%").replace(":", "\\:").replace("'", "'\\''").replace(",", "\\,")
+            
             if request.scenes[i].get('script'):
                 tts_p = temp_dir / f"tts_{i}.mp3"
                 if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
             
             clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
+            total_frames, text_y_pos = int(clip_dur * 25), "h-th-150"
             
-            # Process Audio
-            filter_complex += f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad=whole_dur={clip_dur},atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw];"
+            # Font path
+            abs_font_path = str(pathlib.Path(font_path).resolve()).replace(":", "\\:").replace("'", "'\\''")
 
-        # 2.3 Crossfade Logic (Iterative)
+            if is_square_source:
+                img_y_shift = 120
+                text_y_pos = 1420 if i % 2 == 0 else 220
+                
+                filter_complex += (
+                    f"[{v_idx}:v]split=2[bg{i}][fg{i}];"
+                    f"[bg{i}]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[bg_blur{i}];"
+                    f"[fg{i}]scale={out_w}:-1[fg_scaled{i}];"
+                    f"[bg_blur{i}][fg_scaled{i}]overlay=(W-w)/2:(H-h)/2-{img_y_shift}:format=auto,"
+                    f"trim=duration={clip_dur},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS,"
+                    f"drawtext=fontfile='{abs_font_path}':text='{escaped_text}':fontcolor=white:fontsize=45:line_spacing=15:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw];"
+                )
+            else:
+                text_y_pos = "h-th-150"
+                filter_complex += (
+                    f"[{v_idx}:v]scale={out_w*2}:{out_h*2},zoompan=z='min(zoom+0.0015,1.5)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={out_w}x{out_h},"
+                    f"fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS,"
+                    f"drawtext=fontfile='{abs_font_path}':text='{escaped_text}':fontcolor=white:fontsize=40:line_spacing=12:borderw=3:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y={text_y_pos}[v{i}_raw];"
+                )
+
+        for i in range(num_scenes):
+            a_idx, base_dur = i * 2 + 1, request.scenes[i].get('duration', 3)
+            if request.scenes[i].get('script'):
+                tts_p = temp_dir / f"tts_{i}.mp3"
+                if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
+            clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
+            filter_complex += f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw];"
+
         if num_scenes > 1:
-            # Initialize with first scene
-            curr_v = "[v0_raw]"
-            curr_a = "[a0_raw]"
-            
-            # Start offset calculation
-            # First scene ends at its base_dur (without transition overlap for next)
-            # Actually, xfade offset is relative to START of the stream.
-            # Scene 0 plays for base_dur. Scene 1 starts fading in at base_dur.
-            
-            accumulated_offset = 0
-            
+            curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
             for i in range(1, num_scenes):
-                # Calculate offset for THIS transition
-                # Previous scene's functional duration (before fade out starts)
-                prev_base_dur = request.scenes[i-1].get('duration', 3)
+                p_dur = request.scenes[i-1].get('duration', 3)
                 if request.scenes[i-1].get('script'):
                     tts_p = temp_dir / f"tts_{i-1}.mp3"
-                    if tts_p.exists(): prev_base_dur = max(prev_base_dur, get_audio_duration(tts_p) + 0.5)
-                
-                accumulated_offset += prev_base_dur
-                
-                # Apply Xfade
-                next_v = f"[v{i}_raw]"
-                filter_complex += f"{curr_v}{next_v}xfade=transition=fade:duration={TRANSITION_DUR}:offset={accumulated_offset}[v{i}_merged];"
-                curr_v = f"[v{i}_merged]"
-                
-                # Apply Acrossfade (Audio)
-                next_a = f"[a{i}_raw]"
-                # Acrossfade does not use offset time, it overlaps streams directly. 
-                # Since we padded streams, we just need to tell it how much to overlap.
-                # BUT wait, acrossfade consumes inputs. So a chain works: A+B -> AB, AB+C -> ABC
-                filter_complex += f"{curr_a}{next_a}acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_merged];"
-                curr_a = f"[a{i}_merged]"
-            
-            map_v = curr_v
-            map_a = curr_a
-            # Update accumulated offset to final duration for BGM fadeout
-            last_dur = request.scenes[-1].get('duration', 3)
+                    if tts_p.exists(): p_dur = max(p_dur, get_audio_duration(tts_p) + 0.5)
+                acc_offset += p_dur
+                filter_complex += f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={TRANSITION_DUR}:offset={acc_offset}[v{i}_m];"
+                curr_v = f"[v{i}_m]"
+                filter_complex += f"{curr_a}[a{i}_raw]acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_m];"
+                curr_a = f"[a{i}_m]"
+            map_v, map_a = curr_v, curr_a
+            l_dur = request.scenes[-1].get('duration', 3)
             if request.scenes[-1].get('script'):
                 tts_p = temp_dir / f"tts_{num_scenes-1}.mp3"
-                if tts_p.exists(): last_dur = max(last_dur, get_audio_duration(tts_p) + 0.5)
-            accumulated_offset += last_dur
+                if tts_p.exists(): l_dur = max(l_dur, get_audio_duration(tts_p) + 0.5)
+            total_dur = acc_offset + l_dur
+        else: map_v, map_a, total_dur = "[v0_raw]", "[a0_raw]", request.scenes[0].get('duration', 3)
 
-        else:
-            # Single scene case
-            map_v = "[v0_raw]"
-            map_a = "[a0_raw]"
-            accumulated_offset = request.scenes[0].get('duration', 3)
-
-        # Step 4: Add BGM & Watermark
         bgm_path = AUDIO_DIR / request.bgm_file if request.bgm_file else None
-        watermark_vf = "drawtext=text='Shorts Producer AI':fontcolor=white@0.3:fontsize=18:x=w-tw-30:y=h-th-30"
-        
-        final_input_idx = num_scenes * 2
+        next_input_idx = num_scenes * 2
+        filter_complex += f"{map_v}drawtext=text='Shorts Producer AI':fontcolor=white@0.3:fontsize=18:x=w-tw-30:y=h-th-30[v_w];"
+        current_v = "[v_w]"
+
+        if is_square_source and request.overlay_settings and request.overlay_settings.enabled:
+            overlay_img_path = temp_dir / "custom_overlay.png"
+            create_dynamic_overlay(request.overlay_settings, overlay_img_path)
+            input_args.extend(["-i", str(overlay_img_path)])
+            filter_complex += f"{current_v}[{next_input_idx}:v]overlay=0:0[v_o];"
+            current_v, next_input_idx = "[v_o]", next_input_idx + 1
+            
         if bgm_path and bgm_path.exists():
             input_args.extend(["-i", str(bgm_path)])
-            filter_complex += f"{map_v}{watermark_vf}[v_final];"
-            # Fade out BGM at end
-            filter_complex += f"[{final_input_idx}:a]volume=0.15,afade=t=out:st={max(0, accumulated_offset-2)}:d=2[bgm_faded];"
-            # Mix
-            filter_complex += f"{map_a}[bgm_faded]amix=inputs=2:duration=first:dropout_transition=2[a_final]"
-            map_v, map_a = "[v_final]", "[a_final]"
-        else:
-            filter_complex += f"{map_v}{watermark_vf}[v_final]"
-            map_v, map_a = "[v_final]", map_a
-
-        # Execute FFmpeg
-        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex, "-map", map_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
-        
-        # Debug: Log command for troubleshooting
-        # logger.info(f"FFmpeg Command: {' '.join(cmd)}")
-        
+            filter_complex += f"[{next_input_idx}:a]volume=0.15,afade=t=out:st={max(0, total_dur-2)}:d=2[bgm_f]";
+            filter_complex += f"{map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]"
+            map_a = "[a_f]"
+            
+        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-c:a", "aac", "-b:a", "192k", str(video_path)]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            logger.error(f"FFmpeg Error: {result.stderr}")
-            raise Exception(f"FFmpeg rendering failed: {result.stderr}")
-
+        if result.returncode != 0: raise Exception(f"FFmpeg failed: {result.stderr}")
         shutil.rmtree(temp_dir)
         return {"video_url": f"http://localhost:8000/outputs/videos/{video_filename}"}
-    except Exception as e: 
-        logger.error(f"Video Creation Exception: {str(e)}")
+    except Exception as e:
         if temp_dir.exists(): shutil.rmtree(temp_dir)
         raise HTTPException(status_code=500, detail=str(e))
 

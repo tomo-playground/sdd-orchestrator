@@ -15,6 +15,8 @@ import Image from "next/image";
 const API_BASE = "http://localhost:8000";
 const STYLE_PRESETS = [
   "Studio Ghibli",
+  "Korean Webtoon",
+  "Manhwa Style",
   "Chibi",
   "Photorealistic",
   "Cyberpunk",
@@ -50,6 +52,7 @@ const SAMPLE_PERSONAS = [
 const RESOLUTIONS = {
   standard: { w: 512, h: 912, label: "Standard", desc: "Fast generation" },
   hd: { w: 720, h: 1280, label: "HD", desc: "Balanced quality" },
+  square: { w: 512, h: 512, label: "Square (1:1)", desc: "Webtoon Style" },
   ultra: { w: 1024, h: 1824, label: "Ultra", desc: "Best for SDXL" },
 };
 
@@ -76,6 +79,12 @@ export default function Home() {
   const [storyDuration, setStoryDuration] = useState(30);
   const [storyLanguage, setStoryLanguage] = useState("Korean");
   const [storyStructure, setStoryStructure] = useState("Free Flow"); // New state
+  const [overlaySettings, setOverlaySettings] = useState({
+    enabled: true,
+    profile_name: "Daily_Romance",
+    likes_count: "12.5k",
+    caption: "설레는 순간들... #럽스타그램"
+  });
   const [storyScenes, setStoryScenes] = useState<any[]>([]);
   const [characterDesc, setCharacterDesc] = useState("A cute character with orange hair");
   const [fixedSeed, setFixedSeed] = useState<number>(-1);
@@ -98,6 +107,7 @@ export default function Home() {
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
   const [previewLoadingIndex, setPreviewLoadingIndex] = useState<number | null>(null);
   const [isRandomLoading, setIsRandomLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [projects, setProjects] = useState<any[]>([]);
   const [bgmList, setBgmList] = useState<any[]>([]);
@@ -162,7 +172,7 @@ export default function Home() {
     try {
         const res = await axios.post(`${API_BASE}/projects/save`, {
             id: projectId, title: storyTopic || "Untitled",
-            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characterDesc, fixedSeed, selectedStyles, aspectRatio, selectedLora, selectedVoice, negativePrompt }
+            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characterDesc, fixedSeed, selectedStyles, aspectRatio: resolution, selectedLora, selectedVoice, negativePrompt, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
     } catch { alert("Save failed"); }
@@ -177,7 +187,9 @@ export default function Home() {
         setStoryScenes(c.storyScenes); setCharacterDesc(c.characterDesc); setFixedSeed(c.fixedSeed);
         setSelectedStyles(c.selectedStyles || []); setAspectRatio(c.aspectRatio || "square");
         setSelectedLora(c.selectedLora || ""); setNegativePrompt(c.negativePrompt || "low quality...");
-        setSelectedVoice(c.selectedVoice); setActiveTab("storyboard");
+        setSelectedVoice(c.selectedVoice);
+        if (c.overlaySettings) setOverlaySettings(c.overlaySettings);
+        setActiveTab("storyboard");
     } catch { alert("Load failed"); }
   };
 
@@ -262,7 +274,8 @@ export default function Home() {
     try {
       const res = await axios.post(`${API_BASE}/video/create`, {
         scenes: storyScenes, project_name: storyTopic.substring(0, 10).replace(/\s/g, "_") || "my_shorts",
-        bgm_file: selectedBgm || null, voice: selectedVoice, width: RESOLUTIONS[resolution].w, height: RESOLUTIONS[resolution].h
+        bgm_file: selectedBgm || null, voice: selectedVoice, width: RESOLUTIONS[resolution].w, height: RESOLUTIONS[resolution].h,
+        overlay_settings: overlaySettings
       });
       setVideoUrl(res.data.video_url); fetchData();
     } catch { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
@@ -384,6 +397,7 @@ export default function Home() {
                                 <option value="Problem & Solution">Problem & Solution</option>
                                 <option value="Narrative Arc (Story)">Storytelling (Drama)</option>
                                 <option value="Versus (Comparison)">Versus (A vs B)</option>
+                                <option value="Romance / Couple Vlog">Couple Vlog (Romance)</option>
                             </select>
                             <Layout className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
                         </div>
@@ -393,11 +407,73 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Step 3: Editing */}
+            {/* Step 3: Visual Settings */}
+            <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-6">
+                <div className="flex items-center justify-between px-1">
+                    <label className="text-sm font-bold flex items-center gap-2"><Palette className="w-4 h-4" /> Step 3: Visual Style & Settings</label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-3">
+                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Target Resolution</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {(Object.keys(RESOLUTIONS) as Array<keyof typeof RESOLUTIONS>).map((key) => (
+                                <button key={key} onClick={() => setResolution(key)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${resolution === key ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 shadow-md" : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800"}`}>
+                                    <span className="text-[10px] font-black">{RESOLUTIONS[key].label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        
+                        {/* SNS Overlay Settings (Visible for Square Mode) */}
+                        {resolution === "square" && (
+                            <div className="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                                        <Monitor className="w-4 h-4" /> SNS Overlay
+                                    </label>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={overlaySettings.enabled} onChange={(e) => setOverlaySettings({...overlaySettings, enabled: e.target.checked})} className="sr-only peer" />
+                                        <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                                {overlaySettings.enabled && (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        <input type="text" placeholder="Profile Name" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.profile_name} onChange={(e) => setOverlaySettings({...overlaySettings, profile_name: e.target.value})} />
+                                        <input type="text" placeholder="Likes (e.g. 12.5k)" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.likes_count} onChange={(e) => setOverlaySettings({...overlaySettings, likes_count: e.target.value})} />
+                                        <input type="text" placeholder="Caption / Hashtags" className="p-2 rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-none focus:ring-1 focus:ring-zinc-400" value={overlaySettings.caption} onChange={(e) => setOverlaySettings({...overlaySettings, caption: e.target.value})} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">LoRA Model</label>
+                        <div className="relative">
+                            <select value={selectedLora} onChange={(e) => setSelectedLora(e.target.value)} className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium appearance-none focus:ring-1 focus:ring-zinc-400">
+                                <option value="">None (Default)</option>
+                                {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
+                            </select>
+                            <Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-3">
+                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
+                    <div className="flex flex-wrap gap-2">
+                        {STYLE_PRESETS.map((style) => (
+                            <button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>
+                                {style}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Step 4: Editing */}
             {storyScenes.length > 0 && (
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between px-2 text-center md:text-left flex-wrap gap-4">
-                  <h3 className="font-bold text-lg w-full md:w-auto">Storyboard Scenes</h3>
+                  <h3 className="font-bold text-lg w-full md:w-auto">Step 4: Storyboard Scenes</h3>
+
                   <div className="flex gap-2 items-center flex-wrap">
                     <div className="relative">
                         <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-purple-500 cursor-pointer">
@@ -457,7 +533,7 @@ export default function Home() {
                         <button onClick={() => handlePreviewVoice(idx)} disabled={previewLoadingIndex === idx} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-blue-500 transition-colors shadow-sm"><Volume2 className="w-4 h-4" /></button>
                         <button onClick={() => handleRegenerateScene(idx)} disabled={regeneratingIndex !== null} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-emerald-500 transition-colors shadow-sm"><RefreshCw className={`w-4 h-4 ${regeneratingIndex === idx ? "animate-spin" : ""}`} /></button>
                       </div>
-                      <div className="w-full md:w-48 aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner">
+                      <div className={`w-full md:w-48 aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all ${scene.image_url ? "cursor-zoom-in hover:opacity-90 hover:ring-4 ring-indigo-500/30" : ""}`} onClick={() => scene.image_url && setPreviewImage(scene.image_url)}>
                         {scene.image_url ? <><Image src={scene.image_url} alt={`Scene ${idx}`} fill className="object-cover" unoptimized />{regeneratingIndex === idx && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}<div className="absolute top-2 left-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 drop-shadow-md bg-white rounded-full" /></div></> : <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 gap-2 font-bold uppercase text-[10px] opacity-20"><ImageIcon className="w-8 h-8" /> Pending</div>}
                       </div>
                       <div className="flex-1 flex flex-col gap-3">
@@ -618,6 +694,22 @@ export default function Home() {
                             ))
                         )}
                     </div>
+                </div>
+            </div>
+        )}
+        {/* Image Preview Modal */}
+        {previewImage && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
+                <div className="relative w-full max-w-6xl h-full flex items-center justify-center p-4">
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all backdrop-blur-sm z-50 group">
+                        <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    </button>
+                    <img 
+                        src={previewImage} 
+                        alt="Preview" 
+                        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 select-none" 
+                        onClick={(e) => e.stopPropagation()} 
+                    />
                 </div>
             </div>
         )}

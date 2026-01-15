@@ -13,6 +13,7 @@ dependencies = [
     "gradio-client>=2.0.3",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
+    "pillow>=12.1.0",
     "python-dotenv>=1.2.1",
     "uvicorn>=0.40.0",
 ]
