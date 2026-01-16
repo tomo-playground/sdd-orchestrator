@@ -539,8 +539,8 @@ async def create_video(request: VideoRequest):
             # Simplified Filter Chain (ZoomPan removed for stability)
             # 1. Scale & Crop to Square -> 2. Draw Text -> 3. Trim
             
-            text_style = "fontcolor=yellow:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3"
-            text_y_pos = "(h-text_h)/2+350"
+            text_style = "fontcolor=white:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3"
+            text_y_pos = "250"
             
             # Step 1: Blurred Background + Centered Image
             # [v_idx] -> Split -> [bg] (scale/crop/blur)

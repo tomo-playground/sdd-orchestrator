@@ -7,7 +7,7 @@ import {
   Square as SquareIcon, Sparkles, ImageIcon, Clapperboard, Image as LucideImage, 
   User, Clock, Music, Trash2, Edit3, UserCircle, RefreshCw, Volume2, Download, 
   CheckCircle2, Globe, Play, Film, Save, History, Boxes, Eye, Plus, X, ChevronRight, Settings2,
-  PlayCircle, PauseCircle, Layout, Mic, UserPlus
+  PlayCircle, PauseCircle, Layout, Mic, UserPlus, Heart, MessageCircle, Bookmark, MoreHorizontal
 } from "lucide-react";
 import Image from "next/image";
 
@@ -795,45 +795,128 @@ export default function Home() {
                     )}
                 </div>
                 ) : (
-                <div className="w-full flex flex-col gap-6">
-                    {/* Prompt Input */}
-                    <section className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-                        <div className="flex items-center justify-between px-1">
-                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Creation Prompt</label>
-                            <button onClick={setRandomPrompt} disabled={isRandomLoading} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                                <Dices className={`w-3.5 h-3.5 ${isRandomLoading ? "animate-spin" : ""}`} /> Suggest Prompt
-                            </button>
+                <div className="w-full max-w-[420px] mx-auto flex flex-col gap-6">
+                    {/* Shorts/TikTok Style Preview Container */}
+                    <div className="relative w-full aspect-[9/16] bg-black rounded-[32px] overflow-hidden border border-zinc-800 shadow-2xl">
+                        
+                        {/* 1. Main Image Content */}
+                        <div 
+                            className={`relative w-full h-full flex flex-col items-center justify-center transition-all bg-zinc-900 ${imageUrl ? "cursor-zoom-in" : ""}`}
+                            onClick={() => imageUrl && setPreviewImage(imageUrl)}
+                        >
+                            {loading ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-900/80 backdrop-blur-sm z-10">
+                                    <Loader2 className="w-10 h-10 animate-spin text-zinc-400" />
+                                    <p className="text-xs font-bold text-zinc-500 animate-pulse uppercase tracking-widest">Generating...</p>
+                                </div>
+                            ) : imageUrl ? (
+                                <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in duration-700" unoptimized />
+                            ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-zinc-600 font-bold uppercase text-[10px] opacity-60">
+                                    <div className="w-20 h-20 rounded-full border-2 border-zinc-700 border-dashed flex items-center justify-center">
+                                        <ImageIcon className="w-8 h-8" />
+                                    </div>
+                                    <p>Preview Area</p>
+                                </div>
+                            )}
+                            
+                            {/* Gradient Overlay for Text Readability */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80 pointer-events-none z-10" />
                         </div>
-                        
-                        <textarea className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all resize-none text-sm leading-relaxed" placeholder="Describe the image..." rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
-                        
-                        <button onClick={handleTranslateSingle} disabled={isTranslatingSingle || !prompt} className="w-full py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">{isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate to English</button>
 
-                        {translatedSinglePrompt && (
-                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> English Prompt (Editable)</label>
-                                <textarea className="w-full p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-sm resize-none focus:ring-1 focus:ring-indigo-500 font-medium text-indigo-900 dark:text-indigo-100" rows={3} value={translatedSinglePrompt} onChange={(e) => setTranslatedSinglePrompt(e.target.value)} />
+                        {/* 2. Overlays (Shorts UI) - Conditional on Settings */}
+                        {overlaySettings.enabled && (
+                            <div className="absolute inset-0 z-20 pointer-events-none p-4 flex flex-col justify-between">
+                                {/* Top Bar */}
+                                <div className="flex justify-between items-start pt-2">
+                                    <div className="bg-black/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white/80 border border-white/10">
+                                        Shorts Preview
+                                    </div>
+                                    <MoreHorizontal className="w-6 h-6 text-white drop-shadow-md" />
+                                </div>
+
+                                {/* Right Side Actions */}
+                                <div className="absolute right-4 bottom-24 flex flex-col gap-6 items-center">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="w-10 h-10 bg-zinc-800 rounded-full p-0.5 border border-white/20 overflow-hidden">
+                                             <div className="w-full h-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center">
+                                                <User className="w-5 h-5 text-white" />
+                                             </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <Heart className="w-7 h-7 text-white drop-shadow-lg fill-white/10" />
+                                        <span className="text-[10px] font-bold text-white drop-shadow-md">{overlaySettings.likes_count}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <MessageCircle className="w-7 h-7 text-white drop-shadow-lg" />
+                                        <span className="text-[10px] font-bold text-white drop-shadow-md">1.2k</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <Bookmark className="w-7 h-7 text-white drop-shadow-lg" />
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <Send className="w-7 h-7 text-white drop-shadow-lg -rotate-45" />
+                                    </div>
+                                </div>
+
+                                {/* Bottom Info */}
+                                <div className="flex flex-col gap-2 mb-4 pr-16 pl-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-white text-sm drop-shadow-md">@{overlaySettings.profile_name}</span>
+                                        <CheckCircle2 className="w-3 h-3 text-blue-400 bg-white rounded-full" />
+                                    </div>
+                                    <p className="text-white/90 text-xs font-medium leading-tight drop-shadow-md line-clamp-2">
+                                        {overlaySettings.caption}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1 opacity-80">
+                                        <Music className="w-3 h-3 text-white animate-spin-slow" />
+                                        <span className="text-[10px] text-white font-medium scrolling-text">Original Sound - Shorts.AI Music</span>
+                                    </div>
+                                </div>
                             </div>
                         )}
-
-                        <button onClick={handleGenerate} disabled={loading || !prompt} className="w-full py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2 shadow-lg">
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Generate Image
-                        </button>
-                    </section>
-                    
-                    {/* Image Result */}
-                    <div 
-                        className={`relative w-full aspect-[9/16] overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all duration-500 max-w-sm mx-auto ${imageUrl ? "cursor-zoom-in hover:opacity-95" : ""}`}
-                        onClick={() => imageUrl && setPreviewImage(imageUrl)}
-                    >
-                        {loading ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10"><Loader2 className="w-10 h-10 animate-spin text-zinc-400" /><p className="text-sm font-medium text-zinc-500 animate-pulse">Processing...</p></div> : !imageUrl ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-300 dark:text-zinc-700 font-bold uppercase text-[10px]"><ImageIcon className="w-16 h-16 opacity-20" /><p>Image Viewer</p></div> : <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in zoom-in-95 duration-700" unoptimized />}
                     </div>
-                    {translatedPrompt && (
-                        <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
-                            <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Prompt Logic</p>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-300 italic">"{translatedPrompt}"</p>
+
+                    {/* 3. Control Panel (Prompt Input) */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                             <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                                <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Prompt Input
+                             </label>
+                             <div className="flex gap-2">
+                                <button onClick={setRandomPrompt} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 transition-colors bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg">
+                                    Random
+                                </button>
+                                <button onClick={handleTranslateSingle} disabled={isTranslatingSingle} className="text-[10px] font-bold text-zinc-400 hover:text-indigo-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg flex items-center gap-1">
+                                    {isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : "Translate"}
+                                </button>
+                             </div>
                         </div>
-                    )}
+                        <div className="relative">
+                            <textarea 
+                                className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950 border-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none text-sm leading-relaxed min-h-[100px]" 
+                                placeholder="Describe your image here..." 
+                                value={prompt} 
+                                onChange={(e) => setPrompt(e.target.value)} 
+                                onKeyDown={handleKeyDown}
+                                disabled={loading}
+                            />
+                            <button 
+                                onClick={handleGenerate} 
+                                disabled={loading || !prompt} 
+                                className="absolute bottom-3 right-3 p-2 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                            >
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                            </button>
+                        </div>
+                        {translatedSinglePrompt && (
+                            <div className="mt-3 p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Translated</p>
+                                <p className="text-xs text-indigo-900 dark:text-indigo-100 font-medium">{translatedSinglePrompt}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 )}
             </div>
