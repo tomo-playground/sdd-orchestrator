@@ -381,6 +381,30 @@ async def generate_audio(request: AudioGenerateRequest):
         return {"filename": filename}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+class OverlayGenRequest(BaseModel):
+    topic: str
+
+# ... (Previous code) ...
+
+@app.post("/overlay/generate")
+async def generate_overlay_data(request: OverlayGenRequest):
+    if not gemini_client: return {
+        "profile_name": "daily_shorts", "likes_count": "12.5k", "caption": "Amazing video! #viral #shorts"
+    }
+    try:
+        prompt = f"""
+        Generate viral social media (TikTok/Reels) metadata for a video about: "{request.topic}".
+        Return ONLY a JSON object with these keys:
+        - profile_name: A catchy username (e.g. travel_w_me)
+        - likes_count: A realistic number (e.g. 14.2k, 1.2M)
+        - caption: A short, engaging caption (max 50 chars) with 2-3 hashtags.
+        """
+        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=prompt)
+        return json.loads(res.text.strip().replace("```json", "").replace("```", ""))
+    except Exception as e:
+        logger.error(f"Overlay Gen Failed: {e}")
+        return {"profile_name": "story_teller", "likes_count": "5.2k", "caption": "Check this out! #trending"}
+
 @app.post("/character/analyze")
 async def analyze_character(request: AnalyzeRequest):
     if not gemini_client: raise HTTPException(status_code=503, detail="Gemini key missing")
@@ -424,10 +448,29 @@ async def translate_prompt(request: PromptTranslateRequest):
 @app.post("/character/portrait")
 async def generate_portrait(request: PortraitRequest):
     """Generates a high-quality reference portrait for a character."""
-    prompt = f"high quality portrait of {request.description}, professional lighting, studio background, 8k, highly detailed, looking at camera"
+    
+    # 1. Optimize/Translate Prompt with Gemini if available
+    final_prompt = request.description
+    if gemini_client:
+        try:
+            prompt_instruction = f"""
+            You are a Stable Diffusion Prompt Expert.
+            Convert this character description into a detailed, comma-separated English prompt for a high-quality portrait.
+            Focus on: Gender, Age, Hair, Eyes, Facial features, Atmosphere.
+            Input: "{request.description}"
+            Output example: "A handsome young boy, 7 years old, orange messy hair, blue eyes, cute face, soft lighting, detailed texture, 8k"
+            Return ONLY the prompt string.
+            """
+            res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=prompt_instruction)
+            final_prompt = res.text.strip()
+        except Exception as e:
+            logger.warning(f"Portrait Prompt Optimization Failed: {e}")
+
+    prompt = f"high quality portrait of {final_prompt}, professional lighting, studio background, 8k, highly detailed, looking at camera"
+    
     payload = {
         "prompt": prompt,
-        "negative_prompt": "low quality, blurry, distorted face, extra limbs, multiple people",
+        "negative_prompt": "low quality, blurry, distorted face, extra limbs, multiple people, (nsfw:1.5)",
         "steps": 25,
         "width": request.width,
         "height": request.height,
