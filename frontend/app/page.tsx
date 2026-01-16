@@ -55,7 +55,7 @@ const SAMPLE_PERSONAS = [
 ];
 
 const RESOLUTIONS = {
-  square: { w: 512, h: 512, label: "Square (1:1)", desc: "Webtoon Style" },
+  shorts: { w: 512, h: 512, label: "YouTube Shorts (9:16)", desc: "Stable Gen @ 512px" },
 };
 
 const LANGUAGES = [
@@ -83,7 +83,7 @@ export default function Home() {
   
   // --- Global Settings ---
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("square");
+  const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("shorts");
   const [selectedLora, setSelectedLora] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly");
   const [narratorVoice, setNarratorVoice] = useState("ko-KR-SunHiNeural"); // Default Narrator
@@ -153,7 +153,7 @@ export default function Home() {
       setBgmList(audios.data.audios || []);
       setProducedVideos(vids.data.videos || []);
       setProjects(projs.data.projects || []);
-    } catch { setCurrentModel("Disconnected"); }
+    } catch (e) { setCurrentModel("Disconnected"); }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -163,9 +163,11 @@ export default function Home() {
   };
 
   const updateCharacter = (idx: number, field: keyof Character, value: any) => {
-    const newChars = [...characters];
-    newChars[idx] = { ...newChars[idx], [field]: value };
-    setCharacters(newChars);
+    setCharacters(prev => {
+        const newChars = [...prev];
+        newChars[idx] = { ...newChars[idx], [field]: value };
+        return newChars;
+    });
   };
 
   const setRandomPersona = (idx: number) => {
@@ -196,7 +198,7 @@ export default function Home() {
             data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, negativePrompt, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
-    } catch { alert("Save failed"); }
+    } catch (e) { alert("Save failed"); }
   };
 
   const handleLoadProject = async (id: string) => {
@@ -208,11 +210,11 @@ export default function Home() {
         setStoryScenes(c.storyScenes); 
         if (c.characters) setCharacters(c.characters);
         if (c.narratorVoice) setNarratorVoice(c.narratorVoice);
-        setSelectedStyles(c.selectedStyles || []); setResolution("square");
+        setSelectedStyles(c.selectedStyles || []); setResolution(c.aspectRatio || "shorts");
         setSelectedLora(c.selectedLora || ""); setNegativePrompt(c.negativePrompt || "low quality...");
         if (c.overlaySettings) setOverlaySettings(c.overlaySettings);
         setActiveTab("storyboard");
-    } catch { alert("Load failed"); }
+    } catch (e) { alert("Load failed"); }
   };
 
   const handleTranslateSingle = async () => {
@@ -250,7 +252,7 @@ export default function Home() {
         setTranslatedPrompt(response.data.translated_prompt);
         setActiveNegativePrompt(response.data.negative_prompt);
       }
-    } catch { alert("Error"); } finally { setLoading(false); }
+    } catch (e) { alert("Error"); } finally { setLoading(false); }
   };
 
   const handleTranslateActor = async (idx: number) => {
@@ -282,7 +284,7 @@ export default function Home() {
         updateCharacter(idx, "image", `data:image/png;base64,${res.data.images[0]}`);
         updateCharacter(idx, "seed", res.data.seed);
       }
-    } catch { alert("Character failed"); } 
+    } catch (e) { alert("Character failed"); } 
     finally { updateCharacter(idx, "isLoading", false); }
   };
 
@@ -300,7 +302,7 @@ export default function Home() {
       });
       setStoryScenes(res.data.scenes || []);
       setCurrentStep(1); 
-    } catch { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
+    } catch (e) { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
   };
 
   const startAutopilot = async () => {
@@ -345,7 +347,7 @@ export default function Home() {
             });
             if (res.data.images?.[0]) { newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`; setStoryScenes([...newScenes]); }
             setAutopilotProgress(((i + 1) / newScenes.length) * 100);
-        } catch { console.error("Scene error"); }
+        } catch (e) { console.error("Scene error"); }
     }
     setIsAutopilotRunning(false);
   };
@@ -353,18 +355,26 @@ export default function Home() {
   const handleCreateVideo = async () => {
     setIsVideoLoading(true); setVideoStatus("🎬 Rendering...");
     try {
+      // YouTube Shorts: 1080x1920 (9:16)
+      // Square: 512x512 (1:1)
+      const isShortsMode = resolution === "shorts";
+      const finalWidth = isShortsMode ? 1080 : 512;
+      const finalHeight = isShortsMode ? 1920 : 512;
+
+      console.log(`🎬 Rendering video at: ${finalWidth}x${finalHeight}`);
+
       const res = await axios.post(`${API_BASE}/video/create`, {
         scenes: storyScenes, 
         project_name: storyTopic.substring(0, 10).replace(/\s/g, "_") || "my_shorts",
         bgm_file: selectedBgm || null, 
-        width: RESOLUTIONS[resolution].w, 
-        height: RESOLUTIONS[resolution].h,
+        width: finalWidth, 
+        height: finalHeight,
         overlay_settings: overlaySettings,
         characters: characters,
         narrator_voice: narratorVoice
       });
       setVideoUrl(res.data.video_url); fetchData();
-    } catch { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
+    } catch (e) { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
   };
 
   const handlePreviewVoice = async (idx: number) => {
@@ -378,7 +388,7 @@ export default function Home() {
         
         const res = await axios.post(`${API_BASE}/audio/preview`, { text: scene.script, voice: voiceToUse });
         if (audioRef.current) { audioRef.current.src = res.data.url; audioRef.current.play(); }
-    } catch { console.error("Preview fail"); } finally { setPreviewLoadingIndex(null); }
+    } catch (e) { console.error("Preview fail"); } finally { setPreviewLoadingIndex(null); }
   };
 
   const handleRegenerateScene = async (idx: number) => {
@@ -420,7 +430,7 @@ export default function Home() {
         const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.images[0]}`;
         setStoryScenes(updated);
       }
-    } catch { alert("Regen fail"); } finally { setRegeneratingIndex(null); }
+    } catch (e) { alert("Regen fail"); } finally { setRegeneratingIndex(null); }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -458,7 +468,16 @@ export default function Home() {
                 </div>
             </div>
             
-            {/* New: Narrator Voice Selection */}
+            {/* Resolution Display (Fixed to Shorts) */}
+            <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2"><Smartphone className="w-3.5 h-3.5" /> Output Format</label>
+                <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">YouTube Shorts (9:16)</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">Auto-scaled to 1080x1920 HD</p>
+                </div>
+            </div>
+
+            {/* Narrator Voice Selection */}
             <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2"><Mic className="w-3.5 h-3.5" /> Narrator Voice</label>
                 <div className="relative">

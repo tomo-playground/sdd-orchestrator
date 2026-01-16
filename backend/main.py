@@ -34,9 +34,10 @@ logging.basicConfig(
 logger = logging.getLogger("backend")
 
 # --- 전역 상수 ---
-SD_URL = "http://127.0.0.1:7860/sdapi/v1/txt2img"
-SD_LORA_URL = "http://127.0.0.1:7860/sdapi/v1/loras"
-SD_CONFIG_URL = "http://127.0.0.1:7860/sdapi/v1/options"
+SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
+SD_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
+SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
+SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly"
 
 # 디렉토리 설정
@@ -106,10 +107,11 @@ class VideoRequest(BaseModel):
     scenes: list[dict]
     project_name: str = "my_shorts"
     bgm_file: str | None = None
-    width: int = 512
-    height: int = 512
+    width: int = 1080
+    height: int = 1920
     overlay_settings: OverlaySettings | None = None
     characters: list[CharacterInfo] = []
+    narrator_voice: str = "ko-KR-SunHiNeural"
 
 class ProjectSaveRequest(BaseModel):
     id: str | None = None
@@ -135,8 +137,8 @@ def wrap_text(text, width=20):
     return "\n".join(textwrap.wrap(text, width=width))
 
 # Dynamic Overlay Generator
-def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path):
-    W, H = 1080, 1920
+def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path, width: int = 1080, height: int = 1920):
+    W, H = width, height
     img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
@@ -164,55 +166,101 @@ def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path)
     if font_large is None:
         font_large = font_medium = font_small = ImageFont.load_default()
 
+    # --- Responsive Layout Calculation ---
+    # Base reference is 1080x1920.
+    # We want fixed height bars for 1920, but scale down if H is small.
+    # Header 160px, Footer 390px (incl icons). Total 550px.
+    # If H < 600 (e.g. 512), 550 > 512 -> Overlap.
+    
+    scale = 1.0
+    target_header_h = 160
+    target_footer_h = 390
+    
+    # Check if we need to shrink
+    if H < (target_header_h + target_footer_h + 100): # Ensure at least 100px content
+        available_h = H - 100
+        required_h = target_header_h + target_footer_h
+        scale = available_h / required_h
+        scale = max(0.3, scale) # Don't shrink to invisible
+    
+    header_h = int(target_header_h * scale)
+    footer_h = int(target_footer_h * scale)
+    footer_y = H - footer_h
+    
     # Header
-    header_h = 160
     draw.rectangle([(0, 0), (W, header_h)], fill=ui_bg_color)
-    profile_r = 45
-    profile_center = (80, header_h // 2)
-    draw.ellipse([(profile_center[0]-profile_r, profile_center[1]-profile_r), (profile_center[0]+profile_r, profile_center[1]+profile_r)], fill=(220, 220, 220, 255))
-    draw.text((150, 55), settings.profile_name, fill=text_color, font=font_large)
-    draw.text((150, 105), "Sponsored", fill=(150, 150, 150, 255), font=font_small)
-    dot_r = 4
-    for i in range(3):
-        dx = 980 + (i * 15)
-        draw.ellipse([(dx-dot_r, 80-dot_r), (dx+dot_r, 80+dot_r)], fill=text_color)
+    
+    # Profile
+    profile_r = int(45 * scale)
+    profile_cx = int(80 * scale) 
+    profile_cy = header_h // 2
+    
+    if header_h > 40:
+        draw.ellipse([(profile_cx-profile_r, profile_cy-profile_r), (profile_cx+profile_r, profile_cy+profile_r)], fill=(220, 220, 220, 255))
+        
+        # Text Logic (approximate positions scaled)
+        text_x = int(150 * scale)
+        name_y = int(55 * scale)
+        sub_y = int(105 * scale)
+        
+        # Use scaled font if possible, but load_default doesn't scale. 
+        # Ideally we reload fonts, but for now we assume standard fonts.
+        draw.text((text_x, name_y), settings.profile_name, fill=text_color, font=font_large)
+        draw.text((text_x, sub_y), "Sponsored", fill=(150, 150, 150, 255), font=font_small)
+        
+        dot_r = int(4 * scale)
+        dot_y = profile_cy
+        for i in range(3):
+            dx = int((980 + (i * 15)) * scale) # This assumes 1080 width logic, might be off for 512 width
+            # Fix X positioning relative to Right edge
+            dx = W - int((100 - (i*15)) * scale) 
+            draw.ellipse([(dx-dot_r, dot_y-dot_r), (dx+dot_r, dot_y+dot_r)], fill=text_color)
 
     # Footer
-    footer_y = 1530
-    draw.rectangle([(0, footer_y), (W, 1920)], fill=ui_bg_color)
-    icon_y = footer_y + 60
+    draw.rectangle([(0, footer_y), (W, H)], fill=ui_bg_color)
+    icon_y = footer_y + int(60 * scale)
     
-    # Heart
-    cx, cy = 80, icon_y + 25
-    draw.ellipse([(cx-20, cy-20), (cx, cy)], fill=(255, 60, 60, 255))
-    draw.ellipse([(cx-10, cy-20), (cx+10, cy)], fill=(255, 60, 60, 255))
-    draw.polygon([(cx-20, cy-10), (cx+10, cy-10), (cx-5, cy+15)], fill=(255, 60, 60, 255))
+    if footer_h > 50:
+        # Icons (Relative to Left)
+        icons_scale = scale
+        
+        # Heart
+        cx, cy = int(80 * icons_scale), icon_y + int(25 * icons_scale)
+        r = int(20 * icons_scale)
+        draw.ellipse([(cx-r, cy-r), (cx+r, cy+r)], fill=(255, 60, 60, 255))
+        
+        # Comment
+        c_x = int(180 * icons_scale)
+        draw.ellipse([(c_x, icon_y), (c_x + int(40*scale), icon_y + int(35*scale))], outline=text_color, width=3)
+        
+        # Share
+        s_x = int(300 * icons_scale)
+        # Simplified polygon scaling is hard, just drawing a box or skipping for simplicity if too small
+        if scale > 0.5:
+             draw.rectangle([(s_x, icon_y), (s_x + 30, icon_y + 30)], outline=text_color, width=3)
 
-    # Comment Bubble
-    c_x, c_y = 180, icon_y + 10
-    draw.ellipse([(c_x, c_y), (c_x + 40, c_y + 35)], outline=text_color, width=3)
-    draw.polygon([(c_x + 10, c_y + 30), (c_x + 15, c_y + 40), (c_x + 25, c_y + 30)], fill=text_color)
+        # Bookmark (Right aligned)
+        b_x = W - int(120 * scale)
+        draw.rectangle([(b_x, icon_y), (b_x + 30, icon_y + 40)], outline=text_color, width=3)
 
-    # Share Plane
-    s_x, s_y = 300, icon_y + 10
-    draw.polygon([(s_x, s_y), (s_x + 40, s_y + 15), (s_x, s_y + 35), (s_x + 10, s_y + 18)], outline=text_color, fill=None, width=3)
+        # Text Info
+        info_y = icon_y + int(100 * scale)
+        draw.text((int(60*scale), info_y), f"좋아요 {settings.likes_count}", fill=text_color, font=font_medium)
+        
+        caption_y = icon_y + int(160 * scale)
+        draw.text((int(60*scale), caption_y), settings.profile_name, fill=text_color, font=font_medium)
+        draw.text((int(60*scale) + 150, caption_y), settings.caption, fill=(80, 80, 80, 255), font=font_medium)
 
-    # Bookmark
-    b_x, b_y = 960, icon_y + 10
-    draw.polygon([(b_x, b_y), (b_x + 30, b_y), (b_x + 30, b_y + 40), (b_x + 15, b_y + 30), (b_x, b_y + 40)], outline=text_color, fill=None, width=3)
-
-    # Text Info
-    draw.text((60, icon_y + 100), f"좋아요 {settings.likes_count}", fill=text_color, font=font_medium)
-    draw.text((60, icon_y + 160), settings.profile_name, fill=text_color, font=font_medium)
-    try:
-        name_len = draw.textlength(settings.profile_name, font=font_medium)
-    except: name_len = 150
-    draw.text((60 + name_len + 15, icon_y + 160), settings.caption, fill=(80, 80, 80, 255), font=font_medium)
     img.save(output_path)
 
 # --- FastAPI 앱 설정 ---
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+@app.get("/outputs/videos/")
+async def list_videos_directory_handler():
+    return {"message": "Directory listing disabled, use /video/list"}
+
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
@@ -409,7 +457,16 @@ async def create_storyboard(request: StoryboardRequest):
 
 @app.post("/video/create")
 async def create_video(request: VideoRequest):
-    logger.info(f"🎬 [영상 제작 시작] 프로젝트: {request.project_name}")
+    logger.info(f"🎬 [영상 제작 시작 - v2.0 Safe Mode] 프로젝트: {request.project_name}")
+    logger.info(f"📏 요청 해상도: {request.width}x{request.height}")
+    
+    # Force override to Shorts (1080x1920) if Square (512x512) is requested, 
+    # to fix the issue where users get square videos due to old settings.
+    target_w, target_h = request.width, request.height
+    if target_w == 512 and target_h == 512:
+        logger.info("🔄 512x512 요청 감지 -> 1080x1920(Shorts)로 강제 변환합니다.")
+        target_w, target_h = 1080, 1920
+
     project_id = f"build_{int(time.time())}"
     temp_dir = IMAGE_DIR / project_id
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -442,7 +499,8 @@ async def create_video(request: VideoRequest):
                 try:
                     # Determine voice based on speaker
                     speaker = scene.get('speaker', 'Narrator')
-                    voice = "ko-KR-SunHiNeural" # Default
+                    voice = request.narrator_voice or "ko-KR-SunHiNeural" # Default to narrator voice
+                    
                     if speaker == "A" and len(request.characters) > 0:
                         voice = request.characters[0].voice
                     elif speaker == "B" and len(request.characters) > 1:
@@ -458,17 +516,19 @@ async def create_video(request: VideoRequest):
             else: input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
 
         filters = []
-        # Force Square 1:1 Output
-        out_w, out_h = (1080, 1080)
+        # Use determined width/height (Force 1080x1920 if 512x512 was requested)
+        out_w, out_h = (target_w, target_h)
         
-        # Asset Paths for FFmpeg (Escaped)
-        abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\", "/").replace(":", "\\:")
+        # Asset Paths for FFmpeg (Escaped for Filter Graph)
+        # On macOS/Linux, colon escaping is usually not needed inside single quotes, but backslash is.
+        # We replace backslash with forward slash for safety.
+        abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/")
 
         for i in range(num_scenes):
             v_idx, base_dur = i * 2, request.scenes[i].get('duration', 3)
             
             txt_file = temp_dir / f"text_{i}.txt"
-            abs_txt_path = str(txt_file.resolve()).replace("\", "/").replace(":", "\\:")
+            abs_txt_path = str(txt_file.resolve()).replace("\\", "/")
             
             if request.scenes[i].get('script'):
                 tts_p = temp_dir / f"tts_{i}.mp3"
@@ -476,15 +536,47 @@ async def create_video(request: VideoRequest):
             
             clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
             
-            # 1. Image Processing: ZoomPan effect for dynamism
-            filters.append(f"[{v_idx}:v]scale=8000:-1,zoompan=z='min(zoom+0.0015,1.5)':d={int(clip_dur*25)+25}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={out_w}x{out_h},fps=25,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v{i}_zoom]")
+            # Simplified Filter Chain (ZoomPan removed for stability)
+            # 1. Scale & Crop to Square -> 2. Draw Text -> 3. Trim
             
-            # 2. Subtitles: Trendy Style (Yellow, Thick Border, Shadow)
-            # Removed box=1 (background box) for cleaner look
-            text_style = f"fontcolor=yellow:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3:line_spacing=20"
-            text_y_pos = "(h-text_h)/2+350" # Lower middle position
+            text_style = "fontcolor=yellow:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3"
+            text_y_pos = "(h-text_h)/2+350"
             
-            filters.append(f"[{v_idx}_zoom]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':{text_style}:x=(w-text_w)/2:y={text_y_pos},trim=duration={clip_dur}[v{i}_raw]")
+            # Step 1: Blurred Background + Centered Image
+            # [v_idx] -> Split -> [bg] (scale/crop/blur)
+            #                  -> [fg] (scale fit)
+            # [bg][fg]Overlay -> [v_base]
+            
+            # Note: We need to use split to use the input stream twice.
+            # But since we use -loop 1, we can't easily split the infinite stream inside the filter without care.
+            # Actually, simpler is to just scale/crop the input to BG, and use input AGAIN for FG? 
+            # No, filter graph consumes the input pad. We must split.
+            
+            # Complex filter string construction:
+            # [v_idx]split=2[v{i}_in_bg][v{i}_in_fg];
+            # [v{i}_in_bg]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[v{i}_bg_blurred];
+            # [v{i}_in_fg]scale={out_w}:{out_h}:force_original_aspect_ratio=decrease[v{i}_fg_scaled];
+            # [v{i}_bg_blurred][v{i}_fg_scaled]overlay=(W-w)/2:(H-h)/2:format=auto[v{i}_comp];
+            # [v{i}_comp]drawtext...
+            
+            # To avoid variable collision in a loop, we name pads uniquely with {i}.
+            
+            filters.append(f"[{v_idx}:v]split=2[v{i}_in_1][v{i}_in_2]")
+            
+            # Background layer
+            filters.append(f"[v{i}_in_1]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[v{i}_bg]")
+            
+            # Foreground layer (Fit)
+            filters.append(f"[v{i}_in_2]scale={out_w}:{out_h}:force_original_aspect_ratio=decrease[v{i}_fg]")
+            
+            # Composite
+            filters.append(f"[v{i}_bg][v{i}_fg]overlay=(W-w)/2:(H-h)/2:format=auto[v{i}_base]")
+            
+            # Step 2: Draw Text (on composite)
+            filters.append(f"[v{i}_base]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':{text_style}:x=(w-text_w)/2:y={text_y_pos}[v{i}_text]")
+            
+            # Step 3: Trim & SetPTS
+            filters.append(f"[v{i}_text]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]")
 
         # Audio Chain
         for i in range(num_scenes):
@@ -537,7 +629,7 @@ async def create_video(request: VideoRequest):
         # SNS Overlay (If enabled)
         if request.overlay_settings and request.overlay_settings.enabled:
             overlay_img_path = temp_dir / "custom_overlay.png"
-            create_dynamic_overlay(request.overlay_settings, overlay_img_path)
+            create_dynamic_overlay(request.overlay_settings, overlay_img_path, width=out_w, height=out_h)
             input_args.extend(["-i", str(overlay_img_path)])
             filters.append(f"{current_v}[{next_input_idx}:v]overlay=0:0[v_o]")
             current_v, next_input_idx = "[v_o]", next_input_idx + 1
@@ -550,7 +642,18 @@ async def create_video(request: VideoRequest):
             map_a = "[a_f]"
             
         filter_complex_str = ";".join(filters)
-        cmd = ["ffmpeg", "-y"] + input_args + ["-filter_complex", filter_complex_str, "-map", current_v, "-map", map_a, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-c:a", "aac", "-b:a", "192k", str(video_path)]
+        cmd = ["ffmpeg", "-y"] + input_args + [
+            "-filter_complex", filter_complex_str, 
+            "-map", current_v, 
+            "-map", map_a, 
+            "-s", f"{out_w}x{out_h}", # Force exact output resolution
+            "-c:v", "libx264", 
+            "-pix_fmt", "yuv420p", 
+            "-preset", "medium", 
+            "-c:a", "aac", 
+            "-b:a", "192k", 
+            str(video_path)
+        ]
         
         logger.info(f"Running FFmpeg: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)

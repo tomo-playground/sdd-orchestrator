@@ -11,6 +11,14 @@ Narrative Structure: {{ structure }}
 - **{{ char.role }}**: {{ char.desc }}
 {% endfor %}
 
+**🔥 CRITICAL INSTRUCTION: Character Chemistry & Relationship**
+1. **Analyze the Relationship**: Based on the Topic and Character Descriptions, define the relationship between A and B (e.g., Flirting Couple, Bickering Siblings, Strict Boss & Clumsy Rookie).
+2. **Dialogue Style (Tiki-Taka)**: The script MUST be a conversational interaction.
+   - Do NOT write disconnected monologues.
+   - Character B's line MUST react to Character A's line.
+   - Use colloquial Korean (Real conversational tone).
+   - If it's a romance, make it fluttery. If it's comedy, make it punchy.
+
 **Structure Definitions:**
 - **Free Flow**: Natural storytelling without a rigid format.
 - **The Listicle (Top N)**: Hook -> Item 1 -> Item 2 -> Item 3 (Most Important) -> Call to Action. Fast-paced.
@@ -30,19 +38,28 @@ Instructions:
    - **image_prompt**: A highly detailed **ENGLISH** description for Stable Diffusion.
      - **Format**: "[Camera Angle], [Subject Visuals], [Action], [Lighting & Atmosphere], [Background]"
      - **Example**: "Low angle shot, A cute boy with orange hair looking up in awe, glowing blue eyes, cinematic lighting, starry night sky background, detailed, 8k"
-     - **IMPORTANT**: If `visual_focus` is "Both", explicitly describe interaction between A and B.
+     - **IMPORTANT**: If `visual_focus` is "Both", explicitly describe interaction between A and B (e.g., "A is looking at B with a smile", "holding hands").
    - **image_prompt_ko**: A short Korean translation or summary of the `image_prompt`.
 
 Output Format (JSON Array):
 [
   {
     "scene_id": 1,
-    "script": "안녕하세요, 오늘 저희 데이트 브이로그 시작합니다!",
+    "script": "야, 너 오늘 왜 이렇게 예쁘게 입고 왔어?",
     "speaker": "A",
-    "visual_focus": "Both",
+    "visual_focus": "A",
     "duration": 4,
-    "image_prompt": "Medium shot, A cute boy with orange hair and a calm girl with black glasses waving at the camera, sunny park background...",
-    "image_prompt_ko": "공원에서 손 흔드는 소년과 소녀"
+    "image_prompt": "Close-up, A handsome boy looking surprised and shy, blushing, cafe background...",
+    "image_prompt_ko": "놀란 표정의 소년"
+  },
+  {
+    "scene_id": 2,
+    "script": "치.. 너한테 잘 보이려고 그랬지! 몰랐어?",
+    "speaker": "B",
+    "visual_focus": "B",
+    "duration": 4,
+    "image_prompt": "Medium shot, A cute girl winking playfully, bright smile, cafe background...",
+    "image_prompt_ko": "윙크하는 소녀"
   }
 ]
 Return ONLY the raw JSON string.
