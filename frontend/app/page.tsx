@@ -7,7 +7,8 @@ import {
   Square as SquareIcon, Sparkles, ImageIcon, Clapperboard, Image as LucideImage, 
   User, Clock, Music, Trash2, Edit3, UserCircle, RefreshCw, Volume2, Download, 
   CheckCircle2, Globe, Play, Film, Save, History, Boxes, Eye, Plus, X, ChevronRight, Settings2,
-  PlayCircle, PauseCircle, Layout, Mic, UserPlus, Heart, MessageCircle, Bookmark, MoreHorizontal
+  PlayCircle, PauseCircle, Layout, Mic, UserPlus, Heart, MessageCircle, Bookmark, MoreHorizontal,
+  Upload
 } from "lucide-react";
 import Image from "next/image";
 
@@ -68,6 +69,7 @@ interface Character {
   desc: string;
   translatedDesc: string;
   image: string | null;
+  reference_image: string | null; // Added for IP-Adapter
   voice: string;
   seed: number;
   isTranslating: boolean;
@@ -104,8 +106,8 @@ export default function Home() {
   
   // New Multi-Character State
   const [characters, setCharacters] = useState<Character[]>([
-    { id: 0, role: "Actor A (Main)", desc: "주황색 머리에 파란 눈을 가진 장난기 가득한 소년", translatedDesc: "", image: null, voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
-    { id: 1, role: "Actor B (Side)", desc: "검은색 긴 생머리에 안경을 쓴 차분한 소녀", translatedDesc: "", image: null, voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
+    { id: 0, role: "Actor A (Main)", desc: "주황색 머리에 파란 눈을 가진 장난기 가득한 소년", translatedDesc: "", image: null, reference_image: null, voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
+    { id: 1, role: "Actor B (Side)", desc: "검은색 긴 생머리에 안경을 쓴 차분한 소녀", translatedDesc: "", image: null, reference_image: null, voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
   ]);
 
   const [prompt, setPrompt] = useState(SAMPLE_PROMPTS[0]);
@@ -127,6 +129,9 @@ export default function Home() {
   const [previewLoadingIndex, setPreviewLoadingIndex] = useState<number | null>(null);
   const [isRandomLoading, setIsRandomLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingCharIdx, setUploadingCharIdx] = useState<number | null>(null);
 
   const [projects, setProjects] = useState<any[]>([]);
   const [bgmList, setBgmList] = useState<any[]>([]);
@@ -269,6 +274,50 @@ export default function Home() {
     finally { updateCharacter(idx, "isTranslating", false); }
   };
 
+  const analyzeCharacter = async (idx: number, image: string) => {
+    updateCharacter(idx, "isTranslating", true);
+    try {
+        const res = await axios.post(`${API_BASE}/character/analyze`, { image });
+        if (res.data.description) {
+            updateCharacter(idx, "desc", res.data.description);
+        }
+    } catch (e) { console.error("Analysis failed", e); } 
+    finally { updateCharacter(idx, "isTranslating", false); }
+  };
+
+  const handleReferenceUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      updateCharacter(idx, "reference_image", result);
+      // Automatically analyze the uploaded face to update text description
+      analyzeCharacter(idx, result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGeneratePortrait = async (idx: number) => {
+    const char = characters[idx];
+    if (!char.desc) return;
+    updateCharacter(idx, "isLoading", true);
+    try {
+        const res = await axios.post(`${API_BASE}/character/portrait`, {
+            description: char.desc,
+            width: 512,
+            height: 512
+        });
+        if (res.data.image) {
+            updateCharacter(idx, "reference_image", `data:image/png;base64,${res.data.image}`);
+        }
+    } catch (e) {
+        alert("Portrait generation failed");
+    } finally {
+        updateCharacter(idx, "isLoading", false);
+    }
+  };
+
   const handleGenerateActor = async (idx: number) => {
     const char = characters[idx];
     updateCharacter(idx, "isLoading", true);
@@ -278,7 +327,14 @@ export default function Home() {
       const skipOpt = !!char.translatedDesc;
 
       const res = await axios.post(`${API_BASE}/generate`, {
-        prompt: finalPrompt, styles: selectedStyles, lora: selectedLora || null, width: size.w, height: size.h, seed: -1, skip_optimization: skipOpt, negative_prompt: negativePrompt
+        prompt: finalPrompt, 
+        styles: selectedStyles, 
+        lora: selectedLora || null, 
+        width: size.w, height: size.h, 
+        seed: -1, 
+        skip_optimization: skipOpt, 
+        negative_prompt: negativePrompt,
+        reference_image: char.reference_image
       });
       if (res.data.images?.[0]) {
         updateCharacter(idx, "image", `data:image/png;base64,${res.data.images[0]}`);
@@ -316,6 +372,7 @@ export default function Home() {
             
             let charPrompt = "";
             let seedToUse = -1;
+            let refImageToUse = null;
             
             const charA = characters[0];
             const charB = characters[1];
@@ -323,12 +380,15 @@ export default function Home() {
             if (focus === "A") {
                 charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))`;
                 seedToUse = charA.seed;
+                refImageToUse = charA.reference_image;
             } else if (focus === "B") {
                 charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))`;
                 seedToUse = charB.seed;
+                refImageToUse = charB.reference_image;
             } else if (focus === "Both") {
                 charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
                 seedToUse = charA.seed; 
+                refImageToUse = charA.reference_image; // Use Main Actor's ref for couple shots
             } else { 
                 charPrompt = "(No humans:1.2), (Scenery:1.3)";
                 seedToUse = -1;
@@ -343,7 +403,8 @@ export default function Home() {
                 styles: selectedStyles, 
                 lora: selectedLora || null, 
                 width: size.w, height: size.h, 
-                seed: seedToUse
+                seed: seedToUse,
+                reference_image: refImageToUse
             });
             if (res.data.images?.[0]) { newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`; setStoryScenes([...newScenes]); }
             setAutopilotProgress(((i + 1) / newScenes.length) * 100);
@@ -398,18 +459,22 @@ export default function Home() {
       const focus = scene.visual_focus || "A"; 
       let charPrompt = "";
       let seedToUse = -1;
+      let refImageToUse = null;
       const charA = characters[0];
       const charB = characters[1];
 
       if (focus === "A") {
           charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))`;
           seedToUse = charA.seed;
+          refImageToUse = charA.reference_image;
       } else if (focus === "B") {
           charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))`;
           seedToUse = charB.seed;
+          refImageToUse = charB.reference_image;
       } else if (focus === "Both") {
           charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
           seedToUse = charA.seed;
+          refImageToUse = charA.reference_image;
       } else { 
           charPrompt = "(No humans:1.2), (Scenery:1.3)";
           seedToUse = -1;
@@ -424,7 +489,8 @@ export default function Home() {
         styles: selectedStyles, 
         lora: selectedLora || null, 
         width: size.w, height: size.h, 
-        seed: seedToUse
+        seed: seedToUse,
+        reference_image: refImageToUse
       });
       if (res.data.images?.[0]) {
         const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.images[0]}`;
@@ -577,24 +643,44 @@ export default function Home() {
                                     </button>
                                 </div>
 
-                                {/* Character Image Preview */}
+                                {/* Character Image Preview (Unified) */}
                                 <div 
-                                    className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all ${char.image ? "cursor-zoom-in hover:opacity-95" : ""}`}
-                                    onClick={() => char.image && setPreviewImage(char.image)}
+                                    className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all group ${char.reference_image ? "cursor-zoom-in" : ""}`}
+                                    onClick={() => char.reference_image && setPreviewImage(char.reference_image)}
                                 >
                                     {char.isLoading ? (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10">
                                             <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
                                         </div>
-                                    ) : char.image ? (
+                                    ) : char.reference_image ? (
                                         <>
-                                            <Image src={char.image} alt={char.role} fill className="object-cover" unoptimized />
-                                            <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] text-white font-bold z-20">Seed: {char.seed}</div>
+                                            <Image src={char.reference_image} alt="Reference Face" fill className="object-cover" unoptimized />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm z-20" onClick={(e) => e.stopPropagation()}>
+                                                <button onClick={() => { setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all" title="Replace Photo">
+                                                    <Upload className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => updateCharacter(idx, "reference_image", null)} className="p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white backdrop-blur-md transition-all" title="Remove">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-bold z-10 pointer-events-none">
+                                                Reference Face
+                                            </div>
                                         </>
                                     ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 gap-2 font-bold uppercase text-[10px] opacity-50">
-                                            <ImageIcon className="w-12 h-12" />
-                                            <p>No Actor Image</p>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
+                                            <div className="w-12 h-12 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                                <UserCircle className="w-6 h-6" />
+                                            </div>
+                                            <div className="flex flex-col gap-2 w-full">
+                                                <button onClick={(e) => { e.stopPropagation(); setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shadow-sm">
+                                                    Upload Photo
+                                                </button>
+                                                <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">- OR -</span>
+                                                <button onClick={(e) => { e.stopPropagation(); handleGeneratePortrait(idx); }} disabled={!char.desc} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all border border-indigo-100 dark:border-indigo-900/30">
+                                                    Generate AI Face
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -608,15 +694,24 @@ export default function Home() {
                                         onChange={(e) => updateCharacter(idx, "desc", e.target.value)} 
                                     />
                                     
+                                    <div className="flex flex-wrap gap-2">
+                                        <button onClick={() => { setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="flex-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-200 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-zinc-200 dark:border-zinc-700">
+                                            <Upload className="w-3 h-3" /> Upload Face
+                                        </button>
+                                        <button onClick={() => handleGeneratePortrait(idx)} disabled={char.isLoading || !char.desc} className="flex-1 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/30">
+                                            <Sparkles className="w-3 h-3" /> AI Face
+                                        </button>
+                                    </div>
+
                                     <div className="flex gap-2">
-                                        <button onClick={() => handleTranslateActor(idx)} disabled={char.isTranslating || !char.desc} className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-1 text-[10px] uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
+                                        <button onClick={() => handleTranslateActor(idx)} disabled={char.isTranslating || !char.desc} className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
                                             {char.isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate
                                         </button>
                                         <div className="relative flex-1">
                                             <select 
                                                 value={char.voice} 
                                                 onChange={(e) => updateCharacter(idx, "voice", e.target.value)} 
-                                                className="w-full py-2 pl-2 pr-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-[10px] font-bold appearance-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                className="w-full py-2 pl-2 pr-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-[9px] font-bold appearance-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                                             >
                                                 <option value="ko-KR-SunHiNeural">SunHi (F)</option>
                                                 <option value="ko-KR-InJoonNeural">InJoon (M)</option>
@@ -634,10 +729,6 @@ export default function Home() {
                                             onChange={(e) => updateCharacter(idx, "translatedDesc", e.target.value)} 
                                         />
                                     )}
-
-                                    <button onClick={() => handleGenerateActor(idx)} disabled={char.isLoading} className="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg text-xs uppercase tracking-wider">
-                                        {char.isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Generate Look
-                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -994,6 +1085,15 @@ export default function Home() {
                 </div>
             </div>
         )}
+        
+        {/* Hidden File Input for Character Reference Upload */}
+        <input 
+            type="file" 
+            ref={fileInputRef} 
+            hidden 
+            accept="image/*" 
+            onChange={(e) => uploadingCharIdx !== null && handleReferenceUpload(uploadingCharIdx, e)} 
+        />
       </main>
     </div>
   );

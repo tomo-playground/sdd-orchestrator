@@ -14,6 +14,7 @@ import subprocess
 import re
 import shutil
 import textwrap
+import io
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from google import genai
@@ -89,6 +90,15 @@ class GenerateRequest(BaseModel):
     height: int = 512
     seed: int = -1
     skip_optimization: bool = False
+    reference_image: str | None = None # Base64 string for IP-Adapter
+
+class PortraitRequest(BaseModel):
+    description: str
+    width: int = 512
+    height: int = 512
+
+class AnalyzeRequest(BaseModel):
+    image: str
 
 class PromptTranslateRequest(BaseModel):
     text: str
@@ -371,6 +381,21 @@ async def generate_audio(request: AudioGenerateRequest):
         return {"filename": filename}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/character/analyze")
+async def analyze_character(request: AnalyzeRequest):
+    if not gemini_client: raise HTTPException(status_code=503, detail="Gemini key missing")
+    try:
+        # Base64 to Image
+        img_data = request.image.split(",")[1] if "," in request.image else request.image
+        image = Image.open(io.BytesIO(base64.b64decode(img_data)))
+        
+        prompt = "Analyze this character's visual appearance in detail (hair, eyes, clothing, age, gender, vibe). Write a concise description (max 2 sentences) in Korean."
+        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=[prompt, image])
+        return {"description": res.text.strip()}
+    except Exception as e:
+        logger.error(f"Analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/prompt/translate")
 async def translate_prompt(request: PromptTranslateRequest):
     if not gemini_client:
@@ -395,6 +420,30 @@ async def translate_prompt(request: PromptTranslateRequest):
     except Exception as e:
         logger.error(f"Translation failed: {e}")
         return {"translated_prompt": request.text, "negative_prompt": DEFAULT_NEGATIVE_PROMPT}
+
+@app.post("/character/portrait")
+async def generate_portrait(request: PortraitRequest):
+    """Generates a high-quality reference portrait for a character."""
+    prompt = f"high quality portrait of {request.description}, professional lighting, studio background, 8k, highly detailed, looking at camera"
+    payload = {
+        "prompt": prompt,
+        "negative_prompt": "low quality, blurry, distorted face, extra limbs, multiple people",
+        "steps": 25,
+        "width": request.width,
+        "height": request.height,
+        "sampler_name": "Euler a",
+        "cfg_scale": 7,
+        "seed": -1
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.post(SD_URL, json=payload, timeout=120.0)
+            r.raise_for_status()
+            data = r.json()
+            return {"image": data.get("images", [])[0]}
+        except Exception as e:
+            logger.error(f"Portrait Gen Failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate")
 async def generate_image(request: GenerateRequest):
@@ -425,8 +474,28 @@ async def generate_image(request: GenerateRequest):
         "height": request.height,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
-        "seed": request.seed
+        "seed": request.seed,
+        "alwayson_scripts": {}
     }
+
+    # ControlNet / IP-Adapter Injection
+    if request.reference_image:
+        logger.info("🔗 IP-Adapter Activated with reference image")
+        # Ensure clean base64
+        ref_img_clean = request.reference_image.split(",")[1] if "," in request.reference_image else request.reference_image
+        
+        payload["alwayson_scripts"]["controlnet"] = {
+            "args": [
+                {
+                    "enabled": True,
+                    "module": "ip-adapter_face_id_plus",
+                    "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+                    "weight": 0.8,
+                    "image": ref_img_clean,
+                    "pixel_perfect": True
+                }
+            ]
+        }
     
     async with httpx.AsyncClient() as client:
         try:
