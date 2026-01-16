@@ -473,8 +473,8 @@ async def create_video(request: VideoRequest):
     video_filename = f"{request.project_name}_{int(time.time())}.mp4"
     video_path = VIDEO_DIR / video_filename
     
-    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
-    if not os.path.exists(font_path): font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+    font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+    if not os.path.exists(font_path): font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
 
     try:
         input_args = []
@@ -492,7 +492,7 @@ async def create_video(request: VideoRequest):
             clean_script = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
             # Split long lines for subtitles
             wrapped_script = wrap_text(clean_script, width=20) 
-            txt_file.write_text(wrapped_script, encoding="utf-8-sig")
+            txt_file.write_text(wrapped_script, encoding="utf-8")
             
             has_valid_tts = False
             if txt_for_tts := raw_script.replace("'", "").strip():
@@ -539,7 +539,7 @@ async def create_video(request: VideoRequest):
             # Simplified Filter Chain (ZoomPan removed for stability)
             # 1. Scale & Crop to Square -> 2. Draw Text -> 3. Trim
             
-            text_style = "fontcolor=white:fontsize=65:borderw=5:bordercolor=black:shadowx=3:shadowy=3"
+            text_style = "fontcolor=white:fontsize=65:borderw=7:bordercolor=black:shadowx=3:shadowy=3"
             text_y_pos = "250"
             
             # Step 1: Blurred Background + Centered Image
