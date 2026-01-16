@@ -39,7 +39,7 @@ SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 SD_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
-DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly"
+DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly, blurry, out of focus, duplicate, error, artifacts, simplified, cartoon, cgi, render, 3d, (monochrome:1.1), (muted colors:1.2), overexposed, high contrast"
 
 # 디렉토리 설정
 CACHE_DIR = pathlib.Path(".cache")
@@ -88,7 +88,10 @@ class GenerateRequest(BaseModel):
     styles: list[str] = []
     width: int = 512
     height: int = 512
+    sampler_name: Optional[str] = "DPM++ 2M Karras" # Better for quality
+    cfg_scale: Optional[float] = 7
     seed: int = -1
+    steps: int = 30 # Increased for detail
     skip_optimization: bool = False
     reference_image: str | None = None # Base64 string for IP-Adapter
 
@@ -96,6 +99,7 @@ class PortraitRequest(BaseModel):
     description: str
     width: int = 512
     height: int = 512
+    styles: list[str] = []
 
 class AnalyzeRequest(BaseModel):
     image: str
@@ -449,16 +453,19 @@ async def translate_prompt(request: PromptTranslateRequest):
 async def generate_portrait(request: PortraitRequest):
     """Generates a high-quality reference portrait for a character."""
     
-    # 1. Optimize/Translate Prompt with Gemini if available
+    style_prompt = ", ".join(request.styles)
     final_prompt = request.description
+    
+    # 1. Optimize/Translate Prompt with Gemini if available
     if gemini_client:
         try:
             prompt_instruction = f"""
             You are a Stable Diffusion Prompt Expert.
             Convert this character description into a detailed, comma-separated English prompt for a high-quality portrait.
-            Focus on: Gender, Age, Hair, Eyes, Facial features, Atmosphere.
+            The user also wants these styles: "{style_prompt}".
+            Focus on: Gender, Age, Hair, Eyes, Facial features, Atmosphere, and the requested Art Style.
             Input: "{request.description}"
-            Output example: "A handsome young boy, 7 years old, orange messy hair, blue eyes, cute face, soft lighting, detailed texture, 8k"
+            Output example: "Anime style, flat color, A handsome young boy, 7 years old, orange messy hair, blue eyes"
             Return ONLY the prompt string.
             """
             res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=prompt_instruction)
@@ -466,15 +473,17 @@ async def generate_portrait(request: PortraitRequest):
         except Exception as e:
             logger.warning(f"Portrait Prompt Optimization Failed: {e}")
 
-    prompt = f"high quality portrait of {final_prompt}, professional lighting, studio background, 8k, highly detailed, looking at camera"
+    # Construct final prompt with some quality boosters
+    prompt = f"(({final_prompt})), professional lighting, 8k, highly detailed, looking at camera"
+    logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
     
     payload = {
         "prompt": prompt,
-        "negative_prompt": "low quality, blurry, distorted face, extra limbs, multiple people, (nsfw:1.5)",
-        "steps": 25,
+        "negative_prompt": "low quality, blurry, distorted face, extra limbs, multiple people, (nsfw:1.5), (worst quality, low quality:1.4)",
+        "steps": 30,
         "width": request.width,
         "height": request.height,
-        "sampler_name": "Euler a",
+        "sampler_name": "DPM++ 2M Karras",
         "cfg_scale": 7,
         "seed": -1
     }
@@ -512,11 +521,11 @@ async def generate_image(request: GenerateRequest):
     payload = {
         "prompt": f"{final_pos}, <lora:{request.lora}:1>" if request.lora else final_pos,
         "negative_prompt": final_neg,
-        "steps": 20,
+        "steps": request.steps,
         "width": request.width,
         "height": request.height,
-        "sampler_name": "Euler a",
-        "cfg_scale": 7,
+        "sampler_name": request.sampler_name,
+        "cfg_scale": request.cfg_scale,
         "seed": request.seed,
         "alwayson_scripts": {}
     }

@@ -304,9 +304,10 @@ export default function Home() {
     updateCharacter(idx, "isLoading", true);
     try {
         const res = await axios.post(`${API_BASE}/character/portrait`, {
-            description: char.desc,
+            description: char.translatedDesc || char.desc,
             width: 512,
-            height: 512
+            height: 512,
+            styles: selectedStyles
         });
         if (res.data.image) {
             updateCharacter(idx, "reference_image", `data:image/png;base64,${res.data.image}`);
