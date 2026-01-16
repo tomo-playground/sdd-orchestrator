@@ -388,7 +388,7 @@ export default function Home() {
             } else if (focus === "Both") {
                 charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
                 seedToUse = charA.seed; 
-                refImageToUse = charA.reference_image; // Use Main Actor's ref for couple shots
+                refImageToUse = null; // Disable IP-Adapter for duo scenes to avoid identity conflict
             } else { 
                 charPrompt = "(No humans:1.2), (Scenery:1.3)";
                 seedToUse = -1;
@@ -448,7 +448,7 @@ export default function Home() {
         else if (speaker === "B") voiceToUse = characters[1].voice;
         
         const res = await axios.post(`${API_BASE}/audio/preview`, { text: scene.script, voice: voiceToUse });
-        if (audioRef.current) { audioRef.current.src = res.data.url; audioRef.current.play(); }
+        if (audioRef.current) { audioRef.current.src = res.data.url; audioRef.current.play().catch(() => {}); }
     } catch (e) { console.error("Preview fail"); } finally { setPreviewLoadingIndex(null); }
   };
 
@@ -561,15 +561,16 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-3">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">LoRA Model</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400"><Wand2 className="w-3.5 h-3.5 inline-block mr-1" /> LoRA Model</label>
                 <div className="relative">
                     <select value={selectedLora} onChange={(e) => setSelectedLora(e.target.value)} className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium appearance-none focus:ring-1 focus:ring-zinc-400">
                         <option value="">None (Default)</option>
                         {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
                     </select>
-                    < Wand2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                    <Settings2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                 </div>
             </div>
+
             <div className="flex flex-col gap-3">
                 <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
                 <div className="flex flex-wrap gap-2">
@@ -802,7 +803,7 @@ export default function Home() {
                                                 setPlayingBgm(null);
                                             } else if (bgmPlayerRef.current) {
                                                 bgmPlayerRef.current.src = bgm.url;
-                                                bgmPlayerRef.current.play();
+                                                bgmPlayerRef.current.play().catch(() => {});
                                                 setPlayingBgm(selectedBgm);
                                             }
                                         }}
