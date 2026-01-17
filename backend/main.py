@@ -351,6 +351,24 @@ def sanitize_seed_prompt(text: str) -> str:
     out = re.sub(r"^\\s*,\\s*|\\s*,\\s*$", "", out)
     return out.strip()
 
+def apply_gender_hints(user_input: str, prompt: str, negative: str) -> tuple[str, str]:
+    input_lc = (user_input or "").lower()
+    prompt_lc = (prompt or "").lower()
+    negative_lc = (negative or "").lower()
+    boy_terms = ("소년", "남자", "남성", "남학생", "boy", "male", "남아")
+    girl_terms = ("소녀", "여자", "여성", "여학생", "girl", "female", "woman")
+
+    def ensure_phrase(text: str, phrase: str) -> str:
+        return text if phrase.lower() in text.lower() else f"{text}, {phrase}".strip(", ")
+
+    if any(term in input_lc for term in boy_terms):
+        prompt = ensure_phrase(prompt, "young boy, male, boyish face")
+        negative = ensure_phrase(negative, "girl, female, woman, schoolgirl, feminine, long hair, skirt")
+    elif any(term in input_lc for term in girl_terms):
+        prompt = ensure_phrase(prompt, "young girl, female, girlish face")
+        negative = ensure_phrase(negative, "boy, male, man, schoolboy, masculine, short hair")
+    return prompt, negative
+
 def detect_faces_base64(data: str) -> int:
     raw = strip_data_url(data)
     if not raw:
@@ -900,9 +918,11 @@ async def translate_prompt(request: PromptTranslateRequest):
             
         translated_raw = res_json.get("positive_prompt", request.text)
         translated = sanitize_prompt_background(translated_raw)
+        negative_prompt = res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
+        translated, negative_prompt = apply_gender_hints(request.text, translated, negative_prompt)
         return {
             "translated_prompt": translated,
-            "negative_prompt": res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT),
+            "negative_prompt": negative_prompt,
             "raw_prompt": translated_raw,
             "sanitized_prompt": translated
         }
@@ -938,8 +958,9 @@ async def generate_portrait(request: PortraitRequest):
             You are a Stable Diffusion Prompt Expert.
             Convert this character description into a detailed, comma-separated English prompt for a high-quality face close-up reference.
             The user also wants these styles: "{style_prompt}".
-            Focus on: Gender, Age, Hair, Eyes, Facial features, Clothing, and the requested Art Style.
+            Focus on: Gender, Age, Hair, Eyes, Facial features, Skin tone, Hair color, Eye color, Clothing, and the requested Art Style.
             Use a plain/simple background. Avoid detailed backgrounds and vibrant colors.
+            Preserve skin tone, eye color, and hair color exactly as described.
             Input: "{request.description}"
             Output example: "Anime style, flat color, A handsome young boy, 7 years old, orange messy hair, blue eyes, clean background, close-up portrait"
             Return ONLY the prompt string.
@@ -954,15 +975,17 @@ async def generate_portrait(request: PortraitRequest):
     prompt = (
         f"(({seed_prompt})), close-up portrait, head and shoulders only, head-only crop, "
         "shoulder-up, neck-up, face centered, "
-        "single person, front-facing, symmetrical pose, straight posture, "
-        "face fully visible, eyes visible, looking at camera, hands not visible, no hands, no arms, "
+        "single person, solo, one person only, front-facing, symmetrical pose, straight posture, "
+        "face fully visible, eyes visible, looking at camera, "
+        "accurate skin tone, accurate eye color, accurate hair color, "
+        "hands not visible, no hands, no arms, "
         "no occlusion, clean background, professional lighting, highly detailed"
     )
     prompt = escape_dynamic_prompt(prompt) or prompt
     logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
     
     negative_prompt = (
-        "low quality, blurry, distorted face, extra limbs, multiple people, "
+        "low quality, blurry, distorted face, ugly, deformed, (multiple people:1.8), (two people:1.8), (group:1.7), (crowd:1.7), extra person, "
         "profile, side view, back view, three-quarter view, tilted head, dynamic pose, "
         "occluded face, mask, sunglasses, hat, "
         "(bad hands:1.6), (bad fingers:1.6), (missing fingers:1.6), (extra fingers:1.6), (fused fingers:1.4), "

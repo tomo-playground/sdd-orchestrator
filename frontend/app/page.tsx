@@ -14,6 +14,10 @@ import Image from "next/image";
 
 // --- Constants ---
 const API_BASE = "http://localhost:8000";
+const LOCAL_STATE_KEY = "shorts-producer:last-state";
+const LOCAL_DB_NAME = "shorts-producer";
+const LOCAL_DB_STORE = "state";
+const LOCAL_DB_KEY = "last-state";
 const STYLE_PRESETS = [
   "Studio Ghibli",
   "Makoto Shinkai",
@@ -107,6 +111,80 @@ interface Character {
   isLoading: boolean;
 }
 
+const createDefaultCharacters = (): Character[] => [
+  { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
+  { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
+];
+const DEFAULT_CHARACTERS = createDefaultCharacters();
+
+const openLocalStateDb = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !("indexedDB" in window)) {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    const request = window.indexedDB.open(LOCAL_DB_NAME, 1);
+    request.onerror = () => reject(request.error || new Error("IndexedDB open failed"));
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(LOCAL_DB_STORE)) {
+        db.createObjectStore(LOCAL_DB_STORE);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+  });
+};
+
+const loadLocalState = async (): Promise<Record<string, unknown> | null> => {
+  try {
+    const db = await openLocalStateDb();
+    const tx = db.transaction(LOCAL_DB_STORE, "readonly");
+    const store = tx.objectStore(LOCAL_DB_STORE);
+    const req = store.get(LOCAL_DB_KEY);
+    const result = await new Promise<unknown>((resolve, reject) => {
+      req.onerror = () => reject(req.error || new Error("IndexedDB read failed"));
+      req.onsuccess = () => resolve(req.result || null);
+    });
+    db.close();
+    return result as Record<string, unknown> | null;
+  } catch {
+    return null;
+  }
+};
+
+const saveLocalState = async (payload: Record<string, unknown>) => {
+  try {
+    const db = await openLocalStateDb();
+    const tx = db.transaction(LOCAL_DB_STORE, "readwrite");
+    const store = tx.objectStore(LOCAL_DB_STORE);
+    store.put(payload, LOCAL_DB_KEY);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB write failed"));
+    });
+    db.close();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const clearLocalState = async () => {
+  try {
+    const db = await openLocalStateDb();
+    const tx = db.transaction(LOCAL_DB_STORE, "readwrite");
+    const store = tx.objectStore(LOCAL_DB_STORE);
+    store.delete(LOCAL_DB_KEY);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB delete failed"));
+    });
+    db.close();
+  } catch {
+    // ignore
+  }
+};
+
 export default function Home() {
   // --- UI States ---
   const [showProjectList, setShowProjectList] = useState(false); // Project Browser Modal State
@@ -141,10 +219,10 @@ export default function Home() {
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   
   // New Multi-Character State
-  const [characters, setCharacters] = useState<Character[]>([
-    { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
-    { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
-  ]);
+  const [characters, setCharacters] = useState<Character[]>(createDefaultCharacters);
+  const hasHydratedRef = useRef(false);
+  const saveTimerRef = useRef<number | null>(null);
+  const autoSaveWarningRef = useRef(false);
 
   const [isStoryLoading, setIsStoryLoading] = useState(false);
   const [isAutopilotRunning, setIsAutopilotRunning] = useState(false);
@@ -174,6 +252,22 @@ export default function Home() {
   const [isControlnetLoading, setIsControlnetLoading] = useState(false);
   const [controlnetError, setControlnetError] = useState<string | null>(null);
   const [playingBgm, setPlayingBgm] = useState<string | null>(null);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+
+  const normalizeCharacters = (chars: Character[]) =>
+    chars.map((char, idx) => {
+      const fallback = DEFAULT_CHARACTERS[idx] || DEFAULT_CHARACTERS[0];
+      return {
+        ...fallback,
+        ...char,
+        reference_images_face: char.reference_images_face || [],
+        reference_images_body: char.reference_images_body || [],
+        reference_loading_kind: null,
+        seed_image: char.seed_image || char.reference_image || null,
+        face_detected: typeof char.face_detected === "boolean" ? char.face_detected : null,
+        face_count: typeof char.face_count === "number" ? char.face_count : null
+      };
+    });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bgmPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -205,6 +299,97 @@ export default function Home() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const hydrate = async () => {
+      if (typeof window === "undefined") return;
+      const saved = await loadLocalState();
+      const raw = !saved ? window.localStorage.getItem(LOCAL_STATE_KEY) : null;
+      let payload: Record<string, unknown> | null = saved;
+      if (!payload && raw) {
+        try {
+          payload = JSON.parse(raw);
+        } catch {
+          window.localStorage.removeItem(LOCAL_STATE_KEY);
+        }
+      }
+      if (!payload || !isMounted) {
+        hasHydratedRef.current = true;
+        return;
+      }
+      const data = payload as Record<string, unknown>;
+      if (typeof data.autoSaveEnabled === "boolean") setAutoSaveEnabled(data.autoSaveEnabled);
+      if (data.storyTopic) setStoryTopic(String(data.storyTopic));
+      if (data.storyDuration) setStoryDuration(Number(data.storyDuration));
+      if (data.storyLanguage) setStoryLanguage(String(data.storyLanguage));
+      if (Array.isArray(data.storyScenes)) setStoryScenes(data.storyScenes as StoryScene[]);
+      if (Array.isArray(data.characters)) setCharacters(normalizeCharacters(data.characters as Character[]));
+      if (data.narratorVoice) setNarratorVoice(String(data.narratorVoice));
+      if (Array.isArray(data.selectedStyles)) setSelectedStyles(data.selectedStyles as string[]);
+      if (data.resolution) setResolution(data.resolution as keyof typeof RESOLUTIONS);
+      if (Array.isArray(data.selectedLora)) setSelectedLora(data.selectedLora as string[]);
+      if (data.overlaySettings) setOverlaySettings(data.overlaySettings as typeof overlaySettings);
+      if (typeof data.castLocked === "boolean") setCastLocked(data.castLocked);
+      if (data.activeStep === "cast" || data.activeStep === "scene") setActiveStep(data.activeStep);
+      hasHydratedRef.current = true;
+    };
+    void hydrate();
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current || typeof window === "undefined") return;
+    if (!autoSaveEnabled) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      const payload = {
+        storyTopic,
+        storyDuration,
+        storyLanguage,
+        storyScenes,
+        characters,
+        narratorVoice,
+        selectedStyles,
+        resolution,
+        selectedLora,
+        overlaySettings,
+        castLocked,
+        autoSaveEnabled,
+        activeStep
+      };
+      void (async () => {
+        const saved = await saveLocalState(payload);
+        if (saved) return;
+        try {
+          window.localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(payload));
+        } catch {
+          if (!autoSaveWarningRef.current) {
+            autoSaveWarningRef.current = true;
+            alert("자동 저장 공간이 부족합니다. 자동 저장이 꺼집니다.");
+          }
+          setAutoSaveEnabled(false);
+        }
+      })();
+    }, 400);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [
+    storyTopic,
+    storyDuration,
+    storyLanguage,
+    storyScenes,
+    characters,
+    narratorVoice,
+    selectedStyles,
+    resolution,
+    selectedLora,
+    overlaySettings,
+    autoSaveEnabled,
+    castLocked,
+    activeStep
+  ]);
 
   const fetchWebuiSettings = async () => {
     setIsWebuiSettingsLoading(true);
@@ -391,24 +576,29 @@ export default function Home() {
       .replace(/\s+,/g, ",")
       .trim();
     const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
-    const anchor = base ? `${base}, same person, single person, solo, one person only` : "same person, single person, solo, one person only";
+    const anchor = base ? `${base}, same person, single person, solo, one person only, single subject, isolated subject, no other people` : "same person, single person, solo, one person only, single subject, isolated subject, no other people";
     return [
-      `${anchor}, front view, front-facing, looking at camera, both eyes visible, symmetrical face, square shoulders, close-up portrait, tight close-up, head and shoulders only, crop at shoulders, face centered, face occupies 50 percent of frame, hands not visible, no hands, sharp focus, plain background${styles}`,
-      `${anchor}, left side headshot, perfect profile, left profile, facing left, looking left, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background${styles}`,
-      `${anchor}, right side headshot, perfect profile, right profile, facing right, looking right, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background${styles}`,
-      `${anchor}, back view, rear view, facing away, back of head only, nape visible, no face visible, no eyes visible, no nose visible, square shoulders, back straight, tight close-up, head and shoulders only, crop at shoulders, centered composition, hands not visible, no hands, plain background${styles}`
+      `${anchor}, front view, front-facing, looking at camera, both eyes visible, symmetrical face, square shoulders, close-up portrait, tight close-up, head and shoulders only, crop at shoulders, face centered, face occupies 50 percent of frame, hands not visible, no hands, sharp focus, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, left side headshot, perfect profile, left profile, facing left, looking left, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, right side headshot, perfect profile, right profile, facing right, looking right, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, back view, rear view, facing away, back of head only, nape visible, no face visible, no eyes visible, no nose visible, square shoulders, back straight, tight close-up, head and shoulders only, crop at shoulders, centered composition, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`
     ];
   };
 
   const buildBodyReferencePrompts = (char: Character) => {
-    const base = (char.translatedDesc || char.desc || "").trim();
+    const baseRaw = (char.translatedDesc || char.desc || "").trim();
+    const base = baseRaw
+      .replace(/\b(people|persons|group|crowd|friends|classmates|students|pair|couple|together|two|twins|siblings)\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+,/g, ",")
+      .trim();
     const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
     const anchor = base ? `${base}, same person, single person, solo, one person only` : "same person, single person, solo, one person only";
     return [
-      `${anchor}, full body, head-to-toe, long shot, front view, front-facing, standing, attention pose, upright posture, feet together, square shoulders, back straight, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, plain background${styles}`,
-      `${anchor}, full body, head-to-toe, long shot, left side view, left profile, facing left, left ear visible, attention pose, upright posture, feet together, arms straight at sides, hands visible, five fingers, anatomically correct hands, centered, no occlusion, plain background${styles}`,
-      `${anchor}, full body, head-to-toe, long shot, right side view, right profile, facing right, right ear visible, attention pose, upright posture, feet together, arms straight at sides, hands visible, five fingers, anatomically correct hands, centered, no occlusion, plain background${styles}`,
-      `${anchor}, full body, head-to-toe, long shot, back view, rear view, facing away, back of head visible, no face visible, shoulder blades visible, square shoulders, back straight, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, plain background${styles}`
+      `${anchor}, full body, head-to-toe, long shot, front view, front-facing, standing, attention pose, upright posture, feet together, square shoulders, back straight, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, full body, head-to-toe, long shot, left side view, left profile, facing left, only one eye visible, left ear visible, standing, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, full body, head-to-toe, long shot, right side view, right profile, facing right, only one eye visible, right ear visible, standing, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, full body, head-to-toe, long shot, back view, rear view, facing away, back of head visible, no face visible, shoulder blades visible, square shoulders, back straight, standing, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`
     ];
   };
 
@@ -419,11 +609,18 @@ export default function Home() {
       alert("기준 얼굴 이미지를 먼저 업로드해주세요.");
       return;
     }
-    updateCharacter(idx, "reference_loading_kind", kind);
+    if (kind === "body") {
+      void checkFaceDetection(idx, seedImage);
+    }
     const prompts = kind === "face"
       ? buildFaceReferencePrompts(char)
       : buildBodyReferencePrompts(char);
-    if (!prompts.length) return;
+    if (!prompts.length) {
+      updateCharacter(idx, "reference_loading_kind", null);
+      updateCharacter(idx, "isLoading", false);
+      return;
+    }
+    updateCharacter(idx, "reference_loading_kind", kind);
     const seedField = kind === "face" ? "reference_seed_face" : "reference_seed_body";
     const existingSeed = kind === "face" ? char.reference_seed_face : char.reference_seed_body;
     const baseSeed = existingSeed === -1 ? Math.floor(Math.random() * 1_000_000_000) : existingSeed;
@@ -432,9 +629,9 @@ export default function Home() {
     }
     updateCharacter(idx, "isLoading", true);
     try {
-      const singlePersonNegative = "(multiple people:1.7), (two people:1.7), (group:1.6), (crowd:1.6), (duplicate:1.5), (twins:1.5), (clone:1.5), extra person, extra face, extra head, extra body, extra torso";
-      const anatomyNegative = "(bad hands:1.4), (bad fingers:1.4), (missing fingers:1.4), (extra fingers:1.4), (fused fingers:1.4), (deformed hands:1.4), (malformed hands:1.4), (extra limbs:1.4), (extra legs:1.5), (three legs:1.5), (missing legs:1.4), (deformed legs:1.4)";
-      const backgroundNegative = "(busy background:1.4), (complex background:1.4), (cluttered background:1.4), (detailed background:1.3), (patterned background:1.3), (text:1.6), (letters:1.6), (words:1.6), (watermark:1.6), (logo:1.6), (signage:1.6), (subtitle:1.5), (caption:1.5), (speech bubble:1.5), (typography:1.5)";
+      const singlePersonNegative = "(multiple people:2.2), (two people:2.2), (group:2.0), (crowd:2.0), (duplicate:1.9), (twins:1.9), (clone:1.9), (extra person:2.0), (second person:2.0), (double body:1.9), extra face, extra head, extra body, extra torso";
+      const anatomyNegative = "(bad hands:1.2), (bad fingers:1.2), (missing fingers:1.2), (extra fingers:1.2), (fused fingers:1.2), (deformed hands:1.2), (malformed hands:1.2), (extra limbs:1.4), (extra legs:1.5), (three legs:1.5), (missing legs:1.4), (deformed legs:1.4)";
+      const backgroundNegative = "(busy background:1.4), (complex background:1.4), (cluttered background:1.4), (detailed background:1.3), (patterned background:1.3), (scenic background:1.4), (landscape:1.4), (cityscape:1.4), (interior:1.3), (outdoor scenery:1.3), (text:1.6), (letters:1.6), (words:1.6), (watermark:1.6), (logo:1.6), (signage:1.6), (subtitle:1.5), (caption:1.5), (speech bubble:1.5), (typography:1.5)";
       const faceAngleNegatives = [
         "back view, rear view, side view, profile, three-quarter view, facing away",
         "front view, front-facing, facing camera, looking at viewer, right side view, three-quarter view, back view, rear view",
@@ -447,8 +644,8 @@ export default function Home() {
         "front view, left side view, left profile, back view, rear view",
         "front view, left side view, right side view, profile, three-quarter view, face visible"
       ];
-      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
-      const bodyBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), action pose, dynamic pose, running, jumping, crouching, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
+      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, ugly, deformed, awkward pose, bad pose, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
+      const bodyBase = `${singlePersonNegative}, (multiple bodies:2.0), (two heads:2.0), (two faces:2.0), (duplicate body:1.9), (background people:2.0), (extra character:2.0), (people in background:2.0), ${anatomyNegative}, ${backgroundNegative}, deformed, awkward pose, bad pose, (deformed arms:1.3), (bad arms:1.3), (deformed fingers:1.3), (mutated hands:1.3), action pose, dynamic pose, running, jumping, crouching, sitting, seated, kneeling, squatting, lying, reclined, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
       const images: string[] = [];
       for (const prompt of prompts) {
         const slot = images.length;
@@ -479,8 +676,7 @@ export default function Home() {
         }
       }
       if (kind === "body" && images.length > 1) {
-        const sorted = await sortImagesBySharpness(images);
-        updateCharacter(idx, "reference_images_body", sorted);
+        updateCharacter(idx, "reference_images_body", [...images]);
       }
     } catch {
       alert("Batch portrait generation failed");
@@ -502,11 +698,15 @@ export default function Home() {
       alert("기준 얼굴 이미지를 먼저 업로드해주세요.");
       return;
     }
-    updateCharacter(idx, "reference_loading_kind", kind);
     const prompts = kind === "face"
       ? buildFaceReferencePrompts(char)
       : buildBodyReferencePrompts(char);
-    if (!prompts[slot]) return;
+    if (!prompts[slot]) {
+      updateCharacter(idx, "reference_loading_kind", null);
+      updateCharacter(idx, "isLoading", false);
+      return;
+    }
+    updateCharacter(idx, "reference_loading_kind", kind);
     const seedField = kind === "face" ? "reference_seed_face" : "reference_seed_body";
     const existingSeed = kind === "face" ? char.reference_seed_face : char.reference_seed_body;
     const baseSeed = existingSeed === -1 ? Math.floor(Math.random() * 1_000_000_000) : existingSeed;
@@ -515,9 +715,9 @@ export default function Home() {
     }
     updateCharacter(idx, "isLoading", true);
     try {
-      const singlePersonNegative = "(multiple people:1.7), (two people:1.7), (group:1.6), (crowd:1.6), (duplicate:1.5), (twins:1.5), (clone:1.5), extra person, extra face, extra head, extra body, extra torso";
-      const anatomyNegative = "(bad hands:1.4), (bad fingers:1.4), (missing fingers:1.4), (extra fingers:1.4), (fused fingers:1.4), (deformed hands:1.4), (malformed hands:1.4), (extra limbs:1.4), (extra legs:1.5), (three legs:1.5), (missing legs:1.4), (deformed legs:1.4)";
-      const backgroundNegative = "(busy background:1.4), (complex background:1.4), (cluttered background:1.4), (detailed background:1.3), (patterned background:1.3), (text:1.6), (letters:1.6), (words:1.6), (watermark:1.6), (logo:1.6), (signage:1.6), (subtitle:1.5), (caption:1.5), (speech bubble:1.5), (typography:1.5)";
+      const singlePersonNegative = "(multiple people:2.2), (two people:2.2), (group:2.0), (crowd:2.0), (duplicate:1.9), (twins:1.9), (clone:1.9), (extra person:2.0), (second person:2.0), (double body:1.9), extra face, extra head, extra body, extra torso";
+      const anatomyNegative = "(bad hands:1.2), (bad fingers:1.2), (missing fingers:1.2), (extra fingers:1.2), (fused fingers:1.2), (deformed hands:1.2), (malformed hands:1.2), (extra limbs:1.4), (extra legs:1.5), (three legs:1.5), (missing legs:1.4), (deformed legs:1.4)";
+      const backgroundNegative = "(busy background:1.4), (complex background:1.4), (cluttered background:1.4), (detailed background:1.3), (patterned background:1.3), (scenic background:1.4), (landscape:1.4), (cityscape:1.4), (interior:1.3), (outdoor scenery:1.3), (text:1.6), (letters:1.6), (words:1.6), (watermark:1.6), (logo:1.6), (signage:1.6), (subtitle:1.5), (caption:1.5), (speech bubble:1.5), (typography:1.5)";
       const faceAngleNegatives = [
         "back view, rear view, side view, profile",
         "front view, right side view, back view, rear view",
@@ -530,8 +730,8 @@ export default function Home() {
         "front view, left side view, back view, rear view",
         "front view, left side view, right side view"
       ];
-      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
-      const bodyBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), action pose, dynamic pose, running, jumping, crouching, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
+      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, ugly, deformed, awkward pose, bad pose, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
+      const bodyBase = `${singlePersonNegative}, (multiple bodies:2.0), (two heads:2.0), (two faces:2.0), (duplicate body:1.9), (background people:2.0), (extra character:2.0), (people in background:2.0), ${anatomyNegative}, ${backgroundNegative}, deformed, awkward pose, bad pose, (deformed arms:1.3), (bad arms:1.3), (deformed fingers:1.3), (mutated hands:1.3), action pose, dynamic pose, running, jumping, crouching, sitting, seated, kneeling, squatting, lying, reclined, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
       const angleNegative = kind === "face"
         ? (faceAngleNegatives[slot] || "")
         : (bodyAngleNegatives[slot] || "");
@@ -568,6 +768,19 @@ export default function Home() {
     }
   };
 
+  const deleteReferenceImage = (idx: number, kind: "face" | "body", slot: number) => {
+    const char = characters[idx];
+    if (kind === "face") {
+      const next = [...char.reference_images_face];
+      next[slot] = "";
+      updateCharacter(idx, "reference_images_face", next);
+    } else {
+      const next = [...char.reference_images_body];
+      next[slot] = "";
+      updateCharacter(idx, "reference_images_body", next);
+    }
+  };
+
   const setRandomPersona = (idx: number) => {
     const random = SAMPLE_PERSONAS[Math.floor(Math.random() * SAMPLE_PERSONAS.length)];
     updateCharacter(idx, "desc", random);
@@ -586,10 +799,18 @@ export default function Home() {
   };
 
   const handleSaveProject = async () => {
-    if (!storyTopic && storyScenes.length === 0) return;
+    const hasCast = characters.some((char) => (
+      !!char.seed_image ||
+      !!char.reference_image ||
+      (char.reference_images_face && char.reference_images_face.length > 0) ||
+      (char.reference_images_body && char.reference_images_body.length > 0) ||
+      !!char.desc ||
+      !!char.translatedDesc
+    ));
+    if (!storyTopic && storyScenes.length === 0 && !hasCast) return;
     try {
         const res = await axios.post(`${API_BASE}/projects/save`, {
-            id: projectId, title: storyTopic || "Untitled",
+            id: projectId, title: storyTopic || "Cast",
             data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
@@ -655,11 +876,14 @@ export default function Home() {
   const checkFaceDetection = async (idx: number, image: string) => {
     try {
       const res = await axios.post(`${API_BASE}/face/check`, { image });
+      const faces = typeof res.data.faces === "number" ? res.data.faces : null;
       updateCharacter(idx, "face_detected", !!res.data.has_face);
-      updateCharacter(idx, "face_count", typeof res.data.faces === "number" ? res.data.faces : null);
+      updateCharacter(idx, "face_count", faces);
+      return faces;
     } catch {
       updateCharacter(idx, "face_detected", null);
       updateCharacter(idx, "face_count", null);
+      return null;
     }
   };
 
@@ -880,8 +1104,30 @@ export default function Home() {
       alert("Actor A/B의 Reference Face를 먼저 준비해주세요.");
       return;
     }
+    await handleSaveProject();
     setCastLocked(true);
     setActiveStep("scene");
+  };
+
+  const resetCast = () => {
+    if (!confirm("Cast 설정을 초기화할까요?")) return;
+    setCharacters(createDefaultCharacters());
+    setCastLocked(false);
+    setActiveStep("cast");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(LOCAL_STATE_KEY);
+    }
+    void clearLocalState();
+  };
+
+  const resetCharacter = (idx: number) => {
+    if (!confirm("해당 배우의 설정을 초기화할까요?")) return;
+    setCharacters(prev => {
+      const next = [...prev];
+      const defaults = createDefaultCharacters();
+      next[idx] = { ...defaults[idx], id: prev[idx].id, role: prev[idx].role };
+      return next;
+    });
   };
 
   const handlePreviewVoice = async (idx: number) => {
@@ -1315,6 +1561,18 @@ export default function Home() {
                                     {castLocked ? "Cast Locked" : "Cast Not Locked"}
                                 </span>
                                 <button
+                                    onClick={() => setAutoSaveEnabled((prev) => !prev)}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${autoSaveEnabled ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}
+                                >
+                                    Auto Save {autoSaveEnabled ? "On" : "Off"}
+                                </button>
+                                <button
+                                    onClick={resetCast}
+                                    className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all"
+                                >
+                                    Reset Cast
+                                </button>
+                                <button
                                     onClick={lockCast}
                                     className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
                                 >
@@ -1332,9 +1590,14 @@ export default function Home() {
                                         <label className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                                             <User className="w-4 h-4" /> {char.role}
                                         </label>
-                                        <button onClick={() => setRandomPersona(idx)} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                                            <Dices className="w-3.5 h-3.5" /> Random
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => resetCharacter(idx)} className="text-[10px] font-bold flex items-center gap-1 text-rose-500 hover:text-rose-600 transition-colors">
+                                                <Trash2 className="w-3.5 h-3.5" /> Reset
+                                            </button>
+                                            <button onClick={() => setRandomPersona(idx)} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                                                <Dices className="w-3.5 h-3.5" /> Random
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -1449,35 +1712,48 @@ export default function Home() {
                                         <div className="space-y-2">
                                             <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Face Reference Images</label>
                                             <div className="grid grid-cols-4 gap-2">
-                                                {Array.from({ length: 4 }).map((_, pIdx) => {
-                                                    const img = char.reference_images_face[pIdx];
-                                                    return (
-                                                        <div
-                                                            key={`${char.id}-face-${pIdx}`}
-                                                            onClick={() => img && setPreviewImage(img)}
-                                                            className={`relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 ${img ? "cursor-pointer" : ""}`}
-                                                        >
-                                                            {img ? (
-                                                                <>
-                                                                    <Image src={img} alt={`Face ${pIdx + 1}`} fill className="object-cover" unoptimized />
-                                                                    <button
-                                                                      onClick={(e) => { e.stopPropagation(); void regenerateReferenceImage(idx, "face", pIdx); }}
-                                                                      className="absolute bottom-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
-                                                                      title="Regenerate"
-                                                                    >
-                                                                      <RefreshCw className="w-3 h-3" />
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/70 dark:bg-zinc-950/60">
-                                                                    {char.reference_loading_kind === "face" ? (
-                                                                        <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
-                                                                    ) : null}
+                                                {(() => {
+                                                    const faceLabels = ["Front", "Left", "Right", "Back"];
+                                                    return Array.from({ length: 4 }).map((_, pIdx) => {
+                                                        const img = char.reference_images_face[pIdx];
+                                                        return (
+                                                            <div
+                                                                key={`${char.id}-face-${pIdx}`}
+                                                                onClick={() => img && setPreviewImage(img)}
+                                                                className={`relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 ${img ? "cursor-pointer" : ""}`}
+                                                            >
+                                                                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[8px] font-bold uppercase tracking-wider z-10 pointer-events-none">
+                                                                    {faceLabels[pIdx] || `Slot ${pIdx + 1}`}
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
+                                                                {img ? (
+                                                                    <>
+                                                                        <Image src={img} alt={`Face ${pIdx + 1}`} fill className="object-cover" unoptimized />
+                                                                        <button
+                                                                          onClick={(e) => { e.stopPropagation(); void regenerateReferenceImage(idx, "face", pIdx); }}
+                                                                          className="absolute bottom-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                          title="Regenerate"
+                                                                        >
+                                                                          <RefreshCw className="w-3 h-3" />
+                                                                        </button>
+                                                                        <button
+                                                                          onClick={(e) => { e.stopPropagation(); deleteReferenceImage(idx, "face", pIdx); }}
+                                                                          className="absolute bottom-1 left-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                          title="Delete"
+                                                                        >
+                                                                          <Trash2 className="w-3 h-3" />
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/70 dark:bg-zinc-950/60">
+                                                                        {char.reference_loading_kind === "face" ? (
+                                                                            <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                                                                        ) : null}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
                                             </div>
                                         </div>
                                     )}
@@ -1503,11 +1779,13 @@ export default function Home() {
                                                                 >
                                                                   <RefreshCw className="w-3 h-3" />
                                                                 </button>
-                                                                {pIdx === 0 && (
-                                                                  <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[8px] font-bold uppercase tracking-wider shadow">
-                                                                    Best
-                                                                  </div>
-                                                                )}
+                                                                <button
+                                                                  onClick={(e) => { e.stopPropagation(); deleteReferenceImage(idx, "body", pIdx); }}
+                                                                  className="absolute bottom-1 left-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                  title="Delete"
+                                                                >
+                                                                  <Trash2 className="w-3 h-3" />
+                                                                </button>
                                                             </>
                                                         ) : (
                                                             <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/70 dark:bg-zinc-950/60">
