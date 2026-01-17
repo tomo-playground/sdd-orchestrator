@@ -103,6 +103,7 @@ interface Character {
   reference_loading_kind: "face" | "body" | null;
   face_detected: boolean | null;
   face_count: number | null;
+  gender: "male" | "female" | null;
   voice: string;
   seed: number;
   reference_seed_face: number;
@@ -112,8 +113,8 @@ interface Character {
 }
 
 const createDefaultCharacters = (): Character[] => [
-  { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
-  { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
+  { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, gender: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
+  { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, gender: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
 ];
 const DEFAULT_CHARACTERS = createDefaultCharacters();
 
@@ -265,7 +266,8 @@ export default function Home() {
         reference_loading_kind: null,
         seed_image: char.seed_image || char.reference_image || null,
         face_detected: typeof char.face_detected === "boolean" ? char.face_detected : null,
-        face_count: typeof char.face_count === "number" ? char.face_count : null
+        face_count: typeof char.face_count === "number" ? char.face_count : null,
+        gender: char.gender === "male" || char.gender === "female" ? char.gender : null
       };
     });
 
@@ -570,35 +572,52 @@ export default function Home() {
 
   const buildFaceReferencePrompts = (char: Character) => {
     const baseRaw = (char.translatedDesc || char.desc || "").trim();
-    const base = baseRaw
+    const baseFiltered = char.gender === "male"
+      ? baseRaw.replace(/\b(여자|여성|소녀|girl|female|woman|feminine|long hair|makeup|dress|skirt)\b/gi, "")
+      : char.gender === "female"
+        ? baseRaw.replace(/\b(남자|남성|소년|boy|male|man|masculine|short hair|beard)\b/gi, "")
+        : baseRaw;
+    const genderHint = char.gender === "male"
+      ? "(male:1.8), (masculine:1.7), (man:1.8), male face, masculine features, broad shoulders, square jaw, rugged, short hair, no makeup, menswear, masculine clothing"
+      : char.gender === "female"
+        ? "(female:1.8), (feminine:1.7), (woman:1.8), female face, feminine features, soft features, long hair, womenswear, feminine clothing"
+        : "";
+    const base = baseFiltered
       .replace(/\b(front[- ]facing|facing the camera|looking at (the )?viewer|looking at (the )?camera|standing|full body|head-to-toe|long shot|wide shot)\b/gi, "")
       .replace(/\s{2,}/g, " ")
       .replace(/\s+,/g, ",")
       .trim();
     const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
-    const anchor = base ? `${base}, same person, single person, solo, one person only, single subject, isolated subject, no other people` : "same person, single person, solo, one person only, single subject, isolated subject, no other people";
+    const anchor = base ? `${base}, ${genderHint}, same person, single person, solo, one person only, single subject, isolated subject, no other people` : `${genderHint}, same person, single person, solo, one person only, single subject, isolated subject, no other people`;
     return [
-      `${anchor}, front view, front-facing, looking at camera, both eyes visible, symmetrical face, square shoulders, close-up portrait, tight close-up, head and shoulders only, crop at shoulders, face centered, face occupies 50 percent of frame, hands not visible, no hands, sharp focus, plain background, simple background, solid color background, minimal background${styles}`,
-      `${anchor}, left side headshot, perfect profile, left profile, facing left, looking left, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`,
-      `${anchor}, right side headshot, perfect profile, right profile, facing right, looking right, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`,
-      `${anchor}, back view, rear view, facing away, back of head only, nape visible, no face visible, no eyes visible, no nose visible, square shoulders, back straight, tight close-up, head and shoulders only, crop at shoulders, centered composition, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`
+      `${anchor}, front view, front-facing, looking at camera, both eyes visible, symmetrical face, handsome, attractive, clean facial features, well-proportioned face, square shoulders, close-up portrait, tight close-up, head and shoulders only, crop at shoulders, face centered, face occupies 50 percent of frame, clothed, fully clothed, hands not visible, no hands, sharp focus, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, left side headshot, perfect profile, left profile, facing left, looking left, only one eye visible, one ear visible, nose profile, handsome, attractive, clean facial features, well-proportioned face, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, clothed, fully clothed, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, right side headshot, perfect profile, right profile, facing right, looking right, only one eye visible, one ear visible, nose profile, handsome, attractive, clean facial features, well-proportioned face, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, clothed, fully clothed, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, back view, rear view, facing away, back of head only, nape visible, no face visible, no eyes visible, no nose visible, square shoulders, back straight, tight close-up, head and shoulders only, crop at shoulders, centered composition, clothed, fully clothed, hands not visible, no hands, plain background, simple background, solid color background, minimal background${styles}`
     ];
   };
 
   const buildBodyReferencePrompts = (char: Character) => {
     const baseRaw = (char.translatedDesc || char.desc || "").trim();
+    const maleHint = char.gender === "male" || /\b(남자|남성|소년|boy|male|man)\b/i.test(baseRaw)
+      ? "(male:1.6), (masculine:1.5), (man:1.6), male body, male legs, broad shoulders, square jaw, rugged, short hair, no makeup"
+      : "";
+    const femaleHint = char.gender === "female" || /\b(여자|여성|소녀|girl|female|woman)\b/i.test(baseRaw)
+      ? "(female:1.6), (feminine:1.5), (woman:1.6), soft features, long hair"
+      : "";
     const base = baseRaw
       .replace(/\b(people|persons|group|crowd|friends|classmates|students|pair|couple|together|two|twins|siblings)\b/gi, "")
       .replace(/\s{2,}/g, " ")
       .replace(/\s+,/g, ",")
       .trim();
     const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
-    const anchor = base ? `${base}, same person, single person, solo, one person only` : "same person, single person, solo, one person only";
+    const genderHint = maleHint || femaleHint;
+    const anchor = base ? `${base}, ${genderHint}, same person, single person, solo, one person only` : `${genderHint}, same person, single person, solo, one person only`;
     return [
-      `${anchor}, full body, head-to-toe, long shot, front view, front-facing, standing, attention pose, upright posture, feet together, square shoulders, back straight, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
-      `${anchor}, full body, head-to-toe, long shot, left side view, left profile, facing left, only one eye visible, left ear visible, standing, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
-      `${anchor}, full body, head-to-toe, long shot, right side view, right profile, facing right, only one eye visible, right ear visible, standing, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
-      `${anchor}, full body, head-to-toe, long shot, back view, rear view, facing away, back of head visible, no face visible, shoulder blades visible, square shoulders, back straight, standing, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`
+      `${anchor}, full body, head-to-toe, full length, long shot, front view, front-facing, standing, attention pose, upright posture, feet together, feet visible, head visible, no crop, no cut off, square shoulders, back straight, arms straight at sides, centered, no occlusion, clothed, fully clothed, hands visible, five fingers, anatomically correct hands, handsome, attractive, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, full body, head-to-toe, full length, long shot, left side view, left profile, facing left, only one eye visible, left ear visible, standing, attention pose, upright posture, feet together, feet visible, head visible, no crop, no cut off, arms straight at sides, centered, no occlusion, clothed, fully clothed, hands visible, five fingers, anatomically correct hands, handsome, attractive, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, full body, head-to-toe, full length, long shot, right side view, right profile, facing right, only one eye visible, right ear visible, standing, attention pose, upright posture, feet together, feet visible, head visible, no crop, no cut off, arms straight at sides, centered, no occlusion, clothed, fully clothed, hands visible, five fingers, anatomically correct hands, handsome, attractive, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
+      `${anchor}, full body, head-to-toe, full length, long shot, back view, rear view, facing away, back of head visible, no face visible, shoulder blades visible, square shoulders, back straight, standing, attention pose, upright posture, feet together, feet visible, head visible, no crop, no cut off, arms straight at sides, centered, no occlusion, clothed, fully clothed, hands visible, five fingers, anatomically correct hands, handsome, attractive, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`
     ];
   };
 
@@ -644,26 +663,46 @@ export default function Home() {
         "front view, left side view, left profile, back view, rear view",
         "front view, left side view, right side view, profile, three-quarter view, face visible"
       ];
-      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, ugly, deformed, awkward pose, bad pose, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
-      const bodyBase = `${singlePersonNegative}, (multiple bodies:2.0), (two heads:2.0), (two faces:2.0), (duplicate body:1.9), (background people:2.0), (extra character:2.0), (people in background:2.0), ${anatomyNegative}, ${backgroundNegative}, deformed, awkward pose, bad pose, (deformed arms:1.3), (bad arms:1.3), (deformed fingers:1.3), (mutated hands:1.3), action pose, dynamic pose, running, jumping, crouching, sitting, seated, kneeling, squatting, lying, reclined, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
+      const isMale = char.gender === "male" || /\b(남자|남성|소년|boy|male|man)\b/i.test(char.desc || char.translatedDesc || "");
+      const isFemale = char.gender === "female" || /\b(여자|여성|소녀|girl|female|woman)\b/i.test(char.desc || char.translatedDesc || "");
+      const faceGenderNegative = isMale
+        ? "(girl:2.0), (female:2.0), (woman:2.0), feminine, long hair, makeup, dress, skirt, blouse, bra, feminine clothing"
+        : isFemale
+          ? "(boy:2.0), (male:2.0), (man:2.0), masculine, short hair, beard, menswear"
+          : "";
+      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, ${faceGenderNegative}, (nsfw:1.6), nude, naked, topless, shirtless, underwear, lingerie, ugly, deformed, awkward pose, bad pose, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
+      const genderNegative = isMale
+        ? "(girl:1.8), (female:1.8), (woman:1.8), feminine, long hair, makeup, dress, skirt"
+        : isFemale
+          ? "(boy:1.8), (male:1.8), (man:1.8), masculine, short hair, beard"
+          : "";
+      const bodyBase = `${singlePersonNegative}, (multiple bodies:2.0), (two heads:2.0), (two faces:2.0), (duplicate body:1.9), (background people:2.0), (extra character:2.0), (people in background:2.0), ${genderNegative}, ${anatomyNegative}, ${backgroundNegative}, (nsfw:1.6), nude, naked, topless, shirtless, underwear, lingerie, (gender swap:1.6), (androgynous:1.5), (feminine lower body:1.6), (female legs:1.6), (female hips:1.6), deformed, awkward pose, bad pose, (deformed arms:1.3), (bad arms:1.3), (deformed fingers:1.3), (mutated hands:1.3), action pose, dynamic pose, running, jumping, crouching, sitting, seated, kneeling, squatting, lying, reclined, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
       const images: string[] = [];
       for (const prompt of prompts) {
         const slot = images.length;
         const angleNegative = kind === "face"
           ? faceAngleNegatives[slot] || ""
           : bodyAngleNegatives[slot] || "";
-        const weight = kind === "face" ? (slot === 0 ? 0.85 : slot === 3 ? 0.15 : 0.08) : 0.85;
+        const weight = kind === "face" ? (slot === 0 ? 0.85 : slot === 3 ? 0.15 : 0.08) : 0.35;
         const seed = kind === "face" ? baseSeed + slot * 997 : baseSeed;
+        const poseSide = kind === "body"
+          ? (slot === 1 ? "left" : slot === 2 ? "right" : "center")
+          : "center";
+        const poseView = kind === "body" && slot === 3 ? "back" : "front";
         const res = await axios.post(`${API_BASE}/character/reference_single`, {
           prompt,
-          width: kind === "face" ? 768 : 768,
-          height: kind === "face" ? 768 : 1024,
+          width: kind === "face" ? 768 : 640,
+          height: kind === "face" ? 768 : 896,
           styles: selectedStyles,
           negative_prompt: `${kind === "face" ? faceBase : bodyBase}, ${angleNegative}`.trim(),
           seed,
           reference_image: seedImage,
           use_ip_adapter: true,
-          ip_adapter_weight: weight
+          ip_adapter_weight: weight,
+          use_pose: kind === "body",
+          pose_side: poseSide,
+          pose_weight: 0.7,
+          pose_view: poseView
         });
         if (res.data.image) {
           const dataUrl = `data:image/png;base64,${res.data.image}`;
@@ -730,23 +769,43 @@ export default function Home() {
         "front view, left side view, back view, rear view",
         "front view, left side view, right side view"
       ];
-      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, ugly, deformed, awkward pose, bad pose, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
-      const bodyBase = `${singlePersonNegative}, (multiple bodies:2.0), (two heads:2.0), (two faces:2.0), (duplicate body:1.9), (background people:2.0), (extra character:2.0), (people in background:2.0), ${anatomyNegative}, ${backgroundNegative}, deformed, awkward pose, bad pose, (deformed arms:1.3), (bad arms:1.3), (deformed fingers:1.3), (mutated hands:1.3), action pose, dynamic pose, running, jumping, crouching, sitting, seated, kneeling, squatting, lying, reclined, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
+      const isMale = char.gender === "male" || /\b(남자|남성|소년|boy|male|man)\b/i.test(char.desc || char.translatedDesc || "");
+      const isFemale = char.gender === "female" || /\b(여자|여성|소녀|girl|female|woman)\b/i.test(char.desc || char.translatedDesc || "");
+      const faceGenderNegative = isMale
+        ? "(girl:2.0), (female:2.0), (woman:2.0), feminine, long hair, makeup, dress, skirt, blouse, bra, feminine clothing"
+        : isFemale
+          ? "(boy:2.0), (male:2.0), (man:2.0), masculine, short hair, beard, menswear"
+          : "";
+      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, ${faceGenderNegative}, (nsfw:1.6), nude, naked, topless, shirtless, underwear, lingerie, ugly, deformed, awkward pose, bad pose, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
+      const genderNegative = isMale
+        ? "(girl:1.8), (female:1.8), (woman:1.8), feminine, long hair, makeup, dress, skirt"
+        : isFemale
+          ? "(boy:1.8), (male:1.8), (man:1.8), masculine, short hair, beard"
+          : "";
+      const bodyBase = `${singlePersonNegative}, (multiple bodies:2.0), (two heads:2.0), (two faces:2.0), (duplicate body:1.9), (background people:2.0), (extra character:2.0), (people in background:2.0), ${genderNegative}, ${anatomyNegative}, ${backgroundNegative}, (nsfw:1.6), nude, naked, topless, shirtless, underwear, lingerie, (gender swap:1.6), (androgynous:1.5), (feminine lower body:1.6), (female legs:1.6), (female hips:1.6), deformed, awkward pose, bad pose, (deformed arms:1.3), (bad arms:1.3), (deformed fingers:1.3), (mutated hands:1.3), action pose, dynamic pose, running, jumping, crouching, sitting, seated, kneeling, squatting, lying, reclined, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
       const angleNegative = kind === "face"
         ? (faceAngleNegatives[slot] || "")
         : (bodyAngleNegatives[slot] || "");
-      const weight = kind === "face" ? (slot === 0 ? 0.85 : slot === 3 ? 0.15 : 0.08) : 0.85;
+      const weight = kind === "face" ? (slot === 0 ? 0.85 : slot === 3 ? 0.15 : 0.08) : 0.35;
+      const poseSide = kind === "body"
+        ? (slot === 1 ? "left" : slot === 2 ? "right" : "center")
+        : "center";
+      const poseView = kind === "body" && slot === 3 ? "back" : "front";
       const seed = kind === "face" ? baseSeed + slot * 997 + Math.floor(Math.random() * 13) : baseSeed + Math.floor(Math.random() * 97);
       const res = await axios.post(`${API_BASE}/character/reference_single`, {
         prompt: prompts[slot],
-        width: kind === "face" ? 768 : 768,
-        height: kind === "face" ? 768 : 1024,
+        width: kind === "face" ? 768 : 640,
+        height: kind === "face" ? 768 : 896,
         styles: selectedStyles,
         negative_prompt: `${kind === "face" ? faceBase : bodyBase}, ${angleNegative}`.trim(),
         seed,
         reference_image: seedImage,
         use_ip_adapter: true,
-        ip_adapter_weight: weight
+        ip_adapter_weight: weight,
+        use_pose: kind === "body",
+        pose_side: poseSide,
+        pose_weight: 0.7,
+        pose_view: poseView
       });
       if (res.data.image) {
         const dataUrl = `data:image/png;base64,${res.data.image}`;
@@ -760,8 +819,10 @@ export default function Home() {
           updateCharacter(idx, "reference_images_body", next);
         }
       }
-    } catch {
-      alert("Regenerate failed");
+    } catch (err: any) {
+      console.error("Regenerate failed", err);
+      const msg = err?.response?.data?.detail || err?.message || "Regenerate failed";
+      alert(msg);
     } finally {
       updateCharacter(idx, "reference_loading_kind", null);
       updateCharacter(idx, "isLoading", false);
@@ -892,7 +953,15 @@ export default function Home() {
     try {
         const res = await axios.post(`${API_BASE}/character/analyze`, { image });
         if (res.data.description) {
-            updateCharacter(idx, "desc", res.data.description);
+            const descText = String(res.data.description);
+            updateCharacter(idx, "desc", descText);
+            if (/\b(남자|남성|소년|남학생|boy|male|man)\b/i.test(descText)) {
+              updateCharacter(idx, "gender", "male");
+            } else if (/\b(여자|여성|소녀|여학생|girl|female|woman)\b/i.test(descText)) {
+              updateCharacter(idx, "gender", "female");
+            } else {
+              updateCharacter(idx, "gender", null);
+            }
         }
     } catch (e) { console.error("Analysis failed", e); } 
     finally { updateCharacter(idx, "isTranslating", false); }
@@ -1620,11 +1689,18 @@ export default function Home() {
                                                     <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-bold z-10 pointer-events-none">
                                                         Seed Image
                                                     </div>
-                                                    {char.face_detected !== null && (
-                                                        <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold z-10 pointer-events-none ${char.face_detected ? "bg-emerald-600/90 text-white" : "bg-rose-600/90 text-white"}`}>
-                                                            {char.face_detected ? `Face OK${typeof char.face_count === "number" ? ` (${char.face_count})` : ""}` : "No Face"}
-                                                        </div>
-                                                    )}
+                                                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+                                                        {char.face_detected !== null && (
+                                                            <div className={`px-2 py-1 rounded-lg text-[10px] font-bold ${char.face_detected ? "bg-emerald-600/90 text-white" : "bg-rose-600/90 text-white"}`}>
+                                                                {char.face_detected ? `Face OK${typeof char.face_count === "number" ? ` (${char.face_count})` : ""}` : "No Face"}
+                                                            </div>
+                                                        )}
+                                                        {char.gender && (
+                                                            <div className="px-2 py-1 rounded-lg text-[10px] font-bold bg-indigo-600/90 text-white uppercase">
+                                                                Gender: {char.gender === "male" ? "Male" : "Female"}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </>
                                             ) : (
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
@@ -1748,6 +1824,13 @@ export default function Home() {
                                                                         {char.reference_loading_kind === "face" ? (
                                                                             <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
                                                                         ) : null}
+                                                                        <button
+                                                                          onClick={(e) => { e.stopPropagation(); void regenerateReferenceImage(idx, "face", pIdx); }}
+                                                                          className="absolute bottom-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                          title="Regenerate"
+                                                                        >
+                                                                          <RefreshCw className="w-3 h-3" />
+                                                                        </button>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1769,6 +1852,9 @@ export default function Home() {
                                                         onClick={() => img && setPreviewImage(img)}
                                                         className={`relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 ${img ? "cursor-pointer" : ""}`}
                                                     >
+                                                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[8px] font-bold uppercase tracking-wider z-10 pointer-events-none">
+                                                            {["Front", "Left", "Right", "Back"][pIdx] || `Slot ${pIdx + 1}`}
+                                                        </div>
                                                         {img ? (
                                                             <>
                                                                 <Image src={img} alt={`Body ${pIdx + 1}`} fill className="object-cover" unoptimized />
@@ -1789,7 +1875,16 @@ export default function Home() {
                                                             </>
                                                         ) : (
                                                             <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/70 dark:bg-zinc-950/60">
-                                                                <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                                                                {char.reference_loading_kind === "body" ? (
+                                                                    <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                                                                ) : null}
+                                                                <button
+                                                                  onClick={(e) => { e.stopPropagation(); void regenerateReferenceImage(idx, "body", pIdx); }}
+                                                                  className="absolute bottom-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                  title="Regenerate"
+                                                                >
+                                                                  <RefreshCw className="w-3 h-3" />
+                                                                </button>
                                                             </div>
                                                         )}
                                                     </div>

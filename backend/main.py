@@ -191,6 +191,10 @@ class ReferenceSingleRequest(BaseModel):
     reference_image: str | None = None
     use_ip_adapter: bool = True
     ip_adapter_weight: float = 0.85
+    use_pose: bool = False
+    pose_side: str = "center"
+    pose_weight: float = 0.7
+    pose_view: str = "front"
 
 class AnalyzeRequest(BaseModel):
     image: str
@@ -353,20 +357,49 @@ def sanitize_seed_prompt(text: str) -> str:
 
 def apply_gender_hints(user_input: str, prompt: str, negative: str) -> tuple[str, str]:
     input_lc = (user_input or "").lower()
-    prompt_lc = (prompt or "").lower()
-    negative_lc = (negative or "").lower()
-    boy_terms = ("소년", "남자", "남성", "남학생", "boy", "male", "남아")
+    boy_terms = ("소년", "boy", "남아")
+    man_terms = ("남자", "남성", "남학생", "man", "male")
     girl_terms = ("소녀", "여자", "여성", "여학생", "girl", "female", "woman")
 
     def ensure_phrase(text: str, phrase: str) -> str:
         return text if phrase.lower() in text.lower() else f"{text}, {phrase}".strip(", ")
 
     if any(term in input_lc for term in boy_terms):
-        prompt = ensure_phrase(prompt, "young boy, male, boyish face")
-        negative = ensure_phrase(negative, "girl, female, woman, schoolgirl, feminine, long hair, skirt")
+        prompt = ensure_phrase(prompt, "young boy, male, boyish face, short hair, no makeup")
+        negative = ensure_phrase(negative, "girl, female, woman, schoolgirl, feminine, long hair, skirt, makeup, dress")
+    elif any(term in input_lc for term in man_terms):
+        prompt = ensure_phrase(prompt, "adult man, male, masculine, broad shoulders, square jaw, rugged, short hair, no makeup")
+        negative = ensure_phrase(negative, "girl, female, woman, feminine, long hair, makeup, dress, skirt")
     elif any(term in input_lc for term in girl_terms):
-        prompt = ensure_phrase(prompt, "young girl, female, girlish face")
-        negative = ensure_phrase(negative, "boy, male, man, schoolboy, masculine, short hair")
+        prompt = ensure_phrase(prompt, "young girl, female, girlish face, long hair")
+        negative = ensure_phrase(negative, "boy, male, man, masculine, short hair, beard")
+    return prompt, negative
+
+def apply_hair_color_hints(user_input: str, prompt: str, negative: str) -> tuple[str, str]:
+    text = (user_input or "").lower()
+    color_map = {
+        "black": ["검은", "검정", "흑발", "black"],
+        "brown": ["갈색", "밤색", "brown", "chestnut"],
+        "blonde": ["금발", "노란", "blonde", "blond"],
+        "red": ["빨간", "적발", "red", "ginger", "auburn"],
+        "white": ["하얀", "백발", "white"],
+        "gray": ["회색", "은발", "gray", "grey", "silver"],
+        "blue": ["파란", "블루", "blue"],
+        "pink": ["분홍", "핑크", "pink"],
+        "purple": ["보라", "퍼플", "purple"],
+        "green": ["초록", "그린", "green"]
+    }
+    detected = None
+    for color, terms in color_map.items():
+        if any(term in text for term in terms):
+            detected = color
+            break
+    if not detected:
+        return prompt, negative
+    hair_phrase = f"{detected} hair"
+    prompt = f"{prompt}, {hair_phrase}".strip(", ")
+    other_colors = [f"{c} hair" for c in color_map.keys() if c != detected]
+    negative = f"{negative}, {', '.join(other_colors)}".strip(", ")
     return prompt, negative
 
 def detect_faces_base64(data: str) -> int:
@@ -490,10 +523,15 @@ def build_face_mask(width: int, height: int, side: str) -> str:
     draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=255)
     return image_to_base64(mask)
 
-def build_pose_guide(width: int, height: int, side: str) -> str:
+def build_pose_guide(width: int, height: int, side: str, view: str = "front") -> str:
     img = Image.new("RGB", (width, height), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-    cx = int(width * (0.33 if side == "left" else 0.67))
+    if side == "left":
+        cx = int(width * 0.33)
+    elif side == "right":
+        cx = int(width * 0.67)
+    else:
+        cx = int(width * 0.5)
     cy = int(height * 0.55)
     head_r = int(min(width, height) * 0.05)
     body_len = int(height * 0.18)
@@ -503,7 +541,10 @@ def build_pose_guide(width: int, height: int, side: str) -> str:
 
     draw.ellipse([cx - head_r, cy - body_len - head_r * 2, cx + head_r, cy - body_len], outline=(0, 0, 0), width=line_w)
     draw.line([cx, cy - body_len, cx, cy + body_len // 2], fill=(0, 0, 0), width=line_w)
-    draw.line([cx - arm_len, cy - body_len // 2, cx + arm_len, cy - body_len // 2], fill=(0, 0, 0), width=line_w)
+    if view == "back":
+        draw.line([cx, cy - body_len // 2, cx, cy - body_len // 2 + int(body_len * 0.35)], fill=(0, 0, 0), width=line_w)
+    else:
+        draw.line([cx - arm_len, cy - body_len // 2, cx + arm_len, cy - body_len // 2], fill=(0, 0, 0), width=line_w)
     draw.line([cx, cy + body_len // 2, cx - arm_len // 2, cy + body_len // 2 + leg_len], fill=(0, 0, 0), width=line_w)
     draw.line([cx, cy + body_len // 2, cx + arm_len // 2, cy + body_len // 2 + leg_len], fill=(0, 0, 0), width=line_w)
     return image_to_base64(img)
@@ -972,18 +1013,6 @@ async def generate_portrait(request: PortraitRequest):
 
     # Construct final prompt with face close-up constraints for seed reference
     seed_prompt = sanitize_seed_prompt(final_prompt)
-    prompt = (
-        f"(({seed_prompt})), close-up portrait, head and shoulders only, head-only crop, "
-        "shoulder-up, neck-up, face centered, "
-        "single person, solo, one person only, front-facing, symmetrical pose, straight posture, "
-        "face fully visible, eyes visible, looking at camera, "
-        "accurate skin tone, accurate eye color, accurate hair color, "
-        "hands not visible, no hands, no arms, "
-        "no occlusion, clean background, professional lighting, highly detailed"
-    )
-    prompt = escape_dynamic_prompt(prompt) or prompt
-    logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
-    
     negative_prompt = (
         "low quality, blurry, distorted face, ugly, deformed, (multiple people:1.8), (two people:1.8), (group:1.7), (crowd:1.7), extra person, "
         "profile, side view, back view, three-quarter view, tilted head, dynamic pose, "
@@ -992,8 +1021,23 @@ async def generate_portrait(request: PortraitRequest):
         "(deformed hands:1.6), (deformed arms:1.6), (bad arms:1.5), (extra arms:1.5), "
         "(hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), "
         "extra legs, missing legs, deformed legs, full body, head-to-toe, long shot, waist-up, half body, "
-        "(nsfw:1.5), (worst quality, low quality:1.4)"
+        "(nsfw:1.5), nude, naked, topless, shirtless, underwear, lingerie, (worst quality, low quality:1.4)"
     )
+    seed_prompt, negative_prompt = apply_gender_hints(request.description, seed_prompt, negative_prompt)
+    seed_prompt, negative_prompt = apply_hair_color_hints(request.description, seed_prompt, negative_prompt)
+    prompt = (
+        f"(({seed_prompt})), close-up portrait, head and shoulders only, head-only crop, "
+        "shoulder-up, neck-up, face centered, "
+        "single person, solo, one person only, front-facing, symmetrical pose, straight posture, "
+        "face fully visible, eyes visible, looking at camera, "
+        "handsome, attractive, clean facial features, well-proportioned face, "
+        "accurate skin tone, accurate eye color, accurate hair color, "
+        "hands not visible, no hands, no arms, "
+        "no occlusion, clean background, professional lighting, highly detailed"
+    )
+    prompt = escape_dynamic_prompt(prompt) or prompt
+    logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
+    
     negative_prompt = escape_dynamic_prompt(negative_prompt) or negative_prompt
     log_prompt("Portrait", prompt, negative_prompt, -1)
     payload = {
@@ -1056,19 +1100,32 @@ async def generate_reference_single(request: ReferenceSingleRequest):
         "seed": request.seed
     }
     ref_img_clean = strip_data_url(request.reference_image) if request.reference_image else None
+    controlnet_args = []
+    if request.use_pose:
+        pose_side = request.pose_side if request.pose_side in {"left", "right", "center"} else "center"
+        pose_view = request.pose_view if request.pose_view in {"front", "back"} else "front"
+        pose_b64 = build_pose_guide(request.width, request.height, pose_side, pose_view)
+        controlnet_args.append({
+            "enabled": True,
+            "module": "openpose_full",
+            "model": "control_v11p_sd15_openpose [cab727d4]",
+            "weight": request.pose_weight,
+            "image": pose_b64,
+            "pixel_perfect": True
+        })
     if ref_img_clean and request.use_ip_adapter:
+        controlnet_args.append({
+            "enabled": True,
+            "module": "ip-adapter_face_id_plus",
+            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+            "weight": request.ip_adapter_weight,
+            "image": ref_img_clean,
+            "pixel_perfect": True
+        })
+    if controlnet_args:
         payload["alwayson_scripts"] = {
             "controlnet": {
-                "args": [
-                    {
-                        "enabled": True,
-                        "module": "ip-adapter_face_id_plus",
-                        "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-                        "weight": request.ip_adapter_weight,
-                        "image": ref_img_clean,
-                        "pixel_perfect": True
-                    }
-                ]
+                "args": controlnet_args
             }
         }
     try:
