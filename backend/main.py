@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Any, Dict
 from typing import Optional
 import httpx
 try:
@@ -68,6 +69,7 @@ SD_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 SD_IMG2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/img2img"
 SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
+SD_CONTROLNET_VERSION_URL = f"{SD_BASE_URL}/controlnet/version"
 DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly, blurry, out of focus, duplicate, error, artifacts, simplified, cartoon, cgi, render, 3d, (monochrome:1.1), (muted colors:1.2), overexposed, high contrast"
 
 # 디렉토리 설정
@@ -124,6 +126,7 @@ class GenerateRequest(BaseModel):
     steps: int = 30 # Increased for detail
     skip_optimization: bool = False
     reference_image: str | None = None # Base64 string for IP-Adapter
+    use_ip_adapter: bool = True
 
 class PortraitRequest(BaseModel):
     description: str
@@ -162,6 +165,9 @@ class ProjectSaveRequest(BaseModel):
     title: str
     data: dict
 
+class WebUIOptionsUpdateRequest(BaseModel):
+    options: Dict[str, Any]
+
 class AudioGenerateRequest(BaseModel):
     prompt: str
 
@@ -195,6 +201,7 @@ class DualComposeRequest(BaseModel):
     cfg_scale: float = 6
     denoising_strength: float = 0.55
     strict_identity: bool = True
+    use_ip_adapter: bool = True
 
 # 유틸리티 함수
 def get_audio_duration(path):
@@ -527,6 +534,41 @@ async def get_config():
             return {"model": "Offline"}
     except: return {"model": "Offline"}
 
+@app.get("/debug/webui/options")
+async def get_webui_options():
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(SD_CONFIG_URL, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                return {"options": data}
+            return {"options": {}}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+@app.post("/debug/webui/options")
+async def update_webui_options(request: WebUIOptionsUpdateRequest):
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(SD_CONFIG_URL, json=request.options, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            return {"ok": True, "options": data if isinstance(data, dict) else request.options}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+@app.get("/debug/webui/controlnet")
+async def get_controlnet_status():
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(SD_CONTROLNET_VERSION_URL, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            return {"controlnet": data if isinstance(data, dict) else {}}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
 @app.get("/audio/list")
 async def get_audio_list():
     try:
@@ -771,7 +813,7 @@ async def generate_image(request: GenerateRequest):
     }
 
     # ControlNet / IP-Adapter Injection
-    if request.reference_image:
+    if request.reference_image and request.use_ip_adapter:
         logger.info("🔗 IP-Adapter Activated with reference image")
         # Ensure clean base64
         ref_img_clean = request.reference_image.split(",")[1] if "," in request.reference_image else request.reference_image
@@ -799,6 +841,21 @@ async def generate_image(request: GenerateRequest):
             data = r.json()
             info = json.loads(data.get("info", "{}"))
             return {"images": data.get("images", []), "seed": info.get("seed", request.seed), "translated_prompt": final_pos, "negative_prompt": final_neg}
+        except httpx.HTTPStatusError as e:
+            err_text = e.response.text if e.response is not None else ""
+            if "Insightface: No face found" in err_text and payload.get("alwayson_scripts", {}).get("controlnet"):
+                logger.warning("⚠️ No face found in reference image. Retrying without IP-Adapter...")
+                payload["alwayson_scripts"]["controlnet"]["args"] = [
+                    arg for arg in payload["alwayson_scripts"]["controlnet"]["args"]
+                    if arg.get("module") != "ip-adapter_face_id_plus"
+                ]
+                r = await client.post(SD_URL, json=payload, timeout=120.0)
+                r.raise_for_status()
+                data = r.json()
+                info = json.loads(data.get("info", "{}"))
+                return {"images": data.get("images", []), "seed": info.get("seed", request.seed), "translated_prompt": final_pos, "negative_prompt": final_neg}
+            logger.error(f"❌ Image Generation Failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
         except Exception as e:
             logger.error(f"❌ Image Generation Failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -856,7 +913,7 @@ async def generate_compose_dual(request: DualComposeRequest):
                 ("left", request.char_a_prompt, char_a_ref),
                 ("right", request.char_b_prompt, char_b_ref),
             ]:
-                if not ref_image:
+                if request.use_ip_adapter and not ref_image:
                     raise HTTPException(status_code=400, detail=f"Missing reference image for {side} character")
                 mask_b64 = build_person_mask(request.width, request.height, side)
                 pose_b64 = build_pose_guide(request.width, request.height, side)
@@ -891,7 +948,7 @@ async def generate_compose_dual(request: DualComposeRequest):
                         "pixel_perfect": True
                     }
                 ]
-                if ref_image:
+                if ref_image and request.use_ip_adapter:
                     controlnet_args.append(
                         {
                             "enabled": True,
@@ -932,7 +989,7 @@ async def generate_compose_dual(request: DualComposeRequest):
                     data = r.json()
                 except httpx.HTTPStatusError as e:
                     err_text = e.response.text if e.response is not None else ""
-                    if "Insightface: No face found" in err_text:
+                    if "Insightface: No face found" in err_text and request.use_ip_adapter:
                         if request.strict_identity:
                             raise HTTPException(
                                 status_code=400,
@@ -994,6 +1051,11 @@ async def generate_compose_dual(request: DualComposeRequest):
                         }
                     }
                 }
+                if not request.use_ip_adapter:
+                    face_payload["alwayson_scripts"]["controlnet"]["args"] = [
+                        arg for arg in face_payload["alwayson_scripts"]["controlnet"]["args"]
+                        if arg.get("module") != "ip-adapter_face_id_plus"
+                    ]
                 logger.info("🧩 [Compose Dual] Refining %s face...", side)
                 try:
                     r = await client.post(SD_IMG2IMG_URL, json=face_payload, timeout=120.0)
@@ -1001,7 +1063,7 @@ async def generate_compose_dual(request: DualComposeRequest):
                     data = r.json()
                 except httpx.HTTPStatusError as e:
                     err_text = e.response.text if e.response is not None else ""
-                    if "Insightface: No face found" in err_text:
+                    if "Insightface: No face found" in err_text and request.use_ip_adapter:
                         if request.strict_identity:
                             raise HTTPException(
                                 status_code=400,

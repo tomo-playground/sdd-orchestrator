@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { 
   Loader2, Wand2, ChevronDown, ChevronUp, Palette, Dices, Monitor, Smartphone, 
@@ -33,6 +33,14 @@ const STYLE_PRESETS = [
   "3D Render"
 ];
 
+const SAMPLER_PRESETS = [
+  "DPM++ 2M Karras",
+  "DPM++ SDE Karras",
+  "DPM++ 2M SDE Karras",
+  "Euler a",
+  "DDIM"
+];
+
 const SAMPLE_PERSONAS = [
   "주황색 머리에 파란 눈을 가진 장난기 가득한 7살 소년",
   "은색 갑옷을 입고 빛나는 검을 든 고귀한 기사",
@@ -56,6 +64,8 @@ type StoryScene = {
   duration: number;
   visual_focus?: "A" | "B" | "Both" | "Landscape";
   speaker?: "A" | "B" | "Narrator";
+  ref_used_a?: boolean;
+  ref_used_b?: boolean;
 };
 
 type Project = {
@@ -112,12 +122,20 @@ export default function Home() {
     likes_count: "12.5k",
     caption: "설레는 순간들... #럽스타그램"
   });
+  const [runtimeSteps, setRuntimeSteps] = useState(30);
+  const [runtimeCfgScale, setRuntimeCfgScale] = useState(7);
+  const [runtimeSampler, setRuntimeSampler] = useState("DPM++ 2M Karras");
+  const [useIpAdapter, setUseIpAdapter] = useState(true);
+  const [strictIdentity, setStrictIdentity] = useState(true);
+  const [webuiModelInput, setWebuiModelInput] = useState("");
+  const [isWebuiSaving, setIsWebuiSaving] = useState(false);
+  const [isWebuiLoading, setIsWebuiLoading] = useState(false);
   const [storyScenes, setStoryScenes] = useState<StoryScene[]>([]);
   
   // New Multi-Character State
   const [characters, setCharacters] = useState<Character[]>([
-    { id: 0, role: "Actor A (Main)", desc: "주황색 머리에 파란 눈을 가진 장난기 가득한 소년", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
-    { id: 1, role: "Actor B (Side)", desc: "검은색 긴 생머리에 안경을 쓴 차분한 소녀", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
+    { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
+    { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
   ]);
 
   const [isStoryLoading, setIsStoryLoading] = useState(false);
@@ -146,7 +164,7 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bgmPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [loras, config, audios, vids, projs] = await Promise.all([
         axios.get(`${API_BASE}/loras`).catch(() => ({ data: { loras: [] } })),
@@ -157,13 +175,36 @@ export default function Home() {
       ]);
       setLorasList(loras.data.loras || []);
       setCurrentModel(config.data.model || "Unknown");
+      if (!webuiModelInput && config.data.model) {
+        setWebuiModelInput(config.data.model);
+      }
       setBgmList(audios.data.audios || []);
       setProducedVideos(vids.data.videos || []);
       setProjects(projs.data.projects || []);
     } catch { setCurrentModel("Disconnected"); }
+  }, [webuiModelInput]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const fetchWebuiOptions = async () => {
+    setIsWebuiLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}/debug/webui/options`);
+      const model = res.data?.options?.sd_model_checkpoint;
+      if (model) setWebuiModelInput(model);
+    } catch { alert("WebUI options load failed"); } finally { setIsWebuiLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const applyWebuiOptions = async () => {
+    if (!webuiModelInput) return;
+    setIsWebuiSaving(true);
+    try {
+      await axios.post(`${API_BASE}/debug/webui/options`, {
+        options: { sd_model_checkpoint: webuiModelInput }
+      });
+      fetchData();
+    } catch { alert("WebUI options update failed"); } finally { setIsWebuiSaving(false); }
+  };
 
   const toggleStyle = (style: string) => {
     setSelectedStyles(prev => prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]);
@@ -344,15 +385,12 @@ export default function Home() {
     if (!char.desc) return;
     updateCharacter(idx, "isLoading", true);
     try {
-        let portraitDesc = char.translatedDesc;
-        if (!portraitDesc) {
-            const tr = await axios.post(`${API_BASE}/prompt/translate`, {
-                text: char.desc,
-                styles: selectedStyles
-            });
-            portraitDesc = tr.data.translated_prompt || char.desc;
-            updateCharacter(idx, "translatedDesc", portraitDesc);
-        }
+        const tr = await axios.post(`${API_BASE}/prompt/translate`, {
+            text: char.desc,
+            styles: selectedStyles
+        });
+        const portraitDesc = tr.data.translated_prompt || char.desc;
+        updateCharacter(idx, "translatedDesc", portraitDesc);
         const res = await axios.post(`${API_BASE}/character/portrait`, {
             description: portraitDesc || char.desc,
             width: 512,
@@ -360,7 +398,10 @@ export default function Home() {
             styles: selectedStyles
         });
         if (res.data.image) {
-            void setReferenceImageWithCheck(idx, `data:image/png;base64,${res.data.image}`);
+            const dataUrl = `data:image/png;base64,${res.data.image}`;
+            void setReferenceImageWithCheck(idx, dataUrl);
+            // Keep text description in sync with the generated reference
+            void analyzeCharacter(idx, dataUrl);
         }
     } catch {
         alert("Portrait generation failed");
@@ -388,11 +429,11 @@ export default function Home() {
   const startAutopilot = async () => {
     const neededChars = new Set<number>();
     storyScenes.forEach((scene) => {
-      const focus = scene.visual_focus || "A";
+      const focus = scene.visual_focus || "Landscape";
       if (focus === "A" || focus === "Both") neededChars.add(0);
       if (focus === "B" || focus === "Both") neededChars.add(1);
     });
-    if (!(await confirmFaceUsage(Array.from(neededChars)))) return;
+    if (useIpAdapter && !(await confirmFaceUsage(Array.from(neededChars)))) return;
 
     setIsAutopilotRunning(true); setAutopilotProgress(0);
     const newScenes = [...storyScenes]; const size = RESOLUTIONS[resolution];
@@ -400,7 +441,7 @@ export default function Home() {
     for (let i = 0; i < newScenes.length; i++) {
         try {
             const scene = newScenes[i];
-            const focus = scene.visual_focus || "A";
+            const focus = scene.visual_focus || "Landscape";
             
             let charPrompt = "";
             let seedToUse = -1;
@@ -428,9 +469,18 @@ export default function Home() {
                     styles: selectedStyles,
                     lora: selectedLora.length ? selectedLora : null,
                     width: size.w,
-                    height: size.h
+                    height: size.h,
+                    steps: runtimeSteps,
+                    cfg_scale: runtimeCfgScale,
+                    strict_identity: strictIdentity,
+                    use_ip_adapter: useIpAdapter
                 });
-                if (res.data.image) { newScenes[i].image_url = `data:image/png;base64,${res.data.image}`; setStoryScenes([...newScenes]); }
+                if (res.data.image) {
+                  newScenes[i].image_url = `data:image/png;base64,${res.data.image}`;
+                  newScenes[i].ref_used_a = !!charA.reference_image;
+                  newScenes[i].ref_used_b = !!charB.reference_image;
+                  setStoryScenes([...newScenes]);
+                }
                 setAutopilotProgress(((i + 1) / newScenes.length) * 100);
                 continue;
             } else { 
@@ -448,9 +498,18 @@ export default function Home() {
                 lora: selectedLora.length ? selectedLora : null, 
                 width: size.w, height: size.h, 
                 seed: seedToUse,
-                reference_image: refImageToUse
+                reference_image: refImageToUse,
+                steps: runtimeSteps,
+                cfg_scale: runtimeCfgScale,
+                sampler_name: runtimeSampler,
+                use_ip_adapter: useIpAdapter
             });
-            if (res.data.images?.[0]) { newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`; setStoryScenes([...newScenes]); }
+            if (res.data.images?.[0]) {
+              newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`;
+              newScenes[i].ref_used_a = focus === "A" && !!charA.reference_image;
+              newScenes[i].ref_used_b = focus === "B" && !!charB.reference_image;
+              setStoryScenes([...newScenes]);
+            }
             setAutopilotProgress(((i + 1) / newScenes.length) * 100);
         } catch (err) { console.error("Scene error", err); }
     }
@@ -500,7 +559,7 @@ export default function Home() {
     setRegeneratingIndex(idx);
     try {
       const scene = storyScenes[idx]; const size = RESOLUTIONS[resolution];
-      const focus = scene.visual_focus || "A"; 
+      const focus = scene.visual_focus || "Landscape"; 
       let charPrompt = "";
       let seedToUse = -1;
       let refImageToUse = null;
@@ -516,7 +575,7 @@ export default function Home() {
           seedToUse = charB.seed;
           refImageToUse = charB.reference_image;
       } else if (focus === "Both") {
-          if (!(await confirmFaceUsage([0, 1]))) return;
+          if (useIpAdapter && !(await confirmFaceUsage([0, 1]))) return;
           const res = await axios.post(`${API_BASE}/generate/compose_dual`, {
             scene_prompt: scene.image_prompt,
             char_a_prompt: charA.translatedDesc || charA.desc,
@@ -527,10 +586,17 @@ export default function Home() {
             styles: selectedStyles,
             lora: selectedLora.length ? selectedLora : null,
             width: size.w,
-            height: size.h
+            height: size.h,
+            steps: runtimeSteps,
+            cfg_scale: runtimeCfgScale,
+            strict_identity: strictIdentity,
+            use_ip_adapter: useIpAdapter
           });
           if (res.data.image) {
-            const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.image}`;
+            const updated = [...storyScenes];
+            updated[idx].image_url = `data:image/png;base64,${res.data.image}`;
+            updated[idx].ref_used_a = !!charA.reference_image;
+            updated[idx].ref_used_b = !!charB.reference_image;
             setStoryScenes(updated);
           }
           return;
@@ -540,7 +606,7 @@ export default function Home() {
       }
 
       if (focus === "A" || focus === "B") {
-        if (!(await confirmFaceUsage([focus === "A" ? 0 : 1]))) return;
+        if (useIpAdapter && !(await confirmFaceUsage([focus === "A" ? 0 : 1]))) return;
       }
 
       const combinedPrompt = `${charPrompt}, ${scene.image_prompt}, masterpiece, best quality`;
@@ -553,10 +619,17 @@ export default function Home() {
         lora: selectedLora.length ? selectedLora : null, 
         width: size.w, height: size.h, 
         seed: seedToUse,
-        reference_image: refImageToUse
+        reference_image: refImageToUse,
+        steps: runtimeSteps,
+        cfg_scale: runtimeCfgScale,
+        sampler_name: runtimeSampler,
+        use_ip_adapter: useIpAdapter
       });
       if (res.data.images?.[0]) {
-        const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.images[0]}`;
+        const updated = [...storyScenes];
+        updated[idx].image_url = `data:image/png;base64,${res.data.images[0]}`;
+        updated[idx].ref_used_a = focus === "A" && !!charA.reference_image;
+        updated[idx].ref_used_b = focus === "B" && !!charB.reference_image;
         setStoryScenes(updated);
       }
     } catch { alert("Regen fail"); } finally { setRegeneratingIndex(null); }
@@ -572,7 +645,7 @@ export default function Home() {
             <div className="flex flex-col gap-3">
                 <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2" title="영상 위에 SNS 스타일의 UI(프로필, 좋아요 등)를 겹쳐서 표시합니다.">
                             <Monitor className="w-4 h-4" /> SNS Overlay
                         </label>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -592,16 +665,68 @@ export default function Home() {
             
             {/* Resolution Display (Fixed to Shorts) */}
             <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2"><Smartphone className="w-3.5 h-3.5" /> Output Format</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2" title="현재는 유튜브 쇼츠(9:16) 해상도에 최적화되어 있습니다."><Smartphone className="w-3.5 h-3.5" /> Output Format</label>
                 <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
                     <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">YouTube Shorts (9:16)</p>
                     <p className="text-[10px] text-zinc-500 mt-0.5">Auto-scaled to 1080x1920 HD</p>
                 </div>
             </div>
 
+            {/* Generation Settings */}
+            <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Generation Settings</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1" title="이미지 생성 반복 횟수입니다. 높을수록 디테일이 좋아지지만 속도가 느려집니다. (기본값: 30)">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">Steps</span>
+                        <input
+                            type="number"
+                            min={5}
+                            max={80}
+                            className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold focus:ring-1 focus:ring-zinc-400"
+                            value={runtimeSteps}
+                            onChange={(e) => setRuntimeSteps(Number(e.target.value))}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1" title="프롬프트(명령어)를 얼마나 엄격하게 따를지 결정합니다. 높을수록 프롬프트를 따르는 성향이 강해집니다. (기본값: 7)">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">CFG</span>
+                        <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            step={0.5}
+                            className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold focus:ring-1 focus:ring-zinc-400"
+                            value={runtimeCfgScale}
+                            onChange={(e) => setRuntimeCfgScale(Number(e.target.value))}
+                        />
+                    </div>
+                </div>
+                <div className="flex flex-col gap-1" title="노이즈를 제거하여 이미지를 만드는 알고리즘입니다. 종류에 따라 질감이나 화풍이 미묘하게 달라집니다.">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase">Sampler</span>
+                    <select
+                        value={runtimeSampler}
+                        onChange={(e) => setRuntimeSampler(e.target.value)}
+                        className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold appearance-none focus:ring-1 focus:ring-zinc-400 cursor-pointer"
+                    >
+                        {SAMPLER_PRESETS.map((sampler) => (
+                            <option key={sampler} value={sampler}>{sampler}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center gap-2 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-[10px] font-bold uppercase text-zinc-500 cursor-pointer" title="캐릭터의 얼굴 특징을 강력하게 유지하는 기술(IP-Adapter)을 사용합니다.">
+                        <input type="checkbox" checked={useIpAdapter} onChange={(e) => setUseIpAdapter(e.target.checked)} />
+                        Use Face ID+
+                    </label>
+                    <label className="flex items-center gap-2 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-[10px] font-bold uppercase text-zinc-500 cursor-pointer" title="얼굴 일치도를 더 엄격하게 검사하고 적용합니다. 켜두면 얼굴이 더 비슷하게 나옵니다.">
+                        <input type="checkbox" checked={strictIdentity} onChange={(e) => setStrictIdentity(e.target.checked)} />
+                        Strict Identity
+                    </label>
+                </div>
+            </div>
+
             {/* Narrator Voice Selection */}
             <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2"><Mic className="w-3.5 h-3.5" /> Narrator Voice</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2" title="영상 전체를 설명하는 내레이터(해설자)의 목소리를 선택합니다."><Mic className="w-3.5 h-3.5" /> Narrator Voice</label>
                 <div className="relative">
                     <select 
                         value={narratorVoice} 
@@ -618,7 +743,7 @@ export default function Home() {
 
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-400"><Wand2 className="w-3.5 h-3.5 inline-block mr-1" /> LoRA Models</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-400" title="특정 화풍, 캐릭터, 의상 스타일 등을 추가로 적용하는 보조 모델입니다."><Wand2 className="w-3.5 h-3.5 inline-block mr-1" /> LoRA Models</label>
                     {selectedLora.length > 0 && (
                         <button onClick={() => setSelectedLora([])} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors">Clear</button>
                     )}
@@ -670,7 +795,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-3">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Art Styles</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400" title="영상의 전체적인 그림체를 결정합니다. 여러 스타일을 동시에 선택하여 섞을 수 있습니다.">Art Styles</label>
                 <div className="flex flex-wrap gap-2">
                     {STYLE_PRESETS.map((style) => (
                         <button key={style} onClick={() => toggleStyle(style)} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selectedStyles.includes(style) ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}>
@@ -679,9 +804,36 @@ export default function Home() {
                     ))}
                 </div>
             </div>
+            <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400" title="Stable Diffusion WebUI에서 로드할 체크포인트(모델) 파일의 정확한 이름을 입력하세요.">WebUI Model</label>
+                <input
+                    type="text"
+                    value={webuiModelInput}
+                    onChange={(e) => setWebuiModelInput(e.target.value)}
+                    placeholder="sd_model_checkpoint"
+                    className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold focus:ring-1 focus:ring-zinc-400"
+                />
+                <div className="flex gap-2">
+                    <button
+                        onClick={fetchWebuiOptions}
+                        disabled={isWebuiLoading}
+                        className="flex-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold text-[10px] uppercase tracking-wider hover:bg-zinc-200 transition-all"
+                    >
+                        {isWebuiLoading ? "Loading..." : "Reload"}
+                    </button>
+                    <button
+                        onClick={applyWebuiOptions}
+                        disabled={isWebuiSaving || !webuiModelInput}
+                        className="flex-1 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-[10px] uppercase tracking-wider hover:opacity-90 transition-all disabled:opacity-50"
+                    >
+                        {isWebuiSaving ? "Applying..." : "Apply"}
+                    </button>
+                </div>
+                <p className="text-[10px] text-zinc-400">Current: {currentModel}</p>
+            </div>
             <div>
-                <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings (Negative Prompt)</button>
-                {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
+                <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors" title="이미지에 나오지 말아야 할 요소들을 설정합니다.">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings (Negative Prompt)</button>
+                {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase" title="저품질, 기형 등 생성된 이미지에서 제외하고 싶은 키워드들을 입력합니다.">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
             </div>
         </div>
     </section>
@@ -909,7 +1061,7 @@ export default function Home() {
                                 )}
                             </div>
 
-                            <button onClick={startAutopilot} disabled={isAutopilotRunning || isVideoLoading} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg">{isAutopilotRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : "Autopilot"}</button>
+                            <button onClick={startAutopilot} disabled={isAutopilotRunning || isVideoLoading} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg">{isAutopilotRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : "일괄생성"}</button>
                             {storyScenes.every(s => s.image_url) && <button onClick={handleCreateVideo} disabled={isVideoLoading} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg">{isVideoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Produce 🎬"}</button>}
                         </div>
                         </div>
@@ -935,7 +1087,20 @@ export default function Home() {
                                 {scene.image_url ? <><Image src={scene.image_url} alt={`Scene ${idx}`} fill className="object-cover" unoptimized />{regeneratingIndex === idx && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}<div className="absolute top-2 left-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 drop-shadow-md bg-white rounded-full" /></div></> : <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 gap-2 font-bold uppercase text-[10px] opacity-20"><ImageIcon className="w-8 h-8" /> Pending</div>}
                             </div>
                             <div className="flex-1 flex flex-col gap-3">
-                                <div className="flex items-center gap-3"><span className="px-2.5 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider">Scene {idx + 1}</span><div className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-zinc-400" /><input type="number" className="w-10 bg-transparent border-none p-0 text-xs font-bold text-zinc-500 focus:ring-0" value={scene.duration} onChange={(e) => { const ns = [...storyScenes]; ns[idx].duration = Number(e.target.value); setStoryScenes(ns); }} /> <span className="text-[10px] font-bold text-zinc-400">SEC</span></div></div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className="px-2.5 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-[10px] font-black uppercase tracking-wider">Scene {idx + 1}</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <Clock className="w-3 h-3 text-zinc-400" />
+                                        <input type="number" className="w-10 bg-transparent border-none p-0 text-xs font-bold text-zinc-500 focus:ring-0" value={scene.duration} onChange={(e) => { const ns = [...storyScenes]; ns[idx].duration = Number(e.target.value); setStoryScenes(ns); }} />
+                                        <span className="text-[10px] font-bold text-zinc-400">SEC</span>
+                                    </div>
+                                    {(scene.ref_used_a || scene.ref_used_b) && (
+                                        <div className="flex items-center gap-1.5">
+                                            {scene.ref_used_a && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">Ref A OK</span>}
+                                            {scene.ref_used_b && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">Ref B OK</span>}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="space-y-3"><textarea className="w-full p-0 bg-transparent border-none text-sm font-semibold leading-relaxed focus:ring-0 resize-none text-zinc-800 dark:text-zinc-200" rows={2} value={scene.script} onChange={(e) => { const ns = [...storyScenes]; ns[idx].script = e.target.value; setStoryScenes(ns); }} />                        <div className="text-[10px] text-zinc-400 bg-zinc-50 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-emerald-500 font-bold uppercase tracking-widest mr-2">Prompt</span>
@@ -945,7 +1110,7 @@ export default function Home() {
                                     </div>
                                     )}
                                     <div className="flex items-center gap-2">
-                                        <select value={scene.visual_focus || "A"} onChange={(e) => { const ns = [...storyScenes]; ns[idx].visual_focus = e.target.value; setStoryScenes(ns); }} className="bg-transparent border border-zinc-200 dark:border-zinc-700 text-[9px] font-bold rounded-lg px-1.5 py-0.5">
+                                        <select value={scene.visual_focus || "Landscape"} onChange={(e) => { const ns = [...storyScenes]; ns[idx].visual_focus = e.target.value; ns[idx].ref_used_a = undefined; ns[idx].ref_used_b = undefined; setStoryScenes(ns); }} className="bg-transparent border border-zinc-200 dark:border-zinc-700 text-[9px] font-bold rounded-lg px-1.5 py-0.5">
                                             <option value="A">Focus: A</option>
                                             <option value="B">Focus: B</option>
                                             <option value="Both">Focus: Both</option>
@@ -1047,19 +1212,15 @@ export default function Home() {
                     <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all backdrop-blur-sm z-50 group">
                         <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
                     </button>
-                    <div
-                        className="relative w-full h-full max-w-6xl max-h-[90vh]"
+                    <Image
+                        src={previewImage}
+                        alt="Preview"
+                        width={1600}
+                        height={900}
                         onClick={(e) => e.stopPropagation()}
-                    >
-                        <Image
-                            src={previewImage}
-                            alt="Preview"
-                            fill
-                            sizes="(max-width: 1024px) 100vw, 1024px"
-                            className="object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 select-none"
-                            unoptimized
-                        />
-                    </div>
+                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 select-none"
+                        unoptimized
+                    />
                 </div>
             </div>
         )}
