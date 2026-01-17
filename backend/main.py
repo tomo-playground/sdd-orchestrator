@@ -71,7 +71,8 @@ SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 SD_CONTROLNET_VERSION_URL = f"{SD_BASE_URL}/controlnet/version"
 SD_CONTROLNET_SETTINGS_URL = f"{SD_BASE_URL}/controlnet/settings"
-DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly, blurry, out of focus, duplicate, error, artifacts, simplified, cartoon, cgi, render, 3d, (monochrome:1.1), (muted colors:1.2), overexposed, high contrast"
+DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, disfigured, bad proportions, bad hands, missing fingers, extra fingers, fused fingers, extra limbs, missing limbs, long neck, bad face, ugly, duplicate, extra person, multiple people, crowd, text, watermark, logo, signature, blurry, out of focus, jpeg artifacts, artifacts, oversaturated, overexposed, high contrast, cartoon, cgi, render, 3d, monochrome, muted colors, gender swap, androgynous, nsfw, nude, naked, lingerie"
+SAFETY_NEGATIVE_PROMPT = "nsfw, nude, naked, topless, shirtless, underwear, lingerie, explicit, sexual, suggestive, fetish"
 CONTROLNET_PRESET = {
     "single_face_id": [
         {
@@ -221,6 +222,7 @@ class VideoRequest(BaseModel):
     overlay_settings: OverlaySettings | None = None
     characters: list[CharacterInfo] = []
     narrator_voice: str = "ko-KR-SunHiNeural"
+    speed_multiplier: float = 1.0
 
 class ProjectSaveRequest(BaseModel):
     id: str | None = None
@@ -306,6 +308,27 @@ def scrub_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 def wrap_text(text, width=20):
     return "\n".join(textwrap.wrap(text, width=width))
+
+def merge_negative_prompt(base: str | None) -> str:
+    cleaned = base.strip() if isinstance(base, str) else ""
+    if not cleaned:
+        return f"{DEFAULT_NEGATIVE_PROMPT}, {SAFETY_NEGATIVE_PROMPT}"
+    if SAFETY_NEGATIVE_PROMPT in cleaned:
+        return cleaned
+    return f"{cleaned}, {SAFETY_NEGATIVE_PROMPT}"
+
+def strip_dual_negative(negative: str) -> str:
+    if not negative:
+        return negative
+    remove_terms = ("extra person", "multiple people", "crowd")
+    parts = [p.strip() for p in negative.split(",")]
+    kept = [p for p in parts if p and all(term not in p.lower() for term in remove_terms)]
+    return ", ".join(kept)
+
+def to_edge_tts_rate(multiplier: float) -> str:
+    safe_multiplier = max(0.1, min(multiplier, 2.0))
+    percent = int(round((safe_multiplier - 1.0) * 100))
+    return f"+{percent}%" if percent >= 0 else f"{percent}%"
 
 def strip_data_url(data: str | None) -> str | None:
     if not data:
@@ -943,7 +966,7 @@ async def analyze_character(request: AnalyzeRequest):
 @app.post("/prompt/translate")
 async def translate_prompt(request: PromptTranslateRequest):
     if not gemini_client:
-        return {"translated_prompt": request.text, "negative_prompt": DEFAULT_NEGATIVE_PROMPT}
+        return {"translated_prompt": request.text, "negative_prompt": merge_negative_prompt(DEFAULT_NEGATIVE_PROMPT)}
     try:
         template = template_env.get_template("optimize_prompt.j2")
         rendered = template.render(user_input=request.text, persona=request.persona, target_styles=", ".join(request.styles))
@@ -961,6 +984,7 @@ async def translate_prompt(request: PromptTranslateRequest):
         translated = sanitize_prompt_background(translated_raw)
         negative_prompt = res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
         translated, negative_prompt = apply_gender_hints(request.text, translated, negative_prompt)
+        negative_prompt = merge_negative_prompt(negative_prompt)
         return {
             "translated_prompt": translated,
             "negative_prompt": negative_prompt,
@@ -969,7 +993,7 @@ async def translate_prompt(request: PromptTranslateRequest):
         }
     except Exception as e:
         logger.error(f"Translation failed: {e}")
-        return {"translated_prompt": request.text, "negative_prompt": DEFAULT_NEGATIVE_PROMPT}
+        return {"translated_prompt": request.text, "negative_prompt": merge_negative_prompt(DEFAULT_NEGATIVE_PROMPT)}
 
 @app.post("/face/check")
 async def face_check(request: FaceCheckRequest):
@@ -1025,6 +1049,7 @@ async def generate_portrait(request: PortraitRequest):
     )
     seed_prompt, negative_prompt = apply_gender_hints(request.description, seed_prompt, negative_prompt)
     seed_prompt, negative_prompt = apply_hair_color_hints(request.description, seed_prompt, negative_prompt)
+    negative_prompt = merge_negative_prompt(negative_prompt)
     prompt = (
         f"(({seed_prompt})), close-up portrait, head and shoulders only, head-only crop, "
         "shoulder-up, neck-up, face centered, "
@@ -1078,7 +1103,7 @@ async def generate_reference_single(request: ReferenceSingleRequest):
         "extra face, extra head, extra body, extra limbs, extra arms, extra legs"
     )
     text_negative = "text, letters, words, watermark, logo, signage, subtitle, caption, speech bubble, typography"
-    negative = request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    negative = merge_negative_prompt(request.negative_prompt or DEFAULT_NEGATIVE_PROMPT)
     if base_negative not in negative:
         negative = f"{negative}, {base_negative}"
     if text_negative not in negative:
@@ -1155,7 +1180,7 @@ async def generate_reference_single(request: ReferenceSingleRequest):
 async def generate_image(request: GenerateRequest):
     logger.info(f"🎨 [Image Gen] Prompt: {request.prompt[:50]}...")
     logger.info("📥 [Generate Req] %s", scrub_payload(request.dict()))
-    final_pos, final_neg = request.prompt, request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    final_pos, final_neg = request.prompt, merge_negative_prompt(request.negative_prompt or DEFAULT_NEGATIVE_PROMPT)
     
     if gemini_client and not request.skip_optimization:
         try:
@@ -1171,6 +1196,7 @@ async def generate_image(request: GenerateRequest):
                 cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
             final_pos, final_neg = res_json.get("positive_prompt", final_pos), res_json.get("negative_prompt", final_neg)
             final_pos = sanitize_prompt_background(final_pos)
+            final_neg = merge_negative_prompt(final_neg)
         except Exception as e:
             logger.warning(f"⚠️ Prompt Optimization Failed: {e}")
     
@@ -1241,7 +1267,8 @@ async def generate_image(request: GenerateRequest):
 @app.post("/generate/compose_dual")
 async def generate_compose_dual(request: DualComposeRequest):
     logger.info("📥 [Compose Dual Req] %s", scrub_payload(request.dict()))
-    final_neg = request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    final_neg = merge_negative_prompt(request.negative_prompt or DEFAULT_NEGATIVE_PROMPT)
+    final_neg = strip_dual_negative(final_neg)
     final_neg = escape_dynamic_prompt(final_neg) or final_neg
     char_a_ref = strip_data_url(request.char_a_ref)
     char_b_ref = strip_data_url(request.char_b_ref)
@@ -1491,7 +1518,7 @@ async def webui_compose_test(request: WebUIComposeTestRequest):
 
     payload = {
         "prompt": request.prompt,
-        "negative_prompt": DEFAULT_NEGATIVE_PROMPT,
+        "negative_prompt": merge_negative_prompt(DEFAULT_NEGATIVE_PROMPT),
         "steps": request.steps,
         "width": width,
         "height": height,
@@ -1583,7 +1610,12 @@ async def create_video(request: VideoRequest):
     try:
         input_args = []
         num_scenes = len(request.scenes)
-        TRANSITION_DUR = 0.5 # Faster transition for shorts
+        speed_multiplier = max(0.25, min(request.speed_multiplier or 1.0, 2.0))
+        transition_dur = max(0.1, 0.5 / speed_multiplier) # Faster transition for higher tempo
+        tts_padding = 0.5 / speed_multiplier
+        tts_rate = to_edge_tts_rate(speed_multiplier)
+        tts_valid = []
+        tts_durations = []
 
         for i, scene in enumerate(request.scenes):
             img_path = temp_dir / f"scene_{i}.png"
@@ -1599,6 +1631,7 @@ async def create_video(request: VideoRequest):
             txt_file.write_text(wrapped_script, encoding="utf-8")
             
             has_valid_tts = False
+            tts_duration = 0.0
             if txt_for_tts := raw_script.replace("'", "").strip():
                 try:
                     # Determine voice based on speaker
@@ -1610,14 +1643,25 @@ async def create_video(request: VideoRequest):
                     elif speaker == "B" and len(request.characters) > 1:
                         voice = request.characters[1].voice
                         
-                    communicate = edge_tts.Communicate(txt_for_tts, voice)
+                    communicate = edge_tts.Communicate(txt_for_tts, voice, rate=tts_rate)
                     await communicate.save(str(tts_path))
-                    if tts_path.exists() and tts_path.stat().st_size > 0: has_valid_tts = True
+                    if tts_path.exists() and tts_path.stat().st_size > 0:
+                        has_valid_tts = True
+                        tts_duration = get_audio_duration(tts_path)
                 except: pass
 
             input_args.extend(["-loop", "1", "-i", str(img_path)])
             if has_valid_tts: input_args.extend(["-i", str(tts_path)])
             else: input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
+            tts_valid.append(has_valid_tts)
+            tts_durations.append(tts_duration)
+
+        scene_durations = []
+        for i, scene in enumerate(request.scenes):
+            base_duration = scene.get('duration', 3) / speed_multiplier
+            if tts_valid[i] and tts_durations[i] > 0:
+                base_duration = max(base_duration, tts_durations[i] + tts_padding)
+            scene_durations.append(base_duration)
 
         filters = []
         # Use determined width/height (Force 1080x1920 if 512x512 was requested)
@@ -1629,16 +1673,12 @@ async def create_video(request: VideoRequest):
         abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/")
 
         for i in range(num_scenes):
-            v_idx, base_dur = i * 2, request.scenes[i].get('duration', 3)
+            v_idx, base_dur = i * 2, scene_durations[i]
             
             txt_file = temp_dir / f"text_{i}.txt"
             abs_txt_path = str(txt_file.resolve()).replace("\\", "/")
-            
-            if request.scenes[i].get('script'):
-                tts_p = temp_dir / f"tts_{i}.mp3"
-                if tts_p.exists(): base_dur = max(base_dur, get_audio_duration(tts_p) + 0.5)
-            
-            clip_dur = base_dur + (TRANSITION_DUR if i < num_scenes - 1 else 0)
+
+            clip_dur = base_dur + (transition_dur if i < num_scenes - 1 else 0)
             
             # Simplified Filter Chain (ZoomPan removed for stability)
             # 1. Scale & Crop to Square -> 2. Draw Text -> 3. Trim
@@ -1685,11 +1725,7 @@ async def create_video(request: VideoRequest):
         # Audio Chain
         for i in range(num_scenes):
             a_idx = i * 2 + 1
-            clip_dur = request.scenes[i].get('duration', 3)
-            if request.scenes[i].get('script'):
-                tts_p = temp_dir / f"tts_{i}.mp3"
-                if tts_p.exists(): clip_dur = max(clip_dur, get_audio_duration(tts_p) + 0.5)
-            clip_dur += (TRANSITION_DUR if i < num_scenes - 1 else 0)
+            clip_dur = scene_durations[i] + (transition_dur if i < num_scenes - 1 else 0)
             filters.append(f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]")
 
         # Concat with Crossfade
@@ -1697,31 +1733,22 @@ async def create_video(request: VideoRequest):
             curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
             for i in range(1, num_scenes):
                 # Calculate offset based on previous clip's actual duration (minus transition overlap)
-                prev_dur = request.scenes[i-1].get('duration', 3)
-                if request.scenes[i-1].get('script'):
-                    tts_p = temp_dir / f"tts_{i-1}.mp3"
-                    if tts_p.exists(): prev_dur = max(prev_dur, get_audio_duration(tts_p) + 0.5)
+                prev_dur = scene_durations[i - 1]
                 
                 acc_offset += prev_dur
                 
-                filters.append(f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={TRANSITION_DUR}:offset={acc_offset}[v{i}_m]")
+                filters.append(f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={transition_dur}:offset={acc_offset}[v{i}_m]")
                 curr_v = f"[v{i}_m]"
-                filters.append(f"{curr_a}[a{i}_raw]acrossfade=d={TRANSITION_DUR}:o=1:c1=tri:c2=tri[a{i}_m]")
+                filters.append(f"{curr_a}[a{i}_raw]acrossfade=d={transition_dur}:o=1:c1=tri:c2=tri[a{i}_m]")
                 curr_a = f"[a{i}_m]"
             map_v, map_a = curr_v, curr_a
             
             # Calculate total duration for BGM fade out
-            last_dur = request.scenes[-1].get('duration', 3)
-            if request.scenes[-1].get('script'):
-                tts_p = temp_dir / f"tts_{num_scenes-1}.mp3"
-                if tts_p.exists(): last_dur = max(last_dur, get_audio_duration(tts_p) + 0.5)
+            last_dur = scene_durations[-1]
             total_dur = acc_offset + last_dur
         else:
             map_v, map_a = "[v0_raw]", "[a0_raw]"
-            total_dur = request.scenes[0].get('duration', 3)
-            if request.scenes[0].get('script'):
-                tts_p = temp_dir / f"tts_0.mp3"
-                if tts_p.exists(): total_dur = max(total_dur, get_audio_duration(tts_p) + 0.5)
+            total_dur = scene_durations[0]
 
         bgm_path = AUDIO_DIR / request.bgm_file if request.bgm_file else None
         next_input_idx = num_scenes * 2

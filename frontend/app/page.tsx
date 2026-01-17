@@ -59,7 +59,7 @@ const SAMPLE_PERSONAS = [
 const RESOLUTIONS = {
   shorts: { w: 512, h: 512, label: "YouTube Shorts (9:16)", desc: "Stable Gen @ 512px" },
 };
-const DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly";
+const DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, disfigured, bad proportions, bad hands, missing fingers, extra fingers, fused fingers, extra limbs, missing limbs, long neck, bad face, ugly, duplicate, extra person, multiple people, crowd, text, watermark, logo, signature, blurry, out of focus, jpeg artifacts, artifacts, oversaturated, overexposed, high contrast, cartoon, cgi, render, 3d, monochrome, muted colors, gender swap, androgynous, nsfw, nude, naked, lingerie";
 
 type StoryScene = {
   image_url?: string | null;
@@ -98,6 +98,9 @@ interface Character {
   image: string | null;
   reference_image: string | null; // Added for IP-Adapter
   seed_image: string | null;
+  outfit_desc: string;
+  outfit_image: string | null;
+  outfit_reference_images: string[];
   reference_images_face: string[];
   reference_images_body: string[];
   reference_loading_kind: "face" | "body" | null;
@@ -113,8 +116,8 @@ interface Character {
 }
 
 const createDefaultCharacters = (): Character[] => [
-  { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, gender: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
-  { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, gender: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
+  { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, outfit_desc: "", outfit_image: null, outfit_reference_images: [], reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, gender: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
+  { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, outfit_desc: "", outfit_image: null, outfit_reference_images: [], reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, gender: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
 ];
 const DEFAULT_CHARACTERS = createDefaultCharacters();
 
@@ -197,6 +200,7 @@ export default function Home() {
   const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("shorts");
   const [selectedLora, setSelectedLora] = useState<string[]>([]);
   const [narratorVoice, setNarratorVoice] = useState("ko-KR-SunHiNeural"); // Default Narrator
+  const [readSpeed, setReadSpeed] = useState(1.3);
 
   // --- Logic States ---
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -267,12 +271,17 @@ export default function Home() {
         seed_image: char.seed_image || char.reference_image || null,
         face_detected: typeof char.face_detected === "boolean" ? char.face_detected : null,
         face_count: typeof char.face_count === "number" ? char.face_count : null,
-        gender: char.gender === "male" || char.gender === "female" ? char.gender : null
+        gender: char.gender === "male" || char.gender === "female" ? char.gender : null,
+        outfit_desc: typeof char.outfit_desc === "string" ? char.outfit_desc : "",
+        outfit_image: char.outfit_image || null,
+        outfit_reference_images: char.outfit_reference_images || []
       };
     });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bgmPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const outfitInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingOutfitIdx, setUploadingOutfitIdx] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -328,6 +337,7 @@ export default function Home() {
       if (Array.isArray(data.storyScenes)) setStoryScenes(data.storyScenes as StoryScene[]);
       if (Array.isArray(data.characters)) setCharacters(normalizeCharacters(data.characters as Character[]));
       if (data.narratorVoice) setNarratorVoice(String(data.narratorVoice));
+      if (typeof data.readSpeed === "number") setReadSpeed(Number(data.readSpeed));
       if (Array.isArray(data.selectedStyles)) setSelectedStyles(data.selectedStyles as string[]);
       if (data.resolution) setResolution(data.resolution as keyof typeof RESOLUTIONS);
       if (Array.isArray(data.selectedLora)) setSelectedLora(data.selectedLora as string[]);
@@ -352,6 +362,7 @@ export default function Home() {
         storyScenes,
         characters,
         narratorVoice,
+        readSpeed,
         selectedStyles,
         resolution,
         selectedLora,
@@ -384,6 +395,7 @@ export default function Home() {
     storyScenes,
     characters,
     narratorVoice,
+    readSpeed,
     selectedStyles,
     resolution,
     selectedLora,
@@ -545,6 +557,47 @@ export default function Home() {
     });
   };
 
+  const inferGender = (char: Character) => {
+    if (char.gender === "male" || char.gender === "female") return char.gender;
+    const base = `${char.desc || ""} ${char.translatedDesc || ""}`;
+    if (/\b(남자|남성|소년|boy|male|man)\b/i.test(base)) return "male";
+    if (/\b(여자|여성|소녀|girl|female|woman)\b/i.test(base)) return "female";
+    return null;
+  };
+
+  const buildGenderHint = (char: Character) => {
+    const gender = inferGender(char);
+    if (gender === "male") {
+      return "(male:1.8), masculine, man, male body, broad shoulders, square jaw, short hair, no makeup, menswear";
+    }
+    if (gender === "female") {
+      return "(female:1.8), feminine, woman, female body, soft features, long hair, light makeup, womenswear";
+    }
+    return "";
+  };
+
+  const buildOutfitHint = (char: Character) => {
+    const raw = (char.outfit_desc || "").trim();
+    if (!raw) {
+      return "(same outfit:1.5), consistent clothing, same clothes every scene, identical outfit, consistent color palette, no outfit change";
+    }
+    return `${raw}, (same outfit:1.5), consistent clothing, same clothes every scene, identical outfit, consistent color palette`;
+  };
+
+  const buildOutfitNegative = () => {
+    return "different outfit, outfit change, different clothes, color change, wardrobe change, alternate outfit, costume change";
+  };
+
+  const buildSceneNegative = (base?: string) => {
+    const baseText = base && base.trim() ? base.trim() : DEFAULT_NEGATIVE_PROMPT;
+    if (baseText.includes("outfit change")) return baseText;
+    return `${baseText}, ${buildOutfitNegative()}`;
+  };
+
+  const getBestFaceRef = (char: Character) => {
+    return char.seed_image || char.reference_images_face[0] || char.reference_image || null;
+  };
+
   const setReferenceImage = (idx: number, dataUrl: string | null) => {
     updateCharacter(idx, "reference_image", dataUrl);
     updateCharacter(idx, "seed_image", dataUrl);
@@ -612,7 +665,8 @@ export default function Home() {
       .trim();
     const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
     const genderHint = maleHint || femaleHint;
-    const anchor = base ? `${base}, ${genderHint}, same person, single person, solo, one person only` : `${genderHint}, same person, single person, solo, one person only`;
+    const outfitHint = buildOutfitHint(char);
+    const anchor = base ? `${base}, ${genderHint}, ${outfitHint}, same person, single person, solo, one person only` : `${genderHint}, ${outfitHint}, same person, single person, solo, one person only`;
     return [
       `${anchor}, full body, head-to-toe, full length, long shot, front view, front-facing, standing, attention pose, upright posture, feet together, feet visible, head visible, no crop, no cut off, square shoulders, back straight, arms straight at sides, centered, no occlusion, clothed, fully clothed, hands visible, five fingers, anatomically correct hands, handsome, attractive, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
       `${anchor}, full body, head-to-toe, full length, long shot, left side view, left profile, facing left, only one eye visible, left ear visible, standing, attention pose, upright posture, feet together, feet visible, head visible, no crop, no cut off, arms straight at sides, centered, no occlusion, clothed, fully clothed, hands visible, five fingers, anatomically correct hands, handsome, attractive, clean facial features, well-proportioned face, soft expression, plain background, simple background, solid color background, minimal background${styles}`,
@@ -872,7 +926,7 @@ export default function Home() {
     try {
         const res = await axios.post(`${API_BASE}/projects/save`, {
             id: projectId, title: storyTopic || "Cast",
-            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, overlaySettings }
+            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, readSpeed, selectedStyles, aspectRatio: resolution, selectedLora, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
     } catch { alert("Save failed"); }
@@ -903,11 +957,15 @@ export default function Home() {
                 face_detected: typeof char.face_detected === "boolean" ? char.face_detected : null,
                 face_count: typeof char.face_count === "number" ? char.face_count : null,
                 reference_seed_face: typeof char.reference_seed_face === "number" ? char.reference_seed_face : -1,
-                reference_seed_body: typeof char.reference_seed_body === "number" ? char.reference_seed_body : -1
+                reference_seed_body: typeof char.reference_seed_body === "number" ? char.reference_seed_body : -1,
+                outfit_desc: typeof char.outfit_desc === "string" ? char.outfit_desc : "",
+                outfit_image: char.outfit_image || null,
+                outfit_reference_images: char.outfit_reference_images || []
               }))
             );
         }
         if (c.narratorVoice) setNarratorVoice(c.narratorVoice);
+        if (typeof c.readSpeed === "number") setReadSpeed(c.readSpeed);
         setSelectedStyles(c.selectedStyles || []); setResolution(c.aspectRatio || "shorts");
         if (Array.isArray(c.selectedLora)) {
             setSelectedLora(c.selectedLora);
@@ -967,6 +1025,17 @@ export default function Home() {
     finally { updateCharacter(idx, "isTranslating", false); }
   };
 
+  const analyzeOutfit = async (idx: number, image: string) => {
+    try {
+      const res = await axios.post(`${API_BASE}/character/analyze`, { image });
+      if (res.data.description) {
+        updateCharacter(idx, "outfit_desc", String(res.data.description));
+      }
+    } catch (e) {
+      console.error("Outfit analysis failed", e);
+    }
+  };
+
   const handleReferenceUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -979,6 +1048,76 @@ export default function Home() {
       analyzeCharacter(idx, result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleOutfitUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      updateCharacter(idx, "outfit_image", result);
+      void analyzeOutfit(idx, result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const buildOutfitReferencePrompts = (char: Character) => {
+    const baseRaw = (char.translatedDesc || char.desc || "").trim();
+    const genderHint = buildGenderHint(char);
+    const outfitHint = buildOutfitHint(char);
+    const base = baseRaw.replace(/\s{2,}/g, " ").trim();
+    const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
+    const anchor = base
+      ? `${base}, ${genderHint ? `${genderHint}, ` : ""}${outfitHint}`
+      : `${genderHint ? `${genderHint}, ` : ""}${outfitHint}`;
+    return [
+      `${anchor}, full body, head-to-toe, front view, standing, centered, clear outfit details, fabric texture visible, full outfit visible${styles}`,
+      `${anchor}, full body, head-to-toe, left side view, standing, clear outfit details, full outfit visible${styles}`,
+      `${anchor}, full body, head-to-toe, right side view, standing, clear outfit details, full outfit visible${styles}`,
+      `${anchor}, full body, head-to-toe, back view, standing, clear outfit details, full outfit visible${styles}`
+    ];
+  };
+
+  const generateOutfitReferenceImages = async (idx: number) => {
+    const char = characters[idx];
+    if (!char.outfit_desc && !char.desc && !char.translatedDesc) {
+      console.warn("Outfit description missing");
+      return;
+    }
+    const prompts = buildOutfitReferencePrompts(char);
+    if (!prompts.length) return;
+    updateCharacter(idx, "reference_loading_kind", "body");
+    updateCharacter(idx, "isLoading", true);
+    try {
+      const negative = `${DEFAULT_NEGATIVE_PROMPT}, ${buildOutfitNegative()}`;
+      const images: string[] = [];
+      for (const prompt of prompts) {
+        const res = await axios.post(`${API_BASE}/character/reference_single`, {
+          prompt,
+          width: 640,
+          height: 896,
+          styles: selectedStyles,
+          negative_prompt: negative,
+          seed: -1,
+          use_ip_adapter: false,
+          use_pose: true,
+          pose_side: "center",
+          pose_weight: 0.6,
+          pose_view: "front"
+        });
+        if (res.data.image) {
+          const dataUrl = `data:image/png;base64,${res.data.image}`;
+          images.push(dataUrl);
+          updateCharacter(idx, "outfit_reference_images", [...images]);
+        }
+      }
+    } catch (e) {
+      console.warn("Outfit reference generation failed", e);
+    } finally {
+      updateCharacter(idx, "reference_loading_kind", null);
+      updateCharacter(idx, "isLoading", false);
+    }
   };
 
   const handleGeneratePortrait = async (idx: number) => {
@@ -1024,12 +1163,12 @@ export default function Home() {
         structure: storyStructure,
         characters: characters 
       });
-      setStoryScenes(
-        (res.data.scenes || []).map((scene: StoryScene) => ({
-          ...scene,
-          negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT
-        }))
-      );
+    setStoryScenes(
+      (res.data.scenes || []).map((scene: StoryScene) => ({
+        ...scene,
+        negative_prompt: buildSceneNegative(scene.negative_prompt)
+      }))
+    );
     } catch { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
   };
 
@@ -1056,21 +1195,29 @@ export default function Home() {
             const charB = characters[1];
 
             if (focus === "A") {
-                charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))`;
+                const genderHint = buildGenderHint(charA);
+                const outfitHint = buildOutfitHint(charA);
+                charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))${genderHint ? `, ${genderHint}` : ""}, ${outfitHint}`;
                 seedToUse = charA.seed;
-                refImageToUse = charA.reference_image;
+                refImageToUse = getBestFaceRef(charA);
             } else if (focus === "B") {
-                charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))`;
+                const genderHint = buildGenderHint(charB);
+                const outfitHint = buildOutfitHint(charB);
+                charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))${genderHint ? `, ${genderHint}` : ""}, ${outfitHint}`;
                 seedToUse = charB.seed;
-                refImageToUse = charB.reference_image;
+                refImageToUse = getBestFaceRef(charB);
             } else if (focus === "Both") {
+                const genderHintA = buildGenderHint(charA);
+                const genderHintB = buildGenderHint(charB);
+                const outfitHintA = buildOutfitHint(charA);
+                const outfitHintB = buildOutfitHint(charB);
                 const res = await axios.post(`${API_BASE}/generate/compose_dual`, {
                     scene_prompt: scene.image_prompt,
-                    char_a_prompt: charA.translatedDesc || charA.desc,
-                    char_b_prompt: charB.translatedDesc || charB.desc,
-                    char_a_ref: charA.reference_image || null,
-                    char_b_ref: charB.reference_image || null,
-                    negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
+                    char_a_prompt: `${charA.translatedDesc || charA.desc}${genderHintA ? `, ${genderHintA}` : ""}, ${outfitHintA}`,
+                    char_b_prompt: `${charB.translatedDesc || charB.desc}${genderHintB ? `, ${genderHintB}` : ""}, ${outfitHintB}`,
+                    char_a_ref: getBestFaceRef(charA),
+                    char_b_ref: getBestFaceRef(charB),
+                    negative_prompt: buildSceneNegative(scene.negative_prompt),
                     styles: selectedStyles,
                     lora: selectedLora.length ? selectedLora : null,
                     width: size.w,
@@ -1098,7 +1245,7 @@ export default function Home() {
             const res = await axios.post(`${API_BASE}/generate`, { 
                 prompt: combinedPrompt, 
                 persona: null, 
-                negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
+                negative_prompt: buildSceneNegative(scene.negative_prompt),
                 styles: selectedStyles, 
                 lora: selectedLora.length ? selectedLora : null, 
                 width: size.w, height: size.h, 
@@ -1140,7 +1287,8 @@ export default function Home() {
         height: finalHeight,
         overlay_settings: overlaySettings,
         characters: characters,
-        narrator_voice: narratorVoice
+        narrator_voice: narratorVoice,
+        speed_multiplier: readSpeed
       });
       setVideoUrl(res.data.video_url); fetchData();
     } catch { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
@@ -1225,21 +1373,29 @@ export default function Home() {
       const charB = characters[1];
 
       if (focus === "A") {
-          charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))`;
+          const genderHint = buildGenderHint(charA);
+          const outfitHint = buildOutfitHint(charA);
+          charPrompt = `((${charA.translatedDesc || charA.desc}:1.2))${genderHint ? `, ${genderHint}` : ""}, ${outfitHint}`;
           seedToUse = charA.seed;
-          refImageToUse = charA.reference_image;
+          refImageToUse = getBestFaceRef(charA);
       } else if (focus === "B") {
-          charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))`;
+          const genderHint = buildGenderHint(charB);
+          const outfitHint = buildOutfitHint(charB);
+          charPrompt = `((${charB.translatedDesc || charB.desc}:1.2))${genderHint ? `, ${genderHint}` : ""}, ${outfitHint}`;
           seedToUse = charB.seed;
-          refImageToUse = charB.reference_image;
+          refImageToUse = getBestFaceRef(charB);
       } else if (focus === "Both") {
+          const genderHintA = buildGenderHint(charA);
+          const genderHintB = buildGenderHint(charB);
+          const outfitHintA = buildOutfitHint(charA);
+          const outfitHintB = buildOutfitHint(charB);
           const res = await axios.post(`${API_BASE}/generate/compose_dual`, {
             scene_prompt: scene.image_prompt,
-            char_a_prompt: charA.translatedDesc || charA.desc,
-            char_b_prompt: charB.translatedDesc || charB.desc,
-            char_a_ref: charA.reference_image || null,
-            char_b_ref: charB.reference_image || null,
-            negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
+            char_a_prompt: `${charA.translatedDesc || charA.desc}${genderHintA ? `, ${genderHintA}` : ""}, ${outfitHintA}`,
+            char_b_prompt: `${charB.translatedDesc || charB.desc}${genderHintB ? `, ${genderHintB}` : ""}, ${outfitHintB}`,
+            char_a_ref: getBestFaceRef(charA),
+            char_b_ref: getBestFaceRef(charB),
+            negative_prompt: buildSceneNegative(scene.negative_prompt),
             styles: selectedStyles,
             lora: selectedLora.length ? selectedLora : null,
             width: size.w,
@@ -1267,7 +1423,7 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/generate`, { 
         prompt: combinedPrompt, 
         persona: null,
-        negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
+        negative_prompt: buildSceneNegative(scene.negative_prompt),
         styles: selectedStyles, 
         lora: selectedLora.length ? selectedLora : null, 
         width: size.w, height: size.h, 
@@ -1285,7 +1441,7 @@ export default function Home() {
         updated[idx].ref_used_b = focus === "B" && !!charB.reference_image;
         setStoryScenes(updated);
       }
-    } catch { alert("Regen fail"); } finally { setRegeneratingIndex(null); }
+    } catch (err) { console.warn("Regen failed", err); } finally { setRegeneratingIndex(null); }
   };
 
   // --- Visual Settings Component (Global Sidebar) ---
@@ -1396,6 +1552,21 @@ export default function Home() {
                         <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (M)</option>
                     </select>
                     <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                </div>
+            </div>
+            <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400" title="자막과 내레이션 읽기 속도를 조절합니다.">Read Speed</label>
+                <div className="flex items-center gap-3">
+                    <input
+                        type="range"
+                        min="1"
+                        max="2"
+                        step="0.05"
+                        value={readSpeed}
+                        onChange={(e) => setReadSpeed(Number(e.target.value))}
+                        className="w-full accent-zinc-900 dark:accent-white"
+                    />
+                    <span className="text-[10px] font-bold text-zinc-500 w-12 text-right">{readSpeed.toFixed(2)}x</span>
                 </div>
             </div>
 
@@ -1770,6 +1941,55 @@ export default function Home() {
                                             onChange={(e) => updateCharacter(idx, "translatedDesc", e.target.value)} 
                                         />
                                     )}
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Outfit Lock</label>
+                                        <textarea
+                                            className="w-full p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs resize-none focus:ring-1 focus:ring-indigo-400 font-medium"
+                                            rows={2}
+                                            value={char.outfit_desc}
+                                            placeholder="e.g. black hoodie, blue jeans, white sneakers"
+                                            onChange={(e) => updateCharacter(idx, "outfit_desc", e.target.value)}
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => { setUploadingOutfitIdx(idx); outfitInputRef.current?.click(); }}
+                                                className="flex-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-200 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-zinc-200 dark:border-zinc-700"
+                                            >
+                                                <Upload className="w-3 h-3" /> Upload Outfit
+                                            </button>
+                                            <button
+                                                onClick={() => generateOutfitReferenceImages(idx)}
+                                                className="flex-1 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/30"
+                                            >
+                                                <Sparkles className="w-3 h-3" /> Outfit Set
+                                            </button>
+                                            {char.outfit_image && (
+                                                <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                                                    <Image src={char.outfit_image} alt="Outfit Ref" fill className="object-cover" unoptimized />
+                                                    <button
+                                                        onClick={() => updateCharacter(idx, "outfit_image", null)}
+                                                        className="absolute top-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                        title="Remove"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {(char.outfit_reference_images?.length || 0) > 0 && (
+                                            <div className="grid grid-cols-4 gap-2 pt-1">
+                                                {(char.outfit_reference_images || []).map((img, pIdx) => (
+                                                    <div
+                                                        key={`${char.id}-outfit-${pIdx}`}
+                                                        onClick={() => setPreviewImage(img)}
+                                                        className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 cursor-pointer"
+                                                    >
+                                                        <Image src={img} alt={`Outfit ${pIdx + 1}`} fill className="object-cover" unoptimized />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="pt-1">
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Reference Sets</span>
                                     </div>
@@ -2198,6 +2418,13 @@ export default function Home() {
             hidden 
             accept="image/*" 
             onChange={(e) => uploadingCharIdx !== null && handleReferenceUpload(uploadingCharIdx, e)} 
+        />
+        <input
+            type="file"
+            ref={outfitInputRef}
+            hidden
+            accept="image/*"
+            onChange={(e) => uploadingOutfitIdx !== null && handleOutfitUpload(uploadingOutfitIdx, e)}
         />
       </main>
     </div>
