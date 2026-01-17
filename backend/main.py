@@ -70,7 +70,51 @@ SD_IMG2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/img2img"
 SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 SD_CONTROLNET_VERSION_URL = f"{SD_BASE_URL}/controlnet/version"
+SD_CONTROLNET_SETTINGS_URL = f"{SD_BASE_URL}/controlnet/settings"
 DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly, blurry, out of focus, duplicate, error, artifacts, simplified, cartoon, cgi, render, 3d, (monochrome:1.1), (muted colors:1.2), overexposed, high contrast"
+CONTROLNET_PRESET = {
+    "single_face_id": [
+        {
+            "module": "ip-adapter_face_id_plus",
+            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+            "weight": 0.8
+        }
+    ],
+    "dual_person_inpaint": [
+        {
+            "module": "openpose_full",
+            "model": "control_v11p_sd15_openpose [cab727d4]",
+            "weight": 0.5
+        },
+        {
+            "module": "depth",
+            "model": "control_v11f1p_sd15_depth [cfd03158]",
+            "weight": 0.4
+        },
+        {
+            "module": "inpaint",
+            "model": "control_v11p_sd15_inpaint [ebff9138]",
+            "weight": 0.8
+        },
+        {
+            "module": "ip-adapter_face_id_plus",
+            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+            "weight": 0.9
+        }
+    ],
+    "dual_face_refine": [
+        {
+            "module": "ip-adapter_face_id_plus",
+            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+            "weight": 0.95
+        },
+        {
+            "module": "inpaint",
+            "model": "control_v11p_sd15_inpaint [ebff9138]",
+            "weight": 0.8
+        }
+    ]
+}
 
 # 디렉토리 설정
 CACHE_DIR = pathlib.Path(".cache")
@@ -134,6 +178,20 @@ class PortraitRequest(BaseModel):
     height: int = 512
     styles: list[str] = []
 
+class ReferenceSingleRequest(BaseModel):
+    prompt: str
+    width: int = 768
+    height: int = 768
+    styles: list[str] = []
+    negative_prompt: str | None = None
+    steps: int = 30
+    sampler_name: str = "DPM++ 2M Karras"
+    cfg_scale: float = 7
+    seed: int = -1
+    reference_image: str | None = None
+    use_ip_adapter: bool = True
+    ip_adapter_weight: float = 0.85
+
 class AnalyzeRequest(BaseModel):
     image: str
 
@@ -167,6 +225,10 @@ class ProjectSaveRequest(BaseModel):
 
 class WebUIOptionsUpdateRequest(BaseModel):
     options: Dict[str, Any]
+
+class WebUISettingsUpdateRequest(BaseModel):
+    sd_model_checkpoint: str | None = None
+    options: Dict[str, Any] | None = None
 
 class AudioGenerateRequest(BaseModel):
     prompt: str
@@ -211,6 +273,33 @@ def get_audio_duration(path):
         return float(res.stdout.strip())
     except: return 0
 
+def escape_dynamic_prompt(text: str | None) -> str | None:
+    if text is None:
+        return None
+    return text.replace("%", "%%")
+
+def log_prompt(label: str, prompt: str, negative: str | None, seed: int | None):
+    p = prompt.replace("\n", " ")
+    n = (negative or "").replace("\n", " ")
+    if len(p) > 240:
+        p = f"{p[:240]}..."
+    if len(n) > 240:
+        n = f"{n[:240]}..."
+    logger.info("📝 [%s] prompt='%s' negative='%s' seed=%s", label, p, n, seed)
+
+def scrub_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    redacted = {}
+    for k, v in payload.items():
+        if k in {"image", "reference_image", "mask"}:
+            redacted[k] = f"<base64:{len(v) if isinstance(v, str) else 'n/a'}>"
+        elif isinstance(v, list):
+            redacted[k] = f"<list:{len(v)}>"
+        elif isinstance(v, dict):
+            redacted[k] = "<dict>"
+        else:
+            redacted[k] = v
+    return redacted
+
 def wrap_text(text, width=20):
     return "\n".join(textwrap.wrap(text, width=width))
 
@@ -218,6 +307,49 @@ def strip_data_url(data: str | None) -> str | None:
     if not data:
         return None
     return data.split(",", 1)[1] if "," in data else data
+
+def sanitize_prompt_background(text: str) -> str:
+    remove_terms = [
+        "detailed background",
+        "detailed scenery",
+        "intricate background",
+        "complex background",
+        "busy background",
+        "vibrant colors",
+        "dynamic lighting",
+        "colorful background",
+        "rich background",
+        "realistic background"
+    ]
+    out = text
+    for term in remove_terms:
+        out = re.sub(re.escape(term), "", out, flags=re.IGNORECASE)
+    out = re.sub(r"(vibrant|colorful)\\s+colors", "", out, flags=re.IGNORECASE)
+    out = re.sub(r"detailed\\s+background", "", out, flags=re.IGNORECASE)
+    out = re.sub(r"\\(\\s*\\)", "", out)
+    out = re.sub(r",\\s*,+", ", ", out)
+    out = re.sub(r"\\s+,", ",", out)
+    out = re.sub(r"^\\s*,\\s*|\\s*,\\s*$", "", out)
+    return out.strip()
+
+def sanitize_seed_prompt(text: str) -> str:
+    remove_terms = [
+        "pastel colors",
+        "soft lighting",
+        "dreamy",
+        "ethereal",
+        "gentle",
+        "art nouveau",
+        "painterly",
+        "dynamic lighting"
+    ]
+    out = sanitize_prompt_background(text)
+    for term in remove_terms:
+        out = re.sub(re.escape(term), "", out, flags=re.IGNORECASE)
+    out = re.sub(r"\\(\\s*\\)", "", out)
+    out = re.sub(r",\\s*,", ", ", out)
+    out = re.sub(r"^\\s*,\\s*|\\s*,\\s*$", "", out)
+    return out.strip()
 
 def detect_faces_base64(data: str) -> int:
     raw = strip_data_url(data)
@@ -534,6 +666,70 @@ async def get_config():
             return {"model": "Offline"}
     except: return {"model": "Offline"}
 
+@app.get("/settings/webui")
+async def get_webui_settings():
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(SD_CONFIG_URL, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                return {"model": data.get("sd_model_checkpoint", "Unknown"), "options": data}
+            return {"model": "Unknown", "options": {}}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+@app.post("/settings/webui")
+async def update_webui_settings(request: WebUISettingsUpdateRequest):
+    try:
+        payload: Dict[str, Any] = {}
+        if request.options:
+            payload.update(request.options)
+        if request.sd_model_checkpoint:
+            payload["sd_model_checkpoint"] = request.sd_model_checkpoint
+        if not payload:
+            raise HTTPException(status_code=400, detail="No settings provided")
+        async with httpx.AsyncClient() as client:
+            r = await client.post(SD_CONFIG_URL, json=payload, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                return {"ok": True, "model": data.get("sd_model_checkpoint", "Unknown"), "options": data}
+            return {"ok": True, "model": payload.get("sd_model_checkpoint", "Unknown"), "options": payload}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+@app.get("/settings/controlnet")
+async def get_controlnet_settings():
+    webui = {}
+    runtime_settings = {}
+    error = None
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(SD_CONTROLNET_VERSION_URL, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                webui = data
+    except Exception as e:
+        error = str(e)
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(SD_CONTROLNET_SETTINGS_URL, timeout=5.0)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                runtime_settings = data
+    except Exception as e:
+        if not error:
+            error = str(e)
+    response = {"webui": webui, "preset": CONTROLNET_PRESET, "runtime_settings": runtime_settings}
+    if error:
+        response["error"] = error
+    return response
+
 @app.get("/debug/webui/options")
 async def get_webui_options():
     try:
@@ -702,9 +898,13 @@ async def translate_prompt(request: PromptTranslateRequest):
             res_json = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
             cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
             
+        translated_raw = res_json.get("positive_prompt", request.text)
+        translated = sanitize_prompt_background(translated_raw)
         return {
-            "translated_prompt": res_json.get("positive_prompt", request.text), 
-            "negative_prompt": res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
+            "translated_prompt": translated,
+            "negative_prompt": res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT),
+            "raw_prompt": translated_raw,
+            "sanitized_prompt": translated
         }
     except Exception as e:
         logger.error(f"Translation failed: {e}")
@@ -725,7 +925,8 @@ async def face_check(request: FaceCheckRequest):
 
 @app.post("/character/portrait")
 async def generate_portrait(request: PortraitRequest):
-    """Generates a high-quality reference portrait for a character."""
+    """Generates a high-quality face close-up reference for a character."""
+    logger.info("📥 [Portrait Req] %s", scrub_payload(request.dict()))
     
     style_prompt = ", ".join(request.styles)
     final_prompt = request.description
@@ -735,39 +936,57 @@ async def generate_portrait(request: PortraitRequest):
         try:
             prompt_instruction = f"""
             You are a Stable Diffusion Prompt Expert.
-            Convert this character description into a detailed, comma-separated English prompt for a high-quality portrait.
+            Convert this character description into a detailed, comma-separated English prompt for a high-quality face close-up reference.
             The user also wants these styles: "{style_prompt}".
-            Focus on: Gender, Age, Hair, Eyes, Facial features, Atmosphere, and the requested Art Style.
+            Focus on: Gender, Age, Hair, Eyes, Facial features, Clothing, and the requested Art Style.
+            Use a plain/simple background. Avoid detailed backgrounds and vibrant colors.
             Input: "{request.description}"
-            Output example: "Anime style, flat color, A handsome young boy, 7 years old, orange messy hair, blue eyes"
+            Output example: "Anime style, flat color, A handsome young boy, 7 years old, orange messy hair, blue eyes, clean background, close-up portrait"
             Return ONLY the prompt string.
             """
             res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=prompt_instruction)
-            final_prompt = res.text.strip()
+            final_prompt = sanitize_seed_prompt(res.text.strip())
         except Exception as e:
             logger.warning(f"Portrait Prompt Optimization Failed: {e}")
 
-    # Construct final prompt with face-detection-friendly constraints
+    # Construct final prompt with face close-up constraints for seed reference
+    seed_prompt = sanitize_seed_prompt(final_prompt)
     prompt = (
-        f"(({final_prompt})), portrait, close-up headshot, centered composition, single person, "
-        "front-facing, face fully visible, eyes visible, no occlusion, looking at camera, "
-        "neutral expression, clean background, professional lighting, highly detailed"
+        f"(({seed_prompt})), close-up portrait, head and shoulders only, head-only crop, "
+        "shoulder-up, neck-up, face centered, "
+        "single person, front-facing, symmetrical pose, straight posture, "
+        "face fully visible, eyes visible, looking at camera, hands not visible, no hands, no arms, "
+        "no occlusion, clean background, professional lighting, highly detailed"
     )
+    prompt = escape_dynamic_prompt(prompt) or prompt
     logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
     
+    negative_prompt = (
+        "low quality, blurry, distorted face, extra limbs, multiple people, "
+        "profile, side view, back view, three-quarter view, tilted head, dynamic pose, "
+        "occluded face, mask, sunglasses, hat, "
+        "(bad hands:1.6), (bad fingers:1.6), (missing fingers:1.6), (extra fingers:1.6), (fused fingers:1.4), "
+        "(deformed hands:1.6), (deformed arms:1.6), (bad arms:1.5), (extra arms:1.5), "
+        "(hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), "
+        "extra legs, missing legs, deformed legs, full body, head-to-toe, long shot, waist-up, half body, "
+        "(nsfw:1.5), (worst quality, low quality:1.4)"
+    )
+    negative_prompt = escape_dynamic_prompt(negative_prompt) or negative_prompt
+    log_prompt("Portrait", prompt, negative_prompt, -1)
     payload = {
         "prompt": prompt,
-        "negative_prompt": (
-            "low quality, blurry, distorted face, extra limbs, multiple people, "
-            "profile, side view, occluded face, mask, sunglasses, hat, "
-            "(nsfw:1.5), (worst quality, low quality:1.4)"
-        ),
+        "negative_prompt": negative_prompt,
         "steps": 30,
         "width": request.width,
         "height": request.height,
         "sampler_name": "DPM++ 2M Karras",
         "cfg_scale": 7,
-        "seed": -1
+        "seed": -1,
+        "enable_hr": True,
+        "hr_scale": 1.5,
+        "hr_upscaler": "Latent",
+        "hr_second_pass_steps": 12,
+        "denoising_strength": 0.55
     }
     async with httpx.AsyncClient() as client:
         try:
@@ -779,9 +998,83 @@ async def generate_portrait(request: PortraitRequest):
             logger.error(f"Portrait Gen Failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/character/reference_single")
+async def generate_reference_single(request: ReferenceSingleRequest):
+    if not request.prompt:
+        raise HTTPException(status_code=400, detail="No prompt provided")
+    logger.info("📥 [RefSingle Req] %s", scrub_payload(request.dict()))
+    if request.use_ip_adapter and not request.reference_image:
+        raise HTTPException(status_code=400, detail="Missing reference image for IP-Adapter")
+    style_prompt = ", ".join(request.styles)
+    base_negative = (
+        "multiple people, two people, group, crowd, duplicate, twins, clone, extra person, "
+        "extra face, extra head, extra body, extra limbs, extra arms, extra legs"
+    )
+    text_negative = "text, letters, words, watermark, logo, signage, subtitle, caption, speech bubble, typography"
+    negative = request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    if base_negative not in negative:
+        negative = f"{negative}, {base_negative}"
+    if text_negative not in negative:
+        negative = f"{negative}, {text_negative}"
+    negative = escape_dynamic_prompt(negative) or negative
+    final_prompt = sanitize_prompt_background(request.prompt)
+    if style_prompt:
+        final_prompt = f"{final_prompt}, {style_prompt}"
+    final_prompt = escape_dynamic_prompt(final_prompt) or final_prompt
+    log_prompt("RefSingle", final_prompt, negative, request.seed)
+    payload: Dict[str, Any] = {
+        "prompt": final_prompt,
+        "negative_prompt": negative,
+        "steps": request.steps,
+        "width": request.width,
+        "height": request.height,
+        "sampler_name": request.sampler_name,
+        "cfg_scale": request.cfg_scale,
+        "seed": request.seed
+    }
+    ref_img_clean = strip_data_url(request.reference_image) if request.reference_image else None
+    if ref_img_clean and request.use_ip_adapter:
+        payload["alwayson_scripts"] = {
+            "controlnet": {
+                "args": [
+                    {
+                        "enabled": True,
+                        "module": "ip-adapter_face_id_plus",
+                        "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+                        "weight": request.ip_adapter_weight,
+                        "image": ref_img_clean,
+                        "pixel_perfect": True
+                    }
+                ]
+            }
+        }
+    try:
+        async with httpx.AsyncClient() as client:
+            for attempt in range(3):
+                try:
+                    r = await client.post(SD_URL, json=payload, timeout=120.0)
+                    r.raise_for_status()
+                    data = r.json()
+                    img = data.get("images", [None])[0]
+                    if img:
+                        return {"image": img}
+                    raise HTTPException(status_code=500, detail="Reference single failed")
+                except httpx.HTTPStatusError as e:
+                    err_text = e.response.text if e.response is not None else ""
+                    if "Insightface: No face found" in err_text and request.use_ip_adapter and attempt < 2:
+                        logger.warning("⚠️ [RefSingle] No face found, retrying (%s/3)...", attempt + 2)
+                        continue
+                    raise
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Reference single failed: {e}")
+        raise HTTPException(status_code=500, detail="Reference single failed")
+
 @app.post("/generate")
 async def generate_image(request: GenerateRequest):
     logger.info(f"🎨 [Image Gen] Prompt: {request.prompt[:50]}...")
+    logger.info("📥 [Generate Req] %s", scrub_payload(request.dict()))
     final_pos, final_neg = request.prompt, request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
     
     if gemini_client and not request.skip_optimization:
@@ -797,12 +1090,17 @@ async def generate_image(request: GenerateRequest):
                 res_json = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
                 cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
             final_pos, final_neg = res_json.get("positive_prompt", final_pos), res_json.get("negative_prompt", final_neg)
+            final_pos = sanitize_prompt_background(final_pos)
         except Exception as e:
             logger.warning(f"⚠️ Prompt Optimization Failed: {e}")
     
+    prompt_text = build_prompt(final_pos, [], request.lora)
+    prompt_text = escape_dynamic_prompt(prompt_text) or prompt_text
+    negative_text = escape_dynamic_prompt(final_neg) or final_neg
+    log_prompt("Generate", prompt_text, negative_text, request.seed)
     payload = {
-        "prompt": build_prompt(final_pos, [], request.lora),
-        "negative_prompt": final_neg,
+        "prompt": prompt_text,
+        "negative_prompt": negative_text,
         "steps": request.steps,
         "width": request.width,
         "height": request.height,
@@ -862,12 +1160,15 @@ async def generate_image(request: GenerateRequest):
 
 @app.post("/generate/compose_dual")
 async def generate_compose_dual(request: DualComposeRequest):
+    logger.info("📥 [Compose Dual Req] %s", scrub_payload(request.dict()))
     final_neg = request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    final_neg = escape_dynamic_prompt(final_neg) or final_neg
     char_a_ref = strip_data_url(request.char_a_ref)
     char_b_ref = strip_data_url(request.char_b_ref)
 
     base_prompt = f"{request.scene_prompt}, background, empty scene, no people"
     base_prompt = build_prompt(base_prompt, request.styles, request.lora)
+    base_prompt = escape_dynamic_prompt(base_prompt) or base_prompt
     cache_key = hashlib.sha256(
         json.dumps(
             {
@@ -920,6 +1221,7 @@ async def generate_compose_dual(request: DualComposeRequest):
                 mask_blur = mask_blur_for_size(request.width, request.height)
                 person_prompt = f"{request.scene_prompt}, {char_prompt}, {side} side, full body"
                 person_prompt = build_prompt(person_prompt, request.styles, request.lora)
+                person_prompt = escape_dynamic_prompt(person_prompt) or person_prompt
 
                 controlnet_args = [
                     {
@@ -1011,6 +1313,7 @@ async def generate_compose_dual(request: DualComposeRequest):
                 face_mask_b64 = build_face_mask(request.width, request.height, side)
                 face_prompt = f"{char_prompt}, face, same person, high fidelity"
                 face_prompt = build_prompt(face_prompt, request.styles, request.lora)
+                face_prompt = escape_dynamic_prompt(face_prompt) or face_prompt
                 face_payload = {
                     "prompt": face_prompt,
                     "negative_prompt": final_neg,

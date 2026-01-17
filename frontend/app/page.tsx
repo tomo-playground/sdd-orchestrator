@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { 
-  Loader2, Wand2, ChevronDown, ChevronUp, Palette, Dices, Monitor, Smartphone, 
+  Loader2, Wand2, Palette, Dices, Monitor, Smartphone, 
   Sparkles, ImageIcon, Clapperboard, 
   User, Clock, Trash2, UserCircle, RefreshCw, Volume2, Download, 
   CheckCircle2, Globe, Play, Save, History, Boxes, Eye, X, Settings2,
@@ -55,11 +55,13 @@ const SAMPLE_PERSONAS = [
 const RESOLUTIONS = {
   shorts: { w: 512, h: 512, label: "YouTube Shorts (9:16)", desc: "Stable Gen @ 512px" },
 };
+const DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly";
 
 type StoryScene = {
   image_url?: string | null;
   image_prompt: string;
   image_prompt_ko?: string;
+  negative_prompt?: string;
   script: string;
   duration: number;
   visual_focus?: "A" | "B" | "Both" | "Landscape";
@@ -91,23 +93,30 @@ interface Character {
   translatedDesc: string;
   image: string | null;
   reference_image: string | null; // Added for IP-Adapter
-  faceCheckStatus: "unchecked" | "checking" | "ok" | "fail" | "unsupported" | "error";
+  seed_image: string | null;
+  reference_images_face: string[];
+  reference_images_body: string[];
+  reference_loading_kind: "face" | "body" | null;
+  face_detected: boolean | null;
+  face_count: number | null;
   voice: string;
   seed: number;
+  reference_seed_face: number;
+  reference_seed_body: number;
   isTranslating: boolean;
   isLoading: boolean;
 }
 
 export default function Home() {
   // --- UI States ---
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [showProjectList, setShowProjectList] = useState(false); // Project Browser Modal State
+  const [activeStep, setActiveStep] = useState<"cast" | "scene">("cast");
+  const [castLocked, setCastLocked] = useState(false);
   
   // --- Global Settings ---
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("shorts");
   const [selectedLora, setSelectedLora] = useState<string[]>([]);
-  const [negativePrompt, setNegativePrompt] = useState("low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly");
   const [narratorVoice, setNarratorVoice] = useState("ko-KR-SunHiNeural"); // Default Narrator
 
   // --- Logic States ---
@@ -127,15 +136,14 @@ export default function Home() {
   const [runtimeSampler, setRuntimeSampler] = useState("DPM++ 2M Karras");
   const [useIpAdapter, setUseIpAdapter] = useState(true);
   const [strictIdentity, setStrictIdentity] = useState(true);
-  const [webuiModelInput, setWebuiModelInput] = useState("");
-  const [isWebuiSaving, setIsWebuiSaving] = useState(false);
-  const [isWebuiLoading, setIsWebuiLoading] = useState(false);
   const [storyScenes, setStoryScenes] = useState<StoryScene[]>([]);
+  const [batchNegative, setBatchNegative] = useState(DEFAULT_NEGATIVE_PROMPT);
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
   
   // New Multi-Character State
   const [characters, setCharacters] = useState<Character[]>([
-    { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
-    { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
+    { id: 0, role: "Actor A (Main)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-SunHiNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false },
+    { id: 1, role: "Actor B (Side)", desc: "", translatedDesc: "", image: null, reference_image: null, seed_image: null, reference_images_face: [], reference_images_body: [], reference_loading_kind: null, face_detected: null, face_count: null, voice: "ko-KR-InJoonNeural", seed: -1, reference_seed_face: -1, reference_seed_body: -1, isTranslating: false, isLoading: false }
   ]);
 
   const [isStoryLoading, setIsStoryLoading] = useState(false);
@@ -159,6 +167,12 @@ export default function Home() {
   const [lorasList, setLorasList] = useState<string[]>([]);
   const [loraSearch, setLoraSearch] = useState("");
   const [currentModel, setCurrentModel] = useState<string>("Loading...");
+  const [webuiSettings, setWebuiSettings] = useState<{ model: string; options: Record<string, unknown> } | null>(null);
+  const [isWebuiSettingsLoading, setIsWebuiSettingsLoading] = useState(false);
+  const [webuiSettingsError, setWebuiSettingsError] = useState<string | null>(null);
+  const [controlnetSettings, setControlnetSettings] = useState<{ webui?: Record<string, unknown>; preset?: Record<string, { module: string; model: string; weight: number }[]>; runtime_settings?: Record<string, unknown>; error?: string } | null>(null);
+  const [isControlnetLoading, setIsControlnetLoading] = useState(false);
+  const [controlnetError, setControlnetError] = useState<string | null>(null);
   const [playingBgm, setPlayingBgm] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -166,45 +180,171 @@ export default function Home() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [loras, config, audios, vids, projs] = await Promise.all([
+      const [loras, webui, controlnet, audios, vids, projs] = await Promise.all([
         axios.get(`${API_BASE}/loras`).catch(() => ({ data: { loras: [] } })),
-        axios.get(`${API_BASE}/config`).catch(() => ({ data: { model: "Offline" } })),
+        axios.get(`${API_BASE}/settings/webui`).catch(() => ({ data: { model: "Offline", options: {} } })),
+        axios.get(`${API_BASE}/settings/controlnet`).catch(() => ({ data: { webui: {}, preset: {} } })),
         axios.get(`${API_BASE}/audio/list`).catch(() => ({ data: { audios: [] } })),
         axios.get(`${API_BASE}/video/list`).catch(() => ({ data: { videos: [] } })),
         axios.get(`${API_BASE}/projects/list`).catch(() => ({ data: { projects: [] } }))
       ]);
       setLorasList(loras.data.loras || []);
-      setCurrentModel(config.data.model || "Unknown");
-      if (!webuiModelInput && config.data.model) {
-        setWebuiModelInput(config.data.model);
-      }
+      setCurrentModel(webui.data.model || "Unknown");
+      setWebuiSettings(webui.data || null);
+      setWebuiSettingsError(null);
+      setControlnetSettings(controlnet.data || null);
+      setControlnetError(null);
       setBgmList(audios.data.audios || []);
       setProducedVideos(vids.data.videos || []);
       setProjects(projs.data.projects || []);
-    } catch { setCurrentModel("Disconnected"); }
-  }, [webuiModelInput]);
+    } catch {
+      setCurrentModel("Disconnected");
+      setWebuiSettingsError("WebUI sync failed");
+      setControlnetError("ControlNet sync failed");
+    }
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const fetchWebuiOptions = async () => {
-    setIsWebuiLoading(true);
+  const fetchWebuiSettings = async () => {
+    setIsWebuiSettingsLoading(true);
+    setWebuiSettingsError(null);
     try {
-      const res = await axios.get(`${API_BASE}/debug/webui/options`);
-      const model = res.data?.options?.sd_model_checkpoint;
-      if (model) setWebuiModelInput(model);
-    } catch { alert("WebUI options load failed"); } finally { setIsWebuiLoading(false); }
+      const res = await axios.get(`${API_BASE}/settings/webui`);
+      setWebuiSettings(res.data || null);
+      setCurrentModel(res.data?.model || "Unknown");
+    } catch {
+      setWebuiSettingsError("WebUI reload failed");
+    } finally {
+      setIsWebuiSettingsLoading(false);
+    }
   };
 
-  const applyWebuiOptions = async () => {
-    if (!webuiModelInput) return;
-    setIsWebuiSaving(true);
+  const fetchControlnetSettings = async () => {
+    setIsControlnetLoading(true);
+    setControlnetError(null);
     try {
-      await axios.post(`${API_BASE}/debug/webui/options`, {
-        options: { sd_model_checkpoint: webuiModelInput }
-      });
-      fetchData();
-    } catch { alert("WebUI options update failed"); } finally { setIsWebuiSaving(false); }
+      const res = await axios.get(`${API_BASE}/settings/controlnet`);
+      setControlnetSettings(res.data || null);
+    } catch {
+      setControlnetError("ControlNet reload failed");
+    } finally {
+      setIsControlnetLoading(false);
+    }
   };
+
+  const getControlnetVersion = () => {
+    const version = controlnetSettings?.webui?.["version"];
+    return version ? String(version) : "-";
+  };
+
+  const getControlnetUnitCount = () => {
+    const runtime = controlnetSettings?.runtime_settings || {};
+    const candidates = [
+      runtime["control_net_unit_count"],
+      runtime["unit_count"],
+      runtime["num_units"]
+    ];
+    const value = candidates.find((item) => item !== undefined && item !== null);
+    return value !== undefined && value !== null ? String(value) : "-";
+  };
+
+  const computeSharpness = (dataUrl: string): Promise<number> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(0);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+        let sum = 0;
+        let sumSq = 0;
+        const idx = (x: number, y: number) => (y * size + x) * 4;
+        for (let y = 1; y < size - 1; y++) {
+          for (let x = 1; x < size - 1; x++) {
+            const i = idx(x, y);
+            const c = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            const l = (data[idx(x - 1, y)] + data[idx(x - 1, y) + 1] + data[idx(x - 1, y) + 2]) / 3;
+            const r = (data[idx(x + 1, y)] + data[idx(x + 1, y) + 1] + data[idx(x + 1, y) + 2]) / 3;
+            const u = (data[idx(x, y - 1)] + data[idx(x, y - 1) + 1] + data[idx(x, y - 1) + 2]) / 3;
+            const d = (data[idx(x, y + 1)] + data[idx(x, y + 1) + 1] + data[idx(x, y + 1) + 2]) / 3;
+            const lap = (4 * c) - l - r - u - d;
+            sum += lap;
+            sumSq += lap * lap;
+          }
+        }
+        const n = (size - 2) * (size - 2);
+        const variance = sumSq / n - (sum / n) * (sum / n);
+        resolve(variance);
+      };
+      img.onerror = () => resolve(0);
+      img.src = dataUrl;
+    });
+  };
+
+  const sortImagesBySharpness = async (images: string[]) => {
+    const scores = await Promise.all(images.map(async (img) => ({ img, score: await computeSharpness(img) })));
+    scores.sort((a, b) => b.score - a.score);
+    return scores.map((item) => item.img);
+  };
+
+  const getRuntimeUnits = () => {
+    const runtime = controlnetSettings?.runtime_settings || {};
+    const candidates = [
+      runtime["control_net_units"],
+      runtime["units"],
+      runtime["controlnet_units"],
+      runtime["control_net_unit_settings"]
+    ];
+    const units = candidates.find((item) => Array.isArray(item));
+    return Array.isArray(units) ? (units as Record<string, unknown>[]) : [];
+  };
+
+  const getUnitValue = (unit: Record<string, unknown>, key: string) => {
+    const value = unit[key];
+    if (value === undefined || value === null || value === "") return "-";
+    return String(value);
+  };
+
+  const getUnitFields = (unit: Record<string, unknown>) => {
+    const keys = [
+      "enabled",
+      "module",
+      "model",
+      "weight",
+      "guidance_start",
+      "guidance_end",
+      "pixel_perfect",
+      "control_mode",
+      "resize_mode",
+      "processor_res",
+      "threshold_a",
+      "threshold_b",
+      "lowvram",
+      "save_detected_map",
+      "guess_mode",
+      "hr_option",
+      "mask",
+      "invert"
+    ];
+    return keys
+      .map((key) => ({ key, value: getUnitValue(unit, key) }))
+      .filter((item) => item.value !== "-");
+  };
+
+  const getWebuiOption = (key: string) => {
+    const value = webuiSettings?.options?.[key];
+    if (value === undefined || value === null || value === "") return "-";
+    return String(value);
+  };
+
 
   const toggleStyle = (style: string) => {
     setSelectedStyles(prev => prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]);
@@ -218,73 +358,214 @@ export default function Home() {
     });
   };
 
-  const detectFaceWithBrowser = async (dataUrl: string) => {
-    if (typeof window === "undefined") return "unsupported";
-    const FaceDetectorCtor = (window as unknown as { FaceDetector?: new (options: { fastMode: boolean; maxDetectedFaces: number }) => { detect: (image: ImageBitmap) => Promise<unknown[]> } }).FaceDetector;
-    if (!FaceDetectorCtor) return "unsupported";
-    try {
-      const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 });
-      const img = new Image();
-      img.src = dataUrl;
-      await img.decode();
-      const bitmap = await createImageBitmap(img);
-      const faces = await detector.detect(bitmap);
-      return faces.length > 0 ? "ok" : "fail";
-    } catch {
-      return "error";
-    }
-  };
-
-  const detectFaceInImage = async (dataUrl: string) => {
-    try {
-      const res = await axios.post(`${API_BASE}/face/check`, { image: dataUrl });
-      return res.data?.has_face ? "ok" : "fail";
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 503) return "unsupported";
-      const fallback = await detectFaceWithBrowser(dataUrl);
-      return fallback === "unsupported" ? "error" : fallback;
-    }
-  };
-
-  const setReferenceImageWithCheck = async (idx: number, dataUrl: string | null) => {
+  const setReferenceImage = (idx: number, dataUrl: string | null) => {
     updateCharacter(idx, "reference_image", dataUrl);
+    updateCharacter(idx, "seed_image", dataUrl);
     if (!dataUrl) {
-      updateCharacter(idx, "faceCheckStatus", "unchecked");
+      updateCharacter(idx, "face_detected", null);
+      updateCharacter(idx, "face_count", null);
+    }
+  };
+
+  const setSeedReference = (idx: number, dataUrl: string) => {
+    updateCharacter(idx, "seed_image", dataUrl);
+    updateCharacter(idx, "reference_image", dataUrl);
+    updateCharacter(idx, "face_detected", null);
+    updateCharacter(idx, "face_count", null);
+  };
+
+  const setPrimaryReference = (idx: number, dataUrl: string) => {
+    const char = characters[idx];
+    const nextImages = char.reference_images_face.includes(dataUrl)
+      ? char.reference_images_face
+      : [...char.reference_images_face, dataUrl];
+    updateCharacter(idx, "reference_images_face", nextImages);
+    updateCharacter(idx, "reference_image", dataUrl);
+  };
+
+  const buildFaceReferencePrompts = (char: Character) => {
+    const baseRaw = (char.translatedDesc || char.desc || "").trim();
+    const base = baseRaw
+      .replace(/\b(front[- ]facing|facing the camera|looking at (the )?viewer|looking at (the )?camera|standing|full body|head-to-toe|long shot|wide shot)\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+,/g, ",")
+      .trim();
+    const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
+    const anchor = base ? `${base}, same person, single person, solo, one person only` : "same person, single person, solo, one person only";
+    return [
+      `${anchor}, front view, front-facing, looking at camera, both eyes visible, symmetrical face, square shoulders, close-up portrait, tight close-up, head and shoulders only, crop at shoulders, face centered, face occupies 50 percent of frame, hands not visible, no hands, sharp focus, plain background${styles}`,
+      `${anchor}, left side headshot, perfect profile, left profile, facing left, looking left, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background${styles}`,
+      `${anchor}, right side headshot, perfect profile, right profile, facing right, looking right, only one eye visible, one ear visible, nose profile, tight close-up, head and shoulders only, crop at shoulders, face occupies 50 percent of frame, hands not visible, no hands, plain background${styles}`,
+      `${anchor}, back view, rear view, facing away, back of head only, nape visible, no face visible, no eyes visible, no nose visible, square shoulders, back straight, tight close-up, head and shoulders only, crop at shoulders, centered composition, hands not visible, no hands, plain background${styles}`
+    ];
+  };
+
+  const buildBodyReferencePrompts = (char: Character) => {
+    const base = (char.translatedDesc || char.desc || "").trim();
+    const styles = selectedStyles.length ? `, ${selectedStyles.join(", ")}` : "";
+    const anchor = base ? `${base}, same person, single person, solo, one person only` : "same person, single person, solo, one person only";
+    return [
+      `${anchor}, full body, head-to-toe, long shot, front view, front-facing, standing, attention pose, upright posture, feet together, square shoulders, back straight, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, plain background${styles}`,
+      `${anchor}, full body, head-to-toe, long shot, left side view, left profile, facing left, left ear visible, attention pose, upright posture, feet together, arms straight at sides, hands visible, five fingers, anatomically correct hands, centered, no occlusion, plain background${styles}`,
+      `${anchor}, full body, head-to-toe, long shot, right side view, right profile, facing right, right ear visible, attention pose, upright posture, feet together, arms straight at sides, hands visible, five fingers, anatomically correct hands, centered, no occlusion, plain background${styles}`,
+      `${anchor}, full body, head-to-toe, long shot, back view, rear view, facing away, back of head visible, no face visible, shoulder blades visible, square shoulders, back straight, attention pose, upright posture, feet together, arms straight at sides, centered, no occlusion, hands visible, five fingers, anatomically correct hands, plain background${styles}`
+    ];
+  };
+
+  const generateReferenceImages = async (idx: number, kind: "face" | "body") => {
+    const char = characters[idx];
+    const seedImage = char.seed_image || char.reference_image;
+    if (!seedImage) {
+      alert("기준 얼굴 이미지를 먼저 업로드해주세요.");
       return;
     }
-    updateCharacter(idx, "faceCheckStatus", "checking");
-    const status = await detectFaceInImage(dataUrl);
-    updateCharacter(idx, "faceCheckStatus", status);
-  };
-
-  const ensureFaceStatus = async (idx: number, char: Character) => {
-    if (!char.reference_image) return "ok";
-    if (char.faceCheckStatus !== "unchecked") return char.faceCheckStatus;
-    updateCharacter(idx, "faceCheckStatus", "checking");
-    const status = await detectFaceInImage(char.reference_image);
-    updateCharacter(idx, "faceCheckStatus", status);
-    return status;
-  };
-
-  const confirmFaceUsage = async (indices: number[]) => {
-    for (const idx of indices) {
-      const char = characters[idx];
-      if (!char || !char.reference_image) continue;
-      const status = await ensureFaceStatus(idx, char);
-      if (status === "checking") {
-        alert("얼굴 검사 중입니다. 잠시 후 다시 시도해주세요.");
-        return false;
-      }
-      if (status === "fail") {
-        alert("얼굴 인식에 실패했습니다. 얼굴이 잘 보이는 이미지로 교체해주세요.");
-        return false;
-      }
-      if (status === "unsupported" || status === "error") {
-        const ok = confirm("이 브라우저에서는 얼굴 검사를 지원하지 않습니다. 강제로 진행할까요?");
-        if (!ok) return false;
-      }
+    updateCharacter(idx, "reference_loading_kind", kind);
+    const prompts = kind === "face"
+      ? buildFaceReferencePrompts(char)
+      : buildBodyReferencePrompts(char);
+    if (!prompts.length) return;
+    const seedField = kind === "face" ? "reference_seed_face" : "reference_seed_body";
+    const existingSeed = kind === "face" ? char.reference_seed_face : char.reference_seed_body;
+    const baseSeed = existingSeed === -1 ? Math.floor(Math.random() * 1_000_000_000) : existingSeed;
+    if (existingSeed === -1) {
+      updateCharacter(idx, seedField as keyof Character, baseSeed);
     }
-    return true;
+    updateCharacter(idx, "isLoading", true);
+    try {
+      const singlePersonNegative = "(multiple people:1.7), (two people:1.7), (group:1.6), (crowd:1.6), (duplicate:1.5), (twins:1.5), (clone:1.5), extra person, extra face, extra head, extra body, extra torso";
+      const anatomyNegative = "(bad hands:1.4), (bad fingers:1.4), (missing fingers:1.4), (extra fingers:1.4), (fused fingers:1.4), (deformed hands:1.4), (malformed hands:1.4), (extra limbs:1.4), (extra legs:1.5), (three legs:1.5), (missing legs:1.4), (deformed legs:1.4)";
+      const backgroundNegative = "(busy background:1.4), (complex background:1.4), (cluttered background:1.4), (detailed background:1.3), (patterned background:1.3), (text:1.6), (letters:1.6), (words:1.6), (watermark:1.6), (logo:1.6), (signage:1.6), (subtitle:1.5), (caption:1.5), (speech bubble:1.5), (typography:1.5)";
+      const faceAngleNegatives = [
+        "back view, rear view, side view, profile, three-quarter view, facing away",
+        "front view, front-facing, facing camera, looking at viewer, right side view, three-quarter view, back view, rear view",
+        "front view, front-facing, facing camera, looking at viewer, left side view, three-quarter view, back view, rear view",
+        "front view, side view, profile, three-quarter view, face visible, eyes visible, nose visible, mouth visible"
+      ];
+      const bodyAngleNegatives = [
+        "back view, rear view, side view, left profile, right profile, three-quarter view",
+        "front view, right side view, right profile, back view, rear view",
+        "front view, left side view, left profile, back view, rear view",
+        "front view, left side view, right side view, profile, three-quarter view, face visible"
+      ];
+      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
+      const bodyBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), action pose, dynamic pose, running, jumping, crouching, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
+      const images: string[] = [];
+      for (const prompt of prompts) {
+        const slot = images.length;
+        const angleNegative = kind === "face"
+          ? faceAngleNegatives[slot] || ""
+          : bodyAngleNegatives[slot] || "";
+        const weight = kind === "face" ? (slot === 0 ? 0.85 : slot === 3 ? 0.15 : 0.08) : 0.85;
+        const seed = kind === "face" ? baseSeed + slot * 997 : baseSeed;
+        const res = await axios.post(`${API_BASE}/character/reference_single`, {
+          prompt,
+          width: kind === "face" ? 768 : 768,
+          height: kind === "face" ? 768 : 1024,
+          styles: selectedStyles,
+          negative_prompt: `${kind === "face" ? faceBase : bodyBase}, ${angleNegative}`.trim(),
+          seed,
+          reference_image: seedImage,
+          use_ip_adapter: true,
+          ip_adapter_weight: weight
+        });
+        if (res.data.image) {
+          const dataUrl = `data:image/png;base64,${res.data.image}`;
+          images.push(dataUrl);
+          if (kind === "face") {
+            updateCharacter(idx, "reference_images_face", [...images]);
+          } else {
+            updateCharacter(idx, "reference_images_body", [...images]);
+          }
+        }
+      }
+      if (kind === "body" && images.length > 1) {
+        const sorted = await sortImagesBySharpness(images);
+        updateCharacter(idx, "reference_images_body", sorted);
+      }
+    } catch {
+      alert("Batch portrait generation failed");
+    } finally {
+      updateCharacter(idx, "reference_loading_kind", null);
+      updateCharacter(idx, "isLoading", false);
+    }
+  };
+
+  const generateAllReferenceSets = async (idx: number) => {
+    await generateReferenceImages(idx, "face");
+    await generateReferenceImages(idx, "body");
+  };
+
+  const regenerateReferenceImage = async (idx: number, kind: "face" | "body", slot: number) => {
+    const char = characters[idx];
+    const seedImage = char.seed_image || char.reference_image;
+    if (!seedImage) {
+      alert("기준 얼굴 이미지를 먼저 업로드해주세요.");
+      return;
+    }
+    updateCharacter(idx, "reference_loading_kind", kind);
+    const prompts = kind === "face"
+      ? buildFaceReferencePrompts(char)
+      : buildBodyReferencePrompts(char);
+    if (!prompts[slot]) return;
+    const seedField = kind === "face" ? "reference_seed_face" : "reference_seed_body";
+    const existingSeed = kind === "face" ? char.reference_seed_face : char.reference_seed_body;
+    const baseSeed = existingSeed === -1 ? Math.floor(Math.random() * 1_000_000_000) : existingSeed;
+    if (existingSeed === -1) {
+      updateCharacter(idx, seedField as keyof Character, baseSeed);
+    }
+    updateCharacter(idx, "isLoading", true);
+    try {
+      const singlePersonNegative = "(multiple people:1.7), (two people:1.7), (group:1.6), (crowd:1.6), (duplicate:1.5), (twins:1.5), (clone:1.5), extra person, extra face, extra head, extra body, extra torso";
+      const anatomyNegative = "(bad hands:1.4), (bad fingers:1.4), (missing fingers:1.4), (extra fingers:1.4), (fused fingers:1.4), (deformed hands:1.4), (malformed hands:1.4), (extra limbs:1.4), (extra legs:1.5), (three legs:1.5), (missing legs:1.4), (deformed legs:1.4)";
+      const backgroundNegative = "(busy background:1.4), (complex background:1.4), (cluttered background:1.4), (detailed background:1.3), (patterned background:1.3), (text:1.6), (letters:1.6), (words:1.6), (watermark:1.6), (logo:1.6), (signage:1.6), (subtitle:1.5), (caption:1.5), (speech bubble:1.5), (typography:1.5)";
+      const faceAngleNegatives = [
+        "back view, rear view, side view, profile",
+        "front view, right side view, back view, rear view",
+        "front view, left side view, back view, rear view",
+        "front view, side view, profile, face visible"
+      ];
+      const bodyAngleNegatives = [
+        "back view, rear view, side view, profile",
+        "front view, right side view, back view, rear view",
+        "front view, left side view, back view, rear view",
+        "front view, left side view, right side view"
+      ];
+      const faceBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (hands:1.7), (hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), full body, full length, head-to-toe, long shot, wide shot, extreme angle, tilted head, occluded face, face covered`;
+      const bodyBase = `${singlePersonNegative}, ${anatomyNegative}, ${backgroundNegative}, (deformed arms:1.7), (bad arms:1.6), (deformed fingers:1.7), (mutated hands:1.7), action pose, dynamic pose, running, jumping, crouching, close-up, cropped, out of frame, head cut off, body cut off, half body, extreme angle, duplicated legs, extra limb`;
+      const angleNegative = kind === "face"
+        ? (faceAngleNegatives[slot] || "")
+        : (bodyAngleNegatives[slot] || "");
+      const weight = kind === "face" ? (slot === 0 ? 0.85 : slot === 3 ? 0.15 : 0.08) : 0.85;
+      const seed = kind === "face" ? baseSeed + slot * 997 + Math.floor(Math.random() * 13) : baseSeed + Math.floor(Math.random() * 97);
+      const res = await axios.post(`${API_BASE}/character/reference_single`, {
+        prompt: prompts[slot],
+        width: kind === "face" ? 768 : 768,
+        height: kind === "face" ? 768 : 1024,
+        styles: selectedStyles,
+        negative_prompt: `${kind === "face" ? faceBase : bodyBase}, ${angleNegative}`.trim(),
+        seed,
+        reference_image: seedImage,
+        use_ip_adapter: true,
+        ip_adapter_weight: weight
+      });
+      if (res.data.image) {
+        const dataUrl = `data:image/png;base64,${res.data.image}`;
+        if (kind === "face") {
+          const next = [...char.reference_images_face];
+          next[slot] = dataUrl;
+          updateCharacter(idx, "reference_images_face", next);
+        } else {
+          const next = [...char.reference_images_body];
+          next[slot] = dataUrl;
+          updateCharacter(idx, "reference_images_body", next);
+        }
+      }
+    } catch {
+      alert("Regenerate failed");
+    } finally {
+      updateCharacter(idx, "reference_loading_kind", null);
+      updateCharacter(idx, "isLoading", false);
+    }
   };
 
   const setRandomPersona = (idx: number) => {
@@ -309,7 +590,7 @@ export default function Home() {
     try {
         const res = await axios.post(`${API_BASE}/projects/save`, {
             id: projectId, title: storyTopic || "Untitled",
-            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, negativePrompt, overlaySettings }
+            data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
     } catch { alert("Save failed"); }
@@ -321,12 +602,28 @@ export default function Home() {
         const c = res.data.content;
         setProjectId(res.data.id);
         setStoryTopic(c.storyTopic); setStoryDuration(c.storyDuration); setStoryLanguage(c.storyLanguage);
-        setStoryScenes(c.storyScenes); 
+        const fallbackNegative = c.negativePrompt || DEFAULT_NEGATIVE_PROMPT;
+        setStoryScenes(
+          (c.storyScenes || []).map((scene: StoryScene) => ({
+            ...scene,
+            negative_prompt: scene.negative_prompt || fallbackNegative
+          }))
+        );
         if (c.characters) {
-            setCharacters(c.characters.map((char: Character) => ({
+            setCharacters(
+              c.characters.map((char: Character) => ({
                 ...char,
-                faceCheckStatus: char.faceCheckStatus || "unchecked"
-            })));
+                reference_images_face: char.reference_images_face || [],
+                reference_images_body: char.reference_images_body || [],
+                reference_image: char.reference_image || null,
+                seed_image: char.seed_image || char.reference_image || null,
+                reference_loading_kind: null,
+                face_detected: typeof char.face_detected === "boolean" ? char.face_detected : null,
+                face_count: typeof char.face_count === "number" ? char.face_count : null,
+                reference_seed_face: typeof char.reference_seed_face === "number" ? char.reference_seed_face : -1,
+                reference_seed_body: typeof char.reference_seed_body === "number" ? char.reference_seed_body : -1
+              }))
+            );
         }
         if (c.narratorVoice) setNarratorVoice(c.narratorVoice);
         setSelectedStyles(c.selectedStyles || []); setResolution(c.aspectRatio || "shorts");
@@ -337,7 +634,6 @@ export default function Home() {
         } else {
             setSelectedLora([]);
         }
-        setNegativePrompt(c.negativePrompt || "low quality...");
         if (c.overlaySettings) setOverlaySettings(c.overlaySettings);
     } catch { alert("Load failed"); }
   };
@@ -354,6 +650,17 @@ export default function Home() {
         updateCharacter(idx, "translatedDesc", res.data.translated_prompt);
     } catch (e) { console.error(e); alert("Translation failed"); } 
     finally { updateCharacter(idx, "isTranslating", false); }
+  };
+
+  const checkFaceDetection = async (idx: number, image: string) => {
+    try {
+      const res = await axios.post(`${API_BASE}/face/check`, { image });
+      updateCharacter(idx, "face_detected", !!res.data.has_face);
+      updateCharacter(idx, "face_count", typeof res.data.faces === "number" ? res.data.faces : null);
+    } catch {
+      updateCharacter(idx, "face_detected", null);
+      updateCharacter(idx, "face_count", null);
+    }
   };
 
   const analyzeCharacter = async (idx: number, image: string) => {
@@ -373,7 +680,8 @@ export default function Home() {
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
-      void setReferenceImageWithCheck(idx, result);
+      setSeedReference(idx, result);
+      void checkFaceDetection(idx, result);
       // Automatically analyze the uploaded face to update text description
       analyzeCharacter(idx, result);
     };
@@ -393,13 +701,14 @@ export default function Home() {
         updateCharacter(idx, "translatedDesc", portraitDesc);
         const res = await axios.post(`${API_BASE}/character/portrait`, {
             description: portraitDesc || char.desc,
-            width: 512,
-            height: 512,
+            width: 768,
+            height: 768,
             styles: selectedStyles
         });
         if (res.data.image) {
             const dataUrl = `data:image/png;base64,${res.data.image}`;
-            void setReferenceImageWithCheck(idx, dataUrl);
+            setSeedReference(idx, dataUrl);
+            void checkFaceDetection(idx, dataUrl);
             // Keep text description in sync with the generated reference
             void analyzeCharacter(idx, dataUrl);
         }
@@ -422,7 +731,12 @@ export default function Home() {
         structure: storyStructure,
         characters: characters 
       });
-      setStoryScenes(res.data.scenes || []);
+      setStoryScenes(
+        (res.data.scenes || []).map((scene: StoryScene) => ({
+          ...scene,
+          negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT
+        }))
+      );
     } catch { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
   };
 
@@ -433,8 +747,6 @@ export default function Home() {
       if (focus === "A" || focus === "Both") neededChars.add(0);
       if (focus === "B" || focus === "Both") neededChars.add(1);
     });
-    if (useIpAdapter && !(await confirmFaceUsage(Array.from(neededChars)))) return;
-
     setIsAutopilotRunning(true); setAutopilotProgress(0);
     const newScenes = [...storyScenes]; const size = RESOLUTIONS[resolution];
     
@@ -465,7 +777,7 @@ export default function Home() {
                     char_b_prompt: charB.translatedDesc || charB.desc,
                     char_a_ref: charA.reference_image || null,
                     char_b_ref: charB.reference_image || null,
-                    negative_prompt: negativePrompt,
+                    negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
                     styles: selectedStyles,
                     lora: selectedLora.length ? selectedLora : null,
                     width: size.w,
@@ -493,7 +805,7 @@ export default function Home() {
             const res = await axios.post(`${API_BASE}/generate`, { 
                 prompt: combinedPrompt, 
                 persona: null, 
-                negative_prompt: negativePrompt,
+                negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
                 styles: selectedStyles, 
                 lora: selectedLora.length ? selectedLora : null, 
                 width: size.w, height: size.h, 
@@ -541,6 +853,37 @@ export default function Home() {
     } catch { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
   };
 
+  const downloadReferenceImage = (idx: number) => {
+    const char = characters[idx];
+    if (!char.seed_image) return;
+    const link = document.createElement("a");
+    const safeRole = char.role.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+    link.href = char.seed_image;
+    link.download = `${safeRole || `actor_${idx + 1}`}_seed.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const applyBatchNegativePrompt = () => {
+    if (storyScenes.length === 0) return;
+    const updated = storyScenes.map((scene) => ({
+      ...scene,
+      negative_prompt: batchNegative
+    }));
+    setStoryScenes(updated);
+  };
+
+  const lockCast = async () => {
+    const hasAllRefs = characters.every((char) => !!char.reference_image);
+    if (!hasAllRefs) {
+      alert("Actor A/B의 Reference Face를 먼저 준비해주세요.");
+      return;
+    }
+    setCastLocked(true);
+    setActiveStep("scene");
+  };
+
   const handlePreviewVoice = async (idx: number) => {
     setPreviewLoadingIndex(idx);
     try {
@@ -575,14 +918,13 @@ export default function Home() {
           seedToUse = charB.seed;
           refImageToUse = charB.reference_image;
       } else if (focus === "Both") {
-          if (useIpAdapter && !(await confirmFaceUsage([0, 1]))) return;
           const res = await axios.post(`${API_BASE}/generate/compose_dual`, {
             scene_prompt: scene.image_prompt,
             char_a_prompt: charA.translatedDesc || charA.desc,
             char_b_prompt: charB.translatedDesc || charB.desc,
             char_a_ref: charA.reference_image || null,
             char_b_ref: charB.reference_image || null,
-            negative_prompt: negativePrompt,
+            negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
             styles: selectedStyles,
             lora: selectedLora.length ? selectedLora : null,
             width: size.w,
@@ -605,16 +947,12 @@ export default function Home() {
           seedToUse = -1;
       }
 
-      if (focus === "A" || focus === "B") {
-        if (useIpAdapter && !(await confirmFaceUsage([focus === "A" ? 0 : 1]))) return;
-      }
-
       const combinedPrompt = `${charPrompt}, ${scene.image_prompt}, masterpiece, best quality`;
 
       const res = await axios.post(`${API_BASE}/generate`, { 
         prompt: combinedPrompt, 
         persona: null,
-        negative_prompt: negativePrompt,
+        negative_prompt: scene.negative_prompt || DEFAULT_NEGATIVE_PROMPT,
         styles: selectedStyles, 
         lora: selectedLora.length ? selectedLora : null, 
         width: size.w, height: size.h, 
@@ -642,6 +980,11 @@ export default function Home() {
             <label className="text-sm font-bold flex items-center gap-2"><Palette className="w-4 h-4" /> Visual Style & Settings</label>
         </div>
         <div className="grid grid-cols-1 gap-6">
+            <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Frontend Settings</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-300">Editable</span>
+            </div>
+            <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-3">
                 <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center justify-between">
@@ -804,36 +1147,108 @@ export default function Home() {
                     ))}
                 </div>
             </div>
-            <div className="flex flex-col gap-3">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400" title="Stable Diffusion WebUI에서 로드할 체크포인트(모델) 파일의 정확한 이름을 입력하세요.">WebUI Model</label>
-                <input
-                    type="text"
-                    value={webuiModelInput}
-                    onChange={(e) => setWebuiModelInput(e.target.value)}
-                    placeholder="sd_model_checkpoint"
-                    className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold focus:ring-1 focus:ring-zinc-400"
-                />
-                <div className="flex gap-2">
-                    <button
-                        onClick={fetchWebuiOptions}
-                        disabled={isWebuiLoading}
-                        className="flex-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold text-[10px] uppercase tracking-wider hover:bg-zinc-200 transition-all"
-                    >
-                        {isWebuiLoading ? "Loading..." : "Reload"}
-                    </button>
-                    <button
-                        onClick={applyWebuiOptions}
-                        disabled={isWebuiSaving || !webuiModelInput}
-                        className="flex-1 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-[10px] uppercase tracking-wider hover:opacity-90 transition-all disabled:opacity-50"
-                    >
-                        {isWebuiSaving ? "Applying..." : "Apply"}
-                    </button>
-                </div>
-                <p className="text-[10px] text-zinc-400">Current: {currentModel}</p>
             </div>
-            <div>
-                <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors" title="이미지에 나오지 말아야 할 요소들을 설정합니다.">{showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Advanced Settings (Negative Prompt)</button>
-                {showAdvanced && (<div className="mt-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200"><label className="text-[10px] font-bold text-zinc-400 mb-2 block uppercase" title="저품질, 기형 등 생성된 이미지에서 제외하고 싶은 키워드들을 입력합니다.">Negative Prompt</label><textarea className="w-full p-3 rounded-xl bg-white dark:bg-zinc-900 border-none text-xs leading-relaxed" rows={2} value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} /></div>)}
+            <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800" />
+            <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">WebUI Settings</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-300">Read-only</span>
+            </div>
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Sync Status</span>
+                  <button
+                    onClick={fetchWebuiSettings}
+                    disabled={isWebuiSettingsLoading}
+                    className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
+                  >
+                    {isWebuiSettingsLoading ? "Loading..." : "Reload"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px] text-zinc-500">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">Model</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{webuiSettings?.model || currentModel}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">VAE</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{getWebuiOption("sd_vae")}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">Clip Skip</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{getWebuiOption("CLIP_stop_at_last_layers")}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">ETA Noise Seed</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{getWebuiOption("eta_noise_seed_delta")}</span>
+                  </div>
+                </div>
+                {webuiSettingsError && (
+                  <p className="text-[10px] font-bold text-red-500">{webuiSettingsError}</p>
+                )}
+            </div>
+            <div className="flex flex-col gap-2 mt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">ControlNet</span>
+                  <button
+                    onClick={fetchControlnetSettings}
+                    disabled={isControlnetLoading}
+                    className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
+                  >
+                    {isControlnetLoading ? "Loading..." : "Reload"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px] text-zinc-500">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">Version</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{getControlnetVersion()}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">Presets</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">
+                      {controlnetSettings?.preset ? Object.keys(controlnetSettings.preset).length : 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold uppercase tracking-wider text-zinc-400">Unit Count</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{getControlnetUnitCount()}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Runtime Units</div>
+                  {getRuntimeUnits().length === 0 && (
+                    <div className="text-[10px] text-zinc-500">No runtime unit data available.</div>
+                  )}
+                  {getRuntimeUnits().map((unit, idx) => (
+                    <div key={`runtime-${idx}`} className="rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 p-2">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Unit {idx}</div>
+                      <div className="text-[10px] text-zinc-600 dark:text-zinc-300">
+                        {getUnitFields(unit).length === 0
+                          ? "No fields available."
+                          : getUnitFields(unit).map((item) => `${item.key}=${item.value}`).join(" · ")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {controlnetSettings?.preset && (
+                  <div className="space-y-2">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Backend Preset Units</div>
+                    {Object.entries(controlnetSettings.preset).map(([key, items]) => (
+                      <div key={key} className="rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 p-2">
+                        <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{key}</div>
+                        <div className="space-y-1">
+                          {items.map((item, idx) => (
+                            <div key={`${item.module}-${item.model}-${idx}`} className="text-[10px] text-zinc-600 dark:text-zinc-300">
+                              Unit {idx} · {item.module} · {item.model} · w={item.weight}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(controlnetSettings?.error || controlnetError) && (
+                  <p className="text-[10px] font-bold text-red-500">{controlnetSettings?.error || controlnetError}</p>
+                )}
             </div>
         </div>
     </section>
@@ -875,99 +1290,138 @@ export default function Home() {
 
             <div className="lg:col-span-8 flex flex-col gap-6">
                 <div className="w-full flex flex-col gap-10">
-                    {/* Step 1: Cast & Characters (Redesigned) */}
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {characters.map((char, idx) => (
-                            <div key={char.id} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
-                                <div className="flex items-center justify-between px-1">
-                                    <label className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                        <User className="w-4 h-4" /> {char.role}
-                                    </label>
-                                    <button onClick={() => setRandomPersona(idx)} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
-                                        <Dices className="w-3.5 h-3.5" /> Random
+                    <section className="p-4 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Workflow</span>
+                                <div className="flex items-center gap-2 rounded-full bg-zinc-100 dark:bg-zinc-800 p-1">
+                                    <button
+                                        onClick={() => setActiveStep("cast")}
+                                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${activeStep === "cast" ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "text-zinc-500 hover:text-zinc-900"}`}
+                                    >
+                                        Step 1 · Cast Setup
+                                    </button>
+                                    <button
+                                        onClick={() => castLocked && setActiveStep("scene")}
+                                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${activeStep === "scene" && castLocked ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "text-zinc-500 hover:text-zinc-900"} ${!castLocked ? "opacity-40 cursor-not-allowed" : ""}`}
+                                        disabled={!castLocked}
+                                    >
+                                        Step 2 · Scene Builder
                                     </button>
                                 </div>
-
-                                {/* Character Image Preview (Unified) */}
-                                <div 
-                                    className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all group ${char.reference_image ? "cursor-zoom-in" : ""} ${char.faceCheckStatus === "fail" ? "ring-2 ring-red-400/70" : ""}`}
-                                    onClick={() => char.reference_image && setPreviewImage(char.reference_image)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${castLocked ? "text-green-600" : "text-zinc-400"}`}>
+                                    {castLocked ? "Cast Locked" : "Cast Not Locked"}
+                                </span>
+                                <button
+                                    onClick={lockCast}
+                                    className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
                                 >
-                                    {char.isLoading ? (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-10">
-                                            <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
-                                        </div>
-                                    ) : char.reference_image ? (
-                                        <>
-                                            <Image src={char.reference_image} alt="Reference Face" fill className="object-cover" unoptimized />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm z-20" onClick={(e) => e.stopPropagation()}>
-                                                <button onClick={() => { setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all" title="Replace Photo">
-                                                    <Upload className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => void setReferenceImageWithCheck(idx, null)} className="p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white backdrop-blur-md transition-all" title="Remove">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-bold z-10 pointer-events-none">
-                                                Reference Face
-                                            </div>
-                                            {char.faceCheckStatus !== "unchecked" && (
-                                              <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-lg text-[10px] font-bold z-10 pointer-events-none ${char.faceCheckStatus === "ok" ? "bg-green-600/80 text-white" : char.faceCheckStatus === "checking" ? "bg-zinc-700/80 text-white" : char.faceCheckStatus === "fail" ? "bg-red-600/80 text-white" : "bg-amber-500/80 text-white"}`}>
-                                                {char.faceCheckStatus === "checking" && "Face 체크 중"}
-                                                {char.faceCheckStatus === "ok" && "Face OK"}
-                                                {char.faceCheckStatus === "fail" && "얼굴 인식 실패"}
-                                                {char.faceCheckStatus === "unsupported" && "Face 검사 미지원"}
-                                                {char.faceCheckStatus === "error" && "Face 검사 실패"}
-                                              </div>
+                                    Lock Cast
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    {activeStep === "cast" && (
+                        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {characters.map((char, idx) => (
+                                <div key={char.id} className="p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                                    <div className="flex items-center justify-between px-1">
+                                        <label className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                            <User className="w-4 h-4" /> {char.role}
+                                        </label>
+                                        <button onClick={() => setRandomPersona(idx)} className="text-[10px] font-bold flex items-center gap-1 text-zinc-400 hover:text-zinc-800 transition-colors">
+                                            <Dices className="w-3.5 h-3.5" /> Random
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Seed Image</label>
+                                        <div
+                                            className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all group ${char.seed_image ? "cursor-zoom-in" : ""}`}
+                                            onClick={() => char.seed_image && setPreviewImage(char.seed_image)}
+                                        >
+                                            {char.seed_image ? (
+                                                <>
+                                                    <Image src={char.seed_image} alt="Seed Image" fill className="object-cover" unoptimized />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm z-20 pointer-events-none">
+                                                        <button onClick={() => { setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all pointer-events-auto" title="Replace Photo">
+                                                            <Upload className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => setReferenceImage(idx, null)} className="p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white backdrop-blur-md transition-all pointer-events-auto" title="Remove">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-bold z-10 pointer-events-none">
+                                                        Seed Image
+                                                    </div>
+                                                    {char.face_detected !== null && (
+                                                        <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold z-10 pointer-events-none ${char.face_detected ? "bg-emerald-600/90 text-white" : "bg-rose-600/90 text-white"}`}>
+                                                            {char.face_detected ? `Face OK${typeof char.face_count === "number" ? ` (${char.face_count})` : ""}` : "No Face"}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
+                                                    <div className="w-12 h-12 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                                        <UserCircle className="w-6 h-6" />
+                                                    </div>
+                                                    <button onClick={(e) => { e.stopPropagation(); setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shadow-sm">
+                                                        Upload Photo
+                                                    </button>
+                                                </div>
                                             )}
-                                        </>
-                                    ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                                            <div className="w-12 h-12 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
-                                                <UserCircle className="w-6 h-6" />
-                                            </div>
-                                            <button onClick={(e) => { e.stopPropagation(); setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shadow-sm">
-                                                Upload Photo
-                                            </button>
+                                            {char.isLoading && !char.reference_loading_kind && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm z-30">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                                
-                                <div className="space-y-3">
-                                    <textarea 
-                                        className="w-full p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs resize-none focus:ring-1 focus:ring-indigo-400 font-medium" 
-                                        rows={2} 
-                                        value={char.desc} 
-                                        placeholder={`Describe ${char.role}...`}
-                                        onChange={(e) => updateCharacter(idx, "desc", e.target.value)} 
-                                    />
+                                    </div>
                                     
+                                    <div className="space-y-3">
+                                        <textarea 
+                                            className="w-full p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs resize-none focus:ring-1 focus:ring-indigo-400 font-medium" 
+                                            rows={2} 
+                                            value={char.desc} 
+                                            placeholder={`Describe ${char.role}...`}
+                                            onChange={(e) => updateCharacter(idx, "desc", e.target.value)} 
+                                        />
+                                        
                                     <div className="flex flex-wrap gap-2">
                                         <button onClick={() => { setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="flex-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-200 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-zinc-200 dark:border-zinc-700">
-                                            <Upload className="w-3 h-3" /> Upload Face
+                                            <Upload className="w-3 h-3" /> Upload Seed
                                         </button>
                                         <button onClick={() => handleGeneratePortrait(idx)} disabled={char.isLoading || !char.desc} className="flex-1 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/30">
-                                            <Sparkles className="w-3 h-3" /> AI Face
+                                            <Sparkles className="w-3 h-3" /> Generate Seed
                                         </button>
+                                        <button onClick={() => downloadReferenceImage(idx)} disabled={!char.seed_image} className="flex-1 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold hover:bg-emerald-100 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30 disabled:opacity-40">
+                                            <Download className="w-3 h-3" /> Download Seed
+                                        </button>
+                                    </div>
+                                    <div className="pt-1">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Seed Prompt</span>
                                     </div>
 
                                     <div className="flex gap-2">
                                         <button onClick={() => handleTranslateActor(idx)} disabled={char.isTranslating || !char.desc} className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
-                                            {char.isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Translate
+                                            {char.isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />} Seed Prompt
                                         </button>
-                                        <div className="relative flex-1">
-                                            <select 
-                                                value={char.voice} 
-                                                onChange={(e) => updateCharacter(idx, "voice", e.target.value)} 
-                                                className="w-full py-2 pl-2 pr-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-[9px] font-bold appearance-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                                            >
-                                                <option value="ko-KR-SunHiNeural">SunHi (F)</option>
-                                                <option value="ko-KR-InJoonNeural">InJoon (M)</option>
-                                                <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (M)</option>
-                                            </select>
-                                            <Mic className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
+                                            <div className="relative flex-1">
+                                                <select 
+                                                    value={char.voice} 
+                                                    onChange={(e) => updateCharacter(idx, "voice", e.target.value)} 
+                                                    className="w-full py-2 pl-2 pr-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-none text-[9px] font-bold appearance-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                                >
+                                                    <option value="ko-KR-SunHiNeural">SunHi (F)</option>
+                                                    <option value="ko-KR-InJoonNeural">InJoon (M)</option>
+                                                    <option value="ko-KR-HyunsuMultilingualNeural">Hyunsu (M)</option>
+                                                </select>
+                                                <Mic className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400 pointer-events-none" />
+                                            </div>
                                         </div>
-                                    </div>
 
                                     {char.translatedDesc && (
                                         <textarea 
@@ -977,12 +1431,102 @@ export default function Home() {
                                             onChange={(e) => updateCharacter(idx, "translatedDesc", e.target.value)} 
                                         />
                                     )}
+                                    <div className="pt-1">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Reference Sets</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button onClick={() => generateReferenceImages(idx, "face")} disabled={!char.desc && !char.translatedDesc} className="flex-1 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/30">
+                                            <Sparkles className="w-3 h-3" /> Generate Face Set
+                                        </button>
+                                        <button onClick={() => generateReferenceImages(idx, "body")} disabled={!char.desc && !char.translatedDesc} className="flex-1 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/30">
+                                            <Sparkles className="w-3 h-3" /> Generate Body Set
+                                        </button>
+                                        <button onClick={() => generateAllReferenceSets(idx)} disabled={!char.desc && !char.translatedDesc} className="flex-1 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider">
+                                            <Sparkles className="w-3 h-3" /> Generate All
+                                        </button>
+                                    </div>
+                                    {(char.reference_images_face.length > 0 || char.reference_loading_kind === "face") && (
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Face Reference Images</label>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {Array.from({ length: 4 }).map((_, pIdx) => {
+                                                    const img = char.reference_images_face[pIdx];
+                                                    return (
+                                                        <div
+                                                            key={`${char.id}-face-${pIdx}`}
+                                                            onClick={() => img && setPreviewImage(img)}
+                                                            className={`relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 ${img ? "cursor-pointer" : ""}`}
+                                                        >
+                                                            {img ? (
+                                                                <>
+                                                                    <Image src={img} alt={`Face ${pIdx + 1}`} fill className="object-cover" unoptimized />
+                                                                    <button
+                                                                      onClick={(e) => { e.stopPropagation(); void regenerateReferenceImage(idx, "face", pIdx); }}
+                                                                      className="absolute bottom-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                      title="Regenerate"
+                                                                    >
+                                                                      <RefreshCw className="w-3 h-3" />
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/70 dark:bg-zinc-950/60">
+                                                                    {char.reference_loading_kind === "face" ? (
+                                                                        <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                                                                    ) : null}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {(char.reference_images_body.length > 0 || char.reference_loading_kind === "body") && (
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Body Reference Images</label>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {Array.from({ length: 4 }).map((_, pIdx) => {
+                                                    const img = char.reference_images_body[pIdx];
+                                                    return (
+                                                    <div
+                                                        key={`${char.id}-body-${pIdx}`}
+                                                        onClick={() => img && setPreviewImage(img)}
+                                                        className={`relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 ${img ? "cursor-pointer" : ""}`}
+                                                    >
+                                                        {img ? (
+                                                            <>
+                                                                <Image src={img} alt={`Body ${pIdx + 1}`} fill className="object-cover" unoptimized />
+                                                                <button
+                                                                  onClick={(e) => { e.stopPropagation(); void regenerateReferenceImage(idx, "body", pIdx); }}
+                                                                  className="absolute bottom-1 right-1 p-1 rounded-md bg-white/80 hover:bg-white text-zinc-700 shadow"
+                                                                  title="Regenerate"
+                                                                >
+                                                                  <RefreshCw className="w-3 h-3" />
+                                                                </button>
+                                                                {pIdx === 0 && (
+                                                                  <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[8px] font-bold uppercase tracking-wider shadow">
+                                                                    Best
+                                                                  </div>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/70 dark:bg-zinc-950/60">
+                                                                <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </section>
+                    )}
 
-                    {/* Step 2: Planning */}
+                    {activeStep === "scene" && (
                     <section className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
                     <div className="flex items-center justify-between px-1">
                         <label className="text-sm font-bold flex items-center gap-2"><Clapperboard className="w-4 h-4" /> Step 2: Story Planning & Language</label>
@@ -1026,9 +1570,10 @@ export default function Home() {
                         </div>
                     </div>
                     </section>
+                    )}
 
                     {/* Step 3: Scenes */}
-                    {storyScenes.length > 0 && (
+                    {activeStep === "scene" && storyScenes.length > 0 && (
                     <div className="flex flex-col gap-6">
                         <div className="flex items-center justify-between px-2 text-center md:text-left flex-wrap gap-4">
                         <h3 className="font-bold text-lg w-full md:w-auto">Step 3: Storyboard Scenes</h3>
@@ -1061,10 +1606,41 @@ export default function Home() {
                                 )}
                             </div>
 
+                            <button onClick={() => setIsBatchOpen(!isBatchOpen)} className="px-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all text-[11px] uppercase tracking-wider">
+                              {isBatchOpen ? "Close Neg Prompt" : "Batch Neg Prompt"}
+                            </button>
                             <button onClick={startAutopilot} disabled={isAutopilotRunning || isVideoLoading} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg">{isAutopilotRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : "일괄생성"}</button>
                             {storyScenes.every(s => s.image_url) && <button onClick={handleCreateVideo} disabled={isVideoLoading} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg">{isVideoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Produce 🎬"}</button>}
                         </div>
                         </div>
+
+                        {isBatchOpen && (
+                          <div className="w-full bg-white dark:bg-zinc-900 p-5 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Batch Negative Prompt</span>
+                              <button
+                                onClick={() => setBatchNegative(DEFAULT_NEGATIVE_PROMPT)}
+                                className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900"
+                              >
+                                Reset Default
+                              </button>
+                            </div>
+                            <textarea
+                              className="w-full p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs leading-relaxed"
+                              rows={2}
+                              value={batchNegative}
+                              onChange={(e) => setBatchNegative(e.target.value)}
+                            />
+                            <div className="flex justify-end">
+                              <button
+                                onClick={applyBatchNegativePrompt}
+                                className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
+                              >
+                                Apply to All Scenes
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
                         {(isAutopilotRunning || isVideoLoading) && (
                             <div className="w-full bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3">
@@ -1130,6 +1706,23 @@ export default function Home() {
                                     title={scene.image_prompt_ko || "No Korean description available"}
                                     onChange={(e) => { const ns = [...storyScenes]; ns[idx].image_prompt = e.target.value; setStoryScenes(ns); }} 
                                 />
+                                <div className="mt-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Negative Prompt</span>
+                                      <button
+                                        onClick={() => { const ns = [...storyScenes]; ns[idx].negative_prompt = DEFAULT_NEGATIVE_PROMPT; setStoryScenes(ns); }}
+                                        className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900"
+                                      >
+                                        Reset
+                                      </button>
+                                    </div>
+                                    <textarea
+                                      className="w-full mt-1 p-2 rounded-xl bg-white/70 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800 text-[10px] leading-relaxed focus:ring-1 focus:ring-zinc-400"
+                                      rows={2}
+                                      value={scene.negative_prompt || ""}
+                                      onChange={(e) => { const ns = [...storyScenes]; ns[idx].negative_prompt = e.target.value; setStoryScenes(ns); }}
+                                    />
+                                </div>
                                 </div></div>
                             </div>
                             </div>
