@@ -1,6 +1,34 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 import httpx
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except Exception:
+    NUMPY_AVAILABLE = False
+try:
+    import cv2
+    OPENCV_AVAILABLE = True
+except Exception:
+    OPENCV_AVAILABLE = False
+try:
+    import mediapipe as mp
+    if hasattr(mp, "solutions"):
+        mp_solutions = mp.solutions
+        MEDIAPIPE_AVAILABLE = True
+    else:
+        mp_solutions = None
+        MEDIAPIPE_AVAILABLE = False
+except Exception:
+    mp_solutions = None
+    MEDIAPIPE_AVAILABLE = False
+try:
+    from mediapipe.tasks.python import BaseOptions
+    from mediapipe.tasks.python.vision import FaceDetector, FaceDetectorOptions
+    MEDIAPIPE_TASKS_AVAILABLE = True
+except Exception:
+    MEDIAPIPE_TASKS_AVAILABLE = False
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
@@ -37,6 +65,7 @@ logger = logging.getLogger("backend")
 # --- 전역 상수 ---
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 SD_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
+SD_IMG2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/img2img"
 SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly, blurry, out of focus, duplicate, error, artifacts, simplified, cartoon, cgi, render, 3d, (monochrome:1.1), (muted colors:1.2), overexposed, high contrast"
@@ -48,6 +77,7 @@ IMAGE_DIR = OUTPUT_DIR / "images"
 VIDEO_DIR = OUTPUT_DIR / "videos"
 AUDIO_DIR = pathlib.Path("assets/audio")
 PROJECTS_DIR = pathlib.Path("projects")
+FACE_MODEL_PATH = pathlib.Path("assets/face_detector.tflite")
 
 for d in [CACHE_DIR, IMAGE_DIR, VIDEO_DIR, AUDIO_DIR, PROJECTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -83,7 +113,7 @@ class CharacterInfo(BaseModel):
 class GenerateRequest(BaseModel):
     prompt: str
     persona: str | None = None
-    lora: str | None = None
+    lora: list[str] | str | None = None
     negative_prompt: str | None = None
     styles: list[str] = []
     width: int = 512
@@ -139,6 +169,33 @@ class AudioPreviewRequest(BaseModel):
     text: str
     voice: str
 
+class FaceCheckRequest(BaseModel):
+    image: str
+
+class WebUIComposeTestRequest(BaseModel):
+    prompt: str = "two people sitting in a cafe, cinematic lighting"
+    width: int = 512
+    height: int = 512
+    steps: int = 10
+    cfg_scale: float = 6
+    denoising_strength: float = 0.6
+
+class DualComposeRequest(BaseModel):
+    scene_prompt: str
+    char_a_prompt: str
+    char_b_prompt: str
+    char_a_ref: str | None = None
+    char_b_ref: str | None = None
+    negative_prompt: str | None = None
+    styles: list[str] = []
+    lora: list[str] | str | None = None
+    width: int = 512
+    height: int = 512
+    steps: int = 24
+    cfg_scale: float = 6
+    denoising_strength: float = 0.55
+    strict_identity: bool = True
+
 # 유틸리티 함수
 def get_audio_duration(path):
     try:
@@ -149,6 +206,168 @@ def get_audio_duration(path):
 
 def wrap_text(text, width=20):
     return "\n".join(textwrap.wrap(text, width=width))
+
+def strip_data_url(data: str | None) -> str | None:
+    if not data:
+        return None
+    return data.split(",", 1)[1] if "," in data else data
+
+def detect_faces_base64(data: str) -> int:
+    raw = strip_data_url(data)
+    if not raw:
+        return 0
+    img_bytes = base64.b64decode(raw)
+
+    if MEDIAPIPE_TASKS_AVAILABLE and NUMPY_AVAILABLE:
+        model_path = os.getenv("MEDIAPIPE_FACE_MODEL_PATH")
+        if not model_path and FACE_MODEL_PATH.exists():
+            model_path = str(FACE_MODEL_PATH)
+        if model_path:
+            pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            rgb = np.array(pil_img)
+            options = FaceDetectorOptions(
+                base_options=BaseOptions(model_asset_path=model_path),
+                min_detection_confidence=0.4
+            )
+            detector = FaceDetector.create_from_options(options)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+            result = detector.detect(mp_image)
+            return len(result.detections) if result.detections else 0
+
+    if MEDIAPIPE_AVAILABLE and mp_solutions is not None:
+        img_arr = np.frombuffer(img_bytes, dtype=np.uint8)
+        img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR) if OPENCV_AVAILABLE else None
+        if img is None:
+            pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            img = np.array(pil_img)
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if OPENCV_AVAILABLE else img
+        with mp_solutions.face_detection.FaceDetection(
+            model_selection=0,
+            min_detection_confidence=0.4
+        ) as detector:
+            results = detector.process(rgb)
+            return len(results.detections) if results.detections else 0
+
+    if not OPENCV_AVAILABLE:
+        raise RuntimeError("Face detection not available")
+
+    img_arr = np.frombuffer(img_bytes, dtype=np.uint8)
+    img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
+    if img is None:
+        return 0
+    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
+    def _detect(gray, min_neighbors=4, min_size=(30, 30)):
+        faces = cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=min_neighbors,
+            minSize=min_size
+        )
+        return len(faces)
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    count = _detect(gray, min_neighbors=4, min_size=(30, 30))
+    if count > 0:
+        return count
+
+    # Retry on resized image to help small/low-res faces
+    h, w = gray.shape[:2]
+    scale = 1024 / max(h, w)
+    if scale > 1.0:
+        resized = cv2.resize(gray, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
+        count = _detect(resized, min_neighbors=3, min_size=(24, 24))
+        if count > 0:
+            return count
+
+    # Retry on central crop (often the face is centered)
+    crop_size = int(min(h, w) * 0.7)
+    if crop_size >= 64:
+        y0 = (h - crop_size) // 2
+        x0 = (w - crop_size) // 2
+        crop = gray[y0:y0 + crop_size, x0:x0 + crop_size]
+        count = _detect(crop, min_neighbors=3, min_size=(24, 24))
+        if count > 0:
+            return count
+
+    # Last attempt: lighten normalization
+    eq = cv2.equalizeHist(gray)
+    count = _detect(eq, min_neighbors=3, min_size=(24, 24))
+    return count
+
+def image_to_base64(image: Image.Image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+def build_prompt(base: str, styles: list[str], lora: list[str] | str | None) -> str:
+    parts = [base.strip()]
+    if styles:
+        parts.append(", ".join(styles))
+    prompt = ", ".join([p for p in parts if p])
+    if lora:
+        if isinstance(lora, list):
+            for item in lora:
+                if item:
+                    prompt = f"{prompt}, <lora:{item}:1>"
+        else:
+            prompt = f"{prompt}, <lora:{lora}:1>"
+    return prompt
+
+def build_person_mask(width: int, height: int, side: str) -> str:
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    cx = int(width * (0.33 if side == "left" else 0.67))
+    cy = int(height * 0.6)
+    rx = int(width * 0.22)
+    ry = int(height * 0.32)
+    draw.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=255)
+    return image_to_base64(mask)
+
+def build_face_mask(width: int, height: int, side: str) -> str:
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    cx = int(width * (0.33 if side == "left" else 0.67))
+    cy = int(height * 0.38)
+    r = int(min(width, height) * 0.08)
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=255)
+    return image_to_base64(mask)
+
+def build_pose_guide(width: int, height: int, side: str) -> str:
+    img = Image.new("RGB", (width, height), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    cx = int(width * (0.33 if side == "left" else 0.67))
+    cy = int(height * 0.55)
+    head_r = int(min(width, height) * 0.05)
+    body_len = int(height * 0.18)
+    arm_len = int(width * 0.12)
+    leg_len = int(height * 0.18)
+    line_w = max(3, width // 128)
+
+    draw.ellipse([cx - head_r, cy - body_len - head_r * 2, cx + head_r, cy - body_len], outline=(0, 0, 0), width=line_w)
+    draw.line([cx, cy - body_len, cx, cy + body_len // 2], fill=(0, 0, 0), width=line_w)
+    draw.line([cx - arm_len, cy - body_len // 2, cx + arm_len, cy - body_len // 2], fill=(0, 0, 0), width=line_w)
+    draw.line([cx, cy + body_len // 2, cx - arm_len // 2, cy + body_len // 2 + leg_len], fill=(0, 0, 0), width=line_w)
+    draw.line([cx, cy + body_len // 2, cx + arm_len // 2, cy + body_len // 2 + leg_len], fill=(0, 0, 0), width=line_w)
+    return image_to_base64(img)
+
+def mask_blur_for_size(width: int, height: int) -> int:
+    base = min(width, height)
+    return max(4, min(18, base // 64))
+
+def adetailer_args_for_size(width: int, height: int, prompt: str) -> dict:
+    return {
+        "ad_model": "face_yolov8n.pt",
+        "ad_prompt": prompt,
+        "ad_negative_prompt": "",
+        "ad_confidence": 0.3,
+        "ad_mask_blur": 4,
+        "ad_inpaint_only_masked": True,
+        "ad_inpaint_only_masked_padding": 32,
+        "ad_use_inpaint_width_height": True,
+        "ad_inpaint_width": min(512, width),
+        "ad_inpaint_height": min(512, height)
+    }
 
 # Dynamic Overlay Generator
 def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path, width: int = 1080, height: int = 1920):
@@ -449,6 +668,19 @@ async def translate_prompt(request: PromptTranslateRequest):
         logger.error(f"Translation failed: {e}")
         return {"translated_prompt": request.text, "negative_prompt": DEFAULT_NEGATIVE_PROMPT}
 
+@app.post("/face/check")
+async def face_check(request: FaceCheckRequest):
+    if not OPENCV_AVAILABLE and not MEDIAPIPE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Face detection unavailable. Install mediapipe or opencv-python.")
+    try:
+        logger.info("🧪 [Face Check] Started (mediapipe=%s, opencv=%s)", MEDIAPIPE_AVAILABLE, OPENCV_AVAILABLE)
+        faces = detect_faces_base64(request.image)
+        logger.info("🧪 [Face Check] Detected faces: %s", faces)
+        return {"has_face": faces > 0, "faces": faces}
+    except Exception as e:
+        logger.exception("Face check failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/character/portrait")
 async def generate_portrait(request: PortraitRequest):
     """Generates a high-quality reference portrait for a character."""
@@ -473,13 +705,21 @@ async def generate_portrait(request: PortraitRequest):
         except Exception as e:
             logger.warning(f"Portrait Prompt Optimization Failed: {e}")
 
-    # Construct final prompt with some quality boosters
-    prompt = f"(({final_prompt})), professional lighting, 8k, highly detailed, looking at camera"
+    # Construct final prompt with face-detection-friendly constraints
+    prompt = (
+        f"(({final_prompt})), portrait, close-up headshot, centered composition, single person, "
+        "front-facing, face fully visible, eyes visible, no occlusion, looking at camera, "
+        "neutral expression, clean background, professional lighting, highly detailed"
+    )
     logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
     
     payload = {
         "prompt": prompt,
-        "negative_prompt": "low quality, blurry, distorted face, extra limbs, multiple people, (nsfw:1.5), (worst quality, low quality:1.4)",
+        "negative_prompt": (
+            "low quality, blurry, distorted face, extra limbs, multiple people, "
+            "profile, side view, occluded face, mask, sunglasses, hat, "
+            "(nsfw:1.5), (worst quality, low quality:1.4)"
+        ),
         "steps": 30,
         "width": request.width,
         "height": request.height,
@@ -519,7 +759,7 @@ async def generate_image(request: GenerateRequest):
             logger.warning(f"⚠️ Prompt Optimization Failed: {e}")
     
     payload = {
-        "prompt": f"{final_pos}, <lora:{request.lora}:1>" if request.lora else final_pos,
+        "prompt": build_prompt(final_pos, [], request.lora),
         "negative_prompt": final_neg,
         "steps": request.steps,
         "width": request.width,
@@ -561,6 +801,304 @@ async def generate_image(request: GenerateRequest):
             return {"images": data.get("images", []), "seed": info.get("seed", request.seed), "translated_prompt": final_pos, "negative_prompt": final_neg}
         except Exception as e:
             logger.error(f"❌ Image Generation Failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate/compose_dual")
+async def generate_compose_dual(request: DualComposeRequest):
+    final_neg = request.negative_prompt or DEFAULT_NEGATIVE_PROMPT
+    char_a_ref = strip_data_url(request.char_a_ref)
+    char_b_ref = strip_data_url(request.char_b_ref)
+
+    base_prompt = f"{request.scene_prompt}, background, empty scene, no people"
+    base_prompt = build_prompt(base_prompt, request.styles, request.lora)
+    cache_key = hashlib.sha256(
+        json.dumps(
+            {
+                "prompt": base_prompt,
+                "width": request.width,
+                "height": request.height,
+                "steps": request.steps,
+                "cfg_scale": request.cfg_scale
+            },
+            sort_keys=True
+        ).encode()
+    ).hexdigest()
+    cache_file = CACHE_DIR / f"bg_{cache_key}.json"
+
+    txt2img_payload = {
+        "prompt": base_prompt,
+        "negative_prompt": final_neg,
+        "steps": request.steps,
+        "width": request.width,
+        "height": request.height,
+        "sampler_name": "DPM++ 2M Karras",
+        "cfg_scale": request.cfg_scale,
+        "seed": -1
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            logger.info("🧩 [Compose Dual] Generating background...")
+            if cache_file.exists():
+                cached = json.loads(cache_file.read_text(encoding="utf-8"))
+                current_b64 = cached.get("image")
+            else:
+                r = await client.post(SD_URL, json=txt2img_payload, timeout=120.0)
+                r.raise_for_status()
+                data = r.json()
+                current_b64 = data.get("images", [None])[0]
+                if current_b64:
+                    cache_file.write_text(json.dumps({"image": current_b64}), encoding="utf-8")
+            if not current_b64:
+                raise HTTPException(status_code=500, detail="Background generation failed")
+
+            for side, char_prompt, ref_image in [
+                ("left", request.char_a_prompt, char_a_ref),
+                ("right", request.char_b_prompt, char_b_ref),
+            ]:
+                if not ref_image:
+                    raise HTTPException(status_code=400, detail=f"Missing reference image for {side} character")
+                mask_b64 = build_person_mask(request.width, request.height, side)
+                pose_b64 = build_pose_guide(request.width, request.height, side)
+                mask_blur = mask_blur_for_size(request.width, request.height)
+                person_prompt = f"{request.scene_prompt}, {char_prompt}, {side} side, full body"
+                person_prompt = build_prompt(person_prompt, request.styles, request.lora)
+
+                controlnet_args = [
+                    {
+                        "enabled": True,
+                        "module": "openpose_full",
+                        "model": "control_v11p_sd15_openpose [cab727d4]",
+                        "weight": 0.5,
+                        "image": pose_b64,
+                        "pixel_perfect": True
+                    },
+                    {
+                        "enabled": True,
+                        "module": "depth",
+                        "model": "control_v11f1p_sd15_depth [cfd03158]",
+                        "weight": 0.4,
+                        "image": current_b64,
+                        "pixel_perfect": True
+                    },
+                    {
+                        "enabled": True,
+                        "module": "inpaint",
+                        "model": "control_v11p_sd15_inpaint [ebff9138]",
+                        "weight": 0.8,
+                        "image": current_b64,
+                        "mask": mask_b64,
+                        "pixel_perfect": True
+                    }
+                ]
+                if ref_image:
+                    controlnet_args.append(
+                        {
+                            "enabled": True,
+                            "module": "ip-adapter_face_id_plus",
+                            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+                            "weight": 0.9,
+                            "image": ref_image,
+                            "pixel_perfect": True
+                        }
+                    )
+
+                img2img_payload = {
+                    "prompt": person_prompt,
+                    "negative_prompt": final_neg,
+                    "steps": request.steps,
+                    "width": request.width,
+                    "height": request.height,
+                    "sampler_name": "DPM++ 2M Karras",
+                    "cfg_scale": request.cfg_scale,
+                    "seed": -1,
+                    "init_images": [current_b64],
+                    "mask": mask_b64,
+                    "mask_blur": mask_blur,
+                    "inpainting_fill": 1,
+                    "inpaint_full_res": True,
+                    "inpaint_full_res_padding": 32,
+                    "denoising_strength": request.denoising_strength,
+                    "alwayson_scripts": {
+                        "controlnet": {"args": controlnet_args},
+                        "adetailer": {"args": [adetailer_args_for_size(request.width, request.height, char_prompt)]}
+                    }
+                }
+
+                logger.info("🧩 [Compose Dual] Inpainting %s character...", side)
+                try:
+                    r = await client.post(SD_IMG2IMG_URL, json=img2img_payload, timeout=120.0)
+                    r.raise_for_status()
+                    data = r.json()
+                except httpx.HTTPStatusError as e:
+                    err_text = e.response.text if e.response is not None else ""
+                    if "Insightface: No face found" in err_text:
+                        if request.strict_identity:
+                            raise HTTPException(
+                                status_code=400,
+                                detail="Reference image must contain a clear face for identity locking."
+                            )
+                        logger.warning("⚠️ No face found in reference image. Retrying without IP-Adapter...")
+                        img2img_payload["alwayson_scripts"]["controlnet"]["args"] = [
+                            arg for arg in controlnet_args if arg.get("module") != "ip-adapter_face_id_plus"
+                        ]
+                    logger.warning("⚠️ Retrying without ADetailer...")
+                    img2img_payload["alwayson_scripts"].pop("adetailer", None)
+                    r = await client.post(SD_IMG2IMG_URL, json=img2img_payload, timeout=120.0)
+                    r.raise_for_status()
+                    data = r.json()
+                current_b64 = data.get("images", [None])[0]
+                if not current_b64:
+                    raise HTTPException(status_code=500, detail=f"{side} character inpaint failed")
+
+                face_mask_b64 = build_face_mask(request.width, request.height, side)
+                face_prompt = f"{char_prompt}, face, same person, high fidelity"
+                face_prompt = build_prompt(face_prompt, request.styles, request.lora)
+                face_payload = {
+                    "prompt": face_prompt,
+                    "negative_prompt": final_neg,
+                    "steps": max(12, request.steps // 2),
+                    "width": request.width,
+                    "height": request.height,
+                    "sampler_name": "DPM++ 2M Karras",
+                    "cfg_scale": max(4.5, request.cfg_scale - 1),
+                    "seed": -1,
+                    "init_images": [current_b64],
+                    "mask": face_mask_b64,
+                    "mask_blur": max(2, mask_blur // 2),
+                    "inpainting_fill": 1,
+                    "inpaint_full_res": True,
+                    "inpaint_full_res_padding": 16,
+                    "denoising_strength": min(0.4, request.denoising_strength),
+                    "alwayson_scripts": {
+                        "controlnet": {
+                            "args": [
+                                {
+                                    "enabled": True,
+                                    "module": "ip-adapter_face_id_plus",
+                                    "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+                                    "weight": 0.95,
+                                    "image": ref_image,
+                                    "pixel_perfect": True
+                                },
+                                {
+                                    "enabled": True,
+                                    "module": "inpaint",
+                                    "model": "control_v11p_sd15_inpaint [ebff9138]",
+                                    "weight": 0.8,
+                                    "image": current_b64,
+                                    "mask": face_mask_b64,
+                                    "pixel_perfect": True
+                                }
+                            ]
+                        }
+                    }
+                }
+                logger.info("🧩 [Compose Dual] Refining %s face...", side)
+                try:
+                    r = await client.post(SD_IMG2IMG_URL, json=face_payload, timeout=120.0)
+                    r.raise_for_status()
+                    data = r.json()
+                except httpx.HTTPStatusError as e:
+                    err_text = e.response.text if e.response is not None else ""
+                    if "Insightface: No face found" in err_text:
+                        if request.strict_identity:
+                            raise HTTPException(
+                                status_code=400,
+                                detail="Reference image must contain a clear face for identity locking."
+                            )
+                        logger.warning("⚠️ No face found in reference image. Retrying face refine without IP-Adapter...")
+                        face_payload["alwayson_scripts"]["controlnet"]["args"] = [
+                            arg for arg in face_payload["alwayson_scripts"]["controlnet"]["args"]
+                            if arg.get("module") != "ip-adapter_face_id_plus"
+                        ]
+                        r = await client.post(SD_IMG2IMG_URL, json=face_payload, timeout=120.0)
+                        r.raise_for_status()
+                        data = r.json()
+                    else:
+                        raise
+                current_b64 = data.get("images", [None])[0]
+                if not current_b64:
+                    raise HTTPException(status_code=500, detail=f"{side} face refine failed")
+
+            info = json.loads(data.get("info", "{}"))
+            return {"image": current_b64, "seed": info.get("seed", -1)}
+        except Exception as e:
+            logger.error(f"❌ Compose Dual Failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/debug/webui_compose_test")
+async def webui_compose_test(request: WebUIComposeTestRequest):
+    width, height = request.width, request.height
+    base_img = Image.new("RGB", (width, height), (25, 25, 25))
+    draw = ImageDraw.Draw(base_img)
+    draw.rectangle([0, int(height * 0.6), width, height], fill=(40, 40, 40))
+    draw.rectangle([0, 0, width, int(height * 0.2)], fill=(18, 18, 18))
+
+    mask_img = Image.new("L", (width, height), 0)
+    mask_draw = ImageDraw.Draw(mask_img)
+    radius = int(min(width, height) * 0.25)
+    cx, cy = width // 2, int(height * 0.55)
+    mask_draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=255)
+
+    base_b64 = image_to_base64(base_img)
+    mask_b64 = image_to_base64(mask_img)
+
+    payload = {
+        "prompt": request.prompt,
+        "negative_prompt": DEFAULT_NEGATIVE_PROMPT,
+        "steps": request.steps,
+        "width": width,
+        "height": height,
+        "sampler_name": "DPM++ 2M Karras",
+        "cfg_scale": request.cfg_scale,
+        "seed": -1,
+        "init_images": [base_b64],
+        "mask": mask_b64,
+        "mask_blur": 8,
+        "inpainting_fill": 1,
+        "inpaint_full_res": True,
+        "inpaint_full_res_padding": 32,
+        "denoising_strength": request.denoising_strength,
+        "alwayson_scripts": {
+            "controlnet": {
+                "args": [
+                    {
+                        "enabled": True,
+                        "module": "segmentation",
+                        "model": "control_v11p_sd15_seg [e1f51eb9]",
+                        "weight": 0.6,
+                        "image": base_b64,
+                        "pixel_perfect": True
+                    },
+                    {
+                        "enabled": True,
+                        "module": "inpaint",
+                        "model": "control_v11p_sd15_inpaint [ebff9138]",
+                        "weight": 0.8,
+                        "image": base_b64,
+                        "mask": mask_b64,
+                        "pixel_perfect": True
+                    }
+                ]
+            }
+        }
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            logger.info("🧪 [WebUI Compose Test] Sending img2img request...")
+            r = await client.post(SD_IMG2IMG_URL, json=payload, timeout=120.0)
+            r.raise_for_status()
+            data = r.json()
+            info = json.loads(data.get("info", "{}"))
+            return {
+                "image": data.get("images", [None])[0],
+                "seed": info.get("seed", -1),
+                "used_models": ["control_v11p_sd15_seg [e1f51eb9]", "control_v11p_sd15_inpaint [ebff9138]"]
+            }
+        except Exception as e:
+            logger.error(f"❌ WebUI Compose Test Failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/storyboard/create")

@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { 
-  Loader2, Send, Wand2, ChevronDown, ChevronUp, Palette, Dices, Monitor, Smartphone, 
-  Square as SquareIcon, Sparkles, ImageIcon, Clapperboard, Image as LucideImage, 
-  User, Clock, Music, Trash2, Edit3, UserCircle, RefreshCw, Volume2, Download, 
-  CheckCircle2, Globe, Play, Film, Save, History, Boxes, Eye, Plus, X, ChevronRight, Settings2,
-  PlayCircle, PauseCircle, Layout, Mic, UserPlus, Heart, MessageCircle, Bookmark, MoreHorizontal,
+  Loader2, Wand2, ChevronDown, ChevronUp, Palette, Dices, Monitor, Smartphone, 
+  Sparkles, ImageIcon, Clapperboard, 
+  User, Clock, Trash2, UserCircle, RefreshCw, Volume2, Download, 
+  CheckCircle2, Globe, Play, Save, History, Boxes, Eye, X, Settings2,
+  PlayCircle, PauseCircle, Layout, Mic,
   Upload
 } from "lucide-react";
 import Image from "next/image";
@@ -33,17 +33,6 @@ const STYLE_PRESETS = [
   "3D Render"
 ];
 
-const SAMPLE_PROMPTS = [
-  "비 오는 사이버펑크 도시의 고양이",
-  "지브리 스타일의 평화로운 숲속 마을",
-  "우주복을 입고 달 위에서 서핑하는 강아지",
-  "눈 덮인 산 위에 핀 불꽃 같은 꽃",
-  "바닷속 깊은 곳에 있는 빛나는 고대 도시",
-  "벚꽃이 날리는 일본의 오래된 신사",
-  "하늘을 나는 고래와 거대한 구름 성",
-  "미래 도시의 네온사인이 비치는 밤거리"
-];
-
 const SAMPLE_PERSONAS = [
   "주황색 머리에 파란 눈을 가진 장난기 가득한 7살 소년",
   "은색 갑옷을 입고 빛나는 검을 든 고귀한 기사",
@@ -59,9 +48,31 @@ const RESOLUTIONS = {
   shorts: { w: 512, h: 512, label: "YouTube Shorts (9:16)", desc: "Stable Gen @ 512px" },
 };
 
-const LANGUAGES = [
-  { label: "Korean", value: "Korean", voice: "ko-KR-SunHiNeural" },
-];
+type StoryScene = {
+  image_url?: string | null;
+  image_prompt: string;
+  image_prompt_ko?: string;
+  script: string;
+  duration: number;
+  visual_focus?: "A" | "B" | "Both" | "Landscape";
+  speaker?: "A" | "B" | "Narrator";
+};
+
+type Project = {
+  id: string;
+  title: string;
+  updated_at: number;
+};
+
+type BgmItem = {
+  name: string;
+  url: string;
+};
+
+type VideoItem = {
+  name: string;
+  url: string;
+};
 
 interface Character {
   id: number;
@@ -70,6 +81,7 @@ interface Character {
   translatedDesc: string;
   image: string | null;
   reference_image: string | null; // Added for IP-Adapter
+  faceCheckStatus: "unchecked" | "checking" | "ok" | "fail" | "unsupported" | "error";
   voice: string;
   seed: number;
   isTranslating: boolean;
@@ -78,15 +90,13 @@ interface Character {
 
 export default function Home() {
   // --- UI States ---
-  const [activeTab, setActiveTab] = useState<"single" | "storyboard">("single");
-  const [currentStep, setCurrentStep] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showProjectList, setShowProjectList] = useState(false); // Project Browser Modal State
   
   // --- Global Settings ---
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [resolution, setResolution] = useState<keyof typeof RESOLUTIONS>("shorts");
-  const [selectedLora, setSelectedLora] = useState("");
+  const [selectedLora, setSelectedLora] = useState<string[]>([]);
   const [negativePrompt, setNegativePrompt] = useState("low quality, worst quality, bad anatomy, deformed, text, watermark, signature, ugly");
   const [narratorVoice, setNarratorVoice] = useState("ko-KR-SunHiNeural"); // Default Narrator
 
@@ -102,23 +112,14 @@ export default function Home() {
     likes_count: "12.5k",
     caption: "설레는 순간들... #럽스타그램"
   });
-  const [storyScenes, setStoryScenes] = useState<any[]>([]);
+  const [storyScenes, setStoryScenes] = useState<StoryScene[]>([]);
   
   // New Multi-Character State
   const [characters, setCharacters] = useState<Character[]>([
-    { id: 0, role: "Actor A (Main)", desc: "주황색 머리에 파란 눈을 가진 장난기 가득한 소년", translatedDesc: "", image: null, reference_image: null, voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
-    { id: 1, role: "Actor B (Side)", desc: "검은색 긴 생머리에 안경을 쓴 차분한 소녀", translatedDesc: "", image: null, reference_image: null, voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
+    { id: 0, role: "Actor A (Main)", desc: "주황색 머리에 파란 눈을 가진 장난기 가득한 소년", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-SunHiNeural", seed: -1, isTranslating: false, isLoading: false },
+    { id: 1, role: "Actor B (Side)", desc: "검은색 긴 생머리에 안경을 쓴 차분한 소녀", translatedDesc: "", image: null, reference_image: null, faceCheckStatus: "unchecked", voice: "ko-KR-InJoonNeural", seed: -1, isTranslating: false, isLoading: false }
   ]);
 
-  const [prompt, setPrompt] = useState(SAMPLE_PROMPTS[0]);
-  const [translatedSinglePrompt, setTranslatedSinglePrompt] = useState("");
-  const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [translatedPrompt, setTranslatedPrompt] = useState<string | null>(null);
-  const [activeNegativePrompt, setActiveNegativePrompt] = useState<string | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [isCharLoading, setIsCharLoading] = useState(false);
   const [isStoryLoading, setIsStoryLoading] = useState(false);
   const [isAutopilotRunning, setIsAutopilotRunning] = useState(false);
   const [autopilotProgress, setAutopilotProgress] = useState(0);
@@ -133,11 +134,12 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingCharIdx, setUploadingCharIdx] = useState<number | null>(null);
 
-  const [projects, setProjects] = useState<any[]>([]);
-  const [bgmList, setBgmList] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [bgmList, setBgmList] = useState<BgmItem[]>([]);
   const [selectedBgm, setSelectedBgm] = useState("");
-  const [producedVideos, setProducedVideos] = useState<any[]>([]);
+  const [producedVideos, setProducedVideos] = useState<VideoItem[]>([]);
   const [lorasList, setLorasList] = useState<string[]>([]);
+  const [loraSearch, setLoraSearch] = useState("");
   const [currentModel, setCurrentModel] = useState<string>("Loading...");
   const [playingBgm, setPlayingBgm] = useState<string | null>(null);
 
@@ -158,7 +160,7 @@ export default function Home() {
       setBgmList(audios.data.audios || []);
       setProducedVideos(vids.data.videos || []);
       setProjects(projs.data.projects || []);
-    } catch (e) { setCurrentModel("Disconnected"); }
+    } catch { setCurrentModel("Disconnected"); }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -167,12 +169,81 @@ export default function Home() {
     setSelectedStyles(prev => prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style]);
   };
 
-  const updateCharacter = (idx: number, field: keyof Character, value: any) => {
+  const updateCharacter = (idx: number, field: keyof Character, value: Character[keyof Character]) => {
     setCharacters(prev => {
         const newChars = [...prev];
         newChars[idx] = { ...newChars[idx], [field]: value };
         return newChars;
     });
+  };
+
+  const detectFaceWithBrowser = async (dataUrl: string) => {
+    if (typeof window === "undefined") return "unsupported";
+    const FaceDetectorCtor = (window as unknown as { FaceDetector?: new (options: { fastMode: boolean; maxDetectedFaces: number }) => { detect: (image: ImageBitmap) => Promise<unknown[]> } }).FaceDetector;
+    if (!FaceDetectorCtor) return "unsupported";
+    try {
+      const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 });
+      const img = new Image();
+      img.src = dataUrl;
+      await img.decode();
+      const bitmap = await createImageBitmap(img);
+      const faces = await detector.detect(bitmap);
+      return faces.length > 0 ? "ok" : "fail";
+    } catch {
+      return "error";
+    }
+  };
+
+  const detectFaceInImage = async (dataUrl: string) => {
+    try {
+      const res = await axios.post(`${API_BASE}/face/check`, { image: dataUrl });
+      return res.data?.has_face ? "ok" : "fail";
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 503) return "unsupported";
+      const fallback = await detectFaceWithBrowser(dataUrl);
+      return fallback === "unsupported" ? "error" : fallback;
+    }
+  };
+
+  const setReferenceImageWithCheck = async (idx: number, dataUrl: string | null) => {
+    updateCharacter(idx, "reference_image", dataUrl);
+    if (!dataUrl) {
+      updateCharacter(idx, "faceCheckStatus", "unchecked");
+      return;
+    }
+    updateCharacter(idx, "faceCheckStatus", "checking");
+    const status = await detectFaceInImage(dataUrl);
+    updateCharacter(idx, "faceCheckStatus", status);
+  };
+
+  const ensureFaceStatus = async (idx: number, char: Character) => {
+    if (!char.reference_image) return "ok";
+    if (char.faceCheckStatus !== "unchecked") return char.faceCheckStatus;
+    updateCharacter(idx, "faceCheckStatus", "checking");
+    const status = await detectFaceInImage(char.reference_image);
+    updateCharacter(idx, "faceCheckStatus", status);
+    return status;
+  };
+
+  const confirmFaceUsage = async (indices: number[]) => {
+    for (const idx of indices) {
+      const char = characters[idx];
+      if (!char || !char.reference_image) continue;
+      const status = await ensureFaceStatus(idx, char);
+      if (status === "checking") {
+        alert("얼굴 검사 중입니다. 잠시 후 다시 시도해주세요.");
+        return false;
+      }
+      if (status === "fail") {
+        alert("얼굴 인식에 실패했습니다. 얼굴이 잘 보이는 이미지로 교체해주세요.");
+        return false;
+      }
+      if (status === "unsupported" || status === "error") {
+        const ok = confirm("이 브라우저에서는 얼굴 검사를 지원하지 않습니다. 강제로 진행할까요?");
+        if (!ok) return false;
+      }
+    }
+    return true;
   };
 
   const setRandomPersona = (idx: number) => {
@@ -184,12 +255,9 @@ export default function Home() {
     setIsRandomLoading(true);
     try {
         const response = await axios.get(`${API_BASE}/random-prompt`);
-        if (activeTab === "single") setPrompt(response.data.prompt);
-        else setStoryTopic(response.data.prompt);
-    } catch (err) {
-        const random = SAMPLE_PROMPTS[Math.floor(Math.random() * SAMPLE_PROMPTS.length)];
-        if (activeTab === "single") setPrompt(random);
-        else setStoryTopic(random);
+        setStoryTopic(response.data.prompt);
+    } catch {
+        setStoryTopic("");
     } finally {
         setIsRandomLoading(false);
     }
@@ -203,7 +271,7 @@ export default function Home() {
             data: { storyTopic, storyDuration, storyLanguage, storyScenes, characters, narratorVoice, selectedStyles, aspectRatio: resolution, selectedLora, negativePrompt, overlaySettings }
         });
         setProjectId(res.data.id); fetchData(); alert("Saved!");
-    } catch (e) { alert("Save failed"); }
+    } catch { alert("Save failed"); }
   };
 
   const handleLoadProject = async (id: string) => {
@@ -213,51 +281,24 @@ export default function Home() {
         setProjectId(res.data.id);
         setStoryTopic(c.storyTopic); setStoryDuration(c.storyDuration); setStoryLanguage(c.storyLanguage);
         setStoryScenes(c.storyScenes); 
-        if (c.characters) setCharacters(c.characters);
+        if (c.characters) {
+            setCharacters(c.characters.map((char: Character) => ({
+                ...char,
+                faceCheckStatus: char.faceCheckStatus || "unchecked"
+            })));
+        }
         if (c.narratorVoice) setNarratorVoice(c.narratorVoice);
         setSelectedStyles(c.selectedStyles || []); setResolution(c.aspectRatio || "shorts");
-        setSelectedLora(c.selectedLora || ""); setNegativePrompt(c.negativePrompt || "low quality...");
+        if (Array.isArray(c.selectedLora)) {
+            setSelectedLora(c.selectedLora);
+        } else if (typeof c.selectedLora === "string" && c.selectedLora) {
+            setSelectedLora([c.selectedLora]);
+        } else {
+            setSelectedLora([]);
+        }
+        setNegativePrompt(c.negativePrompt || "low quality...");
         if (c.overlaySettings) setOverlaySettings(c.overlaySettings);
-        setActiveTab("storyboard");
-    } catch (e) { alert("Load failed"); }
-  };
-
-  const handleTranslateSingle = async () => {
-    if (!prompt) return;
-    setIsTranslatingSingle(true);
-    try {
-        const res = await axios.post(`${API_BASE}/prompt/translate`, {
-            text: prompt,
-            styles: selectedStyles
-        });
-        setTranslatedSinglePrompt(res.data.translated_prompt);
-    } catch (e) { console.error(e); alert("Translation failed"); } finally { setIsTranslatingSingle(false); }
-  };
-
-  const handleGenerate = async () => {
-    if (!prompt) return;
-    setLoading(true); setImageUrl(null); setTranslatedPrompt(null); setActiveNegativePrompt(null);
-    try {
-      const size = RESOLUTIONS[resolution];
-      const finalPrompt = translatedSinglePrompt || prompt;
-      const skipOpt = !!translatedSinglePrompt;
-
-      const response = await axios.post(`${API_BASE}/generate`, {
-        prompt: `${finalPrompt}, masterpiece, best quality`, 
-        persona: null,
-        lora: selectedLora || null, 
-        negative_prompt: negativePrompt,
-        styles: selectedStyles, 
-        width: size.w, height: size.h, 
-        seed: -1,
-        skip_optimization: skipOpt
-      });
-      if (response.data.images?.[0]) {
-        setImageUrl(`data:image/png;base64,${response.data.images[0]}`);
-        setTranslatedPrompt(response.data.translated_prompt);
-        setActiveNegativePrompt(response.data.negative_prompt);
-      }
-    } catch (e) { alert("Error"); } finally { setLoading(false); }
+    } catch { alert("Load failed"); }
   };
 
   const handleTranslateActor = async (idx: number) => {
@@ -291,7 +332,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
-      updateCharacter(idx, "reference_image", result);
+      void setReferenceImageWithCheck(idx, result);
       // Automatically analyze the uploaded face to update text description
       analyzeCharacter(idx, result);
     };
@@ -303,46 +344,29 @@ export default function Home() {
     if (!char.desc) return;
     updateCharacter(idx, "isLoading", true);
     try {
+        let portraitDesc = char.translatedDesc;
+        if (!portraitDesc) {
+            const tr = await axios.post(`${API_BASE}/prompt/translate`, {
+                text: char.desc,
+                styles: selectedStyles
+            });
+            portraitDesc = tr.data.translated_prompt || char.desc;
+            updateCharacter(idx, "translatedDesc", portraitDesc);
+        }
         const res = await axios.post(`${API_BASE}/character/portrait`, {
-            description: char.translatedDesc || char.desc,
+            description: portraitDesc || char.desc,
             width: 512,
             height: 512,
             styles: selectedStyles
         });
         if (res.data.image) {
-            updateCharacter(idx, "reference_image", `data:image/png;base64,${res.data.image}`);
+            void setReferenceImageWithCheck(idx, `data:image/png;base64,${res.data.image}`);
         }
-    } catch (e) {
+    } catch {
         alert("Portrait generation failed");
     } finally {
         updateCharacter(idx, "isLoading", false);
     }
-  };
-
-  const handleGenerateActor = async (idx: number) => {
-    const char = characters[idx];
-    updateCharacter(idx, "isLoading", true);
-    try {
-      const size = RESOLUTIONS[resolution];
-      const finalPrompt = char.translatedDesc || `Character reference: ${char.desc}`;
-      const skipOpt = !!char.translatedDesc;
-
-      const res = await axios.post(`${API_BASE}/generate`, {
-        prompt: finalPrompt, 
-        styles: selectedStyles, 
-        lora: selectedLora || null, 
-        width: size.w, height: size.h, 
-        seed: -1, 
-        skip_optimization: skipOpt, 
-        negative_prompt: negativePrompt,
-        reference_image: char.reference_image
-      });
-      if (res.data.images?.[0]) {
-        updateCharacter(idx, "image", `data:image/png;base64,${res.data.images[0]}`);
-        updateCharacter(idx, "seed", res.data.seed);
-      }
-    } catch (e) { alert("Character failed"); } 
-    finally { updateCharacter(idx, "isLoading", false); }
   };
 
   const handleCreateStoryboard = async () => {
@@ -358,11 +382,18 @@ export default function Home() {
         characters: characters 
       });
       setStoryScenes(res.data.scenes || []);
-      setCurrentStep(1); 
-    } catch (e) { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
+    } catch { alert("AI Planning failed"); } finally { setIsStoryLoading(false); }
   };
 
   const startAutopilot = async () => {
+    const neededChars = new Set<number>();
+    storyScenes.forEach((scene) => {
+      const focus = scene.visual_focus || "A";
+      if (focus === "A" || focus === "Both") neededChars.add(0);
+      if (focus === "B" || focus === "Both") neededChars.add(1);
+    });
+    if (!(await confirmFaceUsage(Array.from(neededChars)))) return;
+
     setIsAutopilotRunning(true); setAutopilotProgress(0);
     const newScenes = [...storyScenes]; const size = RESOLUTIONS[resolution];
     
@@ -387,9 +418,21 @@ export default function Home() {
                 seedToUse = charB.seed;
                 refImageToUse = charB.reference_image;
             } else if (focus === "Both") {
-                charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
-                seedToUse = charA.seed; 
-                refImageToUse = null; // Disable IP-Adapter for duo scenes to avoid identity conflict
+                const res = await axios.post(`${API_BASE}/generate/compose_dual`, {
+                    scene_prompt: scene.image_prompt,
+                    char_a_prompt: charA.translatedDesc || charA.desc,
+                    char_b_prompt: charB.translatedDesc || charB.desc,
+                    char_a_ref: charA.reference_image || null,
+                    char_b_ref: charB.reference_image || null,
+                    negative_prompt: negativePrompt,
+                    styles: selectedStyles,
+                    lora: selectedLora.length ? selectedLora : null,
+                    width: size.w,
+                    height: size.h
+                });
+                if (res.data.image) { newScenes[i].image_url = `data:image/png;base64,${res.data.image}`; setStoryScenes([...newScenes]); }
+                setAutopilotProgress(((i + 1) / newScenes.length) * 100);
+                continue;
             } else { 
                 charPrompt = "(No humans:1.2), (Scenery:1.3)";
                 seedToUse = -1;
@@ -402,14 +445,14 @@ export default function Home() {
                 persona: null, 
                 negative_prompt: negativePrompt,
                 styles: selectedStyles, 
-                lora: selectedLora || null, 
+                lora: selectedLora.length ? selectedLora : null, 
                 width: size.w, height: size.h, 
                 seed: seedToUse,
                 reference_image: refImageToUse
             });
             if (res.data.images?.[0]) { newScenes[i].image_url = `data:image/png;base64,${res.data.images[0]}`; setStoryScenes([...newScenes]); }
             setAutopilotProgress(((i + 1) / newScenes.length) * 100);
-        } catch (e) { console.error("Scene error"); }
+        } catch (err) { console.error("Scene error", err); }
     }
     setIsAutopilotRunning(false);
   };
@@ -436,7 +479,7 @@ export default function Home() {
         narrator_voice: narratorVoice
       });
       setVideoUrl(res.data.video_url); fetchData();
-    } catch (e) { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
+    } catch { alert("Video failed"); } finally { setIsVideoLoading(false); setVideoStatus(""); }
   };
 
   const handlePreviewVoice = async (idx: number) => {
@@ -450,7 +493,7 @@ export default function Home() {
         
         const res = await axios.post(`${API_BASE}/audio/preview`, { text: scene.script, voice: voiceToUse });
         if (audioRef.current) { audioRef.current.src = res.data.url; audioRef.current.play().catch(() => {}); }
-    } catch (e) { console.error("Preview fail"); } finally { setPreviewLoadingIndex(null); }
+    } catch (err) { console.error("Preview fail", err); } finally { setPreviewLoadingIndex(null); }
   };
 
   const handleRegenerateScene = async (idx: number) => {
@@ -473,12 +516,31 @@ export default function Home() {
           seedToUse = charB.seed;
           refImageToUse = charB.reference_image;
       } else if (focus === "Both") {
-          charPrompt = `(Two people:1.3), (${charA.translatedDesc || charA.desc}:0.9) AND (${charB.translatedDesc || charB.desc}:0.9)`;
-          seedToUse = charA.seed;
-          refImageToUse = charA.reference_image;
+          if (!(await confirmFaceUsage([0, 1]))) return;
+          const res = await axios.post(`${API_BASE}/generate/compose_dual`, {
+            scene_prompt: scene.image_prompt,
+            char_a_prompt: charA.translatedDesc || charA.desc,
+            char_b_prompt: charB.translatedDesc || charB.desc,
+            char_a_ref: charA.reference_image || null,
+            char_b_ref: charB.reference_image || null,
+            negative_prompt: negativePrompt,
+            styles: selectedStyles,
+            lora: selectedLora.length ? selectedLora : null,
+            width: size.w,
+            height: size.h
+          });
+          if (res.data.image) {
+            const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.image}`;
+            setStoryScenes(updated);
+          }
+          return;
       } else { 
           charPrompt = "(No humans:1.2), (Scenery:1.3)";
           seedToUse = -1;
+      }
+
+      if (focus === "A" || focus === "B") {
+        if (!(await confirmFaceUsage([focus === "A" ? 0 : 1]))) return;
       }
 
       const combinedPrompt = `${charPrompt}, ${scene.image_prompt}, masterpiece, best quality`;
@@ -488,7 +550,7 @@ export default function Home() {
         persona: null,
         negative_prompt: negativePrompt,
         styles: selectedStyles, 
-        lora: selectedLora || null, 
+        lora: selectedLora.length ? selectedLora : null, 
         width: size.w, height: size.h, 
         seed: seedToUse,
         reference_image: refImageToUse
@@ -497,14 +559,7 @@ export default function Home() {
         const updated = [...storyScenes]; updated[idx].image_url = `data:image/png;base64,${res.data.images[0]}`;
         setStoryScenes(updated);
       }
-    } catch (e) { alert("Regen fail"); } finally { setRegeneratingIndex(null); }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleGenerate();
-    }
+    } catch { alert("Regen fail"); } finally { setRegeneratingIndex(null); }
   };
 
   // --- Visual Settings Component (Global Sidebar) ---
@@ -562,14 +617,56 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-3">
-                <label className="text-xs font-bold uppercase tracking-widest text-zinc-400"><Wand2 className="w-3.5 h-3.5 inline-block mr-1" /> LoRA Model</label>
+                <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-widest text-zinc-400"><Wand2 className="w-3.5 h-3.5 inline-block mr-1" /> LoRA Models</label>
+                    {selectedLora.length > 0 && (
+                        <button onClick={() => setSelectedLora([])} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors">Clear</button>
+                    )}
+                </div>
                 <div className="relative">
-                    <select value={selectedLora} onChange={(e) => setSelectedLora(e.target.value)} className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium appearance-none focus:ring-1 focus:ring-zinc-400">
-                        <option value="">None (Default)</option>
-                        {lorasList.map(lora => <option key={lora} value={lora}>{lora}</option>)}
-                    </select>
+                    <input
+                        value={loraSearch}
+                        onChange={(e) => setLoraSearch(e.target.value)}
+                        placeholder="Search LoRA..."
+                        className="w-full p-2.5 pl-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-medium focus:ring-1 focus:ring-zinc-400"
+                    />
                     <Settings2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                 </div>
+                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                    {lorasList
+                        .filter((lora) => lora.toLowerCase().includes(loraSearch.toLowerCase()))
+                        .map((lora) => {
+                            const active = selectedLora.includes(lora);
+                            return (
+                                <button
+                                    key={lora}
+                                    onClick={() => {
+                                        if (active) {
+                                            setSelectedLora(selectedLora.filter((item) => item !== lora));
+                                        } else {
+                                            setSelectedLora([...selectedLora, lora]);
+                                        }
+                                    }}
+                                    className={`px-2.5 py-2 rounded-xl text-[11px] font-semibold border transition-all text-left ${active ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white" : "bg-zinc-50 text-zinc-500 border-transparent hover:border-zinc-200 dark:bg-zinc-800"}`}
+                                >
+                                    {lora}
+                                </button>
+                            );
+                        })}
+                </div>
+                {selectedLora.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {selectedLora.map((lora) => (
+                            <button
+                                key={lora}
+                                onClick={() => setSelectedLora(selectedLora.filter((item) => item !== lora))}
+                                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            >
+                                {lora} ×
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="flex flex-col gap-3">
@@ -625,12 +722,6 @@ export default function Home() {
             </div>
 
             <div className="lg:col-span-8 flex flex-col gap-6">
-                <div className="flex items-center gap-2 p-1 bg-zinc-200 dark:bg-zinc-800 rounded-xl mb-4 shadow-inner w-fit">
-                    <button onClick={() => setActiveTab("single")} className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === "single" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}><LucideImage className="w-4 h-4" /> Single Image</button>
-                    <button onClick={() => setActiveTab("storyboard")} className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === "storyboard" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}><Clapperboard className="w-4 h-4" /> Storyboard Mode</button>
-                </div>
-
-                {activeTab === "storyboard" ? (
                 <div className="w-full flex flex-col gap-10">
                     {/* Step 1: Cast & Characters (Redesigned) */}
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -647,7 +738,7 @@ export default function Home() {
 
                                 {/* Character Image Preview (Unified) */}
                                 <div 
-                                    className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all group ${char.reference_image ? "cursor-zoom-in" : ""}`}
+                                    className={`aspect-square relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 shrink-0 shadow-inner transition-all group ${char.reference_image ? "cursor-zoom-in" : ""} ${char.faceCheckStatus === "fail" ? "ring-2 ring-red-400/70" : ""}`}
                                     onClick={() => char.reference_image && setPreviewImage(char.reference_image)}
                                 >
                                     {char.isLoading ? (
@@ -661,28 +752,31 @@ export default function Home() {
                                                 <button onClick={() => { setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all" title="Replace Photo">
                                                     <Upload className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => updateCharacter(idx, "reference_image", null)} className="p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white backdrop-blur-md transition-all" title="Remove">
+                                                <button onClick={() => void setReferenceImageWithCheck(idx, null)} className="p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white backdrop-blur-md transition-all" title="Remove">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                             <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-bold z-10 pointer-events-none">
                                                 Reference Face
                                             </div>
+                                            {char.faceCheckStatus !== "unchecked" && (
+                                              <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-lg text-[10px] font-bold z-10 pointer-events-none ${char.faceCheckStatus === "ok" ? "bg-green-600/80 text-white" : char.faceCheckStatus === "checking" ? "bg-zinc-700/80 text-white" : char.faceCheckStatus === "fail" ? "bg-red-600/80 text-white" : "bg-amber-500/80 text-white"}`}>
+                                                {char.faceCheckStatus === "checking" && "Face 체크 중"}
+                                                {char.faceCheckStatus === "ok" && "Face OK"}
+                                                {char.faceCheckStatus === "fail" && "얼굴 인식 실패"}
+                                                {char.faceCheckStatus === "unsupported" && "Face 검사 미지원"}
+                                                {char.faceCheckStatus === "error" && "Face 검사 실패"}
+                                              </div>
+                                            )}
                                         </>
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
                                             <div className="w-12 h-12 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
                                                 <UserCircle className="w-6 h-6" />
                                             </div>
-                                            <div className="flex flex-col gap-2 w-full">
-                                                <button onClick={(e) => { e.stopPropagation(); setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shadow-sm">
-                                                    Upload Photo
-                                                </button>
-                                                <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">- OR -</span>
-                                                <button onClick={(e) => { e.stopPropagation(); handleGeneratePortrait(idx); }} disabled={!char.desc} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all border border-indigo-100 dark:border-indigo-900/30">
-                                                    Generate AI Face
-                                                </button>
-                                            </div>
+                                            <button onClick={(e) => { e.stopPropagation(); setUploadingCharIdx(idx); fileInputRef.current?.click(); }} className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shadow-sm">
+                                                Upload Photo
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -887,131 +981,6 @@ export default function Home() {
                     </div>
                     )}
                 </div>
-                ) : (
-                <div className="w-full max-w-[420px] mx-auto flex flex-col gap-6">
-                    {/* Shorts/TikTok Style Preview Container */}
-                    <div className="relative w-full aspect-[9/16] bg-black rounded-[32px] overflow-hidden border border-zinc-800 shadow-2xl">
-                        
-                        {/* 1. Main Image Content */}
-                        <div 
-                            className={`relative w-full h-full flex flex-col items-center justify-center transition-all bg-zinc-900 ${imageUrl ? "cursor-zoom-in" : ""}`}
-                            onClick={() => imageUrl && setPreviewImage(imageUrl)}
-                        >
-                            {loading ? (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-900/80 backdrop-blur-sm z-10">
-                                    <Loader2 className="w-10 h-10 animate-spin text-zinc-400" />
-                                    <p className="text-xs font-bold text-zinc-500 animate-pulse uppercase tracking-widest">Generating...</p>
-                                </div>
-                            ) : imageUrl ? (
-                                <Image src={imageUrl} alt="Generated" fill className="object-cover animate-in fade-in duration-700" unoptimized />
-                            ) : (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-zinc-600 font-bold uppercase text-[10px] opacity-60">
-                                    <div className="w-20 h-20 rounded-full border-2 border-zinc-700 border-dashed flex items-center justify-center">
-                                        <ImageIcon className="w-8 h-8" />
-                                    </div>
-                                    <p>Preview Area</p>
-                                </div>
-                            )}
-                            
-                            {/* Gradient Overlay for Text Readability */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80 pointer-events-none z-10" />
-                        </div>
-
-                        {/* 2. Overlays (Shorts UI) - Conditional on Settings */}
-                        {overlaySettings.enabled && (
-                            <div className="absolute inset-0 z-20 pointer-events-none p-4 flex flex-col justify-between">
-                                {/* Top Bar */}
-                                <div className="flex justify-between items-start pt-2">
-                                    <div className="bg-black/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white/80 border border-white/10">
-                                        Shorts Preview
-                                    </div>
-                                    <MoreHorizontal className="w-6 h-6 text-white drop-shadow-md" />
-                                </div>
-
-                                {/* Right Side Actions */}
-                                <div className="absolute right-4 bottom-24 flex flex-col gap-6 items-center">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className="w-10 h-10 bg-zinc-800 rounded-full p-0.5 border border-white/20 overflow-hidden">
-                                             <div className="w-full h-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center">
-                                                <User className="w-5 h-5 text-white" />
-                                             </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1">
-                                        <Heart className="w-7 h-7 text-white drop-shadow-lg fill-white/10" />
-                                        <span className="text-[10px] font-bold text-white drop-shadow-md">{overlaySettings.likes_count}</span>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1">
-                                        <MessageCircle className="w-7 h-7 text-white drop-shadow-lg" />
-                                        <span className="text-[10px] font-bold text-white drop-shadow-md">1.2k</span>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1">
-                                        <Bookmark className="w-7 h-7 text-white drop-shadow-lg" />
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1">
-                                        <Send className="w-7 h-7 text-white drop-shadow-lg -rotate-45" />
-                                    </div>
-                                </div>
-
-                                {/* Bottom Info */}
-                                <div className="flex flex-col gap-2 mb-4 pr-16 pl-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-white text-sm drop-shadow-md">@{overlaySettings.profile_name}</span>
-                                        <CheckCircle2 className="w-3 h-3 text-blue-400 bg-white rounded-full" />
-                                    </div>
-                                    <p className="text-white/90 text-xs font-medium leading-tight drop-shadow-md line-clamp-2">
-                                        {overlaySettings.caption}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-1 opacity-80">
-                                        <Music className="w-3 h-3 text-white animate-spin-slow" />
-                                        <span className="text-[10px] text-white font-medium scrolling-text">Original Sound - Shorts.AI Music</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 3. Control Panel (Prompt Input) */}
-                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                             <label className="text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                                <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Prompt Input
-                             </label>
-                             <div className="flex gap-2">
-                                <button onClick={setRandomPrompt} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-800 transition-colors bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg">
-                                    Random
-                                </button>
-                                <button onClick={handleTranslateSingle} disabled={isTranslatingSingle} className="text-[10px] font-bold text-zinc-400 hover:text-indigo-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg flex items-center gap-1">
-                                    {isTranslatingSingle ? <Loader2 className="w-3 h-3 animate-spin" /> : "Translate"}
-                                </button>
-                             </div>
-                        </div>
-                        <div className="relative">
-                            <textarea 
-                                className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950 border-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none text-sm leading-relaxed min-h-[100px]" 
-                                placeholder="Describe your image here..." 
-                                value={prompt} 
-                                onChange={(e) => setPrompt(e.target.value)} 
-                                onKeyDown={handleKeyDown}
-                                disabled={loading}
-                            />
-                            <button 
-                                onClick={handleGenerate} 
-                                disabled={loading || !prompt} 
-                                className="absolute bottom-3 right-3 p-2 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
-                            >
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                            </button>
-                        </div>
-                        {translatedSinglePrompt && (
-                            <div className="mt-3 p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-                                <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Translated</p>
-                                <p className="text-xs text-indigo-900 dark:text-indigo-100 font-medium">{translatedSinglePrompt}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                )}
             </div>
         </div>
 
@@ -1048,7 +1017,7 @@ export default function Home() {
                         {projects.length === 0 ? (
                             <div className="text-center py-20 text-zinc-400 text-sm font-medium">No saved projects found.</div>
                         ) : (
-                            projects.map((proj: any) => (
+                            projects.map((proj: Project) => (
                                 <div key={proj.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-indigo-500 transition-all group">
                                     <div>
                                         <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{proj.title}</h4>
@@ -1078,12 +1047,19 @@ export default function Home() {
                     <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all backdrop-blur-sm z-50 group">
                         <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
                     </button>
-                    <img 
-                        src={previewImage} 
-                        alt="Preview" 
-                        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 select-none" 
-                        onClick={(e) => e.stopPropagation()} 
-                    />
+                    <div
+                        className="relative w-full h-full max-w-6xl max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Image
+                            src={previewImage}
+                            alt="Preview"
+                            fill
+                            sizes="(max-width: 1024px) 100vw, 1024px"
+                            className="object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 select-none"
+                            unoptimized
+                        />
+                    </div>
                 </div>
             </div>
         )}
