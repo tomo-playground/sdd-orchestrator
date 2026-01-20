@@ -1,1804 +1,1670 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Any, Dict
-from typing import Optional
-import httpx
-try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except Exception:
-    NUMPY_AVAILABLE = False
-try:
-    import cv2
-    OPENCV_AVAILABLE = True
-except Exception:
-    OPENCV_AVAILABLE = False
-try:
-    import mediapipe as mp
-    if hasattr(mp, "solutions"):
-        mp_solutions = mp.solutions
-        MEDIAPIPE_AVAILABLE = True
-    else:
-        mp_solutions = None
-        MEDIAPIPE_AVAILABLE = False
-except Exception:
-    mp_solutions = None
-    MEDIAPIPE_AVAILABLE = False
-try:
-    from mediapipe.tasks.python import BaseOptions
-    from mediapipe.tasks.python.vision import FaceDetector, FaceDetectorOptions
-    MEDIAPIPE_TASKS_AVAILABLE = True
-except Exception:
-    MEDIAPIPE_TASKS_AVAILABLE = False
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-import logging
-import time
-import os
-import hashlib
-import pathlib
-import json
+from __future__ import annotations
+
 import base64
-import subprocess
+import io
+import csv
+import hashlib
+import json
+import logging
+import os
+import pathlib
 import re
 import shutil
+import subprocess
 import textwrap
-import io
-from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv
-from google import genai
-from jinja2 import Environment, FileSystemLoader
-import edge_tts
-from gradio_client import Client as GradioClient
-from PIL import Image, ImageDraw, ImageFont
+import time
+from typing import Any
 
-# 환경 변수 로드
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from google import genai
+from google.genai import types
+import httpx
+from jinja2 import Environment, FileSystemLoader
+import numpy as np
+import onnxruntime as ort
+from pydantic import BaseModel, ConfigDict
+import edge_tts
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+
 load_dotenv()
 
-# 로깅 설정
+LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
+LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}
+handlers = [logging.StreamHandler()]
+if LOG_TO_FILE:
+    log_path = pathlib.Path(LOG_FILE)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    handlers.append(logging.FileHandler(log_path, encoding="utf-8"))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=handlers,
 )
 logger = logging.getLogger("backend")
+if LOG_TO_FILE:
+    log_path = pathlib.Path(LOG_FILE)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+        file_handler = logging.FileHandler(log_path, encoding="utf-8")
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        logger.addHandler(file_handler)
+        logger.propagate = True
+        logger.info("File logging enabled: %s", log_path)
 
-# --- 전역 상수 ---
-SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
-SD_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
-SD_IMG2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/img2img"
-SD_LORA_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
-SD_CONFIG_URL = f"{SD_BASE_URL}/sdapi/v1/options"
-SD_CONTROLNET_VERSION_URL = f"{SD_BASE_URL}/controlnet/version"
-SD_CONTROLNET_SETTINGS_URL = f"{SD_BASE_URL}/controlnet/settings"
-DEFAULT_NEGATIVE_PROMPT = "low quality, worst quality, bad anatomy, deformed, disfigured, bad proportions, bad hands, missing fingers, extra fingers, fused fingers, extra limbs, missing limbs, long neck, bad face, ugly, duplicate, extra person, multiple people, crowd, text, watermark, logo, signature, blurry, out of focus, jpeg artifacts, artifacts, oversaturated, overexposed, high contrast, cartoon, cgi, render, 3d, monochrome, muted colors, gender swap, androgynous, nsfw, nude, naked, lingerie"
-SAFETY_NEGATIVE_PROMPT = "nsfw, nude, naked, topless, shirtless, underwear, lingerie, explicit, sexual, suggestive, fetish"
-CONTROLNET_PRESET = {
-    "single_face_id": [
-        {
-            "module": "ip-adapter_face_id_plus",
-            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-            "weight": 0.8
-        }
-    ],
-    "dual_person_inpaint": [
-        {
-            "module": "openpose_full",
-            "model": "control_v11p_sd15_openpose [cab727d4]",
-            "weight": 0.5
-        },
-        {
-            "module": "depth",
-            "model": "control_v11f1p_sd15_depth [cfd03158]",
-            "weight": 0.4
-        },
-        {
-            "module": "inpaint",
-            "model": "control_v11p_sd15_inpaint [ebff9138]",
-            "weight": 0.8
-        },
-        {
-            "module": "ip-adapter_face_id_plus",
-            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-            "weight": 0.9
-        }
-    ],
-    "dual_face_refine": [
-        {
-            "module": "ip-adapter_face_id_plus",
-            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-            "weight": 0.95
-        },
-        {
-            "module": "inpaint",
-            "model": "control_v11p_sd15_inpaint [ebff9138]",
-            "weight": 0.8
-        }
-    ]
-}
-
-# 디렉토리 설정
-CACHE_DIR = pathlib.Path(".cache")
 OUTPUT_DIR = pathlib.Path("outputs")
 IMAGE_DIR = OUTPUT_DIR / "images"
 VIDEO_DIR = OUTPUT_DIR / "videos"
-AUDIO_DIR = pathlib.Path("assets/audio")
-PROJECTS_DIR = pathlib.Path("projects")
-FACE_MODEL_PATH = pathlib.Path("assets/face_detector.tflite")
+CACHE_DIR = OUTPUT_DIR / "cache"
+CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "86400"))
+ASSETS_DIR = pathlib.Path("assets")
+AUDIO_DIR = ASSETS_DIR / "audio"
+OVERLAY_DIR = ASSETS_DIR / "overlay"
 
-for d in [CACHE_DIR, IMAGE_DIR, VIDEO_DIR, AUDIO_DIR, PROJECTS_DIR]:
+for d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CACHE_DIR, AUDIO_DIR, OVERLAY_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
-# Jinja2 설정
-template_env = Environment(loader=FileSystemLoader("templates"))
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"] ,
+    allow_headers=["*"] ,
+)
 
-# Gemini 초기화
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-gemini_client = None
-if GEMINI_API_KEY:
-    try:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-        logger.info("✨ [Gemini] 클라이언트 초기화 성공")
-    except Exception as e:
-        logger.error(f"❌ [Gemini] 초기화 실패: {e}")
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
-# 데이터 모델
-class OverlaySettings(BaseModel):
-    enabled: bool = False
-    profile_name: str = "Daily_Romance"
-    likes_count: str = "12.5k"
-    caption: str = "설레는 순간들... #럽스타그램"
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
+SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
+SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
+SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
+SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
+SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
+WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
+WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 
-class CharacterInfo(BaseModel):
-    id: int
-    role: str
-    desc: str
-    translatedDesc: str = ""
-    voice: str
-    seed: int = -1
+_WD14_SESSION: ort.InferenceSession | None = None
+_WD14_TAGS: list[str] | None = None
+_WD14_TAG_CATEGORIES: list[str] | None = None
+_KEYWORD_SYNONYMS: dict[str, set[str]] = {}
+_KEYWORD_IGNORE: set[str] = set()
+_KEYWORD_CATEGORIES: dict[str, list[str]] = {}
 
-class GenerateRequest(BaseModel):
-    prompt: str
-    persona: str | None = None
-    lora: list[str] | str | None = None
-    negative_prompt: str | None = None
-    styles: list[str] = []
-    width: int = 512
-    height: int = 512
-    sampler_name: Optional[str] = "DPM++ 2M Karras" # Better for quality
-    cfg_scale: Optional[float] = 7
-    seed: int = -1
-    steps: int = 30 # Increased for detail
-    skip_optimization: bool = False
-    reference_image: str | None = None # Base64 string for IP-Adapter
-    use_ip_adapter: bool = True
-
-class PortraitRequest(BaseModel):
-    description: str
-    width: int = 512
-    height: int = 512
-    styles: list[str] = []
-
-class ReferenceSingleRequest(BaseModel):
-    prompt: str
-    width: int = 768
-    height: int = 768
-    styles: list[str] = []
-    negative_prompt: str | None = None
-    steps: int = 30
-    sampler_name: str = "DPM++ 2M Karras"
-    cfg_scale: float = 7
-    seed: int = -1
-    reference_image: str | None = None
-    use_ip_adapter: bool = True
-    ip_adapter_weight: float = 0.85
-    use_pose: bool = False
-    pose_side: str = "center"
-    pose_weight: float = 0.7
-    pose_view: str = "front"
-
-class AnalyzeRequest(BaseModel):
-    image: str
-
-class PromptTranslateRequest(BaseModel):
-    text: str
-    styles: list[str] = []
-    persona: str | None = None
 
 class StoryboardRequest(BaseModel):
     topic: str
-    duration: int = 30
-    style: str = "Cinematic"
+    duration: int = 10
+    style: str = "Anime"
     language: str = "Korean"
-    structure: str = "Free Flow" # Narrative Pattern
-    characters: list[CharacterInfo] = []
+    structure: str = "Monologue"
+    actor_a_gender: str = "female"
+
+
+class StoryboardScene(BaseModel):
+    scene_id: int
+    script: str
+    speaker: str = "Narrator"
+    duration: float = 3
+    image_prompt: str = ""
+    image_prompt_ko: str = ""
+
+    model_config = ConfigDict(extra="allow")
+
+
+class VideoScene(BaseModel):
+    image_url: str
+    script: str = ""
+    speaker: str = "Narrator"
+    duration: float = 3
+
+    model_config = ConfigDict(extra="allow")
+
+
+class OverlaySettings(BaseModel):
+    enabled: bool = False
+    profile_name: str = "daily_shorts"
+    likes_count: str = "12.5k"
+    caption: str = "Amazing video! #shorts"
+    frame_style: str = "overlay_minimal.png"
+
 
 class VideoRequest(BaseModel):
-    scenes: list[dict]
+    scenes: list[VideoScene]
     project_name: str = "my_shorts"
     bgm_file: str | None = None
     width: int = 1080
     height: int = 1920
-    overlay_settings: OverlaySettings | None = None
-    characters: list[CharacterInfo] = []
+    layout_style: str = "full"
+    motion_style: str = "none"
     narrator_voice: str = "ko-KR-SunHiNeural"
     speed_multiplier: float = 1.0
+    include_subtitles: bool = True
+    overlay_settings: OverlaySettings | None = None
 
-class ProjectSaveRequest(BaseModel):
-    id: str | None = None
-    title: str
-    data: dict
 
-class WebUIOptionsUpdateRequest(BaseModel):
-    options: Dict[str, Any]
-
-class WebUISettingsUpdateRequest(BaseModel):
-    sd_model_checkpoint: str | None = None
-    options: Dict[str, Any] | None = None
-
-class AudioGenerateRequest(BaseModel):
+class SceneGenerateRequest(BaseModel):
     prompt: str
-
-class AudioPreviewRequest(BaseModel):
-    text: str
-    voice: str
-
-class FaceCheckRequest(BaseModel):
-    image: str
-
-class WebUIComposeTestRequest(BaseModel):
-    prompt: str = "two people sitting in a cafe, cinematic lighting"
-    width: int = 512
-    height: int = 512
-    steps: int = 10
-    cfg_scale: float = 6
-    denoising_strength: float = 0.6
-
-class DualComposeRequest(BaseModel):
-    scene_prompt: str
-    char_a_prompt: str
-    char_b_prompt: str
-    char_a_ref: str | None = None
-    char_b_ref: str | None = None
-    negative_prompt: str | None = None
-    styles: list[str] = []
-    lora: list[str] | str | None = None
-    width: int = 512
-    height: int = 512
+    negative_prompt: str = ""
     steps: int = 24
-    cfg_scale: float = 6
-    denoising_strength: float = 0.55
-    strict_identity: bool = True
-    use_ip_adapter: bool = True
+    cfg_scale: float = 7.0
+    sampler_name: str = "DPM++ 2M Karras"
+    seed: int = -1
+    width: int = 512
+    height: int = 512
+    clip_skip: int = 2
+    enable_hr: bool = False
+    hr_scale: float = 1.5
+    hr_upscaler: str = "Latent"
+    hr_second_pass_steps: int = 10
+    denoising_strength: float = 0.25
 
-# 유틸리티 함수
-def get_audio_duration(path):
+
+class SceneValidateRequest(BaseModel):
+    image_b64: str
+    prompt: str = ""
+    mode: str = "wd14"
+
+
+class PromptRewriteRequest(BaseModel):
+    base_prompt: str
+    scene_prompt: str
+    style: str = "Anime"
+    mode: str = "compose"
+
+
+class PromptSplitRequest(BaseModel):
+    example_prompt: str
+    style: str = "Anime"
+
+
+class SDModelRequest(BaseModel):
+    sd_model_checkpoint: str
+
+
+class KeywordApproveRequest(BaseModel):
+    tag: str
+    category: str
+
+def decode_data_url(data_url: str) -> bytes:
+    if not data_url:
+        raise ValueError("Empty image data")
+    b64 = data_url.split(",", 1)[1] if "," in data_url else data_url
+    return base64.b64decode(b64)
+
+
+def normalize_prompt_token(token: str) -> str:
+    cleaned = token.strip()
+    if not cleaned:
+        return ""
+    if cleaned.startswith("<") and cleaned.endswith(">"):
+        return ""
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        cleaned = cleaned[1:-1]
+    cleaned = re.sub(r":[0-9.]+$", "", cleaned)
+    cleaned = cleaned.replace("_", " ")
+    return cleaned.strip().lower()
+
+
+def load_keyword_map() -> tuple[dict[str, set[str]], set[str], dict[str, list[str]]]:
+    global _KEYWORD_SYNONYMS, _KEYWORD_IGNORE, _KEYWORD_CATEGORIES
+    if _KEYWORD_SYNONYMS or _KEYWORD_IGNORE or _KEYWORD_CATEGORIES:
+        return _KEYWORD_SYNONYMS, _KEYWORD_IGNORE, _KEYWORD_CATEGORIES
+
+    keyword_path = BASE_DIR / "keywords.json"
+    if not keyword_path.exists():
+        return {}, set(), {}
+    data = json.loads(keyword_path.read_text(encoding="utf-8"))
+    synonyms: dict[str, set[str]] = {}
+    for key, values in (data.get("synonyms") or {}).items():
+        base = normalize_prompt_token(key)
+        if not base:
+            continue
+        entries = {base}
+        for value in values or []:
+            normalized = normalize_prompt_token(value)
+            if normalized:
+                entries.add(normalized)
+        synonyms[base] = entries
+    ignore = {normalize_prompt_token(item) for item in data.get("ignore", [])}
+    categories = {}
+    for key, values in (data.get("categories") or {}).items():
+        normalized = [normalize_prompt_token(item) for item in (values or [])]
+        categories[key] = [item for item in normalized if item]
+    _KEYWORD_SYNONYMS = synonyms
+    _KEYWORD_IGNORE = {item for item in ignore if item}
+    _KEYWORD_CATEGORIES = categories
+    return _KEYWORD_SYNONYMS, _KEYWORD_IGNORE, _KEYWORD_CATEGORIES
+
+
+def expand_synonyms(tokens: list[str]) -> set[str]:
+    synonyms_map, _, _ = load_keyword_map()
+    expanded: set[str] = set()
+    for token in tokens:
+        if not token:
+            continue
+        expanded.add(token)
+        if token in synonyms_map:
+            expanded.update(synonyms_map[token])
+    return expanded
+
+
+def load_known_keywords() -> set[str]:
+    synonyms_map, ignore_tokens, categories = load_keyword_map()
+    known: set[str] = set(ignore_tokens)
+    for values in categories.values():
+        known.update(values)
+    for key, values in synonyms_map.items():
+        known.add(key)
+        known.update(values)
+    return {token for token in known if token}
+
+
+def update_keyword_suggestions(unknown_tags: list[str]) -> None:
+    if not unknown_tags:
+        return
+    suggestions_path = CACHE_DIR / "keyword_suggestions.json"
     try:
-        cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(path)]
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        return float(res.stdout.strip())
-    except: return 0
-
-def escape_dynamic_prompt(text: str | None) -> str | None:
-    if text is None:
-        return None
-    return text.replace("%", "%%")
-
-def log_prompt(label: str, prompt: str, negative: str | None, seed: int | None):
-    p = prompt.replace("\n", " ")
-    n = (negative or "").replace("\n", " ")
-    if len(p) > 240:
-        p = f"{p[:240]}..."
-    if len(n) > 240:
-        n = f"{n[:240]}..."
-    logger.info("📝 [%s] prompt='%s' negative='%s' seed=%s", label, p, n, seed)
-
-def scrub_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    redacted = {}
-    for k, v in payload.items():
-        if k in {"image", "reference_image", "mask"}:
-            redacted[k] = f"<base64:{len(v) if isinstance(v, str) else 'n/a'}>"
-        elif isinstance(v, list):
-            redacted[k] = f"<list:{len(v)}>"
-        elif isinstance(v, dict):
-            redacted[k] = "<dict>"
+        if suggestions_path.exists():
+            data = json.loads(suggestions_path.read_text(encoding="utf-8"))
         else:
-            redacted[k] = v
+            data = {}
+        for tag in unknown_tags:
+            data[tag] = int(data.get(tag, 0)) + 1
+        suggestions_path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    except Exception:
+        logger.exception("Failed to update keyword suggestions")
+
+
+def reset_keyword_cache() -> None:
+    global _KEYWORD_SYNONYMS, _KEYWORD_IGNORE, _KEYWORD_CATEGORIES
+    _KEYWORD_SYNONYMS = {}
+    _KEYWORD_IGNORE = set()
+    _KEYWORD_CATEGORIES = {}
+
+
+def load_keywords_file() -> dict[str, Any]:
+    keyword_path = BASE_DIR / "keywords.json"
+    if not keyword_path.exists():
+        raise FileNotFoundError("keywords.json not found")
+    return json.loads(keyword_path.read_text(encoding="utf-8"))
+
+
+def save_keywords_file(data: dict[str, Any]) -> None:
+    keyword_path = BASE_DIR / "keywords.json"
+    keyword_path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[str, Any]]:
+    suggestions_path = CACHE_DIR / "keyword_suggestions.json"
+    if not suggestions_path.exists():
+        return []
+    try:
+        data = json.loads(suggestions_path.read_text(encoding="utf-8"))
+    except Exception:
+        logger.exception("Failed to read keyword suggestions")
+        return []
+    known = load_known_keywords()
+    items = [
+        {"tag": tag, "count": int(count)}
+        for tag, count in data.items()
+        if int(count) >= min_count and tag not in known
+    ]
+    items.sort(key=lambda item: (-item["count"], item["tag"]))
+    return items[:max(1, limit)]
+
+
+def format_keyword_context() -> str:
+    _, _, categories = load_keyword_map()
+    if not categories:
+        return ""
+    lines = ["Allowed Keywords (use exactly as written):"]
+    for key in sorted(categories.keys()):
+        values = categories[key]
+        if not values:
+            continue
+        lines.append(f"- {key}: {', '.join(values)}")
+    return "\n".join(lines)
+
+
+def filter_prompt_tokens(prompt: str) -> str:
+    synonyms_map, ignore_tokens, categories = load_keyword_map()
+    allowed = {token for values in categories.values() for token in values}
+    if not allowed:
+        return normalize_prompt_tokens(prompt)
+    synonym_lookup = {
+        variant: base
+        for base, variants in synonyms_map.items()
+        for variant in variants
+    }
+    tokens = split_prompt_tokens(prompt)
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for token in tokens:
+        normalized = normalize_prompt_token(token)
+        if not normalized or normalized in ignore_tokens:
+            continue
+        base = None
+        if normalized in allowed:
+            base = normalized
+        elif normalized in synonym_lookup and synonym_lookup[normalized] in allowed:
+            base = synonym_lookup[normalized]
+        if base and base not in seen:
+            cleaned.append(base)
+            seen.add(base)
+    return ", ".join(cleaned)
+
+
+def parse_json_payload(text: str) -> dict[str, Any]:
+    cleaned = text.strip().replace("```json", "").replace("```", "")
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1:
+        cleaned = cleaned[start:end + 1]
+    return json.loads(cleaned)
+
+
+def resolve_image_mime(image: Image.Image) -> str:
+    fmt = (image.format or "PNG").upper()
+    if fmt == "JPEG":
+        return "image/jpeg"
+    if fmt == "WEBP":
+        return "image/webp"
+    return "image/png"
+
+
+def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
+    global _WD14_SESSION, _WD14_TAGS, _WD14_TAG_CATEGORIES
+    if _WD14_SESSION and _WD14_TAGS and _WD14_TAG_CATEGORIES:
+        return _WD14_SESSION, _WD14_TAGS, _WD14_TAG_CATEGORIES
+
+    model_path = WD14_MODEL_DIR / "model.onnx"
+    tags_path = WD14_MODEL_DIR / "selected_tags.csv"
+    if not model_path.exists() or not tags_path.exists():
+        raise FileNotFoundError("WD14 model files not found.")
+
+    session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
+    tags: list[str] = []
+    categories: list[str] = []
+    with tags_path.open("r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        headers = next(reader, None)
+        name_idx = 1
+        category_idx = 2
+        if headers:
+            lowered = [h.strip().lower() for h in headers]
+            if "name" in lowered:
+                name_idx = lowered.index("name")
+            if "category" in lowered:
+                category_idx = lowered.index("category")
+        for row in reader:
+            if len(row) <= max(name_idx, category_idx):
+                continue
+            tag = row[name_idx].replace("_", " ").strip()
+            category = row[category_idx].strip()
+            tags.append(tag)
+            categories.append(category)
+
+    _WD14_SESSION = session
+    _WD14_TAGS = tags
+    _WD14_TAG_CATEGORIES = categories
+    return session, tags, categories
+
+
+def wd14_predict_tags(image: Image.Image, threshold: float) -> list[dict[str, Any]]:
+    session, tags, categories = load_wd14_model()
+    image = image.convert("RGBA")
+    background = Image.new("RGBA", image.size, (255, 255, 255, 255))
+    image = Image.alpha_composite(background, image).convert("RGB")
+    image = image.resize((448, 448), Image.LANCZOS)
+    img_array = np.array(image).astype(np.float32)
+    img_array = img_array[:, :, ::-1]
+    img_array = img_array / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    inputs = {session.get_inputs()[0].name: img_array}
+    preds = session.run([session.get_outputs()[0].name], inputs)[0][0]
+
+    results: list[dict[str, Any]] = []
+    for score, tag, category in zip(preds, tags, categories):
+        if category == "9":
+            continue
+        if score < threshold:
+            continue
+        results.append({"tag": tag, "score": float(score), "category": category})
+
+    results.sort(key=lambda item: item["score"], reverse=True)
+    return results
+
+
+def gemini_predict_tags(image: Image.Image) -> list[dict[str, Any]]:
+    if not gemini_client:
+        raise RuntimeError("Gemini key missing")
+
+    mime_type = resolve_image_mime(image)
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    image_bytes = buf.getvalue()
+    instruction = (
+        "Analyze the image and return JSON only: "
+        "{\"tags\": [\"short tag\", ...]}. "
+        "Use Stable Diffusion tag-style nouns/adjectives, no sentences."
+    )
+    res = gemini_client.models.generate_content(
+        model="gemini-2.0-flash-exp",
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            instruction,
+        ],
+    )
+    data = parse_json_payload(res.text)
+    tags = data.get("tags", [])
+    results: list[dict[str, Any]] = []
+    for tag in tags:
+        if not isinstance(tag, str):
+            continue
+        cleaned = tag.strip()
+        if not cleaned:
+            continue
+        results.append({"tag": cleaned, "score": 1.0, "category": "gemini"})
+    return results
+
+
+def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str, Any]:
+    raw_tokens = split_prompt_tokens(prompt)
+    skip_tokens = {
+        "best quality",
+        "masterpiece",
+        "high quality",
+        "ultra detailed",
+        "ultra detail",
+        "highres",
+        "8k",
+        "4k",
+        "photorealistic",
+        "realistic",
+        "stylized",
+        "anime",
+        "illustration",
+        "digital painting",
+        "artstation",
+        "sharp focus",
+        "cinematic",
+    }
+    tokens = [normalize_prompt_token(token) for token in raw_tokens]
+    synonyms_map, ignore_tokens, _ = load_keyword_map()
+    tokens = [token for token in tokens if token and token not in skip_tokens and token not in ignore_tokens]
+    if not tokens:
+        return {"matched": [], "missing": [], "extra": []}
+
+    tag_names = [item["tag"].lower() for item in tags]
+    tag_set = set(tag_names)
+    expanded_tags = expand_synonyms(list(tag_set))
+
+    matched: list[str] = []
+    missing: list[str] = []
+    for token in tokens:
+        if token in expanded_tags or any(token in tag for tag in tag_set):
+            matched.append(token)
+        else:
+            missing.append(token)
+
+    extra = []
+    for item in tags[:20]:
+        name = normalize_prompt_token(item["tag"])
+        if not name or name in ignore_tokens:
+            continue
+        if name not in expand_synonyms(tokens):
+            extra.append(item["tag"])
+
+    return {"matched": matched, "missing": missing, "extra": extra}
+
+
+def cache_key_for_validation(image_bytes: bytes, prompt: str, mode: str) -> str:
+    digest = hashlib.sha256()
+    digest.update(image_bytes)
+    digest.update(prompt.encode("utf-8"))
+    digest.update(mode.encode("utf-8"))
+    return digest.hexdigest()
+
+
+def scrub_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    redacted = {}
+    for key, value in payload.items():
+        if key in {"image_url", "image", "image_b64"} and isinstance(value, str):
+            redacted[key] = "<redacted>"
+        elif isinstance(value, list):
+            redacted[key] = [
+                scrub_payload(item) if isinstance(item, dict) else item for item in value
+            ]
+        elif isinstance(value, dict):
+            redacted[key] = scrub_payload(value)
+        else:
+            redacted[key] = value
     return redacted
 
-def wrap_text(text, width=20):
+
+def wrap_text(text: str, width: int) -> str:
+    if not text:
+        return ""
     return "\n".join(textwrap.wrap(text, width=width))
 
-def merge_negative_prompt(base: str | None) -> str:
-    cleaned = base.strip() if isinstance(base, str) else ""
-    if not cleaned:
-        return f"{DEFAULT_NEGATIVE_PROMPT}, {SAFETY_NEGATIVE_PROMPT}"
-    if SAFETY_NEGATIVE_PROMPT in cleaned:
-        return cleaned
-    return f"{cleaned}, {SAFETY_NEGATIVE_PROMPT}"
-
-def strip_dual_negative(negative: str) -> str:
-    if not negative:
-        return negative
-    remove_terms = ("extra person", "multiple people", "crowd")
-    parts = [p.strip() for p in negative.split(",")]
-    kept = [p for p in parts if p and all(term not in p.lower() for term in remove_terms)]
-    return ", ".join(kept)
 
 def to_edge_tts_rate(multiplier: float) -> str:
     safe_multiplier = max(0.1, min(multiplier, 2.0))
     percent = int(round((safe_multiplier - 1.0) * 100))
     return f"+{percent}%" if percent >= 0 else f"{percent}%"
 
-def strip_data_url(data: str | None) -> str | None:
-    if not data:
-        return None
-    return data.split(",", 1)[1] if "," in data else data
 
-def sanitize_prompt_background(text: str) -> str:
-    remove_terms = [
-        "detailed background",
-        "detailed scenery",
-        "intricate background",
-        "complex background",
-        "busy background",
-        "vibrant colors",
-        "dynamic lighting",
-        "colorful background",
-        "rich background",
-        "realistic background"
+def split_prompt_tokens(prompt: str) -> list[str]:
+    return [token.strip() for token in prompt.split(",") if token.strip()]
+
+
+def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
+    seen = set()
+    merged: list[str] = []
+    for token in primary + secondary:
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(token)
+    return ", ".join(merged)
+
+
+def is_scene_token(token: str) -> bool:
+    keywords = [
+        "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
+        "from above", "top-down", "low angle", "high angle", "close-up", "wide shot", "full body",
+        "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest",
+        "beach", "city", "night", "sunset", "sunrise", "rain", "snow", "background", "lighting",
+        "indoors", "outdoors"
     ]
-    out = text
-    for term in remove_terms:
-        out = re.sub(re.escape(term), "", out, flags=re.IGNORECASE)
-    out = re.sub(r"(vibrant|colorful)\\s+colors", "", out, flags=re.IGNORECASE)
-    out = re.sub(r"detailed\\s+background", "", out, flags=re.IGNORECASE)
-    out = re.sub(r"\\(\\s*\\)", "", out)
-    out = re.sub(r",\\s*,+", ", ", out)
-    out = re.sub(r"\\s+,", ",", out)
-    out = re.sub(r"^\\s*,\\s*|\\s*,\\s*$", "", out)
-    return out.strip()
+    lower = token.lower()
+    return any(keyword in lower for keyword in keywords)
 
-def sanitize_seed_prompt(text: str) -> str:
-    remove_terms = [
-        "pastel colors",
-        "soft lighting",
-        "dreamy",
-        "ethereal",
-        "gentle",
-        "art nouveau",
-        "painterly",
-        "dynamic lighting"
-    ]
-    out = sanitize_prompt_background(text)
-    for term in remove_terms:
-        out = re.sub(re.escape(term), "", out, flags=re.IGNORECASE)
-    out = re.sub(r"\\(\\s*\\)", "", out)
-    out = re.sub(r",\\s*,", ", ", out)
-    out = re.sub(r"^\\s*,\\s*|\\s*,\\s*$", "", out)
-    return out.strip()
 
-def apply_gender_hints(user_input: str, prompt: str, negative: str) -> tuple[str, str]:
-    input_lc = (user_input or "").lower()
-    boy_terms = ("소년", "boy", "남아")
-    man_terms = ("남자", "남성", "남학생", "man", "male")
-    girl_terms = ("소녀", "여자", "여성", "여학생", "girl", "female", "woman")
+def normalize_prompt_tokens(prompt: str) -> str:
+    lora_tags = re.findall(r"<lora:[^>]+>", prompt, flags=re.IGNORECASE)
+    model_tags = re.findall(r"<model:[^>]+>", prompt, flags=re.IGNORECASE)
 
-    def ensure_phrase(text: str, phrase: str) -> str:
-        return text if phrase.lower() in text.lower() else f"{text}, {phrase}".strip(", ")
+    def unique_tags(tags: list[str]) -> list[str]:
+        seen = set()
+        ordered: list[str] = []
+        for tag in tags:
+            key = tag.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(tag)
+        return ordered
 
-    if any(term in input_lc for term in boy_terms):
-        prompt = ensure_phrase(prompt, "young boy, male, boyish face, short hair, no makeup")
-        negative = ensure_phrase(negative, "girl, female, woman, schoolgirl, feminine, long hair, skirt, makeup, dress")
-    elif any(term in input_lc for term in man_terms):
-        prompt = ensure_phrase(prompt, "adult man, male, masculine, broad shoulders, square jaw, rugged, short hair, no makeup")
-        negative = ensure_phrase(negative, "girl, female, woman, feminine, long hair, makeup, dress, skirt")
-    elif any(term in input_lc for term in girl_terms):
-        prompt = ensure_phrase(prompt, "young girl, female, girlish face, long hair")
-        negative = ensure_phrase(negative, "boy, male, man, masculine, short hair, beard")
-    return prompt, negative
+    unique_lora = unique_tags(lora_tags)
+    unique_model = unique_tags(model_tags)
+    cleaned = re.sub(r"<lora:[^>]+>", "", prompt, flags=re.IGNORECASE)
+    cleaned = re.sub(r"<model:[^>]+>", "", cleaned, flags=re.IGNORECASE)
+    tokens = split_prompt_tokens(cleaned)
+    seen = set()
+    merged: list[str] = []
+    for token in tokens:
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(token)
+    merged.extend(unique_lora)
+    merged.extend(unique_model)
+    return ", ".join(merged)
 
-def apply_hair_color_hints(user_input: str, prompt: str, negative: str) -> tuple[str, str]:
-    text = (user_input or "").lower()
-    color_map = {
-        "black": ["검은", "검정", "흑발", "black"],
-        "brown": ["갈색", "밤색", "brown", "chestnut"],
-        "blonde": ["금발", "노란", "blonde", "blond"],
-        "red": ["빨간", "적발", "red", "ginger", "auburn"],
-        "white": ["하얀", "백발", "white"],
-        "gray": ["회색", "은발", "gray", "grey", "silver"],
-        "blue": ["파란", "블루", "blue"],
-        "pink": ["분홍", "핑크", "pink"],
-        "purple": ["보라", "퍼플", "purple"],
-        "green": ["초록", "그린", "green"]
-    }
-    detected = None
-    for color, terms in color_map.items():
-        if any(term in text for term in terms):
-            detected = color
-            break
-    if not detected:
-        return prompt, negative
-    hair_phrase = f"{detected} hair"
-    prompt = f"{prompt}, {hair_phrase}".strip(", ")
-    other_colors = [f"{c} hair" for c in color_map.keys() if c != detected]
-    negative = f"{negative}, {', '.join(other_colors)}".strip(", ")
-    return prompt, negative
 
-def detect_faces_base64(data: str) -> int:
-    raw = strip_data_url(data)
-    if not raw:
-        return 0
-    img_bytes = base64.b64decode(raw)
+def normalize_negative_prompt(negative: str) -> str:
+    tokens = split_prompt_tokens(negative)
+    seen = set()
+    merged: list[str] = []
+    for token in tokens:
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(token)
+    return ", ".join(merged)
 
-    if MEDIAPIPE_TASKS_AVAILABLE and NUMPY_AVAILABLE:
-        model_path = os.getenv("MEDIAPIPE_FACE_MODEL_PATH")
-        if not model_path and FACE_MODEL_PATH.exists():
-            model_path = str(FACE_MODEL_PATH)
-        if model_path:
-            pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-            rgb = np.array(pil_img)
-            options = FaceDetectorOptions(
-                base_options=BaseOptions(model_asset_path=model_path),
-                min_detection_confidence=0.4
-            )
-            detector = FaceDetector.create_from_options(options)
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-            result = detector.detect(mp_image)
-            return len(result.detections) if result.detections else 0
 
-    if MEDIAPIPE_AVAILABLE and mp_solutions is not None:
-        img_arr = np.frombuffer(img_bytes, dtype=np.uint8)
-        img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR) if OPENCV_AVAILABLE else None
-        if img is None:
-            pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-            img = np.array(pil_img)
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if OPENCV_AVAILABLE else img
-        with mp_solutions.face_detection.FaceDetection(
-            model_selection=0,
-            min_detection_confidence=0.4
-        ) as detector:
-            results = detector.process(rgb)
-            return len(results.detections) if results.detections else 0
+def _get_font(size: int) -> ImageFont.FreeTypeFont:
+    font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+    if not os.path.exists(font_path):
+        font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+    try:
+        return ImageFont.truetype(font_path, size=size)
+    except Exception:
+        return ImageFont.load_default()
 
-    if not OPENCV_AVAILABLE:
-        raise RuntimeError("Face detection not available")
 
-    img_arr = np.frombuffer(img_bytes, dtype=np.uint8)
-    img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
-    if img is None:
-        return 0
-    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+def _draw_text_with_stroke(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[int, int],
+    text: str,
+    font: ImageFont.FreeTypeFont,
+    fill: tuple[int, int, int, int],
+    stroke_width: int = 2,
+    stroke_fill: tuple[int, int, int, int] = (0, 0, 0, 255),
+) -> None:
+    draw.text(xy, text, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=stroke_fill)
 
-    def _detect(gray, min_neighbors=4, min_size=(30, 30)):
-        faces = cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=min_neighbors,
-            minSize=min_size
+
+def _draw_common_content(
+    draw: ImageDraw.ImageDraw,
+    width: int,
+    height: int,
+    settings: OverlaySettings,
+    safe_margin: int,
+    header_top: int,
+    header_height: int,
+    footer_top: int,
+    footer_height: int,
+    use_stroke: bool = False,
+    text_color: tuple[int, int, int, int] = (255, 255, 255, 235),
+    sub_color: tuple[int, int, int, int] = (200, 200, 200, 220),
+    offset_x: int = 0,
+    offset_y: int = 0,
+) -> None:
+    avatar_radius = int(header_height * 0.35)
+    avatar_center = (
+        offset_x + safe_margin + avatar_radius + 18,
+        offset_y + header_top + header_height // 2,
+    )
+
+    draw.ellipse(
+        (
+            avatar_center[0] - avatar_radius,
+            avatar_center[1] - avatar_radius,
+            avatar_center[0] + avatar_radius,
+            avatar_center[1] + avatar_radius,
+        ),
+        fill=(255, 255, 255, 255),
+        outline=(0, 0, 0, 255) if use_stroke or text_color == (0, 0, 0, 255) else None,
+        width=2 if (use_stroke or text_color == (0, 0, 0, 255)) else 0,
+    )
+
+    name_font = _get_font(int(header_height * 0.28))
+    small_font = _get_font(int(header_height * 0.2))
+    caption_font = _get_font(int(footer_height * 0.22))
+    avatar_font = _get_font(int(header_height * 0.26))
+
+    name_x = avatar_center[0] + avatar_radius + 16
+    name_y = offset_y + header_top + int(header_height * 0.18)
+
+    stroke_width = 3 if use_stroke else 0
+    stroke_fill = (0, 0, 0, 255)
+
+    if use_stroke:
+        _draw_text_with_stroke(
+            draw,
+            (name_x, name_y),
+            settings.profile_name,
+            name_font,
+            text_color,
+            stroke_width,
+            stroke_fill,
         )
-        return len(faces)
+        _draw_text_with_stroke(
+            draw,
+            (name_x, name_y + int(header_height * 0.38)),
+            f"{settings.likes_count} likes",
+            small_font,
+            sub_color,
+            stroke_width,
+            stroke_fill,
+        )
+    else:
+        draw.text((name_x, name_y), settings.profile_name, fill=text_color, font=name_font)
+        draw.text(
+            (name_x, name_y + int(header_height * 0.38)),
+            f"{settings.likes_count} likes",
+            fill=sub_color,
+            font=small_font,
+        )
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    count = _detect(gray, min_neighbors=4, min_size=(30, 30))
-    if count > 0:
-        return count
+    initial = (settings.profile_name.strip()[:1] or "A").upper()
+    init_w, init_h = draw.textbbox((0, 0), initial, font=avatar_font)[2:]
+    draw.text(
+        (avatar_center[0] - init_w / 2, avatar_center[1] - init_h / 2),
+        initial,
+        fill=(30, 30, 30, 255),
+        font=avatar_font,
+    )
 
-    # Retry on resized image to help small/low-res faces
-    h, w = gray.shape[:2]
-    scale = 1024 / max(h, w)
-    if scale > 1.0:
-        resized = cv2.resize(gray, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
-        count = _detect(resized, min_neighbors=3, min_size=(24, 24))
-        if count > 0:
-            return count
-
-    # Retry on central crop (often the face is centered)
-    crop_size = int(min(h, w) * 0.7)
-    if crop_size >= 64:
-        y0 = (h - crop_size) // 2
-        x0 = (w - crop_size) // 2
-        crop = gray[y0:y0 + crop_size, x0:x0 + crop_size]
-        count = _detect(crop, min_neighbors=3, min_size=(24, 24))
-        if count > 0:
-            return count
-
-    # Last attempt: lighten normalization
-    eq = cv2.equalizeHist(gray)
-    count = _detect(eq, min_neighbors=3, min_size=(24, 24))
-    return count
-
-def image_to_base64(image: Image.Image) -> str:
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("ascii")
-
-def build_prompt(base: str, styles: list[str], lora: list[str] | str | None) -> str:
-    parts = [base.strip()]
-    if styles:
-        parts.append(", ".join(styles))
-    prompt = ", ".join([p for p in parts if p])
-    if lora:
-        if isinstance(lora, list):
-            for item in lora:
-                if item:
-                    prompt = f"{prompt}, <lora:{item}:1>"
+    caption_text = settings.caption or ""
+    caption_lines = textwrap.wrap(caption_text, width=26)[:2]
+    caption_y = offset_y + footer_top + int(footer_height * 0.2)
+    for idx, line in enumerate(caption_lines):
+        y_pos = caption_y + idx * int(footer_height * 0.32)
+        if use_stroke:
+            _draw_text_with_stroke(
+                draw,
+                (offset_x + safe_margin + 20, y_pos),
+                line,
+                caption_font,
+                text_color,
+                stroke_width,
+                stroke_fill,
+            )
         else:
-            prompt = f"{prompt}, <lora:{lora}:1>"
-    return prompt
+            draw.text((offset_x + safe_margin + 20, y_pos), line, fill=text_color, font=caption_font)
 
-def build_person_mask(width: int, height: int, side: str) -> str:
-    mask = Image.new("L", (width, height), 0)
-    draw = ImageDraw.Draw(mask)
-    cx = int(width * (0.33 if side == "left" else 0.67))
-    cy = int(height * 0.6)
-    rx = int(width * 0.22)
-    ry = int(height * 0.32)
-    draw.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=255)
-    return image_to_base64(mask)
 
-def build_face_mask(width: int, height: int, side: str) -> str:
-    mask = Image.new("L", (width, height), 0)
-    draw = ImageDraw.Draw(mask)
-    cx = int(width * (0.33 if side == "left" else 0.67))
-    cy = int(height * 0.38)
-    r = int(min(width, height) * 0.08)
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=255)
-    return image_to_base64(mask)
+def _draw_clean_overlay(
+    draw: ImageDraw.ImageDraw,
+    width: int,
+    height: int,
+    settings: OverlaySettings,
+    offset_x: int = 0,
+    offset_y: int = 0,
+) -> None:
+    safe_margin = int(width * 0.06)
+    header_top = int(height * 0.06)
+    header_height = int(height * 0.1)
+    footer_top = int(height * 0.78)
+    footer_height = int(height * 0.14)
 
-def build_pose_guide(width: int, height: int, side: str, view: str = "front") -> str:
-    img = Image.new("RGB", (width, height), (255, 255, 255))
-    draw = ImageDraw.Draw(img)
-    if side == "left":
-        cx = int(width * 0.33)
-    elif side == "right":
-        cx = int(width * 0.67)
+    header_box = (
+        offset_x + safe_margin,
+        offset_y + header_top,
+        offset_x + width - safe_margin,
+        offset_y + header_top + header_height,
+    )
+    footer_box = (
+        offset_x + safe_margin,
+        offset_y + footer_top,
+        offset_x + width - safe_margin,
+        offset_y + footer_top + footer_height,
+    )
+
+    draw.rounded_rectangle(header_box, radius=28, fill=(10, 10, 10, 170))
+    draw.rounded_rectangle(footer_box, radius=28, fill=(10, 10, 10, 170))
+
+    _draw_common_content(
+        draw,
+        width,
+        height,
+        settings,
+        safe_margin,
+        header_top,
+        header_height,
+        footer_top,
+        footer_height,
+        offset_x=offset_x,
+        offset_y=offset_y,
+    )
+
+
+def _draw_minimal_overlay(
+    draw: ImageDraw.ImageDraw,
+    width: int,
+    height: int,
+    settings: OverlaySettings,
+    offset_x: int = 0,
+    offset_y: int = 0,
+) -> None:
+    safe_margin = int(width * 0.06)
+    header_top = int(height * 0.06)
+    header_height = int(height * 0.1)
+    footer_top = int(height * 0.78)
+    footer_height = int(height * 0.14)
+
+    _draw_common_content(
+        draw,
+        width,
+        height,
+        settings,
+        safe_margin,
+        header_top,
+        header_height,
+        footer_top,
+        footer_height,
+        use_stroke=True,
+        offset_x=offset_x,
+        offset_y=offset_y,
+    )
+
+
+def _draw_bold_overlay(
+    draw: ImageDraw.ImageDraw,
+    width: int,
+    height: int,
+    settings: OverlaySettings,
+    offset_x: int = 0,
+    offset_y: int = 0,
+) -> None:
+    safe_margin = int(width * 0.06)
+    header_top = int(height * 0.06)
+    header_height = int(height * 0.1)
+    footer_top = int(height * 0.78)
+    footer_height = int(height * 0.14)
+
+    header_box = (
+        offset_x + safe_margin,
+        offset_y + header_top,
+        offset_x + width - safe_margin,
+        offset_y + header_top + header_height,
+    )
+    footer_box = (
+        offset_x + safe_margin,
+        offset_y + footer_top,
+        offset_x + width - safe_margin,
+        offset_y + footer_top + footer_height,
+    )
+
+    draw.rounded_rectangle(
+        header_box, radius=16, fill=(255, 235, 59, 240), outline=(0, 0, 0, 255), width=4
+    )
+    draw.rounded_rectangle(
+        footer_box, radius=16, fill=(255, 255, 255, 240), outline=(0, 0, 0, 255), width=4
+    )
+
+    _draw_common_content(
+        draw,
+        width,
+        height,
+        settings,
+        safe_margin,
+        header_top,
+        header_height,
+        footer_top,
+        footer_height,
+        text_color=(0, 0, 0, 255),
+        sub_color=(60, 60, 60, 255),
+        offset_x=offset_x,
+        offset_y=offset_y,
+    )
+
+
+def create_overlay_image(
+    settings: OverlaySettings,
+    width: int,
+    height: int,
+    output_path: pathlib.Path,
+    layout_style: str = "full",
+) -> None:
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    offset_x = 0
+    offset_y = 0
+    frame_w = width
+    frame_h = height
+    if layout_style == "post":
+        frame_w = int(width * 0.86)
+        frame_h = frame_w
+        offset_x = (width - frame_w) // 2
+        offset_y = (height - frame_h) // 2
+
+    if settings.frame_style == "overlay_minimal.png":
+        _draw_minimal_overlay(draw, frame_w, frame_h, settings, offset_x, offset_y)
+    elif settings.frame_style == "overlay_bold.png":
+        _draw_bold_overlay(draw, frame_w, frame_h, settings, offset_x, offset_y)
     else:
-        cx = int(width * 0.5)
-    cy = int(height * 0.55)
-    head_r = int(min(width, height) * 0.05)
-    body_len = int(height * 0.18)
-    arm_len = int(width * 0.12)
-    leg_len = int(height * 0.18)
-    line_w = max(3, width // 128)
+        _draw_clean_overlay(draw, frame_w, frame_h, settings, offset_x, offset_y)
 
-    draw.ellipse([cx - head_r, cy - body_len - head_r * 2, cx + head_r, cy - body_len], outline=(0, 0, 0), width=line_w)
-    draw.line([cx, cy - body_len, cx, cy + body_len // 2], fill=(0, 0, 0), width=line_w)
-    if view == "back":
-        draw.line([cx, cy - body_len // 2, cx, cy - body_len // 2 + int(body_len * 0.35)], fill=(0, 0, 0), width=line_w)
-    else:
-        draw.line([cx - arm_len, cy - body_len // 2, cx + arm_len, cy - body_len // 2], fill=(0, 0, 0), width=line_w)
-    draw.line([cx, cy + body_len // 2, cx - arm_len // 2, cy + body_len // 2 + leg_len], fill=(0, 0, 0), width=line_w)
-    draw.line([cx, cy + body_len // 2, cx + arm_len // 2, cy + body_len // 2 + leg_len], fill=(0, 0, 0), width=line_w)
-    return image_to_base64(img)
+    canvas.save(output_path, "PNG")
 
-def mask_blur_for_size(width: int, height: int) -> int:
-    base = min(width, height)
-    return max(4, min(18, base // 64))
 
-def adetailer_args_for_size(width: int, height: int, prompt: str) -> dict:
-    return {
-        "ad_model": "face_yolov8n.pt",
-        "ad_prompt": prompt,
-        "ad_negative_prompt": "",
-        "ad_confidence": 0.3,
-        "ad_mask_blur": 4,
-        "ad_inpaint_only_masked": True,
-        "ad_inpaint_only_masked_padding": 32,
-        "ad_use_inpaint_width_height": True,
-        "ad_inpaint_width": min(512, width),
-        "ad_inpaint_height": min(512, height)
-    }
-
-# Dynamic Overlay Generator
-def create_dynamic_overlay(settings: OverlaySettings, output_path: pathlib.Path, width: int = 1080, height: int = 1920):
-    W, H = width, height
-    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    ui_bg_color = (255, 255, 255, 255)
-    text_color = (38, 38, 38, 255)
-    
-    # --- Font Loading Strategy ---
-    font_candidates = [
-        "/System/Library/Fonts/AppleSDGothicNeo.ttc",
-        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
-        "/Library/Fonts/AppleGothic.ttf",
-        "arial.ttf"
-    ]
-    
-    font_large = font_medium = font_small = None
-    for f_path in font_candidates:
-        if os.path.exists(f_path) or f_path == "arial.ttf":
+def resolve_overlay_frame(
+    settings: OverlaySettings,
+    width: int,
+    height: int,
+    output_path: pathlib.Path,
+    layout_style: str = "full",
+) -> None:
+    known_styles = {"overlay_minimal.png", "overlay_clean.png", "overlay_bold.png"}
+    if settings.frame_style not in known_styles:
+        frame_dir = OVERLAY_DIR
+        candidate = frame_dir / settings.frame_style
+        if candidate.exists():
             try:
-                font_large = ImageFont.truetype(f_path, 40, index=0)
-                font_medium = ImageFont.truetype(f_path, 35, index=0)
-                font_small = ImageFont.truetype(f_path, 28, index=0)
-                break
-            except: continue
-    
-    if font_large is None:
-        font_large = font_medium = font_small = ImageFont.load_default()
+                frame = Image.open(candidate).convert("RGBA")
+                if frame.size != (width, height):
+                    frame = frame.resize((width, height), Image.LANCZOS)
+                frame.save(output_path, "PNG")
+                return
+            except Exception:
+                pass
+    create_overlay_image(settings, width, height, output_path, layout_style)
 
-    # --- Responsive Layout Calculation ---
-    # Base reference is 1080x1920.
-    # We want fixed height bars for 1920, but scale down if H is small.
-    # Header 160px, Footer 390px (incl icons). Total 550px.
-    # If H < 600 (e.g. 512), 550 > 512 -> Overlap.
-    
-    scale = 1.0
-    target_header_h = 160
-    target_footer_h = 390
-    
-    # Check if we need to shrink
-    if H < (target_header_h + target_footer_h + 100): # Ensure at least 100px content
-        available_h = H - 100
-        required_h = target_header_h + target_footer_h
-        scale = available_h / required_h
-        scale = max(0.3, scale) # Don't shrink to invisible
-    
-    header_h = int(target_header_h * scale)
-    footer_h = int(target_footer_h * scale)
-    footer_y = H - footer_h
-    
-    # Header
-    draw.rectangle([(0, 0), (W, header_h)], fill=ui_bg_color)
-    
-    # Profile
-    profile_r = int(45 * scale)
-    profile_cx = int(80 * scale) 
-    profile_cy = header_h // 2
-    
-    if header_h > 40:
-        draw.ellipse([(profile_cx-profile_r, profile_cy-profile_r), (profile_cx+profile_r, profile_cy+profile_r)], fill=(220, 220, 220, 255))
-        
-        # Text Logic (approximate positions scaled)
-        text_x = int(150 * scale)
-        name_y = int(55 * scale)
-        sub_y = int(105 * scale)
-        
-        # Use scaled font if possible, but load_default doesn't scale. 
-        # Ideally we reload fonts, but for now we assume standard fonts.
-        draw.text((text_x, name_y), settings.profile_name, fill=text_color, font=font_large)
-        draw.text((text_x, sub_y), "Sponsored", fill=(150, 150, 150, 255), font=font_small)
-        
-        dot_r = int(4 * scale)
-        dot_y = profile_cy
-        for i in range(3):
-            dx = int((980 + (i * 15)) * scale) # This assumes 1080 width logic, might be off for 512 width
-            # Fix X positioning relative to Right edge
-            dx = W - int((100 - (i*15)) * scale) 
-            draw.ellipse([(dx-dot_r, dot_y-dot_r), (dx+dot_r, dot_y+dot_r)], fill=text_color)
 
-    # Footer
-    draw.rectangle([(0, footer_y), (W, H)], fill=ui_bg_color)
-    icon_y = footer_y + int(60 * scale)
-    
-    if footer_h > 50:
-        # Icons (Relative to Left)
-        icons_scale = scale
-        
-        # Heart
-        cx, cy = int(80 * icons_scale), icon_y + int(25 * icons_scale)
-        r = int(20 * icons_scale)
-        draw.ellipse([(cx-r, cy-r), (cx+r, cy+r)], fill=(255, 60, 60, 255))
-        
-        # Comment
-        c_x = int(180 * icons_scale)
-        draw.ellipse([(c_x, icon_y), (c_x + int(40*scale), icon_y + int(35*scale))], outline=text_color, width=3)
-        
-        # Share
-        s_x = int(300 * icons_scale)
-        # Simplified polygon scaling is hard, just drawing a box or skipping for simplicity if too small
-        if scale > 0.5:
-             draw.rectangle([(s_x, icon_y), (s_x + 30, icon_y + 30)], outline=text_color, width=3)
+def compose_post_frame(
+    image_bytes: bytes,
+    width: int,
+    height: int,
+    profile_name: str,
+    caption: str,
+    font_path: str,
+) -> Image.Image:
+    image = Image.open(io.BytesIO(image_bytes))
+    image_rgb = image.convert("RGB")
+    background = ImageOps.fit(image_rgb, (width, height), Image.LANCZOS)
+    background = background.filter(ImageFilter.GaussianBlur(radius=24)).convert("RGBA")
+    background.alpha_composite(Image.new("RGBA", (width, height), (0, 0, 0, 20)))
 
-        # Bookmark (Right aligned)
-        b_x = W - int(120 * scale)
-        draw.rectangle([(b_x, icon_y), (b_x + 30, icon_y + 40)], outline=text_color, width=3)
+    card_size = int(width * 0.86)
+    card_padding = int(card_size * 0.06)
+    radius = int(card_size * 0.08)
+    header_height = int(card_size * 0.14)
+    caption_height = int(card_size * 0.18)
+    card = Image.new("RGBA", (card_size, card_size), (255, 255, 255, 245))
+    mask = Image.new("L", (card_size, card_size), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle((0, 0, card_size, card_size), radius=radius, fill=255)
+    card.putalpha(mask)
 
-        # Text Info
-        info_y = icon_y + int(100 * scale)
-        draw.text((int(60*scale), info_y), f"좋아요 {settings.likes_count}", fill=text_color, font=font_medium)
-        
-        caption_y = icon_y + int(160 * scale)
-        draw.text((int(60*scale), caption_y), settings.profile_name, fill=text_color, font=font_medium)
-        draw.text((int(60*scale) + 150, caption_y), settings.caption, fill=(80, 80, 80, 255), font=font_medium)
+    shadow = Image.new("RGBA", (card_size, card_size), (0, 0, 0, 90))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=18))
 
-    img.save(output_path)
+    card_x = (width - card_size) // 2
+    card_y = (height - card_size) // 2
+    background.alpha_composite(shadow, (card_x, card_y + 10))
+    background.alpha_composite(card, (card_x, card_y))
 
-# --- FastAPI 앱 설정 ---
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    inner_width = card_size - (card_padding * 2)
+    image_area = inner_width
+    image_area = min(image_area, card_size - (card_padding * 2 + header_height + caption_height))
+    image_area = max(image_area, int(card_size * 0.4))
+    image_x = card_x + card_padding
+    image_y = card_y + card_padding + header_height
 
-@app.get("/outputs/videos/")
-async def list_videos_directory_handler():
-    return {"message": "Directory listing disabled, use /video/list"}
+    inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS).convert("RGBA")
+    background.alpha_composite(inner, (image_x, image_y))
 
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
-app.mount("/assets", StaticFiles(directory="assets"), name="assets")
-
-@app.get("/loras")
-async def get_loras():
+    draw = ImageDraw.Draw(background)
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_LORA_URL, timeout=5.0)
-            if r.status_code == 200:
-                data = r.json()
-                if isinstance(data, dict): data = data.get("loras", [])
-                if isinstance(data, list):
-                    loras = []
-                    for item in data:
-                        if isinstance(item, dict):
-                            name = item.get("name") or item.get("alias")
-                            if name: loras.append(name)
-                        elif isinstance(item, str): loras.append(item)
-                    return {"loras": sorted(list(set(loras)))}
-            return {"loras": []}
-    except: return {"loras": []}
+        name_font = ImageFont.truetype(font_path, size=int(card_size * 0.05))
+        meta_font = ImageFont.truetype(font_path, size=int(card_size * 0.035))
+        caption_font = ImageFont.truetype(font_path, size=int(card_size * 0.045))
+    except Exception:
+        name_font = ImageFont.load_default()
+        meta_font = ImageFont.load_default()
+        caption_font = ImageFont.load_default()
 
-@app.get("/config")
-async def get_config():
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_CONFIG_URL, timeout=5.0)
-            if r.status_code == 200:
-                data = r.json()
-                if isinstance(data, dict): return {"model": data.get("sd_model_checkpoint", "Unknown")}
-            return {"model": "Offline"}
-    except: return {"model": "Offline"}
+    profile_radius = int(card_size * 0.045)
+    profile_center = (card_x + card_padding + profile_radius, card_y + card_padding + profile_radius)
+    draw.ellipse(
+        (
+            profile_center[0] - profile_radius,
+            profile_center[1] - profile_radius,
+            profile_center[0] + profile_radius,
+            profile_center[1] + profile_radius,
+        ),
+        fill=(245, 210, 140),
+        outline=(255, 255, 255),
+        width=2,
+    )
+    initial = (profile_name.strip()[:1] or "A").upper()
+    text_w, text_h = draw.textbbox((0, 0), initial, font=meta_font)[2:]
+    draw.text(
+        (profile_center[0] - text_w / 2, profile_center[1] - text_h / 2),
+        initial,
+        fill=(80, 60, 40),
+        font=meta_font,
+    )
+    name_x = profile_center[0] + profile_radius + int(card_size * 0.03)
+    name_y = card_y + card_padding + int(card_size * 0.015)
+    draw.text((name_x, name_y), profile_name or "creator", fill=(40, 40, 40), font=name_font)
+    draw.text(
+        (name_x, name_y + int(card_size * 0.05)),
+        "• 1m",
+        fill=(150, 150, 150),
+        font=meta_font,
+    )
 
-@app.get("/settings/webui")
-async def get_webui_settings():
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_CONFIG_URL, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            if isinstance(data, dict):
-                return {"model": data.get("sd_model_checkpoint", "Unknown"), "options": data}
-            return {"model": "Unknown", "options": {}}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    caption_text = caption.strip()
+    if caption_text:
+        caption_width = max(18, int(card_size * 0.08))
+        caption_lines = textwrap.wrap(caption_text, width=caption_width)[:2]
+        cap_x = card_x + card_padding
+        cap_y = card_y + card_size - caption_height + int(card_size * 0.02)
+        for idx, line in enumerate(caption_lines):
+            draw.text(
+                (cap_x, cap_y + idx * int(card_size * 0.05)),
+                line,
+                fill=(60, 60, 60),
+                font=caption_font,
+            )
 
-@app.post("/settings/webui")
-async def update_webui_settings(request: WebUISettingsUpdateRequest):
-    try:
-        payload: Dict[str, Any] = {}
-        if request.options:
-            payload.update(request.options)
-        if request.sd_model_checkpoint:
-            payload["sd_model_checkpoint"] = request.sd_model_checkpoint
-        if not payload:
-            raise HTTPException(status_code=400, detail="No settings provided")
-        async with httpx.AsyncClient() as client:
-            r = await client.post(SD_CONFIG_URL, json=payload, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            if isinstance(data, dict):
-                return {"ok": True, "model": data.get("sd_model_checkpoint", "Unknown"), "options": data}
-            return {"ok": True, "model": payload.get("sd_model_checkpoint", "Unknown"), "options": payload}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    return background.convert("RGB")
 
-@app.get("/settings/controlnet")
-async def get_controlnet_settings():
-    webui = {}
-    runtime_settings = {}
-    error = None
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_CONTROLNET_VERSION_URL, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            if isinstance(data, dict):
-                webui = data
-    except Exception as e:
-        error = str(e)
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_CONTROLNET_SETTINGS_URL, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            if isinstance(data, dict):
-                runtime_settings = data
-    except Exception as e:
-        if not error:
-            error = str(e)
-    response = {"webui": webui, "preset": CONTROLNET_PRESET, "runtime_settings": runtime_settings}
-    if error:
-        response["error"] = error
-    return response
 
-@app.get("/debug/webui/options")
-async def get_webui_options():
+def apply_post_overlay_mask(overlay_path: pathlib.Path, width: int, height: int) -> None:
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_CONFIG_URL, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            if isinstance(data, dict):
-                return {"options": data}
-            return {"options": {}}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        overlay = Image.open(overlay_path).convert("RGBA")
+    except Exception:
+        return
 
-@app.post("/debug/webui/options")
-async def update_webui_options(request: WebUIOptionsUpdateRequest):
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(SD_CONFIG_URL, json=request.options, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            return {"ok": True, "options": data if isinstance(data, dict) else request.options}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    card_size = int(width * 0.86)
+    radius = int(card_size * 0.08)
+    card_x = (width - card_size) // 2
+    card_y = (height - card_size) // 2
 
-@app.get("/debug/webui/controlnet")
-async def get_controlnet_status():
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(SD_CONTROLNET_VERSION_URL, timeout=5.0)
-            r.raise_for_status()
-            data = r.json()
-            return {"controlnet": data if isinstance(data, dict) else {}}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle(
+        (card_x, card_y, card_x + card_size, card_y + card_size),
+        radius=radius,
+        fill=255,
+    )
+    base_alpha = overlay.getchannel("A")
+    non_black = ImageOps.grayscale(overlay.convert("RGB")).point(lambda v: 0 if v < 5 else 255)
+    alpha = ImageChops.multiply(base_alpha, non_black)
+    overlay.putalpha(ImageChops.multiply(alpha, mask))
+    overlay.save(overlay_path, "PNG")
+
 
 @app.get("/audio/list")
 async def get_audio_list():
-    try:
-        files = []
-        for ext in ["*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a", "*.M4A"]:
-            for f in AUDIO_DIR.glob(ext):
-                files.append({"name": f.name, "url": f"http://localhost:8000/assets/audio/{f.name}"})
-        return {"audios": sorted(files, key=lambda x: x["name"])}
-    except: return {"audios": []}
+    logger.info("📥 [Audio List]")
+    files = []
+    for ext in ("*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a", "*.M4A"):
+        for f in AUDIO_DIR.glob(ext):
+            files.append({"name": f.name, "url": f"http://localhost:8000/assets/audio/{f.name}"})
+    return {"audios": sorted(files, key=lambda x: x["name"])}
 
-@app.post("/projects/save")
-async def save_project(request: ProjectSaveRequest):
-    project_id = request.id or f"proj_{int(time.time())}"
-    file_path = PROJECTS_DIR / f"{project_id}.json"
-    project_data = {"id": project_id, "title": request.title, "updated_at": time.time(), "content": request.data}
-    file_path.write_text(json.dumps(project_data, ensure_ascii=False, indent=2))
-    return project_data
-
-@app.get("/projects/list")
-async def list_projects():
-    projects = []
-    for f in PROJECTS_DIR.glob("*.json"):
-        try:
-            data = json.loads(f.read_text())
-            projects.append({"id": data["id"], "title": data["title"], "updated_at": data["updated_at"]})
-        except: continue
-    projects.sort(key=lambda x: x["updated_at"], reverse=True)
-    return {"projects": projects}
-
-@app.get("/projects/{project_id}")
-async def load_project(project_id: str):
-    file_path = PROJECTS_DIR / f"{project_id}.json"
-    if not file_path.exists(): raise HTTPException(status_code=404)
-    return json.loads(file_path.read_text())
-
-@app.get("/video/list")
-async def get_video_list():
-    videos = []
-    for f in VIDEO_DIR.glob("*.mp4"):
-        videos.append({"name": f.name, "url": f"http://localhost:8000/outputs/videos/{f.name}", "created_at": f.stat().st_mtime})
-    videos.sort(key=lambda x: x["created_at"], reverse=True)
-    return {"videos": videos}
-
-@app.delete("/video/{filename}")
-async def delete_video(filename: str):
-    file_path = VIDEO_DIR / filename
-    if file_path.exists(): file_path.unlink(); return {"status": "success"}
-    raise HTTPException(status_code=404)
-
-@app.get("/random-prompt")
-async def get_random_prompt():
-    if not gemini_client: return {"prompt": "신비로운 숲속의 고양이"}
-    try:
-        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents="Generate one creative visual description in Korean.")
-        return {"prompt": res.text.strip()}
-    except: return {"prompt": "미래 도시의 네온사인"}
-
-@app.post("/audio/preview")
-async def preview_audio(request: AudioPreviewRequest):
-    try:
-        h = hashlib.md5(f"{request.text}{request.voice}".encode()).hexdigest()
-        filename = f"preview_{h}.mp3"
-        preview_path = OUTPUT_DIR / filename
-        if not preview_path.exists(): await edge_tts.Communicate(request.text, request.voice).save(str(preview_path))
-        return {"url": f"http://localhost:8000/outputs/{filename}"}
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/audio/generate")
-async def generate_audio(request: AudioGenerateRequest):
-    try:
-        client = GradioClient("facebook/MusicGen")
-        result = client.predict(task="text-to-audio", text=request.prompt, model_name="facebook/musicgen-small", api_name="/predict")
-        filename = f"ai_bgm_{int(time.time())}.mp3"
-        shutil.copy(result, AUDIO_DIR / filename)
-        return {"filename": filename}
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
-
-class OverlayGenRequest(BaseModel):
-    topic: str
-
-# ... (Previous code) ...
-
-@app.post("/overlay/generate")
-async def generate_overlay_data(request: OverlayGenRequest):
-    if not gemini_client: return {
-        "profile_name": "daily_shorts", "likes_count": "12.5k", "caption": "Amazing video! #viral #shorts"
-    }
-    try:
-        prompt = f"""
-        Generate viral social media (TikTok/Reels) metadata for a video about: "{request.topic}".
-        Return ONLY a JSON object with these keys:
-        - profile_name: A catchy username (e.g. travel_w_me)
-        - likes_count: A realistic number (e.g. 14.2k, 1.2M)
-        - caption: A short, engaging caption (max 50 chars) with 2-3 hashtags.
-        """
-        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=prompt)
-        return json.loads(res.text.strip().replace("```json", "").replace("```", ""))
-    except Exception as e:
-        logger.error(f"Overlay Gen Failed: {e}")
-        return {"profile_name": "story_teller", "likes_count": "5.2k", "caption": "Check this out! #trending"}
-
-@app.post("/character/analyze")
-async def analyze_character(request: AnalyzeRequest):
-    if not gemini_client: raise HTTPException(status_code=503, detail="Gemini key missing")
-    try:
-        # Base64 to Image
-        img_data = request.image.split(",")[1] if "," in request.image else request.image
-        image = Image.open(io.BytesIO(base64.b64decode(img_data)))
-        
-        prompt = "Analyze this character's visual appearance in detail (hair, eyes, clothing, age, gender, vibe). Write a concise description (max 2 sentences) in Korean."
-        res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=[prompt, image])
-        return {"description": res.text.strip()}
-    except Exception as e:
-        logger.error(f"Analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/prompt/translate")
-async def translate_prompt(request: PromptTranslateRequest):
-    if not gemini_client:
-        return {"translated_prompt": request.text, "negative_prompt": merge_negative_prompt(DEFAULT_NEGATIVE_PROMPT)}
-    try:
-        template = template_env.get_template("optimize_prompt.j2")
-        rendered = template.render(user_input=request.text, persona=request.persona, target_styles=", ".join(request.styles))
-        h = hashlib.sha256(rendered.encode()).hexdigest()
-        cache_file = CACHE_DIR / f"{h}.json"
-        
-        if cache_file.exists():
-            res_json = json.loads(cache_file.read_text(encoding="utf-8"))
-        else:
-            res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=rendered)
-            res_json = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
-            cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
-            
-        translated_raw = res_json.get("positive_prompt", request.text)
-        translated = sanitize_prompt_background(translated_raw)
-        negative_prompt = res_json.get("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
-        translated, negative_prompt = apply_gender_hints(request.text, translated, negative_prompt)
-        negative_prompt = merge_negative_prompt(negative_prompt)
-        return {
-            "translated_prompt": translated,
-            "negative_prompt": negative_prompt,
-            "raw_prompt": translated_raw,
-            "sanitized_prompt": translated
-        }
-    except Exception as e:
-        logger.error(f"Translation failed: {e}")
-        return {"translated_prompt": request.text, "negative_prompt": merge_negative_prompt(DEFAULT_NEGATIVE_PROMPT)}
-
-@app.post("/face/check")
-async def face_check(request: FaceCheckRequest):
-    if not OPENCV_AVAILABLE and not MEDIAPIPE_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Face detection unavailable. Install mediapipe or opencv-python.")
-    try:
-        logger.info("🧪 [Face Check] Started (mediapipe=%s, opencv=%s)", MEDIAPIPE_AVAILABLE, OPENCV_AVAILABLE)
-        faces = detect_faces_base64(request.image)
-        logger.info("🧪 [Face Check] Detected faces: %s", faces)
-        return {"has_face": faces > 0, "faces": faces}
-    except Exception as e:
-        logger.exception("Face check failed")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/character/portrait")
-async def generate_portrait(request: PortraitRequest):
-    """Generates a high-quality face close-up reference for a character."""
-    logger.info("📥 [Portrait Req] %s", scrub_payload(request.dict()))
-    
-    style_prompt = ", ".join(request.styles)
-    final_prompt = request.description
-    
-    # 1. Optimize/Translate Prompt with Gemini if available
-    if gemini_client:
-        try:
-            prompt_instruction = f"""
-            You are a Stable Diffusion Prompt Expert.
-            Convert this character description into a detailed, comma-separated English prompt for a high-quality face close-up reference.
-            The user also wants these styles: "{style_prompt}".
-            Focus on: Gender, Age, Hair, Eyes, Facial features, Skin tone, Hair color, Eye color, Clothing, and the requested Art Style.
-            Use a plain/simple background. Avoid detailed backgrounds and vibrant colors.
-            Preserve skin tone, eye color, and hair color exactly as described.
-            Input: "{request.description}"
-            Output example: "Anime style, flat color, A handsome young boy, 7 years old, orange messy hair, blue eyes, clean background, close-up portrait"
-            Return ONLY the prompt string.
-            """
-            res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=prompt_instruction)
-            final_prompt = sanitize_seed_prompt(res.text.strip())
-        except Exception as e:
-            logger.warning(f"Portrait Prompt Optimization Failed: {e}")
-
-    # Construct final prompt with face close-up constraints for seed reference
-    seed_prompt = sanitize_seed_prompt(final_prompt)
-    negative_prompt = (
-        "low quality, blurry, distorted face, ugly, deformed, (multiple people:1.8), (two people:1.8), (group:1.7), (crowd:1.7), extra person, "
-        "profile, side view, back view, three-quarter view, tilted head, dynamic pose, "
-        "occluded face, mask, sunglasses, hat, "
-        "(bad hands:1.6), (bad fingers:1.6), (missing fingers:1.6), (extra fingers:1.6), (fused fingers:1.4), "
-        "(deformed hands:1.6), (deformed arms:1.6), (bad arms:1.5), (extra arms:1.5), "
-        "(hands visible:1.7), (fingers:1.7), (arms:1.6), (forearms:1.6), "
-        "extra legs, missing legs, deformed legs, full body, head-to-toe, long shot, waist-up, half body, "
-        "(nsfw:1.5), nude, naked, topless, shirtless, underwear, lingerie, (worst quality, low quality:1.4)"
-    )
-    seed_prompt, negative_prompt = apply_gender_hints(request.description, seed_prompt, negative_prompt)
-    seed_prompt, negative_prompt = apply_hair_color_hints(request.description, seed_prompt, negative_prompt)
-    negative_prompt = merge_negative_prompt(negative_prompt)
-    prompt = (
-        f"(({seed_prompt})), close-up portrait, head and shoulders only, head-only crop, "
-        "shoulder-up, neck-up, face centered, "
-        "single person, solo, one person only, front-facing, symmetrical pose, straight posture, "
-        "face fully visible, eyes visible, looking at camera, "
-        "handsome, attractive, clean facial features, well-proportioned face, "
-        "accurate skin tone, accurate eye color, accurate hair color, "
-        "hands not visible, no hands, no arms, "
-        "no occlusion, clean background, professional lighting, highly detailed"
-    )
-    prompt = escape_dynamic_prompt(prompt) or prompt
-    logger.info(f"📸 [Portrait Gen] Prompt: {prompt}")
-    
-    negative_prompt = escape_dynamic_prompt(negative_prompt) or negative_prompt
-    log_prompt("Portrait", prompt, negative_prompt, -1)
-    payload = {
-        "prompt": prompt,
-        "negative_prompt": negative_prompt,
-        "steps": 30,
-        "width": request.width,
-        "height": request.height,
-        "sampler_name": "DPM++ 2M Karras",
-        "cfg_scale": 7,
-        "seed": -1,
-        "enable_hr": True,
-        "hr_scale": 1.5,
-        "hr_upscaler": "Latent",
-        "hr_second_pass_steps": 12,
-        "denoising_strength": 0.55
-    }
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.post(SD_URL, json=payload, timeout=120.0)
-            r.raise_for_status()
-            data = r.json()
-            return {"image": data.get("images", [])[0]}
-        except Exception as e:
-            logger.error(f"Portrait Gen Failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/character/reference_single")
-async def generate_reference_single(request: ReferenceSingleRequest):
-    if not request.prompt:
-        raise HTTPException(status_code=400, detail="No prompt provided")
-    logger.info("📥 [RefSingle Req] %s", scrub_payload(request.dict()))
-    if request.use_ip_adapter and not request.reference_image:
-        raise HTTPException(status_code=400, detail="Missing reference image for IP-Adapter")
-    style_prompt = ", ".join(request.styles)
-    base_negative = (
-        "multiple people, two people, group, crowd, duplicate, twins, clone, extra person, "
-        "extra face, extra head, extra body, extra limbs, extra arms, extra legs"
-    )
-    text_negative = "text, letters, words, watermark, logo, signage, subtitle, caption, speech bubble, typography"
-    negative = merge_negative_prompt(request.negative_prompt or DEFAULT_NEGATIVE_PROMPT)
-    if base_negative not in negative:
-        negative = f"{negative}, {base_negative}"
-    if text_negative not in negative:
-        negative = f"{negative}, {text_negative}"
-    negative = escape_dynamic_prompt(negative) or negative
-    final_prompt = sanitize_prompt_background(request.prompt)
-    if style_prompt:
-        final_prompt = f"{final_prompt}, {style_prompt}"
-    final_prompt = escape_dynamic_prompt(final_prompt) or final_prompt
-    log_prompt("RefSingle", final_prompt, negative, request.seed)
-    payload: Dict[str, Any] = {
-        "prompt": final_prompt,
-        "negative_prompt": negative,
-        "steps": request.steps,
-        "width": request.width,
-        "height": request.height,
-        "sampler_name": request.sampler_name,
-        "cfg_scale": request.cfg_scale,
-        "seed": request.seed
-    }
-    ref_img_clean = strip_data_url(request.reference_image) if request.reference_image else None
-    controlnet_args = []
-    if request.use_pose:
-        pose_side = request.pose_side if request.pose_side in {"left", "right", "center"} else "center"
-        pose_view = request.pose_view if request.pose_view in {"front", "back"} else "front"
-        pose_b64 = build_pose_guide(request.width, request.height, pose_side, pose_view)
-        controlnet_args.append({
-            "enabled": True,
-            "module": "openpose_full",
-            "model": "control_v11p_sd15_openpose [cab727d4]",
-            "weight": request.pose_weight,
-            "image": pose_b64,
-            "pixel_perfect": True
-        })
-    if ref_img_clean and request.use_ip_adapter:
-        controlnet_args.append({
-            "enabled": True,
-            "module": "ip-adapter_face_id_plus",
-            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-            "weight": request.ip_adapter_weight,
-            "image": ref_img_clean,
-            "pixel_perfect": True
-        })
-    if controlnet_args:
-        payload["alwayson_scripts"] = {
-            "controlnet": {
-                "args": controlnet_args
-            }
-        }
-    try:
-        async with httpx.AsyncClient() as client:
-            for attempt in range(3):
-                try:
-                    r = await client.post(SD_URL, json=payload, timeout=120.0)
-                    r.raise_for_status()
-                    data = r.json()
-                    img = data.get("images", [None])[0]
-                    if img:
-                        return {"image": img}
-                    raise HTTPException(status_code=500, detail="Reference single failed")
-                except httpx.HTTPStatusError as e:
-                    err_text = e.response.text if e.response is not None else ""
-                    if "Insightface: No face found" in err_text and request.use_ip_adapter and attempt < 2:
-                        logger.warning("⚠️ [RefSingle] No face found, retrying (%s/3)...", attempt + 2)
-                        continue
-                    raise
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Reference single failed: {e}")
-        raise HTTPException(status_code=500, detail="Reference single failed")
-
-@app.post("/generate")
-async def generate_image(request: GenerateRequest):
-    logger.info(f"🎨 [Image Gen] Prompt: {request.prompt[:50]}...")
-    logger.info("📥 [Generate Req] %s", scrub_payload(request.dict()))
-    final_pos, final_neg = request.prompt, merge_negative_prompt(request.negative_prompt or DEFAULT_NEGATIVE_PROMPT)
-    
-    if gemini_client and not request.skip_optimization:
-        try:
-            template = template_env.get_template("optimize_prompt.j2")
-            rendered = template.render(user_input=request.prompt, persona=request.persona, target_styles=", ".join(request.styles))
-            h = hashlib.sha256(rendered.encode()).hexdigest()
-            cache_file = CACHE_DIR / f"{h}.json"
-            if cache_file.exists():
-                res_json = json.loads(cache_file.read_text(encoding="utf-8"))
-            else:
-                res = gemini_client.models.generate_content(model="gemini-2.0-flash-exp", contents=rendered)
-                res_json = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
-                cache_file.write_text(json.dumps(res_json, ensure_ascii=False))
-            final_pos, final_neg = res_json.get("positive_prompt", final_pos), res_json.get("negative_prompt", final_neg)
-            final_pos = sanitize_prompt_background(final_pos)
-            final_neg = merge_negative_prompt(final_neg)
-        except Exception as e:
-            logger.warning(f"⚠️ Prompt Optimization Failed: {e}")
-    
-    prompt_text = build_prompt(final_pos, [], request.lora)
-    prompt_text = escape_dynamic_prompt(prompt_text) or prompt_text
-    negative_text = escape_dynamic_prompt(final_neg) or final_neg
-    log_prompt("Generate", prompt_text, negative_text, request.seed)
-    payload = {
-        "prompt": prompt_text,
-        "negative_prompt": negative_text,
-        "steps": request.steps,
-        "width": request.width,
-        "height": request.height,
-        "sampler_name": request.sampler_name,
-        "cfg_scale": request.cfg_scale,
-        "seed": request.seed,
-        "alwayson_scripts": {}
-    }
-
-    # ControlNet / IP-Adapter Injection
-    if request.reference_image and request.use_ip_adapter:
-        logger.info("🔗 IP-Adapter Activated with reference image")
-        # Ensure clean base64
-        ref_img_clean = request.reference_image.split(",")[1] if "," in request.reference_image else request.reference_image
-        
-        payload["alwayson_scripts"]["controlnet"] = {
-            "args": [
-                {
-                    "enabled": True,
-                    "module": "ip-adapter_face_id_plus",
-                    "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-                    "weight": 0.8,
-                    "image": ref_img_clean,
-                    "pixel_perfect": True
-                }
-            ]
-        }
-    
-    async with httpx.AsyncClient() as client:
-        try:
-            logger.info("📡 Sending request to SD WebUI...")
-            r = await client.post(SD_URL, json=payload, timeout=120.0)
-            r.raise_for_status()
-            logger.info("✅ SD WebUI Response Received")
-            
-            data = r.json()
-            info = json.loads(data.get("info", "{}"))
-            return {"images": data.get("images", []), "seed": info.get("seed", request.seed), "translated_prompt": final_pos, "negative_prompt": final_neg}
-        except httpx.HTTPStatusError as e:
-            err_text = e.response.text if e.response is not None else ""
-            if "Insightface: No face found" in err_text and payload.get("alwayson_scripts", {}).get("controlnet"):
-                logger.warning("⚠️ No face found in reference image. Retrying without IP-Adapter...")
-                payload["alwayson_scripts"]["controlnet"]["args"] = [
-                    arg for arg in payload["alwayson_scripts"]["controlnet"]["args"]
-                    if arg.get("module") != "ip-adapter_face_id_plus"
-                ]
-                r = await client.post(SD_URL, json=payload, timeout=120.0)
-                r.raise_for_status()
-                data = r.json()
-                info = json.loads(data.get("info", "{}"))
-                return {"images": data.get("images", []), "seed": info.get("seed", request.seed), "translated_prompt": final_pos, "negative_prompt": final_neg}
-            logger.error(f"❌ Image Generation Failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
-        except Exception as e:
-            logger.error(f"❌ Image Generation Failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/generate/compose_dual")
-async def generate_compose_dual(request: DualComposeRequest):
-    logger.info("📥 [Compose Dual Req] %s", scrub_payload(request.dict()))
-    final_neg = merge_negative_prompt(request.negative_prompt or DEFAULT_NEGATIVE_PROMPT)
-    final_neg = strip_dual_negative(final_neg)
-    final_neg = escape_dynamic_prompt(final_neg) or final_neg
-    char_a_ref = strip_data_url(request.char_a_ref)
-    char_b_ref = strip_data_url(request.char_b_ref)
-
-    base_prompt = f"{request.scene_prompt}, background, empty scene, no people"
-    base_prompt = build_prompt(base_prompt, request.styles, request.lora)
-    base_prompt = escape_dynamic_prompt(base_prompt) or base_prompt
-    cache_key = hashlib.sha256(
-        json.dumps(
-            {
-                "prompt": base_prompt,
-                "width": request.width,
-                "height": request.height,
-                "steps": request.steps,
-                "cfg_scale": request.cfg_scale
-            },
-            sort_keys=True
-        ).encode()
-    ).hexdigest()
-    cache_file = CACHE_DIR / f"bg_{cache_key}.json"
-
-    txt2img_payload = {
-        "prompt": base_prompt,
-        "negative_prompt": final_neg,
-        "steps": request.steps,
-        "width": request.width,
-        "height": request.height,
-        "sampler_name": "DPM++ 2M Karras",
-        "cfg_scale": request.cfg_scale,
-        "seed": -1
-    }
-
-    async with httpx.AsyncClient() as client:
-        try:
-            logger.info("🧩 [Compose Dual] Generating background...")
-            if cache_file.exists():
-                cached = json.loads(cache_file.read_text(encoding="utf-8"))
-                current_b64 = cached.get("image")
-            else:
-                r = await client.post(SD_URL, json=txt2img_payload, timeout=120.0)
-                r.raise_for_status()
-                data = r.json()
-                current_b64 = data.get("images", [None])[0]
-                if current_b64:
-                    cache_file.write_text(json.dumps({"image": current_b64}), encoding="utf-8")
-            if not current_b64:
-                raise HTTPException(status_code=500, detail="Background generation failed")
-
-            for side, char_prompt, ref_image in [
-                ("left", request.char_a_prompt, char_a_ref),
-                ("right", request.char_b_prompt, char_b_ref),
-            ]:
-                if request.use_ip_adapter and not ref_image:
-                    raise HTTPException(status_code=400, detail=f"Missing reference image for {side} character")
-                mask_b64 = build_person_mask(request.width, request.height, side)
-                pose_b64 = build_pose_guide(request.width, request.height, side)
-                mask_blur = mask_blur_for_size(request.width, request.height)
-                person_prompt = f"{request.scene_prompt}, {char_prompt}, {side} side, full body"
-                person_prompt = build_prompt(person_prompt, request.styles, request.lora)
-                person_prompt = escape_dynamic_prompt(person_prompt) or person_prompt
-
-                controlnet_args = [
-                    {
-                        "enabled": True,
-                        "module": "openpose_full",
-                        "model": "control_v11p_sd15_openpose [cab727d4]",
-                        "weight": 0.5,
-                        "image": pose_b64,
-                        "pixel_perfect": True
-                    },
-                    {
-                        "enabled": True,
-                        "module": "depth",
-                        "model": "control_v11f1p_sd15_depth [cfd03158]",
-                        "weight": 0.4,
-                        "image": current_b64,
-                        "pixel_perfect": True
-                    },
-                    {
-                        "enabled": True,
-                        "module": "inpaint",
-                        "model": "control_v11p_sd15_inpaint [ebff9138]",
-                        "weight": 0.8,
-                        "image": current_b64,
-                        "mask": mask_b64,
-                        "pixel_perfect": True
-                    }
-                ]
-                if ref_image and request.use_ip_adapter:
-                    controlnet_args.append(
-                        {
-                            "enabled": True,
-                            "module": "ip-adapter_face_id_plus",
-                            "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-                            "weight": 0.9,
-                            "image": ref_image,
-                            "pixel_perfect": True
-                        }
-                    )
-
-                img2img_payload = {
-                    "prompt": person_prompt,
-                    "negative_prompt": final_neg,
-                    "steps": request.steps,
-                    "width": request.width,
-                    "height": request.height,
-                    "sampler_name": "DPM++ 2M Karras",
-                    "cfg_scale": request.cfg_scale,
-                    "seed": -1,
-                    "init_images": [current_b64],
-                    "mask": mask_b64,
-                    "mask_blur": mask_blur,
-                    "inpainting_fill": 1,
-                    "inpaint_full_res": True,
-                    "inpaint_full_res_padding": 32,
-                    "denoising_strength": request.denoising_strength,
-                    "alwayson_scripts": {
-                        "controlnet": {"args": controlnet_args},
-                        "adetailer": {"args": [adetailer_args_for_size(request.width, request.height, char_prompt)]}
-                    }
-                }
-
-                logger.info("🧩 [Compose Dual] Inpainting %s character...", side)
-                try:
-                    r = await client.post(SD_IMG2IMG_URL, json=img2img_payload, timeout=120.0)
-                    r.raise_for_status()
-                    data = r.json()
-                except httpx.HTTPStatusError as e:
-                    err_text = e.response.text if e.response is not None else ""
-                    if "Insightface: No face found" in err_text and request.use_ip_adapter:
-                        if request.strict_identity:
-                            raise HTTPException(
-                                status_code=400,
-                                detail="Reference image must contain a clear face for identity locking."
-                            )
-                        logger.warning("⚠️ No face found in reference image. Retrying without IP-Adapter...")
-                        img2img_payload["alwayson_scripts"]["controlnet"]["args"] = [
-                            arg for arg in controlnet_args if arg.get("module") != "ip-adapter_face_id_plus"
-                        ]
-                    logger.warning("⚠️ Retrying without ADetailer...")
-                    img2img_payload["alwayson_scripts"].pop("adetailer", None)
-                    r = await client.post(SD_IMG2IMG_URL, json=img2img_payload, timeout=120.0)
-                    r.raise_for_status()
-                    data = r.json()
-                current_b64 = data.get("images", [None])[0]
-                if not current_b64:
-                    raise HTTPException(status_code=500, detail=f"{side} character inpaint failed")
-
-                face_mask_b64 = build_face_mask(request.width, request.height, side)
-                face_prompt = f"{char_prompt}, face, same person, high fidelity"
-                face_prompt = build_prompt(face_prompt, request.styles, request.lora)
-                face_prompt = escape_dynamic_prompt(face_prompt) or face_prompt
-                face_payload = {
-                    "prompt": face_prompt,
-                    "negative_prompt": final_neg,
-                    "steps": max(12, request.steps // 2),
-                    "width": request.width,
-                    "height": request.height,
-                    "sampler_name": "DPM++ 2M Karras",
-                    "cfg_scale": max(4.5, request.cfg_scale - 1),
-                    "seed": -1,
-                    "init_images": [current_b64],
-                    "mask": face_mask_b64,
-                    "mask_blur": max(2, mask_blur // 2),
-                    "inpainting_fill": 1,
-                    "inpaint_full_res": True,
-                    "inpaint_full_res_padding": 16,
-                    "denoising_strength": min(0.4, request.denoising_strength),
-                    "alwayson_scripts": {
-                        "controlnet": {
-                            "args": [
-                                {
-                                    "enabled": True,
-                                    "module": "ip-adapter_face_id_plus",
-                                    "model": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
-                                    "weight": 0.95,
-                                    "image": ref_image,
-                                    "pixel_perfect": True
-                                },
-                                {
-                                    "enabled": True,
-                                    "module": "inpaint",
-                                    "model": "control_v11p_sd15_inpaint [ebff9138]",
-                                    "weight": 0.8,
-                                    "image": current_b64,
-                                    "mask": face_mask_b64,
-                                    "pixel_perfect": True
-                                }
-                            ]
-                        }
-                    }
-                }
-                if not request.use_ip_adapter:
-                    face_payload["alwayson_scripts"]["controlnet"]["args"] = [
-                        arg for arg in face_payload["alwayson_scripts"]["controlnet"]["args"]
-                        if arg.get("module") != "ip-adapter_face_id_plus"
-                    ]
-                logger.info("🧩 [Compose Dual] Refining %s face...", side)
-                try:
-                    r = await client.post(SD_IMG2IMG_URL, json=face_payload, timeout=120.0)
-                    r.raise_for_status()
-                    data = r.json()
-                except httpx.HTTPStatusError as e:
-                    err_text = e.response.text if e.response is not None else ""
-                    if "Insightface: No face found" in err_text and request.use_ip_adapter:
-                        if request.strict_identity:
-                            raise HTTPException(
-                                status_code=400,
-                                detail="Reference image must contain a clear face for identity locking."
-                            )
-                        logger.warning("⚠️ No face found in reference image. Retrying face refine without IP-Adapter...")
-                        face_payload["alwayson_scripts"]["controlnet"]["args"] = [
-                            arg for arg in face_payload["alwayson_scripts"]["controlnet"]["args"]
-                            if arg.get("module") != "ip-adapter_face_id_plus"
-                        ]
-                        r = await client.post(SD_IMG2IMG_URL, json=face_payload, timeout=120.0)
-                        r.raise_for_status()
-                        data = r.json()
-                    else:
-                        raise
-                current_b64 = data.get("images", [None])[0]
-                if not current_b64:
-                    raise HTTPException(status_code=500, detail=f"{side} face refine failed")
-
-            info = json.loads(data.get("info", "{}"))
-            return {"image": current_b64, "seed": info.get("seed", -1)}
-        except Exception as e:
-            logger.error(f"❌ Compose Dual Failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/debug/webui_compose_test")
-async def webui_compose_test(request: WebUIComposeTestRequest):
-    width, height = request.width, request.height
-    base_img = Image.new("RGB", (width, height), (25, 25, 25))
-    draw = ImageDraw.Draw(base_img)
-    draw.rectangle([0, int(height * 0.6), width, height], fill=(40, 40, 40))
-    draw.rectangle([0, 0, width, int(height * 0.2)], fill=(18, 18, 18))
-
-    mask_img = Image.new("L", (width, height), 0)
-    mask_draw = ImageDraw.Draw(mask_img)
-    radius = int(min(width, height) * 0.25)
-    cx, cy = width // 2, int(height * 0.55)
-    mask_draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=255)
-
-    base_b64 = image_to_base64(base_img)
-    mask_b64 = image_to_base64(mask_img)
-
-    payload = {
-        "prompt": request.prompt,
-        "negative_prompt": merge_negative_prompt(DEFAULT_NEGATIVE_PROMPT),
-        "steps": request.steps,
-        "width": width,
-        "height": height,
-        "sampler_name": "DPM++ 2M Karras",
-        "cfg_scale": request.cfg_scale,
-        "seed": -1,
-        "init_images": [base_b64],
-        "mask": mask_b64,
-        "mask_blur": 8,
-        "inpainting_fill": 1,
-        "inpaint_full_res": True,
-        "inpaint_full_res_padding": 32,
-        "denoising_strength": request.denoising_strength,
-        "alwayson_scripts": {
-            "controlnet": {
-                "args": [
-                    {
-                        "enabled": True,
-                        "module": "segmentation",
-                        "model": "control_v11p_sd15_seg [e1f51eb9]",
-                        "weight": 0.6,
-                        "image": base_b64,
-                        "pixel_perfect": True
-                    },
-                    {
-                        "enabled": True,
-                        "module": "inpaint",
-                        "model": "control_v11p_sd15_inpaint [ebff9138]",
-                        "weight": 0.8,
-                        "image": base_b64,
-                        "mask": mask_b64,
-                        "pixel_perfect": True
-                    }
-                ]
-            }
-        }
-    }
-
-    async with httpx.AsyncClient() as client:
-        try:
-            logger.info("🧪 [WebUI Compose Test] Sending img2img request...")
-            r = await client.post(SD_IMG2IMG_URL, json=payload, timeout=120.0)
-            r.raise_for_status()
-            data = r.json()
-            info = json.loads(data.get("info", "{}"))
-            return {
-                "image": data.get("images", [None])[0],
-                "seed": info.get("seed", -1),
-                "used_models": ["control_v11p_sd15_seg [e1f51eb9]", "control_v11p_sd15_inpaint [ebff9138]"]
-            }
-        except Exception as e:
-            logger.error(f"❌ WebUI Compose Test Failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/storyboard/create")
 async def create_storyboard(request: StoryboardRequest):
-    if not gemini_client: raise HTTPException(status_code=503, detail="Gemini key missing")
+    logger.info("📥 [Storyboard Req] %s", request.model_dump())
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
         template = template_env.get_template("create_storyboard.j2")
-        system_instruction = f"SYSTEM: Professional storyboarder and scriptwriter. Write CONCISE, punchy scripts in {request.language} (max 40 chars). NO EMOJIS."
-        res = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp", 
-            contents=f"{system_instruction}\n\n{template.render(topic=request.topic, duration=request.duration, style=request.style, structure=request.structure, characters=request.characters)}"
+        system_instruction = (
+            "SYSTEM: You are a professional storyboarder and scriptwriter. "
+            "Write concise, punchy scripts in the requested language (max 40 chars). "
+            "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
+            "Do not invent new tags. Return raw JSON only."
         )
-        return {"scenes": json.loads(res.text.strip().replace("```json", "").replace("```", ""))}
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+        rendered = template.render(
+            topic=request.topic,
+            duration=request.duration,
+            style=request.style,
+            structure=request.structure,
+            language=request.language,
+            keyword_context=format_keyword_context(),
+        )
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=f"{system_instruction}\n\n{rendered}",
+        )
+        scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
+        for scene in scenes:
+            raw_prompt = scene.get("image_prompt", "")
+            if not raw_prompt:
+                continue
+            filtered = filter_prompt_tokens(raw_prompt)
+            if not filtered:
+                logger.warning("No allowed keywords in scene prompt; using normalized original.")
+                filtered = normalize_prompt_tokens(raw_prompt)
+            scene["image_prompt"] = filtered
+        return {"scenes": scenes}
+    except Exception as exc:
+        logger.exception("Storyboard generation failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/scene/generate")
+async def generate_scene_image(request: SceneGenerateRequest):
+    logger.info("📥 [Scene Gen Req] %s", request.model_dump())
+    if not request.prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+
+    cleaned_prompt = normalize_prompt_tokens(request.prompt)
+    cleaned_negative = normalize_negative_prompt(request.negative_prompt or "")
+    payload = {
+        "prompt": cleaned_prompt,
+        "negative_prompt": cleaned_negative,
+        "steps": request.steps,
+        "cfg_scale": request.cfg_scale,
+        "sampler_name": request.sampler_name,
+        "seed": request.seed,
+        "width": request.width,
+        "height": request.height,
+        "override_settings": {
+            "CLIP_stop_at_last_layers": max(1, int(request.clip_skip)),
+        },
+        "override_settings_restore_afterwards": True,
+    }
+    if request.enable_hr:
+        payload.update({
+            "enable_hr": True,
+            "hr_scale": request.hr_scale,
+            "hr_upscaler": request.hr_upscaler,
+            "hr_second_pass_steps": request.hr_second_pass_steps,
+            "denoising_strength": request.denoising_strength,
+        })
+    logger.info("🧾 [Scene Gen Payload] %s", payload)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=SD_TIMEOUT_SECONDS)
+            res.raise_for_status()
+            data = res.json()
+            img = data.get("images", [None])[0]
+            if not img:
+                raise HTTPException(status_code=500, detail="No image returned")
+            return {"image": img}
+    except httpx.HTTPError as exc:
+        logger.exception("Scene generation failed")
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.post("/scene/validate_image")
+async def validate_scene_image(request: SceneValidateRequest):
+    logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
+    try:
+        image_bytes = decode_data_url(request.image_b64)
+        mode = request.mode.lower().strip() if request.mode else "wd14"
+        cache_key = cache_key_for_validation(image_bytes, request.prompt or "", mode)
+        cache_file = CACHE_DIR / f"image_validate_{cache_key}.json"
+        if cache_file.exists():
+            age = time.time() - cache_file.stat().st_mtime
+            if age < CACHE_TTL_SECONDS:
+                cached = json.loads(cache_file.read_text(encoding="utf-8"))
+                cached["cached"] = True
+                return cached
+        image = Image.open(io.BytesIO(image_bytes))
+        if mode == "gemini":
+            tags = gemini_predict_tags(image)
+        else:
+            tags = wd14_predict_tags(image, WD14_THRESHOLD)
+        comparison = compare_prompt_to_tags(request.prompt or "", tags)
+        total = len(comparison["matched"]) + len(comparison["missing"])
+        match_rate = (len(comparison["matched"]) / total) if total else 0.0
+        known_keywords = load_known_keywords()
+        unknown_tags = []
+        for item in tags[:50]:
+            name = normalize_prompt_token(item["tag"])
+            if not name:
+                continue
+            if name not in known_keywords:
+                unknown_tags.append(name)
+        update_keyword_suggestions(unknown_tags)
+        result = {
+            "mode": mode,
+            "match_rate": match_rate,
+            "matched": comparison["matched"],
+            "missing": comparison["missing"],
+            "extra": comparison["extra"],
+            "tags": tags[:20],
+            "unknown_tags": unknown_tags[:20],
+        }
+        cache_file.write_text(json.dumps(result, ensure_ascii=False))
+        return result
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Scene image validation failed")
+        raise HTTPException(status_code=500, detail="Image validation failed") from exc
+
+
+@app.post("/prompt/rewrite")
+async def rewrite_prompt(request: PromptRewriteRequest):
+    logger.info("📥 [Prompt Rewrite Req] %s", request.model_dump())
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
+    if not request.base_prompt or not request.scene_prompt:
+        raise HTTPException(status_code=400, detail="Base prompt and scene prompt are required")
+
+    cache_key = hashlib.sha256(
+        f"{request.base_prompt}|{request.scene_prompt}|{request.style}|{request.mode}".encode("utf-8")
+    ).hexdigest()
+    cache_file = CACHE_DIR / f"prompt_{cache_key}.json"
+    if cache_file.exists():
+        age = time.time() - cache_file.stat().st_mtime
+        if age < CACHE_TTL_SECONDS:
+            cached = json.loads(cache_file.read_text(encoding="utf-8"))
+            return {"prompt": cached.get("prompt", "")}
+
+    if request.mode == "scene":
+        instruction = (
+            "Convert SCENE into Stable Diffusion tag-style prompt. "
+            "Use comma-separated short tags, no full sentences. "
+            "Include camera/shot keywords if implied. Return ONLY the tags."
+        )
+    else:
+        instruction = (
+            "Rewrite a Stable Diffusion prompt. Keep the identity/style tokens from BASE. "
+            "Replace scene/action/camera/background with SCENE. Preserve any <lora:...> tags. "
+            "Return ONLY the final comma-separated prompt, no explanations."
+        )
+    user_input = (
+        f"BASE: {request.base_prompt}\n"
+        f"SCENE: {request.scene_prompt}\n"
+        f"STYLE: {request.style}\n"
+    )
+    try:
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=f"{instruction}\n\n{user_input}",
+        )
+        text = res.text.strip().replace("```", "")
+        if request.mode == "scene":
+            cache_file.write_text(json.dumps({"prompt": text}, ensure_ascii=False))
+            return {"prompt": text}
+        base_tokens = split_prompt_tokens(request.base_prompt)
+        base_core = [
+            token for token in base_tokens
+            if "<lora:" in token.lower() or not is_scene_token(token)
+        ]
+        rewritten_tokens = split_prompt_tokens(text)
+        final_prompt = merge_prompt_tokens(base_core, rewritten_tokens)
+        cache_file.write_text(json.dumps({"prompt": final_prompt}, ensure_ascii=False))
+        return {"prompt": final_prompt}
+    except Exception as exc:
+        logger.exception("Prompt rewrite failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/prompt/split")
+async def split_prompt(request: PromptSplitRequest):
+    logger.info("📥 [Prompt Split Req] %s", request.model_dump())
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
+    if not request.example_prompt:
+        raise HTTPException(status_code=400, detail="Example prompt is required")
+
+    instruction = (
+        "Split the EXAMPLE prompt into BASE and SCENE for Stable Diffusion. "
+        "BASE should keep identity/style/LoRA tokens. SCENE should keep action, pose, "
+        "camera, and background. Return ONLY JSON with keys base_prompt and scene_prompt."
+    )
+    user_input = f"EXAMPLE: {request.example_prompt}\nSTYLE: {request.style}\n"
+    try:
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=f"{instruction}\n\n{user_input}",
+        )
+        text = res.text.strip().replace("```json", "").replace("```", "")
+        data = json.loads(text)
+        return {
+            "base_prompt": data.get("base_prompt", ""),
+            "scene_prompt": data.get("scene_prompt", ""),
+        }
+    except Exception as exc:
+        logger.exception("Prompt split failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/sd/models")
+async def list_sd_models():
+    logger.info("📥 [SD Models]")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(SD_MODELS_URL, timeout=10.0)
+            res.raise_for_status()
+            data = res.json()
+            return {"models": data if isinstance(data, list) else []}
+    except httpx.HTTPError as exc:
+        logger.exception("SD models fetch failed")
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get("/keywords/suggestions")
+async def list_keyword_suggestions(min_count: int = 3, limit: int = 50):
+    logger.info("📥 [Keyword Suggestions] min_count=%s limit=%s", min_count, limit)
+    suggestions = load_keyword_suggestions(min_count=min_count, limit=limit)
+    return {"min_count": min_count, "limit": limit, "suggestions": suggestions}
+
+
+@app.get("/keywords/categories")
+async def list_keyword_categories():
+    logger.info("📥 [Keyword Categories]")
+    try:
+        data = load_keywords_file()
+        categories = data.get("categories", {})
+        if not isinstance(categories, dict):
+            categories = {}
+        return {"categories": categories}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Keyword categories load failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/keywords/approve")
+async def approve_keyword(request: KeywordApproveRequest):
+    logger.info("📥 [Keyword Approve] %s", request.model_dump())
+    tag_token = normalize_prompt_token(request.tag)
+    if not tag_token:
+        raise HTTPException(status_code=400, detail="Invalid tag")
+    category = request.category.strip()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category is required")
+    try:
+        data = load_keywords_file()
+        categories = data.get("categories", {})
+        if not isinstance(categories, dict):
+            categories = {}
+        if category not in categories:
+            raise HTTPException(status_code=400, detail="Unknown category")
+        entries = categories.get(category) or []
+        if not isinstance(entries, list):
+            entries = []
+        existing = {normalize_prompt_token(item) for item in entries}
+        if tag_token not in existing:
+            entries.append(tag_token)
+        categories[category] = entries
+        data["categories"] = categories
+        save_keywords_file(data)
+        reset_keyword_cache()
+        suggestions_path = CACHE_DIR / "keyword_suggestions.json"
+        if suggestions_path.exists():
+            try:
+                suggestions = json.loads(suggestions_path.read_text(encoding="utf-8"))
+                if tag_token in suggestions:
+                    suggestions.pop(tag_token, None)
+                    suggestions_path.write_text(json.dumps(suggestions, ensure_ascii=False, indent=2))
+            except Exception:
+                logger.exception("Failed to update keyword suggestions after approval")
+        return {"ok": True, "tag": tag_token, "category": category}
+    except HTTPException:
+        raise
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Keyword approval failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/sd/options")
+async def get_sd_options():
+    logger.info("📥 [SD Options]")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(SD_OPTIONS_URL, timeout=10.0)
+            res.raise_for_status()
+            data = res.json()
+            if isinstance(data, dict):
+                return {"options": data, "model": data.get("sd_model_checkpoint", "Unknown")}
+            return {"options": {}, "model": "Unknown"}
+    except httpx.HTTPError as exc:
+        logger.exception("SD options fetch failed")
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.post("/sd/options")
+async def update_sd_options(request: SDModelRequest):
+    logger.info("📥 [SD Options Update] %s", request.model_dump())
+    payload = {"sd_model_checkpoint": request.sd_model_checkpoint}
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(SD_OPTIONS_URL, json=payload, timeout=10.0)
+            res.raise_for_status()
+            data = res.json()
+            return {"ok": True, "model": data.get("sd_model_checkpoint", request.sd_model_checkpoint)}
+    except httpx.HTTPError as exc:
+        logger.exception("SD options update failed")
+        raise HTTPException(status_code=502, detail=str(exc))
+
 
 @app.post("/video/create")
 async def create_video(request: VideoRequest):
-    logger.info(f"🎬 [영상 제작 시작 - v2.0 Safe Mode] 프로젝트: {request.project_name}")
-    logger.info(f"📏 요청 해상도: {request.width}x{request.height}")
-    
-    # Force override to Shorts (1080x1920) if Square (512x512) is requested, 
-    # to fix the issue where users get square videos due to old settings.
-    target_w, target_h = request.width, request.height
-    if target_w == 512 and target_h == 512:
-        logger.info("🔄 512x512 요청 감지 -> 1080x1920(Shorts)로 강제 변환합니다.")
-        target_w, target_h = 1080, 1920
+    logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
+    logger.info("Video build started: %s", request.project_name)
 
     project_id = f"build_{int(time.time())}"
     temp_dir = IMAGE_DIR / project_id
     temp_dir.mkdir(parents=True, exist_ok=True)
     video_filename = f"{request.project_name}_{int(time.time())}.mp4"
     video_path = VIDEO_DIR / video_filename
-    
+
     font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
-    if not os.path.exists(font_path): font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+    if not os.path.exists(font_path):
+        font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
 
     try:
-        input_args = []
+        input_args: list[str] = []
         num_scenes = len(request.scenes)
         speed_multiplier = max(0.25, min(request.speed_multiplier or 1.0, 2.0))
-        transition_dur = max(0.1, 0.5 / speed_multiplier) # Faster transition for higher tempo
+        transition_dur = max(0.1, 0.5 / speed_multiplier)
         tts_padding = 0.5 / speed_multiplier
         tts_rate = to_edge_tts_rate(speed_multiplier)
-        tts_valid = []
-        tts_durations = []
+        tts_valid: list[bool] = []
+        tts_durations: list[float] = []
 
+        use_post_layout = request.layout_style == "post"
         for i, scene in enumerate(request.scenes):
             img_path = temp_dir / f"scene_{i}.png"
             tts_path = temp_dir / f"tts_{i}.mp3"
             txt_file = temp_dir / f"text_{i}.txt"
-            img_path.write_bytes(base64.b64decode(scene["image_url"].split(",")[1]))
-            
-            # Script processing
-            raw_script = scene.get('script', '')
-            clean_script = re.sub(r'[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]', '', raw_script).replace("'", "").strip()
-            # Split long lines for subtitles
-            wrapped_script = wrap_text(clean_script, width=20) 
-            txt_file.write_text(wrapped_script, encoding="utf-8")
-            
+
+            image_bytes = decode_data_url(scene.image_url)
+            if use_post_layout:
+                try:
+                    overlay_settings = request.overlay_settings or OverlaySettings()
+                    composed = compose_post_frame(
+                        image_bytes,
+                        request.width,
+                        request.height,
+                        overlay_settings.profile_name,
+                        overlay_settings.caption,
+                        font_path,
+                    )
+                    composed.save(img_path, "PNG")
+                except Exception:
+                    img_path.write_bytes(image_bytes)
+            else:
+                img_path.write_bytes(image_bytes)
+
+            raw_script = scene.script or ""
+            clean_script = re.sub(r"[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]", "", raw_script)
+            clean_script = clean_script.replace("'", "").strip()
+
+            if request.include_subtitles:
+                wrapped_script = wrap_text(clean_script, width=20)
+                txt_file.write_text(wrapped_script, encoding="utf-8")
+
             has_valid_tts = False
             tts_duration = 0.0
-            if txt_for_tts := raw_script.replace("'", "").strip():
+            if raw_script.strip():
                 try:
-                    # Determine voice based on speaker
-                    speaker = scene.get('speaker', 'Narrator')
-                    voice = request.narrator_voice or "ko-KR-SunHiNeural" # Default to narrator voice
-                    
-                    if speaker == "A" and len(request.characters) > 0:
-                        voice = request.characters[0].voice
-                    elif speaker == "B" and len(request.characters) > 1:
-                        voice = request.characters[1].voice
-                        
-                    communicate = edge_tts.Communicate(txt_for_tts, voice, rate=tts_rate)
+                    voice = request.narrator_voice
+                    communicate = edge_tts.Communicate(raw_script, voice, rate=tts_rate)
                     await communicate.save(str(tts_path))
                     if tts_path.exists() and tts_path.stat().st_size > 0:
                         has_valid_tts = True
                         tts_duration = get_audio_duration(tts_path)
-                except: pass
+                except Exception:
+                    pass
 
             input_args.extend(["-loop", "1", "-i", str(img_path)])
-            if has_valid_tts: input_args.extend(["-i", str(tts_path)])
-            else: input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
+            if has_valid_tts:
+                input_args.extend(["-i", str(tts_path)])
+            else:
+                input_args.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
+
             tts_valid.append(has_valid_tts)
             tts_durations.append(tts_duration)
 
-        scene_durations = []
+        scene_durations: list[float] = []
         for i, scene in enumerate(request.scenes):
-            base_duration = scene.get('duration', 3) / speed_multiplier
+            base_duration = (scene.duration or 3) / speed_multiplier
             if tts_valid[i] and tts_durations[i] > 0:
                 base_duration = max(base_duration, tts_durations[i] + tts_padding)
             scene_durations.append(base_duration)
 
-        filters = []
-        # Use determined width/height (Force 1080x1920 if 512x512 was requested)
-        out_w, out_h = (target_w, target_h)
-        
-        # Asset Paths for FFmpeg (Escaped for Filter Graph)
-        # On macOS/Linux, colon escaping is usually not needed inside single quotes, but backslash is.
-        # We replace backslash with forward slash for safety.
+        filters: list[str] = []
+        out_w, out_h = (request.width, request.height)
         abs_font_path = str(pathlib.Path(font_path).resolve()).replace("\\", "/")
 
         for i in range(num_scenes):
-            v_idx, base_dur = i * 2, scene_durations[i]
-            
-            txt_file = temp_dir / f"text_{i}.txt"
-            abs_txt_path = str(txt_file.resolve()).replace("\\", "/")
-
+            v_idx = i * 2
+            base_dur = scene_durations[i]
             clip_dur = base_dur + (transition_dur if i < num_scenes - 1 else 0)
-            
-            # Simplified Filter Chain (ZoomPan removed for stability)
-            # 1. Scale & Crop to Square -> 2. Draw Text -> 3. Trim
-            
-            text_style = "fontcolor=white:fontsize=65:borderw=7:bordercolor=black:shadowx=3:shadowy=3"
-            text_y_pos = "250"
-            
-            # Step 1: Blurred Background + Centered Image
-            # [v_idx] -> Split -> [bg] (scale/crop/blur)
-            #                  -> [fg] (scale fit)
-            # [bg][fg]Overlay -> [v_base]
-            
-            # Note: We need to use split to use the input stream twice.
-            # But since we use -loop 1, we can't easily split the infinite stream inside the filter without care.
-            # Actually, simpler is to just scale/crop the input to BG, and use input AGAIN for FG? 
-            # No, filter graph consumes the input pad. We must split.
-            
-            # Complex filter string construction:
-            # [v_idx]split=2[v{i}_in_bg][v{i}_in_fg];
-            # [v{i}_in_bg]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[v{i}_bg_blurred];
-            # [v{i}_in_fg]scale={out_w}:{out_h}:force_original_aspect_ratio=decrease[v{i}_fg_scaled];
-            # [v{i}_bg_blurred][v{i}_fg_scaled]overlay=(W-w)/2:(H-h)/2:format=auto[v{i}_comp];
-            # [v{i}_comp]drawtext...
-            
-            # To avoid variable collision in a loop, we name pads uniquely with {i}.
-            
-            filters.append(f"[{v_idx}:v]split=2[v{i}_in_1][v{i}_in_2]")
-            
-            # Background layer
-            filters.append(f"[v{i}_in_1]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},boxblur=40:20[v{i}_bg]")
-            
-            # Foreground layer (Fit)
-            filters.append(f"[v{i}_in_2]scale={out_w}:{out_h}:force_original_aspect_ratio=decrease[v{i}_fg]")
-            
-            # Composite
-            filters.append(f"[v{i}_bg][v{i}_fg]overlay=(W-w)/2:(H-h)/2:format=auto[v{i}_base]")
-            
-            # Step 2: Draw Text (on composite)
-            filters.append(f"[v{i}_base]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':{text_style}:x=(w-text_w)/2:y={text_y_pos}[v{i}_text]")
-            
-            # Step 3: Trim & SetPTS
-            filters.append(f"[v{i}_text]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]")
+            motion_frames = max(1, int(clip_dur * 25))
 
-        # Audio Chain
+            if request.include_subtitles:
+                txt_file = temp_dir / f"text_{i}.txt"
+                abs_txt_path = str(txt_file.resolve()).replace("\\", "/")
+
+            if use_post_layout:
+                if request.motion_style == "slow_zoom":
+                    filters.append(
+                        f"[{v_idx}:v]scale={out_w}:{out_h},"
+                        f"zoompan=z='min(zoom+0.0008,1.08)':d={motion_frames}:s={out_w}x{out_h}:fps=25"
+                        f"[v{i}_base]"
+                    )
+                else:
+                    filters.append(f"[{v_idx}:v]scale={out_w}:{out_h}[v{i}_base]")
+            else:
+                filters.append(f"[{v_idx}:v]split=2[v{i}_in_1][v{i}_in_2]")
+                bg_scale = (
+                    f"[v{i}_in_1]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,"
+                    f"crop={out_w}:{out_h},boxblur=40:20"
+                )
+                if request.motion_style == "slow_zoom":
+                    filters.append(
+                        f"{bg_scale},"
+                        f"zoompan=z='min(zoom+0.0008,1.08)':d={motion_frames}:s={out_w}x{out_h}:fps=25"
+                        f"[v{i}_bg]"
+                    )
+                else:
+                    filters.append(f"{bg_scale}[v{i}_bg]")
+
+                filters.append(
+                    f"[v{i}_in_2]scale={out_w}:-2:force_original_aspect_ratio=decrease[v{i}_fg]"
+                )
+                filters.append(
+                    f"[v{i}_bg][v{i}_fg]overlay=(W-w)/2:(H-h)/2:format=auto[v{i}_base]"
+                )
+
+            if request.include_subtitles:
+                text_style = "fontcolor=white:fontsize=65:borderw=7:bordercolor=black:shadowx=3:shadowy=3"
+                overlay_enabled = bool(request.overlay_settings and request.overlay_settings.enabled)
+                if use_post_layout:
+                    text_y_pos = str(int(out_h * (0.7 if overlay_enabled else 0.74)))
+                else:
+                    text_y_pos = str(int(out_h * (0.68 if overlay_enabled else 0.8)))
+                filters.append(
+                    f"[v{i}_base]drawtext=fontfile='{abs_font_path}':textfile='{abs_txt_path}':"
+                    f"{text_style}:x=(w-text_w)/2:y={text_y_pos}[v{i}_text]"
+                )
+                filters.append(f"[v{i}_text]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]")
+            else:
+                filters.append(f"[v{i}_base]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]")
+
         for i in range(num_scenes):
             a_idx = i * 2 + 1
             clip_dur = scene_durations[i] + (transition_dur if i < num_scenes - 1 else 0)
-            filters.append(f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]")
+            filters.append(
+                f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,"
+                f"atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]"
+            )
 
-        # Concat with Crossfade
         if num_scenes > 1:
             curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
             for i in range(1, num_scenes):
-                # Calculate offset based on previous clip's actual duration (minus transition overlap)
                 prev_dur = scene_durations[i - 1]
-                
                 acc_offset += prev_dur
-                
-                filters.append(f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={transition_dur}:offset={acc_offset}[v{i}_m]")
+                filters.append(
+                    f"{curr_v}[v{i}_raw]xfade=transition=fade:duration={transition_dur}:offset={acc_offset}[v{i}_m]"
+                )
                 curr_v = f"[v{i}_m]"
-                filters.append(f"{curr_a}[a{i}_raw]acrossfade=d={transition_dur}:o=1:c1=tri:c2=tri[a{i}_m]")
+                filters.append(
+                    f"{curr_a}[a{i}_raw]acrossfade=d={transition_dur}:o=1:c1=tri:c2=tri[a{i}_m]"
+                )
                 curr_a = f"[a{i}_m]"
             map_v, map_a = curr_v, curr_a
-            
-            # Calculate total duration for BGM fade out
-            last_dur = scene_durations[-1]
-            total_dur = acc_offset + last_dur
+            total_dur = acc_offset + scene_durations[-1]
         else:
             map_v, map_a = "[v0_raw]", "[a0_raw]"
-            total_dur = scene_durations[0]
+            total_dur = scene_durations[0] if scene_durations else 0
+
+        next_input_idx = num_scenes * 2
+
+        if request.overlay_settings and request.overlay_settings.enabled:
+            if request.layout_style == "post":
+                logger.info("Overlay disabled for post layout to avoid double UI.")
+            else:
+                overlay_path = temp_dir / "overlay.png"
+                resolve_overlay_frame(request.overlay_settings, out_w, out_h, overlay_path, request.layout_style)
+                if request.layout_style == "post":
+                    apply_post_overlay_mask(overlay_path, out_w, out_h)
+                input_args.extend(["-i", str(overlay_path)])
+                if request.layout_style == "full":
+                    filters.append(
+                        f"[{next_input_idx}:v]scale={out_w}:{out_h},format=rgba,"
+                        f"colorchannelmixer=aa=1.6[ovr]"
+                    )
+                else:
+                    filters.append(f"[{next_input_idx}:v]scale={out_w}:{out_h}[ovr]")
+                filters.append(f"{map_v}[ovr]overlay=0:0[vid_o]")
+                map_v = "[vid_o]"
+                next_input_idx += 1
 
         bgm_path = AUDIO_DIR / request.bgm_file if request.bgm_file else None
-        next_input_idx = num_scenes * 2
-        
-        # Watermark
-        filters.append(f"{map_v}drawtext=text='Shorts Producer AI':fontcolor=white@0.5:fontsize=24:x=w-tw-40:y=40[v_w]")
-        current_v = "[v_w]"
-
-        # SNS Overlay (If enabled)
-        if request.overlay_settings and request.overlay_settings.enabled:
-            overlay_img_path = temp_dir / "custom_overlay.png"
-            create_dynamic_overlay(request.overlay_settings, overlay_img_path, width=out_w, height=out_h)
-            input_args.extend(["-i", str(overlay_img_path)])
-            filters.append(f"{current_v}[{next_input_idx}:v]overlay=0:0[v_o]")
-            current_v, next_input_idx = "[v_o]", next_input_idx + 1
-            
-        # BGM Mixing
         if bgm_path and bgm_path.exists():
             input_args.extend(["-i", str(bgm_path)])
-            filters.append(f"[{next_input_idx}:a]volume=0.15,afade=t=out:st={max(0, total_dur-2)}:d=2[bgm_f]")
+            filters.append(
+                f"[{next_input_idx}:a]volume=0.15,afade=t=out:st={max(0, total_dur-2)}:d=2[bgm_f]"
+            )
             filters.append(f"{map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]")
             map_a = "[a_f]"
-            
+
         filter_complex_str = ";".join(filters)
         cmd = ["ffmpeg", "-y"] + input_args + [
-            "-filter_complex", filter_complex_str, 
-            "-map", current_v, 
-            "-map", map_a, 
-            "-s", f"{out_w}x{out_h}", # Force exact output resolution
-            "-c:v", "libx264", 
-            "-pix_fmt", "yuv420p", 
-            "-preset", "medium", 
-            "-c:a", "aac", 
-            "-b:a", "192k", 
-            str(video_path)
+            "-filter_complex", filter_complex_str,
+            "-map", map_v,
+            "-map", map_a,
+            "-s", f"{out_w}x{out_h}",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-preset", "medium",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            str(video_path),
         ]
-        
-        logger.info(f"Running FFmpeg: {' '.join(cmd)}")
+
+        logger.info("Running FFmpeg")
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            logger.error(f"FFmpeg Stderr: {result.stderr}")
-            raise Exception(f"FFmpeg failed: {result.stderr}")
-            
+            logger.error("FFmpeg failed: %s", result.stderr)
+            raise Exception(result.stderr)
+
         shutil.rmtree(temp_dir)
         return {"video_url": f"http://localhost:8000/outputs/videos/{video_filename}"}
-    except Exception as e:
-        import traceback
-        logger.error(f"Video Create Error: {traceback.format_exc()}")
-        if temp_dir.exists(): shutil.rmtree(temp_dir)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        logger.exception("Video Create Error")
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+def get_audio_duration(path: pathlib.Path) -> float:
+    cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(path)]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        return 0.0
+    try:
+        return float(result.stdout.strip())
+    except ValueError:
+        return 0.0
+
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

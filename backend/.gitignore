@@ -17,3 +17,14 @@ wheels/
 outputs/
 projects/
 *.mp3
+logs/
+*.log
+models/
+assets/audio/
+videos/
+images/
+cache/
+*.mp4
+*.wav
+*.m4a
+*.zip
