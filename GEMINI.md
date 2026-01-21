@@ -1,28 +1,41 @@
 # Project: Shorts Producer
 
 ## Overview
-`shorts-producer` is a workspace for automating short-form video content production.
-It currently consists of a Python FastAPI backend for image generation (via Stable Diffusion) and a Next.js frontend.
+`shorts-producer` is an AI-driven automation workspace for creating short-form videos. It orchestrates Google Gemini (Logic/Vision), Stable Diffusion (Generation), and FFmpeg (Rendering) to transform text topics into polished videos.
 
-## Directory Structure
-- `backend/`: FastAPI application.
-    - `main.py`: Entry point. Handles translation (Korean -> English) and calls the Stable Diffusion API.
-    - Run with: `uv run main.py` or `python main.py` (ensure `.venv` is active).
-- `frontend/`: Next.js application.
-    - `app/page.tsx`: Main UI for prompt input and image display.
-    - Run with: `npm run dev`.
+## Architecture
+
+### 1. Backend (`/backend`)
+Built with **FastAPI**. Currently heavily centralized in `main.py`.
+- **Core Logic**:
+    - **Storyboarder**: Uses `google-genai` and Jinja2 templates to plan video scripts and visual prompts.
+    - **Image Pipeline**: Connects to local Stable Diffusion WebUI API. Features a **Validation Loop** using WD14 (local ONNX) and Gemini Vision to ensure image quality and relevance.
+    - **Renderer**: Constructs complex FFmpeg command lines to stitch images, TTS audio (EdgeTTS), subtitles (with custom fonts), and overlays.
+- **Key Files**:
+    - `main.py`: Main entry point (Monolith).
+    - `keywords.json`: Central config for prompt engineering, synonyms, and ignored tokens.
+    - `assets/`: Stores persistent assets (fonts, overlays, default audio).
+
+### 2. Frontend (`/frontend`)
+Built with **Next.js 14+ (App Router)** and **Tailwind CSS**.
+- **State Management**:
+    - **Autopilot**: A client-side state machine in `app/page.tsx` that automates the [Storyboard -> Generate -> Validate -> Render] pipeline.
+    - **Manual Mode**: Allows scene-by-scene editing of scripts and prompts.
+- **Key Pages**:
+    - `/`: Main Studio (Creation & Editing).
+    - `/manage`: Keyword & Asset Manager.
 
 ## Setup Status
-- [x] Version Control Initialized (User to confirm)
-- [x] Backend Scaffolding (FastAPI, deep-translator, httpx)
-- [x] Frontend Scaffolding (Next.js, Tailwind, Axios)
-- [x] Basic Integration (Frontend connects to Backend `POST /generate`)
+- [x] Version Control Initialized
+- [x] Backend Core Logic (FastAPI + AI Integration)
+- [x] Frontend Studio UI (Next.js + Autopilot State Machine)
+- [x] Image Validation Pipeline (WD14 + Gemini)
+- [x] FFmpeg Rendering Pipeline (Overlays, Subtitles, Audio)
+
+## Critical Maintenance Targets
+1.  **Refactor `backend/main.py`**: Split into `routers/` (API) and `services/` (Logic) to reduce file size (~2300 lines) and improve maintainability.
+2.  **Refactor `frontend/app/page.tsx`**: Extract logic into custom hooks (`useAutopilot`) and sub-components.
 
 ## Prerequisites
-- **Stable Diffusion WebUI**: Must be running locally on port 7860 with `--api` enabled.
-  - URL: `http://127.0.0.1:7860`
-
-## Next Steps
-1.  **Run the servers:** Start both backend and frontend.
-2.  **Test:** Generate an image via the web interface.
-3.  **Expand:** Add video generation or stitching capabilities.
+- **Stable Diffusion WebUI**: `http://127.0.0.1:7860` (launch with `--api`).
+- **Env Vars**: `GEMINI_API_KEY` required in `backend/.env`.
