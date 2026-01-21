@@ -14,6 +14,7 @@ type Scene = {
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
+  candidates?: Array<{ image_url: string; match_rate?: number }>;
   negative_prompt: string;
   steps: number;
   cfg_scale: number;
@@ -26,23 +27,55 @@ type Scene = {
 };
 
 type AudioItem = { name: string; url: string };
+type FontItem = { name: string };
 type OverlaySettings = {
-  enabled: boolean;
-  profile_name: string;
+  channel_name: string;
+  avatar_key: string;
   likes_count: string;
   caption: string;
   frame_style: string;
 };
+type PostCardSettings = {
+  channel_name: string;
+  avatar_key: string;
+  caption: string;
+};
 type SdModel = { title: string; model_name: string };
 type ActorGender = "male" | "female";
+
+const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
+const DEFAULT_SUBTITLE_FONT = "온글잎 박다현체.ttf";
+const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";
+const MAX_IMAGE_CACHE_SIZE = 8_000_000;
+const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
+  channel_name: "",
+  avatar_key: "",
+  likes_count: "",
+  caption: "",
+  frame_style: "overlay_minimal.png",
+};
+const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
+  channel_name: "",
+  avatar_key: "",
+  caption: "",
+};
+const AUTO_RUN_STEPS = [
+  { id: "storyboard", label: "Storyboard" },
+  { id: "fix", label: "Auto Fix" },
+  { id: "images", label: "Images" },
+  { id: "validate", label: "Validate" },
+  { id: "render", label: "Render" },
+] as const;
+type AutoRunStepId = (typeof AUTO_RUN_STEPS)[number]["id"];
 type ValidationIssue = { level: "warn" | "error"; message: string };
 type SceneValidation = { status: "ok" | "warn" | "error"; issues: ValidationIssue[] };
 type FixSuggestion = {
   id: string;
   message: string;
   action?: {
-    type: "add_positive" | "remove_negative_scene" | "set_speaker_a";
+    type: "add_positive" | "remove_negative_scene" | "set_speaker_a" | "fill_script" | "trim_script";
     tokens?: string[];
+    value?: string;
   };
 };
 type ImageValidation = {
@@ -60,10 +93,23 @@ const VOICES = [
 
 const SAMPLERS = ["DPM++ 2M Karras", "Euler a", "Euler", "DDIM"];
 
-const OVERLAY_STYLES = [
-  { id: "overlay_minimal.png", label: "Minimal" },
-  { id: "overlay_clean.png", label: "Clean" },
-  { id: "overlay_bold.png", label: "Bold" },
+const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
+const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
+const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];
+const PROMPT_SAMPLES = [
+  {
+    id: "eureka",
+    label: "Eureka",
+    basePrompt:
+      "1girl, eureka, (black t-shirt:1.2), purple eyes, aqua hair, short hair, jeans, glasses, hairclip, short sleeves, <lora:eureka_v9:1.0>",
+    baseNegative: "verybadimagenegative_v1.3",
+  },
+  {
+    id: "chibi-laugh",
+    label: "Chibi Laugh",
+    basePrompt: "chibi, eyebrow, laughing, eyebrow down, <lora:chibi-laugh:0.6>",
+    baseNegative: "easynegative",
+  },
 ];
 
 const STRUCTURES = ["Monologue"];
@@ -136,6 +182,7 @@ export default function Home() {
   const [examplePrompt, setExamplePrompt] = useState("");
   const [suggestedBase, setSuggestedBase] = useState("");
   const [suggestedScene, setSuggestedScene] = useState("");
+  const [multiGenEnabled, setMultiGenEnabled] = useState(true);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isHelperOpen, setIsHelperOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
@@ -150,44 +197,429 @@ export default function Home() {
   const [baseSamplerA, setBaseSamplerA] = useState("DPM++ 2M Karras");
   const [baseSeedA, setBaseSeedA] = useState(-1);
   const [baseClipSkipA, setBaseClipSkipA] = useState(2);
+  const [selectedSampleId, setSelectedSampleId] = useState(PROMPT_SAMPLES[0].id);
   const [advancedExpanded, setAdvancedExpanded] = useState<Record<number, boolean>>({});
   const prevBaseNegativeRefA = useRef("");
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [narratorVoice, setNarratorVoice] = useState(VOICES[0].id);
   const [bgmList, setBgmList] = useState<AudioItem[]>([]);
-  const [bgmFile, setBgmFile] = useState<string | null>(null);
-  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
-  const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>({
-    enabled: true,
-    profile_name: "",
-    likes_count: "",
-    caption: "",
-    frame_style: "overlay_minimal.png",
-  });
+  const [bgmFile, setBgmFile] = useState<string | null>(DEFAULT_BGM);
+  const [fontList, setFontList] = useState<FontItem[]>([]);
+  const [subtitleFont, setSubtitleFont] = useState<string>(DEFAULT_SUBTITLE_FONT);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.3);
+  const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
+  const [postCardSettings, setPostCardSettings] = useState<PostCardSettings>(
+    DEFAULT_POST_CARD_SETTINGS
+  );
   const [sdModels, setSdModels] = useState<SdModel[]>([]);
   const [currentModel, setCurrentModel] = useState("Unknown");
   const [selectedModel, setSelectedModel] = useState("");
   const [isModelUpdating, setIsModelUpdating] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
+  const [isRegeneratingAvatar, setIsRegeneratingAvatar] = useState(false);
+  const [overlayAvatarUrl, setOverlayAvatarUrl] = useState<string | null>(null);
+  const [postAvatarUrl, setPostAvatarUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoUrlFull, setVideoUrlFull] = useState<string | null>(null);
+  const [videoUrlPost, setVideoUrlPost] = useState<string | null>(null);
+  const [recentVideos, setRecentVideos] = useState<
+    Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>
+  >([]);
   const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("full");
-  const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("none");
+  const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("slow_zoom");
   const [hiResEnabled, setHiResEnabled] = useState(false);
+  const [veoEnabled, setVeoEnabled] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState<string | null>(null);
+  const [videoPreviewSrc, setVideoPreviewSrc] = useState<string | null>(null);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
+  const [autoRunState, setAutoRunState] = useState<{
+    status: "idle" | "running" | "error" | "done";
+    step: AutoRunStepId | "idle";
+    message: string;
+    error?: string;
+  }>({ status: "idle", step: "idle", message: "" });
+  const [autoRunLog, setAutoRunLog] = useState<string[]>([]);
+  const isAutoRunning = autoRunState.status === "running";
+  const autoRunCancelRef = useRef(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
+  const draftSaveTimeoutRef = useRef<number | null>(null);
+  const hasHydratedDraftRef = useRef(false);
+
+  const slugifyAvatarKey = (value: string) => {
+    const trimmed = value.trim().toLowerCase();
+    const ascii = trimmed
+      .normalize("NFKD")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (ascii) return ascii;
+    let hash = 0;
+    for (let i = 0; i < trimmed.length; i += 1) {
+      hash = (hash * 31 + trimmed.charCodeAt(i)) >>> 0;
+    }
+    return `channel-${hash.toString(16).slice(0, 6)}`;
+  };
+
+  const generateChannelName = (seedText: string) => {
+    const adjectives = [
+      "잔잔한",
+      "빛나는",
+      "조용한",
+      "따뜻한",
+      "느린",
+      "고요한",
+      "푸른",
+      "은은한",
+      "깊은",
+      "희미한",
+      "아련한",
+      "눈부신",
+      "부드러운",
+      "차분한",
+      "맑은",
+      "희미한",
+      "조심스런",
+      "여린",
+      "섬세한",
+      "포근한",
+      "잔잔한",
+    ];
+    const nouns = [
+      "하늘",
+      "밤",
+      "바람",
+      "별빛",
+      "파도",
+      "기억",
+      "노을",
+      "꿈",
+      "길",
+      "숲",
+      "빛",
+      "여운",
+      "달",
+      "안개",
+      "새벽",
+      "기척",
+      "울림",
+      "정원",
+      "호수",
+      "온기",
+      "숨결",
+      "편지",
+    ];
+    const base = seedText.trim() || "shorts";
+    let hash = 0;
+    for (let i = 0; i < base.length; i += 1) {
+      hash = (hash * 31 + base.charCodeAt(i)) >>> 0;
+    }
+    const adjective = adjectives[hash % adjectives.length];
+    const noun = nouns[Math.floor(hash / adjectives.length) % nouns.length];
+    return `${adjective} ${noun}`;
+  };
+
+  const normalizeOverlaySettings = (raw: any): OverlaySettings => {
+    const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
+    const avatarKey =
+      raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
+    return {
+      ...DEFAULT_OVERLAY_SETTINGS,
+      ...(raw || {}),
+      channel_name: channelName,
+      avatar_key: avatarKey,
+    };
+  };
+
+  const normalizePostCardSettings = (raw: any): PostCardSettings => {
+    const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
+    const avatarKey =
+      raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
+    return {
+      ...DEFAULT_POST_CARD_SETTINGS,
+      ...(raw || {}),
+      channel_name: channelName,
+      avatar_key: avatarKey,
+    };
+  };
 
   useEffect(() => {
     axios
       .get(`${API_BASE}/audio/list`)
-      .then((res) => setBgmList(res.data.audios || []))
+      .then((res) => {
+        const list = res.data.audios || [];
+        setBgmList(list);
+        const names = list.map((item) => item.name);
+        if (bgmFile && !names.includes(bgmFile)) {
+          setBgmFile(null);
+        } else if (!bgmFile && names.includes(DEFAULT_BGM)) {
+          setBgmFile(DEFAULT_BGM);
+        }
+      })
       .catch(() => setBgmList([]));
   }, []);
 
   useEffect(() => {
+    axios
+      .get(`${API_BASE}/fonts/list`)
+      .then((res) => {
+        const list = (res.data.fonts || []).map((name: string) => ({ name }));
+        setFontList(list);
+        if (list.length) {
+          const hasCurrent = list.some((font: FontItem) => font.name === subtitleFont);
+          const fallback = list.find((font: FontItem) => font.name === DEFAULT_SUBTITLE_FONT);
+          if (!subtitleFont || subtitleFont === "Default" || !hasCurrent) {
+            setSubtitleFont(fallback?.name ?? list[0].name);
+          }
+        }
+      })
+      .catch(() => setFontList([]));
+  }, []);
+
+  useEffect(() => {
+    if (hasHydratedDraftRef.current) return;
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!stored) {
+        hasHydratedDraftRef.current = true;
+        return;
+      }
+      const draft = JSON.parse(stored) as {
+        topic?: string;
+        duration?: number;
+        style?: string;
+        language?: string;
+        structure?: string;
+        actorAGender?: ActorGender;
+        basePromptA?: string;
+        baseNegativePromptA?: string;
+        baseStepsA?: number;
+        baseCfgScaleA?: number;
+        baseSamplerA?: string;
+        baseSeedA?: number;
+        baseClipSkipA?: number;
+        includeSubtitles?: boolean;
+        narratorVoice?: string;
+        bgmFile?: string | null;
+        subtitleFont?: string;
+        speedMultiplier?: number;
+        overlaySettings?: OverlaySettings;
+        postCardSettings?: PostCardSettings;
+        layoutStyle?: "full" | "post";
+        motionStyle?: "none" | "slow_zoom";
+        hiResEnabled?: boolean;
+        veoEnabled?: boolean;
+        videoUrl?: string | null;
+        videoUrlFull?: string | null;
+        videoUrlPost?: string | null;
+        recentVideos?: Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>;
+        scenes?: Array<{
+          id: number;
+          script: string;
+          speaker: Scene["speaker"];
+          duration: number;
+          image_prompt: string;
+          image_prompt_ko: string;
+          image_url?: string | null;
+          negative_prompt: string;
+          steps: number;
+          cfg_scale: number;
+          sampler_name: string;
+          seed: number;
+          clip_skip: number;
+        }>;
+      };
+      if (draft.topic !== undefined) setTopic(draft.topic);
+      if (draft.duration !== undefined) setDuration(draft.duration);
+      if (draft.style !== undefined) setStyle(draft.style);
+      if (draft.language !== undefined) setLanguage(draft.language);
+      if (draft.structure !== undefined) setStructure(draft.structure);
+      if (draft.actorAGender !== undefined) setActorAGender(draft.actorAGender);
+      if (draft.basePromptA !== undefined) setBasePromptA(draft.basePromptA);
+      if (draft.baseNegativePromptA !== undefined) setBaseNegativePromptA(draft.baseNegativePromptA);
+      if (draft.baseStepsA !== undefined) setBaseStepsA(draft.baseStepsA);
+      if (draft.baseCfgScaleA !== undefined) setBaseCfgScaleA(draft.baseCfgScaleA);
+      if (draft.baseSamplerA !== undefined) setBaseSamplerA(draft.baseSamplerA);
+      if (draft.baseSeedA !== undefined) setBaseSeedA(draft.baseSeedA);
+      if (draft.baseClipSkipA !== undefined) setBaseClipSkipA(draft.baseClipSkipA);
+      if (draft.includeSubtitles !== undefined) setIncludeSubtitles(draft.includeSubtitles);
+      if (draft.narratorVoice !== undefined) setNarratorVoice(draft.narratorVoice);
+      if (draft.bgmFile !== undefined) setBgmFile(draft.bgmFile);
+      if (draft.subtitleFont !== undefined) setSubtitleFont(draft.subtitleFont);
+      if (draft.speedMultiplier !== undefined) setSpeedMultiplier(draft.speedMultiplier);
+      if (draft.overlaySettings !== undefined) {
+        setOverlaySettings(normalizeOverlaySettings(draft.overlaySettings));
+      }
+      if (draft.postCardSettings !== undefined) {
+        setPostCardSettings(normalizePostCardSettings(draft.postCardSettings));
+      }
+      if (draft.layoutStyle !== undefined) setLayoutStyle(draft.layoutStyle);
+      if (draft.motionStyle !== undefined) setMotionStyle(draft.motionStyle);
+      if (draft.hiResEnabled !== undefined) setHiResEnabled(draft.hiResEnabled);
+      if (draft.veoEnabled !== undefined) setVeoEnabled(draft.veoEnabled);
+      if (draft.videoUrl !== undefined) setVideoUrl(draft.videoUrl ?? null);
+      if (draft.videoUrlFull !== undefined) setVideoUrlFull(draft.videoUrlFull ?? null);
+      if (draft.videoUrlPost !== undefined) setVideoUrlPost(draft.videoUrlPost ?? null);
+      if (Array.isArray(draft.recentVideos)) setRecentVideos(draft.recentVideos);
+      if (Array.isArray(draft.scenes)) {
+        setScenes(
+          draft.scenes.map((scene) => ({
+            ...scene,
+            image_url: scene.image_url ?? null,
+            candidates: Array.isArray(scene.candidates) ? scene.candidates : [],
+            isGenerating: false,
+            debug_prompt: "",
+            debug_payload: "",
+          }))
+        );
+      }
+    } catch {
+      // Ignore malformed drafts.
+    } finally {
+      hasHydratedDraftRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedDraftRef.current) return;
+    if (typeof window === "undefined") return;
+    if (draftSaveTimeoutRef.current) {
+      window.clearTimeout(draftSaveTimeoutRef.current);
+    }
+    draftSaveTimeoutRef.current = window.setTimeout(() => {
+      const draftScenes = scenes.map((scene) => ({
+        id: scene.id,
+        script: scene.script,
+        speaker: scene.speaker,
+        duration: scene.duration,
+        image_prompt: scene.image_prompt,
+        image_prompt_ko: scene.image_prompt_ko,
+        image_url: scene.image_url,
+        candidates: scene.candidates ?? [],
+        negative_prompt: scene.negative_prompt,
+        steps: scene.steps,
+        cfg_scale: scene.cfg_scale,
+        sampler_name: scene.sampler_name,
+        seed: scene.seed,
+        clip_skip: scene.clip_skip,
+      }));
+      const totalImageSize = draftScenes.reduce((acc, scene) => {
+        const baseSize = scene.image_url ? scene.image_url.length : 0;
+        const candidateSize = (scene.candidates || []).reduce((sum, candidate) => {
+          return sum + (candidate.image_url ? candidate.image_url.length : 0);
+        }, 0);
+        return acc + baseSize + candidateSize;
+      }, 0);
+      if (totalImageSize > MAX_IMAGE_CACHE_SIZE) {
+        draftScenes.forEach((scene) => {
+          scene.image_url = null;
+          scene.candidates = [];
+        });
+      }
+      const draft = {
+        topic,
+        duration,
+        style,
+        language,
+        structure,
+        actorAGender,
+        basePromptA,
+        baseNegativePromptA,
+        baseStepsA,
+        baseCfgScaleA,
+        baseSamplerA,
+        baseSeedA,
+        baseClipSkipA,
+        includeSubtitles,
+        narratorVoice,
+        bgmFile,
+        subtitleFont,
+        speedMultiplier,
+        overlaySettings,
+        postCardSettings,
+        layoutStyle,
+        motionStyle,
+        hiResEnabled,
+        veoEnabled,
+        videoUrl,
+        videoUrlFull,
+        videoUrlPost,
+        recentVideos,
+        scenes: draftScenes,
+      };
+      try {
+        window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "QuotaExceededError") {
+          const slimScenes = draftScenes.map((scene) => ({
+            ...scene,
+            image_url: null,
+            candidates: [],
+          }));
+          const slimDraft = {
+            ...draft,
+            recentVideos: [],
+            scenes: slimScenes,
+          };
+          window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(slimDraft));
+        } else {
+          console.error(error);
+        }
+      }
+    }, 300);
+    return () => {
+      if (draftSaveTimeoutRef.current) {
+        window.clearTimeout(draftSaveTimeoutRef.current);
+        draftSaveTimeoutRef.current = null;
+      }
+    };
+  }, [
+    topic,
+    duration,
+    style,
+    language,
+    structure,
+    actorAGender,
+    basePromptA,
+    baseNegativePromptA,
+    baseStepsA,
+    baseCfgScaleA,
+    baseSamplerA,
+    baseSeedA,
+    baseClipSkipA,
+    includeSubtitles,
+    narratorVoice,
+    bgmFile,
+    subtitleFont,
+    speedMultiplier,
+    overlaySettings,
+    postCardSettings,
+    layoutStyle,
+    motionStyle,
+    hiResEnabled,
+    veoEnabled,
+    videoUrl,
+    videoUrlFull,
+    videoUrlPost,
+    recentVideos,
+    scenes,
+  ]);
+
+  useEffect(() => {
     const fetchModels = async () => {
       try {
+        if (typeof window !== "undefined") {
+          const cached = window.sessionStorage.getItem("sdOptionsCache");
+          if (cached) {
+            const parsed = JSON.parse(cached) as { models: SdModel[]; modelName: string };
+            setSdModels(parsed.models);
+            setCurrentModel(parsed.modelName);
+            setSelectedModel(parsed.modelName);
+            return;
+          }
+        }
         const [modelsRes, optionsRes] = await Promise.all([
           axios.get(`${API_BASE}/sd/models`),
           axios.get(`${API_BASE}/sd/options`),
@@ -197,6 +629,12 @@ export default function Home() {
         setSdModels(models);
         setCurrentModel(modelName);
         setSelectedModel(modelName);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            "sdOptionsCache",
+            JSON.stringify({ models, modelName })
+          );
+        }
       } catch {
         setSdModels([]);
       }
@@ -214,43 +652,58 @@ export default function Home() {
     );
   };
 
+  const mapStoryboardScenes = (incoming: any[]) => {
+    return incoming.map((scene: any, idx: number) => {
+      const rawSpeaker = String(scene.speaker ?? "Narrator");
+      const speaker: Scene["speaker"] =
+        rawSpeaker === "A" || rawSpeaker === "Narrator" ? (rawSpeaker as Scene["speaker"]) : "Narrator";
+      const baseSettings = getBaseSettingsForSpeaker(speaker);
+      return {
+        id: scene.scene_id ?? idx + 1,
+        script: scene.script ?? "",
+        speaker,
+        duration: Number(scene.duration ?? 3),
+        image_prompt: scene.image_prompt ?? "",
+        image_prompt_ko: scene.image_prompt_ko ?? "",
+        image_url: null,
+        negative_prompt: baseNegativePromptA,
+        steps: baseSettings.steps,
+        cfg_scale: baseSettings.cfg,
+        sampler_name: baseSettings.sampler,
+        seed: baseSettings.seed,
+        clip_skip: baseSettings.clipSkip,
+        isGenerating: false,
+        debug_payload: "",
+      };
+    });
+  };
+
+  const fetchStoryboardScenes = async () => {
+    const res = await axios.post(`${API_BASE}/storyboard/create`, {
+      topic,
+      duration,
+      style,
+      language,
+      structure,
+      actor_a_gender: actorAGender,
+    });
+    const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
+    return mapStoryboardScenes(incoming);
+  };
+
   const handleGenerateScenes = async () => {
     if (!topic.trim()) return;
     setIsGenerating(true);
     try {
-      const res = await axios.post(`${API_BASE}/storyboard/create`, {
-        topic,
-        duration,
-        style,
-        language,
-        structure,
-        actor_a_gender: actorAGender,
-      });
-      const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
-      const mapped: Scene[] = incoming.map((scene: any, idx: number) => {
-        const rawSpeaker = String(scene.speaker ?? "Narrator");
-        const speaker: Scene["speaker"] =
-          rawSpeaker === "A" || rawSpeaker === "Narrator" ? (rawSpeaker as Scene["speaker"]) : "Narrator";
-        const baseSettings = getBaseSettingsForSpeaker(speaker);
-        return {
-          id: scene.scene_id ?? idx + 1,
-          script: scene.script ?? "",
-          speaker,
-          duration: Number(scene.duration ?? 3),
-          image_prompt: scene.image_prompt ?? "",
-          image_prompt_ko: scene.image_prompt_ko ?? "",
-          image_url: null,
-          negative_prompt: baseNegativePromptA,
-          steps: baseSettings.steps,
-          cfg_scale: baseSettings.cfg,
-          sampler_name: baseSettings.sampler,
-          seed: baseSettings.seed,
-          clip_skip: baseSettings.clipSkip,
-          isGenerating: false,
-          debug_payload: "",
-        };
-      });
+      const mapped = await fetchStoryboardScenes();
       setScenes(mapped);
+      const overlayAuto = buildOverlayContext(mapped);
+      setOverlaySettings((prev) => ({
+        ...prev,
+        ...overlayAuto,
+      }));
+      const postAuto = buildPostCardContext(mapped);
+      setPostCardSettings((prev) => ({ ...prev, ...postAuto }));
     } catch {
       alert("Storyboard generation failed");
     } finally {
@@ -258,9 +711,34 @@ export default function Home() {
     }
   };
 
-  const buildOverlayContext = () => {
-    const fallbackProfile = topic.trim().split(/\s+/)[0] || "shorts";
-    const scripts = scenes
+  const stripLeadingHearts = (text: string) => {
+    let result = text.trimStart();
+    let updated = true;
+    while (updated) {
+      updated = false;
+      for (const heart of HEART_EMOJIS) {
+        if (result.startsWith(heart)) {
+          result = result.slice(heart.length).trimStart();
+          updated = true;
+        }
+      }
+    }
+    return result;
+  };
+
+  const applyHeartPrefix = (text: string) => {
+    const cleaned = stripLeadingHearts(text);
+    const hearts = Array.from({ length: 3 }, () => {
+      const idx = Math.floor(Math.random() * ASCII_HEARTS.length);
+      return ASCII_HEARTS[idx];
+    }).join("");
+    if (!cleaned) return hearts;
+    return `${hearts} ${cleaned}`;
+  };
+
+  const buildOverlayContext = (scenesOverride: Scene[] = scenes) => {
+    const fallbackProfile = generateChannelName(topic);
+    const scripts = scenesOverride
       .map((scene) => scene.script.trim())
       .filter(Boolean);
     const baseCaption = scripts[0] || topic.trim() || "오늘의 쇼츠";
@@ -269,21 +747,34 @@ export default function Home() {
       .map((token) => token.replace(/[^\w가-힣]/g, ""))
       .filter(Boolean)
       .map((token) => `#${token}`);
-    const caption = `${baseCaption}${hashtags.length ? " " + hashtags.join(" ") : ""}`.trim();
+    const caption = applyHeartPrefix(hashtags.join(" "));
     const likesPool = ["1.2k", "3.8k", "7.4k", "12.5k", "18.9k"];
     const likes_count = likesPool[baseCaption.length % likesPool.length];
     return {
-      profile_name: fallbackProfile,
+      channel_name: fallbackProfile,
+      avatar_key: slugifyAvatarKey(fallbackProfile),
       likes_count,
       caption,
     };
   };
 
+  const buildPostCardContext = (scenesOverride: Scene[] = scenes) => {
+    const overlay = buildOverlayContext(scenesOverride);
+    return {
+      channel_name: overlay.channel_name,
+      avatar_key: overlay.avatar_key,
+      caption: overlay.caption,
+    };
+  };
+
+
   const handleImageUpload = (sceneId: number, file?: File) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      updateScene(sceneId, { image_url: reader.result as string });
+    reader.onloadend = async () => {
+      const dataUrl = reader.result as string;
+      const storedUrl = await storeSceneImage(dataUrl);
+      updateScene(sceneId, { image_url: storedUrl, candidates: [] });
     };
     reader.readAsDataURL(file);
   };
@@ -318,6 +809,74 @@ export default function Home() {
 
   const getBaseNegativeForScene = () => baseNegativePromptA.trim();
 
+  const pushRecentVideo = (url: string, label: "full" | "post" | "single") => {
+    if (!url) return;
+    setRecentVideos((prev) => {
+      const filtered = prev.filter((item) => item.url !== url);
+      const next = [{ url, label, createdAt: Date.now() }, ...filtered];
+      return next.slice(0, 8);
+    });
+  };
+
+  const getVideoFilename = (url: string) => {
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return decodeURIComponent(parsed.pathname.split("/").pop() || "");
+    } catch {
+      const last = url.split("/").pop() || "";
+      const clean = last.split("?")[0].split("#")[0];
+      return decodeURIComponent(clean);
+    }
+  };
+
+  const handleDeleteRecentVideo = async (url: string) => {
+    const filename = getVideoFilename(url);
+    if (!filename) return;
+    try {
+      await axios.post(`${API_BASE}/video/delete`, { filename });
+      setRecentVideos((prev) => prev.filter((item) => item.url !== url));
+      if (videoUrl === url) setVideoUrl(null);
+      if (videoUrlFull === url) setVideoUrlFull(null);
+      if (videoUrlPost === url) setVideoUrlPost(null);
+    } catch {
+      alert("Failed to delete video");
+    }
+  };
+
+  useEffect(() => {
+    if (!recentVideos.length) return;
+    let isActive = true;
+    const pruneMissing = async () => {
+      const checks = await Promise.all(
+        recentVideos.map(async (item) => {
+          const filename = getVideoFilename(item.url);
+          if (!filename) return { url: item.url, exists: false };
+          try {
+            const res = await fetch(
+              `${API_BASE}/video/exists?filename=${encodeURIComponent(filename)}`
+            );
+            if (!res.ok) return { url: item.url, exists: false };
+            const data = await res.json();
+            return { url: item.url, exists: Boolean(data?.exists) };
+          } catch {
+            return { url: item.url, exists: true };
+          }
+        })
+      );
+      if (!isActive) return;
+      const missing = new Set(checks.filter((item) => !item.exists).map((item) => item.url));
+      if (!missing.size) return;
+      setRecentVideos((prev) => prev.filter((item) => !missing.has(item.url)));
+      if (videoUrl && missing.has(videoUrl)) setVideoUrl(null);
+      if (videoUrlFull && missing.has(videoUrlFull)) setVideoUrlFull(null);
+      if (videoUrlPost && missing.has(videoUrlPost)) setVideoUrlPost(null);
+    };
+    void pruneMissing();
+    return () => {
+      isActive = false;
+    };
+  }, [recentVideos, videoUrl, videoUrlFull, videoUrlPost]);
+
   useEffect(() => {
     const prevBase = prevBaseNegativeRefA.current;
     if (prevBase === baseNegativePromptA) return;
@@ -335,33 +894,293 @@ export default function Home() {
 
 
   const handleRenderVideo = async () => {
-    if (!canRender) return;
+    const url = await requestRenderVideo(layoutStyle);
+    if (url) {
+      const urlWithTs = `${url}?t=${Date.now()}`;
+      setVideoUrl(urlWithTs);
+      pushRecentVideo(urlWithTs, "single");
+    } else {
+      setVideoUrl(url);
+    }
+    return Boolean(url);
+  };
+
+  const buildRenderPayload = (
+    layoutOverride?: "full" | "post",
+    scenesOverride?: Scene[],
+    overlayOverride?: OverlaySettings,
+    postCardOverride?: PostCardSettings
+  ) => ({
+    scenes: (scenesOverride ?? scenes).map((scene) => ({
+      image_url: scene.image_url,
+      script: scene.script,
+      speaker: scene.speaker,
+      duration: scene.duration,
+    })),
+    project_name: topic.trim().replace(/\s+/g, "_") || "my_shorts",
+    width: 1080,
+    height: 1920,
+    layout_style: layoutOverride ?? layoutStyle,
+    motion_style: motionStyle,
+    narrator_voice: narratorVoice,
+    bgm_file: bgmFile,
+    speed_multiplier: speedMultiplier,
+    include_subtitles: includeSubtitles,
+    subtitle_font: subtitleFont,
+    overlay_settings: overlayOverride ?? overlaySettings,
+    post_card_settings: postCardOverride ?? postCardSettings,
+  });
+
+  const requestRenderVideo = async (
+    layoutOverride?: "full" | "post",
+    silent = false,
+    scenesOverride?: Scene[],
+    overlayOverride?: OverlaySettings,
+    postCardOverride?: PostCardSettings
+  ) => {
+    if (!canRender && !silent) return null;
     setIsRendering(true);
     try {
-      const res = await axios.post(`${API_BASE}/video/create`, {
-        scenes: scenes.map((scene) => ({
-          image_url: scene.image_url,
-          script: scene.script,
-          speaker: scene.speaker,
-          duration: scene.duration,
-        })),
-        project_name: topic.trim().replace(/\s+/g, "_") || "my_shorts",
-        width: 1080,
-        height: 1920,
-        layout_style: layoutStyle,
-        motion_style: motionStyle,
-        narrator_voice: narratorVoice,
-        bgm_file: bgmFile,
-        speed_multiplier: speedMultiplier,
-        include_subtitles: includeSubtitles,
-        overlay_settings: overlaySettings,
-      });
-      setVideoUrl(res.data.video_url || null);
+      const res = await axios.post(
+        `${API_BASE}/video/create`,
+        buildRenderPayload(layoutOverride, scenesOverride, overlayOverride, postCardOverride)
+      );
+      return res.data.video_url || null;
     } catch {
-      alert("Video rendering failed");
+      if (!silent) {
+        alert("Video rendering failed");
+      }
+      return null;
     } finally {
       setIsRendering(false);
     }
+  };
+
+  const pushAutoRunLog = (message: string) => {
+    setAutoRunLog((prev) => {
+      const next = [...prev, message];
+      return next.slice(-6);
+    });
+  };
+
+  const runAutoRunFromStep = async (startStep: AutoRunStepId) => {
+    if (!topic.trim()) {
+      alert("Enter a topic first.");
+      return;
+    }
+    autoRunCancelRef.current = false;
+    setAutoRunLog([]);
+    let workingScenes = scenes;
+    let currentStep: AutoRunStepId = startStep;
+    setMotionStyle("none");
+    const assertNotCancelled = () => {
+      if (autoRunCancelRef.current) {
+        throw new Error("Autopilot cancelled");
+      }
+    };
+    try {
+      const overlayAuto = buildOverlayContext(workingScenes);
+      setOverlaySettings((prev) => ({ ...prev, ...overlayAuto }));
+      setPostCardSettings(buildPostCardContext(workingScenes));
+      const steps = AUTO_RUN_STEPS.map((step) => step.id);
+      const startIndex = steps.indexOf(startStep);
+      for (let idx = startIndex; idx < steps.length; idx += 1) {
+        currentStep = steps[idx];
+        assertNotCancelled();
+        if (currentStep === "storyboard") {
+          setAutoRunState({ status: "running", step: "storyboard", message: "Generating storyboard..." });
+          pushAutoRunLog("Storyboard started");
+          workingScenes = await fetchStoryboardScenes();
+          if (!workingScenes.length) {
+            throw new Error("Storyboard is empty");
+          }
+          setScenes(workingScenes);
+          const storyboardOverlay = buildOverlayContext(workingScenes);
+          setOverlaySettings((prev) => ({ ...prev, ...storyboardOverlay }));
+          setPostCardSettings(buildPostCardContext(workingScenes));
+          pushAutoRunLog(`Storyboard created (${workingScenes.length} scenes)`);
+        }
+
+        if (currentStep === "fix") {
+          setAutoRunState({ status: "running", step: "fix", message: "Auto-fixing scripts and prompts..." });
+          workingScenes = applyAutoFixForScenes(workingScenes);
+          setScenes(workingScenes);
+          const { results, summary } = computeValidationResults(workingScenes);
+          setValidationResults(results);
+          setValidationSummary(summary);
+          pushAutoRunLog("Auto-fix applied");
+        }
+
+        if (currentStep === "images") {
+          setAutoRunState({ status: "running", step: "images", message: "Generating scene images..." });
+          for (const scene of workingScenes) {
+            assertNotCancelled();
+            if (scene.image_url) {
+              continue;
+            }
+            updateScene(scene.id, { isGenerating: true });
+            let result = multiGenEnabled
+              ? await generateSceneCandidates(scene, true)
+              : await generateSceneImageFor(scene, true);
+            if (!result || !result.image_url) {
+              pushAutoRunLog(`Retry image generation (Scene ${scene.id})`);
+              result = multiGenEnabled
+                ? await generateSceneCandidates(scene, true)
+                : await generateSceneImageFor(scene, true);
+            }
+            updateScene(scene.id, { isGenerating: false });
+            if (!result || !result.image_url) {
+              throw new Error(`Image generation failed for Scene ${scene.id}`);
+            }
+            updateScene(scene.id, result);
+            workingScenes = workingScenes.map((item) =>
+              item.id === scene.id ? { ...item, ...result } : item
+            );
+          }
+          pushAutoRunLog("Images generated");
+        }
+
+        if (currentStep === "validate") {
+          setAutoRunState({ status: "running", step: "validate", message: "Validating images..." });
+          for (const scene of workingScenes) {
+            assertNotCancelled();
+            if (!scene.image_url) continue;
+            await validateSceneImage(scene, true);
+          }
+          const { results, summary } = computeValidationResults(workingScenes);
+          setValidationResults(results);
+          setValidationSummary(summary);
+          if (summary.error > 0) {
+            throw new Error(`Validation failed (${summary.error} errors)`);
+          }
+          pushAutoRunLog("Validation complete");
+        }
+
+        if (currentStep === "render") {
+          setAutoRunState({ status: "running", step: "render", message: "Rendering video..." });
+          const overlayAuto = buildOverlayContext(workingScenes);
+          setOverlaySettings((prev) => ({ ...prev, ...overlayAuto }));
+          const postAuto = buildPostCardContext(workingScenes);
+          setPostCardSettings((prev) => ({ ...prev, ...postAuto }));
+          const fullUrl = await requestRenderVideo(
+            "full",
+            true,
+            workingScenes,
+            overlayAuto,
+            postAuto
+          );
+          if (!fullUrl) {
+            throw new Error("Full render failed");
+          }
+          const fullUrlWithTs = `${fullUrl}?t=${Date.now()}`;
+          setVideoUrlFull(fullUrlWithTs);
+          setVideoUrl(fullUrlWithTs);
+          pushRecentVideo(fullUrlWithTs, "full");
+          pushAutoRunLog("Full render complete");
+          const postUrl = await requestRenderVideo(
+            "post",
+            true,
+            workingScenes,
+            overlayAuto,
+            postAuto
+          );
+          if (!postUrl) {
+            throw new Error("Post render failed");
+          }
+          const postUrlWithTs = `${postUrl}?t=${Date.now()}`;
+          setVideoUrlPost(postUrlWithTs);
+          pushRecentVideo(postUrlWithTs, "post");
+          pushAutoRunLog("Post render complete");
+        }
+      }
+      setAutoRunState({ status: "done", step: "render", message: "Autopilot complete." });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Autopilot failed";
+      const failedMessage = message === "Autopilot cancelled" ? "Autopilot cancelled." : "Autopilot failed.";
+      setAutoRunState({ status: "error", step: currentStep, message: failedMessage, error: message });
+      pushAutoRunLog(message);
+      if (message !== "Autopilot cancelled") {
+        alert(`Autopilot stopped: ${message}`);
+      }
+    }
+  };
+
+  const handleAutoRun = async () => {
+    await runAutoRunFromStep("storyboard");
+  };
+
+  const handleAutoRunResume = async () => {
+    if (autoRunState.step === "idle") return;
+    await runAutoRunFromStep(autoRunState.step);
+  };
+
+  const handleAutoRunCancel = () => {
+    if (!isAutoRunning) return;
+    autoRunCancelRef.current = true;
+    pushAutoRunLog("Autopilot cancel requested");
+  };
+
+  const autoRunProgress = useMemo(() => {
+    if (autoRunState.status === "done") return 100;
+    if (autoRunState.step === "idle") return 0;
+    const index = AUTO_RUN_STEPS.findIndex((step) => step.id === autoRunState.step);
+    if (index < 0) return 0;
+    return Math.round(((index + 1) / AUTO_RUN_STEPS.length) * 100);
+  }, [autoRunState.status, autoRunState.step]);
+
+  const resetScenesOnly = () => {
+    setScenes([]);
+    setValidationResults({});
+    setValidationSummary({ ok: 0, warn: 0, error: 0 });
+    setValidationExpanded({});
+    setSuggestionExpanded({});
+    setImageValidationResults({});
+    setVideoUrl(null);
+    setVideoUrlFull(null);
+    setVideoUrlPost(null);
+  };
+
+  const resetDraft = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+    setTopic("");
+    setDuration(10);
+    setStyle("Anime");
+    setLanguage("Korean");
+    setStructure("Monologue");
+    setActorAGender("female");
+    setBasePromptA("");
+    setBaseNegativePromptA("");
+    setAutoComposePrompt(true);
+    setAutoRewritePrompt(true);
+    setBaseTab("A");
+    setExamplePrompt("");
+    setSuggestedBase("");
+    setSuggestedScene("");
+    setIsHelperOpen(false);
+    setCopyStatus("");
+    setImageCheckMode("local");
+    setBaseStepsA(27);
+    setBaseCfgScaleA(7);
+    setBaseSamplerA("DPM++ 2M Karras");
+    setBaseSeedA(-1);
+    setBaseClipSkipA(2);
+    setIncludeSubtitles(true);
+    setNarratorVoice(VOICES[0].id);
+    setBgmFile(DEFAULT_BGM);
+    setSpeedMultiplier(1.3);
+    setSubtitleFont(DEFAULT_SUBTITLE_FONT);
+    setOverlaySettings(DEFAULT_OVERLAY_SETTINGS);
+    setPostCardSettings(DEFAULT_POST_CARD_SETTINGS);
+    setLayoutStyle("full");
+    setMotionStyle("slow_zoom");
+    setHiResEnabled(false);
+    setVeoEnabled(false);
+    setImagePreviewSrc(null);
+    setAutoRunState({ status: "idle", step: "idle", message: "" });
+    setAutoRunLog([]);
+    resetScenesOnly();
   };
 
   const handleModelChange = async (value: string) => {
@@ -413,6 +1232,84 @@ export default function Home() {
       stopBgmPreview();
     }, 10000);
   };
+
+  const getAvatarInitial = (name: string) => {
+    const trimmed = name.trim();
+    return (trimmed[0] || "A").toUpperCase();
+  };
+
+  const resolveAvatarPreview = async (
+    avatarKey: string,
+    setUrl: (url: string | null) => void
+  ) => {
+    const trimmed = avatarKey.trim();
+    if (!trimmed) {
+      setUrl(null);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/avatar/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar_key: trimmed }),
+      });
+      if (!res.ok) {
+        setUrl(null);
+        return;
+      }
+      const data = await res.json();
+      if (data?.filename) {
+        setUrl(`${API_BASE}/outputs/avatars/${data.filename}?t=${Date.now()}`);
+      } else {
+        setUrl(null);
+      }
+    } catch (error) {
+      console.error(error);
+      setUrl(null);
+    }
+  };
+
+  const handleRegenerateAvatar = async (avatarKey: string) => {
+    const trimmed = avatarKey.trim();
+    if (!trimmed) {
+      alert("Enter an avatar key first.");
+      return;
+    }
+    setIsRegeneratingAvatar(true);
+    try {
+      const res = await fetch(`${API_BASE}/avatar/regenerate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar_key: trimmed }),
+      });
+      if (!res.ok) {
+        throw new Error("Avatar regenerate failed");
+      }
+      const data = await res.json();
+      if (data?.filename) {
+        const url = `${API_BASE}/outputs/avatars/${data.filename}?t=${Date.now()}`;
+        if (trimmed === overlaySettings.avatar_key.trim()) {
+          setOverlayAvatarUrl(url);
+        }
+        if (trimmed === postCardSettings.avatar_key.trim()) {
+          setPostAvatarUrl(url);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Avatar regeneration failed.");
+    } finally {
+      setIsRegeneratingAvatar(false);
+    }
+  };
+
+  useEffect(() => {
+    resolveAvatarPreview(overlaySettings.avatar_key ?? "", setOverlayAvatarUrl);
+  }, [overlaySettings.avatar_key]);
+
+  useEffect(() => {
+    resolveAvatarPreview(postCardSettings.avatar_key ?? "", setPostAvatarUrl);
+  }, [postCardSettings.avatar_key]);
 
   useEffect(() => {
     return () => {
@@ -519,57 +1416,81 @@ export default function Home() {
     });
   };
 
-  const handleGenerateSceneImage = async (scene: Scene) => {
+  const buildScenePrompt = async (scene: Scene) => {
     const fallbackPrompt = buildPositivePrompt(scene);
-    if (!fallbackPrompt) {
-      alert("Prompt is required");
-      return;
-    }
-    updateScene(scene.id, { isGenerating: true });
-    try {
-      let prompt = fallbackPrompt;
-      const basePrompt = getBasePromptForScene(scene);
-      const scenePrompt = scene.image_prompt;
-      if (autoComposePrompt && autoRewritePrompt && basePrompt && scenePrompt.trim()) {
-        try {
-          const rewrite = await axios.post(`${API_BASE}/prompt/rewrite`, {
-            base_prompt: basePrompt,
-            scene_prompt: scenePrompt,
-            style,
-            mode: "compose",
-          });
-          if (rewrite.data.prompt) {
-            prompt = rewrite.data.prompt;
-          }
-        } catch {
-          prompt = `${basePrompt}, ${scenePrompt}`;
+    if (!fallbackPrompt) return null;
+    let prompt = fallbackPrompt;
+    const basePrompt = getBasePromptForScene(scene);
+    const scenePrompt = scene.image_prompt;
+    if (autoComposePrompt && autoRewritePrompt && basePrompt && scenePrompt.trim()) {
+      try {
+        const rewrite = await axios.post(`${API_BASE}/prompt/rewrite`, {
+          base_prompt: basePrompt,
+          scene_prompt: scenePrompt,
+          style,
+          mode: "compose",
+        });
+        if (rewrite.data.prompt) {
+          prompt = rewrite.data.prompt;
         }
-      } else {
-        prompt = autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
+      } catch {
+        prompt = `${basePrompt}, ${scenePrompt}`;
       }
-      const hiResPayload = hiResEnabled
-        ? {
-            enable_hr: true,
-            hr_scale: 1.5,
-            hr_upscaler: "Latent",
-            hr_second_pass_steps: 10,
-            denoising_strength: 0.25,
-          }
-        : {};
-      const debugPayload = {
-        prompt,
-        negative_prompt: buildNegativePrompt(scene),
-        steps: resolveSteps(scene),
-        cfg_scale: resolveCfgScale(scene),
-        sampler_name: resolveSampler(scene),
-        seed: resolveSeed(scene),
-        clip_skip: resolveClipSkip(scene),
-        width: 512,
-        height: 512,
-        ...hiResPayload,
-      };
-      updateScene(scene.id, { debug_payload: JSON.stringify(debugPayload, null, 2) });
-      updateScene(scene.id, { debug_prompt: prompt });
+    } else {
+      prompt = autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
+    }
+    return prompt;
+  };
+
+  const buildHiResPayload = () =>
+    hiResEnabled
+      ? {
+          enable_hr: true,
+          hr_scale: 1.5,
+          hr_upscaler: "Latent",
+          hr_second_pass_steps: 10,
+          denoising_strength: 0.25,
+        }
+      : {};
+
+  const storeSceneImage = async (dataUrl: string) => {
+    if (!dataUrl || !dataUrl.startsWith("data:")) return dataUrl;
+    try {
+      const res = await fetch(`${API_BASE}/image/store`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_b64: dataUrl }),
+      });
+      if (!res.ok) return dataUrl;
+      const data = await res.json();
+      if (data?.url) return data.url as string;
+      return dataUrl;
+    } catch (error) {
+      console.error(error);
+      return dataUrl;
+    }
+  };
+
+  const generateSceneImageFor = async (scene: Scene, silent = false) => {
+    const prompt = await buildScenePrompt(scene);
+    if (!prompt) {
+      if (!silent) alert("Prompt is required");
+      return null;
+    }
+    const hiResPayload = buildHiResPayload();
+    const debugPayload = {
+      prompt,
+      negative_prompt: buildNegativePrompt(scene),
+      steps: resolveSteps(scene),
+      cfg_scale: resolveCfgScale(scene),
+      sampler_name: resolveSampler(scene),
+      seed: resolveSeed(scene),
+      clip_skip: resolveClipSkip(scene),
+      width: 512,
+      height: 512,
+      ...hiResPayload,
+    };
+    try {
       const res = await axios.post(`${API_BASE}/scene/generate`, {
         prompt,
         negative_prompt: buildNegativePrompt(scene),
@@ -583,10 +1504,68 @@ export default function Home() {
         ...hiResPayload,
       });
       if (res.data.image) {
-        updateScene(scene.id, { image_url: `data:image/png;base64,${res.data.image}` });
+        const dataUrl = `data:image/png;base64,${res.data.image}`;
+        const storedUrl = await storeSceneImage(dataUrl);
+        return {
+          image_url: storedUrl,
+          debug_prompt: prompt,
+          debug_payload: JSON.stringify(debugPayload, null, 2),
+        } as Partial<Scene>;
       }
+      return { debug_prompt: prompt, debug_payload: JSON.stringify(debugPayload, null, 2) } as Partial<Scene>;
     } catch {
-      alert("Scene image generation failed");
+      if (!silent) alert("Scene image generation failed");
+      return null;
+    }
+  };
+
+  const validateImageCandidate = async (imageUrl: string, prompt: string) => {
+    try {
+      const res = await axios.post(`${API_BASE}/scene/validate_image`, {
+        image_b64: imageUrl,
+        prompt,
+        mode: imageCheckMode,
+      });
+      return res.data;
+    } catch {
+      return null;
+    }
+  };
+
+  const generateSceneCandidates = async (scene: Scene, silent = false) => {
+    const prompt = await buildScenePrompt(scene);
+    if (!prompt) {
+      if (!silent) alert("Prompt is required");
+      return null;
+    }
+    const candidates: Array<{ image_url: string; match_rate?: number }> = [];
+    for (let i = 0; i < 3; i += 1) {
+      const result = await generateSceneImageFor(scene, true);
+      if (!result?.image_url) continue;
+      const validation = await validateImageCandidate(result.image_url, prompt);
+      candidates.push({
+        image_url: result.image_url,
+        match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
+      });
+    }
+    if (!candidates.length) return null;
+    const best = [...candidates].sort((a, b) => (b.match_rate ?? 0) - (a.match_rate ?? 0))[0];
+    if (best?.image_url) {
+      const validation = await validateImageCandidate(best.image_url, prompt);
+      if (validation) {
+        setImageValidationResults((prev) => ({ ...prev, [scene.id]: validation }));
+      }
+    }
+    return { image_url: best.image_url, candidates, debug_prompt: prompt } as Partial<Scene>;
+  };
+
+  const handleGenerateSceneImage = async (scene: Scene) => {
+    updateScene(scene.id, { isGenerating: true });
+    try {
+      const result = multiGenEnabled
+        ? await generateSceneCandidates(scene)
+        : await generateSceneImageFor(scene);
+      if (result) updateScene(scene.id, result);
     } finally {
       updateScene(scene.id, { isGenerating: false });
     }
@@ -621,7 +1600,7 @@ export default function Home() {
     }
   };
 
-  const computeValidationResults = () => {
+  const computeValidationResults = (inputScenes: Scene[] = scenes) => {
     const hasAny = (text: string, list: string[]) =>
       list.some((keyword) => text.includes(keyword));
 
@@ -630,7 +1609,7 @@ export default function Home() {
     let warn = 0;
     let error = 0;
 
-    scenes.forEach((scene) => {
+    inputScenes.forEach((scene) => {
       const issues: ValidationIssue[] = [];
       const script = scene.script.trim();
       const prompt = scene.image_prompt.toLowerCase();
@@ -693,19 +1672,97 @@ export default function Home() {
     setValidationSummary(summary);
   };
 
-  const handleAutoFixAll = () => {
-    const { results, summary } = computeValidationResults();
+  const applyAutoFixForScenes = (inputScenes: Scene[]) => {
+    const { results, summary } = computeValidationResults(inputScenes);
     setValidationResults(results);
     setValidationSummary(summary);
 
-    scenes.forEach((scene) => {
+    let updated = [...inputScenes];
+    updated.forEach((scene) => {
       const validation = results[scene.id];
       if (!validation || validation.status === "ok") return;
       const suggestions = getFixSuggestions(scene, validation);
       suggestions
         .filter((item) => item.action)
-        .forEach((item) => applySuggestion(scene, item));
+        .forEach((item) => {
+          if (!item.action) return;
+          if (item.action.type === "set_speaker_a") {
+            const baseSettings = getBaseSettingsForSpeaker("A");
+            updated = updated.map((target) =>
+              target.id === scene.id
+                ? {
+                    ...target,
+                    speaker: "A",
+                    steps: baseSettings.steps,
+                    cfg_scale: baseSettings.cfg,
+                    sampler_name: baseSettings.sampler,
+                    seed: baseSettings.seed,
+                    clip_skip: baseSettings.clipSkip,
+                    negative_prompt: baseNegativePromptA,
+                  }
+                : target
+            );
+            return;
+          }
+          if (item.action.type === "add_positive") {
+            const tokens = item.action.tokens ?? [];
+            if (tokens.length === 0) return;
+            updated = updated.map((target) => {
+              if (target.id !== scene.id) return target;
+              const existing = target.image_prompt
+                .split(",")
+                .map((token) => token.trim())
+                .filter(Boolean);
+              const existingSet = new Set(existing.map((token) => token.toLowerCase()));
+              const nextTokens = [...existing];
+              tokens.forEach((token) => {
+                if (!existingSet.has(token.toLowerCase())) {
+                  nextTokens.push(token);
+                }
+              });
+              return { ...target, image_prompt: nextTokens.join(", ") };
+            });
+            return;
+          }
+          if (item.action.type === "fill_script") {
+            const value = item.action.value?.trim() || "";
+            if (!value) return;
+            updated = updated.map((target) =>
+              target.id === scene.id ? { ...target, script: value } : target
+            );
+            return;
+          }
+          if (item.action.type === "trim_script") {
+            const value = item.action.value?.trim() || "";
+            if (!value) return;
+            updated = updated.map((target) =>
+              target.id === scene.id ? { ...target, script: value } : target
+            );
+            return;
+          }
+          if (item.action.type === "remove_negative_scene") {
+            const keywords = CAMERA_KEYWORDS.concat(ACTION_KEYWORDS, BACKGROUND_KEYWORDS);
+            updated = updated.map((target) => {
+              if (target.id !== scene.id) return target;
+              const filtered = target.negative_prompt
+                .split(",")
+                .map((token) => token.trim())
+                .filter(Boolean)
+                .filter((token) => {
+                  const lower = token.toLowerCase();
+                  return !keywords.some((keyword) => lower.includes(keyword));
+                });
+              return { ...target, negative_prompt: filtered.join(", ") };
+            });
+          }
+        });
     });
+    return updated;
+  };
+
+  const handleAutoFixAll = () => {
+    const updated = applyAutoFixForScenes(scenes);
+    setScenes(updated);
     setTimeout(() => runValidation(), 0);
   };
 
@@ -714,17 +1771,25 @@ export default function Home() {
     const suggestions: FixSuggestion[] = [];
     const issueText = validation.issues.map((issue) => issue.message);
     const includes = (needle: string) => issueText.some((text) => text.includes(needle));
+    const scriptFallback = (
+      scene.image_prompt_ko ||
+      scene.image_prompt ||
+      topic.trim() ||
+      "오늘의 장면"
+    ).slice(0, 40);
 
     if (includes("Script is empty")) {
       suggestions.push({
         id: "script-empty",
         message: "Add one short line of dialogue (monologue).",
+        action: { type: "fill_script", value: scriptFallback },
       });
     }
     if (includes("Script is longer than 40 characters")) {
       suggestions.push({
         id: "script-long",
         message: "Shorten the script to 40 characters or fewer.",
+        action: { type: "trim_script", value: scene.script.slice(0, 40) },
       });
     }
     if (includes("Speaker must be Actor A")) {
@@ -772,7 +1837,7 @@ export default function Home() {
       suggestions.push({
         id: "missing-background",
         message: "Add background keywords like: library, room, street, cafe.",
-        action: { type: "add_positive", tokens: ["plain background"] },
+        action: { type: "add_positive", tokens: ["library", "room", "street", "cafe"] },
       });
     }
     if (includes("Missing lighting/mood keywords")) {
@@ -813,11 +1878,18 @@ export default function Home() {
       const existing = splitTokens(scene.image_prompt);
       const existingSet = new Set(existing.map((token) => token.toLowerCase()));
       const nextTokens = [...existing];
-      tokens.forEach((token) => {
-        if (!existingSet.has(token.toLowerCase())) {
-          nextTokens.push(token);
+      if (suggestion.id === "missing-background") {
+        const candidate = tokens.find((token) => !existingSet.has(token.toLowerCase()));
+        if (candidate) {
+          nextTokens.push(candidate);
         }
-      });
+      } else {
+        tokens.forEach((token) => {
+          if (!existingSet.has(token.toLowerCase())) {
+            nextTokens.push(token);
+          }
+        });
+      }
       updateScene(scene.id, { image_prompt: nextTokens.join(", ") });
       return;
     }
@@ -830,6 +1902,25 @@ export default function Home() {
       });
       updateScene(scene.id, { negative_prompt: filtered.join(", ") });
     }
+  };
+
+  const applyMissingImageTags = (scene: Scene, missingOverride?: string[], limit = 5) => {
+    const missing = missingOverride ?? imageValidationResults[scene.id]?.missing ?? [];
+    if (missing.length === 0) return;
+    const splitTokens = (text: string) =>
+      text
+        .split(",")
+        .map((token) => token.trim())
+        .filter(Boolean);
+    const existing = splitTokens(scene.image_prompt);
+    const existingSet = new Set(existing.map((token) => token.toLowerCase()));
+    const nextTokens = [...existing];
+    missing.slice(0, limit).forEach((token) => {
+      if (!existingSet.has(token.toLowerCase())) {
+        nextTokens.push(token);
+      }
+    });
+    updateScene(scene.id, { image_prompt: nextTokens.join(", ") });
   };
 
   const getSceneStatus = (scene: Scene) => {
@@ -851,8 +1942,34 @@ export default function Home() {
         mode: imageCheckMode,
       });
       setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
+      if (Array.isArray(res.data?.missing) && res.data.missing.length > 0) {
+        applyMissingImageTags(scene, res.data.missing);
+      }
     } catch {
       alert("Image validation failed");
+    }
+  };
+
+  const validateSceneImage = async (scene: Scene, silent = false) => {
+    if (!scene.image_url) {
+      if (!silent) alert("Upload or generate an image first.");
+      return null;
+    }
+    const prompt = scene.debug_prompt || buildPositivePrompt(scene);
+    try {
+      const res = await axios.post(`${API_BASE}/scene/validate_image`, {
+        image_b64: scene.image_url,
+        prompt,
+        mode: imageCheckMode,
+      });
+      setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
+      if (Array.isArray(res.data?.missing) && res.data.missing.length > 0) {
+        applyMissingImageTags(scene, res.data.missing);
+      }
+      return res.data;
+    } catch {
+      if (!silent) alert("Image validation failed");
+      return null;
     }
   };
 
@@ -861,7 +1978,11 @@ export default function Home() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-40 -right-32 h-80 w-80 rounded-full bg-gradient-to-br from-amber-200 via-rose-200 to-fuchsia-200 blur-3xl opacity-70" />
         <div className="absolute top-40 -left-32 h-72 w-72 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-lime-200 blur-3xl opacity-60" />
-        <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12">
+        <main
+          className={`relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 ${
+            isAutoRunning ? "pointer-events-none opacity-60" : ""
+          }`}
+        >
           <header className="flex flex-col gap-4">
             <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Shorts MVP</p>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-900">
@@ -1020,6 +2141,20 @@ export default function Home() {
                     className="h-4 w-4 accent-zinc-900"
                   />
                 </label>
+                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                  VEO Clip
+                  <input
+                    type="checkbox"
+                    checked={veoEnabled}
+                    onChange={(e) => setVeoEnabled(e.target.checked)}
+                    className="h-4 w-4 accent-zinc-900"
+                  />
+                </label>
+                {!veoEnabled && (
+                  <p className="text-[10px] text-zinc-400">
+                    VEO is off. Autopilot will skip motion clip generation.
+                  </p>
+                )}
               </div>
             )}
 
@@ -1030,14 +2165,25 @@ export default function Home() {
                     Actor A Setup
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={selectedSampleId}
+                      onChange={(e) => setSelectedSampleId(e.target.value)}
+                      className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                    >
+                      {PROMPT_SAMPLES.map((sample) => (
+                        <option key={sample.id} value={sample.id}>
+                          {sample.label}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
                       onClick={() =>
                         (() => {
-                          setBasePromptA(
-                            "1girl, eureka, (black t-shirt:1.2), purple eyes, aqua hair, short hair, jeans, glasses, hairclip, short sleeves, <lora:eureka_v9:1.0>"
-                          );
-                          setBaseNegativePromptA("verybadimagenegative_v1.3");
+                          const sample = PROMPT_SAMPLES.find((item) => item.id === selectedSampleId);
+                          if (!sample) return;
+                          setBasePromptA(sample.basePrompt);
+                          setBaseNegativePromptA(sample.baseNegative);
                         })()
                       }
                       className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
@@ -1166,15 +2312,98 @@ export default function Home() {
             )}
           </section>
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              onClick={resetScenesOnly}
+              disabled={isAutoRunning}
+              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+            >
+              Reset Scenes
+            </button>
+            <button
+              onClick={resetDraft}
+              disabled={isAutoRunning}
+              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+            >
+              Reset Draft
+            </button>
             <button
               onClick={handleGenerateScenes}
-              disabled={isGenerating || !topic.trim()}
-              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+              disabled={isGenerating || !topic.trim() || isAutoRunning}
+              className="rounded-full border border-zinc-300 bg-white/80 px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-700 shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
             >
               {isGenerating ? "Generating..." : "Generate"}
             </button>
+            <button
+              onClick={handleAutoRun}
+              disabled={isGenerating || isRendering || isAutoRunning || !topic.trim()}
+              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+            >
+              {isAutoRunning ? "Auto Running..." : "Auto Run"}
+            </button>
           </div>
+          {autoRunState.status !== "idle" && (
+            <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-xs text-zinc-600">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  Autopilot Status
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  {autoRunState.status}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {AUTO_RUN_STEPS.map((step) => {
+                  const isActive = autoRunState.step === step.id;
+                  const isDone =
+                    autoRunState.status !== "idle" &&
+                    AUTO_RUN_STEPS.findIndex((item) => item.id === step.id) <
+                      AUTO_RUN_STEPS.findIndex((item) => item.id === autoRunState.step);
+                  return (
+                    <span
+                      key={step.id}
+                      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                        isActive
+                          ? "bg-zinc-900 text-white"
+                          : isDone
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  );
+                })}
+              </div>
+              <p>{autoRunState.message}</p>
+              {autoRunState.error && <p className="text-red-500">{autoRunState.error}</p>}
+              {autoRunState.status === "error" && autoRunState.step !== "idle" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAutoRunResume}
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                  >
+                    Resume from Step
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAutoRun}
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                  >
+                    Restart Autopilot
+                  </button>
+                </div>
+              )}
+              {autoRunLog.length > 0 && (
+                <div className="grid gap-1 text-[11px] text-zinc-500">
+                  {autoRunLog.map((entry, idx) => (
+                    <span key={`${entry}-${idx}`}>• {entry}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
@@ -1203,6 +2432,15 @@ export default function Home() {
                     <option value="gemini">Gemini (Cloud)</option>
                   </select>
                 </div>
+                <label className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  3x Candidates
+                  <input
+                    type="checkbox"
+                    checked={multiGenEnabled}
+                    onChange={(e) => setMultiGenEnabled(e.target.checked)}
+                    className="h-4 w-4 accent-zinc-900"
+                  />
+                </label>
                 <button
                   onClick={runValidation}
                   className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow"
@@ -1625,6 +2863,18 @@ export default function Home() {
                                 <p className="text-zinc-600">
                                   {imageValidationResults[scene.id].missing.slice(0, 8).join(", ")}
                                 </p>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    applyMissingImageTags(
+                                      scene,
+                                      imageValidationResults[scene.id]?.missing ?? []
+                                    )
+                                  }
+                                  className="mt-2 rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                                >
+                                  Apply Missing Tags
+                                </button>
                               </div>
                             )}
                             {imageValidationResults[scene.id].extra.length > 0 && (
@@ -1696,6 +2946,29 @@ export default function Home() {
                           </div>
                         )}
                       </div>
+                      {scene.candidates && scene.candidates.length > 1 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {scene.candidates.map((candidate, idx) => {
+                            const isSelected = candidate.image_url === scene.image_url;
+                            return (
+                              <button
+                                key={`${scene.id}-candidate-${idx}`}
+                                type="button"
+                                onClick={() => updateScene(scene.id, { image_url: candidate.image_url })}
+                                className={`overflow-hidden rounded-xl border ${
+                                  isSelected ? "border-zinc-900" : "border-zinc-200"
+                                }`}
+                              >
+                                <img
+                                  src={candidate.image_url}
+                                  alt={`Candidate ${idx + 1}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-400">
                         <span>
                           {scene.image_url ? "Ready" : "Upload required"}
@@ -1732,6 +3005,60 @@ export default function Home() {
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-200 bg-white/80 px-4 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                Actions
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {layoutStyle === "full" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOverlaySettings((prev) => ({ ...prev, ...buildOverlayContext() }))
+                      }
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                    >
+                      Auto Fill Overlay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRegenerateAvatar(overlaySettings.avatar_key ?? "")}
+                      disabled={isRegeneratingAvatar || !(overlaySettings.avatar_key ?? "").trim()}
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                    >
+                      {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPostCardSettings(buildPostCardContext())}
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                    >
+                      Auto Fill Post
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRegenerateAvatar(postCardSettings.avatar_key ?? "")}
+                      disabled={isRegeneratingAvatar || !(postCardSettings.avatar_key ?? "").trim()}
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                    >
+                      {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={handleRenderVideo}
+                  disabled={!canRender || isRendering}
+                  className="rounded-full bg-zinc-900 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+                >
+                  {isRendering ? "Rendering..." : "Render Video"}
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-2">
               <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
                 SD Model
@@ -1761,7 +3088,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-4">
               <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
                 Include Subtitles
                 <input
@@ -1789,30 +3116,20 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                  BGM
+                  Subtitle Font
                 </label>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={bgmFile ?? ""}
-                    onChange={(e) => setBgmFile(e.target.value || null)}
-                    className="min-w-0 flex-1 truncate rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  >
-                    <option value="">None</option>
-                    {bgmList.map((bgm) => (
-                      <option key={bgm.name} value={bgm.name}>
-                        {bgm.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => handlePreviewBgm()}
-                    disabled={!bgmFile || isPreviewingBgm}
-                    className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
-                  >
-                    {isPreviewingBgm ? "Playing..." : "Preview 10s"}
-                  </button>
-                </div>
+                <select
+                  value={subtitleFont ?? ""}
+                  onChange={(e) => setSubtitleFont(e.target.value)}
+                  className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                >
+                  {fontList.length === 0 && <option value="">Default</option>}
+                  {fontList.map((font) => (
+                    <option key={font.name} value={font.name}>
+                      {font.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
@@ -1842,101 +3159,214 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid gap-3">
-              <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
-                SNS Overlay
-                <input
-                  type="checkbox"
-                  checked={overlaySettings.enabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    if (enabled) {
-                      const auto = buildOverlayContext();
-                      setOverlaySettings((prev) => ({
-                        ...prev,
-                        enabled,
-                        profile_name: prev.profile_name || auto.profile_name,
-                        likes_count: prev.likes_count || auto.likes_count,
-                        caption: prev.caption || auto.caption,
-                      }));
-                    } else {
-                      setOverlaySettings((prev) => ({ ...prev, enabled }));
-                    }
-                  }}
-                  className="h-4 w-4 accent-zinc-900"
-                />
+            <div className="grid gap-2">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                BGM
               </label>
-              {overlaySettings.enabled && (
-                <div className="grid gap-4">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {OVERLAY_STYLES.map((style) => {
-                      const selected = overlaySettings.frame_style === style.id;
-                      return (
-                        <button
-                          key={style.id}
-                          type="button"
-                          onClick={() =>
-                            setOverlaySettings((prev) => ({ ...prev, frame_style: style.id }))
-                          }
-                          className={`flex flex-col gap-3 rounded-2xl border p-3 text-left transition ${
-                            selected
-                              ? "border-zinc-900 bg-zinc-900 text-white"
-                              : "border-zinc-200 bg-white/80 text-zinc-700 hover:border-zinc-400"
-                          }`}
-                        >
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
-                            {style.label}
-                          </span>
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100">
-                            <img
-                              src={`${API_BASE}/assets/overlay/${style.id}`}
-                              alt={`${style.label} frame`}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+              <select
+                value={bgmFile ?? ""}
+                onChange={(e) => setBgmFile(e.target.value || null)}
+                className="min-w-0 truncate rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+              >
+                <option value="">None</option>
+                {bgmList.map((bgm) => (
+                  <option key={bgm.name} value={bgm.name}>
+                    {bgm.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex">
+                <button
+                  type="button"
+                  onClick={() => handlePreviewBgm()}
+                  disabled={!bgmFile || isPreviewingBgm}
+                  className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                >
+                  {isPreviewingBgm ? "Playing..." : "Preview 10s"}
+                </button>
+              </div>
+            </div>
 
+            <div className="grid gap-3">
+              {layoutStyle === "full" ? (
+                <>
+                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                    SNS Overlay
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[11px] font-semibold text-zinc-600">
+                        {overlayAvatarUrl ? (
+                          <img
+                            src={overlayAvatarUrl}
+                            alt="Avatar preview"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          getAvatarInitial(overlaySettings.channel_name ?? "")
+                        )}
+                      </div>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                        Required
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid gap-4">
+                    <input type="hidden" value={overlaySettings.frame_style} />
+
+
+                      <div className="grid gap-3 md:grid-cols-4">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                            Channel Name
+                          </label>
+                          <input
+                            value={overlaySettings.channel_name ?? ""}
+                            onChange={(e) =>
+                              setOverlaySettings((prev) => ({
+                                ...prev,
+                                channel_name: e.target.value,
+                                avatar_key:
+                                  !prev.avatar_key
+                                  || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
+                                    ? slugifyAvatarKey(e.target.value)
+                                    : prev.avatar_key,
+                              }))
+                            }
+                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          />
+                          <span className="mt-1 text-[9px] leading-tight text-zinc-400">
+                            Shown in Full/Post headers.
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                            Avatar Key
+                          </label>
+                          <input
+                            value={overlaySettings.avatar_key ?? ""}
+                            onChange={(e) =>
+                              setOverlaySettings((prev) => ({
+                                ...prev,
+                                avatar_key: e.target.value,
+                              }))
+                            }
+                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          />
+                          <span className="mt-1 text-[9px] leading-tight text-zinc-400">
+                            Used to generate/reuse avatar image.
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                            Likes
+                          </label>
+                          <input
+                            value={overlaySettings.likes_count ?? ""}
+                            onChange={(e) =>
+                              setOverlaySettings((prev) => ({
+                                ...prev,
+                                likes_count: e.target.value,
+                              }))
+                            }
+                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                            Caption
+                          </label>
+                          <input
+                            value={overlaySettings.caption ?? ""}
+                            onChange={(e) =>
+                              setOverlaySettings((prev) => ({
+                                ...prev,
+                                caption: e.target.value,
+                              }))
+                            }
+                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                </>
+              ) : (
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                    Post Card Meta
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[11px] font-semibold text-zinc-600">
+                        {postAvatarUrl ? (
+                          <img
+                            src={postAvatarUrl}
+                            alt="Avatar preview"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          getAvatarInitial(postCardSettings.channel_name ?? "")
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="flex flex-col gap-2">
                       <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                        Profile Name
+                        Channel Name
                       </label>
                       <input
-                        value={overlaySettings.profile_name}
+                        value={postCardSettings.channel_name ?? ""}
                         onChange={(e) =>
-                          setOverlaySettings((prev) => ({ ...prev, profile_name: e.target.value }))
+                          setPostCardSettings((prev) => ({
+                            ...prev,
+                            channel_name: e.target.value,
+                            avatar_key:
+                              !prev.avatar_key
+                              || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
+                                ? slugifyAvatarKey(e.target.value)
+                                : prev.avatar_key,
+                          }))
                         }
                         className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                       />
+                      <span className="mt-1 text-[9px] leading-tight text-zinc-400">
+                        Shown in Post header.
+                      </span>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                        Likes
+                        Avatar Key
                       </label>
                       <input
-                        value={overlaySettings.likes_count}
+                        value={postCardSettings.avatar_key ?? ""}
                         onChange={(e) =>
-                          setOverlaySettings((prev) => ({ ...prev, likes_count: e.target.value }))
+                          setPostCardSettings((prev) => ({
+                            ...prev,
+                            avatar_key: e.target.value,
+                          }))
                         }
                         className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                       />
+                      <span className="mt-1 text-[9px] leading-tight text-zinc-400">
+                        Used to generate/reuse avatar image.
+                      </span>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                        Caption
+                        Card Caption
                       </label>
                       <input
-                        value={overlaySettings.caption}
+                        value={postCardSettings.caption ?? ""}
                         onChange={(e) =>
-                          setOverlaySettings((prev) => ({ ...prev, caption: e.target.value }))
+                          setPostCardSettings((prev) => ({ ...prev, caption: e.target.value }))
                         }
                         className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                       />
                     </div>
                   </div>
+                  <div className="text-[10px] text-zinc-500">
+                    Applies: Channel, Caption, Auto meta (time/views/avatar)
+                  </div>
+                  <p className="text-[10px] text-zinc-400">
+                    Post layout uses card meta instead of SNS overlay.
+                  </p>
                 </div>
               )}
             </div>
@@ -1959,31 +3389,128 @@ export default function Home() {
             {!canRender && scenes.length > 0 && (
               <p className="text-xs text-rose-500">Upload images for every scene to enable rendering.</p>
             )}
-            <div className="flex justify-end">
-              <button
-                onClick={handleRenderVideo}
-                disabled={!canRender || isRendering}
-                className="rounded-full bg-zinc-900 px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-              >
-                {isRendering ? "Rendering..." : "Render Video"}
-              </button>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
+              <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
+                Render Type: {layoutStyle.toUpperCase()}
+              </span>
+              <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
+                Images: {scenes.filter((scene) => !!scene.image_url).length}/{scenes.length}
+              </span>
+              <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
+                Overlay: Required
+              </span>
             </div>
           </section>
 
-          {videoUrl && (
+          {(videoUrl || videoUrlFull || videoUrlPost || recentVideos.length > 0) && (
             <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-900">Rendered Video</h2>
-                <p className="text-xs text-zinc-500">Preview the latest render.</p>
+                <h2 className="text-lg font-semibold text-zinc-900">
+                  {videoUrlFull || videoUrlPost ? "Rendered Videos" : "Rendered Video"}
+                </h2>
+                <p className="text-xs text-zinc-500">
+                  {videoUrlFull || videoUrlPost
+                    ? "Compare full and post renders."
+                    : "Preview the latest render."}
+                </p>
               </div>
-              <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
-                <div className="aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black shadow">
-                  <video controls src={videoUrl} className="h-full w-full object-cover" />
+              {recentVideos.length > 0 && (
+                <div className="grid gap-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Recent Rendered Videos (8)
+                  </span>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {recentVideos.map((item, idx) => (
+                      <div
+                        key={`${item.url}-${item.createdAt}`}
+                        className={`group grid gap-2 rounded-2xl border bg-white/70 p-3 shadow-sm ${
+                          idx === 0
+                            ? "border-zinc-900/40 bg-white shadow-lg shadow-zinc-900/10 ring-2 ring-zinc-900/10"
+                            : "border-zinc-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                            {item.label}
+                          </span>
+                          <span className="text-[10px] text-zinc-400">
+                            {new Date(item.createdAt).toLocaleString()}
+                          </span>
+                          {idx === 0 && (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-emerald-600">
+                              Latest
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRecentVideo(item.url)}
+                            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-500 opacity-0 transition group-hover:opacity-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <div className="aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black shadow">
+                          <button
+                            type="button"
+                            onClick={() => setVideoPreviewSrc(item.url)}
+                            className="h-full w-full"
+                          >
+                            <video
+                              muted
+                              playsInline
+                              preload="metadata"
+                              src={item.url}
+                              className="pointer-events-none h-full w-full object-cover"
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+              {recentVideos.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-4 text-xs text-zinc-500">
+                  No rendered videos yet. Run a render to see results here.
+                </div>
+              )}
             </section>
           )}
         </main>
+        {isAutoRunning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+            <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl">
+              <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <span>Autopilot Running</span>
+                <span>
+                  Step {AUTO_RUN_STEPS.findIndex((step) => step.id === autoRunState.step) + 1}/
+                  {AUTO_RUN_STEPS.length}
+                </span>
+              </div>
+              <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-zinc-200">
+                <div
+                  className="h-full rounded-full bg-zinc-900 transition-all duration-500"
+                  style={{ width: `${autoRunProgress}%` }}
+                />
+              </div>
+              <p className="text-base font-semibold text-zinc-900">{autoRunState.message}</p>
+              {autoRunLog.length > 0 && (
+                <div className="mt-3 grid gap-1 text-[11px] text-zinc-500">
+                  {autoRunLog.map((entry, idx) => (
+                    <span key={`${entry}-${idx}`}>• {entry}</span>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleAutoRunCancel}
+                className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-700"
+              >
+                Cancel Autopilot
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       {imagePreviewSrc && (
         <>
@@ -2010,6 +3537,38 @@ export default function Home() {
                   src={imagePreviewSrc}
                   alt="Generated scene"
                   className="max-h-[76vh] w-auto max-w-full object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      {videoPreviewSrc && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            onClick={() => setVideoPreviewSrc(null)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <div className="max-h-[90vh] w-full max-w-3xl rounded-3xl border border-white/40 bg-white/90 p-4 shadow-2xl backdrop-blur">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  Video Preview
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setVideoPreviewSrc(null)}
+                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="mt-3 flex max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-2xl bg-black">
+                <video
+                  controls
+                  autoPlay
+                  src={videoPreviewSrc}
+                  className="max-h-[78vh] w-auto max-w-full object-contain"
                 />
               </div>
             </div>

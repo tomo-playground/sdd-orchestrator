@@ -9,11 +9,11 @@ const API_BASE = "http://localhost:8000";
 type KeywordSuggestion = { tag: string; count: number };
 type KeywordCategories = Record<string, string[]>;
 type AudioItem = { name: string; url: string };
+type FontItem = { name: string };
+type LoraItem = { name: string; alias?: string };
 
 const OVERLAY_STYLES = [
   { id: "overlay_minimal.png", label: "Minimal" },
-  { id: "overlay_clean.png", label: "Clean" },
-  { id: "overlay_bold.png", label: "Bold" },
 ];
 
 export default function ManagePage() {
@@ -29,7 +29,8 @@ export default function ManagePage() {
   const [keywordError, setKeywordError] = useState("");
   const [keywordApproving, setKeywordApproving] = useState<Record<string, boolean>>({});
   const [bgmList, setBgmList] = useState<AudioItem[]>([]);
-  const [overlayPreviewSrc, setOverlayPreviewSrc] = useState<string | null>(null);
+  const [fontList, setFontList] = useState<FontItem[]>([]);
+  const [loraList, setLoraList] = useState<LoraItem[]>([]);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
@@ -39,6 +40,23 @@ export default function ManagePage() {
       .get(`${API_BASE}/audio/list`)
       .then((res) => setBgmList(res.data.audios || []))
       .catch(() => setBgmList([]));
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/sd/loras`)
+      .then((res) => setLoraList(res.data.loras || []))
+      .catch(() => setLoraList([]));
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/fonts/list`)
+      .then((res) => {
+        const list = (res.data.fonts || []).map((name: string) => ({ name }));
+        setFontList(list);
+      })
+      .catch(() => setFontList([]));
   }, []);
 
   const normalizeKeyword = (value: string) =>
@@ -202,7 +220,7 @@ export default function ManagePage() {
             <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Workspace Tools</p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Manage</h1>
             <p className="max-w-xl text-sm text-zinc-600">
-              Review keyword suggestions, preview overlay styles, and manage assets.
+              Review keyword suggestions and manage assets.
             </p>
           </div>
           <Link
@@ -373,21 +391,32 @@ export default function ManagePage() {
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-                        {style.id}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setOverlayPreviewSrc(`${API_BASE}/assets/overlay/${style.id}`)}
-                        className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
-                      >
-                        Preview
-                      </button>
-                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
+                      {style.id}
+                    </span>
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                Subtitle Fonts
+              </span>
+              {fontList.length === 0 ? (
+                <p className="text-xs text-zinc-500">No fonts found.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {fontList.map((font) => (
+                    <div
+                      key={font.name}
+                      className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700"
+                    >
+                      {font.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -417,6 +446,32 @@ export default function ManagePage() {
                 </div>
               )}
             </div>
+
+            <div className="grid gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                LoRA Library
+              </span>
+              {loraList.length === 0 ? (
+                <p className="text-xs text-zinc-500">No LoRA files found.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {loraList.map((lora) => {
+                    const name = lora.alias || lora.name;
+                    return (
+                      <div
+                        key={name}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700"
+                      >
+                        <span className="truncate">{name}</span>
+                        <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] text-zinc-500">
+                          {`<lora:${name}:1.0>`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </section>
         )}
 
@@ -437,37 +492,6 @@ export default function ManagePage() {
         )}
       </main>
 
-      {overlayPreviewSrc && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setOverlayPreviewSrc(null)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <div className="w-full max-w-md rounded-3xl border border-white/40 bg-white/90 p-4 shadow-2xl backdrop-blur">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                  Overlay Preview
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setOverlayPreviewSrc(null)}
-                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
-                >
-                  Close
-                </button>
-              </div>
-              <div className="mt-3 aspect-[9/16] w-full overflow-hidden rounded-2xl bg-zinc-100">
-                <img
-                  src={overlayPreviewSrc}
-                  alt="Overlay preview"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
