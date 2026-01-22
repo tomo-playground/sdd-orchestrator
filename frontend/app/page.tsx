@@ -73,7 +73,12 @@ type FixSuggestion = {
   id: string;
   message: string;
   action?: {
-    type: "add_positive" | "remove_negative_scene" | "set_speaker_a" | "fill_script" | "trim_script";
+    type:
+      | "add_positive"
+      | "remove_negative_scene"
+      | "set_speaker_a"
+      | "fill_script"
+      | "trim_script";
     tokens?: string[];
     value?: string;
   };
@@ -191,7 +196,9 @@ export default function Home() {
   const [validationExpanded, setValidationExpanded] = useState<Record<number, boolean>>({});
   const [suggestionExpanded, setSuggestionExpanded] = useState<Record<number, boolean>>({});
   const [imageCheckMode, setImageCheckMode] = useState<"local" | "gemini">("local");
-  const [imageValidationResults, setImageValidationResults] = useState<Record<number, ImageValidation>>({});
+  const [imageValidationResults, setImageValidationResults] = useState<
+    Record<number, ImageValidation>
+  >({});
   const [baseStepsA, setBaseStepsA] = useState(27);
   const [baseCfgScaleA, setBaseCfgScaleA] = useState(7);
   const [baseSamplerA, setBaseSamplerA] = useState("DPM++ 2M Karras");
@@ -322,8 +329,7 @@ export default function Home() {
 
   const normalizeOverlaySettings = (raw: any): OverlaySettings => {
     const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
-    const avatarKey =
-      raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
+    const avatarKey = raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
     return {
       ...DEFAULT_OVERLAY_SETTINGS,
       ...(raw || {}),
@@ -334,8 +340,7 @@ export default function Home() {
 
   const normalizePostCardSettings = (raw: any): PostCardSettings => {
     const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
-    const avatarKey =
-      raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
+    const avatarKey = raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
     return {
       ...DEFAULT_POST_CARD_SETTINGS,
       ...(raw || {}),
@@ -438,7 +443,8 @@ export default function Home() {
       if (draft.structure !== undefined) setStructure(draft.structure);
       if (draft.actorAGender !== undefined) setActorAGender(draft.actorAGender);
       if (draft.basePromptA !== undefined) setBasePromptA(draft.basePromptA);
-      if (draft.baseNegativePromptA !== undefined) setBaseNegativePromptA(draft.baseNegativePromptA);
+      if (draft.baseNegativePromptA !== undefined)
+        setBaseNegativePromptA(draft.baseNegativePromptA);
       if (draft.baseStepsA !== undefined) setBaseStepsA(draft.baseStepsA);
       if (draft.baseCfgScaleA !== undefined) setBaseCfgScaleA(draft.baseCfgScaleA);
       if (draft.baseSamplerA !== undefined) setBaseSamplerA(draft.baseSamplerA);
@@ -630,10 +636,7 @@ export default function Home() {
         setCurrentModel(modelName);
         setSelectedModel(modelName);
         if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(
-            "sdOptionsCache",
-            JSON.stringify({ models, modelName })
-          );
+          window.sessionStorage.setItem("sdOptionsCache", JSON.stringify({ models, modelName }));
         }
       } catch {
         setSdModels([]);
@@ -647,16 +650,16 @@ export default function Home() {
   }, [scenes]);
 
   const updateScene = (id: number, patch: Partial<Scene>) => {
-    setScenes((prev) =>
-      prev.map((scene) => (scene.id === id ? { ...scene, ...patch } : scene))
-    );
+    setScenes((prev) => prev.map((scene) => (scene.id === id ? { ...scene, ...patch } : scene)));
   };
 
   const mapStoryboardScenes = (incoming: any[]) => {
     return incoming.map((scene: any, idx: number) => {
       const rawSpeaker = String(scene.speaker ?? "Narrator");
       const speaker: Scene["speaker"] =
-        rawSpeaker === "A" || rawSpeaker === "Narrator" ? (rawSpeaker as Scene["speaker"]) : "Narrator";
+        rawSpeaker === "A" || rawSpeaker === "Narrator"
+          ? (rawSpeaker as Scene["speaker"])
+          : "Narrator";
       const baseSettings = getBaseSettingsForSpeaker(speaker);
       return {
         id: scene.scene_id ?? idx + 1,
@@ -738,9 +741,7 @@ export default function Home() {
 
   const buildOverlayContext = (scenesOverride: Scene[] = scenes) => {
     const fallbackProfile = generateChannelName(topic);
-    const scripts = scenesOverride
-      .map((scene) => scene.script.trim())
-      .filter(Boolean);
+    const scripts = scenesOverride.map((scene) => scene.script.trim()).filter(Boolean);
     const baseCaption = scripts[0] || topic.trim() || "오늘의 쇼츠";
     const hashtagSource = (topic || baseCaption).split(/\s+/).slice(0, 2);
     const hashtags = hashtagSource
@@ -766,7 +767,6 @@ export default function Home() {
       caption: overlay.caption,
     };
   };
-
 
   const handleImageUpload = (sceneId: number, file?: File) => {
     if (!file) return;
@@ -892,7 +892,6 @@ export default function Home() {
     prevBaseNegativeRefA.current = baseNegativePromptA;
   }, [baseNegativePromptA]);
 
-
   const handleRenderVideo = async () => {
     const url = await requestRenderVideo(layoutStyle);
     if (url) {
@@ -988,7 +987,11 @@ export default function Home() {
         currentStep = steps[idx];
         assertNotCancelled();
         if (currentStep === "storyboard") {
-          setAutoRunState({ status: "running", step: "storyboard", message: "Generating storyboard..." });
+          setAutoRunState({
+            status: "running",
+            step: "storyboard",
+            message: "Generating storyboard...",
+          });
           pushAutoRunLog("Storyboard started");
           workingScenes = await fetchStoryboardScenes();
           if (!workingScenes.length) {
@@ -1002,7 +1005,11 @@ export default function Home() {
         }
 
         if (currentStep === "fix") {
-          setAutoRunState({ status: "running", step: "fix", message: "Auto-fixing scripts and prompts..." });
+          setAutoRunState({
+            status: "running",
+            step: "fix",
+            message: "Auto-fixing scripts and prompts...",
+          });
           workingScenes = applyAutoFixForScenes(workingScenes);
           setScenes(workingScenes);
           const { results, summary } = computeValidationResults(workingScenes);
@@ -1012,7 +1019,11 @@ export default function Home() {
         }
 
         if (currentStep === "images") {
-          setAutoRunState({ status: "running", step: "images", message: "Generating scene images..." });
+          setAutoRunState({
+            status: "running",
+            step: "images",
+            message: "Generating scene images...",
+          });
           for (const scene of workingScenes) {
             assertNotCancelled();
             if (scene.image_url) {
@@ -1096,8 +1107,14 @@ export default function Home() {
       setAutoRunState({ status: "done", step: "render", message: "Autopilot complete." });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Autopilot failed";
-      const failedMessage = message === "Autopilot cancelled" ? "Autopilot cancelled." : "Autopilot failed.";
-      setAutoRunState({ status: "error", step: currentStep, message: failedMessage, error: message });
+      const failedMessage =
+        message === "Autopilot cancelled" ? "Autopilot cancelled." : "Autopilot failed.";
+      setAutoRunState({
+        status: "error",
+        step: currentStep,
+        message: failedMessage,
+        error: message,
+      });
       pushAutoRunLog(message);
       if (message !== "Autopilot cancelled") {
         alert(`Autopilot stopped: ${message}`);
@@ -1213,9 +1230,7 @@ export default function Home() {
   };
 
   const handlePreviewBgm = (urlOverride?: string) => {
-    const sourceUrl = urlOverride
-      ?? bgmList.find((bgm) => bgm.name === bgmFile)?.url
-      ?? "";
+    const sourceUrl = urlOverride ?? bgmList.find((bgm) => bgm.name === bgmFile)?.url ?? "";
     if (!sourceUrl) {
       alert("Select a BGM first.");
       return;
@@ -1238,10 +1253,7 @@ export default function Home() {
     return (trimmed[0] || "A").toUpperCase();
   };
 
-  const resolveAvatarPreview = async (
-    avatarKey: string,
-    setUrl: (url: string | null) => void
-  ) => {
+  const resolveAvatarPreview = async (avatarKey: string, setUrl: (url: string | null) => void) => {
     const trimmed = avatarKey.trim();
     if (!trimmed) {
       setUrl(null);
@@ -1338,11 +1350,41 @@ export default function Home() {
     if (!autoComposePrompt || !base) return scenePrompt;
     if (!scenePrompt) return base;
     const sceneKeywords = [
-      "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
-      "from above", "top-down", "low angle", "high angle", "close-up", "wide shot", "full body",
-      "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest",
-      "beach", "city", "night", "sunset", "sunrise", "rain", "snow", "background", "lighting",
-      "indoors", "outdoors"
+      "sitting",
+      "standing",
+      "walking",
+      "running",
+      "jumping",
+      "kneeling",
+      "crouching",
+      "lying",
+      "from above",
+      "top-down",
+      "low angle",
+      "high angle",
+      "close-up",
+      "wide shot",
+      "full body",
+      "library",
+      "cafe",
+      "street",
+      "room",
+      "bedroom",
+      "office",
+      "classroom",
+      "park",
+      "forest",
+      "beach",
+      "city",
+      "night",
+      "sunset",
+      "sunrise",
+      "rain",
+      "snow",
+      "background",
+      "lighting",
+      "indoors",
+      "outdoors",
     ];
     const splitTokens = (text: string) =>
       text
@@ -1512,7 +1554,10 @@ export default function Home() {
           debug_payload: JSON.stringify(debugPayload, null, 2),
         } as Partial<Scene>;
       }
-      return { debug_prompt: prompt, debug_payload: JSON.stringify(debugPayload, null, 2) } as Partial<Scene>;
+      return {
+        debug_prompt: prompt,
+        debug_payload: JSON.stringify(debugPayload, null, 2),
+      } as Partial<Scene>;
     } catch {
       if (!silent) alert("Scene image generation failed");
       return null;
@@ -1601,8 +1646,7 @@ export default function Home() {
   };
 
   const computeValidationResults = (inputScenes: Scene[] = scenes) => {
-    const hasAny = (text: string, list: string[]) =>
-      list.some((keyword) => text.includes(keyword));
+    const hasAny = (text: string, list: string[]) => list.some((keyword) => text.includes(keyword));
 
     const results: Record<number, SceneValidation> = {};
     let ok = 0;
@@ -1976,32 +2020,32 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fff3db,_#f7f1ff_45%,_#e6f7ff_100%)] text-zinc-900">
       <div className="relative overflow-hidden">
-        <div className="absolute -top-40 -right-32 h-80 w-80 rounded-full bg-gradient-to-br from-amber-200 via-rose-200 to-fuchsia-200 blur-3xl opacity-70" />
-        <div className="absolute top-40 -left-32 h-72 w-72 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-lime-200 blur-3xl opacity-60" />
+        <div className="absolute -top-40 -right-32 h-80 w-80 rounded-full bg-gradient-to-br from-amber-200 via-rose-200 to-fuchsia-200 opacity-70 blur-3xl" />
+        <div className="absolute top-40 -left-32 h-72 w-72 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-lime-200 opacity-60 blur-3xl" />
         <main
           className={`relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 ${
             isAutoRunning ? "pointer-events-none opacity-60" : ""
           }`}
         >
           <header className="flex flex-col gap-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Shorts MVP</p>
+            <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts MVP</p>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-900">
               Script-first storyboard studio
             </h1>
             <p className="max-w-2xl text-sm text-zinc-600">
-              Start from a script, generate scene descriptions, then upload the exact images you want. The
-              system only assembles and renders.
+              Start from a script, generate scene descriptions, then upload the exact images you
+              want. The system only assembles and renders.
             </p>
             <Link
               href="/manage"
-              className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-sm"
+              className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
             >
               Manage
             </Link>
           </header>
 
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+            <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
               Plan & Generate
             </span>
             <div className="h-px flex-1 bg-zinc-200/70" />
@@ -2011,12 +2055,16 @@ export default function Home() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900">Storyboard Generator</h2>
-                <p className="text-xs text-zinc-500">Generate scene scripts and visual descriptions.</p>
+                <p className="text-xs text-zinc-500">
+                  Generate scene scripts and visual descriptions.
+                </p>
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Topic</label>
+                <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  Topic
+                </label>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
@@ -2028,7 +2076,7 @@ export default function Home() {
               <div className="grid gap-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Duration (s)
                     </label>
                     <input
@@ -2041,7 +2089,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Language
                     </label>
                     <input
@@ -2052,7 +2100,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Visual Style
                   </label>
                   <input
@@ -2062,7 +2110,7 @@ export default function Home() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Structure
                   </label>
                   <select
@@ -2087,7 +2135,8 @@ export default function Home() {
                 <h2 className="text-lg font-semibold text-zinc-900">Prompt Setup</h2>
                 <p className="text-xs text-zinc-500">Define global prompt rules and actor setup.</p>
                 <p className="text-[10px] text-zinc-400">
-                  Tip: Base Prompt is identity/style. Scene prompts handle action, camera, and background.
+                  Tip: Base Prompt is identity/style. Scene prompts handle action, camera, and
+                  background.
                 </p>
               </div>
             </div>
@@ -2102,7 +2151,7 @@ export default function Home() {
                     key={tab.id}
                     type="button"
                     onClick={() => setBaseTab(tab.id as "global" | "A" | "B")}
-                    className={`rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${
+                    className={`rounded-full px-4 py-2 text-[10px] font-semibold tracking-[0.2em] uppercase transition ${
                       active ? "bg-zinc-900 text-white" : "bg-white/80 text-zinc-600"
                     }`}
                   >
@@ -2114,7 +2163,7 @@ export default function Home() {
 
             {baseTab === "global" && (
               <div className="grid gap-3">
-                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                   Auto Compose Prompt
                   <input
                     type="checkbox"
@@ -2123,7 +2172,7 @@ export default function Home() {
                     className="h-4 w-4 accent-zinc-900"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                   Auto Rewrite Prompt (Gemini)
                   <input
                     type="checkbox"
@@ -2132,7 +2181,7 @@ export default function Home() {
                     className="h-4 w-4 accent-zinc-900"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                   Hi-Res Fix (1.5x)
                   <input
                     type="checkbox"
@@ -2141,7 +2190,7 @@ export default function Home() {
                     className="h-4 w-4 accent-zinc-900"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                   VEO Clip
                   <input
                     type="checkbox"
@@ -2161,14 +2210,14 @@ export default function Home() {
             {baseTab === "A" && (
               <div className="grid gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <span className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Actor A Setup
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={selectedSampleId}
                       onChange={(e) => setSelectedSampleId(e.target.value)}
-                      className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                      className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                     >
                       {PROMPT_SAMPLES.map((sample) => (
                         <option key={sample.id} value={sample.id}>
@@ -2180,27 +2229,29 @@ export default function Home() {
                       type="button"
                       onClick={() =>
                         (() => {
-                          const sample = PROMPT_SAMPLES.find((item) => item.id === selectedSampleId);
+                          const sample = PROMPT_SAMPLES.find(
+                            (item) => item.id === selectedSampleId
+                          );
                           if (!sample) return;
                           setBasePromptA(sample.basePrompt);
                           setBaseNegativePromptA(sample.baseNegative);
                         })()
                       }
-                      className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                      className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                     >
                       Insert Sample
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsHelperOpen(true)}
-                      className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                      className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                     >
                       Prompt Helper
                     </button>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Actor A Gender
                   </label>
                   <select
@@ -2213,7 +2264,7 @@ export default function Home() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Base Prompt (Actor A)
                   </label>
                   <textarea
@@ -2224,11 +2275,12 @@ export default function Home() {
                     placeholder="1girl, eureka, (black t-shirt:1.2), ... <lora:...:1.0>"
                   />
                   <p className="text-[10px] text-zinc-500">
-                    Model tags like &lt;model:...&gt; are ignored. Use the SD Model selector instead.
+                    Model tags like &lt;model:...&gt; are ignored. Use the SD Model selector
+                    instead.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Base Negative (Actor A)
                   </label>
                   <textarea
@@ -2241,7 +2293,7 @@ export default function Home() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Base Steps (Actor A)
                     </label>
                     <input
@@ -2254,7 +2306,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Base CFG (Actor A)
                     </label>
                     <input
@@ -2268,7 +2320,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Base Sampler (Actor A)
                     </label>
                     <select
@@ -2284,7 +2336,7 @@ export default function Home() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Base Seed (Actor A)
                     </label>
                     <input
@@ -2295,7 +2347,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                       Base Clip Skip (Actor A)
                     </label>
                     <input
@@ -2316,28 +2368,28 @@ export default function Home() {
             <button
               onClick={resetScenesOnly}
               disabled={isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
             >
               Reset Scenes
             </button>
             <button
               onClick={resetDraft}
               disabled={isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
             >
               Reset Draft
             </button>
             <button
               onClick={handleGenerateScenes}
               disabled={isGenerating || !topic.trim() || isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-700 shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="rounded-full border border-zinc-300 bg-white/80 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
             >
               {isGenerating ? "Generating..." : "Generate"}
             </button>
             <button
               onClick={handleAutoRun}
               disabled={isGenerating || isRendering || isAutoRunning || !topic.trim()}
-              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {isAutoRunning ? "Auto Running..." : "Auto Run"}
             </button>
@@ -2345,10 +2397,10 @@ export default function Home() {
           {autoRunState.status !== "idle" && (
             <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-xs text-zinc-600">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Autopilot Status
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   {autoRunState.status}
                 </span>
               </div>
@@ -2362,7 +2414,7 @@ export default function Home() {
                   return (
                     <span
                       key={step.id}
-                      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                      className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
                         isActive
                           ? "bg-zinc-900 text-white"
                           : isDone
@@ -2382,14 +2434,14 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleAutoRunResume}
-                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                   >
                     Resume from Step
                   </button>
                   <button
                     type="button"
                     onClick={handleAutoRun}
-                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                   >
                     Restart Autopilot
                   </button>
@@ -2406,7 +2458,7 @@ export default function Home() {
           )}
 
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+            <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
               Scene Work
             </span>
             <div className="h-px flex-1 bg-zinc-200/70" />
@@ -2416,23 +2468,25 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900">Scenes</h2>
-                <p className="text-xs text-zinc-500">Upload the exact images you want for each scene.</p>
+                <p className="text-xs text-zinc-500">
+                  Upload the exact images you want for each scene.
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Image Check
                   </span>
                   <select
                     value={imageCheckMode}
                     onChange={(e) => setImageCheckMode(e.target.value as "local" | "gemini")}
-                    className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-zinc-600"
+                    className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] tracking-[0.2em] text-zinc-600 uppercase"
                   >
                     <option value="local">Local (WD14)</option>
                     <option value="gemini">Gemini (Cloud)</option>
                   </select>
                 </div>
-                <label className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <label className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   3x Candidates
                   <input
                     type="checkbox"
@@ -2443,35 +2497,35 @@ export default function Home() {
                 </label>
                 <button
                   onClick={runValidation}
-                  className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow"
+                  className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow"
                 >
                   Validate
                 </button>
                 <button
                   onClick={handleAutoFixAll}
                   disabled={scenes.length === 0}
-                  className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Auto Fix All
                 </button>
                 <button
                   onClick={handleAddScene}
-                  className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow"
+                  className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow"
                 >
                   Add Scene
                 </button>
               </div>
             </div>
 
-            {(validationSummary.ok + validationSummary.warn + validationSummary.error > 0) && (
+            {validationSummary.ok + validationSummary.warn + validationSummary.error > 0 && (
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-emerald-600 uppercase">
                   OK {validationSummary.ok}
                 </span>
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-600">
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-amber-600 uppercase">
                   Warn {validationSummary.warn}
                 </span>
-                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-600">
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-rose-600 uppercase">
                   Error {validationSummary.error}
                 </span>
               </div>
@@ -2496,7 +2550,7 @@ export default function Home() {
                             [scene.id]: !prev[scene.id],
                           }));
                         }}
-                        className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                        className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
                           validationResults[scene.id].status === "ok"
                             ? "bg-emerald-100 text-emerald-700"
                             : validationResults[scene.id].status === "warn"
@@ -2509,12 +2563,12 @@ export default function Home() {
                     )}
                     <button
                       onClick={() => handleRemoveScene(scene.id)}
-                      className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-500"
+                      className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase"
                     >
                       Remove
                     </button>
                   </div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  <p className="text-[11px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
                     {getSceneStatus(scene)}
                   </p>
                   {validationResults[scene.id] && (
@@ -2533,14 +2587,14 @@ export default function Home() {
                           [scene.id]: !prev[scene.id],
                         }))
                       }
-                      className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                      className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                     >
                       Fix Suggestions
                     </button>
                   )}
                   {validationResults[scene.id] && suggestionExpanded[scene.id] && (
                     <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-xs text-zinc-600">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                      <div className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                         Fix Suggestions
                       </div>
                       {(() => {
@@ -2559,7 +2613,7 @@ export default function Home() {
                                 onClick={() => {
                                   actionable.forEach((item) => applySuggestion(scene, item));
                                 }}
-                                className="mt-2 rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                                className="mt-2 rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                               >
                                 Apply All
                               </button>
@@ -2575,12 +2629,12 @@ export default function Home() {
                                     <button
                                       type="button"
                                       onClick={() => applySuggestion(scene, item)}
-                                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                                     >
                                       Apply
                                     </button>
                                   ) : (
-                                    <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
+                                    <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
                                       Manual
                                     </span>
                                   )}
@@ -2596,7 +2650,7 @@ export default function Home() {
                   <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
                     <div className="grid gap-3">
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                           Script
                         </label>
                         <textarea
@@ -2608,7 +2662,7 @@ export default function Home() {
                       </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Speaker
                           </label>
                           <select
@@ -2622,7 +2676,7 @@ export default function Home() {
                           </select>
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Duration
                           </label>
                           <input
@@ -2630,15 +2684,17 @@ export default function Home() {
                             min={1}
                             max={10}
                             value={scene.duration}
-                            onChange={(e) => updateScene(scene.id, { duration: Number(e.target.value) })}
+                            onChange={(e) =>
+                              updateScene(scene.id, { duration: Number(e.target.value) })
+                            }
                             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Image
                           </label>
-                          <label className="flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/80 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                          <label className="flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/80 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                             Upload
                             <input
                               type="file"
@@ -2650,7 +2706,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                           Positive Prompt
                         </label>
                         <textarea
@@ -2661,7 +2717,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                           Negative Prompt
                         </label>
                         <textarea
@@ -2674,7 +2730,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                           Prompt (KO)
                         </label>
                         <textarea
@@ -2688,7 +2744,7 @@ export default function Home() {
                       </div>
                       <div className="grid gap-3 md:grid-cols-3">
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Steps
                           </label>
                           <input
@@ -2704,7 +2760,7 @@ export default function Home() {
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             CFG
                           </label>
                           <input
@@ -2721,7 +2777,7 @@ export default function Home() {
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Sampler
                           </label>
                           <select
@@ -2740,7 +2796,7 @@ export default function Home() {
                           </select>
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Seed
                           </label>
                           <input
@@ -2754,7 +2810,7 @@ export default function Home() {
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             Clip Skip
                           </label>
                           <input
@@ -2770,132 +2826,136 @@ export default function Home() {
                           />
                         </div>
                       </div>
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateSceneImage(scene)}
-                      disabled={scene.isGenerating}
-                      className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-                    >
-                      {scene.isGenerating ? "Generating..." : "Generate Image"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleValidateImage(scene)}
-                      disabled={!scene.image_url}
-                      className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Validate Image
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const basePrompt = getBasePromptForScene(scene);
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateSceneImage(scene)}
+                        disabled={scene.isGenerating}
+                        className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+                      >
+                        {scene.isGenerating ? "Generating..." : "Generate Image"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleValidateImage(scene)}
+                        disabled={!scene.image_url}
+                        className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Validate Image
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const basePrompt = getBasePromptForScene(scene);
                           const scenePrompt = scene.image_prompt;
-                          const prompt = autoComposePrompt && basePrompt
-                            ? `${basePrompt}, ${scenePrompt}`
-                            : scenePrompt;
-                        const payload = {
-                          prompt,
-                          negative_prompt: buildNegativePrompt(scene),
+                          const prompt =
+                            autoComposePrompt && basePrompt
+                              ? `${basePrompt}, ${scenePrompt}`
+                              : scenePrompt;
+                          const payload = {
+                            prompt,
+                            negative_prompt: buildNegativePrompt(scene),
                             steps: resolveSteps(scene),
                             cfg_scale: resolveCfgScale(scene),
                             sampler_name: resolveSampler(scene),
                             seed: resolveSeed(scene),
                             clip_skip: resolveClipSkip(scene),
-                          width: 512,
-                          height: 512,
-                        };
-                        updateScene(scene.id, {
-                          debug_payload: JSON.stringify(payload, null, 2),
-                          debug_prompt: payload.prompt,
-                        });
-                      }}
-                      className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
-                    >
-                      Debug Payload
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setAdvancedExpanded((prev) => ({
-                          ...prev,
-                          [scene.id]: !prev[scene.id],
-                        }))
-                      }
-                      className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
-                    >
-                      {advancedExpanded[scene.id] ? "Hide Advanced" : "Show Advanced"}
-                    </button>
-                    {advancedExpanded[scene.id] && scene.debug_payload && (
-                      <textarea
-                        value={scene.debug_payload}
-                        readOnly
-                        rows={6}
-                        className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-[10px] text-zinc-500"
-                      />
-                    )}
-                    {(validationResults[scene.id] || imageValidationResults[scene.id]) && (
-                      <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-[11px] text-zinc-600">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                            Validation
-                          </span>
-                          {imageValidationResults[scene.id] && (
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                              Match {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
+                            width: 512,
+                            height: 512,
+                          };
+                          updateScene(scene.id, {
+                            debug_payload: JSON.stringify(payload, null, 2),
+                            debug_prompt: payload.prompt,
+                          });
+                        }}
+                        className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+                      >
+                        Debug Payload
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAdvancedExpanded((prev) => ({
+                            ...prev,
+                            [scene.id]: !prev[scene.id],
+                          }))
+                        }
+                        className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+                      >
+                        {advancedExpanded[scene.id] ? "Hide Advanced" : "Show Advanced"}
+                      </button>
+                      {advancedExpanded[scene.id] && scene.debug_payload && (
+                        <textarea
+                          value={scene.debug_payload}
+                          readOnly
+                          rows={6}
+                          className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-[10px] text-zinc-500"
+                        />
+                      )}
+                      {(validationResults[scene.id] || imageValidationResults[scene.id]) && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-[11px] text-zinc-600">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                              Validation
                             </span>
-                          )}
-                        </div>
-                        {validationResults[scene.id] && (
-                          <p className="mt-2 text-[11px] text-zinc-600">
-                            {validationResults[scene.id].issues.length > 0
-                              ? validationResults[scene.id].issues[0].message
-                              : "No issues found."}
-                          </p>
-                        )}
-                        {imageValidationResults[scene.id] && (
-                          <div className="mt-2 grid gap-2">
-                            {imageValidationResults[scene.id].missing.length > 0 && (
-                              <div>
-                                <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-                                  Missing
-                                </span>
-                                <p className="text-zinc-600">
-                                  {imageValidationResults[scene.id].missing.slice(0, 8).join(", ")}
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    applyMissingImageTags(
-                                      scene,
-                                      imageValidationResults[scene.id]?.missing ?? []
-                                    )
-                                  }
-                                  className="mt-2 rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
-                                >
-                                  Apply Missing Tags
-                                </button>
-                              </div>
-                            )}
-                            {imageValidationResults[scene.id].extra.length > 0 && (
-                              <div>
-                                <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-                                  Extra Tags
-                                </span>
-                                <p className="text-zinc-600">
-                                  {imageValidationResults[scene.id].extra.slice(0, 8).join(", ")}
-                                </p>
-                              </div>
+                            {imageValidationResults[scene.id] && (
+                              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                                Match{" "}
+                                {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
+                              </span>
                             )}
                           </div>
-                        )}
-                      </div>
-                    )}
-                    {validationResults[scene.id] && (
-                      <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-xs text-zinc-600">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                            Validation Details
+                          {validationResults[scene.id] && (
+                            <p className="mt-2 text-[11px] text-zinc-600">
+                              {validationResults[scene.id].issues.length > 0
+                                ? validationResults[scene.id].issues[0].message
+                                : "No issues found."}
+                            </p>
+                          )}
+                          {imageValidationResults[scene.id] && (
+                            <div className="mt-2 grid gap-2">
+                              {imageValidationResults[scene.id].missing.length > 0 && (
+                                <div>
+                                  <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
+                                    Missing
+                                  </span>
+                                  <p className="text-zinc-600">
+                                    {imageValidationResults[scene.id].missing
+                                      .slice(0, 8)
+                                      .join(", ")}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      applyMissingImageTags(
+                                        scene,
+                                        imageValidationResults[scene.id]?.missing ?? []
+                                      )
+                                    }
+                                    className="mt-2 rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+                                  >
+                                    Apply Missing Tags
+                                  </button>
+                                </div>
+                              )}
+                              {imageValidationResults[scene.id].extra.length > 0 && (
+                                <div>
+                                  <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
+                                    Extra Tags
+                                  </span>
+                                  <p className="text-zinc-600">
+                                    {imageValidationResults[scene.id].extra.slice(0, 8).join(", ")}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {validationResults[scene.id] && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-xs text-zinc-600">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                              Validation Details
                             </span>
                             <button
                               type="button"
@@ -2905,7 +2965,7 @@ export default function Home() {
                                   [scene.id]: !prev[scene.id],
                                 }))
                               }
-                              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+                              className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                             >
                               {validationExpanded[scene.id] ? "Hide" : "Show"}
                             </button>
@@ -2954,7 +3014,9 @@ export default function Home() {
                               <button
                                 key={`${scene.id}-candidate-${idx}`}
                                 type="button"
-                                onClick={() => updateScene(scene.id, { image_url: candidate.image_url })}
+                                onClick={() =>
+                                  updateScene(scene.id, { image_url: candidate.image_url })
+                                }
                                 className={`overflow-hidden rounded-xl border ${
                                   isSelected ? "border-zinc-900" : "border-zinc-200"
                                 }`}
@@ -2969,10 +3031,8 @@ export default function Home() {
                           })}
                         </div>
                       )}
-                      <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-                        <span>
-                          {scene.image_url ? "Ready" : "Upload required"}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
+                        <span>{scene.image_url ? "Ready" : "Upload required"}</span>
                         <span className="rounded-full border border-zinc-200 bg-white/80 px-2 py-0.5 text-[9px] text-zinc-500">
                           512x512
                         </span>
@@ -2991,7 +3051,7 @@ export default function Home() {
           </section>
 
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+            <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
               Output
             </span>
             <div className="h-px flex-1 bg-zinc-200/70" />
@@ -3001,12 +3061,14 @@ export default function Home() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900">Render Settings</h2>
-                <p className="text-xs text-zinc-500">Control subtitles, narration, and background music.</p>
+                <p className="text-xs text-zinc-500">
+                  Control subtitles, narration, and background music.
+                </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-200 bg-white/80 px-4 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Actions
               </span>
               <div className="flex flex-wrap items-center gap-2">
@@ -3017,7 +3079,7 @@ export default function Home() {
                       onClick={() =>
                         setOverlaySettings((prev) => ({ ...prev, ...buildOverlayContext() }))
                       }
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                     >
                       Auto Fill Overlay
                     </button>
@@ -3025,7 +3087,7 @@ export default function Home() {
                       type="button"
                       onClick={() => handleRegenerateAvatar(overlaySettings.avatar_key ?? "")}
                       disabled={isRegeneratingAvatar || !(overlaySettings.avatar_key ?? "").trim()}
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase transition disabled:cursor-not-allowed disabled:text-zinc-400"
                     >
                       {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
                     </button>
@@ -3035,7 +3097,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => setPostCardSettings(buildPostCardContext())}
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
                     >
                       Auto Fill Post
                     </button>
@@ -3043,7 +3105,7 @@ export default function Home() {
                       type="button"
                       onClick={() => handleRegenerateAvatar(postCardSettings.avatar_key ?? "")}
                       disabled={isRegeneratingAvatar || !(postCardSettings.avatar_key ?? "").trim()}
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase transition disabled:cursor-not-allowed disabled:text-zinc-400"
                     >
                       {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
                     </button>
@@ -3052,7 +3114,7 @@ export default function Home() {
                 <button
                   onClick={handleRenderVideo}
                   disabled={!canRender || isRendering}
-                  className="rounded-full bg-zinc-900 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+                  className="rounded-full bg-zinc-900 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
                 >
                   {isRendering ? "Rendering..." : "Render Video"}
                 </button>
@@ -3060,15 +3122,13 @@ export default function Home() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 SD Model
               </label>
               <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3">
-                <span className="text-xs font-semibold text-zinc-600">
-                  Current: {currentModel}
-                </span>
+                <span className="text-xs font-semibold text-zinc-600">Current: {currentModel}</span>
                 {isModelUpdating && (
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
                     Updating...
                   </span>
                 )}
@@ -3089,7 +3149,7 @@ export default function Home() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
-              <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+              <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                 Include Subtitles
                 <input
                   type="checkbox"
@@ -3099,7 +3159,7 @@ export default function Home() {
                 />
               </label>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Narrator Voice
                 </label>
                 <select
@@ -3115,7 +3175,7 @@ export default function Home() {
                 </select>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Subtitle Font
                 </label>
                 <select
@@ -3132,7 +3192,7 @@ export default function Home() {
                 </select>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Scene Layout
                 </label>
                 <select
@@ -3145,7 +3205,7 @@ export default function Home() {
                 </select>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Effects (Skillset)
                 </label>
                 <select
@@ -3160,7 +3220,7 @@ export default function Home() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 BGM
               </label>
               <select
@@ -3180,7 +3240,7 @@ export default function Home() {
                   type="button"
                   onClick={() => handlePreviewBgm()}
                   disabled={!bgmFile || isPreviewingBgm}
-                  className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                  className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase transition disabled:cursor-not-allowed disabled:text-zinc-400"
                 >
                   {isPreviewingBgm ? "Playing..." : "Preview 10s"}
                 </button>
@@ -3190,7 +3250,7 @@ export default function Home() {
             <div className="grid gap-3">
               {layoutStyle === "full" ? (
                 <>
-                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                     SNS Overlay
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[11px] font-semibold text-zinc-600">
@@ -3204,7 +3264,7 @@ export default function Home() {
                           getAvatarInitial(overlaySettings.channel_name ?? "")
                         )}
                       </div>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                      <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
                         Required
                       </span>
                     </div>
@@ -3212,85 +3272,84 @@ export default function Home() {
                   <div className="grid gap-4">
                     <input type="hidden" value={overlaySettings.frame_style} />
 
-
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                            Channel Name
-                          </label>
-                          <input
-                            value={overlaySettings.channel_name ?? ""}
-                            onChange={(e) =>
-                              setOverlaySettings((prev) => ({
-                                ...prev,
-                                channel_name: e.target.value,
-                                avatar_key:
-                                  !prev.avatar_key
-                                  || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
-                                    ? slugifyAvatarKey(e.target.value)
-                                    : prev.avatar_key,
-                              }))
-                            }
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                          <span className="mt-1 text-[9px] leading-tight text-zinc-400">
-                            Shown in Full/Post headers.
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                            Avatar Key
-                          </label>
-                          <input
-                            value={overlaySettings.avatar_key ?? ""}
-                            onChange={(e) =>
-                              setOverlaySettings((prev) => ({
-                                ...prev,
-                                avatar_key: e.target.value,
-                              }))
-                            }
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                          <span className="mt-1 text-[9px] leading-tight text-zinc-400">
-                            Used to generate/reuse avatar image.
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                            Likes
-                          </label>
-                          <input
-                            value={overlaySettings.likes_count ?? ""}
-                            onChange={(e) =>
-                              setOverlaySettings((prev) => ({
-                                ...prev,
-                                likes_count: e.target.value,
-                              }))
-                            }
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                            Caption
-                          </label>
-                          <input
-                            value={overlaySettings.caption ?? ""}
-                            onChange={(e) =>
-                              setOverlaySettings((prev) => ({
-                                ...prev,
-                                caption: e.target.value,
-                              }))
-                            }
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                          Channel Name
+                        </label>
+                        <input
+                          value={overlaySettings.channel_name ?? ""}
+                          onChange={(e) =>
+                            setOverlaySettings((prev) => ({
+                              ...prev,
+                              channel_name: e.target.value,
+                              avatar_key:
+                                !prev.avatar_key ||
+                                prev.avatar_key === slugifyAvatarKey(prev.channel_name)
+                                  ? slugifyAvatarKey(e.target.value)
+                                  : prev.avatar_key,
+                            }))
+                          }
+                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
+                        <span className="mt-1 text-[9px] leading-tight text-zinc-400">
+                          Shown in Full/Post headers.
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                          Avatar Key
+                        </label>
+                        <input
+                          value={overlaySettings.avatar_key ?? ""}
+                          onChange={(e) =>
+                            setOverlaySettings((prev) => ({
+                              ...prev,
+                              avatar_key: e.target.value,
+                            }))
+                          }
+                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
+                        <span className="mt-1 text-[9px] leading-tight text-zinc-400">
+                          Used to generate/reuse avatar image.
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                          Likes
+                        </label>
+                        <input
+                          value={overlaySettings.likes_count ?? ""}
+                          onChange={(e) =>
+                            setOverlaySettings((prev) => ({
+                              ...prev,
+                              likes_count: e.target.value,
+                            }))
+                          }
+                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                          Caption
+                        </label>
+                        <input
+                          value={overlaySettings.caption ?? ""}
+                          onChange={(e) =>
+                            setOverlaySettings((prev) => ({
+                              ...prev,
+                              caption: e.target.value,
+                            }))
+                          }
+                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
                       </div>
                     </div>
+                  </div>
                 </>
               ) : (
                 <div className="grid gap-3">
-                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                     Post Card Meta
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[11px] font-semibold text-zinc-600">
@@ -3308,7 +3367,7 @@ export default function Home() {
                   </div>
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                         Channel Name
                       </label>
                       <input
@@ -3318,8 +3377,8 @@ export default function Home() {
                             ...prev,
                             channel_name: e.target.value,
                             avatar_key:
-                              !prev.avatar_key
-                              || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
+                              !prev.avatar_key ||
+                              prev.avatar_key === slugifyAvatarKey(prev.channel_name)
                                 ? slugifyAvatarKey(e.target.value)
                                 : prev.avatar_key,
                           }))
@@ -3331,7 +3390,7 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                         Avatar Key
                       </label>
                       <input
@@ -3349,7 +3408,7 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                         Card Caption
                       </label>
                       <input
@@ -3372,7 +3431,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Read Speed ({speedMultiplier.toFixed(2)}x)
               </label>
               <input
@@ -3387,7 +3446,9 @@ export default function Home() {
             </div>
 
             {!canRender && scenes.length > 0 && (
-              <p className="text-xs text-rose-500">Upload images for every scene to enable rendering.</p>
+              <p className="text-xs text-rose-500">
+                Upload images for every scene to enable rendering.
+              </p>
             )}
             <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
               <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
@@ -3416,7 +3477,7 @@ export default function Home() {
               </div>
               {recentVideos.length > 0 && (
                 <div className="grid gap-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Recent Rendered Videos (8)
                   </span>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -3425,26 +3486,26 @@ export default function Home() {
                         key={`${item.url}-${item.createdAt}`}
                         className={`group grid gap-2 rounded-2xl border bg-white/70 p-3 shadow-sm ${
                           idx === 0
-                            ? "border-zinc-900/40 bg-white shadow-lg shadow-zinc-900/10 ring-2 ring-zinc-900/10"
+                            ? "border-zinc-900/40 bg-white shadow-lg ring-2 shadow-zinc-900/10 ring-zinc-900/10"
                             : "border-zinc-200"
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                             {item.label}
                           </span>
                           <span className="text-[10px] text-zinc-400">
                             {new Date(item.createdAt).toLocaleString()}
                           </span>
                           {idx === 0 && (
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-emerald-600">
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em] text-emerald-600 uppercase">
                               Latest
                             </span>
                           )}
                           <button
                             type="button"
                             onClick={() => handleDeleteRecentVideo(item.url)}
-                            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-500 opacity-0 transition group-hover:opacity-100"
+                            className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase opacity-0 transition group-hover:opacity-100"
                           >
                             Delete
                           </button>
@@ -3480,7 +3541,7 @@ export default function Home() {
         {isAutoRunning && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
             <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl">
-              <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <div className="mb-3 flex items-center justify-between text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 <span>Autopilot Running</span>
                 <span>
                   Step {AUTO_RUN_STEPS.findIndex((step) => step.id === autoRunState.step) + 1}/
@@ -3504,7 +3565,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleAutoRunCancel}
-                className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-700"
+                className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase"
               >
                 Cancel Autopilot
               </button>
@@ -3521,13 +3582,13 @@ export default function Home() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <div className="max-h-[90vh] w-full max-w-3xl rounded-3xl border border-white/40 bg-white/90 p-4 shadow-2xl backdrop-blur">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Image Preview
                 </span>
                 <button
                   type="button"
                   onClick={() => setImagePreviewSrc(null)}
-                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                 >
                   Close
                 </button>
@@ -3552,13 +3613,13 @@ export default function Home() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <div className="max-h-[90vh] w-full max-w-3xl rounded-3xl border border-white/40 bg-white/90 p-4 shadow-2xl backdrop-blur">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Video Preview
                 </span>
                 <button
                   type="button"
                   onClick={() => setVideoPreviewSrc(null)}
-                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                 >
                   Close
                 </button>
@@ -3580,29 +3641,29 @@ export default function Home() {
         onClick={() => setIsHelperOpen(false)}
       />
       <aside
-        className={`fixed right-0 top-0 z-50 h-full w-full max-w-md transform bg-white shadow-2xl transition-transform ${isHelperOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed top-0 right-0 z-50 h-full w-full max-w-md transform bg-white shadow-2xl transition-transform ${isHelperOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="flex h-full flex-col gap-4 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Prompt Helper</p>
+              <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Prompt Helper</p>
               <h3 className="text-lg font-semibold text-zinc-900">Split Example Prompt</h3>
             </div>
             <button
               type="button"
               onClick={() => setIsHelperOpen(false)}
-              className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+              className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
             >
               Close
             </button>
           </div>
           {copyStatus && (
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               {copyStatus}
             </div>
           )}
           <div className="grid gap-2">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Example Prompt
             </label>
             <textarea
@@ -3616,7 +3677,7 @@ export default function Home() {
               type="button"
               onClick={handleSuggestSplit}
               disabled={isSuggesting || !examplePrompt.trim()}
-              className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {isSuggesting ? "Suggesting..." : "Suggest Base/Scene"}
             </button>
@@ -3625,13 +3686,13 @@ export default function Home() {
             <div className="grid gap-4">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Suggested Base
                   </label>
                   <button
                     type="button"
                     onClick={() => copyText(suggestedBase)}
-                    className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+                    className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                   >
                     Copy
                   </button>
@@ -3645,13 +3706,13 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Suggested Scene
                   </label>
                   <button
                     type="button"
                     onClick={() => copyText(suggestedScene)}
-                    className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500"
+                    className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                   >
                     Copy
                   </button>

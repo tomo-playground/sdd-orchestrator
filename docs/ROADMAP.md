@@ -13,9 +13,9 @@
     *   **Task**: 
         *   백엔드: `HOST`, `PORT`, `API_PUBLIC_URL`, `OUTPUT_DIR` 등을 `.env`로 분리.
         *   프론트엔드: `NEXT_PUBLIC_API_URL` 환경 변수 도입 (하드코딩된 localhost:8000 제거).
-*   [ ] **Foundation Setup (Linting & Tooling)**:
+*   [x] **Foundation Setup (Linting & Tooling)**:
     *   **Why**: 코드 스타일 통일 및 자동 정렬.
-    *   **Tech**: Absolute Import Path 설정, ESLint/Prettier Strict 규칙 적용.
+    *   **Tech**: Absolute Import Path 설정, ESLint/Prettier Strict 규칙 적용, Ruff(Backend) 도입.
 *   [ ] **TDD Environment Setup (Unit Testing)**:
     *   **Why**: 리팩토링 시 기능 파괴 방지.
     *   **Tech**: `pytest` & `Vitest` 기반의 빠른 피드백 루프 구축.
