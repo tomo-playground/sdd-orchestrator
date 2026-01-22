@@ -1,73 +1,74 @@
-# Product Requirements Document (PRD): Shorts Factory
+# Shorts Factory - Actionable PRD (v1.0)
 
-## 1. 개요 (Overview)
-**Shorts Factory**는 숏폼 영상(Shorts, Reels, TikTok) 제작을 위한 **AI 기반 올인원 스튜디오**입니다. 
-사용자가 주제나 대본을 입력하면, AI가 스토리보드를 짜고, 일관성 있는 캐릭터 이미지를 생성하며, 최종적으로 영상으로 렌더링하는 전 과정을 지원합니다.
+이 문서는 추상적인 전략이 아닌, **현재 개발 단계에서 구현 및 검증해야 할 실질적인 요구사항**을 정의합니다.
 
-## 2. 핵심 철학 (Core Philosophy)
-1.  **Identity Locking (일관성)**: 영상 내내 캐릭터의 외모(DNA)가 변하지 않아야 한다. 이를 위해 `Base Prompt`와 `Character Builder`를 활용하여 고유 특징을 고정한다.
-2.  **Quality First (품질)**: 단순히 생성하는 것을 넘어, '쓸 수 있는' 퀄리티를 보장한다. 이를 위해 **Candidate System(3장 생성 후 선택)**과 **Hi-Res Fix**를 기본으로 채택한다.
-3.  **Hybrid Workflow (협업)**: AI가 초안(Autopilot)을 잡지만, 인간이 디테일(Scene Director)을 수정할 수 있는 유연한 구조를 지향한다.
+## 1. 프로젝트 범위 (Scope & Priorities)
 
-## 3. 주요 기능 (Key Features)
+### ✅ v1.0 Core (Must Have) - *현재 구현 목표*
+이 기능들이 동작하지 않으면 배포/사용 불가로 간주합니다.
+*   **Planning**: 주제 입력 -> Gemini 스토리보드 생성 -> 편집(Script 수정).
+*   **Consistency**: `Character DNA Builder`를 통한 프롬프트 고정.
+*   **Production**:
+    *   3장 생성 후 택1 (Candidates UI).
+    *   `Auto Fix` 및 `Clean Prompts` 로직.
+    *   SD 1.5 기반 이미지 생성.
+*   **Output**: FFmpeg를 이용한 `.mp4` 렌더링 (TTS, 자막, 배경음악 포함).
+*   **Format**: 9:16(Full) 및 1:1(Post) 레이아웃 지원.
 
-### 3.1. 기획 및 스토리보드 (Planning)
-*   **Storyboard Generator**: 주제(Topic)만 입력하면 LLM(Gemini)이 장면별 대본과 프롬프트를 자동으로 작성.
-*   **Autopilot Mode**: 기획부터 이미지 생성까지 원클릭으로 진행 (검수를 위해 렌더링 직전 정지).
-*   **Audio Hub**: 내레이션(TTS) 성우 선택 및 BGM 미리듣기/선택.
+### ⏳ v1.x Backlog (Nice to Have) - *추후 개발*
+*   VEO Clip (Video Generation).
+*   ControlNet (IP-Adapter) 얼굴 고정.
+*   SQLite 데이터베이스 연동.
+*   정량적 품질 지표(Match Rate 자동화 등).
 
-### 3.2. 캐릭터 및 연출 (Directing)
-*   **Character DNA Builder (🪄)**:
-    *   캐릭터의 외모(헤어, 눈, 체형)와 스타일(화풍)을 태그 기반으로 조합하여 `Base Prompt` 생성.
-    *   LoRA 및 Embedding 선택 지원.
-*   **Scene Director (🎬)**:
-    *   각 장면의 `Positive Prompt` 옆에 위치.
-    *   카메라 앵글(Shot type), 조명(Lighting), 동작(Action), 장소(Location)를 클릭으로 조합하여 연출.
+---
 
-### 3.3. 이미지 생성 및 검수 (Production)
-*   **Candidate System**:
-    *   장면당 **3장의 이미지**를 동시 생성.
-    *   프롬프트 일치도가 가장 높은 이미지를 자동 추천하며, 사용자가 썸네일을 클릭해 변경 가능.
-*   **Analyze Visual Result**:
-    *   생성된 이미지를 AI(WD14/Gemini Vision)가 역으로 분석.
-    *   **Match Rate (%)** 표시 및 누락된 태그(Missing Tags) 리포트 제공.
-*   **Prompt Optimization**:
-    *   **Auto Fix**: 중복된 태그 제거 및 필수 요소(배경, 동작) 보강.
-    *   **Clean Prompts**: `Base Prompt`와 중복되는 단어를 장면 프롬프트에서 일괄 삭제.
+## 2. 테크니컬 데이터 흐름 (Technical Data Flow)
 
-### 3.4. 영상 렌더링 (Post-Production)
-*   **Rendering Engine**: FFmpeg 기반의 고성능 렌더링.
-*   **Formats**:
-    *   **Full (9:16)**: 모바일 꽉 찬 화면.
-    *   **Post (1:1)**: 인스타그램/카드뉴스 스타일 (상단 헤더 + 하단 캡션).
-*   **Elements**:
-    *   **TTS**: Edge-TTS 기반의 자연스러운 한국어 음성 합성.
-    *   **Subtitles**: `온글잎 박다현체` 등 감성 폰트 자동 자막 생성.
-    *   **Overlay**: 채널명, 좋아요 수, 아바타 등이 포함된 SNS 스타일 오버레이 자동 합성.
+UI/UX 흐름보다 **데이터가 어떻게 흘러가고 저장되는지**를 정의하여 로직 오류를 방지합니다.
 
-## 4. 기술 스펙 (Technical Specs)
+### 2.1. 기획 단계 (Flow: User Input -> State)
+*   **Input**: `Topic`, `Options(Voice, BGM)`
+*   **Process**: `POST /storyboard/create` (Gemini)
+*   **Output State**: `scenes: Scene[]` (JSON Array in React State)
+*   **Risk**: Gemini API 타임아웃 → **Action**: 30초 타임아웃 설정 및 재시도 UI 제공.
 
-### Frontend
-*   **Framework**: Next.js 14 (App Router)
-*   **Styling**: Tailwind CSS (Zinc/Emerald/Rose 테마)
-*   **Icons**: Lucide React
+### 2.2. 이미지 생성 단계 (Flow: State -> SD API -> File System)
+*   **Input**: `Scene.image_prompt` + `Character DNA(Base Prompt)`
+*   **Process**: 
+    1. Frontend: 3x 요청 병렬 전송.
+    2. Backend: `POST /sdapi/v1/txt2img` -> Base64 수신.
+    3. Backend: `outputs/images/{timestamp}.png` 저장.
+*   **Output State**: `Scene.image_url` (로컬 파일 경로 URL)
+*   **Constraint**: **GPU VRAM 8GB 이상 권장**. (VRAM 부족 시 3장 생성 속도 저하 발생 가능)
 
-### Backend
-*   **Framework**: Python FastAPI
-*   **AI Models**:
-    *   **Image**: Stable Diffusion WebUI API (SD 1.5/XL)
-    *   **LLM**: Google Gemini Pro (스토리보드, 프롬프트 리라이팅)
-    *   **Vision**: WD14 Tagger / Gemini Vision (이미지 분석)
-*   **Media Processing**:
-    *   **Video**: FFmpeg (이미지+오디오+자막 합성, Pan/Zoom 효과)
-    *   **Audio**: Edge-TTS
+### 2.3. 렌더링 단계 (Flow: Files -> FFmpeg -> Video)
+*   **Input**: `scenes` (이미지 경로들), `audio` (TTS/BGM), `layout_style`
+*   **Process**:
+    1. Backend: Edge-TTS로 오디오 파일 생성 (`assets/temp/`).
+    2. Backend: FFmpeg 명령어로 이미지+오디오+자막 합성.
+*   **Risk**: 한글 폰트 깨짐 (Mac NFD 문제) → **Action**: `resolve_subtitle_font_path`의 정규화 로직 필수 검증.
 
-## 5. 데이터 구조 (Data Structure)
-*   **Storage**: 로컬 파일 시스템 (`outputs/`, `assets/`)
-*   **Persistence**: `localStorage`를 이용한 작업 상태(Draft) 자동 저장.
-*   **Keywords**: `backend/keywords.json`을 통한 태그 관리 및 학습 시스템.
+---
 
-## 6. 향후 계획 (Roadmap)
-*   [ ] **VEO Clip**: 정지 이미지를 영상(Video-to-Video)으로 변환하는 기능 통합.
-*   [ ] **Prompt Splitter**: 외부 프롬프트 붙여넣기 시 Base/Scene 자동 분리 UI 복구.
-*   [ ] **Multi-Language**: 다국어 자막 및 UI 지원.
+## 3. 기술적 제약 및 환경 (Constraints & Environment)
+
+### 3.1. 필수 실행 환경
+*   **Stable Diffusion WebUI**: 로컬 포트 `7860`에서 실행 중이어야 함 (`--api` 옵션 필수).
+*   **Backend**: Python 3.10+, `ffmpeg` 시스템 경로 설정 필수.
+*   **Assets**: `backend/assets/fonts/` 내에 한글 폰트(`.ttf`) 필수 존재.
+
+### 3.2. 성능 한계 (Known Limitations)
+*   **속도**: 로컬 GPU 성능에 전적으로 의존. (RTX 3060 기준 이미지 1장당 약 5~8초 소요)
+*   **스토리지**: 생성된 이미지는 로컬 `outputs/` 폴더에 계속 쌓이므로 주기적인 정리 필요 (현재 자동 삭제 로직 없음).
+
+---
+
+## 4. 완료 기준 (Definition of Done)
+
+다음 체크리스트를 모두 통과해야 작업이 완료된 것으로 간주합니다.
+
+1.  [ ] **Autopilot**: 주제 입력 후 '이미지 생성 완료' 단계까지 멈춤 없이 진행되는가?
+2.  **Consistency**: 생성된 3개 이상의 장면에서 캐릭터의 **머리색과 옷**이 `Base Prompt` 설정대로 유지되는가?
+3.  **Rendering**: 최종 비디오 파일이 생성되고, **소리(TTS+BGM)**가 정상적으로 들리는가?
+4.  **UI Resilience**: 새로고침(F5)을 해도 작업하던 내용(Draft)이 복구되는가?
