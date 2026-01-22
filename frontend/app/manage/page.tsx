@@ -12,18 +12,20 @@ type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
 
-const OVERLAY_STYLES = [
-  { id: "overlay_minimal.png", label: "Minimal" },
-];
+const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export default function ManagePage() {
   const [manageTab, setManageTab] = useState<"keywords" | "assets" | "settings">("keywords");
   const [keywordSuggestions, setKeywordSuggestions] = useState<KeywordSuggestion[]>([]);
   const [keywordCategories, setKeywordCategories] = useState<KeywordCategories>({});
-  const [keywordCategorySelection, setKeywordCategorySelection] = useState<Record<string, string>>({});
+  const [keywordCategorySelection, setKeywordCategorySelection] = useState<Record<string, string>>(
+    {}
+  );
   const [keywordCategoryFilter, setKeywordCategoryFilter] = useState("");
   const [keywordSearch, setKeywordSearch] = useState("");
-  const [keywordSort, setKeywordSort] = useState<"count_desc" | "count_asc" | "alpha">("count_desc");
+  const [keywordSort, setKeywordSort] = useState<"count_desc" | "count_asc" | "alpha">(
+    "count_desc"
+  );
   const [keywordPanelOpen, setKeywordPanelOpen] = useState(true);
   const [isKeywordLoading, setIsKeywordLoading] = useState(false);
   const [keywordError, setKeywordError] = useState("");
@@ -82,8 +84,10 @@ export default function ManagePage() {
         const compressedValue = compressKeyword(value);
         if (!normalizedValue) return;
         if (normalizedTag === normalizedValue) categoryScore = Math.max(categoryScore, 4);
-        if (compressedTag && compressedTag === compressedValue) categoryScore = Math.max(categoryScore, 3);
-        if (compressedTag && compressedValue.includes(compressedTag)) categoryScore = Math.max(categoryScore, 2);
+        if (compressedTag && compressedTag === compressedValue)
+          categoryScore = Math.max(categoryScore, 3);
+        if (compressedTag && compressedValue.includes(compressedTag))
+          categoryScore = Math.max(categoryScore, 2);
         const valueWords = normalizedValue.split(" ").filter(Boolean);
         const overlap = tagWords.filter((word) => valueWords.includes(word)).length;
         if (overlap > 0) categoryScore = Math.max(categoryScore, 1 + overlap * 0.1);
@@ -147,7 +151,13 @@ export default function ManagePage() {
       sorted.sort((a, b) => b.count - a.count);
     }
     return sorted;
-  }, [keywordCategoryFilter, keywordCategorySelection, keywordSearch, keywordSort, keywordSuggestions]);
+  }, [
+    keywordCategoryFilter,
+    keywordCategorySelection,
+    keywordSearch,
+    keywordSort,
+    keywordSuggestions,
+  ]);
 
   const handleApproveKeyword = async (tag: string) => {
     const category = keywordCategorySelection[tag];
@@ -217,7 +227,7 @@ export default function ManagePage() {
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Workspace Tools</p>
+            <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Workspace Tools</p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Manage</h1>
             <p className="max-w-xl text-sm text-zinc-600">
               Review keyword suggestions and manage assets.
@@ -225,7 +235,7 @@ export default function ManagePage() {
           </div>
           <Link
             href="/"
-            className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-sm"
+            className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
           >
             Back to Studio
           </Link>
@@ -243,8 +253,10 @@ export default function ManagePage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setManageTab(tab.id as typeof manageTab)}
-                className={`rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${
-                  active ? "bg-zinc-900 text-white" : "border border-zinc-200 bg-white text-zinc-600"
+                className={`rounded-full px-4 py-2 text-[10px] font-semibold tracking-[0.2em] uppercase transition ${
+                  active
+                    ? "bg-zinc-900 text-white"
+                    : "border border-zinc-200 bg-white text-zinc-600"
                 }`}
               >
                 {tab.label}
@@ -259,14 +271,14 @@ export default function ManagePage() {
               <button
                 type="button"
                 onClick={() => setKeywordPanelOpen((prev) => !prev)}
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-sm transition"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition"
               >
                 {keywordPanelOpen ? "Collapse" : "Expand"}
               </button>
               <select
                 value={keywordCategoryFilter}
                 onChange={(e) => setKeywordCategoryFilter(e.target.value)}
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-sm outline-none transition focus:border-zinc-400"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition outline-none focus:border-zinc-400"
               >
                 <option value="">All categories</option>
                 {Object.keys(keywordCategories).map((category) => (
@@ -280,7 +292,7 @@ export default function ManagePage() {
                 onChange={(e) =>
                   setKeywordSort(e.target.value as "count_desc" | "count_asc" | "alpha")
                 }
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 shadow-sm outline-none transition focus:border-zinc-400"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition outline-none focus:border-zinc-400"
               >
                 <option value="count_desc">Count ↓</option>
                 <option value="count_asc">Count ↑</option>
@@ -295,7 +307,7 @@ export default function ManagePage() {
               <button
                 onClick={refreshKeywordSuggestions}
                 disabled={isKeywordLoading}
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-700 shadow-sm transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition disabled:cursor-not-allowed disabled:text-zinc-400"
               >
                 {isKeywordLoading ? "Loading..." : "Refresh"}
               </button>
@@ -313,9 +325,13 @@ export default function ManagePage() {
                   <p className="text-xs text-zinc-500">No keyword suggestions yet.</p>
                 )}
 
-                {!isKeywordLoading && keywordSuggestions.length > 0 && filteredKeywordSuggestions.length === 0 && (
-                  <p className="text-xs text-zinc-500">No suggestions match the selected category.</p>
-                )}
+                {!isKeywordLoading &&
+                  keywordSuggestions.length > 0 &&
+                  filteredKeywordSuggestions.length === 0 && (
+                    <p className="text-xs text-zinc-500">
+                      No suggestions match the selected category.
+                    </p>
+                  )}
 
                 {filteredKeywordSuggestions.length > 0 && (
                   <div className="grid gap-3">
@@ -330,7 +346,7 @@ export default function ManagePage() {
                         >
                           <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-zinc-800">{item.tag}</span>
-                            <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
+                            <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
                               {item.count} hits
                             </span>
                           </div>
@@ -357,7 +373,7 @@ export default function ManagePage() {
                             <button
                               onClick={() => handleApproveKeyword(item.tag)}
                               disabled={!canApprove}
-                              className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+                              className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
                             >
                               {keywordApproving[item.tag] ? "Approving..." : "Approve"}
                             </button>
@@ -375,13 +391,16 @@ export default function ManagePage() {
         {manageTab === "assets" && (
           <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
             <div className="grid gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Overlay Styles
               </span>
               <div className="grid gap-3 sm:grid-cols-2">
                 {OVERLAY_STYLES.map((style) => (
-                  <div key={style.id} className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600">
+                  <div
+                    key={style.id}
+                    className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-3"
+                  >
+                    <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase">
                       {style.label}
                     </span>
                     <div className="aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100">
@@ -391,7 +410,7 @@ export default function ManagePage() {
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
+                    <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
                       {style.id}
                     </span>
                   </div>
@@ -400,7 +419,7 @@ export default function ManagePage() {
             </div>
 
             <div className="grid gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Subtitle Fonts
               </span>
               {fontList.length === 0 ? (
@@ -420,7 +439,7 @@ export default function ManagePage() {
             </div>
 
             <div className="grid gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 BGM Library
               </span>
               {bgmList.length === 0 ? (
@@ -437,7 +456,7 @@ export default function ManagePage() {
                         type="button"
                         onClick={() => handlePreviewBgm(bgm.url)}
                         disabled={isPreviewingBgm}
-                        className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 disabled:cursor-not-allowed disabled:text-zinc-400"
+                        className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:text-zinc-400"
                       >
                         {isPreviewingBgm ? "Playing..." : "Preview 10s"}
                       </button>
@@ -448,7 +467,7 @@ export default function ManagePage() {
             </div>
 
             <div className="grid gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 LoRA Library
               </span>
               {loraList.length === 0 ? (
@@ -477,13 +496,13 @@ export default function ManagePage() {
 
         {manageTab === "settings" && (
           <section className="grid gap-3 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">
+            <p className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
               Settings are configured in the main studio page.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 href="/"
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
               >
                 Open Render Settings
               </Link>
@@ -491,7 +510,6 @@ export default function ManagePage() {
           </section>
         )}
       </main>
-
     </div>
   );
 }

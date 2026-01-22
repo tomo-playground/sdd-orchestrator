@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import base64
-import io
 import csv
 import hashlib
+import io
 import json
 import logging
 import os
 import pathlib
+import random
 import re
 import shutil
 import subprocess
@@ -15,23 +16,27 @@ import textwrap
 import time
 from typing import Any
 from urllib.parse import urlparse
-import random
 
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+import edge_tts
 import httpx
-from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import onnxruntime as ort
-import edge_tts
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+from dotenv import load_dotenv
 from fastapi import HTTPException
+from google import genai
+from google.genai import types
+from jinja2 import Environment, FileSystemLoader
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from schemas import (
-    StoryboardRequest, VideoRequest, OverlaySettings, PostCardSettings,
-    SceneGenerateRequest, SceneValidateRequest, PromptRewriteRequest,
-    PromptSplitRequest, VideoScene
+    OverlaySettings,
+    PostCardSettings,
+    PromptRewriteRequest,
+    PromptSplitRequest,
+    SceneGenerateRequest,
+    SceneValidateRequest,
+    StoryboardRequest,
+    VideoRequest,
 )
 
 load_dotenv()
@@ -364,7 +369,7 @@ def wd14_predict_tags(image: Image.Image, threshold: float) -> list[dict[str, An
     preds = session.run([session.get_outputs()[0].name], inputs)[0][0]
 
     results: list[dict[str, Any]] = []
-    for score, tag, category in zip(preds, tags, categories):
+    for score, tag, category in zip(preds, tags, categories, strict=False):
         if category == "9":
             continue
         if score < threshold:
@@ -1452,7 +1457,7 @@ def logic_create_storyboard(request: StoryboardRequest) -> dict:
         return {"scenes": scenes}
     except Exception as exc:
         logger.exception("Storyboard generation failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
     if not request.prompt:
@@ -1552,7 +1557,7 @@ def logic_rewrite_prompt(request: PromptRewriteRequest) -> dict:
         raise HTTPException(status_code=400, detail="Base prompt and scene prompt are required")
 
     cache_key = hashlib.sha256(
-        f"{request.base_prompt}|{request.scene_prompt}|{request.style}|{request.mode}".encode("utf-8")
+        f"{request.base_prompt}|{request.scene_prompt}|{request.style}|{request.mode}".encode()
     ).hexdigest()
     cache_file = CACHE_DIR / f"prompt_{cache_key}.json"
     if cache_file.exists():
@@ -1902,8 +1907,7 @@ async def logic_create_video(request: VideoRequest) -> dict:
             raise Exception(result.stderr)
 
         shutil.rmtree(temp_dir)
-        
-        video_filename = f"{base_name}.mp4"
+
         return {"video_url": f"{API_PUBLIC_URL}/outputs/videos/{video_filename}"}
     except Exception as exc:
         logger.exception("Video Create Error")

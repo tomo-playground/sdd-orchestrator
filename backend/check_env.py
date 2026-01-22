@@ -1,9 +1,10 @@
 import os
-import sys
-import subprocess
 import pathlib
+import subprocess
+
 import httpx
 from dotenv import load_dotenv
+
 
 # ANSI colors for better visibility
 class Colors:
@@ -25,7 +26,7 @@ def check_env():
     # Get current script directory
     script_dir = pathlib.Path(__file__).parent.resolve()
     print(f"{Colors.BOLD}--- Shorts Producer Environment Diagnostic ---{Colors.ENDC}\n")
-    
+
     # 1. Check .env file
     env_path = script_dir / ".env"
     if not env_path.exists():
@@ -74,7 +75,7 @@ def check_env():
         "templates/create_storyboard.j2",
         "outputs"
     ]
-    
+
     for p in critical_paths:
         target = base_dir / p
         if target.exists():
