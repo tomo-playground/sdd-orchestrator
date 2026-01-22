@@ -36,6 +36,12 @@ Built with **Next.js 14+ (App Router)** and **Tailwind CSS**.
 1.  **Refactor `backend/main.py`**: Split into `routers/` (API) and `services/` (Logic) to reduce file size (~2300 lines) and improve maintainability.
 2.  **Refactor `frontend/app/page.tsx`**: Extract logic into custom hooks (`useAutopilot`) and sub-components.
 
+## Rules & Guidelines
+To ensure consistency and quality, always refer to the following documents before starting tasks:
+- **Workflow & Branching**: Read `@docs/CONTRIBUTING.md`. (Strictly follow branch strategies).
+- **Priorities**: Read `@docs/ROADMAP.md`. (Tasks must be picked from here).
+- **Specs**: Read `@docs/PRD.md`.
+
 ## Prerequisites
 - **Stable Diffusion WebUI**: `http://127.0.0.1:7860` (launch with `--api`).
 - **Env Vars**: `GEMINI_API_KEY` required in `backend/.env`.

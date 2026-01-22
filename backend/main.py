@@ -41,7 +41,7 @@ async def get_audio_list():
     files = []
     for ext in ("*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a", "*.M4A"):
         for f in logic.AUDIO_DIR.glob(ext):
-            files.append({"name": f.name, "url": f"http://localhost:8000/assets/audio/{f.name}"})
+            files.append({"name": f.name, "url": f"{logic.API_PUBLIC_URL}/assets/audio/{f.name}"})
     return {"audios": sorted(files, key=lambda x: x["name"])}
 
 
@@ -84,7 +84,7 @@ async def store_scene_image(request: ImageStoreRequest):
     if not target.exists():
         image = image.convert("RGBA")
         image.save(target, format="PNG")
-    return {"url": f"http://localhost:8000/outputs/images/stored/{filename}"}
+    return {"url": f"{logic.API_PUBLIC_URL}/outputs/images/stored/{filename}"}
 
 
 @app.post("/scene/validate_image")

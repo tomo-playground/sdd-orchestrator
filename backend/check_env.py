@@ -35,7 +35,7 @@ def check_env():
     print_result(".env file exists")
 
     # 2. Check Required Env Vars
-    required_keys = ["GEMINI_API_KEY", "SD_BASE_URL"]
+    required_keys = ["GEMINI_API_KEY", "SD_BASE_URL", "API_PUBLIC_URL"]
     for key in required_keys:
         val = os.getenv(key)
         if val:

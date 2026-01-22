@@ -1,0 +1,189 @@
+# =======================================
+# 🌟 Shorts Producer 프로젝트 코드 리뷰 설정
+# =======================================
+language: ko-KR  # 코드리뷰 및 자동 생성 주석에 사용할 언어
+tone_instructions: |
+  친근하고 명확한 피드백을 제공하되, 다음 사항을 중점적으로 확인:
+  - FFmpeg 명령어 및 리소스 정리(임시 파일 삭제) 여부
+  - Stable Diffusion 및 Gemini API 호출의 예외 처리
+  - 하드코딩된 경로/URL 대신 환경 변수 사용 여부
+  - 백엔드/프론트엔드 구조 분리 원칙 준수
+early_access: false
+enable_free_tier: true
+
+# =======================================
+# 🧩 리뷰 설정
+# =======================================
+reviews:
+  profile: assertive  # 엄격한 검증 (렌더링 및 AI 생성 비용 고려)
+  request_changes_workflow: true
+
+  # Shorts Producer 프로젝트 전용 리뷰 지침
+  custom_instructions: |
+    Shorts Producer 프로젝트 코드 리뷰 시 다음 사항을 중점 검증:
+
+    1. **리소스 관리 (FFmpeg/File System)**:
+       - 임시 파일(temp_dir)이 작업 완료/실패 시 반드시 삭제되는지 확인 (`shutil.rmtree`)
+       - FFmpeg 명령어 생성 시 쉘 인젝션 방지 및 비동기 실행 처리 확인
+
+    2. **환경 설정 (Configuration)**:
+       - URL(localhost 등), 파일 경로(assets/ 등)가 하드코딩되지 않고 환경 변수나 상수로 관리되는지 확인
+       - `.env` 및 `check_env.py`와의 정합성 체크
+
+    3. **AI 파이프라인 안정성**:
+       - Stable Diffusion/Gemini API 호출 시 타임아웃 및 재시도 로직 확인
+       - 생성된 이미지/비디오의 유효성 검증 단계 확인
+
+    4. **아키텍처 준수**:
+       - 백엔드: 비즈니스 로직은 `logic.py` 또는 `services/`로 분리 (Router는 가볍게)
+       - 프론트엔드: 복잡한 로직은 커스텀 훅(`useAutopilot`)으로 분리
+
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  auto_title_placeholder: "@coderabbitai"
+  review_status: true
+  commit_status: true
+  fail_commit_status: false
+
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: true
+
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+
+  poem: false
+
+  # ---------------------------------------
+  # 🏷️ 라벨링 규칙 (Shorts Producer 전용)
+  # ---------------------------------------
+  labeling_instructions:
+    - label: "frontend"
+      instructions: "Next.js UI 및 React 컴포넌트 변경 시 적용"
+    - label: "backend"
+      instructions: "FastAPI, Pydantic 스키마, 서버 로직 변경 시 적용"
+    - label: "ffmpeg"
+      instructions: "FFmpeg 명령어 생성, 렌더링 파이프라인 수정 시 적용"
+    - label: "ai-generation"
+      instructions: "Gemini, Stable Diffusion 연동 로직 변경 시 적용"
+    - label: "config"
+      instructions: "환경 변수, 설정 파일, 진단 도구 수정 시 적용"
+    - label: "assets"
+      instructions: "폰트, 오버레이 이미지 등 정적 자원 관련 변경 시 적용"
+    - label: "docs"
+      instructions: "README, ROADMAP, 가이드 문서 업데이트 시 적용"
+
+  # ---------------------------------------
+  # 📁 리뷰 대상 경로 지정
+  # ---------------------------------------
+  path_filters:
+    - "backend/**"
+    - "frontend/**"
+    - "docs/**"
+    - "**/*.py"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "!frontend/node_modules/**"
+    - "!backend/.venv/**"
+    - "!backend/__pycache__/**"
+    - "!backend/outputs/**"
+
+  # ---------------------------------------
+  # 📜 파일별 리뷰 가이드 (Shorts Producer 특화)
+  # ---------------------------------------
+  path_instructions:
+    - path: "frontend/app/**"
+      instructions: |
+        Next.js 컴포넌트 검증:
+        - `NEXT_PUBLIC_API_URL` 환경 변수 사용 여부
+        - 오토파일럿 상태 관리의 안정성
+        - 이미지 태그 사용 시 `next/image` 권장 (단, 로컬 Blob URL 사용 시 예외 허용 여부 체크)
+    - path: "backend/logic.py"
+      instructions: |
+        핵심 로직 및 렌더링 검증:
+        - FFmpeg 명령어 구성의 정확성
+        - 임시 디렉토리 정리(`shutil.rmtree`) 필수
+        - `API_PUBLIC_URL` 상수 사용 여부
+        - 예외 발생 시 적절한 로깅(`logger.exception`)
+    - path: "backend/check_env.py"
+      instructions: |
+        환경 진단 도구 검증:
+        - 새로운 환경 변수가 추가될 때마다 검사 로직 업데이트 여부
+        - 외부 연결 테스트 시 짧은 타임아웃 설정 여부
+    - path: "backend/main.py"
+      instructions: |
+        API 라우터 검증:
+        - 비즈니스 로직의 `logic.py` 위임 여부 (핸들러는 가볍게 유지)
+        - 요청/응답 스키마(Pydantic) 사용 여부
+
+  abort_on_close: true
+  disable_cache: false
+
+  # ---------------------------------------
+  # 🤖 자동 리뷰 설정
+  # ---------------------------------------
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - "WIP"
+      - "draft"
+    labels:
+      - "backend"
+      - "frontend"
+      - "ffmpeg"
+      - "ai-generation"
+    drafts: false
+    base_branches:
+      - "main"
+
+# =======================================
+# 💬 챗봇 연동
+# =======================================
+chat:
+  auto_reply: true
+
+# =======================================
+# 🧩 코드래빗 지식 기반
+# =======================================
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "GEMINI.md"
+      - "docs/CONTRIBUTING.md"
+
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
+
+# =======================================
+# 🧠 코드 자동 생성 (Docstring / Test)
+# =======================================
+code_generation:
+  docstrings:
+    language: "ko-KR"
+    path_instructions:
+      - path: "**/*.py"
+        instructions: |
+          Python Docstring 작성 규칙:
+          - Google 스타일 준수
+          - 복잡한 로직(FFmpeg 명령어 구성 등)에는 상세 설명 포함
+          - 환경 변수 의존성이 있는 함수는 관련 변수 명시
+      - path: "**/*.tsx"
+        instructions: |
+          React 컴포넌트 주석:
+          - 복잡한 상태 머신(오토파일럿) 로직에 대한 설명 포함
+          - Props 인터페이스에 대한 주석 필수
