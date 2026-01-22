@@ -5,7 +5,7 @@
 ## 🏗️ Phase 1: Foundation & Stability (기반 및 안정성) - **URGENT**
 본격적인 기능 추가 전, 개발 속도를 늦추는 장애물을 제거하고 협업/개발 환경을 정비합니다.
 
-*   [ ] **Environment Diagnostic Tool (1순위)**:
+*   [x] **Environment Diagnostic Tool (1순위)**:
     *   **Why**: "왜 안 되지?" 하는 디버깅 시간을 90% 단축.
     *   **Tech**: `backend/check_env.py` - FFmpeg, WebUI 연결(SD_BASE_URL), API Key(GEMINI_API_KEY), 필수 폰트 및 에셋 유무 자동 진단.
 *   [ ] **Configuration Externalization (설정 분리)**:
