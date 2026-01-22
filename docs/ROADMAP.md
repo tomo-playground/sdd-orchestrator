@@ -8,7 +8,7 @@
 *   [x] **Environment Diagnostic Tool (1순위)**:
     *   **Why**: "왜 안 되지?" 하는 디버깅 시간을 90% 단축.
     *   **Tech**: `backend/check_env.py` - FFmpeg, WebUI 연결(SD_BASE_URL), API Key(GEMINI_API_KEY), 필수 폰트 및 에셋 유무 자동 진단.
-*   [ ] **Configuration Externalization (설정 분리)**:
+*   [x] **Configuration Externalization (설정 분리)**:
     *   **Why**: 하드코딩된 주소와 경로를 분리하여 배포 및 환경 변화에 유연하게 대응.
     *   **Task**: 
         *   백엔드: `HOST`, `PORT`, `API_PUBLIC_URL`, `OUTPUT_DIR` 등을 `.env`로 분리.

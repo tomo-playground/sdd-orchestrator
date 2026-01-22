@@ -93,6 +93,7 @@ SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
 SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 SD_LORAS_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
+API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
 WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 
@@ -1901,7 +1902,9 @@ async def logic_create_video(request: VideoRequest) -> dict:
             raise Exception(result.stderr)
 
         shutil.rmtree(temp_dir)
-        return {"video_url": f"http://localhost:8000/outputs/videos/{video_filename}"}
+        
+        video_filename = f"{base_name}.mp4"
+        return {"video_url": f"{API_PUBLIC_URL}/outputs/videos/{video_filename}"}
     except Exception as exc:
         logger.exception("Video Create Error")
         if temp_dir.exists():
