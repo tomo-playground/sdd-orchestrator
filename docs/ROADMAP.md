@@ -48,10 +48,18 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Types/Constants 분리 | `types/`, `constants/` 디렉토리로 분리 | [x] |
-| Components 분리 | SetupPanel, AutoRunStatus, SceneFilmstrip 등 | [~] |
+| Components 분리 | SetupPanel, AutoRunStatus, SceneFilmstrip, PromptSetupPanel 등 16개 | [x] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [ ] |
 
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 3,722줄 (500줄 감소, 12%)
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,860줄 (1,362줄 감소, 32%)
+
+추출된 컴포넌트:
+- Types: `types/index.ts`, Constants: `constants/index.ts`
+- Setup: `SetupPanel`, `StoryboardGeneratorPanel`, `PromptSetupPanel`
+- Scene: `SceneFilmstrip`, `SceneImagePanel`, `ValidationTabContent`, `DebugTabContent`
+- Render: `RenderSettingsPanel`, `RenderedVideosSection`, `LayoutSelector`
+- Modals: `AutoRunProgressModal`, `PreviewModal`, `PromptHelperSidebar`
+- Status: `AutoRunStatus`
 
 ---
 
