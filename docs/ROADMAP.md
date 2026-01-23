@@ -16,7 +16,7 @@
 
 ---
 
-## 🛡️ Phase 2: 안정성 기반 구축 (Visual Regression Test) - **CURRENT**
+## 🛡️ Phase 2: 안정성 기반 구축 (Visual Regression Test) - **COMPLETE**
 영상 생성 코드가 수정되어도 결과물이 변하지 않도록 하는 근본적인 안전 장치를 구축합니다.
 
 ### 2-1. Golden Master & VRT Engine
@@ -29,12 +29,12 @@
 ### 2-2. Deterministic Environment
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| Fixed Seed Testing | 테스트 시 AI 생성(이미지, 음성) 시드 고정 | [ ] |
+| Fixed Seed Testing | 테스트 시 AI 생성(이미지, 음성) 시드 고정 | [x] |
 | Layout Spec Extraction | Pillow/FFmpeg 좌표/비율을 `constants/layout.py`로 분리 | [x] |
 
 ---
 
-## 🔧 Phase 3: 리팩토링 (안정성 기반 코드 개선)
+## 🔧 Phase 3: 리팩토링 (안정성 기반 코드 개선) - **CURRENT**
 Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합니다.
 
 ### 3-1. Backend 리팩토링
@@ -105,4 +105,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 2 VRT 시스템 구축 완료 (24 테스트, Golden Masters). Layout Schema 추출 완료.
+**Latest Status**: 2026-01-23 Phase 2 완료! VRT 시스템 구축 (36 테스트), Layout Schema 추출, Fixed Seed Testing 구현.
