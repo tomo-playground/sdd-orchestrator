@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 import logic
+from config import AVATAR_DIR
 from schemas import AvatarRegenerateRequest, AvatarResolveRequest
 
 router = APIRouter(prefix="/avatar", tags=["avatar"])
@@ -16,7 +17,7 @@ async def regenerate_avatar(request: AvatarRegenerateRequest):
     if not avatar_key:
         raise HTTPException(status_code=400, detail="Avatar key is required")
     filename = logic.avatar_filename(avatar_key)
-    target = logic.AVATAR_DIR / filename
+    target = AVATAR_DIR / filename
     if target.exists():
         target.unlink()
     regenerated = await logic.ensure_avatar_file(avatar_key)
@@ -31,7 +32,7 @@ async def resolve_avatar(request: AvatarResolveRequest):
     if not avatar_key:
         raise HTTPException(status_code=400, detail="Avatar key is required")
     filename = logic.avatar_filename(avatar_key)
-    target = logic.AVATAR_DIR / filename
+    target = AVATAR_DIR / filename
     if not target.exists():
         return {"filename": None}
     return {"filename": filename}

@@ -15,34 +15,19 @@ from typing import Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-# --- Module-level config (lazy loaded) ---
-_ASSETS_DIR: pathlib.Path | None = None
-_AVATAR_DIR: pathlib.Path | None = None
-_OVERLAY_DIR: pathlib.Path | None = None
+from config import ASSETS_DIR, AVATAR_DIR, OVERLAY_DIR
 
 
 def _get_assets_dir() -> pathlib.Path:
-    global _ASSETS_DIR
-    if _ASSETS_DIR is None:
-        import logic
-        _ASSETS_DIR = logic.ASSETS_DIR
-    return _ASSETS_DIR
+    return ASSETS_DIR
 
 
 def _get_avatar_dir() -> pathlib.Path:
-    global _AVATAR_DIR
-    if _AVATAR_DIR is None:
-        import logic
-        _AVATAR_DIR = logic.AVATAR_DIR
-    return _AVATAR_DIR
+    return AVATAR_DIR
 
 
 def _get_overlay_dir() -> pathlib.Path:
-    global _OVERLAY_DIR
-    if _OVERLAY_DIR is None:
-        import logic
-        _OVERLAY_DIR = logic.OVERLAY_DIR
-    return _OVERLAY_DIR
+    return OVERLAY_DIR
 
 
 # --- Avatar loading ---

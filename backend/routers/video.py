@@ -7,6 +7,7 @@ import os
 from fastapi import APIRouter, HTTPException, Query
 
 import logic
+from config import VIDEO_DIR, logger
 from schemas import VideoDeleteRequest, VideoRequest
 
 router = APIRouter(prefix="/video", tags=["video"])
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/video", tags=["video"])
 
 @router.post("/create")
 async def create_video(request: VideoRequest):
-    logic.logger.info("📥 [Video Req] %s", logic.scrub_payload(request.model_dump()))
+    logger.info("📥 [Video Req] %s", logic.scrub_payload(request.model_dump()))
     return await logic.logic_create_video(request)
 
 
@@ -23,14 +24,14 @@ async def delete_video(request: VideoDeleteRequest):
     filename = os.path.basename(request.filename or "")
     if not filename.endswith(".mp4"):
         raise HTTPException(status_code=400, detail="Invalid filename")
-    target = logic.VIDEO_DIR / filename
+    target = VIDEO_DIR / filename
     if not target.exists():
         return {"ok": False, "deleted": False, "reason": "not_found"}
     try:
         target.unlink()
         return {"ok": True, "deleted": True}
     except Exception as exc:
-        logic.logger.exception("Video delete failed")
+        logger.exception("Video delete failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
 
@@ -39,5 +40,5 @@ async def video_exists(filename: str = Query(..., min_length=1)):
     name = os.path.basename(filename)
     if not name.endswith(".mp4"):
         return {"exists": False}
-    target = logic.VIDEO_DIR / name
+    target = VIDEO_DIR / name
     return {"exists": target.exists()}

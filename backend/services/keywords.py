@@ -6,58 +6,41 @@ Handles keyword normalization, synonyms, categories, and suggestions.
 from __future__ import annotations
 
 import json
-import logging
 import re
 from pathlib import Path
-from typing import Any
 
-# --- Module-level config (injected from logic.py) ---
-_BASE_DIR: Path | None = None
-_CACHE_DIR: Path | None = None
-_logger: logging.Logger | None = None
+from config import BASE_DIR, CACHE_DIR, logger
 
 # --- Lazy imports for circular dependency avoidance ---
-_split_prompt_tokens: Any = None
-_normalize_prompt_tokens: Any = None
+_split_prompt_tokens = None
+_normalize_prompt_tokens = None
 
 
 def _get_base_dir() -> Path:
-    global _BASE_DIR
-    if _BASE_DIR is None:
-        import logic
-        _BASE_DIR = logic.BASE_DIR
-    return _BASE_DIR
+    return BASE_DIR
 
 
 def _get_cache_dir() -> Path:
-    global _CACHE_DIR
-    if _CACHE_DIR is None:
-        import logic
-        _CACHE_DIR = logic.CACHE_DIR
-    return _CACHE_DIR
+    return CACHE_DIR
 
 
-def _get_logger() -> logging.Logger:
-    global _logger
-    if _logger is None:
-        import logic
-        _logger = logic.logger
-    return _logger
+def _get_logger():
+    return logger
 
 
 def _get_split_prompt_tokens():
     global _split_prompt_tokens
     if _split_prompt_tokens is None:
-        import logic
-        _split_prompt_tokens = logic.split_prompt_tokens
+        from services.prompt import split_prompt_tokens
+        _split_prompt_tokens = split_prompt_tokens
     return _split_prompt_tokens
 
 
 def _get_normalize_prompt_tokens():
     global _normalize_prompt_tokens
     if _normalize_prompt_tokens is None:
-        import logic
-        _normalize_prompt_tokens = logic.normalize_prompt_tokens
+        from services.prompt import normalize_prompt_tokens
+        _normalize_prompt_tokens = normalize_prompt_tokens
     return _normalize_prompt_tokens
 
 

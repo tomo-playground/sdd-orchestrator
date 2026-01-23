@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-import csv
-import hashlib
-import io
-import json
-import logging
-import os
-import pathlib
 import random
 import re
 import shutil
@@ -16,14 +9,9 @@ from typing import Any
 
 import edge_tts
 import httpx
-import numpy as np
-import onnxruntime as ort
-from dotenv import load_dotenv
 from fastapi import HTTPException
-from google import genai
 from google.genai import types
-from jinja2 import Environment, FileSystemLoader
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image
 
 from schemas import (
     OverlaySettings,
@@ -36,68 +24,31 @@ from schemas import (
     VideoRequest,
 )
 
-load_dotenv()
-
-# --- Logging ---
-LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
-LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}
-handlers = [logging.StreamHandler()]
-if LOG_TO_FILE:
-    log_path = pathlib.Path(LOG_FILE)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    handlers.append(logging.FileHandler(log_path, encoding="utf-8"))
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=handlers,
+# Import configuration from centralized config module
+from config import (
+    API_PUBLIC_URL,
+    ASSETS_DIR,
+    AUDIO_DIR,
+    AVATAR_DIR,
+    CACHE_DIR,
+    CACHE_TTL_SECONDS,
+    CANDIDATE_DIR,
+    IMAGE_DIR,
+    OUTPUT_DIR,
+    OVERLAY_DIR,
+    SD_BASE_URL,
+    SD_LORAS_URL,
+    SD_MODELS_URL,
+    SD_OPTIONS_URL,
+    SD_TIMEOUT_SECONDS,
+    SD_TXT2IMG_URL,
+    VIDEO_DIR,
+    WD14_MODEL_DIR,
+    WD14_THRESHOLD,
+    gemini_client,
+    logger,
+    template_env,
 )
-logger = logging.getLogger("backend")
-if LOG_TO_FILE:
-    log_path = pathlib.Path(LOG_FILE)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
-        file_handler = logging.FileHandler(log_path, encoding="utf-8")
-        file_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        logger.addHandler(file_handler)
-        logger.propagate = True
-        logger.info("File logging enabled: %s", log_path)
-
-# --- Configuration & Globals ---
-OUTPUT_DIR = pathlib.Path("outputs")
-IMAGE_DIR = OUTPUT_DIR / "images"
-VIDEO_DIR = OUTPUT_DIR / "videos"
-CANDIDATE_DIR = OUTPUT_DIR / "candidates"
-AVATAR_DIR = OUTPUT_DIR / "avatars"
-CACHE_DIR = OUTPUT_DIR / "cache"
-CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "86400"))
-ASSETS_DIR = pathlib.Path("assets")
-AUDIO_DIR = ASSETS_DIR / "audio"
-OVERLAY_DIR = ASSETS_DIR / "overlay"
-
-for d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DIR, AUDIO_DIR, OVERLAY_DIR):
-    d.mkdir(parents=True, exist_ok=True)
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
-
-BASE_DIR = pathlib.Path(__file__).resolve().parent
-template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
-SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
-SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
-SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
-SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
-SD_LORAS_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
-SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
-API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
-WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
-WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 
 # Keyword functions imported from services
 from services.keywords import (

@@ -15,14 +15,13 @@ import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
+from config import WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client
+
 from .keywords import expand_synonyms, load_keyword_map, normalize_prompt_token
 
-# --- Module-level config (lazy loaded) ---
-_WD14_MODEL_DIR: Path | None = None
-_WD14_THRESHOLD: float | None = None
-_gemini_client: Any = None
-_parse_json_payload: Any = None
-_split_prompt_tokens: Any = None
+# --- Lazy imports for circular dependency avoidance ---
+_parse_json_payload = None
+_split_prompt_tokens = None
 
 # --- WD14 model cache ---
 _WD14_SESSION: ort.InferenceSession | None = None
@@ -31,42 +30,30 @@ _WD14_TAG_CATEGORIES: list[str] | None = None
 
 
 def _get_wd14_model_dir() -> Path:
-    global _WD14_MODEL_DIR
-    if _WD14_MODEL_DIR is None:
-        import logic
-        _WD14_MODEL_DIR = logic.WD14_MODEL_DIR
-    return _WD14_MODEL_DIR
+    return WD14_MODEL_DIR
 
 
 def _get_wd14_threshold() -> float:
-    global _WD14_THRESHOLD
-    if _WD14_THRESHOLD is None:
-        import logic
-        _WD14_THRESHOLD = logic.WD14_THRESHOLD
-    return _WD14_THRESHOLD
+    return WD14_THRESHOLD
 
 
 def _get_gemini_client():
-    global _gemini_client
-    if _gemini_client is None:
-        import logic
-        _gemini_client = logic.gemini_client
-    return _gemini_client
+    return gemini_client
 
 
 def _get_parse_json_payload():
     global _parse_json_payload
     if _parse_json_payload is None:
-        import logic
-        _parse_json_payload = logic.parse_json_payload
+        from services.utils import parse_json_payload
+        _parse_json_payload = parse_json_payload
     return _parse_json_payload
 
 
 def _get_split_prompt_tokens():
     global _split_prompt_tokens
     if _split_prompt_tokens is None:
-        import logic
-        _split_prompt_tokens = logic.split_prompt_tokens
+        from services.prompt import split_prompt_tokens
+        _split_prompt_tokens = split_prompt_tokens
     return _split_prompt_tokens
 
 
