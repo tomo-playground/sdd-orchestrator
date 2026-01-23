@@ -11,6 +11,8 @@ from PIL import Image
 import logic
 from config import API_PUBLIC_URL, IMAGE_DIR, logger
 from schemas import ImageStoreRequest, SceneGenerateRequest, SceneValidateRequest
+from services.image import decode_data_url
+from services.utils import scrub_payload
 
 router = APIRouter(tags=["scene"])
 
@@ -24,7 +26,7 @@ async def generate_scene_image(request: SceneGenerateRequest):
 @router.post("/image/store")
 async def store_scene_image(request: ImageStoreRequest):
     try:
-        image_bytes = logic.decode_data_url(request.image_b64)
+        image_bytes = decode_data_url(request.image_b64)
         image = Image.open(io.BytesIO(image_bytes))
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid image data") from exc
@@ -41,5 +43,5 @@ async def store_scene_image(request: ImageStoreRequest):
 
 @router.post("/scene/validate_image")
 async def validate_scene_image(request: SceneValidateRequest):
-    logger.info("📥 [Scene Validate Req] %s", logic.scrub_payload(request.model_dump()))
+    logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
     return logic.logic_validate_scene_image(request)

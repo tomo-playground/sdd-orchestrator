@@ -9,13 +9,14 @@ from fastapi import APIRouter, HTTPException, Query
 import logic
 from config import VIDEO_DIR, logger
 from schemas import VideoDeleteRequest, VideoRequest
+from services.utils import scrub_payload
 
 router = APIRouter(prefix="/video", tags=["video"])
 
 
 @router.post("/create")
 async def create_video(request: VideoRequest):
-    logger.info("📥 [Video Req] %s", logic.scrub_payload(request.model_dump()))
+    logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
     return await logic.logic_create_video(request)
 
 
