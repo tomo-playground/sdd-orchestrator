@@ -58,6 +58,7 @@ import SceneCard from "./components/SceneCard";
 import SceneListHeader from "./components/SceneListHeader";
 import StoryboardActionsBar from "./components/StoryboardActionsBar";
 import WorkingModeHeader from "./components/WorkingModeHeader";
+import SectionDivider from "./components/SectionDivider";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2083,12 +2084,7 @@ export default function Home() {
         >
           <WorkingModeHeader onBack={() => setViewMode("setup")} />
 
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
-              Plan & Generate
-            </span>
-            <div className="h-px flex-1 bg-zinc-200/70" />
-          </div>
+          <SectionDivider label="Plan & Generate" />
 
           <StoryboardGeneratorPanel
             topic={topic}
@@ -2153,12 +2149,7 @@ export default function Home() {
             onRestart={handleAutoRun}
           />
 
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
-              Scene Work
-            </span>
-            <div className="h-px flex-1 bg-zinc-200/70" />
-          </div>
+          <SectionDivider label="Scene Work" />
 
           <section className="grid gap-6">
             <SceneListHeader
@@ -2229,12 +2220,7 @@ export default function Home() {
             )}
           </section>
 
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
-              Output
-            </span>
-            <div className="h-px flex-1 bg-zinc-200/70" />
-          </div>
+          <SectionDivider label="Output" />
 
           <RenderSettingsPanel
             layoutStyle={layoutStyle}
