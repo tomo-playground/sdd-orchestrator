@@ -214,6 +214,7 @@ export default function Home() {
   const [bgmFile, setBgmFile] = useState<string | null>(DEFAULT_BGM);
   const [fontList, setFontList] = useState<FontItem[]>([]);
   const [subtitleFont, setSubtitleFont] = useState<string>(DEFAULT_SUBTITLE_FONT);
+  const [loadedFonts, setLoadedFonts] = useState<Set<string>>(new Set());
   const [speedMultiplier, setSpeedMultiplier] = useState(1.3);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [postCardSettings, setPostCardSettings] = useState<PostCardSettings>(
@@ -686,6 +687,22 @@ export default function Home() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [scenes.length]);
+
+  // Dynamic font loading for preview
+  useEffect(() => {
+    if (!subtitleFont || loadedFonts.has(subtitleFont)) return;
+    const fontUrl = `${API_BASE}/fonts/file/${encodeURIComponent(subtitleFont)}`;
+    const fontFace = new FontFace(subtitleFont, `url(${fontUrl})`);
+    fontFace
+      .load()
+      .then((loaded) => {
+        document.fonts.add(loaded);
+        setLoadedFonts((prev) => new Set(prev).add(subtitleFont));
+      })
+      .catch((err) => {
+        console.warn("Font load failed:", subtitleFont, err);
+      });
+  }, [subtitleFont, loadedFonts]);
 
   const canRender = useMemo(() => {
     return scenes.length > 0 && scenes.every((scene) => !!scene.image_url);
@@ -3395,9 +3412,11 @@ export default function Home() {
                 {/* Font Preview */}
                 <div
                   className="mt-2 rounded-xl border border-zinc-200 bg-zinc-900 px-4 py-3 text-center text-white"
-                  style={{ fontFamily: subtitleFont || "sans-serif" }}
+                  style={{ fontFamily: `"${subtitleFont}", sans-serif` }}
                 >
-                  <span className="text-lg">가나다 ABC 123</span>
+                  <span className="text-lg">
+                    {loadedFonts.has(subtitleFont) ? "가나다 ABC 123" : "Loading..."}
+                  </span>
                 </div>
               </div>
               {/* Layout Visual Cards - moved outside grid for better display */}

@@ -76,6 +76,26 @@ async def list_fonts():
     return {"fonts": sorted(set(fonts))}
 
 
+@app.get("/fonts/file/{filename}")
+async def get_font_file(filename: str):
+    """Serve font file for browser preview."""
+    from fastapi.responses import FileResponse
+
+    fonts_dir = logic.ASSETS_DIR / "fonts"
+    font_path = fonts_dir / filename
+    if not font_path.exists() or not font_path.is_file():
+        raise HTTPException(status_code=404, detail="Font not found")
+    # Determine content type
+    ext = font_path.suffix.lower()
+    content_type = {
+        ".ttf": "font/ttf",
+        ".otf": "font/otf",
+        ".woff": "font/woff",
+        ".woff2": "font/woff2",
+    }.get(ext, "application/octet-stream")
+    return FileResponse(font_path, media_type=content_type)
+
+
 @app.post("/image/store")
 async def store_scene_image(request: ImageStoreRequest):
     try:
