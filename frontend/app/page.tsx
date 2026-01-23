@@ -2285,14 +2285,25 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="pt-2">
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("working");
+                    handleAutoRun();
+                  }}
+                  disabled={!topic.trim()}
+                  className="w-full rounded-full bg-gradient-to-r from-zinc-800 to-zinc-900 py-4 text-base font-semibold text-white shadow-lg transition hover:from-zinc-700 hover:to-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ✨ Auto Run
+                </button>
                 <button
                   type="button"
                   onClick={() => setViewMode("working")}
-                  className="w-full rounded-full bg-gradient-to-r from-zinc-800 to-zinc-900 py-4 text-base font-semibold text-white shadow-lg transition hover:from-zinc-700 hover:to-zinc-800"
+                  className="w-full rounded-full border border-zinc-300 bg-white py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
                 >
-                  Start Studio →
+                  Manual Mode →
                 </button>
               </div>
             </section>
