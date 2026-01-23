@@ -249,6 +249,7 @@ export default function Home() {
   }>({ status: "idle", step: "idle", message: "" });
   const [autoRunLog, setAutoRunLog] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [viewMode, setViewMode] = useState<"setup" | "working">("setup");
   const isAutoRunning = autoRunState.status === "running";
   const autoRunCancelRef = useRef(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -1233,6 +1234,7 @@ export default function Home() {
         }
       }
       setAutoRunState({ status: "done", step: "render", message: "Autopilot complete." });
+      showToast("Auto Run 완료! 영상이 생성되었습니다.", "success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Autopilot failed";
       const failedMessage =
@@ -2151,13 +2153,181 @@ export default function Home() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-40 -right-32 h-80 w-80 rounded-full bg-gradient-to-br from-amber-200 via-rose-200 to-fuchsia-200 opacity-70 blur-3xl" />
         <div className="absolute top-40 -left-32 h-72 w-72 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-lime-200 opacity-60 blur-3xl" />
+
+        {/* ============ SETUP MODE ============ */}
+        {viewMode === "setup" && (
+          <main className="relative mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-16">
+            <header className="flex flex-col items-center gap-2 text-center">
+              <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts Producer</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+                새 영상 만들기
+              </h1>
+            </header>
+
+            <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-8 shadow-xl shadow-slate-200/40 backdrop-blur">
+              {/* Topic */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  Topic
+                </label>
+                <textarea
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  rows={3}
+                  className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
+                  placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
+                />
+              </div>
+
+              {/* Quick Settings */}
+              <div className="grid gap-4">
+                <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  Output Settings
+                </label>
+
+                {/* Layout Selection */}
+                <div className="flex justify-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setLayoutStyle("full")}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
+                      layoutStyle === "full"
+                        ? "border-zinc-900 bg-zinc-900/5 shadow-md"
+                        : "border-zinc-200 bg-white hover:border-zinc-400"
+                    }`}
+                  >
+                    <div
+                      className={`flex h-16 w-9 flex-col items-center justify-center rounded-lg border-2 ${
+                        layoutStyle === "full" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
+                      }`}
+                    >
+                      <div className={`h-4 w-4 rounded ${layoutStyle === "full" ? "bg-zinc-500" : "bg-zinc-300"}`} />
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>Full</p>
+                      <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>9:16</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLayoutStyle("post")}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
+                      layoutStyle === "post"
+                        ? "border-zinc-900 bg-zinc-900/5 shadow-md"
+                        : "border-zinc-200 bg-white hover:border-zinc-400"
+                    }`}
+                  >
+                    <div
+                      className={`flex h-11 w-11 flex-col items-center justify-center rounded-lg border-2 ${
+                        layoutStyle === "post" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
+                      }`}
+                    >
+                      <div className={`h-4 w-4 rounded ${layoutStyle === "post" ? "bg-zinc-500" : "bg-zinc-300"}`} />
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>Post</p>
+                      <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>1:1</p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Voice, BGM, Speed */}
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice</label>
+                    <select
+                      value={narratorVoice}
+                      onChange={(e) => setNarratorVoice(e.target.value)}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                    >
+                      {VOICES.map((voice) => (
+                        <option key={voice.id} value={voice.id}>{voice.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">BGM</label>
+                    <select
+                      value={bgmFile ?? ""}
+                      onChange={(e) => setBgmFile(e.target.value || null)}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                    >
+                      <option value="">None</option>
+                      {bgmList.map((bgm) => (
+                        <option key={bgm.name} value={bgm.name}>{bgm.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                      Speed ({speedMultiplier.toFixed(1)}x)
+                    </label>
+                    <input
+                      type="range"
+                      min={0.8}
+                      max={1.5}
+                      step={0.1}
+                      value={speedMultiplier}
+                      onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
+                      className="mt-1 w-full accent-zinc-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("working");
+                    handleAutoRun();
+                  }}
+                  disabled={!topic.trim()}
+                  className="w-full rounded-full bg-gradient-to-r from-zinc-800 to-zinc-900 py-4 text-base font-semibold text-white shadow-lg transition hover:from-zinc-700 hover:to-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ✨ Auto Run
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("working")}
+                  className="w-full rounded-full border border-zinc-300 bg-white py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                >
+                  Manual Mode →
+                </button>
+              </div>
+            </section>
+
+            <footer className="flex justify-center">
+              <Link
+                href="/manage"
+                className="text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-700"
+              >
+                Manage Keywords & Assets
+              </Link>
+            </footer>
+          </main>
+        )}
+
+        {/* ============ WORKING MODE ============ */}
+        {viewMode === "working" && (
         <main
           className={`relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 ${
             isAutoRunning ? "pointer-events-none opacity-60" : ""
           }`}
         >
           <header className="flex flex-col gap-4">
-            <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts MVP</p>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setViewMode("setup")}
+                className="rounded-full border border-zinc-300 bg-white/80 px-3 py-1.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition hover:bg-zinc-50"
+              >
+                ← Back
+              </button>
+              <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts MVP</p>
+            </div>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-900">
               Script-first storyboard studio
             </h1>
@@ -3732,6 +3902,9 @@ export default function Home() {
             </section>
           )}
         </main>
+        )}
+
+        {/* ============ SHARED: Auto Run Progress Modal ============ */}
         {isAutoRunning && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl">
