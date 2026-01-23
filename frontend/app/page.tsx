@@ -2070,14 +2070,14 @@ export default function Home() {
                   onChange={(e) => setTopic(e.target.value)}
                   rows={4}
                   className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
-                  placeholder="Enter your story topic or hook..."
+                  placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
                 />
               </div>
               <div className="grid gap-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                      Duration (s)
+                      Duration <span className="text-zinc-400">(10-120s)</span>
                     </label>
                     <input
                       type="number"
@@ -2382,16 +2382,18 @@ export default function Home() {
             <button
               onClick={handleGenerateScenes}
               disabled={isGenerating || !topic.trim() || isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="rounded-full border border-zinc-300 bg-white/80 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-lg shadow-zinc-200/40 transition hover:bg-white hover:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
             >
               {isGenerating ? "Generating..." : "Generate"}
             </button>
             <button
               onClick={handleAutoRun}
               disabled={isGenerating || isRendering || isAutoRunning || !topic.trim()}
-              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
-              {isAutoRunning ? "Auto Running..." : "Auto Run"}
+              {isAutoRunning
+                ? `${AUTO_RUN_STEPS.find((s) => s.id === autoRunState.step)?.label || "Running"}...`
+                : "Auto Run"}
             </button>
           </div>
           {autoRunState.status !== "idle" && (
@@ -2562,8 +2564,12 @@ export default function Home() {
                       </button>
                     )}
                     <button
-                      onClick={() => handleRemoveScene(scene.id)}
-                      className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase"
+                      onClick={() => {
+                        if (window.confirm(`Scene ${scene.id}를 삭제하시겠습니까?`)) {
+                          handleRemoveScene(scene.id);
+                        }
+                      }}
+                      className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase hover:text-rose-600"
                     >
                       Remove
                     </button>
@@ -3001,8 +3007,9 @@ export default function Home() {
                             className="h-full w-full cursor-pointer object-cover"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <p className="text-xs text-zinc-400">No image uploaded</p>
+                          <div className="flex h-full flex-col items-center justify-center gap-2">
+                            <p className="text-xs text-zinc-400">No image</p>
+                            <p className="text-[10px] text-zinc-300">Click Generate or Upload</p>
                           </div>
                         )}
                       </div>
@@ -3024,6 +3031,7 @@ export default function Home() {
                                 <img
                                   src={candidate.image_url}
                                   alt={`Candidate ${idx + 1}`}
+                                  loading="lazy"
                                   className="h-full w-full object-cover"
                                 />
                               </button>
@@ -3539,7 +3547,7 @@ export default function Home() {
           )}
         </main>
         {isAutoRunning && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl">
               <div className="mb-3 flex items-center justify-between text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 <span>Autopilot Running</span>
@@ -3564,8 +3572,12 @@ export default function Home() {
               )}
               <button
                 type="button"
-                onClick={handleAutoRunCancel}
-                className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase"
+                onClick={() => {
+                  if (window.confirm("Autopilot을 취소하시겠습니까?")) {
+                    handleAutoRunCancel();
+                  }
+                }}
+                className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase hover:bg-zinc-50 hover:border-zinc-400"
               >
                 Cancel Autopilot
               </button>

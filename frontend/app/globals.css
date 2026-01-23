@@ -28,9 +28,41 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+button:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
 button:active:not(:disabled) {
   transform: translateY(1px) scale(0.99);
   filter: brightness(0.98);
+}
+
+/* Focus Ring for inputs */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #a1a1aa;
+  box-shadow: 0 0 0 3px rgba(161, 161, 170, 0.15);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
 }
 
 * {
