@@ -45,6 +45,13 @@ from .prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
+from .utils import (
+    get_audio_duration,
+    parse_json_payload,
+    scrub_payload,
+    to_edge_tts_rate,
+    wrap_text,
+)
 
 __all__ = [
     # Keywords
@@ -86,4 +93,10 @@ __all__ = [
     "normalize_negative_prompt",
     "normalize_prompt_tokens",
     "split_prompt_tokens",
+    # Utils
+    "get_audio_duration",
+    "parse_json_payload",
+    "scrub_payload",
+    "to_edge_tts_rate",
+    "wrap_text",
 ]
