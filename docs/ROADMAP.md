@@ -1,32 +1,38 @@
-# Shorts Factory Master Roadmap (Strategic Re-ordered)
+# Shorts Factory Master Roadmap (Strategic Fidelity Guard)
 
-이 로드맵은 프로젝트의 안정성과 영상 품질을 최우선으로 하여 관리됩니다.
+이 로드맵은 리팩토링 및 기능 추가 시 **영상 품질의 100% 일관성(Zero Variance)**을 유지하는 것을 최우선 목표로 합니다.
 
-## 🏗️ Phase 1: Foundation & Stability (기반 및 안정성) - **COMPLETE**
-*   [x] **Environment Diagnostic Tool**: `backend/check_env.py` 구축 완료.
-*   [x] **Configuration Externalization**: `.env` 기반 환경 변수 분리 완료.
-*   [x] **Foundation Setup (Linting & Tooling)**: Ruff, Prettier 적용 완료.
-*   [x] **TDD Environment Setup**: Unit Test 환경 구축 완료.
+## 🏗️ Phase 1: Foundation & Stability - **COMPLETE**
 
-## 🛠️ Phase 2: Refactoring & Architecture (구조 개선) - **RE-EVALUATING**
-시스템의 거대 로직을 분리하려 했으나, 서비스 안정성 이슈로 인해 잠정 중단 및 재설계 중입니다.
+## 🛠️ Phase 2: Visual Fidelity Guard (영상 품질 보전 및 회귀 방지) - **CURRENT**
+영상 생성 코드가 수정되어도 결과물이 변하지 않도록 하는 근본적인 안전 장치를 구축합니다.
 
-### 2-1. Backend Modernization (Rollback Status)
-*   [ ] **Service Layer Extraction (FAILED/ROLLBACKED)**:
-    *   `logic.py`를 `services/`와 `routers/`로 분리 시도했으나, 오토파일럿 상태 머신 연동 오류 및 FFmpeg 렌더링 좌표 유실(Fidelity Issue) 발생.
-    *   **Decision**: 2026-01-23, 안정성이 검증된 `208dab1` 시점으로 전체 롤백 수행.
-*   [ ] **New Strategy**:
-    *   거대 분리 대신, 기능을 하나씩(예: 키워드 조회만 먼저) 아주 작게 분리하는 '마이크로 리팩토링'으로 선회 예정.
-    *   리팩토링 전, 영상 렌더링 결과물을 픽셀 단위로 비교하는 시각적 회귀 테스트(Visual Regression Test) 구축 선행 필수.
+### 2-1. Deterministic Render Engine (결정론적 렌더링 환경)
+*   [ ] **Fixed Seed Testing**: 테스트 시 모든 AI 생성(이미지, 음성)의 시드를 고정하여 동일한 인풋 데이터를 보장.
+*   [ ] **Layout Spec Extraction**: Pillow/FFmpeg 코드에 하드코딩된 좌표와 비율을 `LayoutSchema` 파일로 완전히 분리. (로직과 데이터의 분리)
 
-### 2-2. Frontend Componentization
-*   [ ] **Step 1: Custom Hooks**: `page.tsx`에서 오토파일럿 로직 추출 (진행 예정).
-*   [ ] **Step 2: Component Split**: UI 파편화 방지를 위한 아토믹 디자인 적용.
+### 2-2. Automated Visual Regression Test (자동 비주얼 회귀 테스트)
+*   [ ] **Golden Master Storage**: 현재 가장 안정적인 `logic.py`가 생성한 영상의 특정 프레임들을 `tests/references/`에 '표준'으로 저장.
+*   [ ] **Pixel-by-Pixel Comparison Engine**:
+    *   **Tool**: `OpenCV` 및 `SSIM(Structural Similarity Index)` 도입.
+    *   **Task**: 코드가 바뀌면 자동으로 영상을 생성하고, 표준 프레임과 픽셀 단위로 대조하여 99.9% 일치하지 않으면 빌드 실패 처리.
+*   [ ] **Diff Reporting**: 일치하지 않을 경우, 어느 좌표의 픽셀이 어떻게 변했는지 시각적으로 보여주는 Diff 이미지 자동 생성.
 
-## 🎥 Phase 3: High-End Production (영상 품질 대격변)
-*   [ ] **ControlNet Integration**: 캐릭터 일관성 확보.
-*   [ ] **Professional Audio Ducking**: BGM 볼륨 자동 조절.
+## 🛠️ Phase 3: Incremental Refactoring (안전 장치 기반 리팩토링)
+Phase 2의 자동 검증 도구가 완성된 후, 이를 통과하는 것을 전제로 하나씩 분리합니다.
+
+*   [ ] **Keyword/Asset Separation**: 영향도가 적은 조회 로직부터 분리.
+*   [ ] **Core Rendering Migration**: FFmpeg 조립 로직을 서비스로 이관하며 **매 커밋마다 비주얼 테스트 실행**.
+
+## 🎥 Phase 4: High-End Production (검증된 기반 위 품질 강화)
+*   [ ] **Professional Audio Ducking**: 내레이션-BGM 볼륨 자동 조절.
+*   [ ] **Ken Burns Effect**: 정지 이미지에 생동감 있는 줌/팬 효과 부여.
+*   [ ] **Character Consistency (ControlNet)**: 주인공 얼굴 고정 기술 적용.
+
+## 🤖 Phase 5: Intelligent Ops (운영 효율화)
+*   [ ] **Resume/Checkpoint System**: 중단된 작업 이어하기.
+*   [ ] **Project DB (SQLite)**: 모든 프로젝트 설정 및 생성 히스토리 관리.
 
 ---
-**Core Principle**: "Stabilize First, Quality Second, Automate Third"
-**Latest Status**: 리팩토링 실패 후 롤백 완료. 현재 안정 모드에서 오토파일럿 정상 작동 여부 집중 모니터링 중.
+**Core Mandate**: "No changes in output without explicit intention." (의도하지 않은 결과물의 변화는 허용하지 않는다.)
+**Latest Status**: 2026-01-23 전체 롤백 완료. 영상 품질 보전을 위한 비주얼 회귀 테스트(VRT) 엔진 설계 착수.
