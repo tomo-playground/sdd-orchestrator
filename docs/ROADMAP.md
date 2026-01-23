@@ -41,10 +41,12 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Router 분리 | `main.py` → `routers/` (API 엔드포인트) | [x] |
-| Service 분리 | `logic.py` → `services/` (비즈니스 로직) | [~] |
+| Service 분리 | `logic.py` → `services/` (비즈니스 로직) | [x] |
 | Keyword/Asset 분리 | 영향도 적은 조회 로직부터 분리 (Quick Win) | [x] |
+| Config 분리 | 설정/상수를 `config.py`로 중앙화 | [x] |
+| VideoBuilder 추출 | 비디오 생성 로직을 클래스로 캡슐화 | [x] |
 
-**Backend 진행 현황**: `logic.py` ~2,300줄 → 729줄 (~68% 감소)
+**Backend 진행 현황**: `logic.py` ~2,300줄 → 279줄 (**88% 감소**)
 
 추출된 서비스 (8개):
 - `services/keywords.py`: 키워드 관련 함수
@@ -54,7 +56,10 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 - `services/avatar.py`: 아바타 생성 및 관리
 - `services/prompt.py`: 프롬프트 처리 함수
 - `services/utils.py`: 일반 유틸리티 함수 (JSON, 텍스트, 오디오)
-- `services/video.py`: 비디오 생성 헬퍼 (파일명 생성, 속도 계산, 씬 duration)
+- `services/video.py`: 비디오 생성 헬퍼 + **VideoBuilder 클래스**
+
+추가 모듈:
+- `config.py`: 설정, 상수, 전역 객체 (logger, gemini_client, template_env)
 
 ### 3-2. Frontend 리팩토링
 | 작업 | 설명 | 상태 |
@@ -145,4 +150,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-24 Backend 리팩토링 추가 진행. logic.py 729줄 (68% 감소), services 8개 모듈. Phase 5 (신규 개발) 준비 완료.
+**Latest Status**: 2026-01-24 Backend 리팩토링 완료. logic.py 279줄 (88% 감소), config.py 분리, VideoBuilder 클래스 추출. Phase 3 완료, Phase 5 (신규 개발) 준비 완료.
