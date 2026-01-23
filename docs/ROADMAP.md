@@ -48,18 +48,19 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Types/Constants 분리 | `types/`, `constants/` 디렉토리로 분리 | [x] |
-| Components 분리 | SetupPanel, AutoRunStatus, SceneFilmstrip, PromptSetupPanel 등 16개 | [x] |
+| Components 분리 | SetupPanel, SceneCard, RenderSettingsPanel 등 21개 | [x] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [ ] |
 
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,860줄 (1,362줄 감소, 32%)
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,324줄 (1,898줄 감소, 45%)
 
-추출된 컴포넌트:
+추출된 컴포넌트 (21개):
 - Types: `types/index.ts`, Constants: `constants/index.ts`
 - Setup: `SetupPanel`, `StoryboardGeneratorPanel`, `PromptSetupPanel`
-- Scene: `SceneFilmstrip`, `SceneImagePanel`, `ValidationTabContent`, `DebugTabContent`
+- Actions: `StoryboardActionsBar`, `AutoRunStatus`
+- Scene: `SceneListHeader`, `SceneFilmstrip`, `SceneCard`, `SceneImagePanel`, `ValidationTabContent`, `DebugTabContent`
 - Render: `RenderSettingsPanel`, `RenderedVideosSection`, `LayoutSelector`
 - Modals: `AutoRunProgressModal`, `PreviewModal`, `PromptHelperSidebar`
-- Status: `AutoRunStatus`
+- UI: `WorkingModeHeader`, `SectionDivider`, `Toast`
 
 ---
 
@@ -116,4 +117,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 2 완료! VRT 시스템 구축 (36 테스트), Layout Schema 추출, Fixed Seed Testing 구현.
+**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 리팩토링 45% 완료 (page.tsx: 4,222 → 2,324줄). 21개 컴포넌트 추출.
