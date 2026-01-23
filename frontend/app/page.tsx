@@ -178,6 +178,7 @@ export default function Home() {
   const [structure, setStructure] = useState("Monologue");
   const [actorAGender, setActorAGender] = useState<ActorGender>("female");
   const [scenes, setScenes] = useState<Scene[]>([]);
+  const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [basePromptA, setBasePromptA] = useState("");
   const [baseNegativePromptA, setBaseNegativePromptA] = useState("");
@@ -355,7 +356,7 @@ export default function Home() {
       .then((res) => {
         const list = res.data.audios || [];
         setBgmList(list);
-        const names = list.map((item) => item.name);
+        const names = list.map((item: AudioItem) => item.name);
         if (bgmFile && !names.includes(bgmFile)) {
           setBgmFile(null);
         } else if (!bgmFile && names.includes(DEFAULT_BGM)) {
@@ -471,15 +472,16 @@ export default function Home() {
       if (Array.isArray(draft.recentVideos)) setRecentVideos(draft.recentVideos);
       if (Array.isArray(draft.scenes)) {
         setScenes(
-          draft.scenes.map((scene) => ({
+          draft.scenes.map((scene: Partial<Scene> & { id: number }) => ({
             ...scene,
             image_url: scene.image_url ?? null,
             candidates: Array.isArray(scene.candidates) ? scene.candidates : [],
             isGenerating: false,
             debug_prompt: "",
             debug_payload: "",
-          }))
+          })) as Scene[]
         );
+        setCurrentSceneIndex(0);
       }
     } catch {
       // Ignore malformed drafts.
@@ -700,6 +702,7 @@ export default function Home() {
     try {
       const mapped = await fetchStoryboardScenes();
       setScenes(mapped);
+      setCurrentSceneIndex(0);
       const overlayAuto = buildOverlayContext(mapped);
       setOverlaySettings((prev) => ({
         ...prev,
@@ -804,7 +807,14 @@ export default function Home() {
   };
 
   const handleRemoveScene = (sceneId: number) => {
-    setScenes((prev) => prev.filter((scene) => scene.id !== sceneId));
+    setScenes((prev) => {
+      const newScenes = prev.filter((scene) => scene.id !== sceneId);
+      // Adjust currentSceneIndex if needed
+      if (currentSceneIndex >= newScenes.length && newScenes.length > 0) {
+        setCurrentSceneIndex(newScenes.length - 1);
+      }
+      return newScenes;
+    });
   };
 
   const getBaseNegativeForScene = () => baseNegativePromptA.trim();
@@ -882,7 +892,6 @@ export default function Home() {
     if (prevBase === baseNegativePromptA) return;
     setScenes((prev) =>
       prev.map((scene) => {
-        if (scene.speaker === "B") return scene;
         if (!scene.negative_prompt || scene.negative_prompt === prevBase) {
           return { ...scene, negative_prompt: baseNegativePromptA };
         }
@@ -1070,15 +1079,17 @@ export default function Home() {
         if (currentStep === "render") {
           setAutoRunState({ status: "running", step: "render", message: "Rendering video..." });
           const overlayAuto = buildOverlayContext(workingScenes);
-          setOverlaySettings((prev) => ({ ...prev, ...overlayAuto }));
+          const mergedOverlay = { ...overlaySettings, ...overlayAuto };
+          setOverlaySettings(mergedOverlay);
           const postAuto = buildPostCardContext(workingScenes);
-          setPostCardSettings((prev) => ({ ...prev, ...postAuto }));
+          const mergedPostCard = { ...postCardSettings, ...postAuto };
+          setPostCardSettings(mergedPostCard);
           const fullUrl = await requestRenderVideo(
             "full",
             true,
             workingScenes,
-            overlayAuto,
-            postAuto
+            mergedOverlay,
+            mergedPostCard
           );
           if (!fullUrl) {
             throw new Error("Full render failed");
@@ -1092,8 +1103,8 @@ export default function Home() {
             "post",
             true,
             workingScenes,
-            overlayAuto,
-            postAuto
+            mergedOverlay,
+            mergedPostCard
           );
           if (!postUrl) {
             throw new Error("Post render failed");
@@ -1147,6 +1158,7 @@ export default function Home() {
 
   const resetScenesOnly = () => {
     setScenes([]);
+    setCurrentSceneIndex(0);
     setValidationResults({});
     setValidationSummary({ ok: 0, warn: 0, error: 0 });
     setValidationExpanded({});
@@ -1420,7 +1432,7 @@ export default function Home() {
   };
 
   const buildNegativePrompt = (scene: Scene) => {
-    const base = getBaseNegativeForScene(scene);
+    const base = getBaseNegativeForScene();
     const sceneNeg = scene.negative_prompt.trim();
     if (!autoComposePrompt) return sceneNeg;
     const combined = base && sceneNeg ? `${base}, ${sceneNeg}` : base || sceneNeg;
@@ -2150,7 +2162,7 @@ export default function Home() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setBaseTab(tab.id as "global" | "A" | "B")}
+                    onClick={() => setBaseTab(tab.id as "global" | "A")}
                     className={`rounded-full px-4 py-2 text-[10px] font-semibold tracking-[0.2em] uppercase transition ${
                       active ? "bg-zinc-900 text-white" : "bg-white/80 text-zinc-600"
                     }`}
@@ -2533,8 +2545,66 @@ export default function Home() {
               </div>
             )}
 
-            <div className="grid gap-6">
-              {scenes.map((scene) => (
+            {/* Filmstrip Navigation */}
+            {scenes.length > 0 && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentSceneIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={currentSceneIndex === 0}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/80 text-zinc-600 disabled:opacity-40"
+                >
+                  ‹
+                </button>
+                <div className="flex flex-1 gap-2 overflow-x-auto py-2">
+                  {scenes.map((s, idx) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setCurrentSceneIndex(idx)}
+                      className={`relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                        idx === currentSceneIndex
+                          ? "border-zinc-900 shadow-md"
+                          : "border-zinc-200 opacity-60 hover:opacity-100"
+                      }`}
+                      style={{ width: 64, height: 64 }}
+                    >
+                      {s.image_url ? (
+                        <img
+                          src={s.image_url}
+                          alt={`Scene ${s.id}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] text-zinc-400">
+                          {s.id}
+                        </div>
+                      )}
+                      <span className="absolute bottom-0 left-0 right-0 bg-black/50 py-0.5 text-center text-[9px] text-white">
+                        Scene {s.id}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentSceneIndex((prev) => Math.min(scenes.length - 1, prev + 1))}
+                  disabled={currentSceneIndex === scenes.length - 1}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/80 text-zinc-600 disabled:opacity-40"
+                >
+                  ›
+                </button>
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500">
+                  {currentSceneIndex + 1} / {scenes.length}
+                </span>
+              </div>
+            )}
+
+            {/* Current Scene Card */}
+            {scenes.length > 0 && (() => {
+              const scene = scenes[currentSceneIndex];
+              if (!scene) return null;
+              return (
                 <div
                   key={scene.id}
                   className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30"
@@ -3054,8 +3124,8 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </section>
 
           <div className="flex items-center gap-3">
