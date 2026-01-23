@@ -47,8 +47,11 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 ### 3-2. Frontend 리팩토링
 | 작업 | 설명 | 상태 |
 |------|------|------|
+| Types/Constants 분리 | `types/`, `constants/` 디렉토리로 분리 | [x] |
+| Components 분리 | SetupPanel, AutoRunStatus, SceneFilmstrip 등 | [~] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [ ] |
-| Components 분리 | Scene Editor, Preview 등 컴포넌트화 | [ ] |
+
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 3,722줄 (500줄 감소, 12%)
 
 ---
 
