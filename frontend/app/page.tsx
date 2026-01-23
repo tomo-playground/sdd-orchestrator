@@ -31,14 +31,11 @@ import {
   VOICES,
   SAMPLERS,
   OVERLAY_STYLES,
-  HEART_EMOJIS,
-  ASCII_HEARTS,
   PROMPT_SAMPLES,
   STRUCTURES,
   CAMERA_KEYWORDS,
   ACTION_KEYWORDS,
   BACKGROUND_KEYWORDS,
-  LIGHTING_KEYWORDS,
   SCENE_SPECIFIC_KEYWORDS,
 } from "./constants";
 
@@ -67,6 +64,13 @@ import {
   normalizeOverlaySettings,
   normalizePostCardSettings,
   getAvatarInitial,
+  splitPromptTokens,
+  mergePromptTokens,
+  deduplicatePromptTokens,
+  stripLeadingHearts,
+  applyHeartPrefix,
+  generateChannelName,
+  computeValidationResults,
 } from "./utils";
 
 export default function Home() {
@@ -165,64 +169,6 @@ export default function Home() {
   const previewTimeoutRef = useRef<number | null>(null);
   const draftSaveTimeoutRef = useRef<number | null>(null);
   const hasHydratedDraftRef = useRef(false);
-
-  const generateChannelName = (seedText: string) => {
-    const adjectives = [
-      "잔잔한",
-      "빛나는",
-      "조용한",
-      "따뜻한",
-      "느린",
-      "고요한",
-      "푸른",
-      "은은한",
-      "깊은",
-      "희미한",
-      "아련한",
-      "눈부신",
-      "부드러운",
-      "차분한",
-      "맑은",
-      "희미한",
-      "조심스런",
-      "여린",
-      "섬세한",
-      "포근한",
-      "잔잔한",
-    ];
-    const nouns = [
-      "하늘",
-      "밤",
-      "바람",
-      "별빛",
-      "파도",
-      "기억",
-      "노을",
-      "꿈",
-      "길",
-      "숲",
-      "빛",
-      "여운",
-      "달",
-      "안개",
-      "새벽",
-      "기척",
-      "울림",
-      "정원",
-      "호수",
-      "온기",
-      "숨결",
-      "편지",
-    ];
-    const base = seedText.trim() || "shorts";
-    let hash = 0;
-    for (let i = 0; i < base.length; i += 1) {
-      hash = (hash * 31 + base.charCodeAt(i)) >>> 0;
-    }
-    const adjective = adjectives[hash % adjectives.length];
-    const noun = nouns[Math.floor(hash / adjectives.length) % nouns.length];
-    return `${adjective} ${noun}`;
-  };
 
   useEffect(() => {
     axios
@@ -644,31 +590,6 @@ export default function Home() {
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const stripLeadingHearts = (text: string) => {
-    let result = text.trimStart();
-    let updated = true;
-    while (updated) {
-      updated = false;
-      for (const heart of HEART_EMOJIS) {
-        if (result.startsWith(heart)) {
-          result = result.slice(heart.length).trimStart();
-          updated = true;
-        }
-      }
-    }
-    return result;
-  };
-
-  const applyHeartPrefix = (text: string) => {
-    const cleaned = stripLeadingHearts(text);
-    const hearts = Array.from({ length: 3 }, () => {
-      const idx = Math.floor(Math.random() * ASCII_HEARTS.length);
-      return ASCII_HEARTS[idx];
-    }).join("");
-    if (!cleaned) return hearts;
-    return `${hearts} ${cleaned}`;
   };
 
   const buildOverlayContext = (scenesOverride: Scene[] = scenes) => {
@@ -1298,37 +1219,12 @@ export default function Home() {
     const scenePrompt = scene.image_prompt.trim();
     if (!autoComposePrompt || !base) return scenePrompt;
     if (!scenePrompt) return base;
-    const splitTokens = (text: string) =>
-      text
-        .split(",")
-        .map((token) => token.trim())
-        .filter(Boolean);
-    const baseTokens = splitTokens(base).filter((token) => {
+    const baseTokens = splitPromptTokens(base).filter((token) => {
       const lower = token.toLowerCase();
       return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
     });
-    const sceneTokens = splitTokens(scenePrompt);
-    const merged: string[] = [];
-    const seen = new Set<string>();
-    const loraSeen = new Set<string>();
-    const modelSeen = new Set<string>();
-    const pushToken = (token: string) => {
-      const lower = token.toLowerCase();
-      if (lower.startsWith("<lora:")) {
-        if (loraSeen.has(lower)) return;
-        loraSeen.add(lower);
-      }
-      if (lower.startsWith("<model:")) {
-        if (modelSeen.has(lower)) return;
-        modelSeen.add(lower);
-      }
-      if (seen.has(lower)) return;
-      seen.add(lower);
-      merged.push(token);
-    };
-    baseTokens.forEach(pushToken);
-    sceneTokens.forEach(pushToken);
-    return merged.join(", ");
+    const sceneTokens = splitPromptTokens(scenePrompt);
+    return mergePromptTokens(baseTokens, sceneTokens).join(", ");
   };
 
   const buildNegativePrompt = (scene: Scene) => {
@@ -1336,19 +1232,7 @@ export default function Home() {
     const sceneNeg = scene.negative_prompt.trim();
     if (!autoComposePrompt) return sceneNeg;
     const combined = base && sceneNeg ? `${base}, ${sceneNeg}` : base || sceneNeg;
-    const tokens = combined
-      .split(",")
-      .map((token) => token.trim())
-      .filter(Boolean);
-    const seen = new Set<string>();
-    const merged: string[] = [];
-    for (const token of tokens) {
-      const lower = token.toLowerCase();
-      if (seen.has(lower)) continue;
-      seen.add(lower);
-      merged.push(token);
-    }
-    return merged.join(", ");
+    return deduplicatePromptTokens(combined);
   };
 
 
@@ -1552,73 +1436,8 @@ export default function Home() {
     }
   };
 
-  const computeValidationResults = (inputScenes: Scene[] = scenes) => {
-    const hasAny = (text: string, list: string[]) => list.some((keyword) => text.includes(keyword));
-
-    const results: Record<number, SceneValidation> = {};
-    let ok = 0;
-    let warn = 0;
-    let error = 0;
-
-    inputScenes.forEach((scene) => {
-      const issues: ValidationIssue[] = [];
-      const script = scene.script.trim();
-      const prompt = scene.image_prompt.toLowerCase();
-      const negative = scene.negative_prompt.toLowerCase();
-
-      if (!script) {
-        issues.push({ level: "error", message: "Script is empty." });
-      } else if (script.length > 40) {
-        issues.push({ level: "warn", message: "Script is longer than 40 characters." });
-      }
-
-      if (scene.speaker !== "A") {
-        issues.push({ level: "error", message: "Speaker must be Actor A (monologue)." });
-      }
-
-      if (!scene.image_prompt.trim()) {
-        issues.push({ level: "error", message: "Positive Prompt is empty." });
-      } else {
-        const tokenCount = scene.image_prompt.split(",").filter(Boolean).length;
-        if (tokenCount < 5) {
-          issues.push({ level: "warn", message: "Prompt is too short; add more visual details." });
-        }
-        if (!hasAny(prompt, CAMERA_KEYWORDS)) {
-          issues.push({ level: "warn", message: "Missing camera/shot keywords." });
-        }
-        if (!hasAny(prompt, ACTION_KEYWORDS)) {
-          issues.push({ level: "warn", message: "Missing action/pose keywords." });
-        }
-        if (!hasAny(prompt, BACKGROUND_KEYWORDS)) {
-          issues.push({ level: "warn", message: "Missing background/setting keywords." });
-        }
-        if (!hasAny(prompt, LIGHTING_KEYWORDS)) {
-          issues.push({ level: "warn", message: "Missing lighting/mood keywords." });
-        }
-      }
-
-      const forbidden = CAMERA_KEYWORDS.concat(ACTION_KEYWORDS, BACKGROUND_KEYWORDS);
-      if (negative && forbidden.some((keyword) => negative.includes(keyword))) {
-        issues.push({ level: "warn", message: "Negative Prompt contains scene keywords." });
-      }
-
-      const status = issues.some((item) => item.level === "error")
-        ? "error"
-        : issues.length
-          ? "warn"
-          : "ok";
-
-      results[scene.id] = { status, issues };
-      if (status === "ok") ok += 1;
-      if (status === "warn") warn += 1;
-      if (status === "error") error += 1;
-    });
-
-    return { results, summary: { ok, warn, error } };
-  };
-
   const runValidation = () => {
-    const { results, summary } = computeValidationResults();
+    const { results, summary } = computeValidationResults(scenes);
     setValidationResults(results);
     setValidationSummary(summary);
   };
