@@ -208,6 +208,8 @@ export default function Home() {
   const [baseClipSkipA, setBaseClipSkipA] = useState(2);
   const [selectedSampleId, setSelectedSampleId] = useState(PROMPT_SAMPLES[0].id);
   const [advancedExpanded, setAdvancedExpanded] = useState<Record<number, boolean>>({});
+  const [sceneTab, setSceneTab] = useState<Record<number, "edit" | "validate" | "debug">>({});
+  const [sceneMenuOpen, setSceneMenuOpen] = useState<number | null>(null);
   const prevBaseNegativeRefA = useRef("");
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [narratorVoice, setNarratorVoice] = useState(VOICES[0].id);
@@ -3196,211 +3198,244 @@ export default function Home() {
                           />
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleGenerateSceneImage(scene)}
-                        disabled={scene.isGenerating}
-                        className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-                      >
-                        {scene.isGenerating ? "Generating..." : "Generate Image"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleValidateImage(scene)}
-                        disabled={!scene.image_url || validatingSceneId === scene.id}
-                        className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {validatingSceneId === scene.id ? "Validating..." : "Validate"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const basePrompt = getBasePromptForScene(scene);
-                          const scenePrompt = scene.image_prompt;
-                          const prompt =
-                            autoComposePrompt && basePrompt
-                              ? `${basePrompt}, ${scenePrompt}`
-                              : scenePrompt;
-                          const payload = {
-                            prompt,
-                            negative_prompt: buildNegativePrompt(scene),
-                            steps: resolveSteps(scene),
-                            cfg_scale: resolveCfgScale(scene),
-                            sampler_name: resolveSampler(scene),
-                            seed: resolveSeed(scene),
-                            clip_skip: resolveClipSkip(scene),
-                            width: 512,
-                            height: 512,
-                          };
-                          updateScene(scene.id, {
-                            debug_payload: JSON.stringify(payload, null, 2),
-                            debug_prompt: payload.prompt,
-                          });
-                        }}
-                        className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                      >
-                        Debug Payload
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAdvancedExpanded((prev) => ({
-                            ...prev,
-                            [scene.id]: !prev[scene.id],
-                          }))
-                        }
-                        className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                      >
-                        {advancedExpanded[scene.id] ? "Hide Advanced" : "Show Advanced"}
-                      </button>
-                      {advancedExpanded[scene.id] && scene.debug_payload && (
-                        <textarea
-                          value={scene.debug_payload}
-                          readOnly
-                          rows={6}
-                          className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-[10px] text-zinc-500"
-                        />
-                      )}
-                      {/* Validation Results - Improved UI */}
-                      {imageValidationResults[scene.id] && (
-                        <div className="rounded-2xl border border-zinc-200 bg-white/90 p-4">
-                          {/* Match Rate with Progress Bar */}
-                          <div className="mb-3 flex items-center gap-3">
-                            <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                              Match
-                            </span>
-                            <div className="flex-1">
-                              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    imageValidationResults[scene.id].match_rate >= 0.8
-                                      ? "bg-emerald-500"
-                                      : imageValidationResults[scene.id].match_rate >= 0.5
-                                        ? "bg-amber-500"
-                                        : "bg-red-500"
-                                  }`}
-                                  style={{
-                                    width: `${Math.round(imageValidationResults[scene.id].match_rate * 100)}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            <span
-                              className={`text-sm font-bold ${
-                                imageValidationResults[scene.id].match_rate >= 0.8
-                                  ? "text-emerald-600"
-                                  : imageValidationResults[scene.id].match_rate >= 0.5
-                                    ? "text-amber-600"
-                                    : "text-red-600"
-                              }`}
-                            >
-                              {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
-                            </span>
-                          </div>
-
-                          {/* Missing Tags */}
-                          {imageValidationResults[scene.id].missing.length > 0 && (
-                            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
-                              <div className="mb-2 flex items-center justify-between">
-                                <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-red-600 uppercase">
-                                  <span className="h-2 w-2 rounded-full bg-red-500" />
-                                  Missing ({imageValidationResults[scene.id].missing.length})
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    applyMissingImageTags(
-                                      scene,
-                                      imageValidationResults[scene.id]?.missing ?? []
-                                    )
+                      {/* Primary Action + More Menu */}
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSceneImage(scene)}
+                          disabled={scene.isGenerating}
+                          className="rounded-full bg-zinc-900 px-5 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+                        >
+                          {scene.isGenerating ? "Generating..." : "Generate Image"}
+                        </button>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setSceneMenuOpen(sceneMenuOpen === scene.id ? null : scene.id)}
+                            className="rounded-full border border-zinc-200 bg-white p-2 text-zinc-500 transition hover:bg-zinc-50"
+                          >
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                          </button>
+                          {sceneMenuOpen === scene.id && (
+                            <div className="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(buildPositivePrompt(scene));
+                                  showToast("프롬프트 복사됨", "success");
+                                  setSceneMenuOpen(null);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"
+                              >
+                                Copy Prompt
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateScene(scene.id, { seed: Math.floor(Math.random() * 999999999) });
+                                  setSceneMenuOpen(null);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"
+                              >
+                                Randomize Seed
+                              </button>
+                              <hr className="my-1 border-zinc-100" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm("이 씬을 삭제하시겠습니까?")) {
+                                    handleRemoveScene(scene.id);
                                   }
-                                  className="rounded-full bg-red-500 px-3 py-1 text-[9px] font-semibold text-white transition hover:bg-red-600"
-                                >
-                                  + Add to Prompt
-                                </button>
-                              </div>
-                              <p className="text-xs text-red-700">
-                                {imageValidationResults[scene.id].missing.slice(0, 8).join(", ")}
-                                {imageValidationResults[scene.id].missing.length > 8 && " ..."}
-                              </p>
+                                  setSceneMenuOpen(null);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
+                              >
+                                Delete Scene
+                              </button>
                             </div>
                           )}
+                        </div>
+                      </div>
 
-                          {/* Extra Tags */}
-                          {imageValidationResults[scene.id].extra.length > 0 && (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                              <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-amber-600 uppercase">
-                                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                                Extra ({imageValidationResults[scene.id].extra.length})
+                      {/* Tab Navigation */}
+                      <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1">
+                        {(["edit", "validate", "debug"] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setSceneTab((prev) => ({ ...prev, [scene.id]: tab }))}
+                            className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase transition ${
+                              (sceneTab[scene.id] || "edit") === tab
+                                ? "bg-white text-zinc-900 shadow-sm"
+                                : "text-zinc-500 hover:text-zinc-700"
+                            }`}
+                          >
+                            {tab === "edit" && "Edit"}
+                            {tab === "validate" && (
+                              <span className="flex items-center justify-center gap-1">
+                                Validate
+                                {imageValidationResults[scene.id] && (
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${
+                                      imageValidationResults[scene.id].match_rate >= 0.8
+                                        ? "bg-emerald-500"
+                                        : imageValidationResults[scene.id].match_rate >= 0.5
+                                          ? "bg-amber-500"
+                                          : "bg-red-500"
+                                    }`}
+                                  />
+                                )}
                               </span>
-                              <p className="mt-1 text-xs text-amber-700">
-                                {imageValidationResults[scene.id].extra.slice(0, 8).join(", ")}
-                                {imageValidationResults[scene.id].extra.length > 8 && " ..."}
-                              </p>
-                            </div>
-                          )}
+                            )}
+                            {tab === "debug" && "Debug"}
+                          </button>
+                        ))}
+                      </div>
 
-                          {/* Success State */}
-                          {imageValidationResults[scene.id].missing.length === 0 &&
-                            imageValidationResults[scene.id].extra.length === 0 && (
-                              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                                <span className="text-xs font-medium text-emerald-700">
-                                  ✓ 모든 태그가 일치합니다
+                      {/* Tab Content: Edit (default - empty, fields are above) */}
+
+                      {/* Tab Content: Validate */}
+                      {(sceneTab[scene.id] || "edit") === "validate" && (
+                        <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
+                          <button
+                            type="button"
+                            onClick={() => handleValidateImage(scene)}
+                            disabled={!scene.image_url || validatingSceneId === scene.id}
+                            className="w-full rounded-full border border-zinc-300 bg-white py-2.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {validatingSceneId === scene.id ? "Validating..." : "Run Validation"}
+                          </button>
+
+                          {imageValidationResults[scene.id] && (
+                            <>
+                              {/* Match Rate */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">
+                                    <div
+                                      className={`h-full rounded-full transition-all ${
+                                        imageValidationResults[scene.id].match_rate >= 0.8
+                                          ? "bg-emerald-500"
+                                          : imageValidationResults[scene.id].match_rate >= 0.5
+                                            ? "bg-amber-500"
+                                            : "bg-red-500"
+                                      }`}
+                                      style={{
+                                        width: `${Math.round(imageValidationResults[scene.id].match_rate * 100)}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                <span
+                                  className={`text-lg font-bold ${
+                                    imageValidationResults[scene.id].match_rate >= 0.8
+                                      ? "text-emerald-600"
+                                      : imageValidationResults[scene.id].match_rate >= 0.5
+                                        ? "text-amber-600"
+                                        : "text-red-600"
+                                  }`}
+                                >
+                                  {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
                                 </span>
                               </div>
-                            )}
+
+                              {/* Missing */}
+                              {imageValidationResults[scene.id].missing.length > 0 && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-[10px] font-semibold text-red-600 uppercase">
+                                      Missing ({imageValidationResults[scene.id].missing.length})
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        applyMissingImageTags(scene, imageValidationResults[scene.id]?.missing ?? [])
+                                      }
+                                      className="rounded-full bg-red-500 px-2.5 py-1 text-[9px] font-semibold text-white hover:bg-red-600"
+                                    >
+                                      + Add
+                                    </button>
+                                  </div>
+                                  <p className="text-xs text-red-700">
+                                    {imageValidationResults[scene.id].missing.slice(0, 6).join(", ")}
+                                    {imageValidationResults[scene.id].missing.length > 6 && " ..."}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Extra */}
+                              {imageValidationResults[scene.id].extra.length > 0 && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                  <span className="text-[10px] font-semibold text-amber-600 uppercase">
+                                    Extra ({imageValidationResults[scene.id].extra.length})
+                                  </span>
+                                  <p className="mt-1 text-xs text-amber-700">
+                                    {imageValidationResults[scene.id].extra.slice(0, 6).join(", ")}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Success */}
+                              {imageValidationResults[scene.id].missing.length === 0 &&
+                                imageValidationResults[scene.id].extra.length === 0 && (
+                                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
+                                    <span className="text-sm font-medium text-emerald-700">✓ Perfect Match</span>
+                                  </div>
+                                )}
+                            </>
+                          )}
+
+                          {!imageValidationResults[scene.id] && !scene.image_url && (
+                            <p className="text-center text-xs text-zinc-400">이미지를 먼저 생성하세요</p>
+                          )}
+                          {!imageValidationResults[scene.id] && scene.image_url && (
+                            <p className="text-center text-xs text-zinc-400">Run Validation을 클릭하세요</p>
+                          )}
                         </div>
                       )}
 
-                      {/* Legacy validation results */}
-                      {validationResults[scene.id] && !imageValidationResults[scene.id] && (
-                        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-[11px] text-zinc-600">
-                          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Validation
-                          </span>
-                          <p className="mt-2">
-                            {validationResults[scene.id].issues.length > 0
-                              ? validationResults[scene.id].issues[0].message
-                              : "No issues found."}
-                          </p>
-                        </div>
-                      )}
-                      {validationResults[scene.id] && (
-                        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-xs text-zinc-600">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                              Validation Details
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setValidationExpanded((prev) => ({
-                                  ...prev,
-                                  [scene.id]: !prev[scene.id],
-                                }))
-                              }
-                              className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-                            >
-                              {validationExpanded[scene.id] ? "Hide" : "Show"}
-                            </button>
-                          </div>
-                          {validationExpanded[scene.id] && (
-                            <div className="mt-2 grid gap-1 text-[11px]">
-                              {validationResults[scene.id].issues.length === 0 ? (
-                                <span className="text-emerald-600">No issues found.</span>
-                              ) : (
-                                validationResults[scene.id].issues.map((issue, idx) => (
-                                  <span
-                                    key={`${scene.id}-issue-${idx}`}
-                                    className={
-                                      issue.level === "error" ? "text-rose-600" : "text-amber-600"
-                                    }
-                                  >
-                                    {issue.message}
-                                  </span>
-                                ))
-                              )}
-                            </div>
+                      {/* Tab Content: Debug */}
+                      {(sceneTab[scene.id] || "edit") === "debug" && (
+                        <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const basePrompt = getBasePromptForScene(scene);
+                              const scenePrompt = scene.image_prompt;
+                              const prompt =
+                                autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
+                              const payload = {
+                                prompt,
+                                negative_prompt: buildNegativePrompt(scene),
+                                steps: resolveSteps(scene),
+                                cfg_scale: resolveCfgScale(scene),
+                                sampler_name: resolveSampler(scene),
+                                seed: resolveSeed(scene),
+                                clip_skip: resolveClipSkip(scene),
+                                width: 512,
+                                height: 512,
+                              };
+                              updateScene(scene.id, {
+                                debug_payload: JSON.stringify(payload, null, 2),
+                                debug_prompt: payload.prompt,
+                              });
+                            }}
+                            className="w-full rounded-full border border-zinc-300 bg-white py-2.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase transition hover:bg-zinc-50"
+                          >
+                            Generate Debug Info
+                          </button>
+                          {scene.debug_payload && (
+                            <textarea
+                              value={scene.debug_payload}
+                              readOnly
+                              rows={8}
+                              className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-[10px] text-zinc-600"
+                            />
+                          )}
+                          {!scene.debug_payload && (
+                            <p className="text-center text-xs text-zinc-400">Generate Debug Info를 클릭하세요</p>
                           )}
                         </div>
                       )}
