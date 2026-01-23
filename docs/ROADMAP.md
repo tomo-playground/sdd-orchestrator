@@ -34,7 +34,7 @@
 
 ---
 
-## 🔧 Phase 3: 리팩토링 (안정성 기반 코드 개선) - **CURRENT**
+## 🔧 Phase 3: 리팩토링 (안정성 기반 코드 개선) - **COMPLETE**
 Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합니다.
 
 ### 3-1. Backend 리팩토링
@@ -83,14 +83,22 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 
 ---
 
-## ✅ Phase 4: 안정성 검증 (리팩토링 완료 확인)
+## ✅ Phase 4: 안정성 검증 (리팩토링 완료 확인) - **CURRENT**
 리팩토링 완료 후 전체 시스템 안정성을 검증합니다.
 
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| VRT 전체 통과 | 리팩토링 전후 영상 100% 일치 확인 | [ ] |
-| E2E 테스트 | Autopilot 전체 파이프라인 자동 테스트 | [ ] |
-| DoD 체크리스트 | PRD §4 완료 기준 4개 항목 모두 통과 | [ ] |
+| VRT 전체 통과 | 리팩토링 전후 영상 100% 일치 확인 (36/36) | [x] |
+| E2E 테스트 | Autopilot 전체 파이프라인 자동 테스트 | [~] |
+| DoD 체크리스트 | PRD §4 완료 기준 4개 항목 모두 통과 | [~] |
+
+### DoD 체크리스트 상세 (PRD §4)
+| 항목 | 설명 | 상태 |
+|------|------|------|
+| Autopilot | 주제 입력 → 이미지 생성 완료까지 멈춤 없이 진행 | [ ] |
+| Consistency | 3개 이상 장면에서 캐릭터 머리색/옷 유지 | [ ] |
+| Rendering | 최종 비디오 생성, TTS+BGM 정상 재생 | [ ] |
+| UI Resilience | F5 새로고침 후 Draft 복구 | [ ] |
 
 ---
 
@@ -136,4 +144,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 54% 완료 (page.tsx: 4,222 → 1,928줄, 20개 컴포넌트 + 2개 훅 + utils/validation 모듈). Backend 67% 완료 (logic.py: ~2,300 → 758줄, 7개 서비스).
+**Latest Status**: 2026-01-24 Phase 4 진행 중. VRT 36/36 통과. Phase 3 완료 (Frontend 54%, Backend 67% 감소). DoD 수동 테스트 진행 중.
