@@ -57,6 +57,7 @@ import StoryboardGeneratorPanel from "./components/StoryboardGeneratorPanel";
 import PromptSetupPanel from "./components/PromptSetupPanel";
 import SceneCard from "./components/SceneCard";
 import SceneListHeader from "./components/SceneListHeader";
+import StoryboardActionsBar from "./components/StoryboardActionsBar";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2158,44 +2159,17 @@ export default function Home() {
             onOpenPromptHelper={() => setIsHelperOpen(true)}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Reset Actions - Left */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={resetScenesOnly}
-                disabled={isAutoRunning}
-                className="rounded-full border border-zinc-200 bg-white/60 px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-300 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Reset Scenes
-              </button>
-              <button
-                onClick={resetDraft}
-                disabled={isAutoRunning}
-                className="rounded-full border border-zinc-200 bg-white/60 px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-300 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Reset Draft
-              </button>
-            </div>
-            {/* Primary Actions - Right */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleGenerateScenes}
-                disabled={isGenerating || !topic.trim() || isAutoRunning}
-                className="rounded-full border border-zinc-300 bg-white px-5 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition hover:bg-zinc-50 hover:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
-              >
-                {isGenerating ? "Generating..." : "Generate"}
-              </button>
-              <button
-                onClick={handleAutoRun}
-                disabled={isGenerating || isRendering || isAutoRunning || !topic.trim()}
-                className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
-              >
-                {isAutoRunning
-                  ? `${AUTO_RUN_STEPS.find((s) => s.id === autoRunState.step)?.label || "Running"}...`
-                  : "Auto Run"}
-              </button>
-            </div>
-          </div>
+          <StoryboardActionsBar
+            onResetScenes={resetScenesOnly}
+            onResetDraft={resetDraft}
+            onGenerate={handleGenerateScenes}
+            onAutoRun={handleAutoRun}
+            isGenerating={isGenerating}
+            isRendering={isRendering}
+            isAutoRunning={isAutoRunning}
+            topicEmpty={!topic.trim()}
+            autoRunStep={autoRunState.step}
+          />
           <AutoRunStatus
             autoRunState={autoRunState}
             autoRunLog={autoRunLog}
