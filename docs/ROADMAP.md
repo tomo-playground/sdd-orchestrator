@@ -1,56 +1,32 @@
 # Shorts Factory Master Roadmap (Strategic Re-ordered)
 
-이 로드맵은 실질적인 개발 효용성과 영상 품질 향상을 최우선으로 하여 재정렬되었습니다.
+이 로드맵은 프로젝트의 안정성과 영상 품질을 최우선으로 하여 관리됩니다.
 
-## 🏗️ Phase 1: Foundation & Stability (기반 및 안정성) - **URGENT**
-본격적인 기능 추가 전, 개발 속도를 늦추는 장애물을 제거하고 협업/개발 환경을 정비합니다.
+## 🏗️ Phase 1: Foundation & Stability (기반 및 안정성) - **COMPLETE**
+*   [x] **Environment Diagnostic Tool**: `backend/check_env.py` 구축 완료.
+*   [x] **Configuration Externalization**: `.env` 기반 환경 변수 분리 완료.
+*   [x] **Foundation Setup (Linting & Tooling)**: Ruff, Prettier 적용 완료.
+*   [x] **TDD Environment Setup**: Unit Test 환경 구축 완료.
 
-*   [x] **Environment Diagnostic Tool (1순위)**:
-    *   **Why**: "왜 안 되지?" 하는 디버깅 시간을 90% 단축.
-    *   **Tech**: `backend/check_env.py` - FFmpeg, WebUI 연결(SD_BASE_URL), API Key(GEMINI_API_KEY), 필수 폰트 및 에셋 유무 자동 진단.
-*   [x] **Configuration Externalization (설정 분리)**:
-    *   **Why**: 하드코딩된 주소와 경로를 분리하여 배포 및 환경 변화에 유연하게 대응.
-    *   **Task**: 
-        *   백엔드: `HOST`, `PORT`, `API_PUBLIC_URL`, `OUTPUT_DIR` 등을 `.env`로 분리.
-        *   프론트엔드: `NEXT_PUBLIC_API_URL` 환경 변수 도입 (하드코딩된 localhost:8000 제거).
-*   [x] **Foundation Setup (Linting & Tooling)**:
-    *   **Why**: 코드 스타일 통일 및 자동 정렬.
-    *   **Tech**: Absolute Import Path 설정, ESLint/Prettier Strict 규칙 적용, Ruff(Backend) 도입.
-*   [ ] **TDD Environment Setup (Unit Testing)**:
-    *   **Why**: 리팩토링 시 기능 파괴 방지.
-    *   **Tech**: `pytest` & `Vitest` 기반의 빠른 피드백 루프 구축.
-*   [ ] **Frontend Refactoring (Component & Zustand)**:
-    *   **Why**: 비대한 `page.tsx` 분해 및 전역 상태 관리 도입.
+## 🛠️ Phase 2: Refactoring & Architecture (구조 개선) - **RE-EVALUATING**
+시스템의 거대 로직을 분리하려 했으나, 서비스 안정성 이슈로 인해 잠정 중단 및 재설계 중입니다.
 
-## 🎥 Phase 2: High-End Production (영상 품질 대격변)
-영상의 시각적/청각적 완성도를 결정짓는 핵심 AI 기술을 도입합니다.
+### 2-1. Backend Modernization (Rollback Status)
+*   [ ] **Service Layer Extraction (FAILED/ROLLBACKED)**:
+    *   `logic.py`를 `services/`와 `routers/`로 분리 시도했으나, 오토파일럿 상태 머신 연동 오류 및 FFmpeg 렌더링 좌표 유실(Fidelity Issue) 발생.
+    *   **Decision**: 2026-01-23, 안정성이 검증된 `208dab1` 시점으로 전체 롤백 수행.
+*   [ ] **New Strategy**:
+    *   거대 분리 대신, 기능을 하나씩(예: 키워드 조회만 먼저) 아주 작게 분리하는 '마이크로 리팩토링'으로 선회 예정.
+    *   리팩토링 전, 영상 렌더링 결과물을 픽셀 단위로 비교하는 시각적 회귀 테스트(Visual Regression Test) 구축 선행 필수.
 
-*   [ ] **ControlNet (IP-Adapter) Integration**:
-    *   **Why**: **(품질 최우선)** 캐릭터 얼굴 일관성(Identity Locking)의 최종 해결책.
-*   [ ] **VEO Clip (Short Motion)**:
-    *   **Why**: 정지 이미지를 생동감 넘치는 AI 비디오로 전환.
-*   [ ] **Dynamic Camera & Parallax**:
-    *   **Why**: FFmpeg를 활용한 2.5D 입체 효과 및 정교한 줌/팬 연출.
-*   [ ] **Professional Audio Ducking**:
-    *   **Why**: 내레이션 시 BGM 볼륨 자동 조절로 전달력 극대화.
+### 2-2. Frontend Componentization
+*   [ ] **Step 1: Custom Hooks**: `page.tsx`에서 오토파일럿 로직 추출 (진행 예정).
+*   [ ] **Step 2: Component Split**: UI 파편화 방지를 위한 아토믹 디자인 적용.
 
-## 🤖 Phase 3: Intelligent Automation & Data (지능화 및 데이터)
-시스템이 스스로 학습하고, 데이터가 안전하게 보존됩니다.
-
-*   [ ] **SQLite Database Integration**:
-    *   **Why**: 브라우저 캐시 사고 방지 및 고유 프로젝트 DB화.
-*   [ ] **Self-Learning Keyword Dictionary**:
-    *   **Why**: 사용자의 피드백을 통해 사전이 점점 풍부해짐.
-*   [ ] **Resume/Checkpoint System**:
-    *   **Why**: 중단된 오토파일럿을 마지막 지점부터 다시 시작.
-
-## 🛠️ Phase 4: Reliability & Ops (확장 및 운영)
-*   [ ] **Docker Containerization**:
-    *   **Why**: 고사양 클라우드 서버(RunPod 등)로의 즉시 이사 및 배포 용이성.
-*   [ ] **Automated Type Sync (OpenAPI)**:
-    *   **Why**: 백엔드와 프론트엔드 간의 데이터 필드명 불일치 에러 원천 차단.
-*   [ ] **E2E Test Automation**:
-    *   **Why**: 최종 릴리즈 전 전수 자동 점검.
+## 🎥 Phase 3: High-End Production (영상 품질 대격변)
+*   [ ] **ControlNet Integration**: 캐릭터 일관성 확보.
+*   [ ] **Professional Audio Ducking**: BGM 볼륨 자동 조절.
 
 ---
-**Core Principle**: "Stabilize First, Quality Second, Automate Third" (안정성 위에 품질을 쌓고, 그 후에 자동화한다)
+**Core Principle**: "Stabilize First, Quality Second, Automate Third"
+**Latest Status**: 리팩토링 실패 후 롤백 완료. 현재 안정 모드에서 오토파일럿 정상 작동 여부 집중 모니터링 중.
