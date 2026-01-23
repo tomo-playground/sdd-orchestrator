@@ -62,7 +62,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | Components 분리 | SetupPanel, SceneCard, RenderSettingsPanel 등 21개 | [x] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [x] |
 
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 1,928줄 (2,294줄 감소, 54%)
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 1,832줄 (2,390줄 감소, 57%)
 
 추출된 모듈:
 - Types: `types/index.ts`
@@ -72,7 +72,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
   - `utils/validation.ts` (computeValidationResults)
 - Hooks:
   - `hooks/useAutopilot.ts` (Autopilot 상태 관리)
-  - `hooks/useDraftPersistence.ts` (Draft 저장/복원 - 통합 대기)
+  - `hooks/useDraftPersistence.ts` (Draft 저장/복원 - 통합 완료)
 - Components (20개):
   - Setup: `SetupPanel`, `StoryboardGeneratorPanel`, `PromptSetupPanel`
   - Actions: `StoryboardActionsBar`, `AutoRunStatus`
