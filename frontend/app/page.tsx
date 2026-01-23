@@ -738,7 +738,6 @@ export default function Home() {
     });
   };
 
-  const getBaseNegativeForScene = () => baseNegativePromptA.trim();
 
   const pushRecentVideo = (url: string, label: "full" | "post" | "single") => {
     if (!url) return;
@@ -1372,7 +1371,7 @@ export default function Home() {
   };
 
   const buildNegativePrompt = (scene: Scene) => {
-    const base = getBaseNegativeForScene();
+    const base = baseNegativePromptA.trim();
     const sceneNeg = scene.negative_prompt.trim();
     if (!autoComposePrompt) return sceneNeg;
     const combined = base && sceneNeg ? `${base}, ${sceneNeg}` : base || sceneNeg;
