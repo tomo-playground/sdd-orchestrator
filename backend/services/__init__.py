@@ -30,6 +30,10 @@ from .rendering import (
     resolve_overlay_frame,
     resolve_subtitle_font_path,
 )
+from .image import (
+    decode_data_url,
+    load_image_bytes,
+)
 
 __all__ = [
     # Keywords
@@ -59,4 +63,7 @@ __all__ = [
     "render_subtitle_image",
     "resolve_overlay_frame",
     "resolve_subtitle_font_path",
+    # Image
+    "decode_data_url",
+    "load_image_bytes",
 ]

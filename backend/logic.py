@@ -15,7 +15,6 @@ import subprocess
 import textwrap
 import time
 from typing import Any
-from urllib.parse import urlparse
 
 import edge_tts
 import httpx
@@ -139,34 +138,25 @@ from services.rendering import (
     _get_font,
     _get_font_from_path,
     _build_post_meta,
+    _random_meta_values,
+)
+
+# Image functions imported from services
+from services.image import (
+    decode_data_url as _decode_data_url,
+    load_image_bytes as _load_image_bytes,
 )
 
 # --- Helper Functions ---
 
 def decode_data_url(data_url: str) -> bytes:
-    if not data_url:
-        raise ValueError("Empty image data")
-    b64 = data_url.split(",", 1)[1] if "," in data_url else data_url
-    return base64.b64decode(b64)
+    """Decode a base64 data URL to bytes. Delegates to services.image."""
+    return _decode_data_url(data_url)
 
 
 def load_image_bytes(source: str) -> bytes:
-    if not source:
-        raise ValueError("Empty image data")
-    if source.startswith("data:"):
-        return decode_data_url(source)
-    if source.startswith(("http://", "https://")):
-        parsed = urlparse(source)
-        path = parsed.path
-    else:
-        path = source
-    if path.startswith("/outputs/"):
-        rel_path = path.replace("/outputs/", "", 1)
-        candidate = (OUTPUT_DIR / rel_path).resolve()
-        if OUTPUT_DIR.resolve() not in candidate.parents:
-            raise ValueError("Invalid image path")
-        return candidate.read_bytes()
-    raise ValueError("Unsupported image source")
+    """Load image bytes from various sources. Delegates to services.image."""
+    return _load_image_bytes(source, OUTPUT_DIR)
 
 
 def parse_json_payload(text: str) -> dict[str, Any]:
