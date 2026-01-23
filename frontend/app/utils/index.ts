@@ -51,3 +51,11 @@ export const normalizePostCardSettings = (raw: any): PostCardSettings => {
     avatar_key: avatarKey,
   };
 };
+
+/**
+ * Get the first character of a name as an uppercase initial for avatar display.
+ */
+export const getAvatarInitial = (name: string): string => {
+  const trimmed = name.trim();
+  return (trimmed[0] || "A").toUpperCase();
+};

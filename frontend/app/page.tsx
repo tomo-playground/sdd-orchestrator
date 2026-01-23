@@ -65,6 +65,7 @@ import {
   slugifyAvatarKey,
   normalizeOverlaySettings,
   normalizePostCardSettings,
+  getAvatarInitial,
 } from "./utils";
 
 export default function Home() {
@@ -1239,11 +1240,6 @@ export default function Home() {
     previewTimeoutRef.current = window.setTimeout(() => {
       stopBgmPreview();
     }, 10000);
-  };
-
-  const getAvatarInitial = (name: string) => {
-    const trimmed = name.trim();
-    return (trimmed[0] || "A").toUpperCase();
   };
 
   const resolveAvatarPreview = async (avatarKey: string, setUrl: (url: string | null) => void) => {
