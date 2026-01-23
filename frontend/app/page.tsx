@@ -46,6 +46,8 @@ import AutoRunStatus from "./components/AutoRunStatus";
 import SceneFilmstrip from "./components/SceneFilmstrip";
 import SceneImagePanel from "./components/SceneImagePanel";
 import ValidationTabContent from "./components/ValidationTabContent";
+import DebugTabContent from "./components/DebugTabContent";
+import LayoutSelector from "./components/LayoutSelector";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2964,46 +2966,30 @@ export default function Home() {
 
                       {/* Tab Content: Debug */}
                       {sceneTab[scene.id] === "debug" && (
-                        <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const basePrompt = getBasePromptForScene(scene);
-                              const scenePrompt = scene.image_prompt;
-                              const prompt =
-                                autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
-                              const payload = {
-                                prompt,
-                                negative_prompt: buildNegativePrompt(scene),
-                                steps: resolveSteps(scene),
-                                cfg_scale: resolveCfgScale(scene),
-                                sampler_name: resolveSampler(scene),
-                                seed: resolveSeed(scene),
-                                clip_skip: resolveClipSkip(scene),
-                                width: 512,
-                                height: 512,
-                              };
-                              updateScene(scene.id, {
-                                debug_payload: JSON.stringify(payload, null, 2),
-                                debug_prompt: payload.prompt,
-                              });
-                            }}
-                            className="w-full rounded-full border border-zinc-300 bg-white py-2.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase transition hover:bg-zinc-50"
-                          >
-                            Generate Debug Info
-                          </button>
-                          {scene.debug_payload && (
-                            <textarea
-                              value={scene.debug_payload}
-                              readOnly
-                              rows={8}
-                              className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-[10px] text-zinc-600"
-                            />
-                          )}
-                          {!scene.debug_payload && (
-                            <p className="text-center text-xs text-zinc-400">Generate Debug Info를 클릭하세요</p>
-                          )}
-                        </div>
+                        <DebugTabContent
+                          scene={scene}
+                          onGenerateDebug={() => {
+                            const basePrompt = getBasePromptForScene(scene);
+                            const scenePrompt = scene.image_prompt;
+                            const prompt =
+                              autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
+                            const payload = {
+                              prompt,
+                              negative_prompt: buildNegativePrompt(scene),
+                              steps: resolveSteps(scene),
+                              cfg_scale: resolveCfgScale(scene),
+                              sampler_name: resolveSampler(scene),
+                              seed: resolveSeed(scene),
+                              clip_skip: resolveClipSkip(scene),
+                              width: 512,
+                              height: 512,
+                            };
+                            updateScene(scene.id, {
+                              debug_payload: JSON.stringify(payload, null, 2),
+                              debug_prompt: payload.prompt,
+                            });
+                          }}
+                        />
                       )}
                     </div>
                     <SceneImagePanel
@@ -3034,65 +3020,7 @@ export default function Home() {
             </div>
 
             {/* 1. LAYOUT SELECTION (TOP - Most Important) */}
-            <div className="grid gap-3">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Layout
-              </label>
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setLayoutStyle("full")}
-                  className={`group flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
-                    layoutStyle === "full"
-                      ? "border-zinc-900 bg-zinc-900/5 shadow-md"
-                      : "border-zinc-200 bg-white/80 hover:border-zinc-400"
-                  }`}
-                >
-                  <div
-                    className={`flex h-20 w-11 flex-col items-center justify-center rounded-lg border-2 ${
-                      layoutStyle === "full" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
-                    }`}
-                  >
-                    <div className={`h-6 w-6 rounded ${layoutStyle === "full" ? "bg-zinc-500" : "bg-zinc-300"}`} />
-                    <div className={`mt-1 h-1 w-5 rounded ${layoutStyle === "full" ? "bg-zinc-400" : "bg-zinc-200"}`} />
-                    <div className={`mt-0.5 h-1 w-4 rounded ${layoutStyle === "full" ? "bg-zinc-400" : "bg-zinc-200"}`} />
-                  </div>
-                  <div className="text-center">
-                    <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>Full</p>
-                    <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>9:16 세로</p>
-                  </div>
-                  {layoutStyle === "full" && (
-                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">선택됨</span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setLayoutStyle("post")}
-                  className={`group flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
-                    layoutStyle === "post"
-                      ? "border-zinc-900 bg-zinc-900/5 shadow-md"
-                      : "border-zinc-200 bg-white/80 hover:border-zinc-400"
-                  }`}
-                >
-                  <div
-                    className={`flex h-14 w-14 flex-col items-center justify-center rounded-lg border-2 ${
-                      layoutStyle === "post" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
-                    }`}
-                  >
-                    <div className={`h-6 w-6 rounded ${layoutStyle === "post" ? "bg-zinc-500" : "bg-zinc-300"}`} />
-                    <div className={`mt-1 h-1 w-5 rounded ${layoutStyle === "post" ? "bg-zinc-400" : "bg-zinc-200"}`} />
-                  </div>
-                  <div className="text-center">
-                    <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>Post</p>
-                    <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>1:1 정사각형</p>
-                  </div>
-                  {layoutStyle === "post" && (
-                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">선택됨</span>
-                  )}
-                </button>
-              </div>
-            </div>
+            <LayoutSelector value={layoutStyle} onChange={setLayoutStyle} showLabel variant="detailed" />
 
             {/* 2. RENDER ACTIONS (Prominent) */}
             <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-5">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { AudioItem } from "../types";
 import { VOICES } from "../constants";
+import LayoutSelector from "./LayoutSelector";
 
 type SetupPanelProps = {
   topic: string;
@@ -66,51 +67,7 @@ export default function SetupPanel({
           </label>
 
           {/* Layout Selection */}
-          <div className="flex justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => setLayoutStyle("full")}
-              className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
-                layoutStyle === "full"
-                  ? "border-zinc-900 bg-zinc-900/5 shadow-md"
-                  : "border-zinc-200 bg-white hover:border-zinc-400"
-              }`}
-            >
-              <div
-                className={`flex h-16 w-9 flex-col items-center justify-center rounded-lg border-2 ${
-                  layoutStyle === "full" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
-                }`}
-              >
-                <div className={`h-4 w-4 rounded ${layoutStyle === "full" ? "bg-zinc-500" : "bg-zinc-300"}`} />
-              </div>
-              <div className="text-center">
-                <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>Full</p>
-                <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>9:16</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setLayoutStyle("post")}
-              className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
-                layoutStyle === "post"
-                  ? "border-zinc-900 bg-zinc-900/5 shadow-md"
-                  : "border-zinc-200 bg-white hover:border-zinc-400"
-              }`}
-            >
-              <div
-                className={`flex h-11 w-11 flex-col items-center justify-center rounded-lg border-2 ${
-                  layoutStyle === "post" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
-                }`}
-              >
-                <div className={`h-4 w-4 rounded ${layoutStyle === "post" ? "bg-zinc-500" : "bg-zinc-300"}`} />
-              </div>
-              <div className="text-center">
-                <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>Post</p>
-                <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>1:1</p>
-              </div>
-            </button>
-          </div>
+          <LayoutSelector value={layoutStyle} onChange={setLayoutStyle} variant="compact" />
 
           {/* Voice, BGM, Speed */}
           <div className="grid gap-3 md:grid-cols-3">
