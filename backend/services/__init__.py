@@ -34,6 +34,17 @@ from .image import (
     decode_data_url,
     load_image_bytes,
 )
+from .avatar import (
+    avatar_filename,
+    ensure_avatar_file,
+)
+from .prompt import (
+    is_scene_token,
+    merge_prompt_tokens,
+    normalize_negative_prompt,
+    normalize_prompt_tokens,
+    split_prompt_tokens,
+)
 
 __all__ = [
     # Keywords
@@ -66,4 +77,13 @@ __all__ = [
     # Image
     "decode_data_url",
     "load_image_bytes",
+    # Avatar
+    "avatar_filename",
+    "ensure_avatar_file",
+    # Prompt
+    "is_scene_token",
+    "merge_prompt_tokens",
+    "normalize_negative_prompt",
+    "normalize_prompt_tokens",
+    "split_prompt_tokens",
 ]

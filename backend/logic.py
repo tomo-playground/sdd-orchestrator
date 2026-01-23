@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import csv
 import hashlib
 import io
@@ -147,6 +146,21 @@ from services.image import (
     load_image_bytes as _load_image_bytes,
 )
 
+# Avatar functions imported from services
+from services.avatar import (
+    avatar_filename as _avatar_filename,
+    ensure_avatar_file as _ensure_avatar_file,
+)
+
+# Prompt functions imported from services
+from services.prompt import (
+    is_scene_token as _is_scene_token,
+    merge_prompt_tokens as _merge_prompt_tokens,
+    normalize_negative_prompt as _normalize_negative_prompt,
+    normalize_prompt_tokens as _normalize_prompt_tokens,
+    split_prompt_tokens as _split_prompt_tokens,
+)
+
 # --- Helper Functions ---
 
 def decode_data_url(data_url: str) -> bytes:
@@ -217,46 +231,13 @@ def wrap_text(text: str, width: int, max_lines: int = 2) -> str:
 
 
 def avatar_filename(avatar_key: str) -> str:
-    safe_name = avatar_key.strip() or "avatar"
-    hash_value = hashlib.sha1(safe_name.encode("utf-8")).hexdigest()[:12]
-    return f"avatar_{hash_value}.png"
+    """Generate avatar filename. Delegates to services.avatar."""
+    return _avatar_filename(avatar_key)
 
 
 async def ensure_avatar_file(avatar_key: str) -> str | None:
-    filename = avatar_filename(avatar_key)
-    target = AVATAR_DIR / filename
-    if target.exists():
-        return filename
-    prompt = (
-        "anime avatar portrait, clean background, head and shoulders, "
-        "soft lighting, centered, high quality"
-    )
-    payload = {
-        "prompt": prompt,
-        "negative_prompt": "verybadimagenegative_v1.3",
-        "steps": 20,
-        "cfg_scale": 7.0,
-        "sampler_name": "DPM++ 2M Karras",
-        "seed": -1,
-        "width": 256,
-        "height": 256,
-        "override_settings": {"CLIP_stop_at_last_layers": 2},
-        "override_settings_restore_afterwards": True,
-    }
-    try:
-        async with httpx.AsyncClient() as client:
-            res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=60.0)
-            res.raise_for_status()
-            data = res.json()
-        image_b64 = (data.get("images") or [None])[0]
-        if not image_b64:
-            return None
-        image_bytes = base64.b64decode(image_b64)
-        target.write_bytes(image_bytes)
-        return filename
-    except Exception:
-        logger.exception("Avatar generation failed")
-        return None
+    """Ensure avatar file exists. Delegates to services.avatar."""
+    return await _ensure_avatar_file(avatar_key, AVATAR_DIR, SD_TXT2IMG_URL)
 
 
 def to_edge_tts_rate(multiplier: float) -> str:
@@ -266,77 +247,28 @@ def to_edge_tts_rate(multiplier: float) -> str:
 
 
 def split_prompt_tokens(prompt: str) -> list[str]:
-    return [token.strip() for token in prompt.split(",") if token.strip()]
+    """Split a comma-separated prompt into tokens. Delegates to services.prompt."""
+    return _split_prompt_tokens(prompt)
 
 
 def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
-    seen = set()
-    merged: list[str] = []
-    for token in primary + secondary:
-        key = token.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        merged.append(token)
-    return ", ".join(merged)
+    """Merge two lists of prompt tokens. Delegates to services.prompt."""
+    return _merge_prompt_tokens(primary, secondary)
 
 
 def is_scene_token(token: str) -> bool:
-    keywords = [
-        "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
-        "from above", "top-down", "low angle", "high angle", "close-up", "wide shot", "full body",
-        "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest",
-        "beach", "city", "night", "sunset", "sunrise", "rain", "snow", "background", "lighting",
-        "indoors", "outdoors"
-    ]
-    lower = token.lower()
-    return any(keyword in lower for keyword in keywords)
+    """Check if a token represents a scene-related keyword. Delegates to services.prompt."""
+    return _is_scene_token(token)
 
 
 def normalize_prompt_tokens(prompt: str) -> str:
-    lora_tags = re.findall(r"<lora:[^>]+>", prompt, flags=re.IGNORECASE)
-    model_tags = re.findall(r"<model:[^>]+>", prompt, flags=re.IGNORECASE)
-
-    def unique_tags(tags: list[str]) -> list[str]:
-        seen = set()
-        ordered: list[str] = []
-        for tag in tags:
-            key = tag.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            ordered.append(tag)
-        return ordered
-
-    unique_lora = unique_tags(lora_tags)
-    unique_model = unique_tags(model_tags)
-    cleaned = re.sub(r"<lora:[^>]+>", "", prompt, flags=re.IGNORECASE)
-    cleaned = re.sub(r"<model:[^>]+>", "", cleaned, flags=re.IGNORECASE)
-    tokens = split_prompt_tokens(cleaned)
-    seen = set()
-    merged: list[str] = []
-    for token in tokens:
-        key = token.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        merged.append(token)
-    merged.extend(unique_lora)
-    merged.extend(unique_model)
-    return ", ".join(merged)
+    """Normalize prompt tokens. Delegates to services.prompt."""
+    return _normalize_prompt_tokens(prompt)
 
 
 def normalize_negative_prompt(negative: str) -> str:
-    tokens = split_prompt_tokens(negative)
-    seen = set()
-    merged: list[str] = []
-    for token in tokens:
-        key = token.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        merged.append(token)
-    return ", ".join(merged)
+    """Normalize negative prompt. Delegates to services.prompt."""
+    return _normalize_negative_prompt(negative)
 
 
 def get_audio_duration(path: pathlib.Path) -> float:
