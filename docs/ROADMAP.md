@@ -51,7 +51,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | Components 분리 | SetupPanel, SceneCard, RenderSettingsPanel 등 21개 | [x] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [ ] |
 
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,255줄 (1,967줄 감소, 47%)
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,240줄 (1,982줄 감소, 47%)
 
 추출된 모듈:
 - Types: `types/index.ts`
@@ -120,4 +120,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 리팩토링 47% 완료 (page.tsx: 4,222 → 2,255줄). 20개 컴포넌트 + utils 모듈 추출.
+**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 리팩토링 47% 완료 (page.tsx: 4,222 → 2,240줄). 20개 컴포넌트 + utils 모듈 추출, 불필요한 함수 추상화 제거.
