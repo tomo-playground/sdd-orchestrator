@@ -3269,19 +3269,7 @@ export default function Home() {
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Scene Layout
-                </label>
-                <select
-                  value={layoutStyle}
-                  onChange={(e) => setLayoutStyle(e.target.value as "full" | "post")}
-                  className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                >
-                  <option value="full">Full (Blur Fill)</option>
-                  <option value="post">Post (Square Center)</option>
-                </select>
-              </div>
+              {/* Layout Visual Cards - moved outside grid for better display */}
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Effects (Skillset)
@@ -3294,6 +3282,81 @@ export default function Home() {
                   <option value="none">None</option>
                   <option value="slow_zoom">Slow Zoom</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Layout Visual Cards */}
+            <div className="grid gap-2">
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Scene Layout
+              </label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setLayoutStyle("full")}
+                  className={`group flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
+                    layoutStyle === "full"
+                      ? "border-zinc-900 bg-zinc-900/5 shadow-md"
+                      : "border-zinc-200 bg-white/80 hover:border-zinc-400"
+                  }`}
+                >
+                  {/* 9:16 Visual */}
+                  <div
+                    className={`flex h-20 w-11 flex-col items-center justify-center rounded-lg border-2 ${
+                      layoutStyle === "full" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
+                    }`}
+                  >
+                    <div className={`h-6 w-6 rounded ${layoutStyle === "full" ? "bg-zinc-500" : "bg-zinc-300"}`} />
+                    <div className={`mt-1 h-1 w-5 rounded ${layoutStyle === "full" ? "bg-zinc-400" : "bg-zinc-200"}`} />
+                    <div className={`mt-0.5 h-1 w-4 rounded ${layoutStyle === "full" ? "bg-zinc-400" : "bg-zinc-200"}`} />
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>
+                      Full
+                    </p>
+                    <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>
+                      9:16 세로
+                    </p>
+                  </div>
+                  {layoutStyle === "full" && (
+                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">
+                      선택됨
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLayoutStyle("post")}
+                  className={`group flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
+                    layoutStyle === "post"
+                      ? "border-zinc-900 bg-zinc-900/5 shadow-md"
+                      : "border-zinc-200 bg-white/80 hover:border-zinc-400"
+                  }`}
+                >
+                  {/* 1:1 Visual */}
+                  <div
+                    className={`flex h-14 w-14 flex-col items-center justify-center rounded-lg border-2 ${
+                      layoutStyle === "post" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
+                    }`}
+                  >
+                    <div className={`h-6 w-6 rounded ${layoutStyle === "post" ? "bg-zinc-500" : "bg-zinc-300"}`} />
+                    <div className={`mt-1 h-1 w-5 rounded ${layoutStyle === "post" ? "bg-zinc-400" : "bg-zinc-200"}`} />
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>
+                      Post
+                    </p>
+                    <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>
+                      1:1 정사각형
+                    </p>
+                  </div>
+                  {layoutStyle === "post" && (
+                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">
+                      선택됨
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 
