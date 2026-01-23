@@ -247,6 +247,7 @@ export default function Home() {
     error?: string;
   }>({ status: "idle", step: "idle", message: "" });
   const [autoRunLog, setAutoRunLog] = useState<string[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const isAutoRunning = autoRunState.status === "running";
   const autoRunCancelRef = useRef(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -647,6 +648,45 @@ export default function Home() {
     void fetchModels();
   }, []);
 
+  // Toast helper
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in input/textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      // Arrow Left/Right: Navigate scenes
+      if (e.key === "ArrowLeft" && scenes.length > 0) {
+        e.preventDefault();
+        setCurrentSceneIndex((prev) => Math.max(0, prev - 1));
+      }
+      if (e.key === "ArrowRight" && scenes.length > 0) {
+        e.preventDefault();
+        setCurrentSceneIndex((prev) => Math.min(scenes.length - 1, prev + 1));
+      }
+
+      // Escape: Close modals
+      if (e.key === "Escape") {
+        setImagePreviewSrc(null);
+        setVideoPreviewSrc(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [scenes.length]);
+
   const canRender = useMemo(() => {
     return scenes.length > 0 && scenes.every((scene) => !!scene.image_url);
   }, [scenes]);
@@ -920,6 +960,9 @@ export default function Home() {
       setVideoUrlFull(urlWithTs);
       setVideoUrl(urlWithTs);
       pushRecentVideo(urlWithTs, "full");
+      showToast("Full 렌더링 완료!", "success");
+    } else {
+      showToast("Full 렌더링 실패", "error");
     }
     return Boolean(url);
   };
@@ -931,6 +974,9 @@ export default function Home() {
       setVideoUrlPost(urlWithTs);
       setVideoUrl(urlWithTs);
       pushRecentVideo(urlWithTs, "post");
+      showToast("Post 렌더링 완료!", "success");
+    } else {
+      showToast("Post 렌더링 실패", "error");
     }
     return Boolean(url);
   };
@@ -953,11 +999,15 @@ export default function Home() {
         setVideoUrlPost(postUrlWithTs);
         pushRecentVideo(postUrlWithTs, "post");
       }
-      if (!fullUrl && !postUrl) {
-        alert("Render failed");
+      if (fullUrl && postUrl) {
+        showToast("Full + Post 렌더링 완료!", "success");
+      } else if (fullUrl || postUrl) {
+        showToast("일부 렌더링 완료", "success");
+      } else {
+        showToast("렌더링 실패", "error");
       }
     } catch {
-      alert("Render failed");
+      showToast("렌더링 실패", "error");
     } finally {
       setIsRendering(false);
     }
@@ -3342,6 +3392,13 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
+                {/* Font Preview */}
+                <div
+                  className="mt-2 rounded-xl border border-zinc-200 bg-zinc-900 px-4 py-3 text-center text-white"
+                  style={{ fontFamily: subtitleFont || "sans-serif" }}
+                >
+                  <span className="text-lg">가나다 ABC 123</span>
+                </div>
               </div>
               {/* Layout Visual Cards - moved outside grid for better display */}
               <div className="flex flex-col gap-2">
@@ -3950,6 +4007,19 @@ export default function Home() {
           </div>
         </div>
       </aside>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 transform rounded-full px-6 py-3 text-sm font-medium shadow-lg transition-all ${
+            toast.type === "success"
+              ? "bg-emerald-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
