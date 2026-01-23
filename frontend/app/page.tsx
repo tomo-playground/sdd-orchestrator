@@ -913,6 +913,56 @@ export default function Home() {
     return Boolean(url);
   };
 
+  const handleRenderFull = async () => {
+    const url = await requestRenderVideo("full");
+    if (url) {
+      const urlWithTs = `${url}?t=${Date.now()}`;
+      setVideoUrlFull(urlWithTs);
+      setVideoUrl(urlWithTs);
+      pushRecentVideo(urlWithTs, "full");
+    }
+    return Boolean(url);
+  };
+
+  const handleRenderPost = async () => {
+    const url = await requestRenderVideo("post");
+    if (url) {
+      const urlWithTs = `${url}?t=${Date.now()}`;
+      setVideoUrlPost(urlWithTs);
+      setVideoUrl(urlWithTs);
+      pushRecentVideo(urlWithTs, "post");
+    }
+    return Boolean(url);
+  };
+
+  const handleRenderBoth = async () => {
+    setIsRendering(true);
+    try {
+      // Render Full
+      const fullUrl = await requestRenderVideo("full", true);
+      if (fullUrl) {
+        const fullUrlWithTs = `${fullUrl}?t=${Date.now()}`;
+        setVideoUrlFull(fullUrlWithTs);
+        setVideoUrl(fullUrlWithTs);
+        pushRecentVideo(fullUrlWithTs, "full");
+      }
+      // Render Post
+      const postUrl = await requestRenderVideo("post", true);
+      if (postUrl) {
+        const postUrlWithTs = `${postUrl}?t=${Date.now()}`;
+        setVideoUrlPost(postUrlWithTs);
+        pushRecentVideo(postUrlWithTs, "post");
+      }
+      if (!fullUrl && !postUrl) {
+        alert("Render failed");
+      }
+    } catch {
+      alert("Render failed");
+    } finally {
+      setIsRendering(false);
+    }
+  };
+
   const buildRenderPayload = (
     layoutOverride?: "full" | "post",
     scenesOverride?: Scene[],
@@ -3189,13 +3239,37 @@ export default function Home() {
                     </button>
                   </>
                 )}
-                <button
-                  onClick={handleRenderVideo}
-                  disabled={!canRender || isRendering}
-                  className="rounded-full bg-zinc-900 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-                >
-                  {isRendering ? "Rendering..." : "Render Video"}
-                </button>
+                <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white/50 p-1">
+                  <button
+                    onClick={handleRenderFull}
+                    disabled={!canRender || isRendering}
+                    className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      layoutStyle === "full"
+                        ? "bg-zinc-900 text-white"
+                        : "text-zinc-600 hover:bg-zinc-100"
+                    }`}
+                  >
+                    Full
+                  </button>
+                  <button
+                    onClick={handleRenderPost}
+                    disabled={!canRender || isRendering}
+                    className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      layoutStyle === "post"
+                        ? "bg-zinc-900 text-white"
+                        : "text-zinc-600 hover:bg-zinc-100"
+                    }`}
+                  >
+                    Post
+                  </button>
+                  <button
+                    onClick={handleRenderBoth}
+                    disabled={!canRender || isRendering}
+                    className="rounded-full bg-zinc-900 px-3 py-1.5 text-[10px] font-semibold tracking-[0.1em] text-white uppercase shadow-md transition disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isRendering ? "Rendering..." : "Both ✨"}
+                  </button>
+                </div>
               </div>
             </div>
 
