@@ -38,6 +38,7 @@ import {
   ACTION_KEYWORDS,
   BACKGROUND_KEYWORDS,
   LIGHTING_KEYWORDS,
+  SCENE_SPECIFIC_KEYWORDS,
 } from "./constants";
 
 import SetupPanel from "./components/SetupPanel";
@@ -1374,43 +1375,6 @@ export default function Home() {
     const scenePrompt = scene.image_prompt.trim();
     if (!autoComposePrompt || !base) return scenePrompt;
     if (!scenePrompt) return base;
-    const sceneKeywords = [
-      "sitting",
-      "standing",
-      "walking",
-      "running",
-      "jumping",
-      "kneeling",
-      "crouching",
-      "lying",
-      "from above",
-      "top-down",
-      "low angle",
-      "high angle",
-      "close-up",
-      "wide shot",
-      "full body",
-      "library",
-      "cafe",
-      "street",
-      "room",
-      "bedroom",
-      "office",
-      "classroom",
-      "park",
-      "forest",
-      "beach",
-      "city",
-      "night",
-      "sunset",
-      "sunrise",
-      "rain",
-      "snow",
-      "background",
-      "lighting",
-      "indoors",
-      "outdoors",
-    ];
     const splitTokens = (text: string) =>
       text
         .split(",")
@@ -1418,7 +1382,7 @@ export default function Home() {
         .filter(Boolean);
     const baseTokens = splitTokens(base).filter((token) => {
       const lower = token.toLowerCase();
-      return !sceneKeywords.some((keyword) => lower.includes(keyword));
+      return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
     });
     const sceneTokens = splitTokens(scenePrompt);
     const merged: string[] = [];

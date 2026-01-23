@@ -114,3 +114,17 @@ export const LIGHTING_KEYWORDS = [
   "night",
   "sunset",
 ];
+
+// Combined keywords for scene-specific tokens (used in buildPositivePrompt to filter base prompt)
+export const SCENE_SPECIFIC_KEYWORDS = [
+  // Actions/poses
+  "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
+  // Camera angles
+  "from above", "top-down", "low angle", "high angle", "close-up", "wide shot", "full body",
+  // Locations
+  "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest", "beach", "city",
+  // Time/weather
+  "night", "sunset", "sunrise", "rain", "snow",
+  // Other
+  "background", "lighting", "indoors", "outdoors",
+];
