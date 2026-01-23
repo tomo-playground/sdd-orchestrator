@@ -2672,37 +2672,43 @@ export default function Home() {
             )}
           </section>
 
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <button
-              onClick={resetScenesOnly}
-              disabled={isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
-            >
-              Reset Scenes
-            </button>
-            <button
-              onClick={resetDraft}
-              disabled={isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-lg shadow-zinc-200/40 transition disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
-            >
-              Reset Draft
-            </button>
-            <button
-              onClick={handleGenerateScenes}
-              disabled={isGenerating || !topic.trim() || isAutoRunning}
-              className="rounded-full border border-zinc-300 bg-white/80 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-lg shadow-zinc-200/40 transition hover:bg-white hover:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
-            >
-              {isGenerating ? "Generating..." : "Generate"}
-            </button>
-            <button
-              onClick={handleAutoRun}
-              disabled={isGenerating || isRendering || isAutoRunning || !topic.trim()}
-              className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
-            >
-              {isAutoRunning
-                ? `${AUTO_RUN_STEPS.find((s) => s.id === autoRunState.step)?.label || "Running"}...`
-                : "Auto Run"}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Reset Actions - Left */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={resetScenesOnly}
+                disabled={isAutoRunning}
+                className="rounded-full border border-zinc-200 bg-white/60 px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-300 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Reset Scenes
+              </button>
+              <button
+                onClick={resetDraft}
+                disabled={isAutoRunning}
+                className="rounded-full border border-zinc-200 bg-white/60 px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-300 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Reset Draft
+              </button>
+            </div>
+            {/* Primary Actions - Right */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleGenerateScenes}
+                disabled={isGenerating || !topic.trim() || isAutoRunning}
+                className="rounded-full border border-zinc-300 bg-white px-5 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition hover:bg-zinc-50 hover:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+              >
+                {isGenerating ? "Generating..." : "Generate"}
+              </button>
+              <button
+                onClick={handleAutoRun}
+                disabled={isGenerating || isRendering || isAutoRunning || !topic.trim()}
+                className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              >
+                {isAutoRunning
+                  ? `${AUTO_RUN_STEPS.find((s) => s.id === autoRunState.step)?.label || "Running"}...`
+                  : "Auto Run"}
+              </button>
+            </div>
           </div>
           {autoRunState.status !== "idle" && (
             <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-xs text-zinc-600">
@@ -2744,16 +2750,16 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleAutoRunResume}
-                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+                    className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-sm transition hover:bg-zinc-800"
                   >
                     Resume from Step
                   </button>
                   <button
                     type="button"
                     onClick={handleAutoRun}
-                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-400 hover:text-zinc-600"
                   >
-                    Restart Autopilot
+                    Restart
                   </button>
                 </div>
               )}
@@ -2775,55 +2781,63 @@ export default function Home() {
           </div>
 
           <section className="grid gap-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-900">Scenes</h2>
-                <p className="text-xs text-zinc-500">
-                  Upload the exact images you want for each scene.
-                </p>
+            <div className="grid gap-4">
+              {/* Header Row */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-900">Scenes</h2>
+                  <p className="text-xs text-zinc-500">
+                    Upload the exact images you want for each scene.
+                  </p>
+                </div>
+                {/* Action Buttons - Right */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={runValidation}
+                    className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow"
+                  >
+                    Validate
+                  </button>
+                  <button
+                    onClick={handleAutoFixAll}
+                    disabled={scenes.length === 0}
+                    className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Auto Fix All
+                  </button>
+                  <button
+                    onClick={handleAddScene}
+                    className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition hover:bg-zinc-50"
+                  >
+                    + Add Scene
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-2">
-                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                    Image Check
-                  </span>
+              {/* Settings Row */}
+              <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50/50 px-4 py-2">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">Settings</span>
+                <div className="h-4 w-px bg-zinc-200" />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-zinc-500">Image Check</span>
                   <select
                     value={imageCheckMode}
                     onChange={(e) => setImageCheckMode(e.target.value as "local" | "gemini")}
-                    className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] tracking-[0.2em] text-zinc-600 uppercase"
+                    className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] text-zinc-600"
                   >
                     <option value="local">Local (WD14)</option>
                     <option value="gemini">Gemini (Cloud)</option>
                   </select>
                 </div>
-                <label className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                <div className="h-4 w-px bg-zinc-200" />
+                <label className="flex items-center gap-2 text-[10px] font-medium text-zinc-500 cursor-pointer">
                   3x Candidates
                   <input
                     type="checkbox"
                     checked={multiGenEnabled}
                     onChange={(e) => setMultiGenEnabled(e.target.checked)}
-                    className="h-4 w-4 accent-zinc-900"
+                    className="h-3.5 w-3.5 accent-zinc-900"
                   />
                 </label>
-                <button
-                  onClick={runValidation}
-                  className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow"
-                >
-                  Validate
-                </button>
-                <button
-                  onClick={handleAutoFixAll}
-                  disabled={scenes.length === 0}
-                  className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Auto Fix All
-                </button>
-                <button
-                  onClick={handleAddScene}
-                  className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow"
-                >
-                  Add Scene
-                </button>
               </div>
             </div>
 
