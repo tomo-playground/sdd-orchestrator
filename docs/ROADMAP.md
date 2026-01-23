@@ -62,7 +62,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | Components 분리 | SetupPanel, SceneCard, RenderSettingsPanel 등 21개 | [x] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [x] |
 
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,020줄 (2,202줄 감소, 52%)
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 1,928줄 (2,294줄 감소, 54%)
 
 추출된 모듈:
 - Types: `types/index.ts`
@@ -136,4 +136,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 52% 완료 (page.tsx: 4,222 → 2,020줄, 20개 컴포넌트 + 2개 훅 + utils 모듈). Backend 67% 완료 (logic.py: ~2,300 → 758줄, 7개 서비스).
+**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 54% 완료 (page.tsx: 4,222 → 1,928줄, 20개 컴포넌트 + 2개 훅 + utils/validation 모듈). Backend 67% 완료 (logic.py: ~2,300 → 758줄, 7개 서비스).
