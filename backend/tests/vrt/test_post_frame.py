@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from logic import compose_post_frame
+from services.rendering import compose_post_frame
 from tests.vrt.compare import VRTComparison
 
 

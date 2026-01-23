@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from logic import create_overlay_image
+from services.rendering import create_overlay_image
 from schemas import OverlaySettings
 from tests.vrt.compare import VRTComparison, pil_to_numpy
 

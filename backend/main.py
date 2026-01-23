@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-import logic
+from config import ASSETS_DIR
 from routers import (
     assets_router,
     avatar_router,
@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
-app.mount("/assets", StaticFiles(directory=str(logic.ASSETS_DIR)), name="assets")
+app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
 # --- Routers ---
 app.include_router(assets_router)

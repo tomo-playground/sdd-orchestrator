@@ -18,7 +18,7 @@ from constants.testing import (
     get_test_views_time,
     get_test_avatar_color,
 )
-from logic import render_subtitle_image, _build_post_meta
+from services.rendering import render_subtitle_image, _build_post_meta
 from tests.vrt.compare import VRTComparison, pil_to_numpy
 
 

@@ -8,7 +8,7 @@ import pytest
 from pathlib import Path
 
 # Import the function under test
-from logic import render_subtitle_image
+from services.rendering import render_subtitle_image
 from tests.vrt.compare import VRTComparison, pil_to_numpy
 
 
