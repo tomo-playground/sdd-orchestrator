@@ -51,16 +51,19 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | Components 분리 | SetupPanel, SceneCard, RenderSettingsPanel 등 21개 | [x] |
 | useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [ ] |
 
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,324줄 (1,898줄 감소, 45%)
+**Frontend 진행 현황**: `page.tsx` 4,222줄 → 2,255줄 (1,967줄 감소, 47%)
 
-추출된 컴포넌트 (21개):
-- Types: `types/index.ts`, Constants: `constants/index.ts`
-- Setup: `SetupPanel`, `StoryboardGeneratorPanel`, `PromptSetupPanel`
-- Actions: `StoryboardActionsBar`, `AutoRunStatus`
-- Scene: `SceneListHeader`, `SceneFilmstrip`, `SceneCard`, `SceneImagePanel`, `ValidationTabContent`, `DebugTabContent`
-- Render: `RenderSettingsPanel`, `RenderedVideosSection`, `LayoutSelector`
-- Modals: `AutoRunProgressModal`, `PreviewModal`, `PromptHelperSidebar`
-- UI: `WorkingModeHeader`, `SectionDivider`, `Toast`
+추출된 모듈:
+- Types: `types/index.ts`
+- Constants: `constants/index.ts` (SCENE_SPECIFIC_KEYWORDS 추가)
+- Utils: `utils/index.ts` (slugifyAvatarKey, normalize* 함수)
+- Components (20개):
+  - Setup: `SetupPanel`, `StoryboardGeneratorPanel`, `PromptSetupPanel`
+  - Actions: `StoryboardActionsBar`, `AutoRunStatus`
+  - Scene: `SceneListHeader`, `SceneFilmstrip`, `SceneCard`, `SceneImagePanel`, `ValidationTabContent`, `DebugTabContent`
+  - Render: `RenderSettingsPanel`, `RenderedVideosSection`, `LayoutSelector`
+  - Modals: `AutoRunProgressModal`, `PreviewModal`, `PromptHelperSidebar`
+  - UI: `WorkingModeHeader`, `SectionDivider`, `Toast`
 
 ---
 
@@ -117,4 +120,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 리팩토링 45% 완료 (page.tsx: 4,222 → 2,324줄). 21개 컴포넌트 추출.
+**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 리팩토링 47% 완료 (page.tsx: 4,222 → 2,255줄). 20개 컴포넌트 + utils 모듈 추출.
