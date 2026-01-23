@@ -41,7 +41,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Router 분리 | `main.py` → `routers/` (API 엔드포인트) | [x] |
-| Service 분리 | `main.py` → `services/` (비즈니스 로직) | [ ] |
+| Service 분리 | `main.py` → `services/` (비즈니스 로직) | [~] |
 | Keyword/Asset 분리 | 영향도 적은 조회 로직부터 분리 (Quick Win) | [x] |
 
 ### 3-2. Frontend 리팩토링
