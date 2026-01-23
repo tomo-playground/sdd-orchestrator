@@ -114,7 +114,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 ### 5-1. 운영 효율화
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| Resume/Checkpoint | 중단된 작업 이어하기 | [ ] |
+| Resume/Checkpoint | 중단된 작업 이어하기 | [x] |
 | Storage Cleanup | outputs/ 자동 정리 로직 | [ ] |
 | Project DB (SQLite) | 프로젝트 설정 및 히스토리 관리 | [ ] |
 
@@ -150,4 +150,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-24 Backend 리팩토링 완료. logic.py 279줄 (88% 감소), config.py 분리, VideoBuilder 클래스 추출. Phase 3 완료, Phase 5 (신규 개발) 준비 완료.
+**Latest Status**: 2026-01-24 Resume/Checkpoint 기능 구현 완료. 중단된 Autopilot 세션을 페이지 새로고침 후 이어서 진행 가능. Phase 5-1 진행 중.

@@ -19,6 +19,7 @@ import type {
   ImageValidation,
   DraftData,
   DraftScene,
+  AutopilotCheckpoint,
 } from "./types";
 
 import {
@@ -49,6 +50,7 @@ import ValidationTabContent from "./components/ValidationTabContent";
 import DebugTabContent from "./components/DebugTabContent";
 import LayoutSelector from "./components/LayoutSelector";
 import AutoRunProgressModal from "./components/AutoRunProgressModal";
+import ResumeConfirmModal from "./components/ResumeConfirmModal";
 import PreviewModal from "./components/PreviewModal";
 import RenderSettingsPanel from "./components/RenderSettingsPanel";
 import PromptHelperSidebar from "./components/PromptHelperSidebar";
@@ -167,7 +169,12 @@ export default function Home() {
     cancel: handleAutoRunCancel,
     reset: resetAutoRun,
     startRun: startAutoRun,
+    getCheckpoint,
   } = useAutopilot();
+
+  // Resume modal state
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [resumableCheckpoint, setResumableCheckpoint] = useState<AutopilotCheckpoint | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
@@ -203,6 +210,29 @@ export default function Home() {
       })
       .catch(() => setFontList([]));
   }, []);
+
+  // Calculate the best step to resume from based on data state
+  const calculateResumeStep = (
+    checkpointStep: AutoRunStepId,
+    hydratedScenes: DraftScene[]
+  ): AutoRunStepId | null => {
+    if (!hydratedScenes.length) return null;
+
+    const hasAllImages = hydratedScenes.every((s) => s.image_url);
+    const hasAllPrompts = hydratedScenes.every((s) => s.image_prompt);
+
+    // Determine the earliest possible resume step
+    if (!hasAllPrompts) return "fix";
+    if (!hasAllImages) return "images";
+    // If we have all images, we can resume from validate or render
+    const stepOrder: AutoRunStepId[] = ["storyboard", "fix", "images", "validate", "render"];
+    const checkpointIdx = stepOrder.indexOf(checkpointStep);
+    const imagesIdx = stepOrder.indexOf("images");
+
+    // Resume from at least images step if checkpoint was earlier
+    if (checkpointIdx <= imagesIdx) return "validate";
+    return checkpointStep;
+  };
 
   // Draft persistence hook - handles hydration and saving
   const handleDraftHydrate = useCallback((draft: DraftData) => {
@@ -251,6 +281,15 @@ export default function Home() {
       );
       setCurrentSceneIndex(0);
     }
+    // Handle checkpoint for resume functionality
+    if (draft.checkpoint && draft.checkpoint.interrupted) {
+      const hydratedScenes = Array.isArray(draft.scenes) ? draft.scenes : [];
+      const resumeStep = calculateResumeStep(draft.checkpoint.step, hydratedScenes);
+      if (resumeStep) {
+        setResumableCheckpoint({ ...draft.checkpoint, step: resumeStep });
+        setShowResumeModal(true);
+      }
+    }
   }, []);
 
   const buildDraftScenes = useCallback((): DraftScene[] => {
@@ -286,22 +325,39 @@ export default function Home() {
     return draftScenes;
   }, [scenes]);
 
-  const getDraftData = useCallback((): DraftData => ({
+  const getDraftData = useCallback((): DraftData => {
+    const checkpoint = getCheckpoint();
+    // Preserve existing checkpoint if current is null (e.g., after page refresh)
+    let finalCheckpoint = checkpoint;
+    if (!finalCheckpoint && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (stored) {
+          const existing = JSON.parse(stored) as DraftData;
+          finalCheckpoint = existing.checkpoint ?? null;
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    return {
+      topic, duration, style, language, structure, actorAGender,
+      basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
+      baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
+      narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+      overlaySettings, postCardSettings, layoutStyle, motionStyle,
+      hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+      recentVideos, scenes: buildDraftScenes(),
+      checkpoint: finalCheckpoint ?? undefined,
+    };
+  }, [
     topic, duration, style, language, structure, actorAGender,
     basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, subtitleFont, speedMultiplier,
     overlaySettings, postCardSettings, layoutStyle, motionStyle,
     hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
-    recentVideos, scenes: buildDraftScenes(),
-  }), [
-    topic, duration, style, language, structure, actorAGender,
-    basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
-    baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
-    narratorVoice, bgmFile, subtitleFont, speedMultiplier,
-    overlaySettings, postCardSettings, layoutStyle, motionStyle,
-    hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
-    recentVideos, buildDraftScenes,
+    recentVideos, buildDraftScenes, getCheckpoint,
   ]);
 
   const getSlimDraftData = useCallback((): DraftData => {
@@ -905,6 +961,19 @@ export default function Home() {
         }
       }
       setAutoRunDone();
+      // Clear checkpoint on successful completion
+      if (typeof window !== "undefined") {
+        try {
+          const stored = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+          if (stored) {
+            const data = JSON.parse(stored) as DraftData;
+            delete data.checkpoint;
+            window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
+          }
+        } catch {
+          // Ignore errors
+        }
+      }
       showToast("Auto Run 완료! 영상이 생성되었습니다.", "success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Autopilot failed";
@@ -923,6 +992,25 @@ export default function Home() {
   const handleAutoRunResume = async () => {
     if (autoRunState.step === "idle") return;
     await runAutoRunFromStep(autoRunState.step);
+  };
+
+  // Resume modal handlers
+  const handleResumeFromCheckpoint = async () => {
+    if (!resumableCheckpoint) return;
+    setShowResumeModal(false);
+    await runAutoRunFromStep(resumableCheckpoint.step);
+    setResumableCheckpoint(null);
+  };
+
+  const handleStartFresh = async () => {
+    setShowResumeModal(false);
+    setResumableCheckpoint(null);
+    await runAutoRunFromStep("storyboard");
+  };
+
+  const handleDismissResume = () => {
+    setShowResumeModal(false);
+    setResumableCheckpoint(null);
   };
 
   const resetScenesOnly = () => {
@@ -1795,6 +1883,17 @@ export default function Home() {
             autoRunLog={autoRunLog}
             autoRunProgress={autoRunProgress}
             onCancel={handleAutoRunCancel}
+          />
+        )}
+
+        {/* ============ SHARED: Resume Confirm Modal ============ */}
+        {showResumeModal && resumableCheckpoint && (
+          <ResumeConfirmModal
+            resumeStep={resumableCheckpoint.step}
+            timestamp={resumableCheckpoint.timestamp}
+            onResume={handleResumeFromCheckpoint}
+            onStartFresh={handleStartFresh}
+            onDismiss={handleDismissResume}
           />
         )}
       </div>

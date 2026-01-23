@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback } from "react";
-import { AutoRunStepId } from "../types";
+import { AutoRunStepId, AutopilotCheckpoint } from "../types";
 import { AUTO_RUN_STEPS } from "../constants";
 
 export interface AutoRunState {
@@ -75,6 +75,23 @@ export function useAutopilot() {
     setAutoRunLog([]);
   }, []);
 
+  const getCheckpoint = useCallback((): AutopilotCheckpoint | null => {
+    if (autoRunState.step === "idle") return null;
+    return {
+      step: autoRunState.step as AutoRunStepId,
+      timestamp: Date.now(),
+      interrupted: autoRunState.status === "error" || autoRunState.status === "running",
+    };
+  }, [autoRunState.step, autoRunState.status]);
+
+  const initializeFromCheckpoint = useCallback((checkpoint: AutopilotCheckpoint) => {
+    setAutoRunState({
+      status: "idle",
+      step: checkpoint.step,
+      message: checkpoint.interrupted ? "Autopilot was interrupted" : "Ready to resume",
+    });
+  }, []);
+
   const autoRunProgress = useMemo(() => {
     if (autoRunState.status === "done") return 100;
     if (autoRunState.step === "idle") return 0;
@@ -97,6 +114,9 @@ export function useAutopilot() {
     cancel,
     reset,
     startRun,
+    // Checkpoint
+    getCheckpoint,
+    initializeFromCheckpoint,
   };
 }
 

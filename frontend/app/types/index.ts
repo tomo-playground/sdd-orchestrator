@@ -76,6 +76,12 @@ export type AutoRunState = {
   error?: string;
 };
 
+export type AutopilotCheckpoint = {
+  step: AutoRunStepId;
+  timestamp: number;
+  interrupted: boolean;
+};
+
 export type RecentVideo = {
   url: string;
   label: "full" | "post" | "single";
@@ -134,4 +140,5 @@ export type DraftData = {
   videoUrlPost?: string | null;
   recentVideos?: RecentVideo[];
   scenes?: DraftScene[];
+  checkpoint?: AutopilotCheckpoint;
 };
