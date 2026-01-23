@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAutopilot } from "./hooks";
 import axios from "axios";
 
 import type {
@@ -142,17 +143,24 @@ export default function Home() {
   const [imagePreviewSrc, setImagePreviewSrc] = useState<string | null>(null);
   const [videoPreviewSrc, setVideoPreviewSrc] = useState<string | null>(null);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
-  const [autoRunState, setAutoRunState] = useState<{
-    status: "idle" | "running" | "error" | "done";
-    step: AutoRunStepId | "idle";
-    message: string;
-    error?: string;
-  }>({ status: "idle", step: "idle", message: "" });
-  const [autoRunLog, setAutoRunLog] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [viewMode, setViewMode] = useState<"setup" | "working">("setup");
-  const isAutoRunning = autoRunState.status === "running";
-  const autoRunCancelRef = useRef(false);
+
+  // Autopilot hook
+  const {
+    autoRunState,
+    autoRunLog,
+    isAutoRunning,
+    autoRunProgress,
+    pushLog: pushAutoRunLog,
+    setStep: setAutoRunStep,
+    setError: setAutoRunError,
+    setDone: setAutoRunDone,
+    checkCancelled: assertNotCancelled,
+    cancel: handleAutoRunCancel,
+    reset: resetAutoRun,
+    startRun: startAutoRun,
+  } = useAutopilot();
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
   const draftSaveTimeoutRef = useRef<number | null>(null);
@@ -944,28 +952,15 @@ export default function Home() {
     }
   };
 
-  const pushAutoRunLog = (message: string) => {
-    setAutoRunLog((prev) => {
-      const next = [...prev, message];
-      return next.slice(-6);
-    });
-  };
-
   const runAutoRunFromStep = async (startStep: AutoRunStepId) => {
     if (!topic.trim()) {
       alert("Enter a topic first.");
       return;
     }
-    autoRunCancelRef.current = false;
-    setAutoRunLog([]);
+    startAutoRun();
     let workingScenes = scenes;
     let currentStep: AutoRunStepId = startStep;
     setMotionStyle("none");
-    const assertNotCancelled = () => {
-      if (autoRunCancelRef.current) {
-        throw new Error("Autopilot cancelled");
-      }
-    };
     try {
       const overlayAuto = buildOverlayContext(workingScenes);
       setOverlaySettings((prev) => ({ ...prev, ...overlayAuto }));
@@ -976,11 +971,7 @@ export default function Home() {
         currentStep = steps[idx];
         assertNotCancelled();
         if (currentStep === "storyboard") {
-          setAutoRunState({
-            status: "running",
-            step: "storyboard",
-            message: "Generating storyboard...",
-          });
+          setAutoRunStep("storyboard", "Generating storyboard...");
           pushAutoRunLog("Storyboard started");
           workingScenes = await fetchStoryboardScenes();
           if (!workingScenes.length) {
@@ -994,11 +985,7 @@ export default function Home() {
         }
 
         if (currentStep === "fix") {
-          setAutoRunState({
-            status: "running",
-            step: "fix",
-            message: "Auto-fixing scripts and prompts...",
-          });
+          setAutoRunStep("fix", "Auto-fixing scripts and prompts...");
           workingScenes = applyAutoFixForScenes(workingScenes);
           setScenes(workingScenes);
           const { results, summary } = computeValidationResults(workingScenes);
@@ -1008,11 +995,7 @@ export default function Home() {
         }
 
         if (currentStep === "images") {
-          setAutoRunState({
-            status: "running",
-            step: "images",
-            message: "Generating scene images...",
-          });
+          setAutoRunStep("images", "Generating scene images...");
           for (const scene of workingScenes) {
             assertNotCancelled();
             if (scene.image_url) {
@@ -1041,7 +1024,7 @@ export default function Home() {
         }
 
         if (currentStep === "validate") {
-          setAutoRunState({ status: "running", step: "validate", message: "Validating images..." });
+          setAutoRunStep("validate", "Validating images...");
           for (const scene of workingScenes) {
             assertNotCancelled();
             if (!scene.image_url) continue;
@@ -1057,7 +1040,7 @@ export default function Home() {
         }
 
         if (currentStep === "render") {
-          setAutoRunState({ status: "running", step: "render", message: "Rendering video..." });
+          setAutoRunStep("render", "Rendering video...");
           const overlayAuto = buildOverlayContext(workingScenes);
           const mergedOverlay = { ...overlaySettings, ...overlayAuto };
           setOverlaySettings(mergedOverlay);
@@ -1095,18 +1078,11 @@ export default function Home() {
           pushAutoRunLog("Post render complete");
         }
       }
-      setAutoRunState({ status: "done", step: "render", message: "Autopilot complete." });
+      setAutoRunDone();
       showToast("Auto Run 완료! 영상이 생성되었습니다.", "success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Autopilot failed";
-      const failedMessage =
-        message === "Autopilot cancelled" ? "Autopilot cancelled." : "Autopilot failed.";
-      setAutoRunState({
-        status: "error",
-        step: currentStep,
-        message: failedMessage,
-        error: message,
-      });
+      setAutoRunError(currentStep, message);
       pushAutoRunLog(message);
       if (message !== "Autopilot cancelled") {
         alert(`Autopilot stopped: ${message}`);
@@ -1122,20 +1098,6 @@ export default function Home() {
     if (autoRunState.step === "idle") return;
     await runAutoRunFromStep(autoRunState.step);
   };
-
-  const handleAutoRunCancel = () => {
-    if (!isAutoRunning) return;
-    autoRunCancelRef.current = true;
-    pushAutoRunLog("Autopilot cancel requested");
-  };
-
-  const autoRunProgress = useMemo(() => {
-    if (autoRunState.status === "done") return 100;
-    if (autoRunState.step === "idle") return 0;
-    const index = AUTO_RUN_STEPS.findIndex((step) => step.id === autoRunState.step);
-    if (index < 0) return 0;
-    return Math.round(((index + 1) / AUTO_RUN_STEPS.length) * 100);
-  }, [autoRunState.status, autoRunState.step]);
 
   const resetScenesOnly = () => {
     setScenes([]);
@@ -1188,8 +1150,7 @@ export default function Home() {
     setHiResEnabled(false);
     setVeoEnabled(false);
     setImagePreviewSrc(null);
-    setAutoRunState({ status: "idle", step: "idle", message: "" });
-    setAutoRunLog([]);
+    resetAutoRun();
     resetScenesOnly();
   };
 
