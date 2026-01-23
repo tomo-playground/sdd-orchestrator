@@ -102,9 +102,6 @@ API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/"
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
 WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 
-_WD14_SESSION: ort.InferenceSession | None = None
-_WD14_TAGS: list[str] | None = None
-_WD14_TAG_CATEGORIES: list[str] | None = None
 # Keyword functions imported from services
 from services.keywords import (
     expand_synonyms,
@@ -118,6 +115,16 @@ from services.keywords import (
     reset_keyword_cache,
     save_keywords_file,
     update_keyword_suggestions,
+)
+
+# Validation functions imported from services
+from services.validation import (
+    cache_key_for_validation,
+    compare_prompt_to_tags,
+    gemini_predict_tags,
+    load_wd14_model,
+    resolve_image_mime,
+    wd14_predict_tags,
 )
 
 # --- Helper Functions ---
@@ -155,169 +162,6 @@ def parse_json_payload(text: str) -> dict[str, Any]:
     if start != -1 and end != -1:
         cleaned = cleaned[start:end + 1]
     return json.loads(cleaned)
-
-
-def resolve_image_mime(image: Image.Image) -> str:
-    fmt = (image.format or "PNG").upper()
-    if fmt == "JPEG":
-        return "image/jpeg"
-    if fmt == "WEBP":
-        return "image/webp"
-    return "image/png"
-
-
-def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
-    global _WD14_SESSION, _WD14_TAGS, _WD14_TAG_CATEGORIES
-    if _WD14_SESSION and _WD14_TAGS and _WD14_TAG_CATEGORIES:
-        return _WD14_SESSION, _WD14_TAGS, _WD14_TAG_CATEGORIES
-
-    model_path = WD14_MODEL_DIR / "model.onnx"
-    tags_path = WD14_MODEL_DIR / "selected_tags.csv"
-    if not model_path.exists() or not tags_path.exists():
-        raise FileNotFoundError("WD14 model files not found.")
-
-    session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
-    tags: list[str] = []
-    categories: list[str] = []
-    with tags_path.open("r", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        headers = next(reader, None)
-        name_idx = 1
-        category_idx = 2
-        if headers:
-            lowered = [h.strip().lower() for h in headers]
-            if "name" in lowered:
-                name_idx = lowered.index("name")
-            if "category" in lowered:
-                category_idx = lowered.index("category")
-        for row in reader:
-            if len(row) <= max(name_idx, category_idx):
-                continue
-            tag = row[name_idx].replace("_", " ").strip()
-            category = row[category_idx].strip()
-            tags.append(tag)
-            categories.append(category)
-
-    _WD14_SESSION = session
-    _WD14_TAGS = tags
-    _WD14_TAG_CATEGORIES = categories
-    return session, tags, categories
-
-
-def wd14_predict_tags(image: Image.Image, threshold: float) -> list[dict[str, Any]]:
-    session, tags, categories = load_wd14_model()
-    image = image.convert("RGBA")
-    background = Image.new("RGBA", image.size, (255, 255, 255, 255))
-    image = Image.alpha_composite(background, image).convert("RGB")
-    image = image.resize((448, 448), Image.LANCZOS)
-    img_array = np.array(image).astype(np.float32)
-    img_array = img_array[:, :, ::-1]
-    img_array = img_array / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    inputs = {session.get_inputs()[0].name: img_array}
-    preds = session.run([session.get_outputs()[0].name], inputs)[0][0]
-
-    results: list[dict[str, Any]] = []
-    for score, tag, category in zip(preds, tags, categories, strict=False):
-        if category == "9":
-            continue
-        if score < threshold:
-            continue
-        results.append({"tag": tag, "score": float(score), "category": category})
-
-    results.sort(key=lambda item: item["score"], reverse=True)
-    return results
-
-
-def gemini_predict_tags(image: Image.Image) -> list[dict[str, Any]]:
-    if not gemini_client:
-        raise RuntimeError("Gemini key missing")
-
-    mime_type = resolve_image_mime(image)
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    image_bytes = buf.getvalue()
-    instruction = (
-        "Analyze the image and return JSON only: "
-        "{\"tags\": [\"short tag\", ...]}. "
-        "Use Stable Diffusion tag-style nouns/adjectives, no sentences."
-    )
-    res = gemini_client.models.generate_content(
-        model="gemini-2.0-flash-exp",
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-            instruction,
-        ],
-    )
-    data = parse_json_payload(res.text)
-    tags = data.get("tags", [])
-    results: list[dict[str, Any]] = []
-    for tag in tags:
-        if not isinstance(tag, str):
-            continue
-        cleaned = tag.strip()
-        if not cleaned:
-            continue
-        results.append({"tag": cleaned, "score": 1.0, "category": "gemini"})
-    return results
-
-
-def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str, Any]:
-    raw_tokens = split_prompt_tokens(prompt)
-    skip_tokens = {
-        "best quality",
-        "masterpiece",
-        "high quality",
-        "ultra detailed",
-        "ultra detail",
-        "highres",
-        "8k",
-        "4k",
-        "photorealistic",
-        "realistic",
-        "stylized",
-        "anime",
-        "illustration",
-        "digital painting",
-        "artstation",
-        "sharp focus",
-        "cinematic",
-    }
-    tokens = [normalize_prompt_token(token) for token in raw_tokens]
-    synonyms_map, ignore_tokens, _ = load_keyword_map()
-    tokens = [token for token in tokens if token and token not in skip_tokens and token not in ignore_tokens]
-    if not tokens:
-        return {"matched": [], "missing": [], "extra": []}
-
-    tag_names = [item["tag"].lower() for item in tags]
-    tag_set = set(tag_names)
-    expanded_tags = expand_synonyms(list(tag_set))
-
-    matched: list[str] = []
-    missing: list[str] = []
-    for token in tokens:
-        if token in expanded_tags or any(token in tag for tag in tag_set):
-            matched.append(token)
-        else:
-            missing.append(token)
-
-    extra = []
-    for item in tags[:20]:
-        name = normalize_prompt_token(item["tag"])
-        if not name or name in ignore_tokens:
-            continue
-        if name not in expand_synonyms(tokens):
-            extra.append(item["tag"])
-
-    return {"matched": matched, "missing": missing, "extra": extra}
-
-
-def cache_key_for_validation(image_bytes: bytes, prompt: str, mode: str) -> str:
-    digest = hashlib.sha256()
-    digest.update(image_bytes)
-    digest.update(prompt.encode("utf-8"))
-    digest.update(mode.encode("utf-8"))
-    return digest.hexdigest()
 
 
 def scrub_payload(payload: dict[str, Any]) -> dict[str, Any]:
