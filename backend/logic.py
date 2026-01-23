@@ -490,6 +490,10 @@ def scrub_payload(payload: dict[str, Any]) -> dict[str, Any]:
 def wrap_text(text: str, width: int, max_lines: int = 2) -> str:
     if not text:
         return ""
+    # "..."을 임시 플레이스홀더로 치환 (split 방지)
+    placeholder = "\x00ELLIPSIS\x00"
+    text = text.replace("...", placeholder)
+
     forced_split = None
     for mark in ("…", ".", "!", "?"):
         if mark in text:
@@ -509,7 +513,10 @@ def wrap_text(text: str, width: int, max_lines: int = 2) -> str:
         if lines:
             max_tail = max(0, width - 3)
             lines[-1] = lines[-1][:max_tail].rstrip() + "..."
-    return "\n".join(lines)
+
+    # 플레이스홀더를 "..."로 복원
+    result = "\n".join(lines)
+    return result.replace(placeholder, "...")
 
 
 def avatar_filename(avatar_key: str) -> str:
@@ -630,7 +637,7 @@ def _build_post_meta(
 def to_edge_tts_rate(multiplier: float) -> str:
     safe_multiplier = max(0.1, min(multiplier, 2.0))
     percent = int(round((safe_multiplier - 1.0) * 100))
-    return f"{percent}%" if percent >= 0 else f"{percent}%"
+    return f"+{percent}%" if percent >= 0 else f"{percent}%"
 
 
 def split_prompt_tokens(prompt: str) -> list[str]:
@@ -827,51 +834,53 @@ def render_subtitle_image(
         return canvas
 
     if use_post_layout and post_layout_metrics:
-        subtitle_size = int(height * 0.026)
+        # 썰/스토리 중심: 자막을 이미지 위 별도 영역에 배치 (겹침 없음)
+        # 스토리 중심이므로 가독성 최우선 → 4% 크기
+        subtitle_size = int(height * 0.04)
         font = _get_font_from_path(font_path, subtitle_size)
         emoji_font = _emoji_font(subtitle_size)
         line_height = int(subtitle_size * 1.4)
-        bar_padding = int(post_layout_metrics["card_height"] * 0.02)
-        bar_gap = int(post_layout_metrics["card_height"] * 0.015)
         line_count = len(lines)
-        bar_height = bar_padding * 2 + line_height * max(1, line_count)
-        min_bar_y = post_layout_metrics["card_y"] + post_layout_metrics["card_padding"] + int(
-            post_layout_metrics["card_height"] * 0.145
-        )
-        image_top = post_layout_metrics["image_y"] + bar_gap
-        image_bottom = (
-            post_layout_metrics["image_y"] + post_layout_metrics["image_area"] - bar_gap - bar_height
-        )
-        bar_y = image_top
-        max_bar_y = min(image_bottom, post_layout_metrics["image_y"] - bar_gap - bar_height)
-        if bar_y < min_bar_y:
-            bar_y = min_bar_y
-        if bar_y > max_bar_y:
-            bar_y = max_bar_y
-        if min_bar_y > max_bar_y:
-            bar_y = max_bar_y
-        text_x = post_layout_metrics["image_x"] + bar_padding
-        text_y = bar_y + bar_padding
-        for idx, line in enumerate(lines[:2]):
+
+        # 자막 영역 정보
+        card_x = post_layout_metrics["card_x"]
+        card_width = post_layout_metrics["card_width"]
+        card_padding = post_layout_metrics["card_padding"]
+        subtitle_y = post_layout_metrics["subtitle_y"]
+        subtitle_area_height = post_layout_metrics["subtitle_area_height"]
+
+        # 자막 텍스트 (검은색, 중앙 정렬) - 흰색 카드 배경이므로 검은 텍스트
+        text_area_width = card_width - (card_padding * 2)
+        text_start_y = subtitle_y + int(subtitle_area_height * 0.1)
+
+        for idx, line in enumerate(lines[:3]):
+            line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
+            text_x = card_x + card_padding + (text_area_width - line_w) // 2
+            text_y = text_start_y + idx * line_height
             _draw_text_with_fallback(
                 draw,
-                (text_x, text_y + idx * line_height),
+                (text_x, text_y),
                 line,
                 font,
                 emoji_font,
-                (0, 0, 0, 255),
+                (40, 40, 40, 255),  # 검은색 텍스트
             )
         return canvas
 
-    subtitle_size = int(height * 0.032)
+    # Full 레이아웃: 이미지 상단 배치 (10%~66%)
+    # 자막: 이미지 아래 70% 위치
+    subtitle_size = int(height * 0.034)
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
-    line_height = int(height * 0.04)
+    line_height = int(subtitle_size * 1.45)
     line_count = len(lines)
+
+    # 자막 위치: 이미지 아래 (70%)
     if line_count > 1:
-        text_y_pos = int(height * 0.64)
+        text_y_pos = int(height * 0.70)
     else:
-        text_y_pos = int(height * 0.68)
+        text_y_pos = int(height * 0.72)
+
     for idx, line in enumerate(lines[:2]):
         line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
         text_x = max(0, int((width - line_w) / 2))
@@ -906,7 +915,7 @@ def _draw_common_content(
     offset_y: int = 0,
     show_meta: bool = False,
 ) -> None:
-    avatar_radius = int(header_height * 0.35)
+    avatar_radius = int(header_height * 0.42)  # 80px 직경 (시인성 향상)
     avatar_center = (
         offset_x + safe_margin + avatar_radius + 18,
         offset_y + header_top + header_height // 2,
@@ -937,10 +946,10 @@ def _draw_common_content(
             width=2 if (use_stroke or text_color == (0, 0, 0, 255)) else 0,
         )
 
-    name_font = _get_font(int(header_height * 0.28))
-    small_font = _get_font(int(header_height * 0.2))
+    name_font = _get_font(int(header_height * 0.34))  # 32px (시인성 향상)
+    small_font = _get_font(int(header_height * 0.24))
     caption_font = _get_font(int(footer_height * 0.22))
-    avatar_font = _get_font(int(header_height * 0.26))
+    avatar_font = _get_font(int(header_height * 0.32))  # 아바타 이니셜
 
     name_x = avatar_center[0] + avatar_radius + 16
     name_y = offset_y + header_top + int(header_height * 0.18)
@@ -1025,11 +1034,13 @@ def _draw_clean_overlay(
     offset_x: int = 0,
     offset_y: int = 0,
 ) -> None:
+    # Full 레이아웃: 이미지 상단 배치 (10%~66%)
+    # Safe Zone 적용: 헤더 4%~9%, 푸터 80%~90%
     safe_margin = int(width * 0.06)
-    header_top = int(height * 0.06)
-    header_height = int(height * 0.1)
-    footer_top = int(height * 0.78)
-    footer_height = int(height * 0.14)
+    header_top = int(height * 0.04)  # 상단 4% (노치 회피)
+    header_height = int(height * 0.05)  # 5% 높이 (4%~9%)
+    footer_top = int(height * 0.80)  # 80% (하단 여유)
+    footer_height = int(height * 0.10)  # 10% 높이 (80%~90%)
 
     header_box = (
         offset_x + safe_margin,
@@ -1073,11 +1084,13 @@ def _draw_minimal_overlay(
     offset_x: int = 0,
     offset_y: int = 0,
 ) -> None:
+    # Full 레이아웃: 이미지 상단 배치 (10%~66%)
+    # Safe Zone 적용: 헤더 4%~9%, 푸터 80%~90%
     safe_margin = int(width * 0.06)
-    header_top = int(height * 0.06)
-    header_height = int(height * 0.1)
-    footer_top = int(height * 0.78)
-    footer_height = int(height * 0.14)
+    header_top = int(height * 0.04)  # 상단 4% (노치 회피)
+    header_height = int(height * 0.05)  # 5% 높이 (4%~9%)
+    footer_top = int(height * 0.80)  # 80% (하단 여유)
+    footer_height = int(height * 0.10)  # 10% 높이 (80%~90%)
 
     _draw_common_content(
         draw,
@@ -1106,11 +1119,13 @@ def _draw_bold_overlay(
     offset_x: int = 0,
     offset_y: int = 0,
 ) -> None:
+    # Full 레이아웃: 이미지 상단 배치 (10%~66%)
+    # Safe Zone 적용: 헤더 4%~9%, 푸터 80%~90%
     safe_margin = int(width * 0.06)
-    header_top = int(height * 0.06)
-    header_height = int(height * 0.1)
-    footer_top = int(height * 0.78)
-    footer_height = int(height * 0.14)
+    header_top = int(height * 0.04)  # 상단 4% (노치 회피)
+    header_height = int(height * 0.05)  # 5% 높이 (4%~9%)
+    footer_top = int(height * 0.80)  # 80% (하단 여유)
+    footer_height = int(height * 0.10)  # 10% 높이 (80%~90%)
 
     header_box = (
         offset_x + safe_margin,
@@ -1216,6 +1231,14 @@ def compose_post_frame(
     views_override: str | None = None,
     time_override: str | None = None,
 ) -> Image.Image:
+    """
+    썰/스토리 중심 Post 레이아웃 (인스타 포스트 스타일)
+    - 헤더: 채널명만 (심플)
+    - 자막 영역: 이미지 위 별도 영역 (겹침 없음)
+    - 이미지: 깔끔하게 표시
+    - 액션바: ♡ 💬 ➤ 🔖
+    - 하단: 좋아요 수 + 캡션 + 해시태그 + 시간
+    """
     card_offset_y = int(height * 0.04)
     image = Image.open(io.BytesIO(image_bytes))
     image_rgb = image.convert("RGB")
@@ -1227,30 +1250,28 @@ def compose_post_frame(
     card_height = int(height * 0.86)
     card_padding = int(card_width * 0.04)
     radius = int(card_width * 0.06)
-    header_height = int(card_height * 0.145)
-    caption_height = int(card_height * 0.18)
+    header_height = int(card_height * 0.055)  # 심플 헤더 (채널명만)
+    subtitle_area_height = int(card_height * 0.10)  # 자막 영역 (별도)
+    action_bar_height = int(card_height * 0.045)  # 액션바
+    caption_height = int(card_height * 0.13)  # 캡션 영역
     card = Image.new("RGBA", (card_width, card_height), (255, 255, 255, 245))
     mask = Image.new("L", (card_width, card_height), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.rounded_rectangle((0, 0, card_width, card_height), radius=radius, fill=255)
     card.putalpha(mask)
 
-    shadow = None
-
     card_x = (width - card_width) // 2
     card_y = max(0, (height - card_height) // 2 + card_offset_y - int(height * 0.05))
-    if shadow:
-        background.alpha_composite(shadow, (card_x, card_y + 6))
     background.alpha_composite(card, (card_x, card_y))
 
+    # 이미지 영역 계산 (헤더, 자막영역, 액션바, 캡션 제외)
     inner_width = card_width - (card_padding * 2)
-    inner_height = card_height - (card_padding * 2 + header_height + caption_height)
+    inner_height = card_height - (card_padding * 2 + header_height + subtitle_area_height + action_bar_height + caption_height)
     image_area = min(inner_width, inner_height)
-    image_area = max(image_area, int(card_width * 0.5))
-    image_area = int(image_area * 0.9)
+    image_area = max(image_area, int(card_width * 0.45))
+    image_area = int(image_area * 0.98)
     image_x = card_x + card_padding
-    image_bottom_target = card_y + card_height - int(card_height * 0.05) - caption_height
-    image_y = max(card_y + card_padding + header_height, image_bottom_target - image_area)
+    image_y = card_y + card_padding + header_height + subtitle_area_height  # 자막 영역 아래
 
     inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS).convert("RGBA")
     background.alpha_composite(inner, (image_x, image_y))
@@ -1260,11 +1281,10 @@ def compose_post_frame(
     name_font_size = base_post_font
     meta_font_size = max(10, int(base_post_font * 0.85))
     caption_font_size = max(10, int(base_post_font * 0.9))
-    title_font_size = max(base_post_font, int(base_post_font * 1.1))
+    icon_font_size = max(12, int(base_post_font * 1.2))
     name_font = _get_font_from_path(font_path, name_font_size)
     meta_font = _get_font_from_path(font_path, meta_font_size)
     caption_font = _get_font_from_path(font_path, caption_font_size)
-    title_font = _get_font_from_path(font_path, title_font_size)
 
     meta_source = _build_post_meta(
         channel_name,
@@ -1278,16 +1298,20 @@ def compose_post_frame(
     views = meta_source["views"]
     avatar_color = meta_source["avatar_color"]
 
-    profile_radius = int(card_height * 0.045 * 0.4)
-    profile_center = (card_x + card_padding + profile_radius, card_y + card_padding + profile_radius)
+    # === 헤더: 아바타 + 채널명만 (심플) ===
+    profile_radius = int(card_height * 0.022)
+    profile_center = (
+        card_x + card_padding + profile_radius,
+        card_y + card_padding + int(header_height * 0.5),
+    )
     avatar_image = load_avatar_image(avatar_file)
     if avatar_image:
         avatar_size = profile_radius * 2
         avatar_resized = avatar_image.resize((avatar_size, avatar_size), Image.LANCZOS).convert("RGBA")
-        mask = Image.new("L", (avatar_size, avatar_size), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
-        avatar_resized.putalpha(mask)
+        avatar_mask = Image.new("L", (avatar_size, avatar_size), 0)
+        avatar_mask_draw = ImageDraw.Draw(avatar_mask)
+        avatar_mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
+        avatar_resized.putalpha(avatar_mask)
         background.alpha_composite(
             avatar_resized,
             (profile_center[0] - profile_radius, profile_center[1] - profile_radius),
@@ -1305,80 +1329,72 @@ def compose_post_frame(
             width=2,
         )
         initial = (str(display_name).strip()[:1] or "A").upper()
-        text_w, text_h = draw.textbbox((0, 0), initial, font=meta_font)[2:]
+        init_font = _get_font_from_path(font_path, int(profile_radius * 1.2))
+        text_w, text_h = draw.textbbox((0, 0), initial, font=init_font)[2:]
         draw.text(
             (profile_center[0] - text_w / 2, profile_center[1] - text_h / 2),
             initial,
             fill=(80, 60, 40),
-            font=meta_font,
+            font=init_font,
         )
-    name_x = profile_center[0] + profile_radius + int(card_width * 0.03)
-    name_y = card_y + card_padding + int(card_height * 0.015)
-    meta_text = f"{display_name}"
-    draw.text((name_x, name_y), meta_text, fill=(30, 30, 30), font=name_font)
 
-    title_text = subtitle_text.strip()
-    if not title_text:
-        title_text = _clean_caption_title(caption)
-    max_title_chars = max(14, int(inner_width * 0.04))
-    title_lines = textwrap.wrap(title_text, width=max_title_chars)[:2]
-    title_y = name_y + int(name_font_size * 1.6)
-    for idx, line in enumerate(title_lines):
-        draw.text(
-            (name_x, title_y + idx * int(title_font_size * 1.2)),
-            line,
-            fill=(30, 30, 30),
-            font=title_font,
-        )
-    divider_y = title_y + len(title_lines) * int(title_font_size * 1.2) + int(title_font_size * 0.6)
-    draw.line(
-        (name_x, divider_y, card_x + card_width - card_padding, divider_y),
-        fill=(220, 220, 220),
-        width=1,
-    )
-    meta_line_y = divider_y + int(meta_font_size * 1.3)
-    meta_line = f"{views} 조회 · {timestamp}"
-    meta_line_w = draw.textbbox((0, 0), meta_line, font=meta_font)[2]
-    meta_line_x = card_x + card_width - card_padding - meta_line_w
-    draw.text((meta_line_x, meta_line_y), meta_line, fill=(90, 90, 90), font=meta_font)
+    name_x = profile_center[0] + profile_radius + int(card_width * 0.02)
+    name_y = profile_center[1] - int(name_font_size * 0.5)
+    draw.text((name_x, name_y), display_name, fill=(30, 30, 30), font=name_font)
 
-    subtitle_text = subtitle_text.strip()
+    # === 액션바: ♡ 💬 ➤    🔖 ===
+    action_y = image_y + image_area + int(card_padding * 0.5)
+    icon_spacing = int(card_width * 0.08)
+    icons_left = ["♡", "💬", "➤"]
+    icons_right = ["🔖"]
 
-    caption_text = caption.strip()
-    caption_width = max(18, int(card_width * 0.1))
+    icon_x = card_x + card_padding
+    for icon in icons_left:
+        draw.text((icon_x, action_y), icon, fill=(50, 50, 50), font=meta_font)
+        icon_x += icon_spacing
+
+    bookmark_x = card_x + card_width - card_padding - int(icon_spacing * 0.5)
+    for icon in icons_right:
+        draw.text((bookmark_x, action_y), icon, fill=(50, 50, 50), font=meta_font)
+
+    # === 캡션 영역: 좋아요 + 채널명 + 캡션 + 해시태그 + 시간 ===
     cap_x = card_x + card_padding
-    cap_y = card_y + card_height - caption_height + int(card_height * 0.07)
-    caption_lines: list[str] = []
+    cap_y = action_y + int(action_bar_height * 1.2)
+
+    # 좋아요 수
+    likes_text = f"좋아요 {views}개"
+    likes_font = _get_font_from_path(font_path, int(meta_font_size * 1.0))
+    draw.text((cap_x, cap_y), likes_text, fill=(30, 30, 30), font=likes_font)
+    cap_y += int(meta_font_size * 1.8)
+
+    # 채널명 + 캡션
+    caption_text = caption.strip()
     hashtags_line = ""
+    main_caption = ""
     if caption_text:
-        remaining = re.sub(r"#([^​​#]+)", "", caption_text).strip()
-        hashtag_matches = re.findall(r"#([^​​#]+)", caption_text)
+        remaining = re.sub(r"#([^\u200b\u200c#]+)", "", caption_text).strip()
+        hashtag_matches = re.findall(r"#([^\u200b\u200c#]+)", caption_text)
         if hashtag_matches:
-            hashtags_line = " ".join([f"#{tag}" for tag in hashtag_matches[:3]])
+            hashtags_line = " ".join([f"#{tag.strip()}" for tag in hashtag_matches[:4]])
         if remaining:
-            caption_lines = textwrap.wrap(remaining, width=caption_width)[:1]
-        elif not hashtags_line:
-            hashtags_line = caption_text
-    if not hashtags_line and caption_text:
-        tokens = [token for token in re.split(r"\s+", caption_text) if token]
-        cleaned = []
-        for token in tokens:
-            cleaned_token = re.sub(r"[^​​\w가-힣]", "", token)
-            if cleaned_token:
-                cleaned.append(cleaned_token)
-        if cleaned:
-            hashtags_line = " ".join([f"#{token}" for token in cleaned[:2]])
+            main_caption = remaining
 
-    line_height = int(caption_font_size * 1.4)
-    line_gap = max(2, int(caption_font_size * 0.3))
-    current_y = cap_y
-    for line in caption_lines:
-        draw.text((cap_x, current_y), line, fill=(40, 40, 40), font=caption_font)
-        current_y += line_height + line_gap
+    if main_caption:
+        caption_line = f"{display_name} {main_caption}"
+        max_chars = max(20, int(card_width * 0.08))
+        wrapped = textwrap.wrap(caption_line, width=max_chars)[:2]
+        for line in wrapped:
+            draw.text((cap_x, cap_y), line, fill=(40, 40, 40), font=caption_font)
+            cap_y += int(caption_font_size * 1.4)
 
-    meta_font = _get_font_from_path(font_path, meta_font_size)
+    # 해시태그
     if hashtags_line:
-        draw.text((cap_x, current_y), hashtags_line, fill=(70, 70, 70), font=meta_font)
+        draw.text((cap_x, cap_y), hashtags_line, fill=(0, 55, 107), font=meta_font)
+        cap_y += int(meta_font_size * 1.6)
+
+    # 게시 시간 (맨 아래)
+    time_y = card_y + card_height - card_padding - int(meta_font_size * 1.2)
+    draw.text((cap_x, time_y), timestamp, fill=(130, 130, 130), font=meta_font)
 
     return background.convert("RGB")
 
@@ -1683,6 +1699,7 @@ async def logic_create_video(request: VideoRequest) -> dict:
 
             image_bytes = load_image_bytes(scene.image_url)
             raw_script = scene.script or ""
+            logger.info(f"Scene {i}: script='{raw_script}', len={len(raw_script)}")
             clean_script = re.sub(r"[^​​\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]", "", raw_script)
             clean_script = clean_script.replace("'", "").strip()
             if use_post_layout:
@@ -1717,13 +1734,19 @@ async def logic_create_video(request: VideoRequest) -> dict:
             if raw_script.strip():
                 try:
                     voice = request.narrator_voice
+                    logger.info(f"TTS 생성 시도: voice={voice}, script={raw_script[:50]}...")
                     communicate = edge_tts.Communicate(raw_script, voice, rate=tts_rate)
                     await communicate.save(str(tts_path))
                     if tts_path.exists() and tts_path.stat().st_size > 0:
                         has_valid_tts = True
                         tts_duration = get_audio_duration(tts_path)
-                except Exception:
-                    pass
+                        logger.info(f"TTS 생성 성공: duration={tts_duration}s")
+                    else:
+                        logger.warning(f"TTS 파일 생성 실패 또는 빈 파일")
+                except Exception as e:
+                    logger.error(f"TTS 생성 에러: {e}")
+            else:
+                logger.warning(f"Scene {i}: 스크립트가 비어있어 TTS 생략")
 
             input_args.extend(["-loop", "1", "-i", str(img_path)])
             if has_valid_tts:
@@ -1746,26 +1769,32 @@ async def logic_create_video(request: VideoRequest) -> dict:
 
         post_layout_metrics = None
         if use_post_layout:
+            # 썰/스토리 중심 레이아웃 (compose_post_frame과 동기화)
             card_width = int(out_w * 0.88)
             card_height = int(out_h * 0.86)
             card_padding = int(card_width * 0.04)
-            header_height = int(card_height * 0.145)
-            caption_height = int(card_height * 0.18)
+            header_height = int(card_height * 0.055)  # 심플 헤더
+            subtitle_area_height = int(card_height * 0.10)  # 자막 영역 (별도)
+            action_bar_height = int(card_height * 0.045)  # 액션바
+            caption_height = int(card_height * 0.13)  # 캡션 영역
             card_x = (out_w - card_width) // 2
             card_y = max(0, (out_h - card_height) // 2 + int(out_h * 0.04) - int(out_h * 0.05))
             inner_width = card_width - (card_padding * 2)
-            inner_height = card_height - (card_padding * 2 + header_height + caption_height)
+            inner_height = card_height - (card_padding * 2 + header_height + subtitle_area_height + action_bar_height + caption_height)
             image_area = min(inner_width, inner_height)
-            image_area = max(image_area, int(card_width * 0.5))
-            image_area = int(image_area * 0.9)
+            image_area = max(image_area, int(card_width * 0.45))
+            image_area = int(image_area * 0.98)
             image_x = card_x + card_padding
-            image_bottom_target = card_y + card_height - int(card_height * 0.05) - caption_height
-            image_y = max(card_y + card_padding + header_height, image_bottom_target - image_area)
+            subtitle_y = card_y + card_padding + header_height  # 자막 영역 Y 위치
+            image_y = subtitle_y + subtitle_area_height  # 이미지는 자막 아래
             post_layout_metrics = {
                 "card_height": card_height,
                 "card_padding": card_padding,
                 "card_x": card_x,
                 "card_y": card_y,
+                "card_width": card_width,
+                "subtitle_y": subtitle_y,
+                "subtitle_area_height": subtitle_area_height,
                 "image_x": image_x,
                 "image_y": image_y,
                 "image_area": image_area,
@@ -1798,6 +1827,7 @@ async def logic_create_video(request: VideoRequest) -> dict:
                 else:
                     filters.append(f"[{v_idx}:v]scale={out_w}:{out_h}[v{i}_base]")
             else:
+                # Full 레이아웃: 정사각형 이미지 + 블러 배경
                 filters.append(f"[{v_idx}:v]split=2[v{i}_in_1][v{i}_in_2]")
                 bg_scale = (
                     f"[v{i}_in_1]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,"
@@ -1812,8 +1842,15 @@ async def logic_create_video(request: VideoRequest) -> dict:
                 else:
                     filters.append(f"{bg_scale}[v{i}_bg]")
 
+                # 정사각형 이미지 (가로 100%, 상단 배치로 영상 강조)
+                sq_size = out_w  # 100% 너비
+                sq_y = int(out_h * 0.10)  # 상단 10% (헤더 아래)
                 filters.append(
-                    f"[v{i}_bg][v{i}_in_2]overlay=(W-w)/2:(H-h)/2:format=auto[v{i}_base]"
+                    f"[v{i}_in_2]scale={sq_size}:{sq_size}:force_original_aspect_ratio=decrease,"
+                    f"pad={sq_size}:{sq_size}:(ow-iw)/2:(oh-ih)/2[v{i}_sq]"
+                )
+                filters.append(
+                    f"[v{i}_bg][v{i}_sq]overlay=0:{sq_y}:format=auto[v{i}_base]"
                 )
 
             if request.include_subtitles:
