@@ -21,6 +21,15 @@ from .validation import (
     resolve_image_mime,
     wd14_predict_tags,
 )
+from .rendering import (
+    apply_post_overlay_mask,
+    compose_post_frame,
+    create_overlay_image,
+    load_avatar_image,
+    render_subtitle_image,
+    resolve_overlay_frame,
+    resolve_subtitle_font_path,
+)
 
 __all__ = [
     # Keywords
@@ -42,4 +51,12 @@ __all__ = [
     "load_wd14_model",
     "resolve_image_mime",
     "wd14_predict_tags",
+    # Rendering
+    "apply_post_overlay_mask",
+    "compose_post_frame",
+    "create_overlay_image",
+    "load_avatar_image",
+    "render_subtitle_image",
+    "resolve_overlay_frame",
+    "resolve_subtitle_font_path",
 ]
