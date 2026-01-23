@@ -208,7 +208,7 @@ export default function Home() {
   const [baseClipSkipA, setBaseClipSkipA] = useState(2);
   const [selectedSampleId, setSelectedSampleId] = useState(PROMPT_SAMPLES[0].id);
   const [advancedExpanded, setAdvancedExpanded] = useState<Record<number, boolean>>({});
-  const [sceneTab, setSceneTab] = useState<Record<number, "edit" | "validate" | "debug">>({});
+  const [sceneTab, setSceneTab] = useState<Record<number, "validate" | "debug" | null>>({});
   const [sceneMenuOpen, setSceneMenuOpen] = useState<number | null>(null);
   const prevBaseNegativeRefA = useRef("");
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
@@ -3261,18 +3261,22 @@ export default function Home() {
 
                       {/* Tab Navigation */}
                       <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1">
-                        {(["edit", "validate", "debug"] as const).map((tab) => (
+                        {(["validate", "debug"] as const).map((tab) => (
                           <button
                             key={tab}
                             type="button"
-                            onClick={() => setSceneTab((prev) => ({ ...prev, [scene.id]: tab }))}
+                            onClick={() =>
+                              setSceneTab((prev) => ({
+                                ...prev,
+                                [scene.id]: prev[scene.id] === tab ? null : tab,
+                              }))
+                            }
                             className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase transition ${
-                              (sceneTab[scene.id] || "edit") === tab
+                              sceneTab[scene.id] === tab
                                 ? "bg-white text-zinc-900 shadow-sm"
                                 : "text-zinc-500 hover:text-zinc-700"
                             }`}
                           >
-                            {tab === "edit" && "Edit"}
                             {tab === "validate" && (
                               <span className="flex items-center justify-center gap-1">
                                 Validate
@@ -3294,10 +3298,8 @@ export default function Home() {
                         ))}
                       </div>
 
-                      {/* Tab Content: Edit (default - empty, fields are above) */}
-
                       {/* Tab Content: Validate */}
-                      {(sceneTab[scene.id] || "edit") === "validate" && (
+                      {sceneTab[scene.id] === "validate" && (
                         <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
                           <button
                             type="button"
@@ -3397,7 +3399,7 @@ export default function Home() {
                       )}
 
                       {/* Tab Content: Debug */}
-                      {(sceneTab[scene.id] || "edit") === "debug" && (
+                      {sceneTab[scene.id] === "debug" && (
                         <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
                           <button
                             type="button"
