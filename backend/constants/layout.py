@@ -85,7 +85,7 @@ class PostLayout:
 
     # === Section Heights (relative to card_height) ===
     HEADER_HEIGHT_RATIO: float = 0.055
-    SUBTITLE_AREA_HEIGHT_RATIO: float = 0.10
+    SUBTITLE_AREA_HEIGHT_RATIO: float = 0.18  # 3줄 자막 대응
     ACTION_BAR_HEIGHT_RATIO: float = 0.045
     CAPTION_HEIGHT_RATIO: float = 0.13
 

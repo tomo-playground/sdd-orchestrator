@@ -1251,7 +1251,7 @@ def compose_post_frame(
     card_padding = int(card_width * 0.04)
     radius = int(card_width * 0.06)
     header_height = int(card_height * 0.055)  # 심플 헤더 (채널명만)
-    subtitle_area_height = int(card_height * 0.10)  # 자막 영역 (별도)
+    subtitle_area_height = int(card_height * 0.18)  # 자막 영역 (3줄 대응)
     action_bar_height = int(card_height * 0.045)  # 액션바
     caption_height = int(card_height * 0.13)  # 캡션 영역
     card = Image.new("RGBA", (card_width, card_height), (255, 255, 255, 245))
@@ -1774,7 +1774,7 @@ async def logic_create_video(request: VideoRequest) -> dict:
             card_height = int(out_h * 0.86)
             card_padding = int(card_width * 0.04)
             header_height = int(card_height * 0.055)  # 심플 헤더
-            subtitle_area_height = int(card_height * 0.10)  # 자막 영역 (별도)
+            subtitle_area_height = int(card_height * 0.18)  # 자막 영역 (3줄 대응)
             action_bar_height = int(card_height * 0.045)  # 액션바
             caption_height = int(card_height * 0.13)  # 캡션 영역
             card_x = (out_w - card_width) // 2
