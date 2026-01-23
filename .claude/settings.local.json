@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uvx:*)",
+      "WebSearch",
+      "Bash(pip install:*)",
+      "Bash(python -m py_compile:*)",
+      "mcp__serena__find_symbol"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "postgres",
+    "context7",
+    "chrome-devtools",
+    "shadcn",
+    "API specification",
+    "pytest-opencv",
+    "backend-refactor",
+    "serena",
+    "sequential-thinking"
+  ],
+  "disabledMcpjsonServers": []
+}
