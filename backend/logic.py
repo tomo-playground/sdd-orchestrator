@@ -92,33 +92,27 @@ from services.rendering import (
 )
 
 # Image functions imported from services
-from services.image import (
-    decode_data_url as _decode_data_url,
-    load_image_bytes as _load_image_bytes,
-)
+from services.image import decode_data_url, load_image_bytes
 
 # Avatar functions imported from services
-from services.avatar import (
-    avatar_filename as _avatar_filename,
-    ensure_avatar_file as _ensure_avatar_file,
-)
+from services.avatar import avatar_filename, ensure_avatar_file
 
 # Prompt functions imported from services
 from services.prompt import (
-    is_scene_token as _is_scene_token,
-    merge_prompt_tokens as _merge_prompt_tokens,
-    normalize_negative_prompt as _normalize_negative_prompt,
-    normalize_prompt_tokens as _normalize_prompt_tokens,
-    split_prompt_tokens as _split_prompt_tokens,
+    is_scene_token,
+    merge_prompt_tokens,
+    normalize_negative_prompt,
+    normalize_prompt_tokens,
+    split_prompt_tokens,
 )
 
 # Utility functions imported from services
 from services.utils import (
-    get_audio_duration as _get_audio_duration,
-    parse_json_payload as _parse_json_payload,
-    scrub_payload as _scrub_payload,
-    to_edge_tts_rate as _to_edge_tts_rate,
-    wrap_text as _wrap_text,
+    get_audio_duration,
+    parse_json_payload,
+    scrub_payload,
+    to_edge_tts_rate,
+    wrap_text,
 )
 
 # Video functions imported from services
@@ -129,77 +123,6 @@ from services.video import (
     generate_video_filename,
     sanitize_project_name,
 )
-
-# --- Helper Functions ---
-
-def decode_data_url(data_url: str) -> bytes:
-    """Decode a base64 data URL to bytes. Delegates to services.image."""
-    return _decode_data_url(data_url)
-
-
-def load_image_bytes(source: str) -> bytes:
-    """Load image bytes from various sources. Delegates to services.image."""
-    return _load_image_bytes(source, OUTPUT_DIR)
-
-
-def parse_json_payload(text: str) -> dict[str, Any]:
-    """Parse JSON from text. Delegates to services.utils."""
-    return _parse_json_payload(text)
-
-
-def scrub_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    """Redact sensitive fields from payload. Delegates to services.utils."""
-    return _scrub_payload(payload)
-
-
-def wrap_text(text: str, width: int, max_lines: int = 2) -> str:
-    """Wrap text for subtitle display. Delegates to services.utils."""
-    return _wrap_text(text, width, max_lines)
-
-
-def avatar_filename(avatar_key: str) -> str:
-    """Generate avatar filename. Delegates to services.avatar."""
-    return _avatar_filename(avatar_key)
-
-
-async def ensure_avatar_file(avatar_key: str) -> str | None:
-    """Ensure avatar file exists. Delegates to services.avatar."""
-    return await _ensure_avatar_file(avatar_key, AVATAR_DIR, SD_TXT2IMG_URL)
-
-
-def to_edge_tts_rate(multiplier: float) -> str:
-    """Convert speed multiplier to TTS rate format. Delegates to services.utils."""
-    return _to_edge_tts_rate(multiplier)
-
-
-def split_prompt_tokens(prompt: str) -> list[str]:
-    """Split a comma-separated prompt into tokens. Delegates to services.prompt."""
-    return _split_prompt_tokens(prompt)
-
-
-def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
-    """Merge two lists of prompt tokens. Delegates to services.prompt."""
-    return _merge_prompt_tokens(primary, secondary)
-
-
-def is_scene_token(token: str) -> bool:
-    """Check if a token represents a scene-related keyword. Delegates to services.prompt."""
-    return _is_scene_token(token)
-
-
-def normalize_prompt_tokens(prompt: str) -> str:
-    """Normalize prompt tokens. Delegates to services.prompt."""
-    return _normalize_prompt_tokens(prompt)
-
-
-def normalize_negative_prompt(negative: str) -> str:
-    """Normalize negative prompt. Delegates to services.prompt."""
-    return _normalize_negative_prompt(negative)
-
-
-def get_audio_duration(path: pathlib.Path) -> float:
-    """Get audio duration in seconds. Delegates to services.utils."""
-    return _get_audio_duration(path)
 
 # --- Core Business Logic (Moved from Endpoints) ---
 

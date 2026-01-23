@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import logging
 from pathlib import Path
 
 import httpx
 
-logger = logging.getLogger("backend")
+from config import AVATAR_DIR, SD_TXT2IMG_URL, logger
 
 
 def avatar_filename(avatar_key: str) -> str:
@@ -28,23 +27,19 @@ def avatar_filename(avatar_key: str) -> str:
 
 async def ensure_avatar_file(
     avatar_key: str,
-    avatar_dir: Path,
-    sd_txt2img_url: str,
     timeout: float = 60.0,
 ) -> str | None:
     """Ensure an avatar file exists, generating it if necessary.
 
     Args:
         avatar_key: The avatar key to generate for
-        avatar_dir: Directory to store avatar files
-        sd_txt2img_url: Stable Diffusion txt2img API URL
         timeout: Request timeout in seconds
 
     Returns:
         The avatar filename if successful, None otherwise
     """
     filename = avatar_filename(avatar_key)
-    target = avatar_dir / filename
+    target = AVATAR_DIR / filename
     if target.exists():
         return filename
 
@@ -66,7 +61,7 @@ async def ensure_avatar_file(
     }
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.post(sd_txt2img_url, json=payload, timeout=timeout)
+            res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=timeout)
             res.raise_for_status()
             data = res.json()
         image_b64 = (data.get("images") or [None])[0]
