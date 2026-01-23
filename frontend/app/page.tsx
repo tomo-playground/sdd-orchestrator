@@ -59,6 +59,7 @@ import SceneListHeader from "./components/SceneListHeader";
 import StoryboardActionsBar from "./components/StoryboardActionsBar";
 import WorkingModeHeader from "./components/WorkingModeHeader";
 import SectionDivider from "./components/SectionDivider";
+import Toast from "./components/Toast";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2317,17 +2318,7 @@ export default function Home() {
       />
 
       {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 transform rounded-full px-6 py-3 text-sm font-medium shadow-lg transition-all ${
-            toast.type === "success"
-              ? "bg-emerald-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }
