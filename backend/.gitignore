@@ -28,3 +28,13 @@ cache/
 *.wav
 *.m4a
 *.zip
+
+# Test artifacts (VRT diff images)
+*_diff.png
+
+# IDE/Tool caches
+.ruff_cache/
+.pytest_cache/
+
+# OS files
+.DS_Store
