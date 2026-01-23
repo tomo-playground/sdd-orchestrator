@@ -51,6 +51,8 @@ import LayoutSelector from "./components/LayoutSelector";
 import AutoRunProgressModal from "./components/AutoRunProgressModal";
 import PreviewModal from "./components/PreviewModal";
 import RenderSettingsPanel from "./components/RenderSettingsPanel";
+import PromptHelperSidebar from "./components/PromptHelperSidebar";
+import RenderedVideosSection from "./components/RenderedVideosSection";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -3059,80 +3061,14 @@ export default function Home() {
             isModelUpdating={isModelUpdating}
           />
 
-          {(videoUrl || videoUrlFull || videoUrlPost || recentVideos.length > 0) && (
-            <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40">
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-900">
-                  {videoUrlFull || videoUrlPost ? "Rendered Videos" : "Rendered Video"}
-                </h2>
-                <p className="text-xs text-zinc-500">
-                  {videoUrlFull || videoUrlPost
-                    ? "Compare full and post renders."
-                    : "Preview the latest render."}
-                </p>
-              </div>
-              {recentVideos.length > 0 && (
-                <div className="grid gap-3">
-                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                    Recent Rendered Videos (8)
-                  </span>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {recentVideos.map((item, idx) => (
-                      <div
-                        key={`${item.url}-${item.createdAt}`}
-                        className={`group grid gap-2 rounded-2xl border bg-white/70 p-3 shadow-sm ${
-                          idx === 0
-                            ? "border-zinc-900/40 bg-white shadow-lg ring-2 shadow-zinc-900/10 ring-zinc-900/10"
-                            : "border-zinc-200"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            {item.label}
-                          </span>
-                          <span className="text-[10px] text-zinc-400">
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
-                          {idx === 0 && (
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em] text-emerald-600 uppercase">
-                              Latest
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRecentVideo(item.url)}
-                            className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase opacity-0 transition group-hover:opacity-100"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                        <div className="aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black shadow">
-                          <button
-                            type="button"
-                            onClick={() => setVideoPreviewSrc(item.url)}
-                            className="h-full w-full"
-                          >
-                            <video
-                              muted
-                              playsInline
-                              preload="metadata"
-                              src={item.url}
-                              className="pointer-events-none h-full w-full object-cover"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {recentVideos.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-4 text-xs text-zinc-500">
-                  No rendered videos yet. Run a render to see results here.
-                </div>
-              )}
-            </section>
-          )}
+          <RenderedVideosSection
+            videoUrl={videoUrl}
+            videoUrlFull={videoUrlFull}
+            videoUrlPost={videoUrlPost}
+            recentVideos={recentVideos}
+            onVideoPreview={setVideoPreviewSrc}
+            onDeleteRecentVideo={handleDeleteRecentVideo}
+          />
         </main>
         )}
 
@@ -3160,101 +3096,18 @@ export default function Home() {
           onClose={() => setVideoPreviewSrc(null)}
         />
       )}
-      <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity ${isHelperOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        onClick={() => setIsHelperOpen(false)}
+      <PromptHelperSidebar
+        isOpen={isHelperOpen}
+        onClose={() => setIsHelperOpen(false)}
+        examplePrompt={examplePrompt}
+        setExamplePrompt={setExamplePrompt}
+        onSuggestSplit={handleSuggestSplit}
+        isSuggesting={isSuggesting}
+        suggestedBase={suggestedBase}
+        suggestedScene={suggestedScene}
+        copyStatus={copyStatus}
+        onCopyText={copyText}
       />
-      <aside
-        className={`fixed top-0 right-0 z-50 h-full w-full max-w-md transform bg-white shadow-2xl transition-transform ${isHelperOpen ? "translate-x-0" : "translate-x-full"}`}
-      >
-        <div className="flex h-full flex-col gap-4 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Prompt Helper</p>
-              <h3 className="text-lg font-semibold text-zinc-900">Split Example Prompt</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsHelperOpen(false)}
-              className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-            >
-              Close
-            </button>
-          </div>
-          {copyStatus && (
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              {copyStatus}
-            </div>
-          )}
-          <div className="grid gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Example Prompt
-            </label>
-            <textarea
-              value={examplePrompt}
-              onChange={(e) => setExamplePrompt(e.target.value)}
-              rows={4}
-              className="rounded-2xl border border-zinc-200 bg-white p-3 text-sm outline-none focus:border-zinc-400"
-              placeholder="Paste a full prompt line from Civitai"
-            />
-            <button
-              type="button"
-              onClick={handleSuggestSplit}
-              disabled={isSuggesting || !examplePrompt.trim()}
-              className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-            >
-              {isSuggesting ? "Suggesting..." : "Suggest Base/Scene"}
-            </button>
-          </div>
-          {(suggestedBase || suggestedScene) && (
-            <div className="grid gap-4">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                    Suggested Base
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => copyText(suggestedBase)}
-                    className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <textarea
-                  value={suggestedBase}
-                  readOnly
-                  rows={3}
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                    Suggested Scene
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => copyText(suggestedScene)}
-                    className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <textarea
-                  value={suggestedScene}
-                  readOnly
-                  rows={3}
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600"
-                />
-              </div>
-            </div>
-          )}
-          <div className="mt-auto text-[10px] text-zinc-400">
-            Suggestions do not auto-apply. Copy and paste into Base Prompt or Scene Prompt.
-          </div>
-        </div>
-      </aside>
 
       {/* Toast Notification */}
       {toast && (
