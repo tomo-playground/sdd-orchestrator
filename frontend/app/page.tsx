@@ -61,6 +61,11 @@ import StoryboardActionsBar from "./components/StoryboardActionsBar";
 import WorkingModeHeader from "./components/WorkingModeHeader";
 import SectionDivider from "./components/SectionDivider";
 import Toast from "./components/Toast";
+import {
+  slugifyAvatarKey,
+  normalizeOverlaySettings,
+  normalizePostCardSettings,
+} from "./utils";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -152,22 +157,6 @@ export default function Home() {
   const draftSaveTimeoutRef = useRef<number | null>(null);
   const hasHydratedDraftRef = useRef(false);
 
-  const slugifyAvatarKey = (value: string) => {
-    const trimmed = value.trim().toLowerCase();
-    const ascii = trimmed
-      .normalize("NFKD")
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-+|-+$/g, "");
-    if (ascii) return ascii;
-    let hash = 0;
-    for (let i = 0; i < trimmed.length; i += 1) {
-      hash = (hash * 31 + trimmed.charCodeAt(i)) >>> 0;
-    }
-    return `channel-${hash.toString(16).slice(0, 6)}`;
-  };
-
   const generateChannelName = (seedText: string) => {
     const adjectives = [
       "잔잔한",
@@ -224,28 +213,6 @@ export default function Home() {
     const adjective = adjectives[hash % adjectives.length];
     const noun = nouns[Math.floor(hash / adjectives.length) % nouns.length];
     return `${adjective} ${noun}`;
-  };
-
-  const normalizeOverlaySettings = (raw: any): OverlaySettings => {
-    const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
-    const avatarKey = raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
-    return {
-      ...DEFAULT_OVERLAY_SETTINGS,
-      ...(raw || {}),
-      channel_name: channelName,
-      avatar_key: avatarKey,
-    };
-  };
-
-  const normalizePostCardSettings = (raw: any): PostCardSettings => {
-    const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
-    const avatarKey = raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
-    return {
-      ...DEFAULT_POST_CARD_SETTINGS,
-      ...(raw || {}),
-      channel_name: channelName,
-      avatar_key: avatarKey,
-    };
   };
 
   useEffect(() => {
