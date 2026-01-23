@@ -55,6 +55,7 @@ import PromptHelperSidebar from "./components/PromptHelperSidebar";
 import RenderedVideosSection from "./components/RenderedVideosSection";
 import StoryboardGeneratorPanel from "./components/StoryboardGeneratorPanel";
 import PromptSetupPanel from "./components/PromptSetupPanel";
+import SceneCard from "./components/SceneCard";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2291,455 +2292,52 @@ export default function Home() {
             />
 
             {/* Current Scene Card */}
-            {scenes.length > 0 && (() => {
-              const scene = scenes[currentSceneIndex];
-              if (!scene) return null;
-              return (
-                <div
-                  key={scene.id}
-                  className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-zinc-800">Scene {scene.id}</h3>
-                    {validationResults[scene.id] && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const status = validationResults[scene.id].status;
-                          if (status === "ok") return;
-                          setSuggestionExpanded((prev) => ({
-                            ...prev,
-                            [scene.id]: !prev[scene.id],
-                          }));
-                        }}
-                        className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
-                          validationResults[scene.id].status === "ok"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : validationResults[scene.id].status === "warn"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-rose-100 text-rose-700"
-                        }`}
-                      >
-                        {validationResults[scene.id].status}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Scene ${scene.id}를 삭제하시겠습니까?`)) {
-                          handleRemoveScene(scene.id);
-                        }
-                      }}
-                      className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase hover:text-rose-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <p className="text-[11px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
-                    {getSceneStatus(scene)}
-                  </p>
-                  {validationResults[scene.id] && (
-                    <p className="text-[11px] text-zinc-500">
-                      {validationResults[scene.id].issues.length > 0
-                        ? validationResults[scene.id].issues[0].message
-                        : "No issues found."}
-                    </p>
-                  )}
-                  {validationResults[scene.id] && validationResults[scene.id].status !== "ok" && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSuggestionExpanded((prev) => ({
-                          ...prev,
-                          [scene.id]: !prev[scene.id],
-                        }))
-                      }
-                      className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                    >
-                      Fix Suggestions
-                    </button>
-                  )}
-                  {validationResults[scene.id] && suggestionExpanded[scene.id] && (
-                    <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-xs text-zinc-600">
-                      <div className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                        Fix Suggestions
-                      </div>
-                      {(() => {
-                        const suggestions = getFixSuggestions(scene, validationResults[scene.id]);
-                        const actionable = suggestions.filter((item) => item.action);
-                        if (suggestions.length === 0) {
-                          return (
-                            <p className="mt-2 text-[11px] text-zinc-500">No auto suggestions.</p>
-                          );
-                        }
-                        return (
-                          <>
-                            {actionable.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  actionable.forEach((item) => applySuggestion(scene, item));
-                                }}
-                                className="mt-2 rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                              >
-                                Apply All
-                              </button>
-                            )}
-                            <ul className="mt-2 grid gap-2 text-[11px]">
-                              {suggestions.map((item) => (
-                                <li
-                                  key={`${scene.id}-${item.id}`}
-                                  className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white/70 px-3 py-2"
-                                >
-                                  <span className="text-zinc-600">{item.message}</span>
-                                  {item.action ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => applySuggestion(scene, item)}
-                                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                                    >
-                                      Apply
-                                    </button>
-                                  ) : (
-                                    <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                                      Manual
-                                    </span>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-
-                  <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-                    <div className="grid gap-3">
-                      <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Script
-                        </label>
-                        <textarea
-                          value={scene.script}
-                          onChange={(e) => updateScene(scene.id, { script: e.target.value })}
-                          rows={3}
-                          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Speaker
-                          </label>
-                          <select
-                            value={scene.speaker}
-                            onChange={(e) =>
-                              handleSpeakerChange(scene, e.target.value as Scene["speaker"])
-                            }
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          >
-                            <option value="A">Actor A</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Duration
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={scene.duration}
-                            onChange={(e) =>
-                              updateScene(scene.id, { duration: Number(e.target.value) })
-                            }
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Image
-                          </label>
-                          <label className="flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/80 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-                            Upload
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => handleImageUpload(scene.id, e.target.files?.[0])}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Positive Prompt
-                        </label>
-                        <textarea
-                          value={scene.image_prompt}
-                          onChange={(e) => updateScene(scene.id, { image_prompt: e.target.value })}
-                          rows={2}
-                          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Negative Prompt
-                        </label>
-                        <textarea
-                          value={scene.negative_prompt}
-                          onChange={(e) =>
-                            updateScene(scene.id, { negative_prompt: e.target.value })
-                          }
-                          rows={2}
-                          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Prompt (KO)
-                        </label>
-                        <textarea
-                          value={scene.image_prompt_ko}
-                          onChange={(e) =>
-                            updateScene(scene.id, { image_prompt_ko: e.target.value })
-                          }
-                          rows={2}
-                          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-                        />
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Steps
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={80}
-                            value={scene.steps}
-                            onChange={(e) =>
-                              updateScene(scene.id, { steps: Number(e.target.value) })
-                            }
-                            disabled={autoComposePrompt}
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            CFG
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={20}
-                            step={0.5}
-                            value={scene.cfg_scale}
-                            onChange={(e) =>
-                              updateScene(scene.id, { cfg_scale: Number(e.target.value) })
-                            }
-                            disabled={autoComposePrompt}
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Sampler
-                          </label>
-                          <select
-                            value={scene.sampler_name}
-                            onChange={(e) =>
-                              updateScene(scene.id, { sampler_name: e.target.value })
-                            }
-                            disabled={autoComposePrompt}
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          >
-                            {SAMPLERS.map((sampler) => (
-                              <option key={sampler} value={sampler}>
-                                {sampler}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Seed
-                          </label>
-                          <input
-                            type="number"
-                            value={scene.seed}
-                            onChange={(e) =>
-                              updateScene(scene.id, { seed: Number(e.target.value) })
-                            }
-                            disabled={autoComposePrompt}
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                            Clip Skip
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={12}
-                            value={scene.clip_skip}
-                            onChange={(e) =>
-                              updateScene(scene.id, { clip_skip: Number(e.target.value) })
-                            }
-                            disabled={autoComposePrompt}
-                            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                          />
-                        </div>
-                      </div>
-                      {/* Primary Action + More Menu */}
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => handleGenerateSceneImage(scene)}
-                          disabled={scene.isGenerating}
-                          className="rounded-full bg-zinc-900 px-5 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-                        >
-                          {scene.isGenerating ? "Generating..." : "Generate Image"}
-                        </button>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setSceneMenuOpen(sceneMenuOpen === scene.id ? null : scene.id)}
-                            className="rounded-full border border-zinc-200 bg-white p-2 text-zinc-500 transition hover:bg-zinc-50"
-                          >
-                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                            </svg>
-                          </button>
-                          {sceneMenuOpen === scene.id && (
-                            <div className="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(buildPositivePrompt(scene));
-                                  showToast("프롬프트 복사됨", "success");
-                                  setSceneMenuOpen(null);
-                                }}
-                                className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"
-                              >
-                                Copy Prompt
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updateScene(scene.id, { seed: Math.floor(Math.random() * 999999999) });
-                                  setSceneMenuOpen(null);
-                                }}
-                                className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"
-                              >
-                                Randomize Seed
-                              </button>
-                              <hr className="my-1 border-zinc-100" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm("이 씬을 삭제하시겠습니까?")) {
-                                    handleRemoveScene(scene.id);
-                                  }
-                                  setSceneMenuOpen(null);
-                                }}
-                                className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
-                              >
-                                Delete Scene
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Tab Navigation */}
-                      <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1">
-                        {(["validate", "debug"] as const).map((tab) => (
-                          <button
-                            key={tab}
-                            type="button"
-                            onClick={() =>
-                              setSceneTab((prev) => ({
-                                ...prev,
-                                [scene.id]: prev[scene.id] === tab ? null : tab,
-                              }))
-                            }
-                            className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase transition ${
-                              sceneTab[scene.id] === tab
-                                ? "bg-white text-zinc-900 shadow-sm"
-                                : "text-zinc-500 hover:text-zinc-700"
-                            }`}
-                          >
-                            {tab === "validate" && (
-                              <span className="flex items-center justify-center gap-1">
-                                Validate
-                                {imageValidationResults[scene.id] && (
-                                  <span
-                                    className={`h-1.5 w-1.5 rounded-full ${
-                                      imageValidationResults[scene.id].match_rate >= 0.8
-                                        ? "bg-emerald-500"
-                                        : imageValidationResults[scene.id].match_rate >= 0.5
-                                          ? "bg-amber-500"
-                                          : "bg-red-500"
-                                    }`}
-                                  />
-                                )}
-                              </span>
-                            )}
-                            {tab === "debug" && "Debug"}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Tab Content: Validate */}
-                      {sceneTab[scene.id] === "validate" && (
-                        <ValidationTabContent
-                          scene={scene}
-                          validationResult={imageValidationResults[scene.id]}
-                          isValidating={validatingSceneId === scene.id}
-                          onValidate={() => handleValidateImage(scene)}
-                          onApplyMissingTags={(tags) => applyMissingImageTags(scene, tags)}
-                        />
-                      )}
-
-                      {/* Tab Content: Debug */}
-                      {sceneTab[scene.id] === "debug" && (
-                        <DebugTabContent
-                          scene={scene}
-                          onGenerateDebug={() => {
-                            const basePrompt = getBasePromptForScene(scene);
-                            const scenePrompt = scene.image_prompt;
-                            const prompt =
-                              autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
-                            const payload = {
-                              prompt,
-                              negative_prompt: buildNegativePrompt(scene),
-                              steps: resolveSteps(scene),
-                              cfg_scale: resolveCfgScale(scene),
-                              sampler_name: resolveSampler(scene),
-                              seed: resolveSeed(scene),
-                              clip_skip: resolveClipSkip(scene),
-                              width: 512,
-                              height: 512,
-                            };
-                            updateScene(scene.id, {
-                              debug_payload: JSON.stringify(payload, null, 2),
-                              debug_prompt: payload.prompt,
-                            });
-                          }}
-                        />
-                      )}
-                    </div>
-                    <SceneImagePanel
-                      scene={scene}
-                      onImageClick={setImagePreviewSrc}
-                      onCandidateSelect={(imageUrl) => updateScene(scene.id, { image_url: imageUrl })}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
+            {scenes.length > 0 && scenes[currentSceneIndex] && (
+              <SceneCard
+                key={scenes[currentSceneIndex].id}
+                scene={scenes[currentSceneIndex]}
+                validationResult={validationResults[scenes[currentSceneIndex].id]}
+                imageValidationResult={imageValidationResults[scenes[currentSceneIndex].id]}
+                sceneTab={sceneTab[scenes[currentSceneIndex].id] ?? null}
+                onSceneTabChange={(tab) =>
+                  setSceneTab((prev) => ({ ...prev, [scenes[currentSceneIndex].id]: tab }))
+                }
+                sceneMenuOpen={sceneMenuOpen === scenes[currentSceneIndex].id}
+                onSceneMenuToggle={() =>
+                  setSceneMenuOpen(sceneMenuOpen === scenes[currentSceneIndex].id ? null : scenes[currentSceneIndex].id)
+                }
+                onSceneMenuClose={() => setSceneMenuOpen(null)}
+                suggestionExpanded={suggestionExpanded[scenes[currentSceneIndex].id] ?? false}
+                onSuggestionToggle={() =>
+                  setSuggestionExpanded((prev) => ({
+                    ...prev,
+                    [scenes[currentSceneIndex].id]: !prev[scenes[currentSceneIndex].id],
+                  }))
+                }
+                validatingSceneId={validatingSceneId}
+                autoComposePrompt={autoComposePrompt}
+                onUpdateScene={(updates) => updateScene(scenes[currentSceneIndex].id, updates)}
+                onRemoveScene={() => handleRemoveScene(scenes[currentSceneIndex].id)}
+                onSpeakerChange={(speaker) => handleSpeakerChange(scenes[currentSceneIndex], speaker)}
+                onImageUpload={(file) => handleImageUpload(scenes[currentSceneIndex].id, file)}
+                onGenerateImage={() => handleGenerateSceneImage(scenes[currentSceneIndex])}
+                onValidateImage={() => handleValidateImage(scenes[currentSceneIndex])}
+                onApplyMissingTags={(tags) => applyMissingImageTags(scenes[currentSceneIndex], tags)}
+                onImagePreview={setImagePreviewSrc}
+                getSceneStatus={getSceneStatus}
+                getFixSuggestions={getFixSuggestions}
+                applySuggestion={applySuggestion}
+                buildPositivePrompt={buildPositivePrompt}
+                buildNegativePrompt={buildNegativePrompt}
+                getBasePromptForScene={getBasePromptForScene}
+                resolveSteps={resolveSteps}
+                resolveCfgScale={resolveCfgScale}
+                resolveSampler={resolveSampler}
+                resolveSeed={resolveSeed}
+                resolveClipSkip={resolveClipSkip}
+                showToast={showToast}
+              />
+            )}
           </section>
 
           <div className="flex items-center gap-3">
