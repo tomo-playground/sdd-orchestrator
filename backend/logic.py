@@ -170,6 +170,15 @@ from services.utils import (
     wrap_text as _wrap_text,
 )
 
+# Video functions imported from services
+from services.video import (
+    calculate_scene_durations,
+    calculate_speed_params,
+    clean_script_for_tts,
+    generate_video_filename,
+    sanitize_project_name,
+)
+
 # --- Helper Functions ---
 
 def decode_data_url(data_url: str) -> bytes:
@@ -460,15 +469,8 @@ async def logic_create_video(request: VideoRequest) -> dict:
     project_id = f"build_{int(time.time())}"
     temp_dir = IMAGE_DIR / project_id
     temp_dir.mkdir(parents=True, exist_ok=True)
-    safe_project_name = re.sub(r"[^​​\w가-힣]+", "_", request.project_name).strip("_")
-    if not safe_project_name:
-        safe_project_name = "my_shorts"
-    safe_project_name = safe_project_name[:40]
-    layout_tag = "post" if request.layout_style == "post" else "full"
-    timestamp = int(time.time())
-    hash_seed = f"{safe_project_name}|{layout_tag}|{timestamp}"
-    hash_value = hashlib.sha1(hash_seed.encode("utf-8")).hexdigest()[:12]
-    video_filename = f"{safe_project_name}_{layout_tag}_{hash_value}.mp4"
+    safe_project_name = sanitize_project_name(request.project_name)
+    video_filename = generate_video_filename(safe_project_name, request.layout_style)
     video_path = VIDEO_DIR / video_filename
     VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -477,9 +479,9 @@ async def logic_create_video(request: VideoRequest) -> dict:
     try:
         input_args: list[str] = []
         num_scenes = len(request.scenes)
-        speed_multiplier = max(0.25, min(request.speed_multiplier or 1.0, 2.0))
-        transition_dur = max(0.1, 0.5 / speed_multiplier)
-        tts_padding = 0.5 / speed_multiplier
+        transition_dur, tts_padding, speed_multiplier = calculate_speed_params(
+            request.speed_multiplier or 1.0
+        )
         tts_rate = to_edge_tts_rate(speed_multiplier)
         tts_valid: list[bool] = []
         tts_durations: list[float] = []
@@ -506,8 +508,7 @@ async def logic_create_video(request: VideoRequest) -> dict:
             image_bytes = load_image_bytes(scene.image_url)
             raw_script = scene.script or ""
             logger.info(f"Scene {i}: script='{raw_script}', len={len(raw_script)}")
-            clean_script = re.sub(r"[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥+\-=×÷²³¹⁰()%<>]", "", raw_script)
-            clean_script = clean_script.replace("'", "").strip()
+            clean_script = clean_script_for_tts(raw_script)
             if use_post_layout:
                 try:
                     overlay_settings = request.overlay_settings or OverlaySettings()
@@ -563,12 +564,9 @@ async def logic_create_video(request: VideoRequest) -> dict:
             tts_valid.append(has_valid_tts)
             tts_durations.append(tts_duration)
 
-        scene_durations: list[float] = []
-        for i, scene in enumerate(request.scenes):
-            base_duration = (scene.duration or 3) / speed_multiplier
-            if tts_valid[i] and tts_durations[i] > 0:
-                base_duration = max(base_duration, tts_durations[i] + tts_padding)
-            scene_durations.append(base_duration)
+        scene_durations = calculate_scene_durations(
+            request.scenes, tts_valid, tts_durations, speed_multiplier, tts_padding
+        )
 
         filters: list[str] = []
         out_w, out_h = (request.width, request.height)

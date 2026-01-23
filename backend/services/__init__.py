@@ -52,6 +52,13 @@ from .utils import (
     to_edge_tts_rate,
     wrap_text,
 )
+from .video import (
+    calculate_scene_durations,
+    calculate_speed_params,
+    clean_script_for_tts,
+    generate_video_filename,
+    sanitize_project_name,
+)
 
 __all__ = [
     # Keywords
@@ -99,4 +106,10 @@ __all__ = [
     "scrub_payload",
     "to_edge_tts_rate",
     "wrap_text",
+    # Video
+    "calculate_scene_durations",
+    "calculate_speed_params",
+    "clean_script_for_tts",
+    "generate_video_filename",
+    "sanitize_project_name",
 ]
