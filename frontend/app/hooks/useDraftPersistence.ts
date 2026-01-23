@@ -4,23 +4,27 @@ import { useEffect, useRef, useCallback } from "react";
 
 const DEBOUNCE_MS = 300;
 
-interface UseDraftPersistenceOptions {
+interface UseDraftPersistenceOptions<T> {
   storageKey: string;
-  onHydrate: (data: unknown) => void;
-  getDraftData: () => unknown;
+  onHydrate: (data: T) => void;
+  getDraftData: () => T;
+  getSlimDraftData?: () => T;
   dependencies: unknown[];
 }
 
-export function useDraftPersistence({
+export function useDraftPersistence<T>({
   storageKey,
   onHydrate,
   getDraftData,
+  getSlimDraftData,
   dependencies,
-}: UseDraftPersistenceOptions) {
+}: UseDraftPersistenceOptions<T>) {
   const hasHydratedRef = useRef(false);
   const saveTimeoutRef = useRef<number | null>(null);
   const getDraftDataRef = useRef(getDraftData);
+  const getSlimDraftDataRef = useRef(getSlimDraftData);
   getDraftDataRef.current = getDraftData;
+  getSlimDraftDataRef.current = getSlimDraftData;
 
   // Hydration effect - runs once on mount
   useEffect(() => {
@@ -30,7 +34,7 @@ export function useDraftPersistence({
     try {
       const stored = window.localStorage.getItem(storageKey);
       if (stored) {
-        const data = JSON.parse(stored);
+        const data = JSON.parse(stored) as T;
         onHydrate(data);
       }
     } catch {
@@ -55,7 +59,17 @@ export function useDraftPersistence({
         window.localStorage.setItem(storageKey, JSON.stringify(data));
       } catch (error) {
         if (error instanceof DOMException && error.name === "QuotaExceededError") {
-          console.warn("Draft save failed: quota exceeded");
+          // Try saving slim version without images
+          if (getSlimDraftDataRef.current) {
+            try {
+              const slimData = getSlimDraftDataRef.current();
+              window.localStorage.setItem(storageKey, JSON.stringify(slimData));
+            } catch {
+              console.warn("Draft save failed: quota exceeded even with slim data");
+            }
+          } else {
+            console.warn("Draft save failed: quota exceeded");
+          }
         } else {
           console.error("Draft save failed:", error);
         }

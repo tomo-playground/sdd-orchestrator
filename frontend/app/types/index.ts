@@ -86,3 +86,52 @@ export type Toast = {
   message: string;
   type: "success" | "error";
 } | null;
+
+export type DraftScene = {
+  id: number;
+  script: string;
+  speaker: Scene["speaker"];
+  duration: number;
+  image_prompt: string;
+  image_prompt_ko: string;
+  image_url: string | null;
+  candidates?: Array<{ image_url: string; match_rate?: number }>;
+  negative_prompt: string;
+  steps: number;
+  cfg_scale: number;
+  sampler_name: string;
+  seed: number;
+  clip_skip: number;
+};
+
+export type DraftData = {
+  topic?: string;
+  duration?: number;
+  style?: string;
+  language?: string;
+  structure?: string;
+  actorAGender?: ActorGender;
+  basePromptA?: string;
+  baseNegativePromptA?: string;
+  baseStepsA?: number;
+  baseCfgScaleA?: number;
+  baseSamplerA?: string;
+  baseSeedA?: number;
+  baseClipSkipA?: number;
+  includeSubtitles?: boolean;
+  narratorVoice?: string;
+  bgmFile?: string | null;
+  subtitleFont?: string;
+  speedMultiplier?: number;
+  overlaySettings?: OverlaySettings;
+  postCardSettings?: PostCardSettings;
+  layoutStyle?: "full" | "post";
+  motionStyle?: "none" | "slow_zoom";
+  hiResEnabled?: boolean;
+  veoEnabled?: boolean;
+  videoUrl?: string | null;
+  videoUrlFull?: string | null;
+  videoUrlPost?: string | null;
+  recentVideos?: RecentVideo[];
+  scenes?: DraftScene[];
+};

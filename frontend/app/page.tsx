@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useAutopilot } from "./hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAutopilot, useDraftPersistence } from "./hooks";
 import axios from "axios";
 
 import type {
@@ -17,6 +17,8 @@ import type {
   SceneValidation,
   FixSuggestion,
   ImageValidation,
+  DraftData,
+  DraftScene,
 } from "./types";
 
 import {
@@ -168,8 +170,6 @@ export default function Home() {
   } = useAutopilot();
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
-  const draftSaveTimeoutRef = useRef<number | null>(null);
-  const hasHydratedDraftRef = useRef(false);
 
   useEffect(() => {
     axios
@@ -204,237 +204,141 @@ export default function Home() {
       .catch(() => setFontList([]));
   }, []);
 
-  useEffect(() => {
-    if (hasHydratedDraftRef.current) return;
-    if (typeof window === "undefined") return;
-    try {
-      const stored = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (!stored) {
-        hasHydratedDraftRef.current = true;
-        return;
-      }
-      const draft = JSON.parse(stored) as {
-        topic?: string;
-        duration?: number;
-        style?: string;
-        language?: string;
-        structure?: string;
-        actorAGender?: ActorGender;
-        basePromptA?: string;
-        baseNegativePromptA?: string;
-        baseStepsA?: number;
-        baseCfgScaleA?: number;
-        baseSamplerA?: string;
-        baseSeedA?: number;
-        baseClipSkipA?: number;
-        includeSubtitles?: boolean;
-        narratorVoice?: string;
-        bgmFile?: string | null;
-        subtitleFont?: string;
-        speedMultiplier?: number;
-        overlaySettings?: OverlaySettings;
-        postCardSettings?: PostCardSettings;
-        layoutStyle?: "full" | "post";
-        motionStyle?: "none" | "slow_zoom";
-        hiResEnabled?: boolean;
-        veoEnabled?: boolean;
-        videoUrl?: string | null;
-        videoUrlFull?: string | null;
-        videoUrlPost?: string | null;
-        recentVideos?: Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>;
-        scenes?: Array<{
-          id: number;
-          script: string;
-          speaker: Scene["speaker"];
-          duration: number;
-          image_prompt: string;
-          image_prompt_ko: string;
-          image_url?: string | null;
-          negative_prompt: string;
-          steps: number;
-          cfg_scale: number;
-          sampler_name: string;
-          seed: number;
-          clip_skip: number;
-        }>;
-      };
-      if (draft.topic !== undefined) setTopic(draft.topic);
-      if (draft.duration !== undefined) setDuration(draft.duration);
-      if (draft.style !== undefined) setStyle(draft.style);
-      if (draft.language !== undefined) setLanguage(draft.language);
-      if (draft.structure !== undefined) setStructure(draft.structure);
-      if (draft.actorAGender !== undefined) setActorAGender(draft.actorAGender);
-      if (draft.basePromptA !== undefined) setBasePromptA(draft.basePromptA);
-      if (draft.baseNegativePromptA !== undefined)
-        setBaseNegativePromptA(draft.baseNegativePromptA);
-      if (draft.baseStepsA !== undefined) setBaseStepsA(draft.baseStepsA);
-      if (draft.baseCfgScaleA !== undefined) setBaseCfgScaleA(draft.baseCfgScaleA);
-      if (draft.baseSamplerA !== undefined) setBaseSamplerA(draft.baseSamplerA);
-      if (draft.baseSeedA !== undefined) setBaseSeedA(draft.baseSeedA);
-      if (draft.baseClipSkipA !== undefined) setBaseClipSkipA(draft.baseClipSkipA);
-      if (draft.includeSubtitles !== undefined) setIncludeSubtitles(draft.includeSubtitles);
-      if (draft.narratorVoice !== undefined) setNarratorVoice(draft.narratorVoice);
-      if (draft.bgmFile !== undefined) setBgmFile(draft.bgmFile);
-      if (draft.subtitleFont !== undefined) setSubtitleFont(draft.subtitleFont);
-      if (draft.speedMultiplier !== undefined) setSpeedMultiplier(draft.speedMultiplier);
-      if (draft.overlaySettings !== undefined) {
-        setOverlaySettings(normalizeOverlaySettings(draft.overlaySettings));
-      }
-      if (draft.postCardSettings !== undefined) {
-        setPostCardSettings(normalizePostCardSettings(draft.postCardSettings));
-      }
-      if (draft.layoutStyle !== undefined) setLayoutStyle(draft.layoutStyle);
-      if (draft.motionStyle !== undefined) setMotionStyle(draft.motionStyle);
-      if (draft.hiResEnabled !== undefined) setHiResEnabled(draft.hiResEnabled);
-      if (draft.veoEnabled !== undefined) setVeoEnabled(draft.veoEnabled);
-      if (draft.videoUrl !== undefined) setVideoUrl(draft.videoUrl ?? null);
-      if (draft.videoUrlFull !== undefined) setVideoUrlFull(draft.videoUrlFull ?? null);
-      if (draft.videoUrlPost !== undefined) setVideoUrlPost(draft.videoUrlPost ?? null);
-      if (Array.isArray(draft.recentVideos)) setRecentVideos(draft.recentVideos);
-      if (Array.isArray(draft.scenes)) {
-        setScenes(
-          draft.scenes.map((scene: Partial<Scene> & { id: number }) => ({
-            ...scene,
-            image_url: scene.image_url ?? null,
-            candidates: Array.isArray(scene.candidates) ? scene.candidates : [],
-            isGenerating: false,
-            debug_prompt: "",
-            debug_payload: "",
-          })) as Scene[]
-        );
-        setCurrentSceneIndex(0);
-      }
-    } catch {
-      // Ignore malformed drafts.
-    } finally {
-      hasHydratedDraftRef.current = true;
+  // Draft persistence hook - handles hydration and saving
+  const handleDraftHydrate = useCallback((draft: DraftData) => {
+    if (draft.topic !== undefined) setTopic(draft.topic);
+    if (draft.duration !== undefined) setDuration(draft.duration);
+    if (draft.style !== undefined) setStyle(draft.style);
+    if (draft.language !== undefined) setLanguage(draft.language);
+    if (draft.structure !== undefined) setStructure(draft.structure);
+    if (draft.actorAGender !== undefined) setActorAGender(draft.actorAGender);
+    if (draft.basePromptA !== undefined) setBasePromptA(draft.basePromptA);
+    if (draft.baseNegativePromptA !== undefined) setBaseNegativePromptA(draft.baseNegativePromptA);
+    if (draft.baseStepsA !== undefined) setBaseStepsA(draft.baseStepsA);
+    if (draft.baseCfgScaleA !== undefined) setBaseCfgScaleA(draft.baseCfgScaleA);
+    if (draft.baseSamplerA !== undefined) setBaseSamplerA(draft.baseSamplerA);
+    if (draft.baseSeedA !== undefined) setBaseSeedA(draft.baseSeedA);
+    if (draft.baseClipSkipA !== undefined) setBaseClipSkipA(draft.baseClipSkipA);
+    if (draft.includeSubtitles !== undefined) setIncludeSubtitles(draft.includeSubtitles);
+    if (draft.narratorVoice !== undefined) setNarratorVoice(draft.narratorVoice);
+    if (draft.bgmFile !== undefined) setBgmFile(draft.bgmFile);
+    if (draft.subtitleFont !== undefined) setSubtitleFont(draft.subtitleFont);
+    if (draft.speedMultiplier !== undefined) setSpeedMultiplier(draft.speedMultiplier);
+    if (draft.overlaySettings !== undefined) {
+      setOverlaySettings(normalizeOverlaySettings(draft.overlaySettings));
+    }
+    if (draft.postCardSettings !== undefined) {
+      setPostCardSettings(normalizePostCardSettings(draft.postCardSettings));
+    }
+    if (draft.layoutStyle !== undefined) setLayoutStyle(draft.layoutStyle);
+    if (draft.motionStyle !== undefined) setMotionStyle(draft.motionStyle);
+    if (draft.hiResEnabled !== undefined) setHiResEnabled(draft.hiResEnabled);
+    if (draft.veoEnabled !== undefined) setVeoEnabled(draft.veoEnabled);
+    if (draft.videoUrl !== undefined) setVideoUrl(draft.videoUrl ?? null);
+    if (draft.videoUrlFull !== undefined) setVideoUrlFull(draft.videoUrlFull ?? null);
+    if (draft.videoUrlPost !== undefined) setVideoUrlPost(draft.videoUrlPost ?? null);
+    if (Array.isArray(draft.recentVideos)) setRecentVideos(draft.recentVideos);
+    if (Array.isArray(draft.scenes)) {
+      setScenes(
+        draft.scenes.map((scene: DraftScene) => ({
+          ...scene,
+          image_url: scene.image_url ?? null,
+          candidates: Array.isArray(scene.candidates) ? scene.candidates : [],
+          isGenerating: false,
+          debug_prompt: "",
+          debug_payload: "",
+        })) as Scene[]
+      );
+      setCurrentSceneIndex(0);
     }
   }, []);
 
-  useEffect(() => {
-    if (!hasHydratedDraftRef.current) return;
-    if (typeof window === "undefined") return;
-    if (draftSaveTimeoutRef.current) {
-      window.clearTimeout(draftSaveTimeoutRef.current);
-    }
-    draftSaveTimeoutRef.current = window.setTimeout(() => {
-      const draftScenes = scenes.map((scene) => ({
-        id: scene.id,
-        script: scene.script,
-        speaker: scene.speaker,
-        duration: scene.duration,
-        image_prompt: scene.image_prompt,
-        image_prompt_ko: scene.image_prompt_ko,
-        image_url: scene.image_url,
-        candidates: scene.candidates ?? [],
-        negative_prompt: scene.negative_prompt,
-        steps: scene.steps,
-        cfg_scale: scene.cfg_scale,
-        sampler_name: scene.sampler_name,
-        seed: scene.seed,
-        clip_skip: scene.clip_skip,
-      }));
-      const totalImageSize = draftScenes.reduce((acc, scene) => {
-        const baseSize = scene.image_url ? scene.image_url.length : 0;
-        const candidateSize = (scene.candidates || []).reduce((sum, candidate) => {
-          return sum + (candidate.image_url ? candidate.image_url.length : 0);
-        }, 0);
-        return acc + baseSize + candidateSize;
+  const buildDraftScenes = useCallback((): DraftScene[] => {
+    const draftScenes = scenes.map((scene) => ({
+      id: scene.id,
+      script: scene.script,
+      speaker: scene.speaker,
+      duration: scene.duration,
+      image_prompt: scene.image_prompt,
+      image_prompt_ko: scene.image_prompt_ko,
+      image_url: scene.image_url,
+      candidates: scene.candidates ?? [],
+      negative_prompt: scene.negative_prompt,
+      steps: scene.steps,
+      cfg_scale: scene.cfg_scale,
+      sampler_name: scene.sampler_name,
+      seed: scene.seed,
+      clip_skip: scene.clip_skip,
+    }));
+    const totalImageSize = draftScenes.reduce((acc, scene) => {
+      const baseSize = scene.image_url ? scene.image_url.length : 0;
+      const candidateSize = (scene.candidates || []).reduce((sum, candidate) => {
+        return sum + (candidate.image_url ? candidate.image_url.length : 0);
       }, 0);
-      if (totalImageSize > MAX_IMAGE_CACHE_SIZE) {
-        draftScenes.forEach((scene) => {
-          scene.image_url = null;
-          scene.candidates = [];
-        });
-      }
-      const draft = {
-        topic,
-        duration,
-        style,
-        language,
-        structure,
-        actorAGender,
-        basePromptA,
-        baseNegativePromptA,
-        baseStepsA,
-        baseCfgScaleA,
-        baseSamplerA,
-        baseSeedA,
-        baseClipSkipA,
-        includeSubtitles,
-        narratorVoice,
-        bgmFile,
-        subtitleFont,
-        speedMultiplier,
-        overlaySettings,
-        postCardSettings,
-        layoutStyle,
-        motionStyle,
-        hiResEnabled,
-        veoEnabled,
-        videoUrl,
-        videoUrlFull,
-        videoUrlPost,
-        recentVideos,
-        scenes: draftScenes,
-      };
-      try {
-        window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "QuotaExceededError") {
-          const slimScenes = draftScenes.map((scene) => ({
-            ...scene,
-            image_url: null,
-            candidates: [],
-          }));
-          const slimDraft = {
-            ...draft,
-            recentVideos: [],
-            scenes: slimScenes,
-          };
-          window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(slimDraft));
-        } else {
-          console.error(error);
-        }
-      }
-    }, 300);
-    return () => {
-      if (draftSaveTimeoutRef.current) {
-        window.clearTimeout(draftSaveTimeoutRef.current);
-        draftSaveTimeoutRef.current = null;
-      }
+      return acc + baseSize + candidateSize;
+    }, 0);
+    if (totalImageSize > MAX_IMAGE_CACHE_SIZE) {
+      draftScenes.forEach((scene) => {
+        scene.image_url = null;
+        scene.candidates = [];
+      });
+    }
+    return draftScenes;
+  }, [scenes]);
+
+  const getDraftData = useCallback((): DraftData => ({
+    topic, duration, style, language, structure, actorAGender,
+    basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
+    baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
+    narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+    overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+    recentVideos, scenes: buildDraftScenes(),
+  }), [
+    topic, duration, style, language, structure, actorAGender,
+    basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
+    baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
+    narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+    overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+    recentVideos, buildDraftScenes,
+  ]);
+
+  const getSlimDraftData = useCallback((): DraftData => {
+    const slimScenes = scenes.map((scene) => ({
+      id: scene.id, script: scene.script, speaker: scene.speaker,
+      duration: scene.duration, image_prompt: scene.image_prompt,
+      image_prompt_ko: scene.image_prompt_ko, image_url: null,
+      candidates: [], negative_prompt: scene.negative_prompt,
+      steps: scene.steps, cfg_scale: scene.cfg_scale,
+      sampler_name: scene.sampler_name, seed: scene.seed, clip_skip: scene.clip_skip,
+    }));
+    return {
+      topic, duration, style, language, structure, actorAGender,
+      basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
+      baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
+      narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+      overlaySettings, postCardSettings, layoutStyle, motionStyle,
+      hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+      recentVideos: [], scenes: slimScenes,
     };
   }, [
-    topic,
-    duration,
-    style,
-    language,
-    structure,
-    actorAGender,
-    basePromptA,
-    baseNegativePromptA,
-    baseStepsA,
-    baseCfgScaleA,
-    baseSamplerA,
-    baseSeedA,
-    baseClipSkipA,
-    includeSubtitles,
-    narratorVoice,
-    bgmFile,
-    subtitleFont,
-    speedMultiplier,
-    overlaySettings,
-    postCardSettings,
-    layoutStyle,
-    motionStyle,
-    hiResEnabled,
-    veoEnabled,
-    videoUrl,
-    videoUrlFull,
-    videoUrlPost,
-    recentVideos,
+    topic, duration, style, language, structure, actorAGender,
+    basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
+    baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
+    narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+    overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
     scenes,
   ]);
+
+  const { reset: resetDraftStorage } = useDraftPersistence<DraftData>({
+    storageKey: DRAFT_STORAGE_KEY,
+    onHydrate: handleDraftHydrate,
+    getDraftData,
+    getSlimDraftData,
+    dependencies: [getDraftData],
+  });
 
   useEffect(() => {
     const fetchModels = async () => {
