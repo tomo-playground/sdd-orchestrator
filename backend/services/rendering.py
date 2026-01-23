@@ -542,6 +542,54 @@ def resolve_overlay_frame(
     create_overlay_image(settings, width, height, output_path, layout_style)
 
 
+def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
+    """Calculate layout metrics for post-style frames.
+
+    Shared between compose_post_frame and video filter building.
+    Returns a dict with all positioning and sizing values.
+    """
+    card_offset_y = int(height * 0.04)
+    card_width = int(width * 0.88)
+    card_height = int(height * 0.86)
+    card_padding = int(card_width * 0.04)
+    header_height = int(card_height * 0.055)
+    subtitle_area_height = int(card_height * 0.18)
+    action_bar_height = int(card_height * 0.045)
+    caption_height = int(card_height * 0.13)
+
+    card_x = (width - card_width) // 2
+    card_y = max(0, (height - card_height) // 2 + card_offset_y - int(height * 0.05))
+
+    inner_width = card_width - (card_padding * 2)
+    inner_height = card_height - (
+        card_padding * 2 + header_height + subtitle_area_height +
+        action_bar_height + caption_height
+    )
+    image_area = min(inner_width, inner_height)
+    image_area = max(image_area, int(card_width * 0.45))
+    image_area = int(image_area * 0.98)
+
+    image_x = card_x + card_padding
+    subtitle_y = card_y + card_padding + header_height
+    image_y = subtitle_y + subtitle_area_height
+
+    return {
+        "card_width": card_width,
+        "card_height": card_height,
+        "card_padding": card_padding,
+        "card_x": card_x,
+        "card_y": card_y,
+        "header_height": header_height,
+        "subtitle_area_height": subtitle_area_height,
+        "action_bar_height": action_bar_height,
+        "caption_height": caption_height,
+        "image_area": image_area,
+        "image_x": image_x,
+        "image_y": image_y,
+        "subtitle_y": subtitle_y,
+    }
+
+
 def compose_post_frame(
     image_bytes: bytes,
     width: int,
@@ -555,38 +603,32 @@ def compose_post_frame(
     time_override: str | None = None,
 ) -> Image.Image:
     """Compose Instagram-style post frame."""
-    card_offset_y = int(height * 0.04)
+    # Get layout metrics from shared function
+    metrics = calculate_post_layout_metrics(width, height)
+    card_width = metrics["card_width"]
+    card_height = metrics["card_height"]
+    card_padding = metrics["card_padding"]
+    card_x = metrics["card_x"]
+    card_y = metrics["card_y"]
+    header_height = metrics["header_height"]
+    action_bar_height = metrics["action_bar_height"]
+    image_area = metrics["image_area"]
+    image_x = metrics["image_x"]
+    image_y = metrics["image_y"]
+
     image = Image.open(io.BytesIO(image_bytes))
     image_rgb = image.convert("RGB")
     background = ImageOps.fit(image_rgb, (width, height), Image.LANCZOS)
     background = background.filter(ImageFilter.GaussianBlur(radius=30)).convert("RGBA")
     background.alpha_composite(Image.new("RGBA", (width, height), (0, 0, 0, 20)))
 
-    card_width = int(width * 0.88)
-    card_height = int(height * 0.86)
-    card_padding = int(card_width * 0.04)
     radius = int(card_width * 0.06)
-    header_height = int(card_height * 0.055)
-    subtitle_area_height = int(card_height * 0.18)
-    action_bar_height = int(card_height * 0.045)
-    caption_height = int(card_height * 0.13)
     card = Image.new("RGBA", (card_width, card_height), (255, 255, 255, 245))
     mask = Image.new("L", (card_width, card_height), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.rounded_rectangle((0, 0, card_width, card_height), radius=radius, fill=255)
     card.putalpha(mask)
-
-    card_x = (width - card_width) // 2
-    card_y = max(0, (height - card_height) // 2 + card_offset_y - int(height * 0.05))
     background.alpha_composite(card, (card_x, card_y))
-
-    inner_width = card_width - (card_padding * 2)
-    inner_height = card_height - (card_padding * 2 + header_height + subtitle_area_height + action_bar_height + caption_height)
-    image_area = min(inner_width, inner_height)
-    image_area = max(image_area, int(card_width * 0.45))
-    image_area = int(image_area * 0.98)
-    image_x = card_x + card_padding
-    image_y = card_y + card_padding + header_height + subtitle_area_height
 
     inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS).convert("RGBA")
     background.alpha_composite(inner, (image_x, image_y))

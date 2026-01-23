@@ -127,6 +127,7 @@ from services.validation import (
 # Rendering functions imported from services
 from services.rendering import (
     apply_post_overlay_mask,
+    calculate_post_layout_metrics,
     compose_post_frame,
     create_overlay_image,
     load_avatar_image,
@@ -505,7 +506,7 @@ async def logic_create_video(request: VideoRequest) -> dict:
             image_bytes = load_image_bytes(scene.image_url)
             raw_script = scene.script or ""
             logger.info(f"Scene {i}: script='{raw_script}', len={len(raw_script)}")
-            clean_script = re.sub(r"[^​​\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥]", "", raw_script)
+            clean_script = re.sub(r"[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥+\-=×÷²³¹⁰()%<>]", "", raw_script)
             clean_script = clean_script.replace("'", "").strip()
             if use_post_layout:
                 try:
@@ -574,36 +575,8 @@ async def logic_create_video(request: VideoRequest) -> dict:
 
         post_layout_metrics = None
         if use_post_layout:
-            # 썰/스토리 중심 레이아웃 (compose_post_frame과 동기화)
-            card_width = int(out_w * 0.88)
-            card_height = int(out_h * 0.86)
-            card_padding = int(card_width * 0.04)
-            header_height = int(card_height * 0.055)  # 심플 헤더
-            subtitle_area_height = int(card_height * 0.18)  # 자막 영역 (3줄 대응)
-            action_bar_height = int(card_height * 0.045)  # 액션바
-            caption_height = int(card_height * 0.13)  # 캡션 영역
-            card_x = (out_w - card_width) // 2
-            card_y = max(0, (out_h - card_height) // 2 + int(out_h * 0.04) - int(out_h * 0.05))
-            inner_width = card_width - (card_padding * 2)
-            inner_height = card_height - (card_padding * 2 + header_height + subtitle_area_height + action_bar_height + caption_height)
-            image_area = min(inner_width, inner_height)
-            image_area = max(image_area, int(card_width * 0.45))
-            image_area = int(image_area * 0.98)
-            image_x = card_x + card_padding
-            subtitle_y = card_y + card_padding + header_height  # 자막 영역 Y 위치
-            image_y = subtitle_y + subtitle_area_height  # 이미지는 자막 아래
-            post_layout_metrics = {
-                "card_height": card_height,
-                "card_padding": card_padding,
-                "card_x": card_x,
-                "card_y": card_y,
-                "card_width": card_width,
-                "subtitle_y": subtitle_y,
-                "subtitle_area_height": subtitle_area_height,
-                "image_x": image_x,
-                "image_y": image_y,
-                "image_area": image_area,
-            }
+            # Use shared layout calculation (synced with compose_post_frame)
+            post_layout_metrics = calculate_post_layout_metrics(out_w, out_h)
 
         subtitle_base_idx = num_scenes * 2
         if request.include_subtitles:
