@@ -3253,192 +3253,18 @@ export default function Home() {
           </div>
 
           <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+            {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900">Render Settings</h2>
-                <p className="text-xs text-zinc-500">
-                  Control subtitles, narration, and background music.
-                </p>
+                <p className="text-xs text-zinc-500">Configure layout, audio, and rendering.</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-200 bg-white/80 px-4 py-2">
-              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Actions
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
-                {layoutStyle === "full" ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOverlaySettings((prev) => ({ ...prev, ...buildOverlayContext() }))
-                      }
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                    >
-                      Auto Fill Overlay
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRegenerateAvatar(overlaySettings.avatar_key ?? "")}
-                      disabled={isRegeneratingAvatar || !(overlaySettings.avatar_key ?? "").trim()}
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase transition disabled:cursor-not-allowed disabled:text-zinc-400"
-                    >
-                      {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setPostCardSettings(buildPostCardContext())}
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                    >
-                      Auto Fill Post
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRegenerateAvatar(postCardSettings.avatar_key ?? "")}
-                      disabled={isRegeneratingAvatar || !(postCardSettings.avatar_key ?? "").trim()}
-                      className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase transition disabled:cursor-not-allowed disabled:text-zinc-400"
-                    >
-                      {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
-                    </button>
-                  </>
-                )}
-                <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white/50 p-1">
-                  <button
-                    onClick={handleRenderFull}
-                    disabled={!canRender || isRendering}
-                    className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                      layoutStyle === "full"
-                        ? "bg-zinc-900 text-white"
-                        : "text-zinc-600 hover:bg-zinc-100"
-                    }`}
-                  >
-                    Full
-                  </button>
-                  <button
-                    onClick={handleRenderPost}
-                    disabled={!canRender || isRendering}
-                    className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                      layoutStyle === "post"
-                        ? "bg-zinc-900 text-white"
-                        : "text-zinc-600 hover:bg-zinc-100"
-                    }`}
-                  >
-                    Post
-                  </button>
-                  <button
-                    onClick={handleRenderBoth}
-                    disabled={!canRender || isRendering}
-                    className="rounded-full bg-zinc-900 px-3 py-1.5 text-[10px] font-semibold tracking-[0.1em] text-white uppercase shadow-md transition disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isRendering ? "Rendering..." : "Both ✨"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
+            {/* 1. LAYOUT SELECTION (TOP - Most Important) */}
+            <div className="grid gap-3">
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                SD Model
-              </label>
-              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3">
-                <span className="text-xs font-semibold text-zinc-600">Current: {currentModel}</span>
-                {isModelUpdating && (
-                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
-                    Updating...
-                  </span>
-                )}
-                <select
-                  value={selectedModel}
-                  onChange={(e) => handleModelChange(e.target.value)}
-                  disabled={isModelUpdating || sdModels.length === 0}
-                  className="min-w-[220px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400 disabled:bg-zinc-100"
-                >
-                  {sdModels.length === 0 && <option value="">No models found</option>}
-                  {sdModels.map((model) => (
-                    <option key={model.title} value={model.title}>
-                      {model.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-                Include Subtitles
-                <input
-                  type="checkbox"
-                  checked={includeSubtitles}
-                  onChange={(e) => setIncludeSubtitles(e.target.checked)}
-                  className="h-4 w-4 accent-zinc-900"
-                />
-              </label>
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Narrator Voice
-                </label>
-                <select
-                  value={narratorVoice}
-                  onChange={(e) => setNarratorVoice(e.target.value)}
-                  className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                >
-                  {VOICES.map((voice) => (
-                    <option key={voice.id} value={voice.id}>
-                      {voice.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Subtitle Font
-                </label>
-                <select
-                  value={subtitleFont ?? ""}
-                  onChange={(e) => setSubtitleFont(e.target.value)}
-                  className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                >
-                  {fontList.length === 0 && <option value="">Default</option>}
-                  {fontList.map((font) => (
-                    <option key={font.name} value={font.name}>
-                      {font.name}
-                    </option>
-                  ))}
-                </select>
-                {/* Font Preview */}
-                <div
-                  className="mt-2 rounded-xl border border-zinc-200 bg-zinc-900 px-4 py-3 text-center text-white"
-                  style={{ fontFamily: `"${subtitleFont}", sans-serif` }}
-                >
-                  <span className="text-lg">
-                    {loadedFonts.has(subtitleFont) ? "가나다 ABC 123" : "Loading..."}
-                  </span>
-                </div>
-              </div>
-              {/* Layout Visual Cards - moved outside grid for better display */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Effects (Skillset)
-                </label>
-                <select
-                  value={motionStyle}
-                  onChange={(e) => setMotionStyle(e.target.value as "none" | "slow_zoom")}
-                  className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                >
-                  <option value="none">None</option>
-                  <option value="slow_zoom">Slow Zoom</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Layout Visual Cards */}
-            <div className="grid gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Scene Layout
+                Layout
               </label>
               <div className="flex gap-4">
                 <button
@@ -3450,7 +3276,6 @@ export default function Home() {
                       : "border-zinc-200 bg-white/80 hover:border-zinc-400"
                   }`}
                 >
-                  {/* 9:16 Visual */}
                   <div
                     className={`flex h-20 w-11 flex-col items-center justify-center rounded-lg border-2 ${
                       layoutStyle === "full" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
@@ -3461,17 +3286,11 @@ export default function Home() {
                     <div className={`mt-0.5 h-1 w-4 rounded ${layoutStyle === "full" ? "bg-zinc-400" : "bg-zinc-200"}`} />
                   </div>
                   <div className="text-center">
-                    <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>
-                      Full
-                    </p>
-                    <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>
-                      9:16 세로
-                    </p>
+                    <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>Full</p>
+                    <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>9:16 세로</p>
                   </div>
                   {layoutStyle === "full" && (
-                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">
-                      선택됨
-                    </span>
+                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">선택됨</span>
                   )}
                 </button>
 
@@ -3484,7 +3303,6 @@ export default function Home() {
                       : "border-zinc-200 bg-white/80 hover:border-zinc-400"
                   }`}
                 >
-                  {/* 1:1 Visual */}
                   <div
                     className={`flex h-14 w-14 flex-col items-center justify-center rounded-lg border-2 ${
                       layoutStyle === "post" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
@@ -3494,80 +3312,222 @@ export default function Home() {
                     <div className={`mt-1 h-1 w-5 rounded ${layoutStyle === "post" ? "bg-zinc-400" : "bg-zinc-200"}`} />
                   </div>
                   <div className="text-center">
-                    <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>
-                      Post
-                    </p>
-                    <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>
-                      1:1 정사각형
-                    </p>
+                    <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>Post</p>
+                    <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>1:1 정사각형</p>
                   </div>
                   {layoutStyle === "post" && (
-                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">
-                      선택됨
-                    </span>
+                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">선택됨</span>
                   )}
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                BGM
-              </label>
-              <select
-                value={bgmFile ?? ""}
-                onChange={(e) => setBgmFile(e.target.value || null)}
-                className="min-w-0 truncate rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              >
-                <option value="">None</option>
-                {bgmList.map((bgm) => (
-                  <option key={bgm.name} value={bgm.name}>
-                    {bgm.name}
-                  </option>
-                ))}
-              </select>
-              <div className="flex">
+            {/* 2. RENDER ACTIONS (Prominent) */}
+            <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-5">
+              <div className="flex items-center gap-2">
                 <button
-                  type="button"
-                  onClick={() => handlePreviewBgm()}
-                  disabled={!bgmFile || isPreviewingBgm}
-                  className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                  onClick={handleRenderFull}
+                  disabled={!canRender || isRendering}
+                  className={`rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    layoutStyle === "full"
+                      ? "bg-zinc-900 text-white shadow-lg"
+                      : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
                 >
-                  {isPreviewingBgm ? "Playing..." : "Preview 10s"}
+                  Render Full
+                </button>
+                <button
+                  onClick={handleRenderPost}
+                  disabled={!canRender || isRendering}
+                  className={`rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    layoutStyle === "post"
+                      ? "bg-zinc-900 text-white shadow-lg"
+                      : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  Render Post
+                </button>
+                <button
+                  onClick={handleRenderBoth}
+                  disabled={!canRender || isRendering}
+                  className="rounded-full bg-gradient-to-r from-zinc-800 to-zinc-900 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:from-zinc-700 hover:to-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isRendering ? "Rendering..." : "Render Both ✨"}
                 </button>
               </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] text-zinc-500">
+                <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
+                  Images: {scenes.filter((scene) => !!scene.image_url).length}/{scenes.length}
+                </span>
+                <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
+                  Layout: {layoutStyle.toUpperCase()}
+                </span>
+              </div>
+              {!canRender && scenes.length > 0 && (
+                <p className="text-xs text-rose-500">Upload images for every scene to enable rendering.</p>
+              )}
             </div>
 
-            <div className="grid gap-3">
-              {layoutStyle === "full" ? (
-                <>
-                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-                    SNS Overlay
+            {/* 3. VIDEO SETTINGS (Collapsible) */}
+            <details open className="group rounded-2xl border border-zinc-200 bg-white/80">
+              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+                Video Settings
+                <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
+              </summary>
+              <div className="grid gap-4 border-t border-zinc-100 p-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-xs font-medium text-zinc-600">
+                    Include Subtitles
+                    <input
+                      type="checkbox"
+                      checked={includeSubtitles}
+                      onChange={(e) => setIncludeSubtitles(e.target.checked)}
+                      className="h-4 w-4 accent-zinc-900"
+                    />
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                      Subtitle Font
+                    </label>
+                    <select
+                      value={subtitleFont ?? ""}
+                      onChange={(e) => setSubtitleFont(e.target.value)}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                    >
+                      {fontList.length === 0 && <option value="">Default</option>}
+                      {fontList.map((font) => (
+                        <option key={font.name} value={font.name}>{font.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Effects</label>
+                    <select
+                      value={motionStyle}
+                      onChange={(e) => setMotionStyle(e.target.value as "none" | "slow_zoom")}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                    >
+                      <option value="none">None</option>
+                      <option value="slow_zoom">Slow Zoom</option>
+                    </select>
+                  </div>
+                </div>
+                {/* Font Preview */}
+                <div
+                  className="rounded-xl border border-zinc-200 bg-zinc-900 px-4 py-3 text-center text-white"
+                  style={{ fontFamily: `"${subtitleFont}", sans-serif` }}
+                >
+                  <span className="text-lg">{loadedFonts.has(subtitleFont) ? "가나다 ABC 123" : "Loading..."}</span>
+                </div>
+              </div>
+            </details>
+
+            {/* 4. AUDIO SETTINGS (Collapsible) */}
+            <details open className="group rounded-2xl border border-zinc-200 bg-white/80">
+              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+                Audio Settings
+                <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
+              </summary>
+              <div className="grid gap-4 border-t border-zinc-100 p-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice</label>
+                    <select
+                      value={narratorVoice}
+                      onChange={(e) => setNarratorVoice(e.target.value)}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                    >
+                      {VOICES.map((voice) => (
+                        <option key={voice.id} value={voice.id}>{voice.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                      Speed ({speedMultiplier.toFixed(2)}x)
+                    </label>
+                    <input
+                      type="range"
+                      min={0.8}
+                      max={1.5}
+                      step={0.05}
+                      value={speedMultiplier}
+                      onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
+                      className="mt-2 w-full accent-zinc-900"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">BGM</label>
                     <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[11px] font-semibold text-zinc-600">
-                        {overlayAvatarUrl ? (
-                          <img
-                            src={overlayAvatarUrl}
-                            alt="Avatar preview"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          getAvatarInitial(overlaySettings.channel_name ?? "")
-                        )}
-                      </div>
-                      <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
-                        Required
-                      </span>
+                      <select
+                        value={bgmFile ?? ""}
+                        onChange={(e) => setBgmFile(e.target.value || null)}
+                        className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                      >
+                        <option value="">None</option>
+                        {bgmList.map((bgm) => (
+                          <option key={bgm.name} value={bgm.name}>{bgm.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewBgm()}
+                        disabled={!bgmFile || isPreviewingBgm}
+                        className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-[10px] font-semibold text-zinc-600 transition disabled:cursor-not-allowed disabled:text-zinc-400"
+                      >
+                        {isPreviewingBgm ? "▶" : "▶ 10s"}
+                      </button>
                     </div>
                   </div>
-                  <div className="grid gap-4">
-                    <input type="hidden" value={overlaySettings.frame_style} />
+                </div>
+              </div>
+            </details>
 
+            {/* 5. OVERLAY / POST CARD (Collapsible) */}
+            <details className="group rounded-2xl border border-zinc-200 bg-white/80">
+              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+                {layoutStyle === "full" ? "SNS Overlay" : "Post Card Meta"}
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[10px] font-semibold text-zinc-600">
+                    {layoutStyle === "full" ? (
+                      overlayAvatarUrl ? (
+                        <img src={overlayAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                      ) : (
+                        getAvatarInitial(overlaySettings.channel_name ?? "")
+                      )
+                    ) : postAvatarUrl ? (
+                      <img src={postAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      getAvatarInitial(postCardSettings.channel_name ?? "")
+                    )}
+                  </div>
+                  <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
+                </div>
+              </summary>
+              <div className="border-t border-zinc-100 p-4">
+                {layoutStyle === "full" ? (
+                  <div className="grid gap-4">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOverlaySettings((prev) => ({ ...prev, ...buildOverlayContext() }))}
+                        className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50"
+                      >
+                        Auto Fill
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRegenerateAvatar(overlaySettings.avatar_key ?? "")}
+                        disabled={isRegeneratingAvatar || !(overlaySettings.avatar_key ?? "").trim()}
+                        className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
+                      >
+                        {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
+                      </button>
+                    </div>
+                    <input type="hidden" value={overlaySettings.frame_style} />
                     <div className="grid gap-3 md:grid-cols-4">
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Channel Name
-                        </label>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Channel</label>
                         <input
                           value={overlaySettings.channel_name ?? ""}
                           onChange={(e) =>
@@ -3575,183 +3535,126 @@ export default function Home() {
                               ...prev,
                               channel_name: e.target.value,
                               avatar_key:
-                                !prev.avatar_key ||
-                                prev.avatar_key === slugifyAvatarKey(prev.channel_name)
+                                !prev.avatar_key || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
                                   ? slugifyAvatarKey(e.target.value)
                                   : prev.avatar_key,
                             }))
                           }
-                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
                         />
-                        <span className="mt-1 text-[9px] leading-tight text-zinc-400">
-                          Shown in Full/Post headers.
-                        </span>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Avatar Key
-                        </label>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Avatar Key</label>
                         <input
                           value={overlaySettings.avatar_key ?? ""}
-                          onChange={(e) =>
-                            setOverlaySettings((prev) => ({
-                              ...prev,
-                              avatar_key: e.target.value,
-                            }))
-                          }
-                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          onChange={(e) => setOverlaySettings((prev) => ({ ...prev, avatar_key: e.target.value }))}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
                         />
-                        <span className="mt-1 text-[9px] leading-tight text-zinc-400">
-                          Used to generate/reuse avatar image.
-                        </span>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Likes
-                        </label>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Likes</label>
                         <input
                           value={overlaySettings.likes_count ?? ""}
-                          onChange={(e) =>
-                            setOverlaySettings((prev) => ({
-                              ...prev,
-                              likes_count: e.target.value,
-                            }))
-                          }
-                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          onChange={(e) => setOverlaySettings((prev) => ({ ...prev, likes_count: e.target.value }))}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
                         />
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                          Caption
-                        </label>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Caption</label>
                         <input
                           value={overlaySettings.caption ?? ""}
-                          onChange={(e) =>
-                            setOverlaySettings((prev) => ({
-                              ...prev,
-                              caption: e.target.value,
-                            }))
-                          }
-                          className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                          onChange={(e) => setOverlaySettings((prev) => ({ ...prev, caption: e.target.value }))}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
                         />
                       </div>
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className="grid gap-3">
-                  <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-                    Post Card Meta
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[11px] font-semibold text-zinc-600">
-                        {postAvatarUrl ? (
-                          <img
-                            src={postAvatarUrl}
-                            alt="Avatar preview"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          getAvatarInitial(postCardSettings.channel_name ?? "")
-                        )}
+                ) : (
+                  <div className="grid gap-4">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPostCardSettings(buildPostCardContext())}
+                        className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50"
+                      >
+                        Auto Fill
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRegenerateAvatar(postCardSettings.avatar_key ?? "")}
+                        disabled={isRegeneratingAvatar || !(postCardSettings.avatar_key ?? "").trim()}
+                        className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
+                      >
+                        {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
+                      </button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Channel</label>
+                        <input
+                          value={postCardSettings.channel_name ?? ""}
+                          onChange={(e) =>
+                            setPostCardSettings((prev) => ({
+                              ...prev,
+                              channel_name: e.target.value,
+                              avatar_key:
+                                !prev.avatar_key || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
+                                  ? slugifyAvatarKey(e.target.value)
+                                  : prev.avatar_key,
+                            }))
+                          }
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Avatar Key</label>
+                        <input
+                          value={postCardSettings.avatar_key ?? ""}
+                          onChange={(e) => setPostCardSettings((prev) => ({ ...prev, avatar_key: e.target.value }))}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Caption</label>
+                        <input
+                          value={postCardSettings.caption ?? ""}
+                          onChange={(e) => setPostCardSettings((prev) => ({ ...prev, caption: e.target.value }))}
+                          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                        />
                       </div>
                     </div>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                        Channel Name
-                      </label>
-                      <input
-                        value={postCardSettings.channel_name ?? ""}
-                        onChange={(e) =>
-                          setPostCardSettings((prev) => ({
-                            ...prev,
-                            channel_name: e.target.value,
-                            avatar_key:
-                              !prev.avatar_key ||
-                              prev.avatar_key === slugifyAvatarKey(prev.channel_name)
-                                ? slugifyAvatarKey(e.target.value)
-                                : prev.avatar_key,
-                          }))
-                        }
-                        className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                      />
-                      <span className="mt-1 text-[9px] leading-tight text-zinc-400">
-                        Shown in Post header.
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                        Avatar Key
-                      </label>
-                      <input
-                        value={postCardSettings.avatar_key ?? ""}
-                        onChange={(e) =>
-                          setPostCardSettings((prev) => ({
-                            ...prev,
-                            avatar_key: e.target.value,
-                          }))
-                        }
-                        className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                      />
-                      <span className="mt-1 text-[9px] leading-tight text-zinc-400">
-                        Used to generate/reuse avatar image.
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                        Card Caption
-                      </label>
-                      <input
-                        value={postCardSettings.caption ?? ""}
-                        onChange={(e) =>
-                          setPostCardSettings((prev) => ({ ...prev, caption: e.target.value }))
-                        }
-                        className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                      />
-                    </div>
-                  </div>
-                  <div className="text-[10px] text-zinc-500">
-                    Applies: Channel, Caption, Auto meta (time/views/avatar)
-                  </div>
-                  <p className="text-[10px] text-zinc-400">
-                    Post layout uses card meta instead of SNS overlay.
-                  </p>
+                )}
+              </div>
+            </details>
+
+            {/* 6. ADVANCED (Collapsible - SD Model) */}
+            <details className="group rounded-2xl border border-zinc-200 bg-white/80">
+              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+                Advanced
+                <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
+              </summary>
+              <div className="border-t border-zinc-100 p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs text-zinc-500">SD Model:</span>
+                  <span className="text-xs font-semibold text-zinc-700">{currentModel}</span>
+                  {isModelUpdating && (
+                    <span className="text-[10px] text-zinc-400">Updating...</span>
+                  )}
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => handleModelChange(e.target.value)}
+                    disabled={isModelUpdating || sdModels.length === 0}
+                    className="min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400 disabled:bg-zinc-100"
+                  >
+                    {sdModels.length === 0 && <option value="">No models found</option>}
+                    {sdModels.map((model) => (
+                      <option key={model.title} value={model.title}>{model.title}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Read Speed ({speedMultiplier.toFixed(2)}x)
-              </label>
-              <input
-                type="range"
-                min={0.8}
-                max={1.5}
-                step={0.05}
-                value={speedMultiplier}
-                onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
-                className="w-full accent-zinc-900"
-              />
-            </div>
-
-            {!canRender && scenes.length > 0 && (
-              <p className="text-xs text-rose-500">
-                Upload images for every scene to enable rendering.
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
-              <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
-                Render Type: {layoutStyle.toUpperCase()}
-              </span>
-              <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
-                Images: {scenes.filter((scene) => !!scene.image_url).length}/{scenes.length}
-              </span>
-              <span className="rounded-full border border-zinc-200 bg-white px-2 py-1">
-                Overlay: Required
-              </span>
-            </div>
+              </div>
+            </details>
           </section>
 
           {(videoUrl || videoUrlFull || videoUrlPost || recentVideos.length > 0) && (
