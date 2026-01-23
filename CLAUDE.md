@@ -42,6 +42,20 @@ To ensure consistency and quality, always refer to the following documents befor
 - **Priorities**: Read `@docs/ROADMAP.md`. (Tasks must be picked from here).
 - **Specs**: Read `@docs/PRD.md`.
 
+## Code Size Guidelines
+코드 가독성과 유지보수성을 위해 다음 기준을 준수합니다:
+
+| 단위 | 권장 | 최대 | 초과 시 조치 |
+|------|------|------|-------------|
+| **함수/메서드** | 30줄 | 50줄 | 헬퍼 함수로 분리 |
+| **클래스/컴포넌트** | 150줄 | 200줄 | 책임 분리 검토 |
+| **파일** | 300줄 | 400줄 | 모듈 분리 |
+
+**원칙:**
+- 한 함수는 **한 가지 일**만 수행 (Single Responsibility)
+- 중첩(nesting)은 **3단계 이하** 유지
+- 매개변수는 **4개 이하** 권장 (초과 시 객체로 묶기)
+
 ## Prerequisites
 - **Stable Diffusion WebUI**: `http://127.0.0.1:7860` (launch with `--api`).
 - **Env Vars**: `GEMINI_API_KEY` required in `backend/.env`.

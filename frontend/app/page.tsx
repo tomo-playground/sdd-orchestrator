@@ -4,171 +4,45 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import type {
+  Scene,
+  AudioItem,
+  FontItem,
+  OverlaySettings,
+  PostCardSettings,
+  SdModel,
+  ActorGender,
+  AutoRunStepId,
+  ValidationIssue,
+  SceneValidation,
+  FixSuggestion,
+  ImageValidation,
+} from "./types";
 
-type Scene = {
-  id: number;
-  script: string;
-  speaker: "Narrator" | "A";
-  duration: number;
-  image_prompt: string;
-  image_prompt_ko: string;
-  image_url: string | null;
-  candidates?: Array<{ image_url: string; match_rate?: number }>;
-  negative_prompt: string;
-  steps: number;
-  cfg_scale: number;
-  sampler_name: string;
-  seed: number;
-  clip_skip: number;
-  isGenerating: boolean;
-  debug_payload: string;
-  debug_prompt?: string;
-};
+import {
+  API_BASE,
+  DEFAULT_BGM,
+  DEFAULT_SUBTITLE_FONT,
+  DRAFT_STORAGE_KEY,
+  MAX_IMAGE_CACHE_SIZE,
+  DEFAULT_OVERLAY_SETTINGS,
+  DEFAULT_POST_CARD_SETTINGS,
+  AUTO_RUN_STEPS,
+  VOICES,
+  SAMPLERS,
+  OVERLAY_STYLES,
+  HEART_EMOJIS,
+  ASCII_HEARTS,
+  PROMPT_SAMPLES,
+  STRUCTURES,
+  CAMERA_KEYWORDS,
+  ACTION_KEYWORDS,
+  BACKGROUND_KEYWORDS,
+  LIGHTING_KEYWORDS,
+} from "./constants";
 
-type AudioItem = { name: string; url: string };
-type FontItem = { name: string };
-type OverlaySettings = {
-  channel_name: string;
-  avatar_key: string;
-  likes_count: string;
-  caption: string;
-  frame_style: string;
-};
-type PostCardSettings = {
-  channel_name: string;
-  avatar_key: string;
-  caption: string;
-};
-type SdModel = { title: string; model_name: string };
-type ActorGender = "male" | "female";
-
-const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
-const DEFAULT_SUBTITLE_FONT = "온글잎 박다현체.ttf";
-const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";
-const MAX_IMAGE_CACHE_SIZE = 8_000_000;
-const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
-  channel_name: "",
-  avatar_key: "",
-  likes_count: "",
-  caption: "",
-  frame_style: "overlay_minimal.png",
-};
-const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
-  channel_name: "",
-  avatar_key: "",
-  caption: "",
-};
-const AUTO_RUN_STEPS = [
-  { id: "storyboard", label: "Storyboard" },
-  { id: "fix", label: "Auto Fix" },
-  { id: "images", label: "Images" },
-  { id: "validate", label: "Validate" },
-  { id: "render", label: "Render" },
-] as const;
-type AutoRunStepId = (typeof AUTO_RUN_STEPS)[number]["id"];
-type ValidationIssue = { level: "warn" | "error"; message: string };
-type SceneValidation = { status: "ok" | "warn" | "error"; issues: ValidationIssue[] };
-type FixSuggestion = {
-  id: string;
-  message: string;
-  action?: {
-    type:
-      | "add_positive"
-      | "remove_negative_scene"
-      | "set_speaker_a"
-      | "fill_script"
-      | "trim_script";
-    tokens?: string[];
-    value?: string;
-  };
-};
-type ImageValidation = {
-  match_rate: number;
-  matched: string[];
-  missing: string[];
-  extra: string[];
-};
-
-const VOICES = [
-  { id: "ko-KR-SunHiNeural", label: "SunHi (F)" },
-  { id: "ko-KR-InJoonNeural", label: "InJoon (M)" },
-  { id: "ko-KR-HyunsuMultilingualNeural", label: "Hyunsu (M)" },
-];
-
-const SAMPLERS = ["DPM++ 2M Karras", "Euler a", "Euler", "DDIM"];
-
-const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
-const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
-const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];
-const PROMPT_SAMPLES = [
-  {
-    id: "eureka",
-    label: "Eureka",
-    basePrompt:
-      "1girl, eureka, (black t-shirt:1.2), purple eyes, aqua hair, short hair, jeans, glasses, hairclip, short sleeves, <lora:eureka_v9:1.0>",
-    baseNegative: "verybadimagenegative_v1.3",
-  },
-  {
-    id: "chibi-laugh",
-    label: "Chibi Laugh",
-    basePrompt: "chibi, eyebrow, laughing, eyebrow down, <lora:chibi-laugh:0.6>",
-    baseNegative: "easynegative",
-  },
-];
-
-const STRUCTURES = ["Monologue"];
-const CAMERA_KEYWORDS = [
-  "close-up",
-  "close up",
-  "wide shot",
-  "medium shot",
-  "full body",
-  "low angle",
-  "high angle",
-  "from above",
-  "top-down",
-];
-const ACTION_KEYWORDS = [
-  "sitting",
-  "standing",
-  "walking",
-  "running",
-  "jumping",
-  "reading",
-  "looking",
-  "holding",
-  "smiling",
-  "crying",
-  "talking",
-];
-const BACKGROUND_KEYWORDS = [
-  "library",
-  "street",
-  "room",
-  "city",
-  "park",
-  "school",
-  "classroom",
-  "bedroom",
-  "office",
-  "cafe",
-  "forest",
-  "beach",
-  "sky",
-];
-const LIGHTING_KEYWORDS = [
-  "lighting",
-  "sunlight",
-  "shadow",
-  "moody",
-  "warm",
-  "soft light",
-  "neon",
-  "rain",
-  "night",
-  "sunset",
-];
+import SetupPanel from "./components/SetupPanel";
+import AutoRunStatus from "./components/AutoRunStatus";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2165,158 +2039,24 @@ export default function Home() {
 
         {/* ============ SETUP MODE ============ */}
         {viewMode === "setup" && (
-          <main className="relative mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-16">
-            <header className="flex flex-col items-center gap-2 text-center">
-              <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts Producer</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-                새 영상 만들기
-              </h1>
-            </header>
-
-            <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-8 shadow-xl shadow-slate-200/40 backdrop-blur">
-              {/* Topic */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Topic
-                </label>
-                <textarea
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  rows={3}
-                  className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
-                  placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
-                />
-              </div>
-
-              {/* Quick Settings */}
-              <div className="grid gap-4">
-                <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Output Settings
-                </label>
-
-                {/* Layout Selection */}
-                <div className="flex justify-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setLayoutStyle("full")}
-                    className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
-                      layoutStyle === "full"
-                        ? "border-zinc-900 bg-zinc-900/5 shadow-md"
-                        : "border-zinc-200 bg-white hover:border-zinc-400"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-16 w-9 flex-col items-center justify-center rounded-lg border-2 ${
-                        layoutStyle === "full" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
-                      }`}
-                    >
-                      <div className={`h-4 w-4 rounded ${layoutStyle === "full" ? "bg-zinc-500" : "bg-zinc-300"}`} />
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-xs font-semibold ${layoutStyle === "full" ? "text-zinc-900" : "text-zinc-600"}`}>Full</p>
-                      <p className={`text-[10px] ${layoutStyle === "full" ? "text-zinc-600" : "text-zinc-400"}`}>9:16</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setLayoutStyle("post")}
-                    className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition ${
-                      layoutStyle === "post"
-                        ? "border-zinc-900 bg-zinc-900/5 shadow-md"
-                        : "border-zinc-200 bg-white hover:border-zinc-400"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-11 w-11 flex-col items-center justify-center rounded-lg border-2 ${
-                        layoutStyle === "post" ? "border-zinc-700 bg-zinc-200" : "border-zinc-300 bg-zinc-100"
-                      }`}
-                    >
-                      <div className={`h-4 w-4 rounded ${layoutStyle === "post" ? "bg-zinc-500" : "bg-zinc-300"}`} />
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-xs font-semibold ${layoutStyle === "post" ? "text-zinc-900" : "text-zinc-600"}`}>Post</p>
-                      <p className={`text-[10px] ${layoutStyle === "post" ? "text-zinc-600" : "text-zinc-400"}`}>1:1</p>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Voice, BGM, Speed */}
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice</label>
-                    <select
-                      value={narratorVoice}
-                      onChange={(e) => setNarratorVoice(e.target.value)}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                    >
-                      {VOICES.map((voice) => (
-                        <option key={voice.id} value={voice.id}>{voice.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">BGM</label>
-                    <select
-                      value={bgmFile ?? ""}
-                      onChange={(e) => setBgmFile(e.target.value || null)}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                    >
-                      <option value="">None</option>
-                      {bgmList.map((bgm) => (
-                        <option key={bgm.name} value={bgm.name}>{bgm.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                      Speed ({speedMultiplier.toFixed(1)}x)
-                    </label>
-                    <input
-                      type="range"
-                      min={0.8}
-                      max={1.5}
-                      step={0.1}
-                      value={speedMultiplier}
-                      onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
-                      className="mt-1 w-full accent-zinc-900"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode("working");
-                    handleAutoRun();
-                  }}
-                  disabled={!topic.trim()}
-                  className="w-full rounded-full bg-gradient-to-r from-zinc-800 to-zinc-900 py-4 text-base font-semibold text-white shadow-lg transition hover:from-zinc-700 hover:to-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  ✨ Auto Run
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("working")}
-                  className="w-full rounded-full border border-zinc-300 bg-white py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
-                >
-                  Manual Mode →
-                </button>
-              </div>
-            </section>
-
-            <footer className="flex justify-center">
-              <Link
-                href="/manage"
-                className="text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-700"
-              >
-                Manage Keywords & Assets
-              </Link>
-            </footer>
-          </main>
+          <SetupPanel
+            topic={topic}
+            setTopic={setTopic}
+            layoutStyle={layoutStyle}
+            setLayoutStyle={setLayoutStyle}
+            narratorVoice={narratorVoice}
+            setNarratorVoice={setNarratorVoice}
+            bgmFile={bgmFile}
+            setBgmFile={setBgmFile}
+            bgmList={bgmList}
+            speedMultiplier={speedMultiplier}
+            setSpeedMultiplier={setSpeedMultiplier}
+            onAutoRun={() => {
+              setViewMode("working");
+              handleAutoRun();
+            }}
+            onManualMode={() => setViewMode("working")}
+          />
         )}
 
         {/* ============ WORKING MODE ============ */}
@@ -2710,68 +2450,12 @@ export default function Home() {
               </button>
             </div>
           </div>
-          {autoRunState.status !== "idle" && (
-            <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-xs text-zinc-600">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Autopilot Status
-                </span>
-                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  {autoRunState.status}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {AUTO_RUN_STEPS.map((step) => {
-                  const isActive = autoRunState.step === step.id;
-                  const isDone =
-                    autoRunState.status !== "idle" &&
-                    AUTO_RUN_STEPS.findIndex((item) => item.id === step.id) <
-                      AUTO_RUN_STEPS.findIndex((item) => item.id === autoRunState.step);
-                  return (
-                    <span
-                      key={step.id}
-                      className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
-                        isActive
-                          ? "bg-zinc-900 text-white"
-                          : isDone
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-zinc-100 text-zinc-500"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  );
-                })}
-              </div>
-              <p>{autoRunState.message}</p>
-              {autoRunState.error && <p className="text-red-500">{autoRunState.error}</p>}
-              {autoRunState.status === "error" && autoRunState.step !== "idle" && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleAutoRunResume}
-                    className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-sm transition hover:bg-zinc-800"
-                  >
-                    Resume from Step
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAutoRun}
-                    className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-400 hover:text-zinc-600"
-                  >
-                    Restart
-                  </button>
-                </div>
-              )}
-              {autoRunLog.length > 0 && (
-                <div className="grid gap-1 text-[11px] text-zinc-500">
-                  {autoRunLog.map((entry, idx) => (
-                    <span key={`${entry}-${idx}`}>• {entry}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <AutoRunStatus
+            autoRunState={autoRunState}
+            autoRunLog={autoRunLog}
+            onResume={handleAutoRunResume}
+            onRestart={handleAutoRun}
+          />
 
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
