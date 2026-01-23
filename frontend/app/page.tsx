@@ -1391,11 +1391,6 @@ export default function Home() {
     return merged.join(", ");
   };
 
-  const resolveSteps = (scene: Scene) => scene.steps;
-  const resolveCfgScale = (scene: Scene) => scene.cfg_scale;
-  const resolveSampler = (scene: Scene) => scene.sampler_name;
-  const resolveSeed = (scene: Scene) => scene.seed;
-  const resolveClipSkip = (scene: Scene) => scene.clip_skip;
 
   const handleSpeakerChange = (scene: Scene, speaker: Scene["speaker"]) => {
     const baseSettings = getBaseSettingsForSpeaker(speaker);
@@ -1475,11 +1470,11 @@ export default function Home() {
     const debugPayload = {
       prompt,
       negative_prompt: buildNegativePrompt(scene),
-      steps: resolveSteps(scene),
-      cfg_scale: resolveCfgScale(scene),
-      sampler_name: resolveSampler(scene),
-      seed: resolveSeed(scene),
-      clip_skip: resolveClipSkip(scene),
+      steps: scene.steps,
+      cfg_scale: scene.cfg_scale,
+      sampler_name: scene.sampler_name,
+      seed: scene.seed,
+      clip_skip: scene.clip_skip,
       width: 512,
       height: 512,
       ...hiResPayload,
@@ -1488,11 +1483,11 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/scene/generate`, {
         prompt,
         negative_prompt: buildNegativePrompt(scene),
-        steps: resolveSteps(scene),
-        cfg_scale: resolveCfgScale(scene),
-        sampler_name: resolveSampler(scene),
-        seed: resolveSeed(scene),
-        clip_skip: resolveClipSkip(scene),
+        steps: scene.steps,
+        cfg_scale: scene.cfg_scale,
+        sampler_name: scene.sampler_name,
+        seed: scene.seed,
+        clip_skip: scene.clip_skip,
         width: 512,
         height: 512,
         ...hiResPayload,
@@ -2138,11 +2133,6 @@ export default function Home() {
                 buildPositivePrompt={buildPositivePrompt}
                 buildNegativePrompt={buildNegativePrompt}
                 getBasePromptForScene={getBasePromptForScene}
-                resolveSteps={resolveSteps}
-                resolveCfgScale={resolveCfgScale}
-                resolveSampler={resolveSampler}
-                resolveSeed={resolveSeed}
-                resolveClipSkip={resolveClipSkip}
                 showToast={showToast}
               />
             )}

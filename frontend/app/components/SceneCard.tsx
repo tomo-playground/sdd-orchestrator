@@ -35,11 +35,6 @@ type SceneCardProps = {
   buildPositivePrompt: (scene: Scene) => string;
   buildNegativePrompt: (scene: Scene) => string;
   getBasePromptForScene: (scene: Scene) => string;
-  resolveSteps: (scene: Scene) => number;
-  resolveCfgScale: (scene: Scene) => number;
-  resolveSampler: (scene: Scene) => string;
-  resolveSeed: (scene: Scene) => number;
-  resolveClipSkip: (scene: Scene) => number;
   showToast: (message: string, type: "success" | "error") => void;
 };
 
@@ -70,11 +65,6 @@ export default function SceneCard({
   buildPositivePrompt,
   buildNegativePrompt,
   getBasePromptForScene,
-  resolveSteps,
-  resolveCfgScale,
-  resolveSampler,
-  resolveSeed,
-  resolveClipSkip,
   showToast,
 }: SceneCardProps) {
   const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
@@ -482,11 +472,11 @@ export default function SceneCard({
                 const payload = {
                   prompt,
                   negative_prompt: buildNegativePrompt(scene),
-                  steps: resolveSteps(scene),
-                  cfg_scale: resolveCfgScale(scene),
-                  sampler_name: resolveSampler(scene),
-                  seed: resolveSeed(scene),
-                  clip_skip: resolveClipSkip(scene),
+                  steps: scene.steps,
+                  cfg_scale: scene.cfg_scale,
+                  sampler_name: scene.sampler_name,
+                  seed: scene.seed,
+                  clip_skip: scene.clip_skip,
                   width: 512,
                   height: 512,
                 };
