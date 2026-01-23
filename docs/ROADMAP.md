@@ -44,16 +44,17 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | Service 분리 | `logic.py` → `services/` (비즈니스 로직) | [~] |
 | Keyword/Asset 분리 | 영향도 적은 조회 로직부터 분리 (Quick Win) | [x] |
 
-**Backend 진행 현황**: `logic.py` ~2,300줄 → 758줄 (~67% 감소)
+**Backend 진행 현황**: `logic.py` ~2,300줄 → 729줄 (~68% 감소)
 
-추출된 서비스 (7개):
+추출된 서비스 (8개):
 - `services/keywords.py`: 키워드 관련 함수
 - `services/validation.py`: 이미지 검증 함수 (WD14, Gemini)
-- `services/rendering.py`: 렌더링 관련 함수 (오버레이, 자막, 포스트 카드)
+- `services/rendering.py`: 렌더링 관련 함수 (오버레이, 자막, 포스트 카드, 레이아웃 메트릭스)
 - `services/image.py`: 이미지 유틸리티 함수
 - `services/avatar.py`: 아바타 생성 및 관리
 - `services/prompt.py`: 프롬프트 처리 함수
 - `services/utils.py`: 일반 유틸리티 함수 (JSON, 텍스트, 오디오)
+- `services/video.py`: 비디오 생성 헬퍼 (파일명 생성, 속도 계산, 씬 duration)
 
 ### 3-2. Frontend 리팩토링
 | 작업 | 설명 | 상태 |
@@ -144,4 +145,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-24 Phase 4 완료. VRT 36/36 통과, DoD 4/4 통과. useDraftPersistence 훅 통합 완료 (F5 테스트 확인). Phase 5 (신규 개발) 준비 완료.
+**Latest Status**: 2026-01-24 Backend 리팩토링 추가 진행. logic.py 729줄 (68% 감소), services 8개 모듈. Phase 5 (신규 개발) 준비 완료.
