@@ -43,6 +43,9 @@ import {
 
 import SetupPanel from "./components/SetupPanel";
 import AutoRunStatus from "./components/AutoRunStatus";
+import SceneFilmstrip from "./components/SceneFilmstrip";
+import SceneImagePanel from "./components/SceneImagePanel";
+import ValidationTabContent from "./components/ValidationTabContent";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -2540,59 +2543,11 @@ export default function Home() {
             )}
 
             {/* Filmstrip Navigation */}
-            {scenes.length > 0 && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCurrentSceneIndex((prev) => Math.max(0, prev - 1))}
-                  disabled={currentSceneIndex === 0}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/80 text-zinc-600 disabled:opacity-40"
-                >
-                  ‹
-                </button>
-                <div className="flex flex-1 gap-2 overflow-x-auto py-2">
-                  {scenes.map((s, idx) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setCurrentSceneIndex(idx)}
-                      className={`relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
-                        idx === currentSceneIndex
-                          ? "border-zinc-900 shadow-md"
-                          : "border-zinc-200 opacity-60 hover:opacity-100"
-                      }`}
-                      style={{ width: 64, height: 64 }}
-                    >
-                      {s.image_url ? (
-                        <img
-                          src={s.image_url}
-                          alt={`Scene ${s.id}`}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] text-zinc-400">
-                          {s.id}
-                        </div>
-                      )}
-                      <span className="absolute bottom-0 left-0 right-0 bg-black/50 py-0.5 text-center text-[9px] text-white">
-                        Scene {s.id}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCurrentSceneIndex((prev) => Math.min(scenes.length - 1, prev + 1))}
-                  disabled={currentSceneIndex === scenes.length - 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/80 text-zinc-600 disabled:opacity-40"
-                >
-                  ›
-                </button>
-                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500">
-                  {currentSceneIndex + 1} / {scenes.length}
-                </span>
-              </div>
-            )}
+            <SceneFilmstrip
+              scenes={scenes}
+              currentSceneIndex={currentSceneIndex}
+              onSceneSelect={setCurrentSceneIndex}
+            />
 
             {/* Current Scene Card */}
             {scenes.length > 0 && (() => {
@@ -2998,102 +2953,13 @@ export default function Home() {
 
                       {/* Tab Content: Validate */}
                       {sceneTab[scene.id] === "validate" && (
-                        <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
-                          <button
-                            type="button"
-                            onClick={() => handleValidateImage(scene)}
-                            disabled={!scene.image_url || validatingSceneId === scene.id}
-                            className="w-full rounded-full border border-zinc-300 bg-white py-2.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {validatingSceneId === scene.id ? "Validating..." : "Run Validation"}
-                          </button>
-
-                          {imageValidationResults[scene.id] && (
-                            <>
-                              {/* Match Rate */}
-                              <div className="flex items-center gap-3">
-                                <div className="flex-1">
-                                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${
-                                        imageValidationResults[scene.id].match_rate >= 0.8
-                                          ? "bg-emerald-500"
-                                          : imageValidationResults[scene.id].match_rate >= 0.5
-                                            ? "bg-amber-500"
-                                            : "bg-red-500"
-                                      }`}
-                                      style={{
-                                        width: `${Math.round(imageValidationResults[scene.id].match_rate * 100)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                                <span
-                                  className={`text-lg font-bold ${
-                                    imageValidationResults[scene.id].match_rate >= 0.8
-                                      ? "text-emerald-600"
-                                      : imageValidationResults[scene.id].match_rate >= 0.5
-                                        ? "text-amber-600"
-                                        : "text-red-600"
-                                  }`}
-                                >
-                                  {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
-                                </span>
-                              </div>
-
-                              {/* Missing */}
-                              {imageValidationResults[scene.id].missing.length > 0 && (
-                                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                                  <div className="mb-2 flex items-center justify-between">
-                                    <span className="text-[10px] font-semibold text-red-600 uppercase">
-                                      Missing ({imageValidationResults[scene.id].missing.length})
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        applyMissingImageTags(scene, imageValidationResults[scene.id]?.missing ?? [])
-                                      }
-                                      className="rounded-full bg-red-500 px-2.5 py-1 text-[9px] font-semibold text-white hover:bg-red-600"
-                                    >
-                                      + Add
-                                    </button>
-                                  </div>
-                                  <p className="text-xs text-red-700">
-                                    {imageValidationResults[scene.id].missing.slice(0, 6).join(", ")}
-                                    {imageValidationResults[scene.id].missing.length > 6 && " ..."}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Extra */}
-                              {imageValidationResults[scene.id].extra.length > 0 && (
-                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                  <span className="text-[10px] font-semibold text-amber-600 uppercase">
-                                    Extra ({imageValidationResults[scene.id].extra.length})
-                                  </span>
-                                  <p className="mt-1 text-xs text-amber-700">
-                                    {imageValidationResults[scene.id].extra.slice(0, 6).join(", ")}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Success */}
-                              {imageValidationResults[scene.id].missing.length === 0 &&
-                                imageValidationResults[scene.id].extra.length === 0 && (
-                                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
-                                    <span className="text-sm font-medium text-emerald-700">✓ Perfect Match</span>
-                                  </div>
-                                )}
-                            </>
-                          )}
-
-                          {!imageValidationResults[scene.id] && !scene.image_url && (
-                            <p className="text-center text-xs text-zinc-400">이미지를 먼저 생성하세요</p>
-                          )}
-                          {!imageValidationResults[scene.id] && scene.image_url && (
-                            <p className="text-center text-xs text-zinc-400">Run Validation을 클릭하세요</p>
-                          )}
-                        </div>
+                        <ValidationTabContent
+                          scene={scene}
+                          validationResult={imageValidationResults[scene.id]}
+                          isValidating={validatingSceneId === scene.id}
+                          onValidate={() => handleValidateImage(scene)}
+                          onApplyMissingTags={(tags) => applyMissingImageTags(scene, tags)}
+                        />
                       )}
 
                       {/* Tab Content: Debug */}
@@ -3140,61 +3006,11 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col gap-3">
-                      <div className="aspect-square w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white/70">
-                        {scene.image_url ? (
-                          <img
-                            src={scene.image_url}
-                            alt={`Scene ${scene.id}`}
-                            onClick={() => setImagePreviewSrc(scene.image_url)}
-                            className="h-full w-full cursor-pointer object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full flex-col items-center justify-center gap-2">
-                            <p className="text-xs text-zinc-400">No image</p>
-                            <p className="text-[10px] text-zinc-300">Click Generate or Upload</p>
-                          </div>
-                        )}
-                      </div>
-                      {scene.candidates && scene.candidates.length > 1 && (
-                        <div className="grid grid-cols-3 gap-2">
-                          {scene.candidates.map((candidate, idx) => {
-                            const isSelected = candidate.image_url === scene.image_url;
-                            return (
-                              <button
-                                key={`${scene.id}-candidate-${idx}`}
-                                type="button"
-                                onClick={() =>
-                                  updateScene(scene.id, { image_url: candidate.image_url })
-                                }
-                                className={`overflow-hidden rounded-xl border ${
-                                  isSelected ? "border-zinc-900" : "border-zinc-200"
-                                }`}
-                              >
-                                <img
-                                  src={candidate.image_url}
-                                  alt={`Candidate ${idx + 1}`}
-                                  loading="lazy"
-                                  className="h-full w-full object-cover"
-                                />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                        <span>{scene.image_url ? "Ready" : "Upload required"}</span>
-                        <span className="rounded-full border border-zinc-200 bg-white/80 px-2 py-0.5 text-[9px] text-zinc-500">
-                          512x512
-                        </span>
-                        <span className="rounded-full border border-zinc-200 bg-white/80 px-2 py-0.5 text-[9px] text-zinc-500">
-                          Steps {scene.steps}
-                        </span>
-                        <span className="rounded-full border border-zinc-200 bg-white/80 px-2 py-0.5 text-[9px] text-zinc-500">
-                          Seed {scene.seed}
-                        </span>
-                      </div>
-                    </div>
+                    <SceneImagePanel
+                      scene={scene}
+                      onImageClick={setImagePreviewSrc}
+                      onCandidateSelect={(imageUrl) => updateScene(scene.id, { image_url: imageUrl })}
+                    />
                   </div>
                 </div>
               );
