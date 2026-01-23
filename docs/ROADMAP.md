@@ -1,38 +1,108 @@
 # Shorts Factory Master Roadmap (Strategic Fidelity Guard)
 
-이 로드맵은 리팩토링 및 기능 추가 시 **영상 품질의 100% 일관성(Zero Variance)**을 유지하는 것을 최우선 목표로 합니다.
-
-## 🏗️ Phase 1: Foundation & Stability - **COMPLETE**
-
-## 🛠️ Phase 2: Visual Fidelity Guard (영상 품질 보전 및 회귀 방지) - **CURRENT**
-영상 생성 코드가 수정되어도 결과물이 변하지 않도록 하는 근본적인 안전 장치를 구축합니다.
-
-### 2-1. Deterministic Render Engine (결정론적 렌더링 환경)
-*   [ ] **Fixed Seed Testing**: 테스트 시 모든 AI 생성(이미지, 음성)의 시드를 고정하여 동일한 인풋 데이터를 보장.
-*   [ ] **Layout Spec Extraction**: Pillow/FFmpeg 코드에 하드코딩된 좌표와 비율을 `LayoutSchema` 파일로 완전히 분리. (로직과 데이터의 분리)
-
-### 2-2. Automated Visual Regression Test (자동 비주얼 회귀 테스트)
-*   [ ] **Golden Master Storage**: 현재 가장 안정적인 `logic.py`가 생성한 영상의 특정 프레임들을 `tests/references/`에 '표준'으로 저장.
-*   [ ] **Pixel-by-Pixel Comparison Engine**:
-    *   **Tool**: `OpenCV` 및 `SSIM(Structural Similarity Index)` 도입.
-    *   **Task**: 코드가 바뀌면 자동으로 영상을 생성하고, 표준 프레임과 픽셀 단위로 대조하여 99.9% 일치하지 않으면 빌드 실패 처리.
-*   [ ] **Diff Reporting**: 일치하지 않을 경우, 어느 좌표의 픽셀이 어떻게 변했는지 시각적으로 보여주는 Diff 이미지 자동 생성.
-
-## 🛠️ Phase 3: Incremental Refactoring (안전 장치 기반 리팩토링)
-Phase 2의 자동 검증 도구가 완성된 후, 이를 통과하는 것을 전제로 하나씩 분리합니다.
-
-*   [ ] **Keyword/Asset Separation**: 영향도가 적은 조회 로직부터 분리.
-*   [ ] **Core Rendering Migration**: FFmpeg 조립 로직을 서비스로 이관하며 **매 커밋마다 비주얼 테스트 실행**.
-
-## 🎥 Phase 4: High-End Production (검증된 기반 위 품질 강화)
-*   [ ] **Professional Audio Ducking**: 내레이션-BGM 볼륨 자동 조절.
-*   [ ] **Ken Burns Effect**: 정지 이미지에 생동감 있는 줌/팬 효과 부여.
-*   [ ] **Character Consistency (ControlNet)**: 주인공 얼굴 고정 기술 적용.
-
-## 🤖 Phase 5: Intelligent Ops (운영 효율화)
-*   [ ] **Resume/Checkpoint System**: 중단된 작업 이어하기.
-*   [ ] **Project DB (SQLite)**: 모든 프로젝트 설정 및 생성 히스토리 관리.
+이 로드맵은 **안정성 → 리팩토링 → 안정성 → 신규 개발** 사이클을 따릅니다.
+리팩토링 및 기능 추가 시 **영상 품질의 100% 일관성(Zero Variance)**을 유지하는 것을 최우선 목표로 합니다.
 
 ---
-**Core Mandate**: "No changes in output without explicit intention." (의도하지 않은 결과물의 변화는 허용하지 않는다.)
-**Latest Status**: 2026-01-23 전체 롤백 완료. 영상 품질 보전을 위한 비주얼 회귀 테스트(VRT) 엔진 설계 착수.
+
+## 🏗️ Phase 1: Foundation & Stability - **COMPLETE**
+기본 기능 구현 완료.
+- [x] Version Control 초기화
+- [x] Backend Core Logic (FastAPI + AI Integration)
+- [x] Frontend Studio UI (Next.js + Autopilot State Machine)
+- [x] Image Validation Pipeline (WD14 + Gemini)
+- [x] FFmpeg Rendering Pipeline (Overlays, Subtitles, Audio)
+- [x] 9:16(Full) 및 1:1(Post) 레이아웃 지원
+
+---
+
+## 🛡️ Phase 2: 안정성 기반 구축 (Visual Regression Test) - **CURRENT**
+영상 생성 코드가 수정되어도 결과물이 변하지 않도록 하는 근본적인 안전 장치를 구축합니다.
+
+### 2-1. Golden Master & VRT Engine
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Golden Master Storage | 현재 안정적인 영상의 기준 프레임을 `tests/references/`에 저장 | [ ] |
+| Pixel-by-Pixel Comparison | OpenCV + SSIM으로 99.9% 일치 검증 엔진 구축 | [ ] |
+| Diff Reporting | 불일치 시 시각적 Diff 이미지 자동 생성 | [ ] |
+
+### 2-2. Deterministic Environment
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Fixed Seed Testing | 테스트 시 AI 생성(이미지, 음성) 시드 고정 | [ ] |
+| Layout Spec Extraction | Pillow/FFmpeg 좌표/비율을 `LayoutSchema` 파일로 분리 | [ ] |
+
+---
+
+## 🔧 Phase 3: 리팩토링 (안정성 기반 코드 개선)
+Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합니다.
+
+### 3-1. Backend 리팩토링
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Router 분리 | `main.py` → `routers/` (API 엔드포인트) | [ ] |
+| Service 분리 | `main.py` → `services/` (비즈니스 로직) | [ ] |
+| Keyword/Asset 분리 | 영향도 적은 조회 로직부터 분리 (Quick Win) | [ ] |
+
+### 3-2. Frontend 리팩토링
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [ ] |
+| Components 분리 | Scene Editor, Preview 등 컴포넌트화 | [ ] |
+
+---
+
+## ✅ Phase 4: 안정성 검증 (리팩토링 완료 확인)
+리팩토링 완료 후 전체 시스템 안정성을 검증합니다.
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| VRT 전체 통과 | 리팩토링 전후 영상 100% 일치 확인 | [ ] |
+| E2E 테스트 | Autopilot 전체 파이프라인 자동 테스트 | [ ] |
+| DoD 체크리스트 | PRD §4 완료 기준 4개 항목 모두 통과 | [ ] |
+
+---
+
+## 🚀 Phase 5: 신규 개발 (High-End Production)
+검증된 안정적인 기반 위에서 새로운 기능을 추가합니다.
+
+### 5-1. 운영 효율화
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Resume/Checkpoint | 중단된 작업 이어하기 | [ ] |
+| Storage Cleanup | outputs/ 자동 정리 로직 | [ ] |
+| Project DB (SQLite) | 프로젝트 설정 및 히스토리 관리 | [ ] |
+
+### 5-2. 영상 품질 강화
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Ken Burns Effect | 정지 이미지에 줌/팬 효과 | [ ] |
+| Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 | [ ] |
+| Character Consistency (ControlNet) | IP-Adapter 기반 얼굴 고정 | [ ] |
+
+### 5-3. 확장 기능 (v1.x Backlog)
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| VEO Clip | Video Generation 통합 | [ ] |
+| 정량적 품질 지표 | Match Rate 자동화 | [ ] |
+
+---
+
+## 📋 Development Cycle
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   안정성      │ ──▶ │   리팩토링    │ ──▶ │   안정성      │ ──▶ │   신규 개발   │
+│   구축       │     │   (VRT 통과)  │     │   검증       │     │              │
+└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+                                                                      │
+                     ◀──────────────────────────────────────────────────
+                                    (반복)
+```
+
+---
+
+**Core Mandate**: "No changes in output without explicit intention."
+(의도하지 않은 결과물의 변화는 허용하지 않는다.)
+
+**Latest Status**: 2026-01-23 로드맵 재구성. 안정성→리팩토링→안정성→신규개발 사이클 적용.
