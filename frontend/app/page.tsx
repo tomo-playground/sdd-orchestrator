@@ -71,6 +71,7 @@ import {
   applyHeartPrefix,
   generateChannelName,
   computeValidationResults,
+  getFixSuggestions,
 } from "./utils";
 
 export default function Home() {
@@ -1451,7 +1452,7 @@ export default function Home() {
     updated.forEach((scene) => {
       const validation = results[scene.id];
       if (!validation || validation.status === "ok") return;
-      const suggestions = getFixSuggestions(scene, validation);
+      const suggestions = getFixSuggestions(scene, validation, topic);
       suggestions
         .filter((item) => item.action)
         .forEach((item) => {
@@ -1534,99 +1535,6 @@ export default function Home() {
     const updated = applyAutoFixForScenes(scenes);
     setScenes(updated);
     setTimeout(() => runValidation(), 0);
-  };
-
-  const getFixSuggestions = (scene: Scene, validation?: SceneValidation): FixSuggestion[] => {
-    if (!validation) return [];
-    const suggestions: FixSuggestion[] = [];
-    const issueText = validation.issues.map((issue) => issue.message);
-    const includes = (needle: string) => issueText.some((text) => text.includes(needle));
-    const scriptFallback = (
-      scene.image_prompt_ko ||
-      scene.image_prompt ||
-      topic.trim() ||
-      "오늘의 장면"
-    ).slice(0, 40);
-
-    if (includes("Script is empty")) {
-      suggestions.push({
-        id: "script-empty",
-        message: "Add one short line of dialogue (monologue).",
-        action: { type: "fill_script", value: scriptFallback },
-      });
-    }
-    if (includes("Script is longer than 40 characters")) {
-      suggestions.push({
-        id: "script-long",
-        message: "Shorten the script to 40 characters or fewer.",
-        action: { type: "trim_script", value: scene.script.slice(0, 40) },
-      });
-    }
-    if (includes("Speaker must be Actor A")) {
-      suggestions.push({
-        id: "speaker-a",
-        message: "Change Speaker to Actor A for monologue mode.",
-        action: { type: "set_speaker_a" },
-      });
-    }
-    if (includes("Positive Prompt is empty")) {
-      suggestions.push({
-        id: "prompt-empty",
-        message: "Add a Positive Prompt with subject + action + background.",
-        action: {
-          type: "add_positive",
-          tokens: ["full body", "standing", "plain background", "soft light"],
-        },
-      });
-    }
-    if (includes("Prompt is too short")) {
-      suggestions.push({
-        id: "prompt-short",
-        message: "Add 3-5 more visual tokens (pose, setting, lighting).",
-        action: {
-          type: "add_positive",
-          tokens: ["full body", "standing", "plain background", "soft light", "neutral pose"],
-        },
-      });
-    }
-    if (includes("Missing camera/shot keywords")) {
-      suggestions.push({
-        id: "missing-camera",
-        message: "Add camera keywords like: full body, wide shot, close-up, low angle.",
-        action: { type: "add_positive", tokens: ["full body"] },
-      });
-    }
-    if (includes("Missing action/pose keywords")) {
-      suggestions.push({
-        id: "missing-action",
-        message: "Add action keywords like: standing, walking, running, holding.",
-        action: { type: "add_positive", tokens: ["standing"] },
-      });
-    }
-    if (includes("Missing background/setting keywords")) {
-      suggestions.push({
-        id: "missing-background",
-        message: "Add background keywords like: library, room, street, cafe.",
-        action: { type: "add_positive", tokens: ["library", "room", "street", "cafe"] },
-      });
-    }
-    if (includes("Missing lighting/mood keywords")) {
-      suggestions.push({
-        id: "missing-lighting",
-        message: "Add lighting keywords like: soft light, sunset, neon, moody.",
-        action: { type: "add_positive", tokens: ["soft light"] },
-      });
-    }
-    if (includes("Negative Prompt contains scene keywords")) {
-      suggestions.push({
-        id: "negative-scene-keywords",
-        message: "Remove scene/location words from Negative Prompt.",
-        action: { type: "remove_negative_scene" },
-      });
-    }
-
-    if (suggestions.length === 0) return [];
-    return suggestions;
   };
 
   const applySuggestion = (scene: Scene, suggestion: FixSuggestion) => {
@@ -1907,7 +1815,7 @@ export default function Home() {
                 onApplyMissingTags={(tags) => applyMissingImageTags(scenes[currentSceneIndex], tags)}
                 onImagePreview={setImagePreviewSrc}
                 getSceneStatus={getSceneStatus}
-                getFixSuggestions={getFixSuggestions}
+                getFixSuggestions={(scene, validation) => getFixSuggestions(scene, validation, topic)}
                 applySuggestion={applySuggestion}
                 buildPositivePrompt={buildPositivePrompt}
                 buildNegativePrompt={buildNegativePrompt}

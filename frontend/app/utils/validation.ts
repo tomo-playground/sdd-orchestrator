@@ -1,4 +1,4 @@
-import type { Scene, SceneValidation, ValidationIssue } from "../types";
+import type { Scene, SceneValidation, ValidationIssue, FixSuggestion } from "../types";
 import {
   CAMERA_KEYWORDS,
   ACTION_KEYWORDS,
@@ -77,4 +77,106 @@ export const computeValidationResults = (inputScenes: Scene[]) => {
   });
 
   return { results, summary: { ok, warn, error } };
+};
+
+/**
+ * Get fix suggestions for a scene based on its validation results.
+ * @param scene - The scene to get suggestions for
+ * @param validation - The validation result for the scene
+ * @param fallbackTopic - Fallback topic text for script suggestions
+ */
+export const getFixSuggestions = (
+  scene: Scene,
+  validation: SceneValidation | undefined,
+  fallbackTopic: string
+): FixSuggestion[] => {
+  if (!validation) return [];
+  const suggestions: FixSuggestion[] = [];
+  const issueText = validation.issues.map((issue) => issue.message);
+  const includes = (needle: string) => issueText.some((text) => text.includes(needle));
+  const scriptFallback = (
+    scene.image_prompt_ko ||
+    scene.image_prompt ||
+    fallbackTopic.trim() ||
+    "오늘의 장면"
+  ).slice(0, 40);
+
+  if (includes("Script is empty")) {
+    suggestions.push({
+      id: "script-empty",
+      message: "Add one short line of dialogue (monologue).",
+      action: { type: "fill_script", value: scriptFallback },
+    });
+  }
+  if (includes("Script is longer than 40 characters")) {
+    suggestions.push({
+      id: "script-long",
+      message: "Shorten the script to 40 characters or fewer.",
+      action: { type: "trim_script", value: scene.script.slice(0, 40) },
+    });
+  }
+  if (includes("Speaker must be Actor A")) {
+    suggestions.push({
+      id: "speaker-a",
+      message: "Change Speaker to Actor A for monologue mode.",
+      action: { type: "set_speaker_a" },
+    });
+  }
+  if (includes("Positive Prompt is empty")) {
+    suggestions.push({
+      id: "prompt-empty",
+      message: "Add a Positive Prompt with subject + action + background.",
+      action: {
+        type: "add_positive",
+        tokens: ["full body", "standing", "plain background", "soft light"],
+      },
+    });
+  }
+  if (includes("Prompt is too short")) {
+    suggestions.push({
+      id: "prompt-short",
+      message: "Add 3-5 more visual tokens (pose, setting, lighting).",
+      action: {
+        type: "add_positive",
+        tokens: ["full body", "standing", "plain background", "soft light", "neutral pose"],
+      },
+    });
+  }
+  if (includes("Missing camera/shot keywords")) {
+    suggestions.push({
+      id: "missing-camera",
+      message: "Add camera keywords like: full body, wide shot, close-up, low angle.",
+      action: { type: "add_positive", tokens: ["full body"] },
+    });
+  }
+  if (includes("Missing action/pose keywords")) {
+    suggestions.push({
+      id: "missing-action",
+      message: "Add action keywords like: standing, walking, running, holding.",
+      action: { type: "add_positive", tokens: ["standing"] },
+    });
+  }
+  if (includes("Missing background/setting keywords")) {
+    suggestions.push({
+      id: "missing-background",
+      message: "Add background keywords like: library, room, street, cafe.",
+      action: { type: "add_positive", tokens: ["library", "room", "street", "cafe"] },
+    });
+  }
+  if (includes("Missing lighting/mood keywords")) {
+    suggestions.push({
+      id: "missing-lighting",
+      message: "Add lighting keywords like: soft light, sunset, neon, moody.",
+      action: { type: "add_positive", tokens: ["soft light"] },
+    });
+  }
+  if (includes("Negative Prompt contains scene keywords")) {
+    suggestions.push({
+      id: "negative-scene-keywords",
+      message: "Remove scene/location words from Negative Prompt.",
+      action: { type: "remove_negative_scene" },
+    });
+  }
+
+  return suggestions;
 };

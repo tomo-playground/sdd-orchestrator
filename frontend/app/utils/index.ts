@@ -6,7 +6,7 @@ import {
   ASCII_HEARTS,
 } from "../constants";
 
-export { computeValidationResults } from "./validation";
+export { computeValidationResults, getFixSuggestions } from "./validation";
 
 /**
  * Slugify a string for use as an avatar key.
