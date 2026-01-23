@@ -144,4 +144,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-24 Phase 4 완료. VRT 36/36 통과, DoD 4/4 통과. Phase 5 (신규 개발) 준비 완료.
+**Latest Status**: 2026-01-24 Phase 4 완료. VRT 36/36 통과, DoD 4/4 통과. useDraftPersistence 훅 통합 완료 (F5 테스트 확인). Phase 5 (신규 개발) 준비 완료.
