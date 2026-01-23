@@ -1,0 +1,11 @@
+{
+  "enabledMcpjsonServers": [
+    "context7",
+    "backend-refactor",
+    "API specification",
+    "sequential-thinking",
+    "playwright",
+    "memory",
+    "serena"
+  ]
+}
