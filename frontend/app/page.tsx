@@ -200,6 +200,7 @@ export default function Home() {
   const [imageValidationResults, setImageValidationResults] = useState<
     Record<number, ImageValidation>
   >({});
+  const [validatingSceneId, setValidatingSceneId] = useState<number | null>(null);
   const [baseStepsA, setBaseStepsA] = useState(27);
   const [baseCfgScaleA, setBaseCfgScaleA] = useState(7);
   const [baseSamplerA, setBaseSamplerA] = useState("DPM++ 2M Karras");
@@ -2106,9 +2107,10 @@ export default function Home() {
 
   const handleValidateImage = async (scene: Scene) => {
     if (!scene.image_url) {
-      alert("Upload or generate an image first.");
+      showToast("이미지를 먼저 업로드하세요.", "error");
       return;
     }
+    setValidatingSceneId(scene.id);
     const prompt = scene.debug_prompt || buildPositivePrompt(scene);
     try {
       const res = await axios.post(`${API_BASE}/scene/validate_image`, {
@@ -2117,11 +2119,16 @@ export default function Home() {
         mode: imageCheckMode,
       });
       setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
-      if (Array.isArray(res.data?.missing) && res.data.missing.length > 0) {
-        applyMissingImageTags(scene, res.data.missing);
+      const matchRate = Math.round((res.data.match_rate || 0) * 100);
+      if (matchRate >= 80) {
+        showToast(`검증 완료! Match ${matchRate}%`, "success");
+      } else {
+        showToast(`Match ${matchRate}% - Missing 태그 확인 필요`, "error");
       }
     } catch {
-      alert("Image validation failed");
+      showToast("이미지 검증 실패", "error");
+    } finally {
+      setValidatingSceneId(null);
     }
   };
 
@@ -3200,10 +3207,10 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => handleValidateImage(scene)}
-                        disabled={!scene.image_url}
+                        disabled={!scene.image_url || validatingSceneId === scene.id}
                         className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Validate Image
+                        {validatingSceneId === scene.id ? "Validating..." : "Validate"}
                       </button>
                       <button
                         type="button"
@@ -3254,64 +3261,108 @@ export default function Home() {
                           className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-[10px] text-zinc-500"
                         />
                       )}
-                      {(validationResults[scene.id] || imageValidationResults[scene.id]) && (
-                        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-[11px] text-zinc-600">
-                          <div className="flex items-center justify-between">
+                      {/* Validation Results - Improved UI */}
+                      {imageValidationResults[scene.id] && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white/90 p-4">
+                          {/* Match Rate with Progress Bar */}
+                          <div className="mb-3 flex items-center gap-3">
                             <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                              Validation
+                              Match
                             </span>
-                            {imageValidationResults[scene.id] && (
-                              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                                Match{" "}
-                                {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
-                              </span>
-                            )}
+                            <div className="flex-1">
+                              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    imageValidationResults[scene.id].match_rate >= 0.8
+                                      ? "bg-emerald-500"
+                                      : imageValidationResults[scene.id].match_rate >= 0.5
+                                        ? "bg-amber-500"
+                                        : "bg-red-500"
+                                  }`}
+                                  style={{
+                                    width: `${Math.round(imageValidationResults[scene.id].match_rate * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <span
+                              className={`text-sm font-bold ${
+                                imageValidationResults[scene.id].match_rate >= 0.8
+                                  ? "text-emerald-600"
+                                  : imageValidationResults[scene.id].match_rate >= 0.5
+                                    ? "text-amber-600"
+                                    : "text-red-600"
+                              }`}
+                            >
+                              {Math.round(imageValidationResults[scene.id].match_rate * 100)}%
+                            </span>
                           </div>
-                          {validationResults[scene.id] && (
-                            <p className="mt-2 text-[11px] text-zinc-600">
-                              {validationResults[scene.id].issues.length > 0
-                                ? validationResults[scene.id].issues[0].message
-                                : "No issues found."}
-                            </p>
-                          )}
-                          {imageValidationResults[scene.id] && (
-                            <div className="mt-2 grid gap-2">
-                              {imageValidationResults[scene.id].missing.length > 0 && (
-                                <div>
-                                  <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                                    Missing
-                                  </span>
-                                  <p className="text-zinc-600">
-                                    {imageValidationResults[scene.id].missing
-                                      .slice(0, 8)
-                                      .join(", ")}
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      applyMissingImageTags(
-                                        scene,
-                                        imageValidationResults[scene.id]?.missing ?? []
-                                      )
-                                    }
-                                    className="mt-2 rounded-full border border-zinc-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-                                  >
-                                    Apply Missing Tags
-                                  </button>
-                                </div>
-                              )}
-                              {imageValidationResults[scene.id].extra.length > 0 && (
-                                <div>
-                                  <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                                    Extra Tags
-                                  </span>
-                                  <p className="text-zinc-600">
-                                    {imageValidationResults[scene.id].extra.slice(0, 8).join(", ")}
-                                  </p>
-                                </div>
-                              )}
+
+                          {/* Missing Tags */}
+                          {imageValidationResults[scene.id].missing.length > 0 && (
+                            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
+                              <div className="mb-2 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-red-600 uppercase">
+                                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                                  Missing ({imageValidationResults[scene.id].missing.length})
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    applyMissingImageTags(
+                                      scene,
+                                      imageValidationResults[scene.id]?.missing ?? []
+                                    )
+                                  }
+                                  className="rounded-full bg-red-500 px-3 py-1 text-[9px] font-semibold text-white transition hover:bg-red-600"
+                                >
+                                  + Add to Prompt
+                                </button>
+                              </div>
+                              <p className="text-xs text-red-700">
+                                {imageValidationResults[scene.id].missing.slice(0, 8).join(", ")}
+                                {imageValidationResults[scene.id].missing.length > 8 && " ..."}
+                              </p>
                             </div>
                           )}
+
+                          {/* Extra Tags */}
+                          {imageValidationResults[scene.id].extra.length > 0 && (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                              <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-amber-600 uppercase">
+                                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                                Extra ({imageValidationResults[scene.id].extra.length})
+                              </span>
+                              <p className="mt-1 text-xs text-amber-700">
+                                {imageValidationResults[scene.id].extra.slice(0, 8).join(", ")}
+                                {imageValidationResults[scene.id].extra.length > 8 && " ..."}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Success State */}
+                          {imageValidationResults[scene.id].missing.length === 0 &&
+                            imageValidationResults[scene.id].extra.length === 0 && (
+                              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                <span className="text-xs font-medium text-emerald-700">
+                                  ✓ 모든 태그가 일치합니다
+                                </span>
+                              </div>
+                            )}
+                        </div>
+                      )}
+
+                      {/* Legacy validation results */}
+                      {validationResults[scene.id] && !imageValidationResults[scene.id] && (
+                        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-[11px] text-zinc-600">
+                          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                            Validation
+                          </span>
+                          <p className="mt-2">
+                            {validationResults[scene.id].issues.length > 0
+                              ? validationResults[scene.id].issues[0].message
+                              : "No issues found."}
+                          </p>
                         </div>
                       )}
                       {validationResults[scene.id] && (
