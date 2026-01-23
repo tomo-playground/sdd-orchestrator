@@ -30,9 +30,16 @@ export const AUTO_RUN_STEPS = [
 ] as const;
 
 export const VOICES = [
-  { id: "ko-KR-SunHiNeural", label: "SunHi (F)" },
-  { id: "ko-KR-InJoonNeural", label: "InJoon (M)" },
-  { id: "ko-KR-HyunsuMultilingualNeural", label: "Hyunsu (M)" },
+  // 한국어
+  { id: "ko-KR-SunHiNeural", label: "SunHi (한국어, 여)" },
+  { id: "ko-KR-InJoonNeural", label: "InJoon (한국어, 남)" },
+  // 다국어
+  { id: "ko-KR-HyunsuMultilingualNeural", label: "Hyunsu (다국어, 남)" },
+  { id: "en-US-AvaMultilingualNeural", label: "Ava (다국어, 여)" },
+  { id: "en-US-EmmaMultilingualNeural", label: "Emma (다국어, 여)" },
+  // 일본어
+  { id: "ja-JP-NanamiNeural", label: "Nanami (일본어, 여)" },
+  { id: "ja-JP-KeitaNeural", label: "Keita (일본어, 남)" },
 ];
 
 export const SAMPLERS = ["DPM++ 2M Karras", "Euler a", "Euler", "DDIM"];
