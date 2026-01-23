@@ -41,8 +41,18 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Router 분리 | `main.py` → `routers/` (API 엔드포인트) | [x] |
-| Service 분리 | `main.py` → `services/` (비즈니스 로직) | [~] |
+| Service 분리 | `logic.py` → `services/` (비즈니스 로직) | [~] |
 | Keyword/Asset 분리 | 영향도 적은 조회 로직부터 분리 (Quick Win) | [x] |
+
+**Backend 진행 현황**: `logic.py` ~2,300줄 → 799줄 (~65% 감소)
+
+추출된 서비스:
+- `services/keywords.py`: 키워드 관련 함수
+- `services/validation.py`: 이미지 검증 함수 (WD14, Gemini)
+- `services/rendering.py`: 렌더링 관련 함수 (오버레이, 자막, 포스트 카드)
+- `services/image.py`: 이미지 유틸리티 함수
+- `services/avatar.py`: 아바타 생성 및 관리
+- `services/prompt.py`: 프롬프트 처리 함수
 
 ### 3-2. Frontend 리팩토링
 | 작업 | 설명 | 상태 |
@@ -120,4 +130,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 리팩토링 47% 완료 (page.tsx: 4,222 → 2,240줄). 20개 컴포넌트 + utils 모듈 추출, 불필요한 함수 추상화 제거.
+**Latest Status**: 2026-01-23 Phase 3 진행 중. Frontend 47% 완료 (page.tsx: 4,222 → 2,240줄, 20개 컴포넌트). Backend 65% 완료 (logic.py: ~2,300 → 799줄, 6개 서비스).
