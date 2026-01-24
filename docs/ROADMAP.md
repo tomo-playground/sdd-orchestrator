@@ -101,11 +101,10 @@ Character Preset
 | 8.3 | Style Preset 네이밍 | Chibi Style → Chibi, Blindbox Style → Blindbox | [x] |
 | 8.4 | Male Style Presets | 1boy + 스타일 LoRA 품질 테스트 → 성별 구분 불명확으로 탈락 | [-] |
 | 8.5 | Gender 기반 Preset 필터링 | 선택된 성별에 맞는 프리셋만 드롭다운에 표시 | [x] |
-| 8.6 | Character Preview UI 개선 | 별도 행 레이아웃 + 클릭 시 확대 모달 | [x] |
+| 8.6 | Character Preview UI | 별도 행 레이아웃 (80px) + 클릭 시 확대 모달 | [x] |
 | 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
 | 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
-| 12 | Character Preview | 캐릭터 설정 시 미리보기 표시 (64px 썸네일) | [x] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
