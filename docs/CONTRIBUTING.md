@@ -17,5 +17,45 @@
 *   `ROADMAP.md`를 통해 **다음 갈 길**만 명확히 유지합니다.
 *   세세한 로직 설명은 문서 대신 **명확한 변수명과 함수명(코드)**으로 대신합니다.
 
+### 4. `API_SPEC.md`는 API 변경 시 즉시 업데이트한다
+*   새 엔드포인트 추가, Request/Response 스키마 변경, 엔드포인트 삭제 시 **해당 PR에 포함**합니다.
+*   프론트엔드-백엔드 계약이므로, 코드와 문서의 불일치는 버그로 취급합니다.
+
+### 5. `PRD.md`는 마일스톤 단위로 업데이트한다
+*   Phase 완료 시 **Definition of Done** 체크리스트를 갱신합니다.
+*   프로젝트 범위(Scope) 변경 시 v1.0 Core / v1.x Backlog 섹션을 조정합니다.
+
+### 6. `TROUBLESHOOTING.md`는 이슈 해결 시 업데이트한다
+*   문제 해결 후 **QA Validator**가 검증하고 문서에 기록합니다.
+*   반복되는 이슈는 즉시 추가하여 같은 문제 재발을 방지합니다.
+
+### 7. `CLAUDE.md`는 경량화 상태를 유지한다
+*   **제한**: 50줄 / 2KB 이하 (모든 대화 컨텍스트에 포함되므로)
+*   **필수 정보만**: 아키텍처 요약, 문서 참조, 코드 가이드라인, Agents/Commands 테이블
+*   **상세 정보는 분리**: 진행 상황 → `ROADMAP.md`, 관리 규칙 → `CONTRIBUTING.md`
+
+---
+
+## 🤖 Agents/Commands 관리
+
+### 구조
+```
+.claude/
+├── agents/      # Sub Agents (판단/분석 담당)
+└── commands/    # Commands (원자적 작업)
+```
+
+### 레이어 분리
+```
+Commands (원자적 작업) ← Agents (판단/분석) ← MCP Servers (외부 데이터)
+```
+
+### 추가/수정 시 체크리스트
+- [ ] Agent/Command 추가 시: `CLAUDE.md` 테이블 업데이트
+- [ ] Agent가 Command 활용 시: Agent 파일의 "활용 Commands" 섹션 업데이트
+- [ ] MCP 추가 시: `.mcp.json` 및 관련 Agent 파일 업데이트
+
+### 네이밍: `kebab-case.md` (예: `prompt-engineer.md`)
+
 ---
 **Core Mindset**: "Move Fast, Stay Solid"

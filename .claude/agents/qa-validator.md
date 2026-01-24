@@ -22,6 +22,12 @@
 - 검증 규칙 최적화
 - 실패 패턴 분석
 
+### 4. TROUBLESHOOTING.md 관리
+`docs/CONTRIBUTING.md` 정책에 따라 문제 해결 문서를 관리합니다:
+- 문제 해결 후 검증하고 해결 방법을 기록
+- 반복되는 이슈 패턴 식별 및 문서화
+- 섹션별 정리: Frontend / Backend / Font Issue
+
 ---
 
 ## MCP 도구 활용

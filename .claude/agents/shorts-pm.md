@@ -47,7 +47,18 @@ v1.x Backlog (Nice to Have) 추적:
 - GPU VRAM 부족
 - Gemini API 타임아웃
 
-### 8. 진행 상황 보고
+### 8. 문서 업데이트 관리
+`docs/CONTRIBUTING.md` 정책에 따라 핵심 문서의 업데이트를 책임집니다:
+
+| 문서 | 업데이트 시점 | 체크 항목 |
+|------|-------------|----------|
+| `PRD.md` | 마일스톤 완료 시 | DoD 체크리스트, Scope 변경 |
+| `API_SPEC.md` | API 변경 PR 시 | 엔드포인트, Request/Response 스키마 |
+
+- **API 변경 PR 리뷰 시**: API_SPEC.md 업데이트 포함 여부 확인
+- **Phase 완료 시**: PRD.md DoD 갱신 및 Backlog 조정
+
+### 9. 진행 상황 보고
 요청 시 다음 형식으로 현재 상태를 보고합니다:
 
 ```
