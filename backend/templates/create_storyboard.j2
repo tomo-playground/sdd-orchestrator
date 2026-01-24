@@ -16,12 +16,21 @@ Instructions:
    - speaker: "A"
    - duration: seconds (3-6 recommended)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
-     * Include: camera angle, shot type, subject pose/action, facial expression, lighting,
-       time of day, background/setting, mood.
-     * Keep it visual and descriptive, not a sentence.
+     * REQUIRED categories (pick ONE from each):
+       - expression: facial emotion (smile, sad, surprised, determined, shy, etc.)
+       - gaze: eye direction (looking at viewer, looking away, looking up, etc.)
+       - pose: body position (sitting, standing, arms crossed, leaning, etc.)
+       - action: what character is doing (reading, walking, thinking, waving, etc.)
+       - camera: shot type and angle (close-up, cowboy shot, from below, etc.)
+       - environment: location, time, weather, lighting (library, night, soft lighting, etc.)
+       - mood: overall atmosphere (peaceful, tense, romantic, etc.)
+     * Match expression/gaze/pose/action to the scene's emotional intent:
+       - Happy scene → smile + looking at viewer + energetic pose
+       - Sad scene → tears/sad + looking down + hugging knees
+       - Thinking scene → serious + looking afar + hand on chin
      * Use ONLY keywords from the Allowed Keywords list. Do not invent new tags.
    - image_prompt_ko: short Korean summary of image_prompt
-5. Return ONLY raw JSON array.
+4. Return ONLY raw JSON array.
 
 Allowed Keywords:
 {{ keyword_context }}
@@ -31,9 +40,17 @@ Output Format:
   {
     "scene_id": 1,
     "script": "...",
-    "speaker": "Narrator",
+    "speaker": "A",
     "duration": 4,
-    "image_prompt": "medium shot, anime girl, sitting, reading book, warm light, cozy library, evening, soft shadows, calm mood",
+    "image_prompt": "smile, looking at viewer, sitting, reading, bust shot, library, soft lighting, peaceful",
     "image_prompt_ko": "따뜻한 도서관에서 책 읽는 장면"
+  },
+  {
+    "scene_id": 2,
+    "script": "...",
+    "speaker": "A",
+    "duration": 5,
+    "image_prompt": "surprised, wide eyes, standing, cowboy shot, classroom, morning, natural light, energetic",
+    "image_prompt_ko": "교실에서 놀란 표정"
   }
 ]

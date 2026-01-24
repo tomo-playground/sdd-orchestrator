@@ -17,9 +17,15 @@ Instructions:
      * Keep under 120 characters
    - speaker: "Narrator"
    - duration: 4-6 seconds per scene
-   - image_prompt: Visual scene description in ENGLISH
-     * Include: Japanese text overlay concept, related imagery, anime style
-     * Use calming, educational atmosphere
+   - image_prompt: Visual scene description in ENGLISH (comma-separated tags)
+     * REQUIRED categories (pick ONE from each):
+       - expression: teacher's emotion (smile, happy, encouraging)
+       - gaze: eye direction (looking at viewer for direct teaching)
+       - pose: body position (standing, pointing, arms crossed)
+       - action: what teacher is doing (talking, teaching gesture)
+       - camera: shot type (bust shot, medium shot for lessons)
+       - environment: classroom, chalkboard, soft lighting
+       - mood: educational, peaceful, warm
      * Use ONLY keywords from the Allowed Keywords list
    - image_prompt_ko: Korean summary of the image
    - japanese_text: The Japanese word/phrase being taught
@@ -40,7 +46,7 @@ Output Format:
     "script": "오늘 배울 표현은 '감사합니다'예요",
     "speaker": "Narrator",
     "duration": 4,
-    "image_prompt": "medium shot, anime girl, teacher pose, pointing gesture, classroom background, chalkboard, warm lighting, educational mood, soft colors",
+    "image_prompt": "smile, looking at viewer, standing, pointing, bust shot, classroom, soft lighting, peaceful",
     "image_prompt_ko": "선생님이 칠판 앞에서 설명하는 장면",
     "japanese_text": "ありがとう",
     "romaji": "Arigatou",
@@ -51,7 +57,7 @@ Output Format:
     "script": "일본어: ありがとう (Arigatou) - 감사합니다",
     "speaker": "Narrator",
     "duration": 5,
-    "image_prompt": "close up, anime style, text overlay concept, cherry blossom background, soft pink tones, gentle lighting, peaceful mood",
+    "image_prompt": "happy, looking at viewer, standing, close-up, park, natural light, peaceful",
     "image_prompt_ko": "벚꽃 배경에 일본어 텍스트",
     "japanese_text": "ありがとう",
     "romaji": "Arigatou",

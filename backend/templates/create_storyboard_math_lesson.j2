@@ -17,9 +17,15 @@ Instructions:
      * Include the formula when introducing it
    - speaker: "Narrator"
    - duration: 4-6 seconds per scene
-   - image_prompt: Visual scene description in ENGLISH
-     * Include: mathematical concept visualization, diagrams, anime style teacher
-     * Use clean, educational backgrounds (chalkboard, whiteboard, notebook)
+   - image_prompt: Visual scene description in ENGLISH (comma-separated tags)
+     * REQUIRED categories (pick ONE from each):
+       - expression: teacher's emotion (smile, excited, determined, serious)
+       - gaze: eye direction (looking at viewer for explanation)
+       - pose: body position (standing, pointing, hand on chin for thinking)
+       - action: what teacher is doing (talking, thinking, teaching)
+       - camera: shot type (bust shot, medium shot, close-up for diagrams)
+       - environment: classroom, chalkboard, natural light
+       - mood: educational, energetic, peaceful
      * Use ONLY keywords from the Allowed Keywords list
    - image_prompt_ko: Korean summary of the image
    - formula: The mathematical formula being taught (LaTeX format if applicable)
@@ -43,7 +49,7 @@ Output Format:
     "script": "오늘은 피타고라스 정리를 배워볼게요!",
     "speaker": "Narrator",
     "duration": 4,
-    "image_prompt": "medium shot, anime girl, teacher outfit, excited expression, chalkboard background, mathematical symbols, bright classroom, warm lighting",
+    "image_prompt": "excited, looking at viewer, standing, waving, bust shot, classroom, natural light, energetic",
     "image_prompt_ko": "수학 선생님이 칠판 앞에서 인사하는 장면",
     "formula": "a² + b² = c²",
     "concept": "피타고라스 정리"
@@ -53,7 +59,7 @@ Output Format:
     "script": "직각삼각형에서 빗변의 제곱은 나머지 두 변의 제곱의 합과 같아요",
     "speaker": "Narrator",
     "duration": 5,
-    "image_prompt": "close up, diagram, right triangle, labeled sides a b c, clean white background, mathematical notation, educational style",
+    "image_prompt": "serious, looking at viewer, pointing, bust shot, classroom, soft lighting, peaceful",
     "image_prompt_ko": "직각삼각형 도형과 공식",
     "formula": "a² + b² = c²",
     "concept": "피타고라스 정리"
