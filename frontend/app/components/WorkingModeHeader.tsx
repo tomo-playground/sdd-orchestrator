@@ -2,22 +2,11 @@
 
 import Link from "next/link";
 
-type WorkingModeHeaderProps = {
-  onBack: () => void;
-};
-
-export default function WorkingModeHeader({ onBack }: WorkingModeHeaderProps) {
+export default function WorkingModeHeader() {
   return (
     <header className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-full border border-zinc-300 bg-white/80 px-3 py-1.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition hover:bg-zinc-50"
-        >
-          ← Back
-        </button>
-        <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts MVP</p>
+        <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Shorts Producer</p>
       </div>
       <h1 className="text-4xl font-semibold tracking-tight text-zinc-900">
         Script-first storyboard studio

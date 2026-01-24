@@ -42,7 +42,7 @@ import {
   SCENE_SPECIFIC_KEYWORDS,
 } from "./constants";
 
-import SetupPanel from "./components/SetupPanel";
+// SetupPanel removed - direct entry to working mode
 import AutoRunStatus from "./components/AutoRunStatus";
 import SceneFilmstrip from "./components/SceneFilmstrip";
 import SceneImagePanel from "./components/SceneImagePanel";
@@ -155,7 +155,7 @@ export default function Home() {
   const [videoPreviewSrc, setVideoPreviewSrc] = useState<string | null>(null);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [viewMode, setViewMode] = useState<"setup" | "working">("setup");
+  // viewMode removed - always in working mode
 
   // Autopilot hook
   const {
@@ -1661,36 +1661,13 @@ export default function Home() {
         <div className="absolute -top-40 -right-32 h-80 w-80 rounded-full bg-gradient-to-br from-amber-200 via-rose-200 to-fuchsia-200 opacity-70 blur-3xl" />
         <div className="absolute top-40 -left-32 h-72 w-72 rounded-full bg-gradient-to-br from-sky-200 via-emerald-200 to-lime-200 opacity-60 blur-3xl" />
 
-        {/* ============ SETUP MODE ============ */}
-        {viewMode === "setup" && (
-          <SetupPanel
-            topic={topic}
-            setTopic={setTopic}
-            layoutStyle={layoutStyle}
-            setLayoutStyle={setLayoutStyle}
-            narratorVoice={narratorVoice}
-            setNarratorVoice={setNarratorVoice}
-            bgmFile={bgmFile}
-            setBgmFile={setBgmFile}
-            bgmList={bgmList}
-            speedMultiplier={speedMultiplier}
-            setSpeedMultiplier={setSpeedMultiplier}
-            onAutoRun={() => {
-              setViewMode("working");
-              handleAutoRun();
-            }}
-            onManualMode={() => setViewMode("working")}
-          />
-        )}
-
-        {/* ============ WORKING MODE ============ */}
-        {viewMode === "working" && (
+        {/* ============ WORKING MODE (Direct Entry) ============ */}
         <main
           className={`relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 ${
             isAutoRunning ? "pointer-events-none opacity-60" : ""
           }`}
         >
-          <WorkingModeHeader onBack={() => setViewMode("setup")} />
+          <WorkingModeHeader />
 
           <SectionDivider label="Plan & Generate" />
 
@@ -1884,7 +1861,6 @@ export default function Home() {
             onDeleteRecentVideo={handleDeleteRecentVideo}
           />
         </main>
-        )}
 
         {/* ============ SHARED: Auto Run Progress Modal ============ */}
         {isAutoRunning && (
