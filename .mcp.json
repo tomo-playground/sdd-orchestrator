@@ -89,6 +89,14 @@
     "ffmpeg": {
       "command": "npx",
       "args": ["-y", "ffmpeg-mcp"]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://shorts_app:1234@192.168.45.102:5433/shorts_producer"
+      ]
     }
   }
 }

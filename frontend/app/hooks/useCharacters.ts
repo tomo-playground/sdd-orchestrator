@@ -13,6 +13,7 @@ type UseCharactersResult = {
   reload: () => Promise<void>;
   getCharacterFull: (id: number) => Promise<CharacterFull | null>;
   buildCharacterPrompt: (character: CharacterFull) => string;
+  buildCharacterNegative: (character: CharacterFull) => string;
 };
 
 /**
@@ -52,8 +53,8 @@ export function useCharacters(): UseCharactersResult {
   }, []);
 
   /**
-   * Build a prompt string from character tags.
-   * Format: identity tags + clothing tags + LoRA trigger + LoRA syntax
+   * Build a prompt string from character tags and LoRAs.
+   * Format: identity tags + clothing tags + LoRA triggers + LoRA syntax
    */
   const buildCharacterPrompt = useCallback((character: CharacterFull): string => {
     const parts: string[] = [];
@@ -70,16 +71,27 @@ export function useCharacters(): UseCharactersResult {
       parts.push(...clothingTags);
     }
 
-    // Add LoRA trigger words and syntax
-    if (character.lora) {
-      if (character.lora.trigger_words && character.lora.trigger_words.length > 0) {
-        parts.push(...character.lora.trigger_words);
+    // Add LoRA trigger words and syntax (supports multiple LoRAs)
+    if (character.loras && character.loras.length > 0) {
+      for (const lora of character.loras) {
+        if (lora.trigger_words && lora.trigger_words.length > 0) {
+          parts.push(...lora.trigger_words);
+        }
+        parts.push(`<lora:${lora.name}:${lora.weight}>`);
       }
-      const weight = character.lora_weight ?? 1.0;
-      parts.push(`<lora:${character.lora.name}:${weight}>`);
     }
 
     return parts.join(", ");
+  }, []);
+
+  /**
+   * Build a negative prompt string from character's recommended_negative.
+   */
+  const buildCharacterNegative = useCallback((character: CharacterFull): string => {
+    if (character.recommended_negative && character.recommended_negative.length > 0) {
+      return character.recommended_negative.join(", ");
+    }
+    return "";
   }, []);
 
   return {
@@ -89,5 +101,6 @@ export function useCharacters(): UseCharactersResult {
     reload: loadCharacters,
     getCharacterFull,
     buildCharacterPrompt,
+    buildCharacterNegative,
   };
 }

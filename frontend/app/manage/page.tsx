@@ -924,7 +924,10 @@ export default function ManagePage() {
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {characters.map((char) => {
-                      const charLora = loraEntries.find((l) => l.id === char.lora_id);
+                      const charLoras = char.loras?.map((cl) => {
+                        const lora = loraEntries.find((l) => l.id === cl.lora_id);
+                        return lora ? { ...lora, weight: cl.weight } : null;
+                      }).filter(Boolean) || [];
                       const identityTagNames = char.identity_tags?.map((id) => tags.find((t) => t.id === id)?.name).filter(Boolean) || [];
                       const clothingTagNames = char.clothing_tags?.map((id) => tags.find((t) => t.id === id)?.name).filter(Boolean) || [];
                       return (
@@ -940,9 +943,12 @@ export default function ManagePage() {
                               )}
                               <div>
                                 <h3 className="text-sm font-semibold text-zinc-800">{char.name}</h3>
-                                {charLora && (
+                                {char.description && (
+                                  <p className="text-[10px] text-zinc-400">{char.description}</p>
+                                )}
+                                {charLoras.length > 0 && (
                                   <p className="text-[10px] text-zinc-500">
-                                    LoRA: {charLora.display_name || charLora.name} ({char.lora_weight || 1.0})
+                                    LoRA: {charLoras.map((l) => `${l?.display_name || l?.name}:${l?.weight}`).join(" + ")}
                                   </p>
                                 )}
                               </div>

@@ -139,13 +139,19 @@ export type LoRA = {
   preview_image_url: string | null;
 };
 
+export type CharacterLoRA = {
+  lora_id: number;
+  weight: number;
+};
+
 export type Character = {
   id: number;
   name: string;
+  description: string | null;
   identity_tags: number[] | null;
   clothing_tags: number[] | null;
-  lora_id: number | null;
-  lora_weight: number | null;
+  loras: CharacterLoRA[] | null;
+  recommended_negative: string[] | null;
   preview_image_url: string | null;
 };
 
@@ -187,13 +193,22 @@ export type StyleProfile = {
   is_active: boolean;
 };
 
+export type CharacterFullLoRA = {
+  id: number;
+  name: string;
+  display_name: string;
+  trigger_words: string[];
+  weight: number;
+};
+
 export type CharacterFull = {
   id: number;
   name: string;
+  description: string | null;
   identity_tags: { id: number; name: string; group_name: string }[];
   clothing_tags: { id: number; name: string; group_name: string }[];
-  lora: { id: number; name: string; display_name: string; trigger_words: string[] } | null;
-  lora_weight: number | null;
+  loras: CharacterFullLoRA[];
+  recommended_negative: string[];
   preview_image_url: string | null;
 };
 

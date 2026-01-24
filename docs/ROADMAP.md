@@ -5,106 +5,17 @@
 
 ---
 
-## 🏗️ Phase 1: Foundation & Stability - **COMPLETE**
-기본 기능 구현 완료.
-- [x] Version Control 초기화
-- [x] Backend Core Logic (FastAPI + AI Integration)
-- [x] Frontend Studio UI (Next.js + Autopilot State Machine)
-- [x] Image Validation Pipeline (WD14 + Gemini)
-- [x] FFmpeg Rendering Pipeline (Overlays, Subtitles, Audio)
-- [x] 9:16(Full) 및 1:1(Post) 레이아웃 지원
+## 📦 Phase 1-4: Foundation & Refactoring - **ARCHIVED**
 
----
+완료된 주요 성과:
+- **Phase 1**: 기본 기능 구현 (FastAPI + Next.js + FFmpeg + WD14/Gemini 검증)
+- **Phase 2**: VRT 안정성 기반 구축 (Golden Master + SSIM 95% 검증)
+- **Phase 3**: Backend/Frontend 리팩토링
+  - Backend: `logic.py` 2,300줄 → 279줄 (88% 감소), 8개 서비스 모듈 추출
+  - Frontend: `page.tsx` 4,222줄 → 1,832줄 (57% 감소), 20개 컴포넌트 추출
+- **Phase 4**: 안정성 검증 완료 (VRT 36/36 통과, PRD DoD 4개 항목 충족)
 
-## 🛡️ Phase 2: 안정성 기반 구축 (Visual Regression Test) - **COMPLETE**
-영상 생성 코드가 수정되어도 결과물이 변하지 않도록 하는 근본적인 안전 장치를 구축합니다.
-
-### 2-1. Golden Master & VRT Engine
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| Golden Master Storage | 현재 안정적인 영상의 기준 프레임을 `tests/golden_masters/`에 저장 | [x] |
-| Pixel-by-Pixel Comparison | OpenCV + SSIM으로 95% 일치 검증 엔진 구축 | [x] |
-| Diff Reporting | 불일치 시 시각적 Diff 이미지 자동 생성 | [x] |
-
-### 2-2. Deterministic Environment
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| Fixed Seed Testing | 테스트 시 AI 생성(이미지, 음성) 시드 고정 | [x] |
-| Layout Spec Extraction | Pillow/FFmpeg 좌표/비율을 `constants/layout.py`로 분리 | [x] |
-
----
-
-## 🔧 Phase 3: 리팩토링 (안정성 기반 코드 개선) - **COMPLETE**
-Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합니다.
-
-### 3-1. Backend 리팩토링
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| Router 분리 | `main.py` → `routers/` (API 엔드포인트) | [x] |
-| Service 분리 | `logic.py` → `services/` (비즈니스 로직) | [x] |
-| Keyword/Asset 분리 | 영향도 적은 조회 로직부터 분리 (Quick Win) | [x] |
-| Config 분리 | 설정/상수를 `config.py`로 중앙화 | [x] |
-| VideoBuilder 추출 | 비디오 생성 로직을 클래스로 캡슐화 | [x] |
-
-**Backend 진행 현황**: `logic.py` ~2,300줄 → 279줄 (**88% 감소**)
-
-추출된 서비스 (8개):
-- `services/keywords.py`: 키워드 관련 함수
-- `services/validation.py`: 이미지 검증 함수 (WD14, Gemini)
-- `services/rendering.py`: 렌더링 관련 함수 (오버레이, 자막, 포스트 카드, 레이아웃 메트릭스)
-- `services/image.py`: 이미지 유틸리티 함수
-- `services/avatar.py`: 아바타 생성 및 관리
-- `services/prompt.py`: 프롬프트 처리 함수
-- `services/utils.py`: 일반 유틸리티 함수 (JSON, 텍스트, 오디오)
-- `services/video.py`: 비디오 생성 헬퍼 + **VideoBuilder 클래스**
-
-추가 모듈:
-- `config.py`: 설정, 상수, 전역 객체 (logger, gemini_client, template_env)
-
-### 3-2. Frontend 리팩토링
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| Types/Constants 분리 | `types/`, `constants/` 디렉토리로 분리 | [x] |
-| Components 분리 | SetupPanel, SceneCard, RenderSettingsPanel 등 21개 | [x] |
-| useAutopilot Hook | `page.tsx`에서 Autopilot 상태 머신 추출 | [x] |
-
-**Frontend 진행 현황**: `page.tsx` 4,222줄 → 1,832줄 (2,390줄 감소, 57%)
-
-추출된 모듈:
-- Types: `types/index.ts`
-- Constants: `constants/index.ts` (SCENE_SPECIFIC_KEYWORDS 추가)
-- Utils:
-  - `utils/index.ts` (slugifyAvatarKey, normalize*, prompt 유틸리티, 채널명 생성)
-  - `utils/validation.ts` (computeValidationResults)
-- Hooks:
-  - `hooks/useAutopilot.ts` (Autopilot 상태 관리)
-  - `hooks/useDraftPersistence.ts` (Draft 저장/복원 - 통합 완료)
-- Components (20개):
-  - Setup: `SetupPanel`, `StoryboardGeneratorPanel`, `PromptSetupPanel`
-  - Actions: `StoryboardActionsBar`, `AutoRunStatus`
-  - Scene: `SceneListHeader`, `SceneFilmstrip`, `SceneCard`, `SceneImagePanel`, `ValidationTabContent`, `DebugTabContent`
-  - Render: `RenderSettingsPanel`, `RenderedVideosSection`, `LayoutSelector`
-  - Modals: `AutoRunProgressModal`, `PreviewModal`, `PromptHelperSidebar`
-  - UI: `WorkingModeHeader`, `SectionDivider`, `Toast`
-
----
-
-## ✅ Phase 4: 안정성 검증 (리팩토링 완료 확인) - **COMPLETE**
-리팩토링 완료 후 전체 시스템 안정성을 검증합니다.
-
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| VRT 전체 통과 | 리팩토링 전후 영상 100% 일치 확인 (36/36) | [x] |
-| E2E 테스트 | Autopilot 전체 파이프라인 수동 테스트 | [x] |
-| DoD 체크리스트 | PRD §4 완료 기준 4개 항목 모두 통과 | [x] |
-
-### DoD 체크리스트 상세 (PRD §4)
-| 항목 | 설명 | 상태 |
-|------|------|------|
-| Autopilot | 주제 입력 → 이미지 생성 완료까지 멈춤 없이 진행 | [x] |
-| Consistency | 3개 이상 장면에서 캐릭터 머리색/옷 유지 | [x] |
-| Rendering | 최종 비디오 생성, TTS+BGM 정상 재생 | [x] |
-| UI Resilience | F5 새로고침 후 Draft 복구 | [x] |
+> 상세 이력: `git log --oneline docs/ROADMAP.md` 참조
 
 ---
 
@@ -264,16 +175,42 @@ Civitai 연동, Analytics (고급 기능)
 - `lora[].character_defaults`: LoRA 선택 시 캐릭터 태그 자동 설정
 - `_legacy_categories`: 하위 호환성 유지
 
-### 6-2. Studio Integration (🔴 핵심 - 다음 단계)
-**목표**: DB의 Style/Character 데이터를 메인 Studio 워크플로우에 연결
+### 6-2. Studio Integration (🔴 핵심)
+**목표**: Character Preset 하나로 모든 설정을 통합 관리
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 4 | Character Builder UI | 고정 아이덴티티 태그 선택 (priority 2-4), Manage/Style 탭 | [x] |
-| 5 | Style Profile | SD Model + LoRA + Embedding 번들 | [x] |
+| 5 | ~~Style Profile~~ | ~~SD Model + Embedding 번들~~ → Character Preset으로 통합 | [x] |
 | 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words, Civitai 연동 | [x] |
-| **7** | **Style Profile 연동** | 기본 프로필을 Studio에서 자동 로드, 프롬프트 자동 구성 | [x] |
-| **8** | **Character 선택 UI** | Actor A에 캐릭터 프리셋 적용, 태그 자동 주입 | [x] |
+| 7 | Character 선택 UI | Actor A에 캐릭터 프리셋 적용, 태그 자동 주입 | [x] |
+| 8 | Character Multi-LoRA | 캐릭터당 여러 LoRA 조합 지원 (eureka + chibi) | [x] |
+| 9 | Character Negative | 캐릭터별 검증된 recommended_negative 설정 | [x] |
+| 10 | Insert Sample 제거 | Character Preset으로 대체, 하드코딩 제거 | [x] |
+| **11** | **Style Profile UI 제거** | Reapply 버튼 제거, Character Preset으로 단순화 | [x] |
+
+#### 설계 결정: Character Preset 통합 방식
+**결정**: Style Profile과 Character를 분리하지 않고, Character Preset 하나로 통합
+
+**이유**:
+- "작동하는 코드" 최우선 - 단순 = 버그 적음
+- Zero Variance - 검증된 조합만 사용
+- UX 단순화 - 드롭다운 1개로 모든 설정
+
+**Character Preset 구조**:
+```
+Character Preset (통합)
+├── Identity Tags (1girl, aqua_hair, purple_eyes)
+├── Clothing Tags (black shirt)
+├── LoRAs[] (eureka_v9:1.0, chibi-laugh:0.6)
+└── Recommended Negative (easynegative)
+```
+
+#### 적용 흐름
+```
+Character 선택 → Base Prompt (Identity + LoRA) + Base Negative (검증된 값)
+                 드롭다운 1개로 모든 설정 완료
+```
 
 ### 6-3. Multi-Character & Scene (🟡 확장)
 | 순서 | 작업 | 설명 | 상태 |
@@ -395,8 +332,15 @@ brew install claude-squad  # 명령어: cs
 
 **Latest Status**: 2026-01-24
 - **Phase 6-1 완료**: PostgreSQL + SQLAlchemy + Alembic, 262개 태그 마이그레이션
-- **Phase 6-2 부분 완료**: Style Profile, LoRA 관리, Character Builder UI, Civitai 연동
-- **다음 작업**: Style Profile 연동 (#7) → Character 선택 UI (#8)
+- **Phase 6-2 완료**: Studio Integration 전체 완료
+  - Style Profile 연동 (SD Model, Quality prompts)
+  - Character 선택 UI (드롭다운 → 프롬프트 자동 적용)
+  - Multi-LoRA 지원 (eureka + chibi 조합)
+  - recommended_negative (캐릭터별 검증된 네거티브)
+  - Insert Sample 제거 (Character Preset으로 대체)
+- **등록된 LoRA**: eureka_v9, chibi-laugh, blindbox_v1_mix
+- **등록된 프리셋**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi Style, Blindbox Style
+- **다음 작업**: Phase 6-3 Multi-Character & Scene
 - Storage Cleanup 기능 구현 완료 (`/storage/stats`, `/storage/cleanup` API)
 - Pixel-based Subtitle Wrapping 구현 완료 (폰트 기반 줄바꿈, 균형 맞추기, 동적 폰트 크기 조절)
 - Preset System 구현 완료 (`/presets` API, 9개 프리셋)

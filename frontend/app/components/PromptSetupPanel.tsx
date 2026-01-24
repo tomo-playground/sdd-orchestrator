@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { ActorGender, StyleProfileFull, Character } from "../types";
-import { PROMPT_SAMPLES, SAMPLERS } from "../constants";
+import type { ActorGender, Character } from "../types";
+import { SAMPLERS } from "../constants";
 
 type PromptSetupPanelProps = {
   // Tab state
@@ -34,13 +34,8 @@ type PromptSetupPanelProps = {
   setBaseSeedA: (value: number) => void;
   baseClipSkipA: number;
   setBaseClipSkipA: (value: number) => void;
-  // Sample selection
-  selectedSampleId: string;
-  setSelectedSampleId: (value: string) => void;
+  // Prompt helper
   onOpenPromptHelper: () => void;
-  // Style Profile
-  styleProfile: StyleProfileFull | null;
-  onApplyStyleProfile: () => void;
   // Character selection
   characters: Character[];
   selectedCharacterId: number | null;
@@ -74,23 +69,12 @@ export default function PromptSetupPanel({
   setBaseSeedA,
   baseClipSkipA,
   setBaseClipSkipA,
-  selectedSampleId,
-  setSelectedSampleId,
   onOpenPromptHelper,
-  styleProfile,
-  onApplyStyleProfile,
   characters,
   selectedCharacterId,
   onSelectCharacter,
 }: PromptSetupPanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
-
-  const handleInsertSample = () => {
-    const sample = PROMPT_SAMPLES.find((item) => item.id === selectedSampleId);
-    if (!sample) return;
-    setBasePromptA(sample.basePrompt);
-    setBaseNegativePromptA(sample.baseNegative);
-  };
 
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -169,72 +153,17 @@ export default function PromptSetupPanel({
 
       {baseTab === "A" && (
         <div className="grid gap-4">
-          {/* Style Profile Info */}
-          {styleProfile && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-semibold text-white uppercase">
-                  Style
-                </span>
-                <div>
-                  <span className="text-xs font-semibold text-zinc-700">
-                    {styleProfile.display_name || styleProfile.name}
-                  </span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {styleProfile.loras.slice(0, 3).map((lora) => (
-                      <span key={lora.id} className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] text-blue-700">
-                        {lora.name}:{lora.weight}
-                      </span>
-                    ))}
-                    {styleProfile.sd_model && (
-                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[9px] text-purple-700">
-                        {styleProfile.sd_model.display_name || styleProfile.sd_model.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onApplyStyleProfile}
-                className="rounded-full border border-emerald-300 bg-white px-3 py-1.5 text-[9px] font-semibold text-emerald-700 hover:bg-emerald-50"
-              >
-                Reapply
-              </button>
-            </div>
-          )}
-
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Actor A Setup
             </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={selectedSampleId}
-                onChange={(e) => setSelectedSampleId(e.target.value)}
-                className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-              >
-                {PROMPT_SAMPLES.map((sample) => (
-                  <option key={sample.id} value={sample.id}>
-                    {sample.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={handleInsertSample}
-                className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-              >
-                Insert Sample
-              </button>
-              <button
-                type="button"
-                onClick={onOpenPromptHelper}
-                className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-              >
-                Prompt Helper
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onOpenPromptHelper}
+              className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+            >
+              Prompt Helper
+            </button>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-2">

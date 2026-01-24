@@ -47,25 +47,32 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
         tags = db.query(Tag).filter(Tag.id.in_(character.clothing_tags)).all()
         clothing_tags = [{"id": t.id, "name": t.name, "group_name": t.group_name} for t in tags]
 
-    # Resolve LoRA
-    lora_info = None
-    if character.lora_id:
-        lora = db.query(LoRA).filter(LoRA.id == character.lora_id).first()
-        if lora:
-            lora_info = {
-                "id": lora.id,
-                "name": lora.name,
-                "display_name": lora.display_name,
-                "trigger_words": lora.trigger_words,
-            }
+    # Resolve multiple LoRAs
+    loras_info = []
+    if character.loras:
+        lora_ids = [item["lora_id"] for item in character.loras]
+        loras = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+        lora_map = {lora.id: lora for lora in loras}
+
+        for item in character.loras:
+            lora = lora_map.get(item["lora_id"])
+            if lora:
+                loras_info.append({
+                    "id": lora.id,
+                    "name": lora.name,
+                    "display_name": lora.display_name,
+                    "trigger_words": lora.trigger_words,
+                    "weight": item.get("weight", 1.0),
+                })
 
     return {
         "id": character.id,
         "name": character.name,
+        "description": character.description,
         "identity_tags": identity_tags,
         "clothing_tags": clothing_tags,
-        "lora": lora_info,
-        "lora_weight": float(character.lora_weight) if character.lora_weight else None,
+        "loras": loras_info,
+        "recommended_negative": character.recommended_negative or [],
         "preview_image_url": character.preview_image_url,
     }
 
@@ -77,7 +84,12 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     if existing:
         raise HTTPException(status_code=400, detail="Character already exists")
 
-    character = Character(**data.model_dump())
+    # Convert loras list to JSONB-compatible format
+    char_data = data.model_dump()
+    if char_data.get("loras"):
+        char_data["loras"] = [{"lora_id": l["lora_id"], "weight": l["weight"]} for l in char_data["loras"]]
+
+    character = Character(**char_data)
     db.add(character)
     db.commit()
     db.refresh(character)

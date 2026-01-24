@@ -49,22 +49,6 @@ export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 export const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
 export const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];
 
-export const PROMPT_SAMPLES = [
-  {
-    id: "eureka",
-    label: "Eureka",
-    basePrompt:
-      "1girl, eureka, (black t-shirt:1.2), purple eyes, aqua hair, short hair, jeans, glasses, hairclip, short sleeves, <lora:eureka_v9:1.0>",
-    baseNegative: "verybadimagenegative_v1.3",
-  },
-  {
-    id: "chibi-laugh",
-    label: "Chibi Laugh",
-    basePrompt: "chibi, eyebrow, laughing, eyebrow down, <lora:chibi-laugh:0.6>",
-    baseNegative: "easynegative",
-  },
-];
-
 export const STRUCTURES = [
   "Monologue",
   "Storytelling",

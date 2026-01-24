@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutopilot, useDraftPersistence } from "./hooks";
-import { useStyleProfile } from "./hooks/useStyleProfile";
 import { useCharacters } from "./hooks/useCharacters";
 import axios from "axios";
 
@@ -36,7 +35,6 @@ import {
   VOICES,
   SAMPLERS,
   OVERLAY_STYLES,
-  PROMPT_SAMPLES,
   STRUCTURES,
   CAMERA_KEYWORDS,
   ACTION_KEYWORDS,
@@ -116,7 +114,6 @@ export default function Home() {
   const [baseSamplerA, setBaseSamplerA] = useState("DPM++ 2M Karras");
   const [baseSeedA, setBaseSeedA] = useState(-1);
   const [baseClipSkipA, setBaseClipSkipA] = useState(2);
-  const [selectedSampleId, setSelectedSampleId] = useState(PROMPT_SAMPLES[0].id);
   const [advancedExpanded, setAdvancedExpanded] = useState<Record<number, boolean>>({});
   const [sceneTab, setSceneTab] = useState<Record<number, "validate" | "debug" | null>>({});
   const [sceneMenuOpen, setSceneMenuOpen] = useState<number | null>(null);
@@ -150,7 +147,7 @@ export default function Home() {
     Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>
   >([]);
   const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("full");
-  const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("slow_zoom");
+  const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("none");
   const [hiResEnabled, setHiResEnabled] = useState(false);
   const [veoEnabled, setVeoEnabled] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState<string | null>(null);
@@ -182,12 +179,8 @@ export default function Home() {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
-  // Style Profile hook
-  const { styleProfile, isLoading: isStyleProfileLoading, buildPrompts } = useStyleProfile();
-  const [styleProfileApplied, setStyleProfileApplied] = useState(false);
-
   // Characters hook
-  const { characters, getCharacterFull, buildCharacterPrompt } = useCharacters();
+  const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -305,23 +298,6 @@ export default function Home() {
       }
     }
   }, []);
-
-  // Auto-apply Style Profile when loaded (only if prompts are empty)
-  useEffect(() => {
-    if (isStyleProfileLoading || styleProfileApplied) return;
-    if (basePromptA.trim() !== "" || baseNegativePromptA.trim() !== "") {
-      // User already has prompts (from draft or manual input)
-      setStyleProfileApplied(true);
-      return;
-    }
-    const prompts = buildPrompts();
-    if (prompts) {
-      setBasePromptA(prompts.positive);
-      setBaseNegativePromptA(prompts.negative);
-      setStyleProfileApplied(true);
-      console.log("[StyleProfile] Auto-applied default profile:", styleProfile?.name);
-    }
-  }, [isStyleProfileLoading, styleProfileApplied, basePromptA, baseNegativePromptA, buildPrompts, styleProfile?.name]);
 
   const buildDraftScenes = useCallback((): DraftScene[] => {
     const draftScenes = scenes.map((scene) => ({
@@ -955,42 +931,33 @@ export default function Home() {
         }
 
         if (currentStep === "render") {
-          setAutoRunStep("render", "Rendering video...");
+          setAutoRunStep("render", `Rendering ${layoutStyle} video...`);
           const overlayAuto = buildOverlayContext(workingScenes);
           const mergedOverlay = { ...overlaySettings, ...overlayAuto };
           setOverlaySettings(mergedOverlay);
           const postAuto = buildPostCardContext(workingScenes);
           const mergedPostCard = { ...postCardSettings, ...postAuto };
           setPostCardSettings(mergedPostCard);
-          const fullUrl = await requestRenderVideo(
-            "full",
+          // Render only the selected layout style
+          const videoUrl = await requestRenderVideo(
+            layoutStyle,
             true,
             workingScenes,
             mergedOverlay,
             mergedPostCard
           );
-          if (!fullUrl) {
-            throw new Error("Full render failed");
+          if (!videoUrl) {
+            throw new Error(`${layoutStyle} render failed`);
           }
-          const fullUrlWithTs = `${fullUrl}?t=${Date.now()}`;
-          setVideoUrlFull(fullUrlWithTs);
-          setVideoUrl(fullUrlWithTs);
-          pushRecentVideo(fullUrlWithTs, "full");
-          pushAutoRunLog("Full render complete");
-          const postUrl = await requestRenderVideo(
-            "post",
-            true,
-            workingScenes,
-            mergedOverlay,
-            mergedPostCard
-          );
-          if (!postUrl) {
-            throw new Error("Post render failed");
+          const videoUrlWithTs = `${videoUrl}?t=${Date.now()}`;
+          setVideoUrl(videoUrlWithTs);
+          if (layoutStyle === "full") {
+            setVideoUrlFull(videoUrlWithTs);
+          } else {
+            setVideoUrlPost(videoUrlWithTs);
           }
-          const postUrlWithTs = `${postUrl}?t=${Date.now()}`;
-          setVideoUrlPost(postUrlWithTs);
-          pushRecentVideo(postUrlWithTs, "post");
-          pushAutoRunLog("Post render complete");
+          pushRecentVideo(videoUrlWithTs, layoutStyle);
+          pushAutoRunLog(`${layoutStyle} render complete`);
         }
       }
       setAutoRunDone();
@@ -1093,7 +1060,7 @@ export default function Home() {
     setOverlaySettings(DEFAULT_OVERLAY_SETTINGS);
     setPostCardSettings(DEFAULT_POST_CARD_SETTINGS);
     setLayoutStyle("full");
-    setMotionStyle("slow_zoom");
+    setMotionStyle("none");
     setHiResEnabled(false);
     setVeoEnabled(false);
     setImagePreviewSrc(null);
@@ -1738,17 +1705,7 @@ export default function Home() {
             setBaseSeedA={setBaseSeedA}
             baseClipSkipA={baseClipSkipA}
             setBaseClipSkipA={setBaseClipSkipA}
-            selectedSampleId={selectedSampleId}
-            setSelectedSampleId={setSelectedSampleId}
             onOpenPromptHelper={() => setIsHelperOpen(true)}
-            styleProfile={styleProfile}
-            onApplyStyleProfile={() => {
-              const prompts = buildPrompts();
-              if (prompts) {
-                setBasePromptA(prompts.positive);
-                setBaseNegativePromptA(prompts.negative);
-              }
-            }}
             characters={characters}
             selectedCharacterId={selectedCharacterId}
             onSelectCharacter={async (charId: number | null) => {
@@ -1756,15 +1713,14 @@ export default function Home() {
               if (charId === null) return;
               const charFull = await getCharacterFull(charId);
               if (charFull) {
+                // Apply character positive prompt
                 const charPrompt = buildCharacterPrompt(charFull);
-                // Prepend character prompt to existing base prompt
-                setBasePromptA((prev) => {
-                  // Remove old character tags if reselecting
-                  const lines = prev.split(", ").filter(Boolean);
-                  // Simple append for now - user can edit as needed
-                  if (!prev.trim()) return charPrompt;
-                  return `${charPrompt}, ${prev}`;
-                });
+                setBasePromptA(charPrompt);
+                // Apply character negative prompt (validated)
+                const charNegative = buildCharacterNegative(charFull);
+                if (charNegative) {
+                  setBaseNegativePromptA(charNegative);
+                }
               }
             }}
           />

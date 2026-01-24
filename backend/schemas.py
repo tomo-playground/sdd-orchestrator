@@ -198,12 +198,18 @@ class LoRAResponse(LoRABase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CharacterLoRA(BaseModel):
+    lora_id: int
+    weight: float = 1.0
+
+
 class CharacterBase(BaseModel):
     name: str
+    description: str | None = None
     identity_tags: list[int] | None = None
     clothing_tags: list[int] | None = None
-    lora_id: int | None = None
-    lora_weight: float | None = None
+    loras: list[CharacterLoRA] | None = None
+    recommended_negative: list[str] | None = None
     preview_image_url: str | None = None
 
 
@@ -213,10 +219,11 @@ class CharacterCreate(CharacterBase):
 
 class CharacterUpdate(BaseModel):
     name: str | None = None
+    description: str | None = None
     identity_tags: list[int] | None = None
     clothing_tags: list[int] | None = None
-    lora_id: int | None = None
-    lora_weight: float | None = None
+    loras: list[CharacterLoRA] | None = None
+    recommended_negative: list[str] | None = None
     preview_image_url: str | None = None
 
 
