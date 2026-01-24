@@ -65,151 +65,31 @@
 
 **현재 사용 환경**:
 - **Model**: `animagine-xl.safetensors` (SDXL 애니메)
-- **LoRA**: `eureka_v9` (캐릭터), `chibi-laugh` (스타일)
+- **LoRA**: `eureka_v9`, `chibi-laugh`, `blindbox_v1_mix`
 - **Negative Embeddings**: `verybadimagenegative_v1.3`, `easynegative`
+- **Presets**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi Style, Blindbox Style
 
-**의존성 구조**:
-```
-keywords.json v2.0 구조 개편 → DB 마이그레이션
-        ↓
-Character Builder → Style Profile → Multi-Character
-        ↓
-Scene Builder → Tag Autocomplete
-        ↓
-Civitai 연동, Analytics (고급 기능)
-```
+### 6-1. Data Foundation - **COMPLETE**
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| DB 스키마 설정 | PostgreSQL + SQLAlchemy + Alembic | [x] |
+| 태그 마이그레이션 | 262개 태그 (identity, clothing, scene, meta) | [x] |
+| Backend CRUD API | /tags, /loras, /characters, /sd-models 엔드포인트 | [x] |
 
-### 6-1. Data Foundation (🔴 필수 선행)
-| 순서 | 작업 | 설명 | 상태 |
-|------|------|------|------|
-| 0 | DB 스키마 설정 | PostgreSQL + SQLAlchemy + Alembic | [x] |
-| 1 | keywords.json v2.0 구조 설계 | 아래 스펙 참조 | [x] |
-| 2 | 기존 데이터 마이그레이션 | v1 → v2 변환 + 신규 태그 추가 | [x] |
-| 3 | Danbooru Identity 태그 수집 | hair_color, eye_color, hair_style | [x] |
-| 4 | Backend CRUD API | /tags, /loras, /characters 엔드포인트 | [x] |
-
-#### keywords.json v2.0 스펙
-
-**SD 프롬프트 권장 순서** (앞쪽 태그가 더 중요):
-| Priority | Category | 설명 | 고정/가변 |
-|----------|----------|------|-----------|
-| 1 | Quality | masterpiece, best quality | Meta |
-| 2 | Subject | 1girl, solo | Character |
-| 3 | Identity | hair_color, eye_color, hair_style | Character 고정 |
-| 4 | Clothing | outfit, accessories | Character 고정 |
-| 5 | Pose/Camera | action, expression, shot_type, angle | Scene 가변 |
-| 6 | Environment | location, time, weather, lighting | Scene 가변 |
-| 7 | Style | anime style (보통 모델/LoRA가 처리) | Meta |
-| 99 | LoRA | `<lora:name:weight>` | 항상 마지막 |
-
-**구조 개요**:
-```json
-{
-  "version": "2.0",
-  "prompt_order": ["quality", "subject", "identity", "clothing", "pose", "camera", "environment", "mood", "style", "lora"],
-  "character": {
-    "subject": { "priority": 2, "tags": ["1girl", "1boy", "solo", ...] },
-    "identity": {
-      "priority": 3,
-      "groups": {
-        "hair_color": { "exclusive": true, "tags": ["black hair", "blonde hair", ...] },
-        "eye_color": { "exclusive": true, "tags": ["blue eyes", "brown eyes", ...] },
-        "hair_style": { "tags": ["long hair", "short hair", "ponytail", ...] }
-      }
-    },
-    "clothing": { "priority": 4, "groups": { "outfit": {...}, "accessories": {...} } }
-  },
-  "scene": {
-    "pose": { "priority": 5, "groups": { "action": {...}, "expression": {...}, "gaze": {...} } },
-    "camera": { "priority": 5, "groups": { "shot_type": {...}, "angle": {...} } },
-    "environment": { "priority": 6, "groups": { "location": {...}, "time": {...}, "weather": {...}, "lighting": {...} } },
-    "mood": { "priority": 6, "tags": [...] }
-  },
-  "meta": {
-    "quality": { "priority": 1, "tags": ["masterpiece", "best quality", ...] },
-    "style": { "priority": 7, "tags": ["anime style", ...] }
-  },
-  "lora": [
-    {
-      "name": "eureka_v9",
-      "display_name": "Eureka",
-      "trigger_words": ["eureka"],
-      "default_weight": 1.0,
-      "weight_range": [0.5, 1.5],
-      "base_models": ["animagine-xl"],
-      "character_defaults": { "hair_color": "aqua hair", "eye_color": "purple eyes", "hair_style": "short hair" },
-      "recommended_tags": ["hairclip", "glasses"],
-      "recommended_negative": "verybadimagenegative_v1.3"
-    },
-    {
-      "name": "chibi-laugh",
-      "display_name": "Chibi Laugh",
-      "trigger_words": ["chibi", "eyebrow", "laughing", "eyebrow down"],
-      "default_weight": 0.6,
-      "weight_range": [0.3, 0.8],
-      "base_models": ["*"],
-      "recommended_negative": "easynegative"
-    }
-  ],
-  "embeddings": {
-    "negative": [
-      { "name": "verybadimagenegative_v1.3", "type": "quality" },
-      { "name": "easynegative", "type": "quality" }
-    ]
-  },
-  "rules": {
-    "conflicts": [["long hair", "short hair", "medium hair"], ["day", "night"]],
-    "requires": { "twintails": ["long hair"], "ponytail": ["long hair", "medium hair"] },
-    "weight_defaults": { "hair_color": 1.0, "outfit": 1.2 }
-  },
-  "synonyms": {...},
-  "ignore": [...],
-  "_legacy_categories": {...}
-}
-```
-
-**핵심 설계 원칙**:
-- `priority`: 프롬프트 조합 시 자동 정렬 순서
-- `exclusive`: true면 그룹 내 하나만 선택 (예: hair_color)
-- `conflicts/requires`: 충돌 태그 경고, 의존성 자동 추가
-- `lora[].character_defaults`: LoRA 선택 시 캐릭터 태그 자동 설정
-- `_legacy_categories`: 하위 호환성 유지
-
-### 6-2. Studio Integration (🔴 핵심)
-**목표**: Character Preset 하나로 모든 설정을 통합 관리
-
-| 순서 | 작업 | 설명 | 상태 |
-|------|------|------|------|
-| 4 | Character Builder UI | 고정 아이덴티티 태그 선택 (priority 2-4), Manage/Style 탭 | [x] |
-| 5 | ~~Style Profile~~ | ~~SD Model + Embedding 번들~~ → Character Preset으로 통합 | [x] |
-| 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words, Civitai 연동 | [x] |
-| 7 | Character 선택 UI | Actor A에 캐릭터 프리셋 적용, 태그 자동 주입 | [x] |
-| 8 | Character Multi-LoRA | 캐릭터당 여러 LoRA 조합 지원 (eureka + chibi) | [x] |
-| 9 | Character Negative | 캐릭터별 검증된 recommended_negative 설정 | [x] |
-| 10 | Insert Sample 제거 | Character Preset으로 대체, 하드코딩 제거 | [x] |
-| **11** | **Style Profile UI 제거** | Reapply 버튼 제거, Character Preset으로 단순화 | [x] |
-
-#### 설계 결정: Character Preset 통합 방식
-**결정**: Style Profile과 Character를 분리하지 않고, Character Preset 하나로 통합
-
-**이유**:
-- "작동하는 코드" 최우선 - 단순 = 버그 적음
-- Zero Variance - 검증된 조합만 사용
-- UX 단순화 - 드롭다운 1개로 모든 설정
+### 6-2. Studio Integration - **COMPLETE**
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Character Preset UI | 드롭다운 → Identity + Clothing + LoRA + Negative 자동 적용 | [x] |
+| Multi-LoRA 지원 | 캐릭터당 여러 LoRA 조합 (eureka + chibi) | [x] |
+| Style Profile 통합 | Character Preset으로 단일화, UI 제거 | [x] |
 
 **Character Preset 구조**:
 ```
-Character Preset (통합)
-├── Identity Tags (1girl, aqua_hair, purple_eyes)
-├── Clothing Tags (black shirt)
+Character Preset
+├── Identity Tags (1girl, aqua_hair, purple_eyes, short_hair)
+├── Clothing Tags (t-shirt, hairclip)
 ├── LoRAs[] (eureka_v9:1.0, chibi-laugh:0.6)
 └── Recommended Negative (easynegative)
-```
-
-#### 적용 흐름
-```
-Character 선택 → Base Prompt (Identity + LoRA) + Base Negative (검증된 값)
-                 드롭다운 1개로 모든 설정 완료
 ```
 
 ### 6-3. Multi-Character & Scene (🟡 확장)
@@ -330,32 +210,23 @@ brew install claude-squad  # 명령어: cs
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-24
-- **Phase 6-1 완료**: PostgreSQL + SQLAlchemy + Alembic, 262개 태그 마이그레이션
-- **Phase 6-2 완료**: Studio Integration 전체 완료
-  - Style Profile 연동 (SD Model, Quality prompts)
-  - Character 선택 UI (드롭다운 → 프롬프트 자동 적용)
-  - Multi-LoRA 지원 (eureka + chibi 조합)
-  - recommended_negative (캐릭터별 검증된 네거티브)
-  - Insert Sample 제거 (Character Preset으로 대체)
-- **등록된 LoRA**: eureka_v9, chibi-laugh, blindbox_v1_mix
-- **등록된 프리셋**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi Style, Blindbox Style
-- **다음 작업**: Phase 6-3 Multi-Character & Scene
-- Storage Cleanup 기능 구현 완료 (`/storage/stats`, `/storage/cleanup` API)
-- Pixel-based Subtitle Wrapping 구현 완료 (폰트 기반 줄바꿈, 균형 맞추기, 동적 폰트 크기 조절)
-- Preset System 구현 완료 (`/presets` API, 9개 프리셋)
-- 일본어 강좌 및 수학 공식 강좌 템플릿 추가
-- Frontend: Structure 선택 메뉴 확장 (7개 옵션) + 샘플 토픽 선택 UI 추가
-- VRT Golden Master 업데이트 완료 (36/36 테스트 통과)
-- Audio Ducking 구현 완료 (FFmpeg sidechaincompress, BGM Volume 조절 UI)
-- **Phase 6 로드맵 재조정**: Data → **Integration** → Multi-Character → Scene 순서
-- **SetupPanel 제거**: 간소화 진입점 제거, Custom Start (Working Mode)로 직접 진입
-- **SD 파라미터 Advanced 이동**: Steps, CFG, Sampler 등 기본 숨김, 토글로 펼침
-- **VEO "Coming Soon"**: 비활성화 + 라벨 추가
-- **Character Consistency 전략 수립**: LoRA 기반 (Phase 6) → IP-Adapter (Phase 7) 단계적 접근
-- **Phase 7 추가**: IP-Adapter 기반 Advanced Consistency
-- **keywords.json v2.0 스펙 정의**: SD 프롬프트 최적화 구조 설계
-  - Priority 기반 태그 정렬 (Quality → Subject → Identity → Clothing → Pose → Environment → LoRA)
-  - Character/Scene 태그 분리, exclusive 그룹, conflicts/requires 규칙
-  - LoRA 메타데이터 (trigger_words, weight_range, character_defaults, recommended_negative)
-  - 현재 환경 최적화: animagine-xl + eureka_v9 + chibi-laugh
+---
+
+## 📊 Current Status
+
+**Last Updated**: 2025-01-24
+
+| Phase | 상태 | 진행률 |
+|-------|------|--------|
+| 1-4 | ARCHIVED | 100% |
+| 5 | IN PROGRESS | 67% |
+| 6-1 | COMPLETE | 100% |
+| 6-2 | COMPLETE | 100% |
+| 6-3 | NOT STARTED | 0% |
+| 6-4 | IN PROGRESS | 17% |
+| 7 | NOT STARTED | 0% |
+
+**다음 우선순위**:
+1. Phase 6-3: Multi-Character & Scene
+2. Phase 5 잔여: Ken Burns Effect, Project DB
+3. Phase 7: IP-Adapter (ControlNet 의존)
