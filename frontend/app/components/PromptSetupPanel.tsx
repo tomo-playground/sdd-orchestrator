@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ActorGender } from "../types";
+import type { ActorGender, StyleProfileFull } from "../types";
 import { PROMPT_SAMPLES, SAMPLERS } from "../constants";
 
 type PromptSetupPanelProps = {
@@ -38,6 +38,9 @@ type PromptSetupPanelProps = {
   selectedSampleId: string;
   setSelectedSampleId: (value: string) => void;
   onOpenPromptHelper: () => void;
+  // Style Profile
+  styleProfile: StyleProfileFull | null;
+  onApplyStyleProfile: () => void;
 };
 
 export default function PromptSetupPanel({
@@ -70,6 +73,8 @@ export default function PromptSetupPanel({
   selectedSampleId,
   setSelectedSampleId,
   onOpenPromptHelper,
+  styleProfile,
+  onApplyStyleProfile,
 }: PromptSetupPanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -157,6 +162,41 @@ export default function PromptSetupPanel({
 
       {baseTab === "A" && (
         <div className="grid gap-4">
+          {/* Style Profile Info */}
+          {styleProfile && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-semibold text-white uppercase">
+                  Style
+                </span>
+                <div>
+                  <span className="text-xs font-semibold text-zinc-700">
+                    {styleProfile.display_name || styleProfile.name}
+                  </span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {styleProfile.loras.slice(0, 3).map((lora) => (
+                      <span key={lora.id} className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] text-blue-700">
+                        {lora.name}:{lora.weight}
+                      </span>
+                    ))}
+                    {styleProfile.sd_model && (
+                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[9px] text-purple-700">
+                        {styleProfile.sd_model.display_name || styleProfile.sd_model.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onApplyStyleProfile}
+                className="rounded-full border border-emerald-300 bg-white px-3 py-1.5 text-[9px] font-semibold text-emerald-700 hover:bg-emerald-50"
+              >
+                Reapply
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Actor A Setup

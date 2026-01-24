@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutopilot, useDraftPersistence } from "./hooks";
+import { useStyleProfile } from "./hooks/useStyleProfile";
 import axios from "axios";
 
 import type {
@@ -180,6 +181,10 @@ export default function Home() {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
+  // Style Profile hook
+  const { styleProfile, isLoading: isStyleProfileLoading, buildPrompts } = useStyleProfile();
+  const [styleProfileApplied, setStyleProfileApplied] = useState(false);
+
   useEffect(() => {
     axios
       .get(`${API_BASE}/audio/list`)
@@ -295,6 +300,23 @@ export default function Home() {
       }
     }
   }, []);
+
+  // Auto-apply Style Profile when loaded (only if prompts are empty)
+  useEffect(() => {
+    if (isStyleProfileLoading || styleProfileApplied) return;
+    if (basePromptA.trim() !== "" || baseNegativePromptA.trim() !== "") {
+      // User already has prompts (from draft or manual input)
+      setStyleProfileApplied(true);
+      return;
+    }
+    const prompts = buildPrompts();
+    if (prompts) {
+      setBasePromptA(prompts.positive);
+      setBaseNegativePromptA(prompts.negative);
+      setStyleProfileApplied(true);
+      console.log("[StyleProfile] Auto-applied default profile:", styleProfile?.name);
+    }
+  }, [isStyleProfileLoading, styleProfileApplied, basePromptA, baseNegativePromptA, buildPrompts, styleProfile?.name]);
 
   const buildDraftScenes = useCallback((): DraftScene[] => {
     const draftScenes = scenes.map((scene) => ({
@@ -1714,6 +1736,14 @@ export default function Home() {
             selectedSampleId={selectedSampleId}
             setSelectedSampleId={setSelectedSampleId}
             onOpenPromptHelper={() => setIsHelperOpen(true)}
+            styleProfile={styleProfile}
+            onApplyStyleProfile={() => {
+              const prompts = buildPrompts();
+              if (prompts) {
+                setBasePromptA(prompts.positive);
+                setBaseNegativePromptA(prompts.negative);
+              }
+            }}
           />
 
           <StoryboardActionsBar
