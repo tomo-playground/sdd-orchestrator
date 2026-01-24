@@ -219,14 +219,14 @@ brew install claude-squad  # 명령어: cs
 | Phase | 상태 | 진행률 |
 |-------|------|--------|
 | 1-4 | ARCHIVED | 100% |
-| 5 | IN PROGRESS | 67% |
+| 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | NOT STARTED | 0% |
+| 6-3 | IN PROGRESS | 25% |
 | 6-4 | IN PROGRESS | 17% |
 | 7 | NOT STARTED | 0% |
 
 **다음 우선순위**:
-1. Phase 6-3: Multi-Character & Scene
-2. Phase 5 잔여: Ken Burns Effect, Project DB
+1. Phase 6-3: Multi-Character, Scene Builder, Tag Autocomplete
+2. Phase 5 잔여: Ken Burns Effect
 3. Phase 7: IP-Adapter (ControlNet 의존)
