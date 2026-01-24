@@ -18,10 +18,10 @@ def decode_data_url(data_url: str) -> bytes:
 
 
 def load_image_bytes(source: str) -> bytes:
-    """Load image bytes from various sources (data URL, HTTP URL, or local path).
+    """Load image bytes from various sources (data URL, HTTP URL, local path, or raw base64).
 
     Args:
-        source: Data URL, HTTP URL, or local path starting with /outputs/
+        source: Data URL, HTTP URL, local path starting with /outputs/, or raw base64
 
     Returns:
         Image bytes
@@ -44,4 +44,8 @@ def load_image_bytes(source: str) -> bytes:
         if OUTPUT_DIR.resolve() not in candidate.parents and candidate != OUTPUT_DIR.resolve():
             raise ValueError("Invalid image path")
         return candidate.read_bytes()
-    raise ValueError("Unsupported image source")
+    # Try raw base64 as fallback
+    try:
+        return base64.b64decode(source)
+    except Exception:
+        raise ValueError("Unsupported image source")
