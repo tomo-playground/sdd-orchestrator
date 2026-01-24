@@ -92,7 +92,7 @@ Character Preset
 └── Recommended Negative (easynegative)
 ```
 
-### 6-3. Multi-Character & Scene (🟡 확장)
+### 6-3. Scene Expression & Multi-Character (🟡 확장)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 8 | Character Gender Field | Character 모델에 gender 추가, Actor gender 자동 동기화 | [x] |
@@ -102,18 +102,25 @@ Character Preset
 | 8.4 | Male Style Presets | 1boy + 스타일 LoRA 품질 테스트 → 성별 구분 불명확으로 탈락 | [-] |
 | 8.5 | Gender 기반 Preset 필터링 | 선택된 성별에 맞는 프리셋만 드롭다운에 표시 | [x] |
 | 8.6 | Character Preview UI | 별도 행 레이아웃 (80px) + 클릭 시 확대 모달 | [x] |
-| 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
-| 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
-| 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
+| **9** | **Scene Expression System** | **싱글 캐릭터 장면 표현 고도화 (Multi-Character 전제조건)** | [ ] |
+| 9.1 | DB 태그 통합 | ~~keywords.json~~ 제거 완료, DB tags 단일 소스 | [x] |
+| 9.1.1 | **Tag Effectiveness Feedback Loop** | WD14 검증 → 태그 효과성 추적 → Gemini 컨텍스트 자동 필터링 | [x] |
+| 9.2 | 포즈/표정/구도 태그 확장 | DB에 Danbooru 기반 세분화 태그 추가 (pose → action/expression/gaze) | [ ] |
+| 9.3 | Gemini 템플릿 강화 | 장면 의도 → 포즈/표정/구도 명시적 지시 | [ ] |
+| 9.4 | Scene Context Tags UI | 장면별 포즈/표정/구도 선택 UI (SceneCard 확장) | [ ] |
+| 9.5 | 프롬프트 품질 검증 | 생성된 프롬프트가 장면 의도에 맞는지 WD14 검증 | [ ] |
+| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 | [ ] |
+| 12 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 13 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [x] |
 | 14 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
-| 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
+| 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 (기본 구현: 9.1.1) | [~] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
-| 17 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
+| 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
 | 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
 | 20 | Scene Clothing Override | 장면별 의상 변경 기능 | [ ] |
@@ -230,11 +237,13 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 70% |
-| 6-4 | IN PROGRESS | 12% |
+| 6-3 | IN PROGRESS | 75% |
+| 6-4 | IN PROGRESS | 25% |
 | 7 | NOT STARTED | 0% |
 
 **다음 우선순위**:
-1. Phase 6-3: Multi-Character, Scene Builder, Tag Autocomplete
-2. Phase 5 잔여: Ken Burns Effect
-3. Phase 7: IP-Adapter (ControlNet 의존)
+1. **Phase 6-3.9: Scene Expression System** (싱글 캐릭터 장면 표현 고도화)
+   - 포즈/표정/구도 태그 체계화 → Gemini 템플릿 강화 → UI → 검증
+2. Phase 6-3.10+: Multi-Character, Scene Builder, Tag Autocomplete
+3. Phase 5 잔여: Ken Burns Effect
+4. Phase 7: IP-Adapter (ControlNet 의존)

@@ -22,10 +22,13 @@
     1. `uv run main.py` 로그 확인.
     2. `backend/logic.py` (또는 main.py)의 `acrossfade` 파라미터 간소화.
 
-### `keywords.json` 학습 안 됨
+### 키워드/태그 관련 오류
 *   **증상**: `Apply Missing Tags` 눌러도 로그가 안 뜸.
-*   **원인**: `Network Error` 또는 백엔드 `NameError`.
-*   **해결**: 백엔드 재시작 및 `keywords.json` 파일 권한 확인.
+*   **원인**: `Network Error` 또는 DB 연결 오류.
+*   **해결**:
+    1. 백엔드 재시작
+    2. PostgreSQL 연결 확인 (`DATABASE_URL` 환경변수)
+    3. `tags` 테이블에 데이터 존재 확인
 
 ## 🔤 Font Issue
 *   **증상**: 자막 폰트가 기본 고딕체로 나옴.

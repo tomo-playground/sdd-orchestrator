@@ -27,7 +27,7 @@ graph TD
         end
         
         subgraph Data [Data & Assets]
-            Keywords[keywords.json]
+            DB[(PostgreSQL - Tags, Characters, LoRAs)]
             AssetsDir[./assets (Fonts, Overlays)]
             OutputsDir[./outputs (Images, Videos)]
         end
@@ -97,8 +97,8 @@ sequenceDiagram
 ## 📂 Project Structure
 
 ### Backend (`/backend`)
-*   **`main.py`**: The "God Object" containing all API routes, business logic, and media processing code. (Refactoring target)
-*   **`keywords.json`**: Dictionary for keyword management, synonyms, and negative prompts.
+*   **`main.py`**: FastAPI application with modular routers.
+*   **`models/`**: SQLAlchemy models (Tag, Character, LoRA, etc.) - keyword data stored in PostgreSQL.
 *   **`templates/`**: Jinja2 templates for prompting Gemini (e.g., storyboard structure).
 *   **`assets/`**: Static resources like fonts (`.ttf`), overlays (`.png`), and background music.
 *   **`outputs/`**: Generated artifacts (Images, Avatars, Videos).

@@ -17,7 +17,7 @@ from PIL import Image
 
 from config import WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client
 
-from .keywords import expand_synonyms, load_keyword_map, normalize_prompt_token
+from .keywords import expand_synonyms, normalize_prompt_token, IGNORE_TOKENS
 
 # --- Lazy imports for circular dependency avoidance ---
 _parse_json_payload = None
@@ -198,8 +198,7 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "cinematic",
     }
     tokens = [normalize_prompt_token(token) for token in raw_tokens]
-    synonyms_map, ignore_tokens, _ = load_keyword_map()
-    tokens = [token for token in tokens if token and token not in skip_tokens and token not in ignore_tokens]
+    tokens = [token for token in tokens if token and token not in skip_tokens and token not in IGNORE_TOKENS]
     if not tokens:
         return {"matched": [], "missing": [], "extra": []}
 
@@ -218,7 +217,7 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
     extra = []
     for item in tags[:20]:
         name = normalize_prompt_token(item["tag"])
-        if not name or name in ignore_tokens:
+        if not name or name in IGNORE_TOKENS:
             continue
         if name not in expand_synonyms(tokens):
             extra.append(item["tag"])

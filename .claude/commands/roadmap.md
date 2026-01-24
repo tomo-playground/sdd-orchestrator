@@ -97,17 +97,18 @@ After:
 ## 출력 형식
 
 ```markdown
-## 현재 상태: Phase 6
+## 현재 상태: Phase 6-3
 
 ### 진행중
-- [ ] 6-1: keywords.json 구조 개편
+- [ ] 9.2: 포즈/표정/구도 태그 확장
 
 ### 완료
-- [x] 5-1: Backend 리팩토링
-- [x] 5-2: Frontend 리팩토링
+- [x] 6-1: DB 스키마 설정 (PostgreSQL)
+- [x] 6-2: Studio Integration
+- [x] 9.1: DB 태그 통합 (keywords.json 제거)
 
 ### 다음 작업
-→ 6-1: keywords.json 구조 개편
+→ 9.2: Gemini 템플릿 강화
 ```
 
 ## 관련 파일

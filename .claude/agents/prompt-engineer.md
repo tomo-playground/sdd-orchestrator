@@ -132,7 +132,7 @@ mcp__civitai__get_tags
   - limit: 50
 
 → 인기 태그 목록 확보
-→ keywords.json 확장 제안
+→ DB tags 테이블 확장 제안
 ```
 
 **4. 새 LoRA 발굴**
@@ -161,7 +161,7 @@ mcp__civitai__get_models_by_type
 | ... | ... | ... | ... | animagine-xl 호환 여부 |
 
 ### 설계 제안
-1. [keywords.json 확장 제안]
+1. [DB tags 테이블 확장 제안]
 2. [프롬프트 구조 개선 제안]
 3. [새로운 프리셋 제안]
 ```
@@ -417,6 +417,7 @@ Base Prompt + Scene Prompt 생성
 ---
 
 ## 참조 문서
-- `docs/ROADMAP.md` - Phase 6 keywords.json v2.0 스펙
+- `docs/ROADMAP.md` - Phase 6 Scene Expression System 스펙
 - `frontend/app/constants/index.ts` - PROMPT_SAMPLES, SCENE_SPECIFIC_KEYWORDS
 - `backend/services/prompt.py` - 프롬프트 처리 로직
+- `backend/services/keywords.py` - DB 기반 태그 관리

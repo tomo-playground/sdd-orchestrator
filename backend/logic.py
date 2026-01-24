@@ -34,6 +34,7 @@ from services.keywords import (
     load_known_keywords,
     normalize_prompt_token,
     update_keyword_suggestions,
+    update_tag_effectiveness,
 )
 from services.prompt import (
     is_scene_token,
@@ -171,6 +172,12 @@ def logic_validate_scene_image(request: SceneValidateRequest) -> dict:
             if name not in known_keywords:
                 unknown_tags.append(name)
         update_keyword_suggestions(unknown_tags)
+
+        # Update tag effectiveness feedback loop
+        if request.prompt:
+            prompt_tags = split_prompt_tokens(request.prompt)
+            update_tag_effectiveness(prompt_tags, tags)
+
         result = {
             "mode": mode,
             "match_rate": match_rate,

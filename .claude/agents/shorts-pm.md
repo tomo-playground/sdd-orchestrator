@@ -103,7 +103,7 @@ v1.x Backlog (Nice to Have) 추적:
 /roadmap next
 
 # 작업 완료 처리
-/roadmap update "6-1: keywords.json 구조 개편"
+/roadmap update "9.2: Gemini 템플릿 강화"
 
 # DoD 검증 - UI 변경 확인
 /vrt

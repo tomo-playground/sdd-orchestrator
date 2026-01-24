@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-"""Migrate keywords.json v1 to PostgreSQL database.
+"""[DEPRECATED] Migrate keywords.json v1 to PostgreSQL database.
 
-Usage:
+NOTE: This script was used for one-time migration. keywords.json has been
+removed and all keyword data is now managed in the PostgreSQL database.
+Kept for historical reference only.
+
+Original Usage:
     cd backend && uv run python scripts/migrate_keywords.py
 """
 

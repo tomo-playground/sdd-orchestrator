@@ -1,6 +1,6 @@
-"""Tag, TagRule, and Synonym models."""
+"""Tag, TagRule, Synonym, and TagEffectiveness models."""
 
-from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -50,3 +50,34 @@ class Synonym(Base):
 
     # Relationships
     tag: Mapped["Tag"] = relationship("Tag", back_populates="synonyms")
+
+
+class TagEffectiveness(Base, TimestampMixin):
+    """Track tag effectiveness based on WD14 feedback loop.
+
+    Measures how well each tag is expressed by the SD model:
+    - use_count: Number of times this tag was used in prompts
+    - match_count: Number of times WD14 detected this tag in generated images
+    - total_confidence: Sum of WD14 confidence scores when detected
+    - effectiveness: match_count / use_count (0.0 ~ 1.0)
+
+    High effectiveness (>0.7) = SD model reliably produces this tag
+    Low effectiveness (<0.3) = SD model struggles with this tag
+    """
+
+    __tablename__ = "tag_effectiveness"
+    __table_args__ = (
+        Index("idx_tag_effectiveness_score", "effectiveness"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tag_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("tags.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    use_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    match_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    effectiveness: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    # Relationships
+    tag: Mapped["Tag"] = relationship("Tag", backref="effectiveness_stats")
