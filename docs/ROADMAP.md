@@ -124,7 +124,7 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 | [ ] |
-| Character Consistency (ControlNet) | IP-Adapter 기반 얼굴 고정 | [ ] |
+| Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
 | 작업 | 설명 | 상태 |
@@ -169,29 +169,49 @@ Civitai 연동, Analytics (고급 기능)
 | 1 | keywords.json 구조 개편 | character vs scene 태그 분리 | [ ] |
 | 2 | DB 마이그레이션 | keywords.json → SQLite (CRUD 지원) | [ ] |
 
-### 6-2. Character Layer (🟡 핵심)
+### 6-2. Character Layer - LoRA 기반 (🟡 핵심)
+**전략**: LoRA로 캐릭터 일관성 확보 → 이후 IP-Adapter 추가
+
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 3 | Character Builder UI | 고정 아이덴티티 태그 선택 | [ ] |
-| 4 | Style Profile | SD Model + LoRAs + Characters 번들 | [ ] |
-| 5 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
-| 6 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
+| 4 | Style Profile | SD Model + LoRA + Trigger Words 번들 | [ ] |
+| 5 | LoRA 메타데이터 관리 | Weight, 호환 모델, Trigger Words 저장 | [ ] |
+| 6 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| 7 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
 
 ### 6-3. Scene Layer (🟢 확장)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 7 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 | [ ] |
-| 8 | Tag Autocomplete | 태그 자동완성 | [ ] |
+| 8 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 | [ ] |
+| 9 | Tag Autocomplete | 태그 자동완성 | [ ] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 9 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 | [ ] |
-| 10 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
-| 11 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
-| 12 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
-| 13 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
-| 14 | Profile Export/Import | Style Profile 공유 | [ ] |
+| 10 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 | [ ] |
+| 11 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+| 12 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
+| 13 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
+| 14 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
+| 15 | Profile Export/Import | Style Profile 공유 | [ ] |
+
+---
+
+## 🔮 Phase 7: Advanced Consistency (IP-Adapter)
+Phase 6의 LoRA 기반 시스템 안정화 후 진행.
+
+**전제 조건**:
+- ControlNet 확장 설치
+- IP-Adapter 모델 (anime 전용)
+- VRAM 8GB+
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| ControlNet 연동 | SD WebUI ControlNet API 통합 | [ ] |
+| IP-Adapter 지원 | 참조 이미지 기반 캐릭터 일관성 | [ ] |
+| LoRA + IP 조합 | LoRA 베이스 + IP-Adapter 포즈/표정 | [ ] |
+| Reference Image Manager | 참조 이미지 관리 UI | [ ] |
 
 ---
 
@@ -224,3 +244,5 @@ Civitai 연동, Analytics (고급 기능)
 - **SetupPanel 제거**: 간소화 진입점 제거, Custom Start (Working Mode)로 직접 진입
 - **SD 파라미터 Advanced 이동**: Steps, CFG, Sampler 등 기본 숨김, 토글로 펼침
 - **VEO "Coming Soon"**: 비활성화 + 라벨 추가
+- **Character Consistency 전략 수립**: LoRA 기반 (Phase 6) → IP-Adapter (Phase 7) 단계적 접근
+- **Phase 7 추가**: IP-Adapter 기반 Advanced Consistency
