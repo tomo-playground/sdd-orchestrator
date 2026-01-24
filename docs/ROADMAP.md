@@ -215,7 +215,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-01-24
+**Last Updated**: 2026-01-24
 
 | Phase | 상태 | 진행률 |
 |-------|------|--------|
