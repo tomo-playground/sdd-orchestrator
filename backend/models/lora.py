@@ -22,7 +22,7 @@ class LoRA(Base, TimestampMixin):
     civitai_id: Mapped[int | None] = mapped_column(Integer)
     civitai_url: Mapped[str | None] = mapped_column(String(500))
     trigger_words: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
-    default_weight: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), default=1.0)
+    default_weight: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), default=0.7)  # 0.7 for scene expression
     weight_min: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), default=0.5)
     weight_max: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), default=1.5)
     base_models: Mapped[list[str] | None] = mapped_column(ARRAY(Text))

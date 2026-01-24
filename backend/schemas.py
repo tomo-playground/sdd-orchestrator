@@ -180,7 +180,7 @@ class LoRABase(BaseModel):
     civitai_id: int | None = None
     civitai_url: str | None = None
     trigger_words: list[str] | None = None
-    default_weight: float = 1.0
+    default_weight: float = 0.7  # 0.7 optimal for scene expression
     weight_min: float = 0.5
     weight_max: float = 1.5
     base_models: list[str] | None = None
