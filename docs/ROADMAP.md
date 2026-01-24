@@ -27,7 +27,7 @@
 |------|------|------|
 | Resume/Checkpoint | 중단된 작업 이어하기 | [x] |
 | Storage Cleanup | outputs/ 자동 정리 로직 | [x] |
-| Project DB (SQLite) | 프로젝트 설정 및 히스토리 관리 | [ ] |
+| Project DB (PostgreSQL) | 프로젝트 설정 및 히스토리 관리 (Phase 6-1 통합) | [x] |
 
 ### 5-2. 영상 품질 강화
 | 작업 | 설명 | 상태 |
