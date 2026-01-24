@@ -98,7 +98,7 @@ Character Preset
 | 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
 | 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
-| 12 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
+| 12 | Character Preview | 캐릭터 설정 시 미리보기 표시 | [x] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |

@@ -183,21 +183,46 @@ export default function PromptSetupPanel({
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Character Preset
               </label>
-              <select
-                value={selectedCharacterId ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  onSelectCharacter(val ? parseInt(val, 10) : null);
-                }}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              >
-                <option value="">None (Manual)</option>
-                {characters.map((char) => (
-                  <option key={char.id} value={char.id}>
-                    {char.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-3">
+                <select
+                  value={selectedCharacterId ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    onSelectCharacter(val ? parseInt(val, 10) : null);
+                  }}
+                  className="flex-1 rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                >
+                  <option value="">None (Manual)</option>
+                  {characters.map((char) => (
+                    <option key={char.id} value={char.id}>
+                      {char.name}
+                    </option>
+                  ))}
+                </select>
+                {/* Character Preview */}
+                {(() => {
+                  const selectedChar = characters.find((c) => c.id === selectedCharacterId);
+                  if (!selectedChar) return null;
+                  return selectedChar.preview_image_url ? (
+                    <img
+                      src={selectedChar.preview_image_url}
+                      alt={selectedChar.name}
+                      className="h-10 w-10 rounded-xl border border-zinc-200 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
+                      <span className="text-lg">?</span>
+                    </div>
+                  );
+                })()}
+              </div>
+              {(() => {
+                const selectedChar = characters.find((c) => c.id === selectedCharacterId);
+                if (!selectedChar?.description) return null;
+                return (
+                  <p className="text-[10px] text-zinc-500">{selectedChar.description}</p>
+                );
+              })()}
             </div>
           </div>
           <div className="flex flex-col gap-2">
