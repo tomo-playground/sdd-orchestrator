@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutopilot, useDraftPersistence } from "./hooks";
 import { useStyleProfile } from "./hooks/useStyleProfile";
+import { useCharacters } from "./hooks/useCharacters";
 import axios from "axios";
 
 import type {
@@ -184,6 +185,10 @@ export default function Home() {
   // Style Profile hook
   const { styleProfile, isLoading: isStyleProfileLoading, buildPrompts } = useStyleProfile();
   const [styleProfileApplied, setStyleProfileApplied] = useState(false);
+
+  // Characters hook
+  const { characters, getCharacterFull, buildCharacterPrompt } = useCharacters();
+  const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
 
   useEffect(() => {
     axios
@@ -1742,6 +1747,24 @@ export default function Home() {
               if (prompts) {
                 setBasePromptA(prompts.positive);
                 setBaseNegativePromptA(prompts.negative);
+              }
+            }}
+            characters={characters}
+            selectedCharacterId={selectedCharacterId}
+            onSelectCharacter={async (charId: number | null) => {
+              setSelectedCharacterId(charId);
+              if (charId === null) return;
+              const charFull = await getCharacterFull(charId);
+              if (charFull) {
+                const charPrompt = buildCharacterPrompt(charFull);
+                // Prepend character prompt to existing base prompt
+                setBasePromptA((prev) => {
+                  // Remove old character tags if reselecting
+                  const lines = prev.split(", ").filter(Boolean);
+                  // Simple append for now - user can edit as needed
+                  if (!prev.trim()) return charPrompt;
+                  return `${charPrompt}, ${prev}`;
+                });
               }
             }}
           />

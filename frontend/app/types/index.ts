@@ -187,6 +187,16 @@ export type StyleProfile = {
   is_active: boolean;
 };
 
+export type CharacterFull = {
+  id: number;
+  name: string;
+  identity_tags: { id: number; name: string; group_name: string }[];
+  clothing_tags: { id: number; name: string; group_name: string }[];
+  lora: { id: number; name: string; display_name: string; trigger_words: string[] } | null;
+  lora_weight: number | null;
+  preview_image_url: string | null;
+};
+
 export type StyleProfileFull = {
   id: number;
   name: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ActorGender, StyleProfileFull } from "../types";
+import type { ActorGender, StyleProfileFull, Character } from "../types";
 import { PROMPT_SAMPLES, SAMPLERS } from "../constants";
 
 type PromptSetupPanelProps = {
@@ -41,6 +41,10 @@ type PromptSetupPanelProps = {
   // Style Profile
   styleProfile: StyleProfileFull | null;
   onApplyStyleProfile: () => void;
+  // Character selection
+  characters: Character[];
+  selectedCharacterId: number | null;
+  onSelectCharacter: (charId: number | null) => void;
 };
 
 export default function PromptSetupPanel({
@@ -75,6 +79,9 @@ export default function PromptSetupPanel({
   onOpenPromptHelper,
   styleProfile,
   onApplyStyleProfile,
+  characters,
+  selectedCharacterId,
+  onSelectCharacter,
 }: PromptSetupPanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -229,18 +236,40 @@ export default function PromptSetupPanel({
               </button>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Actor A Gender
-            </label>
-            <select
-              value={actorAGender}
-              onChange={(e) => setActorAGender(e.target.value as ActorGender)}
-              className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-            >
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-            </select>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Actor A Gender
+              </label>
+              <select
+                value={actorAGender}
+                onChange={(e) => setActorAGender(e.target.value as ActorGender)}
+                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+              >
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Character Preset
+              </label>
+              <select
+                value={selectedCharacterId ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onSelectCharacter(val ? parseInt(val, 10) : null);
+                }}
+                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+              >
+                <option value="">None (Manual)</option>
+                {characters.map((char) => (
+                  <option key={char.id} value={char.id}>
+                    {char.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
