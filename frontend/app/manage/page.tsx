@@ -6,16 +6,19 @@ import axios from "axios";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag } from "../types";
+
 type KeywordSuggestion = { tag: string; count: number };
 type KeywordCategories = Record<string, string[]>;
 type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
+type ManageTab = "keywords" | "assets" | "style" | "settings";
 
 const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export default function ManagePage() {
-  const [manageTab, setManageTab] = useState<"keywords" | "assets" | "settings">("keywords");
+  const [manageTab, setManageTab] = useState<ManageTab>("keywords");
   const [keywordSuggestions, setKeywordSuggestions] = useState<KeywordSuggestion[]>([]);
   const [keywordCategories, setKeywordCategories] = useState<KeywordCategories>({});
   const [keywordCategorySelection, setKeywordCategorySelection] = useState<Record<string, string>>(
@@ -34,6 +37,21 @@ export default function ManagePage() {
   const [fontList, setFontList] = useState<FontItem[]>([]);
   const [loraList, setLoraList] = useState<LoraItem[]>([]);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
+
+  // Style tab state
+  type StyleSubTab = "profiles" | "loras" | "characters" | "models" | "embeddings";
+  const [styleSubTab, setStyleSubTab] = useState<StyleSubTab>("profiles");
+  const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
+  const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
+  const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isStyleLoading, setIsStyleLoading] = useState(false);
+  const [civitaiSearch, setCivitaiSearch] = useState("");
+  const [civitaiResults, setCivitaiResults] = useState<LoRA[]>([]);
+  const [isSearchingCivitai, setIsSearchingCivitai] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
@@ -119,6 +137,109 @@ export default function ManagePage() {
   useEffect(() => {
     if (manageTab === "settings") {
       void fetchStorageStats();
+    }
+  }, [manageTab]);
+
+  // Style tab data fetching
+  const fetchStyleData = async () => {
+    setIsStyleLoading(true);
+    try {
+      const [profilesRes, lorasRes, charsRes, modelsRes, embsRes, tagsRes] = await Promise.all([
+        axios.get(`${API_BASE}/style-profiles`),
+        axios.get(`${API_BASE}/loras`),
+        axios.get(`${API_BASE}/characters`),
+        axios.get(`${API_BASE}/sd-models`),
+        axios.get(`${API_BASE}/embeddings`),
+        axios.get(`${API_BASE}/tags`),
+      ]);
+      setStyleProfiles(profilesRes.data || []);
+      setLoraEntries(lorasRes.data || []);
+      setCharacters(charsRes.data || []);
+      setSdModels(modelsRes.data || []);
+      setEmbeddings(embsRes.data || []);
+      setTags(tagsRes.data || []);
+    } catch {
+      console.error("Failed to fetch style data");
+    } finally {
+      setIsStyleLoading(false);
+    }
+  };
+
+  const fetchProfileFull = async (profileId: number) => {
+    try {
+      const res = await axios.get(`${API_BASE}/style-profiles/${profileId}/full`);
+      setSelectedProfile(res.data);
+    } catch {
+      setSelectedProfile(null);
+    }
+  };
+
+  const searchCivitai = async () => {
+    if (!civitaiSearch.trim()) return;
+    setIsSearchingCivitai(true);
+    try {
+      const res = await axios.get(`${API_BASE}/loras/search-civitai?query=${encodeURIComponent(civitaiSearch)}&limit=10`);
+      setCivitaiResults(res.data.results || []);
+    } catch {
+      setCivitaiResults([]);
+    } finally {
+      setIsSearchingCivitai(false);
+    }
+  };
+
+  const importFromCivitai = async (civitaiId: number) => {
+    try {
+      await axios.post(`${API_BASE}/loras/import-civitai/${civitaiId}`);
+      await fetchStyleData();
+      alert("LoRA imported successfully!");
+    } catch {
+      alert("Failed to import LoRA");
+    }
+  };
+
+  const setDefaultProfile = async (profileId: number) => {
+    try {
+      await axios.put(`${API_BASE}/style-profiles/${profileId}`, { is_default: true });
+      await fetchStyleData();
+    } catch {
+      alert("Failed to set default profile");
+    }
+  };
+
+  const deleteStyleProfile = async (profileId: number) => {
+    if (!confirm("Delete this style profile?")) return;
+    try {
+      await axios.delete(`${API_BASE}/style-profiles/${profileId}`);
+      await fetchStyleData();
+      if (selectedProfile?.id === profileId) setSelectedProfile(null);
+    } catch {
+      alert("Failed to delete profile");
+    }
+  };
+
+  const deleteLoRA = async (loraId: number) => {
+    if (!confirm("Delete this LoRA?")) return;
+    try {
+      await axios.delete(`${API_BASE}/loras/${loraId}`);
+      await fetchStyleData();
+    } catch {
+      alert("Failed to delete LoRA");
+    }
+  };
+
+  const deleteCharacter = async (charId: number) => {
+    if (!confirm("Delete this character?")) return;
+    try {
+      await axios.delete(`${API_BASE}/characters/${charId}`);
+      await fetchStyleData();
+    } catch {
+      alert("Failed to delete character");
+    }
+  };
+
+  useEffect(() => {
+    if (manageTab === "style") {
+      void fetchStyleData();
     }
   }, [manageTab]);
 
@@ -306,6 +427,7 @@ export default function ManagePage() {
           {[
             { id: "keywords", label: "Keywords" },
             { id: "assets", label: "Assets" },
+            { id: "style", label: "Style" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;
@@ -552,6 +674,385 @@ export default function ManagePage() {
                 </div>
               )}
             </div>
+          </section>
+        )}
+
+        {manageTab === "style" && (
+          <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+            {/* Style Sub-tabs */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-4">
+              {[
+                { id: "profiles", label: "Style Profiles" },
+                { id: "loras", label: "LoRAs" },
+                { id: "characters", label: "Characters" },
+                { id: "models", label: "SD Models" },
+                { id: "embeddings", label: "Embeddings" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setStyleSubTab(tab.id as StyleSubTab)}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase transition ${
+                    styleSubTab === tab.id
+                      ? "bg-zinc-800 text-white"
+                      : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+              <button
+                onClick={fetchStyleData}
+                disabled={isStyleLoading}
+                className="ml-auto rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-zinc-600 uppercase disabled:text-zinc-400"
+              >
+                {isStyleLoading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+
+            {/* Style Profiles Sub-tab */}
+            {styleSubTab === "profiles" && (
+              <div className="grid gap-4">
+                <p className="text-xs text-zinc-500">
+                  Style profiles bundle SD model, LoRAs, embeddings, and default prompts.
+                </p>
+                {styleProfiles.length === 0 ? (
+                  <p className="text-xs text-zinc-400">No style profiles found.</p>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {styleProfiles.map((profile) => (
+                      <div
+                        key={profile.id}
+                        className={`rounded-2xl border p-4 transition cursor-pointer ${
+                          profile.is_default
+                            ? "border-emerald-300 bg-emerald-50"
+                            : "border-zinc-200 bg-white hover:border-zinc-300"
+                        }`}
+                        onClick={() => fetchProfileFull(profile.id)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h3 className="text-sm font-semibold text-zinc-800">
+                              {profile.display_name || profile.name}
+                            </h3>
+                            <p className="mt-1 text-[10px] text-zinc-500">{profile.description || "No description"}</p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            {profile.is_default && (
+                              <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-semibold text-white">
+                                DEFAULT
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {!profile.is_default && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDefaultProfile(profile.id); }}
+                              className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-600 hover:bg-zinc-50"
+                            >
+                              Set Default
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteStyleProfile(profile.id); }}
+                            className="rounded-full border border-rose-200 bg-white px-2 py-1 text-[9px] font-semibold text-rose-600 hover:bg-rose-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected Profile Details */}
+                {selectedProfile && (
+                  <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <h4 className="mb-3 text-xs font-semibold text-zinc-700">
+                      {selectedProfile.display_name || selectedProfile.name} Details
+                    </h4>
+                    <div className="grid gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">SD Model</span>
+                        <p className="text-zinc-700">{selectedProfile.sd_model?.display_name || selectedProfile.sd_model?.name || "None"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">LoRAs</span>
+                        {selectedProfile.loras.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {selectedProfile.loras.map((lora) => (
+                              <span key={lora.id} className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
+                                {lora.display_name || lora.name} ({lora.weight})
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-zinc-400">None</p>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">Negative Embeddings</span>
+                        {selectedProfile.negative_embeddings.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {selectedProfile.negative_embeddings.map((emb) => (
+                              <span key={emb.id} className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] text-rose-700">
+                                {emb.name}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-zinc-400">None</p>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">Default Positive</span>
+                        <p className="mt-1 text-zinc-600 font-mono text-[10px] bg-white p-2 rounded border border-zinc-200">
+                          {selectedProfile.default_positive || "None"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">Default Negative</span>
+                        <p className="mt-1 text-zinc-600 font-mono text-[10px] bg-white p-2 rounded border border-zinc-200">
+                          {selectedProfile.default_negative || "None"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* LoRAs Sub-tab */}
+            {styleSubTab === "loras" && (
+              <div className="grid gap-4">
+                {/* Civitai Search */}
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
+                    Search Civitai
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      value={civitaiSearch}
+                      onChange={(e) => setCivitaiSearch(e.target.value)}
+                      placeholder="Search LoRA name..."
+                      className="flex-1 rounded-full border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400"
+                      onKeyDown={(e) => e.key === "Enter" && searchCivitai()}
+                    />
+                    <button
+                      onClick={searchCivitai}
+                      disabled={isSearchingCivitai}
+                      className="rounded-full bg-zinc-800 px-4 py-2 text-[10px] font-semibold text-white disabled:bg-zinc-400"
+                    >
+                      {isSearchingCivitai ? "Searching..." : "Search"}
+                    </button>
+                  </div>
+                  {civitaiResults.length > 0 && (
+                    <div className="mt-3 grid gap-2">
+                      {civitaiResults.map((result) => (
+                        <div key={result.civitai_id} className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                          <div className="flex items-center gap-3">
+                            {result.preview_image_url && (
+                              <img src={result.preview_image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                            )}
+                            <div>
+                              <p className="text-xs font-semibold text-zinc-700">{result.display_name || result.name}</p>
+                              <p className="text-[10px] text-zinc-400">
+                                {result.trigger_words?.slice(0, 3).join(", ") || "No trigger words"}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => importFromCivitai(result.civitai_id!)}
+                            className="rounded-full bg-emerald-500 px-3 py-1.5 text-[9px] font-semibold text-white"
+                          >
+                            Import
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Registered LoRAs */}
+                <div>
+                  <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
+                    Registered LoRAs ({loraEntries.length})
+                  </span>
+                  {loraEntries.length === 0 ? (
+                    <p className="text-xs text-zinc-400">No LoRAs registered yet.</p>
+                  ) : (
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {loraEntries.map((lora) => (
+                        <div key={lora.id} className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-3">
+                          <div className="flex items-center gap-3">
+                            {lora.preview_image_url ? (
+                              <img src={lora.preview_image_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                            ) : (
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-400">
+                                <span className="text-lg">L</span>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-semibold text-zinc-700">{lora.display_name || lora.name}</p>
+                              <p className="text-[10px] text-zinc-400">
+                                Weight: {lora.weight_min}~{lora.weight_max} (default: {lora.default_weight})
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => deleteLoRA(lora.id)}
+                            className="rounded-full border border-rose-200 px-2 py-1 text-[9px] font-semibold text-rose-600"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Characters Sub-tab */}
+            {styleSubTab === "characters" && (
+              <div className="grid gap-4">
+                <p className="text-xs text-zinc-500">
+                  Character presets bundle identity tags, clothing, and LoRA settings.
+                </p>
+                {characters.length === 0 ? (
+                  <p className="text-xs text-zinc-400">No characters created yet.</p>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {characters.map((char) => {
+                      const charLora = loraEntries.find((l) => l.id === char.lora_id);
+                      const identityTagNames = char.identity_tags?.map((id) => tags.find((t) => t.id === id)?.name).filter(Boolean) || [];
+                      const clothingTagNames = char.clothing_tags?.map((id) => tags.find((t) => t.id === id)?.name).filter(Boolean) || [];
+                      return (
+                        <div key={char.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              {char.preview_image_url ? (
+                                <img src={char.preview_image_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                              ) : (
+                                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-2xl">
+                                  {char.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="text-sm font-semibold text-zinc-800">{char.name}</h3>
+                                {charLora && (
+                                  <p className="text-[10px] text-zinc-500">
+                                    LoRA: {charLora.display_name || charLora.name} ({char.lora_weight || 1.0})
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => deleteCharacter(char.id)}
+                              className="text-[9px] text-rose-500 hover:underline"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {identityTagNames.length > 0 && (
+                              <div>
+                                <span className="text-[9px] font-semibold text-zinc-400 uppercase">Identity</span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {identityTagNames.map((tag) => (
+                                    <span key={tag} className="rounded-full bg-purple-100 px-2 py-0.5 text-[9px] text-purple-700">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {clothingTagNames.length > 0 && (
+                              <div>
+                                <span className="text-[9px] font-semibold text-zinc-400 uppercase">Clothing</span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {clothingTagNames.map((tag) => (
+                                    <span key={tag} className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] text-amber-700">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SD Models Sub-tab */}
+            {styleSubTab === "models" && (
+              <div className="grid gap-4">
+                <p className="text-xs text-zinc-500">
+                  Registered SD model checkpoints.
+                </p>
+                {sdModels.length === 0 ? (
+                  <p className="text-xs text-zinc-400">No SD models registered.</p>
+                ) : (
+                  <div className="grid gap-2">
+                    {sdModels.map((model) => (
+                      <div key={model.id} className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4">
+                        <div>
+                          <h3 className="text-sm font-semibold text-zinc-800">{model.display_name || model.name}</h3>
+                          <p className="text-[10px] text-zinc-500">
+                            {model.base_model || "Unknown"} • {model.model_type}
+                          </p>
+                          {model.description && (
+                            <p className="mt-1 text-xs text-zinc-400">{model.description}</p>
+                          )}
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                          model.is_active ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
+                        }`}>
+                          {model.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Embeddings Sub-tab */}
+            {styleSubTab === "embeddings" && (
+              <div className="grid gap-4">
+                <p className="text-xs text-zinc-500">
+                  Textual inversion embeddings for quality control.
+                </p>
+                {embeddings.length === 0 ? (
+                  <p className="text-xs text-zinc-400">No embeddings registered.</p>
+                ) : (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {embeddings.map((emb) => (
+                      <div key={emb.id} className="rounded-2xl border border-zinc-200 bg-white p-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-semibold text-zinc-800">{emb.display_name || emb.name}</h3>
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                            emb.embedding_type === "negative" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                          }`}>
+                            {emb.embedding_type}
+                          </span>
+                        </div>
+                        {emb.trigger_word && (
+                          <p className="mt-1 font-mono text-[10px] text-zinc-500">{emb.trigger_word}</p>
+                        )}
+                        {emb.description && (
+                          <p className="mt-1 text-[10px] text-zinc-400">{emb.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 

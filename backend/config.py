@@ -15,6 +15,9 @@ from jinja2 import Environment, FileSystemLoader
 
 load_dotenv()
 
+# --- Database ---
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://shorts_app:1234@192.168.45.102:5433/shorts_producer")
+
 # --- Logging ---
 LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
 LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}

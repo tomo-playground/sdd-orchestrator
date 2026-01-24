@@ -125,3 +125,222 @@ class SDModelRequest(BaseModel):
 class KeywordApproveRequest(BaseModel):
     tag: str
     category: str
+
+
+# ============================================================
+# Phase 6: Tag/LoRA/Character CRUD Schemas
+# ============================================================
+
+
+class TagBase(BaseModel):
+    name: str
+    category: str  # character, scene, meta
+    group_name: str | None = None
+    priority: int = 5
+    exclusive: bool = False
+
+
+class TagCreate(TagBase):
+    pass
+
+
+class TagUpdate(BaseModel):
+    name: str | None = None
+    category: str | None = None
+    group_name: str | None = None
+    priority: int | None = None
+    exclusive: bool | None = None
+
+
+class TagResponse(TagBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LoRABase(BaseModel):
+    name: str
+    display_name: str | None = None
+    civitai_id: int | None = None
+    civitai_url: str | None = None
+    trigger_words: list[str] | None = None
+    default_weight: float = 1.0
+    weight_min: float = 0.5
+    weight_max: float = 1.5
+    base_models: list[str] | None = None
+    character_defaults: dict | None = None
+    recommended_negative: list[str] | None = None
+    preview_image_url: str | None = None
+
+
+class LoRACreate(LoRABase):
+    pass
+
+
+class LoRAUpdate(BaseModel):
+    name: str | None = None
+    display_name: str | None = None
+    civitai_id: int | None = None
+    civitai_url: str | None = None
+    trigger_words: list[str] | None = None
+    default_weight: float | None = None
+    weight_min: float | None = None
+    weight_max: float | None = None
+    base_models: list[str] | None = None
+    character_defaults: dict | None = None
+    recommended_negative: list[str] | None = None
+    preview_image_url: str | None = None
+
+
+class LoRAResponse(LoRABase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CharacterBase(BaseModel):
+    name: str
+    identity_tags: list[int] | None = None
+    clothing_tags: list[int] | None = None
+    lora_id: int | None = None
+    lora_weight: float | None = None
+    preview_image_url: str | None = None
+
+
+class CharacterCreate(CharacterBase):
+    pass
+
+
+class CharacterUpdate(BaseModel):
+    name: str | None = None
+    identity_tags: list[int] | None = None
+    clothing_tags: list[int] | None = None
+    lora_id: int | None = None
+    lora_weight: float | None = None
+    preview_image_url: str | None = None
+
+
+class CharacterResponse(CharacterBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# SD Model Schemas
+# ============================================================
+
+
+class SDModelBase(BaseModel):
+    name: str
+    display_name: str | None = None
+    model_type: str = "checkpoint"
+    base_model: str | None = None
+    civitai_id: int | None = None
+    civitai_url: str | None = None
+    description: str | None = None
+    preview_image_url: str | None = None
+    is_active: bool = True
+
+
+class SDModelCreate(SDModelBase):
+    pass
+
+
+class SDModelUpdate(BaseModel):
+    name: str | None = None
+    display_name: str | None = None
+    model_type: str | None = None
+    base_model: str | None = None
+    civitai_id: int | None = None
+    civitai_url: str | None = None
+    description: str | None = None
+    preview_image_url: str | None = None
+    is_active: bool | None = None
+
+
+class SDModelResponse(SDModelBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Embedding Schemas
+# ============================================================
+
+
+class EmbeddingBase(BaseModel):
+    name: str
+    display_name: str | None = None
+    embedding_type: str = "negative"
+    trigger_word: str | None = None
+    description: str | None = None
+    is_active: bool = True
+
+
+class EmbeddingCreate(EmbeddingBase):
+    pass
+
+
+class EmbeddingUpdate(BaseModel):
+    name: str | None = None
+    display_name: str | None = None
+    embedding_type: str | None = None
+    trigger_word: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
+class EmbeddingResponse(EmbeddingBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Style Profile Schemas
+# ============================================================
+
+
+class LoRAWeight(BaseModel):
+    lora_id: int
+    weight: float = 1.0
+
+
+class StyleProfileBase(BaseModel):
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    sd_model_id: int | None = None
+    loras: list[LoRAWeight] | None = None
+    negative_embeddings: list[int] | None = None
+    positive_embeddings: list[int] | None = None
+    default_positive: str | None = None
+    default_negative: str | None = None
+    is_default: bool = False
+    is_active: bool = True
+
+
+class StyleProfileCreate(StyleProfileBase):
+    pass
+
+
+class StyleProfileUpdate(BaseModel):
+    name: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    sd_model_id: int | None = None
+    loras: list[LoRAWeight] | None = None
+    negative_embeddings: list[int] | None = None
+    positive_embeddings: list[int] | None = None
+    default_positive: str | None = None
+    default_negative: str | None = None
+    is_default: bool | None = None
+    is_active: bool | None = None
+
+
+class StyleProfileResponse(StyleProfileBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)

@@ -171,9 +171,11 @@ Civitai 연동, Analytics (고급 기능)
 ### 6-1. Data Foundation (🔴 필수 선행)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 1 | keywords.json v2.0 구조 설계 | 아래 스펙 참조 | [ ] |
-| 2 | 기존 데이터 마이그레이션 | v1 → v2 변환 + 신규 태그 추가 | [ ] |
-| 3 | DB 마이그레이션 | keywords.json → SQLite (CRUD 지원) | [ ] |
+| 0 | DB 스키마 설정 | PostgreSQL + SQLAlchemy + Alembic | [x] |
+| 1 | keywords.json v2.0 구조 설계 | 아래 스펙 참조 | [x] |
+| 2 | 기존 데이터 마이그레이션 | v1 → v2 변환 + 신규 태그 추가 | [x] |
+| 3 | Danbooru Identity 태그 수집 | hair_color, eye_color, hair_style | [x] |
+| 4 | Backend CRUD API | /tags, /loras, /characters 엔드포인트 | [x] |
 
 #### keywords.json v2.0 스펙
 
@@ -267,9 +269,9 @@ Civitai 연동, Analytics (고급 기능)
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 4 | Character Builder UI | 고정 아이덴티티 태그 선택 (priority 2-4) | [ ] |
-| 5 | Style Profile | SD Model + LoRA + Embedding 번들 | [ ] |
-| 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words | [ ] |
+| 4 | Character Builder UI | 고정 아이덴티티 태그 선택 (priority 2-4), Manage/Style 탭 | [x] |
+| 5 | Style Profile | SD Model + LoRA + Embedding 번들 | [x] |
+| 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words, Civitai 연동 | [x] |
 | 7 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 8 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
 
@@ -282,7 +284,7 @@ Civitai 연동, Analytics (고급 기능)
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 11 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [ ] |
+| 11 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [x] |
 | 12 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
 | 13 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
 | 14 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |

@@ -110,6 +110,98 @@ export type DraftScene = {
   clip_skip: number;
 };
 
+// ============================================================
+// Phase 6: Character & Prompt System Types
+// ============================================================
+
+export type Tag = {
+  id: number;
+  name: string;
+  category: string;
+  group_name: string | null;
+  priority: number;
+  exclusive: boolean;
+};
+
+export type LoRA = {
+  id: number;
+  name: string;
+  display_name: string | null;
+  civitai_id: number | null;
+  civitai_url: string | null;
+  trigger_words: string[] | null;
+  default_weight: number;
+  weight_min: number;
+  weight_max: number;
+  base_models: string[] | null;
+  character_defaults: Record<string, string> | null;
+  recommended_negative: string[] | null;
+  preview_image_url: string | null;
+};
+
+export type Character = {
+  id: number;
+  name: string;
+  identity_tags: number[] | null;
+  clothing_tags: number[] | null;
+  lora_id: number | null;
+  lora_weight: number | null;
+  preview_image_url: string | null;
+};
+
+export type SDModelEntry = {
+  id: number;
+  name: string;
+  display_name: string | null;
+  model_type: string;
+  base_model: string | null;
+  civitai_id: number | null;
+  civitai_url: string | null;
+  description: string | null;
+  preview_image_url: string | null;
+  is_active: boolean;
+};
+
+export type Embedding = {
+  id: number;
+  name: string;
+  display_name: string | null;
+  embedding_type: string;
+  trigger_word: string | null;
+  description: string | null;
+  is_active: boolean;
+};
+
+export type StyleProfile = {
+  id: number;
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  sd_model_id: number | null;
+  loras: { lora_id: number; weight: number }[] | null;
+  negative_embeddings: number[] | null;
+  positive_embeddings: number[] | null;
+  default_positive: string | null;
+  default_negative: string | null;
+  is_default: boolean;
+  is_active: boolean;
+};
+
+export type StyleProfileFull = {
+  id: number;
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  sd_model: { id: number; name: string; display_name: string } | null;
+  loras: { id: number; name: string; display_name: string; trigger_words: string[]; weight: number }[];
+  negative_embeddings: { id: number; name: string; trigger_word: string }[];
+  positive_embeddings: { id: number; name: string; trigger_word: string }[];
+  default_positive: string | null;
+  default_negative: string | null;
+  is_default: boolean;
+  is_active: boolean;
+};
+
 export type DraftData = {
   topic?: string;
   duration?: number;
