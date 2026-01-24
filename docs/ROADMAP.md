@@ -273,7 +273,7 @@ Civitai 연동, Analytics (고급 기능)
 | 5 | Style Profile | SD Model + LoRA + Embedding 번들 | [x] |
 | 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words, Civitai 연동 | [x] |
 | **7** | **Style Profile 연동** | 기본 프로필을 Studio에서 자동 로드, 프롬프트 자동 구성 | [x] |
-| **8** | **Character 선택 UI** | Actor A에 캐릭터 프리셋 적용, 태그 자동 주입 | [ ] |
+| **8** | **Character 선택 UI** | Actor A에 캐릭터 프리셋 적용, 태그 자동 주입 | [x] |
 
 ### 6-3. Multi-Character & Scene (🟡 확장)
 | 순서 | 작업 | 설명 | 상태 |
