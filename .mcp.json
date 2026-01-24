@@ -1,14 +1,14 @@
 {
   "mcpServers": {
     "danbooru-tags": {
-      "command": "npx",
-      "args": ["-y", "@smithery/cli@latest", "run", "@gamzadongza/danbooru-tags-mcp"]
+      "type": "http",
+      "url": "https://server.smithery.ai/@gamzadongza/danbooru-tags-mcp/mcp?api_key=260175c8-4aa8-4e8f-aa53-1e855011141d"
     },
     "huggingface": {
       "command": "npx",
-      "args": ["-y", "@huggingface/mcp-server"],
+      "args": ["-y", "huggingface-mcp-server", "--transport", "stdio"],
       "env": {
-        "HF_TOKEN": "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"
+        "HUGGINGFACE_API_KEY": "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"
       }
     },
     "context7": {
@@ -88,7 +88,7 @@
     },
     "ffmpeg": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-ffmpeg"]
+      "args": ["-y", "ffmpeg-mcp"]
     }
   }
 }
