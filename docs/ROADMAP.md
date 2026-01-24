@@ -237,13 +237,13 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 75% |
+| 6-3 | IN PROGRESS | 85% |
 | 6-4 | IN PROGRESS | 25% |
 | 7 | NOT STARTED | 0% |
 
 **다음 우선순위**:
-1. **Phase 6-3.9: Scene Expression System** (싱글 캐릭터 장면 표현 고도화)
-   - 포즈/표정/구도 태그 체계화 → Gemini 템플릿 강화 → UI → 검증
-2. Phase 6-3.10+: Multi-Character, Scene Builder, Tag Autocomplete
-3. Phase 5 잔여: Ken Burns Effect
-4. Phase 7: IP-Adapter (ControlNet 의존)
+1. **Phase 6-3.9.4: Scene Context Tags UI** (장면별 포즈/표정/구도 선택 UI)
+2. Phase 6-3.9.5: 프롬프트 품질 검증 (WD14 기반)
+3. Phase 6-3.10+: Multi-Character, Scene Builder, Tag Autocomplete
+4. Phase 5 잔여: Ken Burns Effect
+5. Phase 7: IP-Adapter (ControlNet 의존)
