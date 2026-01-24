@@ -52,26 +52,37 @@ export function useCharacters(): UseCharactersResult {
     }
   }, []);
 
+  // Gender-related tags to filter out (will be added dynamically from character.gender)
+  const GENDER_TAGS = ["1girl", "1boy", "1other", "female", "male", "woman", "man", "girl", "boy"];
+
   /**
    * Build a prompt string from character tags and LoRAs.
-   * Format: identity tags + clothing tags + LoRA triggers + LoRA syntax
+   * Format: gender tag + identity tags (filtered) + clothing tags + LoRA triggers + LoRA syntax
    */
   const buildCharacterPrompt = useCallback((character: CharacterFull): string => {
     const parts: string[] = [];
 
-    // Add identity tags (subject, hair_color, eye_color, etc.)
+    // 1. Add gender tag from character.gender (dynamic)
+    if (character.gender) {
+      const genderTag = character.gender === "female" ? "1girl" : "1boy";
+      parts.push(genderTag);
+    }
+
+    // 2. Add identity tags (filter out gender tags to avoid duplication)
     if (character.identity_tags.length > 0) {
-      const identityTags = character.identity_tags.map((t) => t.name);
+      const identityTags = character.identity_tags
+        .map((t) => t.name)
+        .filter((name) => !GENDER_TAGS.includes(name.toLowerCase()));
       parts.push(...identityTags);
     }
 
-    // Add clothing tags
+    // 3. Add clothing tags
     if (character.clothing_tags.length > 0) {
       const clothingTags = character.clothing_tags.map((t) => t.name);
       parts.push(...clothingTags);
     }
 
-    // Add LoRA trigger words and syntax (supports multiple LoRAs)
+    // 4. Add LoRA trigger words and syntax (supports multiple LoRAs)
     if (character.loras && character.loras.length > 0) {
       for (const lora of character.loras) {
         if (lora.trigger_words && lora.trigger_words.length > 0) {
