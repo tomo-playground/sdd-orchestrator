@@ -37,12 +37,15 @@ from services.keywords import (
     update_tag_effectiveness,
 )
 from services.prompt import (
+    apply_optimal_lora_weights,
+    extract_lora_names,
     is_scene_token,
     merge_prompt_tokens,
     normalize_negative_prompt,
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
+from services.lora_calibration import get_optimal_weights_from_db
 from services.validation import (
     cache_key_for_validation,
     compare_prompt_to_tags,
@@ -113,6 +116,18 @@ async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
     cleaned_prompt = normalize_prompt_tokens(request.prompt)
+
+    # Apply optimal LoRA weights from calibration DB
+    lora_names = extract_lora_names(cleaned_prompt)
+    if lora_names:
+        try:
+            optimal_weights = get_optimal_weights_from_db(lora_names)
+            if optimal_weights:
+                cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
+                logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
+        except Exception as e:
+            logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
+
     cleaned_negative = normalize_negative_prompt(request.negative_prompt or "")
     payload = {
         "prompt": cleaned_prompt,

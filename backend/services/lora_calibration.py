@@ -199,3 +199,47 @@ def get_effective_weight(lora: dict) -> float:
     if lora.get("default_weight") is not None:
         return float(lora["default_weight"])
     return 0.7
+
+
+def get_optimal_weights_from_db(lora_names: list[str]) -> dict[str, float]:
+    """Fetch optimal weights for LoRAs from database.
+
+    Args:
+        lora_names: List of LoRA names to look up
+
+    Returns:
+        Dict mapping normalized LoRA names to optimal weights
+    """
+    from database import SessionLocal
+    from models import LoRA
+
+    if not lora_names:
+        return {}
+
+    weights = {}
+    db = SessionLocal()
+    try:
+        # Normalize names for lookup
+        normalized_names = [
+            name.lower().replace(".safetensors", "")
+            for name in lora_names
+        ]
+
+        loras = db.query(LoRA).filter(
+            LoRA.name.in_(lora_names) | LoRA.name.in_(normalized_names)
+        ).all()
+
+        for lora in loras:
+            weight = get_effective_weight({
+                "optimal_weight": lora.optimal_weight,
+                "default_weight": lora.default_weight,
+            })
+            # Store with normalized name for matching
+            normalized = lora.name.lower().replace(".safetensors", "")
+            weights[normalized] = weight
+            logger.info("🔧 [LoRA Weight] %s → %.2f", lora.name, weight)
+
+    finally:
+        db.close()
+
+    return weights
