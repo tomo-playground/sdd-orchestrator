@@ -127,6 +127,7 @@ export type LoRA = {
   id: number;
   name: string;
   display_name: string | null;
+  gender_locked: ActorGender | null;  // female, male, null(자유)
   civitai_id: number | null;
   civitai_url: string | null;
   trigger_words: string[] | null;

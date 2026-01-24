@@ -161,6 +161,7 @@ class TagResponse(TagBase):
 class LoRABase(BaseModel):
     name: str
     display_name: str | None = None
+    gender_locked: str | None = None  # female, male, null(자유)
     civitai_id: int | None = None
     civitai_url: str | None = None
     trigger_words: list[str] | None = None
@@ -180,6 +181,7 @@ class LoRACreate(LoRABase):
 class LoRAUpdate(BaseModel):
     name: str | None = None
     display_name: str | None = None
+    gender_locked: str | None = None
     civitai_id: int | None = None
     civitai_url: str | None = None
     trigger_words: list[str] | None = None

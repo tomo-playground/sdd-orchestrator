@@ -96,6 +96,8 @@ Character Preset
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 8 | Character Gender Field | Character 모델에 gender 추가, Actor gender 자동 동기화 | [x] |
+| 8.1 | LoRA Gender Locked | LoRA에 gender_locked 메타데이터 추가 (female/male/null) | [x] |
+| 8.2 | Gender 읽기전용 UI | Character Preset 선택 시 Gender 필드 잠금 | [x] |
 | 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
 | 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
@@ -110,6 +112,8 @@ Character Preset
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
 | 17 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
+| 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
+| 20 | Scene Clothing Override | 장면별 의상 변경 기능 | [ ] |
 
 ---
 
@@ -223,8 +227,8 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 40% |
-| 6-4 | IN PROGRESS | 17% |
+| 6-3 | IN PROGRESS | 57% |
+| 6-4 | IN PROGRESS | 12% |
 | 7 | NOT STARTED | 0% |
 
 **다음 우선순위**:

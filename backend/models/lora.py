@@ -18,6 +18,7 @@ class LoRA(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(100))
+    gender_locked: Mapped[str | None] = mapped_column(String(10))  # female, male, null(자유)
     civitai_id: Mapped[int | None] = mapped_column(Integer)
     civitai_url: Mapped[str | None] = mapped_column(String(500))
     trigger_words: Mapped[list[str] | None] = mapped_column(ARRAY(Text))

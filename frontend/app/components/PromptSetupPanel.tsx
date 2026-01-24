@@ -169,15 +169,24 @@ export default function PromptSetupPanel({
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Actor A Gender
+                {selectedCharacterId && (
+                  <span className="ml-2 text-zinc-400 normal-case">(Preset)</span>
+                )}
               </label>
               <select
                 value={actorAGender}
                 onChange={(e) => setActorAGender(e.target.value as ActorGender)}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                disabled={selectedCharacterId !== null}
+                className={`rounded-2xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 ${
+                  selectedCharacterId ? "bg-zinc-100 cursor-not-allowed text-zinc-500" : "bg-white/80"
+                }`}
               >
                 <option value="female">Female</option>
                 <option value="male">Male</option>
               </select>
+              {selectedCharacterId && (
+                <p className="text-[9px] text-zinc-400">Locked by Character Preset</p>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
