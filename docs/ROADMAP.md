@@ -264,32 +264,34 @@ Civitai 연동, Analytics (고급 기능)
 - `lora[].character_defaults`: LoRA 선택 시 캐릭터 태그 자동 설정
 - `_legacy_categories`: 하위 호환성 유지
 
-### 6-2. Character Layer - LoRA 기반 (🟡 핵심)
-**전략**: LoRA로 캐릭터 일관성 확보 → 이후 IP-Adapter 추가
+### 6-2. Studio Integration (🔴 핵심 - 다음 단계)
+**목표**: DB의 Style/Character 데이터를 메인 Studio 워크플로우에 연결
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 4 | Character Builder UI | 고정 아이덴티티 태그 선택 (priority 2-4), Manage/Style 탭 | [x] |
 | 5 | Style Profile | SD Model + LoRA + Embedding 번들 | [x] |
 | 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words, Civitai 연동 | [x] |
-| 7 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
-| 8 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
+| **7** | **Style Profile 연동** | 기본 프로필을 Studio에서 자동 로드, 프롬프트 자동 구성 | [ ] |
+| **8** | **Character 선택 UI** | Actor A에 캐릭터 프리셋 적용, 태그 자동 주입 | [ ] |
 
-### 6-3. Scene Layer (🟢 확장)
+### 6-3. Multi-Character & Scene (🟡 확장)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 9 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
-| 10 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
+| 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
+| 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
+| 12 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 11 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [x] |
-| 12 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
-| 13 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
-| 14 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
-| 15 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
-| 16 | Profile Export/Import | Style Profile 공유 | [ ] |
+| 13 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [x] |
+| 14 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+| 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
+| 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
+| 17 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
+| 18 | Profile Export/Import | Style Profile 공유 | [ ] |
 
 ---
 
@@ -392,6 +394,9 @@ brew install claude-squad  # 명령어: cs
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
 **Latest Status**: 2026-01-24
+- **Phase 6-1 완료**: PostgreSQL + SQLAlchemy + Alembic, 262개 태그 마이그레이션
+- **Phase 6-2 부분 완료**: Style Profile, LoRA 관리, Character Builder UI, Civitai 연동
+- **다음 작업**: Style Profile 연동 (#7) → Character 선택 UI (#8)
 - Storage Cleanup 기능 구현 완료 (`/storage/stats`, `/storage/cleanup` API)
 - Pixel-based Subtitle Wrapping 구현 완료 (폰트 기반 줄바꿈, 균형 맞추기, 동적 폰트 크기 조절)
 - Preset System 구현 완료 (`/presets` API, 9개 프리셋)
@@ -399,7 +404,7 @@ brew install claude-squad  # 명령어: cs
 - Frontend: Structure 선택 메뉴 확장 (7개 옵션) + 샘플 토픽 선택 UI 추가
 - VRT Golden Master 업데이트 완료 (36/36 테스트 통과)
 - Audio Ducking 구현 완료 (FFmpeg sidechaincompress, BGM Volume 조절 UI)
-- **Phase 6 로드맵 추가**: 의존성 기반 우선순위 정의 (Data → Character → Scene → Advanced)
+- **Phase 6 로드맵 재조정**: Data → **Integration** → Multi-Character → Scene 순서
 - **SetupPanel 제거**: 간소화 진입점 제거, Custom Start (Working Mode)로 직접 진입
 - **SD 파라미터 Advanced 이동**: Steps, CFG, Sampler 등 기본 숨김, 토글로 펼침
 - **VEO "Coming Soon"**: 비활성화 + 라벨 추가
