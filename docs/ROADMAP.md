@@ -152,9 +152,14 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 ## 🎭 Phase 6: Character & Prompt System (v2.0)
 다중 캐릭터 지원 및 프롬프트 빌더 시스템 구축.
 
+**현재 사용 환경**:
+- **Model**: `animagine-xl.safetensors` (SDXL 애니메)
+- **LoRA**: `eureka_v9` (캐릭터), `chibi-laugh` (스타일)
+- **Negative Embeddings**: `verybadimagenegative_v1.3`, `easynegative`
+
 **의존성 구조**:
 ```
-keywords.json 구조 개편 → DB 마이그레이션
+keywords.json v2.0 구조 개편 → DB 마이그레이션
         ↓
 Character Builder → Style Profile → Multi-Character
         ↓
@@ -166,35 +171,123 @@ Civitai 연동, Analytics (고급 기능)
 ### 6-1. Data Foundation (🔴 필수 선행)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 1 | keywords.json 구조 개편 | character vs scene 태그 분리 | [ ] |
-| 2 | DB 마이그레이션 | keywords.json → SQLite (CRUD 지원) | [ ] |
+| 1 | keywords.json v2.0 구조 설계 | 아래 스펙 참조 | [ ] |
+| 2 | 기존 데이터 마이그레이션 | v1 → v2 변환 + 신규 태그 추가 | [ ] |
+| 3 | DB 마이그레이션 | keywords.json → SQLite (CRUD 지원) | [ ] |
+
+#### keywords.json v2.0 스펙
+
+**SD 프롬프트 권장 순서** (앞쪽 태그가 더 중요):
+| Priority | Category | 설명 | 고정/가변 |
+|----------|----------|------|-----------|
+| 1 | Quality | masterpiece, best quality | Meta |
+| 2 | Subject | 1girl, solo | Character |
+| 3 | Identity | hair_color, eye_color, hair_style | Character 고정 |
+| 4 | Clothing | outfit, accessories | Character 고정 |
+| 5 | Pose/Camera | action, expression, shot_type, angle | Scene 가변 |
+| 6 | Environment | location, time, weather, lighting | Scene 가변 |
+| 7 | Style | anime style (보통 모델/LoRA가 처리) | Meta |
+| 99 | LoRA | `<lora:name:weight>` | 항상 마지막 |
+
+**구조 개요**:
+```json
+{
+  "version": "2.0",
+  "prompt_order": ["quality", "subject", "identity", "clothing", "pose", "camera", "environment", "mood", "style", "lora"],
+  "character": {
+    "subject": { "priority": 2, "tags": ["1girl", "1boy", "solo", ...] },
+    "identity": {
+      "priority": 3,
+      "groups": {
+        "hair_color": { "exclusive": true, "tags": ["black hair", "blonde hair", ...] },
+        "eye_color": { "exclusive": true, "tags": ["blue eyes", "brown eyes", ...] },
+        "hair_style": { "tags": ["long hair", "short hair", "ponytail", ...] }
+      }
+    },
+    "clothing": { "priority": 4, "groups": { "outfit": {...}, "accessories": {...} } }
+  },
+  "scene": {
+    "pose": { "priority": 5, "groups": { "action": {...}, "expression": {...}, "gaze": {...} } },
+    "camera": { "priority": 5, "groups": { "shot_type": {...}, "angle": {...} } },
+    "environment": { "priority": 6, "groups": { "location": {...}, "time": {...}, "weather": {...}, "lighting": {...} } },
+    "mood": { "priority": 6, "tags": [...] }
+  },
+  "meta": {
+    "quality": { "priority": 1, "tags": ["masterpiece", "best quality", ...] },
+    "style": { "priority": 7, "tags": ["anime style", ...] }
+  },
+  "lora": [
+    {
+      "name": "eureka_v9",
+      "display_name": "Eureka",
+      "trigger_words": ["eureka"],
+      "default_weight": 1.0,
+      "weight_range": [0.5, 1.5],
+      "base_models": ["animagine-xl"],
+      "character_defaults": { "hair_color": "aqua hair", "eye_color": "purple eyes", "hair_style": "short hair" },
+      "recommended_tags": ["hairclip", "glasses"],
+      "recommended_negative": "verybadimagenegative_v1.3"
+    },
+    {
+      "name": "chibi-laugh",
+      "display_name": "Chibi Laugh",
+      "trigger_words": ["chibi", "eyebrow", "laughing", "eyebrow down"],
+      "default_weight": 0.6,
+      "weight_range": [0.3, 0.8],
+      "base_models": ["*"],
+      "recommended_negative": "easynegative"
+    }
+  ],
+  "embeddings": {
+    "negative": [
+      { "name": "verybadimagenegative_v1.3", "type": "quality" },
+      { "name": "easynegative", "type": "quality" }
+    ]
+  },
+  "rules": {
+    "conflicts": [["long hair", "short hair", "medium hair"], ["day", "night"]],
+    "requires": { "twintails": ["long hair"], "ponytail": ["long hair", "medium hair"] },
+    "weight_defaults": { "hair_color": 1.0, "outfit": 1.2 }
+  },
+  "synonyms": {...},
+  "ignore": [...],
+  "_legacy_categories": {...}
+}
+```
+
+**핵심 설계 원칙**:
+- `priority`: 프롬프트 조합 시 자동 정렬 순서
+- `exclusive`: true면 그룹 내 하나만 선택 (예: hair_color)
+- `conflicts/requires`: 충돌 태그 경고, 의존성 자동 추가
+- `lora[].character_defaults`: LoRA 선택 시 캐릭터 태그 자동 설정
+- `_legacy_categories`: 하위 호환성 유지
 
 ### 6-2. Character Layer - LoRA 기반 (🟡 핵심)
 **전략**: LoRA로 캐릭터 일관성 확보 → 이후 IP-Adapter 추가
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 3 | Character Builder UI | 고정 아이덴티티 태그 선택 | [ ] |
-| 4 | Style Profile | SD Model + LoRA + Trigger Words 번들 | [ ] |
-| 5 | LoRA 메타데이터 관리 | Weight, 호환 모델, Trigger Words 저장 | [ ] |
-| 6 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
-| 7 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
+| 4 | Character Builder UI | 고정 아이덴티티 태그 선택 (priority 2-4) | [ ] |
+| 5 | Style Profile | SD Model + LoRA + Embedding 번들 | [ ] |
+| 6 | LoRA 메타데이터 관리 | Weight Range, 호환 모델, Trigger Words | [ ] |
+| 7 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| 8 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
 
 ### 6-3. Scene Layer (🟢 확장)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 8 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 | [ ] |
-| 9 | Tag Autocomplete | 태그 자동완성 | [ ] |
+| 9 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
+| 10 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 10 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 | [ ] |
-| 11 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
-| 12 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
-| 13 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
-| 14 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
-| 15 | Profile Export/Import | Style Profile 공유 | [ ] |
+| 11 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [ ] |
+| 12 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+| 13 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
+| 14 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
+| 15 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
+| 16 | Profile Export/Import | Style Profile 공유 | [ ] |
 
 ---
 
@@ -229,6 +322,70 @@ Phase 6의 LoRA 기반 시스템 안정화 후 진행.
 
 ---
 
+## 🤖 Agent Evolution Guidelines
+
+현재 에이전트 구성이 충분하지 않은 시점을 정의합니다.
+
+### Test Engineer Agent 추가 시점
+
+**트리거 조건** (하나 이상 충족 시 추가 검토):
+| 조건 | 설명 | 현재 상태 |
+|------|------|----------|
+| Unit Test 구축 | Backend/Frontend unit test 30개 이상 | ❌ 미구축 |
+| E2E Test 구축 | Playwright E2E 시나리오 10개 이상 | ❌ 미구축 |
+| CI/CD 도입 | GitHub Actions 테스트 파이프라인 | ❌ 미구축 |
+| 테스트 복잡도 | 테스트 파일 총 1,000줄 초과 | ❌ 해당없음 |
+
+**역할 정의** (추가 시):
+- 테스트 코드 작성/유지보수
+- 테스트 커버리지 관리 (목표: 80%+)
+- CI/CD 파이프라인 테스트 설정
+- 테스트 관련 commands 관리 (`/test`, `/coverage`)
+
+**현재 대안**:
+- VRT: `/vrt` command + qa-validator
+- 이미지 품질: qa-validator
+- 수동 테스트: 일반 개발 과정에서 처리
+
+### 기타 Agent 추가 고려
+
+| Agent | 트리거 조건 | 현재 필요성 |
+|-------|------------|------------|
+| **DevOps Engineer** | Docker/K8s 배포, 모니터링 시스템 구축 시 | ❌ 불필요 |
+| **Security Auditor** | 외부 사용자 접근, 인증 시스템 도입 시 | ❌ 불필요 |
+| **Data Engineer** | 대용량 데이터 파이프라인, 분석 시스템 구축 시 | ❌ 불필요 |
+
+### Claude Squad 도입 시점
+
+**Claude Squad**: 여러 Claude Code 인스턴스를 병렬로 관리하는 도구 (tmux + git worktree 기반)
+
+**트리거 조건** (하나 이상 충족 시 도입 검토):
+| 조건 | 설명 | 현재 상태 |
+|------|------|----------|
+| 팀 확장 | 2명 이상 동시 개발 | ❌ 솔로 |
+| 독립 작업 | Backend/Frontend 완전 분리 작업 필요 | ❌ 순차 진행 |
+| 대규모 리팩토링 | 10+ 파일 동시 수정 필요 | ❌ 해당없음 |
+| 긴급 핫픽스 | 메인 작업 중 별도 브랜치 작업 빈번 | ❌ 해당없음 |
+| Phase 병렬화 | 의존성 없는 Phase 동시 진행 | ❌ 순차 의존성 |
+
+**도입 시 이점**:
+- 여러 작업 병렬 실행 (대기 시간 감소)
+- git worktree로 브랜치 충돌 방지
+- 백그라운드 자동 완료 (yolo 모드)
+
+**현재 대안**:
+- Sub Agents: 전문성 분리 (단일 세션 내)
+- 순차 작업: 의존성 있는 Phase는 순서대로
+
+**설치** (도입 시):
+```bash
+brew install claude-squad  # 명령어: cs
+```
+
+**참조**: https://github.com/smtg-ai/claude-squad
+
+---
+
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
@@ -246,3 +403,8 @@ Phase 6의 LoRA 기반 시스템 안정화 후 진행.
 - **VEO "Coming Soon"**: 비활성화 + 라벨 추가
 - **Character Consistency 전략 수립**: LoRA 기반 (Phase 6) → IP-Adapter (Phase 7) 단계적 접근
 - **Phase 7 추가**: IP-Adapter 기반 Advanced Consistency
+- **keywords.json v2.0 스펙 정의**: SD 프롬프트 최적화 구조 설계
+  - Priority 기반 태그 정렬 (Quality → Subject → Identity → Clothing → Pose → Environment → LoRA)
+  - Character/Scene 태그 분리, exclusive 그룹, conflicts/requires 규칙
+  - LoRA 메타데이터 (trigger_words, weight_range, character_defaults, recommended_negative)
+  - 현재 환경 최적화: animagine-xl + eureka_v9 + chibi-laugh

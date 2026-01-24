@@ -70,6 +70,30 @@ v1.x Backlog (Nice to Have) 추적:
 - [있다면 기재]
 ```
 
+## 활용 Commands
+
+| Command | 용도 |
+|---------|------|
+| `/roadmap` | 로드맵 조회/업데이트 |
+| `/vrt` | VRT 실행 (DoD 검증 시) |
+
+**사용 예시**:
+```
+# 현재 진행 상황 파악
+/roadmap
+
+# 다음 작업 확인
+/roadmap next
+
+# 작업 완료 처리
+/roadmap update "6-1: keywords.json 구조 개편"
+
+# DoD 검증 - UI 변경 확인
+/vrt
+```
+
+---
+
 ## 참조 문서
 - `CLAUDE.md` - 프로젝트 개요
 - `docs/ROADMAP.md` - 작업 우선순위

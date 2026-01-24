@@ -1,5 +1,16 @@
 {
   "mcpServers": {
+    "danbooru-tags": {
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@gamzadongza/danbooru-tags-mcp"]
+    },
+    "huggingface": {
+      "command": "npx",
+      "args": ["-y", "@huggingface/mcp-server"],
+      "env": {
+        "HF_TOKEN": "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"
+      }
+    },
     "context7": {
       "type": "stdio",
       "command": "npx",
@@ -64,6 +75,20 @@
         "--project",
         "/Users/tomo-mini/Workspace/shorts-producer"
       ]
+    },
+    "civitai": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/Users/tomo-mini/Workspace/civitai-mcp-server/dist/index.js"
+      ],
+      "env": {
+        "CIVITAI_API_KEY": "60fdf7594971bd4d290b36bfcfdef3d1"
+      }
+    },
+    "ffmpeg": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-ffmpeg"]
     }
   }
 }

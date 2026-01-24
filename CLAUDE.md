@@ -106,3 +106,67 @@ frontend/app/
 ## 사전 요구사항
 - **Stable Diffusion WebUI**: `http://127.0.0.1:7860` (`--api` 옵션으로 실행)
 - **환경 변수**: `backend/.env`에 `GEMINI_API_KEY` 필수
+
+## Sub Agents
+
+| Agent | 파일 | 역할 | 활용 Commands |
+|-------|------|------|---------------|
+| **PM Agent** | `.claude/agents/shorts-pm.md` | 로드맵/우선순위 관리 | `/roadmap`, `/vrt` |
+| **Prompt Engineer** | `.claude/agents/prompt-engineer.md` | SD 프롬프트 최적화 | `/prompt-validate`, `/sd-status` |
+| **Storyboard Writer** | `.claude/agents/storyboard-writer.md` | 스토리보드/스크립트 작성 | `/roadmap` |
+| **QA Validator** | `.claude/agents/qa-validator.md` | 이미지 검증/품질 체크 | `/vrt`, `/sd-status`, `/prompt-validate` |
+| **FFmpeg Expert** | `.claude/agents/ffmpeg-expert.md` | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
+
+## Commands
+
+| Command | 파일 | 역할 |
+|---------|------|------|
+| `/roadmap` | `.claude/commands/roadmap.md` | 로드맵 조회/업데이트 |
+| `/vrt` | `.claude/commands/vrt.md` | Visual Regression Test 실행 |
+| `/sd-status` | `.claude/commands/sd-status.md` | SD WebUI 상태 확인 |
+| `/prompt-validate` | `.claude/commands/prompt-validate.md` | 프롬프트 문법 검증 |
+
+## Agents/Commands 관리 규칙
+
+### 구조
+```
+.claude/
+├── agents/          # Sub Agents (판단/분석 담당)
+│   ├── shorts-pm.md
+│   ├── prompt-engineer.md
+│   ├── storyboard-writer.md
+│   ├── qa-validator.md
+│   └── ffmpeg-expert.md
+└── commands/        # Commands (원자적 작업)
+    ├── roadmap.md
+    ├── vrt.md
+    ├── sd-status.md
+    └── prompt-validate.md
+```
+
+### 레이어 분리 원칙
+```
+Commands (원자적 작업)
+    ↑ 호출
+Agents (판단/분석/전문성)
+    ↑ 활용
+MCP Servers (외부 데이터/도구)
+```
+
+### 추가/수정 시 체크리스트
+- [ ] **Agent 추가 시**: `CLAUDE.md` Sub Agents 테이블 업데이트
+- [ ] **Command 추가 시**: `CLAUDE.md` Commands 테이블 업데이트
+- [ ] **Agent가 Command 활용 시**: Agent 파일의 "활용 Commands" 섹션 업데이트
+- [ ] **MCP 추가 시**: `.mcp.json` 및 관련 Agent 파일 업데이트
+
+### 네이밍 규칙
+| 타입 | 파일명 | 예시 |
+|------|--------|------|
+| Agent | `kebab-case.md` | `prompt-engineer.md` |
+| Command | `kebab-case.md` | `sd-status.md` |
+
+### Skills 정책
+현재 프로젝트는 **웹 UI 기반**이므로 Skills 불필요.
+- 핵심 워크플로우: Frontend Autopilot 제공
+- 개발 지원: Agents 담당
+- 외부 데이터: MCP 담당
