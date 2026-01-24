@@ -143,8 +143,9 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 ### 5-5. UI/UX 개선
 | 작업 | 설명 | 상태 |
 |------|------|------|
+| SetupPanel 제거 | 간소화 진입점 제거, Custom Start로 통합 | [x] |
 | SD 파라미터 Advanced 이동 | steps, cfg_scale 등 고급 설정화 | [ ] |
-| Setup 플로우 단순화 | 중복 설정 영역 통합 | [ ] |
+| 간소화 진입점 재설계 | Phase 6 완료 후 Quick Start 재정의 | [ ] |
 
 ---
 
@@ -220,3 +221,4 @@ Civitai 연동, Analytics (고급 기능)
 - VRT Golden Master 업데이트 완료 (36/36 테스트 통과)
 - Audio Ducking 구현 완료 (FFmpeg sidechaincompress, BGM Volume 조절 UI)
 - **Phase 6 로드맵 추가**: 의존성 기반 우선순위 정의 (Data → Character → Scene → Advanced)
+- **SetupPanel 제거**: 간소화 진입점 제거, Custom Start (Working Mode)로 직접 진입
