@@ -176,11 +176,14 @@ class TagResponse(TagBase):
 class LoRABase(BaseModel):
     name: str
     display_name: str | None = None
+    lora_type: str | None = None  # character, style, pose, other
     gender_locked: str | None = None  # female, male, null(자유)
     civitai_id: int | None = None
     civitai_url: str | None = None
     trigger_words: list[str] | None = None
     default_weight: float = 0.7  # 0.7 optimal for scene expression
+    optimal_weight: float | None = None  # Auto-calibrated weight
+    calibration_score: float | None = None  # Match rate at optimal_weight
     weight_min: float = 0.5
     weight_max: float = 1.5
     base_models: list[str] | None = None
@@ -196,11 +199,14 @@ class LoRACreate(LoRABase):
 class LoRAUpdate(BaseModel):
     name: str | None = None
     display_name: str | None = None
+    lora_type: str | None = None
     gender_locked: str | None = None
     civitai_id: int | None = None
     civitai_url: str | None = None
     trigger_words: list[str] | None = None
     default_weight: float | None = None
+    optimal_weight: float | None = None
+    calibration_score: float | None = None
     weight_min: float | None = None
     weight_max: float | None = None
     base_models: list[str] | None = None

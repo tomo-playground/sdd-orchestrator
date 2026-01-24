@@ -7,6 +7,7 @@ from config import logger
 from database import get_db
 from models import LoRA
 from schemas import LoRACreate, LoRAResponse, LoRAUpdate
+from services.lora_calibration import calibrate_lora
 
 router = APIRouter(prefix="/loras", tags=["loras"])
 
@@ -167,3 +168,91 @@ async def delete_lora(lora_id: int, db: Session = Depends(get_db)):
     db.commit()
     logger.info("🗑️ [LoRAs] Deleted: %s", name)
     return {"ok": True, "deleted": name}
+
+
+@router.post("/{lora_id}/calibrate")
+async def calibrate_lora_weight(lora_id: int, db: Session = Depends(get_db)):
+    """Calibrate LoRA to find optimal weight for scene expression.
+
+    Tests multiple weights (0.5-1.0) and finds the best match rate.
+    Updates the LoRA with optimal_weight, calibration_score, and lora_type.
+    """
+    lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
+    if not lora:
+        raise HTTPException(status_code=404, detail="LoRA not found")
+
+    # Get trigger word if available
+    trigger_word = lora.trigger_words[0] if lora.trigger_words else None
+
+    # Run calibration
+    result = await calibrate_lora(
+        lora_name=lora.name,
+        trigger_word=trigger_word,
+    )
+
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error", "Calibration failed"))
+
+    # Update LoRA with calibration results
+    lora.optimal_weight = result["optimal_weight"]
+    lora.calibration_score = result["calibration_score"]
+    lora.lora_type = result["lora_type"]
+
+    db.commit()
+    db.refresh(lora)
+
+    logger.info(
+        "🔧 [Calibration] %s: optimal=%.1f, score=%.0f%%, type=%s",
+        lora.name,
+        result["optimal_weight"],
+        result["calibration_score"],
+        result["lora_type"],
+    )
+
+    return {
+        "lora_id": lora.id,
+        "lora_name": lora.name,
+        "optimal_weight": result["optimal_weight"],
+        "calibration_score": result["calibration_score"],
+        "lora_type": result["lora_type"],
+        "all_results": result["all_results"],
+    }
+
+
+@router.post("/calibrate-all")
+async def calibrate_all_loras(db: Session = Depends(get_db)):
+    """Calibrate all LoRAs that haven't been calibrated yet."""
+    loras = db.query(LoRA).filter(LoRA.optimal_weight.is_(None)).all()
+
+    if not loras:
+        return {"message": "All LoRAs are already calibrated", "calibrated": 0}
+
+    results = []
+    for lora in loras:
+        trigger_word = lora.trigger_words[0] if lora.trigger_words else None
+
+        result = await calibrate_lora(
+            lora_name=lora.name,
+            trigger_word=trigger_word,
+        )
+
+        if result.get("success"):
+            lora.optimal_weight = result["optimal_weight"]
+            lora.calibration_score = result["calibration_score"]
+            lora.lora_type = result["lora_type"]
+            results.append({
+                "name": lora.name,
+                "optimal_weight": result["optimal_weight"],
+                "calibration_score": result["calibration_score"],
+                "lora_type": result["lora_type"],
+            })
+        else:
+            results.append({
+                "name": lora.name,
+                "error": result.get("error"),
+            })
+
+    db.commit()
+
+    logger.info("🔧 [Calibration] Batch complete: %d LoRAs", len(results))
+    return {"calibrated": len([r for r in results if "optimal_weight" in r]), "results": results}
