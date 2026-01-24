@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAutopilot, useDraftPersistence } from "./hooks";
+import { useAutopilot, useDraftPersistence, useTags } from "./hooks";
 import { useCharacters } from "./hooks/useCharacters";
 import axios from "axios";
 
 import type {
   Scene,
+  SceneContextTags,
   AudioItem,
   FontItem,
   OverlaySettings,
@@ -40,6 +41,7 @@ import {
   ACTION_KEYWORDS,
   BACKGROUND_KEYWORDS,
   SCENE_SPECIFIC_KEYWORDS,
+  getTokenPriority,
 } from "./constants";
 
 // SetupPanel removed - direct entry to working mode
@@ -97,6 +99,12 @@ export default function Home() {
   const [suggestedBase, setSuggestedBase] = useState("");
   const [suggestedScene, setSuggestedScene] = useState("");
   const [multiGenEnabled, setMultiGenEnabled] = useState(true);
+  const [useControlnet, setUseControlnet] = useState(true);
+  const [controlnetWeight, setControlnetWeight] = useState(0.8);
+  const [useIpAdapter, setUseIpAdapter] = useState(false);
+  const [ipAdapterReference, setIpAdapterReference] = useState("");
+  const [ipAdapterWeight, setIpAdapterWeight] = useState(0.7);
+  const [referenceImages, setReferenceImages] = useState<Array<{ character_key: string; filename: string }>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isHelperOpen, setIsHelperOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
@@ -183,6 +191,9 @@ export default function Home() {
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
 
+  // Scene Tags hook
+  const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags();
+
   useEffect(() => {
     axios
       .get(`${API_BASE}/audio/list`)
@@ -214,6 +225,17 @@ export default function Home() {
         }
       })
       .catch(() => setFontList([]));
+  }, []);
+
+  // Fetch IP-Adapter reference images
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/controlnet/ip-adapter/references`)
+      .then((res) => {
+        const refs = res.data.references || [];
+        setReferenceImages(refs);
+      })
+      .catch(() => setReferenceImages([]));
   }, []);
 
   // Calculate the best step to resume from based on data state
@@ -271,6 +293,11 @@ export default function Home() {
     if (draft.motionStyle !== undefined) setMotionStyle(draft.motionStyle);
     if (draft.hiResEnabled !== undefined) setHiResEnabled(draft.hiResEnabled);
     if (draft.veoEnabled !== undefined) setVeoEnabled(draft.veoEnabled);
+    if (draft.useControlnet !== undefined) setUseControlnet(draft.useControlnet);
+    if (draft.controlnetWeight !== undefined) setControlnetWeight(draft.controlnetWeight);
+    if (draft.useIpAdapter !== undefined) setUseIpAdapter(draft.useIpAdapter);
+    if (draft.ipAdapterReference !== undefined) setIpAdapterReference(draft.ipAdapterReference);
+    if (draft.ipAdapterWeight !== undefined) setIpAdapterWeight(draft.ipAdapterWeight);
     if (draft.videoUrl !== undefined) setVideoUrl(draft.videoUrl ?? null);
     if (draft.videoUrlFull !== undefined) setVideoUrlFull(draft.videoUrlFull ?? null);
     if (draft.videoUrlPost !== undefined) setVideoUrlPost(draft.videoUrlPost ?? null);
@@ -315,6 +342,7 @@ export default function Home() {
       sampler_name: scene.sampler_name,
       seed: scene.seed,
       clip_skip: scene.clip_skip,
+      context_tags: scene.context_tags,
     }));
     const totalImageSize = draftScenes.reduce((acc, scene) => {
       const baseSize = scene.image_url ? scene.image_url.length : 0;
@@ -353,7 +381,9 @@ export default function Home() {
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
       overlaySettings, postCardSettings, layoutStyle, motionStyle,
-      hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+      hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
+      useIpAdapter, ipAdapterReference, ipAdapterWeight,
+      videoUrl, videoUrlFull, videoUrlPost,
       recentVideos, scenes: buildDraftScenes(),
       checkpoint: finalCheckpoint ?? undefined,
     };
@@ -363,7 +393,9 @@ export default function Home() {
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
     overlaySettings, postCardSettings, layoutStyle, motionStyle,
-    hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+    hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
+    useIpAdapter, ipAdapterReference, ipAdapterWeight,
+    videoUrl, videoUrlFull, videoUrlPost,
     recentVideos, buildDraftScenes, getCheckpoint,
   ]);
 
@@ -375,6 +407,7 @@ export default function Home() {
       candidates: [], negative_prompt: scene.negative_prompt,
       steps: scene.steps, cfg_scale: scene.cfg_scale,
       sampler_name: scene.sampler_name, seed: scene.seed, clip_skip: scene.clip_skip,
+      context_tags: scene.context_tags,
     }));
     return {
       topic, duration, style, language, structure, actorAGender,
@@ -382,7 +415,9 @@ export default function Home() {
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, subtitleFont, speedMultiplier,
       overlaySettings, postCardSettings, layoutStyle, motionStyle,
-      hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+      hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
+      useIpAdapter, ipAdapterReference, ipAdapterWeight,
+      videoUrl, videoUrlFull, videoUrlPost,
       recentVideos: [], scenes: slimScenes,
     };
   }, [
@@ -391,7 +426,9 @@ export default function Home() {
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, subtitleFont, speedMultiplier,
     overlaySettings, postCardSettings, layoutStyle, motionStyle,
-    hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
+    hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
+    useIpAdapter, ipAdapterReference, ipAdapterWeight,
+    videoUrl, videoUrlFull, videoUrlPost,
     scenes,
   ]);
 
@@ -506,6 +543,22 @@ export default function Home() {
           ? (rawSpeaker as Scene["speaker"])
           : "Narrator";
       const baseSettings = getBaseSettingsForSpeaker(speaker);
+
+      // Map scene_tags from Gemini to context_tags
+      let context_tags: SceneContextTags | undefined;
+      if (scene.scene_tags) {
+        const st = scene.scene_tags;
+        context_tags = {
+          expression: Array.isArray(st.expression) ? st.expression : st.expression ? [st.expression] : undefined,
+          gaze: typeof st.gaze === "string" ? st.gaze : undefined,
+          pose: Array.isArray(st.pose) ? st.pose : st.pose ? [st.pose] : undefined,
+          action: Array.isArray(st.action) ? st.action : st.action ? [st.action] : undefined,
+          camera: typeof st.camera === "string" ? st.camera : undefined,
+          environment: Array.isArray(st.environment) ? st.environment : st.environment ? [st.environment] : undefined,
+          mood: Array.isArray(st.mood) ? st.mood : st.mood ? [st.mood] : undefined,
+        };
+      }
+
       return {
         id: scene.scene_id ?? idx + 1,
         script: scene.script ?? "",
@@ -522,6 +575,7 @@ export default function Home() {
         clip_skip: baseSettings.clipSkip,
         isGenerating: false,
         debug_payload: "",
+        context_tags,
       };
     });
   };
@@ -1063,6 +1117,11 @@ export default function Home() {
     setMotionStyle("none");
     setHiResEnabled(false);
     setVeoEnabled(false);
+    setUseControlnet(true);
+    setControlnetWeight(0.8);
+    setUseIpAdapter(false);
+    setIpAdapterReference("");
+    setIpAdapterWeight(0.7);
     setImagePreviewSrc(null);
     resetAutoRun();
     resetScenesOnly();
@@ -1210,14 +1269,44 @@ export default function Home() {
   const buildPositivePrompt = (scene: Scene) => {
     const base = getBasePromptForScene(scene);
     const scenePrompt = scene.image_prompt.trim();
-    if (!autoComposePrompt || !base) return scenePrompt;
-    if (!scenePrompt) return base;
-    const baseTokens = splitPromptTokens(base).filter((token) => {
-      const lower = token.toLowerCase();
-      return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
+
+    // Collect context tags (expression, gaze, pose, action, camera, environment, mood)
+    const contextTagsList: string[] = [];
+    if (scene.context_tags) {
+      const { expression, gaze, pose, action, camera, environment, mood } = scene.context_tags;
+      if (expression?.length) contextTagsList.push(...expression);
+      if (gaze) contextTagsList.push(gaze);
+      if (pose?.length) contextTagsList.push(...pose);
+      if (action?.length) contextTagsList.push(...action);
+      if (camera) contextTagsList.push(camera);
+      if (environment?.length) contextTagsList.push(...environment);
+      if (mood?.length) contextTagsList.push(...mood);
+    }
+
+    // Combine all tokens
+    const baseTokens = base ? splitPromptTokens(base) : [];
+    const sceneTokens = scenePrompt ? splitPromptTokens(scenePrompt) : [];
+
+    // Filter out scene-specific keywords from base (to avoid duplicates)
+    const filteredBaseTokens = autoComposePrompt
+      ? baseTokens.filter((token) => {
+          const lower = token.toLowerCase();
+          return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
+        })
+      : baseTokens;
+
+    // Merge all tokens
+    const allTokens = mergePromptTokens(
+      filteredBaseTokens,
+      [...contextTagsList, ...sceneTokens]
+    );
+
+    // Sort by SD priority order (identity → appearance → expression → pose → camera → environment → quality → LoRA)
+    const sortedTokens = [...allTokens].sort((a, b) => {
+      return getTokenPriority(a) - getTokenPriority(b);
     });
-    const sceneTokens = splitPromptTokens(scenePrompt);
-    return mergePromptTokens(baseTokens, sceneTokens).join(", ");
+
+    return sortedTokens.join(", ");
   };
 
   const buildNegativePrompt = (scene: Scene) => {
@@ -1303,10 +1392,43 @@ export default function Home() {
       if (!silent) alert("Prompt is required");
       return null;
     }
+    const negativePrompt = buildNegativePrompt(scene);
+
+    // Pre-generation validation (9.6 Prompt Sanity Check)
+    try {
+      const validateRes = await axios.post(`${API_BASE}/prompt/validate`, {
+        positive: prompt,
+        negative: negativePrompt,
+      });
+      const validation = validateRes.data;
+
+      // Show errors (blocking)
+      if (validation.errors && validation.errors.length > 0) {
+        const errorMsg = validation.errors.join("; ");
+        if (!silent) showToast(`Generation blocked: ${errorMsg}`, "error");
+        return null;
+      }
+
+      // Show warnings (non-blocking)
+      if (validation.warnings && validation.warnings.length > 0) {
+        const warnMsg = validation.warnings.join("; ");
+        if (!silent) showToast(`Warning: ${warnMsg}`, "error");
+      }
+    } catch {
+      // Validation API failed, continue anyway
+      console.warn("Prompt validation failed, continuing anyway");
+    }
+
     const hiResPayload = buildHiResPayload();
+    const controlnetPayload = useControlnet
+      ? { use_controlnet: true, controlnet_weight: controlnetWeight }
+      : { use_controlnet: false };
+    const ipAdapterPayload = useIpAdapter && ipAdapterReference
+      ? { use_ip_adapter: true, ip_adapter_reference: ipAdapterReference, ip_adapter_weight: ipAdapterWeight }
+      : { use_ip_adapter: false };
     const debugPayload = {
       prompt,
-      negative_prompt: buildNegativePrompt(scene),
+      negative_prompt: negativePrompt,
       steps: scene.steps,
       cfg_scale: scene.cfg_scale,
       sampler_name: scene.sampler_name,
@@ -1315,11 +1437,13 @@ export default function Home() {
       width: 512,
       height: 512,
       ...hiResPayload,
+      ...controlnetPayload,
+      ...ipAdapterPayload,
     };
     try {
       const res = await axios.post(`${API_BASE}/scene/generate`, {
         prompt,
-        negative_prompt: buildNegativePrompt(scene),
+        negative_prompt: negativePrompt,
         steps: scene.steps,
         cfg_scale: scene.cfg_scale,
         sampler_name: scene.sampler_name,
@@ -1328,6 +1452,8 @@ export default function Home() {
         width: 512,
         height: 512,
         ...hiResPayload,
+        ...controlnetPayload,
+        ...ipAdapterPayload,
       });
       if (res.data.image) {
         const dataUrl = `data:image/png;base64,${res.data.image}`;
@@ -1758,6 +1884,17 @@ export default function Home() {
               onImageCheckModeChange={setImageCheckMode}
               multiGenEnabled={multiGenEnabled}
               onMultiGenEnabledChange={setMultiGenEnabled}
+              useControlnet={useControlnet}
+              onUseControlnetChange={setUseControlnet}
+              controlnetWeight={controlnetWeight}
+              onControlnetWeightChange={setControlnetWeight}
+              useIpAdapter={useIpAdapter}
+              onUseIpAdapterChange={setUseIpAdapter}
+              ipAdapterReference={ipAdapterReference}
+              onIpAdapterReferenceChange={setIpAdapterReference}
+              ipAdapterWeight={ipAdapterWeight}
+              onIpAdapterWeightChange={setIpAdapterWeight}
+              referenceImages={referenceImages}
               validationSummary={validationSummary}
               scenesCount={scenes.length}
             />
@@ -1794,6 +1931,9 @@ export default function Home() {
                 }
                 validatingSceneId={validatingSceneId}
                 autoComposePrompt={autoComposePrompt}
+                tagsByGroup={tagsByGroup}
+                sceneTagGroups={sceneTagGroups}
+                isExclusiveGroup={isExclusiveGroup}
                 onUpdateScene={(updates) => updateScene(scenes[currentSceneIndex].id, updates)}
                 onRemoveScene={() => handleRemoveScene(scenes[currentSceneIndex].id)}
                 onSpeakerChange={(speaker) => handleSpeakerChange(scenes[currentSceneIndex], speaker)}

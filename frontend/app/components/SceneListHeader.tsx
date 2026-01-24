@@ -6,6 +6,11 @@ type ValidationSummary = {
   error: number;
 };
 
+type ReferenceImage = {
+  character_key: string;
+  filename: string;
+};
+
 type SceneListHeaderProps = {
   // Actions
   onValidate: () => void;
@@ -16,6 +21,18 @@ type SceneListHeaderProps = {
   onImageCheckModeChange: (mode: "local" | "gemini") => void;
   multiGenEnabled: boolean;
   onMultiGenEnabledChange: (enabled: boolean) => void;
+  useControlnet: boolean;
+  onUseControlnetChange: (enabled: boolean) => void;
+  controlnetWeight: number;
+  onControlnetWeightChange: (weight: number) => void;
+  // IP-Adapter settings
+  useIpAdapter: boolean;
+  onUseIpAdapterChange: (enabled: boolean) => void;
+  ipAdapterReference: string;
+  onIpAdapterReferenceChange: (ref: string) => void;
+  ipAdapterWeight: number;
+  onIpAdapterWeightChange: (weight: number) => void;
+  referenceImages: ReferenceImage[];
   // Validation summary
   validationSummary: ValidationSummary;
   // Disable state
@@ -30,6 +47,17 @@ export default function SceneListHeader({
   onImageCheckModeChange,
   multiGenEnabled,
   onMultiGenEnabledChange,
+  useControlnet,
+  onUseControlnetChange,
+  controlnetWeight,
+  onControlnetWeightChange,
+  useIpAdapter,
+  onUseIpAdapterChange,
+  ipAdapterReference,
+  onIpAdapterReferenceChange,
+  ipAdapterWeight,
+  onIpAdapterWeightChange,
+  referenceImages,
   validationSummary,
   scenesCount,
 }: SceneListHeaderProps) {
@@ -93,6 +121,67 @@ export default function SceneListHeader({
             className="h-3.5 w-3.5 accent-zinc-900"
           />
         </label>
+        <div className="h-4 w-px bg-zinc-200" />
+        <label className="flex items-center gap-2 text-[10px] font-medium text-zinc-500 cursor-pointer">
+          ControlNet
+          <input
+            type="checkbox"
+            checked={useControlnet}
+            onChange={(e) => onUseControlnetChange(e.target.checked)}
+            className="h-3.5 w-3.5 accent-violet-600"
+          />
+        </label>
+        {useControlnet && (
+          <>
+            <span className="text-[10px] font-medium text-zinc-500">Weight</span>
+            <input
+              type="range"
+              min="0.3"
+              max="1.0"
+              step="0.1"
+              value={controlnetWeight}
+              onChange={(e) => onControlnetWeightChange(parseFloat(e.target.value))}
+              className="h-1 w-16 accent-violet-600"
+            />
+            <span className="text-[10px] font-semibold text-violet-600">{controlnetWeight.toFixed(1)}</span>
+          </>
+        )}
+        <div className="h-4 w-px bg-zinc-200" />
+        <label className="flex items-center gap-2 text-[10px] font-medium text-zinc-500 cursor-pointer">
+          IP-Adapter
+          <input
+            type="checkbox"
+            checked={useIpAdapter}
+            onChange={(e) => onUseIpAdapterChange(e.target.checked)}
+            className="h-3.5 w-3.5 accent-amber-600"
+          />
+        </label>
+        {useIpAdapter && (
+          <>
+            <select
+              value={ipAdapterReference}
+              onChange={(e) => onIpAdapterReferenceChange(e.target.value)}
+              className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] text-zinc-600"
+            >
+              <option value="">Select Reference</option>
+              {referenceImages.map((ref) => (
+                <option key={ref.character_key} value={ref.character_key}>
+                  {ref.character_key}
+                </option>
+              ))}
+            </select>
+            <input
+              type="range"
+              min="0.3"
+              max="1.0"
+              step="0.1"
+              value={ipAdapterWeight}
+              onChange={(e) => onIpAdapterWeightChange(parseFloat(e.target.value))}
+              className="h-1 w-12 accent-amber-600"
+            />
+            <span className="text-[10px] font-semibold text-amber-600">{ipAdapterWeight.toFixed(1)}</span>
+          </>
+        )}
       </div>
 
       {/* Validation Summary Badges */}

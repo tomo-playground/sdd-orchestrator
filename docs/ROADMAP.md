@@ -102,14 +102,25 @@ Character Preset
 | 8.4 | Male Style Presets | 1boy + 스타일 LoRA 품질 테스트 → 성별 구분 불명확으로 탈락 | [-] |
 | 8.5 | Gender 기반 Preset 필터링 | 선택된 성별에 맞는 프리셋만 드롭다운에 표시 | [x] |
 | 8.6 | Character Preview UI | 별도 행 레이아웃 (80px) + 클릭 시 확대 모달 | [x] |
-| **9** | **Scene Expression System** | **싱글 캐릭터 장면 표현 고도화 (Multi-Character 전제조건)** | [ ] |
+| **9** | **Scene Expression System** | **싱글 캐릭터 장면 표현 고도화 (Multi-Character 전제조건)** | [x] |
 | 9.1 | DB 태그 통합 | ~~keywords.json~~ 제거 완료, DB tags 단일 소스 | [x] |
 | 9.1.1 | **Tag Effectiveness Feedback Loop** | WD14 검증 → 태그 효과성 추적 → Gemini 컨텍스트 자동 필터링 | [x] |
 | 9.2 | 포즈/표정/구도 태그 확장 | DB에 Danbooru 기반 세분화 태그 추가 (pose → expression/gaze/pose/action) | [x] |
 | 9.3 | Gemini 템플릿 강화 | 장면 의도 → 포즈/표정/구도 명시적 지시 | [x] |
-| 9.4 | Scene Context Tags UI | 장면별 포즈/표정/구도 선택 UI (SceneCard 확장) | [ ] |
-| 9.5 | 프롬프트 품질 검증 | 생성된 프롬프트가 장면 의도에 맞는지 WD14 검증 | [ ] |
-| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| 9.4 | Scene Context Tags UI | 장면별 포즈/표정/구도 선택 UI (SceneCard 확장) | [x] |
+| 9.5 | 프롬프트 품질 검증 | 생성된 프롬프트가 장면 의도에 맞는지 WD14 검증 | [x] |
+| **9.6** | **Prompt Sanity Check** | **생성 전 프롬프트 유효성 검증 (P0 긴급)** | [x] |
+| 9.6.1 | LoRA 존재 검증 | 프롬프트의 `<lora:...>` 파일이 SD WebUI에 존재하는지 확인 | [x] |
+| 9.6.2 | Positive-Negative 충돌 검출 | 같은 태그가 양쪽에 있으면 경고/자동 제거 | [x] |
+| 9.6.3 | 필수 태그 검증 | 캐릭터 identity (1girl/1boy) 태그 존재 확인 | [x] |
+| **9.7** | **Scene-Prompt Quality (P0)** | **장면-프롬프트 매칭 품질 80% 달성 (Multi-Character 전제조건)** | [x] |
+| 9.7.1 | 토큰 우선순위 정렬 | SD 권장 순서로 프롬프트 토큰 자동 정렬 | [x] |
+| 9.7.2 | 태그 27개 추가 | expression/pose/action/mood Gap 보완 (분석 보고서 기준) | [x] |
+| 9.7.3 | context_tags 7그룹 확장 | 4개→7개 (camera/environment/mood 추가) | [x] |
+| 9.7.4 | Gemini-Frontend 동기화 | 템플릿 출력과 context_tags 자동 매핑 | [x] |
+| 9.7.5 | 태그 분석 UI (/manage) | 태그 현황/Gap 실시간 조회 | [x] |
+| 9.7.6 | WD14 동의어 매핑 | 65개 동의어 + 양방향 확장 + skip_tokens 27개 (75-86% 달성) | [x] |
+| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (9.7 완료 후) | [ ] |
 | 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 | [ ] |
 | 12 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
 
@@ -127,20 +138,46 @@ Character Preset
 
 ---
 
-## 🔮 Phase 7: Advanced Consistency (IP-Adapter)
-Phase 6의 LoRA 기반 시스템 안정화 후 진행.
+## 🔮 Phase 7: ControlNet & Pose Control (P0 품질)
+포즈/표정 정확도 향상으로 장면묘사 품질 근본 해결.
 
-**전제 조건**:
-- ControlNet 확장 설치
-- IP-Adapter 모델 (anime 전용)
-- VRAM 8GB+
+**환경 확인 완료**:
+- ControlNet v3 ✅
+- OpenPose 모델 ✅
+- Depth 모델 ✅
+- IP-Adapter FaceID ✅
 
+**7-1 완료 요약**:
+- `services/controlnet.py`: 포즈 매핑 + API 빌더
+- `routers/controlnet.py`: `/controlnet/status`, `/controlnet/poses` API
+- Frontend: ControlNet 토글 + Weight 슬라이더 (SceneListHeader)
+- 11개 포즈 참조 정의 (standing, waving, sitting, arms up 등)
+- 프롬프트 → 포즈 자동 감지 (`detect_pose_from_prompt`)
+
+### 7-1. ControlNet 기반 포즈 제어 (🟢 완료)
+| 순서 | 작업 | 설명 | 상태 |
+|------|------|------|------|
+| 7.1.1 | ControlNet 서비스 | `services/controlnet.py` 생성 | [x] |
+| 7.1.2 | 포즈 참조 이미지 | 5개 기본 포즈 생성 (standing, waving, sitting 등) | [x] |
+| 7.1.3 | 포즈 이미지 검증 | WD14로 포즈 품질 확인 (4/5 성공) | [x] |
+| 7.1.4 | Router 추가 | `/controlnet/*` API 엔드포인트 | [x] |
+| 7.1.5 | 씬 생성 통합 | 장면 태그 → 포즈 자동 선택 로직 | [x] |
+| 7.1.6 | Frontend 옵션 | ControlNet 토글 + Weight 슬라이더 UI | [x] |
+| 7.1.7 | 품질 테스트 | 67% 달성 (WD14 "waving" 미인식 한계) | [~] |
+
+### 7-2. IP-Adapter (캐릭터 일관성) (🟢 완료)
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| ControlNet 연동 | SD WebUI ControlNet API 통합 | [ ] |
-| IP-Adapter 지원 | 참조 이미지 기반 캐릭터 일관성 | [ ] |
-| LoRA + IP 조합 | LoRA 베이스 + IP-Adapter 포즈/표정 | [ ] |
-| Reference Image Manager | 참조 이미지 관리 UI | [ ] |
+| IP-Adapter 지원 | 참조 이미지 기반 캐릭터 일관성 | [x] |
+| LoRA + IP 조합 | LoRA 베이스 + IP-Adapter 포즈/표정 | [x] |
+| Reference Image Manager | 참조 이미지 관리 API | [x] |
+| Frontend UI | IP-Adapter 토글 + Reference 선택 + Weight | [x] |
+
+**7-2 완료 요약**:
+- Backend: `build_ip_adapter_args()`, `save/load_reference_image()` 함수
+- API: `/ip-adapter/status`, `/ip-adapter/references`, `/ip-adapter/reference` CRUD
+- Frontend: IP-Adapter 체크박스 + Reference 드롭다운 + Weight 슬라이더
+- ControlNet + IP-Adapter 동시 사용 가능 (포즈 + 얼굴 일관성)
 
 ---
 
@@ -237,13 +274,19 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 85% |
+| 6-3 | IN PROGRESS | 95% |
 | 6-4 | IN PROGRESS | 25% |
-| 7 | NOT STARTED | 0% |
+| 7-1 | IN PROGRESS | 30% |
+| 7-2 | NOT STARTED | 0% |
 
-**다음 우선순위**:
-1. **Phase 6-3.9.4: Scene Context Tags UI** (장면별 포즈/표정/구도 선택 UI)
-2. Phase 6-3.9.5: 프롬프트 품질 검증 (WD14 기반)
-3. Phase 6-3.10+: Multi-Character, Scene Builder, Tag Autocomplete
-4. Phase 5 잔여: Ken Burns Effect
-5. Phase 7: IP-Adapter (ControlNet 의존)
+**9.7 Scene-Prompt Quality 완료 (2026-01-24)**:
+- WD14 전처리 수정 (RGB 0-255 범위)
+- 65개 동의어 DB 추가 (양방향 확장)
+- 27개 skip_tokens (mood/lighting 태그)
+- 테스트 결과: 75-86% (평균 ~80%)
+
+**다음 우선순위** (옵션 B: 품질 우선):
+1. **Phase 7.1: ControlNet 연동** - 포즈/표정 정확도 향상 (P0)
+2. Phase 5: Ken Burns Effect - 시각적 품질 향상
+3. Phase 6-3.10: Multi-Character 지원
+4. Phase 6-3.11: Scene Builder UI

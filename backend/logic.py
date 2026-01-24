@@ -50,6 +50,14 @@ from services.validation import (
     wd14_predict_tags,
 )
 from services.video import VideoBuilder
+from services.controlnet import (
+    build_controlnet_args,
+    build_ip_adapter_args,
+    check_controlnet_available,
+    detect_pose_from_prompt,
+    load_pose_reference,
+    load_reference_image,
+)
 
 # --- Core Business Logic (Moved from Endpoints) ---
 
@@ -128,7 +136,49 @@ async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
             "hr_second_pass_steps": request.hr_second_pass_steps,
             "denoising_strength": request.denoising_strength,
         })
-    logger.info("🧾 [Scene Gen Payload] %s", payload)
+
+    # ControlNet + IP-Adapter integration
+    controlnet_used = None
+    ip_adapter_used = None
+    controlnet_args_list = []
+
+    if check_controlnet_available():
+        # ControlNet pose control
+        if request.use_controlnet:
+            pose_name = request.controlnet_pose
+            if not pose_name:
+                prompt_tags = split_prompt_tokens(request.prompt)
+                pose_name = detect_pose_from_prompt(prompt_tags)
+
+            if pose_name:
+                pose_image = load_pose_reference(pose_name)
+                if pose_image:
+                    controlnet_args_list.append(build_controlnet_args(
+                        input_image=pose_image,
+                        model="openpose",
+                        weight=request.controlnet_weight,
+                    ))
+                    controlnet_used = pose_name
+                    logger.info("🎭 [ControlNet] Using pose: %s (weight=%.1f)", pose_name, request.controlnet_weight)
+
+        # IP-Adapter character consistency
+        if request.use_ip_adapter and request.ip_adapter_reference:
+            ref_image = load_reference_image(request.ip_adapter_reference)
+            if ref_image:
+                controlnet_args_list.append(build_ip_adapter_args(
+                    reference_image=ref_image,
+                    weight=request.ip_adapter_weight,
+                ))
+                ip_adapter_used = request.ip_adapter_reference
+                logger.info("🧑 [IP-Adapter] Using reference: %s (weight=%.1f)", request.ip_adapter_reference, request.ip_adapter_weight)
+
+        # Apply combined ControlNet args
+        if controlnet_args_list:
+            payload["alwayson_scripts"] = {
+                "controlnet": {"args": controlnet_args_list}
+            }
+
+    logger.info("🧾 [Scene Gen Payload] %s", {k: v for k, v in payload.items() if k != "alwayson_scripts"})
 
     try:
         async with httpx.AsyncClient() as client:
@@ -138,7 +188,7 @@ async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
             img = data.get("images", [None])[0]
             if not img:
                 raise HTTPException(status_code=500, detail="No image returned")
-            return {"image": img}
+            return {"image": img, "controlnet_pose": controlnet_used, "ip_adapter_reference": ip_adapter_used}
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc

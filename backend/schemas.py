@@ -94,6 +94,14 @@ class SceneGenerateRequest(BaseModel):
     hr_upscaler: str = "Latent"
     hr_second_pass_steps: int = 10
     denoising_strength: float = 0.25
+    # ControlNet options
+    use_controlnet: bool = False
+    controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
+    controlnet_weight: float = 1.0
+    # IP-Adapter options
+    use_ip_adapter: bool = False
+    ip_adapter_reference: str | None = None  # character_key for saved reference
+    ip_adapter_weight: float = 0.7
 
 
 class SceneValidateRequest(BaseModel):
@@ -116,6 +124,13 @@ class PromptRewriteRequest(BaseModel):
 class PromptSplitRequest(BaseModel):
     example_prompt: str
     style: str = "Anime"
+
+
+class PromptValidateRequest(BaseModel):
+    """Request for validating prompt before image generation."""
+
+    positive: str
+    negative: str = ""
 
 
 class SDModelRequest(BaseModel):

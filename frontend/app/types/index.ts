@@ -1,3 +1,13 @@
+export type SceneContextTags = {
+  expression?: string[];
+  gaze?: string;  // exclusive (single select)
+  pose?: string[];
+  action?: string[];
+  camera?: string;  // exclusive (single select)
+  environment?: string[];
+  mood?: string[];
+};
+
 export type Scene = {
   id: number;
   script: string;
@@ -16,6 +26,7 @@ export type Scene = {
   isGenerating: boolean;
   debug_payload: string;
   debug_prompt?: string;
+  context_tags?: SceneContextTags;
 };
 
 export type AudioItem = { name: string; url: string };
@@ -108,6 +119,7 @@ export type DraftScene = {
   sampler_name: string;
   seed: number;
   clip_skip: number;
+  context_tags?: SceneContextTags;
 };
 
 // ============================================================
@@ -257,6 +269,11 @@ export type DraftData = {
   motionStyle?: "none" | "slow_zoom";
   hiResEnabled?: boolean;
   veoEnabled?: boolean;
+  useControlnet?: boolean;
+  controlnetWeight?: number;
+  useIpAdapter?: boolean;
+  ipAdapterReference?: string;
+  ipAdapterWeight?: number;
   videoUrl?: string | null;
   videoUrlFull?: string | null;
   videoUrlPost?: string | null;

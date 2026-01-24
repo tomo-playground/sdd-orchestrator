@@ -4,6 +4,7 @@ from .assets import router as assets_router
 from .avatar import router as avatar_router
 from .characters import router as characters_router
 from .cleanup import router as cleanup_router
+from .controlnet import router as controlnet_router
 from .keywords import router as keywords_router
 from .loras import router as loras_router
 from .presets import router as presets_router
@@ -21,6 +22,7 @@ __all__ = [
     "avatar_router",
     "characters_router",
     "cleanup_router",
+    "controlnet_router",
     "keywords_router",
     "loras_router",
     "presets_router",

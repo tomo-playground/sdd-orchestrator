@@ -10,6 +10,7 @@ from routers import (
     avatar_router,
     characters_router,
     cleanup_router,
+    controlnet_router,
     keywords_router,
     loras_router,
     presets_router,
@@ -41,6 +42,7 @@ app.include_router(assets_router)
 app.include_router(avatar_router)
 app.include_router(characters_router)
 app.include_router(cleanup_router)
+app.include_router(controlnet_router)
 app.include_router(keywords_router)
 app.include_router(loras_router)
 app.include_router(presets_router)
