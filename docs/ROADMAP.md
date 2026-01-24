@@ -64,10 +64,10 @@
 다중 캐릭터 지원 및 프롬프트 빌더 시스템 구축.
 
 **현재 사용 환경**:
-- **Model**: `animagine-xl.safetensors` (SDXL 애니메)
-- **LoRA**: `eureka_v9`, `chibi-laugh`, `blindbox_v1_mix`
+- **Model**: `anythingV3_fp16.safetensors` (SD 1.5 애니메)
+- **LoRA**: `eureka_v9`, `chibi-laugh`, `blindbox_v1_mix`, `mha_midoriya-10`
 - **Negative Embeddings**: `verybadimagenegative_v1.3`, `easynegative`
-- **Presets**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi, Blindbox
+- **Presets**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi, Blindbox, Midoriya, Midoriya Chibi
 
 ### 6-1. Data Foundation - **COMPLETE**
 | 작업 | 설명 | 상태 |
@@ -101,10 +101,11 @@ Character Preset
 | 8.3 | Style Preset 네이밍 | Chibi Style → Chibi, Blindbox Style → Blindbox | [x] |
 | 8.4 | Male Style Presets | 1boy + 스타일 LoRA 품질 테스트 → 성별 구분 불명확으로 탈락 | [-] |
 | 8.5 | Gender 기반 Preset 필터링 | 선택된 성별에 맞는 프리셋만 드롭다운에 표시 | [x] |
+| 8.6 | Character Preview Placeholder | None 선택 시 프리뷰 영역 표시 (64px) | [x] |
 | 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
 | 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
-| 12 | Character Preview | 캐릭터 설정 시 미리보기 표시 | [x] |
+| 12 | Character Preview | 캐릭터 설정 시 미리보기 표시 (64px 썸네일) | [x] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
@@ -230,7 +231,7 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 57% |
+| 6-3 | IN PROGRESS | 70% |
 | 6-4 | IN PROGRESS | 12% |
 | 7 | NOT STARTED | 0% |
 

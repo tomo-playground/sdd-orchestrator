@@ -210,16 +210,22 @@ export default function PromptSetupPanel({
                 {/* Character Preview */}
                 {(() => {
                   const selectedChar = characters.find((c) => c.id === selectedCharacterId);
-                  if (!selectedChar) return null;
+                  if (!selectedChar) {
+                    return (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
+                        <span className="text-2xl">?</span>
+                      </div>
+                    );
+                  }
                   return selectedChar.preview_image_url ? (
                     <img
                       src={`${API_BASE}${selectedChar.preview_image_url}`}
                       alt={selectedChar.name}
-                      className="h-10 w-10 rounded-xl border border-zinc-200 object-cover"
+                      className="h-16 w-16 rounded-xl border border-zinc-200 object-cover"
                     />
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
-                      <span className="text-lg">?</span>
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
+                      <span className="text-2xl">?</span>
                     </div>
                   );
                 })()}
