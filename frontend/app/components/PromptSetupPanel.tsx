@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ActorGender, Character } from "../types";
-import { SAMPLERS } from "../constants";
+import { SAMPLERS, API_BASE } from "../constants";
 
 type PromptSetupPanelProps = {
   // Tab state
@@ -205,7 +205,7 @@ export default function PromptSetupPanel({
                   if (!selectedChar) return null;
                   return selectedChar.preview_image_url ? (
                     <img
-                      src={selectedChar.preview_image_url}
+                      src={`${API_BASE}${selectedChar.preview_image_url}`}
                       alt={selectedChar.name}
                       className="h-10 w-10 rounded-xl border border-zinc-200 object-cover"
                     />
