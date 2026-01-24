@@ -105,7 +105,7 @@ Character Preset
 | **9** | **Scene Expression System** | **싱글 캐릭터 장면 표현 고도화 (Multi-Character 전제조건)** | [ ] |
 | 9.1 | DB 태그 통합 | ~~keywords.json~~ 제거 완료, DB tags 단일 소스 | [x] |
 | 9.1.1 | **Tag Effectiveness Feedback Loop** | WD14 검증 → 태그 효과성 추적 → Gemini 컨텍스트 자동 필터링 | [x] |
-| 9.2 | 포즈/표정/구도 태그 확장 | DB에 Danbooru 기반 세분화 태그 추가 (pose → action/expression/gaze) | [ ] |
+| 9.2 | 포즈/표정/구도 태그 확장 | DB에 Danbooru 기반 세분화 태그 추가 (pose → expression/gaze/pose/action) | [x] |
 | 9.3 | Gemini 템플릿 강화 | 장면 의도 → 포즈/표정/구도 명시적 지시 | [ ] |
 | 9.4 | Scene Context Tags UI | 장면별 포즈/표정/구도 선택 UI (SceneCard 확장) | [ ] |
 | 9.5 | 프롬프트 품질 검증 | 생성된 프롬프트가 장면 의도에 맞는지 WD14 검증 | [ ] |

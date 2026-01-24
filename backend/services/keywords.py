@@ -74,7 +74,11 @@ def normalize_prompt_token(token: str) -> str:
 # Mapping from DB group_name to Gemini-friendly category names
 _DB_GROUP_TO_GEMINI_CATEGORY = {
     "subject": "person/subject",
-    "pose": "action/expression/gaze",
+    # Scene expression groups (세분화된 포즈/표정/시선/동작)
+    "expression": "expression",
+    "gaze": "gaze",
+    "pose": "pose",
+    "action": "action",
     "camera": "shot_type/camera_angle",
     "environment": "location/time/weather/lighting",
     "mood": "mood",
@@ -91,7 +95,10 @@ _DB_GROUP_TO_GEMINI_CATEGORY = {
 }
 
 # Groups to include in Gemini keyword context (scene-related only)
-_SCENE_GROUPS = ["subject", "pose", "camera", "environment", "mood", "style", "quality"]
+_SCENE_GROUPS = [
+    "subject", "expression", "gaze", "pose", "action",
+    "camera", "environment", "mood", "style", "quality"
+]
 
 
 def load_tags_from_db() -> dict[str, list[str]]:
@@ -434,7 +441,7 @@ def get_effective_tags(min_effectiveness: float = 0.5, min_uses: int = 5) -> dic
         results = (
             db.query(Tag.name, Tag.group_name, TagEffectiveness.effectiveness, TagEffectiveness.use_count)
             .outerjoin(TagEffectiveness, Tag.id == TagEffectiveness.tag_id)
-            .filter(Tag.group_name.in_(["pose", "camera", "environment", "mood"]))
+            .filter(Tag.group_name.in_(["expression", "gaze", "pose", "action", "camera", "environment", "mood"]))
             .all()
         )
 
@@ -474,7 +481,7 @@ def get_tag_effectiveness_report() -> list[dict[str, Any]]:
                 TagEffectiveness.effectiveness,
             )
             .outerjoin(TagEffectiveness, Tag.id == TagEffectiveness.tag_id)
-            .filter(Tag.group_name.in_(["pose", "camera", "environment", "mood", "style"]))
+            .filter(Tag.group_name.in_(["expression", "gaze", "pose", "action", "camera", "environment", "mood", "style"]))
             .order_by(TagEffectiveness.effectiveness.desc().nullslast(), Tag.name)
             .all()
         )
