@@ -75,8 +75,10 @@ export default function PromptSetupPanel({
   onSelectCharacter,
 }: PromptSetupPanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   return (
+    <>
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -189,55 +191,58 @@ export default function PromptSetupPanel({
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Character Preset
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={selectedCharacterId ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onSelectCharacter(val ? parseInt(val, 10) : null);
-                  }}
-                  className="flex-1 rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                >
-                  <option value="">None (Manual)</option>
-                  {characters
-                    .filter((char) => char.gender === actorAGender)
-                    .map((char) => (
-                      <option key={char.id} value={char.id}>
-                        {char.name}
-                      </option>
-                    ))}
-                </select>
-                {/* Character Preview */}
-                {(() => {
-                  const selectedChar = characters.find((c) => c.id === selectedCharacterId);
-                  if (!selectedChar) {
-                    return (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
-                        <span className="text-2xl">?</span>
-                      </div>
-                    );
-                  }
-                  return selectedChar.preview_image_url ? (
+              <select
+                value={selectedCharacterId ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onSelectCharacter(val ? parseInt(val, 10) : null);
+                }}
+                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+              >
+                <option value="">None (Manual)</option>
+                {characters
+                  .filter((char) => char.gender === actorAGender)
+                  .map((char) => (
+                    <option key={char.id} value={char.id}>
+                      {char.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          {/* Character Preview Row - only show when character selected */}
+          {selectedCharacterId && (() => {
+            const selectedChar = characters.find((c) => c.id === selectedCharacterId);
+            if (!selectedChar) return null;
+            return (
+              <div className="flex items-center gap-4">
+                {selectedChar.preview_image_url ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalOpen(true)}
+                    className="group relative"
+                  >
                     <img
                       src={`${API_BASE}${selectedChar.preview_image_url}`}
                       alt={selectedChar.name}
-                      className="h-16 w-16 rounded-xl border border-zinc-200 object-cover"
+                      className="h-20 w-20 shrink-0 rounded-2xl border border-zinc-200 object-cover transition group-hover:border-zinc-400"
                     />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
-                      <span className="text-2xl">?</span>
+                    <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/0 transition group-hover:bg-black/20">
+                      <span className="text-white opacity-0 transition group-hover:opacity-100">🔍</span>
                     </div>
-                  );
-                })()}
+                  </button>
+                ) : (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
+                    <span className="text-2xl">?</span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-medium text-zinc-700">{selectedChar.name}</p>
+                  {selectedChar.description && (
+                    <p className="text-xs text-zinc-500">{selectedChar.description}</p>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-          {/* Character description */}
-          {(() => {
-            const selectedChar = characters.find((c) => c.id === selectedCharacterId);
-            if (!selectedChar?.description) return null;
-            return (
-              <p className="text-[10px] text-zinc-500">{selectedChar.description}</p>
             );
           })()}
           <div className="flex flex-col gap-2">
@@ -353,5 +358,33 @@ export default function PromptSetupPanel({
         </div>
       )}
     </section>
+    {/* Preview Modal - rendered outside section to avoid stacking context issues */}
+    {previewModalOpen && (() => {
+      const selectedChar = characters.find((c) => c.id === selectedCharacterId);
+      if (!selectedChar?.preview_image_url) return null;
+      return (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setPreviewModalOpen(false)}
+        >
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={`${API_BASE}${selectedChar.preview_image_url}`}
+              alt={selectedChar.name}
+              className="max-h-[80vh] max-w-[80vw] rounded-2xl border-2 border-white/20 shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewModalOpen(false)}
+              className="absolute -right-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-zinc-600 shadow-lg hover:bg-zinc-100"
+            >
+              ✕
+            </button>
+            <p className="mt-3 text-center text-sm font-medium text-white">{selectedChar.name}</p>
+          </div>
+        </div>
+      );
+    })()}
+  </>
   );
 }
