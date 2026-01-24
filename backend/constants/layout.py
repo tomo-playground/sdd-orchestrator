@@ -31,6 +31,7 @@ class FullLayout:
 
     # === Subtitle Rendering ===
     SUBTITLE_FONT_RATIO: float = 0.034  # height * ratio = font size
+    SUBTITLE_MIN_FONT_RATIO: float = 0.026  # minimum font size ratio (약 50px for 1920h)
     SUBTITLE_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
     SUBTITLE_Y_SINGLE_LINE_RATIO: float = 0.72  # Y position for 1 line
     SUBTITLE_Y_MULTI_LINE_RATIO: float = 0.70  # Y position for 2+ lines
@@ -38,6 +39,7 @@ class FullLayout:
     SUBTITLE_STROKE_WIDTH: int = 5
     SUBTITLE_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
     SUBTITLE_MAX_LINES: int = 2
+    SUBTITLE_MAX_WIDTH_RATIO: float = 0.85  # width * ratio = max subtitle width
 
     # === Overlay Layout ===
     SAFE_MARGIN_RATIO: float = 0.06  # width * ratio
@@ -120,10 +122,12 @@ class PostLayout:
 
     # === Subtitle in Post Layout ===
     SUBTITLE_FONT_RATIO: float = 0.04  # height * ratio
+    SUBTITLE_MIN_FONT_RATIO: float = 0.028  # minimum font size ratio (약 30px for 1080h)
     SUBTITLE_LINE_HEIGHT_RATIO: float = 1.4  # font_size * ratio
     SUBTITLE_TEXT_START_Y_RATIO: float = 0.1  # subtitle_area_height * ratio
     SUBTITLE_TEXT_COLOR: RGBA = (40, 40, 40, 255)  # Dark gray
     SUBTITLE_MAX_LINES: int = 3
+    SUBTITLE_MAX_WIDTH_RATIO: float = 0.92  # text_area_width * ratio
 
 
 @dataclass(frozen=True)

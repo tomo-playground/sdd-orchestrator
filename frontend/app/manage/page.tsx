@@ -37,6 +37,30 @@ export default function ManagePage() {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
+  // Storage state
+  type StorageStats = {
+    total_size_mb: number;
+    total_count: number;
+    directories: Record<string, { count: number; size_mb: number }>;
+  };
+  type CleanupResult = {
+    deleted_count: number;
+    freed_mb: number;
+    dry_run: boolean;
+    details: Record<string, { deleted: number; freed_mb: number; files?: string[] }>;
+  };
+  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
+  const [isLoadingStorage, setIsLoadingStorage] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [cleanupOptions, setCleanupOptions] = useState({
+    cleanup_videos: true,
+    video_max_age_days: 7,
+    cleanup_cache: true,
+    cleanup_test_folders: true,
+    cleanup_candidates: false,
+  });
+
   useEffect(() => {
     axios
       .get(`${API_BASE}/audio/list`)
@@ -60,6 +84,43 @@ export default function ManagePage() {
       })
       .catch(() => setFontList([]));
   }, []);
+
+  const fetchStorageStats = async () => {
+    setIsLoadingStorage(true);
+    try {
+      const res = await axios.get(`${API_BASE}/storage/stats`);
+      setStorageStats(res.data);
+    } catch {
+      setStorageStats(null);
+    } finally {
+      setIsLoadingStorage(false);
+    }
+  };
+
+  const handleCleanup = async (dryRun: boolean) => {
+    setIsCleaningUp(true);
+    setCleanupResult(null);
+    try {
+      const res = await axios.post(`${API_BASE}/storage/cleanup`, {
+        ...cleanupOptions,
+        dry_run: dryRun,
+      });
+      setCleanupResult(res.data);
+      if (!dryRun) {
+        await fetchStorageStats();
+      }
+    } catch {
+      alert("Cleanup failed.");
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
+  useEffect(() => {
+    if (manageTab === "settings") {
+      void fetchStorageStats();
+    }
+  }, [manageTab]);
 
   const normalizeKeyword = (value: string) =>
     value
@@ -495,17 +556,202 @@ export default function ManagePage() {
         )}
 
         {manageTab === "settings" && (
-          <section className="grid gap-3 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
-            <p className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-              Settings are configured in the main studio page.
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/"
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-              >
-                Open Render Settings
-              </Link>
+          <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
+            {/* Storage Section */}
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  Storage
+                </span>
+                <button
+                  type="button"
+                  onClick={fetchStorageStats}
+                  disabled={isLoadingStorage}
+                  className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:text-zinc-400"
+                >
+                  {isLoadingStorage ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+
+              {storageStats && (
+                <div className="grid gap-3">
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                    <div className="mb-3 flex items-baseline justify-between">
+                      <span className="text-sm font-semibold text-zinc-800">
+                        {storageStats.total_size_mb.toFixed(1)} MB
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        {storageStats.total_count} files
+                      </span>
+                    </div>
+                    <div className="grid gap-2">
+                      {Object.entries(storageStats.directories).map(([name, stats]) => (
+                        <div key={name} className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-600">{name}</span>
+                          <span className="text-zinc-400">
+                            {stats.count} files · {stats.size_mb.toFixed(1)} MB
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cleanup Options */}
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                    <span className="mb-3 block text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                      Cleanup Options
+                    </span>
+                    <div className="grid gap-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={cleanupOptions.cleanup_videos}
+                          onChange={(e) =>
+                            setCleanupOptions((prev) => ({
+                              ...prev,
+                              cleanup_videos: e.target.checked,
+                            }))
+                          }
+                          className="rounded border-zinc-300"
+                        />
+                        <span className="text-xs text-zinc-600">
+                          Videos older than{" "}
+                          <input
+                            type="number"
+                            value={cleanupOptions.video_max_age_days}
+                            onChange={(e) =>
+                              setCleanupOptions((prev) => ({
+                                ...prev,
+                                video_max_age_days: Math.max(1, parseInt(e.target.value) || 1),
+                              }))
+                            }
+                            min={1}
+                            className="w-12 rounded border border-zinc-200 px-1 py-0.5 text-center text-xs"
+                          />{" "}
+                          days
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={cleanupOptions.cleanup_cache}
+                          onChange={(e) =>
+                            setCleanupOptions((prev) => ({
+                              ...prev,
+                              cleanup_cache: e.target.checked,
+                            }))
+                          }
+                          className="rounded border-zinc-300"
+                        />
+                        <span className="text-xs text-zinc-600">Expired cache files</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={cleanupOptions.cleanup_test_folders}
+                          onChange={(e) =>
+                            setCleanupOptions((prev) => ({
+                              ...prev,
+                              cleanup_test_folders: e.target.checked,
+                            }))
+                          }
+                          className="rounded border-zinc-300"
+                        />
+                        <span className="text-xs text-zinc-600">Test folders</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={cleanupOptions.cleanup_candidates}
+                          onChange={(e) =>
+                            setCleanupOptions((prev) => ({
+                              ...prev,
+                              cleanup_candidates: e.target.checked,
+                            }))
+                          }
+                          className="rounded border-zinc-300"
+                        />
+                        <span className="text-xs text-zinc-600">Candidate images</span>
+                      </label>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleCleanup(true)}
+                        disabled={isCleaningUp}
+                        className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:text-zinc-400"
+                      >
+                        {isCleaningUp ? "Analyzing..." : "Preview"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCleanup(false)}
+                        disabled={isCleaningUp}
+                        className="rounded-full bg-rose-600 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-rose-600/20 disabled:cursor-not-allowed disabled:bg-rose-400"
+                      >
+                        {isCleaningUp ? "Cleaning..." : "Clean Up"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cleanup Result */}
+                  {cleanupResult && (
+                    <div
+                      className={`rounded-2xl border p-4 ${
+                        cleanupResult.dry_run
+                          ? "border-amber-200 bg-amber-50"
+                          : "border-emerald-200 bg-emerald-50"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-baseline justify-between">
+                        <span
+                          className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${
+                            cleanupResult.dry_run ? "text-amber-600" : "text-emerald-600"
+                          }`}
+                        >
+                          {cleanupResult.dry_run ? "Preview Result" : "Cleanup Complete"}
+                        </span>
+                        <span
+                          className={`text-sm font-semibold ${
+                            cleanupResult.dry_run ? "text-amber-700" : "text-emerald-700"
+                          }`}
+                        >
+                          {cleanupResult.freed_mb.toFixed(1)} MB{" "}
+                          {cleanupResult.dry_run ? "to free" : "freed"}
+                        </span>
+                      </div>
+                      <div className="grid gap-1 text-xs">
+                        {Object.entries(cleanupResult.details).map(([category, detail]) => (
+                          <div key={category} className="flex items-center justify-between">
+                            <span className="text-zinc-600">{category}</span>
+                            <span className="text-zinc-500">
+                              {detail.deleted} files · {detail.freed_mb.toFixed(1)} MB
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Original Settings Link */}
+            <div className="grid gap-2">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Render Settings
+              </span>
+              <p className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
+                Settings are configured in the main studio page.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href="/"
+                  className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+                >
+                  Open Render Settings
+                </Link>
+              </div>
             </div>
           </section>
         )}

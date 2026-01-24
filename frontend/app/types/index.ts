@@ -127,6 +127,8 @@ export type DraftData = {
   includeSubtitles?: boolean;
   narratorVoice?: string;
   bgmFile?: string | null;
+  audioDucking?: boolean;
+  bgmVolume?: number;
   subtitleFont?: string;
   speedMultiplier?: number;
   overlaySettings?: OverlaySettings;

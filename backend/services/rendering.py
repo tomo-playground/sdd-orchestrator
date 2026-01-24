@@ -232,8 +232,19 @@ def render_subtitle_image(
     font_path: str,
     use_post_layout: bool,
     post_layout_metrics: dict[str, int] | None,
+    font_size_override: int | None = None,
 ) -> Image.Image:
-    """Render subtitle text as transparent image."""
+    """Render subtitle text as transparent image.
+
+    Args:
+        lines: List of text lines to render.
+        width: Canvas width.
+        height: Canvas height.
+        font_path: Path to font file.
+        use_post_layout: Whether to use post (1:1) layout.
+        post_layout_metrics: Layout metrics for post mode.
+        font_size_override: Optional font size to use instead of calculated size.
+    """
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
 
@@ -241,7 +252,7 @@ def render_subtitle_image(
         return canvas
 
     if use_post_layout and post_layout_metrics:
-        subtitle_size = int(height * 0.04)
+        subtitle_size = font_size_override if font_size_override else int(height * 0.04)
         font = _get_font_from_path(font_path, subtitle_size)
         emoji_font = _emoji_font(subtitle_size)
         line_height = int(subtitle_size * 1.4)
@@ -270,7 +281,7 @@ def render_subtitle_image(
         return canvas
 
     # Full layout
-    subtitle_size = int(height * 0.034)
+    subtitle_size = font_size_override if font_size_override else int(height * 0.034)
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
     line_height = int(subtitle_size * 1.45)

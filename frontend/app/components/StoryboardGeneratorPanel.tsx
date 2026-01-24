@@ -1,6 +1,17 @@
 "use client";
 
-import { STRUCTURES } from "../constants";
+import { useEffect, useState } from "react";
+import { API_BASE, STRUCTURES } from "../constants";
+
+type Preset = {
+  id: string;
+  name: string;
+  name_ko: string;
+  structure: string;
+  sample_topics: string[];
+  default_duration: number;
+  default_language: string;
+};
 
 type StoryboardGeneratorPanelProps = {
   topic: string;
@@ -27,6 +38,34 @@ export default function StoryboardGeneratorPanel({
   structure,
   setStructure,
 }: StoryboardGeneratorPanelProps) {
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [sampleTopics, setSampleTopics] = useState<string[]>([]);
+
+  // Fetch presets on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/presets`)
+      .then((res) => res.json())
+      .then((data) => {
+        const list = data?.presets ?? data;
+        if (Array.isArray(list)) {
+          setPresets(list);
+        }
+      })
+      .catch(() => setPresets([]));
+  }, []);
+
+  // Update sample topics when structure changes
+  useEffect(() => {
+    const preset = presets.find(
+      (p) => p.structure.toLowerCase() === structure.toLowerCase()
+    );
+    if (preset) {
+      setSampleTopics(preset.sample_topics);
+    } else {
+      setSampleTopics([]);
+    }
+  }, [structure, presets]);
+
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -49,6 +88,20 @@ export default function StoryboardGeneratorPanel({
             className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
             placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
           />
+          {sampleTopics.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {sampleTopics.map((sample, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setTopic(sample)}
+                  className="px-3 py-1 text-xs rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-800 transition-colors border border-zinc-200"
+                >
+                  {sample}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">

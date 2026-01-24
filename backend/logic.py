@@ -9,15 +9,6 @@ import httpx
 from fastapi import HTTPException
 from PIL import Image
 
-from schemas import (
-    PromptRewriteRequest,
-    PromptSplitRequest,
-    SceneGenerateRequest,
-    SceneValidateRequest,
-    StoryboardRequest,
-    VideoRequest,
-)
-
 from config import (
     CACHE_DIR,
     CACHE_TTL_SECONDS,
@@ -28,7 +19,15 @@ from config import (
     logger,
     template_env,
 )
-
+from schemas import (
+    PromptRewriteRequest,
+    PromptSplitRequest,
+    SceneGenerateRequest,
+    SceneValidateRequest,
+    StoryboardRequest,
+    VideoRequest,
+)
+from services.image import load_image_bytes
 from services.keywords import (
     filter_prompt_tokens,
     format_keyword_context,
@@ -36,16 +35,6 @@ from services.keywords import (
     normalize_prompt_token,
     update_keyword_suggestions,
 )
-
-from services.validation import (
-    cache_key_for_validation,
-    compare_prompt_to_tags,
-    gemini_predict_tags,
-    wd14_predict_tags,
-)
-
-from services.image import load_image_bytes
-
 from services.prompt import (
     is_scene_token,
     merge_prompt_tokens,
@@ -53,7 +42,12 @@ from services.prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
-
+from services.validation import (
+    cache_key_for_validation,
+    compare_prompt_to_tags,
+    gemini_predict_tags,
+    wd14_predict_tags,
+)
 from services.video import VideoBuilder
 
 # --- Core Business Logic (Moved from Endpoints) ---
@@ -62,7 +56,14 @@ def logic_create_storyboard(request: StoryboardRequest) -> dict:
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
-        template = template_env.get_template("create_storyboard.j2")
+        # Select template based on structure
+        from services.presets import get_preset_by_structure
+
+        preset = get_preset_by_structure(request.structure)
+        template_name = preset.template if preset else "create_storyboard.j2"
+        extra_fields = preset.extra_fields if preset else {}
+
+        template = template_env.get_template(template_name)
         system_instruction = (
             "SYSTEM: You are a professional storyboarder and scriptwriter. "
             "Write clear, engaging scripts in the requested language (max 120 chars). "
@@ -75,7 +76,9 @@ def logic_create_storyboard(request: StoryboardRequest) -> dict:
             style=request.style,
             structure=request.structure,
             language=request.language,
+            actor_a_gender=request.actor_a_gender,
             keyword_context=format_keyword_context(),
+            **extra_fields,
         )
         res = gemini_client.models.generate_content(
             model="gemini-2.0-flash-exp",
@@ -137,7 +140,7 @@ async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
             return {"image": img}
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 def logic_validate_scene_image(request: SceneValidateRequest) -> dict:
     try:
@@ -240,7 +243,7 @@ def logic_rewrite_prompt(request: PromptRewriteRequest) -> dict:
         return {"prompt": final_prompt}
     except Exception as exc:
         logger.exception("Prompt rewrite failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 def logic_split_prompt(request: PromptSplitRequest) -> dict:
     if not gemini_client:
@@ -267,7 +270,7 @@ def logic_split_prompt(request: PromptSplitRequest) -> dict:
         }
     except Exception as exc:
         logger.exception("Prompt split failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 async def logic_create_video(request: VideoRequest) -> dict:
     """Create a video from scenes using VideoBuilder."""
@@ -276,4 +279,4 @@ async def logic_create_video(request: VideoRequest) -> dict:
         return await builder.build()
     except Exception as exc:
         logger.exception("Video Create Error")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -70,6 +70,9 @@ class VideoRequest(BaseModel):
     subtitle_font: str | None = None
     overlay_settings: OverlaySettings | None = None
     post_card_settings: PostCardSettings | None = None
+    audio_ducking: bool = True
+    bgm_volume: float = 0.25
+    ducking_threshold: float = 0.01
 
 
 class VideoDeleteRequest(BaseModel):

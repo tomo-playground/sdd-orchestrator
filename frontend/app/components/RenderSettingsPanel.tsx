@@ -35,6 +35,10 @@ type RenderSettingsPanelProps = {
   bgmList: AudioItem[];
   onPreviewBgm: () => void;
   isPreviewingBgm: boolean;
+  audioDucking: boolean;
+  setAudioDucking: (value: boolean) => void;
+  bgmVolume: number;
+  setBgmVolume: (value: number) => void;
   // Overlay / Post Card Settings
   overlaySettings: OverlaySettings;
   setOverlaySettings: React.Dispatch<React.SetStateAction<OverlaySettings>>;
@@ -83,6 +87,10 @@ export default function RenderSettingsPanel({
   bgmList,
   onPreviewBgm,
   isPreviewingBgm,
+  audioDucking,
+  setAudioDucking,
+  bgmVolume,
+  setBgmVolume,
   overlaySettings,
   setOverlaySettings,
   overlayAvatarUrl,
@@ -272,6 +280,37 @@ export default function RenderSettingsPanel({
               </div>
             </div>
           </div>
+          {/* BGM Volume & Ducking */}
+          {bgmFile && (
+            <div className="grid gap-4 md:grid-cols-2 mt-2 pt-3 border-t border-zinc-100">
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  BGM Volume ({Math.round(bgmVolume * 100)}%)
+                </label>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={0.5}
+                  step={0.05}
+                  value={bgmVolume}
+                  onChange={(e) => setBgmVolume(Number(e.target.value))}
+                  className="w-full accent-zinc-900"
+                />
+              </div>
+              <label className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-xs font-medium text-zinc-600">
+                <span>
+                  Audio Ducking
+                  <span className="ml-1 text-[10px] text-zinc-400">(내레이션 시 BGM↓)</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={audioDucking}
+                  onChange={(e) => setAudioDucking(e.target.checked)}
+                  className="h-4 w-4 accent-zinc-900"
+                />
+              </label>
+            </div>
+          )}
         </div>
       </details>
 

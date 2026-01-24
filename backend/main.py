@@ -8,7 +8,9 @@ from config import ASSETS_DIR
 from routers import (
     assets_router,
     avatar_router,
+    cleanup_router,
     keywords_router,
+    presets_router,
     prompt_router,
     scene_router,
     sd_router,
@@ -32,7 +34,9 @@ app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 # --- Routers ---
 app.include_router(assets_router)
 app.include_router(avatar_router)
+app.include_router(cleanup_router)
 app.include_router(keywords_router)
+app.include_router(presets_router)
 app.include_router(prompt_router)
 app.include_router(scene_router)
 app.include_router(sd_router)

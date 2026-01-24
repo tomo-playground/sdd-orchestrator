@@ -65,7 +65,15 @@ export const PROMPT_SAMPLES = [
   },
 ];
 
-export const STRUCTURES = ["Monologue"];
+export const STRUCTURES = [
+  "Monologue",
+  "Storytelling",
+  "Tutorial",
+  "Japanese Lesson",
+  "Facts",
+  "Motivation",
+  "Math Lesson",
+];
 
 export const CAMERA_KEYWORDS = [
   "close-up",

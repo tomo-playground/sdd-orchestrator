@@ -115,21 +115,68 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Resume/Checkpoint | 중단된 작업 이어하기 | [x] |
-| Storage Cleanup | outputs/ 자동 정리 로직 | [ ] |
+| Storage Cleanup | outputs/ 자동 정리 로직 | [x] |
 | Project DB (SQLite) | 프로젝트 설정 및 히스토리 관리 | [ ] |
 
 ### 5-2. 영상 품질 강화
 | 작업 | 설명 | 상태 |
 |------|------|------|
+| Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
+| Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 | [ ] |
-| Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 | [ ] |
 | Character Consistency (ControlNet) | IP-Adapter 기반 얼굴 고정 | [ ] |
 
-### 5-3. 확장 기능 (v1.x Backlog)
+### 5-3. 콘텐츠 확장
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Preset System | 구조별 템플릿 및 샘플 토픽 시스템 | [x] |
+| Sample Topics UI | Structure별 샘플 토픽 선택 UI | [x] |
+| Japanese Language Course | 일본어 강좌 전용 템플릿 | [x] |
+| Math Lesson Course | 초/중/고 수학 공식 강좌 템플릿 | [x] |
+
+### 5-4. 확장 기능 (v1.x Backlog)
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | VEO Clip | Video Generation 통합 | [ ] |
 | 정량적 품질 지표 | Match Rate 자동화 | [ ] |
+
+### 5-5. UI/UX 개선
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| SD 파라미터 Advanced 이동 | steps, cfg_scale 등 고급 설정화 | [ ] |
+| Setup 플로우 단순화 | 중복 설정 영역 통합 | [ ] |
+
+---
+
+## 🎭 Phase 6: Character & Prompt System (v2.0)
+다중 캐릭터 지원 및 프롬프트 빌더 시스템 구축.
+
+### 6-1. Character System
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| Style Profile | SD Model + LoRAs + Characters 번들 | [ ] |
+| Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
+| CharacterManager UI | 캐릭터 추가/수정/삭제 관리 | [ ] |
+| Civitai 연동 | LoRA 메타데이터 자동 가져오기 | [ ] |
+
+### 6-2. Prompt Builder
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Character Builder | 고정 아이덴티티 태그 선택 UI | [ ] |
+| Scene Builder | 장면별 가변 컨텍스트 태그 선택 UI | [ ] |
+| Tag Autocomplete | 태그 자동완성 | [ ] |
+| Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+
+### 6-3. Data Management
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| keywords.json 구조 개편 | character vs scene 태그 분리 | [ ] |
+| Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
+| Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
+| Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
+| DB 마이그레이션 | keywords.json → SQLite | [ ] |
+| Profile Export/Import | Style Profile 공유 | [ ] |
 
 ---
 
@@ -150,4 +197,12 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 **Core Mandate**: "No changes in output without explicit intention."
 (의도하지 않은 결과물의 변화는 허용하지 않는다.)
 
-**Latest Status**: 2026-01-24 Resume/Checkpoint 기능 구현 완료. 중단된 Autopilot 세션을 페이지 새로고침 후 이어서 진행 가능. Phase 5-1 진행 중.
+**Latest Status**: 2026-01-24
+- Storage Cleanup 기능 구현 완료 (`/storage/stats`, `/storage/cleanup` API)
+- Pixel-based Subtitle Wrapping 구현 완료 (폰트 기반 줄바꿈, 균형 맞추기, 동적 폰트 크기 조절)
+- Preset System 구현 완료 (`/presets` API, 9개 프리셋)
+- 일본어 강좌 및 수학 공식 강좌 템플릿 추가
+- Frontend: Structure 선택 메뉴 확장 (7개 옵션) + 샘플 토픽 선택 UI 추가
+- VRT Golden Master 업데이트 완료 (36/36 테스트 통과)
+- Audio Ducking 구현 완료 (FFmpeg sidechaincompress, BGM Volume 조절 UI)
+- **Phase 6 로드맵 추가**: Character System, Prompt Builder, Data Management 계획 수립

@@ -83,7 +83,7 @@ def calculate_speed_params(speed_multiplier: float) -> tuple[float, float, float
 
 
 def calculate_scene_durations(
-    scenes: list["VideoScene"],
+    scenes: list[VideoScene],
     tts_valid: list[bool],
     tts_durations: list[float],
     speed_multiplier: float,
@@ -141,7 +141,9 @@ class VideoBuilder:
     - Video encoding
     """
 
-    def __init__(self, request: "VideoRequest"):
+    def __init__(self, request: VideoRequest):
+        from constants.layout import FullLayout, PostLayout
+        from schemas import OverlaySettings, PostCardSettings
         from services.avatar import ensure_avatar_file
         from services.image import load_image_bytes
         from services.rendering import (
@@ -153,8 +155,7 @@ class VideoBuilder:
             resolve_overlay_frame,
             resolve_subtitle_font_path,
         )
-        from services.utils import get_audio_duration, to_edge_tts_rate, wrap_text
-        from schemas import OverlaySettings, PostCardSettings
+        from services.utils import get_audio_duration, to_edge_tts_rate, wrap_text, wrap_text_by_font
 
         self.request = request
         self._ensure_avatar_file = ensure_avatar_file
@@ -169,6 +170,9 @@ class VideoBuilder:
         self._get_audio_duration = get_audio_duration
         self._to_edge_tts_rate = to_edge_tts_rate
         self._wrap_text = wrap_text
+        self._wrap_text_by_font = wrap_text_by_font
+        self._FullLayout = FullLayout
+        self._PostLayout = PostLayout
         self._OverlaySettings = OverlaySettings
         self._PostCardSettings = PostCardSettings
 
@@ -198,6 +202,7 @@ class VideoBuilder:
         self.tts_valid: list[bool] = []
         self.tts_durations: list[float] = []
         self.subtitle_lines: list[list[str]] = []
+        self.subtitle_font_sizes: list[int] = []  # Dynamic font size per scene
         self.scene_durations: list[float] = []
         self.avatar_file: str | None = None
         self.post_avatar_file: str | None = None
@@ -264,13 +269,14 @@ class VideoBuilder:
             else:
                 img_path.write_bytes(image_bytes)
 
-            # Process subtitles
+            # Process subtitles with pixel-based wrapping and dynamic font sizing
             if self.request.include_subtitles:
-                wrapped_script = self._wrap_text(clean_script, width=20, max_lines=2)
-                lines = [line for line in wrapped_script.splitlines() if line.strip()]
+                lines, font_size = self._wrap_subtitle_text(clean_script)
                 self.subtitle_lines.append(lines)
+                self.subtitle_font_sizes.append(font_size)
             else:
                 self.subtitle_lines.append([])
+                self.subtitle_font_sizes.append(0)
 
             # Generate TTS
             has_valid_tts, tts_duration = await self._generate_tts(
@@ -289,6 +295,87 @@ class VideoBuilder:
 
             self.tts_valid.append(has_valid_tts)
             self.tts_durations.append(tts_duration)
+
+    def _wrap_subtitle_text(self, text: str) -> tuple[list[str], int]:
+        """Wrap subtitle text based on font pixel width with dynamic font sizing.
+
+        Calculates max width and font size based on layout type,
+        then wraps text to fit within the available space.
+        If text doesn't fit, reduces font size until it fits or minimum is reached.
+
+        Returns:
+            Tuple of (lines, font_size)
+        """
+        from PIL import ImageFont
+
+        if not text:
+            return [], 0
+
+        # Determine font size range and max width based on layout
+        if self.use_post_layout:
+            base_font_size = int(self.out_h * self._PostLayout.SUBTITLE_FONT_RATIO)
+            min_font_size = int(self.out_h * self._PostLayout.SUBTITLE_MIN_FONT_RATIO)
+            if self.post_layout_metrics:
+                card_width = self.post_layout_metrics["card_width"]
+                card_padding = self.post_layout_metrics["card_padding"]
+                text_area_width = card_width - (card_padding * 2)
+            else:
+                card_width = int(self.out_w * self._PostLayout.CARD_WIDTH_RATIO)
+                card_padding = int(card_width * self._PostLayout.CARD_PADDING_RATIO)
+                text_area_width = card_width - (card_padding * 2)
+            max_width_px = int(text_area_width * self._PostLayout.SUBTITLE_MAX_WIDTH_RATIO)
+            max_lines = self._PostLayout.SUBTITLE_MAX_LINES
+        else:
+            base_font_size = int(self.out_h * self._FullLayout.SUBTITLE_FONT_RATIO)
+            min_font_size = int(self.out_h * self._FullLayout.SUBTITLE_MIN_FONT_RATIO)
+            max_width_px = int(self.out_w * self._FullLayout.SUBTITLE_MAX_WIDTH_RATIO)
+            max_lines = self._FullLayout.SUBTITLE_MAX_LINES
+
+        # Try wrapping with decreasing font sizes
+        font_size = base_font_size
+        font_step = 2  # Decrease by 2px each iteration
+
+        while font_size >= min_font_size:
+            try:
+                font = ImageFont.truetype(self.font_path, font_size)
+            except Exception:
+                logger.warning("Font loading failed, using character-based wrapping")
+                wrapped = self._wrap_text(text, width=20, max_lines=max_lines)
+                lines = [line for line in wrapped.splitlines() if line.strip()]
+                return lines, base_font_size
+
+            lines = self._wrap_text_by_font(text, font, max_width_px, max_lines)
+
+            # Check if all text fits properly
+            if len(lines) <= max_lines:
+                # Verify all lines fit within max_width
+                all_fit = True
+                for line in lines:
+                    bbox = font.getbbox(line)
+                    if bbox and (bbox[2] - bbox[0]) > max_width_px:
+                        all_fit = False
+                        break
+
+                if all_fit:
+                    if font_size < base_font_size:
+                        logger.info(
+                            f"Dynamic font: {base_font_size}px -> {font_size}px for text: {text[:30]}..."
+                        )
+                    return lines, font_size
+
+            # Reduce font size and try again
+            font_size -= font_step
+
+        # Minimum font size reached, return best effort
+        try:
+            font = ImageFont.truetype(self.font_path, min_font_size)
+            lines = self._wrap_text_by_font(text, font, max_width_px, max_lines)
+            logger.warning(f"Using minimum font size {min_font_size}px for: {text[:30]}...")
+            return lines, min_font_size
+        except Exception:
+            wrapped = self._wrap_text(text, width=20, max_lines=max_lines)
+            lines = [line for line in wrapped.splitlines() if line.strip()]
+            return lines, base_font_size
 
     def _process_post_layout_image(
         self, i: int, image_bytes: bytes, img_path: Path
@@ -369,12 +456,14 @@ class VideoBuilder:
 
         for i in range(self.num_scenes):
             subtitle_path = self.temp_dir / f"subtitle_{i}.png"
+            font_size = self.subtitle_font_sizes[i] if self.subtitle_font_sizes[i] > 0 else None
             subtitle_img = self._render_subtitle_image(
                 self.subtitle_lines[i],
                 self.out_w, self.out_h,
                 self.font_path,
                 self.use_post_layout,
                 self.post_layout_metrics,
+                font_size,
             )
             subtitle_img.save(subtitle_path, "PNG")
             self.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])
@@ -539,19 +628,46 @@ class VideoBuilder:
         self._next_input_idx = next_input_idx + 1
 
     def _apply_bgm(self) -> None:
-        """Apply background music if specified."""
+        """Apply background music with optional audio ducking."""
         bgm_path = AUDIO_DIR / self.request.bgm_file if self.request.bgm_file else None
         if not bgm_path or not bgm_path.exists():
             return
 
         self.input_args.extend(["-i", str(bgm_path)])
-        self.filters.append(
-            f"[{self._next_input_idx}:a]volume=0.15,"
-            f"afade=t=out:st={max(0, self._total_dur - 2)}:d=2[bgm_f]"
-        )
-        self.filters.append(
-            f"{self._map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]"
-        )
+        bgm_idx = self._next_input_idx
+        bgm_vol = self.request.bgm_volume
+
+        if self.request.audio_ducking:
+            # Audio Ducking: BGM volume drops when narration plays
+            # 1. Prepare narration as sidechain key signal
+            self.filters.append(f"{self._map_a}asplit=2[narr_out][narr_key]")
+            # 2. Prepare BGM with volume and fade
+            self.filters.append(
+                f"[{bgm_idx}:a]volume={bgm_vol},"
+                f"afade=t=out:st={max(0, self._total_dur - 2)}:d=2[bgm_vol]"
+            )
+            # 3. Apply sidechain compression (duck BGM when narration detected)
+            threshold = self.request.ducking_threshold
+            self.filters.append(
+                f"[bgm_vol][narr_key]sidechaincompress="
+                f"threshold={threshold}:ratio=10:attack=50:release=500:"
+                f"level_sc=1:makeup=1[bgm_ducked]"
+            )
+            # 4. Mix ducked BGM with narration
+            self.filters.append(
+                "[narr_out][bgm_ducked]amix=inputs=2:duration=first:"
+                "dropout_transition=2[a_f]"
+            )
+        else:
+            # No ducking - simple mix with fixed volume
+            self.filters.append(
+                f"[{bgm_idx}:a]volume={bgm_vol},"
+                f"afade=t=out:st={max(0, self._total_dur - 2)}:d=2[bgm_f]"
+            )
+            self.filters.append(
+                f"{self._map_a}[bgm_f]amix=inputs=2:duration=first:"
+                "dropout_transition=2[a_f]"
+            )
         self._map_a = "[a_f]"
 
     def _encode(self) -> None:

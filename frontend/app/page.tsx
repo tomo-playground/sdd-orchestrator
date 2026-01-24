@@ -123,6 +123,8 @@ export default function Home() {
   const [narratorVoice, setNarratorVoice] = useState(VOICES[0].id);
   const [bgmList, setBgmList] = useState<AudioItem[]>([]);
   const [bgmFile, setBgmFile] = useState<string | null>(DEFAULT_BGM);
+  const [audioDucking, setAudioDucking] = useState(true);
+  const [bgmVolume, setBgmVolume] = useState(0.25);
   const [fontList, setFontList] = useState<FontItem[]>([]);
   const [subtitleFont, setSubtitleFont] = useState<string>(DEFAULT_SUBTITLE_FONT);
   const [loadedFonts, setLoadedFonts] = useState<Set<string>>(new Set());
@@ -252,6 +254,8 @@ export default function Home() {
     if (draft.includeSubtitles !== undefined) setIncludeSubtitles(draft.includeSubtitles);
     if (draft.narratorVoice !== undefined) setNarratorVoice(draft.narratorVoice);
     if (draft.bgmFile !== undefined) setBgmFile(draft.bgmFile);
+    if (draft.audioDucking !== undefined) setAudioDucking(draft.audioDucking);
+    if (draft.bgmVolume !== undefined) setBgmVolume(draft.bgmVolume);
     if (draft.subtitleFont !== undefined) setSubtitleFont(draft.subtitleFont);
     if (draft.speedMultiplier !== undefined) setSpeedMultiplier(draft.speedMultiplier);
     if (draft.overlaySettings !== undefined) {
@@ -344,7 +348,7 @@ export default function Home() {
       topic, duration, style, language, structure, actorAGender,
       basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
-      narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+      narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
       overlaySettings, postCardSettings, layoutStyle, motionStyle,
       hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
       recentVideos, scenes: buildDraftScenes(),
@@ -354,7 +358,7 @@ export default function Home() {
     topic, duration, style, language, structure, actorAGender,
     basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
-    narratorVoice, bgmFile, subtitleFont, speedMultiplier,
+    narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
     overlaySettings, postCardSettings, layoutStyle, motionStyle,
     hiResEnabled, veoEnabled, videoUrl, videoUrlFull, videoUrlPost,
     recentVideos, buildDraftScenes, getCheckpoint,
@@ -802,6 +806,8 @@ export default function Home() {
     motion_style: motionStyle,
     narrator_voice: narratorVoice,
     bgm_file: bgmFile,
+    audio_ducking: audioDucking,
+    bgm_volume: bgmVolume,
     speed_multiplier: speedMultiplier,
     include_subtitles: includeSubtitles,
     subtitle_font: subtitleFont,
@@ -1846,6 +1852,10 @@ export default function Home() {
             bgmList={bgmList}
             onPreviewBgm={handlePreviewBgm}
             isPreviewingBgm={isPreviewingBgm}
+            audioDucking={audioDucking}
+            setAudioDucking={setAudioDucking}
+            bgmVolume={bgmVolume}
+            setBgmVolume={setBgmVolume}
             overlaySettings={overlaySettings}
             setOverlaySettings={setOverlaySettings}
             overlayAvatarUrl={overlayAvatarUrl}

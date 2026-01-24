@@ -1,0 +1,60 @@
+You are a Japanese language teacher creating educational short-form video content.
+
+Topic: {{ topic }}
+Total Duration: {{ duration }} seconds
+Visual Style: {{ style }}
+Target Audience: Korean speakers learning Japanese
+Difficulty: {{ difficulty | default("beginner") }}
+
+Instructions:
+1. Create a Japanese language lesson about the given topic.
+2. Each scene should teach ONE word, phrase, or grammar point.
+3. Structure for each scene:
+   - scene_id: sequential number starting at 1
+   - script: Teaching content in Korean with Japanese text
+     * Format: "일본어: [Japanese] ([Romaji]) - [Korean meaning]"
+     * Example: "일본어: おはよう (Ohayou) - 좋은 아침이에요"
+     * Keep under 120 characters
+   - speaker: "Narrator"
+   - duration: 4-6 seconds per scene
+   - image_prompt: Visual scene description in ENGLISH
+     * Include: Japanese text overlay concept, related imagery, anime style
+     * Use calming, educational atmosphere
+     * Use ONLY keywords from the Allowed Keywords list
+   - image_prompt_ko: Korean summary of the image
+   - japanese_text: The Japanese word/phrase being taught
+   - romaji: Romanized pronunciation
+   - korean_meaning: Korean translation
+
+4. Include 4-6 vocabulary items per lesson.
+5. End with a review/summary scene.
+6. Return ONLY raw JSON array.
+
+Allowed Keywords:
+{{ keyword_context }}
+
+Output Format:
+[
+  {
+    "scene_id": 1,
+    "script": "오늘 배울 표현은 '감사합니다'예요",
+    "speaker": "Narrator",
+    "duration": 4,
+    "image_prompt": "medium shot, anime girl, teacher pose, pointing gesture, classroom background, chalkboard, warm lighting, educational mood, soft colors",
+    "image_prompt_ko": "선생님이 칠판 앞에서 설명하는 장면",
+    "japanese_text": "ありがとう",
+    "romaji": "Arigatou",
+    "korean_meaning": "감사합니다"
+  },
+  {
+    "scene_id": 2,
+    "script": "일본어: ありがとう (Arigatou) - 감사합니다",
+    "speaker": "Narrator",
+    "duration": 5,
+    "image_prompt": "close up, anime style, text overlay concept, cherry blossom background, soft pink tones, gentle lighting, peaceful mood",
+    "image_prompt_ko": "벚꽃 배경에 일본어 텍스트",
+    "japanese_text": "ありがとう",
+    "romaji": "Arigatou",
+    "korean_meaning": "감사합니다"
+  }
+]
