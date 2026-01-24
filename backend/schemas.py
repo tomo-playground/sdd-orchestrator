@@ -206,6 +206,7 @@ class CharacterLoRA(BaseModel):
 class CharacterBase(BaseModel):
     name: str
     description: str | None = None
+    gender: str | None = None  # female, male
     identity_tags: list[int] | None = None
     clothing_tags: list[int] | None = None
     loras: list[CharacterLoRA] | None = None
@@ -220,6 +221,7 @@ class CharacterCreate(CharacterBase):
 class CharacterUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+    gender: str | None = None
     identity_tags: list[int] | None = None
     clothing_tags: list[int] | None = None
     loras: list[CharacterLoRA] | None = None

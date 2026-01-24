@@ -95,6 +95,7 @@ Character Preset
 ### 6-3. Multi-Character & Scene (🟡 확장)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
+| 8 | Character Gender Field | Character 모델에 gender 추가, Actor gender 자동 동기화 | [x] |
 | 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
 | 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
@@ -222,7 +223,7 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% |
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 25% |
+| 6-3 | IN PROGRESS | 40% |
 | 6-4 | IN PROGRESS | 17% |
 | 7 | NOT STARTED | 0% |
 

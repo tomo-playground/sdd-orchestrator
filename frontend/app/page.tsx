@@ -1713,6 +1713,10 @@ export default function Home() {
               if (charId === null) return;
               const charFull = await getCharacterFull(charId);
               if (charFull) {
+                // Sync gender from character preset
+                if (charFull.gender) {
+                  setActorAGender(charFull.gender);
+                }
                 // Apply character positive prompt
                 const charPrompt = buildCharacterPrompt(charFull);
                 setBasePromptA(charPrompt);

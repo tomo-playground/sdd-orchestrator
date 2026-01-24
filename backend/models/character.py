@@ -1,0 +1,25 @@
+"""Character preset model."""
+
+from sqlalchemy import ARRAY, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from models.base import Base, TimestampMixin
+
+
+class Character(Base, TimestampMixin):
+    """Character preset with identity tags, clothing tags, and multiple LoRAs."""
+
+    __tablename__ = "characters"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500))  # LoRA 조합 설명
+    gender: Mapped[str | None] = mapped_column(String(10))  # female, male
+    identity_tags: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))  # tag IDs
+    clothing_tags: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))
+    # Multiple LoRAs with weights: [{"lora_id": 1, "weight": 1.0}, ...]
+    loras: Mapped[list[dict] | None] = mapped_column(JSONB)
+    # Validated negative prompt for this character/LoRA combination
+    recommended_negative: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
+    preview_image_url: Mapped[str | None] = mapped_column(String(500))

@@ -19,7 +19,11 @@ projects/
 *.mp3
 logs/
 *.log
-models/
+# ML model files (large binaries)
+*.safetensors
+*.ckpt
+*.pt
+*.onnx
 assets/audio/
 videos/
 images/

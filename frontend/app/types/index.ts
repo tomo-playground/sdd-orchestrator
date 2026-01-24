@@ -148,6 +148,7 @@ export type Character = {
   id: number;
   name: string;
   description: string | null;
+  gender: ActorGender | null;
   identity_tags: number[] | null;
   clothing_tags: number[] | null;
   loras: CharacterLoRA[] | null;
@@ -205,6 +206,7 @@ export type CharacterFull = {
   id: number;
   name: string;
   description: string | null;
+  gender: ActorGender | null;
   identity_tags: { id: number; name: string; group_name: string }[];
   clothing_tags: { id: number; name: string; group_name: string }[];
   loras: CharacterFullLoRA[];

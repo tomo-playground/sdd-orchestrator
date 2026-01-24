@@ -69,6 +69,7 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
         "id": character.id,
         "name": character.name,
         "description": character.description,
+        "gender": character.gender,
         "identity_tags": identity_tags,
         "clothing_tags": clothing_tags,
         "loras": loras_info,
