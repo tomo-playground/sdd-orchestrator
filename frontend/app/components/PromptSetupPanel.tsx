@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ActorGender } from "../types";
 import { PROMPT_SAMPLES, SAMPLERS } from "../constants";
 
@@ -70,6 +71,8 @@ export default function PromptSetupPanel({
   setSelectedSampleId,
   onOpenPromptHelper,
 }: PromptSetupPanelProps) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   const handleInsertSample = () => {
     const sample = PROMPT_SAMPLES.find((item) => item.id === selectedSampleId);
     if (!sample) return;
@@ -139,20 +142,16 @@ export default function PromptSetupPanel({
               className="h-4 w-4 accent-zinc-900"
             />
           </label>
-          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-            VEO Clip
+          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-100/50 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase cursor-not-allowed">
+            <span>VEO Clip <span className="text-[9px] text-zinc-400 normal-case">(Coming Soon)</span></span>
             <input
               type="checkbox"
               checked={veoEnabled}
               onChange={(e) => setVeoEnabled(e.target.checked)}
               className="h-4 w-4 accent-zinc-900"
+              disabled
             />
           </label>
-          {!veoEnabled && (
-            <p className="text-[10px] text-zinc-400">
-              VEO is off. Autopilot will skip motion clip generation.
-            </p>
-          )}
         </div>
       )}
 
@@ -231,74 +230,87 @@ export default function PromptSetupPanel({
               placeholder="verybadimagenegative_v1.3"
             />
           </div>
-          <div className="grid gap-3 md:grid-cols-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Base Steps (Actor A)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={80}
-                value={baseStepsA}
-                onChange={(e) => setBaseStepsA(Number(e.target.value))}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Base CFG (Actor A)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                step={0.5}
-                value={baseCfgScaleA}
-                onChange={(e) => setBaseCfgScaleA(Number(e.target.value))}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Base Sampler (Actor A)
-              </label>
-              <select
-                value={baseSamplerA}
-                onChange={(e) => setBaseSamplerA(e.target.value)}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              >
-                {SAMPLERS.map((sampler) => (
-                  <option key={sampler} value={sampler}>
-                    {sampler}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Base Seed (Actor A)
-              </label>
-              <input
-                type="number"
-                value={baseSeedA}
-                onChange={(e) => setBaseSeedA(Number(e.target.value))}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Base Clip Skip (Actor A)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={baseClipSkipA}
-                onChange={(e) => setBaseClipSkipA(Number(e.target.value))}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
-            </div>
+          {/* Advanced Settings Toggle */}
+          <div className="border-t border-zinc-200 pt-4">
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen(!advancedOpen)}
+              className="flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase hover:text-zinc-700"
+            >
+              <span className={`transition-transform ${advancedOpen ? "rotate-90" : ""}`}>▶</span>
+              Advanced Settings (SD Parameters)
+            </button>
+            {advancedOpen && (
+              <div className="mt-4 grid gap-3 md:grid-cols-5">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                    Steps
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={80}
+                    value={baseStepsA}
+                    onChange={(e) => setBaseStepsA(Number(e.target.value))}
+                    className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                    CFG Scale
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    step={0.5}
+                    value={baseCfgScaleA}
+                    onChange={(e) => setBaseCfgScaleA(Number(e.target.value))}
+                    className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                    Sampler
+                  </label>
+                  <select
+                    value={baseSamplerA}
+                    onChange={(e) => setBaseSamplerA(e.target.value)}
+                    className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  >
+                    {SAMPLERS.map((sampler) => (
+                      <option key={sampler} value={sampler}>
+                        {sampler}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                    Seed
+                  </label>
+                  <input
+                    type="number"
+                    value={baseSeedA}
+                    onChange={(e) => setBaseSeedA(Number(e.target.value))}
+                    className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                    Clip Skip
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={baseClipSkipA}
+                    onChange={(e) => setBaseClipSkipA(Number(e.target.value))}
+                    className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
