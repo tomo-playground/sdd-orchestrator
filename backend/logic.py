@@ -165,12 +165,15 @@ async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
         if request.use_ip_adapter and request.ip_adapter_reference:
             ref_image = load_reference_image(request.ip_adapter_reference)
             if ref_image:
-                controlnet_args_list.append(build_ip_adapter_args(
-                    reference_image=ref_image,
-                    weight=request.ip_adapter_weight,
-                ))
-                ip_adapter_used = request.ip_adapter_reference
-                logger.info("🧑 [IP-Adapter] Using reference: %s (weight=%.1f)", request.ip_adapter_reference, request.ip_adapter_weight)
+                try:
+                    controlnet_args_list.append(build_ip_adapter_args(
+                        reference_image=ref_image,
+                        weight=request.ip_adapter_weight,
+                    ))
+                    ip_adapter_used = request.ip_adapter_reference
+                    logger.info("🧑 [IP-Adapter] Using reference: %s (weight=%.1f)", request.ip_adapter_reference, request.ip_adapter_weight)
+                except Exception as e:
+                    logger.warning("🧑 [IP-Adapter] Skipped - %s", str(e))
 
         # Apply combined ControlNet args
         if controlnet_args_list:
