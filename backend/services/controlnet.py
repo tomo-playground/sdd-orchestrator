@@ -147,7 +147,7 @@ def build_controlnet_args(
 
     return {
         "enabled": True,
-        "input_image": input_image,
+        "image": input_image,
         "module": preprocessor or default_preprocessors.get(model, "none"),
         "model": model_name,
         "weight": weight,
@@ -340,7 +340,7 @@ def build_ip_adapter_args(
 
     return {
         "enabled": True,
-        "input_image": reference_image,
+        "image": reference_image,
         "module": "ip-adapter_face_id_plus",
         "model": model_name,
         "weight": weight,
