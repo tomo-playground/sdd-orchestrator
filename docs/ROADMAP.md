@@ -151,32 +151,46 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 ## 🎭 Phase 6: Character & Prompt System (v2.0)
 다중 캐릭터 지원 및 프롬프트 빌더 시스템 구축.
 
-### 6-1. Character System
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
-| Style Profile | SD Model + LoRAs + Characters 번들 | [ ] |
-| Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
-| CharacterManager UI | 캐릭터 추가/수정/삭제 관리 | [ ] |
-| Civitai 연동 | LoRA 메타데이터 자동 가져오기 | [ ] |
+**의존성 구조**:
+```
+keywords.json 구조 개편 → DB 마이그레이션
+        ↓
+Character Builder → Style Profile → Multi-Character
+        ↓
+Scene Builder → Tag Autocomplete
+        ↓
+Civitai 연동, Analytics (고급 기능)
+```
 
-### 6-2. Prompt Builder
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| Character Builder | 고정 아이덴티티 태그 선택 UI | [ ] |
-| Scene Builder | 장면별 가변 컨텍스트 태그 선택 UI | [ ] |
-| Tag Autocomplete | 태그 자동완성 | [ ] |
-| Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+### 6-1. Data Foundation (🔴 필수 선행)
+| 순서 | 작업 | 설명 | 상태 |
+|------|------|------|------|
+| 1 | keywords.json 구조 개편 | character vs scene 태그 분리 | [ ] |
+| 2 | DB 마이그레이션 | keywords.json → SQLite (CRUD 지원) | [ ] |
 
-### 6-3. Data Management
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| keywords.json 구조 개편 | character vs scene 태그 분리 | [ ] |
-| Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
-| Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
-| Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
-| DB 마이그레이션 | keywords.json → SQLite | [ ] |
-| Profile Export/Import | Style Profile 공유 | [ ] |
+### 6-2. Character Layer (🟡 핵심)
+| 순서 | 작업 | 설명 | 상태 |
+|------|------|------|------|
+| 3 | Character Builder UI | 고정 아이덴티티 태그 선택 | [ ] |
+| 4 | Style Profile | SD Model + LoRAs + Characters 번들 | [ ] |
+| 5 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
+| 6 | Character Preview | 캐릭터 설정 시 미리보기 생성 | [ ] |
+
+### 6-3. Scene Layer (🟢 확장)
+| 순서 | 작업 | 설명 | 상태 |
+|------|------|------|------|
+| 7 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 | [ ] |
+| 8 | Tag Autocomplete | 태그 자동완성 | [ ] |
+
+### 6-4. Advanced Features (🔵 고급)
+| 순서 | 작업 | 설명 | 상태 |
+|------|------|------|------|
+| 9 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 | [ ] |
+| 10 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+| 11 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 | [ ] |
+| 12 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
+| 13 | Feedback Loop | 사용자 태그 제안 시스템 | [ ] |
+| 14 | Profile Export/Import | Style Profile 공유 | [ ] |
 
 ---
 
@@ -205,4 +219,4 @@ Phase 2의 VRT를 **매 커밋마다 실행**하며 안전하게 리팩토링합
 - Frontend: Structure 선택 메뉴 확장 (7개 옵션) + 샘플 토픽 선택 UI 추가
 - VRT Golden Master 업데이트 완료 (36/36 테스트 통과)
 - Audio Ducking 구현 완료 (FFmpeg sidechaincompress, BGM Volume 조절 UI)
-- **Phase 6 로드맵 추가**: Character System, Prompt Builder, Data Management 계획 수립
+- **Phase 6 로드맵 추가**: 의존성 기반 우선순위 정의 (Data → Character → Scene → Advanced)
