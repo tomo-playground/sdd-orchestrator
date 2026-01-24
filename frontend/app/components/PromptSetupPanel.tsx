@@ -199,11 +199,13 @@ export default function PromptSetupPanel({
                   className="flex-1 rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                 >
                   <option value="">None (Manual)</option>
-                  {characters.map((char) => (
-                    <option key={char.id} value={char.id}>
-                      {char.name}
-                    </option>
-                  ))}
+                  {characters
+                    .filter((char) => char.gender === actorAGender)
+                    .map((char) => (
+                      <option key={char.id} value={char.id}>
+                        {char.name}
+                      </option>
+                    ))}
                 </select>
                 {/* Character Preview */}
                 {(() => {

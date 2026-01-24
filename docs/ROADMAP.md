@@ -67,7 +67,7 @@
 - **Model**: `animagine-xl.safetensors` (SDXL 애니메)
 - **LoRA**: `eureka_v9`, `chibi-laugh`, `blindbox_v1_mix`
 - **Negative Embeddings**: `verybadimagenegative_v1.3`, `easynegative`
-- **Presets**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi Style, Blindbox Style
+- **Presets**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi, Blindbox
 
 ### 6-1. Data Foundation - **COMPLETE**
 | 작업 | 설명 | 상태 |
@@ -98,6 +98,9 @@ Character Preset
 | 8 | Character Gender Field | Character 모델에 gender 추가, Actor gender 자동 동기화 | [x] |
 | 8.1 | LoRA Gender Locked | LoRA에 gender_locked 메타데이터 추가 (female/male/null) | [x] |
 | 8.2 | Gender 읽기전용 UI | Character Preset 선택 시 Gender 필드 잠금 | [x] |
+| 8.3 | Style Preset 네이밍 | Chibi Style → Chibi, Blindbox Style → Blindbox | [x] |
+| 8.4 | Male Style Presets | 1boy + 스타일 LoRA 품질 테스트 → 성별 구분 불명확으로 탈락 | [-] |
+| 8.5 | Gender 기반 Preset 필터링 | 선택된 성별에 맞는 프리셋만 드롭다운에 표시 | [x] |
 | 9 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 10 | Scene Builder UI | 장면별 가변 컨텍스트 태그 선택 (priority 5-6) | [ ] |
 | 11 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
