@@ -75,6 +75,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "spread", "bent", "folded", "clasped", "akimbo", "outstretched",
         "on stomach", "on back", "on side", "fetal position", "sprawled",
         "between legs", "hand on", "hugging", "curled up",
+        "squatting", "lounging", "reclining", "stretching", "bending",
     ],
     "action": [
         "walking", "running", "jumping", "dancing", "eating", "drinking",
@@ -95,8 +96,9 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "window", "door", "wall", "floor", "ceiling", "desk", "chair", "table",
         "bed", "sofa", "tree", "flower", "grass", "sky", "cloud", "sun", "moon",
         "rain", "snow", "night", "day", "sunset", "sunrise", "scenery",
-        "book", "bookshelf", "shelf", "lamp", "curtain", "pillow", "blanket",
+        "book", "bookshelf", "shelf", "lamp", "curtain", "curtains", "pillow", "blanket",
         "carpet", "rug", "plant", "vase", "clock", "mirror", "painting",
+        "bush", "fence", "bridge", "road", "path", "stairs", "balcony",
     ],
     "mood": [
         "dramatic", "romantic", "melancholic", "cheerful", "peaceful", "tense",
@@ -112,6 +114,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "pantyhose", "stockings", "leggings", "apron", "vest", "cardigan",
         "footwear", "kneehighs", "thighhighs", "bare", "shoulders", "sleeveless",
         "bag", "backpack", "purse", "handbag", "satchel", "briefcase",
+        "blazer", "overalls", "plaid", "barefoot", "loafers", "sneakers",
+        "tank top", "crop top", "miniskirt", "jeans", "denim", "hood",
     ],
     "hair_style": [
         "hair", "bangs", "ponytail", "twintails", "braid", "bun", "bob",
@@ -128,9 +132,9 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "yellow eyes", "orange eyes", "pink eyes", "heterochromia",
     ],
     "skin_color": [
-        "pale skin", "dark skin", "tan", "tanned", "white skin", "brown skin",
+        "pale skin", "dark skin", "tanned skin", "tanned", "white skin", "brown skin",
         "colored skin", "blue skin", "green skin", "red skin", "pink skin",
-        "purple skin", "grey skin", "gray skin", "skin", "complexion",
+        "purple skin", "grey skin", "gray skin", "dark-skinned", "light-skinned",
     ],
     "appearance": [
         "freckles", "mole", "scar", "tattoo", "piercing", "makeup", "lipstick",
@@ -165,27 +169,29 @@ def suggest_category_for_tag(tag: str) -> tuple[str, float]:
     best_category = ""
     best_score = 0.0
 
+    tag_words = set(normalized.split())
+
     for category, patterns in CATEGORY_PATTERNS.items():
         for pattern in patterns:
             pattern_lower = pattern.lower()
-            # Exact match
+            pattern_words = set(pattern_lower.split())
+
+            # Exact match (100%)
             if normalized == pattern_lower:
                 return (category, 1.0)
-            # Contains pattern as whole word
-            if pattern_lower in normalized.split():
+
+            # Tag contains pattern as complete word(s) (95%)
+            # e.g., "white shirt" contains "shirt"
+            if pattern_words.issubset(tag_words):
+                score = 0.95
+                if score > best_score:
+                    best_score = score
+                    best_category = category
+
+            # Pattern contains tag as complete word(s) (90%)
+            # e.g., "long sleeves" pattern matches "sleeves" tag
+            elif tag_words.issubset(pattern_words) and len(normalized) >= 4:
                 score = 0.9
-                if score > best_score:
-                    best_score = score
-                    best_category = category
-            # Tag contains pattern
-            elif pattern_lower in normalized:
-                score = 0.7
-                if score > best_score:
-                    best_score = score
-                    best_category = category
-            # Pattern contains tag
-            elif normalized in pattern_lower:
-                score = 0.5
                 if score > best_score:
                     best_score = score
                     best_category = category
