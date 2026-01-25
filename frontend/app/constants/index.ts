@@ -130,33 +130,37 @@ export const SCENE_SPECIFIC_KEYWORDS = [
 
 /**
  * SD Prompt Token Priority Order (lower = earlier in prompt)
- * Based on SD best practices: quality → subject → appearance → clothing → expression → gaze → pose → camera → environment → mood → LoRA
+ * Single Source of Truth: backend/services/keywords.py (CATEGORY_PRIORITY)
+ * Keep this in sync with the backend /keywords/priority endpoint.
  */
 export const TOKEN_PRIORITY: Record<string, number> = {
-  // Priority 1: Quality (맨 앞에 배치)
+  // Priority 1: Quality
   "masterpiece": 1, "best quality": 1, "high quality": 1, "amazing quality": 1,
   "detailed": 1, "ultra detailed": 1, "extremely detailed": 1,
   "absurdres": 1, "highres": 1, "8k": 1,
 
-  // Priority 2: Subject (who/how many)
+  // Priority 2: Subject
   "1girl": 2, "1boy": 2, "2girls": 2, "2boys": 2, "3girls": 2, "3boys": 2,
   "multiple girls": 2, "multiple boys": 2,
   "solo": 2, "duo": 2, "trio": 2, "group": 2, "couple": 2,
 
-  // Priority 3-4: Character appearance (hair, eyes, features)
-  // Matched by patterns below
+  // Priority 3: Identity (LoRA triggers)
+  // Matched by character identity tags
+
+  // Priority 4: Character appearance (hair, eyes, features)
+  // Matched by patterns below (priority 4)
 
   // Priority 5: Clothing
-  // Matched by patterns below
+  // Matched by patterns below (priority 5)
 
-  // Priority 6: Expression/emotion
+  // Priority 6: Expression
   "smile": 6, "smiling": 6, "happy": 6, "sad": 6, "crying": 6, "angry": 6,
   "surprised": 6, "shocked": 6, "embarrassed": 6, "shy": 6, "blush": 6, "blushing": 6,
   "serious": 6, "determined": 6, "confident": 6, "nervous": 6, "scared": 6,
   "laughing": 6, "grin": 6, "frown": 6, "pout": 6, "expressionless": 6,
   "open mouth": 6, "closed mouth": 6, "tongue out": 6,
 
-  // Priority 7: Gaze direction
+  // Priority 7: Gaze
   "looking at viewer": 7, "looking away": 7, "looking up": 7, "looking down": 7,
   "looking to the side": 7, "looking back": 7, "eye contact": 7,
   "eyes closed": 7, "closed eyes": 7, "half-closed eyes": 7, "wink": 7,
@@ -173,33 +177,34 @@ export const TOKEN_PRIORITY: Record<string, number> = {
   "reading": 9, "writing": 9, "eating": 9, "drinking": 9,
   "sleeping": 9, "waving": 9, "pointing": 9, "hugging": 9,
 
-  // Priority 10: Camera/composition
+  // Priority 10: Camera
   "close-up": 10, "portrait": 10, "bust shot": 10, "upper body": 10,
   "cowboy shot": 10, "full body": 10, "wide shot": 10,
   "from above": 10, "from below": 10, "from side": 10, "from behind": 10,
   "dutch angle": 10, "low angle": 10, "high angle": 10, "pov": 10,
 
-  // Priority 11: Location/environment
+  // Priority 11: Location / Environment / Background
   "indoors": 11, "outdoors": 11,
   "library": 11, "cafe": 11, "street": 11, "room": 11, "bedroom": 11, "office": 11,
   "classroom": 11, "park": 11, "forest": 11, "beach": 11, "city": 11,
+  "simple background": 11, "white background": 11, "black background": 11,
+  "gradient background": 11, "blurry background": 11, "detailed background": 11,
 
-  // Priority 12: Background type
-  "simple background": 12, "white background": 12, "black background": 12,
-  "gradient background": 12, "blurry background": 12, "detailed background": 12,
+  // Priority 12: Time / Weather
+  "day": 12, "night": 12, "sunset": 12, "sunrise": 12, "dusk": 12, "dawn": 12,
+  "sunny": 12, "cloudy": 12, "rainy": 12, "rain": 12, "snowy": 12, "snow": 12,
 
-  // Priority 13: Time/weather
-  "day": 13, "night": 13, "sunset": 13, "sunrise": 13, "dusk": 13, "dawn": 13,
-  "sunny": 13, "cloudy": 13, "rainy": 13, "rain": 13, "snowy": 13, "snow": 13,
+  // Priority 13: Lighting
+  "natural light": 13, "sunlight": 13, "moonlight": 13,
+  "backlighting": 13, "rim light": 13, "dramatic lighting": 13,
+  "soft lighting": 13, "neon lights": 13,
 
-  // Priority 14: Lighting
-  "natural light": 14, "sunlight": 14, "moonlight": 14,
-  "backlighting": 14, "rim light": 14, "dramatic lighting": 14,
-  "soft lighting": 14, "neon lights": 14,
+  // Priority 14: Mood
+  "romantic": 14, "melancholic": 14, "peaceful": 14, "dramatic": 14,
+  "mysterious": 14, "ethereal": 14, "cozy": 14, "lonely": 14,
 
-  // Priority 15: Mood
-  "romantic": 15, "melancholic": 15, "peaceful": 15, "dramatic": 15,
-  "mysterious": 15, "ethereal": 15, "cozy": 15, "lonely": 15,
+  // Priority 15: Style
+  "anime": 15, "photorealistic": 15, "sketch": 15, "watercolor": 15,
 };
 
 // Patterns for categorizing tokens by priority

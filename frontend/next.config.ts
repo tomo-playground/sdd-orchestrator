@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
+const allowedOrigins = process.env.ALLOWED_DEV_ORIGIN
+  ? [process.env.ALLOWED_DEV_ORIGIN]
+  : [];
+
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["http://192.168.45.73"],
+  allowedDevOrigins: allowedOrigins,
 };
 
 export default nextConfig;
