@@ -40,3 +40,4 @@ logs/
 # Temporary
 tmp/
 temp/
+backend/.coverage

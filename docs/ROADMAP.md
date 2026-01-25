@@ -232,7 +232,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | Reference-only 테스트 | 캐릭터 일관성 유지 방법 검증 | [x] |
 | 치비 포즈 테스트 | LoRA + Reference-only 조합 | [x] |
 
-**7-4 실험 결론** (상세: `docs/CHARACTER_RENDERING_REPORT.md`):
+**7-4 실험 결론** (상세: `docs/reports/CHARACTER_RENDERING_REPORT.md`):
 - **상호작용 장면** → ControlNet 단일 생성 권장
 - **대화 장면** → 분리 생성 + 합성 권장
 - **캐릭터 일관성** → Reference-only (weight 0.5, guidance_end 0.8) 권장
@@ -324,7 +324,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-25 (23:00)
+**Last Updated**: 2026-01-26
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -414,7 +414,7 @@ brew install claude-squad  # 명령어: cs
   - 9.8.7: POST /prompt/compose API
   - 9.8.8: ComposedPromptPreview.tsx (카테고리별 그룹 + Toggle)
   - 9.8.9: 통합 테스트 35개 (100% pass)
-- 상세 스펙: `docs/PROMPT_SPEC.md` 참조
+- 상세 스펙: `docs/specs/PROMPT_SPEC.md` 참조
 
 **9.8 버그 수정 (2026-01-25 17:15)**:
 - **buildScenePrompt 통합**: Frontend에서 단순 연결 → `/prompt/compose` API 호출로 수정
