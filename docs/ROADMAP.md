@@ -315,7 +315,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (02:30)
+**Last Updated**: 2026-01-26 (11:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -363,6 +363,13 @@ brew install claude-squad  # 명령어: cs
 **TTS 개선 (2026-01-26)**:
 - TTS가 정제된 스크립트 사용 (`raw_script` → `clean_script`)
 - 스크립트 정제 함수 개선: 말줄임표/대시 정규화, 다중 문장부호 단일화
+
+**Draft & Preset UX 개선 (2026-01-26 11:00)**:
+- **Character Preset 영속성**: 페이지 리로드 시 선택된 캐릭터 유지 (DraftData에 추가)
+- **Draft 리셋 개선**: 채널 브랜딩 정보(channel_name, avatar_key) 유지, caption만 초기화
+- **Post 레이아웃 자막**: 최대 줄 수 3→2로 변경 (이미지 겹침 방지)
+- **일본어 프리셋 명확화**: "일본어 강좌" → "일본어 레슨 (학습용)" (학습용임을 명시)
+- **스토리보드 언어 강제**: 일본어 등 외국어 생성 시 로마자/번역 혼용 방지 (CRITICAL LANGUAGE RULE 추가)
 
 **15.7 Dynamic Tag Classification System 완료 (2026-01-25)**:
 - 15.7.1~15.7.8 전체 완료
