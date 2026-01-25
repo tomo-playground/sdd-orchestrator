@@ -14,9 +14,11 @@ from schemas import BatchApproveRequest, KeywordApproveRequest
 from services.keywords import (
     get_effective_tags,
     get_tag_effectiveness_report,
+    get_tag_rules_summary,
     load_keyword_suggestions,
     load_tags_from_db,
     normalize_prompt_token,
+    validate_prompt_tags,
 )
 
 router = APIRouter(prefix="/keywords", tags=["keywords"])
@@ -280,3 +282,34 @@ async def batch_approve(
         "skipped": skipped,
         "failed": failed,
     }
+
+
+@router.get("/rules")
+async def get_tag_rules():
+    """Get summary of tag conflict and requires rules."""
+    logger.info("[Tag Rules Summary]")
+    try:
+        summary = get_tag_rules_summary()
+        return summary
+    except Exception as exc:
+        logger.exception("Tag rules summary failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/validate")
+async def validate_tags(tags: list[str]):
+    """Validate a list of tags for conflicts and missing dependencies.
+
+    Example:
+        POST /keywords/validate
+        ["short hair", "long hair", "twintails"]
+
+    Returns conflicts and missing dependencies.
+    """
+    logger.info("[Tag Validation] tags=%s", tags[:10])
+    try:
+        result = validate_prompt_tags(tags)
+        return result
+    except Exception as exc:
+        logger.exception("Tag validation failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

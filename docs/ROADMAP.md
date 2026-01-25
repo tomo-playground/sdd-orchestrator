@@ -132,6 +132,7 @@ Character Preset
 | 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 (기본 구현: 9.1.1) | [~] |
 | 15.1 | Batch Tag Approval | confidence >= 0.7 태그 일괄 승인 (미리보기 + 선택적 승인) | [x] |
 | 15.2 | **Tag Categorization V2** | SD Priority 기반 분류체계 개편 (24개 카테고리, environment 세분화) | [x] |
+| 15.3 | **Tag Conflict/Requires Rules** | 태그 충돌(57쌍)/의존성(29개) 규칙 + 검증 API | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
@@ -330,6 +331,12 @@ brew install claude-squad  # 명령어: cs
 - DB 481개 태그 priority 업데이트 (1=quality ~ 16=style)
 - Frontend TOKEN_PRIORITY 수정: Quality Priority 8→1로 이동
 - CATEGORY_PATTERNS 확장: 누락된 quality, subject, body_feature 등 추가
+
+**6-4.15.3 Tag Rules 완료 (2026-01-25)**:
+- 태그 충돌 규칙 57쌍 (hair length, time, weather, camera, pose 등)
+- 태그 의존성 규칙 29개 (twintails→long hair, cat ears→animal ears 등)
+- 검증 API: POST /keywords/validate, GET /keywords/rules
+- body_feature 카테고리 26개 태그 추가 (animal ears, horns, wings, tail 등)
 
 **다음 우선순위**:
 1. Phase 5: Ken Burns Effect - 시각적 품질 향상
