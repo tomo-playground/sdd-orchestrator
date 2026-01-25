@@ -74,7 +74,14 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "multiple girls", "multiple boys", "couple", "1other",
     ],
 
-    # === Priority 3-4: Identity/Appearance ===
+    # === Priority 3: Identity (LoRA triggers) ===
+    # Note: Character-specific triggers are synced from loras.trigger_words via sync_lora_triggers_to_tags()
+    # This pattern list is for generic identity markers only
+    "identity": [
+        "male", "female", "androgynous",
+    ],
+
+    # === Priority 4: Appearance ===
     "hair_color": [
         "black hair", "blonde hair", "brown hair", "red hair",
         "blue hair", "green hair", "pink hair", "purple hair",
@@ -374,8 +381,9 @@ SKIP_TAGS = frozenset([
     # Sensitive subjects
     "child", "male child", "female child", "young", "loli", "shota",
     "aged down", "aged up",
-    # Character-specific names (too specific, not generalizable)
-    "midoriya izuku", "watson amelia", "hatsune miku",
+    # Character-specific names (not in our LoRA library)
+    "watson amelia", "hatsune miku",
+    # Note: "midoriya izuku", "eureka" are valid LoRA triggers, not skipped
     # Copyright tags
     "vocaloid", "fate", "genshin impact", "blue archive",
     # Too vague or redundant
@@ -768,6 +776,118 @@ def validate_prompt_tags(prompt_tags: list[str]) -> dict[str, Any]:
             "conflicts": conflicts,
             "missing_dependencies": missing_deps,
             "warnings": warnings
+        }
+    finally:
+        db.close()
+
+
+def sync_lora_triggers_to_tags() -> dict[str, Any]:
+    """Sync LoRA trigger words to tags table.
+
+    Reads all trigger words from loras table and ensures they exist
+    in the tags table with appropriate categories.
+
+    Returns:
+        {"added": [...], "updated": [...], "skipped": [...]}
+    """
+    from database import SessionLocal
+    from models.lora import LoRA
+    from models.tag import Tag
+
+    # Trigger word classification rules
+    # Pattern-based classification for trigger words
+    def classify_trigger(trigger: str, lora_type: str | None) -> tuple[str, str, int]:
+        """Returns (group_name, category, priority)."""
+        trigger_lower = trigger.lower()
+
+        # Eye color patterns
+        if "eyes" in trigger_lower:
+            return ("eye_color", "character", 4)
+
+        # Hair patterns
+        if "hair" in trigger_lower:
+            if any(c in trigger_lower for c in ["black", "blonde", "brown", "red", "blue", "green", "pink", "purple", "white", "silver", "grey", "gray", "orange", "aqua"]):
+                return ("hair_color", "character", 4)
+            elif any(l in trigger_lower for l in ["short", "long", "medium"]):
+                return ("hair_length", "character", 4)
+            else:
+                return ("hair_style", "character", 4)
+
+        # Style triggers
+        if lora_type == "style" and trigger_lower in ["chibi", "blindbox", "figure", "anime", "realistic"]:
+            return ("style", "scene", 16)
+
+        # Expression triggers
+        if trigger_lower in ["laughing", "crying", "smiling", "eyebrow", "eyebrow down", "eyebrow up"]:
+            return ("expression", "scene", 6)
+
+        # Default: treat as character identity (LoRA trigger)
+        return ("identity", "character", 3)
+
+    db = SessionLocal()
+    try:
+        added = []
+        updated = []
+        skipped = []
+
+        loras = db.query(LoRA).all()
+
+        for lora in loras:
+            if not lora.trigger_words:
+                continue
+
+            for trigger in lora.trigger_words:
+                if not trigger or not trigger.strip():
+                    continue
+
+                trigger_clean = trigger.strip().lower()
+                group_name, category, priority = classify_trigger(trigger_clean, lora.lora_type)
+
+                # Check if tag exists
+                existing = db.query(Tag).filter(Tag.name == trigger_clean).first()
+
+                if existing:
+                    # Update if group is different and it's identity type
+                    if existing.group_name != group_name and group_name == "identity":
+                        existing.group_name = group_name
+                        existing.priority = priority
+                        updated.append({
+                            "trigger": trigger_clean,
+                            "lora": lora.name,
+                            "group": group_name,
+                        })
+                    else:
+                        skipped.append({
+                            "trigger": trigger_clean,
+                            "lora": lora.name,
+                            "existing_group": existing.group_name,
+                        })
+                else:
+                    # Add new tag
+                    db.add(Tag(
+                        name=trigger_clean,
+                        category=category,
+                        group_name=group_name,
+                        priority=priority,
+                        exclusive=False,
+                    ))
+                    added.append({
+                        "trigger": trigger_clean,
+                        "lora": lora.name,
+                        "group": group_name,
+                    })
+
+        db.commit()
+
+        return {
+            "added": added,
+            "updated": updated,
+            "skipped": skipped,
+            "summary": {
+                "added_count": len(added),
+                "updated_count": len(updated),
+                "skipped_count": len(skipped),
+            }
         }
     finally:
         db.close()

@@ -18,6 +18,7 @@ from services.keywords import (
     load_keyword_suggestions,
     load_tags_from_db,
     normalize_prompt_token,
+    sync_lora_triggers_to_tags,
     validate_prompt_tags,
 )
 
@@ -312,4 +313,28 @@ async def validate_tags(tags: list[str]):
         return result
     except Exception as exc:
         logger.exception("Tag validation failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/sync-lora-triggers")
+async def sync_lora_triggers():
+    """Sync LoRA trigger words to tags table.
+
+    Reads all trigger words from loras table and ensures they exist
+    in the tags table with appropriate categories (identity, style, etc.).
+
+    Call this after adding/updating LoRAs to keep triggers in sync.
+    """
+    logger.info("[Sync LoRA Triggers]")
+    try:
+        result = sync_lora_triggers_to_tags()
+        logger.info(
+            "[Sync LoRA Triggers Complete] added=%d updated=%d skipped=%d",
+            result["summary"]["added_count"],
+            result["summary"]["updated_count"],
+            result["summary"]["skipped_count"],
+        )
+        return result
+    except Exception as exc:
+        logger.exception("Sync LoRA triggers failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
