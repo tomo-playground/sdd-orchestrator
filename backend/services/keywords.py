@@ -63,6 +63,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "embarrassed", "confused", "tired", "sleepy", "annoyed", "excited",
         "mouth", "teeth", "tongue", "lips", "open mouth", "closed mouth",
         "eyebrows", "v-shaped", "furrowed", "raised eyebrow", "sweat", "drool",
+        "sweatdrop", "nosebleed", "drooling", "teardrop",
     ],
     "gaze": [
         "looking", "staring", "glancing", "eye contact", "eyes closed",
@@ -88,6 +89,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "full body", "cowboy shot", "from above", "from below", "from side",
         "from behind", "dutch angle", "wide shot", "medium shot", "pov",
         "depth of field", "bokeh", "focus", "angle",
+        "out of frame", "cropped", "partially visible",
     ],
     "environment": [
         "background", "indoor", "outdoor", "room", "street", "park", "beach",
@@ -99,6 +101,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "book", "bookshelf", "shelf", "lamp", "curtain", "curtains", "pillow", "blanket",
         "carpet", "rug", "plant", "vase", "clock", "mirror", "painting",
         "bush", "fence", "bridge", "road", "path", "stairs", "balcony",
+        "couch", "on couch", "monitor", "computer", "mug", "cup", "plate",
+        "ocean", "sea", "river", "lake", "pond", "waterfall",
     ],
     "mood": [
         "dramatic", "romantic", "melancholic", "cheerful", "peaceful", "tense",
@@ -116,6 +120,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "bag", "backpack", "purse", "handbag", "satchel", "briefcase",
         "blazer", "overalls", "plaid", "barefoot", "loafers", "sneakers",
         "tank top", "crop top", "miniskirt", "jeans", "denim", "hood",
+        "choker", "open clothes", "open jacket", "open shirt",
     ],
     "hair_style": [
         "hair", "bangs", "ponytail", "twintails", "braid", "bun", "bob",
@@ -140,16 +145,24 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "freckles", "mole", "scar", "tattoo", "piercing", "makeup", "lipstick",
         "eyeshadow", "mascara", "blush", "beauty mark", "wrinkles", "muscles",
         "abs", "slim", "chubby", "muscular", "petite", "tall", "short",
+        "pointy ears", "elf ears", "animal ears", "cat ears", "dog ears",
     ],
 }
 
-# Tags to skip (not useful for prompts)
+# Tags to skip (not useful for prompts or sensitive)
 SKIP_TAGS = frozenset([
+    # Anatomy (not useful)
     "breasts", "large breasts", "medium breasts", "small breasts",
     "collarbone", "thighs", "navel", "midriff", "cleavage",
     "ass", "sideboob", "underboob", "nipples", "areolae", "crotch",
+    # Meta tags
     "male focus", "female focus", "solo focus", "1other", "no humans",
     "virtual youtuber", "highres", "absurdres", "commentary", "translation",
+    "multiple boys", "multiple girls", "border", "gradient",
+    # Sensitive subjects
+    "child", "male child", "female child", "aged down", "aged up",
+    # Character-specific names (too specific)
+    "midoriya izuku", "watson amelia",
 ])
 
 
