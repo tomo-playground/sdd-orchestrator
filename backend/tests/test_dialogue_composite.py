@@ -28,7 +28,18 @@ except ImportError:
     print("⚠️  rembg 미설치. 배경 제거 테스트 스킵됨. (pip install rembg)")
 
 # 설정
-SD_BASE_URL = "http://127.0.0.1:7860"
+import pytest
+from PIL import Image
+
+from config import SD_BASE_URL
+from services.image import (
+    build_ip_adapter_args,
+    generate_image_advanced,
+    save_reference_image,
+)
+
+# Configuration for testing
+
 SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 OUTPUT_DIR = Path("outputs/dialogue_test")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 # Paths
 TESTS_DIR = Path(__file__).parent
@@ -17,6 +18,8 @@ BACKEND_DIR = TESTS_DIR.parent
 
 # Add backend to path for imports
 sys.path.insert(0, str(BACKEND_DIR))
+
+from main import app  # Import app after sys.path setup
 
 
 @pytest.fixture(autouse=True)
@@ -78,3 +81,10 @@ def test_random() -> random.Random:
     """Return a seeded Random instance for tests."""
     from constants.testing import create_seeded_random
     return create_seeded_random()
+
+
+@pytest.fixture
+def client() -> TestClient:
+    """Return a FastAPI TestClient."""
+    return TestClient(app)
+
