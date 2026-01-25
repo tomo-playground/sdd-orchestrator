@@ -6,6 +6,7 @@ import ValidationTabContent from "./ValidationTabContent";
 import DebugTabContent from "./DebugTabContent";
 import SceneImagePanel from "./SceneImagePanel";
 import SceneContextTags from "./SceneContextTags";
+import PromptTokenPreview from "./PromptTokenPreview";
 
 type SceneCardProps = {
   scene: Scene;
@@ -20,6 +21,8 @@ type SceneCardProps = {
   onSuggestionToggle: () => void;
   validatingSceneId: number | null;
   autoComposePrompt: boolean;
+  // LoRA trigger words for highlighting
+  loraTriggerWords?: string[];
   // Scene Context Tags
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
@@ -56,6 +59,7 @@ export default function SceneCard({
   onSuggestionToggle,
   validatingSceneId,
   autoComposePrompt,
+  loraTriggerWords = [],
   tagsByGroup,
   sceneTagGroups,
   isExclusiveGroup,
@@ -258,6 +262,12 @@ export default function SceneCard({
               rows={2}
               className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
             />
+            {scene.image_prompt && (
+              <PromptTokenPreview
+                prompt={scene.image_prompt}
+                triggerWords={loraTriggerWords}
+              />
+            )}
           </div>
 
           {/* Negative Prompt */}

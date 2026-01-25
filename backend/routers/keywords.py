@@ -18,6 +18,7 @@ from services.keywords import (
     load_keyword_suggestions,
     load_tags_from_db,
     normalize_prompt_token,
+    sync_category_patterns_to_tags,
     sync_lora_triggers_to_tags,
     validate_prompt_tags,
 )
@@ -337,4 +338,28 @@ async def sync_lora_triggers():
         return result
     except Exception as exc:
         logger.exception("Sync LoRA triggers failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/sync-category-patterns")
+async def sync_category_patterns():
+    """Sync CATEGORY_PATTERNS to tags table.
+
+    Reads all patterns from CATEGORY_PATTERNS and ensures they exist
+    in the tags table. This fills gaps between defined patterns and DB.
+
+    Returns:
+        Summary of added/skipped tags grouped by category.
+    """
+    logger.info("[Sync Category Patterns]")
+    try:
+        result = sync_category_patterns_to_tags()
+        logger.info(
+            "[Sync Category Patterns Complete] added=%d skipped=%d",
+            result["summary"]["added_count"],
+            result["summary"]["skipped_count"],
+        )
+        return result
+    except Exception as exc:
+        logger.exception("Sync category patterns failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

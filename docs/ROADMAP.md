@@ -133,6 +133,8 @@ Character Preset
 | 15.1 | Batch Tag Approval | confidence >= 0.7 태그 일괄 승인 (미리보기 + 선택적 승인) | [x] |
 | 15.2 | **Tag Categorization V2** | SD Priority 기반 분류체계 개편 (24개 카테고리, environment 세분화) | [x] |
 | 15.3 | **Tag Conflict/Requires Rules** | 태그 충돌(57쌍)/의존성(29개) 규칙 + 검증 API | [x] |
+| 15.4 | **LoRA Trigger Sync** | LoRA trigger words → tags 테이블 자동 동기화 API | [x] |
+| 15.5 | **Tag Gap Analysis & Expansion** | CATEGORY_PATTERNS→DB 동기화 (515→924개, +409) | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
@@ -308,7 +310,7 @@ brew install claude-squad  # 명령어: cs
 | 6-1 | COMPLETE | 100% |
 | 6-2 | COMPLETE | 100% |
 | 6-3 | IN PROGRESS | 95% |
-| 6-4 | IN PROGRESS | 25% |
+| 6-4 | IN PROGRESS | 55% |
 | 7-1 | COMPLETE | 100% |
 | 7-2 | COMPLETE | 100% |
 | 7-3 | COMPLETE | 100% |
@@ -337,6 +339,21 @@ brew install claude-squad  # 명령어: cs
 - 태그 의존성 규칙 29개 (twintails→long hair, cat ears→animal ears 등)
 - 검증 API: POST /keywords/validate, GET /keywords/rules
 - body_feature 카테고리 26개 태그 추가 (animal ears, horns, wings, tail 등)
+
+**6-4.15.4 LoRA Trigger Sync 완료 (2026-01-25)**:
+- LoRA trigger words → tags 테이블 자동 동기화
+- 패턴 기반 자동 분류: *eyes→eye_color, *hair→hair_color/hair_style, 기본→identity
+- API: POST /keywords/sync-lora-triggers
+- 4개 LoRA에서 11개 트리거 워드 동기화 (midoriya izuku, eureka 등)
+- 하드코딩 제거: CATEGORY_PATTERNS에서 캐릭터명 패턴 삭제
+
+**6-4.15.5 Tag Gap Analysis & Expansion 완료 (2026-01-25)**:
+- CATEGORY_PATTERNS → DB 동기화 API 추가 (POST /keywords/sync-category-patterns)
+- 총 태그: 515개 → 924개 (+409개 확장)
+- 주요 확장 카테고리:
+  - location_indoor: 13→31개, location_outdoor: 10→38개
+  - lighting: 12→29개, mood: 14→33개
+- 중복 체크 로직 개선 (batch 처리 + 사전 필터링)
 
 **다음 우선순위**:
 1. Phase 5: Ken Burns Effect - 시각적 품질 향상

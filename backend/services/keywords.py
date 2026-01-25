@@ -893,6 +893,129 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
         db.close()
 
 
+def sync_category_patterns_to_tags() -> dict[str, Any]:
+    """Sync CATEGORY_PATTERNS to tags table.
+
+    Reads all patterns from CATEGORY_PATTERNS and ensures they exist
+    in the tags table with appropriate categories and priorities.
+
+    Returns:
+        {"added": [...], "skipped": [...], "summary": {...}}
+    """
+    from database import SessionLocal
+    from models.tag import Tag
+
+    # Map group_name to (db_category, priority)
+    GROUP_TO_DB_CATEGORY: dict[str, tuple[str, int]] = {
+        # Character-related
+        "identity": ("character", 3),
+        "hair_color": ("character", 4),
+        "hair_length": ("character", 4),
+        "hair_style": ("character", 4),
+        "hair_accessory": ("character", 4),
+        "eye_color": ("character", 4),
+        "skin_color": ("character", 4),
+        "body_feature": ("character", 4),
+        "appearance": ("character", 4),
+        "clothing": ("character", 5),
+        # Scene-related
+        "quality": ("meta", 1),
+        "subject": ("scene", 2),
+        "expression": ("scene", 6),
+        "gaze": ("scene", 7),
+        "pose": ("scene", 8),
+        "action": ("scene", 9),
+        "camera": ("scene", 10),
+        "location_indoor": ("scene", 11),
+        "location_outdoor": ("scene", 11),
+        "background_type": ("scene", 12),
+        "time_weather": ("scene", 13),
+        "lighting": ("scene", 14),
+        "mood": ("scene", 15),
+        "style": ("scene", 16),
+    }
+
+    db = SessionLocal()
+    try:
+        added = []
+        skipped = []
+
+        # Pre-fetch all existing tag names for efficiency
+        existing_names = {t.name for t in db.query(Tag.name).all()}
+
+        # Track tags we're adding in this batch to avoid duplicates
+        batch_names: set[str] = set()
+
+        for group_name, patterns in CATEGORY_PATTERNS.items():
+            db_info = GROUP_TO_DB_CATEGORY.get(group_name)
+            if not db_info:
+                logger.warning("[Sync Patterns] Unknown group: %s", group_name)
+                continue
+
+            db_category, priority = db_info
+
+            for pattern in patterns:
+                tag_name = pattern.strip().lower()
+                if not tag_name:
+                    continue
+
+                # Check if tag exists in DB or already in this batch
+                if tag_name in existing_names:
+                    skipped.append({
+                        "tag": tag_name,
+                        "group": group_name,
+                        "reason": "already in DB",
+                    })
+                elif tag_name in batch_names:
+                    skipped.append({
+                        "tag": tag_name,
+                        "group": group_name,
+                        "reason": "duplicate in patterns",
+                    })
+                else:
+                    db.add(Tag(
+                        name=tag_name,
+                        category=db_category,
+                        group_name=group_name,
+                        priority=priority,
+                        exclusive=False,
+                    ))
+                    batch_names.add(tag_name)
+                    added.append({
+                        "tag": tag_name,
+                        "group": group_name,
+                        "category": db_category,
+                        "priority": priority,
+                    })
+
+        db.commit()
+        logger.info(
+            "[Sync Patterns Complete] added=%d skipped=%d",
+            len(added), len(skipped)
+        )
+
+        return {
+            "added": added,
+            "skipped": skipped,
+            "summary": {
+                "added_count": len(added),
+                "skipped_count": len(skipped),
+                "by_group": _count_by_group(added),
+            }
+        }
+    finally:
+        db.close()
+
+
+def _count_by_group(items: list[dict]) -> dict[str, int]:
+    """Count items by group_name."""
+    counts: dict[str, int] = {}
+    for item in items:
+        group = item.get("group", "unknown")
+        counts[group] = counts.get(group, 0) + 1
+    return counts
+
+
 def get_tag_rules_summary() -> dict[str, Any]:
     """Get summary of all tag rules in the database."""
     from database import SessionLocal

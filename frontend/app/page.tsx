@@ -190,6 +190,23 @@ export default function Home() {
   // Characters hook
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
+  const [loraTriggerWords, setLoraTriggerWords] = useState<string[]>([]);
+
+  // Fetch LoRA trigger words when character is selected
+  useEffect(() => {
+    if (!selectedCharacterId) {
+      setLoraTriggerWords([]);
+      return;
+    }
+    getCharacterFull(selectedCharacterId).then((charFull) => {
+      if (charFull?.loras) {
+        const triggers = charFull.loras.flatMap((lora) => lora.trigger_words || []);
+        setLoraTriggerWords(triggers);
+      } else {
+        setLoraTriggerWords([]);
+      }
+    });
+  }, [selectedCharacterId, getCharacterFull]);
 
   // Scene Tags hook
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags();
@@ -1931,6 +1948,7 @@ export default function Home() {
                 }
                 validatingSceneId={validatingSceneId}
                 autoComposePrompt={autoComposePrompt}
+                loraTriggerWords={loraTriggerWords}
                 tagsByGroup={tagsByGroup}
                 sceneTagGroups={sceneTagGroups}
                 isExclusiveGroup={isExclusiveGroup}
