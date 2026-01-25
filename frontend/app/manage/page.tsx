@@ -2003,7 +2003,13 @@ export default function ManagePage() {
             )}
 
             {!isPromptsLoading && promptHistories.length === 0 && (
-              <p className="py-8 text-center text-xs text-zinc-500">No prompt histories found.</p>
+              <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-12 text-center">
+                <div className="text-3xl mb-3">📝</div>
+                <div className="text-sm font-medium text-zinc-600 mb-1">No saved prompts yet</div>
+                <div className="text-[11px] text-zinc-400">
+                  Save prompts from SceneCard using the &quot;Save&quot; button
+                </div>
+              </div>
             )}
 
             {promptHistories.length > 0 && (
