@@ -120,7 +120,7 @@ Character Preset
 | 9.7.4 | Gemini-Frontend 동기화 | 템플릿 출력과 context_tags 자동 매핑 | [x] |
 | 9.7.5 | 태그 분석 UI (/manage) | 태그 현황/Gap 실시간 조회 | [x] |
 | 9.7.6 | WD14 동의어 매핑 | 65개 동의어 + 양방향 확장 + skip_tokens 27개 (75-86% 달성) | [x] |
-| **9.8** | **Prompt Composition System** | **Mode A (Standard) / Mode B (LoRA) 프롬프트 조합 규칙** | [~] |
+| **9.8** | **Prompt Composition System** | **Mode A (Standard) / Mode B (LoRA) 프롬프트 조합 규칙** | [x] |
 | 9.8.0 | DB Schema 변경 | `characters.prompt_mode` 컬럼 추가 ('auto'\|'standard'\|'lora') | [x] |
 | 9.8.1 | Character Mode 지원 | LoRA 없는 캐릭터 설정 허용, 자동 모드 감지 | [x] |
 | 9.8.2 | get_token_category() | 토큰 → 카테고리 분류 함수 (CATEGORY_PATTERNS 활용) | [x] |
@@ -131,7 +131,7 @@ Character Preset
 | 9.8.5.1 | ensure_quality_tags() | Quality 태그 없으면 자동 추가 | [x] |
 | 9.8.6 | sort_prompt_tokens() | Mode별 우선순위 정렬 (Standard vs LoRA) | [x] |
 | 9.8.7 | /prompt/compose API | 최종 프롬프트 조합 엔드포인트 (메타정보 포함) | [x] |
-| 9.8.8 | Composed Prompt Preview UI | 카테고리별 그룹 표시 + Toggle | [ ] |
+| 9.8.8 | Composed Prompt Preview UI | 카테고리별 그룹 표시 + Toggle (ComposedPromptPreview.tsx) | [x] |
 | 9.8.9 | 통합 테스트 | Standard/LoRA 모드별 4개 시나리오 검증 (35개 테스트) | [x] |
 | 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (9.8 완료 후) | [ ] |
 | 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 | [ ] |
@@ -322,7 +322,7 @@ brew install claude-squad  # 명령어: cs
 | 5 | IN PROGRESS | 73% | Ken Burns 잔여 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
-| 6-3 | IN PROGRESS | 75% | 9.8 Backend 완료 (12/13), 10/11/12 잔여 |
+| 6-3 | IN PROGRESS | 80% | 9.8 완료 (13/13), 10/11/12 잔여 |
 | 6-4 | IN PROGRESS | 75% | |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | |
@@ -397,12 +397,12 @@ Phase 3 (Integration):
 - 충돌 규칙 57쌍, 의존성 규칙 29개 구축
 - LoRA Trigger 자동 동기화 완료
 
-**9.8 Prompt Composition System Backend 완료 (2026-01-25)**:
+**9.8 Prompt Composition System 완료 (2026-01-25)**:
 - 문제: LoRA 사용 시 장면 표현(pose, action, camera)이 LoRA 학습 편향에 의해 무시됨
 - 해결: Mode A (Standard) / Mode B (LoRA) 분리
   - Mode A: 표준 순서 (캐릭터 → 장면), LoRA 미사용 또는 스타일 LoRA만
   - Mode B: 장면 우선 순서, LoRA weight 동적 조절, BREAK 활용
-- **완료된 작업** (12/13):
+- **완료된 작업** (13/13):
   - 9.8.0: DB Schema (characters.prompt_mode)
   - 9.8.1: Character Mode 자동 감지
   - 9.8.2: get_token_category() + CATEGORY_PATTERNS 연동
@@ -413,6 +413,6 @@ Phase 3 (Integration):
   - 9.8.5.1: ensure_quality_tags()
   - 9.8.6: sort_prompt_tokens() (Mode별 정렬)
   - 9.8.7: POST /prompt/compose API
+  - 9.8.8: ComposedPromptPreview.tsx (카테고리별 그룹 + Toggle)
   - 9.8.9: 통합 테스트 35개 (100% pass)
-- **잔여**: 9.8.8 Composed Prompt Preview UI (프론트엔드)
 - 상세 스펙: `docs/PROMPT_SPEC.md` 참조

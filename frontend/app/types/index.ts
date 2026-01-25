@@ -216,7 +216,13 @@ export type CharacterFullLoRA = {
   display_name: string;
   trigger_words: string[];
   weight: number;
+  optimal_weight?: number;
+  calibration_score?: number;
+  lora_type?: string; // character, style, concept
 };
+
+export type PromptMode = "auto" | "standard" | "lora";
+export type EffectiveMode = "standard" | "lora";
 
 export type CharacterFull = {
   id: number;
@@ -228,6 +234,8 @@ export type CharacterFull = {
   loras: CharacterFullLoRA[];
   recommended_negative: string[];
   preview_image_url: string | null;
+  prompt_mode: PromptMode;
+  effective_mode: EffectiveMode;
 };
 
 export type StyleProfileFull = {

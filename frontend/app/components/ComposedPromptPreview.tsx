@@ -1,0 +1,357 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { API_BASE } from "../constants";
+
+type LoRAInfo = {
+  name: string;
+  weight?: number;
+  trigger_words?: string[];
+  lora_type?: string;
+  optimal_weight?: number;
+};
+
+type ComposedPromptPreviewProps = {
+  tokens: string[];
+  loras?: LoRAInfo[];
+  mode?: "auto" | "standard" | "lora";
+  useBreak?: boolean;
+  onComposed?: (result: ComposeResult) => void;
+  className?: string;
+};
+
+type ComposeResult = {
+  prompt: string;
+  tokens: string[];
+  effective_mode: string;
+  scene_complexity: string;
+  lora_weights?: Record<string, number>;
+  meta?: {
+    token_count: number;
+    has_break: boolean;
+    quality_tags_added: boolean;
+  };
+};
+
+// Category colors for visual grouping
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  quality: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  subject: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  identity: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  hair_color: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  hair_length: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  hair_style: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  eye_color: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
+  expression: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
+  gaze: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
+  pose: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  action: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  camera: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
+  location_indoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  location_outdoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  time_weather: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
+  lighting: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
+  mood: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
+  clothing: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+  style: { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-200" },
+  lora: { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
+  break: { bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
+  unknown: { bg: "bg-zinc-100", text: "text-zinc-600", border: "border-zinc-200" },
+};
+
+// Category display names
+const CATEGORY_LABELS: Record<string, string> = {
+  quality: "Quality",
+  subject: "Subject",
+  identity: "Identity",
+  hair_color: "Hair",
+  hair_length: "Hair",
+  hair_style: "Hair",
+  eye_color: "Eyes",
+  expression: "Expression",
+  gaze: "Gaze",
+  pose: "Pose",
+  action: "Action",
+  camera: "Camera",
+  location_indoor: "Location",
+  location_outdoor: "Location",
+  time_weather: "Time/Weather",
+  lighting: "Lighting",
+  mood: "Mood",
+  clothing: "Clothing",
+  style: "Style",
+  lora: "LoRA",
+  break: "BREAK",
+  unknown: "Other",
+};
+
+function getTokenCategory(token: string): string {
+  // LoRA detection
+  if (token.startsWith("<lora:")) return "lora";
+  if (token === "BREAK") return "break";
+
+  // Simple pattern matching (client-side approximation)
+  const lower = token.toLowerCase().trim();
+
+  // Quality
+  if (["masterpiece", "best quality", "high quality", "detailed"].some((q) => lower.includes(q))) {
+    return "quality";
+  }
+  // Subject
+  if (/^(1girl|1boy|2girls|2boys|solo|duo|group)$/.test(lower)) {
+    return "subject";
+  }
+  // Hair
+  if (lower.includes("hair")) return "hair_color";
+  // Eyes
+  if (lower.includes("eyes")) return "eye_color";
+  // Expression
+  if (["smile", "smiling", "crying", "blush", "angry", "sad", "happy"].some((e) => lower.includes(e))) {
+    return "expression";
+  }
+  // Gaze
+  if (lower.includes("looking")) return "gaze";
+  // Pose
+  if (["standing", "sitting", "kneeling", "lying"].some((p) => lower.includes(p))) {
+    return "pose";
+  }
+  // Action
+  if (["running", "walking", "jumping", "dancing"].some((a) => lower.includes(a))) {
+    return "action";
+  }
+  // Camera
+  if (["from above", "from below", "full body", "close-up", "portrait"].some((c) => lower.includes(c))) {
+    return "camera";
+  }
+  // Location
+  if (["bedroom", "kitchen", "forest", "beach", "city"].some((l) => lower.includes(l))) {
+    return "location_indoor";
+  }
+  // Time/Weather
+  if (["sunset", "sunrise", "night", "day", "rain", "snow"].some((t) => lower.includes(t))) {
+    return "time_weather";
+  }
+  // Lighting
+  if (lower.includes("lighting") || lower.includes("light")) {
+    return "lighting";
+  }
+  // Mood
+  if (["romantic", "dramatic", "peaceful", "tense"].some((m) => lower.includes(m))) {
+    return "mood";
+  }
+
+  return "unknown";
+}
+
+export default function ComposedPromptPreview({
+  tokens,
+  loras = [],
+  mode = "auto",
+  useBreak = true,
+  onComposed,
+  className = "",
+}: ComposedPromptPreviewProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ComposeResult | null>(null);
+  const [showGrouped, setShowGrouped] = useState(true);
+
+  const composePrompt = useCallback(async () => {
+    if (tokens.length === 0) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/prompt/compose`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tokens,
+          mode,
+          loras: loras.map((l) => ({
+            name: l.name,
+            weight: l.weight || 0.5,
+            trigger_words: l.trigger_words || [],
+            lora_type: l.lora_type,
+            optimal_weight: l.optimal_weight,
+          })),
+          use_break: useBreak,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to compose: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setResult(data);
+      onComposed?.(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tokens, loras, mode, useBreak, onComposed]);
+
+  // Group tokens by category for grouped view
+  const groupedTokens = (result?.tokens || tokens).reduce(
+    (acc, token) => {
+      const category = getTokenCategory(token);
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(token);
+      return acc;
+    },
+    {} as Record<string, string[]>
+  );
+
+  const getTokenStyle = (token: string) => {
+    const category = getTokenCategory(token);
+    return CATEGORY_COLORS[category] || CATEGORY_COLORS.unknown;
+  };
+
+  if (tokens.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={`space-y-3 ${className}`}>
+      {/* Header with controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            Composed Preview
+          </span>
+          {result && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                result.effective_mode === "lora"
+                  ? "bg-violet-100 text-violet-700"
+                  : "bg-zinc-100 text-zinc-600"
+              }`}
+            >
+              {result.effective_mode.toUpperCase()}
+            </span>
+          )}
+          {result?.scene_complexity && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                result.scene_complexity === "complex"
+                  ? "bg-red-100 text-red-700"
+                  : result.scene_complexity === "moderate"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {result.scene_complexity}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowGrouped(!showGrouped)}
+            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-600 hover:bg-zinc-50"
+          >
+            {showGrouped ? "Linear" : "Grouped"}
+          </button>
+          <button
+            type="button"
+            onClick={composePrompt}
+            disabled={isLoading}
+            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            {isLoading ? "..." : "Compose"}
+          </button>
+        </div>
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="rounded-lg bg-red-50 p-2 text-[10px] text-red-600">{error}</div>
+      )}
+
+      {/* Token display */}
+      {showGrouped ? (
+        // Grouped view by category
+        <div className="space-y-2">
+          {Object.entries(groupedTokens).map(([category, categoryTokens]) => (
+            <div key={category} className="flex items-start gap-2">
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${CATEGORY_COLORS[category]?.bg || "bg-zinc-100"} ${CATEGORY_COLORS[category]?.text || "text-zinc-600"}`}
+              >
+                {CATEGORY_LABELS[category] || category}
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {categoryTokens.map((token, idx) => {
+                  const style = getTokenStyle(token);
+                  return (
+                    <span
+                      key={`${category}-${idx}`}
+                      className={`rounded-full px-2 py-0.5 text-[10px] border ${style.bg} ${style.text} ${style.border}`}
+                    >
+                      {token.startsWith("<lora:") ? (
+                        <>
+                          <span className="opacity-60">⚡</span>
+                          {token.replace(/<lora:|>/g, "")}
+                        </>
+                      ) : (
+                        token
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Linear view (all tokens in order)
+        <div className="flex flex-wrap gap-1">
+          {(result?.tokens || tokens).map((token, idx) => {
+            const style = getTokenStyle(token);
+            return (
+              <span
+                key={idx}
+                className={`rounded-full px-2 py-0.5 text-[10px] border ${style.bg} ${style.text} ${style.border}`}
+                title={getTokenCategory(token)}
+              >
+                {token === "BREAK" ? (
+                  <span className="font-bold">BREAK</span>
+                ) : token.startsWith("<lora:") ? (
+                  <>
+                    <span className="opacity-60">⚡</span>
+                    {token.replace(/<lora:|>/g, "")}
+                  </>
+                ) : (
+                  token
+                )}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* LoRA weights info */}
+      {result?.lora_weights && Object.keys(result.lora_weights).length > 0 && (
+        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+          <span className="font-semibold">LoRA Weights:</span>
+          {Object.entries(result.lora_weights).map(([name, weight]) => (
+            <span key={name} className="rounded bg-violet-50 px-1.5 py-0.5 text-violet-700">
+              {name}: {weight}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Meta info */}
+      {result?.meta && (
+        <div className="flex items-center gap-3 text-[9px] text-zinc-400">
+          <span>{result.meta.token_count} tokens</span>
+          {result.meta.has_break && <span>with BREAK</span>}
+          {result.meta.quality_tags_added && <span>+quality</span>}
+        </div>
+      )}
+    </div>
+  );
+}

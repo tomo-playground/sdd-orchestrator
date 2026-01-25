@@ -7,6 +7,7 @@ import DebugTabContent from "./DebugTabContent";
 import SceneImagePanel from "./SceneImagePanel";
 import SceneContextTags from "./SceneContextTags";
 import PromptTokenPreview from "./PromptTokenPreview";
+import ComposedPromptPreview from "./ComposedPromptPreview";
 
 type SceneCardProps = {
   scene: Scene;
@@ -23,6 +24,15 @@ type SceneCardProps = {
   autoComposePrompt: boolean;
   // LoRA trigger words for highlighting
   loraTriggerWords?: string[];
+  // LoRA info for composition
+  characterLoras?: Array<{
+    name: string;
+    weight?: number;
+    trigger_words?: string[];
+    lora_type?: string;
+    optimal_weight?: number;
+  }>;
+  promptMode?: "auto" | "standard" | "lora";
   // Scene Context Tags
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
@@ -60,6 +70,8 @@ export default function SceneCard({
   validatingSceneId,
   autoComposePrompt,
   loraTriggerWords = [],
+  characterLoras = [],
+  promptMode = "auto",
   tagsByGroup,
   sceneTagGroups,
   isExclusiveGroup,
@@ -263,10 +275,19 @@ export default function SceneCard({
               className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
             />
             {scene.image_prompt && (
-              <PromptTokenPreview
-                prompt={scene.image_prompt}
-                triggerWords={loraTriggerWords}
-              />
+              <>
+                <PromptTokenPreview
+                  prompt={scene.image_prompt}
+                  triggerWords={loraTriggerWords}
+                />
+                <ComposedPromptPreview
+                  tokens={scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean)}
+                  loras={characterLoras}
+                  mode={promptMode}
+                  useBreak={true}
+                  className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3"
+                />
+              </>
             )}
           </div>
 

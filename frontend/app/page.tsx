@@ -191,19 +191,52 @@ export default function Home() {
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [loraTriggerWords, setLoraTriggerWords] = useState<string[]>([]);
+  const [characterLoras, setCharacterLoras] = useState<Array<{
+    name: string;
+    weight?: number;
+    trigger_words?: string[];
+    lora_type?: string;
+    optimal_weight?: number;
+  }>>([]);
+  const [characterPromptMode, setCharacterPromptMode] = useState<"auto" | "standard" | "lora">("auto");
 
-  // Fetch LoRA trigger words when character is selected
+  // Fetch LoRA trigger words and info when character is selected
   useEffect(() => {
     if (!selectedCharacterId) {
       setLoraTriggerWords([]);
+      setCharacterLoras([]);
+      setCharacterPromptMode("auto");
       return;
     }
     getCharacterFull(selectedCharacterId).then((charFull) => {
       if (charFull?.loras) {
-        const triggers = charFull.loras.flatMap((lora) => lora.trigger_words || []);
+        const triggers = charFull.loras.flatMap((lora: { trigger_words?: string[] }) => lora.trigger_words || []);
         setLoraTriggerWords(triggers);
+        setCharacterLoras(charFull.loras.map((lora: {
+          name: string;
+          weight?: number;
+          trigger_words?: string[];
+          lora_type?: string;
+          optimal_weight?: number;
+        }) => ({
+          name: lora.name,
+          weight: lora.weight,
+          trigger_words: lora.trigger_words,
+          lora_type: lora.lora_type,
+          optimal_weight: lora.optimal_weight,
+        })));
       } else {
         setLoraTriggerWords([]);
+        setCharacterLoras([]);
+      }
+      // Set prompt mode from character
+      if (charFull?.prompt_mode) {
+        setCharacterPromptMode(charFull.prompt_mode);
+      } else if (charFull?.effective_mode) {
+        // Use effective_mode as fallback
+        setCharacterPromptMode(charFull.effective_mode === "lora" ? "lora" : "standard");
+      } else {
+        setCharacterPromptMode("auto");
       }
     });
   }, [selectedCharacterId, getCharacterFull]);
@@ -1949,6 +1982,8 @@ export default function Home() {
                 validatingSceneId={validatingSceneId}
                 autoComposePrompt={autoComposePrompt}
                 loraTriggerWords={loraTriggerWords}
+                characterLoras={characterLoras}
+                promptMode={characterPromptMode}
                 tagsByGroup={tagsByGroup}
                 sceneTagGroups={sceneTagGroups}
                 isExclusiveGroup={isExclusiveGroup}
