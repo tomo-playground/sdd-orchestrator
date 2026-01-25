@@ -146,7 +146,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.7.3 | Danbooru API 연동 | 태그 카테고리 조회 (General 세분화용 LLM 호출) | [x] |
 | 15.7.4 | Frontend 통합 | useTagClassifier 훅 + API 호출 (로컬 패턴 fallback) | [x] |
 | 15.7.5 | 승인 워크플로우 | LLM 분류 결과 검토/승인 UI | [x] |
-| 15.7.6 | WD14 피드백 루프 | 생성 이미지 태그 vs 프롬프트 태그 비교 → 분류 정확도 검증 | [ ] |
+| 15.7.6 | WD14 피드백 루프 | 생성 이미지 태그 vs 프롬프트 태그 비교 → 분류 정확도 검증 | [x] |
 | 15.7.7 | **카테고리 한국어 설명** | CATEGORY_DESCRIPTIONS 상수, UI 메타정보 표시 | [x] |
 | 15.7.8 | **분류 테스트 케이스** | 109개 회귀 방지 테스트 (clothing, hair, camera 등) | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [x] |
@@ -348,7 +348,7 @@ brew install claude-squad  # 명령어: cs
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| 1 | **WD14 피드백 루프** | 6-4.15.7.6 | 높음 | 중 | 프롬프트 효과 정량 측정, 데이터 기반 최적화 |
-| 2 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 비교 검증, WD14 데이터 추적 |
+| ~~1~~ | ~~**WD14 피드백 루프**~~ | ~~6-4.15.7.6~~ | ~~높음~~ | ~~중~~ | **완료** (2026-01-26) |
+| 1 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 비교 검증, WD14 데이터 추적 |
 | 3 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
 | 4 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |

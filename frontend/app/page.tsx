@@ -298,6 +298,7 @@ export default function Home() {
 
     try {
       const data = JSON.parse(stored) as {
+        id?: number;  // prompt_history_id
         positive_prompt?: string;
         negative_prompt?: string;
         steps?: number;
@@ -330,6 +331,7 @@ export default function Home() {
           if (data.seed) updates.seed = data.seed;
           if (data.clip_skip) updates.clip_skip = data.clip_skip;
           if (data.context_tags) updates.context_tags = data.context_tags;
+          if (data.id) updates.prompt_history_id = data.id;  // Track source
           updateScene(scene.id, updates);
         }
       }
@@ -1914,6 +1916,14 @@ export default function Home() {
       });
       setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
       const matchRate = Math.round((res.data.match_rate || 0) * 100);
+
+      // Update prompt history score if scene was created from a saved prompt
+      if (scene.prompt_history_id && res.data.match_rate != null) {
+        axios.post(
+          `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
+        ).catch(() => console.warn("Failed to update prompt history score"));
+      }
+
       if (matchRate >= 80) {
         showToast(`검증 완료! Match ${matchRate}%`, "success");
       } else {
@@ -1939,6 +1949,15 @@ export default function Home() {
         mode: imageCheckMode,
       });
       setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
+
+      // Update prompt history score if scene was created from a saved prompt
+      if (scene.prompt_history_id && res.data.match_rate != null) {
+        const matchRate = Math.round((res.data.match_rate || 0) * 100);
+        axios.post(
+          `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
+        ).catch(() => console.warn("Failed to update prompt history score"));
+      }
+
       if (Array.isArray(res.data?.missing) && res.data.missing.length > 0) {
         applyMissingImageTags(scene, res.data.missing);
       }
