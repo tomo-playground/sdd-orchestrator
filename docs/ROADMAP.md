@@ -150,7 +150,15 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.7.7 | **카테고리 한국어 설명** | CATEGORY_DESCRIPTIONS 상수, UI 메타정보 표시 | [x] |
 | 15.7.8 | **분류 테스트 케이스** | 109개 회귀 방지 테스트 (clothing, hair, camera 등) | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [x] |
-| 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
+| 16.1 | DB 모델 | `prompt_histories` 테이블 (JSONB: lora_settings, context_tags) | [x] |
+| 16.2 | CRUD API | `/prompt-histories` 엔드포인트 (목록/상세/생성/수정/삭제) | [x] |
+| 16.3 | 특수 API | toggle-favorite, apply (use_count++), update-score (WD14 연동) | [x] |
+| 16.4 | /manage 탭 | Prompts 탭 UI (필터: 즐겨찾기/캐릭터/검색, 정렬: 최신/사용횟수/점수) | [x] |
+| 16.5 | Save 버튼 | SceneCard에서 현재 프롬프트 저장 기능 | [x] |
+| 16.6 | Apply 기능 | 저장된 프롬프트를 씬에 적용 (localStorage → 메인 페이지) | [x] |
+| 16.7 | WD14 피드백 | 이미지 검증 시 match_rate 자동 업데이트 (avg_match_rate 누적) | [x] |
+| 16.8 | Draft 영속성 | prompt_history_id 저장/복원 지원 | [x] |
+| 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 → **16.7에서 구현 완료** | [x] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
 | 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
 | 20 | Scene Clothing Override | 장면별 의상 변경 기능 | [ ] |
