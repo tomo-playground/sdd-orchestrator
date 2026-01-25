@@ -151,7 +151,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.6.3 | /eval/run API | 테스트 실행 엔드포인트 | [ ] |
 | 15.6.4 | /eval/results API | 결과 조회/비교 | [ ] |
 | 15.6.5 | 대시보드 시각화 | Mode A vs B 차트 | [ ] |
-| **15.7** | **Dynamic Tag Classification** | 하드코딩 제거, DB+Danbooru+LLM 하이브리드 분류 | [~] |
+| **15.7** | **Dynamic Tag Classification** | 하드코딩 제거, DB+Danbooru+LLM 하이브리드 분류 | [x] |
 | 15.7.1 | classification_rules 테이블 | 패턴 규칙 DB화 (CATEGORY_PATTERNS 이관) | [x] |
 | 15.7.2 | /tags/classify API | 배치 분류 엔드포인트 (DB→Rules fallback) | [x] |
 | 15.7.3 | Danbooru API 연동 | 태그 카테고리 조회 (General 세분화용 LLM 호출) | [x] |
@@ -324,7 +324,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-25 (21:00)
+**Last Updated**: 2026-01-25 (22:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -333,7 +333,7 @@ brew install claude-squad  # 명령어: cs
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | IN PROGRESS | 75% | |
+| 6-4 | IN PROGRESS | 80% | 15.7 완료 |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
@@ -434,6 +434,13 @@ brew install claude-squad  # 명령어: cs
 - `frontend/app/hooks/useTagClassifier.ts`: API 기반 분류 + 세션 캐싱
 - Danbooru API 연결 문제(TLS) 시 graceful fallback으로 unknown 반환
 - 15.7.5 승인 워크플로우: `/tags/pending` API, `/tags/approve-classification` API, /manage Tags 탭에 Pending Classifications UI
+
+**9.8 버그 수정 III (2026-01-25 22:30)**:
+- **Debug 탭 프롬프트 불일치**: Debug 탭이 `/prompt/compose` API를 사용하지 않아 충돌 필터링, Quality 태그 추가, 트리거 중복 제거 미적용
+  - 문제: `buildPositivePrompt` (동기, 단순 연결) vs `buildScenePrompt` (비동기, /prompt/compose API)
+  - 해결: Debug 탭에서 `buildScenePrompt` 사용하도록 수정
+  - SceneCard에 `buildScenePrompt` prop 추가, DebugTabContent async 지원 + 로딩 상태 추가
+- **테스트 추가**: `test_ocean_with_indoor_locations` - ocean + library/room/street/cafe 충돌 케이스
 
 **9.8 버그 수정 II (2026-01-25 19:30)**:
 - **Trigger 워드 중복 수정**: `compose_prompt_tokens`에서 trigger words 추출 시 중복 발생 → `extracted_triggers_seen` 집합으로 dedup
