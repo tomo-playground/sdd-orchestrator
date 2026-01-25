@@ -78,8 +78,8 @@ PRESETS: dict[str, StoryboardPreset] = {
     "japanese_lesson": StoryboardPreset(
         id="japanese_lesson",
         name="Japanese Lesson",
-        name_ko="일본어 강좌",
-        description="Japanese language learning content for Korean speakers",
+        name_ko="일본어 레슨 (학습용)",
+        description="Japanese language learning content for Korean speakers - includes romaji and Korean translation",
         structure="Japanese Lesson",
         template="create_storyboard_japanese_lesson.j2",
         sample_topics=[
