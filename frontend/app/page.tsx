@@ -54,6 +54,8 @@ import DebugTabContent from "./components/DebugTabContent";
 import LayoutSelector from "./components/LayoutSelector";
 import AutoRunProgressModal from "./components/AutoRunProgressModal";
 import ResumeConfirmModal from "./components/ResumeConfirmModal";
+import PreflightModal from "./components/PreflightModal";
+import { runPreflight, type PreflightResult, type AutoRunStepId as PreflightStepId } from "./utils/preflight";
 import PreviewModal from "./components/PreviewModal";
 import RenderSettingsPanel from "./components/RenderSettingsPanel";
 import PromptHelperSidebar from "./components/PromptHelperSidebar";
@@ -187,6 +189,11 @@ export default function Home() {
   // Resume modal state
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [resumableCheckpoint, setResumableCheckpoint] = useState<AutopilotCheckpoint | null>(null);
+
+  // Preflight modal state
+  const [showPreflightModal, setShowPreflightModal] = useState(false);
+  const [preflightResult, setPreflightResult] = useState<PreflightResult | null>(null);
+
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
 
@@ -1011,8 +1018,15 @@ export default function Home() {
     }
   };
 
-  const runAutoRunFromStep = async (startStep: AutoRunStepId) => {
-    if (!topic.trim()) {
+  const runAutoRunFromStep = async (
+    startStep: AutoRunStepId,
+    stepsToRun?: AutoRunStepId[]
+  ) => {
+    // If stepsToRun is provided, use it; otherwise run all steps from startStep
+    const allowedSteps = stepsToRun || AUTO_RUN_STEPS.map((step) => step.id as AutoRunStepId);
+
+    // Only check topic if storyboard step is needed
+    if (allowedSteps.includes("storyboard") && !topic.trim()) {
       alert("Enter a topic first.");
       return;
     }
@@ -1029,6 +1043,12 @@ export default function Home() {
       for (let idx = startIndex; idx < steps.length; idx += 1) {
         currentStep = steps[idx];
         assertNotCancelled();
+
+        // Skip steps not in allowedSteps
+        if (!allowedSteps.includes(currentStep)) {
+          pushAutoRunLog(`Skipped: ${currentStep}`);
+          continue;
+        }
         if (currentStep === "storyboard") {
           setAutoRunStep("storyboard", "Generating storyboard...");
           pushAutoRunLog("Storyboard started");
@@ -1151,6 +1171,60 @@ export default function Home() {
         alert(`Autopilot stopped: ${message}`);
       }
     }
+  };
+
+  // Get character name for preflight display
+  const selectedCharacterName = useMemo(() => {
+    if (!selectedCharacterId || !characters.length) return null;
+    const char = characters.find((c) => c.id === selectedCharacterId);
+    return char?.name || null;
+  }, [selectedCharacterId, characters]);
+
+  // Get voice name for preflight display
+  const selectedVoiceName = useMemo(() => {
+    const voice = VOICES.find((v) => v.id === narratorVoice);
+    return voice?.label || narratorVoice;
+  }, [narratorVoice]);
+
+  // Preflight check before autorun
+  const handleAutoRunClick = () => {
+    const result = runPreflight({
+      topic,
+      characterName: selectedCharacterName,
+      characterId: selectedCharacterId,
+      voiceName: selectedVoiceName,
+      bgmFile,
+      controlnetEnabled: useControlnet,
+      controlnetWeight,
+      ipAdapterEnabled: useIpAdapter,
+      ipAdapterReference: ipAdapterReference || null,
+      steps: baseStepsA,
+      cfgScale: baseCfgScaleA,
+      sampler: baseSamplerA,
+      seed: baseSeedA,
+      clipSkip: baseClipSkipA,
+      scenes,
+      videoUrl: videoUrlFull || videoUrlPost || null,
+    });
+    setPreflightResult(result);
+    setShowPreflightModal(true);
+  };
+
+  // Execute autorun with selected steps
+  const handlePreflightRun = async (stepsToRun: PreflightStepId[]) => {
+    setShowPreflightModal(false);
+    setPreflightResult(null);
+
+    if (stepsToRun.length === 0) return;
+
+    // Start from the first step that needs to run
+    const firstStep = stepsToRun[0];
+    await runAutoRunFromStep(firstStep, stepsToRun);
+  };
+
+  const handlePreflightClose = () => {
+    setShowPreflightModal(false);
+    setPreflightResult(null);
   };
 
   const handleAutoRun = async () => {
@@ -2079,7 +2153,7 @@ export default function Home() {
             onResetScenes={resetScenesOnly}
             onResetDraft={resetDraft}
             onGenerate={handleGenerateScenes}
-            onAutoRun={handleAutoRun}
+            onAutoRun={handleAutoRunClick}
             isGenerating={isGenerating}
             isRendering={isRendering}
             isAutoRunning={isAutoRunning}
@@ -2256,6 +2330,16 @@ export default function Home() {
             onResume={handleResumeFromCheckpoint}
             onStartFresh={handleStartFresh}
             onDismiss={handleDismissResume}
+          />
+        )}
+
+        {/* ============ SHARED: Preflight Modal ============ */}
+        {preflightResult && (
+          <PreflightModal
+            isOpen={showPreflightModal}
+            preflight={preflightResult}
+            onClose={handlePreflightClose}
+            onRun={handlePreflightRun}
           />
         )}
       </div>
