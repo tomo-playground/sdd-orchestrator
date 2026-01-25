@@ -7,6 +7,7 @@ from config import logger
 from database import get_db
 from models import Character, LoRA, Tag
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
+from services.controlnet import generate_reference_for_character
 from services.prompt_composition import get_effective_mode
 
 router = APIRouter(prefix="/characters", tags=["characters"])
@@ -143,3 +144,26 @@ async def delete_character(character_id: int, db: Session = Depends(get_db)):
     db.commit()
     logger.info("🗑️ [Characters] Deleted: %s", name)
     return {"ok": True, "deleted": name}
+
+
+@router.post("/{character_id}/regenerate-reference")
+async def regenerate_reference(character_id: int, db: Session = Depends(get_db)):
+    """Regenerate the IP-Adapter reference image for this character."""
+    character = db.query(Character).filter(Character.id == character_id).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="Character not found")
+
+    try:
+        filename = await generate_reference_for_character(db, character)
+        
+        # Update preview_image_url if missing or update needed
+        new_url = f"/assets/references/{filename}"
+        if character.preview_image_url != new_url:
+            character.preview_image_url = new_url
+            db.commit()
+            db.refresh(character)
+            
+        return {"ok": True, "filename": filename, "preview_image_url": new_url}
+    except Exception as e:
+        logger.exception("Failed to regenerate reference for %s", character.name)
+        raise HTTPException(status_code=500, detail=str(e))

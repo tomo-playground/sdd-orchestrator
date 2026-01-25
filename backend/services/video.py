@@ -122,12 +122,13 @@ def clean_script_for_tts(raw_script: str) -> str:
         Cleaned script text
     """
     # Remove problematic characters while keeping common punctuation and CJK
+    # Added / " ' : ; ~ for better text support
     clean = re.sub(
-        r"[^\w\s.,!?가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥+\-=×÷²³¹⁰()%<>]",
+        r"[^\w\s.,!?/\"':;~가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥+\-=×÷²³¹⁰()%<>]",
         "",
         raw_script
     )
-    return clean.replace("'", "").strip()
+    return clean.strip()
 
 
 class VideoBuilder:

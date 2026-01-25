@@ -9,9 +9,12 @@ import base64
 from pathlib import Path
 from typing import Any
 
+import httpx
 import requests
+from sqlalchemy.orm import Session
 
-from config import SD_BASE_URL, logger
+from config import SD_BASE_URL, SD_TXT2IMG_URL, logger
+from models import Character, LoRA, Tag
 
 # Pose reference directory
 POSE_DIR = Path("assets/poses")
@@ -384,3 +387,66 @@ def build_combined_controlnet_args(
         ))
 
     return args
+
+
+async def generate_reference_for_character(db: Session, character: Character) -> str:
+    """Generate and save a reference image for a character.
+
+    Args:
+        db: Database session
+        character: Character model instance
+
+    Returns:
+        Saved filename
+    """
+    # 1. Build prompt from tags
+    i_tags = db.query(Tag).filter(Tag.id.in_(character.identity_tags or [])).all()
+    c_tags = db.query(Tag).filter(Tag.id.in_(character.clothing_tags or [])).all()
+    tag_list = [t.name.replace("_", " ") for t in i_tags + c_tags]
+
+    # 2. Build LoRA prompt
+    lora_prompt_parts = []
+    if character.loras:
+        for lora_entry in character.loras:
+            lora_obj = db.query(LoRA).filter(LoRA.id == lora_entry['lora_id']).first()
+            if lora_obj:
+                weight = lora_entry.get('weight', 1.0)
+                lora_prompt_parts.append(f"<lora:{lora_obj.name}:{weight}>")
+                if lora_obj.trigger_words:
+                    tag_list.extend(lora_obj.trigger_words)
+
+    # 3. Construct prompt
+    base_positive = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, simple background, white background"
+    # Remove duplicate tags (simple set)
+    unique_tags = list(dict.fromkeys(tag_list))
+    full_prompt = f"{base_positive}, {', '.join(unique_tags)}, {' '.join(lora_prompt_parts)}"
+    
+    # 4. Construct negative prompt
+    base_negative = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark"
+    if character.recommended_negative:
+        # Append recommended negative if not already in base
+        extras = [n for n in character.recommended_negative if n not in base_negative]
+        if extras:
+            base_negative += ", " + ", ".join(extras)
+
+    payload = {
+        "prompt": full_prompt,
+        "negative_prompt": base_negative,
+        "steps": 25,
+        "width": 512,
+        "height": 512,
+        "cfg_scale": 7.0,
+        "sampler_name": "Euler a"
+    }
+
+    logger.info(f"🎨 Generating reference for {character.name}...")
+    
+    # 5. Call SD
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(SD_TXT2IMG_URL, json=payload, timeout=120)
+        resp.raise_for_status()
+        r = resp.json()
+        image_b64 = r['images'][0]
+        
+        # 6. Save
+        return save_reference_image(character.name, image_b64)

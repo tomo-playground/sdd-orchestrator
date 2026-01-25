@@ -163,7 +163,8 @@ def wrap_text_by_font(
 
     # 1. 문장부호 기준 강제 분리
     forced_split = None
-    for mark in ("…", ".", "!", "?"):
+    # Removed '.' to prevent splitting decimals (e.g. 0.25)
+    for mark in ("…", "!", "?"):
         if mark in text:
             forced_split = mark
             break
