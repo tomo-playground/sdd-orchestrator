@@ -448,7 +448,11 @@ export default function ManagePage() {
         const next = { ...prev };
         suggestions.forEach((item) => {
           if (!next[item.tag]) {
-            next[item.tag] = suggestCategoryForTag(item.tag, categories);
+            // Use backend's suggested_category instead of frontend logic
+            // Backend handles SKIP_TAGS and has more accurate patterns
+            const suggested = item.suggested_category;
+            // Don't auto-select "skip" category - leave as empty for manual review
+            next[item.tag] = suggested === "skip" ? "" : (suggested || "");
           }
         });
         return next;

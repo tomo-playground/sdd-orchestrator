@@ -104,6 +104,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "ahoge", "antenna hair", "sidelocks", "hair over one eye",
         "hair between eyes", "hair over shoulder",
         "messy hair", "straight hair", "curly hair", "wavy hair",
+        "spiked hair", "spiky hair", "slicked back hair",
     ],
     "hair_accessory": [
         "hairclip", "hairpin", "hair ornament", "hair flower",
@@ -144,28 +145,38 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "shirt", "t-shirt", "blouse", "sweater", "hoodie",
         "jacket", "coat", "blazer", "cardigan", "vest",
         "tank top", "crop top", "tube top", "camisole",
+        "black tank top", "white tank top",
         # Bottoms
         "skirt", "miniskirt", "long skirt", "pleated skirt",
         "pants", "jeans", "shorts", "leggings",
+        "white shorts", "black shorts", "denim shorts",
         # Full body
         "dress", "sundress", "wedding dress", "evening dress",
         "uniform", "school uniform", "sailor uniform", "maid outfit",
         "suit", "tuxedo", "kimono", "yukata", "chinese clothes",
+        "swimsuit", "one-piece swimsuit", "bikini", "school swimsuit",
         # Details
         "sleeveless", "short sleeves", "long sleeves", "wide sleeves",
+        "off shoulder", "off-shoulder", "bare shoulders",
         "collar", "tie", "necktie", "bowtie", "bow",
         "button", "zipper", "pocket", "belt",
-        "ribbon", "lace", "frills",
+        "ribbon", "lace", "frills", "puffy sleeves",
         # Underwear/legwear
         "socks", "thighhighs", "kneehighs", "pantyhose",
         "stockings", "fishnet", "bare legs",
+        "black thighhighs", "white thighhighs",
+        "thigh strap", "garter", "garter belt",
         # Footwear
         "barefoot", "shoes", "boots", "sneakers", "sandals",
         "high heels", "loafers", "slippers", "mary janes",
+        "footwear", "brown footwear", "black footwear", "white footwear",
         # Accessories
         "glasses", "sunglasses", "hat", "cap", "beret",
         "gloves", "scarf", "bag", "backpack", "purse",
         "earrings", "necklace", "bracelet", "ring", "choker",
+        "jewelry",
+        # Outerwear
+        "green hoodie", "black hoodie", "white hoodie",
         # States
         "open clothes", "open jacket", "open shirt",
         "hood", "hood up", "hood down",
@@ -273,13 +284,33 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "hospital", "church", "temple", "shrine",
         "gym", "pool", "locker room",
     ],
+    # === Priority 11b: Environment Objects (props in scene) ===
+    "environment": [
+        # Indoor props
+        "shelf", "bookshelf", "desk", "table", "chair", "sofa", "couch",
+        "bed", "pillow", "blanket", "curtain", "window",
+        "door", "stairs", "floor", "wall", "ceiling",
+        "lamp", "chandelier", "mirror",
+        # Tech items
+        "computer", "monitor", "keyboard", "laptop", "phone", "smartphone",
+        "television", "tv", "screen",
+        # Kitchen items
+        "plate", "cup", "mug", "bowl", "utensils", "fork", "spoon", "knife",
+        "food", "drink", "bottle", "glass",
+        # Plants
+        "potted plant", "flower", "plant", "vase", "flowers",
+        # Tiles/textures
+        "tiles", "brick", "concrete", "wood floor", "carpet",
+    ],
     "location_outdoor": [
         "outdoors", "outside", "exterior",
         "street", "alley", "sidewalk", "crosswalk",
         "park", "garden", "yard", "playground",
         "forest", "woods", "jungle", "meadow", "field",
         "beach", "ocean", "sea", "lake", "river", "waterfall", "pond",
+        "water",  # Generic water environment
         "mountain", "hill", "cliff", "valley",
+        "mountainous horizon",
         "city", "town", "village", "rooftop", "balcony",
         "bridge", "pier", "dock",
     ],
@@ -366,6 +397,7 @@ CATEGORY_PRIORITY: dict[str, int] = {
     "camera": 10,
     "location_indoor": 11,
     "location_outdoor": 11,
+    "environment": 11,  # Indoor/outdoor props
     "background_type": 11,
     "time_weather": 12,
     "lighting": 13,
