@@ -52,6 +52,7 @@ type SceneCardProps = {
   applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
   buildPositivePrompt: (scene: Scene) => string;
   buildNegativePrompt: (scene: Scene) => string;
+  buildScenePrompt: (scene: Scene) => Promise<string | null>;
   getBasePromptForScene: (scene: Scene) => string;
   showToast: (message: string, type: "success" | "error") => void;
 };
@@ -88,6 +89,7 @@ export default function SceneCard({
   applySuggestion,
   buildPositivePrompt,
   buildNegativePrompt,
+  buildScenePrompt,
   getBasePromptForScene,
   showToast,
 }: SceneCardProps) {
@@ -512,11 +514,13 @@ export default function SceneCard({
           {sceneTab === "debug" && (
             <DebugTabContent
               scene={scene}
-              onGenerateDebug={() => {
-                const basePrompt = getBasePromptForScene(scene);
-                const scenePrompt = scene.image_prompt;
-                const prompt =
-                  autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
+              onGenerateDebug={async () => {
+                // Use the same prompt composition as actual image generation
+                const prompt = await buildScenePrompt(scene);
+                if (!prompt) {
+                  showToast("프롬프트 생성 실패", "error");
+                  return;
+                }
                 const payload = {
                   prompt,
                   negative_prompt: buildNegativePrompt(scene),

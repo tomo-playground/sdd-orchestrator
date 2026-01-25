@@ -175,6 +175,21 @@ class TestConflictFiltering:
         assert "bedroom" not in result
         assert "cafe" not in result
 
+    def test_ocean_with_indoor_locations(self):
+        """Test user-reported case: ocean (outdoor) + library/room/street/cafe."""
+        tokens = ["smile", "ocean", "daytime", "library", "room", "street", "cafe"]
+        result = filter_conflicting_tokens(tokens)
+        # ocean is first location (outdoor) - should be kept
+        assert "ocean" in result
+        # All other locations should be removed
+        assert "library" not in result  # indoor, conflicts with outdoor
+        assert "room" not in result     # indoor, conflicts with outdoor
+        assert "street" not in result   # outdoor, but duplicate location
+        assert "cafe" not in result     # indoor, conflicts with outdoor
+        # Non-location tokens should remain
+        assert "smile" in result
+        assert "daytime" in result
+
     def test_hair_length_conflict(self):
         tokens = ["short hair", "long hair"]
         result = filter_conflicting_tokens(tokens)

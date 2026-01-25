@@ -65,6 +65,8 @@ import StoryboardActionsBar from "./components/StoryboardActionsBar";
 import WorkingModeHeader from "./components/WorkingModeHeader";
 import SectionDivider from "./components/SectionDivider";
 import Toast from "./components/Toast";
+import LoadingSpinner from "./components/LoadingSpinner";
+import ErrorMessage from "./components/ErrorMessage";
 import {
   slugifyAvatarKey,
   normalizeOverlaySettings,
@@ -1382,29 +1384,59 @@ export default function Home() {
   };
 
   const buildScenePrompt = async (scene: Scene) => {
-    const fallbackPrompt = buildPositivePrompt(scene);
-    if (!fallbackPrompt) return null;
-    let prompt = fallbackPrompt;
     const basePrompt = getBasePromptForScene(scene);
-    const scenePrompt = scene.image_prompt;
-    if (autoComposePrompt && autoRewritePrompt && basePrompt && scenePrompt.trim()) {
-      try {
-        const rewrite = await axios.post(`${API_BASE}/prompt/rewrite`, {
-          base_prompt: basePrompt,
-          scene_prompt: scenePrompt,
-          style,
-          mode: "compose",
-        });
-        if (rewrite.data.prompt) {
-          prompt = rewrite.data.prompt;
-        }
-      } catch {
-        prompt = `${basePrompt}, ${scenePrompt}`;
-      }
-    } else {
-      prompt = autoComposePrompt && basePrompt ? `${basePrompt}, ${scenePrompt}` : scenePrompt;
+    const scenePrompt = scene.image_prompt.trim();
+
+    // Fallback: simple concatenation if autoComposePrompt is off
+    if (!autoComposePrompt) {
+      return scenePrompt || null;
     }
-    return prompt;
+
+    // Collect all tokens
+    const baseTokens = basePrompt ? splitPromptTokens(basePrompt) : [];
+    const sceneTokens = scenePrompt ? splitPromptTokens(scenePrompt) : [];
+
+    // Collect context tags
+    const contextTagsList: string[] = [];
+    if (scene.context_tags) {
+      const { expression, gaze, pose, action, camera, environment, mood } = scene.context_tags;
+      if (expression?.length) contextTagsList.push(...expression);
+      if (gaze) contextTagsList.push(gaze);
+      if (pose?.length) contextTagsList.push(...pose);
+      if (action?.length) contextTagsList.push(...action);
+      if (camera) contextTagsList.push(camera);
+      if (environment?.length) contextTagsList.push(...environment);
+      if (mood?.length) contextTagsList.push(...mood);
+    }
+
+    // Merge all tokens (deduplicate)
+    const allTokens = mergePromptTokens(baseTokens, [...contextTagsList, ...sceneTokens]);
+
+    if (allTokens.length === 0) return null;
+
+    // Use /prompt/compose API for Mode A/B ordering
+    try {
+      const composeRes = await axios.post(`${API_BASE}/prompt/compose`, {
+        tokens: allTokens,
+        mode: characterPromptMode,
+        loras: characterLoras.length > 0 ? characterLoras.map(lora => ({
+          name: lora.name,
+          weight: lora.weight ?? 0.5,
+          trigger_words: lora.trigger_words ?? [],
+          lora_type: lora.lora_type ?? "character",
+          optimal_weight: lora.optimal_weight,
+        })) : null,
+        use_break: true,
+      });
+      if (composeRes.data.prompt) {
+        return composeRes.data.prompt;
+      }
+    } catch (error) {
+      console.warn("Prompt compose API failed, using fallback:", error);
+    }
+
+    // Fallback: simple concatenation
+    return allTokens.join(", ");
   };
 
   const buildHiResPayload = () =>
@@ -2000,6 +2032,7 @@ export default function Home() {
                 applySuggestion={applySuggestion}
                 buildPositivePrompt={buildPositivePrompt}
                 buildNegativePrompt={buildNegativePrompt}
+                buildScenePrompt={buildScenePrompt}
                 getBasePromptForScene={getBasePromptForScene}
                 showToast={showToast}
               />
