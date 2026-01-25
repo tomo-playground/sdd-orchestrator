@@ -179,14 +179,14 @@ Character Preset
 - Frontend: IP-Adapter 체크박스 + Reference 드롭다운 + Weight 슬라이더
 - ControlNet + IP-Adapter 동시 사용 가능 (포즈 + 얼굴 일관성)
 
-### 7-3. LoRA 캘리브레이션 시스템 (🟡 진행중)
+### 7-3. LoRA 캘리브레이션 시스템 (🟢 완료)
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | 캘리브레이션 서비스 | 최적 LoRA weight 자동 탐색 (0.5~1.0) | [x] |
 | WD14 기반 평가 | 프롬프트 표현력 점수 측정 | [x] |
 | DB 저장 | optimal_weight, calibration_score 필드 | [x] |
 | 자동 적용 | 캐릭터 선택 시 최적 weight 자동 적용 | [x] |
-| /manage UI | LoRA 목록에 캘리브레이션 정보 표시 | [ ] |
+| /manage UI | LoRA 목록에 캘리브레이션 정보 표시 | [x] |
 
 **7-3 완료 요약**:
 - `services/lora_calibration.py`: 캘리브레이션 로직
@@ -315,6 +315,7 @@ brew install claude-squad  # 명령어: cs
 - 4개 LoRA 캘리브레이션: eureka, chibi, blindbox, midoriya
 - 최적 weight: 모두 0.5 (프롬프트 표현력 유지)
 - 캐릭터 선택 시 자동 적용 구현
+- /manage 페이지에 캘리브레이션 정보 표시
 
 **7-4 다중 캐릭터 실험 완료 (2026-01-25)**:
 - 상호작용 장면: ControlNet 단일 생성 권장
