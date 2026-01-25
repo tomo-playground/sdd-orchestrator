@@ -315,7 +315,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (11:45)
+**Last Updated**: 2026-01-26 (12:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -380,6 +380,10 @@ brew install claude-squad  # 명령어: cs
 - **후킹 & 코믹 요소**:
   - Scene 1: 후킹 (관심 유도 질문/문제) - "이 표현 모르면 일본에서 굶어요 ㅋㅋ"
   - Final: 코믹 트위스트 (흔한 실수/문화 차이) - "근데 이렇게 말하면 반말이에요 ㅋㅋ"
+- **프롬프트 품질 개선**:
+  - 비표준 태그 제거: `teaching gesture`, `educational`, `casual_clothes`
+  - 실생활 환경 확장: cafe, restaurant, street, station, classroom
+  - 표준 액션 태그: `pointing`, `hand up`, `waving`
 
 **15.7 Dynamic Tag Classification System 완료 (2026-01-25)**:
 - 15.7.1~15.7.8 전체 완료
