@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE } from "../constants";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag } from "../types";
 
@@ -81,6 +81,21 @@ export default function ManagePage() {
   const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
+
+  // Pending classifications state (15.7.5)
+  type PendingTag = {
+    id: number;
+    name: string;
+    category: string;
+    group_name: string | null;
+    classification_source: string | null;
+    classification_confidence: number | null;
+  };
+  const [pendingTags, setPendingTags] = useState<PendingTag[]>([]);
+  const [isPendingLoading, setIsPendingLoading] = useState(false);
+  const [pendingGroupSelection, setPendingGroupSelection] = useState<Record<number, string>>({});
+  const [pendingApproving, setPendingApproving] = useState<Record<number, boolean>>({});
+  const [showPendingSection, setShowPendingSection] = useState(true);
 
   // Storage state
   type StorageStats = {
@@ -290,8 +305,64 @@ export default function ManagePage() {
   useEffect(() => {
     if (manageTab === "tags") {
       void fetchTagsData();
+      void fetchPendingTags();
     }
   }, [manageTab]);
+
+  // Pending classifications functions (15.7.5)
+  const fetchPendingTags = async () => {
+    setIsPendingLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}/tags/pending?limit=50`);
+      setPendingTags(res.data.tags || []);
+      // Pre-populate group selections with existing values
+      const selections: Record<number, string> = {};
+      (res.data.tags || []).forEach((tag: PendingTag) => {
+        if (tag.group_name) {
+          selections[tag.id] = tag.group_name;
+        }
+      });
+      setPendingGroupSelection(selections);
+    } catch {
+      console.error("Failed to fetch pending tags");
+    } finally {
+      setIsPendingLoading(false);
+    }
+  };
+
+  const handleApprovePendingTag = async (tagId: number) => {
+    const groupName = pendingGroupSelection[tagId];
+    if (!groupName) {
+      alert("Please select a group first");
+      return;
+    }
+    setPendingApproving((prev) => ({ ...prev, [tagId]: true }));
+    try {
+      await axios.post(`${API_BASE}/tags/approve-classification`, {
+        tag_id: tagId,
+        group_name: groupName,
+      });
+      setPendingTags((prev) => prev.filter((t) => t.id !== tagId));
+      setPendingGroupSelection((prev) => {
+        const next = { ...prev };
+        delete next[tagId];
+        return next;
+      });
+    } catch {
+      alert("Failed to approve tag");
+    } finally {
+      setPendingApproving((prev) => ({ ...prev, [tagId]: false }));
+    }
+  };
+
+  // Available groups for classification
+  const availableGroups = useMemo(() => {
+    const groups = new Set<string>();
+    allTags.forEach((tag) => {
+      if (tag.group_name) groups.add(tag.group_name);
+    });
+    return Array.from(groups).sort();
+  }, [allTags]);
 
   // Computed values for tags tab
   const filteredTags = useMemo(() => {
@@ -640,7 +711,14 @@ export default function ManagePage() {
                 disabled={isKeywordLoading}
                 className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition disabled:cursor-not-allowed disabled:text-zinc-400"
               >
-                {isKeywordLoading ? "Loading..." : "Refresh"}
+                {isKeywordLoading ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" color="text-zinc-400" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  "Refresh"
+                )}
               </button>
               <button
                 onClick={openBatchModal}
@@ -989,7 +1067,14 @@ export default function ManagePage() {
                 disabled={isStyleLoading}
                 className="ml-auto rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-zinc-600 uppercase disabled:text-zinc-400"
               >
-                {isStyleLoading ? "Loading..." : "Refresh"}
+                {isStyleLoading ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" color="text-zinc-400" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  "Refresh"
+                )}
               </button>
             </div>
 
@@ -1127,7 +1212,14 @@ export default function ManagePage() {
                       disabled={isSearchingCivitai}
                       className="rounded-full bg-zinc-800 px-4 py-2 text-[10px] font-semibold text-white disabled:bg-zinc-400"
                     >
-                      {isSearchingCivitai ? "Searching..." : "Search"}
+                      {isSearchingCivitai ? (
+                        <div className="flex items-center gap-2">
+                          <LoadingSpinner size="sm" color="text-white/70" />
+                          <span>Searching...</span>
+                        </div>
+                      ) : (
+                        "Search"
+                      )}
                     </button>
                   </div>
                   {civitaiResults.length > 0 && (
@@ -1368,7 +1460,14 @@ export default function ManagePage() {
                 disabled={isTagsLoading}
                 className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase hover:bg-zinc-50 disabled:opacity-50"
               >
-                {isTagsLoading ? "Loading..." : "Refresh"}
+                {isTagsLoading ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" color="text-zinc-400" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  "Refresh"
+                )}
               </button>
             </div>
 
@@ -1454,6 +1553,110 @@ export default function ManagePage() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Pending Classifications (15.7.5) */}
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-amber-600 uppercase">
+                    Pending Classifications
+                  </span>
+                  {pendingTags.length > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700">
+                      {pendingTags.length}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPendingSection(!showPendingSection)}
+                    className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-500"
+                  >
+                    {showPendingSection ? "Hide" : "Show"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={fetchPendingTags}
+                    disabled={isPendingLoading}
+                    className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-500 disabled:opacity-50"
+                  >
+                    {isPendingLoading ? "..." : "Refresh"}
+                  </button>
+                </div>
+              </div>
+
+              {showPendingSection && (
+                <>
+                  {isPendingLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <LoadingSpinner size="sm" color="text-zinc-400" />
+                    </div>
+                  ) : pendingTags.length === 0 ? (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+                      <span className="text-xs text-emerald-600">All tags are classified!</span>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2 max-h-[400px] overflow-y-auto">
+                      {pendingTags.map((tag) => (
+                        <div
+                          key={tag.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <span className="text-xs font-semibold text-zinc-700">{tag.name}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[9px] text-zinc-400">
+                                  {tag.classification_source || "unknown"}
+                                </span>
+                                {tag.classification_confidence !== null && (
+                                  <span className="text-[9px] text-zinc-400">
+                                    ({Math.round(tag.classification_confidence * 100)}%)
+                                  </span>
+                                )}
+                                {tag.group_name && (
+                                  <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] text-zinc-500">
+                                    {tag.group_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={pendingGroupSelection[tag.id] || ""}
+                              onChange={(e) =>
+                                setPendingGroupSelection((prev) => ({
+                                  ...prev,
+                                  [tag.id]: e.target.value,
+                                }))
+                              }
+                              className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] outline-none focus:border-zinc-400"
+                            >
+                              <option value="">Select group</option>
+                              {availableGroups.map((group) => (
+                                <option key={group} value={group}>
+                                  {group}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleApprovePendingTag(tag.id)}
+                              disabled={!pendingGroupSelection[tag.id] || pendingApproving[tag.id]}
+                              className="rounded-full bg-amber-500 px-3 py-1 text-[9px] font-semibold text-white disabled:bg-zinc-300"
+                            >
+                              {pendingApproving[tag.id] ? "..." : "Approve"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Total Stats */}
@@ -1571,7 +1774,14 @@ export default function ManagePage() {
                   disabled={isLoadingStorage}
                   className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase disabled:cursor-not-allowed disabled:text-zinc-400"
                 >
-                  {isLoadingStorage ? "Loading..." : "Refresh"}
+                  {isLoadingStorage ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" color="text-zinc-400" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : (
+                    "Refresh"
+                  )}
                 </button>
               </div>
 

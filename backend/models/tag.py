@@ -22,6 +22,12 @@ class Tag(Base, TimestampMixin):
     priority: Mapped[int] = mapped_column(Integer, default=5, nullable=True)  # 1=highest, 99=lowest
     exclusive: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)  # single select in group
 
+    # Dynamic classification fields (15.7)
+    classification_source: Mapped[str | None] = mapped_column(
+        String(20), default="pattern"
+    )  # 'pattern', 'danbooru', 'llm', 'manual'
+    classification_confidence: Mapped[float | None] = mapped_column(Float, default=1.0)
+
     # Relationships
     synonyms: Mapped[list["Synonym"]] = relationship("Synonym", back_populates="tag", cascade="all, delete-orphan")
 
@@ -36,6 +42,26 @@ class TagRule(Base):
     rule_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'conflict' or 'requires'
     source_tag_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("tags.id", ondelete="CASCADE"))
     target_tag_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("tags.id", ondelete="CASCADE"))
+
+
+class ClassificationRule(Base):
+    """Pattern-based tag classification rules (replaces hardcoded CATEGORY_PATTERNS)."""
+
+    __tablename__ = "classification_rules"
+    __table_args__ = (
+        UniqueConstraint("rule_type", "pattern"),
+        Index("idx_classification_rules_active", "active"),
+        Index("idx_classification_rules_group", "target_group"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rule_type: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # 'suffix', 'prefix', 'contains', 'exact'
+    pattern: Mapped[str] = mapped_column(String(100), nullable=False)
+    target_group: Mapped[str] = mapped_column(String(50), nullable=False)  # hair_color, expression, etc.
+    priority: Mapped[int] = mapped_column(Integer, default=0)  # Higher = checked first
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class Synonym(Base):

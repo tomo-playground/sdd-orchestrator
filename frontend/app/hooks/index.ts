@@ -6,3 +6,5 @@ export type { UseDraftPersistenceReturn } from "./useDraftPersistence";
 
 export { useTags } from "./useTags";
 export type { TagGroup } from "./useTags";
+
+export { useTagClassifier, getClassificationCache } from "./useTagClassifier";

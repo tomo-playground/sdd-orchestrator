@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { API_BASE } from "../constants";
+import { useTagClassifier } from "../hooks";
 
 type LoRAInfo = {
   name: string;
@@ -49,6 +50,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   camera: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
   location_indoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
   location_outdoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  environment: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  background_type: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
   time_weather: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
   lighting: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
   mood: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
@@ -75,6 +78,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   camera: "Camera",
   location_indoor: "Location",
   location_outdoor: "Location",
+  environment: "Environment",
+  background_type: "Background",
   time_weather: "Time/Weather",
   lighting: "Lighting",
   mood: "Mood",
@@ -94,7 +99,7 @@ function getTokenCategory(token: string): string {
   const lower = token.toLowerCase().trim();
 
   // Quality
-  if (["masterpiece", "best quality", "high quality", "detailed"].some((q) => lower.includes(q))) {
+  if (["masterpiece", "best quality", "high quality", "detailed", "anime coloring", "official art"].some((q) => lower.includes(q))) {
     return "quality";
   }
   // Subject
@@ -115,28 +120,32 @@ function getTokenCategory(token: string): string {
   if (["standing", "sitting", "kneeling", "lying"].some((p) => lower.includes(p))) {
     return "pose";
   }
-  // Action
-  if (["running", "walking", "jumping", "dancing"].some((a) => lower.includes(a))) {
+  // Action (including "holding X" patterns)
+  if (["running", "walking", "jumping", "dancing", "holding", "grabbing", "reaching", "waving", "hugging", "carrying"].some((a) => lower.includes(a))) {
     return "action";
+  }
+  // Clothing
+  if (["dress", "shirt", "skirt", "pants", "uniform", "jacket", "coat", "sweater", "hoodie", "shoes", "boots", "socks", "stockings", "glasses", "hat", "cap", "ribbon", "bow", "gloves", "scarf", "apron"].some((c) => lower.includes(c))) {
+    return "clothing";
   }
   // Camera
   if (["from above", "from below", "full body", "close-up", "portrait"].some((c) => lower.includes(c))) {
     return "camera";
   }
-  // Location
-  if (["bedroom", "kitchen", "forest", "beach", "city"].some((l) => lower.includes(l))) {
+  // Location (indoor/outdoor)
+  if (["bedroom", "kitchen", "living room", "bathroom", "classroom", "library", "cafe", "restaurant", "office", "hospital", "church", "temple", "shrine", "castle", "dungeon", "cave", "forest", "beach", "city", "street", "park", "garden", "rooftop", "balcony", "bed", "chair", "sofa", "couch", "desk", "table", "window", "door", "stairs", "hallway", "corridor", "room"].some((l) => lower.includes(l))) {
     return "location_indoor";
   }
-  // Time/Weather
-  if (["sunset", "sunrise", "night", "day", "rain", "snow"].some((t) => lower.includes(t))) {
+  // Time/Weather (including environmental effects like falling leaves, petals, sky)
+  if (["sunset", "sunrise", "night", "day", "rain", "snow", "falling leaves", "falling petals", "cherry blossoms", "fireflies", "sparkles", "starry", "sky", "clouds", "moon", "sun", "stars", "aurora", "fog", "mist"].some((t) => lower.includes(t))) {
     return "time_weather";
   }
   // Lighting
   if (lower.includes("lighting") || lower.includes("light")) {
     return "lighting";
   }
-  // Mood
-  if (["romantic", "dramatic", "peaceful", "tense"].some((m) => lower.includes(m))) {
+  // Mood/Atmosphere
+  if (["romantic", "dramatic", "peaceful", "tense", "comfortable", "cozy", "warm", "cold", "lonely", "melancholy", "joyful", "gloomy", "serene", "calm", "chaotic", "mysterious", "eerie", "nostalgic", "intimate"].some((m) => lower.includes(m))) {
     return "mood";
   }
 
@@ -155,6 +164,46 @@ export default function ComposedPromptPreview({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ComposeResult | null>(null);
   const [showGrouped, setShowGrouped] = useState(true);
+
+  // API-based tag classification (15.7)
+  const { classifyTags, getCachedCategory, isLoading: isClassifying } = useTagClassifier();
+  const [apiCategories, setApiCategories] = useState<Record<string, string | null>>({});
+  const classifiedTokensRef = useRef<string>("");
+
+  // Classify tokens via API when they change
+  useEffect(() => {
+    const tokensToClassify = (result?.tokens || tokens).filter(
+      (t) => !t.startsWith("<lora:") && t !== "BREAK"
+    );
+    const tokenKey = tokensToClassify.join(",");
+
+    // Skip if already classified this set
+    if (tokenKey === classifiedTokensRef.current || tokensToClassify.length === 0) {
+      return;
+    }
+
+    classifiedTokensRef.current = tokenKey;
+    classifyTags(tokensToClassify).then((results) => {
+      setApiCategories(results);
+    });
+  }, [result?.tokens, tokens, classifyTags]);
+
+  // Get category with API fallback
+  const getCategory = useCallback(
+    (token: string): string => {
+      // Special tokens
+      if (token.startsWith("<lora:")) return "lora";
+      if (token === "BREAK") return "break";
+
+      // Check API result first
+      const apiCategory = apiCategories[token] || getCachedCategory(token);
+      if (apiCategory) return apiCategory;
+
+      // Fallback to local pattern matching
+      return getTokenCategory(token);
+    },
+    [apiCategories, getCachedCategory]
+  );
 
   const composePrompt = useCallback(async () => {
     if (tokens.length === 0) return;
@@ -194,10 +243,10 @@ export default function ComposedPromptPreview({
     }
   }, [tokens, loras, mode, useBreak, onComposed]);
 
-  // Group tokens by category for grouped view
+  // Group tokens by category for grouped view (uses API categories when available)
   const groupedTokens = (result?.tokens || tokens).reduce(
     (acc, token) => {
-      const category = getTokenCategory(token);
+      const category = getCategory(token);
       if (!acc[category]) acc[category] = [];
       acc[category].push(token);
       return acc;
@@ -206,7 +255,7 @@ export default function ComposedPromptPreview({
   );
 
   const getTokenStyle = (token: string) => {
-    const category = getTokenCategory(token);
+    const category = getCategory(token);
     return CATEGORY_COLORS[category] || CATEGORY_COLORS.unknown;
   };
 
@@ -314,7 +363,7 @@ export default function ComposedPromptPreview({
               <span
                 key={idx}
                 className={`rounded-full px-2 py-0.5 text-[10px] border ${style.bg} ${style.text} ${style.border}`}
-                title={getTokenCategory(token)}
+                title={getCategory(token)}
               >
                 {token === "BREAK" ? (
                   <span className="font-bold">BREAK</span>
