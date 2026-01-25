@@ -440,8 +440,9 @@ brew install claude-squad  # 명령어: cs
 - **BREAK 정규화**: `_normalize_break_tokens()` 함수 추가 - 소문자 `break` → `BREAK` 변환, 중복 제거
 - **Camera 충돌**: `medium shot` 패턴 추가, 동일 카테고리 첫 번째만 유지
 - **중복 BREAK 방지**: 사용자 입력 BREAK 있으면 자동 삽입 스킵
-- **테스트 강화**: 38개 → 54개 (+16개)
-  - TestLoRADeduplication (5), TestBreakNormalization (4), TestCameraConflict (4), TestFullCompositionBugFixes (3)
+- **tokens 내 LoRA 추출**: `_extract_loras_from_tokens()` 추가 - tokens와 lora_strings 간 중복 방지
+- **테스트 강화**: 38개 → 58개 (+20개)
+  - TestLoRADeduplication (5), TestBreakNormalization (4), TestCameraConflict (4), TestFullCompositionBugFixes (3), TestLoRAExtractionFromTokens (4)
 
 **9.8 버그 수정 IV (2026-01-25 23:00)**:
 - **COMPOSED PREVIEW 자동 업데이트**: 토큰 변경 시 자동으로 `/prompt/compose` API 호출
