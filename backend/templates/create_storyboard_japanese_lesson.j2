@@ -8,8 +8,16 @@ Difficulty: {{ difficulty | default("beginner") }}
 
 Instructions:
 1. Create a Japanese language lesson about the given topic using REAL-LIFE SITUATIONS.
-2. Each scene should present a SPECIFIC SCENARIO where the expression is used.
-3. Structure for each scene:
+2. STRUCTURE (in order):
+   - Scene 1: HOOK - Start with an attention-grabbing question or relatable problem
+     * Example: "일본 카페에서 이것도 모르면 당황해요!"
+     * Example: "이 표현 모르면 일본에서 굶어요 ㅋㅋ"
+   - Scenes 2-5: SITUATIONS - Teach expressions through specific scenarios
+   - Scene 6: COMIC TWIST - End with a funny mistake or relatable fail
+     * Example: "근데 이렇게 말하면 큰일나요... ㅋㅋ"
+     * Show common mistakes foreigners make (with correction)
+3. Each scene should present a SPECIFIC SCENARIO where the expression is used.
+4. Structure for each scene:
    - scene_id: sequential number starting at 1
    - script: Situational context + Japanese expression + Korean meaning
      * Format: "[상황]: [Japanese] - [Korean meaning]"
@@ -34,10 +42,10 @@ Instructions:
    - romaji: Romanized pronunciation
    - korean_meaning: Korean translation
 
-4. Include 4-6 situational examples per lesson.
-5. Make situations relatable: cafe, store, street, restaurant, station, etc.
-6. End with a review/summary scene.
-7. Return ONLY raw JSON array.
+5. Include 4-6 situational examples per lesson.
+6. Make situations relatable: cafe, store, street, restaurant, station, etc.
+7. Add humor: common mistakes, cultural differences, funny misunderstandings.
+8. Return ONLY raw JSON array.
 
 Allowed Keywords:
 {{ keyword_context }}
@@ -46,22 +54,22 @@ Output Format:
 [
   {
     "scene_id": 1,
-    "script": "오늘은 카페에서 쓸 수 있는 표현을 배워볼게요",
+    "script": "일본 카페에서 이것도 모르면 당황해요!",
     "speaker": "Narrator",
-    "duration": 4,
-    "image_prompt": "smile, looking at viewer, standing, pointing, bust shot, cafe, soft lighting, peaceful",
-    "image_prompt_ko": "카페 배경에서 설명하는 장면",
+    "duration": 3,
+    "image_prompt": "surprised, looking at viewer, standing, bust shot, cafe, soft lighting, energetic",
+    "image_prompt_ko": "당황한 표정으로 시청자에게 말하는 장면",
     "japanese_text": "",
     "romaji": "",
     "korean_meaning": "",
     "scene_tags": {
-      "expression": ["smile"],
+      "expression": ["surprised"],
       "gaze": "looking at viewer",
       "pose": ["standing"],
-      "action": ["pointing"],
+      "action": [],
       "camera": "bust shot",
       "environment": ["cafe", "soft lighting"],
-      "mood": ["peaceful"]
+      "mood": ["energetic"]
     }
   },
   {
@@ -82,6 +90,26 @@ Output Format:
       "camera": "close-up",
       "environment": ["cafe", "counter", "warm lighting"],
       "mood": ["peaceful"]
+    }
+  },
+  {
+    "scene_id": 3,
+    "script": "근데 くれ라고 하면 반말이에요 ㅋㅋ 주의!",
+    "speaker": "Narrator",
+    "duration": 4,
+    "image_prompt": "wink, looking at viewer, standing, close-up, cafe, warm lighting, playful",
+    "image_prompt_ko": "장난스럽게 주의사항 알려주는 장면",
+    "japanese_text": "くれ",
+    "romaji": "Kure",
+    "korean_meaning": "줘 (반말)",
+    "scene_tags": {
+      "expression": ["wink"],
+      "gaze": "looking at viewer",
+      "pose": ["standing"],
+      "action": [],
+      "camera": "close-up",
+      "environment": ["cafe", "warm lighting"],
+      "mood": ["playful"]
     }
   }
 ]
