@@ -84,7 +84,7 @@ export default function StoryboardGeneratorPanel({
           <textarea
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            rows={4}
+            rows={12}
             className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
             placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
           />
