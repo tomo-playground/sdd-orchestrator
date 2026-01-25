@@ -552,3 +552,70 @@ class TestLoRAExtractionFromTokens:
         )
 
         assert "<lora:test:0.5>" in result
+
+
+class TestExpressionConflict:
+    """Tests for expression and gaze conflict filtering."""
+
+    def test_crying_vs_laughing(self):
+        """crying and laughing should not coexist."""
+        tokens = ["crying", "looking down", "standing", "laughing"]
+        result = filter_conflicting_tokens(tokens)
+        assert "crying" in result
+        assert "laughing" not in result
+
+    def test_sad_vs_happy(self):
+        """sad and happy should not coexist."""
+        tokens = ["sad", "standing", "happy", "smile"]
+        result = filter_conflicting_tokens(tokens)
+        assert "sad" in result
+        assert "happy" not in result
+        assert "smile" not in result
+
+    def test_angry_vs_smile(self):
+        """angry and smile should not coexist."""
+        tokens = ["angry", "standing", "smile"]
+        result = filter_conflicting_tokens(tokens)
+        assert "angry" in result
+        assert "smile" not in result
+
+    def test_expression_category_only_one(self):
+        """Only one expression should remain."""
+        tokens = ["crying", "sad", "angry", "happy"]
+        result = filter_conflicting_tokens(tokens)
+        assert result == ["crying"]
+
+
+class TestGazeConflict:
+    """Tests for gaze direction conflicts."""
+
+    def test_looking_down_vs_up(self):
+        """looking down and looking up should not coexist."""
+        tokens = ["looking down", "standing", "looking up"]
+        result = filter_conflicting_tokens(tokens)
+        assert "looking down" in result
+        assert "looking up" not in result
+
+    def test_looking_away_vs_at_viewer(self):
+        """looking away and looking at viewer conflict."""
+        tokens = ["looking away", "smile", "looking at viewer"]
+        result = filter_conflicting_tokens(tokens)
+        assert "looking away" in result
+        assert "looking at viewer" not in result
+
+
+class TestPoseConflict:
+    """Tests for pose conflicts."""
+
+    def test_sitting_vs_standing(self):
+        """sitting and standing should not coexist."""
+        tokens = ["sitting", "smile", "standing"]
+        result = filter_conflicting_tokens(tokens)
+        assert "sitting" in result
+        assert "standing" not in result
+
+    def test_lying_vs_others(self):
+        """lying conflicts with sitting and standing."""
+        tokens = ["lying", "sitting", "standing"]
+        result = filter_conflicting_tokens(tokens)
+        assert result == ["lying"]

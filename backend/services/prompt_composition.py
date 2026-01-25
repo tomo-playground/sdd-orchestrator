@@ -236,6 +236,29 @@ CONFLICTING_CATEGORY_PAIRS = [
     ("location_indoor", "location_outdoor"),  # Can't be both indoor and outdoor
     ("background_type", "background_type"),  # Only one background type
     ("camera", "camera"),  # Only one camera angle/shot type
+    ("expression", "expression"),  # Only one expression
+    ("gaze", "gaze"),  # Only one gaze direction
+]
+
+# Specific tag pairs that conflict (first wins)
+CONFLICTING_TAG_PAIRS = [
+    # Expression conflicts
+    ("crying", "laughing"),
+    ("crying", "happy"),
+    ("crying", "smile"),
+    ("sad", "happy"),
+    ("sad", "smile"),
+    ("sad", "laughing"),
+    ("angry", "happy"),
+    ("angry", "smile"),
+    # Gaze conflicts
+    ("looking down", "looking up"),
+    ("looking away", "looking at viewer"),
+    ("closed eyes", "looking at viewer"),
+    # Pose conflicts
+    ("sitting", "standing"),
+    ("lying", "standing"),
+    ("lying", "sitting"),
 ]
 
 
@@ -257,15 +280,23 @@ def filter_conflicting_tokens(
         2. For mutually exclusive categories (location_indoor vs outdoor),
            keep only the first occurrence
         3. Remove LoRA trigger words if they already appear in tokens
+        4. Remove specific conflicting tag pairs (crying vs laughing, etc.)
     """
     seen_tokens: set[str] = set()
     seen_categories: dict[str, str] = {}  # group → first category
+    seen_tag_conflicts: set[str] = set()  # Track tags for pair conflicts
     result: list[str] = []
 
     # Normalize trigger words for comparison
     trigger_set: set[str] = set()
     if trigger_words:
         trigger_set = {t.lower().strip() for t in trigger_words}
+
+    # Build conflict lookup: tag -> set of conflicting tags
+    conflict_lookup: dict[str, set[str]] = {}
+    for tag1, tag2 in CONFLICTING_TAG_PAIRS:
+        conflict_lookup.setdefault(tag1, set()).add(tag2)
+        conflict_lookup.setdefault(tag2, set()).add(tag1)
 
     for token in tokens:
         normalized = token.lower().strip()
@@ -315,6 +346,13 @@ def filter_conflicting_tokens(
 
         if skip:
             continue
+
+        # Check specific tag pair conflicts
+        if normalized in conflict_lookup:
+            # Check if any conflicting tag has been seen
+            if conflict_lookup[normalized] & seen_tag_conflicts:
+                continue
+            seen_tag_conflicts.add(normalized)
 
         # Track this category for future conflict checks
         if category:
