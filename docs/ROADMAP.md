@@ -327,7 +327,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (15:00)
+**Last Updated**: 2026-01-26 (15:45)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -429,6 +429,15 @@ brew install claude-squad  # 명령어: cs
   - `falling leaves` → TIME_WEATHER (ACTION에서 수정)
   - Backend: CATEGORY_PATTERNS에 "holding X" 패턴(55개), 환경 효과(38개) 추가
   - Frontend: getTokenCategory()에 clothing 패턴, 환경 효과 패턴 추가
+
+**Prompt Conflict Filtering 강화 (2026-01-26 15:45)**:
+- `CONFLICTING_TAG_PAIRS` 추가: 특정 태그 쌍 충돌 규칙
+  - Expression: crying vs laughing/happy/smile, sad vs happy/smile/laughing
+  - Gaze: looking down vs up, looking away vs at viewer
+  - Pose: sitting vs standing, lying vs sitting/standing
+- `CONFLICTING_CATEGORY_PAIRS`에 expression, gaze 추가
+- 8개 테스트 추가 (총 66개, 100% pass)
+- 비논리적 조합(crying + laughing 등) 자동 필터링
 
 **VRT 환경 구축 (2026-01-26 15:00)**:
 - Playwright 설치 및 설정 (`playwright.config.ts`)
