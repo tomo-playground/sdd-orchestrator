@@ -56,113 +56,331 @@ IGNORE_TOKENS = frozenset([
 
 # --- Category suggestion patterns ---
 # Pattern-based category detection for unknown tags
+# Organized by SD Prompt Priority Order (lower priority = earlier in prompt)
 CATEGORY_PATTERNS: dict[str, list[str]] = {
-    "expression": [
-        "smile", "grin", "laugh", "cry", "tear", "blush", "pout", "frown",
-        "angry", "happy", "sad", "surprised", "shocked", "scared", "nervous",
-        "embarrassed", "confused", "tired", "sleepy", "annoyed", "excited",
-        "mouth", "teeth", "tongue", "lips", "open mouth", "closed mouth",
-        "eyebrows", "v-shaped", "furrowed", "raised eyebrow", "sweat", "drool",
-        "sweatdrop", "nosebleed", "drooling", "teardrop",
+    # === Priority 1: Quality (맨 앞) ===
+    "quality": [
+        "masterpiece", "best quality", "high quality", "amazing quality",
+        "very aesthetic", "absurdres", "highres", "8k", "detailed",
+        "ultra detailed", "extremely detailed", "intricate details",
+        "official art", "anime coloring", "perfect lighting",
     ],
-    "gaze": [
-        "looking", "staring", "glancing", "eye contact", "eyes closed",
-        "looking at viewer", "looking away", "looking up", "looking down",
-        "looking back", "looking to the side", "averted gaze",
+
+    # === Priority 2: Subject ===
+    "subject": [
+        "1girl", "2girls", "3girls", "4girls", "5girls", "6+girls",
+        "1boy", "2boys", "3boys", "4boys", "5boys", "6+boys",
+        "solo", "duo", "trio", "group", "crowd", "everyone",
+        "multiple girls", "multiple boys", "couple", "1other",
     ],
-    "pose": [
-        "standing", "sitting", "lying", "kneeling", "crouching", "leaning",
-        "arms", "legs", "hands", "crossed", "raised", "behind", "on hip",
-        "spread", "bent", "folded", "clasped", "akimbo", "outstretched",
-        "on stomach", "on back", "on side", "fetal position", "sprawled",
-        "between legs", "hand on", "hugging", "curled up",
-        "squatting", "lounging", "reclining", "stretching", "bending",
+
+    # === Priority 3-4: Identity/Appearance ===
+    "hair_color": [
+        "black hair", "blonde hair", "brown hair", "red hair",
+        "blue hair", "green hair", "pink hair", "purple hair",
+        "white hair", "silver hair", "grey hair", "gray hair",
+        "orange hair", "aqua hair", "light brown hair",
+        "multicolored hair", "gradient hair", "streaked hair",
+        "two-tone hair", "colored inner hair",
     ],
-    "action": [
-        "walking", "running", "jumping", "dancing", "eating", "drinking",
-        "reading", "writing", "holding", "pointing", "waving", "hugging",
-        "fighting", "sleeping", "crying", "singing", "playing", "cooking",
-        "working", "studying", "stretching", "reaching", "grabbing",
-    ],
-    "camera": [
-        "close-up", "closeup", "portrait", "upper body", "lower body",
-        "full body", "cowboy shot", "from above", "from below", "from side",
-        "from behind", "dutch angle", "wide shot", "medium shot", "pov",
-        "depth of field", "bokeh", "focus", "angle",
-        "out of frame", "cropped", "partially visible",
-    ],
-    "environment": [
-        "background", "indoor", "outdoor", "room", "street", "park", "beach",
-        "forest", "mountain", "city", "school", "office", "home", "cafe",
-        "restaurant", "library", "classroom", "bedroom", "bathroom", "kitchen",
-        "window", "door", "wall", "floor", "ceiling", "desk", "chair", "table",
-        "bed", "sofa", "tree", "flower", "grass", "sky", "cloud", "sun", "moon",
-        "rain", "snow", "night", "day", "sunset", "sunrise", "scenery",
-        "book", "bookshelf", "shelf", "lamp", "curtain", "curtains", "pillow", "blanket",
-        "carpet", "rug", "plant", "vase", "clock", "mirror", "painting",
-        "bush", "fence", "bridge", "road", "path", "stairs", "balcony",
-        "couch", "on couch", "monitor", "computer", "mug", "cup", "plate",
-        "ocean", "sea", "river", "lake", "pond", "waterfall",
-    ],
-    "mood": [
-        "dramatic", "romantic", "melancholic", "cheerful", "peaceful", "tense",
-        "mysterious", "dark", "bright", "warm", "cold", "soft", "harsh",
-        "nostalgic", "dreamy", "ethereal", "gloomy", "cozy", "lonely",
-    ],
-    "clothing": [
-        "shirt", "dress", "skirt", "pants", "shorts", "jacket", "coat", "sweater",
-        "hoodie", "uniform", "suit", "tie", "ribbon", "bow", "hat", "cap",
-        "glasses", "gloves", "socks", "shoes", "boots", "sandals", "sleeves",
-        "collar", "button", "zipper", "pocket", "belt", "scarf", "accessory",
-        "earring", "necklace", "bracelet", "ring", "hairpin", "hairband",
-        "pantyhose", "stockings", "leggings", "apron", "vest", "cardigan",
-        "footwear", "kneehighs", "thighhighs", "bare", "shoulders", "sleeveless",
-        "bag", "backpack", "purse", "handbag", "satchel", "briefcase",
-        "blazer", "overalls", "plaid", "barefoot", "loafers", "sneakers",
-        "tank top", "crop top", "miniskirt", "jeans", "denim", "hood",
-        "choker", "open clothes", "open jacket", "open shirt",
+    "hair_length": [
+        "short hair", "medium hair", "long hair", "very long hair",
+        "absurdly long hair", "shoulder-length hair", "bald",
     ],
     "hair_style": [
-        "hair", "bangs", "ponytail", "twintails", "braid", "bun", "bob",
-        "long hair", "short hair", "medium hair", "curly", "straight", "wavy",
-        "messy", "neat", "side", "parted", "ahoge", "drill", "hime cut",
+        "bangs", "blunt bangs", "side bangs", "parted bangs", "swept bangs",
+        "ponytail", "high ponytail", "low ponytail", "side ponytail",
+        "twintails", "low twintails", "short twintails",
+        "braid", "braided ponytail", "twin braids", "side braid", "french braid",
+        "bun", "double bun", "hair bun", "side bun",
+        "bob cut", "hime cut", "pixie cut", "drill hair",
+        "ahoge", "antenna hair", "sidelocks", "hair over one eye",
+        "hair between eyes", "hair over shoulder",
+        "messy hair", "straight hair", "curly hair", "wavy hair",
     ],
-    "hair_color": [
-        "blonde", "brunette", "black hair", "white hair", "silver hair",
-        "red hair", "blue hair", "green hair", "pink hair", "purple hair",
-        "orange hair", "brown hair", "gray hair", "multicolored hair",
+    "hair_accessory": [
+        "hairclip", "hairpin", "hair ornament", "hair flower",
+        "hairband", "headband", "hair ribbon", "hair bow",
+        "scrunchie", "hair tie", "hair stick",
+        "crown", "tiara", "headpiece",
     ],
     "eye_color": [
-        "blue eyes", "red eyes", "green eyes", "brown eyes", "purple eyes",
-        "yellow eyes", "orange eyes", "pink eyes", "heterochromia",
+        "blue eyes", "red eyes", "green eyes", "brown eyes",
+        "purple eyes", "yellow eyes", "orange eyes", "pink eyes",
+        "aqua eyes", "golden eyes", "amber eyes", "grey eyes",
+        "heterochromia", "multicolored eyes", "glowing eyes",
     ],
     "skin_color": [
-        "pale skin", "dark skin", "tanned skin", "tanned", "white skin", "brown skin",
-        "colored skin", "blue skin", "green skin", "red skin", "pink skin",
-        "purple skin", "grey skin", "gray skin", "dark-skinned", "light-skinned",
+        "pale skin", "dark skin", "tanned skin", "tanned",
+        "white skin", "brown skin", "fair skin", "light skin",
+        "dark-skinned", "light-skinned",
+    ],
+    "body_feature": [
+        "pointy ears", "elf ears", "animal ears", "cat ears", "dog ears",
+        "fox ears", "rabbit ears", "wolf ears",
+        "horns", "demon horns", "dragon horns",
+        "wings", "angel wings", "demon wings", "fairy wings",
+        "tail", "cat tail", "fox tail", "demon tail",
+        "halo", "fang", "fangs",
     ],
     "appearance": [
-        "freckles", "mole", "scar", "tattoo", "piercing", "makeup", "lipstick",
-        "eyeshadow", "mascara", "blush", "beauty mark", "wrinkles", "muscles",
-        "abs", "slim", "chubby", "muscular", "petite", "tall", "short",
-        "pointy ears", "elf ears", "animal ears", "cat ears", "dog ears",
+        "freckles", "mole", "beauty mark", "scar", "tattoo",
+        "piercing", "ear piercing", "facial mark",
+        "makeup", "lipstick", "eyeshadow", "mascara",
+        "slim", "petite", "tall", "short", "muscular", "chubby",
+        "abs", "muscles",
     ],
+
+    # === Priority 5: Clothing ===
+    "clothing": [
+        # Tops
+        "shirt", "t-shirt", "blouse", "sweater", "hoodie",
+        "jacket", "coat", "blazer", "cardigan", "vest",
+        "tank top", "crop top", "tube top", "camisole",
+        # Bottoms
+        "skirt", "miniskirt", "long skirt", "pleated skirt",
+        "pants", "jeans", "shorts", "leggings",
+        # Full body
+        "dress", "sundress", "wedding dress", "evening dress",
+        "uniform", "school uniform", "sailor uniform", "maid outfit",
+        "suit", "tuxedo", "kimono", "yukata", "chinese clothes",
+        # Details
+        "sleeveless", "short sleeves", "long sleeves", "wide sleeves",
+        "collar", "tie", "necktie", "bowtie", "bow",
+        "button", "zipper", "pocket", "belt",
+        "ribbon", "lace", "frills",
+        # Underwear/legwear
+        "socks", "thighhighs", "kneehighs", "pantyhose",
+        "stockings", "fishnet", "bare legs",
+        # Footwear
+        "barefoot", "shoes", "boots", "sneakers", "sandals",
+        "high heels", "loafers", "slippers", "mary janes",
+        # Accessories
+        "glasses", "sunglasses", "hat", "cap", "beret",
+        "gloves", "scarf", "bag", "backpack", "purse",
+        "earrings", "necklace", "bracelet", "ring", "choker",
+        # States
+        "open clothes", "open jacket", "open shirt",
+        "hood", "hood up", "hood down",
+        "apron", "overalls", "plaid", "striped",
+    ],
+
+    # === Priority 6: Expression ===
+    "expression": [
+        # Basic emotions
+        "smile", "smiling", "grin", "smirk", "laugh", "laughing", "happy",
+        "sad", "crying", "tears", "frown", "sobbing",
+        "angry", "annoyed", "frustrated", "glare",
+        "surprised", "shocked", "scared", "frightened",
+        "embarrassed", "shy", "blush", "blushing", "nervous",
+        "serious", "expressionless", "deadpan", "stoic",
+        "sleepy", "tired", "exhausted", "yawning",
+        "excited", "cheerful", "joyful",
+        # Mouth
+        "open mouth", "closed mouth", "parted lips",
+        "tongue", "tongue out", "licking lips",
+        "pout", "pouting", ":o", ":d", ";)",
+        # Effects
+        "sweat", "sweatdrop", "nosebleed", "drool", "drooling", "teardrop",
+    ],
+
+    # === Priority 7: Gaze ===
+    "gaze": [
+        "looking at viewer", "looking away", "looking up", "looking down",
+        "looking back", "looking to the side", "eye contact",
+        "eyes closed", "closed eyes", "half-closed eyes", "squinting",
+        "one eye closed", "wink", "winking",
+        "staring", "glancing", "averted gaze", "downcast eyes",
+        "empty eyes", "sparkling eyes", "heart-shaped pupils",
+    ],
+
+    # === Priority 8: Pose (Static) ===
+    "pose": [
+        # Standing/sitting
+        "standing", "sitting", "kneeling", "crouching", "squatting",
+        "lying", "lying down", "on back", "on stomach", "on side",
+        "leaning", "leaning forward", "leaning back",
+        "reclining", "lounging", "sprawling",
+        # Arms
+        "arms crossed", "arms behind back", "arms up", "arms at sides",
+        "hand on hip", "hands on hips", "hands together",
+        "hand up", "hands up", "arm up",
+        "hand on chest", "hand on face", "hand on head",
+        "v", "peace sign", "thumbs up",
+        # Legs
+        "crossed legs", "spread legs", "legs together",
+        "one leg raised", "leg up",
+        # General
+        "profile", "from behind", "back", "turned around",
+        "curled up", "fetal position",
+    ],
+
+    # === Priority 9: Action (Dynamic) ===
+    "action": [
+        # Movement
+        "walking", "running", "jumping", "falling", "flying",
+        "dancing", "stretching", "bending", "turning",
+        # Hand actions
+        "holding", "grabbing", "reaching", "pointing", "waving",
+        "hugging", "embracing", "carrying",
+        # Activities
+        "reading", "writing", "drawing", "typing", "using phone",
+        "eating", "drinking", "cooking", "baking",
+        "singing", "playing instrument", "playing guitar", "playing piano",
+        "gaming", "playing game",
+        "sleeping", "napping", "resting",
+        "bathing", "showering", "dressing", "undressing",
+        "fighting", "kicking", "punching",
+        "swimming", "diving",
+    ],
+
+    # === Priority 10: Camera ===
+    "camera": [
+        # Shot types
+        "close-up", "closeup", "extreme close-up", "face focus",
+        "portrait", "bust shot", "upper body",
+        "cowboy shot", "thigh focus", "hip focus",
+        "full body", "wide shot", "very wide shot",
+        # Angles
+        "from above", "from below", "from side", "from behind",
+        "dutch angle", "tilted frame",
+        "low angle", "high angle", "bird's eye view", "worm's eye view",
+        "straight-on", "front view", "side view", "back view",
+        # POV
+        "pov", "first person view", "over shoulder",
+        # Effects
+        "depth of field", "bokeh", "motion blur", "lens flare",
+        "out of frame", "cropped", "partially visible",
+    ],
+
+    # === Priority 11: Location ===
+    "location_indoor": [
+        "indoors", "room", "interior",
+        "bedroom", "living room", "kitchen", "bathroom",
+        "classroom", "library", "office", "study",
+        "cafe", "restaurant", "bar", "shop", "store",
+        "train", "bus", "car interior", "airplane",
+        "hospital", "church", "temple", "shrine",
+        "gym", "pool", "locker room",
+    ],
+    "location_outdoor": [
+        "outdoors", "outside", "exterior",
+        "street", "alley", "sidewalk", "crosswalk",
+        "park", "garden", "yard", "playground",
+        "forest", "woods", "jungle", "meadow", "field",
+        "beach", "ocean", "sea", "lake", "river", "waterfall", "pond",
+        "mountain", "hill", "cliff", "valley",
+        "city", "town", "village", "rooftop", "balcony",
+        "bridge", "pier", "dock",
+    ],
+    "background_type": [
+        "simple background", "white background", "black background",
+        "grey background", "gray background", "gradient background",
+        "blurry background", "detailed background", "abstract background",
+        "no background", "transparent background",
+        "starry background", "floral background",
+    ],
+
+    # === Priority 12: Time/Weather ===
+    "time_weather": [
+        # Time
+        "day", "daytime", "morning", "afternoon",
+        "night", "nighttime", "midnight", "evening",
+        "sunset", "sunrise", "dusk", "dawn", "twilight",
+        "golden hour", "blue hour",
+        # Weather
+        "sunny", "cloudy", "overcast", "rainy", "rain",
+        "snowy", "snow", "foggy", "fog", "misty",
+        "stormy", "thunder", "lightning", "windy",
+    ],
+
+    # === Priority 13: Lighting ===
+    "lighting": [
+        "natural light", "sunlight", "moonlight", "starlight",
+        "backlighting", "backlit", "rim light", "rim lighting",
+        "dramatic lighting", "cinematic lighting", "studio lighting",
+        "soft lighting", "harsh lighting", "ambient lighting",
+        "neon lights", "neon", "glowing", "light rays",
+        "shadow", "shadows", "dark", "bright",
+        "warm lighting", "cold lighting", "golden light",
+    ],
+
+    # === Priority 14: Mood ===
+    "mood": [
+        "romantic", "melancholic", "melancholy", "peaceful", "serene",
+        "tense", "dramatic", "intense", "epic",
+        "mysterious", "eerie", "creepy", "horror",
+        "ethereal", "magical", "fantastical", "dreamy",
+        "nostalgic", "bittersweet", "wistful",
+        "cozy", "comfortable", "warm", "intimate",
+        "lonely", "isolated", "solitary",
+        "cheerful", "bright", "happy", "joyful",
+        "gloomy", "dark", "somber", "moody",
+    ],
+
+    # === Priority 15: Art Style ===
+    "style": [
+        "anime", "manga", "anime style", "manga style",
+        "realistic", "photorealistic", "semi-realistic",
+        "sketch", "lineart", "line art", "ink",
+        "watercolor", "oil painting", "digital art",
+        "cel shading", "flat color", "soft shading",
+        "chibi", "super deformed", "kemonomimi mode",
+        "monochrome", "greyscale", "sepia",
+        "pixel art", "voxel", "3d",
+    ],
+}
+
+# Category to SD Priority mapping (lower = earlier in prompt)
+CATEGORY_PRIORITY: dict[str, int] = {
+    "quality": 1,
+    "subject": 2,
+    "identity": 3,
+    "hair_color": 4,
+    "hair_length": 4,
+    "hair_style": 4,
+    "hair_accessory": 4,
+    "eye_color": 4,
+    "skin_color": 4,
+    "body_feature": 4,
+    "appearance": 4,
+    "clothing": 5,
+    "expression": 6,
+    "gaze": 7,
+    "pose": 8,
+    "action": 9,
+    "camera": 10,
+    "location_indoor": 11,
+    "location_outdoor": 11,
+    "background_type": 11,
+    "time_weather": 12,
+    "lighting": 13,
+    "mood": 14,
+    "style": 15,
 }
 
 # Tags to skip (not useful for prompts or sensitive)
 SKIP_TAGS = frozenset([
-    # Anatomy (not useful)
-    "breasts", "large breasts", "medium breasts", "small breasts",
-    "collarbone", "thighs", "navel", "midriff", "cleavage",
+    # Anatomy (not useful for scene prompts)
+    "breasts", "large breasts", "medium breasts", "small breasts", "huge breasts",
+    "collarbone", "thighs", "thick thighs", "navel", "midriff", "cleavage",
     "ass", "sideboob", "underboob", "nipples", "areolae", "crotch",
-    # Meta tags
-    "male focus", "female focus", "solo focus", "1other", "no humans",
-    "virtual youtuber", "highres", "absurdres", "commentary", "translation",
-    "multiple boys", "multiple girls", "border", "gradient",
+    "groin", "armpits", "bare shoulders",
+    # Meta tags (handled separately)
+    "male focus", "female focus", "solo focus", "no humans",
+    "virtual youtuber", "vtuber", "commentary", "translation",
+    "border", "letterboxed", "pillarboxed",
+    "gradient", "scan", "screencap", "official art",
     # Sensitive subjects
-    "child", "male child", "female child", "aged down", "aged up",
-    # Character-specific names (too specific)
-    "midoriya izuku", "watson amelia",
+    "child", "male child", "female child", "young", "loli", "shota",
+    "aged down", "aged up",
+    # Character-specific names (too specific, not generalizable)
+    "midoriya izuku", "watson amelia", "hatsune miku",
+    # Copyright tags
+    "vocaloid", "fate", "genshin impact", "blue archive",
+    # Too vague or redundant
+    "girl", "boy", "woman", "man", "female", "male",
+    "anime", "manga", "illustration",  # Style is handled by 'style' category
 ])
 
 
@@ -230,14 +448,21 @@ def normalize_prompt_token(token: str) -> str:
 
 # Mapping from DB group_name to Gemini-friendly category names
 _DB_GROUP_TO_GEMINI_CATEGORY = {
-    "subject": "person/subject",
     # Scene expression groups (세분화된 포즈/표정/시선/동작)
+    "subject": "person/subject",
     "expression": "expression",
     "gaze": "gaze",
     "pose": "pose",
     "action": "action",
     "camera": "shot_type/camera_angle",
-    "environment": "location/time/weather/lighting",
+    # Environment (세분화)
+    "environment": "location",  # Legacy - will be split
+    "location_indoor": "indoor_location",
+    "location_outdoor": "outdoor_location",
+    "background_type": "background",
+    "time_weather": "time/weather",
+    "lighting": "lighting",
+    # Others
     "mood": "mood",
     "style": "style",
     "quality": "quality",
@@ -247,14 +472,18 @@ _DB_GROUP_TO_GEMINI_CATEGORY = {
     "hair_style": None,
     "hair_accessory": None,
     "eye_color": None,
+    "skin_color": None,
+    "body_feature": None,
+    "appearance": None,
     "identity": None,
     "clothing": None,
 }
 
 # Groups to include in Gemini keyword context (scene-related only)
 _SCENE_GROUPS = [
-    "subject", "expression", "gaze", "pose", "action",
-    "camera", "environment", "mood", "style", "quality"
+    "subject", "expression", "gaze", "pose", "action", "camera",
+    "environment", "location_indoor", "location_outdoor", "background_type",
+    "time_weather", "lighting", "mood", "style", "quality"
 ]
 
 
@@ -607,7 +836,11 @@ def get_effective_tags(min_effectiveness: float = 0.5, min_uses: int = 5) -> dic
         results = (
             db.query(Tag.name, Tag.group_name, TagEffectiveness.effectiveness, TagEffectiveness.use_count)
             .outerjoin(TagEffectiveness, Tag.id == TagEffectiveness.tag_id)
-            .filter(Tag.group_name.in_(["expression", "gaze", "pose", "action", "camera", "environment", "mood"]))
+            .filter(Tag.group_name.in_([
+                "expression", "gaze", "pose", "action", "camera",
+                "environment", "location_indoor", "location_outdoor",
+                "background_type", "time_weather", "lighting", "mood"
+            ]))
             .all()
         )
 
@@ -647,7 +880,11 @@ def get_tag_effectiveness_report() -> list[dict[str, Any]]:
                 TagEffectiveness.effectiveness,
             )
             .outerjoin(TagEffectiveness, Tag.id == TagEffectiveness.tag_id)
-            .filter(Tag.group_name.in_(["expression", "gaze", "pose", "action", "camera", "environment", "mood", "style"]))
+            .filter(Tag.group_name.in_([
+                "expression", "gaze", "pose", "action", "camera",
+                "environment", "location_indoor", "location_outdoor",
+                "background_type", "time_weather", "lighting", "mood", "style"
+            ]))
             .order_by(TagEffectiveness.effectiveness.desc().nullslast(), Tag.name)
             .all()
         )

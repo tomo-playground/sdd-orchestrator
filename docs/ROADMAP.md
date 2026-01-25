@@ -131,6 +131,7 @@ Character Preset
 | 14 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
 | 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 (기본 구현: 9.1.1) | [~] |
 | 15.1 | Batch Tag Approval | confidence >= 0.7 태그 일괄 승인 (미리보기 + 선택적 승인) | [x] |
+| 15.2 | **Tag Categorization V2** | SD Priority 기반 분류체계 개편 (24개 카테고리, environment 세분화) | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
@@ -322,6 +323,13 @@ brew install claude-squad  # 명령어: cs
 - 상호작용 장면: ControlNet 단일 생성 권장
 - 대화 장면: 분리 합성 권장
 - 캐릭터 일관성: Reference-only 효과적
+
+**6-4.15.2 Tag Categorization V2 완료 (2026-01-25)**:
+- SD Priority 기반 24개 카테고리 정의 (quality→subject→appearance→clothing→expression→...→style)
+- environment 그룹 세분화: location_indoor, location_outdoor, background_type, time_weather, lighting
+- DB 481개 태그 priority 업데이트 (1=quality ~ 16=style)
+- Frontend TOKEN_PRIORITY 수정: Quality Priority 8→1로 이동
+- CATEGORY_PATTERNS 확장: 누락된 quality, subject, body_feature 등 추가
 
 **다음 우선순위**:
 1. Phase 5: Ken Burns Effect - 시각적 품질 향상
