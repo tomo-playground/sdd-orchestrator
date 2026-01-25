@@ -296,16 +296,29 @@ def filter_conflicting_tokens(
         if skip:
             continue
 
-        # Check conflicting category pairs (same category = keep first)
+        # Check conflicting category pairs
+        # For pair (cat1, cat2): if we've seen cat1, skip cat2 (and vice versa)
         for cat1, cat2 in CONFLICTING_CATEGORY_PAIRS:
-            if category == cat1 and cat1 in seen_categories:
-                skip = True
-                break
-            if category == cat1:
-                seen_categories[cat1] = category
+            if cat1 == cat2:
+                # Same category conflict (e.g., only one hair_length)
+                if category == cat1 and cat1 in seen_categories:
+                    skip = True
+                    break
+            else:
+                # Cross-category conflict (e.g., indoor vs outdoor)
+                if category == cat1 and cat2 in seen_categories:
+                    skip = True
+                    break
+                if category == cat2 and cat1 in seen_categories:
+                    skip = True
+                    break
 
         if skip:
             continue
+
+        # Track this category for future conflict checks
+        if category:
+            seen_categories[category] = category
 
         seen_tokens.add(normalized)
         result.append(token)
