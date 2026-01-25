@@ -19,7 +19,7 @@
 
 ### 4. `API_SPEC.md`는 API 변경 시 즉시 업데이트한다
 *   새 엔드포인트 추가, Request/Response 스키마 변경, 엔드포인트 삭제 시 **해당 PR에 포함**합니다.
-*   프론트엔드-백엔드 계약이므로, 코드와 문서의 불일치는 버그로 취급합니다.
+*   프론트엔드-백엔드 계약이므로, 코드와 문서(`docs/specs/API_SPEC.md`)의 불일치는 버그로 취급합니다.
 
 ### 5. `PRD.md`는 마일스톤 단위로 업데이트한다
 *   Phase 완료 시 **Definition of Done** 체크리스트를 갱신합니다.
@@ -38,6 +38,12 @@
 *   `CATEGORY_PATTERNS` 수정 시 → `POST /keywords/sync-category-patterns?update_existing=true` 실행
 *   새 카테고리 추가 시 → `GROUP_TO_DB_CATEGORY` 매핑 추가 + 리발란싱
 *   프론트엔드 통계(Quality Tags 등)가 DB category 필드 기준이므로 **코드-DB 불일치 주의**
+
+### 9. 테스트 커버리지 80% 유지 (Quality Assurance)
+*   **목표**: 모든 핵심 로직(Backend Services, API, Frontend Hooks)은 80% 이상의 테스트 커버리지를 유지해야 합니다.
+*   **API 테스트 의무**: `backend/routers/`에 새로운 엔드포인트를 추가할 경우, 반드시 `backend/tests/api/test_{router}.py`에 해당 API의 **정상 케이스(200 OK)**와 **예외 케이스(4xx Error)** 테스트를 포함해야 합니다.
+*   **검증**: PR 제출 전 로컬에서 테스트(`pytest`, `npm test`)를 통과해야 합니다.
+*   **예외**: 실험적인 기능이나 단순 UI 수정은 예외로 할 수 있으나, 안정화 단계(Stabilization)에서는 반드시 테스트를 추가해야 합니다.
 
 ---
 

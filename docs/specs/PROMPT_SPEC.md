@@ -507,6 +507,138 @@ SKIP_TAGS = [
 | 프롬프트 빌드 | `frontend/app/page.tsx` | `buildPositivePrompt()` |
 | 카테고리 우선순위 | `backend/services/keywords.py` | `CATEGORY_PRIORITY` |
 | 백엔드 병합 | `backend/services/prompt.py` | `merge_prompt_tokens()` |
+| **태그 분류 (15.7)** | `backend/services/tag_classifier.py` | `TagClassifier`, `classify_batch()` |
+| **분류 API** | `backend/routers/tags.py` | `POST /tags/classify` |
+| **프론트엔드 분류** | `frontend/app/hooks/useTagClassifier.ts` | `useTagClassifier()` |
+
+---
+
+## Dynamic Tag Classification (15.7)
+
+태그 분류를 **하드코딩에서 DB 기반 동적 시스템**으로 전환.
+
+### 왜 동적 분류가 필요한가?
+
+| 기존 방식 | 문제점 |
+|----------|--------|
+| `CATEGORY_PATTERNS` 하드코딩 | 새 태그마다 코드 수정 필요 |
+| Frontend `getTokenCategory()` | Backend와 동기화 어려움 |
+| 정적 패턴 매칭 | Gemini가 생성하는 새 태그 미분류 |
+
+### 분류 흐름
+
+```
+태그 입력 → DB 캐시 조회 → classification_rules 패턴 → Danbooru API → LLM Fallback
+              ↓                    ↓                       ↓            ↓
+          group 반환          group 반환              카테고리 추론   Gemini 분류
+                                                      (General 세분화)
+```
+
+### DB 스키마
+
+```sql
+-- 분류 규칙 테이블 (CATEGORY_PATTERNS 대체)
+CREATE TABLE classification_rules (
+    id SERIAL PRIMARY KEY,
+    rule_type VARCHAR(20) NOT NULL,  -- 'suffix', 'prefix', 'contains', 'exact'
+    pattern VARCHAR(100) NOT NULL,
+    target_group VARCHAR(50) NOT NULL,
+    priority INT DEFAULT 0,
+    active BOOLEAN DEFAULT TRUE,
+    UNIQUE(rule_type, pattern)
+);
+
+-- tags 테이블 확장
+ALTER TABLE tags ADD COLUMN classification_source VARCHAR(20) DEFAULT 'pattern';
+  -- 'pattern' | 'danbooru' | 'llm' | 'manual'
+ALTER TABLE tags ADD COLUMN classification_confidence FLOAT DEFAULT 1.0;
+```
+
+### API
+
+#### POST /tags/classify
+태그 배치 분류 (최대 50개).
+
+**Request**:
+```json
+{
+  "tags": ["smile", "starry sky", "on bed", "unknown_tag"]
+}
+```
+
+**Response**:
+```json
+{
+  "results": {
+    "smile": { "group": "expression", "confidence": 1.0, "source": "db" },
+    "starry sky": { "group": "time_weather", "confidence": 1.0, "source": "db" },
+    "on bed": { "group": "environment", "confidence": 1.0, "source": "db" },
+    "unknown_tag": { "group": null, "confidence": 0.0, "source": "unknown" }
+  },
+  "classified": 3,
+  "unknown": 1
+}
+```
+
+### Frontend 통합
+
+```typescript
+// hooks/useTagClassifier.ts
+const { classifyTags, getCachedCategory } = useTagClassifier();
+
+// 컴포넌트에서 사용
+useEffect(() => {
+  classifyTags(tokens).then(setCategories);
+}, [tokens]);
+
+// 분류 결과 사용 (API 우선, 로컬 패턴 fallback)
+const category = apiCategories[tag] || getTokenCategory(tag);
+```
+
+### 분류 우선순위
+
+1. **DB 캐시**: `tags` 테이블의 `group_name` (confidence >= 0.8)
+2. **패턴 규칙**: `classification_rules` 테이블
+3. **Danbooru API**: Wiki 조회로 카테고리 추론 (미구현)
+4. **LLM Fallback**: Gemini로 분류 후 DB 저장 (미구현)
+
+### 마이그레이션
+
+`CATEGORY_PATTERNS` → `classification_rules` 테이블:
+```bash
+curl -X POST http://localhost:8000/tags/migrate-patterns
+# → 677개 규칙 이관
+```
+
+### 24개 카테고리 (Group)
+
+| Priority | Group | SD Category | 예시 |
+|:--------:|-------|-------------|------|
+| 1 | quality | meta | masterpiece, best quality |
+| 2 | subject | scene | 1girl, solo |
+| 3 | identity | character | midoriya izuku |
+| 4 | hair_color | character | blue hair |
+| 4 | hair_length | character | long hair |
+| 4 | hair_style | character | twintails |
+| 4 | hair_accessory | character | ribbon |
+| 4 | eye_color | character | blue eyes |
+| 4 | skin_color | character | pale skin |
+| 4 | body_feature | character | elf ears |
+| 4 | appearance | character | freckles |
+| 5 | clothing | character | school uniform |
+| 6 | expression | scene | smile, blush |
+| 7 | gaze | scene | looking at viewer |
+| 8 | pose | scene | standing |
+| 9 | action | scene | running |
+| 10 | camera | scene | close-up |
+| 11 | location_indoor | scene | classroom |
+| 11 | location_outdoor | scene | forest |
+| 12 | background_type | scene | simple background |
+| 13 | time_weather | scene | night, rain |
+| 14 | lighting | scene | backlighting |
+| 15 | mood | scene | peaceful |
+| 16 | style | meta | anime |
+| 99 | lora | - | `<lora:...:0.7>` |
 
 ---
 
@@ -655,3 +787,6 @@ def compose_prompt(character, scene) -> dict:
 | 2025-01-25 | Character Mode 설정 스펙 추가 |
 | 2025-01-25 | LoRA 타입별 Weight 테이블 추가 (ChatGPT 피드백 반영) |
 | 2025-01-25 | 트리거 태그 중복 제거 로직 추가 |
+| 2026-01-25 | 15.7 Dynamic Tag Classification 시스템 추가 |
+| 2026-01-25 | classification_rules 테이블 + /tags/classify API |
+| 2026-01-25 | Frontend useTagClassifier 훅 통합 |

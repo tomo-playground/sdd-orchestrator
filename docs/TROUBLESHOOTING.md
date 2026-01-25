@@ -2,6 +2,28 @@
 
 개발 중 자주 발생하는 문제와 해결 방법을 기록합니다.
 
+## 🔧 환경 설정 및 데이터 동기화
+
+### 환경 설정 진단 (`check_env.py`)
+*   **증상**: 서버가 실행되지 않거나, SD/DB 연결 오류 발생.
+*   **해결**: 진단 스크립트를 실행하여 문제 원인 파악.
+    ```bash
+    uv run backend/check_env.py
+    ```
+    *   **주요 점검 항목**: `.env` 파일 존재 여부, `DATABASE_URL` 설정, SD WebUI 연결 상태, 필수 에셋(폰트, 오디오) 존재 여부.
+
+### 태그/카테고리 불일치 (Tag Sync)
+*   **증상**: 프론트엔드에서 태그가 검색되지 않거나, 프롬프트 순서가 이상함.
+*   **원인**: 코드(`CATEGORY_PATTERNS`)와 DB(`tags` 테이블) 간의 데이터 불일치.
+*   **해결**: 동기화 API를 호출하여 DB를 최신 상태로 강제 업데이트.
+    ```bash
+    # 1. 카테고리 및 우선순위 동기화 (기존 태그 업데이트 포함)
+    curl -X POST "http://localhost:8000/keywords/sync-category-patterns?update_existing=true"
+    
+    # 2. LoRA 트리거 워드 동기화
+    curl -X POST "http://localhost:8000/keywords/sync-lora-triggers"
+    ```
+
 ## 🎨 Frontend (UI)
 
 ### `X is not defined` (Icon Error)

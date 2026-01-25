@@ -1,4 +1,4 @@
-# API Specification
+# API Specification (v2.0)
 
 프론트엔드와 백엔드 간 데이터 통신을 위한 API 명세서입니다.
 
@@ -316,6 +316,90 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 
 ---
 
+## 🏷️ Tags & Classification (태그 분류 시스템)
+
+### `POST /tags/classify`
+태그를 DB → Rule → Danbooru → LLM 순으로 자동 분류합니다.
+
+**Request:**
+```json
+{
+  "tags": ["smile", "starry sky", "unknown_tag"]
+}
+```
+
+**Response:**
+```json
+{
+  "results": {
+    "smile": { "group": "expression", "confidence": 1.0, "source": "db" },
+    "starry sky": { "group": "time_weather", "confidence": 1.0, "source": "rule" },
+    "unknown_tag": { "group": null, "confidence": 0.0, "source": "unknown" }
+  },
+  "classified": 2,
+  "unknown": 1
+}
+```
+
+### `GET /tags/pending`
+분류 승인이 필요한 태그 목록을 조회합니다.
+
+**Query Parameters:**
+- `source`: "danbooru", "llm", "unknown" (optional)
+- `max_confidence`: float (default: 0.9)
+
+**Response:**
+```json
+{
+  "tags": [
+    {
+      "id": 123,
+      "name": "some_tag",
+      "category": "scene",
+      "group_name": "action",
+      "classification_source": "danbooru",
+      "classification_confidence": 0.6
+    }
+  ],
+  "total": 1
+}
+```
+
+### `POST /tags/approve-classification`
+태그 분류를 승인하거나 수정합니다.
+
+**Request:**
+```json
+{
+  "tag_id": 123,
+  "group_name": "pose",
+  "category": "scene"
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "tag": "some_tag",
+  "group_name": "pose",
+  "category": "scene"
+}
+```
+
+### `POST /tags/migrate-patterns`
+`CATEGORY_PATTERNS` 코드를 DB 규칙으로 마이그레이션합니다.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "rules_created": 677
+}
+```
+
+---
+
 ## 🧠 Keywords (키워드 관리)
 
 ### `GET /keywords/suggestions`
@@ -351,6 +435,37 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 }
 ```
 
+### `GET /keywords/rules`
+태그 충돌/의존성 규칙 요약을 조회합니다.
+
+**Response:**
+```json
+{
+  "conflict_pairs_count": 57,
+  "required_rules_count": 29
+}
+```
+
+### `POST /keywords/validate`
+태그 리스트의 충돌 및 의존성을 검증합니다.
+
+**Request:**
+```json
+["long hair", "short hair", "twintails"]
+```
+
+**Response:**
+```json
+{
+  "conflicts": [
+    { "tags": ["long hair", "short hair"], "reason": "hair_length conflict" }
+  ],
+  "missing_dependencies": [
+    { "tag": "twintails", "missing": "long hair" }
+  ]
+}
+```
+
 ### `POST /keywords/approve`
 제안된 키워드를 승인하여 카테고리에 추가합니다.
 
@@ -368,6 +483,180 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "ok": true,
   "tag": "coffee_shop",
   "category": "location"
+}
+```
+
+### `POST /keywords/batch-approve`
+태그를 일괄 승인합니다.
+
+**Request:**
+```json
+{
+  "tags": ["tag1", "tag2"],
+  "min_confidence": 0.7
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "approved_count": 2,
+  "approved": ["tag1", "tag2"]
+}
+```
+
+### `POST /keywords/sync-lora-triggers`
+LoRA 트리거 워드를 태그 DB와 동기화합니다.
+
+**Response:**
+```json
+{
+  "summary": { "added_count": 5, "updated_count": 2 }
+}
+```
+
+---
+
+## 🤖 ControlNet & IP-Adapter
+
+### `GET /controlnet/status`
+ControlNet 사용 가능 여부와 모델 목록을 조회합니다.
+
+**Response:**
+```json
+{
+  "available": true,
+  "models": ["control_v11p_sd15_openpose", "ip-adapter_sd15"],
+  "pose_references": ["standing", "sitting"]
+}
+```
+
+### `POST /controlnet/detect-pose`
+이미지에서 포즈를 추출합니다.
+
+**Request:**
+```json
+{
+  "image_b64": "data:image/png;base64,..."
+}
+```
+
+**Response:**
+```json
+{
+  "pose_image": "data:image/png;base64,...",
+  "success": true
+}
+```
+
+### `POST /controlnet/suggest-pose`
+태그를 기반으로 적절한 포즈 레퍼런스를 제안합니다.
+
+**Request:**
+```json
+["standing", "waving"]
+```
+
+**Response:**
+```json
+{
+  "suggested_pose": "waving",
+  "available": true,
+  "image_b64": "..."
+}
+```
+
+### `GET /controlnet/ip-adapter/references`
+IP-Adapter용 저장된 참조 이미지 목록을 조회합니다.
+
+**Response:**
+```json
+{
+  "references": ["char_a", "char_b"]
+}
+```
+
+### `POST /controlnet/ip-adapter/reference`
+캐릭터 참조 이미지를 등록합니다.
+
+**Request:**
+```json
+{
+  "character_key": "char_a",
+  "image_b64": "..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "filename": "char_a.png"
+}
+```
+
+---
+
+## 🧬 LoRA Management
+
+### `GET /loras`
+등록된 LoRA 목록을 조회합니다.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "detail_slider",
+    "optimal_weight": 0.5,
+    "calibration_score": 85
+  }
+]
+```
+
+### `GET /loras/search-civitai`
+Civitai에서 LoRA를 검색합니다.
+
+**Query Parameters:**
+- `query`: 검색어
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "civitai_id": 12345,
+      "name": "Anime Lineart",
+      "creator": "User1",
+      "preview_image": "https://..."
+    }
+  ]
+}
+```
+
+### `POST /loras/import-civitai/{civitai_id}`
+Civitai 메타데이터를 사용하여 LoRA를 등록합니다.
+
+**Response:**
+```json
+{
+  "id": 2,
+  "name": "anime_lineart",
+  "trigger_words": ["lineart"]
+}
+```
+
+### `POST /loras/{lora_id}/calibrate`
+LoRA의 최적 가중치(optimal weight)를 자동으로 보정합니다.
+
+**Response:**
+```json
+{
+  "lora_name": "anime_lineart",
+  "optimal_weight": 0.6,
+  "calibration_score": 92,
+  "lora_type": "style"
 }
 ```
 
