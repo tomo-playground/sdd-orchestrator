@@ -1237,6 +1237,7 @@ export default function Home() {
     setIpAdapterReference("");
     setIpAdapterWeight(0.7);
     setImagePreviewSrc(null);
+    setSelectedCharacterId(null);
     resetAutoRun();
     resetScenesOnly();
   };

@@ -32,11 +32,8 @@ import pytest
 from PIL import Image
 
 from config import SD_BASE_URL
-from services.image import (
-    build_ip_adapter_args,
-    generate_image_advanced,
-    save_reference_image,
-)
+from services.controlnet import build_ip_adapter_args, save_reference_image
+from services.image import generate_image_advanced
 
 # Configuration for testing
 
