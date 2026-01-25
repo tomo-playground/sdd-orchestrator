@@ -450,6 +450,7 @@ export default function Home() {
       seed: scene.seed,
       clip_skip: scene.clip_skip,
       context_tags: scene.context_tags,
+      prompt_history_id: scene.prompt_history_id,
     }));
     const totalImageSize = draftScenes.reduce((acc, scene) => {
       const baseSize = scene.image_url ? scene.image_url.length : 0;
@@ -515,6 +516,7 @@ export default function Home() {
       steps: scene.steps, cfg_scale: scene.cfg_scale,
       sampler_name: scene.sampler_name, seed: scene.seed, clip_skip: scene.clip_skip,
       context_tags: scene.context_tags,
+      prompt_history_id: scene.prompt_history_id,
     }));
     return {
       topic, duration, style, language, structure, actorAGender,
