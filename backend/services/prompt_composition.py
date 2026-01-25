@@ -227,10 +227,15 @@ MUTUALLY_EXCLUSIVE_GROUPS = {
     "background": ["background_type"],  # Can only have one background
 }
 
-# Conflicting category pairs (first wins)
+# Conflicting category pairs (first wins) - same category = only keep first
 CONFLICTING_CATEGORY_PAIRS = [
     ("hair_length", "hair_length"),  # Only one hair length
     ("skin_color", "skin_color"),  # Only one skin color
+    ("location_indoor", "location_indoor"),  # Only one indoor location
+    ("location_outdoor", "location_outdoor"),  # Only one outdoor location
+    ("location_indoor", "location_outdoor"),  # Can't be both indoor and outdoor
+    ("background_type", "background_type"),  # Only one background type
+    ("camera", "camera"),  # Only one camera angle/shot type
 ]
 
 
@@ -365,6 +370,7 @@ BREAK_TOKEN = "BREAK"
 def insert_break_token(
     tokens: list[str],
     after_category: str = "action",
+    mode: EffectiveMode = "lora",
 ) -> list[str]:
     """Insert BREAK token after the specified category.
 
@@ -374,6 +380,7 @@ def insert_break_token(
     Args:
         tokens: Sorted list of prompt tokens
         after_category: Insert BREAK after tokens of this category
+        mode: Effective mode for priority lookup
 
     Returns:
         List with BREAK token inserted
@@ -382,11 +389,20 @@ def insert_break_token(
     break_inserted = False
     last_priority = 0
 
+    # Use mode-appropriate priority map
+    priority_map = MODE_B_PRIORITY if mode == "lora" else CATEGORY_PRIORITY
+
     # Get the priority threshold for the break point
-    break_after_priority = CATEGORY_PRIORITY.get(after_category, 9)
+    break_after_priority = priority_map.get(after_category, 12)
+
+    def get_priority_for_mode(token: str) -> int:
+        category = get_token_category(token)
+        if category:
+            return priority_map.get(category, 99)
+        return 99
 
     for token in tokens:
-        priority = get_token_priority(token)
+        priority = get_priority_for_mode(token)
 
         # Insert BREAK when transitioning past the threshold
         if not break_inserted and last_priority <= break_after_priority < priority:
@@ -492,17 +508,36 @@ def compose_prompt_tokens(
     Returns:
         Composed list of tokens ready to join into prompt string
     """
+    # Step 0: Extract trigger words from tokens (they'll be placed near LoRA)
+    # Only keep unique triggers (deduplicate)
+    trigger_set = {t.lower().strip() for t in (trigger_words or [])}
+    extracted_triggers: list[str] = []
+    extracted_triggers_seen: set[str] = set()
+    remaining_tokens: list[str] = []
+
+    for token in tokens:
+        lower_token = token.lower().strip()
+        if lower_token in trigger_set:
+            # Only add if not already extracted (deduplicate)
+            if lower_token not in extracted_triggers_seen:
+                extracted_triggers.append(token)
+                extracted_triggers_seen.add(lower_token)
+        else:
+            remaining_tokens.append(token)
+
+    tokens = remaining_tokens
+
     # Step 1: Ensure quality tags
     tokens = ensure_quality_tags(tokens)
 
-    # Step 2: Filter conflicts and deduplicate triggers
+    # Step 2: Filter conflicts and deduplicate
     tokens = filter_conflicting_tokens(tokens, trigger_words)
 
     # Step 3: Sort by mode-specific priority
     tokens = sort_prompt_tokens(tokens, mode)
 
-    # Step 4: Insert LoRA strings (for Mode B, after scene core)
-    if lora_strings and mode == "lora":
+    # Step 4: Insert trigger words and LoRA strings (for Mode B, after scene core)
+    if mode == "lora":
         # Find insertion point (after camera, before identity)
         insert_idx = 0
         for i, token in enumerate(tokens):
@@ -514,13 +549,19 @@ def compose_prompt_tokens(
         else:
             insert_idx = len(tokens)
 
-        # Insert LoRA strings
-        for lora_str in lora_strings:
-            tokens.insert(insert_idx, lora_str)
+        # Insert trigger words first
+        for trigger in extracted_triggers:
+            tokens.insert(insert_idx, trigger)
             insert_idx += 1
 
-    elif lora_strings and mode == "standard":
-        # For standard mode, insert LoRA after identity
+        # Then LoRA strings
+        if lora_strings:
+            for lora_str in lora_strings:
+                tokens.insert(insert_idx, lora_str)
+                insert_idx += 1
+
+    elif mode == "standard":
+        # For standard mode, insert trigger + LoRA after identity
         insert_idx = 0
         for i, token in enumerate(tokens):
             category = get_token_category(token)
@@ -531,13 +572,46 @@ def compose_prompt_tokens(
         else:
             insert_idx = len(tokens)
 
-        for lora_str in lora_strings:
-            tokens.insert(insert_idx, lora_str)
+        # Insert trigger words first
+        for trigger in extracted_triggers:
+            tokens.insert(insert_idx, trigger)
             insert_idx += 1
 
+        # Then LoRA strings
+        if lora_strings:
+            for lora_str in lora_strings:
+                tokens.insert(insert_idx, lora_str)
+                insert_idx += 1
+
     # Step 5: Insert BREAK token (Mode B only)
+    # Insert after clothing tokens, before location/lighting/mood
     if use_break and mode == "lora":
-        tokens = insert_break_token(tokens, after_category="clothing")
+        # Find the last clothing token position
+        last_clothing_idx = -1
+        for i, token in enumerate(tokens):
+            # Skip LoRA tags
+            if token.startswith("<lora:"):
+                continue
+            category = get_token_category(token)
+            if category == "clothing":
+                last_clothing_idx = i
+
+        # If no clothing found, insert after the last non-location/mood token
+        if last_clothing_idx == -1:
+            for i, token in enumerate(tokens):
+                if token.startswith("<lora:"):
+                    continue
+                category = get_token_category(token)
+                priority = MODE_B_PRIORITY.get(category, 99) if category else 99
+                if priority >= 13:  # location_indoor or later
+                    last_clothing_idx = i - 1
+                    break
+            else:
+                last_clothing_idx = len(tokens) - 1
+
+        # Insert BREAK after the clothing token
+        if last_clothing_idx >= 0 and last_clothing_idx < len(tokens) - 1:
+            tokens.insert(last_clothing_idx + 1, BREAK_TOKEN)
 
     return tokens
 

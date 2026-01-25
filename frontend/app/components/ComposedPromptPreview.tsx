@@ -76,8 +76,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   pose: "Pose",
   action: "Action",
   camera: "Camera",
-  location_indoor: "Location",
-  location_outdoor: "Location",
+  location_indoor: "Indoor",
+  location_outdoor: "Outdoor",
   environment: "Environment",
   background_type: "Background",
   time_weather: "Time/Weather",
@@ -132,9 +132,13 @@ function getTokenCategory(token: string): string {
   if (["from above", "from below", "full body", "close-up", "portrait"].some((c) => lower.includes(c))) {
     return "camera";
   }
-  // Location (indoor/outdoor)
-  if (["bedroom", "kitchen", "living room", "bathroom", "classroom", "library", "cafe", "restaurant", "office", "hospital", "church", "temple", "shrine", "castle", "dungeon", "cave", "forest", "beach", "city", "street", "park", "garden", "rooftop", "balcony", "bed", "chair", "sofa", "couch", "desk", "table", "window", "door", "stairs", "hallway", "corridor", "room"].some((l) => lower.includes(l))) {
+  // Location Indoor
+  if (["bedroom", "kitchen", "living room", "bathroom", "classroom", "library", "cafe", "restaurant", "office", "hospital", "church", "temple", "shrine", "castle", "dungeon", "cave", "bed", "chair", "sofa", "couch", "desk", "table", "window", "door", "stairs", "hallway", "corridor", "room", "indoors"].some((l) => lower.includes(l))) {
     return "location_indoor";
+  }
+  // Location Outdoor
+  if (["forest", "beach", "city", "street", "park", "garden", "rooftop", "balcony", "outdoors", "mountain", "river", "lake", "ocean", "field", "meadow", "village", "town", "alley", "bridge", "road", "path", "trail"].some((l) => lower.includes(l))) {
+    return "location_outdoor";
   }
   // Time/Weather (including environmental effects like falling leaves, petals, sky)
   if (["sunset", "sunrise", "night", "day", "rain", "snow", "falling leaves", "falling petals", "cherry blossoms", "fireflies", "sparkles", "starry", "sky", "clouds", "moon", "sun", "stars", "aurora", "fog", "mist"].some((t) => lower.includes(t))) {
