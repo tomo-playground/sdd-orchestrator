@@ -342,21 +342,25 @@ async def sync_lora_triggers():
 
 
 @router.post("/sync-category-patterns")
-async def sync_category_patterns():
+async def sync_category_patterns(update_existing: bool = False):
     """Sync CATEGORY_PATTERNS to tags table.
 
     Reads all patterns from CATEGORY_PATTERNS and ensures they exist
     in the tags table. This fills gaps between defined patterns and DB.
 
+    Args:
+        update_existing: If True, also update category/priority of existing tags.
+
     Returns:
-        Summary of added/skipped tags grouped by category.
+        Summary of added/updated/skipped tags grouped by category.
     """
-    logger.info("[Sync Category Patterns]")
+    logger.info("[Sync Category Patterns] update_existing=%s", update_existing)
     try:
-        result = sync_category_patterns_to_tags()
+        result = sync_category_patterns_to_tags(update_existing=update_existing)
         logger.info(
-            "[Sync Category Patterns Complete] added=%d skipped=%d",
+            "[Sync Category Patterns Complete] added=%d updated=%d skipped=%d",
             result["summary"]["added_count"],
+            result["summary"]["updated_count"],
             result["summary"]["skipped_count"],
         )
         return result

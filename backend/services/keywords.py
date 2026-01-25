@@ -893,14 +893,17 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
         db.close()
 
 
-def sync_category_patterns_to_tags() -> dict[str, Any]:
+def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, Any]:
     """Sync CATEGORY_PATTERNS to tags table.
 
     Reads all patterns from CATEGORY_PATTERNS and ensures they exist
     in the tags table with appropriate categories and priorities.
 
+    Args:
+        update_existing: If True, also update category/priority of existing tags.
+
     Returns:
-        {"added": [...], "skipped": [...], "summary": {...}}
+        {"added": [...], "updated": [...], "skipped": [...], "summary": {...}}
     """
     from database import SessionLocal
     from models.tag import Tag
@@ -918,8 +921,9 @@ def sync_category_patterns_to_tags() -> dict[str, Any]:
         "body_feature": ("character", 4),
         "appearance": ("character", 4),
         "clothing": ("character", 5),
+        # Quality (separate category for UI display)
+        "quality": ("quality", 1),
         # Scene-related
-        "quality": ("meta", 1),
         "subject": ("scene", 2),
         "expression": ("scene", 6),
         "gaze": ("scene", 7),
@@ -938,10 +942,11 @@ def sync_category_patterns_to_tags() -> dict[str, Any]:
     db = SessionLocal()
     try:
         added = []
+        updated = []
         skipped = []
 
-        # Pre-fetch all existing tag names for efficiency
-        existing_names = {t.name for t in db.query(Tag.name).all()}
+        # Pre-fetch all existing tags for efficiency
+        existing_tags = {t.name: t for t in db.query(Tag).all()}
 
         # Track tags we're adding in this batch to avoid duplicates
         batch_names: set[str] = set()
@@ -959,13 +964,39 @@ def sync_category_patterns_to_tags() -> dict[str, Any]:
                 if not tag_name:
                     continue
 
-                # Check if tag exists in DB or already in this batch
-                if tag_name in existing_names:
-                    skipped.append({
-                        "tag": tag_name,
-                        "group": group_name,
-                        "reason": "already in DB",
-                    })
+                existing = existing_tags.get(tag_name)
+
+                if existing:
+                    # Update existing tag if update_existing is True
+                    if update_existing:
+                        changes = []
+                        if existing.category != db_category:
+                            changes.append(f"category: {existing.category}→{db_category}")
+                            existing.category = db_category
+                        if existing.group_name != group_name:
+                            changes.append(f"group: {existing.group_name}→{group_name}")
+                            existing.group_name = group_name
+                        if existing.priority != priority:
+                            changes.append(f"priority: {existing.priority}→{priority}")
+                            existing.priority = priority
+
+                        if changes:
+                            updated.append({
+                                "tag": tag_name,
+                                "changes": changes,
+                            })
+                        else:
+                            skipped.append({
+                                "tag": tag_name,
+                                "group": group_name,
+                                "reason": "no changes needed",
+                            })
+                    else:
+                        skipped.append({
+                            "tag": tag_name,
+                            "group": group_name,
+                            "reason": "already in DB",
+                        })
                 elif tag_name in batch_names:
                     skipped.append({
                         "tag": tag_name,
@@ -990,15 +1021,17 @@ def sync_category_patterns_to_tags() -> dict[str, Any]:
 
         db.commit()
         logger.info(
-            "[Sync Patterns Complete] added=%d skipped=%d",
-            len(added), len(skipped)
+            "[Sync Patterns Complete] added=%d updated=%d skipped=%d",
+            len(added), len(updated), len(skipped)
         )
 
         return {
             "added": added,
+            "updated": updated,
             "skipped": skipped,
             "summary": {
                 "added_count": len(added),
+                "updated_count": len(updated),
                 "skipped_count": len(skipped),
                 "by_group": _count_by_group(added),
             }
