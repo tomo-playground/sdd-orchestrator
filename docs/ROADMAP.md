@@ -65,6 +65,7 @@
 | SetupPanel 제거 | 간소화 진입점 제거, Custom Start로 통합 | [x] |
 | SD 파라미터 Advanced 이동 | steps, cfg_scale 등 고급 설정화 | [x] |
 | 간소화 진입점 재설계 | Phase 6 완료 후 Quick Start 재정의 | [ ] |
+| **Render UX 개선** | 컴팩트 레이아웃 토글 + 단일 Render 버튼, Video+Audio→Media Settings 통합 | [x] |
 
 ### 5-6. UI Polish (완성도 향상)
 | 작업 | 설명 | 상태 |
@@ -158,6 +159,8 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.7.4 | Frontend 통합 | useTagClassifier 훅 + API 호출 (로컬 패턴 fallback) | [x] |
 | 15.7.5 | 승인 워크플로우 | LLM 분류 결과 검토/승인 UI | [x] |
 | 15.7.6 | WD14 피드백 루프 | 생성 이미지 태그 vs 프롬프트 태그 비교 → 분류 정확도 검증 | [ ] |
+| 15.7.7 | **카테고리 한국어 설명** | CATEGORY_DESCRIPTIONS 상수, UI 메타정보 표시 | [x] |
+| 15.7.8 | **분류 테스트 케이스** | 109개 회귀 방지 테스트 (clothing, hair, camera 등) | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
@@ -324,7 +327,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (09:30)
+**Last Updated**: 2026-01-26 (14:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -333,7 +336,7 @@ brew install claude-squad  # 명령어: cs
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | IN PROGRESS | 80% | 15.7 완료 |
+| 6-4 | IN PROGRESS | 85% | 15.7.7~15.7.8 완료 |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
@@ -390,11 +393,12 @@ brew install claude-squad  # 명령어: cs
 | 4 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | 태그 입력 효율성 |
 | 5 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 품질 검증 (Backlog) |
 
-**Phase 6 태그 시스템 현황**: 55% -> 75% (15.2~15.5 완료로 대폭 진전)
-- 태그 952개 (515개에서 +437 확장, 최신 동기화)
+**Phase 6 태그 시스템 현황**: 55% -> 80% (15.2~15.7 완료 + UI 개선)
+- 태그 1,024개+ (952개 + 72개 Batch Approve)
 - 충돌 규칙 57쌍, 의존성 규칙 29개 구축
 - LoRA Trigger 자동 동기화 완료
 - Action 태그 64개 (holding X 패턴), Time/Weather 46개 (환경 효과)
+- 테스트 커버리지: 109개 분류 테스트 추가
 
 **9.8 Prompt Composition System 완료 (2026-01-25)**:
 - 문제: LoRA 사용 시 장면 표현(pose, action, camera)이 LoRA 학습 편향에 의해 무시됨
@@ -425,6 +429,33 @@ brew install claude-squad  # 명령어: cs
   - `falling leaves` → TIME_WEATHER (ACTION에서 수정)
   - Backend: CATEGORY_PATTERNS에 "holding X" 패턴(55개), 환경 효과(38개) 추가
   - Frontend: getTokenCategory()에 clothing 패턴, 환경 효과 패턴 추가
+
+**Script Length Limit 조정 (2026-01-26 14:00)**:
+- **문제**: 120자 대본이 3줄로 렌더링 시 자막 UI 깨짐
+- **해결**: 모든 템플릿에서 120자 → 80자, max 2 lines로 제한
+  - `logic.py`: 시스템 지시 수정
+  - `create_storyboard.j2`: 1-3 sentences → 1-2 sentences
+  - `create_storyboard_japanese_lesson.j2`: 동일 적용
+  - `create_storyboard_math_lesson.j2`: 동일 적용
+
+**Render Settings UX 개선 (2026-01-26 12:30)**:
+- **레이아웃 토글 컴팩트화**: 큰 카드 → 세그먼트 컨트롤
+- **단일 Render 버튼**: 3개 버튼 → 1개 (선택된 레이아웃으로 렌더)
+- **섹션 통합**: Video + Audio → Media Settings (5개 → 4개 섹션)
+- **기본 접힘**: Media Settings 기본 닫힘 → 스크롤 감소
+- **Advanced 간소화**: SD Model 중복 표시 제거
+- **수직 공간 ~40% 절약**
+
+**Keyword/Tag System 개선 (2026-01-26 11:00)**:
+- **카테고리 한국어 설명 추가**: `CATEGORY_DESCRIPTIONS` 상수 (26개 카테고리)
+  - Filter dropdown, Category select, Batch Approve 모달에 표시
+  - 사용자 분류 작업 용이성 향상
+- **Frontend 카테고리 표시 수정**: Backend `suggested_category` 사용 (로컬 로직 대체)
+- **Keyword 분류 테스트 케이스**: 109개 테스트 추가 (`backend/tests/test_keyword_categories.py`)
+  - TestSkipTags, TestClothingCategory, TestHairCategory, TestEnvironmentCategory
+  - TestCameraCategory, TestNoMisclassification, TestAppearanceCategory, TestExpressionCategory, TestGazeCategory
+- **Batch Approve 72개 키워드**: clothing, environment, location_outdoor, hair_style, action 분류 승인
+- **TROUBLESHOOTING 문서화**: "SD 모델 변경 시 주의사항" 섹션 추가
 
 **15.7 Dynamic Tag Classification (2026-01-25 21:00)**:
 - 15.7.1~15.7.5 완료: classification_rules 테이블, /tags/classify API, Danbooru API 연동, Frontend 통합, 승인 워크플로우
