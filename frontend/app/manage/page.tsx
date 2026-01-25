@@ -8,7 +8,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag } from "../types";
 
-type KeywordSuggestion = { tag: string; count: number };
+type KeywordSuggestion = {
+  tag: string;
+  count: number;
+  suggested_category?: string;
+  confidence?: number;
+};
 type KeywordCategories = Record<string, string[]>;
 type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
@@ -415,9 +420,10 @@ export default function ManagePage() {
   ]);
 
   const handleApproveKeyword = async (tag: string) => {
-    const category = keywordCategorySelection[tag];
-    if (!category) {
-      alert("Select a category first.");
+    const suggestion = keywordSuggestions.find((s) => s.tag === tag);
+    const category = keywordCategorySelection[tag] || suggestion?.suggested_category;
+    if (!category || category === "skip") {
+      alert("Select a valid category first (not skip).");
       return;
     }
     setKeywordApproving((prev) => ({ ...prev, [tag]: true }));
@@ -668,15 +674,29 @@ export default function ManagePage() {
                   <div className="grid gap-3">
                     {filteredKeywordSuggestions.map((item) => {
                       const categoryOptions = Object.keys(keywordCategories);
-                      const selected = keywordCategorySelection[item.tag] ?? "";
-                      const canApprove = selected && !keywordApproving[item.tag];
+                      const selected = keywordCategorySelection[item.tag] ?? item.suggested_category ?? "";
+                      const isSkip = selected === "skip";
+                      const canApprove = selected && !isSkip && !keywordApproving[item.tag];
                       return (
                         <div
                           key={item.tag}
-                          className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 md:grid-cols-[1.4fr_1fr_auto]"
+                          className={`grid gap-3 rounded-2xl border p-4 md:grid-cols-[1.4fr_1fr_auto] ${
+                            isSkip
+                              ? "border-rose-200 bg-rose-50/50 opacity-60"
+                              : "border-zinc-200 bg-white"
+                          }`}
                         >
                           <div className="flex flex-col gap-1">
-                            <span className="text-xs font-semibold text-zinc-800">{item.tag}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-semibold ${isSkip ? "text-rose-600 line-through" : "text-zinc-800"}`}>
+                                {item.tag}
+                              </span>
+                              {isSkip && (
+                                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-semibold text-rose-600 uppercase">
+                                  Skip
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
                               {item.count} hits
                             </span>
