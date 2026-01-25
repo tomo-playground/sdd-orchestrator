@@ -3,6 +3,10 @@
 import type { AudioItem, FontItem, OverlaySettings, PostCardSettings, SdModel } from "../types";
 import { VOICES } from "../constants";
 
+/** Truncate string with ellipsis if too long */
+const truncate = (str: string, maxLen: number) =>
+  str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : str;
+
 type RenderSettingsPanelProps = {
   // Layout
   layoutStyle: "full" | "post";
@@ -184,7 +188,7 @@ export default function RenderSettingsPanel({
             >
               {fontList.length === 0 && <option value="">Default</option>}
               {fontList.map((font) => (
-                <option key={font.name} value={font.name}>{font.name}</option>
+                <option key={font.name} value={font.name}>{truncate(font.name, 20)}</option>
               ))}
             </select>
             <select
@@ -236,7 +240,7 @@ export default function RenderSettingsPanel({
               >
                 <option value="">BGM: None</option>
                 {bgmList.map((bgm) => (
-                  <option key={bgm.name} value={bgm.name}>{bgm.name}</option>
+                  <option key={bgm.name} value={bgm.name}>{truncate(bgm.name, 28)}</option>
                 ))}
               </select>
               <button
