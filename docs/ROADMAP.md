@@ -191,7 +191,9 @@ Character Preset
 - `services/lora_calibration.py`: 캘리브레이션 로직
 - `services/prompt.py`: `apply_optimal_lora_weights()` 자동 교체
 - `logic.py`: 이미지 생성 시 DB에서 optimal_weight 조회 및 적용
+- `routers/characters.py`: 캐릭터 API에서 optimal_weight 우선 반환 (2026-01-25 수정)
 - 4개 LoRA 캘리브레이션 완료 (eureka, chibi, blindbox, midoriya → 모두 0.5 최적)
+- UI에서 캐릭터 선택 시 캘리브레이션된 weight 자동 표시
 
 ### 7-4. 다중 캐릭터 렌더링 실험 (🟡 실험 완료)
 | 작업 | 설명 | 상태 |

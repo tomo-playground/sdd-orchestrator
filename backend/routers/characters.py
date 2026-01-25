@@ -57,12 +57,20 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
         for item in character.loras:
             lora = lora_map.get(item["lora_id"])
             if lora:
+                # Use optimal_weight if calibrated, otherwise use preset weight
+                effective_weight = (
+                    float(lora.optimal_weight)
+                    if lora.optimal_weight is not None
+                    else item.get("weight", 1.0)
+                )
                 loras_info.append({
                     "id": lora.id,
                     "name": lora.name,
                     "display_name": lora.display_name,
                     "trigger_words": lora.trigger_words,
-                    "weight": item.get("weight", 1.0),
+                    "weight": effective_weight,
+                    "optimal_weight": float(lora.optimal_weight) if lora.optimal_weight else None,
+                    "calibration_score": float(lora.calibration_score) if lora.calibration_score else None,
                 })
 
     return {
