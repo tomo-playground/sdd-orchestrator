@@ -7,14 +7,19 @@ Narrative Structure: {{ structure }}
 Language: {{ language }}
 Actor A Gender: {{ actor_a_gender }}
 
+CRITICAL LANGUAGE RULE:
+- Script must be written ONLY in {{ language }}.
+- NEVER add romanization (e.g., "Hare", "Sumimasen")
+- NEVER add translations to other languages
+- WRONG: "すみません (Sumimasen) - 실례합니다"
+- CORRECT: "すみません！"
+
 Instructions:
 1. Break the story into sequential scenes that fit the total duration.
 2. Use Actor A only. Make it a single-person monologue (spoken tone).
 3. Each scene must include:
    - scene_id (starting at 1)
-   - script: spoken line (1-2 sentences, max 80 chars, max 2 lines).
-     * Write ONLY in {{ language }}. No translations, no romanization, no explanations.
-     * Example for Japanese: "今日は晴れだね！" (NOT "晴れ (Hare) - 맑음")
+   - script: spoken line in {{ language }} (1-2 sentences, max 80 chars, max 2 lines).
    - speaker: "A"
    - duration: seconds (3-6 recommended)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
