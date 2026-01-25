@@ -315,7 +315,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (00:00)
+**Last Updated**: 2026-01-26 (01:10)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -351,6 +351,12 @@ brew install claude-squad  # 명령어: cs
 - `evaluation_runs` 테이블 및 마이그레이션
 - `/eval/run`, `/eval/results`, `/eval/summary` API
 - `/manage` 페이지 Eval 탭 (Mode A vs B 비교 차트)
+
+**UI Polish (2026-01-26)**:
+- Topic textarea 기본 높이 증가 (4→12 rows)
+- Prompts 탭 Empty State 개선
+- Media Settings: 폰트명(20자), BGM명(28자) 글자수 제한
+- `mergePromptTokens` non-string 방어 코드 추가
 
 **15.7 Dynamic Tag Classification System 완료 (2026-01-25)**:
 - 15.7.1~15.7.8 전체 완료
