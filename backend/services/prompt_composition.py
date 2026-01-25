@@ -555,6 +555,27 @@ def _normalize_break_tokens(tokens: list[str]) -> list[str]:
     return result
 
 
+def _extract_loras_from_tokens(tokens: list[str]) -> tuple[list[str], list[str]]:
+    """Extract LoRA strings from tokens.
+
+    Args:
+        tokens: List of prompt tokens (may contain LoRA strings)
+
+    Returns:
+        Tuple of (remaining_tokens, extracted_lora_strings)
+    """
+    remaining: list[str] = []
+    loras: list[str] = []
+
+    for token in tokens:
+        if token.startswith("<lora:"):
+            loras.append(token)
+        else:
+            remaining.append(token)
+
+    return remaining, loras
+
+
 def compose_prompt_tokens(
     tokens: list[str],
     mode: EffectiveMode,
@@ -567,7 +588,7 @@ def compose_prompt_tokens(
     This is the main entry point for prompt composition.
 
     Args:
-        tokens: Raw prompt tokens (unsorted, may have conflicts)
+        tokens: Raw prompt tokens (unsorted, may have conflicts, may contain LoRAs)
         mode: 'standard' or 'lora'
         lora_strings: LoRA syntax strings (e.g., "<lora:name:0.5>")
         trigger_words: LoRA trigger words for deduplication
@@ -575,12 +596,22 @@ def compose_prompt_tokens(
 
     Returns:
         Composed list of tokens ready to join into prompt string
+
+    Note:
+        If tokens contain LoRA strings (e.g., from user input), they are
+        extracted and merged with lora_strings, then deduplicated.
     """
     # Step 0a: Normalize BREAK tokens (convert lowercase, remove duplicates)
     tokens = _normalize_break_tokens(tokens)
 
-    # Step 0b: Deduplicate LoRA strings (keep last weight)
-    lora_strings = _deduplicate_loras(lora_strings)
+    # Step 0b: Extract LoRAs from tokens (user may have included them directly)
+    tokens, tokens_loras = _extract_loras_from_tokens(tokens)
+
+    # Step 0c: Merge and deduplicate all LoRA strings
+    # Order: lora_strings first (API-provided), then tokens_loras (user-provided)
+    # _deduplicate_loras keeps the LAST occurrence, so tokens_loras wins if duplicate
+    all_loras = (lora_strings or []) + tokens_loras
+    lora_strings = _deduplicate_loras(all_loras)
 
     # Step 0c: Extract trigger words from tokens (they'll be placed near LoRA)
     # Only keep unique triggers (deduplicate)

@@ -486,3 +486,69 @@ class TestFullCompositionBugFixes:
 
         assert "<lora:test:0.7>" in result
         assert "<lora:test:0.3>" not in result
+
+
+class TestLoRAExtractionFromTokens:
+    """Tests for LoRA extraction from tokens (Bug fix 2026-01-26)."""
+
+    def test_lora_in_tokens_merged_with_lora_strings(self):
+        """LoRAs in tokens should be extracted and merged with lora_strings."""
+        tokens = ["smile", "<lora:midoriya:0.4>", "indoors"]
+        loras = ["<lora:eureka:0.6>"]
+
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            lora_strings=loras,
+            use_break=False
+        )
+
+        # Both LoRAs should be present
+        assert any("midoriya" in t for t in result)
+        assert any("eureka" in t for t in result)
+        # But no duplicates
+        midoriya_count = sum(1 for t in result if "midoriya" in t)
+        assert midoriya_count == 1
+
+    def test_lora_in_tokens_dedup_with_lora_strings(self):
+        """Same LoRA in tokens and lora_strings should be deduplicated."""
+        tokens = ["smile", "<lora:midoriya:0.4>", "sitting"]
+        loras = ["<lora:midoriya:0.5>"]  # Same LoRA, different weight
+
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            lora_strings=loras,
+            use_break=False
+        )
+
+        # Only one midoriya LoRA
+        midoriya_count = sum(1 for t in result if "midoriya" in t)
+        assert midoriya_count == 1
+
+    def test_multiple_loras_in_tokens(self):
+        """Multiple LoRAs in tokens should all be extracted."""
+        tokens = ["smile", "<lora:a:0.3>", "<lora:b:0.4>", "sitting"]
+        loras = ["<lora:c:0.5>"]
+
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            lora_strings=loras,
+            use_break=False
+        )
+
+        # All 3 LoRAs should be present
+        assert any("lora:a" in t for t in result)
+        assert any("lora:b" in t for t in result)
+        assert any("lora:c" in t for t in result)
+
+    def test_no_lora_in_tokens(self):
+        """No LoRA in tokens should work normally."""
+        tokens = ["smile", "sitting"]
+        loras = ["<lora:test:0.5>"]
+
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            lora_strings=loras,
+            use_break=False
+        )
+
+        assert "<lora:test:0.5>" in result
