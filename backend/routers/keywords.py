@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from config import CACHE_DIR, logger
 from database import get_db
 from models.tag import Tag
-from schemas import KeywordApproveRequest
+from schemas import BatchApproveRequest, KeywordApproveRequest
 from services.keywords import (
     get_effective_tags,
     get_tag_effectiveness_report,
@@ -166,8 +166,7 @@ async def batch_approve_preview(min_confidence: float = 0.7, limit: int = 200):
 
 @router.post("/batch-approve")
 async def batch_approve(
-    tags: list[str] | None = None,
-    min_confidence: float = 0.7,
+    request: BatchApproveRequest,
     db: Session = Depends(get_db),
 ):
     """Batch approve tags with suggested categories.
@@ -175,6 +174,8 @@ async def batch_approve(
     If tags is provided, only approve those specific tags.
     Otherwise, approve all tags with confidence >= min_confidence.
     """
+    tags = request.tags
+    min_confidence = request.min_confidence
     logger.info("[Batch Approve] tags=%s min_confidence=%s", tags, min_confidence)
 
     suggestions = load_keyword_suggestions(min_count=1, limit=500)

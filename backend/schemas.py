@@ -142,6 +142,11 @@ class KeywordApproveRequest(BaseModel):
     category: str
 
 
+class BatchApproveRequest(BaseModel):
+    tags: list[str] | None = None
+    min_confidence: float = 0.7
+
+
 # ============================================================
 # Phase 6: Tag/LoRA/Character CRUD Schemas
 # ============================================================
