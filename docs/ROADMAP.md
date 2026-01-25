@@ -28,6 +28,29 @@
 | Resume/Checkpoint | 중단된 작업 이어하기 | [x] |
 | Storage Cleanup | outputs/ 자동 정리 로직 | [x] |
 | Project DB (PostgreSQL) | 프로젝트 설정 및 히스토리 관리 (Phase 6-1 통합) | [x] |
+| **Smart AutoRun** | Pre-flight 검증 + 선택적 실행 | [ ] |
+
+#### 5-1-2. Smart AutoRun System (🟡 진행중)
+**목표**: 오토런 실행 전 사전 점검 및 필요한 단계만 선택적 실행
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | `runPreflight()` 함수 | 설정 검증 + 상태 분석 로직 | [ ] |
+| 2 | `PreflightModal` 컴포넌트 | 3섹션 UI (설정/파라미터/단계) | [ ] |
+| 3 | 필수/권장 검증 로직 | Topic, Character 등 필수 체크 | [ ] |
+| 4 | `useAutopilot` 확장 | 선택적 단계 실행 지원 | [ ] |
+| 5 | 진행 UI 개선 | 건너뜀/완료 상태 표시 | [ ] |
+
+**Pre-flight 검증 항목**:
+- 필수: Topic, Character
+- 권장: Voice, BGM, ControlNet
+- 정보: SD 파라미터, IP-Adapter
+
+**실행 단계 최적화**:
+- Storyboard: 씬 존재 시 건너뛰기
+- Images: 이미지 없는 씬만 생성
+- Validate: 미검증 이미지만 검증
+- Render: 콘텐츠 변경 시만 재렌더
 
 ### 5-1-1. Security & Infrastructure (Hardcoding Removal)
 | 작업 | 설명 | 상태 |
@@ -315,7 +338,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (12:00)
+**Last Updated**: 2026-01-26 (12:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -396,6 +419,7 @@ brew install claude-squad  # 명령어: cs
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
 | ~~1~~ | ~~**Quality Evaluation**~~ | ~~6-4.15.6~~ | ~~중~~ | ~~중~~ | **완료** (2026-01-26) |
-| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
+| 1 | **Smart AutoRun** | 5-1-2 | 높음 | 중 | 워크플로우 효율화, UX 개선 |
+| 2 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
 | 2 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
 | 3 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 배경/시간/날씨 컨텍스트 |
