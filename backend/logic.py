@@ -78,7 +78,7 @@ def logic_create_storyboard(request: StoryboardRequest) -> dict:
         template = template_env.get_template(template_name)
         system_instruction = (
             "SYSTEM: You are a professional storyboarder and scriptwriter. "
-            "Write clear, engaging scripts in the requested language (max 120 chars). "
+            "Write clear, engaging scripts in the requested language (max 80 chars, max 2 lines). "
             "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
             "Do not invent new tags. Return raw JSON only."
         )
