@@ -157,6 +157,24 @@ class TestConflictFiltering:
         assert "bedroom" in result
         assert "forest" not in result
 
+    def test_location_indoor_outdoor_conflict(self):
+        """Test indoors vs street conflict (user-reported bug case)."""
+        tokens = ["indoors", "street", "room", "cafe"]
+        result = filter_conflicting_tokens(tokens)
+        # First location (indoors) should win, all others removed
+        assert "indoors" in result
+        assert "street" not in result  # outdoor, conflicts with indoors
+        assert "room" not in result    # indoor, but duplicate location
+        assert "cafe" not in result    # indoor, but duplicate location
+
+    def test_multiple_indoor_locations(self):
+        """Only first indoor location should be kept."""
+        tokens = ["library", "bedroom", "cafe"]
+        result = filter_conflicting_tokens(tokens)
+        assert "library" in result
+        assert "bedroom" not in result
+        assert "cafe" not in result
+
     def test_hair_length_conflict(self):
         tokens = ["short hair", "long hair"]
         result = filter_conflicting_tokens(tokens)
