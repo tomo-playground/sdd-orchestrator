@@ -46,6 +46,7 @@ type SceneCardProps = {
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null) => void;
+  onSavePrompt?: () => void;
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
@@ -84,6 +85,7 @@ export default function SceneCard({
   onValidateImage,
   onApplyMissingTags,
   onImagePreview,
+  onSavePrompt,
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
@@ -447,6 +449,18 @@ export default function SceneCard({
                   >
                     Randomize Seed
                   </button>
+                  {onSavePrompt && scene.image_url && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSavePrompt();
+                        onSceneMenuClose();
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs text-emerald-600 hover:bg-emerald-50"
+                    >
+                      Save Prompt
+                    </button>
+                  )}
                   <hr className="my-1 border-zinc-100" />
                   <button
                     type="button"

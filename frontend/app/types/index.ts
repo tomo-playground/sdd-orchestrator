@@ -292,3 +292,34 @@ export type DraftData = {
   scenes?: DraftScene[];
   checkpoint?: AutopilotCheckpoint;
 };
+
+// ============================================================
+// Prompt History Types
+// ============================================================
+
+export type PromptHistoryLoRA = {
+  lora_id: number;
+  name: string;
+  weight: number;
+};
+
+export type PromptHistory = {
+  id: number;
+  name: string;
+  positive_prompt: string;
+  negative_prompt: string | null;
+  steps: number | null;
+  cfg_scale: number | null;
+  sampler_name: string | null;
+  seed: number | null;
+  clip_skip: number | null;
+  character_id: number | null;
+  lora_settings: PromptHistoryLoRA[] | null;
+  context_tags: SceneContextTags | null;
+  last_match_rate: number | null;
+  avg_match_rate: number | null;
+  validation_count: number;
+  is_favorite: boolean;
+  use_count: number;
+  preview_image_url: string | null;
+};

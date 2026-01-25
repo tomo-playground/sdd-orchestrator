@@ -5,6 +5,7 @@ from models.tag import Tag, TagRule, Synonym, TagEffectiveness, ClassificationRu
 from models.lora import LoRA
 from models.character import Character
 from models.sd_model import SDModel, Embedding, StyleProfile
+from models.prompt_history import PromptHistory
 
 __all__ = [
     "Base",
@@ -18,4 +19,5 @@ __all__ = [
     "SDModel",
     "Embedding",
     "StyleProfile",
+    "PromptHistory",
 ]

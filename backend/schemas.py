@@ -67,7 +67,7 @@ class VideoRequest(BaseModel):
     bgm_file: str | None = None
     width: int = 1080
     height: int = 1920
-    layout_style: str = "full"
+    layout_style: str = "post"
     motion_style: str = "none"
     narrator_voice: str = "ko-KR-SunHiNeural"
     speed_multiplier: float = 1.0
@@ -418,3 +418,74 @@ class StyleProfileResponse(StyleProfileBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Prompt History Schemas
+# ============================================================
+
+
+class PromptHistoryLoRA(BaseModel):
+    lora_id: int
+    name: str
+    weight: float = 0.7
+
+
+class PromptHistoryBase(BaseModel):
+    name: str
+    positive_prompt: str
+    negative_prompt: str | None = None
+    steps: int | None = None
+    cfg_scale: float | None = None
+    sampler_name: str | None = None
+    seed: int | None = None
+    clip_skip: int | None = None
+    character_id: int | None = None
+    lora_settings: list[PromptHistoryLoRA] | None = None
+    context_tags: dict | None = None
+    preview_image_url: str | None = None
+
+
+class PromptHistoryCreate(PromptHistoryBase):
+    pass
+
+
+class PromptHistoryUpdate(BaseModel):
+    name: str | None = None
+    positive_prompt: str | None = None
+    negative_prompt: str | None = None
+    steps: int | None = None
+    cfg_scale: float | None = None
+    sampler_name: str | None = None
+    seed: int | None = None
+    clip_skip: int | None = None
+    character_id: int | None = None
+    lora_settings: list[PromptHistoryLoRA] | None = None
+    context_tags: dict | None = None
+    preview_image_url: str | None = None
+    is_favorite: bool | None = None
+
+
+class PromptHistoryResponse(PromptHistoryBase):
+    id: int
+    last_match_rate: float | None = None
+    avg_match_rate: float | None = None
+    validation_count: int = 0
+    is_favorite: bool = False
+    use_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PromptHistoryApplyResponse(BaseModel):
+    id: int
+    positive_prompt: str
+    negative_prompt: str | None
+    steps: int | None
+    cfg_scale: float | None
+    sampler_name: str | None
+    seed: int | None
+    clip_skip: int | None
+    lora_settings: list[PromptHistoryLoRA] | None
+    context_tags: dict | None
+    use_count: int

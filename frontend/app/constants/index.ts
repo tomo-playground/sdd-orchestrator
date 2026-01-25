@@ -252,6 +252,45 @@ export const TOKEN_PRIORITY_PATTERNS: Array<{ pattern: RegExp; priority: number 
 ];
 
 /**
+ * Category descriptions in Korean for UI display
+ * Helps users understand what tags belong in each category
+ */
+export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  // Priority 1-2: Meta
+  quality: "품질 (masterpiece, best quality)",
+  subject: "대상 (1girl, 1boy, solo)",
+
+  // Priority 3-4: Appearance
+  identity: "신원/캐릭터 (LoRA 트리거)",
+  hair_color: "머리 색 (blue hair, blonde)",
+  hair_length: "머리 길이 (long/short hair)",
+  hair_style: "헤어스타일 (ponytail, twintails)",
+  hair_accessory: "머리 장식 (hairpin, ribbon)",
+  eye_color: "눈 색 (blue eyes, red eyes)",
+  skin_color: "피부 색 (pale skin)",
+  body_feature: "신체 특징 (elf ears, wings)",
+  appearance: "외모 (freckles, makeup, tattoo)",
+
+  // Priority 5-9: Character state
+  clothing: "의류/액세서리 (shirt, dress, shoes)",
+  expression: "표정 (smile, angry, blush)",
+  gaze: "시선 (looking at viewer)",
+  pose: "정적 자세 (standing, sitting)",
+  action: "동적 행동 (running, dancing)",
+
+  // Priority 10-15: Scene
+  camera: "카메라/샷 (close-up, full body)",
+  location_indoor: "실내 장소 (classroom, cafe)",
+  location_outdoor: "실외 장소 (beach, forest)",
+  environment: "소품/가구 (desk, computer, plant)",
+  background_type: "배경 타입 (white/simple bg)",
+  time_weather: "시간/날씨 (day, night, rain)",
+  lighting: "조명 (sunlight, dramatic)",
+  mood: "분위기 (romantic, peaceful)",
+  style: "스타일 (anime, realistic)",
+};
+
+/**
  * Get priority for a token (lower = earlier in prompt)
  */
 export const getTokenPriority = (token: string): number => {

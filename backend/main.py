@@ -15,6 +15,7 @@ from routers import (
     loras_router,
     presets_router,
     prompt_router,
+    prompt_histories_router,
     scene_router,
     sd_models_router,
     sd_router,
@@ -47,6 +48,7 @@ app.include_router(keywords_router)
 app.include_router(loras_router)
 app.include_router(presets_router)
 app.include_router(prompt_router)
+app.include_router(prompt_histories_router)
 app.include_router(scene_router)
 app.include_router(sd_models_router)
 app.include_router(sd_router)

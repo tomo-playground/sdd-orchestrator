@@ -131,8 +131,8 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "project_name": "my_shorts",
   "bgm_file": "bgm_chill.mp3",
   "width": 1080,
-  "height": 1920,
-  "layout_style": "full",
+  "height": 1080,
+  "layout_style": "post",
   "motion_style": "none",
   "narrator_voice": "ko-KR-SunHiNeural",
   "speed_multiplier": 1.0,
@@ -158,7 +158,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 }
 ```
 
-- `layout_style`: `"full"` | `"post"` (※ snake_case 주의)
+- `layout_style`: `"post"` | `"full"` (default: `"post"`)
 - `motion_style`: `"slow_zoom"` | `"none"`
 
 **Response:**

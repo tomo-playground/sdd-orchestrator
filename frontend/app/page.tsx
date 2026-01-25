@@ -156,7 +156,7 @@ export default function Home() {
   const [recentVideos, setRecentVideos] = useState<
     Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>
   >([]);
-  const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("full");
+  const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("post");
   const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("none");
   const [hiResEnabled, setHiResEnabled] = useState(false);
   const [veoEnabled, setVeoEnabled] = useState(false);
@@ -1165,7 +1165,7 @@ export default function Home() {
     setSubtitleFont(DEFAULT_SUBTITLE_FONT);
     setOverlaySettings(DEFAULT_OVERLAY_SETTINGS);
     setPostCardSettings(DEFAULT_POST_CARD_SETTINGS);
-    setLayoutStyle("full");
+    setLayoutStyle("post");
     setMotionStyle("none");
     setHiResEnabled(false);
     setVeoEnabled(false);
@@ -1737,6 +1737,45 @@ export default function Home() {
     setTimeout(() => runValidation(), 0);
   };
 
+  const handleSavePrompt = async (scene: Scene) => {
+    const name = prompt("Enter a name for this prompt:");
+    if (!name || !name.trim()) return;
+
+    try {
+      const payload: Record<string, unknown> = {
+        name: name.trim(),
+        positive_prompt: buildPositivePrompt(scene),
+        negative_prompt: buildNegativePrompt(scene),
+        steps: scene.steps,
+        cfg_scale: scene.cfg_scale,
+        sampler_name: scene.sampler_name,
+        seed: scene.seed,
+        clip_skip: scene.clip_skip,
+        preview_image_url: scene.image_url,
+        context_tags: scene.context_tags,
+      };
+
+      // Add character_id if selected
+      if (selectedCharacterId) {
+        payload.character_id = selectedCharacterId;
+      }
+
+      // Add LoRA settings if present
+      if (characterLoras && characterLoras.length > 0) {
+        payload.lora_settings = characterLoras.map((lora) => ({
+          lora_id: 0, // Not tracked in current state
+          name: lora.name,
+          weight: lora.optimal_weight ?? lora.weight ?? 0.7,
+        }));
+      }
+
+      await axios.post(`${API_BASE}/prompt-histories`, payload);
+      showToast("Prompt saved!", "success");
+    } catch {
+      showToast("Failed to save prompt", "error");
+    }
+  };
+
   const applySuggestion = (scene: Scene, suggestion: FixSuggestion) => {
     if (!suggestion.action) return;
     if (suggestion.action.type === "set_speaker_a") {
@@ -2027,6 +2066,7 @@ export default function Home() {
                 onValidateImage={() => handleValidateImage(scenes[currentSceneIndex])}
                 onApplyMissingTags={(tags) => applyMissingImageTags(scenes[currentSceneIndex], tags)}
                 onImagePreview={setImagePreviewSrc}
+                onSavePrompt={() => handleSavePrompt(scenes[currentSceneIndex])}
                 getSceneStatus={getSceneStatus}
                 getFixSuggestions={(scene, validation) => getFixSuggestions(scene, validation, topic)}
                 applySuggestion={applySuggestion}
@@ -2048,9 +2088,7 @@ export default function Home() {
             isRendering={isRendering}
             scenesWithImages={scenes.filter((scene) => !!scene.image_url).length}
             totalScenes={scenes.length}
-            onRenderFull={handleRenderFull}
-            onRenderPost={handleRenderPost}
-            onRenderBoth={handleRenderBoth}
+            onRender={layoutStyle === "full" ? handleRenderFull : handleRenderPost}
             includeSubtitles={includeSubtitles}
             setIncludeSubtitles={setIncludeSubtitles}
             subtitleFont={subtitleFont}

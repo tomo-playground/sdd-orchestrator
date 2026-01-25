@@ -161,7 +161,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.7.6 | WD14 피드백 루프 | 생성 이미지 태그 vs 프롬프트 태그 비교 → 분류 정확도 검증 | [ ] |
 | 15.7.7 | **카테고리 한국어 설명** | CATEGORY_DESCRIPTIONS 상수, UI 메타정보 표시 | [x] |
 | 15.7.8 | **분류 테스트 케이스** | 109개 회귀 방지 테스트 (clothing, hair, camera 등) | [x] |
-| 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
+| 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [x] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
 | 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
@@ -327,7 +327,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (15:45)
+**Last Updated**: 2026-01-25 (16:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -387,11 +387,11 @@ brew install claude-squad  # 명령어: cs
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 9.8 완료, 콘텐츠 다양성 핵심 |
-| 2 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
-| 3 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 924개 태그 활용 UX |
-| 4 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | 태그 입력 효율성 |
-| 5 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 품질 검증 (Backlog) |
+| ~~1~~ | ~~**Prompt History**~~ | ~~6-4.16~~ | ~~높음~~ | ~~낮음~~ | **완료** (2026-01-25) |
+| 1 | **WD14 피드백 루프** | 6-4.15.7.6 | 높음 | 중 | 프롬프트 효과 정량 측정, 데이터 기반 최적화 |
+| 3 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 비교 검증, WD14 데이터 추적 |
+| 4 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
+| 5 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
 
 **Phase 6 태그 시스템 현황**: 55% -> 80% (15.2~15.7 완료 + UI 개선)
 - 태그 1,024개+ (952개 + 72개 Batch Approve)
