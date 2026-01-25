@@ -120,7 +120,20 @@ Character Preset
 | 9.7.4 | Gemini-Frontend 동기화 | 템플릿 출력과 context_tags 자동 매핑 | [x] |
 | 9.7.5 | 태그 분석 UI (/manage) | 태그 현황/Gap 실시간 조회 | [x] |
 | 9.7.6 | WD14 동의어 매핑 | 65개 동의어 + 양방향 확장 + skip_tokens 27개 (75-86% 달성) | [x] |
-| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (9.7 완료 후) | [ ] |
+| **9.8** | **Prompt Composition System** | **Mode A (Standard) / Mode B (LoRA) 프롬프트 조합 규칙** | [ ] |
+| 9.8.0 | DB Schema 변경 | `characters.prompt_mode` 컬럼 추가 ('auto'\|'standard'\|'lora') | [ ] |
+| 9.8.1 | Character Mode 지원 | LoRA 없는 캐릭터 설정 허용, 자동 모드 감지 | [ ] |
+| 9.8.2 | get_token_category() | 토큰 → 카테고리 분류 함수 (CATEGORY_PATTERNS 활용) | [ ] |
+| 9.8.2.1 | BREAK Token 지원 | Mode B에서 캐릭터/장면 분리 BREAK 토큰 삽입 | [ ] |
+| 9.8.3 | detect_scene_complexity() | 장면 복잡도 판단 (simple/moderate/complex) | [ ] |
+| 9.8.4 | calculate_lora_weight() | LoRA 타입(style/character) + 복잡도 기반 weight 계산 | [ ] |
+| 9.8.5 | filter_conflicting_tokens() | 충돌 카테고리 필터링 + 트리거 중복 제거 | [ ] |
+| 9.8.5.1 | ensure_quality_tags() | Quality 태그 없으면 자동 추가 | [ ] |
+| 9.8.6 | sort_prompt_tokens() | Mode별 우선순위 정렬 (Standard vs LoRA) | [ ] |
+| 9.8.7 | /prompt/compose API | 최종 프롬프트 조합 엔드포인트 (메타정보 포함) | [ ] |
+| 9.8.8 | Composed Prompt Preview UI | 카테고리별 그룹 표시 + Toggle | [ ] |
+| 9.8.9 | 통합 테스트 | Standard/LoRA 모드별 4개 시나리오 검증 | [ ] |
+| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (9.8 완료 후) | [ ] |
 | 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 | [ ] |
 | 12 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
 
@@ -303,18 +316,18 @@ brew install claude-squad  # 명령어: cs
 
 **Last Updated**: 2026-01-25
 
-| Phase | 상태 | 진행률 |
-|-------|------|--------|
-| 1-4 | ARCHIVED | 100% |
-| 5 | IN PROGRESS | 73% |
-| 6-1 | COMPLETE | 100% |
-| 6-2 | COMPLETE | 100% |
-| 6-3 | IN PROGRESS | 95% |
-| 6-4 | IN PROGRESS | 55% |
-| 7-1 | COMPLETE | 100% |
-| 7-2 | COMPLETE | 100% |
-| 7-3 | COMPLETE | 100% |
-| 7-4 | EXPERIMENT DONE | 100% |
+| Phase | 상태 | 진행률 | 비고 |
+|-------|------|--------|------|
+| 1-4 | ARCHIVED | 100% | |
+| 5 | IN PROGRESS | 73% | Ken Burns 잔여 |
+| 6-1 | COMPLETE | 100% | |
+| 6-2 | COMPLETE | 100% | |
+| 6-3 | IN PROGRESS | 60% | 9.8 추가로 재계산 (9.1-9.7 완료, 9.8/10/11/12 잔여) |
+| 6-4 | IN PROGRESS | 75% | |
+| 7-1 | COMPLETE | 100% | |
+| 7-2 | COMPLETE | 100% | |
+| 7-3 | COMPLETE | 100% | |
+| 7-4 | EXPERIMENT DONE | 100% | |
 
 **7-3 LoRA 캘리브레이션 완료 (2026-01-25)**:
 - 4개 LoRA 캘리브레이션: eureka, chibi, blindbox, midoriya
@@ -355,7 +368,41 @@ brew install claude-squad  # 명령어: cs
   - lighting: 12→29개, mood: 14→33개
 - 중복 체크 로직 개선 (batch 처리 + 사전 필터링)
 
-**다음 우선순위**:
-1. Phase 5: Ken Burns Effect - 시각적 품질 향상
-2. Phase 6-3.10: Multi-Character 구현 (실험 결과 기반)
-3. Phase 6-3.11: Scene Builder UI
+**다음 우선순위** (2026-01-25 갱신):
+
+| 순위 | 작업 | Phase | 가치 | 난이도 | 작업량 | 이유 |
+|------|------|-------|------|--------|--------|------|
+| 1 | **Prompt Composition System** | 6-3.9.8 | 높음 | 중 | 13개 | LoRA 장면 표현 실패 해결. Multi-Character 전제조건 |
+| 2 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | - | 9.8 완료 후 진행. 콘텐츠 다양성 핵심 |
+| 3 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | 1개 | FFmpeg 기반, 시각적 품질 향상 |
+| 4 | **Scene Builder UI** | 6-3.11 | 중 | 중 | - | 924개 태그 활용 UX |
+| 5 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | - | 태그 입력 효율성 |
+
+**9.8 세부 작업 순서**:
+```
+Phase 1 (Backend Core):
+  9.8.0 DB Schema → 9.8.1 Character Mode → 9.8.2 get_token_category()
+
+Phase 2 (Logic):
+  9.8.3 detect_scene_complexity() → 9.8.4 calculate_lora_weight()
+  9.8.5 filter_conflicting_tokens() → 9.8.5.1 ensure_quality_tags()
+  9.8.2.1 BREAK Token → 9.8.6 sort_prompt_tokens()
+
+Phase 3 (Integration):
+  9.8.7 /prompt/compose API → 9.8.8 Preview UI → 9.8.9 통합 테스트
+```
+
+**Phase 6 태그 시스템 현황**: 55% -> 75% (15.2~15.5 완료로 대폭 진전)
+- 태그 924개 (515개에서 +409 확장)
+- 충돌 규칙 57쌍, 의존성 규칙 29개 구축
+- LoRA Trigger 자동 동기화 완료
+
+**9.8 Prompt Composition System 추가 (2026-01-25)**:
+- 문제: LoRA 사용 시 장면 표현(pose, action, camera)이 LoRA 학습 편향에 의해 무시됨
+- 해결: Mode A (Standard) / Mode B (LoRA) 분리
+  - Mode A: 표준 순서 (캐릭터 → 장면), LoRA 미사용 또는 스타일 LoRA만
+  - Mode B: 장면 우선 순서, LoRA weight 동적 조절, BREAK 활용
+- 작업 항목: 13개 (DB Schema → Character Mode → 토큰 분류 → 복잡도/Weight → 필터링/정렬 → API → UI → 테스트)
+- ChatGPT 피드백 반영: LoRA 타입별 weight 테이블, 트리거 중복 제거
+- 2단계 생성(txt2img→img2img) 불채택: ControlNet/IP-Adapter가 더 효과적
+- 상세 스펙: `docs/PROMPT_SPEC.md` 참조

@@ -13,6 +13,7 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 - **작업 선택**: `docs/ROADMAP.md`
 - **제품 스펙**: `docs/PRD.md`
 - **API 명세**: `docs/API_SPEC.md`
+- **프롬프트 설계**: `docs/PROMPT_SPEC.md`
 - **개발 가이드**: `docs/CONTRIBUTING.md`
 
 ## 코드 크기 가이드라인
