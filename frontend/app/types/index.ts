@@ -325,3 +325,45 @@ export type PromptHistory = {
   use_count: number;
   preview_image_url: string | null;
 };
+
+// Evaluation types (15.6)
+export type TestPromptInfo = {
+  name: string;
+  description: string;
+  tokens: string[];
+  subject: string;
+};
+
+export type EvaluationResult = {
+  id: number;
+  test_name: string;
+  mode: "standard" | "lora";
+  character_id: number | null;
+  character_name: string | null;
+  match_rate: number | null;
+  matched_tags: string[] | null;
+  missing_tags: string[] | null;
+  seed: number | null;
+  batch_id: string | null;
+  created_at: string | null;
+};
+
+export type EvaluationTestSummary = {
+  test_name: string;
+  standard_avg?: number;
+  standard_count?: number;
+  lora_avg?: number;
+  lora_count?: number;
+  diff: number;
+  winner: "standard" | "lora" | "tie";
+};
+
+export type EvaluationSummary = {
+  tests: EvaluationTestSummary[];
+  overall: {
+    standard_avg: number;
+    lora_avg: number;
+    diff: number;
+    winner: "standard" | "lora" | "tie";
+  };
+};

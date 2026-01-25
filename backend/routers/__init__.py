@@ -17,6 +17,7 @@ from .sd_models import router as sd_models_router
 from .style_profiles import router as style_profiles_router
 from .tags import router as tags_router
 from .video import router as video_router
+from .evaluation import router as evaluation_router
 
 __all__ = [
     "assets_router",
@@ -36,4 +37,5 @@ __all__ = [
     "style_profiles_router",
     "tags_router",
     "video_router",
+    "evaluation_router",
 ]

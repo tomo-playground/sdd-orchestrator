@@ -89,7 +89,9 @@ export const mergePromptTokens = (
   const loraSeen = new Set<string>();
   const modelSeen = new Set<string>();
 
-  const pushToken = (token: string) => {
+  const pushToken = (token: unknown) => {
+    // Guard: skip non-string values
+    if (typeof token !== "string" || !token.trim()) return;
     const lower = token.toLowerCase();
     if (lower.startsWith("<lora:")) {
       if (loraSeen.has(lower)) return;
@@ -117,6 +119,7 @@ export const deduplicatePromptTokens = (combined: string): string => {
   const seen = new Set<string>();
   const merged: string[] = [];
   for (const token of tokens) {
+    if (typeof token !== "string" || !token.trim()) continue;
     const lower = token.toLowerCase();
     if (seen.has(lower)) continue;
     seen.add(lower);

@@ -70,6 +70,13 @@ from .video import (
     generate_video_filename,
     sanitize_project_name,
 )
+from .evaluation import (
+    TEST_PROMPTS,
+    get_test_prompts,
+    run_evaluation_batch,
+    get_evaluation_results,
+    get_evaluation_summary,
+)
 
 __all__ = [
     # Cleanup
@@ -133,4 +140,10 @@ __all__ = [
     "clean_script_for_tts",
     "generate_video_filename",
     "sanitize_project_name",
+    # Evaluation
+    "TEST_PROMPTS",
+    "get_test_prompts",
+    "run_evaluation_batch",
+    "get_evaluation_results",
+    "get_evaluation_summary",
 ]

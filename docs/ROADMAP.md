@@ -134,12 +134,12 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.3 | **Tag Conflict/Requires Rules** | 태그 충돌(57쌍)/의존성(29개) 규칙 + 검증 API | [x] |
 | 15.4 | **LoRA Trigger Sync** | LoRA trigger words → tags 테이블 자동 동기화 API | [x] |
 | 15.5 | **Tag Gap Analysis & Expansion** | CATEGORY_PATTERNS→DB 동기화 (515→924개, +409) | [x] |
-| 15.6 | **Quality Evaluation System** | Mode A/B 비교 검증 시스템 | [ ] |
-| 15.6.1 | 표준 테스트 프롬프트 세트 | 장면 유형별 고정 프롬프트 | [ ] |
-| 15.6.2 | evaluation_runs 테이블 | 결과 저장 스키마 | [ ] |
-| 15.6.3 | /eval/run API | 테스트 실행 엔드포인트 | [ ] |
-| 15.6.4 | /eval/results API | 결과 조회/비교 | [ ] |
-| 15.6.5 | 대시보드 시각화 | Mode A vs B 차트 | [ ] |
+| 15.6 | **Quality Evaluation System** | Mode A/B 비교 검증 시스템 | [x] |
+| 15.6.1 | 표준 테스트 프롬프트 세트 | 6개 테스트 시나리오 정의 | [x] |
+| 15.6.2 | evaluation_runs 테이블 | 결과 저장 스키마 + 마이그레이션 | [x] |
+| 15.6.3 | /eval/run API | 테스트 실행 엔드포인트 | [x] |
+| 15.6.4 | /eval/results, /eval/summary API | 결과 조회/비교 | [x] |
+| 15.6.5 | 대시보드 시각화 | /manage Eval 탭 (Mode A vs B 차트) | [x] |
 | **15.7** | **Dynamic Tag Classification** | 하드코딩 제거, DB+Danbooru+LLM 하이브리드 분류 | [x] |
 | 15.7.1 | classification_rules 테이블 | 패턴 규칙 DB화 (CATEGORY_PATTERNS 이관) | [x] |
 | 15.7.2 | /tags/classify API | 배치 분류 엔드포인트 (DB→Rules fallback) | [x] |
@@ -324,7 +324,7 @@ brew install claude-squad  # 명령어: cs
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | IN PROGRESS | 95% | 15.2~15.7 완료 |
+| 6-4 | COMPLETE | 100% | 15.2~15.7 + 15.6 완료 |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
@@ -346,6 +346,12 @@ brew install claude-squad  # 명령어: cs
 - Mode A (Standard) vs Mode B (LoRA) 분기 로직 검증 완료.
 - IP-Adapter와 결합 시 "얼굴 고정 + 자유로운 장면 묘사" 최적 조합 확인.
 
+**15.6 Quality Evaluation System 완료 (2026-01-26)**:
+- 6개 표준 테스트 프롬프트 정의 (simple_portrait → multi_element)
+- `evaluation_runs` 테이블 및 마이그레이션
+- `/eval/run`, `/eval/results`, `/eval/summary` API
+- `/manage` 페이지 Eval 탭 (Mode A vs B 비교 차트)
+
 **15.7 Dynamic Tag Classification System 완료 (2026-01-25)**:
 - 15.7.1~15.7.8 전체 완료
 - DB 기반 분류 규칙 677개 적용, Danbooru API 연동, 승인 워크플로우 UI 구축
@@ -356,7 +362,7 @@ brew install claude-squad  # 명령어: cs
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| ~~1~~ | ~~**WD14 피드백 루프**~~ | ~~6-4.15.7.6~~ | ~~높음~~ | ~~중~~ | **완료** (2026-01-26) |
-| 1 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 비교 검증, WD14 데이터 추적 |
-| 3 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
-| 4 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
+| ~~1~~ | ~~**Quality Evaluation**~~ | ~~6-4.15.6~~ | ~~중~~ | ~~중~~ | **완료** (2026-01-26) |
+| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
+| 2 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
+| 3 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 배경/시간/날씨 컨텍스트 |
