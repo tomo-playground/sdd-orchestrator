@@ -150,6 +150,9 @@ export type LoRA = {
   character_defaults: Record<string, string> | null;
   recommended_negative: string[] | null;
   preview_image_url: string | null;
+  // Calibration fields
+  optimal_weight: number | null;
+  calibration_score: number | null;
 };
 
 export type CharacterLoRA = {

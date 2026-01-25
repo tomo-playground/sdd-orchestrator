@@ -957,6 +957,16 @@ export default function ManagePage() {
                               <p className="text-[10px] text-zinc-400">
                                 Weight: {lora.weight_min}~{lora.weight_max} (default: {lora.default_weight})
                               </p>
+                              {lora.optimal_weight !== null && (
+                                <p className="text-[10px] text-emerald-600">
+                                  ✅ Calibrated: {lora.optimal_weight} ({lora.calibration_score}%)
+                                </p>
+                              )}
+                              {lora.optimal_weight === null && (
+                                <p className="text-[10px] text-amber-500">
+                                  ⚠️ Not calibrated
+                                </p>
+                              )}
                             </div>
                           </div>
                           <button
