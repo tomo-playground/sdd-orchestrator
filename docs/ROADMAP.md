@@ -179,6 +179,33 @@ Character Preset
 - Frontend: IP-Adapter 체크박스 + Reference 드롭다운 + Weight 슬라이더
 - ControlNet + IP-Adapter 동시 사용 가능 (포즈 + 얼굴 일관성)
 
+### 7-3. LoRA 캘리브레이션 시스템 (🟢 완료)
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| 캘리브레이션 서비스 | 최적 LoRA weight 자동 탐색 (0.5~1.0) | [x] |
+| WD14 기반 평가 | 프롬프트 표현력 점수 측정 | [x] |
+| DB 저장 | optimal_weight, calibration_score 필드 | [x] |
+| 자동 적용 | 캐릭터 선택 시 최적 weight 자동 적용 | [x] |
+
+**7-3 완료 요약**:
+- `services/lora_calibration.py`: 캘리브레이션 로직
+- `services/prompt.py`: `apply_optimal_lora_weights()` 자동 교체
+- `logic.py`: 이미지 생성 시 DB에서 optimal_weight 조회 및 적용
+- 4개 LoRA 캘리브레이션 완료 (eureka, chibi, blindbox, midoriya → 모두 0.5 최적)
+
+### 7-4. 다중 캐릭터 렌더링 실험 (🟡 실험 완료)
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| 대화 장면 테스트 | 분리 생성 + 합성 방식 검증 | [x] |
+| 상호작용 장면 테스트 | 포옹/손잡기 - 단일 생성 vs 분리 합성 | [x] |
+| Reference-only 테스트 | 캐릭터 일관성 유지 방법 검증 | [x] |
+| 치비 포즈 테스트 | LoRA + Reference-only 조합 | [x] |
+
+**7-4 실험 결론** (상세: `docs/CHARACTER_RENDERING_REPORT.md`):
+- **상호작용 장면** → ControlNet 단일 생성 권장
+- **대화 장면** → 분리 생성 + 합성 권장
+- **캐릭터 일관성** → Reference-only (weight 0.5, guidance_end 0.8) 권장
+
 ---
 
 ## 📋 Development Cycle
@@ -266,7 +293,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-01-25
 
 | Phase | 상태 | 진행률 |
 |-------|------|--------|
@@ -276,17 +303,22 @@ brew install claude-squad  # 명령어: cs
 | 6-2 | COMPLETE | 100% |
 | 6-3 | IN PROGRESS | 95% |
 | 6-4 | IN PROGRESS | 25% |
-| 7-1 | IN PROGRESS | 30% |
-| 7-2 | NOT STARTED | 0% |
+| 7-1 | COMPLETE | 100% |
+| 7-2 | COMPLETE | 100% |
+| 7-3 | COMPLETE | 100% |
+| 7-4 | EXPERIMENT DONE | 100% |
 
-**9.7 Scene-Prompt Quality 완료 (2026-01-24)**:
-- WD14 전처리 수정 (RGB 0-255 범위)
-- 65개 동의어 DB 추가 (양방향 확장)
-- 27개 skip_tokens (mood/lighting 태그)
-- 테스트 결과: 75-86% (평균 ~80%)
+**7-3 LoRA 캘리브레이션 완료 (2026-01-25)**:
+- 4개 LoRA 캘리브레이션: eureka, chibi, blindbox, midoriya
+- 최적 weight: 모두 0.5 (프롬프트 표현력 유지)
+- 캐릭터 선택 시 자동 적용 구현
 
-**다음 우선순위** (옵션 B: 품질 우선):
-1. **Phase 7.1: ControlNet 연동** - 포즈/표정 정확도 향상 (P0)
-2. Phase 5: Ken Burns Effect - 시각적 품질 향상
-3. Phase 6-3.10: Multi-Character 지원
-4. Phase 6-3.11: Scene Builder UI
+**7-4 다중 캐릭터 실험 완료 (2026-01-25)**:
+- 상호작용 장면: ControlNet 단일 생성 권장
+- 대화 장면: 분리 합성 권장
+- 캐릭터 일관성: Reference-only 효과적
+
+**다음 우선순위**:
+1. Phase 5: Ken Burns Effect - 시각적 품질 향상
+2. Phase 6-3.10: Multi-Character 구현 (실험 결과 기반)
+3. Phase 6-3.11: Scene Builder UI
