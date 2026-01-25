@@ -29,6 +29,7 @@ import {
   DEFAULT_BGM,
   DEFAULT_SUBTITLE_FONT,
   DRAFT_STORAGE_KEY,
+  PROMPT_APPLY_KEY,
   MAX_IMAGE_CACHE_SIZE,
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
@@ -288,6 +289,58 @@ export default function Home() {
         setReferenceImages(refs);
       })
       .catch(() => setReferenceImages([]));
+  }, []);
+
+  // Apply prompt from localStorage (from /manage Prompts tab)
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PROMPT_APPLY_KEY);
+    if (!stored) return;
+
+    try {
+      const data = JSON.parse(stored) as {
+        positive_prompt?: string;
+        negative_prompt?: string;
+        steps?: number;
+        cfg_scale?: number;
+        sampler_name?: string;
+        seed?: number;
+        clip_skip?: number;
+        context_tags?: Record<string, string[]>;
+      };
+
+      // Apply to base prompt settings
+      if (data.positive_prompt) setBasePromptA(data.positive_prompt);
+      if (data.negative_prompt) setBaseNegativePromptA(data.negative_prompt);
+      if (data.steps) setBaseStepsA(data.steps);
+      if (data.cfg_scale) setBaseCfgScaleA(data.cfg_scale);
+      if (data.sampler_name) setBaseSamplerA(data.sampler_name);
+      if (data.seed) setBaseSeedA(data.seed);
+      if (data.clip_skip) setBaseClipSkipA(data.clip_skip);
+
+      // Apply to current scene if exists
+      if (scenes.length > 0) {
+        const scene = scenes[currentSceneIndex];
+        if (scene) {
+          const updates: Partial<Scene> = {};
+          if (data.positive_prompt) updates.image_prompt = data.positive_prompt;
+          if (data.negative_prompt) updates.negative_prompt = data.negative_prompt;
+          if (data.steps) updates.steps = data.steps;
+          if (data.cfg_scale) updates.cfg_scale = data.cfg_scale;
+          if (data.sampler_name) updates.sampler_name = data.sampler_name;
+          if (data.seed) updates.seed = data.seed;
+          if (data.clip_skip) updates.clip_skip = data.clip_skip;
+          if (data.context_tags) updates.context_tags = data.context_tags;
+          updateScene(scene.id, updates);
+        }
+      }
+
+      // Clear localStorage after applying
+      window.localStorage.removeItem(PROMPT_APPLY_KEY);
+      showToast("Prompt applied!", "success");
+    } catch {
+      console.error("Failed to apply prompt from localStorage");
+      window.localStorage.removeItem(PROMPT_APPLY_KEY);
+    }
   }, []);
 
   // Calculate the best step to resume from based on data state
@@ -1957,7 +2010,11 @@ export default function Home() {
             selectedCharacterId={selectedCharacterId}
             onSelectCharacter={async (charId: number | null) => {
               setSelectedCharacterId(charId);
-              if (charId === null) return;
+              if (charId === null) {
+                setBasePromptA("");
+                setBaseNegativePromptA("");
+                return;
+              }
               const charFull = await getCharacterFull(charId);
               if (charFull) {
                 // Sync gender from character preset

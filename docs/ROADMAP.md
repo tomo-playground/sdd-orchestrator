@@ -89,10 +89,10 @@
 다중 캐릭터 지원 및 프롬프트 빌더 시스템 구축.
 
 **현재 사용 환경**:
-- **Model**: `anythingV3_fp16.safetensors` (SD 1.5 애니메)
-- **LoRA**: `eureka_v9`, `chibi-laugh`, `blindbox_v1_mix`, `mha_midoriya-10`
+- **Model**: `animagine-xl.safetensors` (SDXL anime)
+- **LoRA**: `eureka_v9`, `chibi-laugh`
 - **Negative Embeddings**: `verybadimagenegative_v1.3`, `easynegative`
-- **Presets**: Eureka, Eureka Chibi, Eureka Blindbox, Chibi, Blindbox, Midoriya, Midoriya Chibi
+- **Presets**: 9종 (Generic Girl/Boy, Eureka, Midoriya, Chibi, Blindbox 계열)
 
 ### 6-1. Data Foundation - **COMPLETE**
 | 작업 | 설명 | 상태 |
@@ -108,26 +108,14 @@
 | Multi-LoRA 지원 | 캐릭터당 여러 LoRA 조합 (eureka + chibi) | [x] |
 | Style Profile 통합 | Character Preset으로 단일화, UI 제거 | [x] |
 
-**Character Preset 구조**:
-```
-Character Preset
-├── Identity Tags (1girl, aqua_hair, purple_eyes, short_hair)
-├── Clothing Tags (t-shirt, hairclip)
-├── LoRAs[] (eureka_v9:1.0, chibi-laugh:0.6)
-└── Recommended Negative (easynegative)
-```
-
 ### 6-3. Scene Expression & Multi-Character (🟡 확장)
 
 **8.x Gender System - ARCHIVED** (6개 완료):
 Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, Preview UI
 
 **9.x Scene Expression System - ARCHIVED** (25개 완료):
-- 9.1~9.5: DB 태그 통합, 포즈/표정/구도 확장, Gemini 템플릿, Scene Context Tags UI, 프롬프트 품질 검증
-- 9.6 Prompt Sanity Check: LoRA 존재 검증, Positive-Negative 충돌 검출, 필수 태그 검증
-- 9.7 Scene-Prompt Quality: 토큰 정렬, 태그 확장(+27), context_tags 7그룹, WD14 동의어 매핑(75-86%)
-- 9.8 Prompt Composition: Mode A/B 분리, BREAK 토큰, 동적 LoRA weight, /prompt/compose API, Preview UI
-- 상세: `docs/PROMPT_SPEC.md`, 통합 테스트 35개 (100% pass)
+- DB 태그 통합, 포즈/표정/구도 확장, Gemini 템플릿, Prompt Quality
+- Prompt Sanity Check, Prompt Composition Mode A/B
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
@@ -218,14 +206,6 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | DB 저장 | optimal_weight, calibration_score 필드 | [x] |
 | 자동 적용 | 캐릭터 선택 시 최적 weight 자동 적용 | [x] |
 | /manage UI | LoRA 목록에 캘리브레이션 정보 표시 | [x] |
-
-**7-3 완료 요약**:
-- `services/lora_calibration.py`: 캘리브레이션 로직
-- `services/prompt.py`: `apply_optimal_lora_weights()` 자동 교체
-- `logic.py`: 이미지 생성 시 DB에서 optimal_weight 조회 및 적용
-- `routers/characters.py`: 캐릭터 API에서 optimal_weight 우선 반환 (2026-01-25 수정)
-- 4개 LoRA 캘리브레이션 완료 (eureka, chibi, blindbox, midoriya → 모두 0.5 최적)
-- UI에서 캐릭터 선택 시 캘리브레이션된 weight 자동 표시
 
 ### 7-4. 다중 캐릭터 렌더링 실험 (🟡 실험 완료)
 | 작업 | 설명 | 상태 |
@@ -327,7 +307,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-25 (16:30)
+**Last Updated**: 2026-01-26 (00:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -336,228 +316,39 @@ brew install claude-squad  # 명령어: cs
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | IN PROGRESS | 85% | 15.7.7~15.7.8 완료 |
+| 6-4 | IN PROGRESS | 95% | 15.2~15.7 완료 |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
 
-**7-3 LoRA 캘리브레이션 완료 (2026-01-25)**:
-- 4개 LoRA 캘리브레이션: eureka, chibi, blindbox, midoriya
-- 최적 weight: 모두 0.5 (프롬프트 표현력 유지)
-- 캐릭터 선택 시 자동 적용 구현
-- /manage 페이지에 캘리브레이션 정보 표시
+**Subtitle & Text System Improvements (2026-01-26)**:
+- **특수문자 필터링 버그 수정**: `/`, `~`, `:`, `;`, `"` 등 수식 및 문장 부호가 삭제되던 문제 해결 (`1/10` 등 정상 표시).
+- **소수점 줄바꿈 버그 수정**: 마침표(`.`) 기준 강제 줄바꿈 로직에서 `.`을 제외하여 `0.25` 같은 숫자가 잘리지 않도록 개선.
+- **캐릭터 재생성 UI**: Manage 페이지에서 버튼 하나로 IP-Adapter용 얼굴 이미지를 즉시 생성/교체하는 기능 구현.
+- **Manual Mode UX**: 캐릭터 선택 해제(None) 시 기존 프롬프트를 즉시 비우도록 수정.
 
-**7-4 다중 캐릭터 실험 완료 (2026-01-25)**:
-- 상호작용 장면: ControlNet 단일 생성 권장
-- 대화 장면: 분리 합성 권장
-- 캐릭터 일관성: Reference-only 효과적
+**Standard Mode Preset & Reference Setup 완료 (2026-01-25 23:30)**:
+- **Generic Anime Girl/Boy** 프리셋 추가 (Standard Mode)
+- **IP-Adapter 레퍼런스 일괄 생성**: DB 내 9개 캐릭터(Generic 포함) 전수 생성 완료
+- **Prompt Pipeline 검증**: Standard Mode + IP-Adapter + EasyNegative 자동 적용 확인
+- 이제 사용자는 LoRA 학습 없이도 "Standard Mode"를 통해 일관성 있는 캐릭터 생성 가능.
 
-**6-4.15.2 Tag Categorization V2 완료 (2026-01-25)**:
-- SD Priority 기반 24개 카테고리 정의 (quality→subject→appearance→clothing→expression→...→style)
-- environment 그룹 세분화: location_indoor, location_outdoor, background_type, time_weather, lighting
-- DB 481개 태그 priority 업데이트 (1=quality ~ 16=style)
-- Frontend TOKEN_PRIORITY 수정: Quality Priority 8→1로 이동
-- CATEGORY_PATTERNS 확장: 누락된 quality, subject, body_feature 등 추가
+**Prompt Composition System (Phase 9.8) 안정화**:
+- Mode A (Standard) vs Mode B (LoRA) 분기 로직 검증 완료.
+- IP-Adapter와 결합 시 "얼굴 고정 + 자유로운 장면 묘사" 최적 조합 확인.
 
-**6-4.15.3 Tag Rules 완료 (2026-01-25)**:
-- 태그 충돌 규칙 57쌍 (hair length, time, weather, camera, pose 등)
-- 태그 의존성 규칙 29개 (twintails→long hair, cat ears→animal ears 등)
-- 검증 API: POST /keywords/validate, GET /keywords/rules
-- body_feature 카테고리 26개 태그 추가 (animal ears, horns, wings, tail 등)
+**15.7 Dynamic Tag Classification System 완료 (2026-01-25)**:
+- 15.7.1~15.7.8 전체 완료
+- DB 기반 분류 규칙 677개 적용, Danbooru API 연동, 승인 워크플로우 UI 구축
+- 태그 충돌(Conflict) 및 의존성(Requires) 규칙 80여 개 적용
+- Action(holding X), Time/Weather(환경효과) 등 태그 카테고리 437개 확장
 
-**6-4.15.4 LoRA Trigger Sync 완료 (2026-01-25)**:
-- LoRA trigger words → tags 테이블 자동 동기화
-- 패턴 기반 자동 분류: *eyes→eye_color, *hair→hair_color/hair_style, 기본→identity
-- API: POST /keywords/sync-lora-triggers
-- 4개 LoRA에서 11개 트리거 워드 동기화 (midoriya izuku, eureka 등)
-- 하드코딩 제거: CATEGORY_PATTERNS에서 캐릭터명 패턴 삭제
-
-**6-4.15.5 Tag Gap Analysis & Expansion 완료 (2026-01-25)**:
-- CATEGORY_PATTERNS → DB 동기화 API 추가 (POST /keywords/sync-category-patterns)
-- 총 태그: 515개 → 952개 (+437개 확장, 최신 동기화)
-- 주요 확장 카테고리:
-  - location_indoor: 13→31개, location_outdoor: 10→38개
-  - lighting: 12→29개, mood: 14→33개
-  - action: 55→64개 (holding X 패턴 추가)
-  - time_weather: 38→46개 (환경 효과 추가)
-- 중복 체크 로직 개선 (batch 처리 + 사전 필터링)
-
-**다음 우선순위** (2026-01-25 갱신):
+**다음 우선순위** (2026-01-26 갱신):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| ~~1~~ | ~~**Prompt History**~~ | ~~6-4.16~~ | ~~높음~~ | ~~낮음~~ | **완료** (2026-01-25) |
 | 1 | **WD14 피드백 루프** | 6-4.15.7.6 | 높음 | 중 | 프롬프트 효과 정량 측정, 데이터 기반 최적화 |
-| 3 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 비교 검증, WD14 데이터 추적 |
-| 4 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
-| 5 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
-
-**Phase 6 태그 시스템 현황**: 55% -> 80% (15.2~15.7 완료 + UI 개선)
-- 태그 1,024개+ (952개 + 72개 Batch Approve)
-- 충돌 규칙 57쌍, 의존성 규칙 29개 구축
-- LoRA Trigger 자동 동기화 완료
-- Action 태그 64개 (holding X 패턴), Time/Weather 46개 (환경 효과)
-- 테스트 커버리지: 109개 분류 테스트 추가
-
-**9.8 Prompt Composition System 완료 (2026-01-25)**:
-- 문제: LoRA 사용 시 장면 표현(pose, action, camera)이 LoRA 학습 편향에 의해 무시됨
-- 해결: Mode A (Standard) / Mode B (LoRA) 분리
-  - Mode A: 표준 순서 (캐릭터 → 장면), LoRA 미사용 또는 스타일 LoRA만
-  - Mode B: 장면 우선 순서, LoRA weight 동적 조절, BREAK 활용
-- **완료된 작업** (13/13):
-  - 9.8.0: DB Schema (characters.prompt_mode)
-  - 9.8.1: Character Mode 자동 감지
-  - 9.8.2: get_token_category() + CATEGORY_PATTERNS 연동
-  - 9.8.2.1: BREAK Token 지원
-  - 9.8.3: detect_scene_complexity() (simple/moderate/complex)
-  - 9.8.4: calculate_lora_weight() (타입+복잡도 기반)
-  - 9.8.5: filter_conflicting_tokens() + 트리거 중복 제거
-  - 9.8.5.1: ensure_quality_tags()
-  - 9.8.6: sort_prompt_tokens() (Mode별 정렬)
-  - 9.8.7: POST /prompt/compose API
-  - 9.8.8: ComposedPromptPreview.tsx (카테고리별 그룹 + Toggle)
-  - 9.8.9: 통합 테스트 35개 (100% pass)
-- 상세 스펙: `docs/specs/PROMPT_SPEC.md` 참조
-
-**9.8 버그 수정 (2026-01-25 17:15)**:
-- **buildScenePrompt 통합**: Frontend에서 단순 연결 → `/prompt/compose` API 호출로 수정
-- **BREAK 위치 수정**: priority 기반 → 마지막 clothing 토큰 후 삽입 (position 기반)
-- **Trigger 위치 수정**: 프롬프트 끝 → LoRA 문자열 직전으로 이동
-- **태그 분류 수정**:
-  - `holding bag` → ACTION (CLOTHING에서 수정)
-  - `falling leaves` → TIME_WEATHER (ACTION에서 수정)
-  - Backend: CATEGORY_PATTERNS에 "holding X" 패턴(55개), 환경 효과(38개) 추가
-  - Frontend: getTokenCategory()에 clothing 패턴, 환경 효과 패턴 추가
-
-**Prompt Conflict Filtering 강화 (2026-01-26 15:45)**:
-- `CONFLICTING_TAG_PAIRS` 추가: 특정 태그 쌍 충돌 규칙
-  - Expression: crying vs laughing/happy/smile, sad vs happy/smile/laughing
-  - Gaze: looking down vs up, looking away vs at viewer
-  - Pose: sitting vs standing, lying vs sitting/standing
-- `CONFLICTING_CATEGORY_PAIRS`에 expression, gaze 추가
-- 8개 테스트 추가 (총 66개, 100% pass)
-- 비논리적 조합(crying + laughing 등) 자동 필터링
-
-**VRT 환경 구축 (2026-01-26 15:00)**:
-- Playwright 설치 및 설정 (`playwright.config.ts`)
-- VRT 테스트 파일 생성 (`tests/vrt/studio.spec.ts`, `manage.spec.ts`)
-- 9개 테스트 케이스: Studio 초기화면, Preset, SceneList, RenderSettings / Manage 탭별
-- 초기 스냅샷 생성 완료
-- 스크립트 추가: `npm run test:vrt`, `test:vrt:update`, `test:vrt:ui`
-
-**Script Length Limit 조정 (2026-01-26 14:00)**:
-- **문제**: 120자 대본이 3줄로 렌더링 시 자막 UI 깨짐
-- **해결**: 모든 템플릿에서 120자 → 80자, max 2 lines로 제한
-  - `logic.py`: 시스템 지시 수정
-  - `create_storyboard.j2`: 1-3 sentences → 1-2 sentences
-  - `create_storyboard_japanese_lesson.j2`: 동일 적용
-  - `create_storyboard_math_lesson.j2`: 동일 적용
-
-**Render Settings UX 개선 (2026-01-26 12:30)**:
-- **레이아웃 토글 컴팩트화**: 큰 카드 → 세그먼트 컨트롤
-- **단일 Render 버튼**: 3개 버튼 → 1개 (선택된 레이아웃으로 렌더)
-- **섹션 통합**: Video + Audio → Media Settings (5개 → 4개 섹션)
-- **기본 접힘**: Media Settings 기본 닫힘 → 스크롤 감소
-- **Advanced 간소화**: SD Model 중복 표시 제거
-- **수직 공간 ~40% 절약**
-
-**Keyword/Tag System 개선 (2026-01-26 11:00)**:
-- **카테고리 한국어 설명 추가**: `CATEGORY_DESCRIPTIONS` 상수 (26개 카테고리)
-  - Filter dropdown, Category select, Batch Approve 모달에 표시
-  - 사용자 분류 작업 용이성 향상
-- **Frontend 카테고리 표시 수정**: Backend `suggested_category` 사용 (로컬 로직 대체)
-- **Keyword 분류 테스트 케이스**: 109개 테스트 추가 (`backend/tests/test_keyword_categories.py`)
-  - TestSkipTags, TestClothingCategory, TestHairCategory, TestEnvironmentCategory
-  - TestCameraCategory, TestNoMisclassification, TestAppearanceCategory, TestExpressionCategory, TestGazeCategory
-- **Batch Approve 72개 키워드**: clothing, environment, location_outdoor, hair_style, action 분류 승인
-- **TROUBLESHOOTING 문서화**: "SD 모델 변경 시 주의사항" 섹션 추가
-
-**15.7 Dynamic Tag Classification (2026-01-25 21:00)**:
-- 15.7.1~15.7.5 완료: classification_rules 테이블, /tags/classify API, Danbooru API 연동, Frontend 통합, 승인 워크플로우
-- TagClassifier: DB Cache → Pattern Rules → Danbooru API → Unknown 순서로 분류
-- `backend/services/danbooru.py`: Danbooru API 서비스 (카테고리 매핑: artist→style, character→identity, meta→quality)
-- `backend/services/tag_classifier.py`: 하이브리드 분류 로직
-- `frontend/app/hooks/useTagClassifier.ts`: API 기반 분류 + 세션 캐싱
-- Danbooru API 연결 문제(TLS) 시 graceful fallback으로 unknown 반환
-- 15.7.5 승인 워크플로우: `/tags/pending` API, `/tags/approve-classification` API, /manage Tags 탭에 Pending Classifications UI
-
-**9.8 버그 수정 V (2026-01-26)**:
-- **LoRA 중복 제거**: `_deduplicate_loras()` 함수 추가 - 동일 LoRA 다른 weight 시 마지막 weight 유지
-- **BREAK 정규화**: `_normalize_break_tokens()` 함수 추가 - 소문자 `break` → `BREAK` 변환, 중복 제거
-- **Camera 충돌**: `medium shot` 패턴 추가, 동일 카테고리 첫 번째만 유지
-- **중복 BREAK 방지**: 사용자 입력 BREAK 있으면 자동 삽입 스킵
-- **tokens 내 LoRA 추출**: `_extract_loras_from_tokens()` 추가 - tokens와 lora_strings 간 중복 방지
-- **테스트 강화**: 38개 → 58개 (+20개)
-  - TestLoRADeduplication (5), TestBreakNormalization (4), TestCameraConflict (4), TestFullCompositionBugFixes (3), TestLoRAExtractionFromTokens (4)
-
-**9.8 버그 수정 IV (2026-01-25 23:00)**:
-- **COMPOSED PREVIEW 자동 업데이트**: 토큰 변경 시 자동으로 `/prompt/compose` API 호출
-  - 300ms 디바운스로 과도한 API 호출 방지
-  - 상태 표시: "Composing...", "Filtered", "Raw"
-  - 버튼 텍스트: 결과 있으면 "Refresh", 없으면 "Compose"
-  - 이제 사용자가 필터링된 결과를 실시간으로 확인 가능
-
-**9.8 버그 수정 III (2026-01-25 22:30)**:
-- **Debug 탭 프롬프트 불일치**: Debug 탭이 `/prompt/compose` API를 사용하지 않아 충돌 필터링, Quality 태그 추가, 트리거 중복 제거 미적용
-  - 문제: `buildPositivePrompt` (동기, 단순 연결) vs `buildScenePrompt` (비동기, /prompt/compose API)
-  - 해결: Debug 탭에서 `buildScenePrompt` 사용하도록 수정
-  - SceneCard에 `buildScenePrompt` prop 추가, DebugTabContent async 지원 + 로딩 상태 추가
-- **테스트 추가**: `test_ocean_with_indoor_locations` - ocean + library/room/street/cafe 충돌 케이스
-
-**9.8 버그 수정 II (2026-01-25 19:30)**:
-- **Trigger 워드 중복 수정**: `compose_prompt_tokens`에서 trigger words 추출 시 중복 발생 → `extracted_triggers_seen` 집합으로 dedup
-- **동일 카테고리 충돌 필터링**: `CONFLICTING_CATEGORY_PAIRS`에 same-category 규칙 추가 (location_indoor, location_outdoor, camera 등)
-- **LoRA Type 수정**: `mha_midoriya-10`의 `lora_type`이 "style"로 잘못 설정되어 Mode B 미작동 → "character"로 DB 업데이트
-- **LoRA 중복 제거 수정**: `normalize_prompt_tokens`에서 weight 포함 전체 태그로 비교 → LoRA 이름만으로 dedup (마지막 weight 유지)
-- **결과**: Mode B 정상 활성화 (BREAK 토큰, 트리거 배치, LoRA 순서 모두 정상), 중복 LoRA 제거 완료
-- **프론트엔드 태그 분류 확장**: `getTokenCategory()`에 누락된 패턴 추가
-  - quality: "anime coloring", "official art"
-  - location: "bed", "chair", "sofa", "room", "library", "cafe" 등 30+개
-  - time_weather: "starry", "sky", "clouds", "moon", "stars" 등
-  - mood: "comfortable", "cozy", "warm", "lonely", "gloomy" 등
-
----
-
-## 15.7 Dynamic Tag Classification System
-
-**목표**: 하드코딩 기반 태그 분류 완전 제거, 동적 분류 시스템 구축
-
-### 아키텍처
-```
-태그 입력 → DB 캐시 → Danbooru API → LLM Fallback → DB 저장
-                              ↓
-                    General(0) → LLM 세분화
-                    Character(4) → identity
-                    Artist(1) → style
-                    Meta(5) → quality
-```
-
-### DB 스키마
-```sql
--- 분류 규칙 (패턴 기반, 하드코딩 대체)
-CREATE TABLE classification_rules (
-    id SERIAL PRIMARY KEY,
-    rule_type VARCHAR(20) NOT NULL,  -- 'suffix', 'prefix', 'contains', 'exact'
-    pattern VARCHAR(100) NOT NULL,
-    target_group VARCHAR(50) NOT NULL,
-    priority INT DEFAULT 0,
-    active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- tags 테이블 확장
-ALTER TABLE tags ADD COLUMN classification_source VARCHAR(20) DEFAULT 'pattern';
-ALTER TABLE tags ADD COLUMN classification_confidence FLOAT DEFAULT 1.0;
-```
-
-### API
-- `POST /tags/classify` - 배치 분류 (최대 50개)
-- `GET /tags/pending` - 승인 대기 목록
-- `POST /tags/approve` - 분류 승인
-
-### 구현 순서
-1. classification_rules 테이블 + CATEGORY_PATTERNS 이관
-2. /tags/classify API (DB → Rule → Danbooru → LLM)
-3. Frontend getTokenCategory() → API 호출로 교체
-4. 승인 워크플로우 UI
+| 2 | **Quality Evaluation** | 6-4.15.6 | 중 | 중 | Mode A/B 비교 검증, WD14 데이터 추적 |
+| 3 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
+| 4 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |

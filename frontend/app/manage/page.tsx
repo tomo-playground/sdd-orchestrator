@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import axios from "axios";
-import { API_BASE, CATEGORY_DESCRIPTIONS } from "../constants";
+import { API_BASE, CATEGORY_DESCRIPTIONS, PROMPT_APPLY_KEY } from "../constants";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
@@ -23,6 +24,7 @@ type ManageTab = "keywords" | "assets" | "style" | "tags" | "prompts" | "setting
 const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export default function ManagePage() {
+  const router = useRouter();
   const [manageTab, setManageTab] = useState<ManageTab>("keywords");
   const [keywordSuggestions, setKeywordSuggestions] = useState<KeywordSuggestion[]>([]);
   const [keywordCategories, setKeywordCategories] = useState<KeywordCategories>({});
@@ -38,6 +40,7 @@ export default function ManagePage() {
   const [isKeywordLoading, setIsKeywordLoading] = useState(false);
   const [keywordError, setKeywordError] = useState("");
   const [keywordApproving, setKeywordApproving] = useState<Record<string, boolean>>({});
+  const [isRegeneratingChar, setIsRegeneratingChar] = useState<Record<number, boolean>>({});
 
   // Batch approval state
   type BatchPreview = {
@@ -129,6 +132,20 @@ export default function ManagePage() {
   const [promptsSearch, setPromptsSearch] = useState("");
   const [promptsSort, setPromptsSort] = useState<"created_at" | "use_count" | "avg_match_rate">("created_at");
   const [deletingPromptId, setDeletingPromptId] = useState<number | null>(null);
+
+  const handleRegenerateReference = async (charId: number) => {
+    if (!confirm("Regenerate reference image for this character? This will overwrite the existing image.")) return;
+    setIsRegeneratingChar((prev) => ({ ...prev, [charId]: true }));
+    try {
+      await axios.post(`${API_BASE}/characters/${charId}/regenerate-reference`);
+      await fetchStyleData();
+      alert("Reference regenerated successfully!");
+    } catch {
+      alert("Failed to regenerate reference");
+    } finally {
+      setIsRegeneratingChar((prev) => ({ ...prev, [charId]: false }));
+    }
+  };
 
   useEffect(() => {
     axios
@@ -227,6 +244,16 @@ export default function ManagePage() {
       console.error("Failed to delete prompt history");
     } finally {
       setDeletingPromptId(null);
+    }
+  };
+
+  const applyPromptHistory = async (id: number) => {
+    try {
+      const res = await axios.post(`${API_BASE}/prompt-histories/${id}/apply`);
+      localStorage.setItem(PROMPT_APPLY_KEY, JSON.stringify(res.data));
+      router.push("/");
+    } catch {
+      console.error("Failed to apply prompt history");
     }
   };
 
@@ -1407,12 +1434,21 @@ export default function ManagePage() {
                                 )}
                               </div>
                             </div>
-                            <button
-                              onClick={() => deleteCharacter(char.id)}
-                              className="text-[9px] text-rose-500 hover:underline"
-                            >
-                              Delete
-                            </button>
+                            <div className="flex flex-col gap-2 items-end">
+                              <button
+                                onClick={() => handleRegenerateReference(char.id)}
+                                disabled={isRegeneratingChar[char.id]}
+                                className="text-[9px] text-indigo-500 hover:underline disabled:opacity-50"
+                              >
+                                {isRegeneratingChar[char.id] ? "Regen..." : "Regenerate"}
+                              </button>
+                              <button
+                                onClick={() => deleteCharacter(char.id)}
+                                className="text-[9px] text-rose-500 hover:underline"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                           <div className="mt-3 space-y-2">
                             {identityTagNames.length > 0 && (
@@ -1923,7 +1959,7 @@ export default function ManagePage() {
                           <span>Used {prompt.use_count}x</span>
                           {prompt.character_id && (
                             <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-600">
-                              Character #{prompt.character_id}
+                              {characters.find((c) => c.id === prompt.character_id)?.name ?? `Character #${prompt.character_id}`}
                             </span>
                           )}
                           {prompt.lora_settings && prompt.lora_settings.length > 0 && (
@@ -1934,6 +1970,14 @@ export default function ManagePage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => applyPromptHistory(prompt.id)}
+                          className="rounded-full bg-emerald-500 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-600"
+                          title="Apply to current scene"
+                        >
+                          Apply
+                        </button>
                         <button
                           type="button"
                           onClick={() => togglePromptFavorite(prompt.id)}

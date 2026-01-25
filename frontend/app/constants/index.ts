@@ -5,6 +5,7 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:800
 export const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
 export const DEFAULT_SUBTITLE_FONT = "온글잎 박다현체.ttf";
 export const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";
+export const PROMPT_APPLY_KEY = "shorts-producer:apply-prompt";
 export const MAX_IMAGE_CACHE_SIZE = 8_000_000;
 
 export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
