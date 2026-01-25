@@ -33,6 +33,20 @@ export default function ManagePage() {
   const [isKeywordLoading, setIsKeywordLoading] = useState(false);
   const [keywordError, setKeywordError] = useState("");
   const [keywordApproving, setKeywordApproving] = useState<Record<string, boolean>>({});
+
+  // Batch approval state
+  type BatchPreview = {
+    ready_count: number;
+    skip_count: number;
+    manual_count: number;
+    ready_by_category: Record<string, Array<{ tag: string; confidence: number; suggested_category: string }>>;
+    skip: Array<{ tag: string }>;
+  };
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchPreview, setBatchPreview] = useState<BatchPreview | null>(null);
+  const [batchSelected, setBatchSelected] = useState<Set<string>>(new Set());
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
+  const [isBatchApproving, setIsBatchApproving] = useState(false);
   const [bgmList, setBgmList] = useState<AudioItem[]>([]);
   const [fontList, setFontList] = useState<FontItem[]>([]);
   const [loraList, setLoraList] = useState<LoraItem[]>([]);
@@ -430,6 +444,74 @@ export default function ManagePage() {
     }
   };
 
+  const openBatchModal = async () => {
+    setIsBatchLoading(true);
+    setBatchModalOpen(true);
+    try {
+      const res = await axios.get(`${API_BASE}/keywords/batch-approve/preview?limit=300`);
+      setBatchPreview(res.data);
+      // Pre-select all ready tags
+      const allReady = new Set<string>();
+      Object.values(res.data.ready_by_category || {}).forEach((items: unknown) => {
+        (items as Array<{ tag: string }>).forEach((item) => allReady.add(item.tag));
+      });
+      setBatchSelected(allReady);
+    } catch {
+      alert("Failed to load batch preview");
+      setBatchModalOpen(false);
+    } finally {
+      setIsBatchLoading(false);
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (batchSelected.size === 0) return;
+    setIsBatchApproving(true);
+    try {
+      const res = await axios.post(`${API_BASE}/keywords/batch-approve`, {
+        tags: Array.from(batchSelected),
+      });
+      const { approved_count } = res.data;
+      alert(`${approved_count} tags approved successfully!`);
+      setBatchModalOpen(false);
+      setBatchPreview(null);
+      setBatchSelected(new Set());
+      void refreshKeywordSuggestions();
+    } catch {
+      alert("Batch approval failed");
+    } finally {
+      setIsBatchApproving(false);
+    }
+  };
+
+  const toggleBatchTag = (tag: string) => {
+    setBatchSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  };
+
+  const toggleCategorySelection = (category: string, items: Array<{ tag: string }>) => {
+    const categoryTags = items.map((i) => i.tag);
+    const allSelected = categoryTags.every((t) => batchSelected.has(t));
+    setBatchSelected((prev) => {
+      const next = new Set(prev);
+      categoryTags.forEach((t) => {
+        if (allSelected) {
+          next.delete(t);
+        } else {
+          next.add(t);
+        }
+      });
+      return next;
+    });
+  };
+
   const stopBgmPreview = () => {
     if (previewTimeoutRef.current) {
       window.clearTimeout(previewTimeoutRef.current);
@@ -554,6 +636,12 @@ export default function ManagePage() {
               >
                 {isKeywordLoading ? "Loading..." : "Refresh"}
               </button>
+              <button
+                onClick={openBatchModal}
+                className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-emerald-700 uppercase shadow-sm transition hover:bg-emerald-100"
+              >
+                Batch Approve
+              </button>
             </div>
 
             {keywordPanelOpen && (
@@ -631,30 +719,146 @@ export default function ManagePage() {
           </section>
         )}
 
+        {/* Batch Approve Modal */}
+        {batchModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="mx-4 max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-900">Batch Approve Tags</h2>
+                  {batchPreview && (
+                    <p className="text-xs text-zinc-500">
+                      {batchSelected.size} selected / {batchPreview.ready_count} ready / {batchPreview.skip_count} skip / {batchPreview.manual_count} manual
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setBatchModalOpen(false)}
+                  className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+                {isBatchLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <span className="text-sm text-zinc-500">Loading preview...</span>
+                  </div>
+                ) : batchPreview ? (
+                  <div className="space-y-4">
+                    {Object.entries(batchPreview.ready_by_category).map(([category, items]) => {
+                      const categoryTags = items.map((i) => i.tag);
+                      const allSelected = categoryTags.every((t) => batchSelected.has(t));
+                      const someSelected = categoryTags.some((t) => batchSelected.has(t));
+                      return (
+                        <div key={category} className="rounded-xl border border-zinc-200 p-3">
+                          <div className="mb-2 flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                              onChange={() => toggleCategorySelection(category, items)}
+                              className="h-4 w-4 rounded border-zinc-300"
+                            />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700">
+                              {category}
+                            </span>
+                            <span className="text-[10px] text-zinc-400">({items.length})</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {items.map((item) => (
+                              <label
+                                key={item.tag}
+                                className={`flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-[10px] transition ${
+                                  batchSelected.has(item.tag)
+                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                    : "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={batchSelected.has(item.tag)}
+                                  onChange={() => toggleBatchTag(item.tag)}
+                                  className="sr-only"
+                                />
+                                {item.tag}
+                                <span className="text-[9px] opacity-60">
+                                  {Math.round(item.confidence * 100)}%
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {batchPreview.skip.length > 0 && (
+                      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                          Auto-skipped ({batchPreview.skip.length})
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {batchPreview.skip.slice(0, 20).map((item) => (
+                            <span
+                              key={item.tag}
+                              className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] text-zinc-400"
+                            >
+                              {item.tag}
+                            </span>
+                          ))}
+                          {batchPreview.skip.length > 20 && (
+                            <span className="text-[10px] text-zinc-400">
+                              +{batchPreview.skip.length - 20} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-zinc-100 px-6 py-4">
+                <button
+                  onClick={() => setBatchModalOpen(false)}
+                  className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBatchApprove}
+                  disabled={batchSelected.size === 0 || isBatchApproving}
+                  className="rounded-full bg-emerald-600 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBatchApproving ? "Approving..." : `Approve ${batchSelected.size} Tags`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {manageTab === "assets" && (
           <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
             <div className="grid gap-2">
               <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Overlay Styles
               </span>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
                 {OVERLAY_STYLES.map((style) => (
                   <div
                     key={style.id}
-                    className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-3"
+                    className="flex flex-col gap-1 rounded-xl border border-zinc-200 bg-white p-2"
                   >
-                    <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-                      {style.label}
-                    </span>
-                    <div className="aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100">
+                    <div className="aspect-[9/16] max-h-32 overflow-hidden rounded-lg bg-zinc-100">
                       <img
                         src={`${API_BASE}/assets/overlay/${style.id}`}
                         alt={`${style.label} frame`}
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                      {style.id}
+                    <span className="text-[9px] font-medium text-zinc-600 text-center truncate">
+                      {style.label}
                     </span>
                   </div>
                 ))}
@@ -946,7 +1150,7 @@ export default function ManagePage() {
                         <div key={lora.id} className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-3">
                           <div className="flex items-center gap-3">
                             {lora.preview_image_url ? (
-                              <img src={lora.preview_image_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                              <img src={`${API_BASE}${lora.preview_image_url}`} alt="" className="h-10 w-10 rounded-lg object-cover" />
                             ) : (
                               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-400">
                                 <span className="text-lg">L</span>
@@ -1005,7 +1209,7 @@ export default function ManagePage() {
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
                               {char.preview_image_url ? (
-                                <img src={char.preview_image_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                                <img src={`${API_BASE}${char.preview_image_url}`} alt="" className="h-14 w-14 rounded-xl object-cover" />
                               ) : (
                                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-2xl">
                                   {char.name.charAt(0).toUpperCase()}

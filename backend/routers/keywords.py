@@ -117,3 +117,163 @@ async def get_effectiveness_summary():
     except Exception as exc:
         logger.exception("Tag effectiveness summary failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/batch-approve/preview")
+async def batch_approve_preview(min_confidence: float = 0.7, limit: int = 200):
+    """Preview tags ready for batch approval.
+
+    Returns tags grouped by:
+    - ready: confidence >= min_confidence and not skip
+    - skip: suggested_category == 'skip'
+    - manual: confidence < min_confidence (need manual review)
+    """
+    logger.info("[Batch Approve Preview] min_confidence=%s", min_confidence)
+    suggestions = load_keyword_suggestions(min_count=1, limit=limit)
+
+    ready = []
+    skip = []
+    manual = []
+
+    for item in suggestions:
+        cat = item.get("suggested_category", "")
+        conf = item.get("confidence", 0)
+
+        if cat == "skip":
+            skip.append(item)
+        elif conf >= min_confidence and cat:
+            ready.append(item)
+        else:
+            manual.append(item)
+
+    # Group ready tags by category
+    by_category: dict[str, list] = {}
+    for item in ready:
+        cat = item["suggested_category"]
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(item)
+
+    return {
+        "ready_count": len(ready),
+        "skip_count": len(skip),
+        "manual_count": len(manual),
+        "ready_by_category": by_category,
+        "skip": skip,
+        "manual": manual[:20],  # Show first 20 for review
+    }
+
+
+@router.post("/batch-approve")
+async def batch_approve(
+    tags: list[str] | None = None,
+    min_confidence: float = 0.7,
+    db: Session = Depends(get_db),
+):
+    """Batch approve tags with suggested categories.
+
+    If tags is provided, only approve those specific tags.
+    Otherwise, approve all tags with confidence >= min_confidence.
+    """
+    logger.info("[Batch Approve] tags=%s min_confidence=%s", tags, min_confidence)
+
+    suggestions = load_keyword_suggestions(min_count=1, limit=500)
+    suggestions_map = {item["tag"]: item for item in suggestions}
+
+    # Determine which tags to approve
+    if tags:
+        to_approve = [suggestions_map[t] for t in tags if t in suggestions_map]
+    else:
+        to_approve = [
+            item for item in suggestions
+            if item.get("confidence", 0) >= min_confidence
+            and item.get("suggested_category", "") not in ("", "skip")
+        ]
+
+    approved = []
+    skipped = []
+    failed = []
+
+    # Map suggested_category to DB category
+    category_map = {
+        "expression": "scene",
+        "gaze": "scene",
+        "pose": "scene",
+        "action": "scene",
+        "camera": "scene",
+        "environment": "scene",
+        "mood": "scene",
+        "clothing": "character",
+        "hair_style": "character",
+        "hair_color": "character",
+        "eye_color": "character",
+    }
+
+    for item in to_approve:
+        tag = item["tag"]
+        suggested_cat = item.get("suggested_category", "")
+
+        if suggested_cat == "skip" or not suggested_cat:
+            skipped.append({"tag": tag, "reason": "skip or no category"})
+            continue
+
+        tag_token = normalize_prompt_token(tag)
+        if not tag_token:
+            failed.append({"tag": tag, "reason": "invalid token"})
+            continue
+
+        # Check if already exists
+        existing = db.query(Tag).filter(Tag.name == tag_token).first()
+        if existing:
+            skipped.append({"tag": tag, "reason": "already exists"})
+            continue
+
+        try:
+            db_category = category_map.get(suggested_cat, "scene")
+            new_tag = Tag(
+                name=tag_token,
+                category=db_category,
+                group_name=suggested_cat,
+            )
+            db.add(new_tag)
+            approved.append({
+                "tag": tag_token,
+                "category": db_category,
+                "group_name": suggested_cat,
+            })
+        except Exception as e:
+            failed.append({"tag": tag, "reason": str(e)})
+
+    # Commit all approved tags
+    if approved:
+        try:
+            db.commit()
+
+            # Remove approved tags from suggestions cache
+            suggestions_path = CACHE_DIR / "keyword_suggestions.json"
+            if suggestions_path.exists():
+                try:
+                    cache_data = json.loads(suggestions_path.read_text(encoding="utf-8"))
+                    for item in approved:
+                        cache_data.pop(item["tag"], None)
+                    suggestions_path.write_text(json.dumps(cache_data, ensure_ascii=False, indent=2))
+                except Exception:
+                    logger.exception("Failed to update suggestions cache after batch approve")
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Commit failed: {e}") from e
+
+    logger.info(
+        "[Batch Approve Complete] approved=%d skipped=%d failed=%d",
+        len(approved), len(skipped), len(failed)
+    )
+
+    return {
+        "ok": True,
+        "approved_count": len(approved),
+        "skipped_count": len(skipped),
+        "failed_count": len(failed),
+        "approved": approved,
+        "skipped": skipped,
+        "failed": failed,
+    }

@@ -54,6 +54,127 @@ IGNORE_TOKENS = frozenset([
     "jpeg artifacts", "cropped", "out of frame", "highres", "absurdres",
 ])
 
+# --- Category suggestion patterns ---
+# Pattern-based category detection for unknown tags
+CATEGORY_PATTERNS: dict[str, list[str]] = {
+    "expression": [
+        "smile", "grin", "laugh", "cry", "tear", "blush", "pout", "frown",
+        "angry", "happy", "sad", "surprised", "shocked", "scared", "nervous",
+        "embarrassed", "confused", "tired", "sleepy", "annoyed", "excited",
+        "mouth", "teeth", "tongue", "lips", "open mouth", "closed mouth",
+    ],
+    "gaze": [
+        "looking", "staring", "glancing", "eye contact", "eyes closed",
+        "looking at viewer", "looking away", "looking up", "looking down",
+        "looking back", "looking to the side", "averted gaze",
+    ],
+    "pose": [
+        "standing", "sitting", "lying", "kneeling", "crouching", "leaning",
+        "arms", "legs", "hands", "crossed", "raised", "behind", "on hip",
+        "spread", "bent", "folded", "clasped", "akimbo", "outstretched",
+    ],
+    "action": [
+        "walking", "running", "jumping", "dancing", "eating", "drinking",
+        "reading", "writing", "holding", "pointing", "waving", "hugging",
+        "fighting", "sleeping", "crying", "singing", "playing", "cooking",
+        "working", "studying", "stretching", "reaching", "grabbing",
+    ],
+    "camera": [
+        "close-up", "closeup", "portrait", "upper body", "lower body",
+        "full body", "cowboy shot", "from above", "from below", "from side",
+        "from behind", "dutch angle", "wide shot", "medium shot", "pov",
+        "depth of field", "bokeh", "focus", "angle",
+    ],
+    "environment": [
+        "background", "indoor", "outdoor", "room", "street", "park", "beach",
+        "forest", "mountain", "city", "school", "office", "home", "cafe",
+        "restaurant", "library", "classroom", "bedroom", "bathroom", "kitchen",
+        "window", "door", "wall", "floor", "ceiling", "desk", "chair", "table",
+        "bed", "sofa", "tree", "flower", "grass", "sky", "cloud", "sun", "moon",
+        "rain", "snow", "night", "day", "sunset", "sunrise", "scenery",
+    ],
+    "mood": [
+        "dramatic", "romantic", "melancholic", "cheerful", "peaceful", "tense",
+        "mysterious", "dark", "bright", "warm", "cold", "soft", "harsh",
+        "nostalgic", "dreamy", "ethereal", "gloomy", "cozy", "lonely",
+    ],
+    "clothing": [
+        "shirt", "dress", "skirt", "pants", "shorts", "jacket", "coat", "sweater",
+        "hoodie", "uniform", "suit", "tie", "ribbon", "bow", "hat", "cap",
+        "glasses", "gloves", "socks", "shoes", "boots", "sandals", "sleeves",
+        "collar", "button", "zipper", "pocket", "belt", "scarf", "accessory",
+        "earring", "necklace", "bracelet", "ring", "hairpin", "hairband",
+        "pantyhose", "stockings", "leggings", "apron", "vest", "cardigan",
+    ],
+    "hair_style": [
+        "hair", "bangs", "ponytail", "twintails", "braid", "bun", "bob",
+        "long hair", "short hair", "medium hair", "curly", "straight", "wavy",
+        "messy", "neat", "side", "parted", "ahoge", "drill", "hime cut",
+    ],
+    "hair_color": [
+        "blonde", "brunette", "black hair", "white hair", "silver hair",
+        "red hair", "blue hair", "green hair", "pink hair", "purple hair",
+        "orange hair", "brown hair", "gray hair", "multicolored hair",
+    ],
+    "eye_color": [
+        "blue eyes", "red eyes", "green eyes", "brown eyes", "purple eyes",
+        "yellow eyes", "orange eyes", "pink eyes", "heterochromia",
+    ],
+}
+
+# Tags to skip (not useful for prompts)
+SKIP_TAGS = frozenset([
+    "colored skin", "blue skin", "breasts", "large breasts", "medium breasts",
+    "small breasts", "collarbone", "thighs", "navel", "midriff", "cleavage",
+    "ass", "sideboob", "underboob", "nipples", "areolae", "crotch",
+    "male focus", "female focus", "solo focus", "1other", "no humans",
+    "virtual youtuber", "highres", "absurdres", "commentary", "translation",
+])
+
+
+def suggest_category_for_tag(tag: str) -> tuple[str, float]:
+    """Suggest a category for a tag based on patterns.
+
+    Returns:
+        (category, confidence) where confidence is 0.0-1.0
+    """
+    normalized = tag.lower().replace("_", " ").strip()
+
+    # Skip unwanted tags
+    if normalized in SKIP_TAGS:
+        return ("skip", 1.0)
+
+    # Check each category's patterns
+    best_category = ""
+    best_score = 0.0
+
+    for category, patterns in CATEGORY_PATTERNS.items():
+        for pattern in patterns:
+            pattern_lower = pattern.lower()
+            # Exact match
+            if normalized == pattern_lower:
+                return (category, 1.0)
+            # Contains pattern as whole word
+            if pattern_lower in normalized.split():
+                score = 0.9
+                if score > best_score:
+                    best_score = score
+                    best_category = category
+            # Tag contains pattern
+            elif pattern_lower in normalized:
+                score = 0.7
+                if score > best_score:
+                    best_score = score
+                    best_category = category
+            # Pattern contains tag
+            elif normalized in pattern_lower:
+                score = 0.5
+                if score > best_score:
+                    best_score = score
+                    best_category = category
+
+    return (best_category, best_score) if best_category else ("", 0.0)
+
 
 def normalize_prompt_token(token: str) -> str:
     """Normalize a single prompt token for comparison."""
@@ -311,7 +432,7 @@ def update_keyword_suggestions(unknown_tags: list[str]) -> None:
 
 
 def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[str, Any]]:
-    """Load keyword suggestions filtered by minimum count."""
+    """Load keyword suggestions filtered by minimum count with category suggestions."""
     suggestions_path = _get_cache_dir() / "keyword_suggestions.json"
     if not suggestions_path.exists():
         return []
@@ -321,11 +442,16 @@ def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[s
         _get_logger().exception("Failed to read keyword suggestions")
         return []
     known = load_known_keywords()
-    items = [
-        {"tag": tag, "count": int(count)}
-        for tag, count in data.items()
-        if int(count) >= min_count and tag not in known
-    ]
+    items = []
+    for tag, count in data.items():
+        if int(count) >= min_count and tag not in known:
+            category, confidence = suggest_category_for_tag(tag)
+            items.append({
+                "tag": tag,
+                "count": int(count),
+                "suggested_category": category,
+                "confidence": confidence,
+            })
     items.sort(key=lambda item: (-item["count"], item["tag"]))
     return items[:max(1, limit)]
 

@@ -130,6 +130,7 @@ Character Preset
 | 13 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [x] |
 | 14 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
 | 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 (기본 구현: 9.1.1) | [~] |
+| 15.1 | Batch Tag Approval | confidence >= 0.7 태그 일괄 승인 (미리보기 + 선택적 승인) | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [ ] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 (기본 구현: 9.1.1) | [~] |
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
