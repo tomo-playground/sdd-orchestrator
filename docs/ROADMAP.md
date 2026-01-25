@@ -315,7 +315,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (01:10)
+**Last Updated**: 2026-01-26 (02:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -357,6 +357,12 @@ brew install claude-squad  # 명령어: cs
 - Prompts 탭 Empty State 개선
 - Media Settings: 폰트명(20자), BGM명(28자) 글자수 제한
 - `mergePromptTokens` non-string 방어 코드 추가
+- BGM 미리듣기 circular reference 에러 수정 (onClick 이벤트 전달 버그)
+- Missing 태그 "+ Add" 버튼 Toast 피드백 추가
+
+**TTS 개선 (2026-01-26)**:
+- TTS가 정제된 스크립트 사용 (`raw_script` → `clean_script`)
+- 스크립트 정제 함수 개선: 말줄임표/대시 정규화, 다중 문장부호 단일화
 
 **15.7 Dynamic Tag Classification System 완료 (2026-01-25)**:
 - 15.7.1~15.7.8 전체 완료
