@@ -245,7 +245,7 @@ export default function RenderSettingsPanel({
               </select>
               <button
                 type="button"
-                onClick={onPreviewBgm}
+                onClick={() => onPreviewBgm()}
                 disabled={!bgmFile || isPreviewingBgm}
                 className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[10px] text-zinc-600 disabled:text-zinc-400"
               >

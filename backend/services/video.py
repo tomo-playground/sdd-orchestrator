@@ -113,22 +113,39 @@ def calculate_scene_durations(
 def clean_script_for_tts(raw_script: str) -> str:
     """Clean script text for TTS generation.
 
-    Removes special characters that might cause TTS issues.
+    Removes special characters and normalizes text for natural TTS reading.
 
     Args:
         raw_script: Raw script text
 
     Returns:
-        Cleaned script text
+        Cleaned script text optimized for TTS
     """
+    text = raw_script
+
+    # Normalize Unicode characters
+    text = text.replace("…", "...")  # Ellipsis to periods
+    text = text.replace("—", ", ")   # Em-dash to comma
+    text = text.replace("–", ", ")   # En-dash to comma
+    text = text.replace("「", "")    # Japanese quotes
+    text = text.replace("」", "")
+    text = text.replace("『", "")
+    text = text.replace("』", "")
+
     # Remove problematic characters while keeping common punctuation and CJK
-    # Added / " ' : ; ~ for better text support
-    clean = re.sub(
+    text = re.sub(
         r"[^\w\s.,!?/\"':;~가-힣a-zA-Zぁ-ゔァ-ヴー々〆〤一-龥+\-=×÷²³¹⁰()%<>]",
         "",
-        raw_script
+        text
     )
-    return clean.strip()
+
+    # Normalize multiple punctuation for natural pauses
+    text = re.sub(r"\.{2,}", ".", text)     # ... -> .
+    text = re.sub(r"!{2,}", "!", text)      # !!! -> !
+    text = re.sub(r"\?{2,}", "?", text)     # ??? -> ?
+    text = re.sub(r"\s+", " ", text)        # Multiple spaces -> single
+
+    return text.strip()
 
 
 class VideoBuilder:
@@ -279,9 +296,9 @@ class VideoBuilder:
                 self.subtitle_lines.append([])
                 self.subtitle_font_sizes.append(0)
 
-            # Generate TTS
+            # Generate TTS (use cleaned script for better pronunciation)
             has_valid_tts, tts_duration = await self._generate_tts(
-                i, raw_script, tts_path
+                i, clean_script, tts_path
             )
 
             # Add to input args

@@ -1273,11 +1273,15 @@ export default function Home() {
     }
     stopBgmPreview();
     const audio = new Audio(sourceUrl);
+    audio.onerror = () => {
+      stopBgmPreview();
+      alert("BGM load failed.");
+    };
     previewAudioRef.current = audio;
     setIsPreviewingBgm(true);
-    audio.play().catch(() => {
+    audio.play().catch((err) => {
       stopBgmPreview();
-      alert("BGM preview failed.");
+      alert(`BGM preview failed: ${err.message || err}`);
     });
     previewTimeoutRef.current = window.setTimeout(() => {
       stopBgmPreview();
@@ -1880,7 +1884,10 @@ export default function Home() {
 
   const applyMissingImageTags = (scene: Scene, missingOverride?: string[], limit = 5) => {
     const missing = missingOverride ?? imageValidationResults[scene.id]?.missing ?? [];
-    if (missing.length === 0) return;
+    if (missing.length === 0) {
+      showToast("No missing tags to add", "error");
+      return;
+    }
     const splitTokens = (text: string) =>
       text
         .split(",")
@@ -1889,12 +1896,19 @@ export default function Home() {
     const existing = splitTokens(scene.image_prompt);
     const existingSet = new Set(existing.map((token) => token.toLowerCase()));
     const nextTokens = [...existing];
+    let addedCount = 0;
     missing.slice(0, limit).forEach((token) => {
       if (!existingSet.has(token.toLowerCase())) {
         nextTokens.push(token);
+        addedCount++;
       }
     });
-    updateScene(scene.id, { image_prompt: nextTokens.join(", ") });
+    if (addedCount > 0) {
+      updateScene(scene.id, { image_prompt: nextTokens.join(", ") });
+      showToast(`Added ${addedCount} tags to prompt`, "success");
+    } else {
+      showToast("All tags already in prompt", "error");
+    }
   };
 
   const getSceneStatus = (scene: Scene) => {

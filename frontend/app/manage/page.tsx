@@ -771,11 +771,15 @@ export default function ManagePage() {
     if (!url) return;
     stopBgmPreview();
     const audio = new Audio(url);
+    audio.onerror = () => {
+      stopBgmPreview();
+      alert(`BGM load failed: ${url}`);
+    };
     previewAudioRef.current = audio;
     setIsPreviewingBgm(true);
-    audio.play().catch(() => {
+    audio.play().catch((err) => {
       stopBgmPreview();
-      alert("BGM preview failed.");
+      alert(`BGM preview failed: ${err.message || err}`);
     });
     previewTimeoutRef.current = window.setTimeout(() => {
       stopBgmPreview();
