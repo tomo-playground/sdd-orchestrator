@@ -262,6 +262,7 @@ export type DraftData = {
   language?: string;
   structure?: string;
   actorAGender?: ActorGender;
+  selectedCharacterId?: number | null;
   basePromptA?: string;
   baseNegativePromptA?: string;
   baseStepsA?: number;

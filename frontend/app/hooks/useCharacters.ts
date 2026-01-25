@@ -28,9 +28,12 @@ export function useCharacters(): UseCharactersResult {
     setIsLoading(true);
     setError(null);
     try {
+      console.log("[useCharacters] Fetching from:", `${API_BASE}/characters`);
       const res = await axios.get(`${API_BASE}/characters`);
+      console.log("[useCharacters] Response:", res.data?.length ?? 0, "characters");
       setCharacters(res.data || []);
-    } catch {
+    } catch (err) {
+      console.error("[useCharacters] Error:", err);
       setError("Failed to load characters");
       setCharacters([]);
     } finally {

@@ -376,6 +376,7 @@ export default function Home() {
     if (draft.language !== undefined) setLanguage(draft.language);
     if (draft.structure !== undefined) setStructure(draft.structure);
     if (draft.actorAGender !== undefined) setActorAGender(draft.actorAGender);
+    if (draft.selectedCharacterId !== undefined) setSelectedCharacterId(draft.selectedCharacterId);
     if (draft.basePromptA !== undefined) setBasePromptA(draft.basePromptA);
     if (draft.baseNegativePromptA !== undefined) setBaseNegativePromptA(draft.baseNegativePromptA);
     if (draft.baseStepsA !== undefined) setBaseStepsA(draft.baseStepsA);
@@ -485,6 +486,7 @@ export default function Home() {
     }
     return {
       topic, duration, style, language, structure, actorAGender,
+      selectedCharacterId,
       basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
@@ -497,6 +499,7 @@ export default function Home() {
     };
   }, [
     topic, duration, style, language, structure, actorAGender,
+    selectedCharacterId,
     basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
@@ -520,6 +523,7 @@ export default function Home() {
     }));
     return {
       topic, duration, style, language, structure, actorAGender,
+      selectedCharacterId,
       basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, subtitleFont, speedMultiplier,
@@ -531,6 +535,7 @@ export default function Home() {
     };
   }, [
     topic, duration, style, language, structure, actorAGender,
+    selectedCharacterId,
     basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, subtitleFont, speedMultiplier,

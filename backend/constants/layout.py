@@ -126,7 +126,7 @@ class PostLayout:
     SUBTITLE_LINE_HEIGHT_RATIO: float = 1.4  # font_size * ratio
     SUBTITLE_TEXT_START_Y_RATIO: float = 0.1  # subtitle_area_height * ratio
     SUBTITLE_TEXT_COLOR: RGBA = (40, 40, 40, 255)  # Dark gray
-    SUBTITLE_MAX_LINES: int = 3
+    SUBTITLE_MAX_LINES: int = 2
     SUBTITLE_MAX_WIDTH_RATIO: float = 0.92  # text_area_width * ratio
 
 
