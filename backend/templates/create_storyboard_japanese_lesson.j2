@@ -12,8 +12,9 @@ Instructions:
 3. Structure for each scene:
    - scene_id: sequential number starting at 1
    - script: Teaching content in Korean with Japanese text
-     * Format: "일본어: [Japanese] ([Romaji]) - [Korean meaning]"
-     * Example: "일본어: おはよう (Ohayou) - 좋은 아침이에요"
+     * Format: "일본어: [Japanese] - [Korean meaning]"
+     * Example: "일본어: おはよう - 좋은 아침이에요"
+     * NEVER include romanization (Romaji) in the script
      * Keep under 80 chars, max 2 lines
    - speaker: "Narrator"
    - duration: 4-6 seconds per scene
@@ -63,7 +64,7 @@ Output Format:
   },
   {
     "scene_id": 2,
-    "script": "일본어: ありがとう (Arigatou) - 감사합니다",
+    "script": "일본어: ありがとう - 감사합니다",
     "speaker": "Narrator",
     "duration": 5,
     "image_prompt": "happy, looking at viewer, standing, close-up, park, natural light, peaceful",
