@@ -79,7 +79,7 @@
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | **Backend API Test** | FastAPI 라우터 통합 테스트 (TestClient) | [x] |
-| **Frontend Test Init** | Vitest + React Testing Library 환경 구축 | [x] |
+| **Frontend Test Init** | Vitest + React Testing Library + Playwright VRT 환경 구축 | [x] |
 | **Core Hooks Test** | `useAutopilot` 등 핵심 로직 테스트 작성 | [ ] |
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [ ] |
 
@@ -327,7 +327,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (14:00)
+**Last Updated**: 2026-01-26 (15:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -429,6 +429,13 @@ brew install claude-squad  # 명령어: cs
   - `falling leaves` → TIME_WEATHER (ACTION에서 수정)
   - Backend: CATEGORY_PATTERNS에 "holding X" 패턴(55개), 환경 효과(38개) 추가
   - Frontend: getTokenCategory()에 clothing 패턴, 환경 효과 패턴 추가
+
+**VRT 환경 구축 (2026-01-26 15:00)**:
+- Playwright 설치 및 설정 (`playwright.config.ts`)
+- VRT 테스트 파일 생성 (`tests/vrt/studio.spec.ts`, `manage.spec.ts`)
+- 9개 테스트 케이스: Studio 초기화면, Preset, SceneList, RenderSettings / Manage 탭별
+- 초기 스냅샷 생성 완료
+- 스크립트 추가: `npm run test:vrt`, `test:vrt:update`, `test:vrt:ui`
 
 **Script Length Limit 조정 (2026-01-26 14:00)**:
 - **문제**: 120자 대본이 3줄로 렌더링 시 자막 UI 깨짐
