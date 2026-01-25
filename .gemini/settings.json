@@ -1,46 +1,102 @@
 {
-    "mcpServers": {
-      "postgres": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@modelcontextprotocol/server-postgres",
-          "postgresql://postgres:postgres@192.168.45.102:5433/postgres"
-        ]
-      }, 
-      "context7": {
-        "type": "stdio",
-        "command": "npx",
-        "args": [
-          "-y",
-          "@upstash/context7-mcp"
-        ],
-        "env": {
-          "CONTEXT7_API_KEY": "ctx7sk-441b341c-3450-43f1-ae6e-e4096baa9aac"
-        }
-      },
-      "chrome-devtools": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "chrome-devtools-mcp@latest"
-        ]
-      },
-      "shadcn": {
-        "type": "http",
-        "url": "https://www.shadcn.io/api/mcp"
-      },
-      "API specification": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "apidog-mcp-server@latest",
-          "--project=1127536"
-        ],
-        "env": {
-          "APIDOG_ACCESS_TOKEN": "APS-55XQ6Xjeaxk1661Hd1qLPQliak5Zk9h6"
-        }
-      }  
+  "mcpServers": {
+    "danbooru-tags": {
+      "type": "http",
+      "url": "https://server.smithery.ai/@gamzadongza/danbooru-tags-mcp/mcp?api_key=260175c8-4aa8-4e8f-aa53-1e855011141d"
+    },
+    "huggingface": {
+      "command": "npx",
+      "args": ["-y", "huggingface-mcp-server", "--transport", "stdio"],
+      "env": {
+        "HUGGINGFACE_API_KEY": "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"
+      }
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "ctx7sk-441b341c-3450-43f1-ae6e-e4096baa9aac"
+      }
+    },
+    "backend-refactor": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/tomo-mini/Workspace/shorts-producer/backend"
+      ]
+    },
+    "API specification": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "apidog-mcp-server@latest",
+        "--project=1183170"
+      ],
+      "env": {
+        "APIDOG_ACCESS_TOKEN": "APS-v6x5oh5f6CSKAXXIvEYsiGG0NhJm6VKJ"
+      }
+    },
+    "sequential-thinking": {                                                                                     
+      "type": "stdio",                                                                                           
+      "command": "npx",                                                                                          
+      "args": [                                                                                                  
+        "-y",                                                                                                    
+        "@modelcontextprotocol/server-sequential-thinking"                                                       
+      ]                                                                                                          
+    },     
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project",
+        "/Users/tomo-mini/Workspace/shorts-producer"
+      ]
+    },
+    "civitai": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/Users/tomo-mini/Workspace/civitai-mcp-server/dist/index.js"
+      ],
+      "env": {
+        "CIVITAI_API_KEY": "60fdf7594971bd4d290b36bfcfdef3d1"
+      }
+    },
+    "ffmpeg": {
+      "command": "npx",
+      "args": ["-y", "ffmpeg-mcp"]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://shorts_app:1234@192.168.45.102:5433/shorts_producer"
+      ]
     }
   }
-  
+}

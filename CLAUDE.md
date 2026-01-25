@@ -12,8 +12,8 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 ## 문서 참조
 - **작업 선택**: `docs/ROADMAP.md`
 - **제품 스펙**: `docs/PRD.md`
-- **API 명세**: `docs/API_SPEC.md`
-- **프롬프트 설계**: `docs/PROMPT_SPEC.md`
+- **API 명세**: `docs/specs/API_SPEC.md`
+- **프롬프트 설계**: `docs/specs/PROMPT_SPEC.md`
 - **개발 가이드**: `docs/CONTRIBUTING.md`
 
 ## 코드 크기 가이드라인
@@ -26,8 +26,12 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 **원칙**: Single Responsibility, 중첩 3단계 이하, 매개변수 4개 이하
 
 ## 사전 요구사항
-- **SD WebUI**: `http://127.0.0.1:7860` (`--api` 옵션)
-- **환경 변수**: `backend/.env`에 `GEMINI_API_KEY`
+- **SD WebUI**: API 모드 실행 (`--api` 옵션)
+- **환경 변수**: `backend/.env` 파일 필수 (`DATABASE_URL`, `GEMINI_API_KEY` 등)
+
+## Configuration Principles (SSOT)
+- **설정 값**: 모든 환경 변수 및 상수는 `backend/config.py`에서 관리합니다. 개별 파일 하드코딩 금지.
+- **로직 기준**: 태그 우선순위(`TOKEN_PRIORITY`) 등의 비즈니스 로직은 **Backend**(`backend/services/keywords.py`)가 Single Source of Truth입니다. Frontend는 이를 따르거나 동기화해야 합니다.
 
 ## Sub Agents
 
