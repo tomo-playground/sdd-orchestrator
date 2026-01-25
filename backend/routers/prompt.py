@@ -127,6 +127,10 @@ async def compose_prompt(request: PromptComposeRequest):
         request.mode,
         len(request.loras) if request.loras else 0,
     )
+    # Debug: Log LoRA details
+    if request.loras:
+        for lora in request.loras:
+            logger.info("📥 [Prompt Compose] LoRA: name=%s, lora_type=%s", lora.name, lora.lora_type)
 
     # Prepare LoRA data
     lora_dicts = []

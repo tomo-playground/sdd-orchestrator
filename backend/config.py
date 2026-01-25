@@ -16,7 +16,9 @@ from jinja2 import Environment, FileSystemLoader
 load_dotenv()
 
 # --- Database ---
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://shorts_app:1234@192.168.45.102:5433/shorts_producer")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    logger.warning("DATABASE_URL is not set. Database functionality will fail.")
 
 # --- Logging ---
 LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
@@ -62,9 +64,11 @@ CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "86400"))
 ASSETS_DIR = pathlib.Path("assets")
 AUDIO_DIR = ASSETS_DIR / "audio"
 OVERLAY_DIR = ASSETS_DIR / "overlay"
+FONTS_DIR = ASSETS_DIR / "fonts"
+TEMPLATES_DIR = pathlib.Path("templates")
 
 # Ensure directories exist
-for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DIR, AUDIO_DIR, OVERLAY_DIR):
+for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DIR, AUDIO_DIR, OVERLAY_DIR, FONTS_DIR, TEMPLATES_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 # --- API Configuration ---
@@ -72,9 +76,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
-template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
+template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / TEMPLATES_DIR)))
 
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
+if SD_BASE_URL == "http://127.0.0.1:7860":
+    logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
+
 SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
 SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
@@ -82,6 +89,8 @@ SD_LORAS_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
 
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
+if API_PUBLIC_URL == "http://localhost:8000":
+    logger.info("Using default API_PUBLIC_URL: %s", API_PUBLIC_URL)
 
 # --- Model Configuration ---
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))

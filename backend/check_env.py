@@ -5,6 +5,16 @@ import subprocess
 import httpx
 from dotenv import load_dotenv
 
+from config import (
+    API_PUBLIC_URL,
+    AUDIO_DIR,
+    FONTS_DIR,
+    GEMINI_API_KEY,
+    OUTPUT_DIR,
+    OVERLAY_DIR,
+    SD_BASE_URL,
+    TEMPLATES_DIR,
+)
 
 # ANSI colors for better visibility
 class Colors:
@@ -35,16 +45,19 @@ def check_env():
     load_dotenv(env_path)
     print_result(".env file exists")
 
-    # 2. Check Required Env Vars
-    required_keys = ["GEMINI_API_KEY", "SD_BASE_URL", "API_PUBLIC_URL"]
-    for key in required_keys:
-        val = os.getenv(key)
+    # 2. Check Required Configs
+    configs = {
+        "GEMINI_API_KEY": GEMINI_API_KEY,
+        "SD_BASE_URL": SD_BASE_URL,
+        "API_PUBLIC_URL": API_PUBLIC_URL
+    }
+    for key, val in configs.items():
         if val:
             # Mask sensitive info
-            masked = val[:6] + "..." + val[-4:] if len(val) > 10 else "***"
-            print_result(f"Env var {key}: {masked}")
+            masked = str(val)[:6] + "..." + str(val)[-4:] if len(str(val)) > 10 else "***"
+            print_result(f"Config {key}: {masked}")
         else:
-            print_result(f"Env var {key} is missing", "FAIL")
+            print_result(f"Config {key} is missing", "FAIL")
 
     # 3. Check System Tools (FFmpeg)
     try:
@@ -54,11 +67,10 @@ def check_env():
         print_result("FFmpeg is NOT installed or not in PATH", "FAIL")
 
     # 4. Check External Connections (Stable Diffusion)
-    sd_url = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
-    print(f"Checking Stable Diffusion WebUI at {sd_url}...")
+    print(f"Checking Stable Diffusion WebUI at {SD_BASE_URL}...")
     try:
         # Use a short timeout for diagnostic
-        response = httpx.get(f"{sd_url}/sdapi/v1/options", timeout=5.0)
+        response = httpx.get(f"{SD_BASE_URL}/sdapi/v1/options", timeout=5.0)
         if response.status_code == 200:
             print_result("Stable Diffusion WebUI API is responsive")
         else:
@@ -67,21 +79,21 @@ def check_env():
         print_result(f"Stable Diffusion WebUI is unreachable: {e}", "FAIL")
 
     # 5. Check Critical Directories & Assets
-    base_dir = script_dir
     critical_paths = [
-        "assets/audio",
-        "assets/fonts/BlackHanSans-Regular.ttf",
-        "assets/overlay/overlay_bold.png",
-        "templates/create_storyboard.j2",
-        "outputs"
+        AUDIO_DIR,
+        FONTS_DIR / "BlackHanSans-Regular.ttf",
+        OVERLAY_DIR / "overlay_bold.png",
+        TEMPLATES_DIR / "create_storyboard.j2",
+        OUTPUT_DIR
     ]
 
     for p in critical_paths:
-        target = base_dir / p
-        if target.exists():
+        if p.exists():
             print_result(f"Asset/Path exists: {p}")
         else:
             print_result(f"Asset/Path missing: {p}", "FAIL")
+
+    print(f"\n{Colors.BOLD}--- Diagnostic Complete ---{Colors.ENDC}")
 
     print(f"\n{Colors.BOLD}--- Diagnostic Complete ---{Colors.ENDC}")
 

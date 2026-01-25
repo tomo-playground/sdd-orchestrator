@@ -225,10 +225,13 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
     # === Priority 9: Action (Dynamic) ===
     "action": [
         # Movement
-        "walking", "running", "jumping", "falling", "flying",
+        "walking", "running", "jumping", "flying",
         "dancing", "stretching", "bending", "turning",
-        # Hand actions
-        "holding", "grabbing", "reaching", "pointing", "waving",
+        # Hand actions (compound patterns to ensure priority over clothing "bag")
+        "holding", "holding bag", "holding book", "holding cup", "holding phone",
+        "holding umbrella", "holding weapon", "holding food", "holding flower",
+        "holding hands", "holding sword", "holding gun", "holding knife",
+        "grabbing", "reaching", "pointing", "waving",
         "hugging", "embracing", "carrying",
         # Activities
         "reading", "writing", "drawing", "typing", "using phone",
@@ -299,6 +302,10 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "sunny", "cloudy", "overcast", "rainy", "rain",
         "snowy", "snow", "foggy", "fog", "misty",
         "stormy", "thunder", "lightning", "windy",
+        # Environmental effects
+        "falling leaves", "falling petals", "cherry blossoms",
+        "floating particles", "dust particles", "fireflies",
+        "bubbles", "sparkles", "confetti",
     ],
 
     # === Priority 13: Lighting ===

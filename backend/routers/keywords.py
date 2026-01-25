@@ -12,6 +12,8 @@ from database import get_db
 from models.tag import Tag
 from schemas import BatchApproveRequest, KeywordApproveRequest
 from services.keywords import (
+    CATEGORY_PATTERNS,
+    CATEGORY_PRIORITY,
     get_effective_tags,
     get_tag_effectiveness_report,
     get_tag_rules_summary,
@@ -24,6 +26,16 @@ from services.keywords import (
 )
 
 router = APIRouter(prefix="/keywords", tags=["keywords"])
+
+
+@router.get("/priority")
+async def get_keyword_priority():
+    """Get keyword category priorities and patterns for sorting."""
+    logger.info("[Keyword Priority]")
+    return {
+        "priority": CATEGORY_PRIORITY,
+        "patterns": CATEGORY_PATTERNS,
+    }
 
 
 @router.get("/suggestions")

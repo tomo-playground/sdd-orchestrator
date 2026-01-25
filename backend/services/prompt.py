@@ -45,15 +45,18 @@ def normalize_prompt_tokens(prompt: str) -> str:
     model_tags = re.findall(r"<model:[^>]+>", prompt, flags=re.IGNORECASE)
 
     def unique_tags(tags: list[str]) -> list[str]:
-        seen = set()
-        ordered: list[str] = []
+        # Deduplicate by LoRA/model name only (ignore weight differences)
+        # Last occurrence wins (has the latest/correct weight)
+        name_pattern = re.compile(r"<(?:lora|model):([^:>]+)", re.IGNORECASE)
+        seen_names: dict[str, str] = {}  # name → full tag
         for tag in tags:
-            key = tag.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            ordered.append(tag)
-        return ordered
+            match = name_pattern.search(tag)
+            if match:
+                name = match.group(1).lower()
+                seen_names[name] = tag  # Last one wins
+            else:
+                seen_names[tag.lower()] = tag
+        return list(seen_names.values())
 
     unique_lora = unique_tags(lora_tags)
     unique_model = unique_tags(model_tags)
