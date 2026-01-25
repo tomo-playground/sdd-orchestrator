@@ -120,12 +120,17 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "blue eyes", "red eyes", "green eyes", "brown eyes", "purple eyes",
         "yellow eyes", "orange eyes", "pink eyes", "heterochromia",
     ],
+    "skin_color": [
+        "pale skin", "dark skin", "tan", "tanned", "white skin", "brown skin",
+        "colored skin", "blue skin", "green skin", "red skin", "pink skin",
+        "purple skin", "grey skin", "gray skin", "skin", "complexion",
+    ],
 }
 
 # Tags to skip (not useful for prompts)
 SKIP_TAGS = frozenset([
-    "colored skin", "blue skin", "breasts", "large breasts", "medium breasts",
-    "small breasts", "collarbone", "thighs", "navel", "midriff", "cleavage",
+    "breasts", "large breasts", "medium breasts", "small breasts",
+    "collarbone", "thighs", "navel", "midriff", "cleavage",
     "ass", "sideboob", "underboob", "nipples", "areolae", "crotch",
     "male focus", "female focus", "solo focus", "1other", "no humans",
     "virtual youtuber", "highres", "absurdres", "commentary", "translation",
