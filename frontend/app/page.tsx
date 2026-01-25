@@ -1225,8 +1225,9 @@ export default function Home() {
     setBgmFile(DEFAULT_BGM);
     setSpeedMultiplier(1.3);
     setSubtitleFont(DEFAULT_SUBTITLE_FONT);
-    setOverlaySettings(DEFAULT_OVERLAY_SETTINGS);
-    setPostCardSettings(DEFAULT_POST_CARD_SETTINGS);
+    // Keep channel branding (channel_name, avatar_key), reset video-specific fields only
+    setOverlaySettings((prev) => ({ ...prev, caption: "", likes_count: "" }));
+    setPostCardSettings((prev) => ({ ...prev, caption: "" }));
     setLayoutStyle("post");
     setMotionStyle("none");
     setHiResEnabled(false);
