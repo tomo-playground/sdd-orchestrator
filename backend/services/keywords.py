@@ -250,7 +250,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "close-up", "closeup", "extreme close-up", "face focus",
         "portrait", "bust shot", "upper body",
         "cowboy shot", "thigh focus", "hip focus",
-        "full body", "wide shot", "very wide shot",
+        "full body", "medium shot", "long shot", "wide shot", "very wide shot",
         # Angles
         "from above", "from below", "from side", "from behind",
         "dutch angle", "tilted frame",

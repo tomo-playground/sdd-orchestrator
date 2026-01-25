@@ -10,6 +10,8 @@ Tests 4 scenarios as defined in PROMPT_SPEC.md:
 import pytest
 
 from services.prompt_composition import (
+    _deduplicate_loras,
+    _normalize_break_tokens,
     calculate_lora_weight,
     compose_prompt_string,
     compose_prompt_tokens,
@@ -321,3 +323,166 @@ class TestTriggerDeduplication:
 
         result = deduplicate_triggers(tokens, triggers)
         assert len(result) == 2
+
+
+class TestLoRADeduplication:
+    """Tests for LoRA string deduplication (Bug fix 2026-01-26)."""
+
+    def test_duplicate_lora_same_weight(self):
+        """Same LoRA with same weight should be deduplicated."""
+        loras = ["<lora:midoriya:0.5>", "<lora:midoriya:0.5>"]
+        result = _deduplicate_loras(loras)
+        assert len(result) == 1
+        assert result[0] == "<lora:midoriya:0.5>"
+
+    def test_duplicate_lora_different_weight(self):
+        """Same LoRA with different weights - last weight wins."""
+        loras = ["<lora:midoriya:0.4>", "<lora:midoriya:0.5>"]
+        result = _deduplicate_loras(loras)
+        assert len(result) == 1
+        assert result[0] == "<lora:midoriya:0.5>"
+
+    def test_multiple_different_loras(self):
+        """Different LoRAs should all be kept."""
+        loras = ["<lora:midoriya:0.5>", "<lora:eureka:0.6>", "<lora:chibi:0.4>"]
+        result = _deduplicate_loras(loras)
+        assert len(result) == 3
+
+    def test_mixed_duplicate_loras(self):
+        """Mix of duplicate and unique LoRAs."""
+        loras = [
+            "<lora:midoriya:0.4>",
+            "<lora:eureka:0.6>",
+            "<lora:midoriya:0.5>",  # Duplicate, should replace 0.4
+        ]
+        result = _deduplicate_loras(loras)
+        assert len(result) == 2
+        assert "<lora:midoriya:0.5>" in result
+        assert "<lora:eureka:0.6>" in result
+
+    def test_empty_lora_list(self):
+        """Empty list should return empty."""
+        assert _deduplicate_loras([]) == []
+        assert _deduplicate_loras(None) == []
+
+
+class TestBreakNormalization:
+    """Tests for BREAK token normalization (Bug fix 2026-01-26)."""
+
+    def test_lowercase_break_normalized(self):
+        """Lowercase 'break' should become 'BREAK'."""
+        tokens = ["smile", "break", "sitting"]
+        result = _normalize_break_tokens(tokens)
+        assert "break" not in result
+        assert "BREAK" in result
+
+    def test_multiple_breaks_deduplicated(self):
+        """Multiple BREAK tokens should become one."""
+        tokens = ["smile", "BREAK", "break", "BREAK", "sitting"]
+        result = _normalize_break_tokens(tokens)
+        assert result.count("BREAK") == 1
+
+    def test_mixed_case_breaks(self):
+        """All case variations should be normalized."""
+        tokens = ["smile", "break", "BREAK", "Break", "sitting"]
+        result = _normalize_break_tokens(tokens)
+        assert result.count("BREAK") == 1
+        assert "break" not in result
+        assert "Break" not in result
+
+    def test_no_break_unchanged(self):
+        """Tokens without BREAK should be unchanged."""
+        tokens = ["smile", "sitting", "indoors"]
+        result = _normalize_break_tokens(tokens)
+        assert result == tokens
+
+
+class TestCameraConflict:
+    """Tests for camera angle/shot type conflicts (Bug fix 2026-01-26)."""
+
+    def test_medium_shot_recognized(self):
+        """medium shot should be recognized as camera category."""
+        assert get_token_category("medium shot") == "camera"
+
+    def test_camera_shot_conflict(self):
+        """Only one camera shot type should remain."""
+        tokens = ["full body", "medium shot", "close-up"]
+        result = filter_conflicting_tokens(tokens)
+        assert len(result) == 1
+        assert "full body" in result
+
+    def test_camera_angle_conflict(self):
+        """Only one camera angle should remain."""
+        tokens = ["from above", "from below", "side view"]
+        result = filter_conflicting_tokens(tokens)
+        assert len(result) == 1
+        assert "from above" in result
+
+    def test_mixed_camera_tokens(self):
+        """Mixed shot types and angles - first wins."""
+        tokens = ["portrait", "from above", "wide shot"]
+        result = filter_conflicting_tokens(tokens)
+        assert "portrait" in result
+        assert "from above" not in result
+        assert "wide shot" not in result
+
+
+class TestFullCompositionBugFixes:
+    """Integration tests for all bug fixes (2026-01-26)."""
+
+    def test_user_reported_bug_full_case(self):
+        """Full reproduction of user-reported bug."""
+        tokens = [
+            "smile", "looking at viewer", "sitting", "playing guitar",
+            "full body", "indoors", "library", "room", "street", "cafe",
+            "break", "midoriya izuku", "short green hair", "medium shot"
+        ]
+        loras = ["<lora:mha_midoriya-10:0.4>", "<lora:mha_midoriya-10:0.5>"]
+        triggers = ["midoriya izuku"]
+
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            lora_strings=loras,
+            trigger_words=triggers,
+            use_break=True
+        )
+
+        # LoRA should be deduplicated (only one)
+        lora_count = sum(1 for t in result if t.startswith("<lora:mha_midoriya"))
+        assert lora_count == 1
+
+        # BREAK should be normalized and singular
+        assert result.count("BREAK") == 1
+        assert "break" not in result
+
+        # Location should be filtered (only first indoor remains)
+        location_tokens = ["indoors", "library", "room", "street", "cafe"]
+        locations_in_result = [t for t in result if t in location_tokens]
+        assert len(locations_in_result) == 1
+
+        # Camera should be filtered (only first)
+        camera_tokens = ["full body", "medium shot"]
+        cameras_in_result = [t for t in result if t in camera_tokens]
+        assert len(cameras_in_result) == 1
+
+    def test_composition_with_user_break(self):
+        """User-provided BREAK should not create duplicate."""
+        tokens = ["smile", "BREAK", "indoors"]
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            use_break=True
+        )
+        assert result.count("BREAK") == 1
+
+    def test_composition_lora_weight_preserved(self):
+        """Last LoRA weight should be preserved after deduplication."""
+        tokens = ["smile", "sitting"]
+        loras = ["<lora:test:0.3>", "<lora:test:0.7>"]
+
+        result = compose_prompt_tokens(
+            tokens, "lora",
+            lora_strings=loras
+        )
+
+        assert "<lora:test:0.7>" in result
+        assert "<lora:test:0.3>" not in result

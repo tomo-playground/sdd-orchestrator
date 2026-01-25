@@ -500,6 +500,61 @@ def sort_prompt_tokens(
     return sorted(tokens, key=get_priority)
 
 
+def _deduplicate_loras(lora_strings: list[str] | None) -> list[str]:
+    """Deduplicate LoRA strings by name, keeping the last weight.
+
+    Args:
+        lora_strings: List of LoRA syntax strings (e.g., ["<lora:name:0.4>", "<lora:name:0.5>"])
+
+    Returns:
+        Deduplicated list with last weight preserved
+    """
+    if not lora_strings:
+        return []
+
+    import re
+    lora_pattern = re.compile(r"<lora:([^:>]+):([^>]+)>")
+    lora_map: dict[str, str] = {}  # name → full string (keeps last)
+
+    for lora_str in lora_strings:
+        match = lora_pattern.match(lora_str)
+        if match:
+            lora_name = match.group(1)
+            lora_map[lora_name] = lora_str
+        else:
+            # Non-standard format, keep as-is
+            lora_map[lora_str] = lora_str
+
+    return list(lora_map.values())
+
+
+def _normalize_break_tokens(tokens: list[str]) -> list[str]:
+    """Normalize and deduplicate BREAK tokens.
+
+    - Converts 'break' (lowercase) to 'BREAK'
+    - Removes duplicate BREAK tokens
+
+    Args:
+        tokens: List of prompt tokens
+
+    Returns:
+        Normalized list with single BREAK tokens
+    """
+    result: list[str] = []
+    has_break = False
+
+    for token in tokens:
+        if token.lower().strip() == "break":
+            if not has_break:
+                result.append(BREAK_TOKEN)
+                has_break = True
+            # Skip duplicate BREAK tokens
+        else:
+            result.append(token)
+
+    return result
+
+
 def compose_prompt_tokens(
     tokens: list[str],
     mode: EffectiveMode,
@@ -521,7 +576,13 @@ def compose_prompt_tokens(
     Returns:
         Composed list of tokens ready to join into prompt string
     """
-    # Step 0: Extract trigger words from tokens (they'll be placed near LoRA)
+    # Step 0a: Normalize BREAK tokens (convert lowercase, remove duplicates)
+    tokens = _normalize_break_tokens(tokens)
+
+    # Step 0b: Deduplicate LoRA strings (keep last weight)
+    lora_strings = _deduplicate_loras(lora_strings)
+
+    # Step 0c: Extract trigger words from tokens (they'll be placed near LoRA)
     # Only keep unique triggers (deduplicate)
     trigger_set = {t.lower().strip() for t in (trigger_words or [])}
     extracted_triggers: list[str] = []
@@ -598,7 +659,9 @@ def compose_prompt_tokens(
 
     # Step 5: Insert BREAK token (Mode B only)
     # Insert after clothing tokens, before location/lighting/mood
-    if use_break and mode == "lora":
+    # Skip if BREAK already exists (from user input)
+    has_break = BREAK_TOKEN in tokens
+    if use_break and mode == "lora" and not has_break:
         # Find the last clothing token position
         last_clothing_idx = -1
         for i, token in enumerate(tokens):
