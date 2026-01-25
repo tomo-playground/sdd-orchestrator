@@ -247,6 +247,26 @@ export default function ComposedPromptPreview({
     }
   }, [tokens, loras, mode, useBreak, onComposed]);
 
+  // Auto-compose when tokens change (debounced)
+  const prevTokensRef = useRef<string>("");
+  useEffect(() => {
+    const tokenKey = tokens.join(",") + "|" + loras.map(l => l.name).join(",") + "|" + mode;
+
+    // Skip if same as previous
+    if (tokenKey === prevTokensRef.current || tokens.length === 0) {
+      return;
+    }
+
+    prevTokensRef.current = tokenKey;
+
+    // Debounce: wait 300ms before calling API
+    const timer = setTimeout(() => {
+      composePrompt();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [tokens, loras, mode, composePrompt]);
+
   // Group tokens by category for grouped view (uses API categories when available)
   const groupedTokens = (result?.tokens || tokens).reduce(
     (acc, token) => {
@@ -275,6 +295,21 @@ export default function ComposedPromptPreview({
           <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Composed Preview
           </span>
+          {isLoading && (
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
+              Composing...
+            </span>
+          )}
+          {!isLoading && result && (
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700">
+              Filtered
+            </span>
+          )}
+          {!isLoading && !result && (
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-semibold text-zinc-500">
+              Raw
+            </span>
+          )}
           {result && (
             <span
               className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
@@ -314,7 +349,7 @@ export default function ComposedPromptPreview({
             disabled={isLoading}
             className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
           >
-            {isLoading ? "..." : "Compose"}
+            {isLoading ? "..." : result ? "Refresh" : "Compose"}
           </button>
         </div>
       </div>

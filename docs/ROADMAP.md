@@ -324,7 +324,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-25 (22:30)
+**Last Updated**: 2026-01-25 (23:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -434,6 +434,11 @@ brew install claude-squad  # 명령어: cs
 - `frontend/app/hooks/useTagClassifier.ts`: API 기반 분류 + 세션 캐싱
 - Danbooru API 연결 문제(TLS) 시 graceful fallback으로 unknown 반환
 - 15.7.5 승인 워크플로우: `/tags/pending` API, `/tags/approve-classification` API, /manage Tags 탭에 Pending Classifications UI
+
+**9.8 버그 수정 IV (2026-01-25 23:00)** - 진행 중:
+- **COMPOSED PREVIEW UX 개선**: 원본 토큰 대신 `/prompt/compose` API 결과 표시
+  - 문제: Preview가 필터링 전 원본 토큰을 보여줘 실제 결과와 불일치
+  - 해결: Compose 버튼 클릭 시 API 호출하여 필터링된 결과 표시
 
 **9.8 버그 수정 III (2026-01-25 22:30)**:
 - **Debug 탭 프롬프트 불일치**: Debug 탭이 `/prompt/compose` API를 사용하지 않아 충돌 필터링, Quality 태그 추가, 트리거 중복 제거 미적용
