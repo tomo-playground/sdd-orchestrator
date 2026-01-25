@@ -62,6 +62,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "angry", "happy", "sad", "surprised", "shocked", "scared", "nervous",
         "embarrassed", "confused", "tired", "sleepy", "annoyed", "excited",
         "mouth", "teeth", "tongue", "lips", "open mouth", "closed mouth",
+        "eyebrows", "v-shaped", "furrowed", "raised eyebrow", "sweat", "drool",
     ],
     "gaze": [
         "looking", "staring", "glancing", "eye contact", "eyes closed",
@@ -72,6 +73,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "standing", "sitting", "lying", "kneeling", "crouching", "leaning",
         "arms", "legs", "hands", "crossed", "raised", "behind", "on hip",
         "spread", "bent", "folded", "clasped", "akimbo", "outstretched",
+        "on stomach", "on back", "on side", "fetal position", "sprawled",
+        "between legs", "hand on", "hugging", "curled up",
     ],
     "action": [
         "walking", "running", "jumping", "dancing", "eating", "drinking",
@@ -92,6 +95,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "window", "door", "wall", "floor", "ceiling", "desk", "chair", "table",
         "bed", "sofa", "tree", "flower", "grass", "sky", "cloud", "sun", "moon",
         "rain", "snow", "night", "day", "sunset", "sunrise", "scenery",
+        "book", "bookshelf", "shelf", "lamp", "curtain", "pillow", "blanket",
+        "carpet", "rug", "plant", "vase", "clock", "mirror", "painting",
     ],
     "mood": [
         "dramatic", "romantic", "melancholic", "cheerful", "peaceful", "tense",
@@ -105,6 +110,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "collar", "button", "zipper", "pocket", "belt", "scarf", "accessory",
         "earring", "necklace", "bracelet", "ring", "hairpin", "hairband",
         "pantyhose", "stockings", "leggings", "apron", "vest", "cardigan",
+        "footwear", "kneehighs", "thighhighs", "bare", "shoulders", "sleeveless",
+        "bag", "backpack", "purse", "handbag", "satchel", "briefcase",
     ],
     "hair_style": [
         "hair", "bangs", "ponytail", "twintails", "braid", "bun", "bob",
@@ -124,6 +131,11 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "pale skin", "dark skin", "tan", "tanned", "white skin", "brown skin",
         "colored skin", "blue skin", "green skin", "red skin", "pink skin",
         "purple skin", "grey skin", "gray skin", "skin", "complexion",
+    ],
+    "appearance": [
+        "freckles", "mole", "scar", "tattoo", "piercing", "makeup", "lipstick",
+        "eyeshadow", "mascara", "blush", "beauty mark", "wrinkles", "muscles",
+        "abs", "slim", "chubby", "muscular", "petite", "tall", "short",
     ],
 }
 

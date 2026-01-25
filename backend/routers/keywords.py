@@ -209,6 +209,7 @@ async def batch_approve(
         "hair_color": "character",
         "eye_color": "character",
         "skin_color": "character",
+        "appearance": "character",
     }
 
     for item in to_approve:
