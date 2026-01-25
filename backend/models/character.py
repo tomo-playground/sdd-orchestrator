@@ -23,3 +23,5 @@ class Character(Base, TimestampMixin):
     # Validated negative prompt for this character/LoRA combination
     recommended_negative: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
     preview_image_url: Mapped[str | None] = mapped_column(String(500))
+    # Prompt generation mode: auto (detect based on LoRA), standard (no LoRA), lora (with LoRA)
+    prompt_mode: Mapped[str] = mapped_column(String(20), default="auto")

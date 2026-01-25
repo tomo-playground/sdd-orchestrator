@@ -1,0 +1,653 @@
+"""Prompt Composition Service.
+
+This module implements the Mode A/B prompt composition system
+as defined in docs/PROMPT_SPEC.md.
+
+Mode A (Standard): No LoRA or style-only LoRA
+  - Token order: Quality → Subject → Character → Appearance → Scene → Lighting
+  - Full appearance tags included
+
+Mode B (LoRA): Character LoRA present
+  - Token order: Quality → Subject → Scene Core → LoRA → BREAK → Character → Extras
+  - Scene tags prioritized, LoRA weight dynamically adjusted
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from typing import TYPE_CHECKING, Literal
+
+from config import logger
+from services.keywords import CATEGORY_PATTERNS, CATEGORY_PRIORITY
+
+if TYPE_CHECKING:
+    from models.character import Character
+    from models.lora import LoRA
+
+# Type alias
+PromptMode = Literal["auto", "standard", "lora"]
+EffectiveMode = Literal["standard", "lora"]
+TokenCategory = str  # e.g., "quality", "subject", "expression", etc.
+
+# Build reverse lookup: token → category (cached at module load)
+_TOKEN_TO_CATEGORY: dict[str, str] = {}
+for _category, _tokens in CATEGORY_PATTERNS.items():
+    for _token in _tokens:
+        _TOKEN_TO_CATEGORY[_token.lower()] = _category
+
+
+@lru_cache(maxsize=1024)
+def get_token_category(token: str) -> TokenCategory | None:
+    """Get the category for a prompt token.
+
+    Uses CATEGORY_PATTERNS for exact match, then falls back to
+    partial matching for compound tokens.
+
+    Args:
+        token: A prompt token (e.g., "smiling", "blue hair", "from above")
+
+    Returns:
+        Category name (e.g., "expression", "hair_color", "camera") or None if unknown
+
+    Examples:
+        >>> get_token_category("smiling")
+        'expression'
+        >>> get_token_category("blue hair")
+        'hair_color'
+        >>> get_token_category("masterpiece")
+        'quality'
+        >>> get_token_category("random_token")
+        None
+    """
+    normalized = token.lower().replace("_", " ").strip()
+
+    # Exact match
+    if normalized in _TOKEN_TO_CATEGORY:
+        return _TOKEN_TO_CATEGORY[normalized]
+
+    # Partial match for compound tokens (e.g., "long blue hair" → "hair_color")
+    for category, patterns in CATEGORY_PATTERNS.items():
+        for pattern in patterns:
+            if pattern.lower() in normalized or normalized in pattern.lower():
+                return category
+
+    return None
+
+
+def get_token_priority(token: str) -> int:
+    """Get the priority for a prompt token.
+
+    Lower priority = earlier in prompt (more important).
+
+    Args:
+        token: A prompt token
+
+    Returns:
+        Priority number (1-15) or 99 for unknown tokens
+    """
+    category = get_token_category(token)
+    if category:
+        return CATEGORY_PRIORITY.get(category, 99)
+    return 99
+
+
+# ============================================================
+# 9.8.3: Scene Complexity Detection
+# ============================================================
+
+# Scene-related categories that contribute to complexity
+SCENE_CATEGORIES = frozenset([
+    "expression", "gaze", "pose", "action", "camera",
+    "location_indoor", "location_outdoor", "background_type",
+    "time_weather", "lighting", "mood",
+])
+
+
+SceneComplexity = Literal["simple", "moderate", "complex"]
+
+
+def detect_scene_complexity(tokens: list[str]) -> SceneComplexity:
+    """Detect scene complexity based on token count per category.
+
+    Complexity levels:
+    - simple: 0-3 scene tokens
+    - moderate: 4-6 scene tokens
+    - complex: 7+ scene tokens
+
+    Args:
+        tokens: List of prompt tokens
+
+    Returns:
+        'simple', 'moderate', or 'complex'
+    """
+    scene_token_count = 0
+
+    for token in tokens:
+        category = get_token_category(token)
+        if category in SCENE_CATEGORIES:
+            scene_token_count += 1
+
+    if scene_token_count <= 3:
+        return "simple"
+    elif scene_token_count <= 6:
+        return "moderate"
+    else:
+        return "complex"
+
+
+# ============================================================
+# 9.8.4: LoRA Weight Calculation
+# ============================================================
+
+# LoRA weight table by type and complexity
+# Based on PROMPT_SPEC.md Section 4
+LORA_WEIGHTS: dict[str, dict[SceneComplexity, float]] = {
+    "style": {
+        "simple": 0.6,
+        "moderate": 0.5,
+        "complex": 0.4,
+    },
+    "character": {
+        "simple": 0.6,
+        "moderate": 0.5,
+        "complex": 0.4,
+    },
+    "concept": {
+        "simple": 0.5,
+        "moderate": 0.4,
+        "complex": 0.3,
+    },
+}
+
+
+def calculate_lora_weight(
+    lora_type: str | None,
+    complexity: SceneComplexity,
+    optimal_weight: float | None = None,
+) -> float:
+    """Calculate dynamic LoRA weight based on type and scene complexity.
+
+    Args:
+        lora_type: LoRA type ('style', 'character', 'concept', or None)
+        complexity: Scene complexity level
+        optimal_weight: Pre-calibrated optimal weight (takes precedence)
+
+    Returns:
+        LoRA weight (0.3-0.7)
+
+    Logic:
+        1. If optimal_weight is provided and lower than table value, use it
+        2. Otherwise use table value based on type and complexity
+    """
+    # Default to character type if not specified
+    lora_type = lora_type or "character"
+
+    # Get base weight from table
+    type_weights = LORA_WEIGHTS.get(lora_type, LORA_WEIGHTS["character"])
+    base_weight = type_weights.get(complexity, 0.5)
+
+    # Use optimal weight if provided and lower
+    if optimal_weight is not None:
+        return min(optimal_weight, base_weight)
+
+    return base_weight
+
+
+def calculate_lora_weight_for_scene(
+    lora: dict,
+    scene_tokens: list[str],
+) -> float:
+    """Calculate LoRA weight for a specific scene.
+
+    Convenience wrapper that detects complexity and calculates weight.
+
+    Args:
+        lora: LoRA dict with 'lora_type' and optional 'optimal_weight'
+        scene_tokens: List of tokens in the scene
+
+    Returns:
+        Calculated LoRA weight
+    """
+    complexity = detect_scene_complexity(scene_tokens)
+    return calculate_lora_weight(
+        lora_type=lora.get("lora_type"),
+        complexity=complexity,
+        optimal_weight=lora.get("optimal_weight"),
+    )
+
+
+# ============================================================
+# 9.8.5: Conflict Filtering + Trigger Deduplication
+# ============================================================
+
+# Mutually exclusive category groups
+# When tokens from the same group appear, keep only the first one
+MUTUALLY_EXCLUSIVE_GROUPS = {
+    "location": ["location_indoor", "location_outdoor"],
+    "background": ["background_type"],  # Can only have one background
+}
+
+# Conflicting category pairs (first wins)
+CONFLICTING_CATEGORY_PAIRS = [
+    ("hair_length", "hair_length"),  # Only one hair length
+    ("skin_color", "skin_color"),  # Only one skin color
+]
+
+
+def filter_conflicting_tokens(
+    tokens: list[str],
+    trigger_words: list[str] | None = None,
+) -> list[str]:
+    """Filter out conflicting tokens and deduplicate triggers.
+
+    Args:
+        tokens: List of prompt tokens (in order)
+        trigger_words: LoRA trigger words to deduplicate
+
+    Returns:
+        Filtered list with conflicts removed and triggers deduplicated
+
+    Rules:
+        1. Remove duplicate tokens (case-insensitive)
+        2. For mutually exclusive categories (location_indoor vs outdoor),
+           keep only the first occurrence
+        3. Remove LoRA trigger words if they already appear in tokens
+    """
+    seen_tokens: set[str] = set()
+    seen_categories: dict[str, str] = {}  # group → first category
+    result: list[str] = []
+
+    # Normalize trigger words for comparison
+    trigger_set: set[str] = set()
+    if trigger_words:
+        trigger_set = {t.lower().strip() for t in trigger_words}
+
+    for token in tokens:
+        normalized = token.lower().strip()
+
+        # Skip duplicates
+        if normalized in seen_tokens:
+            continue
+
+        # Skip if token is a trigger word that's already been seen
+        # (This handles the case where trigger appears both in character tags and LoRA)
+        if normalized in trigger_set and normalized in seen_tokens:
+            continue
+
+        # Get token category
+        category = get_token_category(token)
+
+        # Check mutually exclusive groups
+        skip = False
+        for group_name, group_categories in MUTUALLY_EXCLUSIVE_GROUPS.items():
+            if category in group_categories:
+                if group_name in seen_categories:
+                    # Already have a token from this group, skip
+                    skip = True
+                    break
+                else:
+                    seen_categories[group_name] = category
+
+        if skip:
+            continue
+
+        # Check conflicting category pairs (same category = keep first)
+        for cat1, cat2 in CONFLICTING_CATEGORY_PAIRS:
+            if category == cat1 and cat1 in seen_categories:
+                skip = True
+                break
+            if category == cat1:
+                seen_categories[cat1] = category
+
+        if skip:
+            continue
+
+        seen_tokens.add(normalized)
+        result.append(token)
+
+    return result
+
+
+def deduplicate_triggers(
+    tokens: list[str],
+    trigger_words: list[str],
+) -> list[str]:
+    """Remove trigger words that already exist in tokens.
+
+    Args:
+        tokens: Existing prompt tokens
+        trigger_words: LoRA trigger words
+
+    Returns:
+        Trigger words that are not already in tokens
+    """
+    token_set = {t.lower().strip() for t in tokens}
+    return [t for t in trigger_words if t.lower().strip() not in token_set]
+
+
+# ============================================================
+# 9.8.5.1: Ensure Quality Tags
+# ============================================================
+
+# Default quality tags (added if none present)
+DEFAULT_QUALITY_TAGS = ["masterpiece", "best quality", "high quality"]
+
+
+def ensure_quality_tags(tokens: list[str]) -> list[str]:
+    """Ensure quality tags are present at the beginning of the prompt.
+
+    Args:
+        tokens: List of prompt tokens
+
+    Returns:
+        List with quality tags prepended if none were present
+
+    Note:
+        If any quality tag is already present, no changes are made.
+        This preserves user's explicit quality tag choices.
+    """
+    # Check if any quality tag already exists
+    for token in tokens:
+        if get_token_category(token) == "quality":
+            return tokens  # Already has quality tag
+
+    # Prepend default quality tags
+    return DEFAULT_QUALITY_TAGS + tokens
+
+
+# ============================================================
+# 9.8.2.1: BREAK Token Support
+# ============================================================
+
+BREAK_TOKEN = "BREAK"
+
+
+def insert_break_token(
+    tokens: list[str],
+    after_category: str = "action",
+) -> list[str]:
+    """Insert BREAK token after the specified category.
+
+    BREAK separates tokens into different CLIP chunks, reducing
+    LoRA influence on later tokens (typically scene descriptions).
+
+    Args:
+        tokens: Sorted list of prompt tokens
+        after_category: Insert BREAK after tokens of this category
+
+    Returns:
+        List with BREAK token inserted
+    """
+    result: list[str] = []
+    break_inserted = False
+    last_priority = 0
+
+    # Get the priority threshold for the break point
+    break_after_priority = CATEGORY_PRIORITY.get(after_category, 9)
+
+    for token in tokens:
+        priority = get_token_priority(token)
+
+        # Insert BREAK when transitioning past the threshold
+        if not break_inserted and last_priority <= break_after_priority < priority:
+            result.append(BREAK_TOKEN)
+            break_inserted = True
+
+        result.append(token)
+        last_priority = priority
+
+    return result
+
+
+# ============================================================
+# 9.8.6: Token Sorting
+# ============================================================
+
+# Mode A (Standard) priority order - as defined in CATEGORY_PRIORITY
+# Quality → Subject → Identity → Appearance → Clothing → Expression → ...
+
+# Mode B (LoRA) priority order - scene-first for better LoRA control
+MODE_B_PRIORITY: dict[str, int] = {
+    # Higher priority (earlier in prompt)
+    "quality": 1,
+    "subject": 2,
+    # Scene core (before LoRA to establish scene)
+    "expression": 3,
+    "gaze": 4,
+    "pose": 5,
+    "action": 6,
+    "camera": 7,
+    # LoRA trigger inserted here (priority ~8)
+    # Character appearance (after LoRA)
+    "identity": 10,
+    "hair_color": 11,
+    "hair_length": 11,
+    "hair_style": 11,
+    "hair_accessory": 11,
+    "eye_color": 11,
+    "skin_color": 11,
+    "body_feature": 11,
+    "appearance": 11,
+    "clothing": 12,
+    # Scene extras (lowest priority, after BREAK)
+    "location_indoor": 13,
+    "location_outdoor": 13,
+    "background_type": 13,
+    "time_weather": 14,
+    "lighting": 15,
+    "mood": 16,
+    "style": 17,
+}
+
+
+def sort_prompt_tokens(
+    tokens: list[str],
+    mode: EffectiveMode = "standard",
+) -> list[str]:
+    """Sort prompt tokens by priority based on mode.
+
+    Args:
+        tokens: List of prompt tokens (unsorted)
+        mode: 'standard' or 'lora'
+
+    Returns:
+        Sorted list of tokens
+
+    Mode A (Standard):
+        Quality → Subject → Character → Appearance → Scene → Extras
+
+    Mode B (LoRA):
+        Quality → Subject → Scene Core → (LoRA) → Character → Scene Extras
+    """
+    priority_map = CATEGORY_PRIORITY if mode == "standard" else MODE_B_PRIORITY
+
+    def get_priority(token: str) -> int:
+        category = get_token_category(token)
+        if category:
+            return priority_map.get(category, 99)
+        return 99
+
+    # Stable sort - preserves order of equal-priority tokens
+    return sorted(tokens, key=get_priority)
+
+
+def compose_prompt_tokens(
+    tokens: list[str],
+    mode: EffectiveMode,
+    lora_strings: list[str] | None = None,
+    trigger_words: list[str] | None = None,
+    use_break: bool = True,
+) -> list[str]:
+    """Compose a complete prompt with all tokens properly ordered.
+
+    This is the main entry point for prompt composition.
+
+    Args:
+        tokens: Raw prompt tokens (unsorted, may have conflicts)
+        mode: 'standard' or 'lora'
+        lora_strings: LoRA syntax strings (e.g., "<lora:name:0.5>")
+        trigger_words: LoRA trigger words for deduplication
+        use_break: Whether to insert BREAK token (Mode B only)
+
+    Returns:
+        Composed list of tokens ready to join into prompt string
+    """
+    # Step 1: Ensure quality tags
+    tokens = ensure_quality_tags(tokens)
+
+    # Step 2: Filter conflicts and deduplicate triggers
+    tokens = filter_conflicting_tokens(tokens, trigger_words)
+
+    # Step 3: Sort by mode-specific priority
+    tokens = sort_prompt_tokens(tokens, mode)
+
+    # Step 4: Insert LoRA strings (for Mode B, after scene core)
+    if lora_strings and mode == "lora":
+        # Find insertion point (after camera, before identity)
+        insert_idx = 0
+        for i, token in enumerate(tokens):
+            category = get_token_category(token)
+            priority = MODE_B_PRIORITY.get(category, 99) if category else 99
+            if priority >= 10:  # identity or later
+                insert_idx = i
+                break
+        else:
+            insert_idx = len(tokens)
+
+        # Insert LoRA strings
+        for lora_str in lora_strings:
+            tokens.insert(insert_idx, lora_str)
+            insert_idx += 1
+
+    elif lora_strings and mode == "standard":
+        # For standard mode, insert LoRA after identity
+        insert_idx = 0
+        for i, token in enumerate(tokens):
+            category = get_token_category(token)
+            priority = CATEGORY_PRIORITY.get(category, 99) if category else 99
+            if priority > 3:  # after identity
+                insert_idx = i
+                break
+        else:
+            insert_idx = len(tokens)
+
+        for lora_str in lora_strings:
+            tokens.insert(insert_idx, lora_str)
+            insert_idx += 1
+
+    # Step 5: Insert BREAK token (Mode B only)
+    if use_break and mode == "lora":
+        tokens = insert_break_token(tokens, after_category="clothing")
+
+    return tokens
+
+
+def compose_prompt_string(
+    tokens: list[str],
+    mode: EffectiveMode,
+    lora_strings: list[str] | None = None,
+    trigger_words: list[str] | None = None,
+    use_break: bool = True,
+) -> str:
+    """Compose a complete prompt string.
+
+    Convenience wrapper around compose_prompt_tokens that joins the result.
+
+    Args:
+        (same as compose_prompt_tokens)
+
+    Returns:
+        Prompt string with tokens joined by ", "
+    """
+    tokens = compose_prompt_tokens(
+        tokens=tokens,
+        mode=mode,
+        lora_strings=lora_strings,
+        trigger_words=trigger_words,
+        use_break=use_break,
+    )
+    return ", ".join(tokens)
+
+
+def get_effective_mode(
+    character: Character,
+    loras: list[LoRA] | None = None,
+) -> EffectiveMode:
+    """Determine the effective prompt mode for a character.
+
+    Args:
+        character: Character model instance
+        loras: Optional list of resolved LoRA models (with lora_type field)
+
+    Returns:
+        'standard' or 'lora' based on character settings and LoRA presence
+
+    Logic:
+        - If prompt_mode is 'standard' → return 'standard'
+        - If prompt_mode is 'lora' → return 'lora'
+        - If prompt_mode is 'auto':
+            - Check if any LoRA has lora_type == 'character'
+            - If yes → 'lora'
+            - Otherwise → 'standard'
+    """
+    prompt_mode = getattr(character, "prompt_mode", "auto") or "auto"
+
+    # Explicit mode overrides
+    if prompt_mode == "standard":
+        logger.debug("[PromptMode] Explicit standard mode for character %s", character.name)
+        return "standard"
+
+    if prompt_mode == "lora":
+        logger.debug("[PromptMode] Explicit lora mode for character %s", character.name)
+        return "lora"
+
+    # Auto mode: detect based on LoRA presence
+    if not loras:
+        logger.debug("[PromptMode] Auto → standard (no LoRAs) for character %s", character.name)
+        return "standard"
+
+    # Check for character-type LoRA
+    has_character_lora = any(
+        getattr(lora, "lora_type", None) == "character" for lora in loras
+    )
+
+    if has_character_lora:
+        logger.debug("[PromptMode] Auto → lora (character LoRA found) for character %s", character.name)
+        return "lora"
+
+    logger.debug("[PromptMode] Auto → standard (style-only LoRAs) for character %s", character.name)
+    return "standard"
+
+
+def get_effective_mode_from_dict(
+    prompt_mode: str,
+    loras: list[dict] | None = None,
+) -> EffectiveMode:
+    """Determine the effective prompt mode from dict data.
+
+    Useful for API endpoints that receive JSON data.
+
+    Args:
+        prompt_mode: 'auto', 'standard', or 'lora'
+        loras: Optional list of LoRA dicts with 'lora_type' field
+
+    Returns:
+        'standard' or 'lora'
+    """
+    prompt_mode = prompt_mode or "auto"
+
+    if prompt_mode == "standard":
+        return "standard"
+
+    if prompt_mode == "lora":
+        return "lora"
+
+    # Auto mode
+    if not loras:
+        return "standard"
+
+    has_character_lora = any(
+        lora.get("lora_type") == "character" for lora in loras
+    )
+
+    return "lora" if has_character_lora else "standard"

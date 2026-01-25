@@ -7,6 +7,7 @@ from config import logger
 from database import get_db
 from models import Character, LoRA, Tag
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
+from services.prompt_composition import get_effective_mode
 
 router = APIRouter(prefix="/characters", tags=["characters"])
 
@@ -49,10 +50,11 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
 
     # Resolve multiple LoRAs
     loras_info = []
+    loras_db: list[LoRA] = []
     if character.loras:
         lora_ids = [item["lora_id"] for item in character.loras]
-        loras = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
-        lora_map = {lora.id: lora for lora in loras}
+        loras_db = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+        lora_map = {lora.id: lora for lora in loras_db}
 
         for item in character.loras:
             lora = lora_map.get(item["lora_id"])
@@ -71,7 +73,11 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
                     "weight": effective_weight,
                     "optimal_weight": float(lora.optimal_weight) if lora.optimal_weight else None,
                     "calibration_score": float(lora.calibration_score) if lora.calibration_score else None,
+                    "lora_type": lora.lora_type,
                 })
+
+    # Determine effective prompt mode
+    effective_mode = get_effective_mode(character, loras_db)
 
     return {
         "id": character.id,
@@ -83,6 +89,8 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
         "loras": loras_info,
         "recommended_negative": character.recommended_negative or [],
         "preview_image_url": character.preview_image_url,
+        "prompt_mode": character.prompt_mode,
+        "effective_mode": effective_mode,
     }
 
 

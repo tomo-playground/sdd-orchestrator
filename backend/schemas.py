@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
+
+# Type alias for prompt mode
+PromptMode = Literal["auto", "standard", "lora"]
 
 
 class StoryboardRequest(BaseModel):
@@ -133,6 +138,36 @@ class PromptValidateRequest(BaseModel):
     negative: str = ""
 
 
+class PromptComposeLoRA(BaseModel):
+    """LoRA info for prompt composition."""
+
+    name: str
+    weight: float = 0.5
+    trigger_words: list[str] | None = None
+    lora_type: str | None = None  # character, style, concept
+    optimal_weight: float | None = None
+
+
+class PromptComposeRequest(BaseModel):
+    """Request for composing a prompt with Mode A/B logic."""
+
+    tokens: list[str]  # Raw prompt tokens
+    mode: PromptMode = "auto"  # auto, standard, lora
+    loras: list[PromptComposeLoRA] | None = None
+    use_break: bool = True  # Insert BREAK token in Mode B
+
+
+class PromptComposeResponse(BaseModel):
+    """Response from prompt composition."""
+
+    prompt: str  # Final composed prompt string
+    tokens: list[str]  # Ordered token list
+    effective_mode: str  # standard or lora
+    scene_complexity: str  # simple, moderate, complex
+    lora_weights: dict[str, float] | None = None  # Calculated weights per LoRA
+    meta: dict | None = None  # Additional metadata
+
+
 class SDModelRequest(BaseModel):
     sd_model_checkpoint: str
 
@@ -240,6 +275,7 @@ class CharacterBase(BaseModel):
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     preview_image_url: str | None = None
+    prompt_mode: PromptMode = "auto"  # auto | standard | lora
 
 
 class CharacterCreate(CharacterBase):
@@ -255,6 +291,7 @@ class CharacterUpdate(BaseModel):
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     preview_image_url: str | None = None
+    prompt_mode: PromptMode | None = None
 
 
 class CharacterResponse(CharacterBase):
