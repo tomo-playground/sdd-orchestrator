@@ -324,7 +324,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-01-26 (09:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -434,6 +434,14 @@ brew install claude-squad  # 명령어: cs
 - `frontend/app/hooks/useTagClassifier.ts`: API 기반 분류 + 세션 캐싱
 - Danbooru API 연결 문제(TLS) 시 graceful fallback으로 unknown 반환
 - 15.7.5 승인 워크플로우: `/tags/pending` API, `/tags/approve-classification` API, /manage Tags 탭에 Pending Classifications UI
+
+**9.8 버그 수정 V (2026-01-26)**:
+- **LoRA 중복 제거**: `_deduplicate_loras()` 함수 추가 - 동일 LoRA 다른 weight 시 마지막 weight 유지
+- **BREAK 정규화**: `_normalize_break_tokens()` 함수 추가 - 소문자 `break` → `BREAK` 변환, 중복 제거
+- **Camera 충돌**: `medium shot` 패턴 추가, 동일 카테고리 첫 번째만 유지
+- **중복 BREAK 방지**: 사용자 입력 BREAK 있으면 자동 삽입 스킵
+- **테스트 강화**: 38개 → 54개 (+16개)
+  - TestLoRADeduplication (5), TestBreakNormalization (4), TestCameraConflict (4), TestFullCompositionBugFixes (3)
 
 **9.8 버그 수정 IV (2026-01-25 23:00)**:
 - **COMPOSED PREVIEW 자동 업데이트**: 토큰 변경 시 자동으로 `/prompt/compose` API 호출
