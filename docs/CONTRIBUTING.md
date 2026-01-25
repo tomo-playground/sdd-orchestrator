@@ -34,6 +34,11 @@
 *   **필수 정보만**: 아키텍처 요약, 문서 참조, 코드 가이드라인, Agents/Commands 테이블
 *   **상세 정보는 분리**: 진행 상황 → `ROADMAP.md`, 관리 규칙 → `CONTRIBUTING.md`
 
+### 8. Tag 시스템 변경 시 DB 리발란싱 필수
+*   `CATEGORY_PATTERNS` 수정 시 → `POST /keywords/sync-category-patterns?update_existing=true` 실행
+*   새 카테고리 추가 시 → `GROUP_TO_DB_CATEGORY` 매핑 추가 + 리발란싱
+*   프론트엔드 통계(Quality Tags 등)가 DB category 필드 기준이므로 **코드-DB 불일치 주의**
+
 ---
 
 ## 🤖 Agents/Commands 관리
