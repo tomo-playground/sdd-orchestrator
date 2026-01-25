@@ -30,7 +30,7 @@
 | Project DB (PostgreSQL) | 프로젝트 설정 및 히스토리 관리 (Phase 6-1 통합) | [x] |
 | **Smart AutoRun** | Pre-flight 검증 + 선택적 실행 | [x] |
 
-#### 5-1-2. Smart AutoRun System (🟢 완료)
+#### 5-1-2. Smart AutoRun System (🟢 완료 - 테스트 검증됨)
 **목표**: 오토런 실행 전 사전 점검 및 필요한 단계만 선택적 실행
 
 | # | 작업 | 설명 | 상태 |
@@ -40,6 +40,7 @@
 | 3 | 필수/권장 검증 로직 | Topic, Character 등 필수 체크 | [x] |
 | 4 | `useAutopilot` 확장 | 선택적 단계 실행 지원 | [x] |
 | 5 | 진행 UI 개선 | 건너뜀/완료 상태 표시 | [x] |
+| 6 | 브라우저 테스트 | Playwright 기반 E2E 검증 | [x] |
 
 **Pre-flight 검증 항목**:
 - 필수: Topic, Character
