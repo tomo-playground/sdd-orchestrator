@@ -1,6 +1,7 @@
 "use client";
 
-import type { Scene, ImageValidation } from "../types";
+import { useMemo } from "react";
+import type { Scene, ImageValidation, SceneContextTags } from "../types";
 
 type ValidationTabContentProps = {
   scene: Scene;
@@ -10,6 +11,23 @@ type ValidationTabContentProps = {
   onApplyMissingTags: (tags: string[]) => void;
 };
 
+function getContextTagsList(contextTags: SceneContextTags | undefined): string[] {
+  if (!contextTags) return [];
+  const tags: string[] = [];
+  if (contextTags.expression?.length) tags.push(...contextTags.expression);
+  if (contextTags.gaze) tags.push(contextTags.gaze);
+  if (contextTags.pose?.length) tags.push(...contextTags.pose);
+  if (contextTags.action?.length) tags.push(...contextTags.action);
+  if (contextTags.camera) tags.push(contextTags.camera);
+  if (contextTags.environment?.length) tags.push(...contextTags.environment);
+  if (contextTags.mood?.length) tags.push(...contextTags.mood);
+  return tags;
+}
+
+function normalizeTag(tag: string): string {
+  return tag.toLowerCase().replace(/_/g, " ").trim();
+}
+
 export default function ValidationTabContent({
   scene,
   validationResult,
@@ -17,6 +35,33 @@ export default function ValidationTabContent({
   onValidate,
   onApplyMissingTags,
 }: ValidationTabContentProps) {
+  // Compute intent validation from context_tags
+  const intentValidation = useMemo(() => {
+    const contextTags = getContextTagsList(scene.context_tags);
+    if (contextTags.length === 0 || !validationResult) {
+      return null;
+    }
+
+    const matchedSet = new Set(validationResult.matched.map(normalizeTag));
+    const extraSet = new Set(validationResult.extra.map(normalizeTag));
+    const allDetected = new Set([...matchedSet, ...extraSet]);
+
+    const matched: string[] = [];
+    const missing: string[] = [];
+
+    for (const tag of contextTags) {
+      const normalized = normalizeTag(tag);
+      if (allDetected.has(normalized)) {
+        matched.push(tag);
+      } else {
+        missing.push(tag);
+      }
+    }
+
+    const intentRate = contextTags.length > 0 ? matched.length / contextTags.length : 0;
+
+    return { matched, missing, intentRate };
+  }, [scene.context_tags, validationResult]);
   return (
     <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white/80 p-4">
       <button
@@ -60,6 +105,55 @@ export default function ValidationTabContent({
               {Math.round(validationResult.match_rate * 100)}%
             </span>
           </div>
+
+          {/* Scene Intent Validation */}
+          {intentValidation && (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-indigo-600 uppercase">
+                  Scene Intent
+                </span>
+                <span
+                  className={`text-sm font-bold ${
+                    intentValidation.intentRate >= 0.8
+                      ? "text-emerald-600"
+                      : intentValidation.intentRate >= 0.5
+                        ? "text-amber-600"
+                        : "text-red-600"
+                  }`}
+                >
+                  {Math.round(intentValidation.intentRate * 100)}%
+                </span>
+              </div>
+              {intentValidation.matched.length > 0 && (
+                <div className="mb-1.5 flex flex-wrap gap-1">
+                  {intentValidation.matched.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {intentValidation.missing.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {intentValidation.missing.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {intentValidation.matched.length > 0 && intentValidation.missing.length === 0 && (
+                <p className="text-[11px] text-emerald-600">All scene tags detected</p>
+              )}
+            </div>
+          )}
 
           {/* Missing */}
           {validationResult.missing.length > 0 && (

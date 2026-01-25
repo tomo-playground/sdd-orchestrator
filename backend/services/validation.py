@@ -118,8 +118,7 @@ def wd14_predict_tags(image: Image.Image, threshold: float | None = None) -> lis
     image = Image.alpha_composite(background, image).convert("RGB")
     image = image.resize((448, 448), Image.LANCZOS)
     img_array = np.array(image).astype(np.float32)
-    img_array = img_array[:, :, ::-1]
-    img_array = img_array / 255.0
+    # Note: This WD14 model expects RGB values in 0-255 range (no normalization)
     img_array = np.expand_dims(img_array, axis=0)
     inputs = {session.get_inputs()[0].name: img_array}
     preds = session.run([session.get_outputs()[0].name], inputs)[0][0]
@@ -179,6 +178,7 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
     split_tokens = _get_split_prompt_tokens()
     raw_tokens = split_tokens(prompt)
     skip_tokens = {
+        # Quality tags (not visually detectable)
         "best quality",
         "masterpiece",
         "high quality",
@@ -196,6 +196,52 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "artstation",
         "sharp focus",
         "cinematic",
+        # Lighting tags (hard to detect by WD14)
+        "natural light",
+        "soft lighting",
+        "hard lighting",
+        "dramatic lighting",
+        "studio lighting",
+        "backlighting",
+        "rim lighting",
+        # Mood tags (abstract, not visually detectable)
+        "energetic",
+        "peaceful",
+        "romantic",
+        "tense",
+        "melancholic",
+        "comedic",
+        "warm",
+        "mysterious",
+        "serene",
+        "dramatic",
+        "content",
+        "emotional",
+        "nostalgic",
+        "hopeful",
+        "cheerful",
+        "cozy",
+        "lively",
+        "contemplative",
+        "joyful",
+        "bittersweet",
+        "thinking",
+        "excited",
+        "anxious",
+        "surprised",
+        "determined",
+        "curious",
+        "focused",
+        # Time tags (hard to detect visually)
+        "morning",
+        "afternoon",
+        "evening",
+        "night",
+        "dawn",
+        "dusk",
+        # Abstract mood
+        "romantic",
+        "flustered",
     }
     tokens = [normalize_prompt_token(token) for token in raw_tokens]
     tokens = [token for token in tokens if token and token not in skip_tokens and token not in IGNORE_TOKENS]

@@ -1,10 +1,11 @@
 "use client";
 
-import type { Scene, SceneValidation, ImageValidation, FixSuggestion } from "../types";
+import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag } from "../types";
 import { SAMPLERS } from "../constants";
 import ValidationTabContent from "./ValidationTabContent";
 import DebugTabContent from "./DebugTabContent";
 import SceneImagePanel from "./SceneImagePanel";
+import SceneContextTags from "./SceneContextTags";
 
 type SceneCardProps = {
   scene: Scene;
@@ -19,6 +20,10 @@ type SceneCardProps = {
   onSuggestionToggle: () => void;
   validatingSceneId: number | null;
   autoComposePrompt: boolean;
+  // Scene Context Tags
+  tagsByGroup: Record<string, Tag[]>;
+  sceneTagGroups: string[];
+  isExclusiveGroup: (groupName: string) => boolean;
   // Scene update handlers
   onUpdateScene: (updates: Partial<Scene>) => void;
   onRemoveScene: () => void;
@@ -51,6 +56,9 @@ export default function SceneCard({
   onSuggestionToggle,
   validatingSceneId,
   autoComposePrompt,
+  tagsByGroup,
+  sceneTagGroups,
+  isExclusiveGroup,
   onUpdateScene,
   onRemoveScene,
   onSpeakerChange,
@@ -277,6 +285,15 @@ export default function SceneCard({
               className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
             />
           </div>
+
+          {/* Scene Context Tags */}
+          <SceneContextTags
+            contextTags={scene.context_tags}
+            tagsByGroup={tagsByGroup}
+            sceneTagGroups={sceneTagGroups}
+            isExclusiveGroup={isExclusiveGroup}
+            onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
+          />
 
           {/* Generation Settings */}
           <div className="grid gap-3 md:grid-cols-3">

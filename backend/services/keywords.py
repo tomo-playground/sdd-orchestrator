@@ -157,8 +157,8 @@ def load_known_keywords() -> set[str]:
 
 
 def expand_synonyms(tokens: list[str]) -> set[str]:
-    """Expand a list of tokens to include all known synonyms."""
-    synonym_lookup = load_synonyms_from_db()
+    """Expand a list of tokens to include all known synonyms (bidirectional)."""
+    synonym_lookup = load_synonyms_from_db()  # {synonym: tag}
     # Reverse lookup: tag -> synonyms
     reverse_map: dict[str, set[str]] = {}
     for syn, tag in synonym_lookup.items():
@@ -172,8 +172,12 @@ def expand_synonyms(tokens: list[str]) -> set[str]:
             continue
         normalized = normalize_prompt_token(token)
         expanded.add(normalized)
+        # tag -> synonyms (e.g., "bust shot" -> {"upper body", "portrait"})
         if normalized in reverse_map:
             expanded.update(reverse_map[normalized])
+        # synonym -> tag (e.g., "upper body" -> "bust shot")
+        if normalized in synonym_lookup:
+            expanded.add(synonym_lookup[normalized])
     return expanded
 
 

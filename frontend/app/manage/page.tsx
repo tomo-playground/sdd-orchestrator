@@ -13,7 +13,7 @@ type KeywordCategories = Record<string, string[]>;
 type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
-type ManageTab = "keywords" | "assets" | "style" | "settings";
+type ManageTab = "keywords" | "assets" | "style" | "tags" | "settings";
 
 const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
@@ -48,6 +48,14 @@ export default function ManagePage() {
   const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isStyleLoading, setIsStyleLoading] = useState(false);
+
+  // Tags tab state
+  type TagGroup = { category: string; group_name: string; count: number };
+  const [tagGroups, setTagGroups] = useState<TagGroup[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [isTagsLoading, setIsTagsLoading] = useState(false);
+  const [tagGroupFilter, setTagGroupFilter] = useState<string>("");
+  const [tagCategoryFilter, setTagCategoryFilter] = useState<string>("");
   const [civitaiSearch, setCivitaiSearch] = useState("");
   const [civitaiResults, setCivitaiResults] = useState<LoRA[]>([]);
   const [isSearchingCivitai, setIsSearchingCivitai] = useState(false);
@@ -243,6 +251,57 @@ export default function ManagePage() {
     }
   }, [manageTab]);
 
+  // Tags tab data fetching
+  const fetchTagsData = async () => {
+    setIsTagsLoading(true);
+    try {
+      const [tagsRes, groupsRes] = await Promise.all([
+        axios.get(`${API_BASE}/tags`),
+        axios.get(`${API_BASE}/tags/groups`),
+      ]);
+      setAllTags(tagsRes.data || []);
+      setTagGroups(groupsRes.data?.groups || []);
+    } catch {
+      console.error("Failed to fetch tags data");
+    } finally {
+      setIsTagsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (manageTab === "tags") {
+      void fetchTagsData();
+    }
+  }, [manageTab]);
+
+  // Computed values for tags tab
+  const filteredTags = useMemo(() => {
+    return allTags.filter((tag) => {
+      if (tagCategoryFilter && tag.category !== tagCategoryFilter) return false;
+      if (tagGroupFilter && tag.group_name !== tagGroupFilter) return false;
+      return true;
+    });
+  }, [allTags, tagCategoryFilter, tagGroupFilter]);
+
+  const tagCategories = useMemo(() => {
+    return [...new Set(allTags.map((t) => t.category))].sort();
+  }, [allTags]);
+
+  const tagGroupsByCategory = useMemo(() => {
+    const groups: Record<string, string[]> = {};
+    allTags.forEach((tag) => {
+      if (tag.group_name) {
+        if (!groups[tag.category]) groups[tag.category] = [];
+        if (!groups[tag.category].includes(tag.group_name)) {
+          groups[tag.category].push(tag.group_name);
+        }
+      }
+    });
+    return groups;
+  }, [allTags]);
+
+  const SCENE_TAG_GROUPS = ["expression", "gaze", "pose", "action", "camera", "environment", "mood"];
+
   const normalizeKeyword = (value: string) =>
     value
       .toLowerCase()
@@ -428,6 +487,7 @@ export default function ManagePage() {
             { id: "keywords", label: "Keywords" },
             { id: "assets", label: "Assets" },
             { id: "style", label: "Style" },
+            { id: "tags", label: "Tags" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;
@@ -1057,6 +1117,207 @@ export default function ManagePage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {manageTab === "tags" && (
+          <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Tag Analysis
+              </span>
+              <button
+                type="button"
+                onClick={fetchTagsData}
+                disabled={isTagsLoading}
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {isTagsLoading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+
+            {/* Group Statistics Overview */}
+            <div className="grid gap-4">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+                Scene Tag Groups (7 Categories)
+              </span>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                {SCENE_TAG_GROUPS.map((group) => {
+                  const count = allTags.filter(
+                    (t) => t.category === "scene" && t.group_name === group
+                  ).length;
+                  const isActive = tagGroupFilter === group && tagCategoryFilter === "scene";
+                  return (
+                    <button
+                      key={group}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setTagGroupFilter("");
+                          setTagCategoryFilter("");
+                        } else {
+                          setTagGroupFilter(group);
+                          setTagCategoryFilter("scene");
+                        }
+                      }}
+                      className={`rounded-xl border p-3 text-center transition ${
+                        isActive
+                          ? "border-indigo-300 bg-indigo-50"
+                          : "border-zinc-200 bg-white hover:border-zinc-300"
+                      }`}
+                    >
+                      <div className={`text-lg font-bold ${isActive ? "text-indigo-600" : "text-zinc-700"}`}>
+                        {count}
+                      </div>
+                      <div className={`text-[9px] font-medium uppercase tracking-wider ${isActive ? "text-indigo-500" : "text-zinc-400"}`}>
+                        {group}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Character Tag Groups */}
+            <div className="grid gap-4">
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+                Character Tag Groups
+              </span>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {(tagGroupsByCategory["character"] || []).map((group) => {
+                  const count = allTags.filter(
+                    (t) => t.category === "character" && t.group_name === group
+                  ).length;
+                  const isActive = tagGroupFilter === group && tagCategoryFilter === "character";
+                  return (
+                    <button
+                      key={group}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setTagGroupFilter("");
+                          setTagCategoryFilter("");
+                        } else {
+                          setTagGroupFilter(group);
+                          setTagCategoryFilter("character");
+                        }
+                      }}
+                      className={`rounded-xl border p-3 text-center transition ${
+                        isActive
+                          ? "border-violet-300 bg-violet-50"
+                          : "border-zinc-200 bg-white hover:border-zinc-300"
+                      }`}
+                    >
+                      <div className={`text-lg font-bold ${isActive ? "text-violet-600" : "text-zinc-700"}`}>
+                        {count}
+                      </div>
+                      <div className={`text-[9px] font-medium uppercase tracking-wider ${isActive ? "text-violet-500" : "text-zinc-400"}`}>
+                        {group}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Total Stats */}
+            <div className="flex flex-wrap gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-zinc-700">{allTags.length}</div>
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Total Tags</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">
+                  {allTags.filter((t) => t.category === "scene").length}
+                </div>
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Scene Tags</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-violet-600">
+                  {allTags.filter((t) => t.category === "character").length}
+                </div>
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Character Tags</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-emerald-600">
+                  {allTags.filter((t) => t.category === "quality").length}
+                </div>
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Quality Tags</div>
+              </div>
+            </div>
+
+            {/* Filtered Tags List */}
+            {(tagGroupFilter || tagCategoryFilter) && (
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+                    {tagCategoryFilter} / {tagGroupFilter} ({filteredTags.length} tags)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTagGroupFilter("");
+                      setTagCategoryFilter("");
+                    }}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-600"
+                  >
+                    Clear Filter
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {filteredTags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] text-zinc-600"
+                      title={`Priority: ${tag.priority}`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* All Tags by Group (collapsed by default) */}
+            {!tagGroupFilter && !tagCategoryFilter && (
+              <div className="grid gap-4">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+                  All Tags by Category
+                </span>
+                {tagCategories.map((category) => (
+                  <details key={category} className="rounded-xl border border-zinc-200 bg-white">
+                    <summary className="cursor-pointer px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:bg-zinc-50">
+                      {category} ({allTags.filter((t) => t.category === category).length} tags)
+                    </summary>
+                    <div className="border-t border-zinc-100 p-4">
+                      {(tagGroupsByCategory[category] || [""]).map((group) => {
+                        const groupTags = allTags.filter(
+                          (t) => t.category === category && (group === "" ? !t.group_name : t.group_name === group)
+                        );
+                        if (groupTags.length === 0) return null;
+                        return (
+                          <div key={group || "ungrouped"} className="mb-3">
+                            <div className="mb-2 text-[9px] font-medium uppercase tracking-wider text-zinc-400">
+                              {group || "Ungrouped"} ({groupTags.length})
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {groupTags.map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[9px] text-zinc-500"
+                                >
+                                  {tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                ))}
               </div>
             )}
           </section>
