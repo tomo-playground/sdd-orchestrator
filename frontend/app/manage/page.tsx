@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { API_BASE, CATEGORY_DESCRIPTIONS, PROMPT_APPLY_KEY } from "../constants";
 import LoadingSpinner from "../components/LoadingSpinner";
+import QualityDashboard from "../components/QualityDashboard";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
 
@@ -19,7 +20,7 @@ type KeywordCategories = Record<string, string[]>;
 type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
-type ManageTab = "keywords" | "assets" | "style" | "tags" | "prompts" | "evaluation" | "settings";
+type ManageTab = "keywords" | "assets" | "style" | "tags" | "prompts" | "evaluation" | "quality" | "settings";
 
 const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
@@ -820,6 +821,7 @@ export default function ManagePage() {
             { id: "tags", label: "Tags" },
             { id: "prompts", label: "Prompts" },
             { id: "evaluation", label: "Eval" },
+            { id: "quality", label: "Quality" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;
@@ -2309,6 +2311,8 @@ export default function ManagePage() {
             )}
           </section>
         )}
+
+        {manageTab === "quality" && <QualityDashboard />}
 
         {manageTab === "settings" && (
           <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
