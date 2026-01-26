@@ -6,7 +6,6 @@ import { VOICES } from "../constants";
 // Ken Burns preset options for dropdown
 const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
   { value: "none", label: "None" },
-  { value: "slow_zoom", label: "Slow Zoom (Legacy)" },
   { value: "zoom_in_center", label: "Zoom In (Center)" },
   { value: "zoom_out_center", label: "Zoom Out (Center)" },
   { value: "pan_left", label: "Pan Left → Right" },
