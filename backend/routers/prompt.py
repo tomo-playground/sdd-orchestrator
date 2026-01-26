@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 import logic
 from config import logger, SD_LORAS_URL
+from database import get_db
 from schemas import (
     PromptComposeRequest,
     PromptComposeResponse,
@@ -15,6 +18,7 @@ from schemas import (
     PromptValidateRequest,
 )
 from services.prompt import validate_loras, detect_prompt_conflicts, validate_identity_tags
+from services.prompt_validation import validate_prompt_tags, auto_replace_risky_tags
 from services.prompt_composition import (
     calculate_lora_weight,
     compose_prompt_tokens,
@@ -195,3 +199,63 @@ async def compose_prompt(request: PromptComposeRequest):
             "quality_tags_added": composed_tokens[:3] == ["masterpiece", "best quality", "high quality"],
         },
     )
+
+
+class ValidateTagsRequest(BaseModel):
+    """Request body for tag validation."""
+
+    tags: list[str]
+    check_danbooru: bool = True
+
+
+class AutoReplaceRequest(BaseModel):
+    """Request body for auto-replacement."""
+
+    tags: list[str]
+
+
+@router.post("/validate-tags")
+async def validate_tags(
+    request: ValidateTagsRequest,
+    db: Session = Depends(get_db),
+):
+    """Validate prompt tags against DB and Danbooru.
+
+    Checks:
+    1. Tag existence in local DB
+    2. Tag post count in Danbooru (if enabled)
+    3. Known problematic tags (e.g., "medium shot")
+
+    Returns validation results with valid/risky/unknown tags and warnings.
+    """
+    logger.info("📥 [Validate Tags] tags=%d, check_danbooru=%s",
+                len(request.tags), request.check_danbooru)
+
+    result = validate_prompt_tags(
+        tags=request.tags,
+        db=db,
+        check_danbooru=request.check_danbooru,
+    )
+
+    logger.info("✅ [Validate Tags] valid=%d, risky=%d, unknown=%d",
+                result["valid_count"], result["risky_count"], result["unknown_count"])
+
+    return result
+
+
+@router.post("/auto-replace")
+async def replace_tags(request: AutoReplaceRequest):
+    """Automatically replace known risky tags with safe alternatives.
+
+    Replaces problematic tags like "medium shot" with Danbooru-verified alternatives
+    like "cowboy shot".
+
+    Returns replacement results with original/replaced tags.
+    """
+    logger.info("📥 [Auto Replace] tags=%d", len(request.tags))
+
+    result = auto_replace_risky_tags(tags=request.tags)
+
+    logger.info("✅ [Auto Replace] replaced=%d tags", result["replaced_count"])
+
+    return result
