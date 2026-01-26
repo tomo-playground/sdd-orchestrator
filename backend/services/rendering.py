@@ -626,7 +626,14 @@ def compose_post_frame(
     card.putalpha(mask)
     background.alpha_composite(card, (card_x, card_y))
 
-    inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS).convert("RGBA")
+    # Dynamic cropping strategy:
+    # If image is significantly taller than square (aspect ratio < 0.9), use TOP alignment (0.5, 0.0) to preserve head.
+    # Otherwise (square or landscape), use CENTER alignment (0.5, 0.5).
+    img_w, img_h = image_rgb.size
+    aspect_ratio = img_w / img_h
+    centering = (0.5, 0.0) if aspect_ratio < 0.85 else (0.5, 0.5)
+
+    inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS, centering=centering).convert("RGBA")
     background.alpha_composite(inner, (image_x, image_y))
 
     draw = ImageDraw.Draw(background)

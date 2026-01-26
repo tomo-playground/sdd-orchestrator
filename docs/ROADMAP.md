@@ -68,7 +68,7 @@
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋, slow_zoom 제거됨) | [x] |
 | **Random BGM** | `bgm_file: "random"` → Backend에서 랜덤 선택 | [x] |
-| **Resolution Optimization** | 512x768 (2:3) 표준화 + Cowboy Shot 전략 (Post/Full 겸용) | [ ] |
+| **Resolution Optimization** | 512x768 (2:3) 표준화 + Cowboy Shot 전략 (Post/Full 겸용) | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -443,13 +443,13 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (03:00)
+**Last Updated**: 2026-01-28 (02:40)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5-2 | IN PROGRESS | 80% | Resolution Optimization (512x768) 진행 중 |
-| 5-4 | COMPLETE | 100% | 품질 시스템 완료 (5-4-1, 5-4-2) |
+| 5-2 | COMPLETE | 100% | Resolution Optimization (512x768) 완료 |
+| 5-4 | PLANNED | 10% | 템플릿 규칙 강화 완료, 자동 검증 시스템 대기 중 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -459,14 +459,14 @@ brew install claude-squad  # 명령어: cs
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
 
+**Resolution Optimization 완료 (2026-01-28 02:40)**:
+- **전략**: `512x768` (2:3 비율) 단일 해상도로 모든 포맷 대응.
+- **Frontend**: 기본 해상도 변경 및 미리보기 UI (`object-top`) 개선.
+- **Backend**: `compose_post_frame` 동적 크롭 적용 (세로형→상단 크롭, 정사각형→중앙 크롭).
+- **Template**: Gemini에게 `full body` 대신 `cowboy shot` 사용 권장 규칙 추가.
+- **Validation**: 비표준 해상도 요청 시 경고 로그 시스템 구축.
+
 **Resolution Optimization Strategy (2026-01-28 02:00)**:
-- **문제**: 정사각형(1:1) 생성 시 `full body` 태그가 머리를 자르거나 캐릭터를 작게 만듦.
-- **전략**: 모든 생성을 **`512x768` (2:3 비율)**로 통일하여 VRAM 절약 및 속도 확보.
-- **핵심 규칙**:
-  - 태그: `full body` 사용 지양 → **`cowboy shot` (무릎 위)** 권장.
-  - 1:1 편집: 512x768 이미지의 **상단 크롭**으로 완벽한 인물 구도 확보.
-  - 9:16 편집: 좌우 여백 없이 꽉 찬 화면(Cover)으로 사용.
-- **기대 효과**: 단일 소스로 모든 포맷 대응, 얼굴 디테일 향상, 잘림 현상 제거.
 
 **Gemini 템플릿 Danbooru 규칙 강화 (2026-01-28 01:30)**:
 - **배경**: "medium shot" 같은 학습되지 않은 태그가 Gemini 응답에 계속 포함되는 문제

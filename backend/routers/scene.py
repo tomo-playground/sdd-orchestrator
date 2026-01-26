@@ -19,6 +19,14 @@ router = APIRouter(tags=["scene"])
 
 @router.post("/scene/generate")
 async def generate_scene_image(request: SceneGenerateRequest):
+    # Validate resolution strategy
+    if request.width != 512 or request.height != 768:
+        logger.warning(
+            "⚠️ Non-standard resolution detected: %dx%d. Recommended: 512x768 for optimal Post/Full compatibility.",
+            request.width,
+            request.height,
+        )
+
     logger.info("📥 [Scene Gen Req] %s", request.model_dump())
     return await logic.logic_generate_scene_image(request)
 

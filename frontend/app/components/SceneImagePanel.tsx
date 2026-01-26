@@ -21,7 +21,7 @@ export default function SceneImagePanel({
             src={scene.image_url}
             alt={`Scene ${scene.id}`}
             onClick={() => onImageClick(scene.image_url)}
-            className="h-full w-full cursor-pointer object-cover"
+            className="h-full w-full cursor-pointer object-cover object-top"
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2">
@@ -57,7 +57,7 @@ export default function SceneImagePanel({
       <div className="flex flex-wrap items-center gap-2 text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
         <span>{scene.image_url ? "Ready" : "Upload required"}</span>
         <span className="rounded-full border border-zinc-200 bg-white/80 px-2 py-0.5 text-[9px] text-zinc-500">
-          512x512
+          512x768
         </span>
         <span className="rounded-full border border-zinc-200 bg-white/80 px-2 py-0.5 text-[9px] text-zinc-500">
           Steps {scene.steps}

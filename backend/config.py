@@ -88,6 +88,12 @@ SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 SD_LORAS_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
 
+# --- Image Generation Defaults ---
+# Optimized for Speed + Quality + Post/Full compatibility
+# 512x768 (2:3) allows perfect 1:1 top-crop and full 9:16 cover
+SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "512"))
+SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "768"))
+
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
 if API_PUBLIC_URL == "http://localhost:8000":
     logger.info("Using default API_PUBLIC_URL: %s", API_PUBLIC_URL)
