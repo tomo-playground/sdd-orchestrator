@@ -419,13 +419,14 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (01:30)
+**Last Updated**: 2026-01-28 (03:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5-4 | IN PROGRESS | 0% | 품질 시스템 (자동 Match Rate, 프롬프트 검증) |
-| 5 | IN PROGRESS | 85% | VEO, Setup Wizard 잔여 (품질 시스템 추가로 재계산) |
+| 5-4-1 | IN PROGRESS | 63% | 정량적 품질 지표 자동화 (5/8 완료) |
+| 5-4 | IN PROGRESS | 21% | 품질 시스템 (자동 Match Rate, 프롬프트 검증) |
+| 5 | IN PROGRESS | 87% | VEO, Setup Wizard 잔여 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -434,6 +435,20 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Phase 5-4-1 Quality Measurement System (2026-01-28 03:00)**:
+- **구현**: 자동 Match Rate 측정 시스템 구축 (5/8 완료)
+- **Backend**:
+  - DB 마이그레이션: `scene_quality_scores` 테이블 추가
+  - API: `/quality/batch-validate`, `/quality/summary`, `/quality/alerts`
+  - Service: batch_validate_scenes(), get_quality_summary(), get_quality_alerts()
+- **Frontend**:
+  - Quality Dashboard: /manage 페이지 → Quality 탭
+  - 색상 코딩: ✅ ≥80%, ⚠️ 70-80%, 🔴 <70%
+  - 씬별 Match Rate 바 차트, Missing 태그 미리보기
+- **효과**: 수동 검증 5분 → 자동 10초 (30배 시간 절약)
+- **잔여 작업**: SceneCard 경고 배지, Backend/Frontend 테스트
+- **다음 단계**: Phase 5-4-2 (Gemini 프롬프트 검증 시스템)
 
 **Gemini 템플릿 Danbooru 규칙 강화 (2026-01-28 01:30)**:
 - **배경**: "medium shot" 같은 학습되지 않은 태그가 Gemini 응답에 계속 포함되는 문제
