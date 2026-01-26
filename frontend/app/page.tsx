@@ -103,6 +103,7 @@ export default function Home() {
   const [baseNegativePromptA, setBaseNegativePromptA] = useState("");
   const [autoComposePrompt, setAutoComposePrompt] = useState(true);
   const [autoRewritePrompt, setAutoRewritePrompt] = useState(true);
+  const [autoReplaceRiskyTags, setAutoReplaceRiskyTags] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
   const [examplePrompt, setExamplePrompt] = useState("");
   const [suggestedBase, setSuggestedBase] = useState("");
@@ -1296,6 +1297,7 @@ export default function Home() {
     setBaseNegativePromptA("");
     setAutoComposePrompt(true);
     setAutoRewritePrompt(true);
+    setAutoReplaceRiskyTags(false);
     setBaseTab("A");
     setExamplePrompt("");
     setSuggestedBase("");
@@ -1725,7 +1727,7 @@ export default function Home() {
       seed: scene.seed,
       clip_skip: scene.clip_skip,
       width: 512,
-      height: 512,
+      height: 768,
       ...hiResPayload,
       ...controlnetPayload,
       ...ipAdapterPayload,
@@ -1740,7 +1742,7 @@ export default function Home() {
         seed: scene.seed,
         clip_skip: scene.clip_skip,
         width: 512,
-        height: 512,
+        height: 768,
         ...hiResPayload,
         ...controlnetPayload,
         ...ipAdapterPayload,
@@ -2167,6 +2169,8 @@ export default function Home() {
             setAutoComposePrompt={setAutoComposePrompt}
             autoRewritePrompt={autoRewritePrompt}
             setAutoRewritePrompt={setAutoRewritePrompt}
+            autoReplaceRiskyTags={autoReplaceRiskyTags}
+            setAutoReplaceRiskyTags={setAutoReplaceRiskyTags}
             hiResEnabled={hiResEnabled}
             setHiResEnabled={setHiResEnabled}
             veoEnabled={veoEnabled}

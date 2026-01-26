@@ -13,6 +13,8 @@ type PromptSetupPanelProps = {
   setAutoComposePrompt: (value: boolean) => void;
   autoRewritePrompt: boolean;
   setAutoRewritePrompt: (value: boolean) => void;
+  autoReplaceRiskyTags: boolean;
+  setAutoReplaceRiskyTags: (value: boolean) => void;
   hiResEnabled: boolean;
   setHiResEnabled: (value: boolean) => void;
   veoEnabled: boolean;
@@ -49,6 +51,8 @@ export default function PromptSetupPanel({
   setAutoComposePrompt,
   autoRewritePrompt,
   setAutoRewritePrompt,
+  autoReplaceRiskyTags,
+  setAutoReplaceRiskyTags,
   hiResEnabled,
   setHiResEnabled,
   veoEnabled,
@@ -128,6 +132,20 @@ export default function PromptSetupPanel({
               type="checkbox"
               checked={autoRewritePrompt}
               onChange={(e) => setAutoRewritePrompt(e.target.checked)}
+              className="h-4 w-4 accent-zinc-900"
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+            <div>
+              <div>Auto Replace Risky Tags</div>
+              <div className="text-[10px] font-normal normal-case tracking-normal text-zinc-500 mt-1">
+                Automatically replace non-Danbooru tags (e.g., "medium shot" → "cowboy shot")
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={autoReplaceRiskyTags}
+              onChange={(e) => setAutoReplaceRiskyTags(e.target.checked)}
               className="h-4 w-4 accent-zinc-900"
             />
           </label>
