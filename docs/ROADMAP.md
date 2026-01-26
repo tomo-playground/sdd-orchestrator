@@ -71,6 +71,7 @@
 | **Resolution Optimization** | 512x768 (2:3) 표준화 + Cowboy Shot 전략 (Post/Full 겸용) | [x] |
 | **Full Layout Polishing** | 검은 여백 제거 (YouTube Shorts 스타일, Cover 스케일) | [x] |
 | **Subtitle Animation** | Fade in/out (0.3초, 알파 채널 fade) | [x] |
+| **Advanced Transitions** | 13개 씬 전환 효과 (fade, wipe, slide, circle, random) | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -445,7 +446,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (21:10)
+**Last Updated**: 2026-01-28 (21:20)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -460,6 +461,26 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Advanced Transitions 완료 (2026-01-28 21:20)**:
+- **문제**: 씬 전환이 fade만 가능하여 단조로움
+- **해결**: 13개 transition 효과 추가 + UI 개선
+- **변경사항**:
+  - Backend:
+    - `constants/transition.py`: 13개 transition 타입 정의
+    - `schemas.py`: VideoRequest에 `transition_type` 필드 추가
+    - `services/video.py`: xfade filter에 transition 적용, random 모드 지원
+    - `routers/video.py`: `/video/transitions` API 엔드포인트
+  - Frontend:
+    - `page.tsx`: transitionType state 추가
+    - `RenderSettingsPanel.tsx`: Motion UI 통합 (Ken Burns + Transition 한 섹션)
+- **Transition 타입**: fade, wipeleft, wiperight, slideup, slidedown, circleopen, circleclose, dissolve, pixelize, random
+- **UI 개선**: Video Row (3칸) + Motion Effects Row (2칸) 통합
+- **효과**:
+  - ✅ 씬 전환 다양성 확보
+  - ✅ Random 모드 (재현 가능한 시드)
+  - ✅ Motion 기능 통합 (Ken Burns + Transition)
+  - ✅ 직관적 UI (관련 기능 그룹핑)
 
 **Subtitle Animation 완료 (2026-01-28 21:10)**:
 - **문제**: 자막이 뚝 나타나고 뚝 사라져 부자연스러움
