@@ -345,12 +345,12 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (18:30)
+**Last Updated**: 2026-01-26 (19:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5 | IN PROGRESS | 82% | VEO, 품질지표 잔여 |
+| 5 | IN PROGRESS | 85% | VEO, 품질지표 잔여 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -359,6 +359,12 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Random BGM 기능 완료 (2026-01-26 19:00)**:
+- `bgm_file: "random"` 지원 → Backend에서 `assets/audio/*.mp3` 중 랜덤 선택
+- TDD: 9개 테스트 작성 후 구현 (`test_bgm.py`)
+- Frontend: BGM 드롭다운에 "Random" 옵션 추가
+- 시드 기반 재현성 지원 (동일 시드 → 동일 BGM)
 
 **Ken Burns Effect 구현 완료 (2026-01-26 18:00)**:
 - **10개 프리셋**: none, slow_zoom, zoom_in/out_center, pan_left/right/up/down, zoom_pan_left/right
