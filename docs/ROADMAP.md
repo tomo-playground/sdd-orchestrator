@@ -66,7 +66,7 @@
 |------|------|------|
 | Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
-| Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋) | [x] |
+| Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋, slow_zoom 제거됨) | [x] |
 | **Random BGM** | `bgm_file: "random"` → Backend에서 랜덤 선택 | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
@@ -78,11 +78,31 @@
 | Japanese Language Course | 일본어 강좌 전용 템플릿 | [x] |
 | Math Lesson Course | 초/중/고 수학 공식 강좌 템플릿 | [x] |
 
-### 5-4. 확장 기능 (v1.x Backlog)
+### 5-4. Prompt Quality & Analytics (프롬프트 품질 시스템)
+**목표**: 생성된 프롬프트와 이미지의 품질을 자동으로 측정하고 개선하는 시스템 구축.
+
+#### 5-4-1. 정량적 품질 지표 자동화 (🔴 우선순위 1)
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | Match Rate 자동 측정 | 씬별 WD14 태그 vs 프롬프트 비교 자동화 | [ ] |
+| 2 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 추가 | [ ] |
+| 3 | 품질 경고 시스템 | Match Rate < 70% 씬 자동 감지 및 경고 | [ ] |
+| 4 | Batch Quality Check | 전체 씬 일괄 품질 측정 기능 | [ ] |
+| 5 | Quality Score DB | `scene_quality_scores` 테이블 추가 | [ ] |
+
+#### 5-4-2. Gemini 프롬프트 검증 시스템 (🔴 우선순위 2)
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | 태그 검증 API | `/prompt/validate` 엔드포인트 (DB 태그 대조) | [ ] |
+| 2 | 위험 태그 감지 | Danbooru 0건 태그 자동 감지 | [ ] |
+| 3 | 자동 대체 제안 | 위험 태그 → 안전 태그 매핑 (medium shot → cowboy shot) | [ ] |
+| 4 | Frontend 경고 UI | 씬 생성 시 위험 태그 경고 표시 | [ ] |
+| 5 | 자동 교체 옵션 | 위험 태그 자동 대체 적용 토글 | [ ] |
+
+#### 5-4-3. 확장 기능 (v1.x Backlog)
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | VEO Clip | Video Generation 통합 | [ ] |
-| 정량적 품질 지표 | Match Rate 자동화 | [ ] |
 
 ### 5-5. UI/UX 개선
 | 작업 | 설명 | 상태 |
@@ -200,7 +220,25 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
 | 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
 | 20 | Scene Clothing Override | 장면별 의상 변경 기능 | [ ] |
-| 21 | **Generation Log Analytics** | 이미지 생성 메타 로깅 → 충돌 규칙/품질 패턴 자동 발견 | [ ] |
+
+#### 6-4-21. Generation Log Analytics (🔴 우선순위 3)
+**목표**: 성공/실패 케이스를 분석하여 성공 확률 높은 태그 조합을 자동으로 생성하는 학습 시스템.
+
+**핵심 플로우**:
+```
+생성 → Match Rate 측정 → 성공/실패 마킹 (수동/자동) → 패턴 분석 → 성공 조합 추출 → 자동 추천
+```
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | `generation_logs` 테이블 | 프롬프트, 태그, 파라미터, Match Rate, 시드, status (success/fail) | [ ] |
+| 2 | 자동 로깅 API | 이미지 생성 시 자동으로 메타데이터 저장 | [ ] |
+| 3 | **성공/실패 마킹 UI** | SceneCard에 👍/👎 버튼, Match Rate 임계값 자동 마킹 | [ ] |
+| 4 | 패턴 분석 엔진 | 성공률 높은 태그 조합 추출 (빈도 분석, A/B 비교) | [ ] |
+| 5 | 충돌 규칙 자동 발견 | 함께 사용 시 실패율 높은 태그 쌍 감지 → DB 반영 | [ ] |
+| 6 | **성공 조합 생성기** | 과거 성공 케이스 기반 최적 조합 자동 생성 | [ ] |
+| 7 | Analytics Dashboard | Manage 탭에 인사이트 (Top/Worst 태그, 성공률 차트) | [ ] |
+| 8 | 자동 권장 시스템 | 장면 의도 입력 → 성공 확률 높은 태그 조합 추천 | [ ] |
 
 ---
 
@@ -359,20 +397,44 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (01:00)
+**Last Updated**: 2026-01-28 (01:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5 | IN PROGRESS | 88% | VEO, 품질지표, Setup Wizard 잔여 |
+| 5-4 | IN PROGRESS | 0% | 품질 시스템 (자동 Match Rate, 프롬프트 검증) |
+| 5 | IN PROGRESS | 85% | VEO, Setup Wizard 잔여 (품질 시스템 추가로 재계산) |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | COMPLETE | 100% | 15.2~15.7 + 15.6 완료 |
+| 6-4 | IN PROGRESS | 95% | Generation Log Analytics 상세화 |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Gemini 템플릿 Danbooru 규칙 강화 (2026-01-28 01:30)**:
+- **배경**: "medium shot" 같은 학습되지 않은 태그가 Gemini 응답에 계속 포함되는 문제
+- **해결**: 3개 템플릿에 CRITICAL IMAGE PROMPT RULE 섹션 추가
+  - Stable Diffusion = Danbooru 데이터셋 학습 명시
+  - FORBIDDEN 예시 제공 (medium shot 0건, bust shot 부정확)
+  - SAFE 예시 제공 (cowboy shot 729K, upper body 1.01M)
+- **효과**: Gemini가 위험 태그 사용을 회피하고 고빈도 태그만 선택하도록 유도
+- **다음 단계**: 실제 생성된 프롬프트 검증 시스템 구축 필요 (Phase 5-4-2)
+
+**우선순위 재평가 (2026-01-28 01:30)**:
+- **원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표
+- **전략**: Multi-Character 등 기능 확장보다 품질 안정화 우선
+- **새 우선순위**:
+  1. 정량적 품질 지표 자동화 (Match Rate 측정)
+  2. Gemini 프롬프트 검증 (위험 태그 차단)
+  3. Generation Log Analytics (성공 조합 학습)
+  4. Multi-Character 구현 (품질 안정화 후)
+
+**Motion Setting List Update (2026-01-27 12:30)**:
+- **slow_zoom 제거**: Legacy 옵션인 `slow_zoom`을 UI 리스트에서 제거 (기능은 백엔드에 유지되나 UI에서 deprecated).
+- **옵션 최적화**: 10가지 Ken Burns 프리셋 전체 활성화 (Zoom In/Out, Pan Left/Right/Up/Down, Zoom+Pan).
+- **명칭 변경**: `Motion Style` → `Ken Burns Effect`로 UI 라벨 명확화.
 
 **Chibi 스타일 & Composition 안전성 수정 (2026-01-28 01:00)**:
 - **문제 1**: Chibi 캐릭터 이미지가 치비 스타일이 아닌 일반 애니메 스타일로 생성
@@ -501,14 +563,25 @@ brew install claude-squad  # 명령어: cs
 - 태그 충돌(Conflict) 및 의존성(Requires) 규칙 80여 개 적용
 - Action(holding X), Time/Weather(환경효과) 등 태그 카테고리 437개 확장
 
-**다음 우선순위** (2026-01-26 20:30 갱신):
+**Gemini 템플릿 Danbooru 규칙 적용 (2026-01-28 01:20)**:
+- 3개 템플릿에 CRITICAL IMAGE PROMPT RULE 추가
+- Stable Diffusion이 Danbooru 데이터셋 학습 명시
+- FORBIDDEN 예시: "medium shot" (0건), "bust shot" (부정확)
+- SAFE 예시: "cowboy shot" (729K), "upper body" (1.01M) + 포스트 수 표시
+- 모든 예시 태그를 Danbooru 검증된 고빈도 태그로 교체
+
+**다음 우선순위** (2026-01-28 01:20 갱신 - 프롬프트 품질 최우선):
+
+**우선순위 재평가 배경**:
+Gemini 템플릿에 Danbooru 규칙을 추가했지만, 실제 생성된 프롬프트가 규칙을 준수하는지 검증하는 시스템이 없습니다. 또한 생성된 이미지의 품질(Match Rate)을 수동으로 확인해야 하므로 자동화가 필요합니다. Multi-Character 등 기능 확장보다 **프롬프트 정확도 보장**이 품질 향상에 더 직접적인 영향을 줍니다.
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 |
-| 2 | **Core Hooks Test** | 5-7 | 중 | 낮음 | TDD 규칙 준수 |
-| 3 | **CI Script** | 5-7 | 중 | 낮음 | 테스트 자동화 |
-| 4 | Scene Builder UI | 6-3.11 | 중 | 중 | Multi-Character 시너지 |
-| 5 | Scene Clothing Override | 6-4.20 | 중 | 중 | 장면별 의상 변경 |
-| 6 | VEO Clip | 5-4 | 중 | 높음 | 외부 API 의존 |
-| 7 | Generation Log Analytics | 6-4.21 | 중 | 중 | 데이터 1,000건 이후 재검토 |
+| 1 | **정량적 품질 지표 자동화** | 5-4 | 매우 높음 | 중 | Match Rate 자동 측정, 품질 대시보드 |
+| 2 | **Gemini 프롬프트 검증** | 신규 | 매우 높음 | 낮음 | 위험 태그 차단, 자동 대체 제안 |
+| 3 | **Generation Log Analytics** | 6-4.21 | 높음 | 중 | 성공/실패 패턴 학습, 충돌 규칙 발견 |
+| 4 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 (품질 안정화 후) |
+| 5 | **Core Hooks Test** | 5-7 | 중 | 낮음 | TDD 규칙 준수 |
+| 6 | **CI Script** | 5-7 | 중 | 낮음 | 테스트 자동화 |
+| 7 | Scene Builder UI | 6-3.11 | 중 | 중 | Multi-Character 시너지 |
+| 8 | VEO Clip | 5-4 | 낮음 | 높음 | 외부 API 의존 (품질 안정화 후) |

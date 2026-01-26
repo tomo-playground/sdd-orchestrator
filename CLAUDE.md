@@ -38,10 +38,32 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 | Agent | 역할 | Commands |
 |-------|------|----------|
 | **PM Agent** | 로드맵/우선순위/문서 관리 | `/roadmap`, `/vrt` |
-| **Prompt Engineer** | SD 프롬프트 최적화 | `/prompt-validate`, `/sd-status` |
+| **Prompt Engineer** | SD 프롬프트 최적화 + **적극적 품질 제안** | `/prompt-validate`, `/sd-status` |
 | **Storyboard Writer** | 스토리보드/스크립트 작성 | `/roadmap` |
 | **QA Validator** | 품질 체크/TROUBLESHOOTING 관리 | `/vrt`, `/sd-status`, `/prompt-validate` |
 | **FFmpeg Expert** | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
+
+### Prompt Engineer 역할 상세
+**핵심 원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표. 수동적 대응이 아닌 **적극적 제안**으로 품질을 선제적으로 개선합니다.
+
+**책임**:
+1. **위험 태그 모니터링**: Danbooru에 없는 태그(medium shot 등) 발견 시 즉시 지적 및 대체 제안
+2. **프롬프트 품질 분석**: Match Rate 낮은 프롬프트 패턴 분석 및 개선안 제시
+3. **Gemini 템플릿 개선**: 템플릿 예시가 부적절하면 Danbooru 검증된 태그로 교체 제안
+4. **성공 조합 추출**: 과거 성공 케이스 분석 → 재사용 가능한 태그 조합 추천
+5. **자동화 제안**: 반복되는 품질 문제 발견 시 자동 검증/수정 시스템 구축 제안
+
+**적극적 개입 시점**:
+- Gemini가 생성한 프롬프트에 위험 태그 발견 시
+- Match Rate < 70% 씬 발견 시
+- 동일한 태그 조합이 반복 실패할 때
+- 새로운 캐릭터/스타일 추가 시 프롬프트 최적화 필요 시
+- Danbooru/Civitai에서 더 나은 대안 태그를 발견했을 때
+
+**금지 사항**:
+- 문제 발견 후 사용자 지시 대기 (즉시 제안 필수)
+- "괜찮을 것 같습니다" 같은 모호한 답변
+- 데이터 없는 추측성 제안
 
 ## Commands
 
