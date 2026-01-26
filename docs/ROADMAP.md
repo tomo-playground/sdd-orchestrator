@@ -92,11 +92,11 @@
 **구현 순서**:
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
-| 1 | Quality Score DB | `scene_quality_scores` 테이블 + Alembic 마이그레이션 | [ ] |
-| 2 | Batch Validate API | `/scenes/batch-validate` (백그라운드 WD14 검증) | [ ] |
-| 3 | Quality Summary API | `/scenes/quality-summary` (평균/씬별 점수) | [ ] |
-| 4 | Quality Alerts API | `/scenes/quality-alerts` (Match Rate < 70% 필터링) | [ ] |
-| 5 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 UI | [ ] |
+| 1 | Quality Score DB | `scene_quality_scores` 테이블 + Alembic 마이그레이션 | [x] |
+| 2 | Batch Validate API | `/scenes/batch-validate` (백그라운드 WD14 검증) | [x] |
+| 3 | Quality Summary API | `/scenes/quality-summary` (평균/씬별 점수) | [x] |
+| 4 | Quality Alerts API | `/scenes/quality-alerts` (Match Rate < 70% 필터링) | [x] |
+| 5 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 UI | [x] |
 | 6 | SceneCard 경고 배지 | 낮은 점수 씬 시각적 표시 | [ ] |
 | 7 | Backend API 테스트 | pytest 통합 테스트 (batch-validate, summary, alerts) | [ ] |
 | 8 | Frontend UI 테스트 | Vitest 컴포넌트 테스트 (QualityDashboard) | [ ] |
