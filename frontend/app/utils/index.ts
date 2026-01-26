@@ -131,55 +131,29 @@ export const getGenderEnhancements = (
   return { positive: [], negative: [] };
 };
 
-// Camera tags that are risky with standing/action poses (head cutoff risk)
+// Camera tags that are risky (head cutoff risk)
 // Maps risky camera to safer alternative
+// These are unconditionally replaced regardless of pose
 const UNSAFE_CAMERA_REPLACEMENTS: Record<string, string> = {
   "medium shot": "cowboy shot",  // medium shot has unclear definition, cowboy shot is well-defined
+  "close-up": "portrait",        // close-up is ambiguous in SD, portrait explicitly includes face
+  "close up": "portrait",        // alternative spelling
 };
 
-// Camera + Pose combinations that often cause head cutoff
-const RISKY_CAMERA_POSE_COMBOS: Array<{ camera: string[]; pose: string[]; safeCameras: string[] }> = [
-  {
-    // close-up with standing poses - conflicts semantically
-    camera: ["close-up", "close up"],
-    pose: ["standing", "walking", "running", "jumping", "pointing"],
-    safeCameras: ["portrait", "bust shot", "upper body"],
-  },
-];
-
 /**
- * Fix camera-pose conflicts that often cause head cutoff in generated images.
- * - Replaces unsafe camera tags (e.g., medium shot → cowboy shot)
- * - Detects risky camera+pose combinations and suggests fixes
+ * Fix camera tags that often cause head cutoff in generated images.
+ * Replaces unsafe camera tags with safer alternatives:
+ * - medium shot → cowboy shot (undefined in Danbooru)
+ * - close-up → portrait (ambiguous in SD, often cuts head)
  */
 export const fixCameraPoseConflicts = (tokens: string[]): string[] => {
-  const lowerTokens = tokens.map((t) => t.toLowerCase().trim());
   const result = [...tokens];
 
-  // Step 1: Replace unsafe camera tags
   for (let i = 0; i < result.length; i++) {
     const lower = result[i].toLowerCase().trim();
     if (UNSAFE_CAMERA_REPLACEMENTS[lower]) {
       console.log(`[fixCameraPoseConflicts] Replacing "${result[i]}" → "${UNSAFE_CAMERA_REPLACEMENTS[lower]}"`);
       result[i] = UNSAFE_CAMERA_REPLACEMENTS[lower];
-    }
-  }
-
-  // Step 2: Check for risky camera+pose combinations
-  for (const combo of RISKY_CAMERA_POSE_COMBOS) {
-    const hasRiskyCamera = combo.camera.some((c) => lowerTokens.includes(c));
-    const hasRiskyPose = combo.pose.some((p) => lowerTokens.includes(p));
-
-    if (hasRiskyCamera && hasRiskyPose) {
-      // Replace the risky camera with first safe alternative
-      for (let i = 0; i < result.length; i++) {
-        const lower = result[i].toLowerCase().trim();
-        if (combo.camera.includes(lower)) {
-          console.log(`[fixCameraPoseConflicts] Risky combo detected: "${result[i]}" + pose → "${combo.safeCameras[0]}"`);
-          result[i] = combo.safeCameras[0];
-          break;
-        }
-      }
     }
   }
 
