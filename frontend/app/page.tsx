@@ -1661,12 +1661,28 @@ export default function Home() {
     const controlnetPayload = useControlnet
       ? { use_controlnet: true, controlnet_weight: controlnetWeight }
       : { use_controlnet: false };
+
+    // IP-Adapter payload with defensive logging
+    console.log("[generateSceneImageFor] === IP-Adapter Debug ===");
+    console.log("[generateSceneImageFor] useIpAdapter state:", useIpAdapter);
+    console.log("[generateSceneImageFor] ipAdapterReference state:", ipAdapterReference);
+    console.log("[generateSceneImageFor] ipAdapterWeight state:", ipAdapterWeight);
+
+    // Warn if IP-Adapter is enabled but reference is missing
+    if (useIpAdapter && !ipAdapterReference) {
+      console.warn("[generateSceneImageFor] ⚠️ IP-Adapter enabled but reference is EMPTY!");
+    }
+
     const ipAdapterPayload = useIpAdapter && ipAdapterReference
       ? { use_ip_adapter: true, ip_adapter_reference: ipAdapterReference, ip_adapter_weight: ipAdapterWeight }
       : { use_ip_adapter: false };
-    console.log("[generateSingleScene] useIpAdapter:", useIpAdapter);
-    console.log("[generateSingleScene] ipAdapterReference:", ipAdapterReference);
-    console.log("[generateSingleScene] ipAdapterPayload:", ipAdapterPayload);
+
+    console.log("[generateSceneImageFor] ipAdapterPayload:", JSON.stringify(ipAdapterPayload));
+
+    // Additional check: log if IP-Adapter should be used but isn't
+    if (useIpAdapter && ipAdapterPayload.use_ip_adapter === false) {
+      console.error("[generateSceneImageFor] ❌ IP-Adapter MISMATCH: useIpAdapter=true but payload has use_ip_adapter=false");
+    }
     const debugPayload = {
       prompt,
       negative_prompt: negativePrompt,

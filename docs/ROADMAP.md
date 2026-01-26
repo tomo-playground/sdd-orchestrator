@@ -110,8 +110,9 @@
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [ ] |
 
 **현재 테스트 현황** (2026-01-26):
-- Backend: 253 passed, 4 skipped
-- 주요 테스트: VRT (36개), API (키워드/프리셋), 프롬프트 품질, Ken Burns (27개), BGM (9개)
+- Backend: 268 passed, 5 skipped
+- 주요 테스트: VRT (36개), API (키워드/프리셋/IP-Adapter), 프롬프트 품질, Ken Burns (27개), BGM (9개)
+- IP-Adapter 테스트 (16개): CLIP 모델 선택, Reference 이미지 로드, 페이로드 구성, 상수 검증
 
 ---
 
@@ -236,6 +237,9 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 - API: `/ip-adapter/status`, `/ip-adapter/references`, `/ip-adapter/reference` CRUD
 - Frontend: IP-Adapter 체크박스 + Reference 드롭다운 + Weight 슬라이더
 - ControlNet + IP-Adapter 동시 사용 가능 (포즈 + 얼굴 일관성)
+- **CLIP 모델 지원**: 애니메이션 캐릭터용 CLIP 기반 IP-Adapter (`ip-adapter-plus_sd15`)
+- **디버깅 로그**: Frontend/Backend 양측에 IP-Adapter 상태 로그 추가
+- **테스트 커버리지**: 16개 단위 테스트 (`tests/api/test_ip_adapter.py`)
 
 ### 7-3. LoRA 캘리브레이션 시스템 (🟢 완료)
 | 작업 | 설명 | 상태 |
