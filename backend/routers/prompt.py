@@ -18,7 +18,7 @@ from schemas import (
     PromptValidateRequest,
 )
 from services.prompt import validate_loras, detect_prompt_conflicts, validate_identity_tags
-from services.prompt_validation import validate_prompt_tags, auto_replace_risky_tags
+from services.prompt_validation import validate_prompt_tags, auto_replace_risky_tags, check_tag_conflicts
 from services.prompt_composition import (
     calculate_lora_weight,
     compose_prompt_tokens,
@@ -121,84 +121,68 @@ async def compose_prompt(request: PromptComposeRequest):
       - Scene tags prioritized, LoRA weight dynamically adjusted
 
     Returns the composed prompt with metadata including:
-      - effective_mode: The actual mode used (standard or lora)
-      - scene_complexity: simple, moderate, or complex
-      - lora_weights: Calculated weights for each LoRA
+    - composed_prompt: Final merged prompt string
+    - effective_mode: "standard" or "lora"
+    - token_count: Number of tokens in composed prompt
+    - lora_weight: Adjusted LoRA weight (Mode B only)
+    - scene_complexity: Scene complexity score (Mode B only)
     """
     logger.info(
-        "📥 [Prompt Compose] tokens=%d, mode=%s, loras=%d",
-        len(request.tokens),
+        "📥 [Prompt Compose] mode=%s, %d tokens, loras=%s",
         request.mode,
-        len(request.loras) if request.loras else 0,
+        len(request.tokens),
+        [lora.name for lora in (request.loras or [])],
     )
-    # Debug: Log LoRA details
-    if request.loras:
-        for lora in request.loras:
-            logger.info("📥 [Prompt Compose] LoRA: name=%s, lora_type=%s", lora.name, lora.lora_type)
 
-    # Prepare LoRA data
-    lora_dicts = []
+    # Detect effective mode
+    effective_mode = get_effective_mode_from_dict(request.model_dump())
+
+    # Extract LoRA strings and trigger words (if Mode B)
     lora_strings = []
     trigger_words = []
-    lora_weights: dict[str, float] = {}
-
-    if request.loras:
+    if effective_mode == "lora" and request.loras:
         for lora in request.loras:
-            lora_dict = {
-                "name": lora.name,
-                "lora_type": lora.lora_type,
-                "optimal_weight": lora.optimal_weight,
-            }
-            lora_dicts.append(lora_dict)
-
+            lora_strings.append(f"<lora:{lora.name}:{lora.weight}>")
             if lora.trigger_words:
                 trigger_words.extend(lora.trigger_words)
 
-    # Detect complexity and calculate weights
-    complexity = detect_scene_complexity(request.tokens)
-
-    for lora in request.loras or []:
-        weight = calculate_lora_weight(
-            lora_type=lora.lora_type,
-            complexity=complexity,
-            optimal_weight=lora.optimal_weight,
-        )
-        lora_weights[lora.name] = weight
-        lora_strings.append(f"<lora:{lora.name}:{weight}>")
-
-    # Determine effective mode
-    effective_mode = get_effective_mode_from_dict(request.mode, lora_dicts)
-
-    # Compose prompt
+    # Compose prompt tokens
     composed_tokens = compose_prompt_tokens(
         tokens=request.tokens,
         mode=effective_mode,
         lora_strings=lora_strings,
         trigger_words=trigger_words,
-        use_break=request.use_break,
+        use_break=request.use_break if request.use_break is not None else True,
     )
 
-    prompt_string = ", ".join(composed_tokens)
+    # Build final prompt string
+    composed_prompt = ", ".join(composed_tokens)
+
+    # Calculate metadata
+    result_metadata = {
+        "composed_prompt": composed_prompt,
+        "effective_mode": effective_mode,
+        "token_count": len(composed_tokens),
+    }
+
+    # Mode B specific metadata
+    if effective_mode == "lora" and request.loras:
+        scene_complexity = detect_scene_complexity(request.tokens)
+        adjusted_weight = calculate_lora_weight(
+            base_weight=request.loras[0].weight,
+            scene_complexity=scene_complexity,
+        )
+        result_metadata["lora_weight"] = adjusted_weight
+        result_metadata["scene_complexity"] = scene_complexity
 
     logger.info(
-        "✅ [Prompt Compose] mode=%s, complexity=%s, prompt=%d chars",
+        "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",
         effective_mode,
-        complexity,
-        len(prompt_string),
+        len(request.tokens),
+        len(composed_tokens),
     )
 
-    return PromptComposeResponse(
-        prompt=prompt_string,
-        tokens=composed_tokens,
-        effective_mode=effective_mode,
-        scene_complexity=complexity,
-        lora_weights=lora_weights if lora_weights else None,
-        meta={
-            "token_count": len(composed_tokens),
-            "has_break": "BREAK" in composed_tokens,
-            "quality_tags_added": composed_tokens[:3] == ["masterpiece", "best quality", "high quality"],
-        },
-    )
+    return result_metadata
 
 
 class ValidateTagsRequest(BaseModel):
@@ -226,19 +210,22 @@ async def validate_tags(
     2. Tag post count in Danbooru (if enabled)
     3. Known problematic tags (e.g., "medium shot")
 
-    Returns validation results with valid/risky/unknown tags and warnings.
+    Returns validation results with warnings for risky tags.
     """
-    logger.info("📥 [Validate Tags] tags=%d, check_danbooru=%s",
-                len(request.tags), request.check_danbooru)
+    logger.info("📥 [Validate Tags] tags=%d, check_danbooru=%s", len(request.tags), request.check_danbooru)
 
-    result = validate_prompt_tags(
+    result = await validate_prompt_tags(
         tags=request.tags,
-        db=db,
         check_danbooru=request.check_danbooru,
+        db=db,
     )
 
-    logger.info("✅ [Validate Tags] valid=%d, risky=%d, unknown=%d",
-                result["valid_count"], result["risky_count"], result["unknown_count"])
+    logger.info(
+        "✅ [Validate Tags] risky=%d, unknown_db=%d, low_posts=%d",
+        len(result["risky_tags"]),
+        len(result["unknown_in_db"]),
+        len(result["low_post_count"]),
+    )
 
     return result
 
@@ -258,4 +245,39 @@ async def replace_tags(request: AutoReplaceRequest):
 
     logger.info("✅ [Auto Replace] replaced=%d tags", result["replaced_count"])
 
+    return result
+
+
+class CheckConflictsRequest(BaseModel):
+    """Request for checking tag conflicts."""
+
+    tags: list[str]
+
+
+@router.post("/check-conflicts")
+async def check_conflicts(
+    request: CheckConflictsRequest,
+    db: Session = Depends(get_db),
+):
+    """Check for tag conflicts using DB rules.
+
+    Returns:
+        {
+            "has_conflicts": bool,
+            "conflicts": [
+                {
+                    "tag1": str,
+                    "tag2": str,
+                    "reason": str (optional)
+                }
+            ],
+            "filtered_tags": list[str]  # Tags with conflicts removed
+        }
+    """
+    result = check_tag_conflicts(request.tags, db)
+    logger.info(
+        "✅ [Check Conflicts] %d conflicts found in %d tags",
+        len(result["conflicts"]),
+        len(request.tags),
+    )
     return result

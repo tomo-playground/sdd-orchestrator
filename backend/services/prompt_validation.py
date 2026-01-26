@@ -224,3 +224,81 @@ def auto_replace_risky_tags(tags: list[str]) -> dict[str, Any]:
         "replaced_count": len([r for r in replacements if r["action"] == "replaced"]),
         "removed_count": len(removed),
     }
+
+
+def check_tag_conflicts(tags: list[str], db: Session) -> dict:
+    """Check for tag conflicts using DB rules.
+
+    Args:
+        tags: List of tag names to check
+        db: Database session
+
+    Returns:
+        {
+            "has_conflicts": bool,
+            "conflicts": [
+                {"tag1": str, "tag2": str}
+            ],
+            "filtered_tags": list[str]  # Tags with second conflicting tag removed
+        }
+    """
+    from models.tag import Tag, TagRule
+
+    # Normalize tags
+    tag_names = [t.lower().strip() for t in tags if t]
+
+    # Get tag IDs from DB
+    tag_objects = db.query(Tag).filter(Tag.name.in_(tag_names)).all()
+    tag_id_map = {tag.name: tag.id for tag in tag_objects}
+    tag_name_map = {tag.id: tag.name for tag in tag_objects}
+
+    # Get all conflict rules
+    conflict_rules = db.query(TagRule).filter(TagRule.rule_type == "conflict").all()
+
+    # Check for conflicts
+    conflicts = []
+    tags_to_remove = set()
+    seen_pairs = set()  # Track seen conflict pairs to avoid duplicates
+
+    for rule in conflict_rules:
+        tag1_id = rule.source_tag_id
+        tag2_id = rule.target_tag_id
+
+        if tag1_id in tag_name_map and tag2_id in tag_name_map:
+            tag1_name = tag_name_map[tag1_id]
+            tag2_name = tag_name_map[tag2_id]
+
+            # Check if both tags are in the input
+            if tag1_name in tag_names and tag2_name in tag_names:
+                # Create a normalized pair key to avoid duplicates
+                pair_key = tuple(sorted([tag1_name, tag2_name]))
+
+                if pair_key not in seen_pairs:
+                    seen_pairs.add(pair_key)
+                    conflicts.append({
+                        "tag1": tag1_name,
+                        "tag2": tag2_name,
+                    })
+
+                # Remove the second occurrence (keep first tag, remove second)
+                if tag_names.index(tag1_name) < tag_names.index(tag2_name):
+                    tags_to_remove.add(tag2_name)
+                else:
+                    tags_to_remove.add(tag1_name)
+
+    # Filter out conflicting tags
+    filtered_tags = [t for t in tags if t.lower().strip() not in tags_to_remove]
+
+    logger.info(
+        "[check_tag_conflicts] Found %d conflicts in %d tags, removed %d",
+        len(conflicts),
+        len(tags),
+        len(tags_to_remove),
+    )
+
+    return {
+        "has_conflicts": len(conflicts) > 0,
+        "conflicts": conflicts,
+        "filtered_tags": filtered_tags,
+        "removed_tags": list(tags_to_remove),
+    }
