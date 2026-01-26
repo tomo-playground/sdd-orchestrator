@@ -45,6 +45,15 @@ Instructions:
        - Happy scene → smile + looking at viewer + energetic pose
        - Sad scene → tears/sad + looking down + hugging knees
        - Thinking scene → serious + looking afar + hand on chin
+     * CRITICAL: Environment tags MUST match the script content:
+       - Script mentions "역무원" (station employee) → train station, platform
+       - Script mentions "도서관에서 책" (book in library) → library, indoors
+       - Script mentions "카페에서 커피" (coffee at cafe) → cafe, indoors
+       - Script mentions "집에서" (at home) → room, indoors
+       - Script mentions "공원에서 산책" (walk in park) → park, outdoors
+       - WRONG: Script about station employee + environment: library, cafe, street (unrelated locations)
+       - WRONG: Multiple unrelated locations (library + cafe + street in one scene)
+       - RIGHT: ONE consistent location that matches what the script describes
      * Use ONLY keywords from the Allowed Keywords list. Do not invent new tags.
    - image_prompt_ko: short Korean summary of image_prompt
 4. Return ONLY raw JSON array.
