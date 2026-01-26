@@ -107,13 +107,15 @@
 | **Backend API Test** | FastAPI 라우터 통합 테스트 (TestClient) | [x] |
 | **Frontend Test Init** | Vitest + React Testing Library + Playwright VRT 환경 구축 | [x] |
 | **Ken Burns Unit Test** | `services/motion.py` 27개 테스트 (TDD) | [x] |
-| **Core Hooks Test** | `useAutopilot` 등 핵심 로직 테스트 작성 | [ ] |
-| **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [ ] |
+| **Core Hooks Test** | `useAutopilot` 27개 테스트 (~95% 커버리지) | [x] |
+| **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [x] |
 
-**현재 테스트 현황** (2026-01-26):
+**현재 테스트 현황** (2026-01-27):
 - Backend: 268 passed, 5 skipped
+- Frontend: 30 passed (useAutopilot 27개, LoadingSpinner 3개)
 - 주요 테스트: VRT (36개), API (키워드/프리셋/IP-Adapter), 프롬프트 품질, Ken Burns (27개), BGM (9개)
 - IP-Adapter 테스트 (16개): CLIP 모델 선택, Reference 이미지 로드, 페이로드 구성, 상수 검증
+- **useAutopilot 테스트** (27개): 상태 관리, 로그, 취소/재개, 체크포인트, 진행률 계산, 통합 플로우
 
 ---
 
