@@ -294,7 +294,6 @@ export type DraftData = {
   overlaySettings?: OverlaySettings;
   postCardSettings?: PostCardSettings;
   layoutStyle?: "full" | "post";
-  motionStyle?: "none" | "slow_zoom";  // Legacy (backward compat)
   kenBurnsPreset?: KenBurnsPreset;
   kenBurnsIntensity?: number;  // 0.5 ~ 2.0
   hiResEnabled?: boolean;

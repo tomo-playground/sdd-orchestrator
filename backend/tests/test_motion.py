@@ -206,34 +206,29 @@ class TestBuildZoompanFilter:
 
 
 class TestResolvePresetName:
-    """Tests for resolve_preset_name backward compatibility."""
+    """Tests for resolve_preset_name function."""
 
-    def test_ken_burns_takes_priority(self):
-        """ken_burns_preset should take priority over motion_style."""
-        result = resolve_preset_name("zoom_in_center", "slow_zoom")
+    def test_valid_preset(self):
+        """Valid preset name should be returned."""
+        result = resolve_preset_name("zoom_in_center")
         assert result == "zoom_in_center"
 
-    def test_legacy_slow_zoom_supported(self):
-        """motion_style='slow_zoom' should work when ken_burns is none."""
-        result = resolve_preset_name("none", "slow_zoom")
-        assert result == "slow_zoom"
-
-    def test_none_ken_burns_none_motion(self):
-        """Both none should return 'none'."""
-        result = resolve_preset_name("none", "none")
+    def test_none_returns_none(self):
+        """'none' should return 'none'."""
+        result = resolve_preset_name("none")
         assert result == "none"
 
-    def test_null_ken_burns_with_motion(self):
-        """None ken_burns should fallback to motion_style."""
-        result = resolve_preset_name(None, "slow_zoom")
-        assert result == "slow_zoom"
+    def test_null_returns_none(self):
+        """None should return 'none'."""
+        result = resolve_preset_name(None)
+        assert result == "none"
+
+    def test_empty_string_returns_none(self):
+        """Empty string should return 'none'."""
+        result = resolve_preset_name("")
+        assert result == "none"
 
     def test_random_preset(self):
         """'random' should be passed through."""
-        result = resolve_preset_name("random", "none")
+        result = resolve_preset_name("random")
         assert result == "random"
-
-    def test_empty_string_ken_burns(self):
-        """Empty string should be treated as 'none'."""
-        result = resolve_preset_name("", "slow_zoom")
-        assert result == "slow_zoom"

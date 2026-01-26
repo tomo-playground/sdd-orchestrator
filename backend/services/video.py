@@ -221,9 +221,7 @@ class VideoBuilder:
         self.out_h = request.height
 
         # Ken Burns settings
-        self.ken_burns_preset = resolve_preset_name(
-            request.ken_burns_preset, request.motion_style
-        )
+        self.ken_burns_preset = resolve_preset_name(request.ken_burns_preset)
         self.ken_burns_intensity = max(0.5, min(request.ken_burns_intensity or 1.0, 2.0))
 
         # Per-scene data

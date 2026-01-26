@@ -140,25 +140,15 @@ def build_zoompan_filter(
     return f"zoompan=z='{z_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
 
 
-def resolve_preset_name(
-    ken_burns_preset: str | None,
-    motion_style: str | None,
-) -> str:
-    """Resolve the effective preset name with backward compatibility.
+def resolve_preset_name(ken_burns_preset: str | None) -> str:
+    """Resolve the effective preset name.
 
     Args:
-        ken_burns_preset: New Ken Burns preset name
-        motion_style: Legacy motion_style value
+        ken_burns_preset: Ken Burns preset name
 
     Returns:
-        Resolved preset name
+        Resolved preset name (defaults to 'none')
     """
-    # New field takes priority
     if ken_burns_preset and ken_burns_preset != "none":
         return ken_burns_preset
-
-    # Backward compatibility: map legacy motion_style
-    if motion_style == "slow_zoom":
-        return "slow_zoom"
-
     return "none"

@@ -358,8 +358,8 @@ brew install claude-squad  # 명령어: cs
 - **10개 프리셋**: none, slow_zoom, zoom_in/out_center, pan_left/right/up/down, zoom_pan_left/right
 - **Random 모드**: 씬별 랜덤 효과 (재현 가능한 시드 기반)
 - **Intensity 조절**: 0.5x ~ 2.0x 효과 강도 슬라이더
-- **하위 호환**: 기존 `motion_style="slow_zoom"` 정상 작동
 - **구현 파일**: `services/motion.py` (신규), `services/video.py`, `schemas.py`, `RenderSettingsPanel.tsx`, `page.tsx`
+- **레거시 제거**: `motion_style` 필드 완전 제거, `ken_burns_preset`으로 단일화
 
 **Subtitle & Text System Improvements (2026-01-26)**:
 - **특수문자 필터링 버그 수정**: `/`, `~`, `:`, `;`, `"` 등 수식 및 문장 부호가 삭제되던 문제 해결 (`1/10` 등 정상 표시).

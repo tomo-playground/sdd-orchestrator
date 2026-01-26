@@ -39,8 +39,6 @@ type RenderSettingsPanelProps = {
   setSubtitleFont: (value: string) => void;
   fontList: FontItem[];
   loadedFonts: Set<string>;
-  motionStyle: "none" | "slow_zoom";
-  setMotionStyle: (value: "none" | "slow_zoom") => void;
   kenBurnsPreset: KenBurnsPreset;
   setKenBurnsPreset: (value: KenBurnsPreset) => void;
   kenBurnsIntensity: number;
@@ -94,8 +92,6 @@ export default function RenderSettingsPanel({
   setSubtitleFont,
   fontList,
   loadedFonts,
-  motionStyle,
-  setMotionStyle,
   kenBurnsPreset,
   setKenBurnsPreset,
   kenBurnsIntensity,

@@ -161,7 +161,6 @@ export default function Home() {
     Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>
   >([]);
   const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("post");
-  const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("none");
   const [kenBurnsPreset, setKenBurnsPreset] = useState<KenBurnsPreset>("none");
   const [kenBurnsIntensity, setKenBurnsIntensity] = useState(1.0);
   const [hiResEnabled, setHiResEnabled] = useState(false);
@@ -408,7 +407,6 @@ export default function Home() {
       setPostCardSettings(normalizePostCardSettings(draft.postCardSettings));
     }
     if (draft.layoutStyle !== undefined) setLayoutStyle(draft.layoutStyle);
-    if (draft.motionStyle !== undefined) setMotionStyle(draft.motionStyle);
     if (draft.kenBurnsPreset !== undefined) setKenBurnsPreset(draft.kenBurnsPreset);
     if (draft.kenBurnsIntensity !== undefined) setKenBurnsIntensity(draft.kenBurnsIntensity);
     if (draft.hiResEnabled !== undefined) setHiResEnabled(draft.hiResEnabled);
@@ -502,7 +500,7 @@ export default function Home() {
       basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
-      overlaySettings, postCardSettings, layoutStyle, motionStyle,
+      overlaySettings, postCardSettings, layoutStyle,
       kenBurnsPreset, kenBurnsIntensity,
       hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
       useIpAdapter, ipAdapterReference, ipAdapterWeight,
@@ -516,7 +514,7 @@ export default function Home() {
     basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
-    overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    overlaySettings, postCardSettings, layoutStyle,
     kenBurnsPreset, kenBurnsIntensity,
     hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
     useIpAdapter, ipAdapterReference, ipAdapterWeight,
@@ -541,7 +539,7 @@ export default function Home() {
       basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, subtitleFont, speedMultiplier,
-      overlaySettings, postCardSettings, layoutStyle, motionStyle,
+      overlaySettings, postCardSettings, layoutStyle,
       kenBurnsPreset, kenBurnsIntensity,
       hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
       useIpAdapter, ipAdapterReference, ipAdapterWeight,
@@ -554,7 +552,7 @@ export default function Home() {
     basePromptA, baseNegativePromptA, baseStepsA, baseCfgScaleA,
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, subtitleFont, speedMultiplier,
-    overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    overlaySettings, postCardSettings, layoutStyle,
     kenBurnsPreset, kenBurnsIntensity,
     hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
     useIpAdapter, ipAdapterReference, ipAdapterWeight,
@@ -990,7 +988,6 @@ export default function Home() {
     width: 1080,
     height: 1920,
     layout_style: layoutOverride ?? layoutStyle,
-    motion_style: motionStyle,
     ken_burns_preset: kenBurnsPreset,
     ken_burns_intensity: kenBurnsIntensity,
     narrator_voice: narratorVoice,
@@ -1044,7 +1041,6 @@ export default function Home() {
     startAutoRun();
     let workingScenes = scenes;
     let currentStep: AutoRunStepId = startStep;
-    setMotionStyle("none");
     try {
       const overlayAuto = buildOverlayContext(workingScenes);
       setOverlaySettings((prev) => ({ ...prev, ...overlayAuto }));
@@ -1314,7 +1310,6 @@ export default function Home() {
     setOverlaySettings((prev) => ({ ...prev, caption: "", likes_count: "" }));
     setPostCardSettings((prev) => ({ ...prev, caption: "" }));
     setLayoutStyle("post");
-    setMotionStyle("none");
     setKenBurnsPreset("none");
     setKenBurnsIntensity(1.0);
     setHiResEnabled(false);
@@ -2281,8 +2276,6 @@ export default function Home() {
             setSubtitleFont={setSubtitleFont}
             fontList={fontList}
             loadedFonts={loadedFonts}
-            motionStyle={motionStyle}
-            setMotionStyle={setMotionStyle}
             kenBurnsPreset={kenBurnsPreset}
             setKenBurnsPreset={setKenBurnsPreset}
             kenBurnsIntensity={kenBurnsIntensity}

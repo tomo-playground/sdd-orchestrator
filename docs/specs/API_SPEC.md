@@ -133,7 +133,8 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "width": 1080,
   "height": 1080,
   "layout_style": "post",
-  "motion_style": "none",
+  "ken_burns_preset": "zoom_in_center",
+  "ken_burns_intensity": 1.0,
   "narrator_voice": "ko-KR-SunHiNeural",
   "speed_multiplier": 1.0,
   "include_subtitles": true,
@@ -159,7 +160,11 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 ```
 
 - `layout_style`: `"post"` | `"full"` (default: `"post"`)
-- `motion_style`: `"slow_zoom"` | `"none"`
+- `ken_burns_preset`: Ken Burns 효과 프리셋 (default: `"none"`)
+  - `"none"`, `"slow_zoom"`, `"zoom_in_center"`, `"zoom_out_center"`
+  - `"pan_left"`, `"pan_right"`, `"pan_up"`, `"pan_down"`
+  - `"zoom_pan_left"`, `"zoom_pan_right"`, `"random"`
+- `ken_burns_intensity`: 효과 강도 0.5~2.0 (default: `1.0`)
 
 **Response:**
 ```json

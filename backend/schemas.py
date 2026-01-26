@@ -68,8 +68,7 @@ class VideoRequest(BaseModel):
     width: int = 1080
     height: int = 1920
     layout_style: str = "post"
-    motion_style: str = "none"  # Legacy: backward compatibility
-    ken_burns_preset: str = "none"  # New Ken Burns preset
+    ken_burns_preset: str = "none"  # Ken Burns preset (10 options)
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
     narrator_voice: str = "ko-KR-SunHiNeural"
     speed_multiplier: float = 1.0
