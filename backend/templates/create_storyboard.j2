@@ -41,19 +41,13 @@ Instructions:
        - camera: shot type and angle
        - environment: location (MUST match script), time, weather, lighting
        - mood: overall atmosphere
-     * Match expression/gaze/pose/action to the scene's emotional intent:
-       - Happy scene → smile + looking at viewer + energetic pose
-       - Sad scene → tears/sad + looking down + hugging knees
-       - Thinking scene → serious + looking afar + hand on chin
+     * Match expression/gaze/pose/action to the scene's emotional intent
      * CRITICAL: Environment tags MUST match the script content:
-       - Script mentions "역무원" (station employee) → train station, platform
-       - Script mentions "도서관에서 책" (book in library) → library, indoors
-       - Script mentions "카페에서 커피" (coffee at cafe) → cafe, indoors
-       - Script mentions "집에서" (at home) → room, indoors
-       - Script mentions "공원에서 산책" (walk in park) → park, outdoors
-       - WRONG: Script about station employee + environment: library, cafe, street (unrelated locations)
-       - WRONG: Multiple unrelated locations (library + cafe + street in one scene)
-       - RIGHT: ONE consistent location that matches what the script describes
+       - Extract key location words from script (역무원 → station employee)
+       - Find matching environment tags from Allowed Keywords list
+       - Use ONLY ONE primary location per scene
+       - WRONG: Multiple unrelated locations in one scene
+       - RIGHT: ONE consistent location matching script meaning
      * Use ONLY keywords from the Allowed Keywords list. Do not invent new tags.
    - image_prompt_ko: short Korean summary of image_prompt
 4. Return ONLY raw JSON array.
@@ -68,33 +62,16 @@ Output Format:
     "script": "...",
     "speaker": "A",
     "duration": 4,
-    "image_prompt": "smile, looking at viewer, sitting, reading, upper body, library, soft lighting, peaceful",
-    "image_prompt_ko": "따뜻한 도서관에서 책 읽는 장면",
+    "image_prompt": "[expression_tag], [gaze_tag], [pose_tag], [action_tag], [camera_tag], [environment_tags], [lighting_tags], [mood_tag]",
+    "image_prompt_ko": "[Korean summary]",
     "scene_tags": {
-      "expression": ["smile"],
-      "gaze": "looking at viewer",
-      "pose": ["sitting"],
-      "action": ["reading"],
-      "camera": "upper body",
-      "environment": ["library", "soft lighting"],
-      "mood": ["peaceful"]
-    }
-  },
-  {
-    "scene_id": 2,
-    "script": "...",
-    "speaker": "A",
-    "duration": 5,
-    "image_prompt": "surprised, wide eyes, standing, cowboy shot, classroom, morning, natural light, energetic",
-    "image_prompt_ko": "교실에서 놀란 표정",
-    "scene_tags": {
-      "expression": ["surprised"],
-      "gaze": "wide eyes",
-      "pose": ["standing"],
-      "action": [],
-      "camera": "cowboy shot",
-      "environment": ["classroom", "morning", "natural light"],
-      "mood": ["energetic"]
+      "expression": ["[expression_tag]"],
+      "gaze": "[gaze_tag]",
+      "pose": ["[pose_tag]"],
+      "action": ["[action_tag]"],
+      "camera": "[camera_tag]",
+      "environment": ["[location_tag]", "[time_tag]", "[lighting_tag]"],
+      "mood": ["[mood_tag]"]
     }
   }
 ]
