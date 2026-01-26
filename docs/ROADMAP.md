@@ -192,6 +192,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 18 | Profile Export/Import | Style Profile 공유 | [ ] |
 | 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
 | 20 | Scene Clothing Override | 장면별 의상 변경 기능 | [ ] |
+| 21 | **Generation Log Analytics** | 이미지 생성 메타 로깅 → 충돌 규칙/품질 패턴 자동 발견 | [ ] |
 
 ---
 
@@ -434,7 +435,7 @@ brew install claude-squad  # 명령어: cs
 - 태그 충돌(Conflict) 및 의존성(Requires) 규칙 80여 개 적용
 - Action(holding X), Time/Weather(환경효과) 등 태그 카테고리 437개 확장
 
-**다음 우선순위** (2026-01-26 19:30 갱신):
+**다음 우선순위** (2026-01-26 20:00 갱신):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
@@ -444,3 +445,4 @@ brew install claude-squad  # 명령어: cs
 | 4 | Scene Builder UI | 6-3.11 | 중 | 중 | Multi-Character 시너지 |
 | 5 | Scene Clothing Override | 6-4.20 | 중 | 중 | 장면별 의상 변경 |
 | 6 | VEO Clip | 5-4 | 중 | 높음 | 외부 API 의존 |
+| 7 | Generation Log Analytics | 6-4.21 | 중 | 중 | 데이터 1,000건 이후 재검토 |
