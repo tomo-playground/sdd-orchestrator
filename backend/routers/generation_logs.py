@@ -134,6 +134,7 @@ def get_project_logs(project_name: str, status: str | None = None, limit: int = 
             "logs": [
                 {
                     "id": log.id,
+                    "project_name": log.project_name,
                     "scene_index": log.scene_index,
                     "prompt": log.prompt,
                     "tags": log.tags,
