@@ -33,6 +33,7 @@ class TestPrompt:
 
 
 TEST_PROMPTS: dict[str, TestPrompt] = {
+    # === 기본 (6개) ===
     "simple_portrait": TestPrompt(
         name="simple_portrait",
         description="Simple portrait (1 expression, upper body)",
@@ -62,6 +63,133 @@ TEST_PROMPTS: dict[str, TestPrompt] = {
         name="multi_element",
         description="Multi-element complex scene",
         tokens=["running", "sunset", "wind", "school uniform", "from side"],
+    ),
+    # === 표정 (4개) ===
+    "expr_angry": TestPrompt(
+        name="expr_angry",
+        description="Angry expression",
+        tokens=["angry", "frown", "upper body"],
+    ),
+    "expr_surprised": TestPrompt(
+        name="expr_surprised",
+        description="Surprised expression",
+        tokens=["surprised", "open mouth", "close-up"],
+    ),
+    "expr_blush": TestPrompt(
+        name="expr_blush",
+        description="Shy blushing expression",
+        tokens=["blush", "looking away", "embarrassed"],
+    ),
+    "expr_laugh": TestPrompt(
+        name="expr_laugh",
+        description="Laughing expression",
+        tokens=["laughing", "closed eyes", "happy"],
+    ),
+    # === 포즈 (4개) ===
+    "pose_jumping": TestPrompt(
+        name="pose_jumping",
+        description="Dynamic jumping pose",
+        tokens=["jumping", "arms up", "full body"],
+    ),
+    "pose_lying": TestPrompt(
+        name="pose_lying",
+        description="Lying down pose",
+        tokens=["lying", "on back", "bed"],
+    ),
+    "pose_walking": TestPrompt(
+        name="pose_walking",
+        description="Walking pose",
+        tokens=["walking", "street", "from behind"],
+    ),
+    "pose_leaning": TestPrompt(
+        name="pose_leaning",
+        description="Leaning against wall",
+        tokens=["leaning", "against wall", "crossed arms"],
+    ),
+    # === 카메라 앵글 (3개) ===
+    "angle_from_above": TestPrompt(
+        name="angle_from_above",
+        description="Bird's eye view",
+        tokens=["from above", "looking up", "full body"],
+    ),
+    "angle_from_below": TestPrompt(
+        name="angle_from_below",
+        description="Low angle shot",
+        tokens=["from below", "looking down", "standing"],
+    ),
+    "angle_dutch": TestPrompt(
+        name="angle_dutch",
+        description="Dutch angle dynamic shot",
+        tokens=["dutch angle", "running", "action"],
+    ),
+    # === 환경 (4개) ===
+    "env_cafe": TestPrompt(
+        name="env_cafe",
+        description="Cafe setting",
+        tokens=["cafe", "sitting", "holding cup", "table"],
+    ),
+    "env_street": TestPrompt(
+        name="env_street",
+        description="Urban street setting",
+        tokens=["street", "city", "walking", "crowd"],
+    ),
+    "env_beach": TestPrompt(
+        name="env_beach",
+        description="Beach setting",
+        tokens=["beach", "ocean", "swimsuit", "sunny"],
+    ),
+    "env_forest": TestPrompt(
+        name="env_forest",
+        description="Forest setting",
+        tokens=["forest", "trees", "sunlight", "nature"],
+    ),
+    # === 시간/날씨 (4개) ===
+    "time_night": TestPrompt(
+        name="time_night",
+        description="Night scene with city lights",
+        tokens=["night", "city lights", "standing", "from below"],
+    ),
+    "weather_rain": TestPrompt(
+        name="weather_rain",
+        description="Rainy day scene",
+        tokens=["rain", "umbrella", "wet", "street"],
+    ),
+    "weather_snow": TestPrompt(
+        name="weather_snow",
+        description="Snowy winter scene",
+        tokens=["snow", "winter clothes", "breath", "cold"],
+    ),
+    "time_golden": TestPrompt(
+        name="time_golden",
+        description="Golden hour lighting",
+        tokens=["golden hour", "backlighting", "warm light", "outdoor"],
+    ),
+    # === 의상 (3개) ===
+    "cloth_casual": TestPrompt(
+        name="cloth_casual",
+        description="Casual daily clothes",
+        tokens=["t-shirt", "jeans", "casual", "standing"],
+    ),
+    "cloth_formal": TestPrompt(
+        name="cloth_formal",
+        description="Formal dress",
+        tokens=["dress", "formal", "elegant", "full body"],
+    ),
+    "cloth_winter": TestPrompt(
+        name="cloth_winter",
+        description="Winter outfit",
+        tokens=["coat", "scarf", "winter", "outdoor"],
+    ),
+    # === 소품/액션 (2개) ===
+    "prop_phone": TestPrompt(
+        name="prop_phone",
+        description="Using smartphone",
+        tokens=["holding phone", "looking at phone", "sitting"],
+    ),
+    "prop_book": TestPrompt(
+        name="prop_book",
+        description="Reading a book",
+        tokens=["holding book", "reading", "glasses", "indoor"],
     ),
 }
 
