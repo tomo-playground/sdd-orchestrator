@@ -1587,10 +1587,14 @@ export default function Home() {
       allTokens.push(...genderEnhancements.positive);
     }
 
+    // Fix camera-pose conflicts (e.g., medium shot → cowboy shot, close-up → portrait)
+    const fixedTokens = fixCameraPoseConflicts(allTokens);
+    console.log("[buildScenePrompt] After fixCameraPoseConflicts:", fixedTokens);
+
     // Use /prompt/compose API for Mode A/B ordering
     try {
       const composeRes = await axios.post(`${API_BASE}/prompt/compose`, {
-        tokens: allTokens,
+        tokens: fixedTokens,
         mode: characterPromptMode,
         loras: characterLoras.length > 0 ? characterLoras.map(lora => ({
           name: lora.name,
@@ -1609,7 +1613,7 @@ export default function Home() {
     }
 
     // Fallback: simple concatenation
-    return allTokens.join(", ");
+    return fixedTokens.join(", ");
   };
 
   const buildHiResPayload = () =>
