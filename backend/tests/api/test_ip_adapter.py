@@ -5,8 +5,6 @@ Tests for character consistency using IP-Adapter with CLIP models.
 """
 
 import base64
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,7 +15,7 @@ class TestIpAdapterArgs:
 
     def test_build_ip_adapter_args_clip_model(self):
         """Test building IP-Adapter args with CLIP model (anime/illustration)."""
-        from services.controlnet import build_ip_adapter_args, IP_ADAPTER_MODELS
+        from services.controlnet import IP_ADAPTER_MODELS, build_ip_adapter_args
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
         args = build_ip_adapter_args(
@@ -34,7 +32,7 @@ class TestIpAdapterArgs:
 
     def test_build_ip_adapter_args_clip_face_model(self):
         """Test building IP-Adapter args with CLIP face model."""
-        from services.controlnet import build_ip_adapter_args, IP_ADAPTER_MODELS
+        from services.controlnet import IP_ADAPTER_MODELS, build_ip_adapter_args
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
         args = build_ip_adapter_args(
@@ -49,7 +47,7 @@ class TestIpAdapterArgs:
 
     def test_build_ip_adapter_args_faceid_model(self):
         """Test building IP-Adapter args with FaceID model (real faces only)."""
-        from services.controlnet import build_ip_adapter_args, IP_ADAPTER_MODELS
+        from services.controlnet import IP_ADAPTER_MODELS, build_ip_adapter_args
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
         args = build_ip_adapter_args(
@@ -64,7 +62,7 @@ class TestIpAdapterArgs:
 
     def test_build_ip_adapter_args_default_model(self):
         """Test that default model is CLIP_FACE (for anime characters)."""
-        from services.controlnet import build_ip_adapter_args, DEFAULT_IP_ADAPTER_MODEL
+        from services.controlnet import DEFAULT_IP_ADAPTER_MODEL, build_ip_adapter_args
 
         assert DEFAULT_IP_ADAPTER_MODEL == "clip_face"
 
@@ -104,7 +102,7 @@ class TestReferenceImages:
 
     def test_load_reference_image_existing(self):
         """Test loading an existing reference image."""
-        from services.controlnet import load_reference_image, REFERENCE_DIR
+        from services.controlnet import REFERENCE_DIR, load_reference_image
 
         # Check if any reference images exist
         ref_files = list(REFERENCE_DIR.glob("*.png"))
@@ -184,9 +182,9 @@ class TestSceneGenerationWithIpAdapter:
     def test_ip_adapter_payload_construction(self):
         """Test that IP-Adapter payload is correctly constructed."""
         from services.controlnet import (
+            REFERENCE_DIR,
             build_ip_adapter_args,
             load_reference_image,
-            REFERENCE_DIR,
         )
 
         # Check if any reference images exist

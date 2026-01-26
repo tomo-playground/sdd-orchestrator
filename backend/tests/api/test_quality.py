@@ -1,7 +1,7 @@
 """Tests for quality measurement API endpoints."""
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 
 def test_batch_validate_empty_scenes(client: TestClient):

@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
-from models import SDModel, LoRA, Embedding, StyleProfile
+from models import Embedding, LoRA, SDModel, StyleProfile
 
 
 def get_or_create(db: Session, model_class, name: str, defaults: dict):
@@ -97,7 +97,7 @@ def main():
         print("\n🎭 Style Profiles:")
         existing_profile = db.query(StyleProfile).filter(StyleProfile.name == "animagine-default").first()
         if existing_profile:
-            print(f"  ⏭️  Exists: animagine-default")
+            print("  ⏭️  Exists: animagine-default")
         else:
             profile = StyleProfile(
                 name="animagine-default",
@@ -115,7 +115,7 @@ def main():
                 is_active=True,
             )
             db.add(profile)
-            print(f"  ✅ Created: animagine-default (set as default)")
+            print("  ✅ Created: animagine-default (set as default)")
 
         db.commit()
         print("\n🎉 Setup complete!")

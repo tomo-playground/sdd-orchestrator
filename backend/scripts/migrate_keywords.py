@@ -19,8 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
-from models import Tag, Synonym
-
+from models import Synonym, Tag
 
 # Category to DB mapping based on ROADMAP v2.0 spec
 CATEGORY_MAPPING = {

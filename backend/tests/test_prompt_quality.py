@@ -11,12 +11,13 @@ Run manually (not in CI):
     pytest tests/test_prompt_quality.py -v -s --run-e2e
 """
 
-import pytest
-import httpx
 import base64
-from io import BytesIO
 
-from config import SD_BASE_URL as SD_API, API_PUBLIC_URL as BACKEND_API
+import httpx
+import pytest
+
+from config import API_PUBLIC_URL as BACKEND_API
+from config import SD_BASE_URL as SD_API
 
 # Skip all tests in this file unless --run-e2e flag is provided
 pytestmark = pytest.mark.skipif(
@@ -132,10 +133,10 @@ class TestPromptQualityE2E:
             loras=[lora_info]
         )
 
-        print(f"\n=== Mode A (Standard) ===")
+        print("\n=== Mode A (Standard) ===")
         print(f"Prompt: {mode_a_result['prompt'][:100]}...")
 
-        print(f"\n=== Mode B (LoRA) ===")
+        print("\n=== Mode B (LoRA) ===")
         print(f"Prompt: {mode_b_result['prompt'][:100]}...")
         print(f"Complexity: {mode_b_result['scene_complexity']}")
         print(f"LoRA Weight: {mode_b_result.get('lora_weights', {})}")
@@ -155,7 +156,7 @@ class TestPromptQualityE2E:
         match_rate_a = validation_a.get("match_rate", 0)
         match_rate_b = validation_b.get("match_rate", 0)
 
-        print(f"\n=== Results ===")
+        print("\n=== Results ===")
         print(f"Mode A match rate: {match_rate_a:.1%}")
         print(f"Mode B match rate: {match_rate_b:.1%}")
         print(f"Mode A detected: {validation_a.get('matched_tags', [])}")

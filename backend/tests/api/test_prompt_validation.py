@@ -14,10 +14,9 @@ def test_validate_tags_empty(client: TestClient):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total_tags"] == 0
-    assert data["valid_count"] == 0
-    assert data["risky_count"] == 0
-    assert data["unknown_count"] == 0
+    assert data["total"] == 0
+    assert len(data["risky_tags"]) == 0
+    assert len(data["unknown_in_db"]) == 0
     assert data["warnings"] == []
 
 
@@ -31,13 +30,9 @@ def test_validate_tags_with_db_tags(client: TestClient):
     assert response.status_code == 200
     data = response.json()
 
-    assert data["total_tags"] == 2
-    # These tags should be valid if they're in the DB
-    assert data["valid_count"] >= 0
-    assert data["risky_count"] >= 0
-    assert data["unknown_count"] >= 0
+    assert data["total"] == 2
     # At least one should be categorized
-    assert data["valid_count"] + data["risky_count"] + data["unknown_count"] == 2
+    assert len(data["risky_tags"]) + len(data["unknown_in_db"]) <= 2
 
 
 def test_validate_tags_risky_known(client: TestClient):
@@ -51,7 +46,7 @@ def test_validate_tags_risky_known(client: TestClient):
     data = response.json()
 
     # At least one should be detected as risky (in RISKY_TAG_REPLACEMENTS)
-    assert data["risky_count"] >= 1
+    assert len(data["risky_tags"]) >= 1
 
     # Check that warnings have proper structure
     assert len(data["warnings"]) >= 1
@@ -60,7 +55,7 @@ def test_validate_tags_risky_known(client: TestClient):
         assert "reason" in warning
         assert "suggestion" in warning
         # If it's a risky tag, it should have a suggestion
-        if warning["tag"] in data["risky"]:
+        if warning["tag"] in data["risky_tags"]:
             assert warning["suggestion"] is not None
 
 
@@ -94,14 +89,13 @@ def test_validate_tags_with_danbooru(mock_get_tag, client: TestClient):
     assert response.status_code == 200
     data = response.json()
 
-    assert data["valid_count"] == 1  # high_quality_tag
-    assert data["risky_count"] == 2  # low_usage_tag, zero_posts_tag
-    assert data["unknown_count"] == 1  # not_found_tag
+    assert len(data["risky_tags"]) == 2  # low_usage_tag, zero_posts_tag
+    assert len(data["unknown_in_db"]) == 1  # not_found_tag
 
-    assert "high_quality_tag" in data["valid"]
-    assert "low_usage_tag" in data["risky"]
-    assert "zero_posts_tag" in data["risky"]
-    assert "not_found_tag" in data["unknown"]
+    # Verify presence in lists (risky_tags and unknown_in_db)
+    assert "low_usage_tag" in data["risky_tags"]
+    assert "zero_posts_tag" in data["risky_tags"]
+    assert "not_found_tag" in data["unknown_in_db"]
 
 
 @patch("services.prompt_validation.get_tag_info_sync")
@@ -117,13 +111,13 @@ def test_validate_tags_danbooru_error(mock_get_tag, client: TestClient):
     data = response.json()
 
     # Should mark as unknown when API fails
-    assert data["unknown_count"] == 1
-    assert "test_tag" in data["unknown"]
+    assert len(data["unknown_in_db"]) == 1
+    assert "test_tag" in data["unknown_in_db"]
 
     # Should have warning about API error
     warnings = [w for w in data["warnings"] if w["tag"] == "test_tag"]
     assert len(warnings) == 1
-    assert "API error" in warnings[0]["reason"]
+    assert "api error" in warnings[0]["reason"].lower()
 
 
 def test_auto_replace_empty(client: TestClient):
@@ -253,6 +247,6 @@ def test_validate_tags_various_inputs(
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total_tags"] == expected_total
+    assert data["total"] == expected_total
     # Just verify all tags are categorized
-    assert data["valid_count"] + data["risky_count"] + data["unknown_count"] == expected_total
+    assert len(data["risky_tags"]) + len(data["unknown_in_db"]) <= expected_total

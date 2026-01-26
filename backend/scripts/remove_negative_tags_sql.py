@@ -1,6 +1,7 @@
 """Remove problematic tags from character negative prompts using raw SQL."""
 
 import os
+
 import psycopg2
 from dotenv import load_dotenv
 

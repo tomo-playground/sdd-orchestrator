@@ -5,20 +5,16 @@ These tests verify that the same inputs produce the same outputs
 when using fixed seeds, which is essential for VRT reliability.
 """
 
-import random
 from pathlib import Path
-
-import pytest
-from PIL import Image
 
 from constants.testing import (
     VRTConfig,
-    get_test_seed,
     create_seeded_random,
-    get_test_views_time,
     get_test_avatar_color,
+    get_test_seed,
+    get_test_views_time,
 )
-from services.rendering import render_subtitle_image, _build_post_meta
+from services.rendering import _build_post_meta, render_subtitle_image
 from tests.vrt.compare import VRTComparison, pil_to_numpy
 
 

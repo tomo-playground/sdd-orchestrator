@@ -1,8 +1,8 @@
 """Tests for generation logs API endpoints."""
 
-from fastapi.testclient import TestClient
-import pytest
 import uuid
+
+from fastapi.testclient import TestClient
 
 
 def _unique_project() -> str:

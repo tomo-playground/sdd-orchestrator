@@ -1,8 +1,9 @@
 """Test applying a truly new conflict rule: cyberpunk + medieval."""
 
-import os
-import psycopg2
 import json
+import os
+
+import psycopg2
 import requests
 from dotenv import load_dotenv
 
@@ -74,9 +75,9 @@ def main():
             })
 
         print(f"Creating {len(logs)} test logs...")
-        print(f"  - 10 fails with 'cyberpunk + medieval'")
-        print(f"  - 3 successes with 'cyberpunk' only")
-        print(f"  - 3 successes with 'medieval' only")
+        print("  - 10 fails with 'cyberpunk + medieval'")
+        print("  - 3 successes with 'cyberpunk' only")
+        print("  - 3 successes with 'medieval' only")
         print()
 
         for log in logs:

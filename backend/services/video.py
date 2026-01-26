@@ -680,8 +680,9 @@ class VideoBuilder:
     def _apply_transitions(self) -> None:
         """Apply transitions between scenes."""
         if self.num_scenes > 1:
-            from constants.transition import RANDOM_ELIGIBLE, get_transition_name
             import random
+
+            from constants.transition import RANDOM_ELIGIBLE, get_transition_name
 
             curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
             for i in range(1, self.num_scenes):
@@ -771,7 +772,7 @@ class VideoBuilder:
         )
         # Slide from bottom: y starts at h and moves to 0 over 0.5 seconds
         self.filters.append(
-            f"[v_h][ovr_f]overlay=0:'if(lt(t,0.5),h*(1-t*2),0)':format=auto[vid_o]"
+            "[v_h][ovr_f]overlay=0:'if(lt(t,0.5),h*(1-t*2),0)':format=auto[vid_o]"
         )
 
         self._map_v = "[vid_o]"

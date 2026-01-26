@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+
 def test_list_presets(client: TestClient):
     """Test listing presets."""
     response = client.get("/presets")
@@ -21,7 +22,7 @@ def test_get_preset_detail(client: TestClient):
     presets = response.json()["presets"]
     if not presets:
         return
-    
+
     preset_id = presets[0]["id"]
     response = client.get(f"/presets/{preset_id}")
     assert response.status_code == 200
@@ -36,7 +37,7 @@ def test_get_preset_topics(client: TestClient):
     presets = response.json()["presets"]
     if not presets:
         return
-    
+
     preset_id = presets[0]["id"]
     response = client.get(f"/presets/{preset_id}/topics")
     assert response.status_code == 200

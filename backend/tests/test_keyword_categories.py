@@ -5,7 +5,8 @@ and prevents misclassification bugs from recurring.
 """
 
 import pytest
-from services.keywords import suggest_category_for_tag, SKIP_TAGS
+
+from services.keywords import suggest_category_for_tag
 
 
 class TestSkipTags:

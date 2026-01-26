@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import get_db
-from models import StyleProfile, SDModel, LoRA, Embedding
+from models import Embedding, LoRA, SDModel, StyleProfile
 from schemas import StyleProfileCreate, StyleProfileResponse, StyleProfileUpdate
 
 router = APIRouter(prefix="/style-profiles", tags=["style-profiles"])

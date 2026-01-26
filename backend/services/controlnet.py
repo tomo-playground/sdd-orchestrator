@@ -17,11 +17,11 @@ from PIL import Image
 from sqlalchemy.orm import Session
 
 from config import (
+    CHARACTER_PRESETS,
+    DEFAULT_CHARACTER_PRESET,
     SD_BASE_URL,
     SD_TXT2IMG_URL,
     logger,
-    CHARACTER_PRESETS,
-    DEFAULT_CHARACTER_PRESET,
 )
 from models import Character, LoRA, Tag
 
@@ -572,7 +572,7 @@ async def generate_reference_for_character(
                    f"detected={validation['detected']}, missing={validation['missing']}")
 
         if validation["valid"]:
-            logger.info(f"✅ Reference image validated successfully!")
+            logger.info("✅ Reference image validated successfully!")
             return save_reference_image(character.name, image_b64)
 
         # Track best attempt

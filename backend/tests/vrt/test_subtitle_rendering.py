@@ -4,12 +4,13 @@ VRT tests for subtitle rendering.
 Tests the render_subtitle_image function to ensure visual consistency.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Import the function under test
 from services.rendering import render_subtitle_image
-from tests.vrt.compare import VRTComparison, pil_to_numpy
+from tests.vrt.compare import VRTComparison
 
 
 class TestSubtitleRenderingFull:

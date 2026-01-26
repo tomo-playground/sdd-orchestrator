@@ -6,8 +6,6 @@ Replaces hardcoded CATEGORY_PATTERNS with dynamic, learnable system.
 
 from __future__ import annotations
 
-import re
-from functools import lru_cache
 from typing import TYPE_CHECKING, TypedDict
 
 from sqlalchemy import select
@@ -84,7 +82,7 @@ class TagClassifier:
 
     def _classify_via_danbooru(self, tag: str) -> ClassificationResult | None:
         """Classify tag using Danbooru API."""
-        from services.danbooru import get_tag_info_sync, classify_from_danbooru
+        from services.danbooru import classify_from_danbooru, get_tag_info_sync
 
         try:
             tag_info = get_tag_info_sync(tag.replace(" ", "_"))

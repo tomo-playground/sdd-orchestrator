@@ -8,12 +8,12 @@ import io
 from fastapi import APIRouter, HTTPException
 from PIL import Image
 
-from services.generation import generate_scene_image
-from services.validation import validate_scene_image
-from services.image import decode_data_url
-from services.utils import scrub_payload
 from config import API_PUBLIC_URL, IMAGE_DIR, logger
 from schemas import ImageStoreRequest, SceneGenerateRequest, SceneValidateRequest
+from services.generation import generate_scene_image
+from services.image import decode_data_url
+from services.utils import scrub_payload
+from services.validation import validate_scene_image
 
 router = APIRouter(tags=["scene"])
 

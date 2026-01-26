@@ -5,15 +5,15 @@ Automatically finds optimal weight for scene expression.
 
 from __future__ import annotations
 
-import httpx
-
-from config import SD_TXT2IMG_URL, SD_TIMEOUT_SECONDS, logger
-from services.validation import wd14_predict_tags, compare_prompt_to_tags
-from services.controlnet import build_controlnet_args, load_pose_reference
-from PIL import Image
-import io
 import base64
+import io
 
+import httpx
+from PIL import Image
+
+from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from services.controlnet import build_controlnet_args, load_pose_reference
+from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
 # Standard test prompt for calibration
 CALIBRATION_PROMPT = "1girl, standing, waving, classroom, school uniform, smile, anime style, best quality"

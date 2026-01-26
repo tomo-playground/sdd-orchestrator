@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from "react";
 import axios from "axios";
-import type { TagValidationResult } from "../components/TagValidationWarning";
+import type { TagValidationResult } from "../components/prompt/TagValidationWarning";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 

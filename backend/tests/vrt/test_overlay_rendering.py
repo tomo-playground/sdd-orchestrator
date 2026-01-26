@@ -8,12 +8,11 @@ across different overlay styles (clean, minimal, bold).
 import tempfile
 from pathlib import Path
 
-import pytest
 from PIL import Image
 
-from services.rendering import create_overlay_image
 from schemas import OverlaySettings
-from tests.vrt.compare import VRTComparison, pil_to_numpy
+from services.rendering import create_overlay_image
+from tests.vrt.compare import VRTComparison
 
 
 class TestOverlayRenderingFull:

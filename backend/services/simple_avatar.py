@@ -1,8 +1,9 @@
 """Simple avatar generation without SD WebUI."""
 
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
 import hashlib
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 def generate_simple_avatar(

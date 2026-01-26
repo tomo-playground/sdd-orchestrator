@@ -2,24 +2,26 @@ from __future__ import annotations
 
 import httpx
 from fastapi import HTTPException
-from config import logger, SD_TXT2IMG_URL, SD_TIMEOUT_SECONDS
+
+from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
 from schemas import SceneGenerateRequest
-from services.prompt import (
-    normalize_prompt_tokens,
-    extract_lora_names,
-    apply_optimal_lora_weights,
-    normalize_negative_prompt,
-    split_prompt_tokens,
-)
-from services.lora_calibration import get_optimal_weights_from_db
 from services.controlnet import (
+    build_controlnet_args,
+    build_ip_adapter_args,
     check_controlnet_available,
     detect_pose_from_prompt,
     load_pose_reference,
-    build_controlnet_args,
     load_reference_image,
-    build_ip_adapter_args,
 )
+from services.lora_calibration import get_optimal_weights_from_db
+from services.prompt import (
+    apply_optimal_lora_weights,
+    extract_lora_names,
+    normalize_negative_prompt,
+    normalize_prompt_tokens,
+    split_prompt_tokens,
+)
+
 
 async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     """Generate a scene image using Stable Diffusion."""

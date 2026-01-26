@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-from pathlib import Path
 
 import httpx
 
@@ -81,7 +80,7 @@ async def ensure_avatar_file(
         logger.info(f"✅ Avatar generated successfully: {filename}")
         return filename
     except httpx.ConnectError:
-        logger.warning(f"SD WebUI not running, generating simple avatar instead")
+        logger.warning("SD WebUI not running, generating simple avatar instead")
         try:
             from services.simple_avatar import generate_simple_avatar
             generate_simple_avatar(avatar_key, target)

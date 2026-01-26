@@ -8,7 +8,6 @@ of the Instagram-style post layout.
 import io
 from pathlib import Path
 
-import pytest
 from PIL import Image
 
 from services.rendering import compose_post_frame

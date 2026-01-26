@@ -16,7 +16,6 @@ Usage:
 import os
 import random
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -90,7 +89,7 @@ def get_test_seed(name: str = "default") -> int:
     return int(hash_value[:8], 16)
 
 
-def create_seeded_random(seed: Optional[int] = None) -> random.Random:
+def create_seeded_random(seed: int | None = None) -> random.Random:
     """
     Create a seeded Random instance.
 
@@ -111,7 +110,7 @@ def create_seeded_random(seed: Optional[int] = None) -> random.Random:
 
 # === Test Data Generators ===
 
-def get_test_views_time(seed: Optional[int] = None) -> tuple[str, str]:
+def get_test_views_time(seed: int | None = None) -> tuple[str, str]:
     """
     Get deterministic views and time for testing.
 
@@ -125,7 +124,7 @@ def get_test_views_time(seed: Optional[int] = None) -> tuple[str, str]:
     return rng.choice(views_pool), rng.choice(time_pool)
 
 
-def get_test_avatar_color(seed: Optional[int] = None) -> tuple[int, int, int]:
+def get_test_avatar_color(seed: int | None = None) -> tuple[int, int, int]:
     """
     Get deterministic avatar color for testing.
 

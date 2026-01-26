@@ -1783,7 +1783,7 @@ export default function Home() {
             project_name: projectName,
             scene_index: scene.id,
             prompt,
-            tags: prompt.split(",").map((t) => t.trim()),
+            tags: prompt.split(",").map((t: string) => t.trim()),
             sd_params: {
               steps: scene.steps,
               cfg_scale: scene.cfg_scale,

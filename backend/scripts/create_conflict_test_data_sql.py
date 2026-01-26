@@ -1,8 +1,9 @@
 """Create test generation logs with conflict patterns using raw SQL."""
 
-import os
-import psycopg2
 import json
+import os
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -75,10 +76,10 @@ def main():
             })
 
         print(f"\nCreating {len(logs)} test generation logs...")
-        print(f"  - 10 logs with 'upper body + full body' conflict (fail)")
-        print(f"  - 8 logs with 'indoors + outdoors' conflict (fail)")
-        print(f"  - 7 logs with 'day + night' conflict (fail)")
-        print(f"  - 3 logs without conflicts (success)")
+        print("  - 10 logs with 'upper body + full body' conflict (fail)")
+        print("  - 8 logs with 'indoors + outdoors' conflict (fail)")
+        print("  - 7 logs with 'day + night' conflict (fail)")
+        print("  - 3 logs without conflicts (success)")
         print()
 
         # Insert logs
@@ -104,8 +105,8 @@ def main():
         print()
         print("Next steps:")
         print(f"  1. curl 'http://localhost:8000/generation-logs/suggest-conflict-rules?project_name={project_name}&min_occurrences=5&fail_rate_threshold=0.6'")
-        print(f"  2. Review suggested rules")
-        print(f"  3. Apply rules via POST /generation-logs/apply-conflict-rules")
+        print("  2. Review suggested rules")
+        print("  3. Apply rules via POST /generation-logs/apply-conflict-rules")
 
     except Exception as exc:
         conn.rollback()

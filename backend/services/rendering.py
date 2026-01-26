@@ -15,7 +15,7 @@ from typing import Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-from config import ASSETS_DIR, AVATAR_DIR, OVERLAY_DIR
+from config import ASSETS_DIR, AVATAR_DIR, OVERLAY_DIR, logger
 
 
 def _get_assets_dir() -> pathlib.Path:

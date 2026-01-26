@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+
 def test_get_keyword_priority(client: TestClient):
     """Test getting keyword priorities."""
     response = client.get("/keywords/priority")

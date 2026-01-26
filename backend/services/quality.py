@@ -5,7 +5,6 @@ Provides batch validation and quality score tracking using WD14.
 
 from __future__ import annotations
 
-import io
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any

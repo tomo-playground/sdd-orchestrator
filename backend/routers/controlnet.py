@@ -3,21 +3,20 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from config import logger
-from config import CHARACTER_PRESETS, DEFAULT_CHARACTER_PRESET
+from config import CHARACTER_PRESETS, DEFAULT_CHARACTER_PRESET, logger
 from services.controlnet import (
-    check_controlnet_available,
-    get_controlnet_models,
-    load_pose_reference,
-    detect_pose_from_prompt,
-    create_pose_from_image,
-    save_reference_image,
-    load_reference_image,
-    list_reference_images,
-    delete_reference_image,
-    get_character_preset,
-    POSE_MAPPING,
     IP_ADAPTER_MODELS,
+    POSE_MAPPING,
+    check_controlnet_available,
+    create_pose_from_image,
+    delete_reference_image,
+    detect_pose_from_prompt,
+    get_character_preset,
+    get_controlnet_models,
+    list_reference_images,
+    load_pose_reference,
+    load_reference_image,
+    save_reference_image,
 )
 
 router = APIRouter(prefix="/controlnet", tags=["controlnet"])

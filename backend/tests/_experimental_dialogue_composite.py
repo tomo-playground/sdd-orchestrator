@@ -17,7 +17,7 @@ from io import BytesIO
 from pathlib import Path
 
 import httpx
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance
 
 # rembg 설치 여부 확인
 try:
@@ -28,12 +28,8 @@ except ImportError:
     print("⚠️  rembg 미설치. 배경 제거 테스트 스킵됨. (pip install rembg)")
 
 # 설정
-import pytest
-from PIL import Image
 
 from config import SD_BASE_URL
-from services.controlnet import build_ip_adapter_args, save_reference_image
-from services.image import generate_image_advanced
 
 # Configuration for testing
 
@@ -87,7 +83,7 @@ def generate_character(emotion: dict, bg_type: str = "white") -> Image.Image | N
             data = res.json()
 
             if "images" not in data or not data["images"]:
-                print(f"  ❌ 이미지 없음")
+                print("  ❌ 이미지 없음")
                 return None
 
             img_b64 = data["images"][0]

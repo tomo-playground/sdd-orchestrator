@@ -1,7 +1,8 @@
 """Test applying conflict rules via API."""
 
-import requests
 import json
+
+import requests
 
 API_BASE = "http://localhost:8000"
 

@@ -1,6 +1,5 @@
 """Tests for image validation service (WD14 and Gemini comparison)."""
 
-import pytest
 from services.validation import compare_prompt_to_tags
 
 

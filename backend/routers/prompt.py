@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import SD_LORAS_URL, logger
 from database import get_db
 from schemas import (
     PromptComposeRequest,
@@ -17,21 +17,19 @@ from schemas import (
     PromptValidateRequest,
 )
 from services.prompt import (
+    detect_prompt_conflicts,
     rewrite_prompt,
     split_prompt_example,
-    validate_loras,
-    detect_prompt_conflicts,
     validate_identity_tags,
+    validate_loras,
 )
-from services.prompt_validation import validate_prompt_tags, auto_replace_risky_tags, check_tag_conflicts
 from services.prompt_composition import (
     calculate_lora_weight,
     compose_prompt_tokens,
     detect_scene_complexity,
     get_effective_mode_from_dict,
 )
-from database import get_db
-from config import logger
+from services.prompt_validation import auto_replace_risky_tags, check_tag_conflicts, validate_prompt_tags
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 

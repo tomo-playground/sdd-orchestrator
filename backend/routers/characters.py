@@ -155,14 +155,14 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
 
     try:
         filename = await generate_reference_for_character(db, character)
-        
+
         # Update preview_image_url if missing or update needed
         new_url = f"/assets/references/{filename}"
         if character.preview_image_url != new_url:
             character.preview_image_url = new_url
             db.commit()
             db.refresh(character)
-            
+
         return {"ok": True, "filename": filename, "preview_image_url": new_url}
     except Exception as e:
         logger.exception("Failed to regenerate reference for %s", character.name)

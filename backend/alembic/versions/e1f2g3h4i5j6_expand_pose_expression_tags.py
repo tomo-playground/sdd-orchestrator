@@ -5,17 +5,17 @@ Revises: d073d96eed09
 Create Date: 2026-01-24 21:00:00.000000
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'e1f2g3h4i5j6'
-down_revision: Union[str, Sequence[str], None] = 'd073d96eed09'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = 'd073d96eed09'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Tag reclassification: pose -> expression, gaze, pose, action
 EXPRESSION_TAGS = [

@@ -2,8 +2,6 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from config import logger
 from database import SessionLocal

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+
 from fastapi import HTTPException
+
 from config import gemini_client, template_env
 from schemas import StoryboardRequest
-from services.presets import get_preset_by_structure
 from services.keywords import format_keyword_context
+from services.presets import get_preset_by_structure
+
 
 def create_storyboard(request: StoryboardRequest) -> dict:
     """Generate a storyboard from a topic using Gemini."""
@@ -39,8 +42,8 @@ def create_storyboard(request: StoryboardRequest) -> dict:
         )
         scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
         for scene in scenes:
-            from services.keywords import filter_prompt_tokens, normalize_prompt_tokens
             from config import logger
+            from services.keywords import filter_prompt_tokens, normalize_prompt_tokens
 
             raw_prompt = scene.get("image_prompt", "")
             if not raw_prompt:

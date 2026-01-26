@@ -14,12 +14,10 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import Tuple
-
 
 # Type aliases for clarity
-RGBA = Tuple[int, int, int, int]
-RGB = Tuple[int, int, int]
+RGBA = tuple[int, int, int, int]
+RGB = tuple[int, int, int]
 
 
 @dataclass(frozen=True)

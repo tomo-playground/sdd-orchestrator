@@ -116,7 +116,7 @@ def validate_prompt_tags(
             risky_tags.append(tag)
             warnings.append({
                 "tag": tag,
-                "reason": f"Not a valid Danbooru tag (0 posts)",
+                "reason": "Not a valid Danbooru tag (0 posts)",
                 "suggestion": RISKY_TAG_REPLACEMENTS[tag],
             })
             continue
@@ -133,7 +133,7 @@ def validate_prompt_tags(
                         risky_tags.append(tag)
                         warnings.append({
                             "tag": tag,
-                            "reason": f"Tag exists in Danbooru but has 0 posts",
+                            "reason": "Tag exists in Danbooru but has 0 posts",
                             "suggestion": None,
                         })
                     elif post_count < RISKY_TAG_THRESHOLD:

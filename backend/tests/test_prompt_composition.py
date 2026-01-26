@@ -7,7 +7,6 @@ Tests 4 scenarios as defined in PROMPT_SPEC.md:
 4. LoRA Mode - Complex scene with multiple LoRAs
 """
 
-import pytest
 
 from services.prompt_composition import (
     _deduplicate_loras,

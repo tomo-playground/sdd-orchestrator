@@ -1,6 +1,5 @@
 """Unit tests for Ken Burns motion effects module."""
 
-import pytest
 
 from services.motion import (
     PRESETS,

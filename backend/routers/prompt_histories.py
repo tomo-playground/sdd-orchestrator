@@ -8,10 +8,10 @@ from config import logger
 from database import get_db
 from models import PromptHistory
 from schemas import (
+    PromptHistoryApplyResponse,
     PromptHistoryCreate,
     PromptHistoryResponse,
     PromptHistoryUpdate,
-    PromptHistoryApplyResponse,
 )
 
 router = APIRouter(prefix="/prompt-histories", tags=["prompt-histories"])

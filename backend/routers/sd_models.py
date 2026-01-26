@@ -5,14 +5,14 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import get_db
-from models import SDModel, Embedding
+from models import Embedding, SDModel
 from schemas import (
-    SDModelCreate,
-    SDModelResponse,
-    SDModelUpdate,
     EmbeddingCreate,
     EmbeddingResponse,
     EmbeddingUpdate,
+    SDModelCreate,
+    SDModelResponse,
+    SDModelUpdate,
 )
 
 router = APIRouter(tags=["sd-models"])

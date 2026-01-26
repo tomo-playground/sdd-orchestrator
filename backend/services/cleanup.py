@@ -166,7 +166,7 @@ def cleanup_old_images(max_age_days: int = 7, dry_run: bool = False) -> CleanupR
     for file_path in _iter_files(IMAGE_DIR):
         if file_path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
             continue
-            
+
         try:
             mtime = file_path.stat().st_mtime
             if mtime < cutoff_time:

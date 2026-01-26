@@ -1,4 +1,3 @@
-import os
 import pathlib
 import subprocess
 
@@ -15,6 +14,7 @@ from config import (
     SD_BASE_URL,
     TEMPLATES_DIR,
 )
+
 
 # ANSI colors for better visibility
 class Colors:

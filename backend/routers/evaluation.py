@@ -8,11 +8,11 @@ from config import logger
 from database import get_db
 from services.evaluation import (
     TEST_PROMPTS,
+    EvaluationRequest,
     get_evaluation_results,
     get_evaluation_summary,
     get_test_prompts,
     run_evaluation_batch,
-    EvaluationRequest,
 )
 
 router = APIRouter(prefix="/eval", tags=["evaluation"])

@@ -8,21 +8,27 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import time
 import json
+import time
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import onnxruntime as ort
-from PIL import Image
 from fastapi import HTTPException
+from PIL import Image
 
-from config import WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client, CACHE_DIR, CACHE_TTL_SECONDS, logger
+from config import CACHE_DIR, CACHE_TTL_SECONDS, WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client, logger
 from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 
-from .keywords import expand_synonyms, normalize_prompt_token, IGNORE_TOKENS, update_keyword_suggestions, update_tag_effectiveness
+from .keywords import (
+    IGNORE_TOKENS,
+    expand_synonyms,
+    normalize_prompt_token,
+    update_keyword_suggestions,
+    update_tag_effectiveness,
+)
 
 # --- Lazy imports for circular dependency avoidance ---
 _parse_json_payload = None
@@ -245,7 +251,6 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "dawn",
         "dusk",
         # Abstract mood
-        "romantic",
         "flustered",
     }
     tokens = [normalize_prompt_token(token) for token in raw_tokens]

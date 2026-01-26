@@ -17,7 +17,7 @@ from io import BytesIO
 from pathlib import Path
 
 import httpx
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageFilter
 
 try:
     from rembg import remove as remove_bg
@@ -26,12 +26,8 @@ except ImportError:
     HAS_REMBG = False
     print("⚠️  rembg 미설치")
 
-import pytest
-from PIL import Image
 
 from config import SD_BASE_URL
-from services.controlnet import build_ip_adapter_args, save_reference_image
-from services.image import generate_image_advanced
 
 # Configuration for testing
 
@@ -206,8 +202,9 @@ def composite_layers(background: Image.Image, characters: Image.Image) -> Image.
 def add_rain_overlay(img: Image.Image) -> Image.Image:
     """비 효과 오버레이 추가."""
     # 간단한 비 효과: 세로선 + 블러
-    from PIL import ImageDraw
     import random
+
+    from PIL import ImageDraw
 
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)

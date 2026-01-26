@@ -65,10 +65,10 @@ def main():
         all_logs = conflict_logs_1 + conflict_logs_2 + conflict_logs_3 + success_logs
 
         print(f"Creating {len(all_logs)} test generation logs...")
-        print(f"  - 10 logs with 'upper body + full body' conflict (fail)")
-        print(f"  - 8 logs with 'indoors + outdoors' conflict (fail)")
-        print(f"  - 7 logs with 'day + night' conflict (fail)")
-        print(f"  - 3 logs without conflicts (success)")
+        print("  - 10 logs with 'upper body + full body' conflict (fail)")
+        print("  - 8 logs with 'indoors + outdoors' conflict (fail)")
+        print("  - 7 logs with 'day + night' conflict (fail)")
+        print("  - 3 logs without conflicts (success)")
         print()
 
         for log_data in all_logs:
@@ -89,8 +89,8 @@ def main():
         print()
         print("Next steps:")
         print(f"  1. curl 'http://localhost:8000/generation-logs/suggest-conflict-rules?project_name={project_name}&min_occurrences=5'")
-        print(f"  2. Review suggested rules")
-        print(f"  3. Apply rules via POST /generation-logs/apply-conflict-rules")
+        print("  2. Review suggested rules")
+        print("  3. Apply rules via POST /generation-logs/apply-conflict-rules")
 
     except Exception as exc:
         db.rollback()

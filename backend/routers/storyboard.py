@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from config import logger
+from schemas import StoryboardRequest
 from services.storyboard import create_storyboard
 
 router = APIRouter(prefix="/storyboard", tags=["storyboard"])

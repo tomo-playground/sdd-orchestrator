@@ -1,8 +1,6 @@
 """Unit tests for BGM random selection."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 from services.video import resolve_bgm_file
 

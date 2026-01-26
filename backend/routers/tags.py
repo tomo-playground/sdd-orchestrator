@@ -118,7 +118,7 @@ async def get_pending_classifications(
     - Tags with source = 'manual' (already approved)
     - Tags with source = 'pattern' or 'rule' (high confidence from rules)
     """
-    from sqlalchemy import or_, and_
+    from sqlalchemy import and_, or_
 
     query = db.query(Tag)
 
