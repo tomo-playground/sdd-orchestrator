@@ -98,14 +98,19 @@
 | Setup Wizard | 초기 설정 및 에셋 상태 확인 UI | [ ] |
 
 ### 5-7. Quality Assurance (Test Coverage)
-**Goal**: Core Rule #9에 따라 테스트 커버리지 80% 달성.
+**Goal**: Core Rule #9, #10 (TDD)에 따라 테스트 커버리지 80% 달성.
 
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | **Backend API Test** | FastAPI 라우터 통합 테스트 (TestClient) | [x] |
 | **Frontend Test Init** | Vitest + React Testing Library + Playwright VRT 환경 구축 | [x] |
+| **Ken Burns Unit Test** | `services/motion.py` 27개 테스트 (TDD) | [x] |
 | **Core Hooks Test** | `useAutopilot` 등 핵심 로직 테스트 작성 | [ ] |
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [ ] |
+
+**현재 테스트 현황** (2026-01-26):
+- Backend: 244 passed, 4 skipped
+- 주요 테스트: VRT (36개), API (키워드/프리셋), 프롬프트 품질, Ken Burns (27개)
 
 ---
 
@@ -339,7 +344,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (18:05)
+**Last Updated**: 2026-01-26 (18:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
