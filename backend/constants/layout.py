@@ -61,9 +61,11 @@ class FullLayout:
     BOLD_TEXT_COLOR: RGBA = (0, 0, 0, 255)  # Black
     BOLD_SUB_TEXT_COLOR: RGBA = (60, 60, 60, 255)  # Dark gray
 
-    # === FFmpeg/Video ===
-    SQUARE_IMAGE_Y_RATIO: float = 0.10  # Y position for square image
-    BACKGROUND_BLUR: str = "40:20"  # boxblur filter value
+    # === FFmpeg/Video (Legacy) ===
+    # NOTE: These constants are deprecated since 2026-01-28
+    # Full Layout now uses full cover mode (no blur background, no square overlay)
+    # SQUARE_IMAGE_Y_RATIO: float = 0.10  # DEPRECATED
+    # BACKGROUND_BLUR: str = "40:20"  # DEPRECATED
 
 
 @dataclass(frozen=True)

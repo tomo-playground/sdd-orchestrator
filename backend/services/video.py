@@ -588,34 +588,22 @@ class VideoBuilder:
     def _build_full_layout_filter(
         self, i: int, v_idx: int, motion_frames: int
     ) -> None:
-        """Build filter for full layout style with blur background."""
-        self.filters.append(f"[{v_idx}:v]split=2[v{i}_in_1][v{i}_in_2]")
-
-        bg_scale = (
-            f"[v{i}_in_1]scale={self.out_w}:{self.out_h}:force_original_aspect_ratio=increase,"
-            f"crop={self.out_w}:{self.out_h},boxblur=40:20"
+        """Build filter for full layout style - full cover mode (YouTube Shorts style)."""
+        base_scale = (
+            f"[{v_idx}:v]scale={self.out_w}:{self.out_h}:"
+            f"force_original_aspect_ratio=increase,"
+            f"crop={self.out_w}:{self.out_h}"
         )
 
         preset_name = self._resolve_scene_preset(i)
         if preset_name == "none":
-            self.filters.append(f"{bg_scale}[v{i}_bg]")
+            self.filters.append(f"{base_scale}[v{i}_base]")
         else:
             params = get_preset(preset_name)
             zoompan = build_zoompan_filter(
                 params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
             )
-            self.filters.append(f"{bg_scale},{zoompan}[v{i}_bg]")
-
-        # Square image overlay
-        sq_size = self.out_w
-        sq_y = int(self.out_h * 0.10)
-        self.filters.append(
-            f"[v{i}_in_2]scale={sq_size}:{sq_size}:force_original_aspect_ratio=decrease,"
-            f"pad={sq_size}:{sq_size}:(ow-iw)/2:(oh-ih)/2[v{i}_sq]"
-        )
-        self.filters.append(
-            f"[v{i}_bg][v{i}_sq]overlay=0:{sq_y}:format=auto[v{i}_base]"
-        )
+            self.filters.append(f"{base_scale},{zoompan}[v{i}_base]")
 
     def _resolve_scene_preset(self, scene_idx: int) -> str:
         """Resolve Ken Burns preset for a specific scene.

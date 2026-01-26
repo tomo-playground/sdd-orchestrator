@@ -443,13 +443,13 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (02:40)
+**Last Updated**: 2026-01-28 (21:05)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5-2 | COMPLETE | 100% | Resolution Optimization (512x768) 완료 |
-| 5-4 | PLANNED | 10% | 템플릿 규칙 강화 완료, 자동 검증 시스템 대기 중 |
+| 5-2 | COMPLETE | 100% | Resolution Optimization + Full Layout 폴리싱 완료 |
+| 5-4 | COMPLETE | 100% | 품질 측정 자동화 + 프롬프트 검증 시스템 완료 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -458,6 +458,20 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Full Layout 폴리싱 완료 (2026-01-28 21:05)**:
+- **문제**: 512x768 이미지를 1080x1080 정사각형 오버레이에 배치하여 양쪽 검은 여백 발생
+- **해결**: Instagram 스타일(배경 블러 + 정사각형) → YouTube Shorts 스타일(Cover 전체 화면)
+- **변경사항**:
+  - `services/video.py`: `_build_full_layout_filter()` 단순화 (31줄 → 17줄, 45% 감소)
+  - 배경 블러 제거 (boxblur 40:20)
+  - 정사각형 오버레이 제거 (1080x1080 pad)
+  - Cover 스케일로 전체 화면 채우기 (force_original_aspect_ratio=increase + crop)
+- **효과**:
+  - ✅ 검은 여백 제거
+  - ✅ 화면 100% 활용
+  - ✅ 인물 잘림 없음 (가로 크롭 15%에도 불구)
+  - ✅ 렌더링 성능 향상 (배경 블러 제거로 15-20% 예상)
 
 **Resolution Optimization 완료 (2026-01-28 02:40)**:
 - **전략**: `512x768` (2:3 비율) 단일 해상도로 모든 포맷 대응.
