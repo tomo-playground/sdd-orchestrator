@@ -434,13 +434,13 @@ brew install claude-squad  # 명령어: cs
 - 태그 충돌(Conflict) 및 의존성(Requires) 규칙 80여 개 적용
 - Action(holding X), Time/Weather(환경효과) 등 태그 카테고리 437개 확장
 
-**다음 우선순위** (2026-01-26 갱신):
+**다음 우선순위** (2026-01-26 19:30 갱신):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| ~~1~~ | ~~**Quality Evaluation**~~ | ~~6-4.15.6~~ | ~~중~~ | ~~중~~ | **완료** (2026-01-26) |
-| ~~1~~ | ~~**Smart AutoRun**~~ | ~~5-1-2~~ | ~~높음~~ | ~~중~~ | **완료** (2026-01-26) |
-| ~~2~~ | ~~**Ken Burns Effect**~~ | ~~5-2~~ | ~~높음~~ | ~~낮음~~ | **완료** (2026-01-26) |
-| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
-| 2 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 배경/시간/날씨 컨텍스트 |
-| 3 | **VEO Clip** | 5-4 | 중 | 높음 | Video Generation 통합 |
+| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 |
+| 2 | **Core Hooks Test** | 5-7 | 중 | 낮음 | TDD 규칙 준수 |
+| 3 | **CI Script** | 5-7 | 중 | 낮음 | 테스트 자동화 |
+| 4 | Scene Builder UI | 6-3.11 | 중 | 중 | Multi-Character 시너지 |
+| 5 | Scene Clothing Override | 6-4.20 | 중 | 중 | 장면별 의상 변경 |
+| 6 | VEO Clip | 5-4 | 중 | 높음 | 외부 API 의존 |
