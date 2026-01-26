@@ -45,6 +45,16 @@
 *   **검증**: PR 제출 전 로컬에서 테스트(`pytest`, `npm test`)를 통과해야 합니다.
 *   **예외**: 실험적인 기능이나 단순 UI 수정은 예외로 할 수 있으나, 안정화 단계(Stabilization)에서는 반드시 테스트를 추가해야 합니다.
 
+### 10. TDD (Test-Driven Development) 적용
+*   **원칙**: 새로운 기능 구현 시 **테스트 코드를 먼저 작성**한 후 구현합니다.
+*   **순서**: Red (실패하는 테스트) → Green (테스트 통과하는 최소 구현) → Refactor (코드 개선)
+*   **적용 대상**:
+    - 새로운 서비스 모듈 (`backend/services/*.py`)
+    - 새로운 유틸리티 함수
+    - 핵심 비즈니스 로직 변경
+*   **예외**: UI 컴포넌트, 단순 설정 변경, 긴급 핫픽스는 사후 테스트 작성 허용
+*   **테스트 파일 위치**: `backend/tests/test_{module}.py`, `frontend/app/**/__tests__/*.test.tsx`
+
 ---
 
 ## 🤖 Agents/Commands 관리
