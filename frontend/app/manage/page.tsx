@@ -629,8 +629,10 @@ export default function ManagePage() {
   };
 
   useEffect(() => {
-    void refreshKeywordSuggestions();
-  }, []);
+    if (manageTab === "keywords") {
+      void refreshKeywordSuggestions();
+    }
+  }, [manageTab]);
 
   const filteredKeywordSuggestions = useMemo(() => {
     const search = keywordSearch.trim().toLowerCase();
@@ -860,7 +862,7 @@ export default function ManagePage() {
                 <option value="">All categories</option>
                 {Object.keys(keywordCategories).map((category) => (
                   <option key={category} value={category}>
-                    {category} {CATEGORY_DESCRIPTIONS[category] ? `- ${CATEGORY_DESCRIPTIONS[category]}` : ""}
+                    {category} {CATEGORY_DESCRIPTIONS?.[category] ? `- ${CATEGORY_DESCRIPTIONS[category]}` : ""}
                   </option>
                 ))}
               </select>

@@ -43,7 +43,8 @@ def create_storyboard(request: StoryboardRequest) -> dict:
         scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
         for scene in scenes:
             from config import logger
-            from services.keywords import filter_prompt_tokens, normalize_prompt_tokens
+            from services.keywords import filter_prompt_tokens
+            from services.prompt import normalize_prompt_tokens
 
             raw_prompt = scene.get("image_prompt", "")
             if not raw_prompt:
