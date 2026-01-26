@@ -13,6 +13,7 @@ type SceneCardProps = {
   scene: Scene;
   validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
+  qualityScore?: { match_rate: number; missing_tags: string[] } | null;
   sceneTab: "validate" | "debug" | null;
   onSceneTabChange: (tab: "validate" | "debug" | null) => void;
   sceneMenuOpen: boolean;
@@ -62,6 +63,7 @@ export default function SceneCard({
   scene,
   validationResult,
   imageValidationResult,
+  qualityScore,
   sceneTab,
   onSceneTabChange,
   sceneMenuOpen,
@@ -98,39 +100,62 @@ export default function SceneCard({
   const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
   const actionableSuggestions = suggestions.filter((item) => item.action);
 
+  // Quality badge helper
+  const getQualityBadge = (rate: number) => {
+    if (rate >= 0.8) return { emoji: "✅", label: "Excellent", color: "bg-emerald-100 text-emerald-700" };
+    if (rate >= 0.7) return { emoji: "⚠️", label: "Good", color: "bg-amber-100 text-amber-700" };
+    return { emoji: "🔴", label: "Poor", color: "bg-rose-100 text-rose-700" };
+  };
+
   return (
     <div className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-800">Scene {scene.id}</h3>
-        {validationResult && (
+        <div className="flex items-center gap-2">
+          {qualityScore && (
+            <span
+              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
+                getQualityBadge(qualityScore.match_rate).color
+              }`}
+              title={`Match Rate: ${(qualityScore.match_rate * 100).toFixed(0)}%${
+                qualityScore.missing_tags.length > 0
+                  ? `\nMissing: ${qualityScore.missing_tags.slice(0, 3).join(", ")}`
+                  : ""
+              }`}
+            >
+              {getQualityBadge(qualityScore.match_rate).emoji} {(qualityScore.match_rate * 100).toFixed(0)}%
+            </span>
+          )}
+          {validationResult && (
+            <button
+              type="button"
+              onClick={() => {
+                if (validationResult.status === "ok") return;
+                onSuggestionToggle();
+              }}
+              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
+                validationResult.status === "ok"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : validationResult.status === "warn"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-rose-100 text-rose-700"
+              }`}
+            >
+              {validationResult.status}
+            </button>
+          )}
           <button
-            type="button"
             onClick={() => {
-              if (validationResult.status === "ok") return;
-              onSuggestionToggle();
+              if (window.confirm(`Scene ${scene.id}를 삭제하시겠습니까?`)) {
+                onRemoveScene();
+              }
             }}
-            className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
-              validationResult.status === "ok"
-                ? "bg-emerald-100 text-emerald-700"
-                : validationResult.status === "warn"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-rose-100 text-rose-700"
-            }`}
+            className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase hover:text-rose-600"
           >
-            {validationResult.status}
+            Remove
           </button>
-        )}
-        <button
-          onClick={() => {
-            if (window.confirm(`Scene ${scene.id}를 삭제하시겠습니까?`)) {
-              onRemoveScene();
-            }
-          }}
-          className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase hover:text-rose-600"
-        >
-          Remove
-        </button>
+        </div>
       </div>
 
       {/* Status */}

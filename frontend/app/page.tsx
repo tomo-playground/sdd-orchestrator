@@ -2303,6 +2303,14 @@ export default function Home() {
                 scene={scenes[currentSceneIndex]}
                 validationResult={validationResults[scenes[currentSceneIndex].id]}
                 imageValidationResult={imageValidationResults[scenes[currentSceneIndex].id]}
+                qualityScore={
+                  imageValidationResults[scenes[currentSceneIndex].id]
+                    ? {
+                        match_rate: imageValidationResults[scenes[currentSceneIndex].id].match_rate ?? 0,
+                        missing_tags: imageValidationResults[scenes[currentSceneIndex].id].missing ?? [],
+                      }
+                    : null
+                }
                 sceneTab={sceneTab[scenes[currentSceneIndex].id] ?? null}
                 onSceneTabChange={(tab) =>
                   setSceneTab((prev) => ({ ...prev, [scenes[currentSceneIndex].id]: tab }))
