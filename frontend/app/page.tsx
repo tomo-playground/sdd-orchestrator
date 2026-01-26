@@ -1471,6 +1471,8 @@ export default function Home() {
   const buildPositivePrompt = (scene: Scene) => {
     const base = getBasePromptForScene(scene);
     const scenePrompt = scene.image_prompt.trim();
+    console.log("[buildPositivePrompt] base (from basePromptA):", base);
+    console.log("[buildPositivePrompt] scenePrompt:", scenePrompt);
 
     // Collect context tags (expression, gaze, pose, action, camera, environment, mood)
     const contextTagsList: string[] = [];
@@ -1484,10 +1486,12 @@ export default function Home() {
       if (environment?.length) contextTagsList.push(...environment);
       if (mood?.length) contextTagsList.push(...mood);
     }
+    console.log("[buildPositivePrompt] contextTagsList:", contextTagsList);
 
     // Combine all tokens
     const baseTokens = base ? splitPromptTokens(base) : [];
     const sceneTokens = scenePrompt ? splitPromptTokens(scenePrompt) : [];
+    console.log("[buildPositivePrompt] baseTokens:", baseTokens);
 
     // Filter out scene-specific keywords from base (to avoid duplicates)
     const filteredBaseTokens = autoComposePrompt
@@ -1496,6 +1500,7 @@ export default function Home() {
           return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
         })
       : baseTokens;
+    console.log("[buildPositivePrompt] filteredBaseTokens:", filteredBaseTokens);
 
     // Merge all tokens
     const allTokens = mergePromptTokens(
@@ -1508,6 +1513,7 @@ export default function Home() {
       return getTokenPriority(a) - getTokenPriority(b);
     });
 
+    console.log("[buildPositivePrompt] final sortedTokens:", sortedTokens);
     return sortedTokens.join(", ");
   };
 
@@ -1658,6 +1664,9 @@ export default function Home() {
     const ipAdapterPayload = useIpAdapter && ipAdapterReference
       ? { use_ip_adapter: true, ip_adapter_reference: ipAdapterReference, ip_adapter_weight: ipAdapterWeight }
       : { use_ip_adapter: false };
+    console.log("[generateSingleScene] useIpAdapter:", useIpAdapter);
+    console.log("[generateSingleScene] ipAdapterReference:", ipAdapterReference);
+    console.log("[generateSingleScene] ipAdapterPayload:", ipAdapterPayload);
     const debugPayload = {
       prompt,
       negative_prompt: negativePrompt,
@@ -2133,26 +2142,51 @@ export default function Home() {
             characters={characters}
             selectedCharacterId={selectedCharacterId}
             onSelectCharacter={async (charId: number | null) => {
+              console.log("[CharacterSelect] Selected charId:", charId);
               setSelectedCharacterId(charId);
               if (charId === null) {
+                console.log("[CharacterSelect] Clearing all character settings");
                 setBasePromptA("");
                 setBaseNegativePromptA("");
+                setIpAdapterReference("");
+                setUseIpAdapter(false);
                 return;
               }
               const charFull = await getCharacterFull(charId);
+              console.log("[CharacterSelect] charFull:", charFull);
               if (charFull) {
                 // Sync gender from character preset
                 if (charFull.gender) {
+                  console.log("[CharacterSelect] Setting gender:", charFull.gender);
                   setActorAGender(charFull.gender);
                 }
                 // Apply character positive prompt
                 const charPrompt = buildCharacterPrompt(charFull);
+                console.log("[CharacterSelect] Built charPrompt:", charPrompt);
                 setBasePromptA(charPrompt);
                 // Apply character negative prompt (validated)
                 const charNegative = buildCharacterNegative(charFull);
+                console.log("[CharacterSelect] Built charNegative:", charNegative);
                 if (charNegative) {
                   setBaseNegativePromptA(charNegative);
                 }
+                // Auto-set IP-Adapter reference if available for this character
+                console.log("[CharacterSelect] referenceImages:", referenceImages);
+                const matchingRef = referenceImages.find(
+                  (ref) => ref.character_key === charFull.name
+                );
+                console.log("[CharacterSelect] matchingRef:", matchingRef);
+                if (matchingRef) {
+                  console.log("[CharacterSelect] Enabling IP-Adapter with ref:", matchingRef.character_key);
+                  setIpAdapterReference(matchingRef.character_key);
+                  setUseIpAdapter(true);  // Enable IP-Adapter when reference exists
+                } else {
+                  console.log("[CharacterSelect] No matching ref found, disabling IP-Adapter");
+                  setIpAdapterReference("");
+                  setUseIpAdapter(false);
+                }
+              } else {
+                console.warn("[CharacterSelect] getCharacterFull returned null/undefined");
               }
             }}
           />

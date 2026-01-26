@@ -6,11 +6,14 @@ Provides pose and composition control for SD image generation.
 from __future__ import annotations
 
 import base64
+import io
+import random
 from pathlib import Path
 from typing import Any
 
 import httpx
 import requests
+from PIL import Image
 from sqlalchemy.orm import Session
 
 from config import SD_BASE_URL, SD_TXT2IMG_URL, logger
@@ -46,8 +49,13 @@ CONTROLNET_MODELS = {
 
 # IP-Adapter models
 IP_ADAPTER_MODELS = {
-    "faceid": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",
+    "faceid": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",  # Real face only
+    "clip": "ip-adapter-plus_sd15 [836b5c2e]",  # Anime/illustration (recommended)
+    "clip_face": "ip-adapter-plus-face_sd15 [7f7a633a]",  # Face + style
 }
+
+# Default IP-Adapter for anime characters
+DEFAULT_IP_ADAPTER_MODEL = "clip"
 
 # Reference image directory for IP-Adapter
 REFERENCE_DIR = Path("assets/references")
@@ -325,26 +333,35 @@ def delete_reference_image(character_key: str) -> bool:
 def build_ip_adapter_args(
     reference_image: str,
     weight: float = 0.8,
-    model: str = "faceid",
+    model: str | None = None,
 ) -> dict[str, Any]:
     """Build IP-Adapter arguments for txt2img.
 
     Args:
         reference_image: Base64 encoded reference face image
         weight: IP-Adapter influence weight (0.0-1.5)
-        model: IP-Adapter model type ("faceid")
+        model: IP-Adapter model type ("clip", "clip_face", "faceid"). Default: "clip"
 
     Returns:
         ControlNet args dict for IP-Adapter
     """
+    if model is None:
+        model = DEFAULT_IP_ADAPTER_MODEL
+
     model_name = IP_ADAPTER_MODELS.get(model)
     if not model_name:
         raise ValueError(f"Unknown IP-Adapter model: {model}")
 
+    # Select module based on model type
+    if model == "faceid":
+        module = "ip-adapter_face_id_plus"  # For real faces (InsightFace)
+    else:
+        module = "ip-adapter_clip_sd15"  # For anime/illustration (CLIP)
+
     return {
         "enabled": True,
         "image": reference_image,
-        "module": "ip-adapter_face_id_plus",
+        "module": module,
         "model": model_name,
         "weight": weight,
         "resize_mode": "Crop and Resize",
@@ -389,12 +406,69 @@ def build_combined_controlnet_args(
     return args
 
 
-async def generate_reference_for_character(db: Session, character: Character) -> str:
-    """Generate and save a reference image for a character.
+def _validate_reference_image(image_b64: str, required_tags: list[str], threshold: float = 0.5) -> dict[str, Any]:
+    """Validate a reference image using WD14.
+
+    Args:
+        image_b64: Base64 encoded image
+        required_tags: Tags that should be detected (e.g., ["looking_at_viewer"])
+        threshold: Minimum confidence threshold
+
+    Returns:
+        {"valid": bool, "detected": list, "missing": list, "details": dict}
+    """
+    from services.validation import wd14_predict_tags
+
+    # Decode image
+    image_bytes = base64.b64decode(image_b64)
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+    # Get WD14 tags
+    tags = wd14_predict_tags(image, threshold=0.35)
+    detected_names = {t["tag"].replace(" ", "_") for t in tags}
+
+    # Check required tags
+    missing = []
+    found = []
+    tag_details = {}
+
+    for req_tag in required_tags:
+        # Normalize tag name
+        normalized = req_tag.replace(" ", "_")
+        # Check if any detected tag contains the required tag
+        matched = any(normalized in det or det in normalized for det in detected_names)
+        if matched:
+            found.append(req_tag)
+            # Find score
+            for t in tags:
+                if normalized in t["tag"].replace(" ", "_") or t["tag"].replace(" ", "_") in normalized:
+                    tag_details[req_tag] = t["score"]
+                    break
+        else:
+            missing.append(req_tag)
+
+    return {
+        "valid": len(missing) == 0,
+        "detected": found,
+        "missing": missing,
+        "details": tag_details,
+        "all_tags": [t["tag"] for t in tags[:20]]  # Top 20 for debugging
+    }
+
+
+async def generate_reference_for_character(
+    db: Session,
+    character: Character,
+    max_attempts: int = 3,
+    validate: bool = True
+) -> str:
+    """Generate and save a reference image for a character with validation.
 
     Args:
         db: Database session
         character: Character model instance
+        max_attempts: Maximum generation attempts if validation fails
+        validate: Whether to validate with WD14
 
     Returns:
         Saved filename
@@ -416,37 +490,65 @@ async def generate_reference_for_character(db: Session, character: Character) ->
                     tag_list.extend(lora_obj.trigger_words)
 
     # 3. Construct prompt
-    base_positive = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, simple background, white background"
+    base_positive = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
     # Remove duplicate tags (simple set)
     unique_tags = list(dict.fromkeys(tag_list))
     full_prompt = f"{base_positive}, {', '.join(unique_tags)}, {' '.join(lora_prompt_parts)}"
-    
+
     # 4. Construct negative prompt
-    base_negative = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark"
+    base_negative = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
     if character.recommended_negative:
         # Append recommended negative if not already in base
         extras = [n for n in character.recommended_negative if n not in base_negative]
         if extras:
             base_negative += ", " + ", ".join(extras)
 
-    payload = {
-        "prompt": full_prompt,
-        "negative_prompt": base_negative,
-        "steps": 25,
-        "width": 512,
-        "height": 512,
-        "cfg_scale": 7.0,
-        "sampler_name": "Euler a"
-    }
+    # Required tags for IP-Adapter reference (must detect these)
+    required_tags = ["looking_at_viewer"]
 
-    logger.info(f"🎨 Generating reference for {character.name}...")
-    
-    # 5. Call SD
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(SD_TXT2IMG_URL, json=payload, timeout=120)
-        resp.raise_for_status()
-        r = resp.json()
-        image_b64 = r['images'][0]
-        
-        # 6. Save
-        return save_reference_image(character.name, image_b64)
+    best_image = None
+    best_score = -1
+
+    for attempt in range(max_attempts):
+        payload = {
+            "prompt": full_prompt,
+            "negative_prompt": base_negative,
+            "steps": 25,
+            "width": 512,
+            "height": 512,
+            "cfg_scale": 7.0,
+            "sampler_name": "Euler a",
+            "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1
+        }
+
+        logger.info(f"🎨 [{attempt+1}/{max_attempts}] Generating reference for {character.name}...")
+
+        # 5. Call SD
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(SD_TXT2IMG_URL, json=payload, timeout=120)
+            resp.raise_for_status()
+            r = resp.json()
+            image_b64 = r['images'][0]
+
+        if not validate:
+            return save_reference_image(character.name, image_b64)
+
+        # 6. Validate with WD14
+        validation = _validate_reference_image(image_b64, required_tags)
+        score = len(validation["detected"]) / len(required_tags) if required_tags else 1.0
+
+        logger.info(f"🔍 [{attempt+1}] Validation: valid={validation['valid']}, "
+                   f"detected={validation['detected']}, missing={validation['missing']}")
+
+        if validation["valid"]:
+            logger.info(f"✅ Reference image validated successfully!")
+            return save_reference_image(character.name, image_b64)
+
+        # Track best attempt
+        if score > best_score:
+            best_score = score
+            best_image = image_b64
+
+    # If all attempts failed, save the best one
+    logger.warning(f"⚠️ Validation failed after {max_attempts} attempts. Using best image (score={best_score:.1%})")
+    return save_reference_image(character.name, best_image or image_b64)

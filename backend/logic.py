@@ -195,6 +195,10 @@ async def logic_generate_scene_image(request: SceneGenerateRequest) -> dict:
             payload["alwayson_scripts"] = {
                 "controlnet": {"args": controlnet_args_list}
             }
+            # Debug: log controlnet config (without base64 image)
+            for i, arg in enumerate(controlnet_args_list):
+                debug_arg = {k: (v[:50] + "..." if k == "image" and isinstance(v, str) and len(v) > 50 else v) for k, v in arg.items()}
+                logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
 
     logger.info("🧾 [Scene Gen Payload] %s", {k: v for k, v in payload.items() if k != "alwayson_scripts"})
 

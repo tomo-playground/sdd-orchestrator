@@ -346,7 +346,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (19:30)
+**Last Updated**: 2026-01-27 (11:45)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -357,9 +357,28 @@ brew install claude-squad  # 명령어: cs
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
 | 6-4 | COMPLETE | 100% | 15.2~15.7 + 15.6 완료 |
 | 7-1 | COMPLETE | 100% | |
-| 7-2 | COMPLETE | 100% | |
+| 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Frontend 디버깅 로그 추가 (2026-01-27 11:45)**:
+- 캐릭터 선택 시 로그: charFull, charPrompt, IP-Adapter 설정
+- 프롬프트 빌드 시 로그: baseTokens, filteredBaseTokens, sortedTokens
+- API 요청 시 로그: ipAdapterPayload
+- 캐릭터 선택 시 `useIpAdapter` 자동 활성화 버그 수정
+
+**IP-Adapter CLIP 모델 지원 (2026-01-27 11:20)**:
+- **문제**: FaceID 모델이 애니메이션 얼굴 인식 실패 (InsightFace는 실사 전용)
+- **해결**: CLIP 기반 IP-Adapter 모델 추가 (`ip-adapter-plus_sd15`)
+- **변경사항**:
+  - 기본 모델: `faceid` → `clip` (애니메이션용)
+  - 모듈 자동 선택: `ip-adapter_clip_sd15` (CLIP) / `ip-adapter_face_id_plus` (FaceID)
+  - SD WebUI 구축 매뉴얼 추가: `docs/SD_WEBUI_SETUP.md`
+
+**IP-Adapter Reference 자동 적용 (2026-01-27 00:30)**:
+- 캐릭터 선택 시 해당 캐릭터의 IP-Adapter Reference 자동 설정
+- 9개 캐릭터 모두 reference image 매핑 완료 (Generic Anime Boy/Girl 포함)
+- 캐릭터 해제(None) 시 reference도 함께 초기화
 
 **Eval 테스트 프롬프트 확장 (2026-01-26 20:30)**:
 - 테스트 프롬프트 6개 → 30개 확장
