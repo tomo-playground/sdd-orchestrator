@@ -1593,8 +1593,29 @@ export default function Home() {
     }
 
     // Fix camera-pose conflicts (e.g., medium shot → cowboy shot, close-up → portrait)
-    const fixedTokens = fixCameraPoseConflicts(allTokens);
+    let fixedTokens = fixCameraPoseConflicts(allTokens);
     console.log("[buildScenePrompt] After fixCameraPoseConflicts:", fixedTokens);
+
+    // Check for DB-based tag conflicts (upper body + full body, indoors + street, etc.)
+    try {
+      const conflictRes = await axios.post(`${API_BASE}/prompt/check-conflicts`, {
+        tags: fixedTokens,
+      });
+      if (conflictRes.data.has_conflicts) {
+        console.warn(
+          `[buildScenePrompt] ⚠️ ${conflictRes.data.conflicts.length} conflicts detected:`,
+          conflictRes.data.conflicts
+        );
+        console.warn(
+          `[buildScenePrompt] Removed tags:`,
+          conflictRes.data.removed_tags
+        );
+        // Use filtered tags (with conflicts removed)
+        fixedTokens = conflictRes.data.filtered_tags;
+      }
+    } catch (error) {
+      console.warn("Conflict check failed, continuing:", error);
+    }
 
     // Use /prompt/compose API for Mode A/B ordering
     try {
