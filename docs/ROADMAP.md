@@ -67,6 +67,7 @@
 | Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋) | [x] |
+| **Random BGM** | `bgm_file: "random"` → Backend에서 랜덤 선택 | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장

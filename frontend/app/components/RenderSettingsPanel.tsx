@@ -275,6 +275,7 @@ export default function RenderSettingsPanel({
                 className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
               >
                 <option value="">BGM: None</option>
+                <option value="random">Random</option>
                 {bgmList.map((bgm) => (
                   <option key={bgm.name} value={bgm.name}>{truncate(bgm.name, 28)}</option>
                 ))}
@@ -282,7 +283,8 @@ export default function RenderSettingsPanel({
               <button
                 type="button"
                 onClick={() => onPreviewBgm()}
-                disabled={!bgmFile || isPreviewingBgm}
+                disabled={!bgmFile || bgmFile === "random" || isPreviewingBgm}
+                title={bgmFile === "random" ? "Cannot preview random" : "Preview BGM"}
                 className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[10px] text-zinc-600 disabled:text-zinc-400"
               >
                 ▶

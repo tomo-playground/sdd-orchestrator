@@ -50,6 +50,43 @@ def sanitize_project_name(project_name: str, max_length: int = 40) -> str:
     return safe_name[:max_length]
 
 
+def resolve_bgm_file(
+    bgm_file: str | None,
+    audio_dir: Path,
+    seed: int | None = None,
+) -> str | None:
+    """Resolve BGM filename, supporting 'random' selection.
+
+    Args:
+        bgm_file: BGM filename or 'random' for random selection
+        audio_dir: Directory containing audio files
+        seed: Optional seed for reproducible random selection
+
+    Returns:
+        Resolved BGM filename or None
+    """
+    if not bgm_file or not bgm_file.strip():
+        return None
+
+    # Check for random selection (case-insensitive)
+    if bgm_file.lower() == "random":
+        if not audio_dir.exists():
+            return None
+
+        # Find all mp3 files
+        mp3_files = list(audio_dir.glob("*.mp3"))
+        if not mp3_files:
+            return None
+
+        # Select random file
+        rng = random.Random(seed) if seed is not None else random.Random()
+        selected = rng.choice(mp3_files)
+        logger.info(f"Random BGM selected: {selected.name}")
+        return selected.name
+
+    return bgm_file
+
+
 def generate_video_filename(
     project_name: str,
     layout_style: str,
@@ -680,8 +717,13 @@ class VideoBuilder:
 
     def _apply_bgm(self) -> None:
         """Apply background music with optional audio ducking."""
-        bgm_path = AUDIO_DIR / self.request.bgm_file if self.request.bgm_file else None
-        if not bgm_path or not bgm_path.exists():
+        # Resolve BGM file (supports 'random' selection)
+        resolved_bgm = resolve_bgm_file(self.request.bgm_file, AUDIO_DIR)
+        if not resolved_bgm:
+            return
+
+        bgm_path = AUDIO_DIR / resolved_bgm
+        if not bgm_path.exists():
             return
 
         self.input_args.extend(["-i", str(bgm_path)])

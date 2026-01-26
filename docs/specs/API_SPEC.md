@@ -129,7 +129,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
     }
   ],
   "project_name": "my_shorts",
-  "bgm_file": "bgm_chill.mp3",
+  "bgm_file": "bgm_chill.mp3 | random",
   "width": 1080,
   "height": 1080,
   "layout_style": "post",
@@ -160,6 +160,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 ```
 
 - `layout_style`: `"post"` | `"full"` (default: `"post"`)
+- `bgm_file`: BGM 파일명 또는 `"random"` (backend에서 랜덤 선택)
 - `ken_burns_preset`: Ken Burns 효과 프리셋 (default: `"none"`)
   - `"none"`, `"slow_zoom"`, `"zoom_in_center"`, `"zoom_out_center"`
   - `"pan_left"`, `"pan_right"`, `"pan_up"`, `"pan_down"`
