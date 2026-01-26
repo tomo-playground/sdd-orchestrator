@@ -111,11 +111,15 @@
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [x] |
 
 **현재 테스트 현황** (2026-01-27):
-- Backend: 268 passed, 5 skipped
-- Frontend: 30 passed (useAutopilot 27개, LoadingSpinner 3개)
+- Backend: 286 passed, 5 skipped (validation 18개 추가)
+- Frontend: 60 passed (validation 30개, useAutopilot 27개, LoadingSpinner 3개)
+- **총 346개 테스트**
 - 주요 테스트: VRT (36개), API (키워드/프리셋/IP-Adapter), 프롬프트 품질, Ken Burns (27개), BGM (9개)
 - IP-Adapter 테스트 (16개): CLIP 모델 선택, Reference 이미지 로드, 페이로드 구성, 상수 검증
 - **useAutopilot 테스트** (27개): 상태 관리, 로그, 취소/재개, 체크포인트, 진행률 계산, 통합 플로우
+- **Validation 테스트** (48개):
+  - Frontend (30개): 씬 검증, 수정 제안, 프롬프트 품질 체크
+  - Backend (18개): 태그 비교, match rate 계산, skip 로직
 
 ---
 
