@@ -10,6 +10,7 @@ from .loras import router as loras_router
 from .presets import router as presets_router
 from .prompt import router as prompt_router
 from .prompt_histories import router as prompt_histories_router
+from .quality import router as quality_router
 from .scene import router as scene_router
 from .sd import router as sd_router
 from .storyboard import router as storyboard_router
@@ -30,6 +31,7 @@ __all__ = [
     "presets_router",
     "prompt_router",
     "prompt_histories_router",
+    "quality_router",
     "scene_router",
     "sd_models_router",
     "sd_router",

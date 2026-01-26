@@ -7,6 +7,7 @@ from models.character import Character
 from models.sd_model import SDModel, Embedding, StyleProfile
 from models.prompt_history import PromptHistory
 from models.evaluation import EvaluationRun
+from models.scene_quality import SceneQualityScore
 
 __all__ = [
     "Base",
@@ -22,4 +23,5 @@ __all__ = [
     "StyleProfile",
     "PromptHistory",
     "EvaluationRun",
+    "SceneQualityScore",
 ]

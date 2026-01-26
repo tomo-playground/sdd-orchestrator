@@ -82,13 +82,35 @@
 **목표**: 생성된 프롬프트와 이미지의 품질을 자동으로 측정하고 개선하는 시스템 구축.
 
 #### 5-4-1. 정량적 품질 지표 자동화 (🔴 우선순위 1)
+**목표**: 수동 검증(10개 씬 = 5분) → 자동 배치 검증(10초)으로 전환. 품질 가시성 확보 및 선제적 경고 시스템 구축.
+
+**기술 스택**:
+- Backend: PostgreSQL (scene_quality_scores), asyncio (백그라운드 처리)
+- API: `/scenes/batch-validate`, `/scenes/quality-summary`, `/scenes/quality-alerts`
+- Frontend: recharts (품질 차트), Toast 알림
+
+**구현 순서**:
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
-| 1 | Match Rate 자동 측정 | 씬별 WD14 태그 vs 프롬프트 비교 자동화 | [ ] |
-| 2 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 추가 | [ ] |
-| 3 | 품질 경고 시스템 | Match Rate < 70% 씬 자동 감지 및 경고 | [ ] |
-| 4 | Batch Quality Check | 전체 씬 일괄 품질 측정 기능 | [ ] |
-| 5 | Quality Score DB | `scene_quality_scores` 테이블 추가 | [ ] |
+| 1 | Quality Score DB | `scene_quality_scores` 테이블 + Alembic 마이그레이션 | [ ] |
+| 2 | Batch Validate API | `/scenes/batch-validate` (백그라운드 WD14 검증) | [ ] |
+| 3 | Quality Summary API | `/scenes/quality-summary` (평균/씬별 점수) | [ ] |
+| 4 | Quality Alerts API | `/scenes/quality-alerts` (Match Rate < 70% 필터링) | [ ] |
+| 5 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 UI | [ ] |
+| 6 | SceneCard 경고 배지 | 낮은 점수 씬 시각적 표시 | [ ] |
+| 7 | Backend API 테스트 | pytest 통합 테스트 (batch-validate, summary, alerts) | [ ] |
+| 8 | Frontend UI 테스트 | Vitest 컴포넌트 테스트 (QualityDashboard) | [ ] |
+
+**효과**:
+- ✅ 시간 절약: 5분 → 10초 (30배)
+- ✅ 품질 가시성: 평균 Match Rate 즉시 파악
+- ✅ 선제적 경고: 나쁜 씬 자동 감지
+- ✅ 데이터 축적: Phase 6-4-21 (충돌 규칙 자동 발견) 기반 마련
+
+**Phase 6-4-21 연계**:
+- 현재: 태그 효과성 자동 수집 (✅ `tag_effectiveness`)
+- 5-4-1: Match Rate 자동 측정 및 저장
+- 6-4-21: 실패 패턴 분석 → 충돌 규칙 자동 발견 (`tag_rules` 자동 INSERT)
 
 #### 5-4-2. Gemini 프롬프트 검증 시스템 (🔴 우선순위 2)
 | # | 작업 | 설명 | 상태 |
