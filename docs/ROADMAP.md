@@ -449,33 +449,38 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-27 (16:00)
+**Last Updated**: 2026-01-27 (01:10)
 
 ### 현재 세션 완료 작업 (2026-01-27)
 
-#### Gemini 리팩토링 안정화
-**목표**: God module 분해 후 발생한 import/구조 이슈 전수 해결 및 테스트 안정화
+#### Gemini 리팩토링 & 시스템 안정화 (100% 완료)
+**목표**: God module(`logic.py`) 완전 분해, 프론트엔드 컴포넌트 계층화 및 기술적 채무(Lint/Type) 전수 해결
 
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| Import 경로 수정 | services/storyboard.py normalize_prompt_tokens 경로 | ✅ |
-| 전체 테스트 검증 | Backend 330 + Frontend 67 = 397 tests | ✅ |
-| 영상 생성 테스트 | test_video_render.py 스크립트 작성 및 검증 | ✅ |
+| **Logic.py 분해** | `storyboard`, `generation`, `video`, `prompt` 서비스로 로직 분산 및 파일 삭제 | ✅ |
+| **Frontend 계층화** | `ui`, `storyboard`, `quality`, `video`, `prompt` 등 도메인별 서브 디렉토리 구조 개편 | ✅ |
+| **Backend Lint 해결** | `B904`(raise from), `E741`(변수명), `F811`(중복정의) 등 99개 린트 오류 수정 | ✅ |
+| **Frontend Type Safety** | 컴포넌트 이동에 따른 경로 수정 및 TypeScript 암시적 any 에러 해결 | ✅ |
+| **전체 테스트 검증** | Backend 294 + Frontend 67 = 361 tests (Skipped 제외 전원 통과) | ✅ |
+| **사용자 이슈 해결** | Manage > Keywords 탭 렌더링 중단 방어 로직 및 이미지 저장 임포트 복구 | ✅ |
 
 **수정 내역**:
-- `services/storyboard.py`: `normalize_prompt_tokens` import → `services/prompt`
-- 스토리보드 생성 API 500 에러 해결 (Gemini 호출 정상화)
-- 영상 렌더링 E2E 검증 (3 scenes, 9초, 1080x1920)
+- `backend/logic.py`: 362줄 전량 삭제 및 서비스 모듈로 이관
+- `backend/routers/prompt.py`: 비동기 호출(`await`) 및 임포트 구조 정상화
+- `frontend/app/components/`: 25개 이상의 컴포넌트를 논리적 디렉토리로 재배치
+- `backend/tests/`: API 응답 구조 변경에 따른 테스트 기대값 업데이트
 
 **테스트 현황** (2026-01-27):
-- Backend: 330 passed, 5 skipped
+- Backend: 294 passed, 5 skipped
 - Frontend: 67 passed
-- **총 397개 테스트 통과** ✅
-- VRT, IP-Adapter, Prompt Validation, Quality, Ken Burns 모두 정상
+- **총 361개 테스트 통과** ✅
+- 리팩토링 후 모든 핵심 기능(생성, 검증, 렌더링) 안정성 확인
 
 **Commits**:
 - `071d035`: refactor: decompose God module logic.py
 - `22618e2`: fix: post-refactoring bugs + test suite stabilization
+- `3242a25`: fix: resolve backend lint errors and frontend type mismatches
 
 ---
 
