@@ -97,9 +97,9 @@
 | 3 | Quality Summary API | `/scenes/quality-summary` (평균/씬별 점수) | [x] |
 | 4 | Quality Alerts API | `/scenes/quality-alerts` (Match Rate < 70% 필터링) | [x] |
 | 5 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 UI | [x] |
-| 6 | SceneCard 경고 배지 | 낮은 점수 씬 시각적 표시 | [ ] |
-| 7 | Backend API 테스트 | pytest 통합 테스트 (batch-validate, summary, alerts) | [ ] |
-| 8 | Frontend UI 테스트 | Vitest 컴포넌트 테스트 (QualityDashboard) | [ ] |
+| 6 | SceneCard 경고 배지 | 낮은 점수 씬 시각적 표시 | [x] |
+| 7 | Backend API 테스트 | pytest 통합 테스트 (16개, all passing) | [x] |
+| 8 | Frontend UI 테스트 | Vitest 컴포넌트 테스트 (6개 기본 테스트) | [x] |
 
 **효과**:
 - ✅ 시간 절약: 5분 → 10초 (30배)
@@ -424,9 +424,9 @@ brew install claude-squad  # 명령어: cs
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5-4-1 | IN PROGRESS | 63% | 정량적 품질 지표 자동화 (5/8 완료) |
-| 5-4 | IN PROGRESS | 21% | 품질 시스템 (자동 Match Rate, 프롬프트 검증) |
-| 5 | IN PROGRESS | 87% | VEO, Setup Wizard 잔여 |
+| 5-4-1 | COMPLETE | 100% | 정량적 품질 지표 자동화 (8/8 완료) |
+| 5-4 | IN PROGRESS | 33% | 품질 시스템 (자동 Match Rate ✅, 프롬프트 검증 →) |
+| 5 | IN PROGRESS | 88% | VEO, Setup Wizard 잔여 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -436,8 +436,8 @@ brew install claude-squad  # 명령어: cs
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
 
-**Phase 5-4-1 Quality Measurement System (2026-01-28 03:00)**:
-- **구현**: 자동 Match Rate 측정 시스템 구축 (5/8 완료)
+**Phase 5-4-1 Quality Measurement System (2026-01-28 04:00) - COMPLETE**:
+- **구현**: 자동 Match Rate 측정 시스템 구축 (8/8 완료)
 - **Backend**:
   - DB 마이그레이션: `scene_quality_scores` 테이블 추가
   - API: `/quality/batch-validate`, `/quality/summary`, `/quality/alerts`
@@ -447,8 +447,9 @@ brew install claude-squad  # 명령어: cs
   - 색상 코딩: ✅ ≥80%, ⚠️ 70-80%, 🔴 <70%
   - 씬별 Match Rate 바 차트, Missing 태그 미리보기
 - **효과**: 수동 검증 5분 → 자동 10초 (30배 시간 절약)
-- **잔여 작업**: SceneCard 경고 배지, Backend/Frontend 테스트
-- **다음 단계**: Phase 5-4-2 (Gemini 프롬프트 검증 시스템)
+- **테스트**: Backend 16개, Frontend 6개 (모두 통과)
+- **커밋**: fd425f4 (Backend), fba62c3 (Frontend), 0c2f579 (Badge), 7d37ff2 (Tests)
+- **다음 단계**: Phase 5-4-2 (Gemini 프롬프트 검증 시스템) ← 우선순위 2
 
 **Gemini 템플릿 Danbooru 규칙 강화 (2026-01-28 01:30)**:
 - **배경**: "medium shot" 같은 학습되지 않은 태그가 Gemini 응답에 계속 포함되는 문제
