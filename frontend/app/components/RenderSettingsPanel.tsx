@@ -1,7 +1,22 @@
 "use client";
 
-import type { AudioItem, FontItem, OverlaySettings, PostCardSettings, SdModel } from "../types";
+import type { AudioItem, FontItem, KenBurnsPreset, OverlaySettings, PostCardSettings, SdModel } from "../types";
 import { VOICES } from "../constants";
+
+// Ken Burns preset options for dropdown
+const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "slow_zoom", label: "Slow Zoom (Legacy)" },
+  { value: "zoom_in_center", label: "Zoom In (Center)" },
+  { value: "zoom_out_center", label: "Zoom Out (Center)" },
+  { value: "pan_left", label: "Pan Left → Right" },
+  { value: "pan_right", label: "Pan Right → Left" },
+  { value: "pan_up", label: "Pan Up" },
+  { value: "pan_down", label: "Pan Down" },
+  { value: "zoom_pan_left", label: "Zoom + Pan Left" },
+  { value: "zoom_pan_right", label: "Zoom + Pan Right" },
+  { value: "random", label: "Random (per scene)" },
+];
 
 /** Truncate string with ellipsis if too long */
 const truncate = (str: string, maxLen: number) =>
@@ -26,6 +41,10 @@ type RenderSettingsPanelProps = {
   loadedFonts: Set<string>;
   motionStyle: "none" | "slow_zoom";
   setMotionStyle: (value: "none" | "slow_zoom") => void;
+  kenBurnsPreset: KenBurnsPreset;
+  setKenBurnsPreset: (value: KenBurnsPreset) => void;
+  kenBurnsIntensity: number;
+  setKenBurnsIntensity: (value: number) => void;
   // Audio Settings
   narratorVoice: string;
   setNarratorVoice: (value: string) => void;
@@ -77,6 +96,10 @@ export default function RenderSettingsPanel({
   loadedFonts,
   motionStyle,
   setMotionStyle,
+  kenBurnsPreset,
+  setKenBurnsPreset,
+  kenBurnsIntensity,
+  setKenBurnsIntensity,
   narratorVoice,
   setNarratorVoice,
   speedMultiplier,
@@ -192,13 +215,14 @@ export default function RenderSettingsPanel({
               ))}
             </select>
             <select
-              value={motionStyle}
-              onChange={(e) => setMotionStyle(e.target.value as "none" | "slow_zoom")}
-              title="Effects"
+              value={kenBurnsPreset}
+              onChange={(e) => setKenBurnsPreset(e.target.value as KenBurnsPreset)}
+              title="Ken Burns Effect"
               className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
             >
-              <option value="none">Effects: None</option>
-              <option value="slow_zoom">Effects: Slow Zoom</option>
+              {KEN_BURNS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <div
               className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-center text-white text-sm"
@@ -207,6 +231,22 @@ export default function RenderSettingsPanel({
               {loadedFonts.has(subtitleFont) ? "가나다" : "..."}
             </div>
           </div>
+          {/* Ken Burns Intensity (shown only when preset is not "none") */}
+          {kenBurnsPreset !== "none" && (
+            <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
+              <span className="text-xs text-zinc-500 whitespace-nowrap">Effect Intensity</span>
+              <span className="text-[10px] text-zinc-400">{kenBurnsIntensity.toFixed(1)}x</span>
+              <input
+                type="range"
+                min={0.5}
+                max={2.0}
+                step={0.1}
+                value={kenBurnsIntensity}
+                onChange={(e) => setKenBurnsIntensity(Number(e.target.value))}
+                className="flex-1 accent-zinc-900"
+              />
+            </div>
+          )}
           {/* Audio Row */}
           <div className="grid gap-3 md:grid-cols-4">
             <select

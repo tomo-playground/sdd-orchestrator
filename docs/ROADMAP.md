@@ -66,7 +66,7 @@
 |------|------|------|
 | Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
-| Ken Burns Effect | 정지 이미지에 줌/팬 효과 | [ ] |
+| Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋) | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -339,12 +339,12 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-26 (12:30)
+**Last Updated**: 2026-01-26 (18:05)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5 | IN PROGRESS | 73% | Ken Burns 잔여 |
+| 5 | IN PROGRESS | 82% | VEO, 품질지표 잔여 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -353,6 +353,13 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Ken Burns Effect 구현 완료 (2026-01-26 18:00)**:
+- **10개 프리셋**: none, slow_zoom, zoom_in/out_center, pan_left/right/up/down, zoom_pan_left/right
+- **Random 모드**: 씬별 랜덤 효과 (재현 가능한 시드 기반)
+- **Intensity 조절**: 0.5x ~ 2.0x 효과 강도 슬라이더
+- **하위 호환**: 기존 `motion_style="slow_zoom"` 정상 작동
+- **구현 파일**: `services/motion.py` (신규), `services/video.py`, `schemas.py`, `RenderSettingsPanel.tsx`, `page.tsx`
 
 **Subtitle & Text System Improvements (2026-01-26)**:
 - **특수문자 필터링 버그 수정**: `/`, `~`, `:`, `;`, `"` 등 수식 및 문장 부호가 삭제되던 문제 해결 (`1/10` 등 정상 표시).
@@ -420,7 +427,8 @@ brew install claude-squad  # 명령어: cs
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
 | ~~1~~ | ~~**Quality Evaluation**~~ | ~~6-4.15.6~~ | ~~중~~ | ~~중~~ | **완료** (2026-01-26) |
-| 1 | **Smart AutoRun** | 5-1-2 | 높음 | 중 | 워크플로우 효율화, UX 개선 |
-| 2 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
-| 2 | **Ken Burns Effect** | 5-2 | 높음 | 낮음 | FFmpeg 기반, 시각적 품질 향상 |
-| 3 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 배경/시간/날씨 컨텍스트 |
+| ~~1~~ | ~~**Smart AutoRun**~~ | ~~5-1-2~~ | ~~높음~~ | ~~중~~ | **완료** (2026-01-26) |
+| ~~2~~ | ~~**Ken Burns Effect**~~ | ~~5-2~~ | ~~높음~~ | ~~낮음~~ | **완료** (2026-01-26) |
+| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 콘텐츠 다양성 핵심 |
+| 2 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 배경/시간/날씨 컨텍스트 |
+| 3 | **VEO Clip** | 5-4 | 중 | 높음 | Video Generation 통합 |

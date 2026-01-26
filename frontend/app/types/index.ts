@@ -50,6 +50,20 @@ export type PostCardSettings = {
 export type SdModel = { title: string; model_name: string };
 export type ActorGender = "male" | "female";
 
+// Ken Burns effect presets
+export type KenBurnsPreset =
+  | "none"
+  | "slow_zoom"
+  | "zoom_in_center"
+  | "zoom_out_center"
+  | "pan_left"
+  | "pan_right"
+  | "pan_up"
+  | "pan_down"
+  | "zoom_pan_left"
+  | "zoom_pan_right"
+  | "random";
+
 export type AutoRunStepId = "storyboard" | "fix" | "images" | "validate" | "render";
 
 export type ValidationIssue = { level: "warn" | "error"; message: string };
@@ -280,7 +294,9 @@ export type DraftData = {
   overlaySettings?: OverlaySettings;
   postCardSettings?: PostCardSettings;
   layoutStyle?: "full" | "post";
-  motionStyle?: "none" | "slow_zoom";
+  motionStyle?: "none" | "slow_zoom";  // Legacy (backward compat)
+  kenBurnsPreset?: KenBurnsPreset;
+  kenBurnsIntensity?: number;  // 0.5 ~ 2.0
   hiResEnabled?: boolean;
   veoEnabled?: boolean;
   useControlnet?: boolean;

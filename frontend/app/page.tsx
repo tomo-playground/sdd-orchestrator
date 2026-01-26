@@ -22,6 +22,7 @@ import type {
   DraftData,
   DraftScene,
   AutopilotCheckpoint,
+  KenBurnsPreset,
 } from "./types";
 
 import {
@@ -161,6 +162,8 @@ export default function Home() {
   >([]);
   const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("post");
   const [motionStyle, setMotionStyle] = useState<"none" | "slow_zoom">("none");
+  const [kenBurnsPreset, setKenBurnsPreset] = useState<KenBurnsPreset>("none");
+  const [kenBurnsIntensity, setKenBurnsIntensity] = useState(1.0);
   const [hiResEnabled, setHiResEnabled] = useState(false);
   const [veoEnabled, setVeoEnabled] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState<string | null>(null);
@@ -406,6 +409,8 @@ export default function Home() {
     }
     if (draft.layoutStyle !== undefined) setLayoutStyle(draft.layoutStyle);
     if (draft.motionStyle !== undefined) setMotionStyle(draft.motionStyle);
+    if (draft.kenBurnsPreset !== undefined) setKenBurnsPreset(draft.kenBurnsPreset);
+    if (draft.kenBurnsIntensity !== undefined) setKenBurnsIntensity(draft.kenBurnsIntensity);
     if (draft.hiResEnabled !== undefined) setHiResEnabled(draft.hiResEnabled);
     if (draft.veoEnabled !== undefined) setVeoEnabled(draft.veoEnabled);
     if (draft.useControlnet !== undefined) setUseControlnet(draft.useControlnet);
@@ -498,6 +503,7 @@ export default function Home() {
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
       overlaySettings, postCardSettings, layoutStyle, motionStyle,
+      kenBurnsPreset, kenBurnsIntensity,
       hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
       useIpAdapter, ipAdapterReference, ipAdapterWeight,
       videoUrl, videoUrlFull, videoUrlPost,
@@ -511,6 +517,7 @@ export default function Home() {
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, audioDucking, bgmVolume, subtitleFont, speedMultiplier,
     overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    kenBurnsPreset, kenBurnsIntensity,
     hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
     useIpAdapter, ipAdapterReference, ipAdapterWeight,
     videoUrl, videoUrlFull, videoUrlPost,
@@ -535,6 +542,7 @@ export default function Home() {
       baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
       narratorVoice, bgmFile, subtitleFont, speedMultiplier,
       overlaySettings, postCardSettings, layoutStyle, motionStyle,
+      kenBurnsPreset, kenBurnsIntensity,
       hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
       useIpAdapter, ipAdapterReference, ipAdapterWeight,
       videoUrl, videoUrlFull, videoUrlPost,
@@ -547,6 +555,7 @@ export default function Home() {
     baseSamplerA, baseSeedA, baseClipSkipA, includeSubtitles,
     narratorVoice, bgmFile, subtitleFont, speedMultiplier,
     overlaySettings, postCardSettings, layoutStyle, motionStyle,
+    kenBurnsPreset, kenBurnsIntensity,
     hiResEnabled, veoEnabled, useControlnet, controlnetWeight,
     useIpAdapter, ipAdapterReference, ipAdapterWeight,
     videoUrl, videoUrlFull, videoUrlPost,
@@ -982,6 +991,8 @@ export default function Home() {
     height: 1920,
     layout_style: layoutOverride ?? layoutStyle,
     motion_style: motionStyle,
+    ken_burns_preset: kenBurnsPreset,
+    ken_burns_intensity: kenBurnsIntensity,
     narrator_voice: narratorVoice,
     bgm_file: bgmFile,
     audio_ducking: audioDucking,
@@ -1304,6 +1315,8 @@ export default function Home() {
     setPostCardSettings((prev) => ({ ...prev, caption: "" }));
     setLayoutStyle("post");
     setMotionStyle("none");
+    setKenBurnsPreset("none");
+    setKenBurnsIntensity(1.0);
     setHiResEnabled(false);
     setVeoEnabled(false);
     setUseControlnet(true);
@@ -2270,6 +2283,10 @@ export default function Home() {
             loadedFonts={loadedFonts}
             motionStyle={motionStyle}
             setMotionStyle={setMotionStyle}
+            kenBurnsPreset={kenBurnsPreset}
+            setKenBurnsPreset={setKenBurnsPreset}
+            kenBurnsIntensity={kenBurnsIntensity}
+            setKenBurnsIntensity={setKenBurnsIntensity}
             narratorVoice={narratorVoice}
             setNarratorVoice={setNarratorVoice}
             speedMultiplier={speedMultiplier}

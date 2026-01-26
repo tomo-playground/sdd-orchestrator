@@ -23,6 +23,12 @@ from config import (
     VIDEO_DIR,
     logger,
 )
+from services.motion import (
+    build_zoompan_filter,
+    get_preset,
+    get_random_preset,
+    resolve_preset_name,
+)
 
 if TYPE_CHECKING:
     from schemas import VideoRequest, VideoScene
@@ -213,6 +219,12 @@ class VideoBuilder:
         self.use_post_layout = request.layout_style == "post"
         self.out_w = request.width
         self.out_h = request.height
+
+        # Ken Burns settings
+        self.ken_burns_preset = resolve_preset_name(
+            request.ken_burns_preset, request.motion_style
+        )
+        self.ken_burns_intensity = max(0.5, min(request.ken_burns_intensity or 1.0, 2.0))
 
         # Per-scene data
         self.input_args: list[str] = []
@@ -524,15 +536,18 @@ class VideoBuilder:
         self, i: int, v_idx: int, motion_frames: int
     ) -> None:
         """Build filter for post layout style."""
-        if self.request.motion_style == "slow_zoom":
-            self.filters.append(
-                f"[{v_idx}:v]scale={self.out_w}:{self.out_h},"
-                f"zoompan=z='min(zoom+0.0008,1.08)':d={motion_frames}"
-                f":s={self.out_w}x{self.out_h}:fps=25[v{i}_base]"
-            )
-        else:
+        preset_name = self._resolve_scene_preset(i)
+        if preset_name == "none":
             self.filters.append(
                 f"[{v_idx}:v]scale={self.out_w}:{self.out_h}[v{i}_base]"
+            )
+        else:
+            params = get_preset(preset_name)
+            zoompan = build_zoompan_filter(
+                params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
+            )
+            self.filters.append(
+                f"[{v_idx}:v]scale={self.out_w}:{self.out_h},{zoompan}[v{i}_base]"
             )
 
     def _build_full_layout_filter(
@@ -546,14 +561,15 @@ class VideoBuilder:
             f"crop={self.out_w}:{self.out_h},boxblur=40:20"
         )
 
-        if self.request.motion_style == "slow_zoom":
-            self.filters.append(
-                f"{bg_scale},"
-                f"zoompan=z='min(zoom+0.0008,1.08)':d={motion_frames}"
-                f":s={self.out_w}x{self.out_h}:fps=25[v{i}_bg]"
-            )
-        else:
+        preset_name = self._resolve_scene_preset(i)
+        if preset_name == "none":
             self.filters.append(f"{bg_scale}[v{i}_bg]")
+        else:
+            params = get_preset(preset_name)
+            zoompan = build_zoompan_filter(
+                params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
+            )
+            self.filters.append(f"{bg_scale},{zoompan}[v{i}_bg]")
 
         # Square image overlay
         sq_size = self.out_w
@@ -565,6 +581,25 @@ class VideoBuilder:
         self.filters.append(
             f"[v{i}_bg][v{i}_sq]overlay=0:{sq_y}:format=auto[v{i}_base]"
         )
+
+    def _resolve_scene_preset(self, scene_idx: int) -> str:
+        """Resolve Ken Burns preset for a specific scene.
+
+        Handles 'random' preset by selecting a different effect per scene.
+
+        Args:
+            scene_idx: Scene index for seed generation
+
+        Returns:
+            Resolved preset name
+        """
+        if self.ken_burns_preset == "random":
+            # Use scene index + project timestamp for reproducible randomness
+            seed = hash(f"{self.project_id}_{scene_idx}")
+            name, _ = get_random_preset(seed)
+            logger.info(f"Scene {scene_idx}: random Ken Burns preset -> {name}")
+            return name
+        return self.ken_burns_preset
 
     def _build_audio_filters(self) -> None:
         """Build audio processing filters for each scene."""
