@@ -488,6 +488,193 @@ def _draw_bold_overlay(
     _draw_common_content(draw, canvas, width, height, settings, safe_margin, header_top, header_height, footer_top, footer_height, text_color=(0, 0, 0, 255), sub_color=(60, 60, 60, 255), offset_x=offset_x, offset_y=offset_y, show_meta=False)
 
 
+def _draw_overlay_header(
+    draw: ImageDraw.ImageDraw,
+    canvas: Image.Image,
+    width: int,
+    height: int,
+    settings: Any,
+    frame_style: str,
+    offset_x: int = 0,
+    offset_y: int = 0,
+) -> None:
+    """Draw only the header portion of overlay."""
+    safe_margin = int(width * 0.06)
+    header_top = int(height * 0.04)
+    header_height = int(height * 0.05)
+
+    # Draw background based on style
+    if frame_style == "overlay_minimal.png":
+        # Minimal: no background, stroke text only
+        pass
+    elif frame_style == "overlay_bold.png":
+        # Bold: yellow background
+        header_box = (offset_x + safe_margin, offset_y + header_top, offset_x + width - safe_margin, offset_y + header_top + header_height)
+        draw.rounded_rectangle(header_box, radius=16, fill=(255, 235, 59, 240), outline=(0, 0, 0, 255), width=4)
+    else:
+        # Clean: dark semi-transparent background
+        header_box = (offset_x + safe_margin, offset_y + header_top, offset_x + width - safe_margin, offset_y + header_top + header_height)
+        draw.rounded_rectangle(header_box, radius=28, fill=(10, 10, 10, 170))
+
+    # Draw header content (avatar + channel name)
+    use_stroke = frame_style == "overlay_minimal.png"
+    text_color = (0, 0, 0, 255) if frame_style == "overlay_bold.png" else (255, 255, 255, 255)
+
+    avatar_radius = int(header_height * 0.45)
+    avatar_center = (offset_x + safe_margin + avatar_radius + 12, offset_y + header_top + header_height // 2)
+
+    avatar_image = None
+    if settings.avatar_file:
+        try:
+            avatar_image = Image.open(settings.avatar_file).convert("RGBA")
+            avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS)
+            mask = Image.new("L", (avatar_radius * 2, avatar_radius * 2), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.ellipse((0, 0, avatar_radius * 2, avatar_radius * 2), fill=255)
+            canvas.alpha_composite(
+                avatar_resized,
+                (avatar_center[0] - avatar_radius, avatar_center[1] - avatar_radius),
+            )
+        except Exception:
+            avatar_image = None
+
+    if not avatar_image:
+        draw.ellipse(
+            (
+                avatar_center[0] - avatar_radius,
+                avatar_center[1] - avatar_radius,
+                avatar_center[0] + avatar_radius,
+                avatar_center[1] + avatar_radius,
+            ),
+            fill=(255, 255, 255, 255),
+            outline=(0, 0, 0, 255) if use_stroke or text_color == (0, 0, 0, 255) else None,
+            width=2 if (use_stroke or text_color == (0, 0, 0, 255)) else 0,
+        )
+
+        avatar_font = _get_font(int(header_height * 0.32))
+        initial = (settings.channel_name.strip()[:1] or "A").upper()
+        init_w, init_h = draw.textbbox((0, 0), initial, font=avatar_font)[2:]
+        draw.text(
+            (avatar_center[0] - init_w / 2, avatar_center[1] - init_h / 2),
+            initial,
+            fill=(30, 30, 30, 255),
+            font=avatar_font,
+        )
+
+    name_font = _get_font(int(header_height * 0.34))
+    name_x = avatar_center[0] + avatar_radius + 16
+    name_y = offset_y + header_top + int(header_height * 0.18)
+
+    if use_stroke:
+        _draw_text_with_stroke(draw, (name_x, name_y), settings.channel_name, name_font, text_color, 3, (0, 0, 0, 255))
+    else:
+        draw.text((name_x, name_y), settings.channel_name, fill=text_color, font=name_font)
+
+
+def _draw_overlay_footer(
+    draw: ImageDraw.ImageDraw,
+    canvas: Image.Image,
+    width: int,
+    height: int,
+    settings: Any,
+    frame_style: str,
+    offset_x: int = 0,
+    offset_y: int = 0,
+) -> None:
+    """Draw only the footer portion of overlay."""
+    safe_margin = int(width * 0.06)
+    footer_top = int(height * 0.80)
+    footer_height = int(height * 0.10)
+
+    # Draw background based on style
+    if frame_style == "overlay_minimal.png":
+        # Minimal: no background, stroke text only
+        pass
+    elif frame_style == "overlay_bold.png":
+        # Bold: white background
+        footer_box = (offset_x + safe_margin, offset_y + footer_top, offset_x + width - safe_margin, offset_y + footer_top + footer_height)
+        draw.rounded_rectangle(footer_box, radius=16, fill=(255, 255, 255, 240), outline=(0, 0, 0, 255), width=4)
+    else:
+        # Clean: dark semi-transparent background
+        footer_box = (offset_x + safe_margin, offset_y + footer_top, offset_x + width - safe_margin, offset_y + footer_top + footer_height)
+        draw.rounded_rectangle(footer_box, radius=28, fill=(10, 10, 10, 170))
+
+    # Draw footer content (caption)
+    use_stroke = frame_style == "overlay_minimal.png"
+    text_color = (0, 0, 0, 255) if frame_style == "overlay_bold.png" else (255, 255, 255, 255)
+
+    caption_font = _get_font(int(footer_height * 0.22))
+    caption_text = settings.caption or ""
+    caption_y = offset_y + footer_top + int(footer_height * 0.2)
+    caption_lines: list[str] = []
+
+    if caption_text:
+        tokens = caption_text.split()
+        emojis = [token for token in tokens if not token.startswith("#")]
+        hashtags = [token for token in tokens if token.startswith("#")]
+        if emojis:
+            caption_lines.append(" ".join(emojis[:6]))
+        if hashtags:
+            caption_lines.append(" ".join(hashtags[:3]))
+
+    for idx, line in enumerate(caption_lines[:2]):
+        y_pos = caption_y + idx * int(footer_height * 0.38)
+        if use_stroke:
+            _draw_text_with_stroke(draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, 3, (0, 0, 0, 255))
+        else:
+            draw.text((offset_x + safe_margin + 20, y_pos), line, fill=text_color, font=caption_font)
+
+
+def create_overlay_header(
+    settings: Any,  # OverlaySettings
+    width: int,
+    height: int,
+    output_path: pathlib.Path,
+    layout_style: str = "full",
+) -> None:
+    """Create overlay header image (top portion only)."""
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    offset_x = 0
+    offset_y = 0
+    frame_w = width
+    frame_h = height
+    if layout_style == "post":
+        frame_w = int(width * 0.8)
+        frame_h = int(height * 0.7)
+        offset_x = int(width * 0.05)
+        offset_y = (height - frame_h) // 2
+
+    _draw_overlay_header(draw, canvas, frame_w, frame_h, settings, settings.frame_style, offset_x, offset_y)
+    canvas.save(output_path, "PNG")
+
+
+def create_overlay_footer(
+    settings: Any,  # OverlaySettings
+    width: int,
+    height: int,
+    output_path: pathlib.Path,
+    layout_style: str = "full",
+) -> None:
+    """Create overlay footer image (bottom portion only)."""
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    offset_x = 0
+    offset_y = 0
+    frame_w = width
+    frame_h = height
+    if layout_style == "post":
+        frame_w = int(width * 0.8)
+        frame_h = int(height * 0.7)
+        offset_x = int(width * 0.05)
+        offset_y = (height - frame_h) // 2
+
+    _draw_overlay_footer(draw, canvas, frame_w, frame_h, settings, settings.frame_style, offset_x, offset_y)
+    canvas.save(output_path, "PNG")
+
+
 def create_overlay_image(
     settings: Any,  # OverlaySettings
     width: int,

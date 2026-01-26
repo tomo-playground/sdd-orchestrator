@@ -215,6 +215,8 @@ class VideoBuilder:
             apply_post_overlay_mask,
             calculate_post_layout_metrics,
             compose_post_frame,
+            create_overlay_footer,
+            create_overlay_header,
             render_subtitle_image,
             resolve_overlay_frame,
             resolve_subtitle_font_path,
@@ -711,7 +713,7 @@ class VideoBuilder:
             self._total_dur = self.scene_durations[0] if self.scene_durations else 0
 
     def _apply_overlays(self) -> None:
-        """Apply overlay graphics to video."""
+        """Apply overlay graphics to video with slide-in animation."""
         next_input_idx = self.num_scenes * 2
         if self.request.include_subtitles:
             next_input_idx += self.num_scenes
@@ -725,32 +727,52 @@ class VideoBuilder:
             self._next_input_idx = next_input_idx
             return
 
-        overlay_path = self.temp_dir / "overlay.png"
-        self._resolve_overlay_frame(
+        # Create separate header and footer overlay images
+        header_path = self.temp_dir / "overlay_header.png"
+        footer_path = self.temp_dir / "overlay_footer.png"
+
+        create_overlay_header(
             self.request.overlay_settings,
             self.out_w, self.out_h,
-            overlay_path,
+            header_path,
+            self.request.layout_style,
+        )
+        create_overlay_footer(
+            self.request.overlay_settings,
+            self.out_w, self.out_h,
+            footer_path,
             self.request.layout_style,
         )
 
-        if self.request.layout_style == "post":
-            self._apply_post_overlay_mask(overlay_path, self.out_w, self.out_h)
+        # Add header and footer as inputs
+        self.input_args.extend(["-i", str(header_path)])
+        self.input_args.extend(["-i", str(footer_path)])
 
-        self.input_args.extend(["-i", str(overlay_path)])
+        header_idx = next_input_idx
+        footer_idx = next_input_idx + 1
 
-        if self.request.layout_style == "full":
-            self.filters.append(
-                f"[{next_input_idx}:v]scale={self.out_w}:{self.out_h},format=rgba,"
-                f"colorchannelmixer=aa=1.6[ovr]"
-            )
-        else:
-            self.filters.append(
-                f"[{next_input_idx}:v]scale={self.out_w}:{self.out_h}[ovr]"
-            )
+        # Header animation: slide in from top (0.5 seconds)
+        # Format and enhance alpha
+        self.filters.append(
+            f"[{header_idx}:v]format=rgba,colorchannelmixer=aa=1.6[ovr_h]"
+        )
+        # Slide from top: y starts at -h and moves to 0 over 0.5 seconds
+        self.filters.append(
+            f"{self._map_v}[ovr_h]overlay=0:'if(lt(t,0.5),-h*(1-t*2),0)':format=auto[v_h]"
+        )
 
-        self.filters.append(f"{self._map_v}[ovr]overlay=0:0[vid_o]")
+        # Footer animation: slide in from bottom (0.5 seconds)
+        # Format and enhance alpha
+        self.filters.append(
+            f"[{footer_idx}:v]format=rgba,colorchannelmixer=aa=1.6[ovr_f]"
+        )
+        # Slide from bottom: y starts at h and moves to 0 over 0.5 seconds
+        self.filters.append(
+            f"[v_h][ovr_f]overlay=0:'if(lt(t,0.5),h*(1-t*2),0)':format=auto[vid_o]"
+        )
+
         self._map_v = "[vid_o]"
-        self._next_input_idx = next_input_idx + 1
+        self._next_input_idx = footer_idx + 1
 
     def _apply_bgm(self) -> None:
         """Apply background music with optional audio ducking."""
