@@ -61,7 +61,7 @@
 | **Logic Sync** | 프론트/백엔드 로직 중복 제거 (Priority 중앙화) | [x] |
 | **Frontend Config** | `next.config.ts` IP 등 하드코딩 제거 | [x] |
 
-### 5-2. 영상 품질 강화
+### 5-2. 영상 품질 강화 - **COMPLETE**
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
@@ -72,6 +72,9 @@
 | **Full Layout Polishing** | 검은 여백 제거 (YouTube Shorts 스타일, Cover 스케일) | [x] |
 | **Subtitle Animation** | Fade in/out (0.3초, 알파 채널 fade) | [x] |
 | **Advanced Transitions** | 13개 씬 전환 효과 (fade, wipe, slide, circle, random) | [x] |
+| **Dynamic Subtitle Position** | 이미지 복잡도 기반 자동 Y 위치 조정 (하단 분석) | [x] |
+| **Overlay Animation** | 헤더/푸터 슬라이드 인 효과 (0.5초, 상하 분리) | [x] |
+| **Ken Burns Vertical Presets** | Full Layout 최적화 프리셋 6종 (pan_up_vertical 등, Y축 2배 확장) | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -446,12 +449,12 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (21:20)
+**Last Updated**: 2026-01-28 (22:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5-2 | COMPLETE | 100% | Resolution Optimization + Full Layout 폴리싱 완료 |
+| 5-2 | COMPLETE | 100% | Video Production Polish (11개 작업 완료) |
 | 5-4 | COMPLETE | 100% | 품질 측정 자동화 + 프롬프트 검증 시스템 완료 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
@@ -461,6 +464,61 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Ken Burns Vertical Presets 완료 (2026-01-28 22:30)**:
+- **문제**: 기존 프리셋이 가로 영상 기준이라 세로 영상(9:16)에서 이동 범위가 부족
+- **해결**: Full Layout 최적화 프리셋 6종 추가 (Y축 이동 범위 2배 확장)
+- **새 프리셋**:
+  - `pan_up_vertical`: 아래→위 (y: 0.7→0.3, 40% 범위) - 전신 → 상반신
+  - `pan_down_vertical`: 위→아래 (y: 0.3→0.7, 40% 범위) - 상반신 → 전신
+  - `zoom_in_bottom`: 하단 줌인 (z: 1.0→1.2, y: 0.6→0.5) - 전신샷 클로즈업
+  - `zoom_in_top`: 상단 줌인 (z: 1.0→1.2, y: 0.4→0.5) - 얼굴 클로즈업
+  - `pan_zoom_up`: 상향 패닝 + 줌인 (z: 1.0→1.15, y: 0.7→0.3) - 드라마틱 상승
+  - `pan_zoom_down`: 하향 패닝 + 줌아웃 (z: 1.15→1.0, y: 0.3→0.7) - 전체 공개
+- **변경사항**:
+  - `services/motion.py`: KenBurnsPresetName 타입 확장, PRESETS 6개 추가, RANDOM_ELIGIBLE 업데이트
+  - `components/RenderSettingsPanel.tsx`: UI 옵션 추가 (이모지 표시: ⬆️⬇️🔍)
+  - `types/index.ts`: KenBurnsPreset 타입 확장
+- **효과**:
+  - ✅ 세로 영상 최적화 (9:16 Full Layout)
+  - ✅ Y축 이동 범위 2배 확장 (기존 20% → 신규 40%)
+  - ✅ Random 모드에서도 사용 가능
+  - ✅ 캐릭터 전신샷에 최적화
+
+**Overlay Animation 완료 (2026-01-28 22:10)**:
+- **문제**: 오버레이(헤더/푸터)가 처음부터 화면에 고정되어 정적
+- **해결**: 헤더/푸터 분리 + 슬라이드 인 애니메이션 (YouTube Shorts 스타일)
+- **변경사항**:
+  - `services/rendering.py`: 187줄 추가
+    - `_draw_overlay_header()`, `_draw_overlay_footer()` - 헤더/푸터 별도 그리기
+    - `create_overlay_header()`, `create_overlay_footer()` - 분리된 PNG 생성
+  - `services/video.py`: `_apply_overlays()` 리팩토링
+    - 헤더 슬라이드 인: 위에서 아래로 (y: -h → 0) 0.5초
+    - 푸터 슬라이드 인: 아래에서 위로 (y: h → 0) 0.5초
+    - FFmpeg overlay 표현식: `'if(lt(t,0.5), -h*(1-t*2), 0)'`
+- **효과**:
+  - ✅ 프로페셔널한 reveal 효과
+  - ✅ 독립적인 타이밍 (staggered animation)
+  - ✅ 3가지 프레임 스타일 모두 지원 (minimal/clean/bold)
+  - ✅ Post Layout은 기존대로 비활성화
+
+**Dynamic Subtitle Position 완료 (2026-01-28 22:00)**:
+- **문제**: 자막이 고정 위치(70-72%)라 복잡한 하단 이미지와 겹칠 수 있음
+- **해결**: 이미지 하단 복잡도 분석 → 자동 위치 조정
+- **변경사항**:
+  - `services/image.py`: numpy/PIL 추가, 복잡도 분석 함수 추가
+    - `analyze_bottom_complexity()`: 하단 20% 영역 분석 (variance 60% + edge density 40%)
+    - `calculate_optimal_subtitle_y()`: 복잡도 기반 Y 위치 계산
+      - 높음 (>0.6): 0.60 (Full) / 0.78 (Post) - 자막 위로 이동
+      - 낮음 (<0.3): 0.75 (Full) / 0.85 (Post) - 자막 아래로 이동
+      - 중간: 0.72 (기본)
+  - `services/rendering.py`: `render_subtitle_image()`에 `subtitle_y_ratio` 파라미터 추가
+  - `services/video.py`: `_add_subtitle_inputs()`에서 씬별 이미지 로드 → 복잡도 분석 → 동적 위치 전달
+- **효과**:
+  - ✅ 자막-이미지 겹침 방지
+  - ✅ 자막 가시성 최대화
+  - ✅ 레이아웃별 최적화 (Full/Post 별도 임계값)
+  - ✅ 로그 출력: `Scene {i}: dynamic subtitle Y = 0.xxx`
 
 **Advanced Transitions 완료 (2026-01-28 21:20)**:
 - **문제**: 씬 전환이 fade만 가능하여 단조로움
@@ -682,12 +740,12 @@ brew install claude-squad  # 명령어: cs
 - ✅ 5-4-2: Gemini 프롬프트 검증 시스템 (태그 검증 API, 43개 risky tag 매핑, 자동 교체)
 - **효과**: 품질 측정 5분 → 10초 (30배), 위험 태그 사전 차단, 데이터 기반 개선 기반 마련
 
-**다음 우선순위** (2026-01-28 03:00 갱신 - 품질 시스템 완료):
+**다음 우선순위** (2026-01-28 22:30 갱신 - Phase 5-2 완료):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| 1 | **Resolution Optimization (512x768)** | 5-2 | 매우 높음 | 낮음 | Post/Full 겸용 최적화, 머리 잘림 해결 |
-| 2 | **Generation Log Analytics** | 6-4.21 | 매우 높음 | 중 | 성공/실패 패턴 학습, 충돌 규칙 자동 발견 |
-| 3 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 (품질 안정화 후) |
-| 4 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 장면별 컨텍스트 태그 선택 UI |
-| 5 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | Danbooru 스타일 태그 자동완성 |
+| 1 | **Generation Log Analytics** | 6-4.21 | 매우 높음 | 중 | 성공/실패 패턴 학습, 충돌 규칙 자동 발견 |
+| 2 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 (분리 생성 + 합성) |
+| 3 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 장면별 컨텍스트 태그 선택 UI |
+| 4 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | Danbooru 스타일 태그 자동완성 |
+| 5 | **Setup Wizard** | 5-6 | 중 | 낮음 | 초기 설정 및 에셋 상태 확인 UI |
