@@ -848,7 +848,7 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
         if "hair" in trigger_lower:
             if any(c in trigger_lower for c in ["black", "blonde", "brown", "red", "blue", "green", "pink", "purple", "white", "silver", "grey", "gray", "orange", "aqua"]):
                 return ("hair_color", "character", 4)
-            elif any(l in trigger_lower for l in ["short", "long", "medium"]):
+            elif any(length in trigger_lower for length in ["short", "long", "medium"]):
                 return ("hair_length", "character", 4)
             else:
                 return ("hair_style", "character", 4)
@@ -1299,7 +1299,7 @@ def get_effective_tags(min_effectiveness: float = 0.5, min_uses: int = 5) -> dic
         low = []  # effectiveness < 0.4
         unknown = []  # no data or insufficient uses
 
-        for name, group, effectiveness, use_count in results:
+        for name, _group, effectiveness, use_count in results:
             if effectiveness is None or (use_count or 0) < min_uses:
                 unknown.append(name)
             elif effectiveness >= 0.7:

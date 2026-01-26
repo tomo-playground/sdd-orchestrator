@@ -68,8 +68,8 @@ async def create_prompt_history(data: PromptHistoryCreate, db: Session = Depends
     history_data = data.model_dump()
     if history_data.get("lora_settings"):
         history_data["lora_settings"] = [
-            {"lora_id": l["lora_id"], "name": l["name"], "weight": l["weight"]}
-            for l in history_data["lora_settings"]
+            {"lora_id": ls["lora_id"], "name": ls["name"], "weight": ls["weight"]}
+            for ls in history_data["lora_settings"]
         ]
 
     history = PromptHistory(**history_data)

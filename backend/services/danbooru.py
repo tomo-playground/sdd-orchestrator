@@ -144,7 +144,7 @@ def _classify_general_tag(tag_name: str) -> str | None:
     if "hair" in name:
         if any(c in name for c in ["blue", "red", "pink", "green", "white", "black", "brown", "blonde", "silver", "purple", "aqua", "orange"]):
             return "hair_color"
-        if any(l in name for l in ["long", "short", "medium", "very long"]):
+        if any(length in name for length in ["long", "short", "medium", "very long"]):
             return "hair_length"
         if any(s in name for s in ["twintails", "ponytail", "braid", "bun", "bob"]):
             return "hair_style"
@@ -175,7 +175,7 @@ def _classify_general_tag(tag_name: str) -> str | None:
         return "clothing"
 
     # Location patterns
-    if any(l in name for l in ["indoor", "outdoor", "room", "street", "forest", "beach", "city", "school", "office"]):
+    if any(loc in name for loc in ["indoor", "outdoor", "room", "street", "forest", "beach", "city", "school", "office"]):
         return "location_indoor" if "indoor" in name or "room" in name else "location_outdoor"
 
     # Time/Weather patterns

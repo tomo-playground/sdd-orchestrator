@@ -49,8 +49,8 @@ def load_image_bytes(source: str) -> bytes:
     # Try raw base64 as fallback
     try:
         return base64.b64decode(source)
-    except Exception:
-        raise ValueError("Unsupported image source")
+    except Exception as exc:
+        raise ValueError("Unsupported image source") from exc
 
 
 def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> float:

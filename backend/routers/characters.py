@@ -105,7 +105,7 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     # Convert loras list to JSONB-compatible format
     char_data = data.model_dump()
     if char_data.get("loras"):
-        char_data["loras"] = [{"lora_id": l["lora_id"], "weight": l["weight"]} for l in char_data["loras"]]
+        char_data["loras"] = [{"lora_id": lora["lora_id"], "weight": lora["weight"]} for lora in char_data["loras"]]
 
     character = Character(**char_data)
     db.add(character)

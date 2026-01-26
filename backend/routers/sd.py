@@ -22,7 +22,7 @@ async def list_sd_models():
             return {"models": data if isinstance(data, list) else []}
     except httpx.HTTPError as exc:
         logger.exception("SD models fetch failed")
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/options")
@@ -38,7 +38,7 @@ async def get_sd_options():
             return {"options": {}, "model": "Unknown"}
     except httpx.HTTPError as exc:
         logger.exception("SD options fetch failed")
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.post("/options")
@@ -53,7 +53,7 @@ async def update_sd_options(request: SDModelRequest):
             return {"ok": True, "model": data.get("sd_model_checkpoint", request.sd_model_checkpoint)}
     except httpx.HTTPError as exc:
         logger.exception("SD options update failed")
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/loras")
@@ -67,4 +67,4 @@ async def list_sd_loras():
             return {"loras": data if isinstance(data, list) else []}
     except httpx.HTTPError as exc:
         logger.exception("SD LoRAs fetch failed")
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

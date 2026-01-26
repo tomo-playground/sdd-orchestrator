@@ -33,7 +33,7 @@ async def delete_video(request: VideoDeleteRequest):
         return {"ok": True, "deleted": True}
     except Exception as exc:
         logger.exception("Video delete failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/exists")

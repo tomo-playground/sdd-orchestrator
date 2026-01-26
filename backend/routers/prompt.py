@@ -34,30 +34,6 @@ from services.prompt_validation import auto_replace_risky_tags, check_tag_confli
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 
 
-class LoraInfo(BaseModel):
-    """LoRA information for prompt composition."""
-    name: str
-    weight: float
-    trigger_words: list[str] | None = None
-
-
-class PromptComposeRequest(BaseModel):
-    """Request for composing a prompt with Mode A/B logic."""
-    tokens: list[str]
-    mode: str = "standard"  # "standard" or "lora"
-    loras: list[LoraInfo] | None = None
-    use_break: bool | None = True
-
-
-class PromptComposeResponse(BaseModel):
-    """Response from prompt composition."""
-    composed_prompt: str
-    effective_mode: str
-    token_count: int
-    lora_weight: float | None = None
-    scene_complexity: str | None = None
-
-
 @router.post("/rewrite")
 async def rewrite_prompt_endpoint(request: PromptRewriteRequest):
     logger.info("📥 [Prompt Rewrite Req] %s", request.model_dump())

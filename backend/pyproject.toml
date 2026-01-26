@@ -59,7 +59,7 @@ select = [
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
 ]
-ignore = ["E501"] # Line too long (handled by formatter)
+ignore = ["E501", "B008"] # Line too long, Depends in defaults
 
 [tool.ruff.lint.isort]
 known-first-party = ["logic", "schemas"]
