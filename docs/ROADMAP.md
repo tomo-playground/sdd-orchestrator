@@ -449,9 +449,35 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-27 (00:00)
+**Last Updated**: 2026-01-27 (16:00)
 
 ### 현재 세션 완료 작업 (2026-01-27)
+
+#### Gemini 리팩토링 안정화
+**목표**: God module 분해 후 발생한 import/구조 이슈 전수 해결 및 테스트 안정화
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Import 경로 수정 | services/storyboard.py normalize_prompt_tokens 경로 | ✅ |
+| 전체 테스트 검증 | Backend 330 + Frontend 67 = 397 tests | ✅ |
+| 영상 생성 테스트 | test_video_render.py 스크립트 작성 및 검증 | ✅ |
+
+**수정 내역**:
+- `services/storyboard.py`: `normalize_prompt_tokens` import → `services/prompt`
+- 스토리보드 생성 API 500 에러 해결 (Gemini 호출 정상화)
+- 영상 렌더링 E2E 검증 (3 scenes, 9초, 1080x1920)
+
+**테스트 현황** (2026-01-27):
+- Backend: 330 passed, 5 skipped
+- Frontend: 67 passed
+- **총 397개 테스트 통과** ✅
+- VRT, IP-Adapter, Prompt Validation, Quality, Ken Burns 모두 정상
+
+**Commits**:
+- `071d035`: refactor: decompose God module logic.py
+- `22618e2`: fix: post-refactoring bugs + test suite stabilization
+
+---
 
 #### Phase 6-4.21: Generation Log Analytics (Tasks #1-5 완료)
 | 작업 | 상태 |
@@ -479,7 +505,7 @@ brew install claude-squad  # 명령어: cs
 - 30개 로그 패턴 분석 정상 동작
 - Frontend-Backend 연동 확인 완료
 
-#### 긴급 버그 수정
+#### 긴급 버그 수정 (이전 세션)
 - ✅ **Generation Log VARCHAR 오버플로우**: project_name 200자 제한 추가 (topic 길이 제한)
 - ✅ **ValidationTabContent 타입 에러**: tag.toLowerCase() non-string 방어 코드
 - ✅ **Video Generation NameError**: create_overlay_header/footer 인스턴스 변수 바인딩
