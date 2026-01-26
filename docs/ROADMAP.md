@@ -68,6 +68,7 @@
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋, slow_zoom 제거됨) | [x] |
 | **Random BGM** | `bgm_file: "random"` → Backend에서 랜덤 선택 | [x] |
+| **Resolution Optimization** | 512x768 (2:3) 표준화 + Cowboy Shot 전략 (Post/Full 겸용) | [ ] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -81,25 +82,28 @@
 ### 5-4. Prompt Quality & Analytics (프롬프트 품질 시스템)
 **목표**: 생성된 프롬프트와 이미지의 품질을 자동으로 측정하고 개선하는 시스템 구축.
 
-#### 5-4-1. 정량적 품질 지표 자동화 (🔴 우선순위 1)
+#### 5-4-1. 정량적 품질 지표 자동화 (🟢 완료)
 **목표**: 수동 검증(10개 씬 = 5분) → 자동 배치 검증(10초)으로 전환. 품질 가시성 확보 및 선제적 경고 시스템 구축.
 
 **기술 스택**:
 - Backend: PostgreSQL (scene_quality_scores), asyncio (백그라운드 처리)
-- API: `/scenes/batch-validate`, `/scenes/quality-summary`, `/scenes/quality-alerts`
-- Frontend: recharts (품질 차트), Toast 알림
+- API: `/quality/batch-validate`, `/quality/summary`, `/quality/alerts`
+- Frontend: Quality Dashboard (summary stats, scene bars, color coding)
 
 **구현 순서**:
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
 | 1 | Quality Score DB | `scene_quality_scores` 테이블 + Alembic 마이그레이션 | [x] |
-| 2 | Batch Validate API | `/scenes/batch-validate` (백그라운드 WD14 검증) | [x] |
-| 3 | Quality Summary API | `/scenes/quality-summary` (평균/씬별 점수) | [x] |
-| 4 | Quality Alerts API | `/scenes/quality-alerts` (Match Rate < 70% 필터링) | [x] |
+| 2 | Batch Validate API | `/quality/batch-validate` (백그라운드 WD14 검증) | [x] |
+| 3 | Quality Summary API | `/quality/summary/{project_name}` (평균/씬별 점수) | [x] |
+| 4 | Quality Alerts API | `/quality/alerts` (Match Rate < 70% 필터링) | [x] |
 | 5 | Quality Dashboard | Manage 탭에 품질 점수 대시보드 UI | [x] |
-| 6 | SceneCard 경고 배지 | 낮은 점수 씬 시각적 표시 | [x] |
-| 7 | Backend API 테스트 | pytest 통합 테스트 (16개, all passing) | [x] |
-| 8 | Frontend UI 테스트 | Vitest 컴포넌트 테스트 (6개 기본 테스트) | [x] |
+| 6 | SceneCard 경고 배지 | 낮은 점수 씬 시각적 표시 (⚠️/🔴) | [x] |
+| 7 | Backend API 테스트 | pytest 통합 테스트 (batch-validate, summary, alerts) | [x] |
+| 8 | Frontend UI 테스트 | Vitest 컴포넌트 테스트 (QualityDashboard) | [x] |
+
+**완료 날짜**: 2026-01-27
+**Commits**: fd425f4, fba62c3, 0c2f579, 7d37ff2, 42dd213
 
 **효과**:
 - ✅ 시간 절약: 5분 → 10초 (30배)
@@ -112,14 +116,32 @@
 - 5-4-1: Match Rate 자동 측정 및 저장
 - 6-4-21: 실패 패턴 분석 → 충돌 규칙 자동 발견 (`tag_rules` 자동 INSERT)
 
-#### 5-4-2. Gemini 프롬프트 검증 시스템 (🔴 우선순위 2)
+#### 5-4-2. Gemini 프롬프트 검증 시스템 (🟢 완료)
+**목표**: Gemini가 생성한 프롬프트의 위험 태그를 자동으로 감지하고 안전한 대안으로 교체하는 시스템 구축.
+
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
-| 1 | 태그 검증 API | `/prompt/validate` 엔드포인트 (DB 태그 대조) | [ ] |
-| 2 | 위험 태그 감지 | Danbooru 0건 태그 자동 감지 | [ ] |
-| 3 | 자동 대체 제안 | 위험 태그 → 안전 태그 매핑 (medium shot → cowboy shot) | [ ] |
-| 4 | Frontend 경고 UI | 씬 생성 시 위험 태그 경고 표시 | [ ] |
-| 5 | 자동 교체 옵션 | 위험 태그 자동 대체 적용 토글 | [ ] |
+| 1 | 태그 검증 API | `/prompt/validate-tags` 엔드포인트 (DB + Danbooru 대조) | [x] |
+| 2 | 태그 대체 매핑 시스템 | 43개 risky tag 매핑 (40 교체 + 3 제거) | [x] |
+| 3 | Frontend 경고 UI | TagValidationWarning 컴포넌트 + useTagValidation 훅 | [x] |
+| 4 | 자동 교체 옵션 | Settings에 "Auto Replace Risky Tags" 토글 | [x] |
+| 5 | 테스트 작성 | Backend 14개 테스트 (validation + auto-replace) | [x] |
+
+**완료 날짜**: 2026-01-28
+**Commits**: 900a30e, f8f5047, 6569b57, 84bfca6, 5517c19
+
+**구현 내용**:
+- **Tag Validation API**: DB 태그 확인 + Danbooru post count 검증 (threshold: 100)
+- **Risky Tag Replacements**: 카메라(18), 조명(8), 품질(11), 구도(4), 제거(3)
+- **Auto-Replace Logic**: known risky tags → safe alternatives, None → removal
+- **Frontend Components**: Warning display + suggestions + auto-replace button
+- **Settings Integration**: opt-in toggle in Global Settings tab
+
+**효과**:
+- ✅ Gemini 위험 태그 사전 차단 (medium shot, unreal engine 등)
+- ✅ 자동 대체 제안 (medium shot → cowboy shot)
+- ✅ 선택적 자동 교체 (Settings 토글)
+- ✅ Phase 6-4-21 기반 마련 (태그 검증 시스템)
 
 #### 5-4-3. 확장 기능 (v1.x Backlog)
 | 작업 | 설명 | 상태 |
@@ -152,16 +174,18 @@
 | **Core Hooks Test** | `useAutopilot` 27개 테스트 (~95% 커버리지) | [x] |
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [x] |
 
-**현재 테스트 현황** (2026-01-27):
-- Backend: 286 passed, 5 skipped (validation 18개 추가)
+**현재 테스트 현황** (2026-01-28):
+- Backend: 313 passed, 5 skipped (quality 16개 + prompt validation 14개 추가)
 - Frontend: 60 passed (validation 30개, useAutopilot 27개, LoadingSpinner 3개)
-- **총 346개 테스트**
+- **총 373개 테스트**
 - 주요 테스트: VRT (36개), API (키워드/프리셋/IP-Adapter), 프롬프트 품질, Ken Burns (27개), BGM (9개)
 - IP-Adapter 테스트 (16개): CLIP 모델 선택, Reference 이미지 로드, 페이로드 구성, 상수 검증
 - **useAutopilot 테스트** (27개): 상태 관리, 로그, 취소/재개, 체크포인트, 진행률 계산, 통합 플로우
 - **Validation 테스트** (48개):
   - Frontend (30개): 씬 검증, 수정 제안, 프롬프트 품질 체크
   - Backend (18개): 태그 비교, match rate 계산, skip 로직
+- **Quality 테스트** (16개): batch-validate, summary, alerts API (empty/missing/threshold)
+- **Prompt Validation 테스트** (14개): tag validation, auto-replace, Danbooru integration
 
 ---
 
@@ -424,9 +448,8 @@ brew install claude-squad  # 명령어: cs
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5-4-1 | COMPLETE | 100% | 정량적 품질 지표 자동화 (8/8 완료) |
-| 5-4 | IN PROGRESS | 33% | 품질 시스템 (자동 Match Rate ✅, 프롬프트 검증 →) |
-| 5 | IN PROGRESS | 88% | VEO, Setup Wizard 잔여 |
+| 5-2 | IN PROGRESS | 80% | Resolution Optimization (512x768) 진행 중 |
+| 5-4 | COMPLETE | 100% | 품질 시스템 완료 (5-4-1, 5-4-2) |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -436,20 +459,14 @@ brew install claude-squad  # 명령어: cs
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
 
-**Phase 5-4-1 Quality Measurement System (2026-01-28 04:00) - COMPLETE**:
-- **구현**: 자동 Match Rate 측정 시스템 구축 (8/8 완료)
-- **Backend**:
-  - DB 마이그레이션: `scene_quality_scores` 테이블 추가
-  - API: `/quality/batch-validate`, `/quality/summary`, `/quality/alerts`
-  - Service: batch_validate_scenes(), get_quality_summary(), get_quality_alerts()
-- **Frontend**:
-  - Quality Dashboard: /manage 페이지 → Quality 탭
-  - 색상 코딩: ✅ ≥80%, ⚠️ 70-80%, 🔴 <70%
-  - 씬별 Match Rate 바 차트, Missing 태그 미리보기
-- **효과**: 수동 검증 5분 → 자동 10초 (30배 시간 절약)
-- **테스트**: Backend 16개, Frontend 6개 (모두 통과)
-- **커밋**: fd425f4 (Backend), fba62c3 (Frontend), 0c2f579 (Badge), 7d37ff2 (Tests)
-- **다음 단계**: Phase 5-4-2 (Gemini 프롬프트 검증 시스템) ← 우선순위 2
+**Resolution Optimization Strategy (2026-01-28 02:00)**:
+- **문제**: 정사각형(1:1) 생성 시 `full body` 태그가 머리를 자르거나 캐릭터를 작게 만듦.
+- **전략**: 모든 생성을 **`512x768` (2:3 비율)**로 통일하여 VRAM 절약 및 속도 확보.
+- **핵심 규칙**:
+  - 태그: `full body` 사용 지양 → **`cowboy shot` (무릎 위)** 권장.
+  - 1:1 편집: 512x768 이미지의 **상단 크롭**으로 완벽한 인물 구도 확보.
+  - 9:16 편집: 좌우 여백 없이 꽉 찬 화면(Cover)으로 사용.
+- **기대 효과**: 단일 소스로 모든 포맷 대응, 얼굴 디테일 향상, 잘림 현상 제거.
 
 **Gemini 템플릿 Danbooru 규칙 강화 (2026-01-28 01:30)**:
 - **배경**: "medium shot" 같은 학습되지 않은 태그가 Gemini 응답에 계속 포함되는 문제
@@ -464,10 +481,10 @@ brew install claude-squad  # 명령어: cs
 - **원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표
 - **전략**: Multi-Character 등 기능 확장보다 품질 안정화 우선
 - **새 우선순위**:
-  1. 정량적 품질 지표 자동화 (Match Rate 측정)
-  2. Gemini 프롬프트 검증 (위험 태그 차단)
-  3. Generation Log Analytics (성공 조합 학습)
-  4. Multi-Character 구현 (품질 안정화 후)
+  1. Resolution Optimization (512x768 + Cowboy Shot) - **진행 중**
+  2. 정량적 품질 지표 자동화 (Match Rate 측정)
+  3. Gemini 프롬프트 검증 (위험 태그 차단)
+  4. Generation Log Analytics (성공 조합 학습)
 
 **Motion Setting List Update (2026-01-27 12:30)**:
 - **slow_zoom 제거**: Legacy 옵션인 `slow_zoom`을 UI 리스트에서 제거 (기능은 백엔드에 유지되나 UI에서 deprecated).
@@ -608,18 +625,17 @@ brew install claude-squad  # 명령어: cs
 - SAFE 예시: "cowboy shot" (729K), "upper body" (1.01M) + 포스트 수 표시
 - 모든 예시 태그를 Danbooru 검증된 고빈도 태그로 교체
 
-**다음 우선순위** (2026-01-28 01:20 갱신 - 프롬프트 품질 최우선):
+**Phase 5-4 완료 (2026-01-28 03:00)**:
+- ✅ 5-4-1: 정량적 품질 지표 자동화 (Match Rate 자동 측정, Quality Dashboard)
+- ✅ 5-4-2: Gemini 프롬프트 검증 시스템 (태그 검증 API, 43개 risky tag 매핑, 자동 교체)
+- **효과**: 품질 측정 5분 → 10초 (30배), 위험 태그 사전 차단, 데이터 기반 개선 기반 마련
 
-**우선순위 재평가 배경**:
-Gemini 템플릿에 Danbooru 규칙을 추가했지만, 실제 생성된 프롬프트가 규칙을 준수하는지 검증하는 시스템이 없습니다. 또한 생성된 이미지의 품질(Match Rate)을 수동으로 확인해야 하므로 자동화가 필요합니다. Multi-Character 등 기능 확장보다 **프롬프트 정확도 보장**이 품질 향상에 더 직접적인 영향을 줍니다.
+**다음 우선순위** (2026-01-28 03:00 갱신 - 품질 시스템 완료):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|
-| 1 | **정량적 품질 지표 자동화** | 5-4 | 매우 높음 | 중 | Match Rate 자동 측정, 품질 대시보드 |
-| 2 | **Gemini 프롬프트 검증** | 신규 | 매우 높음 | 낮음 | 위험 태그 차단, 자동 대체 제안 |
-| 3 | **Generation Log Analytics** | 6-4.21 | 높음 | 중 | 성공/실패 패턴 학습, 충돌 규칙 발견 |
-| 4 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 (품질 안정화 후) |
-| 5 | **Core Hooks Test** | 5-7 | 중 | 낮음 | TDD 규칙 준수 |
-| 6 | **CI Script** | 5-7 | 중 | 낮음 | 테스트 자동화 |
-| 7 | Scene Builder UI | 6-3.11 | 중 | 중 | Multi-Character 시너지 |
-| 8 | VEO Clip | 5-4 | 낮음 | 높음 | 외부 API 의존 (품질 안정화 후) |
+| 1 | **Resolution Optimization (512x768)** | 5-2 | 매우 높음 | 낮음 | Post/Full 겸용 최적화, 머리 잘림 해결 |
+| 2 | **Generation Log Analytics** | 6-4.21 | 매우 높음 | 중 | 성공/실패 패턴 학습, 충돌 규칙 자동 발견 |
+| 3 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대화형 콘텐츠 핵심 (품질 안정화 후) |
+| 4 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 장면별 컨텍스트 태그 선택 UI |
+| 5 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | Danbooru 스타일 태그 자동완성 |
