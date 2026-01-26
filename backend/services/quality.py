@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from PIL import Image
 
-from config import OUTPUTS_DIR, logger
+from config import OUTPUT_DIR, logger
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
 if TYPE_CHECKING:
@@ -227,5 +227,5 @@ def _resolve_image_path(image_url: str) -> Path | None:
     else:
         relative = image_url
 
-    path = OUTPUTS_DIR / relative
+    path = OUTPUT_DIR / relative
     return path if path.exists() else None
