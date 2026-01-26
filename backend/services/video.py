@@ -206,7 +206,10 @@ class VideoBuilder:
         from constants.layout import FullLayout, PostLayout
         from schemas import OverlaySettings, PostCardSettings
         from services.avatar import ensure_avatar_file
-        from services.image import load_image_bytes
+        from services.image import (
+            calculate_optimal_subtitle_y,
+            load_image_bytes,
+        )
         from services.rendering import (
             _random_meta_values,
             apply_post_overlay_mask,
@@ -221,6 +224,7 @@ class VideoBuilder:
         self.request = request
         self._ensure_avatar_file = ensure_avatar_file
         self._load_image_bytes = load_image_bytes
+        self._calculate_optimal_subtitle_y = calculate_optimal_subtitle_y
         self._random_meta_values = _random_meta_values
         self._apply_post_overlay_mask = apply_post_overlay_mask
         self._calculate_post_layout_metrics = calculate_post_layout_metrics
@@ -518,13 +522,30 @@ class VideoBuilder:
         self._apply_bgm()
 
     def _add_subtitle_inputs(self) -> None:
-        """Add subtitle image inputs."""
+        """Add subtitle image inputs with dynamic positioning."""
         if not self.request.include_subtitles:
             return
+
+        from PIL import Image
 
         for i in range(self.num_scenes):
             subtitle_path = self.temp_dir / f"subtitle_{i}.png"
             font_size = self.subtitle_font_sizes[i] if self.subtitle_font_sizes[i] > 0 else None
+
+            # Calculate dynamic subtitle position based on image content
+            scene_img_path = self.temp_dir / f"scene_{i}.png"
+            subtitle_y_ratio = None
+            try:
+                if scene_img_path.exists():
+                    scene_img = Image.open(scene_img_path)
+                    subtitle_y_ratio = self._calculate_optimal_subtitle_y(
+                        scene_img,
+                        layout_style=self.request.layout_style
+                    )
+                    logger.info(f"Scene {i}: dynamic subtitle Y = {subtitle_y_ratio:.3f}")
+            except Exception as e:
+                logger.warning(f"Scene {i}: failed to calculate dynamic subtitle position: {e}")
+
             subtitle_img = self._render_subtitle_image(
                 self.subtitle_lines[i],
                 self.out_w, self.out_h,
@@ -532,6 +553,7 @@ class VideoBuilder:
                 self.use_post_layout,
                 self.post_layout_metrics,
                 font_size,
+                subtitle_y_ratio,
             )
             subtitle_img.save(subtitle_path, "PNG")
             self.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])

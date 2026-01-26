@@ -233,6 +233,7 @@ def render_subtitle_image(
     use_post_layout: bool,
     post_layout_metrics: dict[str, int] | None,
     font_size_override: int | None = None,
+    subtitle_y_ratio: float | None = None,
 ) -> Image.Image:
     """Render subtitle text as transparent image.
 
@@ -244,6 +245,7 @@ def render_subtitle_image(
         use_post_layout: Whether to use post (1:1) layout.
         post_layout_metrics: Layout metrics for post mode.
         font_size_override: Optional font size to use instead of calculated size.
+        subtitle_y_ratio: Optional Y position ratio (0-1). If provided, overrides default positioning.
     """
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
@@ -287,7 +289,10 @@ def render_subtitle_image(
     line_height = int(subtitle_size * 1.45)
     line_count = len(lines)
 
-    if line_count > 1:
+    # Use dynamic subtitle position if provided
+    if subtitle_y_ratio is not None:
+        text_y_pos = int(height * subtitle_y_ratio)
+    elif line_count > 1:
         text_y_pos = int(height * 0.70)
     else:
         text_y_pos = int(height * 0.72)
