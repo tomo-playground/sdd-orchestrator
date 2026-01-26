@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE, STRUCTURES } from "../constants";
+import { API_BASE, STRUCTURES } from "../../constants";
 
 type Preset = {
   id: string;

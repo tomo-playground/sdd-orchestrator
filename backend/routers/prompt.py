@@ -7,8 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-import logic
-from config import logger, SD_LORAS_URL
+from config import logger
 from database import get_db
 from schemas import (
     PromptComposeRequest,
@@ -17,7 +16,13 @@ from schemas import (
     PromptSplitRequest,
     PromptValidateRequest,
 )
-from services.prompt import validate_loras, detect_prompt_conflicts, validate_identity_tags
+from services.prompt import (
+    rewrite_prompt,
+    split_prompt_example,
+    validate_loras,
+    detect_prompt_conflicts,
+    validate_identity_tags,
+)
 from services.prompt_validation import validate_prompt_tags, auto_replace_risky_tags, check_tag_conflicts
 from services.prompt_composition import (
     calculate_lora_weight,
@@ -25,20 +30,46 @@ from services.prompt_composition import (
     detect_scene_complexity,
     get_effective_mode_from_dict,
 )
+from database import get_db
+from config import logger
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 
 
+class LoraInfo(BaseModel):
+    """LoRA information for prompt composition."""
+    name: str
+    weight: float
+    trigger_words: list[str] | None = None
+
+
+class PromptComposeRequest(BaseModel):
+    """Request for composing a prompt with Mode A/B logic."""
+    tokens: list[str]
+    mode: str = "standard"  # "standard" or "lora"
+    loras: list[LoraInfo] | None = None
+    use_break: bool | None = True
+
+
+class PromptComposeResponse(BaseModel):
+    """Response from prompt composition."""
+    composed_prompt: str
+    effective_mode: str
+    token_count: int
+    lora_weight: float | None = None
+    scene_complexity: str | None = None
+
+
 @router.post("/rewrite")
-async def rewrite_prompt(request: PromptRewriteRequest):
+async def rewrite_prompt_endpoint(request: PromptRewriteRequest):
     logger.info("📥 [Prompt Rewrite Req] %s", request.model_dump())
-    return logic.logic_rewrite_prompt(request)
+    return rewrite_prompt(request)
 
 
 @router.post("/split")
-async def split_prompt(request: PromptSplitRequest):
+async def split_prompt_endpoint(request: PromptSplitRequest):
     logger.info("📥 [Prompt Split Req] %s", request.model_dump())
-    return logic.logic_split_prompt(request)
+    return split_prompt_example(request)
 
 
 @router.post("/validate")
@@ -214,20 +245,26 @@ async def validate_tags(
     """
     logger.info("📥 [Validate Tags] tags=%d, check_danbooru=%s", len(request.tags), request.check_danbooru)
 
-    result = await validate_prompt_tags(
+    result = validate_prompt_tags(
         tags=request.tags,
         check_danbooru=request.check_danbooru,
         db=db,
     )
 
     logger.info(
-        "✅ [Validate Tags] risky=%d, unknown_db=%d, low_posts=%d",
-        len(result["risky_tags"]),
-        len(result["unknown_in_db"]),
-        len(result["low_post_count"]),
+        "✅ [Validate Tags] risky=%d, unknown=%d, low_posts=%d",
+        len(result["risky"]),
+        len(result["unknown"]),
+        len(result.get("low_post_count", [])),
     )
 
-    return result
+    return {
+        "risky_tags": result["risky"],
+        "unknown_in_db": result["unknown"],
+        "low_post_count": result.get("low_post_count", []),
+        "warnings": result["warnings"],
+        "total": result["total_tags"],
+    }
 
 
 @router.post("/auto-replace")

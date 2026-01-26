@@ -1,7 +1,7 @@
 "use client";
 
-import type { AutoRunState } from "../types";
-import { AUTO_RUN_STEPS } from "../constants";
+import type { AutoRunState } from "../../types";
+import { AUTO_RUN_STEPS } from "../../constants";
 
 type AutoRunStatusProps = {
   autoRunState: AutoRunState;

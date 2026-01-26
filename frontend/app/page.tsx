@@ -47,30 +47,30 @@ import {
 } from "./constants";
 
 // SetupPanel removed - direct entry to working mode
-import AutoRunStatus from "./components/AutoRunStatus";
-import SceneFilmstrip from "./components/SceneFilmstrip";
-import SceneImagePanel from "./components/SceneImagePanel";
-import ValidationTabContent from "./components/ValidationTabContent";
-import DebugTabContent from "./components/DebugTabContent";
-import LayoutSelector from "./components/LayoutSelector";
-import AutoRunProgressModal from "./components/AutoRunProgressModal";
-import ResumeConfirmModal from "./components/ResumeConfirmModal";
-import PreflightModal from "./components/PreflightModal";
+import AutoRunStatus from "./components/storyboard/AutoRunStatus";
+import SceneFilmstrip from "./components/storyboard/SceneFilmstrip";
+import SceneImagePanel from "./components/quality/SceneImagePanel";
+import ValidationTabContent from "./components/quality/ValidationTabContent";
+import DebugTabContent from "./components/quality/DebugTabContent";
+import LayoutSelector from "./components/video/LayoutSelector";
+import AutoRunProgressModal from "./components/storyboard/AutoRunProgressModal";
+import ResumeConfirmModal from "./components/storyboard/ResumeConfirmModal";
+import PreflightModal from "./components/common/PreflightModal";
 import { runPreflight, type PreflightResult, type AutoRunStepId as PreflightStepId } from "./utils/preflight";
-import PreviewModal from "./components/PreviewModal";
-import RenderSettingsPanel from "./components/RenderSettingsPanel";
-import PromptHelperSidebar from "./components/PromptHelperSidebar";
-import RenderedVideosSection from "./components/RenderedVideosSection";
-import StoryboardGeneratorPanel from "./components/StoryboardGeneratorPanel";
-import PromptSetupPanel from "./components/PromptSetupPanel";
-import SceneCard from "./components/SceneCard";
-import SceneListHeader from "./components/SceneListHeader";
-import StoryboardActionsBar from "./components/StoryboardActionsBar";
-import WorkingModeHeader from "./components/WorkingModeHeader";
-import SectionDivider from "./components/SectionDivider";
-import Toast from "./components/Toast";
-import LoadingSpinner from "./components/LoadingSpinner";
-import ErrorMessage from "./components/ErrorMessage";
+import PreviewModal from "./components/video/PreviewModal";
+import RenderSettingsPanel from "./components/video/RenderSettingsPanel";
+import PromptHelperSidebar from "./components/prompt/PromptHelperSidebar";
+import RenderedVideosSection from "./components/video/RenderedVideosSection";
+import StoryboardGeneratorPanel from "./components/storyboard/StoryboardGeneratorPanel";
+import PromptSetupPanel from "./components/setup/PromptSetupPanel";
+import SceneCard from "./components/storyboard/SceneCard";
+import SceneListHeader from "./components/storyboard/SceneListHeader";
+import StoryboardActionsBar from "./components/storyboard/StoryboardActionsBar";
+import WorkingModeHeader from "./components/setup/WorkingModeHeader";
+import SectionDivider from "./components/ui/SectionDivider";
+import Toast from "./components/ui/Toast";
+import LoadingSpinner from "./components/ui/LoadingSpinner";
+import ErrorMessage from "./components/ui/ErrorMessage";
 import {
   slugifyAvatarKey,
   normalizeOverlaySettings,

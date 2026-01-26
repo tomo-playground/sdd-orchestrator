@@ -526,7 +526,9 @@ def _draw_overlay_header(
     avatar_image = None
     if settings.avatar_file:
         try:
-            avatar_image = Image.open(settings.avatar_file).convert("RGBA")
+            from config import AVATAR_DIR
+            avatar_path = AVATAR_DIR / settings.avatar_file
+            avatar_image = Image.open(avatar_path).convert("RGBA")
             avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS)
             mask = Image.new("L", (avatar_radius * 2, avatar_radius * 2), 0)
             mask_draw = ImageDraw.Draw(mask)
@@ -535,7 +537,8 @@ def _draw_overlay_header(
                 avatar_resized,
                 (avatar_center[0] - avatar_radius, avatar_center[1] - avatar_radius),
             )
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to load avatar {settings.avatar_file}: {e}")
             avatar_image = None
 
     if not avatar_image:

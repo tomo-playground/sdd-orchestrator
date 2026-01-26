@@ -63,10 +63,10 @@ class TestIpAdapterArgs:
         assert args["model"] == IP_ADAPTER_MODELS["faceid"]
 
     def test_build_ip_adapter_args_default_model(self):
-        """Test that default model is CLIP (for anime characters)."""
+        """Test that default model is CLIP_FACE (for anime characters)."""
         from services.controlnet import build_ip_adapter_args, DEFAULT_IP_ADAPTER_MODEL
 
-        assert DEFAULT_IP_ADAPTER_MODEL == "clip"
+        assert DEFAULT_IP_ADAPTER_MODEL == "clip_face"
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
         args = build_ip_adapter_args(
@@ -264,11 +264,11 @@ class TestIpAdapterModelConstants:
         assert "clip_face" in IP_ADAPTER_MODELS
 
     def test_default_model_is_clip(self):
-        """Test that default model is CLIP (for anime)."""
+        """Test that default model is CLIP_FACE (for anime)."""
         from services.controlnet import DEFAULT_IP_ADAPTER_MODEL
 
-        # CLIP should be default because FaceID doesn't work with anime
-        assert DEFAULT_IP_ADAPTER_MODEL == "clip"
+        # CLIP_FACE should be default for better facial consistency
+        assert DEFAULT_IP_ADAPTER_MODEL == "clip_face"
 
     def test_controlnet_models_defined(self):
         """Test that ControlNet models are defined."""

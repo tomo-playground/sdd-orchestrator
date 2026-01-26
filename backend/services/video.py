@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import edge_tts
+from fastapi import HTTPException
 
 from config import (
     API_PUBLIC_URL,
@@ -231,6 +232,8 @@ class VideoBuilder:
         self._apply_post_overlay_mask = apply_post_overlay_mask
         self._calculate_post_layout_metrics = calculate_post_layout_metrics
         self._compose_post_frame = compose_post_frame
+        self._create_overlay_header = create_overlay_header
+        self._create_overlay_footer = create_overlay_footer
         self._render_subtitle_image = render_subtitle_image
         self._resolve_overlay_frame = resolve_overlay_frame
         self._resolve_subtitle_font_path = resolve_subtitle_font_path
@@ -731,13 +734,13 @@ class VideoBuilder:
         header_path = self.temp_dir / "overlay_header.png"
         footer_path = self.temp_dir / "overlay_footer.png"
 
-        create_overlay_header(
+        self._create_overlay_header(
             self.request.overlay_settings,
             self.out_w, self.out_h,
             header_path,
             self.request.layout_style,
         )
-        create_overlay_footer(
+        self._create_overlay_footer(
             self.request.overlay_settings,
             self.out_w, self.out_h,
             footer_path,
@@ -848,3 +851,12 @@ class VideoBuilder:
         """Clean up temporary files."""
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
+
+async def create_video_task(request: VideoRequest) -> dict:
+    """Create a video from scenes using VideoBuilder."""
+    try:
+        builder = VideoBuilder(request)
+        return await builder.build()
+    except Exception as exc:
+        logger.exception("Video Create Error")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

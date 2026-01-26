@@ -92,7 +92,7 @@ class TestPresets:
         assert "none" not in RANDOM_ELIGIBLE
         assert "slow_zoom" not in RANDOM_ELIGIBLE
         assert "random" not in RANDOM_ELIGIBLE
-        assert len(RANDOM_ELIGIBLE) == 8
+        assert len(RANDOM_ELIGIBLE) == 14  # 8 original + 6 vertical presets
 
 
 class TestGetPreset:

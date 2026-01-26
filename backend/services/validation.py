@@ -8,16 +8,21 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import time
+import json
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import onnxruntime as ort
 from PIL import Image
+from fastapi import HTTPException
 
-from config import WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client
+from config import WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client, CACHE_DIR, CACHE_TTL_SECONDS, logger
+from schemas import SceneValidateRequest
+from services.image import load_image_bytes
 
-from .keywords import expand_synonyms, normalize_prompt_token, IGNORE_TOKENS
+from .keywords import expand_synonyms, normalize_prompt_token, IGNORE_TOKENS, update_keyword_suggestions, update_tag_effectiveness
 
 # --- Lazy imports for circular dependency avoidance ---
 _parse_json_payload = None
@@ -278,3 +283,58 @@ def cache_key_for_validation(image_bytes: bytes, prompt: str, mode: str) -> str:
     digest.update(prompt.encode("utf-8"))
     digest.update(mode.encode("utf-8"))
     return digest.hexdigest()
+def validate_scene_image(request: SceneValidateRequest) -> dict:
+    try:
+        image_bytes = load_image_bytes(request.image_b64)
+        mode = request.mode.lower().strip() if request.mode else "wd14"
+        cache_key = cache_key_for_validation(image_bytes, request.prompt or "", mode)
+        cache_file = CACHE_DIR / f"image_validate_{cache_key}.json"
+        if cache_file.exists():
+            age = time.time() - cache_file.stat().st_mtime
+            if age < CACHE_TTL_SECONDS:
+                cached = json.loads(cache_file.read_text(encoding="utf-8"))
+                cached["cached"] = True
+                return cached
+        image = Image.open(io.BytesIO(image_bytes))
+        if mode == "gemini":
+            tags = gemini_predict_tags(image)
+        else:
+            tags = wd14_predict_tags(image, WD14_THRESHOLD)
+        comparison = compare_prompt_to_tags(request.prompt or "", tags)
+        total = len(comparison["matched"]) + len(comparison["missing"])
+        match_rate = (len(comparison["matched"]) / total) if total else 0.0
+        from services.keywords import load_known_keywords
+        known_keywords = load_known_keywords()
+        unknown_tags = []
+        for item in tags[:50]:
+            name = normalize_prompt_token(item["tag"])
+            if not name:
+                continue
+            if name not in known_keywords:
+                unknown_tags.append(name)
+        update_keyword_suggestions(unknown_tags)
+
+        # Update tag effectiveness feedback loop
+        if request.prompt:
+            split_tokens = _get_split_prompt_tokens()
+            prompt_tags = split_tokens(request.prompt)
+            update_tag_effectiveness(prompt_tags, tags)
+
+        result = {
+            "mode": mode,
+            "match_rate": match_rate,
+            "matched": comparison["matched"],
+            "missing": comparison["missing"],
+            "extra": comparison["extra"],
+            "tags": tags[:20],
+            "unknown_tags": unknown_tags[:20],
+        }
+        cache_file.write_text(json.dumps(result, ensure_ascii=False))
+        return result
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Scene image validation failed")
+        raise HTTPException(status_code=500, detail="Image validation failed") from exc

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Tag, SceneContextTags as SceneContextTagsType } from "../types";
+import type { Tag, SceneContextTags as SceneContextTagsType } from "../../types";
 
 type Props = {
   contextTags: SceneContextTagsType | undefined;

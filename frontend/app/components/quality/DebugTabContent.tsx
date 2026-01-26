@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Scene } from "../types";
+import type { Scene } from "../../types";
 
 type DebugTabContentProps = {
   scene: Scene;

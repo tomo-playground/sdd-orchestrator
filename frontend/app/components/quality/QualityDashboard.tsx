@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../constants";
-import LoadingSpinner from "./LoadingSpinner";
+import { API_BASE } from "../../constants";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
 type QualityScore = {
   scene_id: number;

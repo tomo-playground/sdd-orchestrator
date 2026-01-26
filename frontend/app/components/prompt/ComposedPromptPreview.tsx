@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { API_BASE } from "../constants";
-import { useTagClassifier } from "../hooks";
+import { API_BASE } from "../../constants";
+import { useTagClassifier } from "../../hooks";
 
 type LoRAInfo = {
   name: string;

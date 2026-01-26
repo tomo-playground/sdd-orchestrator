@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { API_BASE, CATEGORY_DESCRIPTIONS, PROMPT_APPLY_KEY } from "../constants";
-import LoadingSpinner from "../components/LoadingSpinner";
-import QualityDashboard from "../components/QualityDashboard";
+import LoadingSpinner from "../components/ui/LoadingSpinner";
+import QualityDashboard from "../components/quality/QualityDashboard";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
 

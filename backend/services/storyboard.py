@@ -1,0 +1,57 @@
+from __future__ import annotations
+
+import json
+from fastapi import HTTPException
+from config import gemini_client, template_env
+from schemas import StoryboardRequest
+from services.presets import get_preset_by_structure
+from services.keywords import format_keyword_context
+
+def create_storyboard(request: StoryboardRequest) -> dict:
+    """Generate a storyboard from a topic using Gemini."""
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
+    try:
+        preset = get_preset_by_structure(request.structure)
+        template_name = preset.template if preset else "create_storyboard.j2"
+        extra_fields = preset.extra_fields if preset else {}
+
+        template = template_env.get_template(template_name)
+        system_instruction = (
+            "SYSTEM: You are a professional storyboarder and scriptwriter. "
+            "Write clear, engaging scripts in the requested language (max 80 chars, max 2 lines). "
+            "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
+            "Do not invent new tags. Return raw JSON only."
+        )
+        rendered = template.render(
+            topic=request.topic,
+            duration=request.duration,
+            style=request.style,
+            structure=request.structure,
+            language=request.language,
+            actor_a_gender=request.actor_a_gender,
+            keyword_context=format_keyword_context(),
+            **extra_fields,
+        )
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=f"{system_instruction}\n\n{rendered}",
+        )
+        scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
+        for scene in scenes:
+            from services.keywords import filter_prompt_tokens, normalize_prompt_tokens
+            from config import logger
+
+            raw_prompt = scene.get("image_prompt", "")
+            if not raw_prompt:
+                continue
+            filtered = filter_prompt_tokens(raw_prompt)
+            if not filtered:
+                logger.warning("No allowed keywords in scene prompt; using normalized original.")
+                filtered = normalize_prompt_tokens(raw_prompt)
+            scene["image_prompt"] = filtered
+        return {"scenes": scenes}
+    except Exception as exc:
+        from config import logger
+        logger.exception("Storyboard generation failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -1,8 +1,8 @@
 "use client";
 
-import type { AutoRunStepId } from "../types";
-import { AUTO_RUN_STEPS } from "../constants";
-import LoadingSpinner from "./LoadingSpinner";
+import type { AutoRunStepId } from "../../types";
+import { AUTO_RUN_STEPS } from "../../constants";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
 type StoryboardActionsBarProps = {
   // Reset actions

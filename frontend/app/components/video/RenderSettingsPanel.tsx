@@ -1,7 +1,7 @@
 "use client";
 
-import type { AudioItem, FontItem, KenBurnsPreset, OverlaySettings, PostCardSettings, SdModel } from "../types";
-import { VOICES } from "../constants";
+import type { AudioItem, FontItem, KenBurnsPreset, OverlaySettings, PostCardSettings, SdModel } from "../../types";
+import { VOICES } from "../../constants";
 
 // Ken Burns preset options for dropdown
 const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [

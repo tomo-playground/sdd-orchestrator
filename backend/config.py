@@ -15,11 +15,6 @@ from jinja2 import Environment, FileSystemLoader
 
 load_dotenv()
 
-# --- Database ---
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    logger.warning("DATABASE_URL is not set. Database functionality will fail.")
-
 # --- Logging ---
 LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
 LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}
@@ -52,6 +47,11 @@ if LOG_TO_FILE:
         logger.addHandler(_file_handler)
         logger.propagate = True
         logger.info("File logging enabled: %s", _log_path)
+
+# --- Database ---
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    logger.warning("DATABASE_URL is not set. Database functionality will fail.")
 
 # --- Directory Configuration ---
 OUTPUT_DIR = pathlib.Path("outputs")

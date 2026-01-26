@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { ActorGender, Character } from "../types";
-import { SAMPLERS, API_BASE } from "../constants";
+import type { ActorGender, Character } from "../../types";
+import { SAMPLERS, API_BASE } from "../../constants";
 
 type PromptSetupPanelProps = {
   // Tab state

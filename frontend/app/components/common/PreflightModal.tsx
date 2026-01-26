@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import type { PreflightResult, AutoRunStepId } from "../utils/preflight";
-import { estimateTime, getStepsToExecute } from "../utils/preflight";
+import type { PreflightResult, AutoRunStepId } from "../../utils/preflight";
+import { estimateTime, getStepsToExecute } from "../../utils/preflight";
 
 interface PreflightModalProps {
   isOpen: boolean;

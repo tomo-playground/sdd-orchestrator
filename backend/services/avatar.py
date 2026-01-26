@@ -38,10 +38,17 @@ async def ensure_avatar_file(
     Returns:
         The avatar filename if successful, None otherwise
     """
+    # Ensure avatar directory exists
+    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+
     filename = avatar_filename(avatar_key)
     target = AVATAR_DIR / filename
+
     if target.exists():
+        logger.info(f"Avatar found: {filename}")
         return filename
+
+    logger.info(f"Avatar not found, generating: {avatar_key} -> {filename}")
 
     prompt = (
         "anime avatar portrait, clean background, head and shoulders, "
@@ -60,16 +67,29 @@ async def ensure_avatar_file(
         "override_settings_restore_afterwards": True,
     }
     try:
+        logger.info(f"Requesting avatar from SD WebUI: {SD_TXT2IMG_URL}")
         async with httpx.AsyncClient() as client:
             res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=timeout)
             res.raise_for_status()
             data = res.json()
         image_b64 = (data.get("images") or [None])[0]
         if not image_b64:
+            logger.warning("SD WebUI returned no images")
             return None
         image_bytes = base64.b64decode(image_b64)
         target.write_bytes(image_bytes)
+        logger.info(f"✅ Avatar generated successfully: {filename}")
         return filename
-    except Exception:
-        logger.exception("Avatar generation failed")
+    except httpx.ConnectError:
+        logger.warning(f"SD WebUI not running, generating simple avatar instead")
+        try:
+            from services.simple_avatar import generate_simple_avatar
+            generate_simple_avatar(avatar_key, target)
+            logger.info(f"✅ Simple avatar generated: {filename}")
+            return filename
+        except Exception as e2:
+            logger.exception(f"Simple avatar generation failed: {e2}")
+            return None
+    except Exception as e:
+        logger.exception(f"Avatar generation failed: {e}")
         return None

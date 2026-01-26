@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
-
+import time
+from fastapi import HTTPException
+from config import CACHE_DIR, CACHE_TTL_SECONDS, gemini_client, logger
+from schemas import PromptRewriteRequest, PromptSplitRequest
 
 def split_prompt_tokens(prompt: str) -> list[str]:
     """Split a comma-separated prompt into individual tokens."""
@@ -244,3 +249,85 @@ def apply_optimal_lora_weights(prompt: str, lora_weights: dict[str, float]) -> s
         return match.group(0)  # Keep original
 
     return re.sub(r"<lora:([^:>]+):[^>]+>", replace_weight, prompt, flags=re.IGNORECASE)
+
+def rewrite_prompt(request: PromptRewriteRequest) -> dict:
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
+    if not request.base_prompt or not request.scene_prompt:
+        raise HTTPException(status_code=400, detail="Base prompt and scene prompt are required")
+
+    cache_key = hashlib.sha256(
+        f"{request.base_prompt}|{request.scene_prompt}|{request.style}|{request.mode}".encode()
+    ).hexdigest()
+    cache_file = CACHE_DIR / f"prompt_{cache_key}.json"
+    if cache_file.exists():
+        age = time.time() - cache_file.stat().st_mtime
+        if age < CACHE_TTL_SECONDS:
+            cached = json.loads(cache_file.read_text(encoding="utf-8"))
+            return {"prompt": cached.get("prompt", "")}
+
+    if request.mode == "scene":
+        instruction = (
+            "Convert SCENE into Stable Diffusion tag-style prompt. "
+            "Use comma-separated short tags, no full sentences. "
+            "Include camera/shot keywords if implied. Return ONLY the tags."
+        )
+    else:
+        instruction = (
+            "Rewrite a Stable Diffusion prompt. Keep the identity/style tokens from BASE. "
+            "Replace scene/action/pose with SCENE. Preserve any <lora:...> tags. "
+            "Return ONLY the final comma-separated prompt, no explanations."
+        )
+    user_input = (
+        f"BASE: {request.base_prompt}\n"
+        f"SCENE: {request.scene_prompt}\n"
+        f"STYLE: {request.style}\n"
+    )
+    try:
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=f"{instruction}\n\n{user_input}",
+        )
+        text = res.text.strip().replace("```", "")
+        if request.mode == "scene":
+            cache_file.write_text(json.dumps({"prompt": text}, ensure_ascii=False))
+            return {"prompt": text}
+        base_tokens = split_prompt_tokens(request.base_prompt)
+        base_core = [
+            token for token in base_tokens
+            if "<lora:" in token.lower() or not is_scene_token(token)
+        ]
+        rewritten_tokens = split_prompt_tokens(text)
+        final_prompt = merge_prompt_tokens(base_core, rewritten_tokens)
+        cache_file.write_text(json.dumps({"prompt": final_prompt}, ensure_ascii=False))
+        return {"prompt": final_prompt}
+    except Exception as exc:
+        logger.exception("Prompt rewrite failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+def split_prompt_example(request: PromptSplitRequest) -> dict:
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
+    if not request.example_prompt:
+        raise HTTPException(status_code=400, detail="Example prompt is required")
+
+    instruction = (
+        "Split the EXAMPLE prompt into BASE and SCENE for Stable Diffusion. "
+        "BASE should keep identity/style/LoRA tokens. SCENE should keep action, pose, "
+        "camera, and background. Return ONLY JSON with keys base_prompt and scene_prompt."
+    )
+    user_input = f"EXAMPLE: {request.example_prompt}\nSTYLE: {request.style}\n"
+    try:
+        res = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=f"{instruction}\n\n{user_input}",
+        )
+        text = res.text.strip().replace("```json", "").replace("```", "")
+        data = json.loads(text)
+        return {
+            "base_prompt": data.get("base_prompt", ""),
+            "scene_prompt": data.get("scene_prompt", ""),
+        }
+    except Exception as exc:
+        logger.exception("Prompt split failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

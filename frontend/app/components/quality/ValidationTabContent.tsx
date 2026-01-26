@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Scene, ImageValidation, SceneContextTags } from "../types";
+import type { Scene, ImageValidation, SceneContextTags } from "../../types";
 
 type ValidationTabContentProps = {
   scene: Scene;
@@ -14,17 +14,37 @@ type ValidationTabContentProps = {
 function getContextTagsList(contextTags: SceneContextTags | undefined): string[] {
   if (!contextTags) return [];
   const tags: string[] = [];
-  if (contextTags.expression?.length) tags.push(...contextTags.expression);
-  if (contextTags.gaze) tags.push(contextTags.gaze);
-  if (contextTags.pose?.length) tags.push(...contextTags.pose);
-  if (contextTags.action?.length) tags.push(...contextTags.action);
-  if (contextTags.camera) tags.push(contextTags.camera);
-  if (contextTags.environment?.length) tags.push(...contextTags.environment);
-  if (contextTags.mood?.length) tags.push(...contextTags.mood);
+
+  // Helper to safely add tags (filter out non-strings)
+  const addTags = (arr: unknown) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach((item) => {
+      if (typeof item === "string" && item.trim()) {
+        tags.push(item);
+      }
+    });
+  };
+
+  addTags(contextTags.expression);
+  if (typeof contextTags.gaze === "string" && contextTags.gaze.trim()) {
+    tags.push(contextTags.gaze);
+  }
+  addTags(contextTags.pose);
+  addTags(contextTags.action);
+  if (typeof contextTags.camera === "string" && contextTags.camera.trim()) {
+    tags.push(contextTags.camera);
+  }
+  addTags(contextTags.environment);
+  addTags(contextTags.mood);
+
   return tags;
 }
 
-function normalizeTag(tag: string): string {
+function normalizeTag(tag: string | unknown): string {
+  if (typeof tag !== "string") {
+    console.warn("[normalizeTag] Non-string tag:", tag);
+    return "";
+  }
   return tag.toLowerCase().replace(/_/g, " ").trim();
 }
 
@@ -42,8 +62,16 @@ export default function ValidationTabContent({
       return null;
     }
 
-    const matchedSet = new Set(validationResult.matched.map(normalizeTag));
-    const extraSet = new Set(validationResult.extra.map(normalizeTag));
+    const matchedSet = new Set(
+      validationResult.matched
+        .map(normalizeTag)
+        .filter((tag) => tag.length > 0)
+    );
+    const extraSet = new Set(
+      validationResult.extra
+        .map(normalizeTag)
+        .filter((tag) => tag.length > 0)
+    );
     const allDetected = new Set([...matchedSet, ...extraSet]);
 
     const matched: string[] = [];

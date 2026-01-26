@@ -149,6 +149,41 @@ def cleanup_old_videos(max_age_days: int = 7, dry_run: bool = False) -> CleanupR
     return result
 
 
+def cleanup_old_images(max_age_days: int = 7, dry_run: bool = False) -> CleanupResult:
+    """Delete images older than the specified age.
+
+    Args:
+        max_age_days: Maximum age in days. Files older than this will be deleted.
+        dry_run: If True, only report what would be deleted without actually deleting.
+
+    Returns:
+        CleanupResult with details of deleted files.
+    """
+    result = CleanupResult()
+    cutoff_time = time.time() - (max_age_days * 24 * 60 * 60)
+
+    # Clean both root images and stored subfolder
+    for file_path in _iter_files(IMAGE_DIR):
+        if file_path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+            continue
+            
+        try:
+            mtime = file_path.stat().st_mtime
+            if mtime < cutoff_time:
+                size = file_path.stat().st_size
+                result.deleted_files.append(str(file_path.relative_to(OUTPUT_DIR)))
+                result.freed_bytes += size
+                result.deleted_count += 1
+
+                if not dry_run:
+                    file_path.unlink()
+                    logger.info("Deleted old image: %s", file_path)
+        except OSError as e:
+            logger.warning("Failed to process image file %s: %s", file_path, e)
+
+    return result
+
+
 def cleanup_cache(max_age_seconds: int | None = None, dry_run: bool = False) -> CleanupResult:
     """Delete cache files older than the specified age.
 
@@ -268,6 +303,8 @@ class CleanupOptions:
 
     cleanup_videos: bool = True
     video_max_age_days: int = 7
+    cleanup_images: bool = False
+    image_max_age_days: int = 7
     cleanup_cache: bool = True
     cache_max_age_seconds: int | None = None
     cleanup_test_folders: bool = True
@@ -291,6 +328,16 @@ def cleanup_all(options: CleanupOptions) -> dict:
     if options.cleanup_videos:
         result = cleanup_old_videos(options.video_max_age_days, options.dry_run)
         details["videos"] = {
+            "deleted": result.deleted_count,
+            "freed_mb": result.freed_mb,
+            "files": result.deleted_files if options.dry_run else [],
+        }
+        total_deleted += result.deleted_count
+        total_freed += result.freed_bytes
+
+    if options.cleanup_images:
+        result = cleanup_old_images(options.image_max_age_days, options.dry_run)
+        details["images"] = {
             "deleted": result.deleted_count,
             "freed_mb": result.freed_mb,
             "files": result.deleted_files if options.dry_run else [],

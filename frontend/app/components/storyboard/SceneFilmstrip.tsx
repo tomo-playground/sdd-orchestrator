@@ -1,6 +1,6 @@
 "use client";
 
-import type { Scene } from "../types";
+import type { Scene } from "../../types";
 
 type SceneFilmstripProps = {
   scenes: Scene[];

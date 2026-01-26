@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { AudioItem } from "../types";
-import { VOICES } from "../constants";
-import LayoutSelector from "./LayoutSelector";
+import type { AudioItem } from "../../types";
+import { VOICES } from "../../constants";
+import LayoutSelector from "../video/LayoutSelector";
 
 type SetupPanelProps = {
   topic: string;

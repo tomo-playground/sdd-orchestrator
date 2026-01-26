@@ -1,13 +1,13 @@
 "use client";
 
-import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag } from "../types";
-import { SAMPLERS } from "../constants";
-import ValidationTabContent from "./ValidationTabContent";
-import DebugTabContent from "./DebugTabContent";
-import SceneImagePanel from "./SceneImagePanel";
-import SceneContextTags from "./SceneContextTags";
-import PromptTokenPreview from "./PromptTokenPreview";
-import ComposedPromptPreview from "./ComposedPromptPreview";
+import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag } from "../../types";
+import { SAMPLERS } from "../../constants";
+import ValidationTabContent from "../quality/ValidationTabContent";
+import DebugTabContent from "../quality/DebugTabContent";
+import SceneImagePanel from "../quality/SceneImagePanel";
+import SceneContextTags from "../prompt/SceneContextTags";
+import PromptTokenPreview from "../prompt/PromptTokenPreview";
+import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
 
 type SceneCardProps = {
   scene: Scene;
