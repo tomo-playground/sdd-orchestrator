@@ -79,6 +79,8 @@ import {
   splitPromptTokens,
   mergePromptTokens,
   deduplicatePromptTokens,
+  getGenderEnhancements,
+  detectGenderFromTokens,
   stripLeadingHearts,
   applyHeartPrefix,
   generateChannelName,
@@ -110,7 +112,11 @@ export default function Home() {
   const [useIpAdapter, setUseIpAdapter] = useState(false);
   const [ipAdapterReference, setIpAdapterReference] = useState("");
   const [ipAdapterWeight, setIpAdapterWeight] = useState(0.7);
-  const [referenceImages, setReferenceImages] = useState<Array<{ character_key: string; filename: string }>>([]);
+  const [referenceImages, setReferenceImages] = useState<Array<{
+    character_key: string;
+    filename: string;
+    preset?: { weight: number; model: string; description?: string };
+  }>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isHelperOpen, setIsHelperOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
@@ -1570,6 +1576,13 @@ export default function Home() {
 
     if (allTokens.length === 0) return null;
 
+    // Add gender enhancement positive tags to overcome SD model bias
+    const genderEnhancements = getGenderEnhancements(baseTokens);
+    if (genderEnhancements.positive.length > 0) {
+      console.log("[buildScenePrompt] Adding gender enhancement tags:", genderEnhancements.positive);
+      allTokens.push(...genderEnhancements.positive);
+    }
+
     // Use /prompt/compose API for Mode A/B ordering
     try {
       const composeRes = await axios.post(`${API_BASE}/prompt/compose`, {
@@ -1630,7 +1643,19 @@ export default function Home() {
       if (!silent) alert("Prompt is required");
       return null;
     }
-    const negativePrompt = buildNegativePrompt(scene);
+    let negativePrompt = buildNegativePrompt(scene);
+
+    // Add gender enhancement negative tags to overcome SD model bias
+    const basePrompt = getBasePromptForScene(scene);
+    const baseTokens = basePrompt ? splitPromptTokens(basePrompt) : [];
+    const genderEnhancements = getGenderEnhancements(baseTokens);
+    if (genderEnhancements.negative.length > 0) {
+      console.log("[generateSceneImageFor] Adding gender enhancement negative tags:", genderEnhancements.negative);
+      const enhancedNegative = genderEnhancements.negative.join(", ");
+      negativePrompt = negativePrompt
+        ? `${negativePrompt}, ${enhancedNegative}`
+        : enhancedNegative;
+    }
 
     // Pre-generation validation (9.6 Prompt Sanity Check)
     try {
@@ -2196,6 +2221,11 @@ export default function Home() {
                   console.log("[CharacterSelect] Enabling IP-Adapter with ref:", matchingRef.character_key);
                   setIpAdapterReference(matchingRef.character_key);
                   setUseIpAdapter(true);  // Enable IP-Adapter when reference exists
+                  // Apply preset weight if available
+                  if (matchingRef.preset?.weight) {
+                    console.log("[CharacterSelect] Applying preset weight:", matchingRef.preset.weight);
+                    setIpAdapterWeight(matchingRef.preset.weight);
+                  }
                 } else {
                   console.log("[CharacterSelect] No matching ref found, disabling IP-Adapter");
                   setIpAdapterReference("");

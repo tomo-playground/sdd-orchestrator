@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from config import logger
+from config import CHARACTER_PRESETS, DEFAULT_CHARACTER_PRESET
 from services.controlnet import (
     check_controlnet_available,
     get_controlnet_models,
@@ -14,6 +15,7 @@ from services.controlnet import (
     load_reference_image,
     list_reference_images,
     delete_reference_image,
+    get_character_preset,
     POSE_MAPPING,
     IP_ADAPTER_MODELS,
 )
@@ -142,8 +144,12 @@ async def get_ip_adapter_status():
 
 @router.get("/ip-adapter/references")
 async def list_references():
-    """List all saved reference images for IP-Adapter."""
+    """List all saved reference images for IP-Adapter with presets."""
     refs = list_reference_images()
+    # Enrich with preset info
+    for ref in refs:
+        preset = get_character_preset(ref["character_key"])
+        ref["preset"] = preset
     return {"references": refs}
 
 
@@ -191,3 +197,24 @@ async def remove_reference(character_key: str):
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Reference '{character_key}' not found")
     return {"deleted": character_key}
+
+
+@router.get("/ip-adapter/presets")
+async def get_character_presets():
+    """Get all character presets with recommended IP-Adapter settings."""
+    return {
+        "presets": CHARACTER_PRESETS,
+        "default": DEFAULT_CHARACTER_PRESET,
+    }
+
+
+@router.get("/ip-adapter/preset/{character_key}")
+async def get_preset_for_character(character_key: str):
+    """Get IP-Adapter preset for a specific character."""
+    preset = get_character_preset(character_key)
+    is_default = character_key not in CHARACTER_PRESETS
+    return {
+        "character_key": character_key,
+        "preset": preset,
+        "is_default": is_default,
+    }

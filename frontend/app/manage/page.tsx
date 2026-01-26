@@ -55,6 +55,7 @@ export default function ManagePage() {
   const [batchSelected, setBatchSelected] = useState<Set<string>>(new Set());
   const [isBatchLoading, setIsBatchLoading] = useState(false);
   const [isBatchApproving, setIsBatchApproving] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState<{ url: string; title: string } | null>(null);
   const [bgmList, setBgmList] = useState<AudioItem[]>([]);
   const [fontList, setFontList] = useState<FontItem[]>([]);
   const [loraList, setLoraList] = useState<LoraItem[]>([]);
@@ -1496,7 +1497,12 @@ export default function ManagePage() {
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
                               {char.preview_image_url ? (
-                                <img src={`${API_BASE}${char.preview_image_url}`} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                                <img
+                                  src={`${API_BASE}${char.preview_image_url}`}
+                                  alt=""
+                                  className="h-14 w-14 rounded-xl object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
+                                  onClick={() => setEnlargedImage({ url: `${API_BASE}${char.preview_image_url}`, title: char.name })}
+                                />
                               ) : (
                                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-2xl">
                                   {char.name.charAt(0).toUpperCase()}
@@ -2510,6 +2516,32 @@ export default function ManagePage() {
               </div>
             </div>
           </section>
+        )}
+
+        {/* Enlarged Image Modal */}
+        {enlargedImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
+            onClick={() => setEnlargedImage(null)}
+          >
+            <div
+              className="relative max-w-[90vw] max-h-[90vh] cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setEnlargedImage(null)}
+                className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-zinc-600 shadow-lg hover:bg-zinc-100"
+              >
+                ✕
+              </button>
+              <img
+                src={enlargedImage.url}
+                alt={enlargedImage.title}
+                className="max-w-[90vw] max-h-[85vh] rounded-2xl object-contain shadow-2xl"
+              />
+              <p className="mt-3 text-center text-sm font-medium text-white">{enlargedImage.title}</p>
+            </div>
+          </div>
         )}
       </main>
     </div>

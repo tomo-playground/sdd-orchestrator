@@ -95,3 +95,64 @@ if API_PUBLIC_URL == "http://localhost:8000":
 # --- Model Configuration ---
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
 WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
+
+# --- IP-Adapter Character Presets ---
+# Per-character IP-Adapter settings for optimal consistency
+# weight: Higher = more similar to reference (0.6-0.95)
+# model: "clip" (style), "clip_face" (face+style), "faceid" (real faces only)
+CHARACTER_PRESETS: dict[str, dict] = {
+    # Standard anime characters - moderate weight for flexibility
+    "Generic Anime Boy": {
+        "weight": 0.75,
+        "model": "clip_face",
+        "description": "Standard anime male character",
+    },
+    "Generic Anime Girl": {
+        "weight": 0.75,
+        "model": "clip_face",
+        "description": "Standard anime female character",
+    },
+    "Eureka": {
+        "weight": 0.80,
+        "model": "clip_face",
+        "description": "Eureka anime character",
+    },
+    "Midoriya": {
+        "weight": 0.80,
+        "model": "clip_face",
+        "description": "Midoriya anime character",
+    },
+    # Chibi style - higher weight to maintain proportions
+    "Chibi": {
+        "weight": 0.85,
+        "model": "clip",
+        "description": "Generic chibi style",
+    },
+    "Eureka Chibi": {
+        "weight": 0.85,
+        "model": "clip",
+        "description": "Eureka in chibi style",
+    },
+    "Midoriya Chibi": {
+        "weight": 0.85,
+        "model": "clip",
+        "description": "Midoriya in chibi style",
+    },
+    # Blindbox/3D style - highest weight for stylized look
+    "Blindbox": {
+        "weight": 0.90,
+        "model": "clip",
+        "description": "3D blindbox figure style",
+    },
+    "Eureka Blindbox": {
+        "weight": 0.90,
+        "model": "clip",
+        "description": "Eureka in blindbox style",
+    },
+}
+
+# Default IP-Adapter settings for unknown characters
+DEFAULT_CHARACTER_PRESET = {
+    "weight": 0.75,
+    "model": "clip_face",
+}

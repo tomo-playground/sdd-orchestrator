@@ -413,7 +413,8 @@ SKIP_TAGS = frozenset([
     "ass", "sideboob", "underboob", "nipples", "areolae", "crotch",
     "groin", "armpits", "bare shoulders",
     # Meta tags (handled separately)
-    "male focus", "female focus", "solo focus", "no humans",
+    # Note: "male focus" removed to help reinforce male character generation
+    "female focus", "solo focus", "no humans",
     "virtual youtuber", "vtuber", "commentary", "translation",
     "border", "letterboxed", "pillarboxed",
     "gradient", "scan", "screencap", "official art",

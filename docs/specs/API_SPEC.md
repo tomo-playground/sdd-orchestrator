@@ -533,8 +533,7 @@ ControlNet 사용 가능 여부와 모델 목록을 조회합니다.
 ```json
 {
   "available": true,
-  "models": ["control_v11p_sd15_openpose", "ip-adapter_sd15"],
-  "pose_references": ["standing", "sitting"]
+          "models": ["control_v11p_sd15_openpose", "ip-adapter-plus-face_sd15"],  "pose_references": ["standing", "sitting"]
 }
 ```
 

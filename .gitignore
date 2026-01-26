@@ -41,3 +41,17 @@ logs/
 tmp/
 temp/
 backend/.coverage
+.playwright-mcp/after_click_modal.png
+.playwright-mcp/enlarged_image_modal.png
+.playwright-mcp/final_result.png
+.playwright-mcp/generated_image_result.png
+.playwright-mcp/ip_adapter_fix_result.png
+.playwright-mcp/ip_adapter_test_result.png
+.playwright-mcp/male_enhanced_result.png
+.playwright-mcp/manage_characters.png
+.playwright-mcp/manage_characters_tab.png
+.playwright-mcp/modal_visible.png
+.playwright-mcp/new_tags_result.png
+.playwright-mcp/test1_final.png
+.playwright-mcp/test1_result.png
+.playwright-mcp/test_repeat_result.png

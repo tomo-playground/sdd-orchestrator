@@ -9,6 +9,7 @@ type ValidationSummary = {
 type ReferenceImage = {
   character_key: string;
   filename: string;
+  preset?: { weight: number; model: string; description?: string };
 };
 
 type SceneListHeaderProps = {
@@ -160,13 +161,21 @@ export default function SceneListHeader({
           <>
             <select
               value={ipAdapterReference}
-              onChange={(e) => onIpAdapterReferenceChange(e.target.value)}
+              onChange={(e) => {
+                const selectedKey = e.target.value;
+                onIpAdapterReferenceChange(selectedKey);
+                // Apply preset weight if available
+                const matchingRef = referenceImages.find(r => r.character_key === selectedKey);
+                if (matchingRef?.preset?.weight) {
+                  onIpAdapterWeightChange(matchingRef.preset.weight);
+                }
+              }}
               className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] text-zinc-600"
             >
               <option value="">Select Reference</option>
               {referenceImages.map((ref) => (
                 <option key={ref.character_key} value={ref.character_key}>
-                  {ref.character_key}
+                  {ref.character_key} {ref.preset ? `(${ref.preset.weight})` : ""}
                 </option>
               ))}
             </select>
@@ -174,12 +183,12 @@ export default function SceneListHeader({
               type="range"
               min="0.3"
               max="1.0"
-              step="0.1"
+              step="0.05"
               value={ipAdapterWeight}
               onChange={(e) => onIpAdapterWeightChange(parseFloat(e.target.value))}
               className="h-1 w-12 accent-amber-600"
             />
-            <span className="text-[10px] font-semibold text-amber-600">{ipAdapterWeight.toFixed(1)}</span>
+            <span className="text-[10px] font-semibold text-amber-600">{ipAdapterWeight.toFixed(2)}</span>
           </>
         )}
       </div>

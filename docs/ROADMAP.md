@@ -96,6 +96,7 @@
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | **Loading/Error UI** | 스피너, 프로그레스 바, 에러 메시지 디자인 개선 | [x] |
+| **Character Image Modal** | Manage > Characters 섬네일 클릭 시 확대 모달 | [x] |
 | Setup Wizard | 초기 설정 및 에셋 상태 확인 UI | [ ] |
 
 ### 5-7. Quality Assurance (Test Coverage)
@@ -231,6 +232,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | LoRA + IP 조합 | LoRA 베이스 + IP-Adapter 포즈/표정 | [x] |
 | Reference Image Manager | 참조 이미지 관리 API | [x] |
 | Frontend UI | IP-Adapter 토글 + Reference 선택 + Weight | [x] |
+| **Character Presets** | 캐릭터별 최적 IP-Adapter weight 자동 적용 | [x] |
 
 **7-2 완료 요약**:
 - Backend: `build_ip_adapter_args()`, `save/load_reference_image()` 함수
@@ -240,6 +242,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 - **CLIP 모델 지원**: 애니메이션 캐릭터용 CLIP 기반 IP-Adapter (`ip-adapter-plus_sd15`)
 - **디버깅 로그**: Frontend/Backend 양측에 IP-Adapter 상태 로그 추가
 - **테스트 커버리지**: 16개 단위 테스트 (`tests/api/test_ip_adapter.py`)
+- **Character Presets**: 캐릭터별 최적 weight/model 자동 적용 (`config.py`)
 
 ### 7-3. LoRA 캘리브레이션 시스템 (🟢 완료)
 | 작업 | 설명 | 상태 |
@@ -350,12 +353,12 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-27 (11:45)
+**Last Updated**: 2026-01-27 (22:30)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
 | 1-4 | ARCHIVED | 100% | |
-| 5 | IN PROGRESS | 85% | VEO, 품질지표 잔여 |
+| 5 | IN PROGRESS | 88% | VEO, 품질지표, Setup Wizard 잔여 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
@@ -364,6 +367,24 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**IP-Adapter Character Presets (2026-01-27 22:30)**:
+- **기능**: 캐릭터별 최적 IP-Adapter weight 자동 적용
+- **프리셋**: Standard(0.75), Character(0.80), Chibi(0.85), Blindbox(0.90)
+- **Backend**: `config.py`에 `CHARACTER_PRESETS` 설정 추가
+- **API**: `/ip-adapter/presets`, `/ip-adapter/preset/{key}` 엔드포인트
+- **Frontend**: Reference 선택 시 프리셋 weight 자동 적용 + 드롭다운에 weight 표시
+- **슬라이더**: step 0.1→0.05로 변경 (0.85 등 정밀 값 지원)
+
+**프롬프트 성별 태그 충돌 수정 (2026-01-27 13:30)**:
+- **문제**: Scene 프롬프트의 `1girl`과 Character 프롬프트의 `1boy`가 동시에 포함되는 버그
+- **해결**: `mergePromptTokens`에 `CONFLICTING_TAG_GROUPS` 충돌 필터링 추가
+- **규칙**: Base 프롬프트(캐릭터) 우선, Scene 프롬프트에서 충돌 태그 자동 제거
+- **대상 태그 그룹**: `1girl/1boy/1other`, `2girls/2boys`, `female/male` 등
+
+**Character Image Modal 추가 (2026-01-27 13:30)**:
+- Manage > Characters 탭에서 섬네일 클릭 시 확대 모달 표시
+- 배경 블러 + 캐릭터 이름 표시, 닫기 버튼 및 외부 클릭으로 닫기
 
 **Frontend 디버깅 로그 추가 (2026-01-27 11:45)**:
 - 캐릭터 선택 시 로그: charFull, charPrompt, IP-Adapter 설정

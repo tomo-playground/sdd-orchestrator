@@ -76,9 +76,76 @@ export const splitPromptTokens = (text: string): string[] =>
     .map((token) => token.trim())
     .filter(Boolean);
 
+// Gender enhancement tags to overcome SD model bias
+// Male characters need reinforcement due to training data imbalance
+// Reviewed by prompt engineer - using Danbooru standard tags only
+const MALE_ENHANCEMENT_POSITIVE = [
+  "(1boy:1.3)",
+  "(male_focus:1.2)",
+  "(bishounen:1.1)",
+];
+
+const MALE_ENHANCEMENT_NEGATIVE = [
+  "1girl",
+  "multiple_girls",
+  "breasts",
+  "large_breasts",
+  "cleavage",
+  "female_focus",
+];
+
+/**
+ * Detect gender from prompt tokens.
+ * Returns 'male', 'female', or null if undetermined.
+ */
+export const detectGenderFromTokens = (tokens: string[]): "male" | "female" | null => {
+  const lowerTokens = tokens.map((t) => t.toLowerCase().trim());
+
+  const maleIndicators = ["1boy", "2boys", "3boys", "male", "man", "boy"];
+  const femaleIndicators = ["1girl", "2girls", "3girls", "female", "woman", "girl"];
+
+  const hasMale = maleIndicators.some((m) => lowerTokens.includes(m));
+  const hasFemale = femaleIndicators.some((f) => lowerTokens.includes(f));
+
+  if (hasMale && !hasFemale) return "male";
+  if (hasFemale && !hasMale) return "female";
+  return null;
+};
+
+/**
+ * Get gender-based prompt enhancements to overcome SD model bias.
+ */
+export const getGenderEnhancements = (
+  tokens: string[]
+): { positive: string[]; negative: string[] } => {
+  const gender = detectGenderFromTokens(tokens);
+
+  if (gender === "male") {
+    return {
+      positive: MALE_ENHANCEMENT_POSITIVE,
+      negative: MALE_ENHANCEMENT_NEGATIVE,
+    };
+  }
+
+  // No enhancement needed for female (model already biased towards female)
+  return { positive: [], negative: [] };
+};
+
+// Conflicting tag groups - only one from each group should be used
+// Base prompt takes priority over scene prompt
+const CONFLICTING_TAG_GROUPS = [
+  ["1girl", "1boy", "1other"],
+  ["2girls", "2boys"],
+  ["3girls", "3boys"],
+  ["female", "male"],
+  ["woman", "man"],
+  ["girl", "boy"],
+];
+
 /**
  * Merge and deduplicate prompt tokens.
  * Handles special cases for LoRA and model tags (only one of each type).
+ * Also handles conflicting tags (e.g., 1girl vs 1boy) - base prompt takes priority.
  */
 export const mergePromptTokens = (
   baseTokens: string[],
@@ -89,10 +156,37 @@ export const mergePromptTokens = (
   const loraSeen = new Set<string>();
   const modelSeen = new Set<string>();
 
-  const pushToken = (token: unknown) => {
+  // Build a set of tags to exclude from scene tokens based on base tokens
+  const baseTokenLowers = new Set(
+    baseTokens
+      .filter((t) => typeof t === "string")
+      .map((t) => t.toLowerCase().trim())
+  );
+  const excludeFromScene = new Set<string>();
+
+  for (const group of CONFLICTING_TAG_GROUPS) {
+    const baseHasConflict = group.some((tag) => baseTokenLowers.has(tag));
+    if (baseHasConflict) {
+      // Exclude all other tags in this group from scene tokens
+      for (const tag of group) {
+        if (!baseTokenLowers.has(tag)) {
+          excludeFromScene.add(tag);
+        }
+      }
+    }
+  }
+
+  const pushToken = (token: unknown, isScene: boolean = false) => {
     // Guard: skip non-string values
     if (typeof token !== "string" || !token.trim()) return;
-    const lower = token.toLowerCase();
+    const lower = token.toLowerCase().trim();
+
+    // Skip conflicting tags from scene tokens
+    if (isScene && excludeFromScene.has(lower)) {
+      console.log(`[mergePromptTokens] Filtered conflicting tag: ${token}`);
+      return;
+    }
+
     if (lower.startsWith("<lora:")) {
       if (loraSeen.has(lower)) return;
       loraSeen.add(lower);
@@ -106,8 +200,8 @@ export const mergePromptTokens = (
     merged.push(token);
   };
 
-  baseTokens.forEach(pushToken);
-  sceneTokens.forEach(pushToken);
+  baseTokens.forEach((t) => pushToken(t, false));
+  sceneTokens.forEach((t) => pushToken(t, true));
   return merged;
 };
 
