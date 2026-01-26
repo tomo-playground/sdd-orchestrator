@@ -353,7 +353,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-27 (22:30)
+**Last Updated**: 2026-01-28 (01:00)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -367,6 +367,15 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Chibi 스타일 & Composition 안전성 수정 (2026-01-28 01:00)**:
+- **문제 1**: Chibi 캐릭터 이미지가 치비 스타일이 아닌 일반 애니메 스타일로 생성
+- **원인**: identity_tags에 `chibi` 태그(ID 153) 누락
+- **해결**: Chibi(ID 4), Eureka Chibi(ID 2), Midoriya Chibi(ID 7)에 chibi 태그 추가
+- **문제 2**: `medium shot` + `standing` 조합 시 머리가 프레임에서 잘림
+- **원인**: Negative prompt에 composition 보호 태그 없음
+- **해결**: 모든 캐릭터 `recommended_negative`에 `cropped, head out of frame, out of frame` 추가
+- **권장 대안**: `medium shot` 대신 `cowboy shot` (Danbooru 729K posts, 명확한 정의)
 
 **IP-Adapter Character Presets (2026-01-27 22:30)**:
 - **기능**: 캐릭터별 최적 IP-Adapter weight 자동 적용

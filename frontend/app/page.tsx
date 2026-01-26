@@ -81,6 +81,7 @@ import {
   deduplicatePromptTokens,
   getGenderEnhancements,
   detectGenderFromTokens,
+  fixCameraPoseConflicts,
   stripLeadingHearts,
   applyHeartPrefix,
   generateChannelName,
@@ -1514,8 +1515,11 @@ export default function Home() {
       [...contextTagsList, ...sceneTokens]
     );
 
+    // Fix camera-pose conflicts (e.g., medium shot + standing → cowboy shot)
+    const fixedTokens = fixCameraPoseConflicts(allTokens);
+
     // Sort by SD priority order (identity → appearance → expression → pose → camera → environment → quality → LoRA)
-    const sortedTokens = [...allTokens].sort((a, b) => {
+    const sortedTokens = [...fixedTokens].sort((a, b) => {
       return getTokenPriority(a) - getTokenPriority(b);
     });
 
