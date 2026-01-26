@@ -140,20 +140,53 @@ const UNSAFE_CAMERA_REPLACEMENTS: Record<string, string> = {
   "close up": "portrait",        // alternative spelling
 };
 
+// Actions that raise hands/arms above shoulder level (often causes head cutoff)
+const HIGH_ARM_ACTIONS = [
+  "thumbs up", "thumbs_up",
+  "hand up", "hand_up", "hands up", "hands_up",
+  "arms up", "arms_up",
+  "waving", "wave",
+  "peace sign", "v",
+  "salute", "saluting",
+];
+
 /**
- * Fix camera tags that often cause head cutoff in generated images.
- * Replaces unsafe camera tags with safer alternatives:
- * - medium shot → cowboy shot (undefined in Danbooru)
- * - close-up → portrait (ambiguous in SD, often cuts head)
+ * Fix camera-action conflicts that often cause head cutoff in generated images.
+ *
+ * Fixes applied:
+ * 1. Replace unsafe camera tags (medium shot → cowboy shot, close-up → portrait)
+ * 2. Add "face in frame" when using cowboy shot with high-arm actions
+ * 3. Replace thumbs up → peace sign (face-level gesture is safer)
  */
 export const fixCameraPoseConflicts = (tokens: string[]): string[] => {
   const result = [...tokens];
+  const lowerTokens = result.map((t) => t.toLowerCase().trim());
 
+  // Step 1: Replace unsafe camera tags
   for (let i = 0; i < result.length; i++) {
     const lower = result[i].toLowerCase().trim();
     if (UNSAFE_CAMERA_REPLACEMENTS[lower]) {
       console.log(`[fixCameraPoseConflicts] Replacing "${result[i]}" → "${UNSAFE_CAMERA_REPLACEMENTS[lower]}"`);
       result[i] = UNSAFE_CAMERA_REPLACEMENTS[lower];
+    }
+  }
+
+  // Step 2: Detect high-arm actions
+  const hasHighArmAction = HIGH_ARM_ACTIONS.some((action) => lowerTokens.includes(action));
+  const hasCowboyShot = lowerTokens.includes("cowboy shot");
+
+  // Step 3: Add "face in frame" if cowboy shot + high-arm action
+  if (hasCowboyShot && hasHighArmAction) {
+    console.log(`[fixCameraPoseConflicts] High-arm action detected with cowboy shot, adding "face in frame"`);
+    result.push("face in frame");
+  }
+
+  // Step 4: Replace "thumbs up" with "peace sign" (safer for framing)
+  for (let i = 0; i < result.length; i++) {
+    const lower = result[i].toLowerCase().trim();
+    if (lower === "thumbs up" || lower === "thumbs_up") {
+      console.log(`[fixCameraPoseConflicts] Replacing "${result[i]}" → "peace sign" (safer gesture)`);
+      result[i] = "peace sign";
     }
   }
 
