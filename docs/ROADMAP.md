@@ -69,6 +69,8 @@
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋, slow_zoom 제거됨) | [x] |
 | **Random BGM** | `bgm_file: "random"` → Backend에서 랜덤 선택 | [x] |
 | **Resolution Optimization** | 512x768 (2:3) 표준화 + Cowboy Shot 전략 (Post/Full 겸용) | [x] |
+| **Full Layout Polishing** | 검은 여백 제거 (YouTube Shorts 스타일, Cover 스케일) | [x] |
+| **Subtitle Animation** | Fade in/out (0.3초, 알파 채널 fade) | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -443,7 +445,7 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (21:05)
+**Last Updated**: 2026-01-28 (21:10)
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -458,6 +460,21 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Subtitle Animation 완료 (2026-01-28 21:10)**:
+- **문제**: 자막이 뚝 나타나고 뚝 사라져 부자연스러움
+- **해결**: Fade in/out 애니메이션 추가 (YouTube/Instagram 표준 스타일)
+- **변경사항**:
+  - `services/video.py`: `_build_video_filters()` 자막 필터 개선
+  - Fade in: 0.3초 (투명 → 불투명)
+  - Fade out: 0.3초 (불투명 → 투명)
+  - `alpha=1`: 알파 채널에만 fade 적용 (배경 투명 유지)
+  - 짧은 씬 보호: 0.6초 미만 씬은 fade 비활성화
+- **효과**:
+  - ✅ 프로페셔널한 자막 표현
+  - ✅ 부드러운 전환
+  - ✅ 시청자 몰입도 향상
+  - ✅ 플랫폼 표준 스타일
 
 **Full Layout 폴리싱 완료 (2026-01-28 21:05)**:
 - **문제**: 512x768 이미지를 1080x1080 정사각형 오버레이에 배치하여 양쪽 검은 여백 발생
