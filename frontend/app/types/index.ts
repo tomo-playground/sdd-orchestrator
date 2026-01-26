@@ -62,6 +62,12 @@ export type KenBurnsPreset =
   | "pan_down"
   | "zoom_pan_left"
   | "zoom_pan_right"
+  | "pan_up_vertical"
+  | "pan_down_vertical"
+  | "zoom_in_bottom"
+  | "zoom_in_top"
+  | "pan_zoom_up"
+  | "pan_zoom_down"
   | "random";
 
 export type AutoRunStepId = "storyboard" | "fix" | "images" | "validate" | "render";

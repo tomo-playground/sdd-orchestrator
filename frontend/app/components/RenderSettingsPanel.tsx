@@ -14,6 +14,12 @@ const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
   { value: "pan_down", label: "Pan Down" },
   { value: "zoom_pan_left", label: "Zoom + Pan Left" },
   { value: "zoom_pan_right", label: "Zoom + Pan Right" },
+  { value: "pan_up_vertical", label: "Pan Up (Vertical) ⬆️" },
+  { value: "pan_down_vertical", label: "Pan Down (Vertical) ⬇️" },
+  { value: "zoom_in_bottom", label: "Zoom In (Bottom) 🔍" },
+  { value: "zoom_in_top", label: "Zoom In (Top) 🔍" },
+  { value: "pan_zoom_up", label: "Pan + Zoom Up ⬆️🔍" },
+  { value: "pan_zoom_down", label: "Pan + Zoom Down ⬇️🔍" },
   { value: "random", label: "Random (per scene)" },
 ];
 

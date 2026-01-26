@@ -21,6 +21,12 @@ KenBurnsPresetName = Literal[
     "pan_down",
     "zoom_pan_left",
     "zoom_pan_right",
+    "pan_up_vertical",
+    "pan_down_vertical",
+    "zoom_in_bottom",
+    "zoom_in_top",
+    "pan_zoom_up",
+    "pan_zoom_down",
     "random",
 ]
 
@@ -49,6 +55,13 @@ PRESETS: dict[str, KenBurnsParams] = {
     "pan_down": KenBurnsParams(y_start=0.4, y_end=0.6),
     "zoom_pan_left": KenBurnsParams(zoom_start=1.0, zoom_end=1.12, x_start=0.3, x_end=0.7),
     "zoom_pan_right": KenBurnsParams(zoom_start=1.0, zoom_end=1.12, x_start=0.7, x_end=0.3),
+    # Full Layout (9:16 vertical) optimized presets
+    "pan_up_vertical": KenBurnsParams(y_start=0.7, y_end=0.3),
+    "pan_down_vertical": KenBurnsParams(y_start=0.3, y_end=0.7),
+    "zoom_in_bottom": KenBurnsParams(zoom_start=1.0, zoom_end=1.2, y_start=0.6, y_end=0.5),
+    "zoom_in_top": KenBurnsParams(zoom_start=1.0, zoom_end=1.2, y_start=0.4, y_end=0.5),
+    "pan_zoom_up": KenBurnsParams(zoom_start=1.0, zoom_end=1.15, y_start=0.7, y_end=0.3),
+    "pan_zoom_down": KenBurnsParams(zoom_start=1.15, zoom_end=1.0, y_start=0.3, y_end=0.7),
 }
 
 # Presets eligible for random selection (excludes 'none', 'slow_zoom', 'random')
@@ -61,6 +74,12 @@ RANDOM_ELIGIBLE = [
     "pan_down",
     "zoom_pan_left",
     "zoom_pan_right",
+    "pan_up_vertical",
+    "pan_down_vertical",
+    "zoom_in_bottom",
+    "zoom_in_top",
+    "pan_zoom_up",
+    "pan_zoom_down",
 ]
 
 
