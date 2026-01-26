@@ -70,6 +70,7 @@ class VideoRequest(BaseModel):
     layout_style: str = "post"
     ken_burns_preset: str = "none"  # Ken Burns preset (10 options)
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
+    transition_type: str = "fade"  # Scene transition effect
     narrator_voice: str = "ko-KR-SunHiNeural"
     speed_multiplier: float = 1.0
     include_subtitles: bool = True

@@ -17,6 +17,18 @@ const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
   { value: "random", label: "Random (per scene)" },
 ];
 
+// Transition preset options for dropdown
+const TRANSITION_OPTIONS: { value: string; label: string; visual: string }[] = [
+  { value: "fade", label: "Fade", visual: "○→●" },
+  { value: "wipeleft", label: "Wipe Left", visual: "▐←" },
+  { value: "wiperight", label: "Wipe Right", visual: "→▌" },
+  { value: "slideup", label: "Slide Up", visual: "[↑]" },
+  { value: "slidedown", label: "Slide Down", visual: "[↓]" },
+  { value: "circleopen", label: "Circle Open", visual: "◉→" },
+  { value: "dissolve", label: "Dissolve", visual: "▓▒░" },
+  { value: "random", label: "Random (per scene)", visual: "🎲" },
+];
+
 /** Truncate string with ellipsis if too long */
 const truncate = (str: string, maxLen: number) =>
   str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : str;
@@ -42,6 +54,8 @@ type RenderSettingsPanelProps = {
   setKenBurnsPreset: (value: KenBurnsPreset) => void;
   kenBurnsIntensity: number;
   setKenBurnsIntensity: (value: number) => void;
+  transitionType: string;
+  setTransitionType: (value: string) => void;
   // Audio Settings
   narratorVoice: string;
   setNarratorVoice: (value: string) => void;
@@ -95,6 +109,8 @@ export default function RenderSettingsPanel({
   setKenBurnsPreset,
   kenBurnsIntensity,
   setKenBurnsIntensity,
+  transitionType,
+  setTransitionType,
   narratorVoice,
   setNarratorVoice,
   speedMultiplier,
@@ -188,7 +204,7 @@ export default function RenderSettingsPanel({
         </summary>
         <div className="grid gap-4 border-t border-zinc-100 p-4">
           {/* Video Row */}
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-3">
             <label className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600">
               Subtitles
               <input
@@ -209,16 +225,6 @@ export default function RenderSettingsPanel({
                 <option key={font.name} value={font.name}>{truncate(font.name, 20)}</option>
               ))}
             </select>
-            <select
-              value={kenBurnsPreset}
-              onChange={(e) => setKenBurnsPreset(e.target.value as KenBurnsPreset)}
-              title="Ken Burns Effect"
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-            >
-              {KEN_BURNS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
             <div
               className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-center text-white text-sm"
               style={{ fontFamily: `"${subtitleFont}", sans-serif` }}
@@ -226,22 +232,48 @@ export default function RenderSettingsPanel({
               {loadedFonts.has(subtitleFont) ? "가나다" : "..."}
             </div>
           </div>
-          {/* Ken Burns Intensity (shown only when preset is not "none") */}
-          {kenBurnsPreset !== "none" && (
-            <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-              <span className="text-xs text-zinc-500 whitespace-nowrap">Effect Intensity</span>
-              <span className="text-[10px] text-zinc-400">{kenBurnsIntensity.toFixed(1)}x</span>
-              <input
-                type="range"
-                min={0.5}
-                max={2.0}
-                step={0.1}
-                value={kenBurnsIntensity}
-                onChange={(e) => setKenBurnsIntensity(Number(e.target.value))}
-                className="flex-1 accent-zinc-900"
-              />
+          {/* Motion Effects Row */}
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-3">
+              <select
+                value={kenBurnsPreset}
+                onChange={(e) => setKenBurnsPreset(e.target.value as KenBurnsPreset)}
+                title="Ken Burns Effect (Image Motion)"
+                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+              >
+                {KEN_BURNS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {kenBurnsPreset !== "none" && (
+                <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
+                  <span className="text-xs text-zinc-500 whitespace-nowrap">Intensity</span>
+                  <span className="text-[10px] text-zinc-400">{kenBurnsIntensity.toFixed(1)}x</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2.0}
+                    step={0.1}
+                    value={kenBurnsIntensity}
+                    onChange={(e) => setKenBurnsIntensity(Number(e.target.value))}
+                    className="flex-1 accent-zinc-900"
+                  />
+                </div>
+              )}
             </div>
-          )}
+            <select
+              value={transitionType}
+              onChange={(e) => setTransitionType(e.target.value)}
+              title="Scene Transition"
+              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+            >
+              {TRANSITION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.visual} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           {/* Audio Row */}
           <div className="grid gap-3 md:grid-cols-4">
             <select

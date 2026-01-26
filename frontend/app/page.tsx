@@ -171,6 +171,7 @@ export default function Home() {
   const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("post");
   const [kenBurnsPreset, setKenBurnsPreset] = useState<KenBurnsPreset>("none");
   const [kenBurnsIntensity, setKenBurnsIntensity] = useState(1.0);
+  const [transitionType, setTransitionType] = useState<string>("fade");
   const [hiResEnabled, setHiResEnabled] = useState(false);
   const [veoEnabled, setVeoEnabled] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState<string | null>(null);
@@ -998,6 +999,7 @@ export default function Home() {
     layout_style: layoutOverride ?? layoutStyle,
     ken_burns_preset: kenBurnsPreset,
     ken_burns_intensity: kenBurnsIntensity,
+    transition_type: transitionType,
     narrator_voice: narratorVoice,
     bgm_file: bgmFile,
     audio_ducking: audioDucking,
@@ -2380,6 +2382,8 @@ export default function Home() {
             setKenBurnsPreset={setKenBurnsPreset}
             kenBurnsIntensity={kenBurnsIntensity}
             setKenBurnsIntensity={setKenBurnsIntensity}
+            transitionType={transitionType}
+            setTransitionType={setTransitionType}
             narratorVoice={narratorVoice}
             setNarratorVoice={setNarratorVoice}
             speedMultiplier={speedMultiplier}

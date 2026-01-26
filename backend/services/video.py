@@ -261,6 +261,9 @@ class VideoBuilder:
         self.ken_burns_preset = resolve_preset_name(request.ken_burns_preset)
         self.ken_burns_intensity = max(0.5, min(request.ken_burns_intensity or 1.0, 2.0))
 
+        # Transition settings
+        self.transition_type = request.transition_type or "fade"
+
         # Per-scene data
         self.input_args: list[str] = []
         self.filters: list[str] = []
@@ -648,14 +651,27 @@ class VideoBuilder:
             )
 
     def _apply_transitions(self) -> None:
-        """Apply crossfade transitions between scenes."""
+        """Apply transitions between scenes."""
         if self.num_scenes > 1:
+            from constants.transition import RANDOM_ELIGIBLE, get_transition_name
+            import random
+
             curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
             for i in range(1, self.num_scenes):
+                # Resolve transition type for this scene
+                if self.transition_type == "random":
+                    # Use scene index + project ID for reproducible randomness
+                    seed = hash(f"{self.project_id}_{i}")
+                    rng = random.Random(seed)
+                    transition = rng.choice(RANDOM_ELIGIBLE)
+                    logger.info(f"Scene {i}: random transition -> {transition}")
+                else:
+                    transition = get_transition_name(self.transition_type)
+
                 prev_dur = self.scene_durations[i - 1]
                 acc_offset += prev_dur
                 self.filters.append(
-                    f"{curr_v}[v{i}_raw]xfade=transition=fade:"
+                    f"{curr_v}[v{i}_raw]xfade=transition={transition}:"
                     f"duration={self.transition_dur}:offset={acc_offset}[v{i}_m]"
                 )
                 curr_v = f"[v{i}_m]"

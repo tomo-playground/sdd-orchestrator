@@ -43,3 +43,11 @@ async def video_exists(filename: str = Query(..., min_length=1)):
         return {"exists": False}
     target = VIDEO_DIR / name
     return {"exists": target.exists()}
+
+
+@router.get("/transitions")
+async def get_transitions():
+    """Get list of available scene transition effects."""
+    from constants.transition import get_transition_list
+
+    return {"transitions": get_transition_list()}
