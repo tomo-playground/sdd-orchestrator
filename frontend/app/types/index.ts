@@ -28,6 +28,7 @@ export type Scene = {
   debug_prompt?: string;
   context_tags?: SceneContextTags;
   prompt_history_id?: number;  // Track which prompt history was applied
+  generation_log_id?: number;  // Track generation log for success/fail marking
 };
 
 export type AudioItem = { name: string; url: string };
@@ -142,6 +143,7 @@ export type DraftScene = {
   clip_skip: number;
   context_tags?: SceneContextTags;
   prompt_history_id?: number;
+  generation_log_id?: number;
 };
 
 // ============================================================

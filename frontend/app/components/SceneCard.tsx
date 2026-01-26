@@ -48,6 +48,9 @@ type SceneCardProps = {
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null) => void;
   onSavePrompt?: () => void;
+  onMarkSuccess?: () => void;
+  onMarkFail?: () => void;
+  isMarkingStatus?: boolean;
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
@@ -88,6 +91,9 @@ export default function SceneCard({
   onApplyMissingTags,
   onImagePreview,
   onSavePrompt,
+  onMarkSuccess,
+  onMarkFail,
+  isMarkingStatus = false,
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
@@ -433,14 +439,38 @@ export default function SceneCard({
 
           {/* Primary Action + More Menu */}
           <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={onGenerateImage}
-              disabled={scene.isGenerating}
-              className="rounded-full bg-zinc-900 px-5 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
-            >
-              {scene.isGenerating ? "Generating..." : "Generate Image"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onGenerateImage}
+                disabled={scene.isGenerating}
+                className="rounded-full bg-zinc-900 px-5 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+              >
+                {scene.isGenerating ? "Generating..." : "Generate Image"}
+              </button>
+              {scene.generation_log_id && onMarkSuccess && onMarkFail && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onMarkSuccess}
+                    disabled={isMarkingStatus}
+                    title="Mark as Success"
+                    className="rounded-full bg-emerald-500 px-3 py-2 text-[10px] font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    👍
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onMarkFail}
+                    disabled={isMarkingStatus}
+                    title="Mark as Fail"
+                    className="rounded-full bg-rose-500 px-3 py-2 text-[10px] font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
+                  >
+                    👎
+                  </button>
+                </>
+              )}
+            </div>
             <div className="relative">
               <button
                 type="button"

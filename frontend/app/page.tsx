@@ -131,6 +131,7 @@ export default function Home() {
     Record<number, ImageValidation>
   >({});
   const [validatingSceneId, setValidatingSceneId] = useState<number | null>(null);
+  const [markingStatusSceneId, setMarkingStatusSceneId] = useState<number | null>(null);
   const [baseStepsA, setBaseStepsA] = useState(27);
   const [baseCfgScaleA, setBaseCfgScaleA] = useState(7);
   const [baseSamplerA, setBaseSamplerA] = useState("DPM++ 2M Karras");
@@ -1752,10 +1753,36 @@ export default function Home() {
       if (res.data.image) {
         const dataUrl = `data:image/png;base64,${res.data.image}`;
         const storedUrl = await storeSceneImage(dataUrl);
+
+        // Create generation log entry
+        let generationLogId: number | undefined;
+        try {
+          const projectName = topic.trim().replace(/\s+/g, "_") || "my_shorts";
+          const logRes = await axios.post(`${API_BASE}/generation-logs`, {
+            project_name: projectName,
+            scene_index: scene.id,
+            prompt,
+            tags: prompt.split(",").map((t) => t.trim()),
+            sd_params: {
+              steps: scene.steps,
+              cfg_scale: scene.cfg_scale,
+              sampler_name: scene.sampler_name,
+              clip_skip: scene.clip_skip,
+            },
+            seed: scene.seed,
+            status: "pending",
+            image_url: storedUrl,
+          });
+          generationLogId = logRes.data.id;
+        } catch (error) {
+          console.warn("Failed to create generation log:", error);
+        }
+
         return {
           image_url: storedUrl,
           debug_prompt: prompt,
           debug_payload: JSON.stringify(debugPayload, null, 2),
+          generation_log_id: generationLogId,
         } as Partial<Scene>;
       }
       return {
@@ -2103,6 +2130,42 @@ export default function Home() {
     }
   };
 
+  const handleMarkSuccess = async (scene: Scene) => {
+    if (!scene.generation_log_id) {
+      showToast("No generation log to mark", "error");
+      return;
+    }
+    setMarkingStatusSceneId(scene.id);
+    try {
+      await axios.patch(`${API_BASE}/generation-logs/${scene.generation_log_id}/status`, {
+        status: "success",
+      });
+      showToast("Marked as success 👍", "success");
+    } catch {
+      showToast("Failed to mark status", "error");
+    } finally {
+      setMarkingStatusSceneId(null);
+    }
+  };
+
+  const handleMarkFail = async (scene: Scene) => {
+    if (!scene.generation_log_id) {
+      showToast("No generation log to mark", "error");
+      return;
+    }
+    setMarkingStatusSceneId(scene.id);
+    try {
+      await axios.patch(`${API_BASE}/generation-logs/${scene.generation_log_id}/status`, {
+        status: "fail",
+      });
+      showToast("Marked as fail 👎", "error");
+    } catch {
+      showToast("Failed to mark status", "error");
+    } finally {
+      setMarkingStatusSceneId(null);
+    }
+  };
+
   const validateSceneImage = async (scene: Scene, silent = false) => {
     if (!scene.image_url) {
       if (!silent) alert("Upload or generate an image first.");
@@ -2350,6 +2413,9 @@ export default function Home() {
                 onApplyMissingTags={(tags) => applyMissingImageTags(scenes[currentSceneIndex], tags)}
                 onImagePreview={setImagePreviewSrc}
                 onSavePrompt={() => handleSavePrompt(scenes[currentSceneIndex])}
+                onMarkSuccess={() => handleMarkSuccess(scenes[currentSceneIndex])}
+                onMarkFail={() => handleMarkFail(scenes[currentSceneIndex])}
+                isMarkingStatus={markingStatusSceneId === scenes[currentSceneIndex].id}
                 getSceneStatus={getSceneStatus}
                 getFixSuggestions={(scene, validation) => getFixSuggestions(scene, validation, topic)}
                 applySuggestion={applySuggestion}
