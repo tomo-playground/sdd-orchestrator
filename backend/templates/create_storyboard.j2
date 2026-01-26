@@ -14,6 +14,15 @@ CRITICAL LANGUAGE RULE:
 - WRONG: "すみません (Sumimasen) - 실례합니다"
 - CORRECT: "すみません！"
 
+CRITICAL IMAGE PROMPT RULE:
+- Stable Diffusion models are trained on Danbooru dataset
+- ONLY use Danbooru tags from the Allowed Keywords list below
+- NEVER invent new tags or use general photography terms not in Danbooru
+- FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
+- SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts)
+- Tags not in training data produce unpredictable/broken results
+- When unsure, choose high-frequency tags from the list
+
 Instructions:
 1. Break the story into sequential scenes that fit the total duration.
 2. Use Actor A only. Make it a single-person monologue (spoken tone).
@@ -24,12 +33,12 @@ Instructions:
    - duration: seconds (3-6 recommended)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * REQUIRED categories (pick ONE from each):
-       - expression: facial emotion (smile, sad, surprised, determined, shy, etc.)
-       - gaze: eye direction (looking at viewer, looking away, looking up, etc.)
-       - pose: body position (sitting, standing, arms crossed, leaning, etc.)
-       - action: what character is doing (reading, walking, thinking, waving, etc.)
-       - camera: shot type and angle (close-up, cowboy shot, from below, etc.)
-       - environment: location, time, weather, lighting (library, night, soft lighting, etc.)
+       - expression: facial emotion (smile, happy, surprised, serious, angry, sad, shy, etc.)
+       - gaze: eye direction (looking at viewer, looking away, looking up, looking down, etc.)
+       - pose: body position (sitting, standing, crossed arms, hand on chin, etc.)
+       - action: what character is doing (reading, walking, waving, pointing, running, etc.)
+       - camera: shot type and angle (full body, upper body, cowboy shot, portrait, close-up, from below, etc.)
+       - environment: location, time, weather, lighting (library, classroom, outdoors, indoors, night, soft lighting, etc.)
        - mood: overall atmosphere (peaceful, tense, romantic, etc.)
      * Match expression/gaze/pose/action to the scene's emotional intent:
        - Happy scene → smile + looking at viewer + energetic pose
@@ -49,14 +58,14 @@ Output Format:
     "script": "...",
     "speaker": "A",
     "duration": 4,
-    "image_prompt": "smile, looking at viewer, sitting, reading, bust shot, library, soft lighting, peaceful",
+    "image_prompt": "smile, looking at viewer, sitting, reading, upper body, library, soft lighting, peaceful",
     "image_prompt_ko": "따뜻한 도서관에서 책 읽는 장면",
     "scene_tags": {
       "expression": ["smile"],
       "gaze": "looking at viewer",
       "pose": ["sitting"],
       "action": ["reading"],
-      "camera": "bust shot",
+      "camera": "upper body",
       "environment": ["library", "soft lighting"],
       "mood": ["peaceful"]
     }

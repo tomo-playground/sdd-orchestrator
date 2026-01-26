@@ -6,6 +6,15 @@ Visual Style: {{ style }}
 Target Audience: Korean speakers learning Japanese
 Difficulty: {{ difficulty | default("beginner") }}
 
+CRITICAL IMAGE PROMPT RULE:
+- Stable Diffusion models are trained on Danbooru dataset
+- ONLY use Danbooru tags from the Allowed Keywords list below
+- NEVER invent new tags or use general photography terms not in Danbooru
+- FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
+- SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts)
+- Tags not in training data produce unpredictable/broken results
+- When unsure, choose high-frequency tags from the list
+
 Instructions:
 1. Create a Japanese language lesson about the given topic using REAL-LIFE SITUATIONS.
 2. STRUCTURE (in order):
@@ -29,12 +38,12 @@ Instructions:
    - duration: 4-6 seconds per scene
    - image_prompt: Visual scene description in ENGLISH (comma-separated tags)
      * REQUIRED categories (pick ONE from each):
-       - expression: facial emotion (smile, happy, surprised, wink)
-       - gaze: eye direction (looking at viewer, looking away)
-       - pose: body position (standing, sitting, arms crossed)
-       - action: gesture (pointing, hand up, waving)
-       - camera: shot type (bust shot, close-up, medium shot)
-       - environment: cafe, restaurant, street, station, classroom, soft lighting
+       - expression: facial emotion (smile, happy, surprised, shy)
+       - gaze: eye direction (looking at viewer, looking away, looking down)
+       - pose: body position (standing, sitting, crossed arms)
+       - action: gesture (pointing, waving, reading)
+       - camera: shot type (upper body, cowboy shot, portrait, close-up)
+       - environment: indoors, outdoors, classroom, street, soft lighting
        - mood: peaceful, energetic, playful, warm
      * Use ONLY keywords from the Allowed Keywords list
      * Do NOT use: teaching gesture, educational, casual_clothes (use specific clothing)
@@ -58,7 +67,7 @@ Output Format:
     "script": "일본 카페에서 이것도 모르면 당황해요!",
     "speaker": "Narrator",
     "duration": 3,
-    "image_prompt": "surprised, looking at viewer, standing, bust shot, cafe, soft lighting, energetic",
+    "image_prompt": "surprised, looking at viewer, standing, upper body, indoors, soft lighting, energetic",
     "image_prompt_ko": "당황한 표정으로 시청자에게 말하는 장면",
     "japanese_text": "",
     "romaji": "",
@@ -68,8 +77,8 @@ Output Format:
       "gaze": "looking at viewer",
       "pose": ["standing"],
       "action": [],
-      "camera": "bust shot",
-      "environment": ["cafe", "soft lighting"],
+      "camera": "upper body",
+      "environment": ["indoors", "soft lighting"],
       "mood": ["energetic"]
     }
   },
@@ -78,7 +87,7 @@ Output Format:
     "script": "메뉴를 고를 때: これください - 이거 주세요",
     "speaker": "Narrator",
     "duration": 5,
-    "image_prompt": "happy, looking at viewer, standing, close-up, cafe, counter, warm lighting, peaceful",
+    "image_prompt": "happy, looking at viewer, standing, close-up, indoors, soft lighting, peaceful",
     "image_prompt_ko": "카페 카운터에서 주문하는 장면",
     "japanese_text": "これください",
     "romaji": "Kore kudasai",
@@ -89,7 +98,7 @@ Output Format:
       "pose": ["standing"],
       "action": [],
       "camera": "close-up",
-      "environment": ["cafe", "counter", "warm lighting"],
+      "environment": ["indoors", "soft lighting"],
       "mood": ["peaceful"]
     }
   },
@@ -98,18 +107,18 @@ Output Format:
     "script": "근데 くれ라고 하면 반말이에요 ㅋㅋ 주의!",
     "speaker": "Narrator",
     "duration": 4,
-    "image_prompt": "wink, looking at viewer, standing, close-up, cafe, warm lighting, playful",
+    "image_prompt": "smile, looking at viewer, standing, close-up, indoors, soft lighting, playful",
     "image_prompt_ko": "장난스럽게 주의사항 알려주는 장면",
     "japanese_text": "くれ",
     "romaji": "Kure",
     "korean_meaning": "줘 (반말)",
     "scene_tags": {
-      "expression": ["wink"],
+      "expression": ["smile"],
       "gaze": "looking at viewer",
       "pose": ["standing"],
       "action": [],
       "camera": "close-up",
-      "environment": ["cafe", "warm lighting"],
+      "environment": ["indoors", "soft lighting"],
       "mood": ["playful"]
     }
   }

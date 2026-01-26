@@ -6,6 +6,15 @@ Visual Style: {{ style }}
 Target Level: {{ level | default("middle_school") }}
 Language: Korean
 
+CRITICAL IMAGE PROMPT RULE:
+- Stable Diffusion models are trained on Danbooru dataset
+- ONLY use Danbooru tags from the Allowed Keywords list below
+- NEVER invent new tags or use general photography terms not in Danbooru
+- FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
+- SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts)
+- Tags not in training data produce unpredictable/broken results
+- When unsure, choose high-frequency tags from the list
+
 Instructions:
 1. Create a math lesson about the given topic/formula.
 2. Each scene should explain ONE concept, formula, or step.
@@ -19,12 +28,12 @@ Instructions:
    - duration: 4-6 seconds per scene
    - image_prompt: Visual scene description in ENGLISH (comma-separated tags)
      * REQUIRED categories (pick ONE from each):
-       - expression: teacher's emotion (smile, excited, determined, serious)
+       - expression: teacher's emotion (smile, happy, serious, surprised)
        - gaze: eye direction (looking at viewer for explanation)
-       - pose: body position (standing, pointing, hand on chin for thinking)
-       - action: what teacher is doing (talking, thinking, teaching)
-       - camera: shot type (bust shot, medium shot, close-up for diagrams)
-       - environment: classroom, chalkboard, natural light
+       - pose: body position (standing, crossed arms, hand on chin for thinking)
+       - action: what teacher is doing (pointing, waving, reading)
+       - camera: shot type (upper body, cowboy shot, portrait, close-up for diagrams)
+       - environment: classroom, indoors, natural light, soft lighting
        - mood: educational, energetic, peaceful
      * Use ONLY keywords from the Allowed Keywords list
    - image_prompt_ko: Korean summary of the image
@@ -49,16 +58,16 @@ Output Format:
     "script": "오늘은 피타고라스 정리를 배워볼게요!",
     "speaker": "Narrator",
     "duration": 4,
-    "image_prompt": "excited, looking at viewer, standing, waving, bust shot, classroom, natural light, energetic",
+    "image_prompt": "happy, looking at viewer, standing, waving, upper body, classroom, natural light, energetic",
     "image_prompt_ko": "수학 선생님이 칠판 앞에서 인사하는 장면",
     "formula": "a² + b² = c²",
     "concept": "피타고라스 정리",
     "scene_tags": {
-      "expression": ["excited"],
+      "expression": ["happy"],
       "gaze": "looking at viewer",
       "pose": ["standing"],
       "action": ["waving"],
-      "camera": "bust shot",
+      "camera": "upper body",
       "environment": ["classroom", "natural light"],
       "mood": ["energetic"]
     }
@@ -68,16 +77,16 @@ Output Format:
     "script": "직각삼각형에서 빗변의 제곱은 나머지 두 변의 제곱의 합과 같아요",
     "speaker": "Narrator",
     "duration": 5,
-    "image_prompt": "serious, looking at viewer, pointing, bust shot, classroom, soft lighting, peaceful",
+    "image_prompt": "serious, looking at viewer, standing, pointing, upper body, classroom, soft lighting, peaceful",
     "image_prompt_ko": "직각삼각형 도형과 공식",
     "formula": "a² + b² = c²",
     "concept": "피타고라스 정리",
     "scene_tags": {
       "expression": ["serious"],
       "gaze": "looking at viewer",
-      "pose": [],
+      "pose": ["standing"],
       "action": ["pointing"],
-      "camera": "bust shot",
+      "camera": "upper body",
       "environment": ["classroom", "soft lighting"],
       "mood": ["peaceful"]
     }
