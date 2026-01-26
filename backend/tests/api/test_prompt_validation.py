@@ -135,7 +135,9 @@ def test_auto_replace_empty(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["replaced_count"] == 0
+    assert data["removed_count"] == 0
     assert data["replacements"] == []
+    assert data["removed"] == []
 
 
 def test_auto_replace_risky_tags(client: TestClient):
@@ -167,8 +169,36 @@ def test_auto_replace_no_risky(client: TestClient):
     data = response.json()
 
     assert data["replaced_count"] == 0
+    assert data["removed_count"] == 0
     assert data["original"] == data["replaced"]
     assert data["replacements"] == []
+
+
+def test_auto_replace_with_removal(client: TestClient):
+    """Test auto-replacement with tags that should be removed."""
+    response = client.post(
+        "/prompt/auto-replace",
+        json={"tags": ["1girl", "unreal engine", "standing", "octane render"]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    # unreal engine and octane render should be removed
+    assert data["removed_count"] == 2
+    assert "unreal engine" in data["removed"]
+    assert "octane render" in data["removed"]
+
+    # Removed tags should not appear in replaced list
+    assert "unreal engine" not in data["replaced"]
+    assert "octane render" not in data["replaced"]
+
+    # Safe tags should remain
+    assert "1girl" in data["replaced"]
+    assert "standing" in data["replaced"]
+
+    # Check replacements structure
+    removed_actions = [r for r in data["replacements"] if r["action"] == "removed"]
+    assert len(removed_actions) == 2
 
 
 def test_validate_tags_request_validation(client: TestClient):

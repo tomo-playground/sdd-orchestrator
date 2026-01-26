@@ -18,14 +18,56 @@ if TYPE_CHECKING:
 RISKY_TAG_THRESHOLD = 100  # Tags with <100 posts are considered risky
 
 # Known problematic tags that should be replaced
+# Maps non-Danbooru/risky tags to verified Danbooru alternatives
 RISKY_TAG_REPLACEMENTS = {
+    # Camera angles and framing
     "medium shot": "cowboy shot",
     "close up": "close-up",
     "far shot": "from distance",
     "wide shot": "from distance",
+    "long shot": "full body",
+    "extreme close-up": "portrait",
+    "extreme closeup": "portrait",
     "birds eye view": "from above",
+    "bird's eye view": "from above",
     "low angle": "from below",
     "high angle": "from above",
+    "over the shoulder": "from behind",
+    "dutch angle": "tilted angle",
+    "point of view": "pov",
+    "first person view": "pov",
+    "third person view": "from side",
+    # Lighting (many SD-specific lighting terms don't exist in Danbooru)
+    "soft lighting": "soft light",
+    "hard lighting": "dramatic lighting",
+    "natural lighting": "natural light",
+    "studio lighting": "studio light",
+    "rim lighting": "backlighting",
+    "side lighting": "side light",
+    "top lighting": "light from above",
+    "bottom lighting": "light from below",
+    # Quality/Style (SD-specific, not Danbooru tags)
+    "photorealistic": "realistic",
+    "photo realistic": "realistic",
+    "ultra realistic": "realistic",
+    "hyperrealistic": "realistic",
+    "hyper realistic": "realistic",
+    "4k": "high resolution",
+    "8k": "high resolution",
+    "hd": "high resolution",
+    "ultra hd": "high resolution",
+    "unreal engine": None,  # Remove rather than replace
+    "octane render": None,  # Remove rather than replace
+    "ray tracing": None,  # Remove rather than replace
+    # Composition
+    "rule of thirds": "dynamic composition",
+    "centered composition": "centered",
+    "symmetrical composition": "symmetry",
+    "golden ratio": "dynamic composition",
+    # Common typos and variations
+    "bokeh effect": "bokeh",
+    "lens flare effect": "lens flare",
+    "depth of field": "depth of field",  # This one is OK, kept for consistency check
 }
 
 
@@ -151,23 +193,34 @@ def auto_replace_risky_tags(tags: list[str]) -> dict[str, Any]:
         {
             "original": [...],
             "replaced": [...],
-            "replacements": [{"from": "medium shot", "to": "cowboy shot"}, ...]
+            "replacements": [{"from": "medium shot", "to": "cowboy shot"}, ...],
+            "removed": [...]  # Tags that were removed (replacement was None)
         }
     """
     replaced = []
     replacements = []
+    removed = []
 
     for tag in tags:
         if tag in RISKY_TAG_REPLACEMENTS:
             replacement = RISKY_TAG_REPLACEMENTS[tag]
-            replaced.append(replacement)
-            replacements.append({"from": tag, "to": replacement})
+            if replacement is None:
+                # Tag should be removed, not replaced
+                removed.append(tag)
+                replacements.append({"from": tag, "to": None, "action": "removed"})
+            else:
+                # Tag should be replaced
+                replaced.append(replacement)
+                replacements.append({"from": tag, "to": replacement, "action": "replaced"})
         else:
+            # Tag is safe, keep it
             replaced.append(tag)
 
     return {
         "original": tags,
         "replaced": replaced,
         "replacements": replacements,
-        "replaced_count": len(replacements),
+        "removed": removed,
+        "replaced_count": len([r for r in replacements if r["action"] == "replaced"]),
+        "removed_count": len(removed),
     }
