@@ -283,11 +283,11 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
-| 1 | `generation_logs` 테이블 | 프롬프트, 태그, 파라미터, Match Rate, 시드, status (success/fail) | [ ] |
-| 2 | 자동 로깅 API | 이미지 생성 시 자동으로 메타데이터 저장 | [ ] |
-| 3 | **성공/실패 마킹 UI** | SceneCard에 👍/👎 버튼, Match Rate 임계값 자동 마킹 | [ ] |
-| 4 | 패턴 분석 엔진 | 성공률 높은 태그 조합 추출 (빈도 분석, A/B 비교) | [ ] |
-| 5 | 충돌 규칙 자동 발견 | 함께 사용 시 실패율 높은 태그 쌍 감지 → DB 반영 | [ ] |
+| 1 | `generation_logs` 테이블 | 프롬프트, 태그, 파라미터, Match Rate, 시드, status (success/fail) | [x] |
+| 2 | 자동 로깅 API | 이미지 생성 시 자동으로 메타데이터 저장 | [x] |
+| 3 | **성공/실패 마킹 UI** | SceneCard에 👍/👎 버튼, Match Rate 임계값 자동 마킹 | [x] |
+| 4 | 패턴 분석 엔진 | 성공률 높은 태그 조합 추출 (빈도 분석, A/B 비교) | [x] |
+| 5 | 충돌 규칙 자동 발견 | 함께 사용 시 실패율 높은 태그 쌍 감지 → DB 반영 | [x] |
 | 6 | **성공 조합 생성기** | 과거 성공 케이스 기반 최적 조합 자동 생성 | [ ] |
 | 7 | Analytics Dashboard | Manage 탭에 인사이트 (Top/Worst 태그, 성공률 차트) | [ ] |
 | 8 | 자동 권장 시스템 | 장면 의도 입력 → 성공 확률 높은 태그 조합 추천 | [ ] |
@@ -449,7 +449,55 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (22:30)
+**Last Updated**: 2026-01-27 (00:00)
+
+### 현재 세션 완료 작업 (2026-01-27)
+
+#### Phase 6-4.21: Generation Log Analytics (Tasks #1-5 완료)
+| 작업 | 상태 |
+|------|------|
+| 1. generation_logs 테이블 | ✅ |
+| 2. 자동 로깅 API | ✅ |
+| 3. 성공/실패 마킹 UI (👍/👎) | ✅ |
+| 4. 패턴 분석 엔진 | ✅ |
+| 5. 충돌 규칙 자동 발견 | ✅ |
+| 6. 성공 조합 생성기 | ⏸️ |
+| 7. Analytics Dashboard | ⏸️ |
+| 8. 자동 권장 시스템 | ⏸️ |
+
+**진행률**: 5/8 (62.5%)
+
+**구현 내용**:
+- **generation_logs 테이블**: PostgreSQL 스키마 + Alembic 마이그레이션
+- **자동 로깅 API**: `POST /generation-logs` - 이미지 생성 시 메타데이터 자동 저장
+- **성공/실패 마킹 UI**: SceneCard에 👍/👎 버튼 + `PATCH /generation-logs/{id}/status`
+- **패턴 분석 엔진**: `GET /generation-logs/analyze/patterns` - 태그 통계, 성공률, 충돌 후보 분석
+- **충돌 규칙 자동 발견**: `GET /suggest-conflict-rules` + `POST /apply-conflict-rules` - 기존 규칙 필터링, 양방향 DB 삽입
+
+**테스트 검증**:
+- End-to-end 테스트: "cyberpunk + medieval" 충돌 규칙 자동 생성 성공
+- 30개 로그 패턴 분석 정상 동작
+- Frontend-Backend 연동 확인 완료
+
+#### 긴급 버그 수정
+- ✅ **Generation Log VARCHAR 오버플로우**: project_name 200자 제한 추가 (topic 길이 제한)
+- ✅ **ValidationTabContent 타입 에러**: tag.toLowerCase() non-string 방어 코드
+- ✅ **Video Generation NameError**: create_overlay_header/footer 인스턴스 변수 바인딩
+- ✅ **Avatar 이미지 누락**: SD WebUI fallback + simple_avatar.py 생성, 경로 해결
+
+### 다음 우선순위 작업
+
+| 순위 | 작업 | Phase | 상태 |
+|------|------|-------|------|
+| 1 | **Generation Log Analytics 완료** | 6-4.21 | 62.5% (5/8) |
+| 2 | Multi-Character 구현 | 6-3.10 | 대기 |
+| 3 | Scene Builder UI | 6-3.11 | 대기 |
+| 4 | Tag Autocomplete | 6-3.12 | 대기 |
+| 5 | Setup Wizard | 5-6 | 대기 |
+
+**권장**: Generation Log Analytics 나머지 3개 작업 완료 후 Phase 6 아카이브 고려
+
+---
 
 | Phase | 상태 | 진행률 | 비고 |
 |-------|------|--------|------|
@@ -458,8 +506,8 @@ brew install claude-squad  # 명령어: cs
 | 5-4 | COMPLETE | 100% | 품질 측정 자동화 + 프롬프트 검증 시스템 완료 |
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
-| 6-3 | IN PROGRESS | 90% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | IN PROGRESS | 95% | Generation Log Analytics 상세화 |
+| 6-3 | IN PROGRESS | 91% | 8.x+9.x 아카이브, 10/11/12 잔여 |
+| 6-4 | IN PROGRESS | 71% | Generation Log Analytics 5/8 완료 (62.5%) |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |

@@ -1778,7 +1778,7 @@ export default function Home() {
         // Create generation log entry
         let generationLogId: number | undefined;
         try {
-          const projectName = topic.trim().replace(/\s+/g, "_") || "my_shorts";
+          const projectName = (topic.trim().replace(/\s+/g, "_") || "my_shorts").substring(0, 200);
           const logRes = await axios.post(`${API_BASE}/generation-logs`, {
             project_name: projectName,
             scene_index: scene.id,
