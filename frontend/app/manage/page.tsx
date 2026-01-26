@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { API_BASE, CATEGORY_DESCRIPTIONS, PROMPT_APPLY_KEY } from "../constants";
+import { useCharacters, useTags } from "../hooks";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import QualityDashboard from "../components/quality/QualityDashboard";
 
@@ -26,6 +27,9 @@ const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export default function ManagePage() {
   const router = useRouter();
+  const { characters, reload: fetchCharacters } = useCharacters();
+  const { tags: allTags, tagsByGroup: tagGroupsByCategory, reload: fetchTagsData } = useTags();
+
   const [manageTab, setManageTab] = useState<ManageTab>("keywords");
   const [keywordSuggestions, setKeywordSuggestions] = useState<KeywordSuggestion[]>([]);
   const [keywordCategories, setKeywordCategories] = useState<KeywordCategories>({});
@@ -67,16 +71,13 @@ export default function ManagePage() {
   const [styleSubTab, setStyleSubTab] = useState<StyleSubTab>("profiles");
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
   const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
-  const [characters, setCharacters] = useState<Character[]>([]);
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
   const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [isStyleLoading, setIsStyleLoading] = useState(false);
 
   // Tags tab state
   type TagGroup = { category: string; group_name: string; count: number };
   const [tagGroups, setTagGroups] = useState<TagGroup[]>([]);
-  const [allTags, setAllTags] = useState<Tag[]>([]);
   const [isTagsLoading, setIsTagsLoading] = useState(false);
   const [tagGroupFilter, setTagGroupFilter] = useState<string>("");
   const [tagCategoryFilter, setTagCategoryFilter] = useState<string>("");
@@ -286,14 +287,10 @@ export default function ManagePage() {
   useEffect(() => {
     if (manageTab === "prompts") {
       void fetchPromptHistories();
-      // Load characters for filter dropdown if not already loaded
-      if (characters.length === 0) {
-        axios.get(`${API_BASE}/characters`)
-          .then((res) => setCharacters(res.data || []))
-          .catch(() => {});
-      }
+      // Load characters for filter dropdown via hook
+      void fetchCharacters();
     }
-  }, [manageTab, promptsFilter, promptsCharacterFilter, promptsSort]);
+  }, [manageTab, promptsFilter, promptsCharacterFilter, promptsSort, fetchCharacters]);
 
   // Evaluation tab data fetching
   const fetchEvalData = async () => {
@@ -337,33 +334,29 @@ export default function ManagePage() {
   useEffect(() => {
     if (manageTab === "evaluation") {
       void fetchEvalData();
-      // Load characters if not loaded
-      if (characters.length === 0) {
-        axios.get(`${API_BASE}/characters`)
-          .then((res) => setCharacters(res.data || []))
-          .catch(() => {});
-      }
+      // Load characters via hook
+      void fetchCharacters();
     }
-  }, [manageTab, evalCharacterId]);
+  }, [manageTab, evalCharacterId, fetchCharacters]);
 
   // Style tab data fetching
   const fetchStyleData = async () => {
     setIsStyleLoading(true);
     try {
-      const [profilesRes, lorasRes, charsRes, modelsRes, embsRes, tagsRes] = await Promise.all([
+      const [profilesRes, lorasRes, modelsRes, embsRes] = await Promise.all([
         axios.get(`${API_BASE}/style-profiles`),
         axios.get(`${API_BASE}/loras`),
-        axios.get(`${API_BASE}/characters`),
         axios.get(`${API_BASE}/sd-models`),
         axios.get(`${API_BASE}/embeddings`),
-        axios.get(`${API_BASE}/tags`),
       ]);
       setStyleProfiles(profilesRes.data || []);
       setLoraEntries(lorasRes.data || []);
-      setCharacters(charsRes.data || []);
       setSdModels(modelsRes.data || []);
       setEmbeddings(embsRes.data || []);
-      setTags(tagsRes.data || []);
+      
+      // Sync hooks
+      void fetchCharacters();
+      void fetchTagsData();
     } catch {
       console.error("Failed to fetch style data");
     } finally {
@@ -449,29 +442,12 @@ export default function ManagePage() {
     }
   }, [manageTab]);
 
-  // Tags tab data fetching
-  const fetchTagsData = async () => {
-    setIsTagsLoading(true);
-    try {
-      const [tagsRes, groupsRes] = await Promise.all([
-        axios.get(`${API_BASE}/tags`),
-        axios.get(`${API_BASE}/tags/groups`),
-      ]);
-      setAllTags(tagsRes.data || []);
-      setTagGroups(groupsRes.data?.groups || []);
-    } catch {
-      console.error("Failed to fetch tags data");
-    } finally {
-      setIsTagsLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (manageTab === "tags") {
       void fetchTagsData();
       void fetchPendingTags();
     }
-  }, [manageTab]);
+  }, [manageTab, fetchTagsData]);
 
   // Pending classifications functions (15.7.5)
   const fetchPendingTags = async () => {
@@ -522,7 +498,7 @@ export default function ManagePage() {
   // Available groups for classification
   const availableGroups = useMemo(() => {
     const groups = new Set<string>();
-    allTags.forEach((tag) => {
+    allTags.forEach((tag: Tag) => {
       if (tag.group_name) groups.add(tag.group_name);
     });
     return Array.from(groups).sort();
@@ -530,7 +506,7 @@ export default function ManagePage() {
 
   // Computed values for tags tab
   const filteredTags = useMemo(() => {
-    return allTags.filter((tag) => {
+    return allTags.filter((tag: Tag) => {
       if (tagCategoryFilter && tag.category !== tagCategoryFilter) return false;
       if (tagGroupFilter && tag.group_name !== tagGroupFilter) return false;
       return true;
@@ -538,20 +514,7 @@ export default function ManagePage() {
   }, [allTags, tagCategoryFilter, tagGroupFilter]);
 
   const tagCategories = useMemo(() => {
-    return [...new Set(allTags.map((t) => t.category))].sort();
-  }, [allTags]);
-
-  const tagGroupsByCategory = useMemo(() => {
-    const groups: Record<string, string[]> = {};
-    allTags.forEach((tag) => {
-      if (tag.group_name) {
-        if (!groups[tag.category]) groups[tag.category] = [];
-        if (!groups[tag.category].includes(tag.group_name)) {
-          groups[tag.category].push(tag.group_name);
-        }
-      }
-    });
-    return groups;
+    return [...new Set(allTags.map((t: Tag) => t.category))].sort();
   }, [allTags]);
 
   const SCENE_TAG_GROUPS = ["expression", "gaze", "pose", "action", "camera", "environment", "mood"];
@@ -1489,13 +1452,13 @@ export default function ManagePage() {
                   <p className="text-xs text-zinc-400">No characters created yet.</p>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {characters.map((char) => {
-                      const charLoras = char.loras?.map((cl) => {
+                    {characters.map((char: Character) => {
+                      const charLoras = char.loras?.map((cl: any) => {
                         const lora = loraEntries.find((l) => l.id === cl.lora_id);
                         return lora ? { ...lora, weight: cl.weight } : null;
                       }).filter(Boolean) || [];
-                      const identityTagNames = char.identity_tags?.map((id) => tags.find((t) => t.id === id)?.name).filter(Boolean) || [];
-                      const clothingTagNames = char.clothing_tags?.map((id) => tags.find((t) => t.id === id)?.name).filter(Boolean) || [];
+                      const identityTagNames = char.identity_tags?.map((id: number) => allTags.find((t: Tag) => t.id === id)?.name).filter(Boolean) || [];
+                      const clothingTagNames = char.clothing_tags?.map((id: number) => allTags.find((t: Tag) => t.id === id)?.name).filter(Boolean) || [];
                       return (
                         <div key={char.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
                           <div className="flex items-start justify-between">
@@ -1519,7 +1482,7 @@ export default function ManagePage() {
                                 )}
                                 {charLoras.length > 0 && (
                                   <p className="text-[10px] text-zinc-500">
-                                    LoRA: {charLoras.map((l) => `${l?.display_name || l?.name}:${l?.weight}`).join(" + ")}
+                                    LoRA: {charLoras.map((l: any) => `${l?.display_name || l?.name}:${l?.weight}`).join(" + ")}
                                   </p>
                                 )}
                               </div>
@@ -1546,7 +1509,7 @@ export default function ManagePage() {
                                 <span className="text-[9px] font-semibold text-zinc-400 uppercase">Identity</span>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                   {identityTagNames.map((tag) => (
-                                    <span key={tag} className="rounded-full bg-purple-100 px-2 py-0.5 text-[9px] text-purple-700">
+                                    <span key={tag!} className="rounded-full bg-purple-100 px-2 py-0.5 text-[9px] text-purple-700">
                                       {tag}
                                     </span>
                                   ))}
@@ -1558,7 +1521,7 @@ export default function ManagePage() {
                                 <span className="text-[9px] font-semibold text-zinc-400 uppercase">Clothing</span>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                   {clothingTagNames.map((tag) => (
-                                    <span key={tag} className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] text-amber-700">
+                                    <span key={tag!} className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] text-amber-700">
                                       {tag}
                                     </span>
                                   ))}
@@ -1671,9 +1634,9 @@ export default function ManagePage() {
                 Scene Tag Groups (7 Categories)
               </span>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-                {SCENE_TAG_GROUPS.map((group) => {
+                {SCENE_TAG_GROUPS.map((group: string) => {
                   const count = allTags.filter(
-                    (t) => t.category === "scene" && t.group_name === group
+                    (t: Tag) => t.category === "scene" && t.group_name === group
                   ).length;
                   const isActive = tagGroupFilter === group && tagCategoryFilter === "scene";
                   return (
@@ -1713,9 +1676,9 @@ export default function ManagePage() {
                 Character Tag Groups
               </span>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {(tagGroupsByCategory["character"] || []).map((group) => {
+                {Object.keys(tagGroupsByCategory).filter(cat => cat !== "scene").map((group: string) => {
                   const count = allTags.filter(
-                    (t) => t.category === "character" && t.group_name === group
+                    (t: Tag) => t.category === "character" && t.group_name === group
                   ).length;
                   const isActive = tagGroupFilter === group && tagCategoryFilter === "character";
                   return (
@@ -1861,19 +1824,19 @@ export default function ManagePage() {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-indigo-600">
-                  {allTags.filter((t) => t.category === "scene").length}
+                  {allTags.filter((t: Tag) => t.category === "scene").length}
                 </div>
                 <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Scene Tags</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-violet-600">
-                  {allTags.filter((t) => t.category === "character").length}
+                  {allTags.filter((t: Tag) => t.category === "character").length}
                 </div>
                 <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Character Tags</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-emerald-600">
-                  {allTags.filter((t) => t.category === "quality").length}
+                  {allTags.filter((t: Tag) => t.category === "quality").length}
                 </div>
                 <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Quality Tags</div>
               </div>
@@ -1898,7 +1861,7 @@ export default function ManagePage() {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {filteredTags.map((tag) => (
+                  {filteredTags.map((tag: Tag) => (
                     <span
                       key={tag.id}
                       className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] text-zinc-600"
@@ -1917,15 +1880,15 @@ export default function ManagePage() {
                 <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
                   All Tags by Category
                 </span>
-                {tagCategories.map((category) => (
+                {tagCategories.map((category: string) => (
                   <details key={category} className="rounded-xl border border-zinc-200 bg-white">
                     <summary className="cursor-pointer px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:bg-zinc-50">
-                      {category} ({allTags.filter((t) => t.category === category).length} tags)
+                      {category} ({allTags.filter((t: Tag) => t.category === category).length} tags)
                     </summary>
                     <div className="border-t border-zinc-100 p-4">
-                      {(tagGroupsByCategory[category] || [""]).map((group) => {
+                      {Object.keys(tagGroupsByCategory).map((group: string) => {
                         const groupTags = allTags.filter(
-                          (t) => t.category === category && (group === "" ? !t.group_name : t.group_name === group)
+                          (t: Tag) => t.category === category && (group === "" ? !t.group_name : t.group_name === group)
                         );
                         if (groupTags.length === 0) return null;
                         return (
@@ -1934,7 +1897,7 @@ export default function ManagePage() {
                               {group || "Ungrouped"} ({groupTags.length})
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {groupTags.map((tag) => (
+                              {groupTags.map((tag: Tag) => (
                                 <span
                                   key={tag.id}
                                   className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[9px] text-zinc-500"
@@ -1972,7 +1935,7 @@ export default function ManagePage() {
                 className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-medium text-zinc-600 shadow-sm transition outline-none focus:border-zinc-400"
               >
                 <option value="">All Characters</option>
-                {characters.map((char) => (
+                {characters.map((char: Character) => (
                   <option key={char.id} value={char.id}>{char.name}</option>
                 ))}
               </select>
@@ -2055,7 +2018,7 @@ export default function ManagePage() {
                           <span>Used {prompt.use_count}x</span>
                           {prompt.character_id && (
                             <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-600">
-                              {characters.find((c) => c.id === prompt.character_id)?.name ?? `Character #${prompt.character_id}`}
+                              {characters.find((c: Character) => c.id === prompt.character_id)?.name ?? `Character #${prompt.character_id}`}
                             </span>
                           )}
                           {prompt.lora_settings && prompt.lora_settings.length > 0 && (
@@ -2114,7 +2077,7 @@ export default function ManagePage() {
                 className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-xs"
               >
                 <option value="">All Characters</option>
-                {characters.map((c) => (
+                {characters.map((c: Character) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

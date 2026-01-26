@@ -163,22 +163,28 @@ async def compose_prompt(request: PromptComposeRequest):
     # Build final prompt string
     composed_prompt = ", ".join(composed_tokens)
 
+    # Calculate scene complexity (for all modes)
+    scene_complexity = detect_scene_complexity(request.tokens)
+
     # Calculate metadata
     result_metadata = {
-        "composed_prompt": composed_prompt,
+        "prompt": composed_prompt,
+        "tokens": composed_tokens,
         "effective_mode": effective_mode,
-        "token_count": len(composed_tokens),
+        "scene_complexity": scene_complexity,
+        "lora_weights": None,
+        "meta": None,
     }
 
     # Mode B specific metadata
     if effective_mode == "lora" and request.loras:
-        scene_complexity = detect_scene_complexity(request.tokens)
         adjusted_weight = calculate_lora_weight(
             base_weight=request.loras[0].weight,
             scene_complexity=scene_complexity,
         )
-        result_metadata["lora_weight"] = adjusted_weight
-        result_metadata["scene_complexity"] = scene_complexity
+        result_metadata["lora_weights"] = {
+            request.loras[0].name: adjusted_weight
+        }
 
     logger.info(
         "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",

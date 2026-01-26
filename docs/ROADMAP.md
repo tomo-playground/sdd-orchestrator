@@ -449,9 +449,9 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-27 (01:10)
+**Last Updated**: 2026-01-28 (01:30)
 
-### 현재 세션 완료 작업 (2026-01-27)
+### 현재 세션 완료 작업 (2026-01-28)
 
 #### Gemini 리팩토링 & 시스템 안정화 (100% 완료)
 **목표**: God module(`logic.py`) 완전 분해, 프론트엔드 컴포넌트 계층화 및 기술적 채무(Lint/Type) 전수 해결
@@ -481,6 +481,49 @@ brew install claude-squad  # 명령어: cs
 - `071d035`: refactor: decompose God module logic.py
 - `22618e2`: fix: post-refactoring bugs + test suite stabilization
 - `3242a25`: fix: resolve backend lint errors and frontend type mismatches
+
+---
+
+#### Gemini 프롬프트 시스템 근본 개선 (100% 완료)
+**목표**: 하드코딩된 태그 예시 제거 및 스크립트-환경 일관성 강화
+
+**문제 진단**:
+- Gemini가 템플릿의 하드코딩된 예시(smile, library, cafe 등)를 학습
+- DB에 924개 태그가 있어도 템플릿의 10개 예시만 반복 사용
+- "역무원" 스크립트에 library, cafe, street 같은 무관한 장소 생성
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| 환경 일관성 규칙 | CRITICAL 규칙 추가: 스크립트 내용과 환경 태그 일치 필수 | ✅ |
+| DB 태그 보완 | clinic, platform, train station, bus stop 추가 (4개) | ✅ |
+| 하드코딩 예시 제거 | 모든 템플릿에서 구체적 태그 예시 완전 제거 | ✅ |
+| Placeholder 변환 | Output Format을 [expression_tag], [location_tag] 등으로 변경 | ✅ |
+| 동적 태그 참조 강제 | "Use Allowed Keywords list below" 명시 | ✅ |
+
+**변경사항**:
+```diff
+- emotion: (smile, happy, surprised, etc.)  # 하드코딩
++ emotion: [expression_tag]                  # Placeholder
+- environment: library, cafe, classroom      # 예시
++ environment: from Allowed Keywords list   # DB 참조
+```
+
+**검증 결과**:
+```
+Before: library, cafe, street, train  (무관한 장소들)
+After:  train station, platform       (스크립트와 일치) ✅
+```
+
+**효과**:
+- ✅ Gemini가 실제 DB 태그 924개 사용 (하드코딩 10개 → 전체)
+- ✅ Effectiveness 필터링 자동 적용 (성공률 낮은 태그 제외)
+- ✅ 스크립트 내용과 100% 일치하는 환경 태그 생성
+- ✅ 품질 개선이 DB 업데이트로 즉시 반영 (재배포 불필요)
+
+**Commits**:
+- `89f3837`: feat: improve Gemini prompt coherence + add missing location tags
+- `91ed447`: refactor: remove hardcoded tag examples from Gemini templates
+- `55854c3`: refactor: eliminate all hardcoded tag examples from templates
 
 ---
 
