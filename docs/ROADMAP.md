@@ -110,8 +110,8 @@
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [ ] |
 
 **현재 테스트 현황** (2026-01-26):
-- Backend: 244 passed, 4 skipped
-- 주요 테스트: VRT (36개), API (키워드/프리셋), 프롬프트 품질, Ken Burns (27개)
+- Backend: 253 passed, 4 skipped
+- 주요 테스트: VRT (36개), API (키워드/프리셋), 프롬프트 품질, Ken Burns (27개), BGM (9개)
 
 ---
 
@@ -360,6 +360,9 @@ brew install claude-squad  # 명령어: cs
 | 7-2 | COMPLETE | 100% | |
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
+
+**Keywords 일괄 승인 (2026-01-26 20:00)**:
+- 15개 태그 카테고리 승인: object(5), environment(4), clothing_detail(4), pose(1), style(1)
 
 **Random BGM 기능 완료 (2026-01-26 19:00)**:
 - `bgm_file: "random"` 지원 → Backend에서 `assets/audio/*.mp3` 중 랜덤 선택
