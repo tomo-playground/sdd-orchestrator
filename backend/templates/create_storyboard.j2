@@ -33,14 +33,14 @@ Instructions:
    - speaker: "A"
    - duration: seconds (3-6 recommended)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
-     * REQUIRED categories (pick ONE from each):
-       - expression: facial emotion (smile, happy, surprised, serious, angry, sad, shy, etc.)
-       - gaze: eye direction (looking at viewer, looking away, looking up, looking down, etc.)
-       - pose: body position (sitting, standing, crossed arms, hand on chin, etc.)
-       - action: what character is doing (reading, walking, waving, pointing, running, etc.)
-       - camera: shot type and angle (full body, upper body, cowboy shot, portrait, close-up, from below, etc.)
-       - environment: location, time, weather, lighting (library, classroom, outdoors, indoors, night, soft lighting, etc.)
-       - mood: overall atmosphere (peaceful, tense, romantic, etc.)
+     * REQUIRED categories (pick ONE tag from each category in the Allowed Keywords list below):
+       - expression: facial emotion
+       - gaze: eye direction
+       - pose: body position
+       - action: what character is doing
+       - camera: shot type and angle
+       - environment: location (MUST match script), time, weather, lighting
+       - mood: overall atmosphere
      * Match expression/gaze/pose/action to the scene's emotional intent:
        - Happy scene → smile + looking at viewer + energetic pose
        - Sad scene → tears/sad + looking down + hugging knees
