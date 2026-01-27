@@ -210,11 +210,14 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         # Lighting tags (hard to detect by WD14)
         "natural light",
         "soft lighting",
+        "soft light",  # Space format variant
         "hard lighting",
         "dramatic lighting",
         "studio lighting",
         "backlighting",
         "rim lighting",
+        "daylight",  # Time of day (WD14 can't detect)
+        "sunlight",
         # Mood tags (abstract, not visually detectable)
         "energetic",
         "peaceful",
@@ -250,6 +253,11 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "night",
         "dawn",
         "dusk",
+        # Character-specific tags (LoRA-generated, not in WD14 training)
+        "eureka",  # Character name from LoRA
+        "chibi",  # Style tag from LoRA
+        "eyebrow",  # Fine-grained facial feature
+        "eyebrow down",
         # Abstract mood
         "flustered",
     }

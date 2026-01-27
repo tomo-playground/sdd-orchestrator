@@ -499,6 +499,26 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 
 ---
 
+## 🔮 Phase 8: Multi-Style Architecture (Future)
+**목표**: Anime, Realistic, 3D 등 다양한 화풍 지원을 위한 유연한 파이프라인 구축.
+
+**점진적 진화 전략 (Gradual Evolution Strategy)**:
+
+### 8-1. Hardcoding Removal (Ongoing)
+- `masterpiece`, `anime style` 등 특정 화풍 종속 태그를 코드에서 제거.
+- 상수/Config로 분리하여 `DEFAULT_QUALITY_TAGS`, `DEFAULT_STYLE_TAGS` 등 활용.
+
+### 8-2. Config-based Switching (Mid-term)
+- UI 변경 없이 `.env` 설정만으로 모델 스타일 전환 지원.
+- 모델 타입(Anime/Realistic)에 따라 태그/파라미터(CFG, Sampler) 자동 분기 로직 구현.
+
+### 8-3. Full Integration (Long-term)
+- **UI**: 스타일 선택 드롭다운 (Anime / Realistic / 3D).
+- **DB**: `StyleProfile`에 모델별 최적 파라미터(VAE, CFG, Clip Skip) 저장 스키마 확장.
+- **Logic**: 실시간 모델 스위칭, ADetailer 자동화, VAE 교체 로직.
+
+---
+
 ## 📋 Development Cycle
 
 ```
