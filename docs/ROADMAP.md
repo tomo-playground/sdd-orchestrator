@@ -344,7 +344,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 **진행률**: Phase 6-4-21 (100% 완료, 8/8 tasks) ✅
 
-#### 6-4-22. Gemini 프롬프트 품질 개선 (🔴 우선순위 1 - 긴급)
+#### 6-4-22. Gemini 프롬프트 품질 개선 - **COMPLETE** ✅
 **목표**: Gemini가 생성한 태그의 SD 호환성 보장 (Match Rate < 30% 문제 해결)
 
 **근본 원인**:
