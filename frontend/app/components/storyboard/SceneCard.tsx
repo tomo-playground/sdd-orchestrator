@@ -8,6 +8,7 @@ import SceneImagePanel from "../quality/SceneImagePanel";
 import SceneContextTags from "../prompt/SceneContextTags";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
+import TagAutocomplete from "../ui/TagAutocomplete";
 
 type SceneCardProps = {
   scene: Scene;
@@ -303,11 +304,11 @@ export default function SceneCard({
             <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Positive Prompt
             </label>
-            <textarea
+            <TagAutocomplete
               value={scene.image_prompt}
-              onChange={(e) => onUpdateScene({ image_prompt: e.target.value })}
+              onChange={(value) => onUpdateScene({ image_prompt: value })}
               rows={2}
-              className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
             />
             {scene.image_prompt && (
               <>
@@ -344,11 +345,11 @@ export default function SceneCard({
             <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Prompt (KO)
             </label>
-            <textarea
+            <TagAutocomplete
               value={scene.image_prompt_ko}
-              onChange={(e) => onUpdateScene({ image_prompt_ko: e.target.value })}
+              onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
               rows={2}
-              className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
             />
           </div>
 

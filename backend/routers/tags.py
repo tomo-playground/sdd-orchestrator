@@ -97,6 +97,42 @@ async def list_tag_groups(db: Session = Depends(get_db)):
     return {"groups": groups}
 
 
+@router.get("/search", response_model=list[TagResponse])
+async def search_tags(
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(20, le=100, description="Max results"),
+    category: str | None = Query(None, description="Filter by category"),
+    db: Session = Depends(get_db),
+):
+    """Search tags for autocomplete.
+
+    Sorts by:
+    1. Exact match (starts with query)
+    2. Priority (lower is better)
+    3. Name length (shorter is better)
+    """
+    from sqlalchemy import asc, case, func
+
+    query = db.query(Tag).filter(Tag.name.ilike(f"%{q}%"))
+
+    if category:
+        query = query.filter(Tag.category == category)
+
+    # Calculate sort order
+    # 1. Starts with query = 0, else 1
+    starts_with = case((Tag.name.ilike(f"{q}%"), 0), else_=1)
+
+    query = query.order_by(
+        starts_with,
+        Tag.priority.asc(),
+        func.length(Tag.name).asc(),
+        Tag.name.asc(),
+    )
+
+    tags = query.limit(limit).all()
+    return tags
+
+
 # === Pending Classification Endpoints (15.7.5) ===
 
 
