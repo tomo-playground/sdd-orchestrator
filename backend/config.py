@@ -110,6 +110,12 @@ TAG_EFFECTIVENESS_THRESHOLD = float(os.getenv("TAG_EFFECTIVENESS_THRESHOLD", "0.
 # Minimum usage count to consider effectiveness data reliable
 TAG_MIN_USE_COUNT_FOR_FILTERING = int(os.getenv("TAG_MIN_USE_COUNT_FOR_FILTERING", "3"))
 
+# --- Danbooru Validation Configuration ---
+# Enable Danbooru API validation for unknown tags (Phase 2)
+# When enabled, tags not in DB are validated against Danbooru API
+# This adds 2-5s for first-time tags, but ensures 95%+ accuracy
+ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").lower() == "true"
+
 # --- IP-Adapter Character Presets ---
 # Per-character IP-Adapter settings for optimal consistency
 # weight: Higher = more similar to reference (0.6-0.95)

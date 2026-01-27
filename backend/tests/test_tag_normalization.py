@@ -4,11 +4,13 @@ Validates that Gemini-generated prompts are correctly normalized for SD compatib
 """
 
 import pytest
+from unittest.mock import MagicMock, patch
 
 from services.prompt import (
     fix_compound_adjectives,
     normalize_and_fix_tags,
     normalize_tag_spaces,
+    validate_tags_with_danbooru,
 )
 
 
@@ -240,3 +242,140 @@ class TestRealWorldScenarios:
         assert "happy" in result
         assert "white_dress" in result
         assert "outdoors" in result
+
+
+class TestDanbooruValidation:
+    """Test Danbooru API validation (Phase 2 - smart caching)."""
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_fast_path_db_tags(self, mock_danbooru, mock_session):
+        """Tags in DB should not call Danbooru API (fast path)."""
+        # Mock DB with existing tags
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+
+        mock_tag = MagicMock()
+        mock_tag.name = "smile"
+        mock_db.query.return_value.all.return_value = [
+            type("Tag", (), {"name": "smile"}),
+            type("Tag", (), {"name": "standing"}),
+        ]
+
+        result = validate_tags_with_danbooru(["smile", "standing"])
+
+        # Should return tags without calling Danbooru
+        assert result == ["smile", "standing"]
+        assert mock_danbooru.call_count == 0  # No API calls
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_slow_path_valid_new_tag(self, mock_danbooru, mock_session):
+        """New tags with >0 posts should be added to DB."""
+        # Mock empty DB
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = []
+
+        # Mock Danbooru response: valid tag
+        mock_danbooru.return_value = {
+            "post_count": 17480,
+            "category": "general",
+        }
+
+        result = validate_tags_with_danbooru(["thumbs_up"])
+
+        # Should accept and add to DB
+        assert result == ["thumbs_up"]
+        assert mock_danbooru.call_count == 1
+        assert mock_db.add.called  # Added to DB
+        assert mock_db.commit.called
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_slow_path_invalid_tag_0_posts(self, mock_danbooru, mock_session):
+        """Tags with 0 posts should attempt compound splitting."""
+        # Mock empty DB
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = []
+
+        # Mock Danbooru response: invalid tag (0 posts)
+        mock_danbooru.return_value = {
+            "post_count": 0,
+            "category": "general",
+        }
+
+        result = validate_tags_with_danbooru(["short_green_hair"])
+
+        # Should split compound
+        assert "short_hair" in result
+        assert "green_hair" in result
+        assert "short_green_hair" not in result
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_session_cache_avoids_duplicate_calls(self, mock_danbooru, mock_session):
+        """Same tag twice should use session cache (1 API call)."""
+        # Mock empty DB
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = []
+
+        # Mock Danbooru response
+        mock_danbooru.return_value = {
+            "post_count": 17480,
+            "category": "general",
+        }
+
+        # Call with duplicate tags
+        result = validate_tags_with_danbooru(["thumbs_up", "thumbs_up"])
+
+        # Should only call Danbooru once (session cache)
+        assert result == ["thumbs_up", "thumbs_up"]
+        assert mock_danbooru.call_count == 1  # Only 1 API call
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_mixed_db_and_new_tags(self, mock_danbooru, mock_session):
+        """Mix of DB tags (fast) and new tags (slow) should be efficient."""
+        # Mock DB with some tags
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = [
+            type("Tag", (), {"name": "smile"}),
+            type("Tag", (), {"name": "standing"}),
+        ]
+
+        # Mock Danbooru response for new tag
+        mock_danbooru.return_value = {
+            "post_count": 17480,
+            "category": "general",
+        }
+
+        result = validate_tags_with_danbooru(["smile", "thumbs_up", "standing"])
+
+        # Should return all tags
+        assert "smile" in result
+        assert "thumbs_up" in result
+        assert "standing" in result
+
+        # Should only call Danbooru for new tag
+        assert mock_danbooru.call_count == 1
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_danbooru_api_error_handling(self, mock_danbooru, mock_session):
+        """API errors should fail-open (keep tag)."""
+        # Mock empty DB
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = []
+
+        # Mock Danbooru API error
+        mock_danbooru.side_effect = Exception("API timeout")
+
+        result = validate_tags_with_danbooru(["unknown_tag"])
+
+        # Should keep tag despite error (fail-open)
+        assert result == ["unknown_tag"]

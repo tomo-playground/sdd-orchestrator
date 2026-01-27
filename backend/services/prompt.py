@@ -407,6 +407,101 @@ def fix_compound_adjectives(tags: list[str]) -> list[str]:
     return fixed_tags
 
 
+def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
+    """Validate tags against Danbooru and fix invalid ones (smart caching).
+
+    Efficient validation strategy:
+    1. Fast path (99% cases): Check local DB - if tag exists, accept immediately (0ms)
+    2. Slow path (1% cases): Query Danbooru API only for unknown tags
+    3. Cache results: Add validated tags to DB for next time
+
+    This avoids unnecessary API calls. Typical storyboard:
+    - 120 tags total
+    - 115 in DB (fast path, 0ms)
+    - 5 new tags (Danbooru API, ~2.5s)
+
+    Args:
+        tags: List of normalized tags (already underscore-formatted)
+
+    Returns:
+        List of validated tags with invalid ones fixed
+    """
+    from database import SessionLocal
+    from models.tag import Tag
+
+    db = SessionLocal()
+    validated = []
+    session_cache = {}  # Cache within this function call
+
+    try:
+        # Load all existing tags from DB (fast)
+        existing_tags = {tag.name for tag in db.query(Tag.name).all()}
+
+        for tag in tags:
+            # Fast path: Tag already in DB
+            if tag in existing_tags:
+                validated.append(tag)
+                continue
+
+            # Session cache: Already checked in this call
+            if tag in session_cache:
+                result = session_cache[tag]
+                if result:
+                    validated.extend(result if isinstance(result, list) else [result])
+                continue
+
+            # Slow path: New tag - check Danbooru
+            try:
+                from services.danbooru import get_tag_info_sync
+
+                tag_info = get_tag_info_sync(tag)
+
+                if tag_info and tag_info.get("post_count", 0) > 0:
+                    # Valid tag - add to DB and validated list
+                    validated.append(tag)
+                    session_cache[tag] = tag
+
+                    # Add to DB for next time (fast path)
+                    category = tag_info.get("category", "unknown")
+                    new_tag = Tag(
+                        name=tag,
+                        category=category,
+                        group_name="danbooru_validated",
+                    )
+                    db.add(new_tag)
+                    db.commit()
+
+                else:
+                    # Invalid tag (0 posts) - try to fix
+                    from config import logger
+
+                    logger.warning(f"Invalid tag from Danbooru: {tag} (0 posts)")
+
+                    # Attempt to split compound adjectives
+                    fixed = fix_compound_adjectives([tag])
+                    if len(fixed) > 1:
+                        # Successfully split - use the parts
+                        validated.extend(fixed)
+                        session_cache[tag] = fixed
+                    else:
+                        # Can't fix - log and skip
+                        logger.error(f"Unfixable tag: {tag}")
+                        session_cache[tag] = None
+
+            except Exception as exc:
+                from config import logger
+
+                logger.error(f"Danbooru validation failed for {tag}: {exc}")
+                # On error, keep the tag (fail-open)
+                validated.append(tag)
+                session_cache[tag] = tag
+
+        return validated
+
+    finally:
+        db.close()
+
+
 def normalize_and_fix_tags(prompt: str) -> str:
     """Full pipeline: normalize spaces + fix compound adjectives.
 

@@ -42,9 +42,13 @@ def create_storyboard(request: StoryboardRequest) -> dict:
         )
         scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
         for scene in scenes:
-            from config import logger
+            from config import ENABLE_DANBOORU_VALIDATION, logger
             from services.keywords import filter_prompt_tokens
-            from services.prompt import normalize_and_fix_tags, normalize_prompt_tokens
+            from services.prompt import (
+                normalize_and_fix_tags,
+                normalize_prompt_tokens,
+                validate_tags_with_danbooru,
+            )
 
             raw_prompt = scene.get("image_prompt", "")
             if not raw_prompt:
@@ -55,7 +59,15 @@ def create_storyboard(request: StoryboardRequest) -> dict:
             # - "short green hair" → "short_hair, green_hair"
             normalized = normalize_and_fix_tags(raw_prompt)
 
-            # Phase 2: Filter against DB allowed tags
+            # Phase 2 (optional): Danbooru validation for unknown tags
+            # - Only validates tags not in DB (smart caching)
+            # - Adds 2-5s first time, 0s after caching
+            if ENABLE_DANBOORU_VALIDATION:
+                tags = [t.strip() for t in normalized.split(",") if t.strip()]
+                validated_tags = validate_tags_with_danbooru(tags)
+                normalized = ", ".join(validated_tags)
+
+            # Phase 3: Filter against DB allowed tags
             filtered = filter_prompt_tokens(normalized)
             if not filtered:
                 logger.warning("No allowed keywords in scene prompt; using normalized original.")

@@ -24,6 +24,15 @@ CRITICAL IMAGE PROMPT RULE:
 - Tags not in training data produce unpredictable/broken results
 - When unsure, choose high-frequency tags from the list
 
+CRITICAL TAG FORMAT RULES:
+- ALWAYS use underscores, NEVER spaces: "thumbs_up" ✓, "thumbs up" ✗
+- NEVER combine multiple adjectives into one tag: "short green hair" ✗
+- SEPARATE attributes into individual tags: "short_hair, green_hair" ✓
+- Copy tag format EXACTLY from Allowed Keywords list (with underscores)
+- Examples:
+  * WRONG: "looking at viewer", "full body", "long blonde hair"
+  * CORRECT: "looking_at_viewer", "full_body", "long_hair, blonde_hair"
+
 Instructions:
 1. Break the story into sequential scenes that fit the total duration.
 2. Use Actor A only. Make it a single-person monologue (spoken tone).
