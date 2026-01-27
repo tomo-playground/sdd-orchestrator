@@ -348,9 +348,12 @@ async def run_single_evaluation(
                     weight = lora.optimal_weight or 0.7
                     lora_strings.append(f"<lora:{lora.name}:{weight}>")
 
-            # Use character's recommended negative
+            # Use character's recommended negative + custom negative
             if character.recommended_negative:
-                negative_prompt = character.recommended_negative
+                negative_prompt = ", ".join(character.recommended_negative)
+            
+            if character.custom_negative_prompt:
+                negative_prompt = f"{negative_prompt}, {character.custom_negative_prompt}"
 
     # Build prompt
     prompt = build_test_prompt(
@@ -360,6 +363,10 @@ async def run_single_evaluation(
         lora_trigger_words=lora_triggers if mode == "lora" else None,
         mode=mode,
     )
+
+    # Add custom base prompt if present (already queried 'character' above)
+    if character_id and 'character' in locals() and character and character.custom_base_prompt:
+        prompt = f"{prompt}, {character.custom_base_prompt}"
 
     # Add LoRA strings for lora mode
     if mode == "lora" and lora_strings:

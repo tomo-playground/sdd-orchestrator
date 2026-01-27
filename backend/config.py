@@ -138,11 +138,15 @@ CHARACTER_PRESETS: dict[str, dict] = {
         "weight": 0.75,
         "model": "clip_face",
         "description": "Standard anime male character",
+        "reference_image": "outputs/character_presets/generic_anime_boy.png",
+        "reference_weight": 0.75,  # Reference-only weight (0.75-0.9 recommended)
     },
     "Generic Anime Girl": {
         "weight": 0.75,
         "model": "clip_face",
         "description": "Standard anime female character",
+        "reference_image": "outputs/character_presets/generic_anime_girl.png",
+        "reference_weight": 0.75,  # Reference-only weight (0.75-0.9 recommended)
     },
     "Eureka": {
         "weight": 0.80,

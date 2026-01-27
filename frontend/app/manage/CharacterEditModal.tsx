@@ -22,14 +22,24 @@ export default function CharacterEditModal({
   const [name, setName] = useState(character.name);
   const [description, setDescription] = useState(character.description || "");
   const [gender, setGender] = useState<ActorGender>(character.gender || "female");
+  const [customBasePrompt, setCustomBasePrompt] = useState(character.custom_base_prompt || "");
+  const [customNegativePrompt, setCustomNegativePrompt] = useState(character.custom_negative_prompt || "");
+  const [referenceBasePrompt, setReferenceBasePrompt] = useState(character.reference_base_prompt || "");
+  const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(character.reference_negative_prompt || "");
   const [previewImageUrl, setPreviewImageUrl] = useState(character.preview_image_url || "");
   const [promptMode, setPromptMode] = useState<PromptMode>("auto"); // Default to auto if not present in type (it is in type now)
+  const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character.ip_adapter_weight || 0.75);
+  const [ipAdapterModel, setIpAdapterModel] = useState<string>(character.ip_adapter_model || "clip_face");
 
   // Tags state
   const [identityTagIds, setIdentityTagIds] = useState<number[]>(character.identity_tags || []);
   const [clothingTagIds, setClothingTagIds] = useState<number[]>(character.clothing_tags || []);
   const [tagSearch, setTagSearch] = useState("");
   const [activeTagInput, setActiveTagInput] = useState<"identity" | "clothing" | null>(null);
+  
+  // Raw Edit Mode State
+  const [rawEditMode, setRawEditMode] = useState<"identity" | "clothing" | null>(null);
+  const [rawEditText, setRawEditText] = useState("");
 
   // LoRAs state
   const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character.loras || []);
@@ -83,6 +93,52 @@ export default function CharacterEditModal({
     }
   };
 
+  const toggleRawEdit = (type: "identity" | "clothing") => {
+    if (rawEditMode === type) {
+      // Save raw text
+      const newTags = rawEditText
+        .split(",")
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+      
+      const newIds: number[] = [];
+      const notFound: string[] = [];
+
+      newTags.forEach(tagName => {
+        // Try strict match first
+        let tag = allTags.find(t => t.name === tagName);
+        // Try loose match (case insensitive) if not found
+        if (!tag) {
+            tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+        }
+        
+        if (tag) {
+          if (!newIds.includes(tag.id)) {
+             newIds.push(tag.id);
+          }
+        } else {
+          notFound.push(tagName);
+        }
+      });
+
+      if (notFound.length > 0) {
+        alert(`Warning: The following tags were not found and will be ignored:\n${notFound.join(", ")}\n\nPlease use the Tag Manager to add new tags first.`);
+      }
+
+      if (type === "identity") {
+        setIdentityTagIds(newIds);
+      } else {
+        setClothingTagIds(newIds);
+      }
+      setRawEditMode(null);
+    } else {
+      // Enter raw mode
+      const tags = type === "identity" ? identityTags : clothingTags;
+      setRawEditText(tags.map(t => t.name).join(", "));
+      setRawEditMode(type);
+    }
+  };
+
   const handleAddLora = () => {
     // Add a placeholder or the first available LoRA
     if (allLoras.length > 0) {
@@ -116,6 +172,12 @@ export default function CharacterEditModal({
         clothing_tags: clothingTagIds,
         loras: selectedLoras,
         prompt_mode: promptMode,
+        custom_base_prompt: customBasePrompt,
+        custom_negative_prompt: customNegativePrompt,
+        reference_base_prompt: referenceBasePrompt,
+        reference_negative_prompt: referenceNegativePrompt,
+        ip_adapter_weight: ipAdapterWeight,
+        ip_adapter_model: ipAdapterModel,
       });
       onClose();
     } catch (error) {
@@ -197,80 +259,199 @@ export default function CharacterEditModal({
              </p>
           </div>
 
-          {/* Identity Tags */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Identity Tags</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {identityTags.map(tag => (
-                <span key={tag.id} className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-700">
-                  {tag.name}
-                  <button onClick={() => handleRemoveTag(tag.id, "identity")} className="hover:text-purple-900">×</button>
-                </span>
-              ))}
-              <div className="relative">
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">IP-Adapter Settings</label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1">Weight ({ipAdapterWeight})</label>
                 <input
-                  value={activeTagInput === "identity" ? tagSearch : ""}
-                  onChange={(e) => {
-                    setActiveTagInput("identity");
-                    setTagSearch(e.target.value);
-                  }}
-                  onFocus={() => setActiveTagInput("identity")}
-                  placeholder="+ Add tag"
-                  className="rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs outline-none focus:border-zinc-400 w-24 focus:w-48 transition-all"
+                  type="range"
+                  min="0"
+                  max="1.5"
+                  step="0.05"
+                  value={ipAdapterWeight}
+                  onChange={(e) => setIpAdapterWeight(Number(e.target.value))}
+                  className="w-full"
                 />
-                {activeTagInput === "identity" && tagSearch && filteredTags.length > 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
-                    {filteredTags.map(tag => (
-                      <button
-                        key={tag.id}
-                        onClick={() => handleAddTag(tag)}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-50"
-                      >
-                        {tag.name} <span className="text-zinc-400 text-[10px]">({tag.category})</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              </div>
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1">Model</label>
+                <select
+                  value={ipAdapterModel}
+                  onChange={(e) => setIpAdapterModel(e.target.value)}
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+                >
+                  <option value="clip_face">clip_face (Standard)</option>
+                  <option value="clip">clip (Style/Chibi)</option>
+                  <option value="faceid">faceid (Realistic)</option>
+                </select>
               </div>
             </div>
           </div>
 
-          {/* Clothing Tags */}
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Clothing Tags</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {clothingTags.map(tag => (
-                <span key={tag.id} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-700">
-                  {tag.name}
-                  <button onClick={() => handleRemoveTag(tag.id, "clothing")} className="hover:text-amber-900">×</button>
-                </span>
-              ))}
-               <div className="relative">
-                <input
-                  value={activeTagInput === "clothing" ? tagSearch : ""}
-                  onChange={(e) => {
-                    setActiveTagInput("clothing");
-                    setTagSearch(e.target.value);
-                  }}
-                   onFocus={() => setActiveTagInput("clothing")}
-                  placeholder="+ Add tag"
-                  className="rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs outline-none focus:border-zinc-400 w-24 focus:w-48 transition-all"
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Base Prompt (Raw Text)</label>
+              <textarea
+                value={customBasePrompt}
+                onChange={(e) => setCustomBasePrompt(e.target.value)}
+                rows={3}
+                placeholder="Additional positive tags..."
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Base Negative (Raw Text)</label>
+              <textarea
+                value={customNegativePrompt}
+                onChange={(e) => setCustomNegativePrompt(e.target.value)}
+                rows={3}
+                placeholder="Additional negative tags..."
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Reference Image Prompts */}
+          <div className="border-t border-zinc-200 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Reference Image Generation</label>
+              <span className="text-[10px] text-zinc-400">For IP-Adapter reference creation</span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Reference Positive</label>
+                <textarea
+                  value={referenceBasePrompt}
+                  onChange={(e) => setReferenceBasePrompt(e.target.value)}
+                  rows={3}
+                  placeholder="masterpiece, best quality, anime portrait, looking at viewer..."
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
                 />
-                 {activeTagInput === "clothing" && tagSearch && filteredTags.length > 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
-                    {filteredTags.map(tag => (
-                      <button
-                        key={tag.id}
-                        onClick={() => handleAddTag(tag)}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-50"
-                      >
-                        {tag.name} <span className="text-zinc-400 text-[10px]">({tag.category})</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Reference Negative</label>
+                <textarea
+                  value={referenceNegativePrompt}
+                  onChange={(e) => setReferenceNegativePrompt(e.target.value)}
+                  rows={3}
+                  placeholder="easynegative, from side, from behind, profile..."
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
+                />
               </div>
             </div>
+          </div>
+
+          {/* Identity Tags */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Identity Tags</label>
+              <button 
+                onClick={() => toggleRawEdit("identity")}
+                className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-800 underline"
+              >
+                {rawEditMode === "identity" ? "Done" : "Edit as Text"}
+              </button>
+            </div>
+            {rawEditMode === "identity" ? (
+              <textarea
+                value={rawEditText}
+                onChange={(e) => setRawEditText(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono"
+                placeholder="tag1, tag2, tag3..."
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {identityTags.map(tag => (
+                  <span key={tag.id} className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-700">
+                    {tag.name}
+                    <button onClick={() => handleRemoveTag(tag.id, "identity")} className="hover:text-purple-900">×</button>
+                  </span>
+                ))}
+                <div className="relative">
+                  <input
+                    value={activeTagInput === "identity" ? tagSearch : ""}
+                    onChange={(e) => {
+                      setActiveTagInput("identity");
+                      setTagSearch(e.target.value);
+                    }}
+                    onFocus={() => setActiveTagInput("identity")}
+                    placeholder="+ Add tag"
+                    className="rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs outline-none focus:border-zinc-400 w-24 focus:w-48 transition-all"
+                  />
+                  {activeTagInput === "identity" && tagSearch && filteredTags.length > 0 && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
+                      {filteredTags.map(tag => (
+                        <button
+                          key={tag.id}
+                          onClick={() => handleAddTag(tag)}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-50"
+                        >
+                          {tag.name} <span className="text-zinc-400 text-[10px]">({tag.category})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Clothing Tags */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Clothing Tags</label>
+              <button 
+                onClick={() => toggleRawEdit("clothing")}
+                className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-800 underline"
+              >
+                {rawEditMode === "clothing" ? "Done" : "Edit as Text"}
+              </button>
+            </div>
+            {rawEditMode === "clothing" ? (
+              <textarea
+                value={rawEditText}
+                onChange={(e) => setRawEditText(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono"
+                placeholder="tag1, tag2, tag3..."
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {clothingTags.map(tag => (
+                  <span key={tag.id} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-700">
+                    {tag.name}
+                    <button onClick={() => handleRemoveTag(tag.id, "clothing")} className="hover:text-amber-900">×</button>
+                  </span>
+                ))}
+                 <div className="relative">
+                  <input
+                    value={activeTagInput === "clothing" ? tagSearch : ""}
+                    onChange={(e) => {
+                      setActiveTagInput("clothing");
+                      setTagSearch(e.target.value);
+                    }}
+                     onFocus={() => setActiveTagInput("clothing")}
+                    placeholder="+ Add tag"
+                    className="rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs outline-none focus:border-zinc-400 w-24 focus:w-48 transition-all"
+                  />
+                   {activeTagInput === "clothing" && tagSearch && filteredTags.length > 0 && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
+                      {filteredTags.map(tag => (
+                        <button
+                          key={tag.id}
+                          onClick={() => handleAddTag(tag)}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-50"
+                        >
+                          {tag.name} <span className="text-zinc-400 text-[10px]">({tag.category})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* LoRAs */}

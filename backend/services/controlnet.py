@@ -423,6 +423,46 @@ def build_ip_adapter_args(
     }
 
 
+def build_reference_only_args(
+    reference_image: str,
+    weight: float = 0.5,
+    guidance_start: float = 0.0,
+    guidance_end: float = 0.8,
+) -> dict[str, Any]:
+    """Build Reference-only ControlNet arguments for character consistency.
+
+    Reference-only는 IP-Adapter보다 전신 스타일 일관성이 우수합니다.
+    실험 결과 (CHARACTER_RENDERING_REPORT.md): ⭐⭐⭐⭐⭐
+
+    Args:
+        reference_image: Base64 encoded reference image (full body recommended)
+        weight: Control weight (0.3-0.7). Lower = more pose freedom
+        guidance_start: Start of guidance (default 0.0)
+        guidance_end: End of guidance (0.6-0.9). Lower = more prompt priority in later steps
+
+    Returns:
+        ControlNet args dict for reference_only
+
+    Best Practices:
+        - Base image: full body, standing, simple background
+        - Weight: 0.5 (balanced), 0.3 (high variation), 0.7 (strict consistency)
+        - Guidance end: 0.8 (allows prompt to override in final steps)
+    """
+    return {
+        "enabled": True,
+        "image": reference_image,
+        "module": "reference_only",
+        "model": "None",  # reference_only doesn't use a model
+        "weight": weight,
+        "guidance_start": guidance_start,
+        "guidance_end": guidance_end,
+        "resize_mode": "Crop and Resize",
+        "processor_res": 512,
+        "control_mode": "Balanced",
+        "pixel_perfect": False,
+    }
+
+
 def build_combined_controlnet_args(
     pose_image: str | None = None,
     reference_image: str | None = None,
@@ -545,13 +585,19 @@ async def generate_reference_for_character(
                     tag_list.extend(lora_obj.trigger_words)
 
     # 3. Construct prompt
-    base_positive = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
+    # Use character's reference_base_prompt or fallback to default
+    default_base = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
+    base_positive = character.reference_base_prompt or default_base
+
     # Remove duplicate tags (simple set)
     unique_tags = list(dict.fromkeys(tag_list))
     full_prompt = f"{base_positive}, {', '.join(unique_tags)}, {' '.join(lora_prompt_parts)}"
 
     # 4. Construct negative prompt
-    base_negative = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
+    # Use character's reference_negative_prompt or fallback to default
+    default_negative = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
+    base_negative = character.reference_negative_prompt or default_negative
+
     if character.recommended_negative:
         # Append recommended negative if not already in base
         extras = [n for n in character.recommended_negative if n not in base_negative]

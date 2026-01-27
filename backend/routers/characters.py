@@ -89,8 +89,12 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
         "clothing_tags": clothing_tags,
         "loras": loras_info,
         "recommended_negative": character.recommended_negative or [],
+        "custom_base_prompt": character.custom_base_prompt,
+        "custom_negative_prompt": character.custom_negative_prompt,
         "preview_image_url": character.preview_image_url,
         "prompt_mode": character.prompt_mode,
+        "ip_adapter_weight": character.ip_adapter_weight,
+        "ip_adapter_model": character.ip_adapter_model,
         "effective_mode": effective_mode,
     }
 

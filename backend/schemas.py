@@ -284,8 +284,14 @@ class CharacterBase(BaseModel):
     clothing_tags: list[int] | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
+    custom_base_prompt: str | None = None
+    custom_negative_prompt: str | None = None
+    reference_base_prompt: str | None = None
+    reference_negative_prompt: str | None = None
     preview_image_url: str | None = None
     prompt_mode: PromptMode = "auto"  # auto | standard | lora
+    ip_adapter_weight: float | None = None
+    ip_adapter_model: str | None = None
 
 
 class CharacterCreate(CharacterBase):
@@ -300,8 +306,14 @@ class CharacterUpdate(BaseModel):
     clothing_tags: list[int] | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
+    custom_base_prompt: str | None = None
+    custom_negative_prompt: str | None = None
+    reference_base_prompt: str | None = None
+    reference_negative_prompt: str | None = None
     preview_image_url: str | None = None
     prompt_mode: PromptMode | None = None
+    ip_adapter_weight: float | None = None
+    ip_adapter_model: str | None = None
 
 
 class CharacterResponse(CharacterBase):

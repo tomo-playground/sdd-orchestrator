@@ -193,8 +193,14 @@ export type Character = {
   clothing_tags: number[] | null;
   loras: CharacterLoRA[] | null;
   recommended_negative: string[] | null;
+  custom_base_prompt: string | null;
+  custom_negative_prompt: string | null;
+  reference_base_prompt: string | null;
+  reference_negative_prompt: string | null;
   preview_image_url: string | null;
   prompt_mode: PromptMode;
+  ip_adapter_weight: number | null;
+  ip_adapter_model: string | null;
 };
 
 export type SDModelEntry = {
@@ -258,8 +264,12 @@ export type CharacterFull = {
   clothing_tags: { id: number; name: string; group_name: string }[];
   loras: CharacterFullLoRA[];
   recommended_negative: string[];
+  custom_base_prompt: string | null;
+  custom_negative_prompt: string | null;
   preview_image_url: string | null;
   prompt_mode: PromptMode;
+  ip_adapter_weight: number | null;
+  ip_adapter_model: string | null;
   effective_mode: EffectiveMode;
 };
 

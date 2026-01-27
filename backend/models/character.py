@@ -1,6 +1,6 @@
 """Character preset model."""
 
-from sqlalchemy import ARRAY, Integer, String, Text
+from sqlalchemy import ARRAY, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +22,16 @@ class Character(Base, TimestampMixin):
     loras: Mapped[list[dict] | None] = mapped_column(JSONB)
     # Validated negative prompt for this character/LoRA combination
     recommended_negative: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
+    # Custom base prompt (raw text) to be appended to the character's prompt
+    custom_base_prompt: Mapped[str | None] = mapped_column(Text)
+    # Custom negative prompt (raw text)
+    custom_negative_prompt: Mapped[str | None] = mapped_column(Text)
+    # Reference image generation prompts (for IP-Adapter reference creation)
+    reference_base_prompt: Mapped[str | None] = mapped_column(Text)
+    reference_negative_prompt: Mapped[str | None] = mapped_column(Text)
     preview_image_url: Mapped[str | None] = mapped_column(String(500))
     # Prompt generation mode: auto (detect based on LoRA), standard (no LoRA), lora (with LoRA)
     prompt_mode: Mapped[str] = mapped_column(String(20), default="auto")
+    # IP-Adapter settings
+    ip_adapter_weight: Mapped[float | None] = mapped_column(Float)
+    ip_adapter_model: Mapped[str | None] = mapped_column(String(50))  # clip, clip_face, faceid

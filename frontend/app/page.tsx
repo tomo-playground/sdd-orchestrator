@@ -273,8 +273,10 @@ export default function Home() {
         const list = res.data.audios || [];
         setBgmList(list);
         const names = list.map((item: AudioItem) => item.name);
-        if (bgmFile && !names.includes(bgmFile)) {
-          setBgmFile(null);
+        // Validate bgmFile only if it's not a special value ("random", null, "")
+        if (bgmFile && bgmFile !== "random" && !names.includes(bgmFile)) {
+          // Selected BGM file no longer exists, reset to random
+          setBgmFile("random");
         } else if (!bgmFile && names.includes(DEFAULT_BGM)) {
           setBgmFile(DEFAULT_BGM);
         }
