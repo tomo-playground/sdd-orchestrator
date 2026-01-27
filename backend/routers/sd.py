@@ -50,7 +50,10 @@ async def update_sd_options(request: SDModelRequest):
             res = await client.post(SD_OPTIONS_URL, json=payload, timeout=10.0)
             res.raise_for_status()
             data = res.json()
-            return {"ok": True, "model": data.get("sd_model_checkpoint", request.sd_model_checkpoint)}
+            model_name = request.sd_model_checkpoint
+            if isinstance(data, dict):
+                model_name = data.get("sd_model_checkpoint", request.sd_model_checkpoint)
+            return {"ok": True, "model": model_name}
     except httpx.HTTPError as exc:
         logger.exception("SD options update failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc

@@ -589,6 +589,7 @@ After:  train station, platform       (스크립트와 일치) ✅
 - ✅ **ValidationTabContent 타입 에러**: tag.toLowerCase() non-string 방어 코드
 - ✅ **Video Generation NameError**: create_overlay_header/footer 인스턴스 변수 바인딩
 - ✅ **Avatar 이미지 누락**: SD WebUI fallback + simple_avatar.py 생성, 경로 해결
+- ✅ **SD Options 500 Error**: 존재하지 않는 모델 선택 시 SD WebUI 500 응답 핸들링 추가 (`backend/routers/sd.py`)
 
 ### 다음 우선순위 작업
 
