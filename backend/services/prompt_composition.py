@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Literal
 
 from config import logger
 from services.keywords import CATEGORY_PATTERNS, CATEGORY_PRIORITY
-from services.prompt import split_prompt_tokens, merge_prompt_tokens
+from services.prompt import split_prompt_tokens, merge_prompt_tokens, normalize_tag_spaces
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -640,6 +640,12 @@ def compose_prompt_tokens(
         If tokens contain LoRA strings (e.g., from user input), they are
         extracted and merged with lora_strings, then deduplicated.
     """
+    # Step 0: Normalize tag format (space → underscore)
+    # Ensures all tags follow SD format regardless of source (Gemini, character, compose)
+    tokens = normalize_tag_spaces(tokens)
+    if trigger_words:
+        trigger_words = normalize_tag_spaces(trigger_words)
+
     # Step 0a: Normalize BREAK tokens (convert lowercase, remove duplicates)
     tokens = _normalize_break_tokens(tokens)
 
