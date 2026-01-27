@@ -1,0 +1,217 @@
+{
+  "session_id": "20260127_154033",
+  "timestamp": "2026-01-27T15:41:10.497980",
+  "character": "Eureka Chibi",
+  "statistics": {
+    "total_tests": 2,
+    "completed": 2,
+    "success": 0,
+    "partial": 0,
+    "failed": 2,
+    "success_rate": 0.0,
+    "total_cost_usd": 0.0006
+  },
+  "results": [
+    {
+      "test_id": "eureka_standing_to_sitting",
+      "name": "유레카: Standing → Sitting",
+      "difficulty": "easy",
+      "status": "completed",
+      "base_prompt": "aqua_hair, short_hair, 1girl, chibi, purple_eyes, hairclip, t-shirt, <lora:eureka:1.0>, <lora:chibi:0.6>, standing, arms_at_sides, indoors, classroom, cowboy_shot",
+      "target_change": "sitting on chair with hands on lap",
+      "expected_add": [
+        "sitting",
+        "chair"
+      ],
+      "expected_remove": [
+        "standing"
+      ],
+      "base_tags": [
+        "1girl",
+        "solo",
+        "classroom",
+        "indoors",
+        "shorts",
+        "shirt",
+        "blonde_hair",
+        "chalkboard",
+        "desk",
+        "looking_at_viewer",
+        "short_hair",
+        "red_eyes",
+        "hair_ornament",
+        "short_sleeves",
+        "white_shorts",
+        "breasts",
+        "closed_mouth",
+        "hairclip",
+        "school_desk",
+        "blush",
+        "window",
+        "bangs",
+        "short_shorts",
+        "standing",
+        "hair_between_eyes",
+        "medium_breasts",
+        "cowboy_shot",
+        "collarbone"
+      ],
+      "edited_tags": [
+        "1girl",
+        "solo",
+        "classroom",
+        "indoors",
+        "shorts",
+        "shirt",
+        "blonde_hair",
+        "chalkboard",
+        "desk",
+        "looking_at_viewer",
+        "short_hair",
+        "red_eyes",
+        "hair_ornament",
+        "short_sleeves",
+        "white_shorts",
+        "breasts",
+        "closed_mouth",
+        "hairclip",
+        "school_desk",
+        "blush",
+        "window",
+        "bangs",
+        "short_shorts",
+        "standing",
+        "hair_between_eyes",
+        "medium_breasts",
+        "cowboy_shot",
+        "collarbone"
+      ],
+      "vision_analysis": {
+        "current_pose": "standing with arms at sides",
+        "target_pose": "sitting on chair with hands on lap",
+        "confidence": 0.85,
+        "preserve_elements": [
+          "chibi style",
+          "aqua hair",
+          "purple eyes",
+          "hairclip",
+          "t-shirt"
+        ]
+      },
+      "evaluation": {
+        "added_tags": [],
+        "removed_tags": [],
+        "expected_add_found": 0,
+        "expected_add_total": 2,
+        "expected_remove_found": 0,
+        "expected_remove_total": 1,
+        "success_rate": 0.0,
+        "verdict": "fail"
+      },
+      "cost_usd": 0.0003,
+      "files": {
+        "base": "20260127_154033/eureka_standing_to_sitting_1_base.png",
+        "edited": "20260127_154033/eureka_standing_to_sitting_2_edited.png"
+      }
+    },
+    {
+      "test_id": "eureka_waving",
+      "name": "유레카: Neutral → Waving",
+      "difficulty": "easy",
+      "status": "completed",
+      "base_prompt": "aqua_hair, short_hair, 1girl, chibi, purple_eyes, hairclip, t-shirt, <lora:eureka:1.0>, <lora:chibi:0.6>, standing, arms_at_sides, outdoors, cowboy_shot, smiling",
+      "target_change": "waving with right hand raised",
+      "expected_add": [
+        "waving",
+        "hand_up",
+        "arm_up"
+      ],
+      "expected_remove": [
+        "arms_at_sides"
+      ],
+      "base_tags": [
+        "outdoors",
+        "1girl",
+        "solo",
+        "hairclip",
+        "shirt",
+        "tree",
+        "smile",
+        "hair_ornament",
+        "t-shirt",
+        "breasts",
+        "black_shirt",
+        "blush",
+        "colored_skin",
+        "looking_at_viewer",
+        "grass",
+        "thighs",
+        "bag",
+        "covered_navel",
+        "short_sleeves",
+        "short_hair",
+        "blonde_hair",
+        "sky",
+        "bangs",
+        "closed_mouth",
+        "multicolored_hair",
+        "red_eyes"
+      ],
+      "edited_tags": [
+        "outdoors",
+        "1girl",
+        "solo",
+        "hairclip",
+        "shirt",
+        "tree",
+        "smile",
+        "hair_ornament",
+        "t-shirt",
+        "breasts",
+        "black_shirt",
+        "blush",
+        "colored_skin",
+        "looking_at_viewer",
+        "grass",
+        "thighs",
+        "bag",
+        "covered_navel",
+        "short_sleeves",
+        "short_hair",
+        "blonde_hair",
+        "sky",
+        "bangs",
+        "closed_mouth",
+        "multicolored_hair",
+        "red_eyes"
+      ],
+      "vision_analysis": {
+        "current_pose": "standing with arms at sides",
+        "target_pose": "waving with right hand raised",
+        "confidence": 0.85,
+        "preserve_elements": [
+          "chibi style",
+          "aqua hair",
+          "purple eyes",
+          "hairclip",
+          "t-shirt"
+        ]
+      },
+      "evaluation": {
+        "added_tags": [],
+        "removed_tags": [],
+        "expected_add_found": 0,
+        "expected_add_total": 3,
+        "expected_remove_found": 0,
+        "expected_remove_total": 1,
+        "success_rate": 0.0,
+        "verdict": "fail"
+      },
+      "cost_usd": 0.0003,
+      "files": {
+        "base": "20260127_154033/eureka_waving_1_base.png",
+        "edited": "20260127_154033/eureka_waving_2_edited.png"
+      }
+    }
+  ]
+}

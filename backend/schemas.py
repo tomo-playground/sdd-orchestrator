@@ -94,7 +94,7 @@ class SceneGenerateRequest(BaseModel):
     sampler_name: str = "DPM++ 2M Karras"
     seed: int = -1
     width: int = 512
-    height: int = 512
+    height: int = 768
     clip_skip: int = 2
     enable_hr: bool = False
     hr_scale: float = 1.5
@@ -109,12 +109,20 @@ class SceneGenerateRequest(BaseModel):
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
     ip_adapter_weight: float = 0.7
+    # Analytics tracking (optional, all fields auto-generated if not provided)
+    session_id: str | None = None  # Optional: Frontend session ID (uses date if not provided)
+    topic: str | None = None  # Optional: Content topic for reference
+    scene_index: int | None = None  # Optional: Scene number  # Scene number within session  # Scene number within project  # Scene number within project
 
 
 class SceneValidateRequest(BaseModel):
     image_b64: str
     prompt: str = ""
     mode: str = "wd14"
+    # Analytics tracking (optional, auto-generated if not provided)
+    session_id: str | None = None  # Optional: Frontend session ID
+    topic: str | None = None  # Optional: Content topic for reference
+    scene_index: int | None = None  # Optional: Scene number
 
 
 class ImageStoreRequest(BaseModel):
@@ -491,3 +499,52 @@ class PromptHistoryApplyResponse(BaseModel):
     lora_settings: list[PromptHistoryLoRA] | None
     context_tags: dict | None
     use_count: int
+
+
+# Gemini Image Editing
+EditType = Literal["pose", "expression", "gaze", "framing", "hands"]
+
+
+class GeminiEditRequest(BaseModel):
+    """Gemini Nano Banana 이미지 편집 요청"""
+
+    image_url: str | None = None  # Image URL (will be fetched by backend)
+    image_b64: str | None = None  # Base64 encoded image (alternative)
+    original_prompt: str  # 원본 프롬프트
+    target_change: str  # 목표 변경사항 (예: "sitting on chair")
+    edit_type: EditType | None = None  # 자동 감지 시 None
+
+
+class GeminiEditResponse(BaseModel):
+    """Gemini Nano Banana 이미지 편집 응답"""
+
+    edited_image: str  # Base64 encoded edited image
+    cost_usd: float  # 비용 ($)
+    edit_type: EditType  # 적용된 편집 타입
+    analysis: dict | None = None  # Vision 분석 결과 (선택)
+
+
+class GeminiEditSuggestion(BaseModel):
+    """개별 편집 제안"""
+
+    issue: str  # 문제점 (예: "포즈 불일치")
+    description: str  # 상세 설명
+    target_change: str  # 제안된 변경사항
+    confidence: float  # 신뢰도 (0.0~1.0)
+    edit_type: EditType  # 편집 타입
+
+
+class GeminiSuggestRequest(BaseModel):
+    """Gemini 자동 제안 요청"""
+
+    image_url: str | None = None  # Image URL (will be fetched by backend)
+    image_b64: str | None = None  # Base64 encoded image (alternative)
+    original_prompt: str  # 한국어 프롬프트
+
+
+class GeminiSuggestResponse(BaseModel):
+    """Gemini 자동 제안 응답"""
+
+    has_mismatch: bool  # 불일치 발견 여부
+    suggestions: list[GeminiEditSuggestion]  # 제안 목록
+    cost_usd: float  # 비용 ($)

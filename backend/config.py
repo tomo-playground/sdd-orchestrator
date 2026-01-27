@@ -74,6 +74,9 @@ for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DI
 # --- API Configuration ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+# Gemini Image Generation Model (Nano Banana = gemini-2.5-flash-image)
+# Optimized for speed and cost. Alternative: gemini-3-pro-image-preview (Nano Banana Pro)
+GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / TEMPLATES_DIR)))

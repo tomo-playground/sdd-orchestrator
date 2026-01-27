@@ -343,6 +343,14 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
             prompt_tags = split_tokens(request.prompt)
             update_tag_effectiveness(prompt_tags, tags)
 
+        # Update generation log with match_rate
+        _update_generation_log_match_rate(
+            session_id=request.session_id,
+            topic=request.topic,
+            scene_index=request.scene_index,
+            match_rate=match_rate,
+        )
+
         result = {
             "mode": mode,
             "match_rate": match_rate,
@@ -361,3 +369,66 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
     except Exception as exc:
         logger.exception("Scene image validation failed")
         raise HTTPException(status_code=500, detail="Image validation failed") from exc
+
+
+
+def _update_generation_log_match_rate(
+    session_id: str | None,
+    topic: str | None,
+    scene_index: int | None,
+    match_rate: float,
+) -> None:
+    """Update generation log with match_rate after validation (non-blocking).
+    
+    Args:
+        session_id: Browser session ID (optional)
+        topic: Content topic (for reference only)
+        scene_index: Scene number
+        match_rate: Calculated match rate (0.0-1.0)
+    """
+    from datetime import date
+    
+    # Simple strategy: Use today's date as project_name (same as generation)
+    project_name = session_id if session_id else f"daily_{date.today().strftime('%Y%m%d')}"
+    
+    if not project_name or scene_index is None:
+        # No tracking info provided, skip update
+        return
+    
+    try:
+        from database import SessionLocal
+        from models.generation_log import GenerationLog
+        
+        db = SessionLocal()
+        try:
+            # Find most recent log for this project/scene
+            log = db.query(GenerationLog).filter(
+                GenerationLog.project_name == project_name,
+                GenerationLog.scene_index == scene_index,
+            ).order_by(GenerationLog.created_at.desc()).first()
+            
+            if log:
+                log.match_rate = match_rate
+                log.status = "success" if match_rate >= 0.7 else "fail"
+                db.commit()
+                logger.info(
+                    "📊 [Analytics] Updated generation log: project=%s, scene=%d, match_rate=%.2f, status=%s",
+                    project_name,
+                    scene_index,
+                    match_rate,
+                    log.status,
+                )
+            else:
+                logger.debug(
+                    "📊 [Analytics] No generation log found: project=%s, scene=%d",
+                    project_name,
+                    scene_index,
+                )
+        except Exception as e:
+            db.rollback()
+            logger.warning("📊 [Analytics] Failed to update generation log: %s", str(e))
+        finally:
+            db.close()
+    except Exception as e:
+        # Non-blocking: log warning but don't fail validation
+        logger.warning("📊 [Analytics] Failed to import GenerationLog: %s", str(e))

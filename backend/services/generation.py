@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 from fastapi import HTTPException
 
@@ -34,7 +36,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     # Detect complexity and adjust parameters
     tokens = split_prompt_tokens(cleaned_prompt)
     complexity = detect_scene_complexity(tokens)
-    
+
     final_steps = request.steps
     final_cfg = request.cfg_scale
 
@@ -140,7 +142,99 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             img = data.get("images", [None])[0]
             if not img:
                 raise HTTPException(status_code=500, detail="No image returned")
+
+            # Extract seed from response info
+            actual_seed = None
+            if request.seed != -1:
+                actual_seed = request.seed
+            elif "info" in data:
+                try:
+                    info_val = data["info"]
+                    if isinstance(info_val, str):
+                        info_data = json.loads(info_val)
+                        actual_seed = info_data.get("seed")
+                    elif isinstance(info_val, dict):
+                        actual_seed = info_val.get("seed")
+                except Exception:
+                    logger.warning("Failed to parse info from SD response", exc_info=True)
+
+            # Save generation log for analytics
+            _save_generation_log(
+                request=request,
+                prompt=cleaned_prompt,
+                tags=tokens,
+                sd_params={
+                    "steps": final_steps,
+                    "cfg_scale": final_cfg,
+                    "sampler": request.sampler_name,
+                    "width": request.width,
+                    "height": request.height,
+                },
+                seed=actual_seed,
+            )
+
             return {"image": img, "controlnet_pose": controlnet_used, "ip_adapter_reference": ip_adapter_used}
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+
+def _save_generation_log(
+    request: SceneGenerateRequest,
+    prompt: str,
+    tags: list[str],
+    sd_params: dict,
+    seed: int | None,
+) -> None:
+    """Save generation log for analytics (non-blocking).
+
+    Args:
+        request: Original generation request
+        prompt: Normalized prompt used for generation
+        tags: Extracted prompt tokens
+        sd_params: SD parameters (steps, cfg_scale, sampler, etc.)
+        seed: Actual seed used (or None)
+    """
+    try:
+        from datetime import date
+
+        from database import SessionLocal
+        from models.generation_log import GenerationLog
+
+        # Simple strategy: Use today's date as project_name
+        # All generations on the same day are grouped together
+        project_name = request.session_id if request.session_id else f"daily_{date.today().strftime('%Y%m%d')}"
+
+        scene_index = request.scene_index if request.scene_index is not None else 0
+
+        db = SessionLocal()
+        try:
+            log = GenerationLog(
+                project_name=project_name,
+                scene_index=scene_index,
+                prompt=prompt,
+                tags=tags,
+                sd_params=sd_params,
+                seed=seed,
+                status="pending",  # Will be updated after validation
+                match_rate=None,  # Will be calculated during validation
+                image_url=None,  # Not available yet (base64 only)
+            )
+            db.add(log)
+            db.commit()
+            logger.info(
+                "📊 [Analytics] Saved generation log: project=%s, scene=%d, tags=%d%s",
+                project_name,
+                scene_index,
+                len(tags),
+                f" (topic={request.topic})" if request.topic else "",
+            )
+        except Exception as e:
+            db.rollback()
+            logger.warning("📊 [Analytics] Failed to save generation log: %s", str(e))
+        finally:
+            db.close()
+    except Exception as e:
+        # Non-blocking: log warning but don't fail generation
+        logger.warning("📊 [Analytics] Failed to import GenerationLog: %s", str(e))

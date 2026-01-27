@@ -1,0 +1,26 @@
+{
+  "session_id": "20260127_153217",
+  "timestamp": "2026-01-27T15:32:17.429865",
+  "character": "Eureka Chibi",
+  "statistics": {
+    "total_tests": 2,
+    "completed": 0,
+    "success": 0,
+    "partial": 0,
+    "failed": 0,
+    "success_rate": 0,
+    "total_cost_usd": 0
+  },
+  "results": [
+    {
+      "test_id": "eureka_standing_to_sitting",
+      "status": "error",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test_id": "eureka_waving",
+      "status": "error",
+      "error": "All connection attempts failed"
+    }
+  ]
+}

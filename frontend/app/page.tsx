@@ -1870,6 +1870,92 @@ export default function Home() {
     }
   };
 
+  const handleEditWithGemini = async (scene: Scene, targetChange: string) => {
+    if (!scene.image_url) {
+      showToast("이미지가 없습니다. 먼저 생성하세요.", "error");
+      return;
+    }
+
+    updateScene(scene.id, { isGenerating: true });
+    try {
+      const prompt = await buildScenePrompt(scene);
+      if (!prompt) {
+        showToast("프롬프트 생성 실패", "error");
+        updateScene(scene.id, { isGenerating: false });
+        return;
+      }
+
+      // Call Gemini edit API (Backend will handle image fetching)
+      const res = await axios.post(`${API_BASE}/scene/edit-with-gemini`, {
+        image_url: scene.image_url,  // Send URL instead of base64
+        original_prompt: prompt,
+        target_change: targetChange,
+      });
+
+      if (res.data.edited_image) {
+        const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
+        const storedUrl = await storeSceneImage(dataUrl);
+
+        // Update scene with edited image
+        updateScene(scene.id, {
+          image_url: storedUrl,
+          isGenerating: false,
+        });
+
+        showToast(
+          `✨ Gemini 편집 완료 (${res.data.edit_type}) - $${res.data.cost_usd.toFixed(4)}`,
+          "success"
+        );
+
+        // Optionally re-validate
+        if (scene.image_prompt) {
+          setTimeout(() => validateSceneImage(scene), 500);
+        }
+      }
+    } catch (error: any) {
+      console.error("Gemini edit failed:", error);
+      showToast(`Gemini 편집 실패: ${error.message}`, "error");
+      updateScene(scene.id, { isGenerating: false });
+    }
+  };
+
+
+  const handleSuggestEditWithGemini = async (scene: Scene): Promise<any[]> => {
+    if (!scene.image_url) {
+      showToast("이미지가 없습니다. 먼저 생성하세요.", "error");
+      return [];
+    }
+
+    try {
+      const prompt = await buildScenePrompt(scene);
+      if (!prompt) {
+        showToast("프롬프트 생성 실패", "error");
+        return [];
+      }
+
+      // Call Gemini suggest API
+      const res = await axios.post(`${API_BASE}/scene/suggest-edit`, {
+        image_url: scene.image_url,
+        original_prompt: prompt,
+      });
+
+      if (res.data.has_mismatch && res.data.suggestions?.length > 0) {
+        showToast(
+          `✨ ${res.data.suggestions.length}개의 제안 발견 - $${res.data.cost_usd.toFixed(4)}`,
+          "info"
+        );
+        return res.data.suggestions;
+      } else {
+        showToast("불일치가 발견되지 않았습니다. 이미지가 프롬프트와 일치합니다.", "success");
+        return [];
+      }
+    } catch (error: any) {
+      console.error("Gemini suggest failed:", error);
+      showToast(`자동 제안 실패: ${error.message}`, "error");
+      return [];
+    }
+  };
+
   const handleSuggestSplit = async () => {
     if (!examplePrompt.trim()) return;
     setIsSuggesting(true);
@@ -2432,6 +2518,8 @@ export default function Home() {
                 onSpeakerChange={(speaker) => handleSpeakerChange(scenes[currentSceneIndex], speaker)}
                 onImageUpload={(file) => handleImageUpload(scenes[currentSceneIndex].id, file)}
                 onGenerateImage={() => handleGenerateSceneImage(scenes[currentSceneIndex])}
+                onEditWithGemini={(targetChange) => handleEditWithGemini(scenes[currentSceneIndex], targetChange)}
+                onSuggestEditWithGemini={() => handleSuggestEditWithGemini(scenes[currentSceneIndex])}
                 onValidateImage={() => handleValidateImage(scenes[currentSceneIndex])}
                 onApplyMissingTags={(tags) => applyMissingImageTags(scenes[currentSceneIndex], tags)}
                 onImagePreview={setImagePreviewSrc}
