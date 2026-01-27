@@ -226,9 +226,26 @@ async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
     # 3. Query DB for matching tags
     matched_tags = db.query(Tag).filter(Tag.name.in_(normalized_tokens)).all()
 
-    # 4. Group by category
+    # 4. Group by group_name (not category)
     identity_tags = []
     clothing_tags = []
+
+    # Identity groups: character appearance/features
+    identity_groups = {
+        "subject",
+        "hair_color",
+        "hair_length",
+        "hair_style",
+        "hair_accessory",
+        "eye_color",
+        "skin_color",
+        "body_feature",
+        "appearance",
+        "identity",
+    }
+
+    # Clothing groups
+    clothing_groups = {"clothing", "clothing_detail"}
 
     for tag in matched_tags:
         suggested_tag = SuggestedTag(
@@ -237,9 +254,9 @@ async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
             group_name=tag.group_name
         )
 
-        if tag.category == "identity":
+        if tag.group_name in identity_groups:
             identity_tags.append(suggested_tag)
-        elif tag.category == "clothing":
+        elif tag.group_name in clothing_groups:
             clothing_tags.append(suggested_tag)
 
     logger.info(
