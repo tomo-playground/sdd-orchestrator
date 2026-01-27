@@ -243,9 +243,12 @@ async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
     identity_tags = []
     clothing_tags = []
 
-    # Identity groups: character appearance/features
+    # Identity groups: character appearance/features/style
     identity_groups = {
+        # Core identity
         "subject",
+        "identity",
+        # Appearance
         "hair_color",
         "hair_length",
         "hair_style",
@@ -254,7 +257,9 @@ async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
         "skin_color",
         "body_feature",
         "appearance",
-        "identity",
+        # Style/expression
+        "style",  # chibi, anime, realistic, etc.
+        "expression",  # smile, angry, etc.
     }
 
     # Clothing groups
