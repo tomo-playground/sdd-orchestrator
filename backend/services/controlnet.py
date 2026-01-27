@@ -125,9 +125,33 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
         "sitting", "standing",
     ]
 
+    # Synonyms mapping for more robust detection
+    pose_synonyms = {
+        "waving": ["wave", "greeting", "signaling"],
+        "arms up": ["hands up", "raising hands", "stretching", "cheering"],
+        "arms crossed": ["folding arms", "crossed arms"],
+        "hands on hips": ["akimbo"],
+        "jumping": ["jump", "leap", "leaping"],
+        "running": ["run", "sprinting", "jogging", "chasing"],
+        "walking": ["walk", "stroll", "strolling"],
+        "sitting": ["seated", "sits", "chair", "bench", "couch", "sofa"],
+        "standing": ["stands", "wait", "waiting"],
+    }
+
     for pose in pose_priority:
+        # Check exact match
         if pose in prompt_tags:
             return pose
+        
+        # Check synonyms
+        if pose in pose_synonyms:
+            for synonym in pose_synonyms[pose]:
+                if synonym in prompt_tags:
+                    return pose
+                # Check for partial match in tags (e.g. "walking away" matches "walking")
+                for tag in prompt_tags:
+                    if synonym in tag or pose in tag:
+                        return pose
 
     return None
 

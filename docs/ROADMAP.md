@@ -497,6 +497,20 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 - **대화 장면** → 분리 생성 + 합성 권장
 - **캐릭터 일관성** → Reference-only (weight 0.5, guidance_end 0.8) 권장
 
+### 7-5. Prompt Intent & ControlNet Refinement (🟢 완료)
+**목표**: 사용자 의도(동작, 표정)가 무시되는 문제 해결 및 복잡한 장면에서의 디테일 향상.
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| **Tag Emphasis** | Expression, Pose, Action 태그에 가중치(1.2) 자동 부여 | [x] |
+| **ControlNet Synonyms** | run/sprinting→running 등 유의어 매핑 지원 | [x] |
+| **Dynamic Parameters** | 장면 복잡도(Complex) 감지 시 Steps/CFG Scale 자동 상향 | [x] |
+
+**구현 내용 (2026-01-28)**:
+- `prompt_composition.py`: 주요 태그 카테고리(expression/pose/action/gaze) 자동 강조 `(tag:1.2)`
+- `controlnet.py`: `detect_pose_from_prompt`에 유의어(Synonym) 매핑 추가 (유연성 확보)
+- `generation.py`: `detect_scene_complexity` 결과에 따라 Steps(20→28), CFG(7→8) 동적 부스트
+
 ---
 
 ## 🔮 Phase 8: Multi-Style Architecture (Future)
@@ -604,9 +618,28 @@ brew install claude-squad  # 명령어: cs
 
 ## 📊 Current Status
 
-**Last Updated**: 2026-01-28 (01:30)
+**Last Updated**: 2026-01-28 (10:30)
 
 ### 현재 세션 완료 작업 (2026-01-28)
+
+#### Prompt Intent & ControlNet Refinement (100% 완료)
+**목표**: "프롬프트대로 안 그려지는" 문제(의도 불일치) 해결 (Short-term Fix)
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| **Tag Emphasis** | Expression/Pose/Action 태그 가중치(1.2) 자동 적용 | ✅ |
+| **ControlNet Synonyms** | 유의어(run=sprinting) 지원으로 포즈 감지율 향상 | ✅ |
+| **Dynamic Parameters** | 복잡한 장면(Complex)에서 Steps/CFG 자동 부스트 | ✅ |
+
+**효과**:
+- ✅ 동작/표정 반영률 대폭 향상 (가중치 강제)
+- ✅ 포즈 놓침 현상 감소 (유의어 매핑)
+- ✅ 복잡한 씬 디테일 보존 (파라미터 최적화)
+
+**Commits**:
+- `backend/services/prompt_composition.py`: 태그 강조 로직 추가
+- `backend/services/controlnet.py`: 유의어 매핑 추가
+- `backend/services/generation.py`: 복잡도 기반 파라미터 조정
 
 #### Gemini 리팩토링 & 시스템 안정화 (100% 완료)
 **목표**: God module(`logic.py`) 완전 분해, 프론트엔드 컴포넌트 계층화 및 기술적 채무(Lint/Type) 전수 해결

@@ -21,6 +21,7 @@ from services.prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
+from services.prompt_composition import detect_scene_complexity
 
 
 async def generate_scene_image(request: SceneGenerateRequest) -> dict:
@@ -29,6 +30,22 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
     cleaned_prompt = normalize_prompt_tokens(request.prompt)
+
+    # Detect complexity and adjust parameters
+    tokens = split_prompt_tokens(cleaned_prompt)
+    complexity = detect_scene_complexity(tokens)
+    
+    final_steps = request.steps
+    final_cfg = request.cfg_scale
+
+    if complexity == "complex":
+        final_steps = max(final_steps, 28)
+        final_cfg = max(final_cfg, 8.0)
+        logger.info(f"⚡ [Complexity] Boosted parameters for complex scene: steps={final_steps}, cfg={final_cfg}")
+    elif complexity == "moderate":
+        final_steps = max(final_steps, 25)
+        # Keep CFG as is or slight boost
+        final_cfg = max(final_cfg, 7.5)
 
     # Apply optimal LoRA weights from calibration DB
     lora_names = extract_lora_names(cleaned_prompt)
@@ -45,8 +62,8 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     payload = {
         "prompt": cleaned_prompt,
         "negative_prompt": cleaned_negative,
-        "steps": request.steps,
-        "cfg_scale": request.cfg_scale,
+        "steps": final_steps,
+        "cfg_scale": final_cfg,
         "sampler_name": request.sampler_name,
         "seed": request.seed,
         "width": request.width,

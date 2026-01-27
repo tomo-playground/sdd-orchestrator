@@ -683,6 +683,21 @@ def compose_prompt_tokens(
     # Step 2: Filter conflicts and deduplicate
     tokens = filter_conflicting_tokens(tokens, trigger_words)
 
+    # Step 2a: Emphasize key categories (Expression, Pose, Action)
+    # Wrap important tags in (tag:1.2) to ensure they are respected
+    emphasized_tokens = []
+    for token in tokens:
+        category = get_token_category(token)
+        if category in ["expression", "pose", "action", "gaze"]:
+            # Check if already emphasized (contains parenthesis or colon)
+            if "(" not in token and ":" not in token:
+                emphasized_tokens.append(f"({token}:1.2)")
+            else:
+                emphasized_tokens.append(token)
+        else:
+            emphasized_tokens.append(token)
+    tokens = emphasized_tokens
+
     # Step 3: Sort by mode-specific priority
     tokens = sort_prompt_tokens(tokens, mode)
 
