@@ -232,7 +232,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 |------|------|------|------|
 | 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
 | 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 | [ ] |
-| 12 | Tag Autocomplete | Danbooru 스타일 태그 자동완성 | [ ] |
+| 12 | **Tag Autocomplete** | Danbooru 스타일 태그 자동완성 (Backend API + Frontend UI) | [x] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
