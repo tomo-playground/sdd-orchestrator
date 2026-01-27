@@ -47,12 +47,16 @@ CHARACTER_PROMPTS = {
         "negative_prompt": "realistic, detailed anatomy, normal proportions",
     },
     "Generic Anime Girl": {
-        "base_prompt": "anime style, clean lineart, vibrant colors",
-        "negative_prompt": "",
+        "base_prompt": "1girl, brown_hair, long_hair, brown_eyes, school_uniform, innocent_face",
+        "negative_prompt": "nsfw, revealing_clothes, sexy, mature_female, heavy_makeup",
+        "reference_base_prompt": "masterpiece, best quality, 1girl, solo, brown_hair, long_hair, brown_eyes, school_uniform, looking_at_viewer, simple_background, white_background, upper_body, innocent_smile, clean_lineart",
+        "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), nsfw, revealing_clothes, sexy, mature_female, blurry, text, watermark",
     },
     "Generic Anime Boy": {
-        "base_prompt": "anime style, clean lineart, vibrant colors",
-        "negative_prompt": "",
+        "base_prompt": "1boy, black_hair, short_hair, brown_eyes, school_uniform, gentle_face",
+        "negative_prompt": "nsfw, muscular, shirtless, mature_male, facial_hair",
+        "reference_base_prompt": "masterpiece, best quality, 1boy, solo, black_hair, short_hair, brown_eyes, school_uniform, looking_at_viewer, simple_background, white_background, upper_body, gentle_smile, clean_lineart",
+        "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), nsfw, muscular, shirtless, mature_male, blurry, text, watermark",
     },
 }
 
@@ -87,15 +91,23 @@ def migrate_custom_prompts(db: Session, dry_run: bool = True) -> None:
             )
             continue
 
-        # Update character
+        # Update custom prompts
         character.custom_base_prompt = template["base_prompt"] or None
         character.custom_negative_prompt = template["negative_prompt"] or None
 
+        # Update reference prompts if provided in template
+        if "reference_base_prompt" in template:
+            character.reference_base_prompt = template["reference_base_prompt"] or None
+        if "reference_negative_prompt" in template:
+            character.reference_negative_prompt = template["reference_negative_prompt"] or None
+
         logger.info(
-            "✅ [%s] Set custom prompts:\n  Base: %s\n  Negative: %s",
+            "✅ [%s] Set prompts:\n  Custom Base: %s\n  Custom Negative: %s\n  Reference Base: %s\n  Reference Negative: %s",
             character.name,
             character.custom_base_prompt,
             character.custom_negative_prompt or "(empty)",
+            character.reference_base_prompt[:50] + "..." if character.reference_base_prompt else "(unchanged)",
+            character.reference_negative_prompt[:50] + "..." if character.reference_negative_prompt else "(unchanged)",
         )
         updated_count += 1
 
