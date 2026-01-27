@@ -427,6 +427,28 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 - 방어 계층: Gemini 템플릿 (예방) + 코드 정규화 (안전망) + Danbooru 검증 (확인) + Fallback 매칭 (호환)
 - API 효율: DB/API 양쪽에서 fallback으로 불필요한 제거 방지
 
+**Phase 5 완료 (2026-01-27) - 언더바 표준화 (Danbooru Native Format)**:
+- **문제 발견**: Phase 4의 fallback 접근이 임시방편, 근본 원인 미해결
+  - 원인: `validation.py:110`에서 WD14 CSV 로드 시 `.replace("_", " ")` (인위적 변환)
+  - DB 상태: 554개 공백 형식 vs 532개 언더바 형식 (혼재)
+  - 이전 마이그레이션 (480f94a): 잘못된 방향 (언더바 → 공백 병합)
+- **근본 해결**: Danbooru 네이티브 형식(언더바)으로 전체 시스템 통일
+  - **validation.py**: WD14 CSV 로드 시 `.replace("_", " ")` 제거
+  - **keywords.py**: `normalize_prompt_token()`에서 언더바 보존 (변환 제거)
+  - **prompt_validation.py**: `RISKY_TAG_REPLACEMENTS` 값들 언더바 형식으로 통일
+  - **DB 마이그레이션**: 554개 공백 태그 → 언더바 변환 (`revert_to_underscore.py`)
+  - **테스트 수정**: 모든 픽스처 및 assertion 언더바 형식으로 업데이트 (406 passed)
+  - **규칙 문서화**: `CLAUDE.md`에 "Tag Format Standard" 섹션 추가
+- **단일 진실 공급원 확립**:
+  - Danbooru: `brown_hair`, `looking_at_viewer` (원본)
+  - WD14 CSV: 언더바 형식 (변환 없이 그대로 사용)
+  - DB 저장: 1,086개 태그 전체 언더바 형식
+  - API 응답: 언더바 형식
+  - 프롬프트 생성: 언더바 보존
+  - Gemini 템플릿: 언더바 예시 사용
+- **Commit**: 93590b7 - fix: revert to underscore format (Danbooru standard)
+- **Phase 4 fallback 제거**: 이제 불필요 (모든 레이어가 단일 형식 사용)
+
 ---
 
 ## 🔮 Phase 7: ControlNet & Pose Control (P0 품질)
