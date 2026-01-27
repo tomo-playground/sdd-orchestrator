@@ -707,7 +707,12 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
 
 
 def filter_prompt_tokens(prompt: str) -> str:
-    """Filter prompt tokens to only include known/allowed keywords (DB-based)."""
+    """Filter prompt tokens to only include known/allowed keywords (DB-based).
+
+    Handles both underscore and space formats for backward compatibility:
+    - Normalized tags: "brown_hair", "full_body" (SD/Danbooru standard)
+    - Legacy DB tags: "brown hair", "full body" (space format)
+    """
     allowed = load_allowed_tags_from_db()
     synonym_lookup = load_synonyms_from_db()
 
@@ -721,11 +726,18 @@ def filter_prompt_tokens(prompt: str) -> str:
         normalized = normalize_prompt_token(token)
         if not normalized or normalized in IGNORE_TOKENS:
             continue
+
         base = None
+        # Try exact match first
         if normalized in allowed:
             base = normalized
+        # Try with spaces (for legacy space-format DB tags)
+        elif normalized.replace("_", " ") in allowed:
+            base = normalized.replace("_", " ")
+        # Try synonym lookup
         elif normalized in synonym_lookup and synonym_lookup[normalized] in allowed:
             base = synonym_lookup[normalized]
+
         if base and base not in seen:
             cleaned.append(base)
             seen.add(base)
