@@ -719,17 +719,22 @@ After:  train station, platform       (스크립트와 일치) ✅
 - ✅ **Avatar 이미지 누락**: SD WebUI fallback + simple_avatar.py 생성, 경로 해결
 - ✅ **SD Options 500 Error**: 존재하지 않는 모델 선택 시 SD WebUI 500 응답 핸들링 추가 (`backend/routers/sd.py`)
 
-### 다음 우선순위 작업
+### 다음 우선순위 작업 (2026-01-27 갱신)
 
-| 순위 | 작업 | Phase | 상태 |
-|------|------|-------|------|
-| 1 | **Generation Log Analytics 완료** | 6-4.21 | 62.5% (5/8) |
-| 2 | Multi-Character 구현 | 6-3.10 | 대기 |
-| 3 | Scene Builder UI | 6-3.11 | 대기 |
-| 4 | Tag Autocomplete | 6-3.12 | 대기 |
-| 5 | Setup Wizard | 5-6 | 대기 |
+| 순위 | 작업 | Phase | 가치 | 난이도 | 상태 |
+|------|------|-------|------|--------|------|
+| 1 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | 대기 |
+| 2 | **Scene Builder UI** | 6-3.11 | 중 | 중 | 대기 |
+| 3 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | 대기 |
+| 4 | **Setup Wizard** | 5-6 | 중 | 낮음 | 대기 |
 
-**권장**: Generation Log Analytics 나머지 3개 작업 완료 후 Phase 6 아카이브 고려
+**최근 완료**: Phase 6-4.21 Generation Log Analytics (8/8, 100%) - 2026-01-27
+
+**Multi-Character 구현 (권장 우선순위 #1)**:
+- **목표**: 한 장면에 여러 캐릭터 등장 (대화형 콘텐츠 핵심)
+- **접근**: 분리 생성 + Regional Prompter/ControlNet 합성
+- **효과**: 교육 콘텐츠(선생-학생), 스토리텔링(대화) 가능
+- **난이도**: 중 (ControlNet Tile 리샘플링 + Inpaint 마스킹)
 
 ---
 
@@ -741,7 +746,7 @@ After:  train station, platform       (스크립트와 일치) ✅
 | 6-1 | COMPLETE | 100% | |
 | 6-2 | COMPLETE | 100% | |
 | 6-3 | IN PROGRESS | 91% | 8.x+9.x 아카이브, 10/11/12 잔여 |
-| 6-4 | IN PROGRESS | 71% | Generation Log Analytics 5/8 완료 (62.5%) |
+| 6-4 | COMPLETE | 100% | Generation Log Analytics 8/8 완료 (2026-01-27) |
 | 7-1 | COMPLETE | 100% | |
 | 7-2 | COMPLETE | 100% | IP-Adapter CLIP 모델 지원 |
 | 7-3 | COMPLETE | 100% | |
