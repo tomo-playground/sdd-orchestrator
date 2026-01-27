@@ -54,10 +54,15 @@ def create_storyboard(request: StoryboardRequest) -> dict:
             if not raw_prompt:
                 continue
 
+            scene_id = scene.get("scene_id", "?")
+            logger.info(f"[Scene {scene_id}] Tag Pipeline Start")
+            logger.info(f"  1️⃣  Raw Gemini: {raw_prompt}")
+
             # Phase 1: Normalize spaces and fix compound adjectives
             # - "thumbs up" → "thumbs_up"
             # - "short green hair" → "short_hair, green_hair"
             normalized = normalize_and_fix_tags(raw_prompt)
+            logger.info(f"  2️⃣  Normalized:  {normalized}")
 
             # Phase 2 (optional): Danbooru validation for unknown tags
             # - Only validates tags not in DB (smart caching)
@@ -66,12 +71,17 @@ def create_storyboard(request: StoryboardRequest) -> dict:
                 tags = [t.strip() for t in normalized.split(",") if t.strip()]
                 validated_tags = validate_tags_with_danbooru(tags)
                 normalized = ", ".join(validated_tags)
+                logger.info(f"  3️⃣  Validated:   {normalized}")
 
             # Phase 3: Filter against DB allowed tags
             filtered = filter_prompt_tokens(normalized)
             if not filtered:
                 logger.warning("No allowed keywords in scene prompt; using normalized original.")
                 filtered = normalize_prompt_tokens(normalized)
+
+            logger.info(f"  4️⃣  Filtered:    {filtered}")
+            logger.info(f"  ✅ Final Prompt: {filtered}")
+
             scene["image_prompt"] = filtered
         return {"scenes": scenes}
     except Exception as exc:

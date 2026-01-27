@@ -479,7 +479,12 @@ def suggest_category_for_tag(tag: str) -> tuple[str, float]:
 
 
 def normalize_prompt_token(token: str) -> str:
-    """Normalize a single prompt token for comparison."""
+    """Normalize a single prompt token for comparison.
+
+    IMPORTANT: Preserves underscores to maintain SD tag format.
+    - SD/Danbooru tags use underscores: "brown_hair", "full_body"
+    - Do NOT convert to spaces - breaks tag matching
+    """
     cleaned = token.strip()
     if not cleaned:
         return ""
@@ -488,7 +493,7 @@ def normalize_prompt_token(token: str) -> str:
     if cleaned.startswith("(") and cleaned.endswith(")"):
         cleaned = cleaned[1:-1]
     cleaned = re.sub(r":[0-9.]*$", "", cleaned)
-    cleaned = cleaned.replace("_", " ")
+    # REMOVED: cleaned = cleaned.replace("_", " ")  # Breaks SD tag format
     return cleaned.strip().lower()
 
 
