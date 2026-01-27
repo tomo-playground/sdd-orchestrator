@@ -1576,6 +1576,33 @@ Gemini는 edge case만 (5% 미만)
   - 1 캐릭터: lora 0.6, ref 0.75
   - 2 캐릭터: lora 0.5, ref 0.5 (균등)
 
+#### Phase 6-4.24: Character Tag Auto-Suggestion (🟡 진행 중 - 2026-01-27)
+**목표**: Base Prompt 입력 시 누락된 태그 자동 제안으로 캐릭터 개성 정보 필수 설정 지원
+
+**문제**:
+- Base Prompt에 "1girl, brown_hair, school_uniform" 입력
+- IDENTITY/CLOTHING TAGS는 비어있음 (미설정)
+- 개성 정보가 구조화되지 않아 통계/분석 불가
+
+**솔루션**:
+- [x] Backend: Base Prompt 파싱 및 DB 태그 매칭 API
+  - `/characters/suggest-tags` POST 엔드포인트
+  - 프롬프트 → 쉼표 분리 → tags 테이블 매칭
+  - 카테고리별 그룹핑 (identity vs clothing)
+- [ ] Frontend: Tag Suggestion UI
+  - Base Prompt 입력 완료 시 자동 제안 패널 표시
+  - 매칭된 태그 카테고리별로 표시
+  - "Add All" / "Ignore" 버튼
+  - 승인 시 IDENTITY/CLOTHING TAGS에 자동 추가
+
+**장점**:
+- ✅ 캐릭터 설정 누락 방지
+- ✅ 빠른 태그 설정 (수동 검색 불필요)
+- ✅ 데이터 품질 향상 (구조화된 태그)
+- ✅ 신규 캐릭터 생성 시 편의성
+
+**우선순위**: Medium (UX 개선, 필수 아님)
+
 ### 기술 스택
 - **Reference-only ControlNet** - 전신 스타일 일관성
 - **Generic Character Presets** - 재사용 가능한 기준 이미지
