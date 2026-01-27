@@ -3,7 +3,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import (
+    DEFAULT_REFERENCE_BASE_PROMPT,
+    DEFAULT_REFERENCE_NEGATIVE_PROMPT,
+    logger,
+)
 from database import get_db
 from models import Character, LoRA, Tag
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
@@ -110,6 +114,12 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     char_data = data.model_dump()
     if char_data.get("loras"):
         char_data["loras"] = [{"lora_id": lora["lora_id"], "weight": lora["weight"]} for lora in char_data["loras"]]
+
+    # Set default reference prompts if not provided
+    if not char_data.get("reference_base_prompt"):
+        char_data["reference_base_prompt"] = DEFAULT_REFERENCE_BASE_PROMPT
+    if not char_data.get("reference_negative_prompt"):
+        char_data["reference_negative_prompt"] = DEFAULT_REFERENCE_NEGATIVE_PROMPT
 
     character = Character(**char_data)
     db.add(character)

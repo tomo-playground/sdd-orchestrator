@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session
 from config import (
     CHARACTER_PRESETS,
     DEFAULT_CHARACTER_PRESET,
+    DEFAULT_REFERENCE_BASE_PROMPT,
+    DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     SD_BASE_URL,
     SD_TXT2IMG_URL,
     logger,
@@ -586,8 +588,7 @@ async def generate_reference_for_character(
 
     # 3. Construct prompt
     # Use character's reference_base_prompt or fallback to default
-    default_base = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
-    base_positive = character.reference_base_prompt or default_base
+    base_positive = character.reference_base_prompt or DEFAULT_REFERENCE_BASE_PROMPT
 
     # Remove duplicate tags (simple set)
     unique_tags = list(dict.fromkeys(tag_list))
@@ -595,8 +596,7 @@ async def generate_reference_for_character(
 
     # 4. Construct negative prompt
     # Use character's reference_negative_prompt or fallback to default
-    default_negative = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
-    base_negative = character.reference_negative_prompt or default_negative
+    base_negative = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
 
     if character.recommended_negative:
         # Append recommended negative if not already in base

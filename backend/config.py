@@ -128,6 +128,12 @@ RECOMMENDATION_MIN_USE_COUNT = int(os.getenv("RECOMMENDATION_MIN_USE_COUNT", "10
 # This adds 2-5s for first-time tags, but ensures 95%+ accuracy
 ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").lower() == "true"
 
+# --- Reference Image Generation Defaults ---
+# Default prompts for generating IP-Adapter reference images
+# Used when creating new characters without custom reference prompts
+DEFAULT_REFERENCE_BASE_PROMPT = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
+DEFAULT_REFERENCE_NEGATIVE_PROMPT = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
+
 # --- IP-Adapter Character Presets ---
 # Per-character IP-Adapter settings for optimal consistency
 # weight: Higher = more similar to reference (0.6-0.95)
