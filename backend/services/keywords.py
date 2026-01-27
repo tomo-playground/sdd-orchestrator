@@ -479,11 +479,13 @@ def suggest_category_for_tag(tag: str) -> tuple[str, float]:
 
 
 def normalize_prompt_token(token: str) -> str:
-    """Normalize a single prompt token for comparison.
+    """Normalize a single prompt token for comparison/matching.
 
-    IMPORTANT: Preserves underscores to maintain SD tag format.
-    - SD/Danbooru tags use underscores: "brown_hair", "full_body"
-    - Do NOT convert to spaces - breaks tag matching
+    CRITICAL: Converts underscores to spaces for consistent DB matching.
+    - DB stores space format: "brown hair", "full body"
+    - WD14 returns space format: "brown hair", "full body"
+    - This function normalizes ALL formats → space for matching
+    - SD prompt generation uses normalize_tag_spaces() to convert back to underscores
     """
     cleaned = token.strip()
     if not cleaned:
@@ -493,7 +495,8 @@ def normalize_prompt_token(token: str) -> str:
     if cleaned.startswith("(") and cleaned.endswith(")"):
         cleaned = cleaned[1:-1]
     cleaned = re.sub(r":[0-9.]*$", "", cleaned)
-    # REMOVED: cleaned = cleaned.replace("_", " ")  # Breaks SD tag format
+    # Convert underscores to spaces for DB/WD14 matching
+    cleaned = cleaned.replace("_", " ")
     return cleaned.strip().lower()
 
 
@@ -796,8 +799,9 @@ def filter_prompt_tokens(prompt: str) -> str:
                         f"⚠️  [Filter] Replacing low-effectiveness tag: '{normalized}' "
                         f"(eff={eff_score:.1%}, n={use_count}) → '{replacement}'"
                     )
-                    # Normalize replacement and convert spaces to underscores (SD format)
-                    normalized = normalize_prompt_token(replacement).replace(" ", "_")
+                    # Replace token with alternative (keep underscore format for SD)
+                    token = replacement.replace(" ", "_")
+                    normalized = normalize_prompt_token(replacement)
                     replaced_count += 1
                 else:
                     _get_logger().warning(
@@ -808,22 +812,23 @@ def filter_prompt_tokens(prompt: str) -> str:
                     continue
 
         base = None
+        output_token = None  # Token to output (preserves original format)
+
         # Try exact match first
         if normalized in allowed:
             base = normalized
-        # Try with spaces (for legacy space-format DB tags)
-        elif normalized.replace("_", " ") in allowed:
-            base = normalized  # Keep underscore format (SD requirement)
+            output_token = token  # Preserve original format (e.g., underscore)
         # Try synonym lookup
         elif normalized in synonym_lookup and synonym_lookup[normalized] in allowed:
             base = synonym_lookup[normalized]
+            output_token = base  # Use canonical form for synonyms
         else:
             # Tag not in allowed list
             _get_logger().debug(f"⏭️  [Filter] Skipping unknown tag: '{normalized}'")
             continue
 
         if base and base not in seen:
-            cleaned.append(base)
+            cleaned.append(output_token)
             seen.add(base)
 
     if filtered_count > 0 or replaced_count > 0:
@@ -1322,11 +1327,8 @@ def update_tag_effectiveness(
         new_records = []
 
         for tag_name in normalized_prompt:
-            # Find tag in DB
+            # Find tag in DB (normalized format = space format)
             tag = db.query(Tag).filter(Tag.name == tag_name).first()
-            if not tag:
-                # Try with underscore variant
-                tag = db.query(Tag).filter(Tag.name == tag_name.replace(" ", "_")).first()
             if not tag:
                 continue
 

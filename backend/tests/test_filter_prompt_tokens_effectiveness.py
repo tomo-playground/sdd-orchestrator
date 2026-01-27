@@ -8,11 +8,11 @@ from services.keywords import filter_prompt_tokens
 
 @pytest.fixture
 def mock_allowed_tags():
-    """Mock allowed tags from DB."""
+    """Mock allowed tags from DB (space format)."""
     return {
-        "smile", "standing", "cowboy_shot", "classroom",
-        "surprised", "confused", "medium_shot", "laughing",
-        "open_mouth", "sitting"
+        "smile", "standing", "cowboy shot", "classroom",
+        "surprised", "confused", "medium shot", "laughing",
+        "open mouth", "sitting"
     }
 
 
@@ -23,18 +23,18 @@ def mock_effectiveness_data():
     Format: {tag_name: (effectiveness_score, use_count)}
     """
     return {
-        # High effectiveness - should keep
+        # High effectiveness - should keep (space format for DB matching)
         "smile": (0.85, 50),
         "standing": (0.90, 30),
-        "cowboy_shot": (0.95, 100),
+        "cowboy shot": (0.95, 100),
         "classroom": (0.88, 40),
-        "open_mouth": (0.82, 60),
+        "open mouth": (0.82, 60),
         "sitting": (0.87, 45),
 
         # Low effectiveness with sufficient data - should filter/replace
         "surprised": (0.0, 100),  # Has replacement
         "confused": (0.0, 39),    # Has replacement
-        "medium_shot": (0.0, 321),  # Has replacement
+        "medium shot": (0.0, 321),  # Has replacement
         "laughing": (0.0, 194),   # No replacement (use "laugh" instead)
     }
 
@@ -94,8 +94,8 @@ class TestEffectivenessFiltering:
         mock_effectiveness_data,
     ):
         """Should replace risky tags with safe alternatives from RISKY_TAG_REPLACEMENTS."""
-        # Add replacement tags to allowed set
-        allowed_with_replacements = mock_allowed_tags | {"cowboy_shot"}
+        # Add replacement tags to allowed set (space format for DB)
+        allowed_with_replacements = mock_allowed_tags | {"cowboy shot"}
         mock_load_allowed.return_value = allowed_with_replacements
         mock_load_synonyms.return_value = mock_synonyms
         mock_load_eff.return_value = mock_effectiveness_data
@@ -103,9 +103,9 @@ class TestEffectivenessFiltering:
         prompt = "standing, medium_shot, classroom"
         result = filter_prompt_tokens(prompt)
 
-        # Should replace medium_shot → cowboy_shot
-        assert "medium_shot" not in result
-        assert "cowboy_shot" in result
+        # Should replace medium_shot → cowboy_shot (result is underscore format for SD)
+        assert "medium_shot" not in result and "medium shot" not in result
+        assert "cowboy_shot" in result or "cowboy shot" in result
         # Should keep other tags
         assert "standing" in result
         assert "classroom" in result

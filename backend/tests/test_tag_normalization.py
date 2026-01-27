@@ -432,9 +432,10 @@ class TestDanbooruValidation:
 class TestFilterStage:
     """Test filter_prompt_tokens() preserves underscore format."""
 
+    @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_synonyms_from_db")
     @patch("services.keywords.load_allowed_tags_from_db")
-    def test_preserves_underscore_format_with_space_db(self, mock_allowed, mock_synonym):
+    def test_preserves_underscore_format_with_space_db(self, mock_allowed, mock_synonym, mock_eff):
         """Filter should preserve underscore format even when DB has space format."""
         from services.keywords import filter_prompt_tokens
 
@@ -446,6 +447,7 @@ class TestFilterStage:
             "smile",
         }
         mock_synonym.return_value = {}
+        mock_eff.return_value = {}  # No effectiveness filtering
 
         # Input: underscore format (from normalization stage)
         input_prompt = "smile, looking_at_viewer, cowboy_shot, falling_leaves"
@@ -463,9 +465,10 @@ class TestFilterStage:
         assert "cowboy shot" not in result
         assert "falling leaves" not in result
 
+    @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_synonyms_from_db")
     @patch("services.keywords.load_allowed_tags_from_db")
-    def test_full_pipeline_end_to_end(self, mock_allowed, mock_synonym):
+    def test_full_pipeline_end_to_end(self, mock_allowed, mock_synonym, mock_eff):
         """Full pipeline should maintain underscore format throughout."""
         from services.keywords import filter_prompt_tokens
 
@@ -479,6 +482,7 @@ class TestFilterStage:
             "full body",
         }
         mock_synonym.return_value = {}
+        mock_eff.return_value = {}  # No effectiveness filtering
 
         # Simulate Gemini output with spaces and compounds
         raw = "long blonde hair, looking at viewer, white dress, outdoors, full body"
