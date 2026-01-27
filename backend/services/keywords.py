@@ -1245,7 +1245,10 @@ def get_tag_rules_summary() -> dict[str, Any]:
 # --- Keyword suggestions (still file-based for simplicity) ---
 
 def update_keyword_suggestions(unknown_tags: list[str]) -> None:
-    """Update the keyword suggestions cache with newly encountered unknown tags."""
+    """Update the keyword suggestions cache with newly encountered unknown tags.
+
+    Tags are normalized to underscore format (Danbooru standard) before storage.
+    """
     if not unknown_tags:
         return
     suggestions_path = _get_cache_dir() / "keyword_suggestions.json"
@@ -1255,14 +1258,22 @@ def update_keyword_suggestions(unknown_tags: list[str]) -> None:
         else:
             data = {}
         for tag in unknown_tags:
-            data[tag] = int(data.get(tag, 0)) + 1
+            # Normalize tag to underscore format (Danbooru standard)
+            # Space → underscore, then apply normalize_prompt_token
+            normalized_tag = normalize_prompt_token(tag.replace(" ", "_"))
+            if not normalized_tag:
+                continue
+            data[normalized_tag] = int(data.get(normalized_tag, 0)) + 1
         suggestions_path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
     except Exception:
         _get_logger().exception("Failed to update keyword suggestions")
 
 
 def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[str, Any]]:
-    """Load keyword suggestions filtered by minimum count with category suggestions."""
+    """Load keyword suggestions filtered by minimum count with category suggestions.
+
+    Returns normalized tags (underscore format, Danbooru standard).
+    """
     suggestions_path = _get_cache_dir() / "keyword_suggestions.json"
     if not suggestions_path.exists():
         return []
@@ -1274,10 +1285,15 @@ def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[s
     known = load_known_keywords()
     items = []
     for tag, count in data.items():
-        if int(count) >= min_count and tag not in known:
-            category, confidence = suggest_category_for_tag(tag)
+        # Normalize tag to underscore format (Danbooru standard)
+        # Space → underscore, then apply normalize_prompt_token (defensive)
+        normalized_tag = normalize_prompt_token(tag.replace(" ", "_"))
+        if not normalized_tag:
+            continue
+        if int(count) >= min_count and normalized_tag not in known:
+            category, confidence = suggest_category_for_tag(normalized_tag)
             items.append({
-                "tag": tag,
+                "tag": normalized_tag,
                 "count": int(count),
                 "suggested_category": category,
                 "confidence": confidence,
