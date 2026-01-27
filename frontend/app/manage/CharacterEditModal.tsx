@@ -194,15 +194,15 @@ export default function CharacterEditModal({
   const handleAddAllSuggestions = () => {
     // Add suggested identity tags
     const newIdentityIds = suggestedIdentityTags
-      .filter(tag => !selectedIdentityTags.includes(tag.id))
+      .filter(tag => !identityTagIds.includes(tag.id))
       .map(tag => tag.id);
-    setSelectedIdentityTags([...selectedIdentityTags, ...newIdentityIds]);
+    setIdentityTagIds([...identityTagIds, ...newIdentityIds]);
 
     // Add suggested clothing tags
     const newClothingIds = suggestedClothingTags
-      .filter(tag => !selectedClothingTags.includes(tag.id))
+      .filter(tag => !clothingTagIds.includes(tag.id))
       .map(tag => tag.id);
-    setSelectedClothingTags([...selectedClothingTags, ...newClothingIds]);
+    setClothingTagIds([...clothingTagIds, ...newClothingIds]);
 
     // Close suggestions panel
     setShowSuggestions(false);
