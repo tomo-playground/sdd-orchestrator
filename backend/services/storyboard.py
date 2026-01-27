@@ -44,15 +44,22 @@ def create_storyboard(request: StoryboardRequest) -> dict:
         for scene in scenes:
             from config import logger
             from services.keywords import filter_prompt_tokens
-            from services.prompt import normalize_prompt_tokens
+            from services.prompt import normalize_and_fix_tags, normalize_prompt_tokens
 
             raw_prompt = scene.get("image_prompt", "")
             if not raw_prompt:
                 continue
-            filtered = filter_prompt_tokens(raw_prompt)
+
+            # Phase 1: Normalize spaces and fix compound adjectives
+            # - "thumbs up" → "thumbs_up"
+            # - "short green hair" → "short_hair, green_hair"
+            normalized = normalize_and_fix_tags(raw_prompt)
+
+            # Phase 2: Filter against DB allowed tags
+            filtered = filter_prompt_tokens(normalized)
             if not filtered:
                 logger.warning("No allowed keywords in scene prompt; using normalized original.")
-                filtered = normalize_prompt_tokens(raw_prompt)
+                filtered = normalize_prompt_tokens(normalized)
             scene["image_prompt"] = filtered
         return {"scenes": scenes}
     except Exception as exc:

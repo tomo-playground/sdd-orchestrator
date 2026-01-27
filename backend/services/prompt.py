@@ -334,3 +334,111 @@ def split_prompt_example(request: PromptSplitRequest) -> dict:
     except Exception as exc:
         logger.exception("Prompt split failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def normalize_tag_spaces(tags: list[str]) -> list[str]:
+    """Normalize tag format: spaces to underscores.
+
+    Stable Diffusion uses underscores, not spaces.
+    - "thumbs up" → "thumbs_up"
+    - "looking at viewer" → "looking_at_viewer"
+
+    Args:
+        tags: List of tag strings (may contain spaces)
+
+    Returns:
+        List of normalized tags with underscores
+    """
+    return [tag.strip().replace(" ", "_") for tag in tags]
+
+
+def fix_compound_adjectives(tags: list[str]) -> list[str]:
+    """Fix compound adjective tags by separating them.
+
+    Gemini often generates invalid compound tags not in Danbooru:
+    - "short green hair" (0 posts) → "short_hair, green_hair" (2.7M + 519K posts)
+    - "white blue dress" (0 posts) → "white_dress, blue_dress"
+
+    This function detects common patterns and splits them into valid tags.
+
+    Args:
+        tags: List of normalized tags (underscores)
+
+    Returns:
+        List of fixed tags with compounds separated
+    """
+    import re
+
+    # Pattern: (adj1)_(adj2)_(noun)
+    # Common nouns that get compound adjectives
+    COMPOUND_PATTERNS = [
+        # Hair: "short_green_hair" → "short_hair", "green_hair"
+        (
+            r"^(short|long|medium)_([\w]+)_hair$",
+            lambda m: [f"{m.group(1)}_hair", f"{m.group(2)}_hair"],
+        ),
+        # Clothing: "white_blue_dress" → "white_dress", "blue_dress"
+        (
+            r"^([\w]+)_([\w]+)_(dress|shirt|skirt|pants|shorts|hoodie)$",
+            lambda m: [f"{m.group(1)}_{m.group(3)}", f"{m.group(2)}_{m.group(3)}"],
+        ),
+        # Accessories: "black_white_ribbon" → "black_ribbon", "white_ribbon"
+        (
+            r"^([\w]+)_([\w]+)_(ribbon|bow|tie|hat|cap)$",
+            lambda m: [f"{m.group(1)}_{m.group(3)}", f"{m.group(2)}_{m.group(3)}"],
+        ),
+    ]
+
+    fixed_tags = []
+    for tag in tags:
+        matched = False
+        for pattern, replacer in COMPOUND_PATTERNS:
+            match = re.match(pattern, tag)
+            if match:
+                # Split compound into separate tags
+                fixed_tags.extend(replacer(match))
+                matched = True
+                break
+
+        if not matched:
+            # Keep original tag
+            fixed_tags.append(tag)
+
+    return fixed_tags
+
+
+def normalize_and_fix_tags(prompt: str) -> str:
+    """Full pipeline: normalize spaces + fix compound adjectives.
+
+    This is the main entry point for cleaning Gemini-generated prompts.
+
+    Pipeline:
+    1. Split prompt into tags
+    2. Normalize spaces → underscores
+    3. Fix compound adjective patterns
+    4. Join back into prompt string
+
+    Args:
+        prompt: Raw prompt string from Gemini (may have spaces, compounds)
+
+    Returns:
+        Cleaned prompt string ready for SD
+
+    Example:
+        >>> normalize_and_fix_tags("short green hair, thumbs up, smiling")
+        "short_hair, green_hair, thumbs_up, smiling"
+    """
+    if not prompt or not prompt.strip():
+        return ""
+
+    # Split into individual tags
+    tags = [t.strip() for t in prompt.split(",") if t.strip()]
+
+    # Step 1: Normalize spaces
+    tags = normalize_tag_spaces(tags)
+
+    # Step 2: Fix compound adjectives
+    tags = fix_compound_adjectives(tags)
+
+    # Join back into prompt
+    return ", ".join(tags)

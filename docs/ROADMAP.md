@@ -343,6 +343,38 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 **진행률**: Phase 6-4-21 (100% 완료, 8/8 tasks) ✅
 
+#### 6-4-22. Gemini 프롬프트 품질 개선 (🔴 우선순위 1 - 긴급)
+**목표**: Gemini가 생성한 태그의 SD 호환성 보장 (Match Rate < 30% 문제 해결)
+
+**근본 원인**:
+- Gemini가 복합 형용사 생성 ("short green hair" → Danbooru 0개 포스트)
+- 공백 형식 사용 ("thumbs up" → SD 인식 불가, "thumbs_up" 필요)
+- filter_prompt_tokens()의 단어 단위 검증으로 조합 오류 미탐지
+
+**해결 전략**: 하이브리드 2단계 파이프라인
+```
+Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프롬프트
+```
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **태그 정규화** | 공백 → 언더스코어 강제 변환 ("thumbs up" → "thumbs_up") | [x] |
+| 2 | **복합 형용사 분리** | 패턴 기반 자동 분리 ("short green hair" → "short_hair, green_hair") | [x] |
+| 3 | **전처리 통합** | storyboard.py에 normalize_and_fix_tags() 파이프라인 삽입 | [x] |
+| 4 | **테스트 추가** | 41개 테스트: 정규화, 패턴 수정, 엣지 케이스 검증 | [x] |
+| 5 | Danbooru 실시간 검증 | API 기반 태그 존재 확인 + 캐싱 (Phase 2) | [ ] |
+
+**Phase 1 완료 (2026-01-27)**:
+- `normalize_tag_spaces()`: 공백 → 언더스코어
+- `fix_compound_adjectives()`: 3개 패턴 (hair, clothing, accessories)
+- `normalize_and_fix_tags()`: 전체 파이프라인
+- 41개 테스트 추가 (총 386개 테스트)
+- Commit: TBD
+
+**예상 효과**:
+- Match Rate: 29% → 70-80% (Phase 1 완료), 95%+ (Phase 2 예정)
+- 추가 시간: 0초 (Phase 1), 2-5초 (Phase 2 예정)
+
 ---
 
 ## 🔮 Phase 7: ControlNet & Pose Control (P0 품질)
