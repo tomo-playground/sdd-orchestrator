@@ -55,6 +55,11 @@ def update_generic_characters(db: Session, dry_run: bool = True) -> None:
         character.reference_base_prompt = prompts["reference_base_prompt"]
         character.reference_negative_prompt = prompts["reference_negative_prompt"]
 
+        # Clear identity_tags and clothing_tags (all info is in prompts now)
+        character.identity_tags = []
+        character.clothing_tags = []
+        character.loras = []
+
         logger.info(
             "✅ [%s] Updated prompts:\n"
             "  Custom Base: %s\n"
