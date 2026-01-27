@@ -288,9 +288,18 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 3 | **성공/실패 마킹 UI** | SceneCard에 👍/👎 버튼, Match Rate 임계값 자동 마킹 | [x] |
 | 4 | 패턴 분석 엔진 | 성공률 높은 태그 조합 추출 (빈도 분석, A/B 비교) | [x] |
 | 5 | 충돌 규칙 자동 발견 | 함께 사용 시 실패율 높은 태그 쌍 감지 → DB 반영 | [x] |
-| 6 | **성공 조합 생성기** | 과거 성공 케이스 기반 최적 조합 자동 생성 | [ ] |
+| 6 | **성공 조합 생성기** | 과거 성공 케이스 기반 최적 조합 자동 생성 (`/success-combinations` API) | [x] |
 | 7 | Analytics Dashboard | Manage 탭에 인사이트 (Top/Worst 태그, 성공률 차트) | [ ] |
 | 8 | 자동 권장 시스템 | 장면 의도 입력 → 성공 확률 높은 태그 조합 추천 | [ ] |
+
+**Task #6 완료 날짜**: 2026-01-27
+**Commit**: 5e5b8a6
+**구현 내용**:
+- `/generation-logs/success-combinations` 엔드포인트
+- 성공 로그(match_rate >= 0.7) 필터링 및 카테고리별 태그 통계
+- 카테고리별 top N 태그 추출 (expression, pose, camera, environment 등)
+- 태그 조합 생성 및 충돌 규칙 검증 (conflict_free 플래그)
+- 3개 테스트 추가 (총 335개 테스트)
 
 ---
 
