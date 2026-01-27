@@ -747,12 +747,21 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
 def filter_prompt_tokens(prompt: str) -> str:
     """Filter prompt tokens to only include known/allowed keywords (DB-based).
 
+    Enhanced with effectiveness-based filtering (Phase 6-4.21 Track 2):
+    - Filters out low-effectiveness tags (< 30% with sufficient data)
+    - Automatically replaces risky tags with safe alternatives
+    - Logs warnings for problematic tags
+
     Handles both underscore and space formats for backward compatibility:
     - Normalized tags: "brown_hair", "full_body" (SD/Danbooru standard)
     - Legacy DB tags: "brown hair", "full body" (space format)
     """
+    from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING
+    from services.prompt_validation import RISKY_TAG_REPLACEMENTS
+
     allowed = load_allowed_tags_from_db()
     synonym_lookup = load_synonyms_from_db()
+    eff_map = load_tag_effectiveness_map()
 
     if not allowed:
         return _get_normalize_prompt_tokens()(prompt)
@@ -760,10 +769,43 @@ def filter_prompt_tokens(prompt: str) -> str:
     tokens = _get_split_prompt_tokens()(prompt)
     cleaned: list[str] = []
     seen: set[str] = set()
+    filtered_count = 0
+    replaced_count = 0
+
     for token in tokens:
         normalized = normalize_prompt_token(token)
         if not normalized or normalized in IGNORE_TOKENS:
             continue
+
+        # Check effectiveness first (before allowing)
+        eff_data = eff_map.get(normalized)
+        if eff_data:
+            eff_score, use_count = eff_data
+            # Filter low-effectiveness tags with sufficient data
+            if (
+                eff_score is not None
+                and use_count >= TAG_MIN_USE_COUNT_FOR_FILTERING
+                and eff_score < TAG_EFFECTIVENESS_THRESHOLD
+            ):
+                # Check for replacement
+                space_format = normalized.replace("_", " ")
+                replacement = RISKY_TAG_REPLACEMENTS.get(normalized) or RISKY_TAG_REPLACEMENTS.get(space_format)
+                
+                if replacement:
+                    _get_logger().warning(
+                        f"⚠️  [Filter] Replacing low-effectiveness tag: '{normalized}' "
+                        f"(eff={eff_score:.1%}, n={use_count}) → '{replacement}'"
+                    )
+                    # Normalize replacement and convert spaces to underscores (SD format)
+                    normalized = normalize_prompt_token(replacement).replace(" ", "_")
+                    replaced_count += 1
+                else:
+                    _get_logger().warning(
+                        f"❌ [Filter] Removing low-effectiveness tag: '{normalized}' "
+                        f"(eff={eff_score:.1%}, n={use_count}, no replacement)"
+                    )
+                    filtered_count += 1
+                    continue
 
         base = None
         # Try exact match first
@@ -775,10 +817,20 @@ def filter_prompt_tokens(prompt: str) -> str:
         # Try synonym lookup
         elif normalized in synonym_lookup and synonym_lookup[normalized] in allowed:
             base = synonym_lookup[normalized]
+        else:
+            # Tag not in allowed list
+            _get_logger().debug(f"⏭️  [Filter] Skipping unknown tag: '{normalized}'")
+            continue
 
         if base and base not in seen:
             cleaned.append(base)
             seen.add(base)
+
+    if filtered_count > 0 or replaced_count > 0:
+        _get_logger().info(
+            f"🔧 [Filter] Summary: {len(cleaned)} kept, {replaced_count} replaced, {filtered_count} removed"
+        )
+
     return ", ".join(cleaned)
 
 

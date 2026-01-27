@@ -59,11 +59,17 @@ Instructions:
 
 {{ keyword_context }}
 
-TAG SELECTION PRIORITY:
-- PREFER tags from "Recommended High-Performance Tags" section when available
-- These tags have proven >80% effectiveness through actual generation data
-- They produce more consistent and accurate results
-- Fall back to other Allowed Keywords only when recommended tags don't fit the scene
+⚠️ CRITICAL TAG SELECTION RULES:
+1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags
+2. **PRIORITIZE "Recommended High-Performance Tags"** (proven >80% effectiveness)
+   - Example: Use "cowboy shot" (729K posts) NOT "medium shot" (0 posts)
+   - Example: Use "open mouth" (detected) NOT "surprised" (not detected)
+3. **CONSEQUENCE OF WRONG TAGS**: Image will NOT match your intent
+   - Wrong camera angle → Character cut off or wrong composition
+   - Wrong expression → WD14 cannot verify if image matches prompt
+4. **IF NO PERFECT MATCH**: Choose closest tag from Recommended list
+   - Missing expression? Use "open mouth" or "closed mouth" (both proven)
+   - Missing pose? Use "standing" or "sitting" (both proven)
 
 Output Format:
 [

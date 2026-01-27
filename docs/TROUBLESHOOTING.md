@@ -57,6 +57,52 @@
 *   **원인**: 맥북(NFD)과 윈도우(NFC)의 한글 자모 분리 현상으로 파일명 불일치.
 *   **해결**: `main.py`의 `resolve_subtitle_font_path` 함수 내 정규화(Normalization) 로직 확인.
 
+## 🎯 프롬프트 품질 개선 (Phase 6-4.21 Track 2)
+
+### 문제: Gemini가 0% Effectiveness 태그 생성
+
+**증상**: Gemini가 Danbooru에 없거나 WD14가 검출하지 못하는 태그를 생성합니다.
+- `medium shot` (Danbooru 0건, 321회 사용)
+- `surprised`, `confused`, `laughing` (WD14 미검출, 100+ 회 사용)
+- `anime`, `day`, `bright` (낮은 effectiveness)
+
+**원인**: Gemini가 Allowed Keywords 리스트를 완벽하게 따르지 않음 (LLM hallucination).
+
+**해결**: 자동 필터링 시스템 (2026-01-27 구현)
+
+#### 1. Effectiveness 기반 필터링
+`filter_prompt_tokens()`가 자동으로:
+- effectiveness < 30% 태그 감지
+- RISKY_TAG_REPLACEMENTS 매핑이 있으면 → 교체
+- 매핑 없으면 → 제거
+
+**예시**:
+```
+Input:  "smile, medium_shot, surprised, classroom"
+Filter: ❌ medium_shot (0%) → cowboy_shot
+Filter: ❌ surprised (0%) → 제거
+Output: "smile, cowboy_shot, classroom"
+```
+
+#### 2. 템플릿 강화
+3개 Gemini 템플릿에 "⚠️ CRITICAL TAG SELECTION RULES" 추가:
+- 리스트 외 태그 사용 금지 명시
+- 잘못된 태그 사용 시 결과 예시 제공
+- Recommended Tags 우선 사용 강조
+
+#### 3. 로그 확인
+생성 로그에서 필터링 확인:
+```bash
+grep "Filter" backend/logs/backend.log
+```
+
+**결과**:
+- ✅ 0% effectiveness 태그 자동 제거
+- ✅ 안전한 대체 태그 자동 적용
+- ✅ Match Rate 향상 기대
+
+---
+
 ## 🎨 SD 모델 변경 시 주의사항
 
 ### 태그 vs 모델 의존성
