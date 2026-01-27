@@ -10,6 +10,7 @@ from config import (
 )
 from database import get_db
 from models import Character, LoRA, Tag
+from pydantic import BaseModel
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 from services.controlnet import generate_reference_for_character
 from services.prompt_composition import get_effective_mode
@@ -185,3 +186,71 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     except Exception as e:
         logger.exception("Failed to regenerate reference for %s", character.name)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class SuggestTagsRequest(BaseModel):
+    """Request body for tag suggestion endpoint."""
+    prompt: str
+
+
+class SuggestedTag(BaseModel):
+    """Suggested tag with metadata."""
+    id: int
+    name: str
+    group_name: str | None
+
+
+class SuggestTagsResponse(BaseModel):
+    """Response body for tag suggestion endpoint."""
+    identity_tags: list[SuggestedTag]
+    clothing_tags: list[SuggestedTag]
+
+
+@router.post("/suggest-tags", response_model=SuggestTagsResponse)
+async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
+    """Suggest tags based on Base Prompt input.
+
+    Parses the prompt, matches against DB tags, and returns suggestions
+    grouped by category (identity vs clothing).
+    """
+    # 1. Parse prompt (comma-separated)
+    tokens = [token.strip() for token in data.prompt.split(",") if token.strip()]
+
+    # 2. Normalize tokens (handle both formats: "brown hair" and "brown_hair")
+    normalized_tokens = []
+    for token in tokens:
+        normalized_tokens.append(token.replace(" ", "_"))
+        if "_" in token:
+            normalized_tokens.append(token.replace("_", " "))
+
+    # 3. Query DB for matching tags
+    matched_tags = db.query(Tag).filter(Tag.name.in_(normalized_tokens)).all()
+
+    # 4. Group by category
+    identity_tags = []
+    clothing_tags = []
+
+    for tag in matched_tags:
+        suggested_tag = SuggestedTag(
+            id=tag.id,
+            name=tag.name,
+            group_name=tag.group_name
+        )
+
+        if tag.category == "identity":
+            identity_tags.append(suggested_tag)
+        elif tag.category == "clothing":
+            clothing_tags.append(suggested_tag)
+
+    logger.info(
+        "🏷️ [Tag Suggestion] Prompt tokens: %d, Matched: %d (identity: %d, clothing: %d)",
+        len(tokens),
+        len(matched_tags),
+        len(identity_tags),
+        len(clothing_tags)
+    )
+
+    return SuggestTagsResponse(
+        identity_tags=identity_tags,
+        clothing_tags=clothing_tags
+    )
