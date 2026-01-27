@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode } from "../types";
+import { API_BASE } from "../constants";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 
 type Props = {
@@ -29,6 +31,12 @@ export default function CharacterEditModal({
   const [previewImageUrl, setPreviewImageUrl] = useState(character.preview_image_url || "");
   const [promptMode, setPromptMode] = useState<PromptMode>("auto"); // Default to auto if not present in type (it is in type now)
   const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character.ip_adapter_weight || 0.75);
+
+  // Tag suggestion state
+  const [suggestedIdentityTags, setSuggestedIdentityTags] = useState<Tag[]>([]);
+  const [suggestedClothingTags, setSuggestedClothingTags] = useState<Tag[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [ipAdapterModel, setIpAdapterModel] = useState<string>(character.ip_adapter_model || "clip_face");
 
   // Tags state
@@ -158,6 +166,46 @@ export default function CharacterEditModal({
 
   const handleRemoveLora = (index: number) => {
     setSelectedLoras(selectedLoras.filter((_, i) => i !== index));
+  };
+
+  const handleSuggestTags = async () => {
+    if (!customBasePrompt.trim()) {
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSuggesting(true);
+    try {
+      const response = await axios.post(`${API_BASE}/characters/suggest-tags`, {
+        prompt: customBasePrompt,
+      });
+
+      const { identity_tags, clothing_tags } = response.data;
+      setSuggestedIdentityTags(identity_tags);
+      setSuggestedClothingTags(clothing_tags);
+      setShowSuggestions(identity_tags.length > 0 || clothing_tags.length > 0);
+    } catch (error) {
+      console.error("Failed to suggest tags", error);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleAddAllSuggestions = () => {
+    // Add suggested identity tags
+    const newIdentityIds = suggestedIdentityTags
+      .filter(tag => !selectedIdentityTags.includes(tag.id))
+      .map(tag => tag.id);
+    setSelectedIdentityTags([...selectedIdentityTags, ...newIdentityIds]);
+
+    // Add suggested clothing tags
+    const newClothingIds = suggestedClothingTags
+      .filter(tag => !selectedClothingTags.includes(tag.id))
+      .map(tag => tag.id);
+    setSelectedClothingTags([...selectedClothingTags, ...newClothingIds]);
+
+    // Close suggestions panel
+    setShowSuggestions(false);
   };
 
   const handleSubmit = async () => {
@@ -295,10 +343,76 @@ export default function CharacterEditModal({
               <textarea
                 value={customBasePrompt}
                 onChange={(e) => setCustomBasePrompt(e.target.value)}
+                onBlur={handleSuggestTags}
                 rows={3}
                 placeholder="Additional positive tags..."
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none"
               />
+
+              {/* Tag Suggestions Panel */}
+              {isSuggesting && (
+                <div className="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <LoadingSpinner size={16} />
+                    <span>Analyzing prompt...</span>
+                  </div>
+                </div>
+              )}
+
+              {showSuggestions && !isSuggesting && (
+                <div className="mt-2 p-3 rounded-lg bg-green-50 border border-green-200">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="text-xs font-semibold text-green-700 uppercase">📋 Suggested Tags ({suggestedIdentityTags.length + suggestedClothingTags.length} found)</div>
+                    <button
+                      onClick={() => setShowSuggestions(false)}
+                      className="text-green-600 hover:text-green-800 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {suggestedIdentityTags.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-xs font-medium text-green-600 mb-1">Identity:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {suggestedIdentityTags.map(tag => (
+                          <span key={tag.id} className="px-2 py-1 bg-white rounded text-xs text-green-700 border border-green-300">
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {suggestedClothingTags.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-xs font-medium text-green-600 mb-1">Clothing:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {suggestedClothingTags.map(tag => (
+                          <span key={tag.id} className="px-2 py-1 bg-white rounded text-xs text-green-700 border border-green-300">
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={handleAddAllSuggestions}
+                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Add All
+                    </button>
+                    <button
+                      onClick={() => setShowSuggestions(false)}
+                      className="px-3 py-1 bg-white text-green-600 text-xs rounded-lg border border-green-300 hover:bg-green-50 transition-colors"
+                    >
+                      Ignore
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Base Negative (Raw Text)</label>
