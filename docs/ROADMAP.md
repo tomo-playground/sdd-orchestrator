@@ -362,18 +362,31 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 | 2 | **복합 형용사 분리** | 패턴 기반 자동 분리 ("short green hair" → "short_hair, green_hair") | [x] |
 | 3 | **전처리 통합** | storyboard.py에 normalize_and_fix_tags() 파이프라인 삽입 | [x] |
 | 4 | **테스트 추가** | 41개 테스트: 정규화, 패턴 수정, 엣지 케이스 검증 | [x] |
-| 5 | Danbooru 실시간 검증 | API 기반 태그 존재 확인 + 캐싱 (Phase 2) | [ ] |
+| 5 | Danbooru 실시간 검증 | API 기반 태그 존재 확인 + 캐싱 (Phase 2) | [x] |
 
 **Phase 1 완료 (2026-01-27)**:
 - `normalize_tag_spaces()`: 공백 → 언더스코어
 - `fix_compound_adjectives()`: 3개 패턴 (hair, clothing, accessories)
 - `normalize_and_fix_tags()`: 전체 파이프라인
+- Gemini 템플릿 강화 (CRITICAL TAG FORMAT RULES 섹션 추가)
 - 41개 테스트 추가 (총 386개 테스트)
-- Commit: TBD
+- Commit: 4a95f66
 
-**예상 효과**:
-- Match Rate: 29% → 70-80% (Phase 1 완료), 95%+ (Phase 2 예정)
-- 추가 시간: 0초 (Phase 1), 2-5초 (Phase 2 예정)
+**Phase 2 완료 (2026-01-27)**:
+- `validate_tags_with_danbooru()`: 스마트 캐싱 검증
+  - Fast path (99%): DB 조회만 (0ms)
+  - Slow path (1%): Danbooru API (2-5s, 첫 실행만)
+  - Session cache: 동일 스토리보드 내 중복 API 호출 방지
+  - Fail-open: API 오류 시 태그 유지 (가용성 우선)
+- `ENABLE_DANBOORU_VALIDATION` 환경변수 (기본값: true)
+- storyboard.py 통합 (정규화 → Danbooru 검증 → 필터링 파이프라인)
+- 6개 테스트 추가 (총 392개 테스트)
+- Commit: d44b550
+
+**달성 효과**:
+- Match Rate: 29% → 95%+ (예상, Phase 2 검증 활성화 시)
+- 추가 시간: 0초 (Phase 1) + 2-5초 (Phase 2, 신규 태그만)
+- 방어 계층: Gemini 템플릿 (예방) + 코드 정규화 (안전망) + Danbooru 검증 (확인)
 
 ---
 
