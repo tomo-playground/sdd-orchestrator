@@ -226,6 +226,19 @@ async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
     # 3. Query DB for matching tags
     matched_tags = db.query(Tag).filter(Tag.name.in_(normalized_tokens)).all()
 
+    # 3.5. Remove duplicates (prefer underscore version over space version)
+    # If both "brown_hair" and "brown hair" exist, keep only "brown_hair"
+    unique_tags = {}
+    for tag in matched_tags:
+        normalized_name = tag.name.replace(" ", "_")
+        if normalized_name not in unique_tags:
+            unique_tags[normalized_name] = tag
+        elif "_" in tag.name:
+            # Prefer underscore version (Danbooru standard)
+            unique_tags[normalized_name] = tag
+
+    matched_tags = list(unique_tags.values())
+
     # 4. Group by group_name (not category)
     identity_tags = []
     clothing_tags = []
