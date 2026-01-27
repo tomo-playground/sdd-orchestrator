@@ -1533,9 +1533,24 @@ Gemini는 edge case만 (5% 미만)
 - `outputs/preset_verification/` - 프리셋 검증 (4/4 성공)
 - `outputs/lora_emergency_check/` - eureka_v9 LoRA 문제 확인
 
-### 프로덕션 통합 계획 (대기 중)
+### 프로덕션 통합 계획
 
-#### Phase 6-4.23.6: Backend API 확장
+#### Phase 6-4.23.6: Character Prompt SSOT & Reference Fields (✅ 완료 - 2026-01-27)
+- [x] Character Custom Prompt SSOT 확립
+  - Character Edit Modal을 Single Source of Truth로 설정
+  - auto-combination 로직 제거 (`useCharacters.ts` 단순화)
+  - 중복 태그 방지 (easynegative 중복 해결)
+- [x] Character Reference Prompt Fields 추가
+  - DB 마이그레이션: `reference_base_prompt`, `reference_negative_prompt` 필드
+  - Character Edit Modal UI 추가 (Reference Image Generation 섹션)
+  - `controlnet.py` 하드코딩 제거 → `config.py` 상수 사용
+  - `routers/characters.py` - 캐릭터 생성 시 기본값 자동 설정
+  - 마이그레이션 스크립트: 기존 9개 캐릭터 데이터 초기화
+- [x] BGM Random 지속성 수정
+  - Draft restore 로직 개선 (truthy check)
+  - BGM list validation - "random" 특수값 처리
+
+#### Phase 6-4.23.7: Backend API 확장 (대기 중)
 - [ ] `generate_with_character_preset()` 함수 추가
   - CHARACTER_PRESETS에서 reference_image 자동 로드
   - Reference-only ControlNet args 자동 생성
@@ -1543,7 +1558,7 @@ Gemini는 edge case만 (5% 미만)
   - 첫 씬 기준 이미지 생성
   - 이후 씬에 Reference-only weight 0.75 적용
 
-#### Phase 6-4.23.7: Frontend UI 추가
+#### Phase 6-4.23.8: Frontend UI 추가 (대기 중)
 - [ ] Character Preset 선택 드롭다운
   - Generic Anime Girl/Boy 기본 제공
 - [ ] Reference-only On/Off 토글
@@ -1551,7 +1566,7 @@ Gemini는 edge case만 (5% 미만)
   - 0.75: Strong (권장)
   - 0.9: Ultra (강력)
 
-#### Phase 6-4.23.8: Multi-Character 시스템
+#### Phase 6-4.23.9: Multi-Character 시스템 (대기 중)
 - [ ] Gemini 템플릿 수정 (create_storyboard.j2)
   - 상호작용 장면 → 단일 생성 (권장)
   - 대화 장면 → 분리 생성 + 합성
