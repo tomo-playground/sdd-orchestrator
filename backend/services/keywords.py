@@ -481,11 +481,13 @@ def suggest_category_for_tag(tag: str) -> tuple[str, float]:
 def normalize_prompt_token(token: str) -> str:
     """Normalize a single prompt token for comparison/matching.
 
-    CRITICAL: Converts underscores to spaces for consistent DB matching.
-    - DB stores space format: "brown hair", "full body"
-    - WD14 returns space format: "brown hair", "full body"
-    - This function normalizes ALL formats → space for matching
-    - SD prompt generation uses normalize_tag_spaces() to convert back to underscores
+    CRITICAL: Preserves underscore format (Danbooru standard).
+    - Danbooru tags use underscores: "brown_hair", "looking_at_viewer"
+    - WD14 returns underscores: "brown_hair", "looking_at_viewer"
+    - DB stores underscores: "brown_hair", "looking_at_viewer"
+    - SD prompts use underscores: "brown_hair", "looking_at_viewer"
+
+    All layers use the same format - no conversion needed.
     """
     cleaned = token.strip()
     if not cleaned:
@@ -495,8 +497,7 @@ def normalize_prompt_token(token: str) -> str:
     if cleaned.startswith("(") and cleaned.endswith(")"):
         cleaned = cleaned[1:-1]
     cleaned = re.sub(r":[0-9.]*$", "", cleaned)
-    # Convert underscores to spaces for DB/WD14 matching
-    cleaned = cleaned.replace("_", " ")
+    # Keep underscore format (Danbooru standard)
     return cleaned.strip().lower()
 
 

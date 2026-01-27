@@ -145,11 +145,11 @@ def test_auto_replace_risky_tags(client: TestClient):
 
     assert data["replaced_count"] == 2
     assert data["original"] == ["medium shot", "1girl", "close up", "standing"]
-    assert data["replaced"] == ["cowboy shot", "1girl", "close-up", "standing"]
+    assert data["replaced"] == ["cowboy_shot", "1girl", "close-up", "standing"]
 
     # Check replacement details
     replacements = {r["from"]: r["to"] for r in data["replacements"]}
-    assert replacements["medium shot"] == "cowboy shot"
+    assert replacements["medium shot"] == "cowboy_shot"
     assert replacements["close up"] == "close-up"
 
 

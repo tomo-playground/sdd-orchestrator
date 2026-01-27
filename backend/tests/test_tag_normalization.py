@@ -435,21 +435,21 @@ class TestFilterStage:
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_synonyms_from_db")
     @patch("services.keywords.load_allowed_tags_from_db")
-    def test_preserves_underscore_format_with_space_db(self, mock_allowed, mock_synonym, mock_eff):
-        """Filter should preserve underscore format even when DB has space format."""
+    def test_preserves_underscore_format(self, mock_allowed, mock_synonym, mock_eff):
+        """Filter should preserve underscore format (Danbooru standard)."""
         from services.keywords import filter_prompt_tokens
 
-        # Mock DB with space-format tags
+        # Mock DB with underscore-format tags (Danbooru standard)
         mock_allowed.return_value = {
-            "looking at viewer",  # Space format (legacy DB)
-            "cowboy shot",
-            "falling leaves",
+            "looking_at_viewer",
+            "cowboy_shot",
+            "falling_leaves",
             "smile",
         }
         mock_synonym.return_value = {}
         mock_eff.return_value = {}  # No effectiveness filtering
 
-        # Input: underscore format (from normalization stage)
+        # Input: underscore format
         input_prompt = "smile, looking_at_viewer, cowboy_shot, falling_leaves"
 
         result = filter_prompt_tokens(input_prompt)
@@ -460,11 +460,6 @@ class TestFilterStage:
         assert "falling_leaves" in result
         assert "smile" in result
 
-        # Should NOT convert to space format
-        assert "looking at viewer" not in result
-        assert "cowboy shot" not in result
-        assert "falling leaves" not in result
-
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_synonyms_from_db")
     @patch("services.keywords.load_allowed_tags_from_db")
@@ -472,14 +467,14 @@ class TestFilterStage:
         """Full pipeline should maintain underscore format throughout."""
         from services.keywords import filter_prompt_tokens
 
-        # Mock DB with space-format tags
+        # Mock DB with underscore-format tags (Danbooru standard)
         mock_allowed.return_value = {
-            "long hair",
-            "blonde hair",
-            "looking at viewer",
-            "white dress",
+            "long_hair",
+            "blonde_hair",
+            "looking_at_viewer",
+            "white_dress",
             "outdoors",
-            "full body",
+            "full_body",
         }
         mock_synonym.return_value = {}
         mock_eff.return_value = {}  # No effectiveness filtering
@@ -493,14 +488,12 @@ class TestFilterStage:
         assert normalized == expected_normalized
 
         # Phase 3: Filter (should preserve underscores)
-        # NOTE: Some tags may be filtered due to low effectiveness
-        # long_hair (0%), white_dress (0%) might be removed
         filtered = filter_prompt_tokens(normalized)
 
-        # High-effectiveness tags should remain
-        assert "blonde_hair" in filtered or "blonde hair" in filtered
-        assert "looking_at_viewer" in filtered or "looking at viewer" in filtered
-        assert "full_body" in filtered or "full body" in filtered
+        # All tags should remain (underscore format)
+        assert "blonde_hair" in filtered
+        assert "looking_at_viewer" in filtered
+        assert "full_body" in filtered
 
         # Underscore format is preserved for remaining tags
         # (Space format only if DB has it as primary)

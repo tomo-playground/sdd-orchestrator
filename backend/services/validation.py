@@ -107,7 +107,8 @@ def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
         for row in reader:
             if len(row) <= max(name_idx, category_idx):
                 continue
-            tag = row[name_idx].replace("_", " ").strip()
+            # Keep underscore format (Danbooru standard)
+            tag = row[name_idx].strip()
             category = row[category_idx].strip()
             tags.append(tag)
             categories.append(category)

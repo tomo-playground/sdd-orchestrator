@@ -33,6 +33,33 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 - **설정 값**: 모든 환경 변수 및 상수는 `backend/config.py`에서 관리합니다. 개별 파일 하드코딩 금지.
 - **로직 기준**: 태그 우선순위(`TOKEN_PRIORITY`) 등의 비즈니스 로직은 **Backend**(`backend/services/keywords.py`)가 Single Source of Truth입니다. Frontend는 이를 따르거나 동기화해야 합니다.
 
+## Tag Format Standard (Danbooru 표준)
+**원칙**: 모든 태그는 **언더바(_) 형식**을 사용합니다. 공백 형식 절대 금지.
+
+**근거**:
+- **Danbooru 표준**: `brown_hair`, `looking_at_viewer`, `cowboy_shot`
+- **WD14 Tagger CSV**: 언더바 형식 사용
+- **SD 프롬프트**: 언더바 형식 사용
+- **DB 저장**: 언더바 형식 통일 (Phase 6-4.21 완료)
+
+**적용 범위**:
+- DB 저장 (tags 테이블, tag_effectiveness 테이블)
+- API 응답 (JSON 포맷)
+- 프롬프트 생성 (`normalize_prompt_token()` 보존)
+- Gemini 템플릿 예시 (create_storyboard.j2)
+- WD14 검증 결과
+
+**금지 사항**:
+- ❌ 공백 형식 변환 (`tag.replace("_", " ")`)
+- ❌ 혼용 (일부는 언더바, 일부는 공백)
+- ❌ 사용자 입력 자동 변환 (입력은 그대로, DB 조회 시에만 정규화)
+
+**예외**:
+- 하이픈 태그는 유지: `close-up`, `full-body`
+- 복합어 태그는 언더바로 연결: `light_brown_hair`, `school_uniform`
+
+> 관련 커밋: Phase 6-4.21 (2026-01-27) - DB 공백 태그 554개 → 언더바 통일
+
 ## Sub Agents
 
 | Agent | 역할 | Commands |
