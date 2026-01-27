@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import axios from "axios";
 import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode } from "../types";
-import { API_BASE } from "../constants";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 
 type Props = {
-  character: Character;
+  character?: Character; // Make character optional for create mode
   allTags: Tag[];
   allLoras: LoRA[];
   onClose: () => void;
-  onSave: (id: number, data: Partial<Character>) => Promise<void>;
+  onSave: (data: Partial<Character>, id?: number) => Promise<void>; // Update onSave signature
 };
 
 export default function CharacterEditModal({
@@ -21,27 +19,21 @@ export default function CharacterEditModal({
   onClose,
   onSave,
 }: Props) {
-  const [name, setName] = useState(character.name);
-  const [description, setDescription] = useState(character.description || "");
-  const [gender, setGender] = useState<ActorGender>(character.gender || "female");
-  const [customBasePrompt, setCustomBasePrompt] = useState(character.custom_base_prompt || "");
-  const [customNegativePrompt, setCustomNegativePrompt] = useState(character.custom_negative_prompt || "");
-  const [referenceBasePrompt, setReferenceBasePrompt] = useState(character.reference_base_prompt || "");
-  const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(character.reference_negative_prompt || "");
-  const [previewImageUrl, setPreviewImageUrl] = useState(character.preview_image_url || "");
-  const [promptMode, setPromptMode] = useState<PromptMode>("auto"); // Default to auto if not present in type (it is in type now)
-  const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character.ip_adapter_weight || 0.75);
+  const isCreateMode = !character;
+  const [name, setName] = useState(character?.name || ""); // Use optional chaining
+  const [description, setDescription] = useState(character?.description || ""); // Use optional chaining
+  const [gender, setGender] = useState<ActorGender>(character?.gender || "female"); // Use optional chaining
+  const [customBasePrompt, setCustomBasePrompt] = useState(character?.custom_base_prompt || ""); // Use optional chaining
+  const [customNegativePrompt, setCustomNegativePrompt] = useState(character?.custom_negative_prompt || ""); // Use optional chaining
 
-  // Tag suggestion state
-  const [suggestedIdentityTags, setSuggestedIdentityTags] = useState<Tag[]>([]);
-  const [suggestedClothingTags, setSuggestedClothingTags] = useState<Tag[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [ipAdapterModel, setIpAdapterModel] = useState<string>(character.ip_adapter_model || "clip_face");
+  const [previewImageUrl, setPreviewImageUrl] = useState(character?.preview_image_url || ""); // Use optional chaining
+  const [promptMode, setPromptMode] = useState<PromptMode>(character?.prompt_mode || "auto"); // Use optional chaining
+  const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character?.ip_adapter_weight || 0.75); // Use optional chaining
+  const [ipAdapterModel, setIpAdapterModel] = useState<string>(character?.ip_adapter_model || "clip_face"); // Use optional chaining
 
   // Tags state
-  const [identityTagIds, setIdentityTagIds] = useState<number[]>(character.identity_tags || []);
-  const [clothingTagIds, setClothingTagIds] = useState<number[]>(character.clothing_tags || []);
+  const [identityTagIds, setIdentityTagIds] = useState<number[]>(character?.identity_tags || []);
+  const [clothingTagIds, setClothingTagIds] = useState<number[]>(character?.clothing_tags || []);
   const [tagSearch, setTagSearch] = useState("");
   const [activeTagInput, setActiveTagInput] = useState<"identity" | "clothing" | null>(null);
   
@@ -50,13 +42,16 @@ export default function CharacterEditModal({
   const [rawEditText, setRawEditText] = useState("");
 
   // LoRAs state
-  const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character.loras || []);
+  const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character?.loras || []);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [referenceBasePrompt, setReferenceBasePrompt] = useState(isCreateMode ? customBasePrompt : character?.reference_base_prompt || "");
+  const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(isCreateMode ? customNegativePrompt : character?.reference_negative_prompt || "");
 
   // Initialize prompt_mode if it exists in character object (it might be missing in older types, but we saw it in schema)
   useEffect(() => {
-    if ((character as any).prompt_mode) {
-      setPromptMode((character as any).prompt_mode);
+    if (character?.prompt_mode) { // Use optional chaining
+      setPromptMode(character.prompt_mode);
     }
   }, [character]);
 
@@ -168,65 +163,28 @@ export default function CharacterEditModal({
     setSelectedLoras(selectedLoras.filter((_, i) => i !== index));
   };
 
-  const handleSuggestTags = async () => {
-    if (!customBasePrompt.trim()) {
-      setShowSuggestions(false);
-      return;
-    }
-
-    setIsSuggesting(true);
-    try {
-      const response = await axios.post(`${API_BASE}/characters/suggest-tags`, {
-        prompt: customBasePrompt,
-      });
-
-      const { identity_tags, clothing_tags } = response.data;
-      setSuggestedIdentityTags(identity_tags);
-      setSuggestedClothingTags(clothing_tags);
-      setShowSuggestions(identity_tags.length > 0 || clothing_tags.length > 0);
-    } catch (error) {
-      console.error("Failed to suggest tags", error);
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
-
-  const handleAddAllSuggestions = () => {
-    // Add suggested identity tags
-    const newIdentityIds = suggestedIdentityTags
-      .filter(tag => !identityTagIds.includes(tag.id))
-      .map(tag => tag.id);
-    setIdentityTagIds([...identityTagIds, ...newIdentityIds]);
-
-    // Add suggested clothing tags
-    const newClothingIds = suggestedClothingTags
-      .filter(tag => !clothingTagIds.includes(tag.id))
-      .map(tag => tag.id);
-    setClothingTagIds([...clothingTagIds, ...newClothingIds]);
-
-    // Close suggestions panel
-    setShowSuggestions(false);
-  };
-
   const handleSubmit = async () => {
     setIsSaving(true);
     try {
-      await onSave(character.id, {
-        name,
-        description,
-        gender,
-        preview_image_url: previewImageUrl,
-        identity_tags: identityTagIds,
-        clothing_tags: clothingTagIds,
-        loras: selectedLoras,
-        prompt_mode: promptMode,
-        custom_base_prompt: customBasePrompt,
-        custom_negative_prompt: customNegativePrompt,
-        reference_base_prompt: referenceBasePrompt,
-        reference_negative_prompt: referenceNegativePrompt,
-        ip_adapter_weight: ipAdapterWeight,
-        ip_adapter_model: ipAdapterModel,
-      });
+      await onSave(
+        {
+          name,
+          description,
+          gender,
+          preview_image_url: previewImageUrl,
+          identity_tags: identityTagIds,
+          clothing_tags: clothingTagIds,
+          loras: selectedLoras,
+          prompt_mode: promptMode,
+          custom_base_prompt: customBasePrompt,
+          custom_negative_prompt: customNegativePrompt,
+          reference_base_prompt: referenceBasePrompt,
+          reference_negative_prompt: referenceNegativePrompt,
+          ip_adapter_weight: ipAdapterWeight,
+          ip_adapter_model: ipAdapterModel,
+        },
+        character?.id // Pass character.id only if it exists
+      );
       onClose();
     } catch (error) {
       console.error("Failed to save character", error);
@@ -241,7 +199,9 @@ export default function CharacterEditModal({
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
-          <h2 className="text-lg font-bold text-zinc-900">Edit Character: {character.name}</h2>
+          <h2 className="text-lg font-bold text-zinc-900">
+            {isCreateMode ? "Create New Character" : `Edit Character: ${character?.name}`}
+          </h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">✕</button>
         </div>
 
@@ -339,83 +299,39 @@ export default function CharacterEditModal({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Base Prompt (Raw Text)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Base Prompt (Raw Text)</label>
+                {!isCreateMode && (
+                  <button
+                    type="button"
+                    onClick={() => setReferenceBasePrompt(customBasePrompt)}
+                    className="text-[10px] text-zinc-500 hover:underline"
+                  >
+                    Copy to Ref.
+                  </button>
+                )}
+              </div>
               <textarea
                 value={customBasePrompt}
                 onChange={(e) => setCustomBasePrompt(e.target.value)}
-                onBlur={handleSuggestTags}
                 rows={3}
                 placeholder="Additional positive tags..."
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none"
               />
-
-              {/* Tag Suggestions Panel */}
-              {isSuggesting && (
-                <div className="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="flex items-center gap-2 text-sm text-blue-600">
-                    <LoadingSpinner size={16} />
-                    <span>Analyzing prompt...</span>
-                  </div>
-                </div>
-              )}
-
-              {showSuggestions && !isSuggesting && (
-                <div className="mt-2 p-3 rounded-lg bg-green-50 border border-green-200">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="text-xs font-semibold text-green-700 uppercase">📋 Suggested Tags ({suggestedIdentityTags.length + suggestedClothingTags.length} found)</div>
-                    <button
-                      onClick={() => setShowSuggestions(false)}
-                      className="text-green-600 hover:text-green-800 text-xs"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {suggestedIdentityTags.length > 0 && (
-                    <div className="mb-2">
-                      <div className="text-xs font-medium text-green-600 mb-1">Identity:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {suggestedIdentityTags.map(tag => (
-                          <span key={tag.id} className="px-2 py-1 bg-white rounded text-xs text-green-700 border border-green-300">
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {suggestedClothingTags.length > 0 && (
-                    <div className="mb-2">
-                      <div className="text-xs font-medium text-green-600 mb-1">Clothing:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {suggestedClothingTags.map(tag => (
-                          <span key={tag.id} className="px-2 py-1 bg-white rounded text-xs text-green-700 border border-green-300">
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={handleAddAllSuggestions}
-                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Add All
-                    </button>
-                    <button
-                      onClick={() => setShowSuggestions(false)}
-                      className="px-3 py-1 bg-white text-green-600 text-xs rounded-lg border border-green-300 hover:bg-green-50 transition-colors"
-                    >
-                      Ignore
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Base Negative (Raw Text)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Base Negative (Raw Text)</label>
+                {!isCreateMode && (
+                  <button
+                    type="button"
+                    onClick={() => setReferenceNegativePrompt(customNegativePrompt)}
+                    className="text-[10px] text-zinc-500 hover:underline"
+                  >
+                    Copy to Ref.
+                  </button>
+                )}
+              </div>
               <textarea
                 value={customNegativePrompt}
                 onChange={(e) => setCustomNegativePrompt(e.target.value)}
@@ -426,35 +342,7 @@ export default function CharacterEditModal({
             </div>
           </div>
 
-          {/* Reference Image Prompts */}
-          <div className="border-t border-zinc-200 pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Reference Image Generation</label>
-              <span className="text-[10px] text-zinc-400">For IP-Adapter reference creation</span>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">Reference Positive</label>
-                <textarea
-                  value={referenceBasePrompt}
-                  onChange={(e) => setReferenceBasePrompt(e.target.value)}
-                  rows={3}
-                  placeholder="masterpiece, best quality, anime portrait, looking at viewer..."
-                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">Reference Negative</label>
-                <textarea
-                  value={referenceNegativePrompt}
-                  onChange={(e) => setReferenceNegativePrompt(e.target.value)}
-                  rows={3}
-                  placeholder="easynegative, from side, from behind, profile..."
-                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
-                />
-              </div>
-            </div>
-          </div>
+
 
           {/* Identity Tags */}
           <div>
