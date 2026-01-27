@@ -592,7 +592,14 @@ async def generate_reference_for_character(
 
     # Remove duplicate tags (simple set)
     unique_tags = list(dict.fromkeys(tag_list))
-    full_prompt = f"{base_positive}, {', '.join(unique_tags)}, {' '.join(lora_prompt_parts)}"
+
+    # Build full prompt (only add tags/loras if they exist)
+    prompt_parts = [base_positive]
+    if unique_tags:
+        prompt_parts.append(', '.join(unique_tags))
+    if lora_prompt_parts:
+        prompt_parts.append(' '.join(lora_prompt_parts))
+    full_prompt = ', '.join(prompt_parts)
 
     # 4. Construct negative prompt
     # Use character's reference_negative_prompt or fallback to default
@@ -623,6 +630,8 @@ async def generate_reference_for_character(
         }
 
         logger.info(f"🎨 [{attempt+1}/{max_attempts}] Generating reference for {character.name}...")
+        logger.info(f"  Prompt: {payload['prompt'][:200]}...")
+        logger.info(f"  Negative: {payload['negative_prompt'][:100]}...")
 
         # 5. Call SD
         async with httpx.AsyncClient() as client:

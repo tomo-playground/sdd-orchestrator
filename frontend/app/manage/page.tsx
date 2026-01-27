@@ -48,6 +48,7 @@ export default function ManagePage() {
   const [keywordError, setKeywordError] = useState("");
   const [keywordApproving, setKeywordApproving] = useState<Record<string, boolean>>({});
   const [isRegeneratingChar, setIsRegeneratingChar] = useState<Record<number, boolean>>({});
+  const [charImageTimestamps, setCharImageTimestamps] = useState<Record<number, number>>({});
 
   // Batch approval state
   type BatchPreview = {
@@ -180,6 +181,8 @@ export default function ManagePage() {
     setIsRegeneratingChar((prev) => ({ ...prev, [charId]: true }));
     try {
       await axios.post(`${API_BASE}/characters/${charId}/regenerate-reference`);
+      // Update timestamp to bust cache
+      setCharImageTimestamps((prev) => ({ ...prev, [charId]: Date.now() }));
       await fetchStyleData();
       alert("Reference regenerated successfully!");
     } catch {
@@ -1481,10 +1484,10 @@ export default function ManagePage() {
                             <div className="flex items-center gap-3">
                               {char.preview_image_url ? (
                                 <img
-                                  src={`${API_BASE}${char.preview_image_url}`}
+                                  src={`${API_BASE}${char.preview_image_url}${charImageTimestamps[char.id] ? `?t=${charImageTimestamps[char.id]}` : ""}`}
                                   alt=""
                                   className="h-14 w-14 rounded-xl object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
-                                  onClick={() => setEnlargedImage({ url: `${API_BASE}${char.preview_image_url}`, title: char.name })}
+                                  onClick={() => setEnlargedImage({ url: `${API_BASE}${char.preview_image_url}${charImageTimestamps[char.id] ? `?t=${charImageTimestamps[char.id]}` : ""}`, title: char.name })}
                                 />
                               ) : (
                                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-2xl">
