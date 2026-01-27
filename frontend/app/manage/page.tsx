@@ -73,6 +73,7 @@ export default function ManagePage() {
   type StyleSubTab = "profiles" | "loras" | "characters" | "models" | "embeddings";
   const [styleSubTab, setStyleSubTab] = useState<StyleSubTab>("profiles");
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [isCreatingCharacter, setIsCreatingCharacter] = useState(false);
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
   const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
@@ -164,14 +165,23 @@ export default function ManagePage() {
   const [evalRepetitions, setEvalRepetitions] = useState(3);
   const [evalLastBatchId, setEvalLastBatchId] = useState<string | null>(null);
 
-  const handleSaveCharacter = async (id: number, data: Partial<Character>) => {
+  const handleSaveCharacter = async (data: Partial<Character>, id?: number) => {
     try {
-      await axios.put(`${API_BASE}/characters/${id}`, data);
+      if (id) {
+        // Update existing character
+        await axios.put(`${API_BASE}/characters/${id}`, data);
+        alert("Character updated successfully!");
+      } else {
+        // Create new character
+        await axios.post(`${API_BASE}/characters`, data);
+        alert("Character created successfully!");
+      }
       await fetchStyleData();
-      alert("Character updated successfully!");
+      setEditingCharacter(null);
+      setIsCreatingCharacter(false);
     } catch (error) {
-      console.error("Failed to update character", error);
-      alert("Failed to update character");
+      console.error("Failed to save character", error);
+      alert("Failed to save character");
       throw error;
     }
   };
@@ -1464,9 +1474,17 @@ export default function ManagePage() {
             {/* Characters Sub-tab */}
             {styleSubTab === "characters" && (
               <div className="grid gap-4">
-                <p className="text-xs text-zinc-500">
-                  Character presets bundle identity tags, clothing, and LoRA settings.
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-zinc-500">
+                    Character presets bundle identity tags, clothing, and LoRA settings.
+                  </p>
+                  <button
+                    onClick={() => setIsCreatingCharacter(true)}
+                    className="rounded-full bg-indigo-600 px-4 py-2 text-[10px] font-semibold tracking-[0.1em] text-white uppercase shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700"
+                  >
+                    + Create New
+                  </button>
+                </div>
                 {characters.length === 0 ? (
                   <p className="text-xs text-zinc-400">No characters created yet.</p>
                 ) : (
@@ -2540,12 +2558,15 @@ export default function ManagePage() {
           </div>
         )}
         {/* Character Edit Modal */}
-        {editingCharacter && (
+        {(editingCharacter || isCreatingCharacter) && (
           <CharacterEditModal
-            character={editingCharacter}
+            character={editingCharacter || undefined}
             allTags={allTags}
             allLoras={loraEntries}
-            onClose={() => setEditingCharacter(null)}
+            onClose={() => {
+              setEditingCharacter(null);
+              setIsCreatingCharacter(false);
+            }}
             onSave={handleSaveCharacter}
           />
         )}

@@ -1,6 +1,44 @@
-# API Specification (v2.0)
+# API Specification (v2.1)
 
 프론트엔드와 백엔드 간 데이터 통신을 위한 API 명세서입니다.
+
+## 📝 변경 이력
+
+| 버전 | 날짜 | 주요 변경사항 |
+|------|------|--------------|
+| v2.1 | 2026-01-27 | Characters API 추가, Generation Logs API 추가, Quality API 추가, Evaluation API 추가, Ken Burns 세로 프리셋 추가 |
+| v2.0 | 2025-12-15 | Phase 5-6 완료, 초기 버전 |
+
+## 🚀 최신 추가 기능 (v2.1)
+
+- **Characters API** (`/characters`) - 캐릭터 CRUD 및 태그 자동 제안 (Phase 6-4.24)
+- **Generation Logs API** (`/generation-logs`) - 패턴 분석 및 충돌 규칙 자동 발견 (Phase 6-4.21)
+- **Quality API** (`/quality`) - 배치 검증 및 품질 대시보드 (Phase 5-4-1)
+- **Evaluation API** (`/evaluation`) - Mode A/B 프롬프트 비교 시스템
+- **Ken Burns Vertical Presets** - 9:16 세로 영상 최적화 프리셋 6종
+
+---
+
+## 📑 목차
+
+1. [🎬 Storyboard](#-storyboard) - AI 스토리보드 생성
+2. [🖼️ Scene](#️-scene-이미지-생성검증) - 이미지 생성 및 검증
+3. [🚀 Video](#-video-영상-렌더링) - 영상 렌더링
+4. [📋 Presets](#-presets-프리셋-템플릿) - 스토리보드 프리셋
+5. [🗑️ Storage](#️-storage-저장소-관리) - 저장소 관리
+6. [🏷️ Tags & Classification](#️-tags--classification-태그-분류-시스템) - 태그 분류
+7. [🧠 Keywords](#-keywords-키워드-관리) - 키워드 관리
+8. [🤖 ControlNet & IP-Adapter](#-controlnet--ip-adapter) - ControlNet
+9. [🧬 LoRA Management](#-lora-management) - LoRA 관리
+10. [👤 Avatar](#-avatar-아바타-관리) - 아바타 관리
+11. [🎵 Assets](#-assets-에셋-관리) - 에셋 관리
+12. [✏️ Prompt](#️-prompt-프롬프트-처리) - 프롬프트 처리
+13. [🎨 Stable Diffusion](#-stable-diffusion-sd-webui-프록시) - SD WebUI 프록시
+14. [👥 Characters](#-characters-캐릭터-관리) - 캐릭터 관리 (New in v2.1)
+15. [📊 Quality](#-quality-품질-검증-자동화) - 품질 검증 (New in v2.1)
+16. [📈 Generation Logs](#-generation-logs-생성-로그-분석) - 생성 로그 분석 (New in v2.1)
+17. [🧪 Evaluation](#-evaluation-프롬프트-모드-비교) - 프롬프트 모드 비교 (New in v2.1)
+18. [📌 공통 사항](#-공통-사항) - 에러 처리 및 상태 코드
 
 ---
 
@@ -162,9 +200,14 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 - `layout_style`: `"post"` | `"full"` (default: `"post"`)
 - `bgm_file`: BGM 파일명 또는 `"random"` (backend에서 랜덤 선택)
 - `ken_burns_preset`: Ken Burns 효과 프리셋 (default: `"none"`)
-  - `"none"`, `"slow_zoom"`, `"zoom_in_center"`, `"zoom_out_center"`
-  - `"pan_left"`, `"pan_right"`, `"pan_up"`, `"pan_down"`
-  - `"zoom_pan_left"`, `"zoom_pan_right"`, `"random"`
+  - **기본**: `"none"`, `"zoom_in_center"`, `"zoom_out_center"`
+  - **패닝**: `"pan_left"`, `"pan_right"`, `"pan_up"`, `"pan_down"`
+  - **줌+패닝**: `"zoom_pan_left"`, `"zoom_pan_right"`
+  - **세로 영상 최적화** (9:16 Full Layout):
+    - `"pan_up_vertical"`, `"pan_down_vertical"`
+    - `"zoom_in_bottom"`, `"zoom_in_top"`
+    - `"pan_zoom_up"`, `"pan_zoom_down"`
+  - **랜덤**: `"random"`
 - `ken_burns_intensity`: 효과 강도 0.5~2.0 (default: `1.0`)
 
 **Response:**
@@ -840,6 +883,570 @@ SD WebUI 모델을 변경합니다.
 
 ---
 
+## 👥 Characters (캐릭터 관리)
+
+### `GET /characters`
+등록된 캐릭터 목록을 조회합니다.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Midoriya Izuku",
+    "description": "Hero Academia protagonist",
+    "gender": "male",
+    "identity_tags": [1, 2],
+    "clothing_tags": [10, 11],
+    "loras": [{"lora_id": 5, "weight": 0.7}],
+    "custom_base_prompt": "1boy, midoriya_izuku, green_hair, freckles",
+    "custom_negative_prompt": "EasyNegative",
+    "prompt_mode": "lora",
+    "ip_adapter_weight": 0.5,
+    "ip_adapter_model": "ip-adapter-plus_sd15",
+    "preview_image_url": "/assets/references/Midoriya.png"
+  }
+]
+```
+
+### `GET /characters/{character_id}`
+특정 캐릭터의 기본 정보를 조회합니다.
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Midoriya Izuku",
+  "description": "Hero Academia protagonist",
+  "gender": "male",
+  "custom_base_prompt": "1boy, midoriya_izuku, green_hair, freckles",
+  "custom_negative_prompt": "EasyNegative",
+  "prompt_mode": "lora"
+}
+```
+
+### `GET /characters/{character_id}/full`
+캐릭터의 전체 정보를 조회합니다 (태그명, LoRA 정보 포함).
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Midoriya Izuku",
+  "description": "Hero Academia protagonist",
+  "gender": "male",
+  "identity_tags": [
+    {"id": 1, "name": "1boy", "group_name": "subject"},
+    {"id": 2, "name": "green_hair", "group_name": "hair_color"}
+  ],
+  "clothing_tags": [
+    {"id": 10, "name": "school_uniform", "group_name": "clothing"}
+  ],
+  "loras": [
+    {
+      "id": 5,
+      "name": "mha_midoriya-10",
+      "display_name": "MHA Midoriya",
+      "trigger_words": ["midoriya_izuku"],
+      "weight": 0.7,
+      "optimal_weight": 0.65,
+      "calibration_score": 92.5,
+      "lora_type": "character"
+    }
+  ],
+  "custom_base_prompt": "1boy, midoriya_izuku, green_hair, freckles",
+  "custom_negative_prompt": "EasyNegative",
+  "prompt_mode": "lora",
+  "effective_mode": "lora",
+  "ip_adapter_weight": 0.5,
+  "ip_adapter_model": "ip-adapter-plus_sd15"
+}
+```
+
+### `POST /characters`
+새 캐릭터를 생성합니다.
+
+**Request:**
+```json
+{
+  "name": "New Character",
+  "description": "Character description",
+  "gender": "female",
+  "identity_tags": [1, 2],
+  "clothing_tags": [10],
+  "loras": [{"lora_id": 5, "weight": 0.7}],
+  "custom_base_prompt": "1girl, long_hair",
+  "custom_negative_prompt": "EasyNegative",
+  "prompt_mode": "auto",
+  "ip_adapter_weight": 0.5
+}
+```
+
+**Response:** (201 Created)
+```json
+{
+  "id": 10,
+  "name": "New Character",
+  "reference_base_prompt": "masterpiece, best quality, ...",
+  "reference_negative_prompt": "worst quality, low quality, ..."
+}
+```
+
+### `PUT /characters/{character_id}`
+캐릭터 정보를 수정합니다.
+
+**Request:**
+```json
+{
+  "name": "Updated Name",
+  "custom_base_prompt": "1girl, updated_prompt",
+  "prompt_mode": "standard"
+}
+```
+
+**Response:**
+```json
+{
+  "id": 10,
+  "name": "Updated Name",
+  "custom_base_prompt": "1girl, updated_prompt",
+  "prompt_mode": "standard"
+}
+```
+
+### `DELETE /characters/{character_id}`
+캐릭터를 삭제합니다.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "deleted_id": 10
+}
+```
+
+### `POST /characters/{character_id}/regenerate-reference`
+캐릭터의 참조 이미지를 재생성합니다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "image_path": "/assets/references/Character_Name.png",
+  "timestamp": "2026-01-27T12:34:56"
+}
+```
+
+### `POST /characters/suggest-tags`
+Base Prompt에서 태그를 자동 추출하여 카테고리별로 제안합니다 (Phase 6-4.24).
+
+**Request:**
+```json
+{
+  "base_prompt": "1girl, brown_hair, school_uniform, solo"
+}
+```
+
+**Response:**
+```json
+{
+  "identity": [
+    {"tag_id": 1, "name": "1girl", "group_name": "subject"},
+    {"tag_id": 5, "name": "brown_hair", "group_name": "hair_color"},
+    {"tag_id": 8, "name": "solo", "group_name": "subject"}
+  ],
+  "clothing": [
+    {"tag_id": 15, "name": "school_uniform", "group_name": "clothing"}
+  ],
+  "style": [],
+  "expression": []
+}
+```
+
+---
+
+## 📊 Quality (품질 검증 자동화)
+
+### `POST /quality/batch-validate`
+프로젝트의 모든 씬을 배치로 검증하고 품질 점수를 저장합니다 (Phase 5-4-1).
+
+**Request:**
+```json
+{
+  "project_name": "my_project",
+  "scenes": [
+    {
+      "scene_id": 1,
+      "image_url": "/outputs/images/scene_1.png",
+      "prompt": "1girl, coffee_shop, sitting"
+    },
+    {
+      "scene_id": 2,
+      "image_url": "/outputs/images/scene_2.png",
+      "prompt": "1girl, park, walking"
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "total": 10,
+  "validated": 9,
+  "average_match_rate": 0.82,
+  "scores": [
+    {
+      "scene_id": 1,
+      "match_rate": 0.85,
+      "matched_tags": ["1girl", "sitting", "indoors"],
+      "missing_tags": ["coffee_shop"],
+      "status": "excellent"
+    },
+    {
+      "scene_id": 2,
+      "match_rate": 0.78,
+      "matched_tags": ["1girl", "walking", "outdoors"],
+      "missing_tags": [],
+      "status": "good"
+    }
+  ]
+}
+```
+
+### `GET /quality/summary/{project_name}`
+프로젝트의 품질 요약 통계를 조회합니다.
+
+**Response:**
+```json
+{
+  "total_scenes": 10,
+  "average_match_rate": 0.82,
+  "excellent_count": 6,
+  "good_count": 2,
+  "poor_count": 2,
+  "scores": [
+    {"scene_id": 1, "match_rate": 0.85, "status": "excellent"},
+    {"scene_id": 2, "match_rate": 0.78, "status": "good"}
+  ]
+}
+```
+
+### `GET /quality/alerts`
+품질 기준 미달 씬 목록을 조회합니다.
+
+**Query Parameters:**
+- `project_name`: 프로젝트명 (required)
+- `threshold`: 경고 기준 Match Rate (default: 0.7)
+
+**Response:**
+```json
+{
+  "total_alerts": 2,
+  "threshold": 0.7,
+  "alerts": [
+    {
+      "scene_id": 5,
+      "match_rate": 0.55,
+      "missing_tags": ["classroom", "sitting"],
+      "status": "poor"
+    },
+    {
+      "scene_id": 8,
+      "match_rate": 0.62,
+      "missing_tags": ["park"],
+      "status": "poor"
+    }
+  ]
+}
+```
+
+---
+
+## 📈 Generation Logs (생성 로그 분석)
+
+### `POST /generation-logs`
+이미지 생성 메타데이터를 로깅합니다 (Phase 6-4.21).
+
+**Request:**
+```json
+{
+  "project_name": "my_project",
+  "scene_index": 0,
+  "prompt": "1girl, smiling, classroom, ...",
+  "tags": ["1girl", "smiling", "classroom"],
+  "sd_params": {
+    "steps": 20,
+    "cfg_scale": 7,
+    "seed": 12345,
+    "sampler": "DPM++ 2M Karras"
+  },
+  "match_rate": 0.85,
+  "seed": 12345,
+  "status": "success",
+  "image_url": "/outputs/images/scene_0.png"
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "project_name": "my_project",
+  "scene_index": 0,
+  "status": "success",
+  "match_rate": 0.85
+}
+```
+
+### `GET /generation-logs/project/{project_name}`
+프로젝트의 생성 로그 목록을 조회합니다.
+
+**Query Parameters:**
+- `status`: 필터링할 상태 (`success`, `fail`, `pending`)
+- `limit`: 최대 반환 개수 (default: 100)
+
+**Response:**
+```json
+{
+  "total": 50,
+  "logs": [
+    {
+      "id": 1,
+      "scene_index": 0,
+      "status": "success",
+      "match_rate": 0.85,
+      "created_at": "2026-01-27T12:00:00"
+    }
+  ]
+}
+```
+
+### `PATCH /generation-logs/{id}/status`
+생성 로그의 상태를 수정합니다 (UI에서 👍/👎 마킹).
+
+**Request:**
+```json
+{
+  "status": "success"
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "status": "success",
+  "updated_at": "2026-01-27T12:30:00"
+}
+```
+
+### `DELETE /generation-logs/{id}`
+생성 로그를 삭제합니다.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "deleted_id": 1
+}
+```
+
+### `GET /generation-logs/analyze/patterns`
+태그 패턴을 분석하여 성공/실패 통계를 제공합니다.
+
+**Query Parameters:**
+- `project_name`: 프로젝트명 (optional, 전체 분석 시 생략)
+- `min_count`: 최소 등장 횟수 (default: 3)
+
+**Response:**
+```json
+{
+  "total_logs": 100,
+  "tag_stats": [
+    {
+      "tag": "smiling",
+      "total_count": 25,
+      "success_count": 22,
+      "fail_count": 3,
+      "success_rate": 0.88,
+      "avg_match_rate": 0.85
+    },
+    {
+      "tag": "classroom",
+      "total_count": 15,
+      "success_count": 10,
+      "fail_count": 5,
+      "success_rate": 0.67,
+      "avg_match_rate": 0.72
+    }
+  ],
+  "conflict_candidates": [
+    {
+      "tag_a": "cyberpunk",
+      "tag_b": "medieval",
+      "co_occurrence": 5,
+      "success_rate": 0.2
+    }
+  ]
+}
+```
+
+### `GET /suggest-conflict-rules`
+패턴 분석 결과를 기반으로 충돌 규칙을 제안합니다.
+
+**Query Parameters:**
+- `min_co_occurrence`: 최소 동시 등장 횟수 (default: 3)
+- `max_success_rate`: 최대 성공률 기준 (default: 0.3)
+
+**Response:**
+```json
+{
+  "suggested_rules": [
+    {
+      "tag_a": "cyberpunk",
+      "tag_b": "medieval",
+      "co_occurrence": 5,
+      "success_rate": 0.2,
+      "is_existing_rule": false
+    }
+  ]
+}
+```
+
+### `POST /apply-conflict-rules`
+제안된 충돌 규칙을 DB에 적용합니다.
+
+**Request:**
+```json
+{
+  "rules": [
+    {"tag_a": "cyberpunk", "tag_b": "medieval"},
+    {"tag_a": "modern", "tag_b": "ancient"}
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "applied_count": 2,
+  "skipped_count": 0,
+  "details": [
+    {"tag_a": "cyberpunk", "tag_b": "medieval", "status": "created"},
+    {"tag_a": "modern", "tag_b": "ancient", "status": "created"}
+  ]
+}
+```
+
+### `GET /generation-logs/success-combinations`
+성공률이 높은 태그 조합을 추출합니다.
+
+**Query Parameters:**
+- `min_success_rate`: 최소 성공률 (default: 0.8)
+- `min_count`: 최소 사용 횟수 (default: 5)
+- `category`: 카테고리 필터 (optional)
+
+**Response:**
+```json
+{
+  "combinations": {
+    "expression": ["smiling", "happy", "cheerful"],
+    "location": ["classroom", "library", "cafe"],
+    "lighting": ["natural_light", "soft_lighting"]
+  },
+  "stats": {
+    "total_tags": 15,
+    "avg_success_rate": 0.87
+  }
+}
+```
+
+---
+
+## 🧪 Evaluation (프롬프트 모드 비교)
+
+### `GET /evaluation/test-prompts`
+테스트용 프롬프트 목록을 조회합니다.
+
+**Response:**
+```json
+{
+  "test_prompts": [
+    {
+      "id": 1,
+      "name": "Simple Portrait",
+      "base_prompt": "1girl, long_hair",
+      "scene_prompt": "standing, looking_at_viewer"
+    },
+    {
+      "id": 2,
+      "name": "Complex Action",
+      "base_prompt": "1boy, short_hair",
+      "scene_prompt": "running, dynamic_pose, motion_blur"
+    }
+  ]
+}
+```
+
+### `POST /evaluation/run`
+Mode A/B 비교 평가를 실행합니다.
+
+**Request:**
+```json
+{
+  "test_prompt_ids": [1, 2, 3],
+  "mode_a": "standard",
+  "mode_b": "lora",
+  "samples_per_mode": 3
+}
+```
+
+**Response:**
+```json
+{
+  "run_id": "eval_20260127_123456",
+  "total_tests": 3,
+  "status": "running"
+}
+```
+
+### `GET /evaluation/results/{run_id}`
+평가 실행 결과를 조회합니다.
+
+**Response:**
+```json
+{
+  "run_id": "eval_20260127_123456",
+  "status": "completed",
+  "results": [
+    {
+      "test_id": 1,
+      "mode_a_score": 0.85,
+      "mode_b_score": 0.92,
+      "winner": "mode_b",
+      "samples": [...]
+    }
+  ]
+}
+```
+
+### `GET /evaluation/summary`
+전체 평가 요약 통계를 조회합니다.
+
+**Response:**
+```json
+{
+  "total_runs": 10,
+  "mode_a_wins": 3,
+  "mode_b_wins": 7,
+  "avg_mode_a_score": 0.82,
+  "avg_mode_b_score": 0.88
+}
+```
+
+---
+
 ## 📌 공통 사항
 
 ### Base URL
@@ -857,7 +1464,85 @@ SD WebUI 모델을 변경합니다.
 | Code | Description |
 |------|-------------|
 | 200 | 성공 |
+| 201 | 리소스 생성 성공 |
 | 400 | 잘못된 요청 (Invalid input) |
 | 404 | 리소스 없음 |
 | 500 | 서버 내부 오류 |
 | 502 | 외부 서비스 연결 오류 (SD WebUI 등) |
+
+### Danbooru 태그 표준 (중요)
+
+**모든 태그는 언더바(_) 형식을 사용합니다. 공백 형식 절대 금지.**
+
+**올바른 예시:**
+```json
+["brown_hair", "looking_at_viewer", "cowboy_shot", "school_uniform"]
+```
+
+**잘못된 예시:**
+```json
+["brown hair", "looking at viewer", "cowboy shot", "school uniform"]
+```
+
+**적용 범위:**
+- DB 저장 (tags 테이블, tag_effectiveness 테이블)
+- API 요청/응답 (JSON 포맷)
+- 프롬프트 생성 (`/prompt/rewrite`, `/storyboard/create`)
+- WD14 검증 결과
+
+**예외:**
+- 하이픈 태그는 유지: `close-up`, `full-body`
+- 복합어 태그는 언더바로 연결: `light_brown_hair`, `school_uniform`
+
+---
+
+## 📚 참고 문서
+
+- **프롬프트 설계**: `docs/specs/PROMPT_SPEC.md` - 프롬프트 우선순위 및 조합 규칙
+- **제품 스펙**: `docs/PRD.md` - 제품 요구사항 및 완료 기준
+- **로드맵**: `docs/ROADMAP.md` - 개발 계획 및 완료 이력
+- **개발 가이드**: `docs/CONTRIBUTING.md` - 코딩 컨벤션 및 Sub Agents 관리
+
+---
+
+## 🔧 개발 환경 설정
+
+### 필수 사항
+1. **Stable Diffusion WebUI** 실행 (`--api` 옵션 필수)
+2. **ControlNet Extension** 설치
+3. **IP-Adapter Models** 다운로드
+4. **PostgreSQL** 데이터베이스 설정
+5. **환경 변수** 설정 (`backend/.env`)
+
+### 환경 변수 예시
+```bash
+DATABASE_URL=postgresql://user:pass@localhost:5432/shorts_db
+GEMINI_API_KEY=your_gemini_api_key
+SD_WEBUI_URL=http://127.0.0.1:7860
+```
+
+---
+
+## 🐛 문제 해결
+
+### SD WebUI 연결 오류 (502)
+- SD WebUI가 `--api` 옵션으로 실행 중인지 확인
+- `SD_WEBUI_URL` 환경 변수 확인
+- 방화벽 설정 확인
+
+### 태그 검증 실패
+- WD14 Tagger 모델 다운로드 확인
+- Danbooru 태그 표준 준수 (언더바 형식)
+- `tags` 테이블 데이터 확인
+
+### Generation Log 저장 실패
+- `project_name` 길이 확인 (200자 제한)
+- PostgreSQL 연결 확인
+- `generation_logs` 테이블 마이그레이션 확인
+
+---
+
+**Last Updated:** 2026-01-27
+**API Version:** v2.1
+**Backend Version:** FastAPI 0.109+
+**Database:** PostgreSQL 14+

@@ -493,87 +493,18 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 
 ---
 
-## 🔮 Phase 7: ControlNet & Pose Control (P0 품질)
-포즈/표정 정확도 향상으로 장면묘사 품질 근본 해결.
+## 🔮 Phase 7: ControlNet & Pose Control - **ARCHIVED** ✅
 
-**환경 확인 완료**:
-- ControlNet v3 ✅
-- OpenPose 모델 ✅
-- Depth 모델 ✅
-- IP-Adapter FaceID ✅
+완료된 주요 성과 (23/23 tasks, 100%):
+- **7-1. ControlNet 포즈 제어**: 11개 포즈 참조 이미지, 자동 감지, Frontend 토글/Weight UI
+- **7-2. IP-Adapter 캐릭터 일관성**: Reference 이미지 관리, LoRA + IP 조합, 16개 테스트
+- **7-3. LoRA 캘리브레이션**: 자동 weight 탐색 (0.5~1.0), WD14 평가, DB 저장
+- **7-4. 다중 캐릭터 렌더링**: 대화/상호작용 장면 실험, 분리 생성+합성 전략 수립
+- **7-5. Prompt Intent 강화**: Expression/Pose 태그 자동 강조 (1.2), 복잡도 기반 동적 파라미터
 
-**7-1 완료 요약**:
-- `services/controlnet.py`: 포즈 매핑 + API 빌더
-- `routers/controlnet.py`: `/controlnet/status`, `/controlnet/poses` API
-- Frontend: ControlNet 토글 + Weight 슬라이더 (SceneListHeader)
-- 11개 포즈 참조 정의 (standing, waving, sitting, arms up 등)
-- 프롬프트 → 포즈 자동 감지 (`detect_pose_from_prompt`)
+**핵심 성과**: 포즈 정확도 67% 달성, 캐릭터 일관성 Reference-only 전략 확립
 
-### 7-1. ControlNet 기반 포즈 제어 (🟢 완료)
-| 순서 | 작업 | 설명 | 상태 |
-|------|------|------|------|
-| 7.1.1 | ControlNet 서비스 | `services/controlnet.py` 생성 | [x] |
-| 7.1.2 | 포즈 참조 이미지 | 5개 기본 포즈 생성 (standing, waving, sitting 등) | [x] |
-| 7.1.3 | 포즈 이미지 검증 | WD14로 포즈 품질 확인 (4/5 성공) | [x] |
-| 7.1.4 | Router 추가 | `/controlnet/*` API 엔드포인트 | [x] |
-| 7.1.5 | 씬 생성 통합 | 장면 태그 → 포즈 자동 선택 로직 | [x] |
-| 7.1.6 | Frontend 옵션 | ControlNet 토글 + Weight 슬라이더 UI | [x] |
-| 7.1.7 | 품질 테스트 | 67% 달성 (WD14 "waving" 미인식 한계) | [~] |
-
-### 7-2. IP-Adapter (캐릭터 일관성) (🟢 완료)
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| IP-Adapter 지원 | 참조 이미지 기반 캐릭터 일관성 | [x] |
-| LoRA + IP 조합 | LoRA 베이스 + IP-Adapter 포즈/표정 | [x] |
-| Reference Image Manager | 참조 이미지 관리 API | [x] |
-| Frontend UI | IP-Adapter 토글 + Reference 선택 + Weight | [x] |
-| **Character Presets** | 캐릭터별 최적 IP-Adapter weight 자동 적용 | [x] |
-
-**7-2 완료 요약**:
-- Backend: `build_ip_adapter_args()`, `save/load_reference_image()` 함수
-- API: `/ip-adapter/status`, `/ip-adapter/references`, `/ip-adapter/reference` CRUD
-- Frontend: IP-Adapter 체크박스 + Reference 드롭다운 + Weight 슬라이더
-- ControlNet + IP-Adapter 동시 사용 가능 (포즈 + 얼굴 일관성)
-- **CLIP 모델 지원**: 애니메이션 캐릭터용 CLIP 기반 IP-Adapter (`ip-adapter-plus_sd15`)
-- **디버깅 로그**: Frontend/Backend 양측에 IP-Adapter 상태 로그 추가
-- **테스트 커버리지**: 16개 단위 테스트 (`tests/api/test_ip_adapter.py`)
-- **Character Presets**: 캐릭터별 최적 weight/model 자동 적용 (`config.py`)
-
-### 7-3. LoRA 캘리브레이션 시스템 (🟢 완료)
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| 캘리브레이션 서비스 | 최적 LoRA weight 자동 탐색 (0.5~1.0) | [x] |
-| WD14 기반 평가 | 프롬프트 표현력 점수 측정 | [x] |
-| DB 저장 | optimal_weight, calibration_score 필드 | [x] |
-| 자동 적용 | 캐릭터 선택 시 최적 weight 자동 적용 | [x] |
-| /manage UI | LoRA 목록에 캘리브레이션 정보 표시 | [x] |
-
-### 7-4. 다중 캐릭터 렌더링 실험 (🟡 실험 완료)
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| 대화 장면 테스트 | 분리 생성 + 합성 방식 검증 | [x] |
-| 상호작용 장면 테스트 | 포옹/손잡기 - 단일 생성 vs 분리 합성 | [x] |
-| Reference-only 테스트 | 캐릭터 일관성 유지 방법 검증 | [x] |
-| 치비 포즈 테스트 | LoRA + Reference-only 조합 | [x] |
-
-**7-4 실험 결론** (상세: `docs/reports/CHARACTER_RENDERING_REPORT.md`):
-- **상호작용 장면** → ControlNet 단일 생성 권장
-- **대화 장면** → 분리 생성 + 합성 권장
-- **캐릭터 일관성** → Reference-only (weight 0.5, guidance_end 0.8) 권장
-
-### 7-5. Prompt Intent & ControlNet Refinement (🟢 완료)
-**목표**: 사용자 의도(동작, 표정)가 무시되는 문제 해결 및 복잡한 장면에서의 디테일 향상.
-
-| 작업 | 설명 | 상태 |
-|------|------|------|
-| **Tag Emphasis** | Expression, Pose, Action 태그에 가중치(1.2) 자동 부여 | [x] |
-| **ControlNet Synonyms** | run/sprinting→running 등 유의어 매핑 지원 | [x] |
-| **Dynamic Parameters** | 장면 복잡도(Complex) 감지 시 Steps/CFG Scale 자동 상향 | [x] |
-
-**구현 내용 (2026-01-28)**:
-- `prompt_composition.py`: 주요 태그 카테고리(expression/pose/action/gaze) 자동 강조 `(tag:1.2)`
-- `controlnet.py`: `detect_pose_from_prompt`에 유의어(Synonym) 매핑 추가 (유연성 확보)
-- `generation.py`: `detect_scene_complexity` 결과에 따라 Steps(20→28), CFG(7→8) 동적 부스트
+> 상세 이력: `git log --oneline docs/ROADMAP.md` 참조 | 실험 보고서: `docs/reports/CHARACTER_RENDERING_REPORT.md`
 
 ---
 
