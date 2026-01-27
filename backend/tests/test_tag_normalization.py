@@ -427,3 +427,78 @@ class TestDanbooruValidation:
         calls = [str(call) for call in mock_danbooru.call_args_list]
         assert "looking_at_viewer" in calls[0]
         assert "looking at viewer" in calls[1]
+
+
+class TestFilterStage:
+    """Test filter_prompt_tokens() preserves underscore format."""
+
+    @patch("services.keywords.load_synonyms_from_db")
+    @patch("services.keywords.load_allowed_tags_from_db")
+    def test_preserves_underscore_format_with_space_db(self, mock_allowed, mock_synonym):
+        """Filter should preserve underscore format even when DB has space format."""
+        from services.keywords import filter_prompt_tokens
+
+        # Mock DB with space-format tags
+        mock_allowed.return_value = {
+            "looking at viewer",  # Space format (legacy DB)
+            "cowboy shot",
+            "falling leaves",
+            "smile",
+        }
+        mock_synonym.return_value = {}
+
+        # Input: underscore format (from normalization stage)
+        input_prompt = "smile, looking_at_viewer, cowboy_shot, falling_leaves"
+
+        result = filter_prompt_tokens(input_prompt)
+
+        # Should preserve underscore format
+        assert "looking_at_viewer" in result
+        assert "cowboy_shot" in result
+        assert "falling_leaves" in result
+        assert "smile" in result
+
+        # Should NOT convert to space format
+        assert "looking at viewer" not in result
+        assert "cowboy shot" not in result
+        assert "falling leaves" not in result
+
+    @patch("services.keywords.load_synonyms_from_db")
+    @patch("services.keywords.load_allowed_tags_from_db")
+    def test_full_pipeline_end_to_end(self, mock_allowed, mock_synonym):
+        """Full pipeline should maintain underscore format throughout."""
+        from services.keywords import filter_prompt_tokens
+
+        # Mock DB with space-format tags
+        mock_allowed.return_value = {
+            "long hair",
+            "blonde hair",
+            "looking at viewer",
+            "white dress",
+            "outdoors",
+            "full body",
+        }
+        mock_synonym.return_value = {}
+
+        # Simulate Gemini output with spaces and compounds
+        raw = "long blonde hair, looking at viewer, white dress, outdoors, full body"
+
+        # Phase 1: Normalization
+        normalized = normalize_and_fix_tags(raw)
+        expected_normalized = "long_hair, blonde_hair, looking_at_viewer, white_dress, outdoors, full_body"
+        assert normalized == expected_normalized
+
+        # Phase 3: Filter (should preserve underscores)
+        filtered = filter_prompt_tokens(normalized)
+
+        # All tags should maintain underscore format
+        assert "long_hair" in filtered
+        assert "blonde_hair" in filtered
+        assert "looking_at_viewer" in filtered
+        assert "white_dress" in filtered
+        assert "full_body" in filtered
+
+        # No space format should appear
+        assert "long hair" not in filtered
+        assert "blonde hair" not in filtered
+        assert "looking at viewer" not in filtered

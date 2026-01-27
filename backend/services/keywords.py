@@ -733,7 +733,7 @@ def filter_prompt_tokens(prompt: str) -> str:
             base = normalized
         # Try with spaces (for legacy space-format DB tags)
         elif normalized.replace("_", " ") in allowed:
-            base = normalized.replace("_", " ")
+            base = normalized  # Keep underscore format (SD requirement)
         # Try synonym lookup
         elif normalized in synonym_lookup and synonym_lookup[normalized] in allowed:
             base = synonym_lookup[normalized]
