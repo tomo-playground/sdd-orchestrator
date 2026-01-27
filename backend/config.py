@@ -102,6 +102,14 @@ if API_PUBLIC_URL == "http://localhost:8000":
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
 WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 
+# --- Tag Effectiveness Configuration ---
+# Threshold for filtering low-effectiveness tags in Gemini prompts
+# Tags with effectiveness < threshold are excluded from recommendations
+# effectiveness = match_count / use_count (WD14 detection rate)
+TAG_EFFECTIVENESS_THRESHOLD = float(os.getenv("TAG_EFFECTIVENESS_THRESHOLD", "0.3"))
+# Minimum usage count to consider effectiveness data reliable
+TAG_MIN_USE_COUNT_FOR_FILTERING = int(os.getenv("TAG_MIN_USE_COUNT_FOR_FILTERING", "3"))
+
 # --- IP-Adapter Character Presets ---
 # Per-character IP-Adapter settings for optimal consistency
 # weight: Higher = more similar to reference (0.6-0.95)

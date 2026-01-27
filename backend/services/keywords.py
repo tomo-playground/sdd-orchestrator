@@ -642,6 +642,8 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         filter_by_effectiveness: If True, filters out low-effectiveness tags
             and prioritizes high-effectiveness tags.
     """
+    from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING
+
     grouped = load_tags_from_db()
     if not grouped:
         _get_logger().warning("No tags found in database")
@@ -679,10 +681,10 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
                     if eff_score is None:
                         # No effectiveness data yet - include it
                         filtered_values.append((tag, 0.5, use_count))
-                    elif use_count < 3:
+                    elif use_count < TAG_MIN_USE_COUNT_FOR_FILTERING:
                         # Not enough data - include it
                         filtered_values.append((tag, 0.5, use_count))
-                    elif eff_score < 0.3:
+                    elif eff_score < TAG_EFFECTIVENESS_THRESHOLD:
                         # Low effectiveness with sufficient data - skip
                         _get_logger().debug(f"Skipping low-effectiveness tag: {tag} ({eff_score:.2f})")
                         continue

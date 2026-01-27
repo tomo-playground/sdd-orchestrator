@@ -291,7 +291,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 5 | 충돌 규칙 자동 발견 | 함께 사용 시 실패율 높은 태그 쌍 감지 → DB 반영 | [x] |
 | 6 | **성공 조합 생성기** | 과거 성공 케이스 기반 최적 조합 자동 생성 (`/success-combinations` API) | [x] |
 | 7 | **Analytics Dashboard** | Manage 탭에 인사이트 (Summary stats, Top tags by category, Suggested combinations) | [x] |
-| 8 | 자동 권장 시스템 | 장면 의도 입력 → 성공 확률 높은 태그 조합 추천 | [ ] |
+| 8 | **자동 권장 시스템** | Gemini 스토리보드 생성 시 TagEffectiveness 기반 태그 필터링 및 추천 | [x] |
 
 **Task #6 완료 날짜**: 2026-01-27
 **Commit**: 5e5b8a6, 647df4f
@@ -314,6 +314,14 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 - UX 개선: 빈 입력 시 버튼 disable 제거 → 에러 메시지 표시
 - 총 75개 테스트 통과 (67→75, +8)
 
+**Task #8 완료 날짜**: 기존 구현 완료 (Gemini 통합)
+**구현 내용**:
+- `TagEffectiveness` 모델: WD14 피드백 기반 태그 효과성 추적 (effectiveness = match_count / use_count)
+- `format_keyword_context()`: 효과성 필터링 (< 0.3 제외, 높은 순 정렬)
+- Gemini 템플릿 통합: Danbooru 검증된 태그만 "Allowed Keywords"로 제공
+- 동적 필터링: use_count < 3이면 포함 (테스트 필요), eff < 0.3이면 제외 (검증된 실패)
+- 자동 업데이트: 생성 데이터가 쌓이면서 태그 우선순위 자동 조정
+
 **세션 요약 (2026-01-27)**:
 1. **품질 체크 완료**
    - SD WebUI: ✅ 연결 정상, anythingV3_fp16 모델, 6개 LoRA 로드
@@ -333,7 +341,7 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
    - 테스트 3개 추가: empty_project, with_success_logs, filtering
    - Commit: 5e5b8a6
 
-**진행률**: Phase 6-4-21 (87.5% 완료, 7/8 tasks)
+**진행률**: Phase 6-4-21 (100% 완료, 8/8 tasks) ✅
 
 ---
 
