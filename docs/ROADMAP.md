@@ -466,7 +466,24 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 - **폐기된 필드**: `recommended_negative`, `identity_tags`, `clothing_tags`는 UI 표시용만 사용
 - **마이그레이션 결과**: 9개 캐릭터 custom prompt 초기화 완료
 - **테스트 검증**: 중복 제거 확인 (easynegative → EasyNegative 단일 표시)
-- **Commit**: 미생성 (작업 완료 후 푸시 예정)
+- **Commit**: 6ca468e
+
+**Phase 7 완료 (2026-01-27) - BGM Default Preservation 버그 수정**:
+- **문제 발견**: BGM을 "random"으로 설정 → 페이지 새로고침 → "None"으로 리셋
+- **근본 원인**: Draft 복원 로직 문제
+  - 조건: `if (draft.bgmFile !== undefined) setBgmFile(draft.bgmFile)`
+  - draft.bgmFile = null 일 때도 setBgmFile(null) 호출
+  - 초기값 useState("random")을 덮어씀
+  - Select 컴포넌트에서 value="" → "BGM: None" 표시
+- **해결 방안**: Truthy 값만 복원
+  - 수정: `if (draft.bgmFile) setBgmFile(draft.bgmFile)`
+  - null/"" 일 때는 초기 기본값 "random" 유지
+- **동작**:
+  - Draft 없음 → bgmFile = "random" (기본값)
+  - Draft에 "random" 저장 → 복원됨
+  - Draft에 "song.mp3" 저장 → 복원됨
+  - Draft에 null/"" → 기본값 "random" 유지
+- **Commit**: 351913b
   - DB 저장: 1,086개 태그 전체 언더바 형식
   - API 응답: 언더바 형식
   - 프롬프트 생성: 언더바 보존
