@@ -557,6 +557,216 @@ def suggest_conflict_rules(
         db.close()
 
 
+@router.get("/success-combinations")
+def get_success_combinations(
+    project_name: str | None = None,
+    match_rate_threshold: float = 0.7,
+    min_occurrences: int = 3,
+    top_n_per_category: int = 5,
+):
+    """Generate optimal tag combinations based on successful generations.
+
+    Analyzes successful logs and extracts high-performing tag combinations
+    grouped by category (expression, pose, camera, environment, etc.).
+
+    Query parameters:
+    - project_name: Filter by project (optional)
+    - match_rate_threshold: Minimum match rate for "success" (default: 0.7)
+    - min_occurrences: Minimum tag occurrences to include (default: 3)
+    - top_n_per_category: Number of top tags per category (default: 5)
+
+    Returns:
+    ```json
+    {
+        "summary": {
+            "total_success": 75,
+            "analyzed_tags": 120,
+            "categories_found": 8
+        },
+        "combinations_by_category": {
+            "expression": [
+                {
+                    "tag": "smile",
+                    "success_rate": 0.95,
+                    "occurrences": 50,
+                    "avg_match_rate": 0.88
+                }
+            ],
+            "pose": [...],
+            "camera": [...],
+            "environment": [...]
+        },
+        "suggested_combinations": [
+            {
+                "tags": ["smile", "standing", "cowboy shot", "classroom"],
+                "categories": ["expression", "pose", "camera", "environment"],
+                "avg_success_rate": 0.92,
+                "conflict_free": true
+            }
+        ]
+    }
+    ```
+    """
+    db = SessionLocal()
+    try:
+        from models.tag import Tag, TagRule
+
+        # Get successful logs
+        query = db.query(GenerationLog).filter(
+            GenerationLog.tags.isnot(None),
+        )
+        if project_name:
+            query = query.filter(GenerationLog.project_name == project_name)
+
+        logs = query.all()
+
+        # Filter success logs
+        success_logs = [
+            log for log in logs
+            if log.status == "success" or (log.match_rate and log.match_rate >= match_rate_threshold)
+        ]
+
+        if not success_logs:
+            return {
+                "summary": {
+                    "total_success": 0,
+                    "analyzed_tags": 0,
+                    "categories_found": 0,
+                },
+                "combinations_by_category": {},
+                "suggested_combinations": [],
+            }
+
+        # Get all tags from DB with categories
+        all_tags = db.query(Tag).all()
+        tag_category_map = {tag.name: tag.category for tag in all_tags}
+        tag_group_map = {tag.name: tag.group_name for tag in all_tags}
+
+        # Calculate tag statistics from success logs
+        tag_stats = {}  # {tag: {"occurrences": int, "match_rates": [float], "category": str}}
+
+        for log in success_logs:
+            if not log.tags:
+                continue
+
+            for tag in log.tags:
+                if tag not in tag_stats:
+                    tag_stats[tag] = {
+                        "occurrences": 0,
+                        "match_rates": [],
+                        "category": tag_category_map.get(tag, "unknown"),
+                        "group": tag_group_map.get(tag),
+                    }
+
+                tag_stats[tag]["occurrences"] += 1
+                if log.match_rate is not None:
+                    tag_stats[tag]["match_rates"].append(log.match_rate)
+
+        # Filter by min_occurrences and group by category
+        combinations_by_category = {}
+
+        for tag, stats in tag_stats.items():
+            if stats["occurrences"] < min_occurrences:
+                continue
+
+            category = stats["category"]
+            avg_match_rate = sum(stats["match_rates"]) / len(stats["match_rates"]) if stats["match_rates"] else 0
+            success_rate = stats["occurrences"] / len(success_logs)
+
+            tag_data = {
+                "tag": tag,
+                "success_rate": round(success_rate, 2),
+                "occurrences": stats["occurrences"],
+                "avg_match_rate": round(avg_match_rate, 2),
+                "group": stats["group"],
+            }
+
+            if category not in combinations_by_category:
+                combinations_by_category[category] = []
+
+            combinations_by_category[category].append(tag_data)
+
+        # Sort each category by success_rate and take top N
+        for category in combinations_by_category:
+            combinations_by_category[category].sort(
+                key=lambda x: (-x["success_rate"], -x["avg_match_rate"])
+            )
+            combinations_by_category[category] = combinations_by_category[category][:top_n_per_category]
+
+        # Get conflict rules
+        conflict_rules = db.query(TagRule).filter(TagRule.rule_type == "conflict").all()
+        conflict_pairs = set()
+
+        for rule in conflict_rules:
+            source_tag = db.query(Tag).filter(Tag.id == rule.source_tag_id).first()
+            target_tag = db.query(Tag).filter(Tag.id == rule.target_tag_id).first()
+            if source_tag and target_tag:
+                conflict_pairs.add(tuple(sorted([source_tag.name, target_tag.name])))
+
+        # Generate suggested combinations
+        # Strategy: Pick top 1 from each key category (expression, pose, camera, environment)
+        suggested_combinations = []
+
+        key_categories = ["expression", "pose", "camera", "environment", "lighting", "mood"]
+        available_categories = {cat: tags for cat, tags in combinations_by_category.items() if cat in key_categories and tags}
+
+        if available_categories:
+            # Generate combination from top tags
+            combination_tags = []
+            combination_categories = []
+
+            for category in key_categories:
+                if category in available_categories and available_categories[category]:
+                    top_tag = available_categories[category][0]
+                    combination_tags.append(top_tag["tag"])
+                    combination_categories.append(category)
+
+            # Check for conflicts
+            has_conflict = False
+            for i, tag1 in enumerate(combination_tags):
+                for tag2 in combination_tags[i+1:]:
+                    pair = tuple(sorted([tag1, tag2]))
+                    if pair in conflict_pairs:
+                        has_conflict = True
+                        break
+                if has_conflict:
+                    break
+
+            # Calculate average success rate
+            avg_success_rate = sum(
+                next((t["success_rate"] for t in combinations_by_category.get(cat, []) if t["tag"] == tag), 0)
+                for cat, tag in zip(combination_categories, combination_tags)
+            ) / len(combination_tags) if combination_tags else 0
+
+            suggested_combinations.append({
+                "tags": combination_tags,
+                "categories": combination_categories,
+                "avg_success_rate": round(avg_success_rate, 2),
+                "conflict_free": not has_conflict,
+            })
+
+        logger.info(
+            f"[Success Combinations] project={project_name}, success_logs={len(success_logs)}, "
+            f"categories={len(combinations_by_category)}, combinations={len(suggested_combinations)}"
+        )
+
+        return {
+            "summary": {
+                "total_success": len(success_logs),
+                "analyzed_tags": len(tag_stats),
+                "categories_found": len(combinations_by_category),
+            },
+            "combinations_by_category": combinations_by_category,
+            "suggested_combinations": suggested_combinations,
+        }
+
+    except Exception as exc:
+        logger.exception("Failed to generate success combinations")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        db.close()
+
+
 class ApplyConflictRulesRequest(BaseModel):
     """Request for applying suggested conflict rules."""
 

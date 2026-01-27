@@ -279,3 +279,175 @@ def test_multiple_projects_isolation(client: TestClient):
     # Verify project B
     response_b = client.get(f"/generation-logs/project/{project_b}")
     assert response_b.json()["total"] == 2
+
+
+def test_success_combinations_empty_project(client: TestClient):
+    """Test success combinations with no data."""
+    project_name = _unique_project()
+    response = client.get(
+        f"/generation-logs/success-combinations?project_name={project_name}"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"]["total_success"] == 0
+    assert data["summary"]["analyzed_tags"] == 0
+    assert len(data["combinations_by_category"]) == 0
+    assert len(data["suggested_combinations"]) == 0
+
+
+def test_success_combinations_with_success_logs(client: TestClient):
+    """Test success combinations generation with real data."""
+    project_name = _unique_project()
+
+    # Create success logs with tags
+    success_logs = [
+        {
+            "project_name": project_name,
+            "scene_index": 0,
+            "tags": ["smile", "standing", "cowboy shot", "classroom"],
+            "match_rate": 0.85,
+            "status": "success",
+        },
+        {
+            "project_name": project_name,
+            "scene_index": 1,
+            "tags": ["smile", "standing", "cowboy shot", "outdoors"],
+            "match_rate": 0.90,
+            "status": "success",
+        },
+        {
+            "project_name": project_name,
+            "scene_index": 2,
+            "tags": ["smile", "sitting", "close-up", "classroom"],
+            "match_rate": 0.80,
+            "status": "success",
+        },
+    ]
+
+    for log_data in success_logs:
+        client.post("/generation-logs", json=log_data)
+
+    # Test success combinations
+    response = client.get(
+        f"/generation-logs/success-combinations?project_name={project_name}&min_occurrences=2"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check summary
+    assert data["summary"]["total_success"] == 3
+    assert data["summary"]["analyzed_tags"] > 0
+
+    # Check combinations by category
+    assert "combinations_by_category" in data
+    categories = data["combinations_by_category"]
+
+    # Should have at least some categories
+    assert len(categories) > 0
+
+    # Check that each category has tags with expected structure
+    for category, tags in categories.items():
+        assert isinstance(tags, list)
+        if len(tags) > 0:
+            tag_data = tags[0]
+            assert "tag" in tag_data
+            assert "success_rate" in tag_data
+            assert "occurrences" in tag_data
+            assert "avg_match_rate" in tag_data
+
+
+def test_success_combinations_filtering(client: TestClient):
+    """Test success combinations with different match rate thresholds."""
+    project_name = _unique_project()
+
+    # Create logs with different match rates
+    logs = [
+        {
+            "project_name": project_name,
+            "scene_index": 0,
+            "tags": ["smile"],
+            "match_rate": 0.95,
+            "status": "success",
+        },
+        {
+            "project_name": project_name,
+            "scene_index": 1,
+            "tags": ["frown"],
+            "match_rate": 0.60,
+            "status": "fail",
+        },
+        {
+            "project_name": project_name,
+            "scene_index": 2,
+            "tags": ["neutral"],
+            "match_rate": 0.75,
+            "status": "success",
+        },
+    ]
+
+    for log_data in logs:
+        client.post("/generation-logs", json=log_data)
+
+    # Test with default threshold (0.7)
+    response = client.get(
+        f"/generation-logs/success-combinations?project_name={project_name}&min_occurrences=1"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"]["total_success"] >= 2  # smile (0.95) and neutral (0.75)
+
+    # Test with higher threshold (0.8)
+    response = client.get(
+        f"/generation-logs/success-combinations?project_name={project_name}&match_rate_threshold=0.8&min_occurrences=1"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"]["total_success"] >= 1  # only smile (0.95)
+
+
+def test_analyze_patterns_basic(client: TestClient):
+    """Test basic pattern analysis."""
+    project_name = _unique_project()
+
+    # Create mix of success and fail logs
+    logs = [
+        {"project_name": project_name, "scene_index": 0, "tags": ["smile", "standing"], "status": "success"},
+        {"project_name": project_name, "scene_index": 1, "tags": ["smile", "sitting"], "status": "success"},
+        {"project_name": project_name, "scene_index": 2, "tags": ["frown", "standing"], "status": "fail"},
+    ]
+
+    for log_data in logs:
+        client.post("/generation-logs", json=log_data)
+
+    response = client.get(
+        f"/generation-logs/analyze/patterns?project_name={project_name}&min_occurrences=1"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check summary
+    assert "summary" in data
+    assert data["summary"]["total_logs"] == 3
+    assert data["summary"]["success_count"] >= 2
+    assert data["summary"]["fail_count"] >= 1
+
+    # Check tag stats
+    assert "tag_stats" in data
+    assert len(data["tag_stats"]) > 0
+
+
+def test_suggest_conflict_rules_no_data(client: TestClient):
+    """Test conflict rules suggestion with no data."""
+    project_name = _unique_project()
+    response = client.get(
+        f"/generation-logs/suggest-conflict-rules?project_name={project_name}"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["suggested_rules"] == []
+    assert data["new_rules_count"] == 0
