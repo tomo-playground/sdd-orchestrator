@@ -831,6 +831,19 @@ After:  train station, platform       (스크립트와 일치) ✅
 | 7-3 | COMPLETE | 100% | |
 | 7-4 | EXPERIMENT DONE | 100% | |
 
+**Character Edit Modal 완료 (2026-01-28 03:20)**:
+- **기능**: Manage > Style > Characters 탭에서 캐릭터 정보 수정 기능 추가
+- **구현 내용**:
+  - `CharacterEditModal` 컴포넌트 추가
+  - Manage 페이지에 "Edit" 버튼 추가 및 모달 연동
+  - 이름, 설명, 성별, Preview URL 수정 지원
+  - **Prompt Mode 설정**: Auto / Standard / LoRA 모드 명시적 선택 지원
+  - **태그 관리**: Identity/Clothing 태그 추가/삭제 (Autocomplete 지원)
+  - **LoRA 관리**: LoRA 추가/삭제 및 가중치 조절 지원
+- **효과**:
+  - DB 직접 수정 없이 UI에서 캐릭터 튜닝 가능
+  - 프롬프트 모드 제어로 생성 방식 미세 조정 가능 (LoRA 강제/배제 등)
+
 **Ken Burns Vertical Presets 완료 (2026-01-28 22:30)**:
 - **문제**: 기존 프리셋이 가로 영상 기준이라 세로 영상(9:16)에서 이동 범위가 부족
 - **해결**: Full Layout 최적화 프리셋 6종 추가 (Y축 이동 범위 2배 확장)

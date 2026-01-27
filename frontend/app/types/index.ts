@@ -194,6 +194,7 @@ export type Character = {
   loras: CharacterLoRA[] | null;
   recommended_negative: string[] | null;
   preview_image_url: string | null;
+  prompt_mode: PromptMode;
 };
 
 export type SDModelEntry = {

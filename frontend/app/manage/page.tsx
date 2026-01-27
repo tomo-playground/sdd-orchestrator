@@ -9,6 +9,7 @@ import { useCharacters, useTags } from "../hooks";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import QualityDashboard from "../components/quality/QualityDashboard";
 import AnalyticsDashboard from "../components/analytics/AnalyticsDashboard";
+import CharacterEditModal from "./CharacterEditModal";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
 
@@ -70,6 +71,7 @@ export default function ManagePage() {
   // Style tab state
   type StyleSubTab = "profiles" | "loras" | "characters" | "models" | "embeddings";
   const [styleSubTab, setStyleSubTab] = useState<StyleSubTab>("profiles");
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
   const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
@@ -160,6 +162,18 @@ export default function ManagePage() {
   const [evalCharacterId, setEvalCharacterId] = useState<number | null>(null);
   const [evalRepetitions, setEvalRepetitions] = useState(3);
   const [evalLastBatchId, setEvalLastBatchId] = useState<string | null>(null);
+
+  const handleSaveCharacter = async (id: number, data: Partial<Character>) => {
+    try {
+      await axios.put(`${API_BASE}/characters/${id}`, data);
+      await fetchStyleData();
+      alert("Character updated successfully!");
+    } catch (error) {
+      console.error("Failed to update character", error);
+      alert("Failed to update character");
+      throw error;
+    }
+  };
 
   const handleRegenerateReference = async (charId: number) => {
     if (!confirm("Regenerate reference image for this character? This will overwrite the existing image.")) return;
@@ -1491,6 +1505,12 @@ export default function ManagePage() {
                             </div>
                             <div className="flex flex-col gap-2 items-end">
                               <button
+                                onClick={() => setEditingCharacter(char)}
+                                className="text-[9px] text-zinc-500 hover:text-zinc-800 hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button
                                 onClick={() => handleRegenerateReference(char.id)}
                                 disabled={isRegeneratingChar[char.id]}
                                 className="text-[9px] text-indigo-500 hover:underline disabled:opacity-50"
@@ -2515,6 +2535,16 @@ export default function ManagePage() {
               <p className="mt-3 text-center text-sm font-medium text-white">{enlargedImage.title}</p>
             </div>
           </div>
+        )}
+        {/* Character Edit Modal */}
+        {editingCharacter && (
+          <CharacterEditModal
+            character={editingCharacter}
+            allTags={allTags}
+            allLoras={loraEntries}
+            onClose={() => setEditingCharacter(null)}
+            onSave={handleSaveCharacter}
+          />
         )}
       </main>
     </div>
