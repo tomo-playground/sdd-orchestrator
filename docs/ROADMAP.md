@@ -397,11 +397,35 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
   - Gemini 템플릿: image_prompt_ko 자연스러운 문장 지시 강화 (ebd0452)
 - **검증**: 392 테스트 전체 통과
 
+**Phase 4 완료 (2026-01-27) - Danbooru 검증 로직 개선**:
+- **문제 발견**: Danbooru 검증에서 유효 태그 과다 제거
+  - 로그 분석: `looking_at_viewer`, `thumbs_up` 등 유효 태그 제거됨
+  - 원인: `validate_tags_with_danbooru()`가 DB/API 조회 시 언더스코어↔공백 fallback 없음
+  - 결과: 11개 태그 → 7개 태그 (4개 제거)
+- **개선 내용**:
+  - **DB Fast Path Fallback**: 언더스코어 먼저 → 공백 형식 재시도
+    - `"looking_at_viewer"` → 못 찾음 → `"looking at viewer"` 재조회 ✅
+  - **Danbooru API Fallback**: 언더스코어 실패 시 공백 형식으로 재시도
+    - `get_tag_info_sync("looking_at_viewer")` → 0 posts
+    - `get_tag_info_sync("looking at viewer")` → 2.9M posts ✅
+  - **상세 로깅**: 이모지 기반 상태 표시
+    - `[Danbooru] Fast path (exact/space): 매칭 경로`
+    - `[Danbooru] ✅ Valid: tag (post_count)`
+    - `[Danbooru] ❌ Invalid: tag (0 posts)`
+    - `[Danbooru] 🔧 Split: compound → parts`
+    - `[Danbooru] ⚠️ Skipping: unfixable`
+    - `[Danbooru] 🚨 API Error: exception`
+- **테스트 추가**: 2개 신규 (총 394개)
+  - `test_underscore_space_fallback_db`: DB 형식 호환성
+  - `test_danbooru_api_space_fallback`: API 재시도 로직
+- **Commit**: d1453bc
+
 **달성 효과**:
-- Match Rate: 29% → 95%+ (실제 검증 필요)
-- Debug 가시성: 각 단계별 변환 과정 로그로 추적 가능
-- DB 호환성: 공백/언더스코어 양 형식 모두 지원
+- Match Rate: 29% → 95%+ (검증 대기 - 유효 태그 보존으로 극적 개선 예상)
+- Debug 가시성: 각 단계별 변환 과정 + Danbooru 검증 상세 로그
+- DB 호환성: 공백/언더스코어 양 형식 모두 지원 (filter + validate 모두)
 - 방어 계층: Gemini 템플릿 (예방) + 코드 정규화 (안전망) + Danbooru 검증 (확인) + Fallback 매칭 (호환)
+- API 효율: DB/API 양쪽에서 fallback으로 불필요한 제거 방지
 
 ---
 
