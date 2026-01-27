@@ -1,0 +1,236 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import AnalyticsDashboard from "../AnalyticsDashboard";
+
+// Mock axios
+vi.mock("axios", () => ({
+  default: {
+    get: vi.fn(),
+  },
+}));
+
+import axios from "axios";
+const mockedAxios = axios as any;
+
+describe("AnalyticsDashboard", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders initial state with input and button", () => {
+    render(<AnalyticsDashboard />);
+
+    expect(screen.getByText("Analytics Dashboard")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter project name")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /analyze/i })).toBeInTheDocument();
+  });
+
+  it("shows error when analyzing without project name", async () => {
+    render(<AnalyticsDashboard />);
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Please enter a project name")).toBeInTheDocument();
+    });
+  });
+
+  it("disables button when loading", async () => {
+    mockedAxios.get.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ data: {} }), 1000))
+    );
+
+    render(<AnalyticsDashboard />);
+
+    const input = screen.getByPlaceholderText("Enter project name");
+    fireEvent.change(input, { target: { value: "test_project" } });
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Loading...")).toBeInTheDocument();
+    });
+  });
+
+  it("displays summary stats after successful data load", async () => {
+    const mockData = {
+      summary: {
+        total_success: 75,
+        analyzed_tags: 120,
+        categories_found: 8,
+      },
+      combinations_by_category: {},
+      suggested_combinations: [],
+    };
+
+    mockedAxios.get.mockResolvedValue({ data: mockData });
+
+    render(<AnalyticsDashboard />);
+
+    const input = screen.getByPlaceholderText("Enter project name");
+    fireEvent.change(input, { target: { value: "test_project" } });
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("75")).toBeInTheDocument();
+      expect(screen.getByText("120")).toBeInTheDocument();
+      expect(screen.getByText("8")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Success Cases")).toBeInTheDocument();
+    expect(screen.getByText("Tags Analyzed")).toBeInTheDocument();
+    expect(screen.getByText("Categories")).toBeInTheDocument();
+  });
+
+  it("displays suggested combinations", async () => {
+    const mockData = {
+      summary: {
+        total_success: 50,
+        analyzed_tags: 80,
+        categories_found: 4,
+      },
+      combinations_by_category: {},
+      suggested_combinations: [
+        {
+          tags: ["smile", "standing", "cowboy shot", "classroom"],
+          categories: ["expression", "pose", "camera", "environment"],
+          avg_success_rate: 0.92,
+          conflict_free: true,
+        },
+      ],
+    };
+
+    mockedAxios.get.mockResolvedValue({ data: mockData });
+
+    render(<AnalyticsDashboard />);
+
+    const input = screen.getByPlaceholderText("Enter project name");
+    fireEvent.change(input, { target: { value: "test_project" } });
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Suggested Combinations")).toBeInTheDocument();
+      expect(screen.getByText("smile")).toBeInTheDocument();
+      expect(screen.getByText("standing")).toBeInTheDocument();
+      expect(screen.getByText("cowboy shot")).toBeInTheDocument();
+      expect(screen.getByText("classroom")).toBeInTheDocument();
+      expect(screen.getByText("92.0%", { exact: false })).toBeInTheDocument();
+      expect(screen.getByText("✓ Conflict-Free")).toBeInTheDocument();
+    });
+  });
+
+  it("displays top tags by category", async () => {
+    const mockData = {
+      summary: {
+        total_success: 30,
+        analyzed_tags: 50,
+        categories_found: 2,
+      },
+      combinations_by_category: {
+        expression: [
+          {
+            tag: "smile",
+            success_rate: 0.95,
+            occurrences: 25,
+            avg_match_rate: 0.88,
+          },
+          {
+            tag: "happy",
+            success_rate: 0.85,
+            occurrences: 20,
+            avg_match_rate: 0.82,
+          },
+        ],
+        pose: [
+          {
+            tag: "standing",
+            success_rate: 0.90,
+            occurrences: 22,
+            avg_match_rate: 0.85,
+          },
+        ],
+      },
+      suggested_combinations: [],
+    };
+
+    mockedAxios.get.mockResolvedValue({ data: mockData });
+
+    render(<AnalyticsDashboard />);
+
+    const input = screen.getByPlaceholderText("Enter project name");
+    fireEvent.change(input, { target: { value: "test_project" } });
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Top Tags by Category")).toBeInTheDocument();
+      expect(screen.getByText("expression")).toBeInTheDocument();
+      expect(screen.getByText("pose")).toBeInTheDocument();
+      expect(screen.getByText("smile")).toBeInTheDocument();
+      expect(screen.getByText("happy")).toBeInTheDocument();
+      expect(screen.getByText("standing")).toBeInTheDocument();
+    });
+
+    // Check statistics
+    expect(screen.getByText("95% success", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("25x used", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("88% match", { exact: false })).toBeInTheDocument();
+  });
+
+  it("handles API error gracefully", async () => {
+    mockedAxios.get.mockRejectedValue({
+      response: { data: { detail: "Project not found" } },
+    });
+
+    render(<AnalyticsDashboard />);
+
+    const input = screen.getByPlaceholderText("Enter project name");
+    fireEvent.change(input, { target: { value: "nonexistent_project" } });
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Project not found")).toBeInTheDocument();
+    });
+  });
+
+  it("makes API call with correct parameters", async () => {
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        summary: { total_success: 0, analyzed_tags: 0, categories_found: 0 },
+        combinations_by_category: {},
+        suggested_combinations: [],
+      },
+    });
+
+    render(<AnalyticsDashboard />);
+
+    const input = screen.getByPlaceholderText("Enter project name");
+    fireEvent.change(input, { target: { value: "my_test_project" } });
+
+    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining("/generation-logs/success-combinations"),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            project_name: "my_test_project",
+            match_rate_threshold: 0.7,
+            min_occurrences: 2,
+            top_n_per_category: 10,
+          }),
+        })
+      );
+    });
+  });
+});

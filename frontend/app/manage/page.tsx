@@ -8,6 +8,7 @@ import { API_BASE, CATEGORY_DESCRIPTIONS, PROMPT_APPLY_KEY } from "../constants"
 import { useCharacters, useTags } from "../hooks";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import QualityDashboard from "../components/quality/QualityDashboard";
+import AnalyticsDashboard from "../components/analytics/AnalyticsDashboard";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
 
@@ -21,7 +22,7 @@ type KeywordCategories = Record<string, string[]>;
 type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
-type ManageTab = "keywords" | "assets" | "style" | "tags" | "prompts" | "evaluation" | "quality" | "settings";
+type ManageTab = "keywords" | "assets" | "style" | "tags" | "prompts" | "evaluation" | "quality" | "analytics" | "settings";
 
 const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
@@ -787,6 +788,7 @@ export default function ManagePage() {
             { id: "prompts", label: "Prompts" },
             { id: "evaluation", label: "Eval" },
             { id: "quality", label: "Quality" },
+            { id: "analytics", label: "Analytics" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;
@@ -2278,6 +2280,8 @@ export default function ManagePage() {
         )}
 
         {manageTab === "quality" && <QualityDashboard />}
+
+        {manageTab === "analytics" && <AnalyticsDashboard />}
 
         {manageTab === "settings" && (
           <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
