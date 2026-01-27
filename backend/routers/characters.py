@@ -1,5 +1,6 @@
 """Character CRUD endpoints."""
 
+import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,32 @@ from services.controlnet import generate_reference_for_character
 from services.prompt_composition import get_effective_mode
 
 router = APIRouter(prefix="/characters", tags=["characters"])
+
+
+def normalize_prompt(prompt: str | None) -> str | None:
+    """Normalize prompt by removing duplicates, extra commas, and whitespace."""
+    if not prompt:
+        return prompt
+
+    # 1. Replace newlines with commas and split
+    # 2. Strip whitespace and remove empty strings
+    raw_parts = [p.strip() for p in prompt.replace("\n", ",").split(",") if p.strip()]
+
+    seen = set()
+    unique_parts = []
+
+    for p in raw_parts:
+        # Normalize for comparison (lowercase and underscores)
+        norm = p.lower().replace(" ", "_")
+        
+        # Special handling for weighted tags: (tag:weight)
+        # We want to keep the weight but avoid duplicate tags even if weights differ
+        # For now, let's just do strict string-based duplicate removal
+        if norm not in seen:
+            seen.add(norm)
+            unique_parts.append(p)
+
+    return ", ".join(unique_parts)
 
 
 @router.get("", response_model=list[CharacterResponse])
@@ -116,17 +143,28 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     if char_data.get("loras"):
         char_data["loras"] = [{"lora_id": lora["lora_id"], "weight": lora["weight"]} for lora in char_data["loras"]]
 
+    # Normalize prompts
+    prompt_fields = [
+        "custom_base_prompt",
+        "custom_negative_prompt",
+        "reference_base_prompt",
+        "reference_negative_prompt"
+    ]
+    for field in prompt_fields:
+        if char_data.get(field):
+            char_data[field] = normalize_prompt(char_data[field])
+
     # Set default reference prompts if not provided
     if not char_data.get("reference_base_prompt"):
-        char_data["reference_base_prompt"] = DEFAULT_REFERENCE_BASE_PROMPT
+        char_data["reference_base_prompt"] = normalize_prompt(DEFAULT_REFERENCE_BASE_PROMPT)
     if not char_data.get("reference_negative_prompt"):
-        char_data["reference_negative_prompt"] = DEFAULT_REFERENCE_NEGATIVE_PROMPT
+        char_data["reference_negative_prompt"] = normalize_prompt(DEFAULT_REFERENCE_NEGATIVE_PROMPT)
 
     character = Character(**char_data)
     db.add(character)
     db.commit()
     db.refresh(character)
-    logger.info("✅ [Characters] Created: %s", character.name)
+    logger.info("✅ [Characters] Created and normalized: %s", character.name)
     return character
 
 
@@ -138,12 +176,24 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
         raise HTTPException(status_code=404, detail="Character not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    
+    # Normalize prompt fields if they are being updated
+    prompt_fields = [
+        "custom_base_prompt",
+        "custom_negative_prompt",
+        "reference_base_prompt",
+        "reference_negative_prompt"
+    ]
+    for field in prompt_fields:
+        if field in update_data and update_data[field] is not None:
+            update_data[field] = normalize_prompt(update_data[field])
+
     for key, value in update_data.items():
         setattr(character, key, value)
 
     db.commit()
     db.refresh(character)
-    logger.info("✏️ [Characters] Updated: %s", character.name)
+    logger.info("✏️ [Characters] Updated and normalized: %s", character.name)
     return character
 
 
