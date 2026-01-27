@@ -682,7 +682,7 @@ After:  train station, platform       (스크립트와 일치) ✅
 
 ---
 
-#### Phase 6-4.21: Generation Log Analytics (Tasks #1-7 완료)
+#### Phase 6-4.21: Generation Log Analytics (🟢 완료 - 2026-01-27)
 | 작업 | 상태 |
 |------|------|
 | 1. generation_logs 테이블 | ✅ |
@@ -710,6 +710,7 @@ After:  train station, platform       (스크립트와 일치) ✅
 - End-to-end 테스트: "cyberpunk + medieval" 충돌 규칙 자동 생성 성공
 - 30개 로그 패턴 분석 정상 동작
 - Frontend-Backend 연동 확인 완료
+- Task #8: 14개 테스트 전체 통과 (추천 태그 섹션 생성, 임계값 검증, 정렬 확인)
 
 #### 긴급 버그 수정 (이전 세션)
 - ✅ **Generation Log VARCHAR 오버플로우**: project_name 200자 제한 추가 (topic 길이 제한)
