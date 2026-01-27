@@ -159,6 +159,7 @@
 |------|------|------|
 | SetupPanel 제거 | 간소화 진입점 제거, Custom Start로 통합 | [x] |
 | SD 파라미터 Advanced 이동 | steps, cfg_scale 등 고급 설정화 | [x] |
+| **Media Defaults** | BGM/Motion/Transition 기본값 Random 설정 | [x] |
 | 간소화 진입점 재설계 | Phase 6 완료 후 Quick Start 재정의 | [ ] |
 | **Render UX 개선** | 컴팩트 레이아웃 토글 + 단일 Render 버튼, Video+Audio→Media Settings 통합 | [x] |
 

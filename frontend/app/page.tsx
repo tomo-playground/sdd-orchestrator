@@ -144,7 +144,7 @@ export default function Home() {
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [narratorVoice, setNarratorVoice] = useState(VOICES[0].id);
   const [bgmList, setBgmList] = useState<AudioItem[]>([]);
-  const [bgmFile, setBgmFile] = useState<string | null>(DEFAULT_BGM);
+  const [bgmFile, setBgmFile] = useState<string | null>("random");
   const [audioDucking, setAudioDucking] = useState(true);
   const [bgmVolume, setBgmVolume] = useState(0.25);
   const [fontList, setFontList] = useState<FontItem[]>([]);
@@ -170,9 +170,9 @@ export default function Home() {
     Array<{ url: string; label: "full" | "post" | "single"; createdAt: number }>
   >([]);
   const [layoutStyle, setLayoutStyle] = useState<"full" | "post">("post");
-  const [kenBurnsPreset, setKenBurnsPreset] = useState<KenBurnsPreset>("none");
+  const [kenBurnsPreset, setKenBurnsPreset] = useState<KenBurnsPreset>("random");
   const [kenBurnsIntensity, setKenBurnsIntensity] = useState(1.0);
-  const [transitionType, setTransitionType] = useState<string>("fade");
+  const [transitionType, setTransitionType] = useState<string>("random");
   const [hiResEnabled, setHiResEnabled] = useState(false);
   const [veoEnabled, setVeoEnabled] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState<string | null>(null);
@@ -1315,14 +1315,14 @@ export default function Home() {
     setBaseClipSkipA(2);
     setIncludeSubtitles(true);
     setNarratorVoice(VOICES[0].id);
-    setBgmFile(DEFAULT_BGM);
+    setBgmFile("random");
     setSpeedMultiplier(1.3);
     setSubtitleFont(DEFAULT_SUBTITLE_FONT);
     // Keep channel branding (channel_name, avatar_key), reset video-specific fields only
     setOverlaySettings((prev) => ({ ...prev, caption: "", likes_count: "" }));
     setPostCardSettings((prev) => ({ ...prev, caption: "" }));
     setLayoutStyle("post");
-    setKenBurnsPreset("none");
+    setKenBurnsPreset("random");
     setKenBurnsIntensity(1.0);
     setHiResEnabled(false);
     setVeoEnabled(false);
