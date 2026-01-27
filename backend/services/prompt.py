@@ -71,6 +71,10 @@ def normalize_prompt_tokens(prompt: str) -> str:
     cleaned = re.sub(r"<lora:[^>]+>", "", prompt, flags=re.IGNORECASE)
     cleaned = re.sub(r"<model:[^>]+>", "", cleaned, flags=re.IGNORECASE)
     tokens = split_prompt_tokens(cleaned)
+
+    # Normalize tag format (space → underscore) for SD compatibility
+    tokens = normalize_tag_spaces(tokens)
+
     seen = set()
     merged: list[str] = []
     for token in tokens:
