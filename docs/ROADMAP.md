@@ -442,6 +442,31 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 - **단일 진실 공급원 확립**:
   - Danbooru: `brown_hair`, `looking_at_viewer` (원본)
   - WD14 CSV: 언더바 형식 (변환 없이 그대로 사용)
+
+**Phase 6 완료 (2026-01-27) - Character Custom Prompt SSOT 확립**:
+- **문제 발견**: Character Edit Modal의 Base Prompt/Negative 필드가 비어있음
+  - 원인 1: 마이그레이션 미실행 (custom_base_prompt/custom_negative_prompt = NULL)
+  - 원인 2: `buildCharacterPrompt/Negative()` 로직이 여러 필드를 자동으로 조합
+    - `recommended_negative` + `custom_negative_prompt` → "easynegative, easynegative" (중복)
+    - `gender` + `identity_tags` + `clothing_tags` + `loras` + `custom_base_prompt` (자동 조합)
+- **근본 원인**: SSOT 원칙 위반 - UI 설정값과 로직 조합이 혼재
+- **해결 방안**: Character Edit Modal = Single Source of Truth 확립
+  - **마이그레이션 스크립트**: `migrate_custom_prompts.py` 작성
+    - 9개 캐릭터별 초기값 설정 (Blindbox, Chibi, Eureka 등)
+    - 사용자 설정값 보호 (이미 값이 있으면 스킵)
+  - **프론트엔드 로직 단순화**: `useCharacters.ts`
+    - Before: `buildCharacterPrompt()` = 5개 필드 조합 (gender + tags + loras + custom)
+    - After: `buildCharacterPrompt()` = `custom_base_prompt` 값만 반환 (SSOT)
+    - Before: `buildCharacterNegative()` = 2개 필드 조합 (recommended + custom)
+    - After: `buildCharacterNegative()` = `custom_negative_prompt` 값만 반환 (SSOT)
+- **데이터 흐름 정리**:
+  ```
+  Character Edit Modal (UI) → DB (custom_base_prompt/negative) → 메인 페이지 (그대로 표시)
+  ```
+- **폐기된 필드**: `recommended_negative`, `identity_tags`, `clothing_tags`는 UI 표시용만 사용
+- **마이그레이션 결과**: 9개 캐릭터 custom prompt 초기화 완료
+- **테스트 검증**: 중복 제거 확인 (easynegative → EasyNegative 단일 표시)
+- **Commit**: 미생성 (작업 완료 후 푸시 예정)
   - DB 저장: 1,086개 태그 전체 언더바 형식
   - API 응답: 언더바 형식
   - 프롬프트 생성: 언더바 보존
@@ -806,6 +831,10 @@ After:  train station, platform       (스크립트와 일치) ✅
 | 4 | **Setup Wizard** | 5-6 | 중 | 낮음 | 대기 |
 
 **최근 완료**:
+- Phase 6-4.23 Character Consistency System (5/5 실험, 90% 성공률) - 2026-01-27
+  - Reference-only ControlNet 검증 완료
+  - Generic Character Presets 생성
+  - eureka_v9 LoRA 사용 불가 판정 (2명 생성 버그)
 - Phase 6-4.21 Generation Log Analytics (8/8, 100%) - 2026-01-27
 - **투트랙 전략 Track 2: 0% Effectiveness 태그 자동 필터링** - 2026-01-27
 
@@ -1145,16 +1174,18 @@ After:  train station, platform       (스크립트와 일치) ✅
 - **설계 원칙**: 복잡도 최소화, Frontend 변경 불필요, 자동 작동
 - **효과**: 수동 분석 → 자동 패턴 학습, 날짜별 품질 추이 분석, 데이터 기반 품질 개선 순환
 
-**다음 우선순위** (2026-01-27 15:45 갱신):
+**다음 우선순위** (2026-01-27 18:30 갱신):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | ROI | 상태 |
 |------|------|-------|------|--------|-----|------|
 | 1 | **Gemini Fallback System** | 6-4.22 | 매우 높음 | 중 | ⭐⭐⭐ | **다음 작업** |
-| 2 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | ⭐⭐ | 대기 |
-| 3 | **Scene Builder UI** | 6-3.11 | 중 | 중 | ⭐ | 대기 |
-| 4 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | ⭐ | 대기 |
-| 5 | **Setup Wizard** | 5-6 | 중 | 낮음 | ⭐ | 대기 |
-| ~~6~~ | ~~Generation Log Analytics~~ | ~~6-4.21~~ | ~~매우 높음~~ | ~~중~~ | - | **✅ 완료** |
+| 2 | **Character Consistency 통합** | 6-4.23 | 높음 | 낮음 | ⭐⭐⭐ | **실험 완료** |
+| 3 | **Multi-Character 구현** | 6-3.10 | 높음 | 중 | ⭐⭐ | 대기 |
+| 4 | **Scene Builder UI** | 6-3.11 | 중 | 중 | ⭐ | 대기 |
+| 5 | **Tag Autocomplete** | 6-3.12 | 중 | 낮음 | ⭐ | 대기 |
+| 6 | **Setup Wizard** | 5-6 | 중 | 낮음 | ⭐ | 대기 |
+| ~~7~~ | ~~Generation Log Analytics~~ | ~~6-4.21~~ | ~~매우 높음~~ | ~~중~~ | - | **✅ 완료** |
+| ~~8~~ | ~~Character Consistency 실험~~ | ~~6-4.23~~ | ~~높음~~ | ~~중~~ | - | **✅ 완료 (90%)** |
 
 ---
 
@@ -1447,5 +1478,85 @@ Gemini는 edge case만 (5% 미만)
   - `eureka_waving_1_base.png` / `_2_edited.png`
   - `report.json` (상세 메트릭)
 - **Test Script**: `backend/scripts/test_gemini_nano_banana.py`
+
+---
+
+## Phase 6-4.23: Character Consistency System (🟢 실험 완료 - 2026-01-27)
+
+**목표**: Reference-only ControlNet 기반 캐릭터 일관성 시스템 구축 (LoRA 의존성 제거)
+
+### 완료된 실험 (90% 성공률)
+
+#### ✅ Single Character Consistency
+- [x] 6-4.23.1: Reference-only ControlNet 검증 ✅ (90% 성공률)
+  - Weight: 0.75-0.9 (Strong ~ Ultra)
+  - guidance_end: 1.0 (전 구간 적용)
+  - 복장/얼굴/머리 일관성 유지 확인
+- [x] 6-4.23.2: 최적 파라미터 확정 ✅
+  - LoRA weight: 0.6 (Reference와 충돌 방지)
+  - Reference weight: 0.75 (권장), 0.9 (강력)
+  - guidance_end: 1.0 (필수)
+- [x] 6-4.23.3: Generic Character Presets 생성 ✅
+  - `generic_anime_girl.png` (세일러복 여학생)
+  - `generic_anime_boy.png` (블레이저 남학생)
+  - config.py 업데이트 (reference_image, reference_weight 추가)
+
+#### ✅ Multi-Character Consistency
+- [x] 6-4.23.4: 2인 상호작용 장면 테스트 ✅ (90% 성공률)
+  - 단일 생성 방식 (포옹, 손잡기) - 권장
+  - 분리 생성 + 합성 방식 (대화 장면)
+- [x] 6-4.23.5: LoRA 조합 실험 ✅
+  - eureka_v9 LoRA **사용 불가 판정** (2명 생성 버그)
+  - 결론: Reference-only만으로 충분, LoRA 의존성 제거
+
+#### 📁 실험 결과 파일
+- `outputs/clothing_test/` - 복장 일관성 90% 성공
+- `outputs/multi_char_test/` - 멀티 캐릭터 90% 성공
+- `outputs/character_presets/` - Generic 캐릭터 프리셋
+- `outputs/preset_verification/` - 프리셋 검증 (4/4 성공)
+- `outputs/lora_emergency_check/` - eureka_v9 LoRA 문제 확인
+
+### 프로덕션 통합 계획 (대기 중)
+
+#### Phase 6-4.23.6: Backend API 확장
+- [ ] `generate_with_character_preset()` 함수 추가
+  - CHARACTER_PRESETS에서 reference_image 자동 로드
+  - Reference-only ControlNet args 자동 생성
+- [ ] Storyboard 생성 시 Reference-only 자동 적용
+  - 첫 씬 기준 이미지 생성
+  - 이후 씬에 Reference-only weight 0.75 적용
+
+#### Phase 6-4.23.7: Frontend UI 추가
+- [ ] Character Preset 선택 드롭다운
+  - Generic Anime Girl/Boy 기본 제공
+- [ ] Reference-only On/Off 토글
+- [ ] Reference Weight 슬라이더 (0.5 ~ 1.0)
+  - 0.75: Strong (권장)
+  - 0.9: Ultra (강력)
+
+#### Phase 6-4.23.8: Multi-Character 시스템
+- [ ] Gemini 템플릿 수정 (create_storyboard.j2)
+  - 상호작용 장면 → 단일 생성 (권장)
+  - 대화 장면 → 분리 생성 + 합성
+- [ ] 장면 유형 자동 판단 로직
+  - `detect_scene_type()`: interaction / dialogue / generic
+- [ ] LoRA weight 자동 조절
+  - 1 캐릭터: lora 0.6, ref 0.75
+  - 2 캐릭터: lora 0.5, ref 0.5 (균등)
+
+### 기술 스택
+- **Reference-only ControlNet** - 전신 스타일 일관성
+- **Generic Character Presets** - 재사용 가능한 기준 이미지
+- **IP-Adapter** (선택) - 얼굴 위주 일관성 보조
+
+### 성공 지표
+- **Single Character 일관성**: 90% 검증 완료 ✅
+- **Multi-Character 일관성**: 90% 검증 완료 ✅
+- **LoRA 의존성**: 제거 (Reference-only로 충분)
+
+### 의존성
+- ✅ ControlNet Reference-only 모듈 (SD WebUI)
+- ✅ `services/controlnet.py` - `build_reference_only_args()` 구현
+- ✅ Generic Character 참조 이미지 (512x768)
 
 ---
