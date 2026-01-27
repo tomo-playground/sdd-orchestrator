@@ -180,10 +180,10 @@
 | **Core Hooks Test** | `useAutopilot` 27개 테스트 (~95% 커버리지) | [x] |
 | **CI Script** | 로컬 테스트 자동화 스크립트 (`./run_tests.sh`) | [x] |
 
-**현재 테스트 현황** (2026-01-28):
-- Backend: 313 passed, 5 skipped (quality 16개 + prompt validation 14개 추가)
-- Frontend: 60 passed (validation 30개, useAutopilot 27개, LoadingSpinner 3개)
-- **총 373개 테스트**
+**현재 테스트 현황** (2026-01-27):
+- Backend: 335 passed, 5 skipped (generation_logs 17개 추가)
+- Frontend: 67 passed (validation 30개, useAutopilot 27개, LoadingSpinner 3개, QualityDashboard 7개)
+- **총 402개 테스트**
 - 주요 테스트: VRT (36개), API (키워드/프리셋/IP-Adapter), 프롬프트 품질, Ken Burns (27개), BGM (9개)
 - IP-Adapter 테스트 (16개): CLIP 모델 선택, Reference 이미지 로드, 페이로드 구성, 상수 검증
 - **useAutopilot 테스트** (27개): 상태 관리, 로그, 취소/재개, 체크포인트, 진행률 계산, 통합 플로우
@@ -192,6 +192,7 @@
   - Backend (18개): 태그 비교, match rate 계산, skip 로직
 - **Quality 테스트** (16개): batch-validate, summary, alerts API (empty/missing/threshold)
 - **Prompt Validation 테스트** (14개): tag validation, auto-replace, Danbooru integration
+- **Generation Logs 테스트** (17개): CRUD, pattern analysis, success combinations (3개 신규)
 
 ---
 
@@ -293,13 +294,34 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 8 | 자동 권장 시스템 | 장면 의도 입력 → 성공 확률 높은 태그 조합 추천 | [ ] |
 
 **Task #6 완료 날짜**: 2026-01-27
-**Commit**: 5e5b8a6
+**Commit**: 5e5b8a6, 647df4f
 **구현 내용**:
 - `/generation-logs/success-combinations` 엔드포인트
 - 성공 로그(match_rate >= 0.7) 필터링 및 카테고리별 태그 통계
 - 카테고리별 top N 태그 추출 (expression, pose, camera, environment 등)
 - 태그 조합 생성 및 충돌 규칙 검증 (conflict_free 플래그)
 - 3개 테스트 추가 (총 335개 테스트)
+
+**세션 요약 (2026-01-27)**:
+1. **품질 체크 완료**
+   - SD WebUI: ✅ 연결 정상, anythingV3_fp16 모델, 6개 LoRA 로드
+   - Backend: ✅ 335 passed, 5 skipped (330→335, +5 테스트)
+   - Frontend: ✅ 67 passed
+   - VRT: ✅ 36 passed (Deterministic, Overlay, Post Frame, Subtitle)
+
+2. **버그 수정**
+   - `/prompt/compose` 500 에러 수정 (routers/prompt.py:163-190)
+   - 원인: PromptComposeResponse 스키마와 반환 데이터 필드명 불일치
+   - 수정: `composed_prompt`→`prompt`, `token_count`→`tokens`, `lora_weight`→`lora_weights`
+   - Commit: 0b546e0
+
+3. **Task #6 구현**
+   - 성공 조합 생성기 API 완성 (routers/generation_logs.py)
+   - 카테고리별 top tags 추출 + conflict-free 조합 생성
+   - 테스트 3개 추가: empty_project, with_success_logs, filtering
+   - Commit: 5e5b8a6
+
+**진행률**: Phase 6-4-21 (75% 완료, 6/8 tasks)
 
 ---
 
