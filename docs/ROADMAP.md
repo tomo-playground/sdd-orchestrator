@@ -384,10 +384,24 @@ Gemini 생성 → 정규화 → 패턴 수정 → Danbooru 검증 → 최종 프
 - 6개 테스트 추가 (총 392개 테스트)
 - Commit: d44b550
 
+**Phase 3 완료 (2026-01-27) - 통합 디버깅**:
+- **문제 발견**: 정규화 후 DB 매칭 실패로 Match Rate 40%
+- **원인 분석**:
+  - DB 태그 93% 공백 형식 ("brown hair"), 7% 언더스코어 ("brown_hair")
+  - `normalize_prompt_token()`이 언더스코어→공백 역변환 (line 491)
+  - 정규화된 "brown_hair" → DB에서 못 찾음 → 필터링 제거
+- **수정 내용**:
+  - `normalize_prompt_token()`: 언더스코어 보존 (3e500ec)
+  - `filter_prompt_tokens()`: 언더스코어↔공백 fallback 매칭 (83e0fb3)
+  - storyboard.py: 4단계 파이프라인 로그 (1️⃣2️⃣3️⃣4️⃣✅)
+  - Gemini 템플릿: image_prompt_ko 자연스러운 문장 지시 강화 (ebd0452)
+- **검증**: 392 테스트 전체 통과
+
 **달성 효과**:
-- Match Rate: 29% → 95%+ (예상, Phase 2 검증 활성화 시)
-- 추가 시간: 0초 (Phase 1) + 2-5초 (Phase 2, 신규 태그만)
-- 방어 계층: Gemini 템플릿 (예방) + 코드 정규화 (안전망) + Danbooru 검증 (확인)
+- Match Rate: 29% → 95%+ (실제 검증 필요)
+- Debug 가시성: 각 단계별 변환 과정 로그로 추적 가능
+- DB 호환성: 공백/언더스코어 양 형식 모두 지원
+- 방어 계층: Gemini 템플릿 (예방) + 코드 정규화 (안전망) + Danbooru 검증 (확인) + Fallback 매칭 (호환)
 
 ---
 
