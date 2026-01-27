@@ -405,7 +405,8 @@ export default function Home() {
     if (draft.baseClipSkipA !== undefined) setBaseClipSkipA(draft.baseClipSkipA);
     if (draft.includeSubtitles !== undefined) setIncludeSubtitles(draft.includeSubtitles);
     if (draft.narratorVoice !== undefined) setNarratorVoice(draft.narratorVoice);
-    if (draft.bgmFile !== undefined) setBgmFile(draft.bgmFile);
+    // Only restore bgmFile if it has a truthy value (preserve default "random" if empty)
+    if (draft.bgmFile) setBgmFile(draft.bgmFile);
     if (draft.audioDucking !== undefined) setAudioDucking(draft.audioDucking);
     if (draft.bgmVolume !== undefined) setBgmVolume(draft.bgmVolume);
     if (draft.subtitleFont !== undefined) setSubtitleFont(draft.subtitleFont);
@@ -1942,7 +1943,7 @@ export default function Home() {
       if (res.data.has_mismatch && res.data.suggestions?.length > 0) {
         showToast(
           `✨ ${res.data.suggestions.length}개의 제안 발견 - $${res.data.cost_usd.toFixed(4)}`,
-          "info"
+          "success"
         );
         return res.data.suggestions;
       } else {
