@@ -379,3 +379,51 @@ class TestDanbooruValidation:
 
         # Should keep tag despite error (fail-open)
         assert result == ["unknown_tag"]
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_underscore_space_fallback_db(self, mock_danbooru, mock_session):
+        """Tags should match both underscore and space formats in DB."""
+        # Mock DB with SPACE-format tags (legacy)
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = [
+            type("Tag", (), {"name": "looking at viewer"}),  # Space format
+            type("Tag", (), {"name": "thumbs up"}),  # Space format
+        ]
+
+        # Query with UNDERSCORE format (normalized)
+        result = validate_tags_with_danbooru(["looking_at_viewer", "thumbs_up"])
+
+        # Should match via fallback
+        assert result == ["looking_at_viewer", "thumbs_up"]
+        assert mock_danbooru.call_count == 0  # No API calls (DB matched)
+
+    @patch("database.SessionLocal")
+    @patch("services.danbooru.get_tag_info_sync")
+    def test_danbooru_api_space_fallback(self, mock_danbooru, mock_session):
+        """Danbooru API should try space format if underscore fails."""
+        # Mock empty DB
+        mock_db = MagicMock()
+        mock_session.return_value = mock_db
+        mock_db.query.return_value.all.return_value = []
+
+        # Mock Danbooru: underscore fails (0 posts), space succeeds
+        def danbooru_response(tag):
+            if tag == "looking_at_viewer":
+                return {"post_count": 0, "category": "general"}  # Fail
+            elif tag == "looking at viewer":
+                return {"post_count": 2900000, "category": "general"}  # Success
+            return {"post_count": 0, "category": "general"}
+
+        mock_danbooru.side_effect = danbooru_response
+
+        result = validate_tags_with_danbooru(["looking_at_viewer"])
+
+        # Should succeed via space fallback
+        assert result == ["looking_at_viewer"]
+        assert mock_danbooru.call_count == 2  # Tried both formats
+        # Check calls: first underscore, then space
+        calls = [str(call) for call in mock_danbooru.call_args_list]
+        assert "looking_at_viewer" in calls[0]
+        assert "looking at viewer" in calls[1]

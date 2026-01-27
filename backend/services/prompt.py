@@ -436,11 +436,18 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
     try:
         # Load all existing tags from DB (fast)
         existing_tags = {tag.name for tag in db.query(Tag.name).all()}
+        from config import logger
 
         for tag in tags:
-            # Fast path: Tag already in DB
+            # Fast path: Tag already in DB (try both formats)
             if tag in existing_tags:
                 validated.append(tag)
+                logger.debug(f"[Danbooru] Fast path (exact): {tag}")
+                continue
+            # Try space format for legacy DB tags
+            elif tag.replace("_", " ") in existing_tags:
+                validated.append(tag)  # Keep underscore format
+                logger.debug(f"[Danbooru] Fast path (space): {tag.replace('_', ' ')} → {tag}")
                 continue
 
             # Session cache: Already checked in this call
@@ -454,12 +461,23 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
             try:
                 from services.danbooru import get_tag_info_sync
 
+                # Try underscore format first (SD standard)
                 tag_info = get_tag_info_sync(tag)
+
+                # If not found, try space format (Danbooru may prefer spaces)
+                if not tag_info or tag_info.get("post_count", 0) == 0:
+                    space_tag = tag.replace("_", " ")
+                    if space_tag != tag:
+                        logger.debug(f"[Danbooru] Trying space format: {space_tag}")
+                        tag_info = get_tag_info_sync(space_tag)
 
                 if tag_info and tag_info.get("post_count", 0) > 0:
                     # Valid tag - add to DB and validated list
                     validated.append(tag)
                     session_cache[tag] = tag
+
+                    post_count = tag_info.get("post_count", 0)
+                    logger.info(f"[Danbooru] ✅ Valid: {tag} ({post_count:,} posts)")
 
                     # Add to DB for next time (fast path)
                     category = tag_info.get("category", "unknown")
@@ -473,9 +491,7 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
 
                 else:
                     # Invalid tag (0 posts) - try to fix
-                    from config import logger
-
-                    logger.warning(f"Invalid tag from Danbooru: {tag} (0 posts)")
+                    logger.warning(f"[Danbooru] ❌ Invalid: {tag} (0 posts)")
 
                     # Attempt to split compound adjectives
                     fixed = fix_compound_adjectives([tag])
@@ -483,15 +499,14 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
                         # Successfully split - use the parts
                         validated.extend(fixed)
                         session_cache[tag] = fixed
+                        logger.info(f"[Danbooru] 🔧 Split: {tag} → {fixed}")
                     else:
                         # Can't fix - log and skip
-                        logger.error(f"Unfixable tag: {tag}")
+                        logger.warning(f"[Danbooru] ⚠️  Skipping: {tag} (unfixable)")
                         session_cache[tag] = None
 
             except Exception as exc:
-                from config import logger
-
-                logger.error(f"Danbooru validation failed for {tag}: {exc}")
+                logger.error(f"[Danbooru] 🚨 API Error for {tag}: {exc}")
                 # On error, keep the tag (fail-open)
                 validated.append(tag)
                 session_cache[tag] = tag
