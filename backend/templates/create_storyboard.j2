@@ -58,7 +58,10 @@ Instructions:
        - WRONG: Multiple unrelated locations in one scene
        - RIGHT: ONE consistent location matching script meaning
      * Use ONLY keywords from the Allowed Keywords list. Do not invent new tags.
-   - image_prompt_ko: short Korean summary of image_prompt
+   - image_prompt_ko: Natural Korean sentence describing the scene (NOT comma-separated tags)
+     * GOOD: "밤에 부엌에서 땀 흘리며 서 있는 모습"
+     * BAD: "미소, 서있는, 부엌, 밤" (comma-separated tags)
+     * Write as a natural descriptive sentence for human readers
 4. Return ONLY raw JSON array.
 
 Allowed Keywords:
