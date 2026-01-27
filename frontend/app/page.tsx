@@ -1801,12 +1801,14 @@ export default function Home() {
 
         return {
           image_url: storedUrl,
+          image_prompt: autoComposePrompt ? prompt : undefined,
           debug_prompt: prompt,
           debug_payload: JSON.stringify(debugPayload, null, 2),
           generation_log_id: generationLogId,
         } as Partial<Scene>;
       }
       return {
+        image_prompt: autoComposePrompt ? prompt : undefined,
         debug_prompt: prompt,
         debug_payload: JSON.stringify(debugPayload, null, 2),
       } as Partial<Scene>;
@@ -1853,7 +1855,7 @@ export default function Home() {
         setImageValidationResults((prev) => ({ ...prev, [scene.id]: validation }));
       }
     }
-    return { image_url: best.image_url, candidates, debug_prompt: prompt } as Partial<Scene>;
+    return { image_url: best.image_url, candidates, debug_prompt: prompt, image_prompt: autoComposePrompt ? prompt : undefined } as Partial<Scene>;
   };
 
   const handleGenerateSceneImage = async (scene: Scene) => {

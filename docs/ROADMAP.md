@@ -682,7 +682,7 @@ After:  train station, platform       (스크립트와 일치) ✅
 
 ---
 
-#### Phase 6-4.21: Generation Log Analytics (Tasks #1-5 완료)
+#### Phase 6-4.21: Generation Log Analytics (Tasks #1-7 완료)
 | 작업 | 상태 |
 |------|------|
 | 1. generation_logs 테이블 | ✅ |
@@ -690,11 +690,11 @@ After:  train station, platform       (스크립트와 일치) ✅
 | 3. 성공/실패 마킹 UI (👍/👎) | ✅ |
 | 4. 패턴 분석 엔진 | ✅ |
 | 5. 충돌 규칙 자동 발견 | ✅ |
-| 6. 성공 조합 생성기 | ⏸️ |
-| 7. Analytics Dashboard | ⏸️ |
-| 8. 자동 권장 시스템 | ⏸️ |
+| 6. 성공 조합 생성기 | ✅ |
+| 7. Analytics Dashboard | ✅ |
+| 8. 자동 권장 시스템 | ✅ |
 
-**진행률**: 5/8 (62.5%)
+**진행률**: 8/8 (100%)
 
 **구현 내용**:
 - **generation_logs 테이블**: PostgreSQL 스키마 + Alembic 마이그레이션
@@ -702,6 +702,9 @@ After:  train station, platform       (스크립트와 일치) ✅
 - **성공/실패 마킹 UI**: SceneCard에 👍/👎 버튼 + `PATCH /generation-logs/{id}/status`
 - **패턴 분석 엔진**: `GET /generation-logs/analyze/patterns` - 태그 통계, 성공률, 충돌 후보 분석
 - **충돌 규칙 자동 발견**: `GET /suggest-conflict-rules` + `POST /apply-conflict-rules` - 기존 규칙 필터링, 양방향 DB 삽입
+- **성공 조합 생성기**: `GET /generation-logs/success-combinations` - 카테고리별 성공 태그 추출, 충돌 검증된 조합 생성
+- **Analytics Dashboard**: `AnalyticsDashboard.tsx` - Manage 탭 통합, 성공 조합 시각화, 프로젝트별 필터링
+- **자동 권장 시스템**: `format_keyword_context()` - Gemini 템플릿에 "Recommended High-Performance Tags" 섹션 추가 (효과성 ≥80%, 사용 횟수 ≥10), 3개 템플릿 업데이트, 14개 테스트 작성
 
 **테스트 검증**:
 - End-to-end 테스트: "cyberpunk + medieval" 충돌 규칙 자동 생성 성공
@@ -1018,7 +1021,12 @@ After:  train station, platform       (스크립트와 일치) ✅
 - ✅ 5-4-2: Gemini 프롬프트 검증 시스템 (태그 검증 API, 43개 risky tag 매핑, 자동 교체)
 - **효과**: 품질 측정 5분 → 10초 (30배), 위험 태그 사전 차단, 데이터 기반 개선 기반 마련
 
-**다음 우선순위** (2026-01-28 22:30 갱신 - Phase 5-2 완료):
+**Centralized Tag Normalization & UI Feedback 완료 (2026-01-27)**:
+- **중앙 집중식 정규화**: `compose_prompt_tokens()`에서 모든 태그(품질, 외형, 장면, LoRA 등)를 단일 파이프라인으로 정규화 및 정렬하도록 구현 완료
+- **UI 동기화**: 오토파일럿 및 이미지 생성 시, 조합된(composed) 최종 프롬프트가 UI 입력창에 즉시 반영되도록 개선 (사용자 피드백 강화)
+- **효과**: 태그 포맷 불일치로 인한 생성 품질 저하 방지, 실제 사용되는 프롬프트 가시성 확보
+
+**다음 우선순위** (2026-01-27 갱신):
 
 | 순위 | 작업 | Phase | 가치 | 난이도 | 이유 |
 |------|------|-------|------|--------|------|

@@ -316,6 +316,15 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         comparison = compare_prompt_to_tags(request.prompt or "", tags)
         total = len(comparison["matched"]) + len(comparison["missing"])
         match_rate = (len(comparison["matched"]) / total) if total else 0.0
+
+        # Log detailed comparison for debugging
+        logger.info(
+            "🔍 [Validation] Match Rate: %.1f%% | Matched: %d/%d | Missing: %s",
+            match_rate * 100,
+            len(comparison["matched"]),
+            total,
+            comparison["missing"][:10] if comparison["missing"] else []
+        )
         from services.keywords import load_known_keywords
         known_keywords = load_known_keywords()
         unknown_tags = []

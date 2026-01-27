@@ -166,9 +166,12 @@ class TestSortingBehavior:
 
         result = format_keyword_context(filter_by_effectiveness=True)
 
-        # Find expression line
+        # Find expression line in Allowed Keywords section (not Recommended section)
         lines = result.split("\n")
-        expr_line = next(line for line in lines if "expression:" in line.lower())
+        allowed_idx = next(i for i, line in enumerate(lines) if "Allowed Keywords" in line)
+        expr_line = next(
+            line for line in lines[allowed_idx:] if "expression:" in line.lower()
+        )
 
         # smile (0.85) should appear before neutral (0.60, but insufficient data = 0.5 default)
         smile_pos = expr_line.index("smile")
@@ -234,3 +237,109 @@ class TestConfigurableThresholds:
         # With min_use_count=10, tags with < 10 uses should be included regardless
         assert "crying" in result  # 0.25 effectiveness, but only 8 uses
         assert "neutral" in result  # 0.60 effectiveness, only 2 uses
+
+
+class TestRecommendedTagsSection:
+    """Test recommended high-performance tags section (Phase 6-4-21 Task #8)."""
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
+    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
+    @patch("config.RECOMMENDATION_EFFECTIVENESS_THRESHOLD", 0.8)
+    @patch("config.RECOMMENDATION_MIN_USE_COUNT", 10)
+    def test_includes_recommended_tags_section(
+        self, mock_load_tags, mock_load_eff, mock_db_tags, mock_effectiveness_data
+    ):
+        """Should include 'Recommended High-Performance Tags' section."""
+        mock_load_tags.return_value = mock_db_tags
+        mock_load_eff.return_value = mock_effectiveness_data
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        # Should include recommended section header
+        assert "Recommended High-Performance Tags" in result
+        assert "proven >80% effectiveness" in result
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
+    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
+    @patch("config.RECOMMENDATION_EFFECTIVENESS_THRESHOLD", 0.8)
+    @patch("config.RECOMMENDATION_MIN_USE_COUNT", 10)
+    def test_recommended_tags_meet_threshold(
+        self, mock_load_tags, mock_load_eff, mock_db_tags, mock_effectiveness_data
+    ):
+        """Should only recommend tags with effectiveness >= 0.8 and use_count >= 10."""
+        mock_load_tags.return_value = mock_db_tags
+        mock_load_eff.return_value = mock_effectiveness_data
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+        lines = result.split("\n")
+
+        # Find recommended section
+        rec_start = next(i for i, line in enumerate(lines) if "Recommended" in line)
+        rec_end = next(
+            (i for i, line in enumerate(lines[rec_start:], rec_start) if line == ""),
+            len(lines)
+        )
+        rec_section = "\n".join(lines[rec_start:rec_end])
+
+        # Should include high-effectiveness tags (>= 0.8, >= 10 uses)
+        assert "smile" in rec_section  # 0.85, 10 uses
+        assert "standing" in rec_section  # 0.90, 15 uses
+        assert "cowboy shot" in rec_section  # 0.95, 20 uses
+        assert "classroom" in rec_section  # 0.88, 18 uses
+
+        # Should NOT include tags below threshold
+        assert "close-up" not in rec_section  # 0.70 < 0.8
+        assert "bedroom" not in rec_section  # 0.75 < 0.8
+        assert "neutral" not in rec_section  # 0.60 < 0.8, insufficient uses
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
+    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
+    @patch("config.RECOMMENDATION_EFFECTIVENESS_THRESHOLD", 0.8)
+    @patch("config.RECOMMENDATION_MIN_USE_COUNT", 10)
+    def test_recommended_section_before_allowed_keywords(
+        self, mock_load_tags, mock_load_eff, mock_db_tags, mock_effectiveness_data
+    ):
+        """Recommended section should appear before Allowed Keywords section."""
+        mock_load_tags.return_value = mock_db_tags
+        mock_load_eff.return_value = mock_effectiveness_data
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        rec_pos = result.index("Recommended High-Performance Tags")
+        allowed_pos = result.index("Allowed Keywords")
+
+        assert rec_pos < allowed_pos, "Recommended section should appear first"
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
+    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
+    @patch("config.RECOMMENDATION_EFFECTIVENESS_THRESHOLD", 0.8)
+    @patch("config.RECOMMENDATION_MIN_USE_COUNT", 10)
+    def test_no_recommended_section_when_no_qualifying_tags(
+        self, mock_load_tags, mock_load_eff
+    ):
+        """Should not include recommended section if no tags qualify."""
+        # Tags with low effectiveness or insufficient data
+        mock_load_tags.return_value = {
+            "expression": ["smile", "frown"],
+        }
+        mock_load_eff.return_value = {
+            "smile": (0.70, 15),  # Below threshold
+            "frown": (0.85, 5),   # Below min use count
+        }
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        # Should not include recommended section
+        assert "Recommended High-Performance Tags" not in result
+        # Should still include Allowed Keywords section
+        assert "Allowed Keywords" in result
+        assert "smile" in result
+        assert "frown" in result

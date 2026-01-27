@@ -19,8 +19,7 @@ CRITICAL IMAGE PROMPT RULE:
 - ONLY use Danbooru tags from the Allowed Keywords list below
 - NEVER invent new tags or use general photography terms not in Danbooru
 - FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
-- SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts)
-- RECOMMENDATION: Use "cowboy shot" instead of "full body" to prevent head cropping in square video formats.
+- SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts), "full_body" (892K posts)
 - Tags not in training data produce unpredictable/broken results
 - When unsure, choose high-frequency tags from the list
 
@@ -32,6 +31,13 @@ CRITICAL TAG FORMAT RULES:
 - Examples:
   * WRONG: "looking at viewer", "full body", "long blonde hair"
   * CORRECT: "looking_at_viewer", "full_body", "long_hair, blonde_hair"
+
+CRITICAL STYLE CONSISTENCY RULE:
+- Visual Style "{{ style }}" MUST be applied to ALL scenes consistently
+- If style is "chibi", add "chibi" tag to EVERY scene
+- If style is "realistic", do NOT add chibi/water_color/sketch tags
+- NEVER mix different styles (realistic/chibi/watercolor) within the same storyboard
+- Style tags should appear AFTER mood tags in image_prompt
 
 Instructions:
 1. Break the story into sequential scenes that fit the total duration.
@@ -64,8 +70,13 @@ Instructions:
      * Write as a natural descriptive sentence for human readers
 4. Return ONLY raw JSON array.
 
-Allowed Keywords:
 {{ keyword_context }}
+
+TAG SELECTION PRIORITY:
+- PREFER tags from "Recommended High-Performance Tags" section when available
+- These tags have proven >80% effectiveness through actual generation data
+- They produce more consistent and accurate results
+- Fall back to other Allowed Keywords only when recommended tags don't fit the scene
 
 Output Format:
 [

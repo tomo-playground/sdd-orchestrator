@@ -110,6 +110,15 @@ TAG_EFFECTIVENESS_THRESHOLD = float(os.getenv("TAG_EFFECTIVENESS_THRESHOLD", "0.
 # Minimum usage count to consider effectiveness data reliable
 TAG_MIN_USE_COUNT_FOR_FILTERING = int(os.getenv("TAG_MIN_USE_COUNT_FOR_FILTERING", "3"))
 
+# --- Tag Recommendation Configuration (Phase 6-4-21 Task #8) ---
+# High-performance tags shown in "Recommended" section of Gemini prompts
+# Threshold for marking tags as "recommended" (0.8 = 80%+ success rate)
+RECOMMENDATION_EFFECTIVENESS_THRESHOLD = float(
+    os.getenv("RECOMMENDATION_EFFECTIVENESS_THRESHOLD", "0.8")
+)
+# Minimum usage count for reliable recommendation data
+RECOMMENDATION_MIN_USE_COUNT = int(os.getenv("RECOMMENDATION_MIN_USE_COUNT", "10"))
+
 # --- Danbooru Validation Configuration ---
 # Enable Danbooru API validation for unknown tags (Phase 2)
 # When enabled, tags not in DB are validated against Danbooru API

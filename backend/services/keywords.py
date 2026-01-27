@@ -647,7 +647,12 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         filter_by_effectiveness: If True, filters out low-effectiveness tags
             and prioritizes high-effectiveness tags.
     """
-    from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING
+    from config import (
+        TAG_EFFECTIVENESS_THRESHOLD,
+        TAG_MIN_USE_COUNT_FOR_FILTERING,
+        RECOMMENDATION_EFFECTIVENESS_THRESHOLD,
+        RECOMMENDATION_MIN_USE_COUNT,
+    )
 
     grouped = load_tags_from_db()
     if not grouped:
@@ -659,7 +664,10 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
     if filter_by_effectiveness:
         eff_map = load_tag_effectiveness_map()
 
-    lines = ["Allowed Keywords (use exactly as written):"]
+    # Collect all tags with effectiveness data per category
+    category_tags: dict[str, list[tuple[str, float, int]]] = {}
+    recommended_tags: dict[str, list[str]] = {}
+
     for group in _SCENE_GROUPS:
         if group not in grouped:
             continue
@@ -671,37 +679,67 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         if not values:
             continue
 
-        if filter_by_effectiveness and eff_map:
-            # Filter and sort by effectiveness
-            filtered_values = []
-            for tag in values:
-                normalized = normalize_prompt_token(tag)
-                eff_data = eff_map.get(normalized)
+        filtered_values = []
+        category_recommended = []
 
-                if eff_data is None:
-                    # Unknown tag - include it (needs testing)
-                    filtered_values.append((tag, 0.5, 0))  # default score
+        for tag in values:
+            normalized = normalize_prompt_token(tag)
+            eff_data = eff_map.get(normalized) if filter_by_effectiveness and eff_map else None
+
+            if eff_data is None:
+                # Unknown tag - include it (needs testing)
+                filtered_values.append((tag, 0.5, 0))
+            else:
+                eff_score, use_count = eff_data
+                if eff_score is None:
+                    # No effectiveness data yet - include it
+                    filtered_values.append((tag, 0.5, use_count))
+                elif use_count < TAG_MIN_USE_COUNT_FOR_FILTERING:
+                    # Not enough data - include it
+                    filtered_values.append((tag, 0.5, use_count))
+                elif eff_score < TAG_EFFECTIVENESS_THRESHOLD:
+                    # Low effectiveness with sufficient data - skip
+                    _get_logger().debug(f"Skipping low-effectiveness tag: {tag} ({eff_score:.2f})")
+                    continue
                 else:
-                    eff_score, use_count = eff_data
-                    if eff_score is None:
-                        # No effectiveness data yet - include it
-                        filtered_values.append((tag, 0.5, use_count))
-                    elif use_count < TAG_MIN_USE_COUNT_FOR_FILTERING:
-                        # Not enough data - include it
-                        filtered_values.append((tag, 0.5, use_count))
-                    elif eff_score < TAG_EFFECTIVENESS_THRESHOLD:
-                        # Low effectiveness with sufficient data - skip
-                        _get_logger().debug(f"Skipping low-effectiveness tag: {tag} ({eff_score:.2f})")
-                        continue
-                    else:
-                        filtered_values.append((tag, eff_score, use_count))
+                    filtered_values.append((tag, eff_score, use_count))
 
-            # Sort by effectiveness (high first), then alphabetically
-            filtered_values.sort(key=lambda x: (-x[1], x[0]))
-            values = [v[0] for v in filtered_values]
+                    # Check if tag qualifies for recommendation
+                    if (
+                        eff_score is not None
+                        and eff_score >= RECOMMENDATION_EFFECTIVENESS_THRESHOLD
+                        and use_count >= RECOMMENDATION_MIN_USE_COUNT
+                    ):
+                        category_recommended.append(tag)
 
-        if values:
-            lines.append(f"- {category_name}: {', '.join(values)}")
+        # Sort by effectiveness (high first), then alphabetically
+        filtered_values.sort(key=lambda x: (-x[1], x[0]))
+        category_tags[category_name] = filtered_values
+
+        if category_recommended:
+            recommended_tags[category_name] = category_recommended
+
+    # Build output with recommended section first
+    lines = []
+
+    # Add recommended tags section if any exist
+    if recommended_tags:
+        lines.append("Recommended High-Performance Tags (proven >80% effectiveness):")
+        for category_name in _SCENE_GROUPS:
+            gemini_category = _DB_GROUP_TO_GEMINI_CATEGORY.get(category_name, category_name)
+            if gemini_category and gemini_category in recommended_tags:
+                tags = recommended_tags[gemini_category]
+                lines.append(f"- {gemini_category}: {', '.join(tags)}")
+        lines.append("")  # blank line separator
+
+    # Add all allowed keywords section
+    lines.append("Allowed Keywords (use exactly as written):")
+    for group in _SCENE_GROUPS:
+        category_name = _DB_GROUP_TO_GEMINI_CATEGORY.get(group, group)
+        if category_name and category_name in category_tags:
+            values = [v[0] for v in category_tags[category_name]]
+            if values:
+                lines.append(f"- {category_name}: {', '.join(values)}")
 
     return "\n".join(lines)
 
