@@ -329,6 +329,8 @@ brew install claude-squad  # 명령어: cs
 ### 현재 세션 완료 작업 (2026-01-28)
 - **ROADMAP.md 다이어트**: 1,500줄 초과 문서를 마케팅/전략 위주로 슬림화 (Phase 1-4, Phase 6-4 아카이빙).
 - **문서 가이드라인**: `CLAUDE.md`에 문서당 최대 800줄 제한 명시. [walkthrough](file:///Users/tomo/.gemini/antigravity/brain/7444c761-fad2-45e5-a65d-459210ecb04c/walkthrough.md)
+- **Image Check 표준화**: WD14 단일 검증 체계 구축 및 Gemini Vision Legacy 제거 (Frontend/Backend).
+- **코드베이스 경량화**: 미사용 템플릿(일본어/수학) 및 프리셋 제거, Danbooru 태그 표준(언더스코어) 전면 적용.
 
 ---
 

@@ -59,15 +59,14 @@ export const STRUCTURES = [
 ];
 
 export const CAMERA_KEYWORDS = [
-  "close-up",
-  "close up",
-  "wide shot",
-  "medium shot",
-  "full body",
-  "low angle",
-  "high angle",
-  "from above",
-  "top-down",
+  "close_up",
+  "wide_shot",
+  "medium_shot",
+  "full_body",
+  "low_angle",
+  "high_angle",
+  "from_above",
+  "top_down",
 ];
 
 export const ACTION_KEYWORDS = [
@@ -106,7 +105,7 @@ export const LIGHTING_KEYWORDS = [
   "shadow",
   "moody",
   "warm",
-  "soft light",
+  "soft_light",
   "neon",
   "rain",
   "night",
@@ -118,7 +117,7 @@ export const SCENE_SPECIFIC_KEYWORDS = [
   // Actions/poses
   "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
   // Camera angles
-  "from above", "top-down", "low angle", "high angle", "close-up", "wide shot", "full body",
+  "from_above", "top_down", "low_angle", "high_angle", "close_up", "wide_shot", "full_body",
   // Locations
   "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest", "beach", "city",
   // Time/weather
@@ -134,13 +133,13 @@ export const SCENE_SPECIFIC_KEYWORDS = [
  */
 export const TOKEN_PRIORITY: Record<string, number> = {
   // Priority 1: Quality
-  "masterpiece": 1, "best quality": 1, "high quality": 1, "amazing quality": 1,
-  "detailed": 1, "ultra detailed": 1, "extremely detailed": 1,
+  "masterpiece": 1, "best_quality": 1, "high_quality": 1, "amazing_quality": 1,
+  "detailed": 1, "ultra_detailed": 1, "extremely_detailed": 1,
   "absurdres": 1, "highres": 1, "8k": 1,
 
   // Priority 2: Subject
   "1girl": 2, "1boy": 2, "2girls": 2, "2boys": 2, "3girls": 2, "3boys": 2,
-  "multiple girls": 2, "multiple boys": 2,
+  "multiple_girls": 2, "multiple_boys": 2,
   "solo": 2, "duo": 2, "trio": 2, "group": 2, "couple": 2,
 
   // Priority 3: Identity (LoRA triggers)
@@ -157,19 +156,19 @@ export const TOKEN_PRIORITY: Record<string, number> = {
   "surprised": 6, "shocked": 6, "embarrassed": 6, "shy": 6, "blush": 6, "blushing": 6,
   "serious": 6, "determined": 6, "confident": 6, "nervous": 6, "scared": 6,
   "laughing": 6, "grin": 6, "frown": 6, "pout": 6, "expressionless": 6,
-  "open mouth": 6, "closed mouth": 6, "tongue out": 6,
+  "open_mouth": 6, "closed_mouth": 6, "tongue_out": 6,
 
   // Priority 7: Gaze
-  "looking at viewer": 7, "looking away": 7, "looking up": 7, "looking down": 7,
-  "looking to the side": 7, "looking back": 7, "eye contact": 7,
-  "eyes closed": 7, "closed eyes": 7, "half-closed eyes": 7, "wink": 7,
+  "looking_at_viewer": 7, "looking_away": 7, "looking_up": 7, "looking_down": 7,
+  "looking_to_the_side": 7, "looking_back": 7, "eye_contact": 7,
+  "eyes_closed": 7, "closed_eyes": 7, "half_closed_eyes": 7, "wink": 7,
 
   // Priority 8: Pose (static)
   "standing": 8, "sitting": 8, "kneeling": 8, "crouching": 8, "squatting": 8,
-  "lying": 8, "lying down": 8, "on back": 8, "on stomach": 8,
+  "lying": 8, "lying_down": 8, "on_back": 8, "on_stomach": 8,
   "leaning": 8, "reclining": 8, "lounging": 8,
-  "arms crossed": 8, "arms behind back": 8, "hands on hips": 8,
-  "hand on hip": 8, "hand up": 8, "peace sign": 8, "v": 8,
+  "arms_crossed": 8, "arms_behind_back": 8, "hands_on_hips": 8,
+  "hand_on_hip": 8, "hand_up": 8, "peace_sign": 8, "v": 8,
 
   // Priority 9: Action (dynamic)
   "walking": 9, "running": 9, "jumping": 9, "dancing": 9,
@@ -177,26 +176,26 @@ export const TOKEN_PRIORITY: Record<string, number> = {
   "sleeping": 9, "waving": 9, "pointing": 9, "hugging": 9,
 
   // Priority 10: Camera
-  "close-up": 10, "portrait": 10, "bust shot": 10, "upper body": 10,
-  "cowboy shot": 10, "full body": 10, "wide shot": 10,
-  "from above": 10, "from below": 10, "from side": 10, "from behind": 10,
-  "dutch angle": 10, "low angle": 10, "high angle": 10, "pov": 10,
+  "close_up": 10, "portrait": 10, "bust_shot": 10, "upper_body": 10,
+  "cowboy_shot": 10, "full_body": 10, "wide_shot": 10,
+  "from_above": 10, "from_below": 10, "from_side": 10, "from_behind": 10,
+  "dutch_angle": 10, "low_angle": 10, "high_angle": 10, "pov": 10,
 
   // Priority 11: Location / Environment / Background
   "indoors": 11, "outdoors": 11,
   "library": 11, "cafe": 11, "street": 11, "room": 11, "bedroom": 11, "office": 11,
   "classroom": 11, "park": 11, "forest": 11, "beach": 11, "city": 11,
-  "simple background": 11, "white background": 11, "black background": 11,
-  "gradient background": 11, "blurry background": 11, "detailed background": 11,
+  "simple_background": 11, "white_background": 11, "black_background": 11,
+  "gradient_background": 11, "blurry_background": 11, "detailed_background": 11,
 
   // Priority 12: Time / Weather
   "day": 12, "night": 12, "sunset": 12, "sunrise": 12, "dusk": 12, "dawn": 12,
   "sunny": 12, "cloudy": 12, "rainy": 12, "rain": 12, "snowy": 12, "snow": 12,
 
   // Priority 13: Lighting
-  "natural light": 13, "sunlight": 13, "moonlight": 13,
-  "backlighting": 13, "rim light": 13, "dramatic lighting": 13,
-  "soft lighting": 13, "neon lights": 13,
+  "natural_light": 13, "sunlight": 13, "moonlight": 13,
+  "backlighting": 13, "rim_light": 13, "dramatic_lighting": 13,
+  "soft_lighting": 13, "neon_lights": 13,
 
   // Priority 14: Mood
   "romantic": 14, "melancholic": 14, "peaceful": 14, "dramatic": 14,
@@ -256,33 +255,33 @@ export const TOKEN_PRIORITY_PATTERNS: Array<{ pattern: RegExp; priority: number 
  */
 export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   // Priority 1-2: Meta
-  quality: "품질 (masterpiece, best quality)",
+  quality: "품질 (masterpiece, best_quality)",
   subject: "대상 (1girl, 1boy, solo)",
 
   // Priority 3-4: Appearance
   identity: "신원/캐릭터 (LoRA 트리거)",
-  hair_color: "머리 색 (blue hair, blonde)",
-  hair_length: "머리 길이 (long/short hair)",
+  hair_color: "머리 색 (blue_hair, blonde)",
+  hair_length: "머리 길이 (long/short_hair)",
   hair_style: "헤어스타일 (ponytail, twintails)",
   hair_accessory: "머리 장식 (hairpin, ribbon)",
-  eye_color: "눈 색 (blue eyes, red eyes)",
-  skin_color: "피부 색 (pale skin)",
-  body_feature: "신체 특징 (elf ears, wings)",
+  eye_color: "눈 색 (blue_eyes, red_eyes)",
+  skin_color: "피부 색 (pale_skin)",
+  body_feature: "신체 특징 (elf_ears, wings)",
   appearance: "외모 (freckles, makeup, tattoo)",
 
   // Priority 5-9: Character state
   clothing: "의류/액세서리 (shirt, dress, shoes)",
   expression: "표정 (smile, angry, blush)",
-  gaze: "시선 (looking at viewer)",
+  gaze: "시선 (looking_at_viewer)",
   pose: "정적 자세 (standing, sitting)",
   action: "동적 행동 (running, dancing)",
 
   // Priority 10-15: Scene
-  camera: "카메라/샷 (close-up, full body)",
+  camera: "카메라/샷 (close_up, full_body)",
   location_indoor: "실내 장소 (classroom, cafe)",
   location_outdoor: "실외 장소 (beach, forest)",
   environment: "소품/가구 (desk, computer, plant)",
-  background_type: "배경 타입 (white/simple bg)",
+  background_type: "배경 타입 (white/simple_bg)",
   time_weather: "시간/날씨 (day, night, rain)",
   lighting: "조명 (sunlight, dramatic)",
   mood: "분위기 (romantic, peaceful)",
