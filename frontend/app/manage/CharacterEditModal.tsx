@@ -164,27 +164,55 @@ export default function CharacterEditModal({
   };
 
   const handleSubmit = async () => {
+    // Automatically sync raw edit text if user is still in raw edit mode
+    let finalIdentityTagIds = identityTagIds;
+    let finalClothingTagIds = clothingTagIds;
+
+    if (rawEditMode) {
+      const newTags = rawEditText
+        .split(",")
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+      
+      const newIds: number[] = [];
+      newTags.forEach(tagName => {
+        const tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+        if (tag && !newIds.includes(tag.id)) {
+          newIds.push(tag.id);
+        }
+      });
+
+      if (rawEditMode === "identity") {
+        finalIdentityTagIds = newIds;
+        setIdentityTagIds(newIds);
+      } else {
+        finalClothingTagIds = newIds;
+        setClothingTagIds(newIds);
+      }
+      setRawEditMode(null);
+    }
+
+    const payload = {
+      name,
+      description,
+      gender,
+      preview_image_url: previewImageUrl,
+      identity_tags: finalIdentityTagIds,
+      clothing_tags: finalClothingTagIds,
+      loras: selectedLoras,
+      prompt_mode: promptMode,
+      custom_base_prompt: customBasePrompt,
+      custom_negative_prompt: customNegativePrompt,
+      reference_base_prompt: referenceBasePrompt,
+      reference_negative_prompt: referenceNegativePrompt,
+      ip_adapter_weight: ipAdapterWeight,
+      ip_adapter_model: ipAdapterModel,
+    };
+
+    console.log("💾 [CharacterEditModal] Saving character:", payload);
     setIsSaving(true);
     try {
-      await onSave(
-        {
-          name,
-          description,
-          gender,
-          preview_image_url: previewImageUrl,
-          identity_tags: identityTagIds,
-          clothing_tags: clothingTagIds,
-          loras: selectedLoras,
-          prompt_mode: promptMode,
-          custom_base_prompt: customBasePrompt,
-          custom_negative_prompt: customNegativePrompt,
-          reference_base_prompt: referenceBasePrompt,
-          reference_negative_prompt: referenceNegativePrompt,
-          ip_adapter_weight: ipAdapterWeight,
-          ip_adapter_model: ipAdapterModel,
-        },
-        character?.id // Pass character.id only if it exists
-      );
+      await onSave(payload, character?.id);
       onClose();
     } catch (error) {
       console.error("Failed to save character", error);
@@ -342,7 +370,57 @@ export default function CharacterEditModal({
             </div>
           </div>
 
-
+          {/* Reference Image Prompts */}
+          <div className="border-t border-zinc-200 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Reference Image Generation</label>
+              <span className="text-[10px] text-zinc-400">For IP-Adapter reference creation</span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-zinc-400">Reference Positive</label>
+                  {!isCreateMode && (
+                    <button
+                      type="button"
+                      onClick={() => setReferenceBasePrompt(customBasePrompt)}
+                      className="text-[10px] text-zinc-500 hover:underline"
+                    >
+                      Copy from Base
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={referenceBasePrompt}
+                  onChange={(e) => setReferenceBasePrompt(e.target.value)}
+                  rows={3}
+                  placeholder="masterpiece, best quality, anime portrait, looking at viewer..."
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-zinc-400">Reference Negative</label>
+                  {!isCreateMode && (
+                    <button
+                      type="button"
+                      onClick={() => setReferenceNegativePrompt(customNegativePrompt)}
+                      className="text-[10px] text-zinc-500 hover:underline"
+                    >
+                      Copy from Base
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={referenceNegativePrompt}
+                  onChange={(e) => setReferenceNegativePrompt(e.target.value)}
+                  rows={3}
+                  placeholder="easynegative, from side, from behind, profile..."
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Identity Tags */}
           <div>

@@ -176,6 +176,7 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
         raise HTTPException(status_code=404, detail="Character not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    logger.info("📥 [Characters] Updating character %d: %s", character_id, update_data)
     
     # Normalize prompt fields if they are being updated
     prompt_fields = [
@@ -191,9 +192,15 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
     for key, value in update_data.items():
         setattr(character, key, value)
 
-    db.commit()
-    db.refresh(character)
-    logger.info("✏️ [Characters] Updated and normalized: %s", character.name)
+    try:
+        db.commit()
+        db.refresh(character)
+        logger.info("✏️ [Characters] Updated and normalized: %s (Tags: %s)", character.name, character.identity_tags)
+    except Exception as e:
+        db.rollback()
+        logger.exception("Failed to update character")
+        raise HTTPException(status_code=500, detail=str(e))
+
     return character
 
 
