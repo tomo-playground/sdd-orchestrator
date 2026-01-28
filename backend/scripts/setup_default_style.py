@@ -69,7 +69,7 @@ def main():
 
         chibi, _ = get_or_create(db, LoRA, "chibi-laugh", {
             "display_name": "Chibi Laugh",
-            "trigger_words": ["chibi", "eyebrow", "laughing", "eyebrow down"],
+            "trigger_words": ["chibi", "eyebrow", "laughing", "eyebrow_down"],
             "default_weight": 0.6,
             "weight_min": 0.3,
             "weight_max": 0.8,
@@ -109,8 +109,8 @@ def main():
                     {"lora_id": chibi.id, "weight": 0.6},
                 ],
                 negative_embeddings=[veryBad.id, easyNeg.id],
-                default_positive="masterpiece, best quality, highly detailed",
-                default_negative="lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+                default_positive="masterpiece, best_quality, highly_detailed",
+                default_negative="lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, normal_quality, jpeg_artifacts, signature, watermark, username, blurry",
                 is_default=True,
                 is_active=True,
             )

@@ -15,3 +15,5 @@ uv run main.py
 ## Env
 - `GEMINI_API_KEY` required for storyboard generation
 - `LOG_FILE` optional (default `logs/backend.log`)
+- `LOG_TO_FILE` optional (default `1`) set `0` to disable file logging
+- `LOG_LEVEL` optional (default `INFO`) e.g. `DEBUG`, `INFO`, `WARNING`, `ERROR`

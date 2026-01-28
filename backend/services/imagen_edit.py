@@ -18,7 +18,7 @@ from PIL import Image
 from google import genai
 from google.genai import types
 
-from config import gemini_client
+from config import GEMINI_TEXT_MODEL, gemini_client
 from services.image import decode_data_url
 from services.utils import parse_json_payload
 
@@ -99,7 +99,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
 """
 
             res = self.client.models.generate_content(
-                model="gemini-2.0-flash-exp",
+                model=GEMINI_TEXT_MODEL,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
                     instruction,
@@ -324,7 +324,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
 """
 
             res = self.client.models.generate_content(
-                model="gemini-2.0-flash-exp",
+                model=GEMINI_TEXT_MODEL,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
                     instruction,

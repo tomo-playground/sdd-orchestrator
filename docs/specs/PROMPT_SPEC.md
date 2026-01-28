@@ -2,6 +2,22 @@
 
 SD 이미지 생성을 위한 프롬프트 설계 규칙.
 
+---
+
+## 🏷️ Danbooru 스타일 정규화
+
+시스템은 Stable Diffusion의 표준인 Danbooru 스타일의 태그 형식을 준수합니다.
+
+### 1. 정규화 규칙 (Normalization)
+모든 입력된 태그는 다음의 `normalize_prompt_token` 프로세스를 거칩니다:
+- **소문자화**: 모든 대문자를 소문자로 변환
+- **언더스코어 변환**: 공백(` `)을 언더스코어(`_`)로 변환 (`blue eyes` → `blue_eyes`)
+- **특수문자 처리**: 앞뒤 공백 제거 및 중복 구분자 정리
+
+### 2. 가중치 표현 (Emphasis)
+- **NAI/Danbooru 스타일**: `(tag:1.1)` 형식을 사용하여 강조를 표현합니다.
+- **중첩**: 가급적 중첩보다는 수치형 가중치를 권장합니다.
+
 ## 토큰 순서가 중요한 이유
 
 Stable Diffusion은 프롬프트의 **앞쪽 토큰에 더 높은 가중치**를 부여합니다:
@@ -12,10 +28,10 @@ Stable Diffusion은 프롬프트의 **앞쪽 토큰에 더 높은 가중치**를
 ### 예시
 ```
 # Good: 캐릭터가 중심
-1girl, hatsune miku, blue hair, smile, standing, library
+1girl, hatsune_miku, blue_hair, smile, standing, library
 
 # Bad: 배경이 중심이 됨
-library, standing, smile, blue hair, hatsune miku, 1girl
+library, standing, smile, blue_hair, hatsune_miku, 1girl
 ```
 
 ---
@@ -49,8 +65,8 @@ LoRA 사용 여부에 따라 **다른 규칙**을 적용합니다.
 | 1 | **Quality** | `masterpiece`, `best quality` |
 | 2 | **Subject** | `1girl`, `solo` |
 | 3 | **Identity** | `hatsune miku` (태그만) |
-| 4 | **Appearance** | `blue twintails`, `blue eyes` |
-| 5 | **Clothing** | `black dress`, `detached sleeves` |
+| 4 | **Appearance** | `blue_twintails`, `blue_eyes` |
+| 5 | **Clothing** | `black_dress`, `detached_sleeves` |
 | 6 | **Expression** | `smile`, `blush` |
 | 7 | **Gaze** | `looking at viewer` |
 | 8 | **Pose** | `standing`, `sitting` |
@@ -65,14 +81,14 @@ LoRA 사용 여부에 따라 **다른 규칙**을 적용합니다.
 ### 예시
 ```
 masterpiece, best quality,
-1girl, hatsune miku,
-blue twintails, blue eyes, hair ribbon,
-black dress, detached sleeves, thighhighs,
-smile, looking at viewer,
+1girl, hatsune_miku,
+blue_twintails, blue_eyes, hair_ribbon,
+black_dress, detached_sleeves, thighhighs,
+smile, looking_at_viewer,
 standing, singing,
 close-up,
-concert stage, night,
-colorful lights,
+concert_stage, night,
+colorful_lights,
 energetic
 ```
 
@@ -121,11 +137,11 @@ energetic
 ```
 masterpiece, best quality,
 1boy, midoriya_izuku,
-standing, looking at viewer,
+standing, looking_at_viewer,
 smile,
-green hair, freckles,
+green_hair, freckles,
 classroom, daytime,
-soft lighting,
+soft_lighting,
 <lora:mha_midoriya:0.7>
 ```
 
@@ -266,8 +282,8 @@ def filter_redundant_triggers(prompt_tags: list[str], lora_defined_tags: list[st
 ### Quality (우선순위 1)
 이미지 품질을 결정하는 태그. 항상 맨 앞에 배치.
 ```
-masterpiece, best quality, amazing quality, highres, absurdres, 8k
-ultra detailed, extremely detailed, intricate details
+masterpiece, best_quality, amazing_quality, highres, absurdres, 8k
+ultra_detailed, extremely_detailed, intricate_details
 ```
 
 ### Subject (우선순위 2)
@@ -279,29 +295,29 @@ ultra detailed, extremely detailed, intricate details
 ### Identity (우선순위 3)
 캐릭터를 특정하는 이름이나 LoRA 트리거 워드.
 ```
-hatsune miku, rem (re:zero), midoriya izuku
-crimson_avenger_(elsword),
+hatsune_miku, rem_(re:zero), midoriya_izuku
+crimson_avenger_(elsword)
 ```
 
 ### Appearance (우선순위 4)
 캐릭터의 외모 특징.
 ```
 # Hair
-long hair, short hair, twintails, ponytail, braids
-blue hair, blonde hair, pink hair
+long_hair, short_hair, twintails, ponytail, braids
+blue_hair, blonde_hair, pink_hair
 
 # Eyes
-blue eyes, red eyes, heterochromia
+blue_eyes, red_eyes, heterochromia
 
 # Other
-pale skin, dark skin, elf ears, horns, wings
+pale_skin, dark_skin, elf_ears, horns, wings
 ```
 
 ### Clothing (우선순위 5)
 의상과 액세서리.
 ```
-school uniform, maid outfit, casual clothes, armor
-white dress, black jacket, pleated skirt
+school_uniform, maid_outfit, casual_clothes, armor
+white_dress, black_jacket, pleated_skirt
 glasses, ribbon, hat, boots
 ```
 
@@ -310,22 +326,22 @@ glasses, ribbon, hat, boots
 ```
 smile, happy, sad, crying, angry, surprised
 shy, embarrassed, blush, confident, serious
-open mouth, closed mouth, tongue out
+open_mouth, closed_mouth, tongue_out
 ```
 
 ### Gaze (우선순위 7)
 시선 방향.
 ```
-looking at viewer, looking away, looking up, looking down
-looking to the side, looking back, eye contact
-eyes closed, half-closed eyes, wink
+looking_at_viewer, looking_away, looking_up, looking_down
+looking_to_the_side, looking_back, eye_contact
+eyes_closed, half-closed_eyes, wink
 ```
 
 ### Pose (우선순위 8)
 정적인 자세.
 ```
-standing, sitting, kneeling, crouching, lying down
-leaning, arms crossed, hands on hips, peace sign
+standing, sitting, kneeling, crouching, lying_down
+leaning, arms_crossed, hands_on_hips, peace_sign
 ```
 
 ### Action (우선순위 9)
@@ -339,10 +355,10 @@ waving, pointing, hugging
 ### Camera (우선순위 10)
 촬영 구도와 앵글.
 ```
-close-up, portrait, bust shot, upper body
-cowboy shot, full body, wide shot
-from above, from below, from side, from behind
-dutch angle, low angle, high angle, pov
+close-up, portrait, bust_shot, upper_body
+cowboy_shot, full_body, wide_shot
+from_above, from_below, from_side, from_behind
+dutch_angle, low_angle, high_angle, pov
 ```
 
 ### Location (우선순위 11)
@@ -355,8 +371,8 @@ indoors, library, cafe, classroom, bedroom, office
 outdoors, street, park, forest, beach, city
 
 # Background type
-simple background, white background, gradient background
-detailed background, blurry background
+simple_background, white_background, gradient_background
+detailed_background, blurry_background
 ```
 
 ### Time/Weather (우선순위 12)
@@ -369,9 +385,9 @@ sunny, cloudy, rainy, snowy
 ### Lighting (우선순위 13)
 조명 효과.
 ```
-natural light, sunlight, moonlight
-backlighting, rim light, dramatic lighting
-soft lighting, neon lights
+natural_light, sunlight, moonlight
+backlighting, rim_light, dramatic_lighting
+soft_lighting, neon_lights
 ```
 
 ### Mood (우선순위 14)
@@ -385,7 +401,7 @@ mysterious, ethereal, cozy, lonely
 아트 스타일.
 ```
 anime, realistic, semi-realistic
-watercolor, oil painting, digital art
+watercolor, oil_painting, digital_art
 ```
 
 ### LoRA (우선순위 99)
@@ -402,15 +418,15 @@ LoRA 태그는 항상 맨 마지막에 배치.
 ### 1. Base Prompt (캐릭터 기본)
 캐릭터의 고정 속성. 씬마다 변하지 않는 요소.
 ```
-1girl, hatsune miku, blue twintails, blue eyes,
-black thighhighs, detached sleeves, <lora:miku:0.8>
+1girl, hatsune_miku, blue_twintails, blue_eyes,
+black_thighhighs, detached_sleeves, <lora:miku:0.8>
 ```
 
 ### 2. Scene Prompt (씬별)
 씬에 따라 변하는 요소.
 ```
-smile, looking at viewer, standing, singing on stage,
-concert hall, colorful lights, energetic
+smile, looking_at_viewer, standing, singing_on_stage,
+concert_hall, colorful_lights, energetic
 ```
 
 ### 3. 병합 규칙
@@ -422,13 +438,13 @@ concert hall, colorful lights, energetic
 
 ### 4. 최종 결과 예시
 ```
-masterpiece, best quality,
-1girl, hatsune miku,
-blue twintails, blue eyes,
-detached sleeves, black thighhighs,
-smile, looking at viewer,
+masterpiece, best_quality,
+1girl, hatsune_miku,
+blue_twintails, blue_eyes,
+detached_sleeves, black_thighhighs,
+smile, looking_at_viewer,
 standing, singing,
-concert hall, colorful lights,
+concert_hall, colorful_lights,
 energetic,
 <lora:miku:0.8>
 ```
@@ -441,26 +457,26 @@ energetic,
 같은 카테고리 내에서 동시에 사용할 수 없는 태그.
 ```yaml
 hair_length:
-  - [long hair, short hair, medium hair]
+  - [long_hair, short_hair, medium_hair]
 
 hair_style:
   - [twintails, ponytail]  # 동시에 가능
-  - [straight hair, curly hair, wavy hair]
+  - [straight_hair, curly_hair, wavy_hair]
 
 gaze:
-  - [looking at viewer, looking away, looking down]
-  - [eyes closed, eyes open]
+  - [looking_at_viewer, looking_away, looking_down]
+  - [eyes_closed, eyes_open]
 
 pose:
-  - [standing, sitting, lying down, kneeling]
+  - [standing, sitting, lying_down, kneeling]
 ```
 
 ### Requires (필수 동반)
 특정 태그가 있으면 함께 필요한 태그.
 ```yaml
-twintails: [long hair]  # twintails → long hair 필요
-ponytail: [long hair]   # ponytail → long hair 필요
-glasses: [wearing glasses]  # 의미 명확화
+twintails: [long_hair]  # twintails → long_hair 필요
+ponytail: [long_hair]   # ponytail → long_hair 필요
+glasses: [wearing_glasses]  # 의미 명확화
 ```
 
 ---
@@ -472,9 +488,9 @@ Base prompt에서 제거해야 하는 씬별 키워드.
 ```typescript
 const SCENE_SPECIFIC_KEYWORDS = [
   // Poses
-  "sitting", "standing", "walking", "lying",
+  "sitting", "standing", "walking", "lying_down",
   // Camera
-  "close-up", "full body", "from above",
+  "close-up", "full_body", "from_above",
   // Locations
   "library", "cafe", "bedroom", "outdoors",
   // Time/Weather
@@ -491,7 +507,7 @@ SKIP_TAGS = [
   # Meta tags
   "highres", "absurdres",  # 별도 추가
   # Useless
-  "simple background",  # 씬에 따라 다름
+  "simple_background",  # 씬에 따라 다름
 ]
 ```
 
@@ -505,10 +521,14 @@ SKIP_TAGS = [
 | 우선순위 계산 | `frontend/app/constants/index.ts` | `getTokenPriority()` |
 | 프롬프트 병합 | `frontend/app/utils/index.ts` | `mergePromptTokens()` |
 | 프롬프트 빌드 | `frontend/app/page.tsx` | `buildPositivePrompt()` |
-| 카테고리 우선순위 | `backend/services/keywords.py` | `CATEGORY_PRIORITY` |
+| 카테고리 우선순위 | `backend/services/keywords/patterns.py` | `CATEGORY_PRIORITY` |
+| 태그 DB 처리 | `backend/services/keywords/db.py` | `load_tags_from_db`, `update_tag_effectiveness` |
+| 프롬프트 프로세싱 | `backend/services/keywords/processing.py` | `expand_synonyms`, `filter_prompt_tokens` |
+| 충돌/의존성 검증 | `backend/services/keywords/validation.py` | `validate_prompt_tags` |
+| 동기화 로직 | `backend/services/keywords/sync.py` | `sync_lora_triggers_to_tags` |
 | 백엔드 병합 | `backend/services/prompt.py` | `merge_prompt_tokens()` |
-| **태그 분류 (15.7)** | `backend/services/tag_classifier.py` | `TagClassifier`, `classify_batch()` |
-| **분류 API** | `backend/routers/tags.py` | `POST /tags/classify` |
+| **태그 분류** | `backend/services/tag_classifier.py` | `TagClassifier`, `classify_batch()` |
+| **분류 API** | `backend/routers/keywords.py` | `POST /keywords/classify` |
 | **프론트엔드 분류** | `frontend/app/hooks/useTagClassifier.ts` | `useTagClassifier()` |
 
 ---
@@ -614,26 +634,26 @@ curl -X POST http://localhost:8000/tags/migrate-patterns
 
 | Priority | Group | SD Category | 예시 |
 |:--------:|-------|-------------|------|
-| 1 | quality | meta | masterpiece, best quality |
+| 1 | quality | meta | masterpiece, best_quality |
 | 2 | subject | scene | 1girl, solo |
-| 3 | identity | character | midoriya izuku |
-| 4 | hair_color | character | blue hair |
-| 4 | hair_length | character | long hair |
+| 3 | identity | character | midoriya_izuku |
+| 4 | hair_color | character | blue_hair |
+| 4 | hair_length | character | long_hair |
 | 4 | hair_style | character | twintails |
 | 4 | hair_accessory | character | ribbon |
-| 4 | eye_color | character | blue eyes |
-| 4 | skin_color | character | pale skin |
-| 4 | body_feature | character | elf ears |
+| 4 | eye_color | character | blue_eyes |
+| 4 | skin_color | character | pale_skin |
+| 4 | body_feature | character | elf_ears |
 | 4 | appearance | character | freckles |
-| 5 | clothing | character | school uniform |
+| 5 | clothing | character | school_uniform |
 | 6 | expression | scene | smile, blush |
-| 7 | gaze | scene | looking at viewer |
+| 7 | gaze | scene | looking_at_viewer |
 | 8 | pose | scene | standing |
 | 9 | action | scene | running |
 | 10 | camera | scene | close-up |
 | 11 | location_indoor | scene | classroom |
 | 11 | location_outdoor | scene | forest |
-| 12 | background_type | scene | simple background |
+| 12 | background_type | scene | simple_background |
 | 13 | time_weather | scene | night, rain |
 | 14 | lighting | scene | backlighting |
 | 15 | mood | scene | peaceful |

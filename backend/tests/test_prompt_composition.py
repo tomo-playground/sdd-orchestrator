@@ -8,7 +8,7 @@ Tests 4 scenarios as defined in PROMPT_SPEC.md:
 """
 
 
-from services.prompt_composition import (
+from services.prompt.prompt_composition import (
     _deduplicate_loras,
     _normalize_break_tokens,
     calculate_lora_weight,
@@ -31,8 +31,10 @@ class TestTokenCategory:
 
     def test_quality_tokens(self):
         assert get_token_category("masterpiece") == "quality"
+        assert get_token_category("best_quality") == "quality"
+        assert get_token_category("high_quality") == "quality"
+        # Test backward compatibility (should still work if code normalizes)
         assert get_token_category("best quality") == "quality"
-        assert get_token_category("high quality") == "quality"
 
     def test_subject_tokens(self):
         assert get_token_category("1girl") == "subject"
@@ -40,10 +42,12 @@ class TestTokenCategory:
         assert get_token_category("solo") == "subject"
 
     def test_appearance_tokens(self):
-        assert get_token_category("blue hair") == "hair_color"
-        assert get_token_category("long hair") == "hair_length"
+        assert get_token_category("blue_hair") == "hair_color"
+        assert get_token_category("long_hair") == "hair_length"
         assert get_token_category("ponytail") == "hair_style"
-        assert get_token_category("blue eyes") == "eye_color"
+        assert get_token_category("blue_eyes") == "eye_color"
+        # Test space to underscore normalization
+        assert get_token_category("blue hair") == "hair_color"
 
     def test_expression_tokens(self):
         assert get_token_category("smiling") == "expression"
@@ -57,9 +61,11 @@ class TestTokenCategory:
         assert get_token_category("walking") == "action"
 
     def test_camera_tokens(self):
-        assert get_token_category("from above") == "camera"
-        assert get_token_category("full body") == "camera"
+        assert get_token_category("from_above") == "camera"
+        assert get_token_category("full_body") == "camera"
         assert get_token_category("close-up") == "camera"
+        # Test space to underscore normalization
+        assert get_token_category("from above") == "camera"
 
     def test_location_tokens(self):
         assert get_token_category("bedroom") == "location_indoor"
@@ -94,8 +100,8 @@ class TestSceneComplexity:
 
     def test_complex_scene(self):
         tokens = [
-            "1girl", "smiling", "looking at viewer", "standing",
-            "running", "from above", "bedroom", "sunset", "warm lighting"
+            "1girl", "smiling", "looking_at_viewer", "standing",
+            "running", "from_above", "bedroom", "sunset", "warm_lighting"
         ]
         assert detect_scene_complexity(tokens) == "complex"
 
@@ -192,10 +198,10 @@ class TestConflictFiltering:
         assert "daytime" in result
 
     def test_hair_length_conflict(self):
-        tokens = ["short hair", "long hair"]
+        tokens = ["short_hair", "long_hair"]
         result = filter_conflicting_tokens(tokens)
         assert len(result) == 1
-        assert "short hair" in result
+        assert "short_hair" in result
 
 
 class TestQualityTags:
@@ -205,7 +211,7 @@ class TestQualityTags:
         tokens = ["1girl", "smiling"]
         result = ensure_quality_tags(tokens)
         assert result[0] == "masterpiece"
-        assert result[1] == "best quality"
+        assert result[1] == "best_quality"
 
     def test_preserve_existing_quality(self):
         tokens = ["masterpiece", "1girl"]
@@ -232,11 +238,11 @@ class TestTokenSorting:
         assert result[1] == "1girl"
 
     def test_lora_mode_order(self):
-        tokens = ["blue hair", "1girl", "smiling", "masterpiece"]
+        tokens = ["blue_hair", "1girl", "smiling", "masterpiece"]
         result = sort_prompt_tokens(tokens, "lora")
         # In LoRA mode, scene (expression) comes before appearance (hair)
         smiling_idx = result.index("smiling")
-        hair_idx = result.index("blue hair")
+        hair_idx = result.index("blue_hair")
         assert smiling_idx < hair_idx
 
 
@@ -290,8 +296,8 @@ class TestPromptComposition:
     def test_scenario_4_lora_mode_complex(self):
         """Scenario 4: LoRA Mode - Complex scene."""
         tokens = [
-            "1girl", "smiling", "looking at viewer", "standing",
-            "running", "from above", "bedroom", "sunset", "warm lighting"
+            "1girl", "smiling", "looking_at_viewer", "standing",
+            "running", "from_above", "bedroom", "sunset", "warm_lighting"
         ]
         lora_strs = ["<lora:midoriya:0.4>"]
 
@@ -402,30 +408,31 @@ class TestCameraConflict:
     """Tests for camera angle/shot type conflicts (Bug fix 2026-01-26)."""
 
     def test_medium_shot_recognized(self):
-        """medium shot should be recognized as camera category."""
+        """medium_shot should be recognized as camera category."""
+        assert get_token_category("medium_shot") == "camera"
         assert get_token_category("medium shot") == "camera"
 
     def test_camera_shot_conflict(self):
         """Only one camera shot type should remain."""
-        tokens = ["full body", "medium shot", "close-up"]
+        tokens = ["full_body", "medium_shot", "close-up"]
         result = filter_conflicting_tokens(tokens)
         assert len(result) == 1
-        assert "full body" in result
+        assert "full_body" in result
 
     def test_camera_angle_conflict(self):
         """Only one camera angle should remain."""
-        tokens = ["from above", "from below", "side view"]
+        tokens = ["from_above", "from_below", "side_view"]
         result = filter_conflicting_tokens(tokens)
         assert len(result) == 1
-        assert "from above" in result
+        assert "from_above" in result
 
     def test_mixed_camera_tokens(self):
         """Mixed shot types and angles - first wins."""
-        tokens = ["portrait", "from above", "wide shot"]
+        tokens = ["portrait", "from_above", "wide_shot"]
         result = filter_conflicting_tokens(tokens)
         assert "portrait" in result
-        assert "from above" not in result
-        assert "wide shot" not in result
+        assert "from_above" not in result
+        assert "wide_shot" not in result
 
 
 class TestFullCompositionBugFixes:
@@ -434,12 +441,12 @@ class TestFullCompositionBugFixes:
     def test_user_reported_bug_full_case(self):
         """Full reproduction of user-reported bug."""
         tokens = [
-            "smile", "looking at viewer", "sitting", "playing guitar",
-            "full body", "indoors", "library", "room", "street", "cafe",
-            "break", "midoriya izuku", "short green hair", "medium shot"
+            "smile", "looking_at_viewer", "sitting", "playing_guitar",
+            "full_body", "indoors", "library", "room", "street", "cafe",
+            "break", "midoriya_izuku", "short_green_hair", "medium_shot"
         ]
         loras = ["<lora:mha_midoriya-10:0.4>", "<lora:mha_midoriya-10:0.5>"]
-        triggers = ["midoriya izuku"]
+        triggers = ["midoriya_izuku"]
 
         result = compose_prompt_tokens(
             tokens, "lora",
@@ -465,7 +472,7 @@ class TestFullCompositionBugFixes:
         # full_body (18%), medium_shot (0%) both below 30% threshold
         # Test focuses on deduplication logic, not effectiveness filtering
         # So we just verify no duplicates exist if they survived filtering
-        camera_tokens = ["full body", "medium shot", "full_body", "medium_shot", "cowboy shot", "cowboy_shot"]
+        camera_tokens = ["full_body", "medium_shot", "cowboy_shot"]
         cameras_in_result = [t for t in result if t in camera_tokens]
         # Should have 0 or 1 camera tag (no duplicates)
         assert len(cameras_in_result) <= 1
@@ -564,7 +571,7 @@ class TestExpressionConflict:
 
     def test_crying_vs_laughing(self):
         """crying and laughing should not coexist."""
-        tokens = ["crying", "looking down", "standing", "laughing"]
+        tokens = ["crying", "looking_down", "standing", "laughing"]
         result = filter_conflicting_tokens(tokens)
         assert "crying" in result
         assert "laughing" not in result
@@ -595,18 +602,18 @@ class TestGazeConflict:
     """Tests for gaze direction conflicts."""
 
     def test_looking_down_vs_up(self):
-        """looking down and looking up should not coexist."""
-        tokens = ["looking down", "standing", "looking up"]
+        """looking_down and looking_up should not coexist."""
+        tokens = ["looking_down", "standing", "looking_up"]
         result = filter_conflicting_tokens(tokens)
-        assert "looking down" in result
-        assert "looking up" not in result
+        assert "looking_down" in result
+        assert "looking_up" not in result
 
     def test_looking_away_vs_at_viewer(self):
-        """looking away and looking at viewer conflict."""
-        tokens = ["looking away", "smile", "looking at viewer"]
+        """looking_away and looking_at_viewer conflict."""
+        tokens = ["looking_away", "smile", "looking_at_viewer"]
         result = filter_conflicting_tokens(tokens)
-        assert "looking away" in result
-        assert "looking at viewer" not in result
+        assert "looking_away" in result
+        assert "looking_at_viewer" not in result
 
 
 class TestPoseConflict:

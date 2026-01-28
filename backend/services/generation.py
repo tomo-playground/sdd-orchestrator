@@ -23,7 +23,7 @@ from services.prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
-from services.prompt_composition import detect_scene_complexity
+from services.prompt import detect_scene_complexity
 
 
 async def generate_scene_image(request: SceneGenerateRequest) -> dict:

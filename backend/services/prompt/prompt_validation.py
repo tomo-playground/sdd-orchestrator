@@ -106,6 +106,16 @@ RISKY_TAG_REPLACEMENTS = {
     "lens_flare_effect": "lens_flare",
     "depth of field": "depth_of_field",
     "depth_of_field": "depth_of_field",
+    # Appearance / Character (Composite to Individual)
+    "short_green_hair": "short_hair, green_hair",
+    "long_blonde_hair": "long_hair, blonde_hair",
+    "medium_brown_hair": "medium_hair, brown_hair",
+    "short_blue_hair": "short_hair, blue_hair",
+    "short_red_hair": "short_hair, red_hair",
+    "short_white_hair": "short_hair, white_hair",
+    "short_black_hair": "short_hair, black_hair",
+    "playing_guitar": "guitar, musical_instrument",
+    "playing guitar": "guitar, musical_instrument",
 }
 
 
@@ -162,6 +172,13 @@ def validate_prompt_tags(
         # Check Danbooru if enabled
         if check_danbooru:
             try:
+                # Optimized check: Skip API for known internal quality/style tags
+                from services.keywords import CATEGORY_PATTERNS
+                normalized_tag = tag.lower().replace(" ", "_")
+                if normalized_tag in CATEGORY_PATTERNS.get("quality", []) or normalized_tag in CATEGORY_PATTERNS.get("style", []):
+                    valid_tags.append(tag)
+                    continue
+
                 tag_info = get_tag_info_sync(tag)
 
                 if tag_info:

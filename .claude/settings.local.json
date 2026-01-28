@@ -11,15 +11,18 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "postgres",
+    "danbooru-tags",
+    "huggingface",
     "context7",
-    "chrome-devtools",
-    "shadcn",
-    "API specification",
-    "pytest-opencv",
     "backend-refactor",
+    "API specification",
+    "sequential-thinking",
+    "playwright",
+    "memory",
     "serena",
-    "sequential-thinking"
+    "civitai",
+    "ffmpeg",
+    "postgres"
   ],
   "disabledMcpjsonServers": []
 }

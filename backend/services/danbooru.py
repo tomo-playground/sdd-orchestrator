@@ -41,15 +41,22 @@ async def get_tag_info(tag_name: str) -> dict | None:
     Returns:
         Tag info dict or None if not found
     """
-    # Normalize tag name (Danbooru uses underscores)
-    normalized = tag_name.lower().replace(" ", "_").strip()
+    # Always normalize to pure tag name for Danbooru
+    from .keywords.core import normalize_prompt_token
+    normalized = normalize_prompt_token(tag_name)
+    
+    # Skip API calls for known quality/style tags that won't have useful Danbooru info
+    from .keywords.patterns import CATEGORY_PATTERNS
+    if normalized in CATEGORY_PATTERNS.get("quality", []) or normalized in CATEGORY_PATTERNS.get("style", []):
+        return None
 
     try:
-        async with httpx.AsyncClient() as client:
+        headers = {"User-Agent": "ShortsProducer/1.0 (Contact: user@example.com)"}
+        async with httpx.AsyncClient(headers=headers) as client:
             response = await client.get(
                 f"{DANBOORU_API_BASE}/tags.json",
                 params={"search[name]": normalized, "limit": 1},
-                timeout=10.0,
+                timeout=15.0,
             )
             response.raise_for_status()
             data = response.json()
@@ -63,8 +70,12 @@ async def get_tag_info(tag_name: str) -> dict | None:
                     "post_count": tag_data.get("post_count", 0),
                 }
             return None
+    except httpx.ConnectTimeout:
+        # Log timeout at a lower level to avoid noise, or only once
+        logger.debug("⏳ [Danbooru] Connection timeout for '%s'", normalized)
+        return None
     except httpx.HTTPError as e:
-        logger.warning("⚠️ [Danbooru] API error for '%s': %s", tag_name, e)
+        logger.warning("⚠️ [Danbooru] API error for '%s': %s", normalized, e)
         return None
     except Exception as e:
         logger.error("❌ [Danbooru] Unexpected error for '%s': %s", tag_name, e)

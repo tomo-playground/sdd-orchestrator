@@ -118,7 +118,6 @@ class SceneGenerateRequest(BaseModel):
 class SceneValidateRequest(BaseModel):
     image_b64: str
     prompt: str = ""
-    mode: str = "wd14"
     # Analytics tracking (optional, auto-generated if not provided)
     session_id: str | None = None  # Optional: Frontend session ID
     topic: str | None = None  # Optional: Content topic for reference

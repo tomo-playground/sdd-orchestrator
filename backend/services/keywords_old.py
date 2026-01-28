@@ -761,7 +761,7 @@ def filter_prompt_tokens(prompt: str) -> str:
     - Legacy DB tags: "brown hair", "full body" (space format)
     """
     from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING
-    from services.prompt_validation import RISKY_TAG_REPLACEMENTS
+    from services.prompt import RISKY_TAG_REPLACEMENTS
 
     allowed = load_allowed_tags_from_db()
     synonym_lookup = load_synonyms_from_db()

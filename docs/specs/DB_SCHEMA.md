@@ -21,8 +21,15 @@ erDiagram
 
     characters {
         string name
+        string gender
         jsonb loras
         string prompt_mode
+        text custom_base_prompt
+        text custom_negative_prompt
+        text reference_base_prompt
+        text reference_negative_prompt
+        float ip_adapter_weight
+        string ip_adapter_model
     }
     
     loras {
@@ -113,8 +120,14 @@ Character presets defining appearance and LoRA configurations.
 | `identity_tags` | Integer[] | Array of Tag IDs (base appearance) |
 | `clothing_tags` | Integer[] | Array of Tag IDs (default outfit) |
 | `loras` | JSONB | List of LoRAs: `[{"lora_id": 1, "weight": 0.8}, ...]` |
-| `prompt_mode` | String(20) | `auto`, `standard` (no LoRA), `lora` (with LoRA) |
-| `recommended_negative` | String[] | Character-specific negative prompts |
+| `prompt_mode` | String(20) | `auto`, `standard`, `lora` |
+| `recommended_negative` | Text[] | Character-specific negative prompts |
+| `custom_base_prompt` | Text | Raw prompt text for inclusion |
+| `custom_negative_prompt` | Text | Raw negative prompt text |
+| `reference_base_prompt` | Text | Prompt for building reference |
+| `reference_negative_prompt` | Text | Negative prompt for reference |
+| `ip_adapter_weight` | Float | IP-Adapter weight (0.0-1.0) |
+| `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
 
 ### `loras`
 Stable Diffusion LoRA models with metadata and calibration data.

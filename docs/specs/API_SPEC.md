@@ -1,4 +1,4 @@
-# API Specification (v2.1)
+# API Specification (v2.2)
 
 프론트엔드와 백엔드 간 데이터 통신을 위한 API 명세서입니다.
 
@@ -6,6 +6,7 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v2.2 | 2026-01-28 | Keywords Service 리팩토링 및 패키지 구조 반영, Character DB 필드 확장 반영 |
 | v2.1 | 2026-01-27 | Characters API 추가, Generation Logs API 추가, Quality API 추가, Evaluation API 추가, Ken Burns 세로 프리셋 추가 |
 | v2.0 | 2025-12-15 | Phase 5-6 완료, 초기 버전 |
 

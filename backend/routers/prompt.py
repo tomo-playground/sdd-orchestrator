@@ -23,13 +23,13 @@ from services.prompt import (
     validate_identity_tags,
     validate_loras,
 )
-from services.prompt_composition import (
+from services.prompt import (
     calculate_lora_weight,
     compose_prompt_tokens,
     detect_scene_complexity,
     get_effective_mode_from_dict,
 )
-from services.prompt_validation import auto_replace_risky_tags, check_tag_conflicts, validate_prompt_tags
+from services.prompt import auto_replace_risky_tags, check_tag_conflicts, validate_prompt_tags
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 

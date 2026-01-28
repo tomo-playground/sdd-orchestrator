@@ -6,7 +6,7 @@ Validates that Gemini-generated prompts are correctly normalized for SD compatib
 import pytest
 from unittest.mock import MagicMock, patch
 
-from services.prompt import (
+from services.prompt.prompt import (
     fix_compound_adjectives,
     normalize_and_fix_tags,
     normalize_tag_spaces,

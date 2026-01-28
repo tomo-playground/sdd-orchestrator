@@ -126,7 +126,6 @@ export default function Home() {
   const [validationSummary, setValidationSummary] = useState({ ok: 0, warn: 0, error: 0 });
   const [validationExpanded, setValidationExpanded] = useState<Record<number, boolean>>({});
   const [suggestionExpanded, setSuggestionExpanded] = useState<Record<number, boolean>>({});
-  const [imageCheckMode, setImageCheckMode] = useState<"local" | "gemini">("local");
   const [imageValidationResults, setImageValidationResults] = useState<
     Record<number, ImageValidation>
   >({});
@@ -1310,7 +1309,6 @@ export default function Home() {
     setSuggestedScene("");
     setIsHelperOpen(false);
     setCopyStatus("");
-    setImageCheckMode("local");
     setBaseStepsA(27);
     setBaseCfgScaleA(7);
     setBaseSamplerA("DPM++ 2M Karras");
@@ -1511,9 +1509,9 @@ export default function Home() {
     // Filter out scene-specific keywords from base (to avoid duplicates)
     const filteredBaseTokens = autoComposePrompt
       ? baseTokens.filter((token) => {
-          const lower = token.toLowerCase();
-          return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
-        })
+        const lower = token.toLowerCase();
+        return !SCENE_SPECIFIC_KEYWORDS.some((keyword) => lower.includes(keyword));
+      })
       : baseTokens;
     console.log("[buildPositivePrompt] filteredBaseTokens:", filteredBaseTokens);
 
@@ -1648,12 +1646,12 @@ export default function Home() {
   const buildHiResPayload = () =>
     hiResEnabled
       ? {
-          enable_hr: true,
-          hr_scale: 1.5,
-          hr_upscaler: "Latent",
-          hr_second_pass_steps: 10,
-          denoising_strength: 0.25,
-        }
+        enable_hr: true,
+        hr_scale: 1.5,
+        hr_upscaler: "Latent",
+        hr_second_pass_steps: 10,
+        denoising_strength: 0.25,
+      }
       : {};
 
   const storeSceneImage = async (dataUrl: string) => {
@@ -1826,7 +1824,6 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/scene/validate_image`, {
         image_b64: imageUrl,
         prompt,
-        mode: imageCheckMode,
       });
       return res.data;
     } catch {
@@ -2013,15 +2010,15 @@ export default function Home() {
             updated = updated.map((target) =>
               target.id === scene.id
                 ? {
-                    ...target,
-                    speaker: "A",
-                    steps: baseSettings.steps,
-                    cfg_scale: baseSettings.cfg,
-                    sampler_name: baseSettings.sampler,
-                    seed: baseSettings.seed,
-                    clip_skip: baseSettings.clipSkip,
-                    negative_prompt: baseNegativePromptA,
-                  }
+                  ...target,
+                  speaker: "A",
+                  steps: baseSettings.steps,
+                  cfg_scale: baseSettings.cfg,
+                  sampler_name: baseSettings.sampler,
+                  seed: baseSettings.seed,
+                  clip_skip: baseSettings.clipSkip,
+                  negative_prompt: baseNegativePromptA,
+                }
                 : target
             );
             return;
@@ -2218,7 +2215,6 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/scene/validate_image`, {
         image_b64: scene.image_url,
         prompt,
-        mode: imageCheckMode,
       });
       setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
       const matchRate = Math.round((res.data.match_rate || 0) * 100);
@@ -2288,7 +2284,6 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/scene/validate_image`, {
         image_b64: scene.image_url,
         prompt,
-        mode: imageCheckMode,
       });
       setImageValidationResults((prev) => ({ ...prev, [scene.id]: res.data }));
 
@@ -2318,9 +2313,8 @@ export default function Home() {
 
         {/* ============ WORKING MODE (Direct Entry) ============ */}
         <main
-          className={`relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 ${
-            isAutoRunning ? "pointer-events-none opacity-60" : ""
-          }`}
+          className={`relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 ${isAutoRunning ? "pointer-events-none opacity-60" : ""
+            }`}
         >
           <WorkingModeHeader />
 
@@ -2451,8 +2445,6 @@ export default function Home() {
               onValidate={runValidation}
               onAutoFixAll={handleAutoFixAll}
               onAddScene={handleAddScene}
-              imageCheckMode={imageCheckMode}
-              onImageCheckModeChange={setImageCheckMode}
               multiGenEnabled={multiGenEnabled}
               onMultiGenEnabledChange={setMultiGenEnabled}
               useControlnet={useControlnet}
@@ -2487,9 +2479,9 @@ export default function Home() {
                 qualityScore={
                   imageValidationResults[scenes[currentSceneIndex].id]
                     ? {
-                        match_rate: imageValidationResults[scenes[currentSceneIndex].id].match_rate ?? 0,
-                        missing_tags: imageValidationResults[scenes[currentSceneIndex].id].missing ?? [],
-                      }
+                      match_rate: imageValidationResults[scenes[currentSceneIndex].id].match_rate ?? 0,
+                      missing_tags: imageValidationResults[scenes[currentSceneIndex].id].missing ?? [],
+                    }
                     : null
                 }
                 sceneTab={sceneTab[scenes[currentSceneIndex].id] ?? null}

@@ -54,10 +54,8 @@ export const STRUCTURES = [
   "Monologue",
   "Storytelling",
   "Tutorial",
-  "Japanese Lesson",
   "Facts",
   "Motivation",
-  "Math Lesson",
 ];
 
 export const CAMERA_KEYWORDS = [

@@ -18,8 +18,6 @@ type SceneListHeaderProps = {
   onAutoFixAll: () => void;
   onAddScene: () => void;
   // Settings
-  imageCheckMode: "local" | "gemini";
-  onImageCheckModeChange: (mode: "local" | "gemini") => void;
   multiGenEnabled: boolean;
   onMultiGenEnabledChange: (enabled: boolean) => void;
   useControlnet: boolean;
@@ -44,8 +42,6 @@ export default function SceneListHeader({
   onValidate,
   onAutoFixAll,
   onAddScene,
-  imageCheckMode,
-  onImageCheckModeChange,
   multiGenEnabled,
   onMultiGenEnabledChange,
   useControlnet,
@@ -100,18 +96,6 @@ export default function SceneListHeader({
       {/* Settings Row */}
       <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50/50 px-4 py-2">
         <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">Settings</span>
-        <div className="h-4 w-px bg-zinc-200" />
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium text-zinc-500">Image Check</span>
-          <select
-            value={imageCheckMode}
-            onChange={(e) => onImageCheckModeChange(e.target.value as "local" | "gemini")}
-            className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] text-zinc-600"
-          >
-            <option value="local">Local (WD14)</option>
-            <option value="gemini">Gemini (Cloud)</option>
-          </select>
-        </div>
         <div className="h-4 w-px bg-zinc-200" />
         <label className="flex items-center gap-2 text-[10px] font-medium text-zinc-500 cursor-pointer">
           3x Candidates

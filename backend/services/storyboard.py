@@ -4,7 +4,7 @@ import json
 
 from fastapi import HTTPException
 
-from config import gemini_client, template_env
+from config import GEMINI_TEXT_MODEL, gemini_client, template_env
 from schemas import StoryboardRequest
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure
@@ -37,7 +37,7 @@ def create_storyboard(request: StoryboardRequest) -> dict:
             **extra_fields,
         )
         res = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp",
+            model=GEMINI_TEXT_MODEL,
             contents=f"{system_instruction}\n\n{rendered}",
         )
         scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))

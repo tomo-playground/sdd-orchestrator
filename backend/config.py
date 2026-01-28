@@ -18,6 +18,7 @@ load_dotenv()
 # --- Logging ---
 LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
 LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 _handlers = [logging.StreamHandler()]
 if LOG_TO_FILE:
@@ -26,7 +27,7 @@ if LOG_TO_FILE:
     _handlers.append(logging.FileHandler(_log_path, encoding="utf-8"))
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=_handlers,
@@ -77,6 +78,9 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 # Gemini Image Generation Model (Nano Banana = gemini-2.5-flash-image)
 # Optimized for speed and cost. Alternative: gemini-3-pro-image-preview (Nano Banana Pro)
 GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+# Gemini Text/Vision Model (Standard = gemini-2.0-flash)
+# Used for storyboard generation, prompt rewriting, and vision analysis
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / TEMPLATES_DIR)))

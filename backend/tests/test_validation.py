@@ -19,9 +19,9 @@ class TestComparePromptToTags:
         result = compare_prompt_to_tags(prompt, tags)
 
         assert "1girl" in result["matched"]
-        assert "blue hair" in result["matched"]
-        assert "red eyes" in result["matched"]
-        assert "school uniform" in result["matched"]
+        assert "blue_hair" in result["matched"]
+        assert "red_eyes" in result["matched"]
+        assert "school_uniform" in result["matched"]
         assert len(result["missing"]) == 0
 
     def test_partial_match(self):
@@ -35,9 +35,9 @@ class TestComparePromptToTags:
         result = compare_prompt_to_tags(prompt, tags)
 
         assert "1girl" in result["matched"]
-        assert "blue hair" in result["matched"]
-        assert "red eyes" in result["missing"]
-        assert "school uniform" in result["missing"]
+        assert "blue_hair" in result["matched"]
+        assert "red_eyes" in result["missing"]
+        assert "school_uniform" in result["missing"]
         assert "library" in result["missing"]
 
     def test_extra_tags(self):
@@ -68,7 +68,7 @@ class TestComparePromptToTags:
         # Quality tags should be excluded from comparison
         assert "masterpiece" not in result["matched"]
         assert "masterpiece" not in result["missing"]
-        assert "best quality" not in result["missing"]
+        assert "best_quality" not in result["missing"]
 
     def test_skip_lighting_tags(self):
         """Should skip lighting tags (hard to detect)."""
@@ -81,10 +81,10 @@ class TestComparePromptToTags:
         result = compare_prompt_to_tags(prompt, tags)
 
         # Lighting tags should be excluded
-        assert "soft lighting" not in result["missing"]
-        assert "natural light" not in result["missing"]
+        assert "soft_lighting" not in result["missing"]
+        assert "natural_light" not in result["missing"]
         assert "1girl" in result["matched"]
-        assert "blue hair" in result["matched"]
+        assert "blue_hair" in result["matched"]
 
     def test_skip_mood_tags(self):
         """Should skip abstract mood tags."""
@@ -129,8 +129,8 @@ class TestComparePromptToTags:
 
         # Should match 2girls
         assert "2girls" in result["matched"]
-        assert "blue hair" in result["matched"]
-        assert "red eyes" in result["matched"]
+        assert "blue_hair" in result["matched"]
+        assert "red_eyes" in result["matched"]
 
     def test_substring_matching(self):
         """Should match partial strings (e.g., 'hair' in 'blue hair')."""
@@ -143,7 +143,7 @@ class TestComparePromptToTags:
 
         result = compare_prompt_to_tags(prompt, tags)
 
-        # "hair" should match "blue hair"
+        # "hair" should match "blue_hair"
         assert "hair" in result["matched"]
         assert "eyes" in result["matched"]
 
@@ -170,8 +170,8 @@ class TestComparePromptToTags:
 
         # All prompt tokens should be missing
         assert "1girl" in result["missing"]
-        assert "blue hair" in result["missing"]
-        assert "red eyes" in result["missing"]
+        assert "blue_hair" in result["missing"]
+        assert "red_eyes" in result["missing"]
         assert len(result["extra"]) == 0
 
     def test_case_insensitivity(self):
@@ -186,8 +186,8 @@ class TestComparePromptToTags:
         result = compare_prompt_to_tags(prompt, tags)
 
         assert "1girl" in result["matched"]
-        assert "blue hair" in result["matched"]
-        assert "red eyes" in result["matched"]
+        assert "blue_hair" in result["matched"]
+        assert "red_eyes" in result["matched"]
 
     def test_ignore_lora_tags(self):
         """Should ignore LoRA/model tags in comparison."""
@@ -203,7 +203,7 @@ class TestComparePromptToTags:
         assert "<lora:test:0.8>" not in result["matched"]
         assert "<lora:test:0.8>" not in result["missing"]
         assert "1girl" in result["matched"]
-        assert "blue hair" in result["matched"]
+        assert "blue_hair" in result["matched"]
 
     def test_extra_tags_limit(self):
         """Should limit extra tags to top 20."""
@@ -232,20 +232,20 @@ class TestComparePromptToTags:
 
         result = compare_prompt_to_tags(prompt, tags)
 
-        # Matched: 1girl, blue hair, school uniform, standing
+        # Matched: 1girl, blue_hair, school_uniform, standing
         assert "1girl" in result["matched"]
-        assert "blue hair" in result["matched"]
-        assert "school uniform" in result["matched"]
+        assert "blue_hair" in result["matched"]
+        assert "school_uniform" in result["matched"]
         assert "standing" in result["matched"]
 
-        # Missing: red eyes, library (quality/lighting excluded)
-        assert "red eyes" in result["missing"]
+        # Missing: red_eyes, library (quality/lighting excluded)
+        assert "red_eyes" in result["missing"]
         assert "library" in result["missing"]
 
         # Quality/lighting tags should be excluded
         assert "masterpiece" not in result["matched"]
         assert "masterpiece" not in result["missing"]
-        assert "soft lighting" not in result["missing"]
+        assert "soft_lighting" not in result["missing"]
 
         # Extra: smile, indoors (not in prompt)
         assert "smile" in result["extra"] or "indoors" in result["extra"]

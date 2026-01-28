@@ -59,7 +59,7 @@ def test_validate_tags_risky_known(client: TestClient):
             assert warning["suggestion"] is not None
 
 
-@patch("services.prompt_validation.get_tag_info_sync")
+@patch("services.prompt.prompt_validation.get_tag_info_sync")
 def test_validate_tags_with_danbooru(mock_get_tag, client: TestClient):
     """Test tag validation with Danbooru check."""
     # Mock Danbooru responses
@@ -98,7 +98,7 @@ def test_validate_tags_with_danbooru(mock_get_tag, client: TestClient):
     assert "not_found_tag" in data["unknown_in_db"]
 
 
-@patch("services.prompt_validation.get_tag_info_sync")
+@patch("services.prompt.prompt_validation.get_tag_info_sync")
 def test_validate_tags_danbooru_error(mock_get_tag, client: TestClient):
     """Test tag validation when Danbooru API fails."""
     mock_get_tag.side_effect = Exception("API Error")

@@ -18,7 +18,7 @@ import onnxruntime as ort
 from fastapi import HTTPException
 from PIL import Image
 
-from config import CACHE_DIR, CACHE_TTL_SECONDS, WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client, logger
+from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, WD14_MODEL_DIR, WD14_THRESHOLD, gemini_client, logger
 from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 
@@ -147,42 +147,6 @@ def wd14_predict_tags(image: Image.Image, threshold: float | None = None) -> lis
     return results
 
 
-def gemini_predict_tags(image: Image.Image) -> list[dict[str, Any]]:
-    """Predict tags for an image using Gemini vision."""
-    from google.genai import types
-
-    client = _get_gemini_client()
-    if not client:
-        raise RuntimeError("Gemini key missing")
-
-    mime_type = resolve_image_mime(image)
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    image_bytes = buf.getvalue()
-    instruction = (
-        "Analyze the image and return JSON only: "
-        "{\"tags\": [\"short tag\", ...]}. "
-        "Use Stable Diffusion tag-style nouns/adjectives, no sentences."
-    )
-    res = client.models.generate_content(
-        model="gemini-2.0-flash-exp",
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-            instruction,
-        ],
-    )
-    parse_json = _get_parse_json_payload()
-    data = parse_json(res.text)
-    tags = data.get("tags", [])
-    results: list[dict[str, Any]] = []
-    for tag in tags:
-        if not isinstance(tag, str):
-            continue
-        cleaned = tag.strip()
-        if not cleaned:
-            continue
-        results.append({"tag": cleaned, "score": 1.0, "category": "gemini"})
-    return results
 
 
 def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str, Any]:
@@ -191,11 +155,11 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
     raw_tokens = split_tokens(prompt)
     skip_tokens = {
         # Quality tags (not visually detectable)
-        "best quality",
+        "best_quality",
         "masterpiece",
-        "high quality",
-        "ultra detailed",
-        "ultra detail",
+        "high_quality",
+        "ultra_detailed",
+        "ultra_detail",
         "highres",
         "8k",
         "4k",
@@ -204,20 +168,20 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "stylized",
         "anime",
         "illustration",
-        "digital painting",
+        "digital_painting",
         "artstation",
-        "sharp focus",
+        "sharp_focus",
         "cinematic",
         # Lighting tags (hard to detect by WD14)
-        "natural light",
-        "soft lighting",
-        "soft light",  # Space format variant
-        "hard lighting",
-        "dramatic lighting",
-        "studio lighting",
+        "natural_light",
+        "soft_lighting",
+        "soft_light",
+        "hard_lighting",
+        "dramatic_lighting",
+        "studio_lighting",
         "backlighting",
-        "rim lighting",
-        "daylight",  # Time of day (WD14 can't detect)
+        "rim_lighting",
+        "daylight",
         "sunlight",
         # Mood tags (abstract, not visually detectable)
         "energetic",
@@ -255,10 +219,10 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "dawn",
         "dusk",
         # Character-specific tags (LoRA-generated, not in WD14 training)
-        "eureka",  # Character name from LoRA
-        "chibi",  # Style tag from LoRA
-        "eyebrow",  # Fine-grained facial feature
-        "eyebrow down",
+        "eureka",
+        "chibi",
+        "eyebrow",
+        "eyebrow_down",
         # Abstract mood
         "flustered",
     }
@@ -290,30 +254,28 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
     return {"matched": matched, "missing": missing, "extra": extra}
 
 
-def cache_key_for_validation(image_bytes: bytes, prompt: str, mode: str) -> str:
+def cache_key_for_validation(image_bytes: bytes, prompt: str) -> str:
     """Generate a cache key for validation results."""
     digest = hashlib.sha256()
     digest.update(image_bytes)
     digest.update(prompt.encode("utf-8"))
-    digest.update(mode.encode("utf-8"))
     return digest.hexdigest()
 def validate_scene_image(request: SceneValidateRequest) -> dict:
     try:
         image_bytes = load_image_bytes(request.image_b64)
-        mode = request.mode.lower().strip() if request.mode else "wd14"
-        cache_key = cache_key_for_validation(image_bytes, request.prompt or "", mode)
+        # Simplified: Use WD14 exclusively for Danbooru tag consistency
+        cache_key = cache_key_for_validation(image_bytes, request.prompt or "")
         cache_file = CACHE_DIR / f"image_validate_{cache_key}.json"
+        
         if cache_file.exists():
             age = time.time() - cache_file.stat().st_mtime
             if age < CACHE_TTL_SECONDS:
                 cached = json.loads(cache_file.read_text(encoding="utf-8"))
                 cached["cached"] = True
                 return cached
+        
         image = Image.open(io.BytesIO(image_bytes))
-        if mode == "gemini":
-            tags = gemini_predict_tags(image)
-        else:
-            tags = wd14_predict_tags(image, WD14_THRESHOLD)
+        tags = wd14_predict_tags(image, WD14_THRESHOLD)
         comparison = compare_prompt_to_tags(request.prompt or "", tags)
         total = len(comparison["matched"]) + len(comparison["missing"])
         match_rate = (len(comparison["matched"]) / total) if total else 0.0
@@ -352,7 +314,7 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         )
 
         result = {
-            "mode": mode,
+            "mode": "wd14",
             "match_rate": match_rate,
             "matched": comparison["matched"],
             "missing": comparison["missing"],

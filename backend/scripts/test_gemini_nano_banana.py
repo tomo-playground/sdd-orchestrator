@@ -307,7 +307,7 @@ class ImagenTester:
         self, image_b64: str, prompt: str, target_change: str
     ) -> dict:
         """Gemini Vision으로 포즈 분석"""
-        from config import gemini_client
+        from config import GEMINI_IMAGE_MODEL, GEMINI_TEXT_MODEL, gemini_client
         from google.genai import types
         from services.utils import parse_json_payload
 
@@ -330,14 +330,13 @@ OUTPUT (JSON only):
 """
 
         client = gemini_client
-        res = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-                instruction,
-            ],
-        )
-
+                    res = client.models.generate_content(
+                        model=GEMINI_TEXT_MODEL,
+                        contents=[
+                            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
+                            instruction,
+                        ],
+                    )
         return parse_json_payload(res.text)
 
     async def _edit_with_gemini(

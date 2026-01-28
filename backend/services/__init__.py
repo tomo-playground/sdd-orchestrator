@@ -65,7 +65,6 @@ from .utils import (
 from .validation import (
     cache_key_for_validation,
     compare_prompt_to_tags,
-    gemini_predict_tags,
     load_wd14_model,
     resolve_image_mime,
     wd14_predict_tags,
@@ -103,7 +102,6 @@ __all__ = [
     # Validation
     "cache_key_for_validation",
     "compare_prompt_to_tags",
-    "gemini_predict_tags",
     "load_wd14_model",
     "resolve_image_mime",
     "wd14_predict_tags",

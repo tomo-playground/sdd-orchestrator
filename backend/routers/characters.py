@@ -14,7 +14,7 @@ from models import Character, LoRA, Tag
 from pydantic import BaseModel
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 from services.controlnet import generate_reference_for_character
-from services.prompt_composition import get_effective_mode
+from services.prompt import get_effective_mode
 
 router = APIRouter(prefix="/characters", tags=["characters"])
 

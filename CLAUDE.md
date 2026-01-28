@@ -14,16 +14,18 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 - **제품 스펙**: `docs/PRD.md`
 - **API 명세**: `docs/specs/API_SPEC.md`
 - **프롬프트 설계**: `docs/specs/PROMPT_SPEC.md`
-- **개발 가이드**: `docs/CONTRIBUTING.md`
+- **개발 가이드**: `docs/guides/CONTRIBUTING.md`
 
-## 코드 크기 가이드라인
+## 코드 및 문서 크기 가이드라인
 | 단위 | 권장 | 최대 |
 |------|------|------|
 | 함수/메서드 | 30줄 | 50줄 |
 | 클래스/컴포넌트 | 150줄 | 200줄 |
-| 파일 | 300줄 | 400줄 |
+| 코드 파일 | 300줄 | 400줄 |
+| 문서 파일 (.md) | 500줄 | 800줄 |
 
 **원칙**: Single Responsibility, 중첩 3단계 이하, 매개변수 4개 이하
+**문서 관리**: 800줄 초과 시 히스토리 추출(Archive) 또는 관심사 분리(Sub-Roadmap) 필수.
 
 ## 사전 요구사항
 - **SD WebUI**: API 모드 실행 (`--api` 옵션)
@@ -101,4 +103,4 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 | `/sd-status` | SD WebUI 상태 확인 |
 | `/prompt-validate` | 프롬프트 문법 검증 |
 
-> Agents/Commands 관리 규칙은 `docs/CONTRIBUTING.md` 참조
+> Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조

@@ -254,7 +254,7 @@ def build_test_prompt(
     Returns:
         Complete prompt string
     """
-    from services.prompt_composition import compose_prompt_string
+    from services.prompt import compose_prompt_string
 
     # Base tokens
     tokens = ["masterpiece", "best quality", test.subject]

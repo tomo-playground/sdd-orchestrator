@@ -60,7 +60,8 @@ def get_token_category(token: str) -> TokenCategory | None:
         >>> get_token_category("random_token")
         None
     """
-    normalized = token.lower().replace("_", " ").strip()
+    # Always normalize to underscores for Danbooru standard
+    normalized = token.lower().replace(" ", "_").strip()
 
     # Exact match
     if normalized in _TOKEN_TO_CATEGORY:
@@ -253,9 +254,9 @@ CONFLICTING_TAG_PAIRS = [
     ("angry", "happy"),
     ("angry", "smile"),
     # Gaze conflicts
-    ("looking down", "looking up"),
-    ("looking away", "looking at viewer"),
-    ("closed eyes", "looking at viewer"),
+    ("looking_down", "looking_up"),
+    ("looking_away", "looking_at_viewer"),
+    ("closed_eyes", "looking_at_viewer"),
     # Pose conflicts
     ("sitting", "standing"),
     ("lying", "standing"),
@@ -387,7 +388,7 @@ def deduplicate_triggers(
 # ============================================================
 
 # Default quality tags (added if none present)
-DEFAULT_QUALITY_TAGS = ["masterpiece", "best quality", "high quality"]
+DEFAULT_QUALITY_TAGS = ["masterpiece", "best_quality", "high_quality"]
 
 
 def ensure_quality_tags(tokens: list[str]) -> list[str]:

@@ -9,7 +9,7 @@ import time
 
 from fastapi import HTTPException
 
-from config import CACHE_DIR, CACHE_TTL_SECONDS, gemini_client, logger
+from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, gemini_client, logger
 from schemas import PromptRewriteRequest, PromptSplitRequest
 
 
@@ -34,7 +34,7 @@ def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
 # Scene-specific keywords for detecting scene tokens
 SCENE_KEYWORDS = [
     "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
-    "from above", "top-down", "low angle", "high angle", "close-up", "wide shot", "full body",
+    "from_above", "top-down", "low_angle", "high_angle", "close-up", "wide_shot", "full_body",
     "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest",
     "beach", "city", "night", "sunset", "sunrise", "rain", "snow", "background", "lighting",
     "indoors", "outdoors"
@@ -191,9 +191,9 @@ def detect_prompt_conflicts(positive: str, negative: str) -> dict:
 # Identity tags that indicate character presence
 IDENTITY_TAGS = [
     "1girl", "1boy", "2girls", "2boys", "3girls", "3boys",
-    "multiple girls", "multiple boys",
+    "multiple_girls", "multiple_boys",
     "solo", "duo", "trio", "group",
-    "male focus", "female focus",
+    "male_focus", "female_focus",
 ]
 
 
@@ -292,7 +292,7 @@ def rewrite_prompt(request: PromptRewriteRequest) -> dict:
     )
     try:
         res = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp",
+            model=GEMINI_TEXT_MODEL,
             contents=f"{instruction}\n\n{user_input}",
         )
         text = res.text.strip().replace("```", "")
@@ -326,7 +326,7 @@ def split_prompt_example(request: PromptSplitRequest) -> dict:
     user_input = f"EXAMPLE: {request.example_prompt}\nSTYLE: {request.style}\n"
     try:
         res = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp",
+            model=GEMINI_TEXT_MODEL,
             contents=f"{instruction}\n\n{user_input}",
         )
         text = res.text.strip().replace("```json", "").replace("```", "")
