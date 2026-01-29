@@ -77,9 +77,12 @@ class TagCategoryCache:
         
         # Fallback to category mapping
         if category == "scene":
-            # Default to indoor if no subcategory specified
-            return "location_indoor"
+            # Return 'scene' as the category instead of defaulting to location_indoor
+            # This prevents all scene tags from being treated as location_indoor
+            return "scene"
         
+        # Direct category mapping for other categories
+        return DB_TO_PROMPT_CATEGORY.get(category, category)
 
 class TagAliasCache:
     """In-memory cache for tag aliases (replacements) from DB."""
