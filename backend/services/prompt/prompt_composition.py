@@ -54,8 +54,11 @@ def get_token_category(token: str) -> TokenCategory | None:
     Returns:
         Category name (e.g., "expression", "hair_color", "camera") or None if unknown
     """
-    # Always normalize to underscores for Danbooru standard
-    normalized = token.lower().replace(" ", "_").strip()
+    from services.keywords.core import normalize_prompt_token
+    normalized = normalize_prompt_token(token)
+
+    if not normalized:
+        return None
 
     # 1. Check DB Cache first
     if TagCategoryCache._initialized:
@@ -70,7 +73,8 @@ def get_token_category(token: str) -> TokenCategory | None:
     # 3. Partial match for compound tokens (e.g., "long blue hair" → "hair_color")
     for category, patterns in CATEGORY_PATTERNS.items():
         for pattern in patterns:
-            if pattern.lower() in normalized or normalized in pattern.lower():
+            p_lower = pattern.lower()
+            if p_lower in normalized or normalized in p_lower:
                 return category
 
     return None
@@ -267,9 +271,20 @@ def filter_conflicting_tokens(
         trigger_set = {t.lower().strip() for t in trigger_words}
 
     # Conflict checking is now done via TagRuleCache.is_conflicting()
+    from services.keywords.core import normalize_prompt_token
 
     for token in tokens:
-        normalized = token.lower().strip()
+        # Use robust normalization (ignores weights/parentheses) for deduplication
+        # e.g. "(happy:1.2)" -> "happy", so it conflicts with "happy"
+        normalized = normalize_prompt_token(token)
+        if not normalized:
+            # Fallback for special tokens that might return empty (shouldn't happen for normal tags)
+            # But normalize_prompt_token returns "" for LoRAs/BREAK, which we want to keep?
+            # Actually filter_conflicting_tokens usually runs on normal tokens.
+            # LoRAs are extracted before this step in compose_prompt_tokens (Step 0b).
+            # So tokens here are mostly normal tags.
+            normalized = token.lower().strip()
+
 
         # Skip duplicates
         if normalized in seen_tokens:
@@ -614,11 +629,29 @@ def compose_prompt_tokens(
         If tokens contain LoRA strings (e.g., from user input), they are
         extracted and merged with lora_strings, then deduplicated.
     """
-    # Step 0: Normalize tag format (space → underscore)
-    # Ensures all tags follow SD format regardless of source (Gemini, character, compose)
-    tokens = normalize_tag_spaces(tokens)
+    # Step 0: Robust normalization and deduplication
+    # Ensures all tags follow SD format and ignores malformed ones like _day or __sun
+    from services.keywords.core import normalize_prompt_token
+    
+    unique_tokens = []
+    seen_normalized = set()
+    
+    for t in tokens:
+        norm = normalize_prompt_token(t)
+        if norm and norm not in seen_normalized:
+            # If the original has weights or parens, keep it to preserve emphasis
+            # Otherwise, use the clean normalized version to fix typos like _day
+            clean_tag = t
+            if ":" not in t and "(" not in t:
+                clean_tag = norm
+            
+            unique_tokens.append(clean_tag)
+            seen_normalized.add(norm)
+            
+    tokens = unique_tokens
+    
     if trigger_words:
-        trigger_words = normalize_tag_spaces(trigger_words)
+        trigger_words = [normalize_prompt_token(t) for t in trigger_words if normalize_prompt_token(t)]
 
     # Step 0a: Normalize BREAK tokens (convert lowercase, remove duplicates)
     tokens = _normalize_break_tokens(tokens)

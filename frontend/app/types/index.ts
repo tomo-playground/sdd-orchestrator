@@ -85,11 +85,11 @@ export type FixSuggestion = {
   message: string;
   action?: {
     type:
-      | "add_positive"
-      | "remove_negative_scene"
-      | "set_speaker_a"
-      | "fill_script"
-      | "trim_script";
+    | "add_positive"
+    | "remove_negative_scene"
+    | "set_speaker_a"
+    | "fill_script"
+    | "trim_script";
     tokens?: string[];
     value?: string;
   };
@@ -184,13 +184,22 @@ export type CharacterLoRA = {
   weight: number;
 };
 
+export type CharacterTagLink = {
+  tag_id: number;
+  name?: string;
+  layer?: number;
+  weight: number;
+  is_permanent: boolean;
+};
+
 export type Character = {
   id: number;
   name: string;
   description: string | null;
   gender: ActorGender | null;
-  identity_tags: number[] | null;
-  clothing_tags: number[] | null;
+  identity_tags: number[] | null; // Legacy
+  clothing_tags: number[] | null; // Legacy
+  tags: CharacterTagLink[] | null; // V3
   loras: CharacterLoRA[] | null;
   recommended_negative: string[] | null;
   custom_base_prompt: string | null;

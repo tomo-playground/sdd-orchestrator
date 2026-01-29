@@ -90,7 +90,7 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     if existing:
         raise HTTPException(status_code=400, detail="Character already exists")
 
-    char_data = data.model_dump(exclude={"tags"})
+    char_data = data.model_dump(exclude={"tags", "identity_tags", "clothing_tags"})
     
     # Enrich LoRA data before saving (Denormalization)
     if char_data.get("loras"):
@@ -115,8 +115,26 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     db.add(character)
     db.flush()
 
+    # V3 Tag Integration: Merge normalized 'tags' with legacy identity/clothing tags
+    final_tags = []
     if data.tags:
-        for tag_link in data.tags:
+        final_tags.extend(data.tags)
+    
+    # Legacy Fallback: Convert legacy id lists to CharacterTagLink objects
+    if data.identity_tags:
+        from schemas import CharacterTagLink
+        for tid in data.identity_tags:
+            if not any(t.tag_id == tid for t in final_tags):
+                final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=True))
+    
+    if data.clothing_tags:
+        from schemas import CharacterTagLink
+        for tid in data.clothing_tags:
+            if not any(t.tag_id == tid for t in final_tags):
+                final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=False))
+
+    if final_tags:
+        for tag_link in final_tags:
             link = CharacterTag(
                 character_id=character.id,
                 tag_id=tag_link.tag_id,
@@ -135,7 +153,7 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
-    update_data = data.model_dump(exclude={"tags"}, exclude_unset=True)
+    update_data = data.model_dump(exclude={"tags", "identity_tags", "clothing_tags"}, exclude_unset=True)
     
     # Enrich LoRA data if being updated
     if "loras" in update_data and update_data["loras"]:
@@ -154,9 +172,27 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
     for key, value in update_data.items():
         setattr(character, key, value)
 
-    if data.tags is not None:
+    if data.tags is not None or data.identity_tags is not None or data.clothing_tags is not None:
         db.query(CharacterTag).filter(CharacterTag.character_id == character_id).delete()
-        for tag_link in data.tags:
+        
+        # Merge tags from all sources (V3 'tags' vs Legacy 'identity/clothing_tags')
+        final_tags = []
+        if data.tags:
+            final_tags.extend(data.tags)
+            
+        if data.identity_tags:
+            from schemas import CharacterTagLink
+            for tid in data.identity_tags:
+                if not any(t.tag_id == tid for t in final_tags):
+                    final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=True))
+        
+        if data.clothing_tags:
+            from schemas import CharacterTagLink
+            for tid in data.clothing_tags:
+                if not any(t.tag_id == tid for t in final_tags):
+                    final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=False))
+
+        for tag_link in final_tags:
             link = CharacterTag(
                 character_id=character_id,
                 tag_id=tag_link.tag_id,
@@ -176,6 +212,13 @@ async def delete_character(character_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Character not found")
 
     name = character.name
+    # Try to delete associated IP-Adapter reference image
+    try:
+        from services.controlnet import delete_reference_image
+        delete_reference_image(name)
+    except Exception as e:
+        logger.warning("⚠️ [Characters] Failed to delete reference image for %s: %s", name, e)
+
     db.delete(character)
     db.commit()
     logger.info("🗑️ [Characters] Deleted: %s", name)

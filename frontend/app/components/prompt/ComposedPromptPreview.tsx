@@ -68,101 +68,48 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
 
 // Category display names
 const CATEGORY_LABELS: Record<string, string> = {
-  quality: "Quality",
-  subject: "Subject",
-  identity: "Identity",
-  hair_color: "Hair",
-  hair_length: "Hair",
-  hair_style: "Hair",
-  hair_accessory: "Hair",
-  eye_color: "Eyes",
-  skin_color: "Skin",
-  body_feature: "Body",
-  appearance: "Appearance",
-  expression: "Expression",
-  gaze: "Gaze",
-  pose: "Pose",
-  action: "Action",
-  camera: "Camera",
-  location_indoor: "Indoor",
-  location_outdoor: "Outdoor",
-  environment: "Environment",
-  background_type: "Background",
-  time_weather: "Time/Weather",
-  lighting: "Lighting",
-  mood: "Mood",
-  clothing: "Clothing",
-  style: "Style",
+  quality: "퀄리티",
+  subject: "피사체",
+  identity: "캐릭터",
+  hair_color: "헤어",
+  hair_length: "헤어",
+  hair_style: "헤어",
+  hair_accessory: "헤어",
+  eye_color: "눈",
+  skin_color: "피부",
+  body_feature: "신체",
+  appearance: "외모",
+  expression: "표정",
+  gaze: "시선",
+  pose: "포즈",
+  action: "동작",
+  camera: "카메라",
+  location_indoor: "실내",
+  location_outdoor: "야외",
+  environment: "환경",
+  background_type: "배경",
+  time_weather: "시간/날씨",
+  lighting: "조명",
+  mood: "분위기",
+  clothing: "의상",
+  style: "스타일",
   lora: "LoRA",
-  break: "BREAK",
-  unknown: "Other",
+  break: "구분선",
+  unknown: "기타",
 };
 
+
 function getTokenCategory(token: string): string {
-  // LoRA detection
+  // LoRA detection (special client-rule)
   if (token.startsWith("<lora:")) return "lora";
+  if (token.startsWith("<model:")) return "lora";
   if (token === "BREAK") return "break";
 
-  // Simple pattern matching (client-side approximation)
-  const lower = token.toLowerCase().trim();
-
-  // Quality
-  if (["masterpiece", "best quality", "high quality", "detailed", "anime coloring", "official art"].some((q) => lower.includes(q))) {
-    return "quality";
-  }
-  // Subject
-  if (/^(1girl|1boy|2girls|2boys|solo|duo|group)$/.test(lower)) {
-    return "subject";
-  }
-  // Hair
-  if (lower.includes("hair")) return "hair_color";
-  // Eyes
-  if (lower.includes("eyes")) return "eye_color";
-  // Expression
-  if (["smile", "smiling", "crying", "blush", "angry", "sad", "happy", "surprised", "shocked", "embarrassed", "pout"].some((e) => lower.includes(e))) {
-    return "expression";
-  }
-  // Gaze
-  if (lower.includes("looking")) return "gaze";
-  // Pose
-  if (["standing", "sitting", "kneeling", "lying"].some((p) => lower.includes(p))) {
-    return "pose";
-  }
-  // Action (including "holding X" patterns)
-  if (["running", "walking", "jumping", "dancing", "holding", "grabbing", "reaching", "waving", "hugging", "carrying"].some((a) => lower.includes(a))) {
-    return "action";
-  }
-  // Clothing
-  if (["dress", "shirt", "skirt", "pants", "uniform", "jacket", "coat", "sweater", "hoodie", "shoes", "boots", "socks", "stockings", "glasses", "hat", "cap", "ribbon", "bow", "gloves", "scarf", "apron"].some((c) => lower.includes(c))) {
-    return "clothing";
-  }
-  // Camera
-  if (["from above", "from below", "full body", "close-up", "portrait"].some((c) => lower.includes(c))) {
-    return "camera";
-  }
-  // Location Indoor
-  if (["bedroom", "kitchen", "living room", "bathroom", "classroom", "library", "cafe", "restaurant", "office", "hospital", "church", "temple", "shrine", "castle", "dungeon", "cave", "bed", "chair", "sofa", "couch", "desk", "table", "window", "door", "stairs", "hallway", "corridor", "room", "indoors"].some((l) => lower.includes(l))) {
-    return "location_indoor";
-  }
-  // Location Outdoor
-  if (["forest", "beach", "city", "street", "park", "garden", "rooftop", "balcony", "outdoors", "mountain", "river", "lake", "ocean", "field", "meadow", "village", "town", "alley", "bridge", "road", "path", "trail"].some((l) => lower.includes(l))) {
-    return "location_outdoor";
-  }
-  // Time/Weather (including environmental effects like falling leaves, petals, sky)
-  if (["sunset", "sunrise", "night", "day", "rain", "snow", "falling leaves", "falling petals", "cherry blossoms", "fireflies", "sparkles", "starry", "sky", "clouds", "moon", "sun", "stars", "aurora", "fog", "mist"].some((t) => lower.includes(t))) {
-    return "time_weather";
-  }
-  // Lighting
-  if (lower.includes("lighting") || lower.includes("light")) {
-    return "lighting";
-  }
-  // Mood/Atmosphere
-  if (["romantic", "dramatic", "peaceful", "tense", "comfortable", "cozy", "warm", "cold", "lonely", "melancholy", "joyful", "gloomy", "serene", "calm", "chaotic", "mysterious", "eerie", "nostalgic", "intimate"].some((m) => lower.includes(m))) {
-    return "mood";
-  }
-
+  // All other categorization logic has been moved to the backend.
+  // If useTagClassifier hook doesn't provide a category, it's unknown.
   return "unknown";
 }
+
 
 export default function ComposedPromptPreview({
   tokens,

@@ -113,6 +113,13 @@ def normalize_prompt_token(token: str) -> str:
     cleaned = re.sub(r"[()]+$", "", cleaned)
     
     # Remove weights: tag:1.2 -> tag
+    # Remove weights: tag:1.2 -> tag
     cleaned = re.sub(r":[0-9.]*$", "", cleaned)
     
-    return cleaned.strip().lower().replace(" ", "_")
+    # Strip leading/trailing underscores and whitespace
+    cleaned = cleaned.strip().strip("_")
+    
+    # Collapse multiple underscores: __day -> day, super__cool -> super_cool
+    cleaned = re.sub(r"_{2,}", "_", cleaned)
+    
+    return cleaned.lower().replace(" ", "_")

@@ -34,8 +34,12 @@ export default function CharacterEditModal({
   const [ipAdapterModel, setIpAdapterModel] = useState<string>(character?.ip_adapter_model || "clip_face"); // Use optional chaining
 
   // Tags state
-  const [identityTagIds, setIdentityTagIds] = useState<number[]>(character?.identity_tags || []);
-  const [clothingTagIds, setClothingTagIds] = useState<number[]>(character?.clothing_tags || []);
+  const [identityTagIds, setIdentityTagIds] = useState<number[]>(
+    character?.tags?.filter(t => t.is_permanent).map(t => t.tag_id) || []
+  );
+  const [clothingTagIds, setClothingTagIds] = useState<number[]>(
+    character?.tags?.filter(t => !t.is_permanent).map(t => t.tag_id) || []
+  );
   const [tagSearch, setTagSearch] = useState("");
   const [activeTagInput, setActiveTagInput] = useState<"identity" | "clothing" | null>(null);
 
@@ -217,8 +221,10 @@ export default function CharacterEditModal({
       description,
       gender,
       preview_image_url: previewImageUrl,
-      identity_tags: finalIdentityTagIds,
-      clothing_tags: finalClothingTagIds,
+      tags: [
+        ...finalIdentityTagIds.map(id => ({ tag_id: id, weight: 1.0, is_permanent: true })),
+        ...finalClothingTagIds.map(id => ({ tag_id: id, weight: 1.0, is_permanent: false })),
+      ],
       loras: selectedLoras,
       prompt_mode: promptMode,
       custom_base_prompt: customBasePrompt,

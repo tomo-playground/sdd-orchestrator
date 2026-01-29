@@ -145,7 +145,10 @@ async def compose_prompt(request: PromptComposeRequest):
     # Extract LoRA strings and trigger words (if Mode B)
     lora_strings = []
     trigger_words = []
-    if effective_mode == "lora" and request.loras:
+    # Extract LoRA strings and trigger words (regardless of mode)
+    lora_strings = []
+    trigger_words = []
+    if request.loras:
         for lora in request.loras:
             lora_strings.append(f"<lora:{lora.name}:{lora.weight}>")
             if lora.trigger_words:
@@ -173,10 +176,14 @@ async def compose_prompt(request: PromptComposeRequest):
         "effective_mode": effective_mode,
         "scene_complexity": scene_complexity,
         "lora_weights": None,
-        "meta": None,
+        "meta": {
+            "token_count": len(composed_tokens),
+            "has_break": "BREAK" in composed_tokens,
+            "quality_tags_added": any(t in composed_tokens for t in ["best_quality", "masterpiece"]),
+        },
     }
 
-    # Mode B specific metadata
+    # Mode B specific metadata (Dynamic Adjustment)
     if effective_mode == "lora" and request.loras:
         adjusted_weight = calculate_lora_weight(
             base_weight=request.loras[0].weight,
@@ -184,6 +191,11 @@ async def compose_prompt(request: PromptComposeRequest):
         )
         result_metadata["lora_weights"] = {
             request.loras[0].name: adjusted_weight
+        }
+    # Standard Mode metadata (Static Weights)
+    elif request.loras:
+        result_metadata["lora_weights"] = {
+            l.name: l.weight for l in request.loras
         }
 
     logger.info(

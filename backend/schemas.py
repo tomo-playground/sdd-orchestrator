@@ -311,6 +311,9 @@ class CharacterBase(BaseModel):
 
 class CharacterCreate(CharacterBase):
     tags: list[CharacterTagLink] | None = None
+    # Legacy support (will be migrated to tags in router)
+    identity_tags: list[int] | None = None
+    clothing_tags: list[int] | None = None
 
 class CharacterUpdate(BaseModel):
     name: str | None = None
@@ -327,6 +330,9 @@ class CharacterUpdate(BaseModel):
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     tags: list[CharacterTagLink] | None = None
+    # Legacy support (will be migrated to tags in router)
+    identity_tags: list[int] | None = None
+    clothing_tags: list[int] | None = None
 
 class CharacterResponse(CharacterBase):
     id: int

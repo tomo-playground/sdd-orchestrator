@@ -52,7 +52,12 @@ class TagClassifier:
         3. Danbooru API (if available)
         4. LLM fallback (Gemini)
         """
-        normalized = tag.lower().replace("_", " ").strip()
+        from services.keywords.core import normalize_prompt_token
+        
+        # Disable lower() in normalize_prompt_token if we want case-sensitive (but tokens are usually lower)
+        # normalize_prompt_token returns lowercased, stripped, weight-removed string
+        normalized = normalize_prompt_token(tag)
+        # DB uses underscores, normalize_prompt_token uses underscores. Perfect.
 
         # Step 1: DB lookup
         db_result = self._lookup_db(normalized)
@@ -83,9 +88,13 @@ class TagClassifier:
     def _classify_via_danbooru(self, tag: str) -> ClassificationResult | None:
         """Classify tag using Danbooru API."""
         from services.danbooru import classify_from_danbooru, get_tag_info_sync
+        from services.keywords.core import normalize_prompt_token
 
         try:
-            tag_info = get_tag_info_sync(tag.replace(" ", "_"))
+            # Danbooru uses underscores, weight removal handled by normalize_prompt_token
+            # limit: normalize_prompt_token handles space->underscore
+            normalized = normalize_prompt_token(tag)
+            tag_info = get_tag_info_sync(normalized)
             if tag_info:
                 group = classify_from_danbooru(tag_info)
                 if group:
@@ -108,12 +117,14 @@ class TagClassifier:
 
     def classify_batch(self, tags: list[str]) -> dict[str, ClassificationResult]:
         """Classify multiple tags at once."""
+        from services.keywords.core import normalize_prompt_token
+        
         results = {}
         uncached = []
 
         # First pass: check DB cache
         for tag in tags:
-            normalized = tag.lower().replace("_", " ").strip()
+            normalized = normalize_prompt_token(tag)
             db_result = self._lookup_db(normalized)
             if db_result and db_result["confidence"] >= 0.8:
                 results[tag] = db_result
@@ -123,7 +134,7 @@ class TagClassifier:
         # Second pass: apply rules to uncached
         still_unknown = []
         for tag in uncached:
-            normalized = tag.lower().replace("_", " ").strip()
+            normalized = normalize_prompt_token(tag)
             rule_result = self._apply_rules(normalized)
             if rule_result and rule_result["confidence"] >= 0.9:
                 self._save_classification(normalized, rule_result)
@@ -133,7 +144,7 @@ class TagClassifier:
 
         # Third pass: try Danbooru for still unknown tags (limit to avoid rate limiting)
         for tag in still_unknown[:10]:  # Limit to 10 Danbooru calls per batch
-            normalized = tag.lower().replace("_", " ").strip()
+            normalized = normalize_prompt_token(tag)
             danbooru_result = self._classify_via_danbooru(normalized)
             if danbooru_result and danbooru_result["group"]:
                 self._save_classification(normalized, danbooru_result)
@@ -257,6 +268,16 @@ class TagClassifier:
             return "character"
         if group in meta_groups:
             return "meta"
+            
+        # For granular groups (action, pose, expression, camera, etc.), 
+        # return the group itself as the category so it matches composition priorities.
+        granular_groups = {
+            "expression", "gaze", "pose", "action", "camera",
+            "time_weather", "lighting", "mood", "location_indoor", "location_outdoor"
+        }
+        if group in granular_groups:
+            return group
+            
         return "scene"
 
 

@@ -20,7 +20,7 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
             if any(c in trigger_lower for c in ["black", "blonde", "brown", "red", "blue", "green", "pink", "purple", "white", "silver", "grey", "gray", "orange", "aqua"]):
                 return ("hair_color", "character", 4)
             return ("hair_length", "character", 4) if any(x in trigger_lower for x in ["short", "long", "medium"]) else ("hair_style", "character", 4)
-        if lora_type == "style" and trigger_lower in ["chibi", "blindbox", "figure", "anime", "realistic"]:
+        if lora_type == "style":
             return ("style", "scene", 16)
         if trigger_lower in ["laughing", "crying", "smiling", "eyebrow", "eyebrow_down", "eyebrow_up"]:
             return ("expression", "scene", 6)
@@ -35,17 +35,23 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
             for trigger in lora.trigger_words:
                 if not trigger or not trigger.strip(): continue
                 trigger_clean = trigger.strip().lower()
-                group_name, category, priority = classify_trigger(trigger_clean, lora.lora_type)
-                existing = db.query(Tag).filter(Tag.name == trigger_clean).first()
-                if existing:
-                    if existing.group_name != group_name and group_name == "identity":
-                        existing.group_name, existing.priority = group_name, priority
-                        updated.append({"trigger": trigger_clean, "lora": lora.name, "group": group_name})
-                    else:
-                        skipped.append({"trigger": trigger_clean, "lora": lora.name, "existing_group": existing.group_name})
-                else:
-                    db.add(Tag(name=trigger_clean, category=category, group_name=group_name, priority=priority, exclusive=False))
-                    added.append({"trigger": trigger_clean, "lora": lora.name, "group": group_name})
+                
+                # Ensure trigger exists as a Tag
+                existing_tag = db.query(Tag).filter(Tag.name == trigger_clean).first()
+                if not existing_tag:
+                    # Classify and add tag
+                    cat, category, priority = classify_trigger(trigger_clean, lora.lora_type)
+                    db.add(Tag(
+                        name=trigger_clean,
+                        category=category,
+                        group_name=cat,
+                        priority=priority,
+                        classification_source="lora_sync"
+                    ))
+                    added.append(trigger_clean)
+        
+        db.commit()
+        return {"added_tags": len(added), "summary": {"added_count": len(added)}}
         db.commit()
         return {"added": added, "updated": updated, "skipped": skipped, "summary": {"added_count": len(added), "updated_count": len(updated), "skipped_count": len(skipped)}}
     finally:

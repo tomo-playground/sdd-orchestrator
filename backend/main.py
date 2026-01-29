@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
     """Initialize resources on startup and clean up on shutdown."""
     from database import get_db, engine
     from models.base import Base
-    from services.keywords.db_cache import TagCategoryCache, TagAliasCache, TagRuleCache
+    from services.keywords.db_cache import TagCategoryCache, TagAliasCache, TagRuleCache, LoRATriggerCache
     from services.keywords.core import TagFilterCache
     from config import logger
     
@@ -50,8 +50,17 @@ async def lifespan(app: FastAPI):
         TagFilterCache.initialize(db)
         TagAliasCache.initialize(db)
         TagRuleCache.initialize(db)
+        TagRuleCache.initialize(db)
+        LoRATriggerCache.initialize(db)
+        
+        # Self-Correction: Apply high-confidence tag suggestions
+        from services.keywords.suggestions import apply_high_confidence_suggestions
+        applied = apply_high_confidence_suggestions()
+        if applied > 0:
+            logger.info(f"✅ [Self-Correction] Auto-classified {applied} tags on startup")
+            
     except Exception as e:
-        logger.error(f"Failed to initialize tag caches: {e}")
+        logger.error(f"Failed to initialize tag caches or self-correct: {e}")
     finally:
         db.close()
         
@@ -71,6 +80,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Static Files ---
+import os
+os.makedirs("outputs", exist_ok=True)
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 # --- Routers ---
 app.include_router(admin_router)

@@ -7,6 +7,7 @@ from models.tag import Tag
 from models.lora import LoRA
 from models.character import Character
 from database import SessionLocal
+from services.keywords.db_cache import LoRATriggerCache
 
 # Defined Layers (from PROMPT_LAYERS.md)
 LAYER_QUALITY = 0
@@ -28,6 +29,7 @@ class V3PromptBuilder:
 
     def __init__(self, db: Session):
         self.db = db
+        self._lora_weight_cache: Dict[str, float] = {}
 
     def get_tag_info(self, tag_names: List[str]) -> Dict[str, Dict]:
         """Fetches metadata for a list of tags from the DB."""
@@ -81,46 +83,57 @@ class V3PromptBuilder:
             layers[info["layer"]].append(tag)
 
         # 6. Inject Character LoRAs & Triggers
-        # prompt_mode: auto, standard, lora
-        use_lora = True
-        if character.prompt_mode == "standard":
-            use_lora = False
-        elif character.prompt_mode == "auto":
-            # In auto mode, we use LoRA if present (can be enhanced later with complexity detection)
-            use_lora = bool(character.loras)
+        # Character explicitly defined LoRAs
+        active_loras: Dict[str, float] = {} # name -> weight
         
-        if use_lora and character.loras:
+        if character.loras and character.prompt_mode != "standard":
             for lora_info in character.loras:
-                # LoRA ID lookup to get trigger words if not provided in JSON
                 lora_id = lora_info.get("lora_id")
-                weight = lora_info.get("weight", 0.7)
+                weight = lora_info.get("weight") # Explicit weight from character settings
                 
                 lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
                 if lora_obj:
+                    if weight is None:
+                        weight = self.get_effective_lora_weight(lora_obj)
+                    
+                    active_loras[lora_obj.name] = weight
                     # Triggers go to Identity layer
                     for trigger in (lora_obj.trigger_words or []):
                         if trigger not in layers[LAYER_IDENTITY]:
                             layers[LAYER_IDENTITY].append(trigger)
-                    
-                    # LoRA tag
-                    layers[LAYER_IDENTITY].append(f"<lora:{lora_obj.name}:{weight}>")
 
-        # 7. Inject Style LoRAs (Atmosphere)
+        # 7. Collect Triggered LoRAs from Scene Tags
+        for tag in scene_tags:
+            lora_name = LoRATriggerCache.get_lora_name(tag)
+            if lora_name and lora_name not in active_loras:
+                # Resolve calibrated weight
+                active_loras[lora_name] = self.get_lora_weight_by_name(lora_name)
+
+        # 8. Inject LoRA Tags into Layers
+        for name, weight in active_loras.items():
+            # For now, put all triggered LoRAs into IDENTITY layer 
+            # (In future, style LoRAs could go to ATMOSPHERE)
+            layers[LAYER_IDENTITY].append(f"<lora:{name}:{weight}>")
+
+        # 9. Inject Style LoRAs (Atmosphere) - These are explicit overrides
         if style_loras:
             for lora_info in style_loras:
                 name = lora_info.get("name")
-                weight = lora_info.get("weight", 0.7)
+                weight = lora_info.get("weight")
+                if weight is None:
+                    weight = self.get_lora_weight_by_name(name)
+                
                 triggers = lora_info.get("trigger_words", [])
                 for trigger in triggers:
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{weight}>")
 
-        # 8. Add Quality Tags to Layer 0
+        # 10. Add Quality Tags to Layer 0
         if not layers[LAYER_QUALITY]:
             layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
 
-        return self._flatten_layers(layers, has_character_lora=use_lora)
+        return self._flatten_layers(layers, has_character_lora=bool(active_loras))
 
     def compose(
         self,
@@ -139,17 +152,42 @@ class V3PromptBuilder:
             
         if character_loras:
             for lora in character_loras:
+                # Triggers
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_IDENTITY]:
                         layers[LAYER_IDENTITY].append(trigger)
-                layers[LAYER_IDENTITY].append(f"<lora:{lora['name']}:{lora.get('weight', 0.7)}>")
                 
+                # LoRA tag logic
+                weight = lora.get("weight")
+                if weight is None:
+                    # Resolve from name
+                    weight = self.get_lora_weight_by_name(lora["name"])
+                
+                layers[LAYER_IDENTITY].append(f"<lora:{lora['name']}:{weight}>")
+                
+        # Auto-triggered LoRAs from tags
+        for tag in tags:
+            lora_name = LoRATriggerCache.get_lora_name(tag)
+            if lora_name:
+                # Check if already added
+                already_present = any(f"<lora:{lora_name}:" in t for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE]))
+                if not already_present:
+                    weight = self.get_lora_weight_by_name(lora_name)
+                    layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{weight}>")
+
         if style_loras:
             for lora in style_loras:
+                # Triggers
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
-                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{lora.get('weight', 0.7)}>")
+                
+                # LoRA tag logic
+                weight = lora.get("weight")
+                if weight is None:
+                    weight = self.get_lora_weight_by_name(lora["name"])
+                
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
 
         if not layers[LAYER_QUALITY]:
             layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
@@ -184,6 +222,47 @@ class V3PromptBuilder:
                     final_tokens.append("BREAK")
 
         return ", ".join(final_tokens)
+
+    def get_effective_lora_weight(self, lora: LoRA) -> float:
+        """Helper to get calibrated weight from LoRA object."""
+        if lora.optimal_weight is not None:
+            return float(lora.optimal_weight)
+        if lora.default_weight is not None:
+            return float(lora.default_weight)
+        return 0.7
+
+    def get_lora_weight_by_name(self, name: str) -> float:
+        """Looks up LoRA weight by name with caching."""
+        if name in self._lora_weight_cache:
+            return self._lora_weight_cache[name]
+        
+        lora = self.db.query(LoRA).filter(LoRA.name == name).first()
+        if not lora:
+            weight = 0.7
+        else:
+            weight = self.get_effective_lora_weight(lora)
+        
+        self._lora_weight_cache[name] = weight
+        return weight
+
+    def _resolve_lora_placeholders(self, tokens: List[str]) -> List[str]:
+        """Finds <lora:NAME> (without weight) and injects calibrated value."""
+        resolved = []
+        for t in tokens:
+            if t.startswith("<lora:") and t.endswith(">"):
+                # Check if it has weight (contains second colon)
+                content = t[6:-1] # name[:weight]
+                parts = content.split(":")
+                
+                if len(parts) == 1:
+                    # Missing weight! Resolve it.
+                    name = parts[0]
+                    weight = self.get_lora_weight_by_name(name)
+                    resolved.append(f"<lora:{name}:{weight}>")
+                    continue
+            
+            resolved.append(t)
+        return resolved
 
 def get_v3_prompt_builder():
     db = SessionLocal()

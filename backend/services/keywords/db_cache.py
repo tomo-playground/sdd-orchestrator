@@ -39,8 +39,8 @@ class TagCategoryCache:
             for tag in tags:
                 normalized = tag.name.lower().replace(" ", "_").strip()
                 
-                # Map DB category to prompt category
-                prompt_category = cls._map_db_category(tag.category, tag.subcategory)
+                # Map DB entry to prompt category (prioritize subcategory and group_name)
+                prompt_category = cls._map_db_category(tag.category, tag.subcategory, tag.group_name)
                 if prompt_category:
                     cls._cache[normalized] = prompt_category
                     count += 1
@@ -64,24 +64,26 @@ class TagCategoryCache:
         cls.initialize(db)
     
     @staticmethod
-    def _map_db_category(category: str, subcategory: str | None) -> str | None:
-        """Map DB category + subcategory to prompt composition category.
-        
-        Now uses the subcategory column directly from DB - no more hardcoded heuristics!
-        """
-        # If subcategory is set, use it directly
+    def _map_db_category(category: str, subcategory: str | None, group_name: str | None = None) -> str | None:
+        """Map DB category + subcategory + group_name to prompt composition category."""
+        # 1. Use subcategory if set (explicitly for location/time/clothing)
         if subcategory:
             prompt_cat = SUBCATEGORY_TO_PROMPT.get(subcategory)
             if prompt_cat:
                 return prompt_cat
         
-        # Fallback to category mapping
+        # 2. Use group_name for granular categories (expression, pose, action, etc.)
+        granular_groups = {
+            "expression", "gaze", "pose", "action", "camera",
+            "time_weather", "lighting", "mood", "location_indoor", "location_outdoor"
+        }
+        if group_name in granular_groups:
+            return group_name
+            
+        # 3. Fallback to category mapping
         if category == "scene":
-            # Return 'scene' as the category instead of defaulting to location_indoor
-            # This prevents all scene tags from being treated as location_indoor
             return "scene"
         
-        # Direct category mapping for other categories
         return DB_TO_PROMPT_CATEGORY.get(category, category)
 
 class TagAliasCache:
@@ -220,4 +222,47 @@ class TagRuleCache:
         cls._initialized = False
         cls._conflicts.clear()
         cls._category_conflicts.clear()
+        cls.initialize(db)
+
+class LoRATriggerCache:
+    """In-memory cache for mapping trigger words to LoRA names."""
+    
+    _cache: dict[str, str] = {}
+    _initialized = False
+    
+    @classmethod
+    def initialize(cls, db: Session):
+        """Load all LoRA trigger words from DB."""
+        if cls._initialized:
+            return
+            
+        try:
+            from models.lora import LoRA
+            loras = db.query(LoRA).all()
+            
+            count = 0
+            for lora in loras:
+                if not lora.trigger_words:
+                    continue
+                for trigger in lora.trigger_words:
+                    normalized = trigger.lower().strip()
+                    # If multiple LoRAs share a trigger, the last one wins (could be refined)
+                    cls._cache[normalized] = lora.name
+                    count += 1
+            
+            cls._initialized = True
+            logger.info(f"✅ [LoRATriggerCache] Loaded {count} trigger-to-LoRA mappings")
+        except Exception as e:
+            logger.error(f"❌ [LoRATriggerCache] Failed to initialize: {e}")
+
+    @classmethod
+    def get_lora_name(cls, trigger: str) -> str | None:
+        """Get LoRA name for a trigger word."""
+        normalized = trigger.lower().strip()
+        return cls._cache.get(normalized)
+
+    @classmethod
+    def refresh(cls, db: Session):
+        cls._initialized = False
+        cls._cache.clear()
         cls.initialize(db)

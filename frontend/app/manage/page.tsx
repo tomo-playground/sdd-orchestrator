@@ -107,6 +107,8 @@ export default function ManagePage() {
   const [pendingGroupSelection, setPendingGroupSelection] = useState<Record<number, string>>({});
   const [pendingApproving, setPendingApproving] = useState<Record<number, boolean>>({});
   const [showPendingSection, setShowPendingSection] = useState(true);
+  const [editingLora, setEditingLora] = useState<LoRA | null>(null);
+  const [isUpdatingLora, setIsUpdatingLora] = useState(false);
 
   // Storage state
   type StorageStats = {
@@ -451,6 +453,29 @@ export default function ManagePage() {
       await fetchStyleData();
     } catch {
       alert("Failed to delete LoRA");
+    }
+  };
+
+  const handleUpdateLora = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLora) return;
+    setIsUpdatingLora(true);
+    try {
+      await axios.put(`${API_BASE}/loras/${editingLora.id}`, {
+        display_name: editingLora.display_name,
+        trigger_words: editingLora.trigger_words,
+        optimal_weight: editingLora.optimal_weight,
+        default_weight: editingLora.default_weight,
+        weight_min: editingLora.weight_min,
+        weight_max: editingLora.weight_max,
+      });
+      await fetchStyleData();
+      setEditingLora(null);
+      alert("LoRA updated and rules synchronized!");
+    } catch {
+      alert("Failed to update LoRA");
+    } finally {
+      setIsUpdatingLora(false);
     }
   };
 
@@ -1469,12 +1494,20 @@ export default function ManagePage() {
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => deleteLoRA(lora.id)}
-                            className="rounded-full border border-rose-200 px-2 py-1 text-[9px] font-semibold text-rose-600"
-                          >
-                            Delete
-                          </button>
+                          <div className="flex flex-col gap-1 items-end">
+                            <button
+                              onClick={() => setEditingLora(lora)}
+                              className="rounded-full border border-indigo-200 px-2 py-1 text-[9px] font-semibold text-indigo-600 hover:bg-indigo-50"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteLoRA(lora.id)}
+                              className="rounded-full border border-rose-100 px-2 py-1 text-[9px] font-semibold text-rose-400 hover:border-rose-200 hover:text-rose-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2638,6 +2671,102 @@ export default function ManagePage() {
             }}
             onSave={handleSaveCharacter}
           />
+        )}
+        {/* LoRA Edit Modal */}
+        {editingLora && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-zinc-800">Edit LoRA Settings</h2>
+                <button onClick={() => setEditingLora(null)} className="text-zinc-400 hover:text-zinc-600">✕</button>
+              </div>
+              <form onSubmit={handleUpdateLora} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Display Name</label>
+                  <input
+                    type="text"
+                    value={editingLora.display_name || ""}
+                    onChange={(e) => setEditingLora({ ...editingLora, display_name: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-zinc-200 p-2 text-sm outline-none focus:border-indigo-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Trigger Words</label>
+                  <textarea
+                    rows={2}
+                    placeholder="comma, separated, triggers"
+                    defaultValue={editingLora.trigger_words?.join(", ") || ""}
+                    onChange={(e) => {
+                      const words = e.target.value.split(",").map(w => w.trim()).filter(w => w.length > 0);
+                      setEditingLora(prev => prev ? ({ ...prev, trigger_words: words }) : null);
+                    }}
+                    className="mt-1 w-full rounded-xl border border-zinc-200 p-2 text-sm outline-none focus:border-indigo-400"
+                  />
+                  <p className="mt-1 text-[10px] text-zinc-400">Keywords that automatically activate this LoRA.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Calibrated (Optimal)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingLora.optimal_weight ?? ""}
+                      onChange={(e) => setEditingLora({ ...editingLora, optimal_weight: parseFloat(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 p-2 text-sm outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Default Weight</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingLora.default_weight}
+                      onChange={(e) => setEditingLora({ ...editingLora, default_weight: parseFloat(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 p-2 text-sm outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Min Weight</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editingLora.weight_min}
+                      onChange={(e) => setEditingLora({ ...editingLora, weight_min: parseFloat(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 p-2 text-sm outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Max Weight</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editingLora.weight_max}
+                      onChange={(e) => setEditingLora({ ...editingLora, weight_max: parseFloat(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 p-2 text-sm outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditingLora(null)}
+                    className="flex-1 rounded-xl border border-zinc-200 py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingLora}
+                    className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {isUpdatingLora ? "Updating..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </main>
     </div>

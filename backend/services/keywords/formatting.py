@@ -71,6 +71,9 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         category_name = _DB_GROUP_TO_GEMINI_CATEGORY.get(group, group)
         if category_name in category_tags:
             values = [v[0] for v in category_tags[category_name]]
-            if values: lines.append(f"- {category_name}: {', '.join(values)}")
+            # Limit tags per category to prevent context overflow and "spam" detection (Prohibited Content)
+            # 100 tags per category is usually enough for diversity
+            if values: 
+                lines.append(f"- {category_name}: {', '.join(values[:100])}")
 
     return "\n".join(lines)

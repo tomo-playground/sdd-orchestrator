@@ -19,16 +19,38 @@ def split_prompt_tokens(prompt: str) -> list[str]:
 
 
 def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
-    """Merge two lists of prompt tokens, removing duplicates while preserving order."""
-    seen = set()
-    merged: list[str] = []
+    """Merge two lists of prompt tokens, removing duplicates while preserving order.
+    
+    Uses normalize_prompt_token for deduplication, so "tag" and "(tag:1.2)" 
+    are treated as the same tag. The last occurrence wins (override).
+    """
+    from services.keywords.core import normalize_prompt_token
+
+    unique_map: dict[str, str] = {}
+    
     for token in primary + secondary:
-        key = token.lower()
-        if key in seen:
+        t_strip = token.strip()
+        if not t_strip:
             continue
-        seen.add(key)
-        merged.append(token)
-    return ", ".join(merged)
+            
+        # Special case: LoRA and BREAK
+        # normalize_prompt_token returns empty for <lora:...>, so handle separately
+        if t_strip == "BREAK" or (t_strip.startswith("<") and t_strip.endswith(">")):
+            # Deduplicate exact string matches for special tokens
+            key = t_strip.lower()
+            unique_map[key] = token
+            continue
+
+        # Normal tags: use normalized base for key
+        key = normalize_prompt_token(t_strip)
+        if not key:
+            # Fallback if normalization fails (should be rare)
+            unique_map[t_strip.lower()] = token
+            continue
+            
+        unique_map[key] = token
+        
+    return ", ".join(unique_map.values())
 
 
 # Scene-specific keywords for detecting scene tokens
@@ -344,16 +366,33 @@ def normalize_tag_spaces(tags: list[str]) -> list[str]:
     """Normalize tag format: spaces to underscores.
 
     Stable Diffusion uses underscores, not spaces.
+    Example:
     - "thumbs up" → "thumbs_up"
-    - "looking at viewer" → "looking_at_viewer"
-
-    Args:
-        tags: List of tag strings (may contain spaces)
-
-    Returns:
-        List of normalized tags with underscores
+    - " _day " → "day" (strips leading/trailing underscores)
+    - "tag__1" → "tag_1" (deduplicates underscores)
     """
-    return [tag.strip().replace(" ", "_") for tag in tags]
+    normalized = []
+    for tag in tags:
+        # 1. Strip whitespace
+        t = tag.strip()
+        if not t:
+            continue
+        
+        # 2. Replace spaces with underscores
+        t = t.replace(" ", "_")
+        
+        # 3. Strip leading/trailing underscores (Fix for _day, _sun)
+        t = t.strip("_")
+        
+        # 4. Collapse multiple underscores
+        while "__" in t:
+            t = t.replace("__", "_")
+            
+        if t:
+            normalized.append(t)
+            
+    return normalized
+
 
 
 def fix_compound_adjectives(tags: list[str]) -> list[str]:

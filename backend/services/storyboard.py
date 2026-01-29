@@ -36,10 +36,42 @@ def create_storyboard(request: StoryboardRequest) -> dict:
             keyword_context=format_keyword_context(),
             **extra_fields,
         )
+        from google.genai import types
+
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
             contents=f"{system_instruction}\n\n{rendered}",
+            config=types.GenerateContentConfig(
+                safety_settings=[
+                    types.SafetySetting(
+                        category="HARM_CATEGORY_HATE_SPEECH",
+                        threshold="BLOCK_NONE",
+                    ),
+                    types.SafetySetting(
+                        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold="BLOCK_NONE",
+                    ),
+                    types.SafetySetting(
+                        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold="BLOCK_NONE",
+                    ),
+                    types.SafetySetting(
+                        category="HARM_CATEGORY_HARASSMENT",
+                        threshold="BLOCK_NONE",
+                    ),
+                ]
+            ),
         )
+        if not res.text:
+            # Check why it failed
+            error_reason = "Unknown error"
+            if res.prompt_feedback and res.prompt_feedback.block_reason:
+                error_reason = f"Blocked by safety filters: {res.prompt_feedback.block_reason}"
+            elif res.candidates and res.candidates[0].finish_reason:
+                error_reason = f"Finished with reason: {res.candidates[0].finish_reason}"
+            
+            raise ValueError(f"Gemini returned empty response. Reason: {error_reason}")
+            
         scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
         for scene in scenes:
             from config import ENABLE_DANBOORU_VALIDATION, logger
