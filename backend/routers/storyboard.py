@@ -9,6 +9,7 @@ from config import logger
 from database import get_db
 from models.storyboard import Storyboard
 from models.scene import Scene
+from models.associations import SceneTag, SceneCharacterAction
 from schemas import StoryboardRequest, StoryboardSave
 from services.storyboard import create_storyboard
 
@@ -42,10 +43,34 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
             storyboard_id=db_storyboard.id,
             order=idx,
             script=s_data.script,
+            description=s_data.description,
             image_url=s_data.image_url,
-            # We can expand this with more fields if needed
+            width=s_data.width,
+            height=s_data.height,
         )
         db.add(db_scene)
+        db.flush() # Get Scene ID
+
+        # 3. Save Scene Tags (Ambient/Environment)
+        if s_data.tags:
+            for t_data in s_data.tags:
+                s_tag = SceneTag(
+                    scene_id=db_scene.id,
+                    tag_id=t_data.tag_id,
+                    weight=t_data.weight
+                )
+                db.add(s_tag)
+        
+        # 4. Save Scene Character Actions
+        if s_data.character_actions:
+            for a_data in s_data.character_actions:
+                s_action = SceneCharacterAction(
+                    scene_id=db_scene.id,
+                    character_id=a_data.character_id,
+                    tag_id=a_data.tag_id,
+                    weight=a_data.weight
+                )
+                db.add(s_action)
     
     db.commit()
     db.refresh(db_storyboard)

@@ -180,6 +180,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             _save_generation_log(
                 request=request,
                 prompt=cleaned_prompt,
+                negative_prompt=cleaned_negative,
                 tags=tokens,
                 sd_params={
                     "steps": final_steps,
@@ -203,37 +204,41 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 def _save_generation_log(
     request: SceneGenerateRequest,
     prompt: str,
+    negative_prompt: str,
     tags: list[str],
     sd_params: dict,
     seed: int | None,
 ) -> None:
     """Save generation log for analytics (non-blocking).
-
+ 
     Args:
         request: Original generation request
         prompt: Normalized prompt used for generation
+        negative_prompt: Negative prompt used for generation
         tags: Extracted prompt tokens
         sd_params: SD parameters (steps, cfg_scale, sampler, etc.)
         seed: Actual seed used (or None)
     """
     try:
         from datetime import date
-
+ 
         from database import SessionLocal
         from models.activity_log import ActivityLog
-
+ 
         # Simple strategy: Use today's date as project_name
         # All generations on the same day are grouped together
         project_name = request.session_id if request.session_id else f"daily_{date.today().strftime('%Y%m%d')}"
-
+ 
         scene_index = request.scene_index if request.scene_index is not None else 0
-
+ 
         db = SessionLocal()
         try:
             log = ActivityLog(
                 project_name=project_name,
                 scene_id=scene_index,
+                character_id=request.character_id,
                 prompt=prompt,
+                negative_prompt=negative_prompt,
                 tags_used=tags,
                 sd_params=sd_params,
                 seed=seed,

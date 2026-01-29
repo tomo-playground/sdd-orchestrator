@@ -16,6 +16,9 @@ export type Scene = {
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
+  description?: string;
+  width?: number;
+  height?: number;
   candidates?: Array<{ image_url: string; match_rate?: number }>;
   negative_prompt: string;
   steps: number;

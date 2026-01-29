@@ -45,8 +45,24 @@ class StoryboardScene(BaseModel):
     image_prompt: str = ""
     image_prompt_ko: str = ""
     image_url: str | None = None
+    description: str | None = None
+    width: int = 512
+    height: int = 768
+    
+    # V3 Data Persistence
+    tags: list[SceneTagSave] | None = None
+    character_actions: list[SceneActionSave] | None = None
 
     model_config = ConfigDict(extra="allow")
+
+class SceneTagSave(BaseModel):
+    tag_id: int
+    weight: float = 1.0
+
+class SceneActionSave(BaseModel):
+    character_id: int
+    tag_id: int
+    weight: float = 1.0
 
 
 class VideoScene(BaseModel):

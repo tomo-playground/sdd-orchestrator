@@ -144,9 +144,10 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         )
 
         _update_activity_log_match_rate(
-            project_name=f"daily_{request.session_id}" if request.session_id else None,
+            project_name=request.session_id if request.session_id else f"daily_{time.strftime('%Y%m%d')}",
             scene_id=request.scene_index,
-            match_rate=match_rate
+            match_rate=match_rate,
+            image_url=image_url
         )
 
         return {
@@ -187,7 +188,7 @@ def _save_scene_quality_score(project_name: str, scene_id: int, image_url: str, 
     finally:
         db.close()
 
-def _update_activity_log_match_rate(project_name: str | None, scene_id: int | None, match_rate: float):
+def _update_activity_log_match_rate(project_name: str | None, scene_id: int | None, match_rate: float, image_url: str | None = None):
     if not project_name or scene_id is None: return
     from database import SessionLocal
     from models.activity_log import ActivityLog
@@ -200,6 +201,8 @@ def _update_activity_log_match_rate(project_name: str | None, scene_id: int | No
         if log:
             log.match_rate = match_rate
             log.status = "success" if match_rate >= 0.7 else "fail"
+            if image_url:
+                log.image_url = image_url
             db.commit()
     except Exception:
         db.rollback()

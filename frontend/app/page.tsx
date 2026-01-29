@@ -266,7 +266,7 @@ export default function Home() {
   }, [selectedCharacterId, getCharacterFull]);
 
   // Scene Tags hook
-  const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags();
+  const { tags, tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
 
   useEffect(() => {
     axios
@@ -1408,15 +1408,49 @@ export default function Home() {
       await axios.post(`${API_BASE}/storyboards`, {
         title: topic || "Untitled Storyboard",
         description: `Generated from topic: ${topic}`,
-        scenes: scenes.map((s) => ({
-          scene_id: s.id,
-          script: s.script,
-          speaker: s.speaker,
-          duration: s.duration,
-          image_prompt: s.image_prompt,
-          image_prompt_ko: s.image_prompt_ko,
-          image_url: s.image_url,
-        })),
+        scenes: scenes.map((s) => {
+          // Map context_tags to DB tag IDs and weights
+          const sceneTags: Array<{ tag_id: number; weight: number }> = [];
+          const charActions: Array<{ character_id: number; tag_id: number; weight: number }> = [];
+
+          if (s.context_tags) {
+            Object.entries(s.context_tags).forEach(([group, tagNames]) => {
+              const names = Array.isArray(tagNames) ? tagNames : tagNames ? [tagNames] : [];
+              names.forEach((name) => {
+                const tagObj = tags.find((t) => t.name === name);
+                if (tagObj) {
+                  // Determine where to put the tag (Ambient vs Action)
+                  // Environment/Mood/Camera are scene_tags, others are character_actions
+                  const isSceneTag = ["camera", "environment", "mood"].includes(group);
+                  if (isSceneTag) {
+                    sceneTags.push({ tag_id: tagObj.id, weight: 1.0 });
+                  } else {
+                    charActions.push({
+                      character_id: selectedCharacterId || 0, // Fallback if no character
+                      tag_id: tagObj.id,
+                      weight: 1.0,
+                    });
+                  }
+                }
+              });
+            });
+          }
+
+          return {
+            scene_id: s.id,
+            script: s.script,
+            speaker: s.speaker,
+            duration: s.duration,
+            image_prompt: s.image_prompt,
+            image_prompt_ko: s.image_prompt_ko,
+            image_url: s.image_url,
+            description: s.description, // Added
+            width: s.width || 512,      // Added
+            height: s.height || 768,    // Added
+            tags: sceneTags.length > 0 ? sceneTags : undefined,
+            character_actions: charActions.length > 0 ? charActions : undefined,
+          };
+        }),
         default_character_id: selectedCharacterId,
       });
 
