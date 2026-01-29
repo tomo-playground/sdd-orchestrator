@@ -5,6 +5,7 @@ from models.associations import CharacterTag, SceneCharacterAction, SceneTag
 from models.character import Character
 from models.tag import Tag, TagRule
 from models.tag_filter import TagFilter
+from models.tag_alias import TagAlias
 from models.lora import LoRA
 from models.sd_model import SDModel, Embedding, StyleProfile
 from models.scene import Scene
@@ -19,6 +20,7 @@ __all__ = [
     "Tag",
     "TagRule",
     "TagFilter",
+    "TagAlias",
     "Character",
     "CharacterTag",
     "LoRA",
