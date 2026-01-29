@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from sqlalchemy.orm import Session
 
 from config import CACHE_DIR, logger
 
@@ -34,40 +35,66 @@ def _get_normalize_prompt_tokens():
     return _normalize_prompt_tokens
 
 
-# --- Ignore list (tokens to filter out from prompts) ---
-IGNORE_TOKENS = frozenset([
-    "nsfw", "nude", "uncensored", "cleavage", "text", "watermark",
-    "signature", "logo", "username", "artist_name", "copyright",
-    "low_quality", "worst_quality", "normal_quality", "bad_quality",
-    "bad_anatomy", "bad_hands", "missing_fingers", "extra_digits",
-    "fewer_digits", "extra_limbs", "cloned_face", "mutated",
-    "deformed", "disfigured", "ugly", "blur", "blurry",
-    "jpeg_artifacts", "cropped", "out_of_frame", "highres", "absurdres",
-])
+# --- DB-driven tag filters (loaded on startup) ---
+class TagFilterCache:
+    """Cache for ignore/skip tags loaded from database."""
+    
+    _ignore_tokens: frozenset[str] = frozenset()
+    _skip_tags: frozenset[str] = frozenset()
+    _initialized = False
+    
+    @classmethod
+    def initialize(cls, db: Session):
+        """Load tag filters from database."""
+        if cls._initialized:
+            return
+        
+        try:
+            from models import TagFilter
+            
+            # Load ignore tokens
+            ignore_filters = db.query(TagFilter).filter(
+                TagFilter.filter_type == 'ignore',
+                TagFilter.active == True
+            ).all()
+            cls._ignore_tokens = frozenset(f.tag_name for f in ignore_filters)
+            
+            # Load skip tags
+            skip_filters = db.query(TagFilter).filter(
+                TagFilter.filter_type == 'skip',
+                TagFilter.active == True
+            ).all()
+            cls._skip_tags = frozenset(f.tag_name for f in skip_filters)
+            
+            cls._initialized = True
+            logger.info(f"✅ [TagFilter] Loaded {len(cls._ignore_tokens)} ignore tokens, {len(cls._skip_tags)} skip tags")
+        except Exception as e:
+            logger.error(f"❌ [TagFilter] Failed to initialize: {e}")
+            # Fallback to empty sets
+            cls._ignore_tokens = frozenset()
+            cls._skip_tags = frozenset()
+    
+    @classmethod
+    def get_ignore_tokens(cls) -> frozenset[str]:
+        """Get the set of tokens to ignore."""
+        return cls._ignore_tokens
+    
+    @classmethod
+    def get_skip_tags(cls) -> frozenset[str]:
+        """Get the set of tags to skip."""
+        return cls._skip_tags
+    
+    @classmethod
+    def refresh(cls, db: Session):
+        """Refresh filters from database."""
+        cls._initialized = False
+        cls.initialize(db)
 
-# Tags to skip (not useful for prompts or sensitive)
-SKIP_TAGS = frozenset([
-    # Anatomy
-    "breasts", "large_breasts", "medium_breasts", "small_breasts", "huge_breasts",
-    "collarbone", "thighs", "thick_thighs", "navel", "midriff", "cleavage",
-    "ass", "sideboob", "underboob", "nipples", "areolae", "crotch",
-    "groin", "armpits", "bare_shoulders",
-    # Meta tags
-    "female_focus", "solo_focus", "no_humans",
-    "virtual_youtuber", "vtuber", "commentary", "translation",
-    "border", "letterboxed", "pillarboxed",
-    "gradient", "scan", "screencap", "official_art",
-    # Sensitive subjects
-    "child", "male_child", "female_child", "young", "loli", "shota",
-    "aged_down", "aged_up",
-    # Character-specific names (not in our LoRA library)
-    "watson_amelia", "hatsune_miku",
-    # Copyright tags
-    "vocaloid", "fate", "genshin_impact", "blue_archive",
-    # Too vague or redundant
-    "girl", "boy", "woman", "man", "female", "male",
-    "anime", "manga", "illustration",
-])
+
+# Backward compatibility: expose as module-level constants
+# These will be empty until initialize() is called
+IGNORE_TOKENS = TagFilterCache.get_ignore_tokens()
+SKIP_TAGS = TagFilterCache.get_skip_tags()
 
 
 def normalize_prompt_token(token: str) -> str:

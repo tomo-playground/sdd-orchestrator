@@ -16,8 +16,8 @@ from routers import (
     keywords_router,
     loras_router,
     presets_router,
-    prompt_histories_router,
     prompt_router,
+    prompt_histories_router,
     quality_router,
     scene_router,
     sd_models_router,
@@ -40,6 +40,31 @@ app.add_middleware(
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+
+# --- Startup Event ---
+@app.on_event("startup")
+async def startup_event():
+    """Initialize resources on startup."""
+    from database import get_db, engine
+    from models.base import Base
+    from services.keywords.db_cache import TagCategoryCache
+    from services.keywords.core import TagFilterCache
+    from config import logger
+    
+    # Ensure database tables exist
+    Base.metadata.create_all(bind=engine)
+    
+    # Initialize Tag Caches
+    db = next(get_db())
+    try:
+        TagCategoryCache.initialize(db)
+        TagFilterCache.initialize(db)
+    except Exception as e:
+        logger.error(f"Failed to initialize tag caches: {e}")
+    finally:
+        db.close()
+        
+    logger.info("🚀 [Startup] Application started successfully")
 
 # --- Routers ---
 app.include_router(assets_router)

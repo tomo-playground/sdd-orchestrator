@@ -37,37 +37,37 @@ for _category, _tokens in CATEGORY_PATTERNS.items():
         _TOKEN_TO_CATEGORY[_token.lower()] = _category
 
 
+from services.keywords.db_cache import TagCategoryCache
+
 @lru_cache(maxsize=1024)
 def get_token_category(token: str) -> TokenCategory | None:
     """Get the category for a prompt token.
 
-    Uses CATEGORY_PATTERNS for exact match, then falls back to
-    partial matching for compound tokens.
+    Priority:
+    1. DB Cache (if initialized)
+    2. Exact match in patterns
+    3. Partial match in patterns
 
     Args:
         token: A prompt token (e.g., "smiling", "blue hair", "from above")
 
     Returns:
         Category name (e.g., "expression", "hair_color", "camera") or None if unknown
-
-    Examples:
-        >>> get_token_category("smiling")
-        'expression'
-        >>> get_token_category("blue hair")
-        'hair_color'
-        >>> get_token_category("masterpiece")
-        'quality'
-        >>> get_token_category("random_token")
-        None
     """
     # Always normalize to underscores for Danbooru standard
     normalized = token.lower().replace(" ", "_").strip()
 
-    # Exact match
+    # 1. Check DB Cache first
+    if TagCategoryCache._initialized:
+        db_category = TagCategoryCache.get_category(normalized)
+        if db_category:
+            return db_category
+
+    # 2. Exact match in patterns
     if normalized in _TOKEN_TO_CATEGORY:
         return _TOKEN_TO_CATEGORY[normalized]
 
-    # Partial match for compound tokens (e.g., "long blue hair" → "hair_color")
+    # 3. Partial match for compound tokens (e.g., "long blue hair" → "hair_color")
     for category, patterns in CATEGORY_PATTERNS.items():
         for pattern in patterns:
             if pattern.lower() in normalized or normalized in pattern.lower():
