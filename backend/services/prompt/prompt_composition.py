@@ -284,20 +284,24 @@ def filter_conflicting_tokens(
         category = get_token_category(token)
 
         # Check mutually exclusive groups
+        # Check mutually exclusive groups
+        # (This logic checks if we already have a token from this group)
         skip = False
+        matching_group = None
+        
         for group_name, group_categories in MUTUALLY_EXCLUSIVE_GROUPS.items():
             if category in group_categories:
                 if group_name in seen_categories:
                     # Already have a token from this group, skip
                     skip = True
                     break
-                else:
-                    seen_categories[group_name] = category
+                matching_group = group_name
 
         if skip:
             continue
 
         # Check conflicting category pairs using DB cache
+        # We only check against categories seen in PREVIOUS tokens
         if TagRuleCache._initialized and category:
             for seen_cat in seen_categories.values():
                 if TagRuleCache.is_category_conflicting(category, seen_cat):
@@ -306,6 +310,10 @@ def filter_conflicting_tokens(
 
         if skip:
             continue
+            
+        # If passed all checks, update tracking
+        if matching_group:
+            seen_categories[matching_group] = category
 
         # Check specific tag pair conflicts using DB cache
         if TagRuleCache._initialized:
