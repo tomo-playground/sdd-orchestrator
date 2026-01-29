@@ -5,16 +5,16 @@ from pydantic import BaseModel
 
 from config import logger
 from database import SessionLocal
-from models.generation_log import GenerationLog
+from models.activity_log import ActivityLog
 
 router = APIRouter(prefix="/generation-logs", tags=["generation-logs"])
 
 
-class CreateGenerationLogRequest(BaseModel):
+class CreateActivityLogRequest(BaseModel):
     """Request for creating a generation log."""
 
     project_name: str
-    scene_index: int
+    scene_id: int
     prompt: str | None = None
     tags: list[str] | None = None
     sd_params: dict | None = None
@@ -31,14 +31,14 @@ class UpdateStatusRequest(BaseModel):
 
 
 @router.post("")
-def create_generation_log(request: CreateGenerationLogRequest):
+def create_generation_log(request: CreateActivityLogRequest):
     """Create a new generation log entry.
 
     Example request:
     ```json
     {
         "project_name": "my_project",
-        "scene_index": 0,
+        "scene_id": 0,
         "prompt": "1girl, smiling, classroom, ...",
         "tags": ["1girl", "smiling", "classroom"],
         "sd_params": {"steps": 20, "cfg_scale": 7, "seed": 12345},
@@ -54,22 +54,22 @@ def create_generation_log(request: CreateGenerationLogRequest):
     {
         "id": 1,
         "project_name": "my_project",
-        "scene_index": 0,
+        "scene_id": 0,
         ...
     }
     ```
     """
     db = SessionLocal()
     try:
-        log = GenerationLog(
+        log = ActivityLog(
             project_name=request.project_name,
-            scene_index=request.scene_index,
-            prompt=request.prompt,
-            tags=request.tags,
+            scene_id=request.scene_id,
+            prompt=request.prompt or "",
+            tags_used=request.tags,
             sd_params=request.sd_params,
             match_rate=request.match_rate,
             seed=request.seed,
-            status=request.status,
+            status=request.status or "pending",
             image_url=request.image_url,
         )
         db.add(log)
@@ -77,14 +77,14 @@ def create_generation_log(request: CreateGenerationLogRequest):
         db.refresh(log)
 
         logger.info(
-            f"Created generation log: project={request.project_name}, "
-            f"scene={request.scene_index}, status={request.status}"
+            f"Created activity log: project={request.project_name}, "
+            f"scene={request.scene_id}, status={request.status}"
         )
 
         return {
             "id": log.id,
             "project_name": log.project_name,
-            "scene_index": log.scene_index,
+            "scene_id": log.scene_id,
             "status": log.status,
             "match_rate": log.match_rate,
         }
@@ -110,7 +110,7 @@ def get_project_logs(project_name: str, status: str | None = None, limit: int = 
         "logs": [
             {
                 "id": 1,
-                "scene_index": 0,
+                "scene_id": 0,
                 "match_rate": 0.85,
                 "status": "success",
                 ...
@@ -122,21 +122,21 @@ def get_project_logs(project_name: str, status: str | None = None, limit: int = 
     """
     db = SessionLocal()
     try:
-        query = db.query(GenerationLog).filter(GenerationLog.project_name == project_name)
+        query = db.query(ActivityLog).filter(ActivityLog.project_name == project_name)
 
         if status:
-            query = query.filter(GenerationLog.status == status)
+            query = query.filter(ActivityLog.status == status)
 
-        logs = query.order_by(GenerationLog.created_at.desc()).limit(limit).all()
+        logs = query.order_by(ActivityLog.created_at.desc()).limit(limit).all()
 
         return {
             "logs": [
                 {
                     "id": log.id,
                     "project_name": log.project_name,
-                    "scene_index": log.scene_index,
+                    "scene_id": log.scene_id,
                     "prompt": log.prompt,
-                    "tags": log.tags,
+                    "tags": log.tags_used,
                     "sd_params": log.sd_params,
                     "match_rate": log.match_rate,
                     "seed": log.seed,
@@ -170,7 +170,7 @@ def update_log_status(log_id: int, request: UpdateStatusRequest):
     """
     db = SessionLocal()
     try:
-        log = db.query(GenerationLog).filter(GenerationLog.id == log_id).first()
+        log = db.query(ActivityLog).filter(ActivityLog.id == log_id).first()
 
         if not log:
             raise HTTPException(status_code=404, detail=f"Log {log_id} not found")
@@ -201,7 +201,7 @@ def delete_log(log_id: int):
     """Delete a generation log."""
     db = SessionLocal()
     try:
-        log = db.query(GenerationLog).filter(GenerationLog.id == log_id).first()
+        log = db.query(ActivityLog).filter(ActivityLog.id == log_id).first()
 
         if not log:
             raise HTTPException(status_code=404, detail=f"Log {log_id} not found")
@@ -269,12 +269,12 @@ def analyze_patterns(
     db = SessionLocal()
     try:
         # Base query
-        query = db.query(GenerationLog).filter(
-            GenerationLog.status.in_(["success", "fail"]),
-            GenerationLog.tags.isnot(None),
+        query = db.query(ActivityLog).filter(
+            ActivityLog.status.in_(["success", "fail"]),
+            ActivityLog.tags_used.isnot(None),
         )
         if project_name:
-            query = query.filter(GenerationLog.project_name == project_name)
+            query = query.filter(ActivityLog.project_name == project_name)
 
         logs = query.all()
 
@@ -301,12 +301,12 @@ def analyze_patterns(
         tag_counts = {}  # {tag: {"total": int, "success": int, "fail": int, "match_rates": list}}
 
         for log in logs:
-            if not log.tags:
+            if not log.tags_used:
                 continue
 
             is_success = log in success_logs
 
-            for tag in log.tags:
+            for tag in log.tags_used:
                 if tag not in tag_counts:
                     tag_counts[tag] = {"total": 0, "success": 0, "fail": 0, "match_rates": []}
 
@@ -344,14 +344,14 @@ def analyze_patterns(
         tag_pair_stats = {}  # {(tag1, tag2): {"total": int, "fail": int, "match_rates": list}}
 
         for log in logs:
-            if not log.tags or len(log.tags) < 2:
+            if not log.tags_used or len(log.tags_used) < 2:
                 continue
 
             is_fail = log in fail_logs
 
             # Check all tag pairs
-            for i, tag1 in enumerate(log.tags):
-                for tag2 in log.tags[i+1:]:
+            for i, tag1 in enumerate(log.tags_used):
+                for tag2 in log.tags_used[i+1:]:
                     # Normalize pair (alphabetical order)
                     pair = tuple(sorted([tag1, tag2]))
 
@@ -451,12 +451,12 @@ def suggest_conflict_rules(
         from models.tag import Tag, TagRule
 
         # Get conflict candidates from pattern analysis
-        query = db.query(GenerationLog).filter(
-            GenerationLog.status.in_(["success", "fail"]),
-            GenerationLog.tags.isnot(None),
+        query = db.query(ActivityLog).filter(
+            ActivityLog.status.in_(["success", "fail"]),
+            ActivityLog.tags_used.isnot(None),
         )
         if project_name:
-            query = query.filter(GenerationLog.project_name == project_name)
+            query = query.filter(ActivityLog.project_name == project_name)
 
         logs = query.all()
 
@@ -475,13 +475,13 @@ def suggest_conflict_rules(
         tag_pair_stats = {}
 
         for log in logs:
-            if not log.tags or len(log.tags) < 2:
+            if not log.tags_used or len(log.tags_used) < 2:
                 continue
 
             is_fail = log in fail_logs
 
-            for i, tag1 in enumerate(log.tags):
-                for tag2 in log.tags[i+1:]:
+            for i, tag1 in enumerate(log.tags_used):
+                for tag2 in log.tags_used[i+1:]:
                     pair = tuple(sorted([tag1, tag2]))
 
                     if pair not in tag_pair_stats:
@@ -612,11 +612,11 @@ def get_success_combinations(
         from models.tag import Tag, TagRule
 
         # Get successful logs
-        query = db.query(GenerationLog).filter(
-            GenerationLog.tags.isnot(None),
+        query = db.query(ActivityLog).filter(
+            ActivityLog.tags_used.isnot(None),
         )
         if project_name:
-            query = query.filter(GenerationLog.project_name == project_name)
+            query = query.filter(ActivityLog.project_name == project_name)
 
         logs = query.all()
 
@@ -646,10 +646,10 @@ def get_success_combinations(
         tag_stats = {}  # {tag: {"occurrences": int, "match_rates": [float], "category": str}}
 
         for log in success_logs:
-            if not log.tags:
+            if not log.tags_used:
                 continue
 
-            for tag in log.tags:
+            for tag in log.tags_used:
                 if tag not in tag_stats:
                     tag_stats[tag] = {
                         "occurrences": 0,

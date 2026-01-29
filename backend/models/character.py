@@ -2,7 +2,12 @@
 
 from sqlalchemy import ARRAY, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.associations import CharacterTag
 
 from models.base import Base, TimestampMixin
 
@@ -16,8 +21,13 @@ class Character(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))  # LoRA 조합 설명
     gender: Mapped[str | None] = mapped_column(String(10))  # female, male
-    identity_tags: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))  # tag IDs
-    clothing_tags: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))
+    
+    # V3: Relational Tags (Replacing identity_tags/clothing_tags)
+    # identity_tags: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))
+    # clothing_tags: Mapped[list[int] | None] = mapped_column(ARRAY(Integer))
+    
+    tags: Mapped[list["CharacterTag"]] = relationship("CharacterTag", backref="character", cascade="all, delete-orphan")
+
     # Multiple LoRAs with weights: [{"lora_id": 1, "weight": 1.0}, ...]
     loras: Mapped[list[dict] | None] = mapped_column(JSONB)
     # Validated negative prompt for this character/LoRA combination

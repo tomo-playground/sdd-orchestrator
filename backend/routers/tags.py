@@ -44,10 +44,10 @@ class PendingTagItem(BaseModel):
 
     id: int
     name: str
-    category: str
-    group_name: str | None
-    classification_source: str | None
-    classification_confidence: float | None
+    category: str | None = None
+    group_name: str | None = None
+    classification_source: str | None = None
+    classification_confidence: float | None = None
 
 
 class PendingTagsResponse(BaseModel):

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from config import logger
 from services.danbooru import get_tag_info_sync
 
+from services.keywords.db_cache import TagAliasCache
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
@@ -17,106 +18,8 @@ if TYPE_CHECKING:
 # Threshold for risky tags (Danbooru post count)
 RISKY_TAG_THRESHOLD = 100  # Tags with <100 posts are considered risky
 
-# Known problematic tags that should be replaced
-# Maps non-Danbooru/risky tags to verified Danbooru alternatives
-RISKY_TAG_REPLACEMENTS = {
-    # Camera angles and framing
-    # Key uses space format (user input), value uses underscore (Danbooru standard)
-    "medium shot": "cowboy_shot",
-    "medium_shot": "cowboy_shot",  # Also handle underscore input
-    "close up": "close-up",
-    "close_up": "close-up",
-    "far shot": "from_distance",
-    "far_shot": "from_distance",
-    "wide shot": "from_distance",
-    "wide_shot": "from_distance",
-    "long shot": "full_body",
-    "long_shot": "full_body",
-    "extreme close-up": "portrait",
-    "extreme_close-up": "portrait",
-    "extreme closeup": "portrait",
-    "extreme_closeup": "portrait",
-    "birds eye view": "from_above",
-    "birds_eye_view": "from_above",
-    "bird's eye view": "from_above",
-    "low angle": "from_below",
-    "low_angle": "from_below",
-    "high angle": "from_above",
-    "high_angle": "from_above",
-    "over the shoulder": "from_behind",
-    "over_the_shoulder": "from_behind",
-    "dutch angle": "tilted_angle",
-    "dutch_angle": "tilted_angle",
-    "point of view": "pov",
-    "point_of_view": "pov",
-    "first person view": "pov",
-    "first_person_view": "pov",
-    "third person view": "from_side",
-    "third_person_view": "from_side",
-    # Lighting (many SD-specific lighting terms don't exist in Danbooru)
-    "soft lighting": "soft_light",
-    "soft_lighting": "soft_light",
-    "hard lighting": "dramatic_lighting",
-    "hard_lighting": "dramatic_lighting",
-    "natural lighting": "natural_light",
-    "natural_lighting": "natural_light",
-    "studio lighting": "studio_light",
-    "studio_lighting": "studio_light",
-    "rim lighting": "backlighting",
-    "rim_lighting": "backlighting",
-    "side lighting": "side_light",
-    "side_lighting": "side_light",
-    "top lighting": "light_from_above",
-    "top_lighting": "light_from_above",
-    "bottom lighting": "light_from_below",
-    "bottom_lighting": "light_from_below",
-    # Quality/Style (SD-specific, not Danbooru tags)
-    "photorealistic": "realistic",
-    "photo realistic": "realistic",
-    "photo_realistic": "realistic",
-    "ultra realistic": "realistic",
-    "ultra_realistic": "realistic",
-    "hyperrealistic": "realistic",
-    "hyper realistic": "realistic",
-    "hyper_realistic": "realistic",
-    "4k": "high_resolution",
-    "8k": "high_resolution",
-    "hd": "high_resolution",
-    "ultra hd": "high_resolution",
-    "ultra_hd": "high_resolution",
-    "unreal engine": None,  # Remove rather than replace
-    "unreal_engine": None,
-    "octane render": None,  # Remove rather than replace
-    "octane_render": None,
-    "ray tracing": None,  # Remove rather than replace
-    "ray_tracing": None,
-    # Composition
-    "rule of thirds": "dynamic_composition",
-    "rule_of_thirds": "dynamic_composition",
-    "centered composition": "centered",
-    "centered_composition": "centered",
-    "symmetrical composition": "symmetry",
-    "symmetrical_composition": "symmetry",
-    "golden ratio": "dynamic_composition",
-    "golden_ratio": "dynamic_composition",
-    # Common typos and variations
-    "bokeh effect": "bokeh",
-    "bokeh_effect": "bokeh",
-    "lens flare effect": "lens_flare",
-    "lens_flare_effect": "lens_flare",
-    "depth of field": "depth_of_field",
-    "depth_of_field": "depth_of_field",
-    # Appearance / Character (Composite to Individual)
-    "short_green_hair": "short_hair, green_hair",
-    "long_blonde_hair": "long_hair, blonde_hair",
-    "medium_brown_hair": "medium_hair, brown_hair",
-    "short_blue_hair": "short_hair, blue_hair",
-    "short_red_hair": "short_hair, red_hair",
-    "short_white_hair": "short_hair, white_hair",
-    "short_black_hair": "short_hair, black_hair",
-    "playing_guitar": "guitar, musical_instrument",
-    "playing guitar": "guitar, musical_instrument",
-}
+# RISKY_TAG_REPLACEMENTS is now managed in the database (tag_aliases table)
+# and accessed via TagAliasCache
 
 
 def validate_prompt_tags(
@@ -159,13 +62,14 @@ def validate_prompt_tags(
             valid_tags.append(tag)
             continue
 
-        # Known problematic tag with replacement
-        if tag in RISKY_TAG_REPLACEMENTS:
+        # Check TagAliasCache for known replacements
+        replacement = TagAliasCache.get_replacement(tag)
+        if replacement is not ...:
             risky_tags.append(tag)
             warnings.append({
                 "tag": tag,
-                "reason": "Not a valid Danbooru tag (0 posts)",
-                "suggestion": RISKY_TAG_REPLACEMENTS[tag],
+                "reason": "Invalid or risky tag, replaced with verified alternative",
+                "suggestion": replacement,
             })
             continue
 
@@ -257,8 +161,8 @@ def auto_replace_risky_tags(tags: list[str]) -> dict[str, Any]:
     removed = []
 
     for tag in tags:
-        if tag in RISKY_TAG_REPLACEMENTS:
-            replacement = RISKY_TAG_REPLACEMENTS[tag]
+        replacement = TagAliasCache.get_replacement(tag)
+        if replacement is not ...:
             if replacement is None:
                 # Tag should be removed, not replaced
                 removed.append(tag)

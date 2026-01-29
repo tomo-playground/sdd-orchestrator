@@ -47,7 +47,7 @@ export function useCharacters(): UseCharactersResult {
 
   const getCharacterFull = useCallback(async (id: number): Promise<CharacterFull | null> => {
     try {
-      const res = await axios.get(`${API_BASE}/characters/${id}/full`);
+      const res = await axios.get(`${API_BASE}/characters/${id}`);
       return res.data;
     } catch {
       return null;

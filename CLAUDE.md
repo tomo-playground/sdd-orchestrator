@@ -59,6 +59,7 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 **예외**:
 - 하이픈 태그는 유지: `close-up`, `full-body`
 - 복합어 태그는 언더바로 연결: `light_brown_hair`, `school_uniform`
+- **치비(Chibi) 특화**: 반드시 `super_deformed`, `small_body`, `big_head` 형식을 사용 (공백 금지)
 
 > 관련 커밋: Phase 6-4.21 (2026-01-27) - DB 공백 태그 554개 → 언더바 통일
 

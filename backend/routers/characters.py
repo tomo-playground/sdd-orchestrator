@@ -1,8 +1,7 @@
-"""Character CRUD endpoints."""
+"""Character CRUD endpoints for Pure V3."""
 
-import re
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from config import (
     DEFAULT_REFERENCE_BASE_PROMPT,
@@ -10,199 +9,164 @@ from config import (
     logger,
 )
 from database import get_db
-from models import Character, LoRA, Tag
-from pydantic import BaseModel
+from models import Character, LoRA, Tag, CharacterTag
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
-from services.controlnet import generate_reference_for_character
-from services.prompt import get_effective_mode
 
 router = APIRouter(prefix="/characters", tags=["characters"])
 
-
-def normalize_prompt(prompt: str | None) -> str | None:
-    """Normalize prompt by removing duplicates, extra commas, and whitespace."""
-    if not prompt:
-        return prompt
-
-    # 1. Replace newlines with commas and split
-    # 2. Strip whitespace and remove empty strings
-    raw_parts = [p.strip() for p in prompt.replace("\n", ",").split(",") if p.strip()]
-
-    seen = set()
-    unique_parts = []
-
-    for p in raw_parts:
-        # Normalize for comparison (lowercase and underscores)
-        norm = p.lower().replace(" ", "_")
-        
-        # Special handling for weighted tags: (tag:weight)
-        # We want to keep the weight but avoid duplicate tags even if weights differ
-        # For now, let's just do strict string-based duplicate removal
-        if norm not in seen:
-            seen.add(norm)
-            unique_parts.append(p)
-
-    return ", ".join(unique_parts)
-
-
 @router.get("", response_model=list[CharacterResponse])
 async def list_characters(db: Session = Depends(get_db)):
-    """List all characters."""
-    characters = db.query(Character).order_by(Character.name).all()
-    logger.info("📋 [Characters] Listed %d characters", len(characters))
-    return characters
+    """List all characters with their tags and tag metadata."""
+    characters = db.query(Character).options(
+        joinedload(Character.tags).joinedload(CharacterTag.tag)
+    ).order_by(Character.name).all()
+    
+    # Pre-fetch all LoRAs to avoid N+1
+    all_loras = db.query(LoRA).all()
+    lora_map = {l.id: l for l in all_loras}
 
+    # Map tag metadata and enrich LoRAs
+    for char in characters:
+        for char_tag in char.tags:
+            char_tag.name = char_tag.tag.name
+            char_tag.layer = char_tag.tag.default_layer
+            
+        if char.loras:
+            # Enrich LoRA data
+            enriched = []
+            for l_data in char.loras:
+                # Ensure we have a dict copy to modify
+                l_new = l_data.copy()
+                lid = l_new.get("lora_id")
+                if lid and lid in lora_map:
+                    lora = lora_map[lid]
+                    l_new["name"] = lora.name
+                    l_new["trigger_words"] = lora.trigger_words
+                    l_new["lora_type"] = lora.lora_type
+                enriched.append(l_new)
+            char.loras = enriched
+            
+    return characters
 
 @router.get("/{character_id}", response_model=CharacterResponse)
 async def get_character(character_id: int, db: Session = Depends(get_db)):
-    """Get a single character by ID."""
-    character = db.query(Character).filter(Character.id == character_id).first()
+    """Get a single character by ID with tag metadata."""
+    character = db.query(Character).options(
+        joinedload(Character.tags).joinedload(CharacterTag.tag)
+    ).filter(Character.id == character_id).first()
+    
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
-    return character
-
-
-@router.get("/{character_id}/full")
-async def get_character_full(character_id: int, db: Session = Depends(get_db)):
-    """Get character with resolved tag names and LoRA info."""
-    character = db.query(Character).filter(Character.id == character_id).first()
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
-
-    # Resolve identity tags
-    identity_tags = []
-    if character.identity_tags:
-        tags = db.query(Tag).filter(Tag.id.in_(character.identity_tags)).all()
-        identity_tags = [{"id": t.id, "name": t.name, "group_name": t.group_name} for t in tags]
-
-    # Resolve clothing tags
-    clothing_tags = []
-    if character.clothing_tags:
-        tags = db.query(Tag).filter(Tag.id.in_(character.clothing_tags)).all()
-        clothing_tags = [{"id": t.id, "name": t.name, "group_name": t.group_name} for t in tags]
-
-    # Resolve multiple LoRAs
-    loras_info = []
-    loras_db: list[LoRA] = []
+        
+    for char_tag in character.tags:
+        char_tag.name = char_tag.tag.name
+        char_tag.layer = char_tag.tag.default_layer
+        
     if character.loras:
-        lora_ids = [item["lora_id"] for item in character.loras]
-        loras_db = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
-        lora_map = {lora.id: lora for lora in loras_db}
-
-        for item in character.loras:
-            lora = lora_map.get(item["lora_id"])
-            if lora:
-                # Use optimal_weight if calibrated, otherwise use preset weight
-                effective_weight = (
-                    float(lora.optimal_weight)
-                    if lora.optimal_weight is not None
-                    else item.get("weight", 1.0)
-                )
-                loras_info.append({
-                    "id": lora.id,
-                    "name": lora.name,
-                    "display_name": lora.display_name,
-                    "trigger_words": lora.trigger_words,
-                    "weight": effective_weight,
-                    "optimal_weight": float(lora.optimal_weight) if lora.optimal_weight else None,
-                    "calibration_score": float(lora.calibration_score) if lora.calibration_score else None,
-                    "lora_type": lora.lora_type,
-                })
-
-    # Determine effective prompt mode
-    effective_mode = get_effective_mode(character, loras_db)
-
-    return {
-        "id": character.id,
-        "name": character.name,
-        "description": character.description,
-        "gender": character.gender,
-        "identity_tags": identity_tags,
-        "clothing_tags": clothing_tags,
-        "loras": loras_info,
-        "recommended_negative": character.recommended_negative or [],
-        "custom_base_prompt": character.custom_base_prompt,
-        "custom_negative_prompt": character.custom_negative_prompt,
-        "preview_image_url": character.preview_image_url,
-        "prompt_mode": character.prompt_mode,
-        "ip_adapter_weight": character.ip_adapter_weight,
-        "ip_adapter_model": character.ip_adapter_model,
-        "effective_mode": effective_mode,
-    }
-
+        # Enrich LoRA data
+        lora_ids = [l.get("lora_id") for l in character.loras if l.get("lora_id")]
+        if lora_ids:
+            lora_objs = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+            lora_map = {l.id: l for l in lora_objs}
+            
+            enriched = []
+            for l_data in character.loras:
+                l_new = l_data.copy()
+                lid = l_new.get("lora_id")
+                if lid and lid in lora_map:
+                    lora = lora_map[lid]
+                    l_new["name"] = lora.name
+                    l_new["trigger_words"] = lora.trigger_words
+                    l_new["lora_type"] = lora.lora_type
+                enriched.append(l_new)
+            character.loras = enriched
+            
+    return character
 
 @router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character(data: CharacterCreate, db: Session = Depends(get_db)):
-    """Create a new character."""
+    """Create a new character and link tags."""
     existing = db.query(Character).filter(Character.name == data.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Character already exists")
 
-    # Convert loras list to JSONB-compatible format
-    char_data = data.model_dump()
+    char_data = data.model_dump(exclude={"tags"})
+    
+    # Enrich LoRA data before saving (Denormalization)
     if char_data.get("loras"):
-        char_data["loras"] = [{"lora_id": lora["lora_id"], "weight": lora["weight"]} for lora in char_data["loras"]]
-
-    # Normalize prompts
-    prompt_fields = [
-        "custom_base_prompt",
-        "custom_negative_prompt",
-        "reference_base_prompt",
-        "reference_negative_prompt"
-    ]
-    for field in prompt_fields:
-        if char_data.get(field):
-            char_data[field] = normalize_prompt(char_data[field])
-
-    # Set default reference prompts if not provided
+        enriched_loras = []
+        for l_item in char_data["loras"]:
+            lid = l_item.get("lora_id")
+            if lid:
+                lora_obj = db.query(LoRA).filter(LoRA.id == lid).first()
+                if lora_obj:
+                    l_item["name"] = lora_obj.name
+                    l_item["trigger_words"] = lora_obj.trigger_words
+                    l_item["lora_type"] = lora_obj.lora_type
+            enriched_loras.append(l_item)
+        char_data["loras"] = enriched_loras
+    
     if not char_data.get("reference_base_prompt"):
-        char_data["reference_base_prompt"] = normalize_prompt(DEFAULT_REFERENCE_BASE_PROMPT)
+        char_data["reference_base_prompt"] = DEFAULT_REFERENCE_BASE_PROMPT
     if not char_data.get("reference_negative_prompt"):
-        char_data["reference_negative_prompt"] = normalize_prompt(DEFAULT_REFERENCE_NEGATIVE_PROMPT)
+        char_data["reference_negative_prompt"] = DEFAULT_REFERENCE_NEGATIVE_PROMPT
 
     character = Character(**char_data)
     db.add(character)
-    db.commit()
-    db.refresh(character)
-    logger.info("✅ [Characters] Created and normalized: %s", character.name)
-    return character
+    db.flush()
 
+    if data.tags:
+        for tag_link in data.tags:
+            link = CharacterTag(
+                character_id=character.id,
+                tag_id=tag_link.tag_id,
+                weight=tag_link.weight,
+                is_permanent=tag_link.is_permanent
+            )
+            db.add(link)
+
+    db.commit()
+    return await get_character(character.id, db)
 
 @router.put("/{character_id}", response_model=CharacterResponse)
 async def update_character(character_id: int, data: CharacterUpdate, db: Session = Depends(get_db)):
-    """Update an existing character."""
+    """Update an existing character and sync tags."""
     character = db.query(Character).filter(Character.id == character_id).first()
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
-    update_data = data.model_dump(exclude_unset=True)
-    logger.info("📥 [Characters] Updating character %d: %s", character_id, update_data)
+    update_data = data.model_dump(exclude={"tags"}, exclude_unset=True)
     
-    # Normalize prompt fields if they are being updated
-    prompt_fields = [
-        "custom_base_prompt",
-        "custom_negative_prompt",
-        "reference_base_prompt",
-        "reference_negative_prompt"
-    ]
-    for field in prompt_fields:
-        if field in update_data and update_data[field] is not None:
-            update_data[field] = normalize_prompt(update_data[field])
+    # Enrich LoRA data if being updated
+    if "loras" in update_data and update_data["loras"]:
+        enriched_loras = []
+        for l_item in update_data["loras"]:
+            lid = l_item.get("lora_id")
+            if lid:
+                lora_obj = db.query(LoRA).filter(LoRA.id == lid).first()
+                if lora_obj:
+                    l_item["name"] = lora_obj.name
+                    l_item["trigger_words"] = lora_obj.trigger_words
+                    l_item["lora_type"] = lora_obj.lora_type
+            enriched_loras.append(l_item)
+        update_data["loras"] = enriched_loras
 
     for key, value in update_data.items():
         setattr(character, key, value)
 
-    try:
-        db.commit()
-        db.refresh(character)
-        logger.info("✏️ [Characters] Updated and normalized: %s (Tags: %s)", character.name, character.identity_tags)
-    except Exception as e:
-        db.rollback()
-        logger.exception("Failed to update character")
-        raise HTTPException(status_code=500, detail=str(e))
+    if data.tags is not None:
+        db.query(CharacterTag).filter(CharacterTag.character_id == character_id).delete()
+        for tag_link in data.tags:
+            link = CharacterTag(
+                character_id=character_id,
+                tag_id=tag_link.tag_id,
+                weight=tag_link.weight,
+                is_permanent=tag_link.is_permanent
+            )
+            db.add(link)
 
-    return character
-
+    db.commit()
+    return await get_character(character_id, db)
 
 @router.delete("/{character_id}")
 async def delete_character(character_id: int, db: Session = Depends(get_db)):
@@ -217,132 +181,69 @@ async def delete_character(character_id: int, db: Session = Depends(get_db)):
     logger.info("🗑️ [Characters] Deleted: %s", name)
     return {"ok": True, "deleted": name}
 
+@router.get("/{character_id}/full", response_model=CharacterResponse)
+async def get_character_full(character_id: int, db: Session = Depends(get_db)):
+    """Alias for get_character to maintain frontend compatibility."""
+    return await get_character(character_id, db)
 
 @router.post("/{character_id}/regenerate-reference")
 async def regenerate_reference(character_id: int, db: Session = Depends(get_db)):
-    """Regenerate the IP-Adapter reference image for this character."""
-    character = db.query(Character).filter(Character.id == character_id).first()
+    """Regenerate the character's reference image using its tags and reference prompts."""
+    from services.generation import generate_scene_image
+    from schemas import SceneGenerateRequest, ImageStoreRequest
+    from .scene import store_scene_image
+    import base64
+
+    character = db.query(Character).options(
+        joinedload(Character.tags).joinedload(CharacterTag.tag)
+    ).filter(Character.id == character_id).first()
+    
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
-    try:
-        filename = await generate_reference_for_character(db, character)
+    # Build prompt from reference_base_prompt + character tags + LoRAs
+    tag_names = [t.tag.name for t in character.tags]
+    base = character.reference_base_prompt or ""
+    
+    # Include LoRAs
+    lora_tags = []
+    if character.loras:
+        for lora_info in character.loras:
+            lora_id = lora_info.get("lora_id")
+            weight = lora_info.get("weight", 0.7)
+            lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
+            if lora_obj:
+                lora_tags.append(f"<lora:{lora_obj.name}:{weight}>")
+                if lora_obj.trigger_words:
+                    tag_names.extend(lora_obj.trigger_words)
 
-        # Update preview_image_url with cache busting
-        import time
-        base_url = f"/assets/references/{filename}"
-        new_url = f"{base_url}?t={int(time.time())}"
-
-        # Store base URL without query params in DB
-        if character.preview_image_url != base_url:
-            character.preview_image_url = base_url
-            db.commit()
-            db.refresh(character)
-
-        return {"ok": True, "filename": filename, "preview_image_url": new_url}
-    except Exception as e:
-        logger.exception("Failed to regenerate reference for %s", character.name)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-class SuggestTagsRequest(BaseModel):
-    """Request body for tag suggestion endpoint."""
-    prompt: str
-
-
-class SuggestedTag(BaseModel):
-    """Suggested tag with metadata."""
-    id: int
-    name: str
-    group_name: str | None
-
-
-class SuggestTagsResponse(BaseModel):
-    """Response body for tag suggestion endpoint."""
-    identity_tags: list[SuggestedTag]
-    clothing_tags: list[SuggestedTag]
-
-
-@router.post("/suggest-tags", response_model=SuggestTagsResponse)
-async def suggest_tags(data: SuggestTagsRequest, db: Session = Depends(get_db)):
-    """Suggest tags based on Base Prompt input.
-
-    Parses the prompt, matches against DB tags, and returns suggestions
-    grouped by category (identity vs clothing).
-    """
-    # 1. Parse prompt (comma-separated)
-    tokens = [token.strip() for token in data.prompt.split(",") if token.strip()]
-
-    # 2. Normalize tokens (handle both formats: "brown hair" and "brown_hair")
-    normalized_tokens = []
-    for token in tokens:
-        normalized_tokens.append(token.replace(" ", "_"))
-        if "_" in token:
-            normalized_tokens.append(token.replace("_", " "))
-
-    # 3. Query DB for matching tags
-    matched_tags = db.query(Tag).filter(Tag.name.in_(normalized_tokens)).all()
-
-    # 3.5. Remove duplicates (prefer underscore version over space version)
-    # If both "brown_hair" and "brown hair" exist, keep only "brown_hair"
-    unique_tags = {}
-    for tag in matched_tags:
-        normalized_name = tag.name.replace(" ", "_")
-        if normalized_name not in unique_tags:
-            unique_tags[normalized_name] = tag
-        elif "_" in tag.name:
-            # Prefer underscore version (Danbooru standard)
-            unique_tags[normalized_name] = tag
-
-    matched_tags = list(unique_tags.values())
-
-    # 4. Group by group_name (not category)
-    identity_tags = []
-    clothing_tags = []
-
-    # Identity groups: character appearance/features/style
-    identity_groups = {
-        # Core identity
-        "subject",
-        "identity",
-        # Appearance
-        "hair_color",
-        "hair_length",
-        "hair_style",
-        "hair_accessory",
-        "eye_color",
-        "skin_color",
-        "body_feature",
-        "appearance",
-        # Style/expression
-        "style",  # chibi, anime, realistic, etc.
-        "expression",  # smile, angry, etc.
-    }
-
-    # Clothing groups
-    clothing_groups = {"clothing", "clothing_detail"}
-
-    for tag in matched_tags:
-        suggested_tag = SuggestedTag(
-            id=tag.id,
-            name=tag.name,
-            group_name=tag.group_name
-        )
-
-        if tag.group_name in identity_groups:
-            identity_tags.append(suggested_tag)
-        elif tag.group_name in clothing_groups:
-            clothing_tags.append(suggested_tag)
-
-    logger.info(
-        "🏷️ [Tag Suggestion] Prompt tokens: %d, Matched: %d (identity: %d, clothing: %d)",
-        len(tokens),
-        len(matched_tags),
-        len(identity_tags),
-        len(clothing_tags)
+    full_prompt_raw = f"{base}, {', '.join(tag_names)}, {', '.join(lora_tags)}" if base else f"{', '.join(tag_names)}, {', '.join(lora_tags)}"
+    
+    # Normalize to Danbooru standard
+    from services.prompt.prompt import normalize_and_fix_tags
+    full_prompt = normalize_and_fix_tags(full_prompt_raw)
+    
+    # Generate image
+    request = SceneGenerateRequest(
+        prompt=full_prompt,
+        negative_prompt=character.reference_negative_prompt or "",
+        steps=25,
+        cfg_scale=7.5,
+        width=512,
+        height=768,
+        seed=-1
     )
+    
+    res = await generate_scene_image(request)
+    if "image" not in res:
+        raise HTTPException(status_code=500, detail="Generation failed")
 
-    return SuggestTagsResponse(
-        identity_tags=identity_tags,
-        clothing_tags=clothing_tags
-    )
+    # Store image
+    image_b64 = f"data:image/png;base64,{res['image']}"
+    store_res = await store_scene_image(ImageStoreRequest(image_b64=image_b64))
+    
+    # Update character
+    character.preview_image_url = store_res["url"]
+    db.commit()
+    
+    return {"ok": True, "url": character.preview_image_url}

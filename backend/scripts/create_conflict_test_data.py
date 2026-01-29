@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from database import SessionLocal
-from models.generation_log import GenerationLog
+from models.activity_log import ActivityLog
 
 
 def main():
@@ -72,11 +72,11 @@ def main():
         print()
 
         for log_data in all_logs:
-            log = GenerationLog(
+            log = ActivityLog(
                 project_name=project_name,
-                scene_index=log_data["scene_index"],
+                scene_id=log_data["scene_index"],
                 prompt=log_data["prompt"],
-                tags=log_data["tags"],
+                tags_used=log_data["tags"],
                 sd_params={"steps": 20, "cfg_scale": 7},
                 match_rate=log_data["match_rate"],
                 status=log_data["status"],

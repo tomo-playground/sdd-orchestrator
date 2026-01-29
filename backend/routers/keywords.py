@@ -57,6 +57,66 @@ async def list_keyword_categories():
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/tags")
+async def list_tags(
+    category: str | None = None,
+    search: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    """List tags from database with filtering and pagination.
+    
+    Args:
+        category: Filter by category (e.g., 'layer_0', 'layer_1', etc.)
+        search: Search tags by name
+        limit: Maximum number of tags to return
+        offset: Number of tags to skip
+    """
+    from models import Tag
+    
+    query = db.query(Tag)
+    
+    # Filter by category (default_layer)
+    if category:
+        # Extract layer number from category (e.g., 'layer_0' -> 0)
+        if category.startswith("layer_"):
+            try:
+                layer_num = int(category.split("_")[1])
+                query = query.filter(Tag.default_layer == layer_num)
+            except (IndexError, ValueError):
+                pass
+    
+    # Search by name
+    if search:
+        query = query.filter(Tag.name.ilike(f"%{search}%"))
+    
+    # Get total count before pagination
+    total = query.count()
+    
+    # Apply pagination and ordering
+    tags = query.order_by(Tag.name).offset(offset).limit(limit).all()
+    
+    # Convert to dict format
+    tag_list = [
+        {
+            "tag": tag.name,
+            "category": f"layer_{tag.default_layer}" if tag.default_layer is not None else None,
+            "layer": tag.default_layer,
+        }
+        for tag in tags
+    ]
+    
+    logger.info(f"[Tags] Found {total} tags (returning {len(tag_list)})")
+    
+    return {
+        "tags": tag_list,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
 @router.post("/approve")
 async def approve_keyword(request: KeywordApproveRequest, db: Session = Depends(get_db)):
     """Approve a keyword suggestion by adding it to the database."""

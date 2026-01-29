@@ -15,7 +15,7 @@ def mock_db_tags():
     return {
         "expression": ["smile", "crying", "neutral"],
         "pose": ["standing", "sitting", "running"],
-        "camera": ["cowboy shot", "close-up", "full body"],
+        "camera": ["cowboy_shot", "close-up", "full_body"],
         "location_indoor": ["classroom", "bedroom"],
     }
 
@@ -33,9 +33,9 @@ def mock_effectiveness_data():
         "standing": (0.90, 15),  # Very high effectiveness
         "sitting": (None, 5),  # No effectiveness data yet (should be included)
         "running": (0.40, 1),  # Medium-low effectiveness, insufficient data
-        "cowboy shot": (0.95, 20),  # Excellent effectiveness
+        "cowboy_shot": (0.95, 20),  # Excellent effectiveness
         "close-up": (0.70, 10),  # Good effectiveness
-        "full body": (0.28, 12),  # Low effectiveness, sufficient data (should be filtered)
+        "full_body": (0.28, 12),  # Low effectiveness, sufficient data (should be filtered)
         "classroom": (0.88, 18),  # High effectiveness
         "bedroom": (0.75, 9),  # Good effectiveness
     }
@@ -91,12 +91,12 @@ class TestEffectivenessFiltering:
         # Should include high-effectiveness tags
         assert "smile" in result
         assert "standing" in result
-        assert "cowboy shot" in result
+        assert "cowboy_shot" in result
         assert "classroom" in result
 
         # Should exclude low-effectiveness tags with sufficient data
         assert "crying" not in result  # 0.25 effectiveness, 8 uses
-        assert "full body" not in result  # 0.28 effectiveness, 12 uses
+        assert "full_body" not in result  # 0.28 effectiveness, 12 uses
 
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_tags_from_db")
@@ -288,7 +288,7 @@ class TestRecommendedTagsSection:
         # Should include high-effectiveness tags (>= 0.8, >= 10 uses)
         assert "smile" in rec_section  # 0.85, 10 uses
         assert "standing" in rec_section  # 0.90, 15 uses
-        assert "cowboy shot" in rec_section  # 0.95, 20 uses
+        assert "cowboy_shot" in rec_section  # 0.95, 20 uses
         assert "classroom" in rec_section  # 0.88, 18 uses
 
         # Should NOT include tags below threshold

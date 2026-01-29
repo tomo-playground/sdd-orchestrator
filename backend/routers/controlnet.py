@@ -1,8 +1,10 @@
 """ControlNet API endpoints."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from database import get_db
 from config import CHARACTER_PRESETS, DEFAULT_CHARACTER_PRESET, logger
 from services.controlnet import (
     IP_ADAPTER_MODELS,
@@ -142,13 +144,32 @@ async def get_ip_adapter_status():
 
 
 @router.get("/ip-adapter/references")
-async def list_references():
-    """List all saved reference images for IP-Adapter with presets."""
-    refs = list_reference_images()
+async def list_references(db: Session = Depends(get_db)):
+    """List all saved reference images for IP-Adapter with presets from DB/Config."""
+    # 1. Get physical files
+    refs = list_reference_images(db=db)
+    
+    # 2. Get all characters from DB for enrichment
+    from models.character import Character
+    db_chars = {c.name: c for c in db.query(Character).all()}
+    
     # Enrich with preset info
     for ref in refs:
-        preset = get_character_preset(ref["character_key"])
-        ref["preset"] = preset
+        char_key = ref["character_key"]
+        
+        # Priority 1: Database character settings
+        if char_key in db_chars:
+            db_char = db_chars[char_key]
+            ref["preset"] = {
+                "weight": db_char.ip_adapter_weight or 0.75,
+                "model": db_char.ip_adapter_model or "clip_face",
+                "description": db_char.description or f"DB Character: {char_key}"
+            }
+        else:
+            # Priority 2: Static config presets
+            preset = get_character_preset(char_key)
+            ref["preset"] = preset
+            
     return {"references": refs}
 
 

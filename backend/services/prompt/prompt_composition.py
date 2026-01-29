@@ -37,7 +37,7 @@ for _category, _tokens in CATEGORY_PATTERNS.items():
         _TOKEN_TO_CATEGORY[_token.lower()] = _category
 
 
-from services.keywords.db_cache import TagCategoryCache
+from services.keywords.db_cache import TagCategoryCache, TagRuleCache
 
 @lru_cache(maxsize=1024)
 def get_token_category(token: str) -> TokenCategory | None:
@@ -238,30 +238,11 @@ CONFLICTING_CATEGORY_PAIRS = [
     ("location_indoor", "location_outdoor"),  # Can't be both indoor and outdoor
     ("background_type", "background_type"),  # Only one background type
     ("camera", "camera"),  # Only one camera angle/shot type
-    ("expression", "expression"),  # Only one expression
-    ("gaze", "gaze"),  # Only one gaze direction
+    # Note: expression, gaze, pose conflicts are now handled by specific tag-pair rules in DB
 ]
 
-# Specific tag pairs that conflict (first wins)
-CONFLICTING_TAG_PAIRS = [
-    # Expression conflicts
-    ("crying", "laughing"),
-    ("crying", "happy"),
-    ("crying", "smile"),
-    ("sad", "happy"),
-    ("sad", "smile"),
-    ("sad", "laughing"),
-    ("angry", "happy"),
-    ("angry", "smile"),
-    # Gaze conflicts
-    ("looking_down", "looking_up"),
-    ("looking_away", "looking_at_viewer"),
-    ("closed_eyes", "looking_at_viewer"),
-    # Pose conflicts
-    ("sitting", "standing"),
-    ("lying", "standing"),
-    ("lying", "sitting"),
-]
+# CONFLICTING_TAG_PAIRS is now managed in the database (tag_rules table)
+# and accessed via TagRuleCache
 
 
 def filter_conflicting_tokens(
@@ -294,11 +275,7 @@ def filter_conflicting_tokens(
     if trigger_words:
         trigger_set = {t.lower().strip() for t in trigger_words}
 
-    # Build conflict lookup: tag -> set of conflicting tags
-    conflict_lookup: dict[str, set[str]] = {}
-    for tag1, tag2 in CONFLICTING_TAG_PAIRS:
-        conflict_lookup.setdefault(tag1, set()).add(tag2)
-        conflict_lookup.setdefault(tag2, set()).add(tag1)
+    # Conflict checking is now done via TagRuleCache.is_conflicting()
 
     for token in tokens:
         normalized = token.lower().strip()
@@ -349,12 +326,19 @@ def filter_conflicting_tokens(
         if skip:
             continue
 
-        # Check specific tag pair conflicts
-        if normalized in conflict_lookup:
-            # Check if any conflicting tag has been seen
-            if conflict_lookup[normalized] & seen_tag_conflicts:
+        # Check specific tag pair conflicts using DB cache
+        if TagRuleCache._initialized:
+            has_conflict = False
+            for seen_tag in seen_tag_conflicts:
+                if TagRuleCache.is_conflicting(normalized, seen_tag):
+                    has_conflict = True
+                    break
+            
+            if has_conflict:
                 continue
-            seen_tag_conflicts.add(normalized)
+        
+        # Track this tag for future conflict checks
+        seen_tag_conflicts.add(normalized)
 
         # Track this category for future conflict checks
         if category:

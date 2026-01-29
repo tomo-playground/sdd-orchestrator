@@ -5,7 +5,7 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         RECOMMENDATION_EFFECTIVENESS_THRESHOLD, RECOMMENDATION_MIN_USE_COUNT,
         TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING, logger
     )
-    from .db import _DB_GROUP_TO_GEMINI_CATEGORY, _SCENE_GROUPS
+    from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY, _SCENE_GROUPS
     from .core import normalize_prompt_token
     
     grouped = kw.load_tags_from_db()

@@ -1,5 +1,6 @@
 """API Routers for Shorts Producer Backend."""
 
+from .admin import router as admin_router
 from .assets import router as assets_router
 from .avatar import router as avatar_router
 from .characters import router as characters_router
@@ -22,6 +23,7 @@ from .tags import router as tags_router
 from .video import router as video_router
 
 __all__ = [
+    "admin_router",
     "assets_router",
     "avatar_router",
     "characters_router",

@@ -22,16 +22,34 @@ from services.prompt import (
     normalize_negative_prompt,
     normalize_prompt_tokens,
     split_prompt_tokens,
+    detect_scene_complexity,
 )
-from services.prompt import detect_scene_complexity
-
+from services.prompt.v3_service import V3PromptService
+from database import SessionLocal
 
 async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     """Generate a scene image using Stable Diffusion."""
     if not request.prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
-    cleaned_prompt = normalize_prompt_tokens(request.prompt)
+    db = SessionLocal()
+    try:
+        # V3 Logic: If character_id is provided, use V3PromptService
+        if request.character_id:
+            v3_service = V3PromptService(db)
+            # Treat request.prompt as scene tags (comma-separated)
+            scene_tags = split_prompt_tokens(request.prompt)
+            cleaned_prompt = v3_service.generate_prompt_for_scene(
+                character_id=request.character_id,
+                scene_tags=scene_tags
+            )
+            logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+        else:
+            cleaned_prompt = normalize_prompt_tokens(request.prompt)
+    except Exception as e:
+        logger.error(f"Error during prompt preparation: {e}")
+        cleaned_prompt = normalize_prompt_tokens(request.prompt)
+    # We keep db open for later IP-adapter use
 
     # Detect complexity and adjust parameters
     tokens = split_prompt_tokens(cleaned_prompt)
@@ -110,7 +128,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 
         # IP-Adapter character consistency
         if request.use_ip_adapter and request.ip_adapter_reference:
-            ref_image = load_reference_image(request.ip_adapter_reference)
+            ref_image = load_reference_image(request.ip_adapter_reference, db=db)
             if ref_image:
                 try:
                     controlnet_args_list.append(build_ip_adapter_args(
@@ -177,6 +195,8 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    finally:
+        db.close()
 
 
 
@@ -200,7 +220,7 @@ def _save_generation_log(
         from datetime import date
 
         from database import SessionLocal
-        from models.generation_log import GenerationLog
+        from models.activity_log import ActivityLog
 
         # Simple strategy: Use today's date as project_name
         # All generations on the same day are grouped together
@@ -210,11 +230,11 @@ def _save_generation_log(
 
         db = SessionLocal()
         try:
-            log = GenerationLog(
+            log = ActivityLog(
                 project_name=project_name,
-                scene_index=scene_index,
+                scene_id=scene_index,
                 prompt=prompt,
-                tags=tags,
+                tags_used=tags,
                 sd_params=sd_params,
                 seed=seed,
                 status="pending",  # Will be updated after validation
@@ -224,7 +244,7 @@ def _save_generation_log(
             db.add(log)
             db.commit()
             logger.info(
-                "📊 [Analytics] Saved generation log: project=%s, scene=%d, tags=%d%s",
+                "📊 [Analytics] Saved activity log: project=%s, scene=%d, tags=%d%s",
                 project_name,
                 scene_index,
                 len(tags),
@@ -232,9 +252,9 @@ def _save_generation_log(
             )
         except Exception as e:
             db.rollback()
-            logger.warning("📊 [Analytics] Failed to save generation log: %s", str(e))
+            logger.warning("📊 [Analytics] Failed to save activity log: %s", str(e))
         finally:
             db.close()
     except Exception as e:
         # Non-blocking: log warning but don't fail generation
-        logger.warning("📊 [Analytics] Failed to import GenerationLog: %s", str(e))
+        logger.warning("📊 [Analytics] Failed to import ActivityLog: %s", str(e))

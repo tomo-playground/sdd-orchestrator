@@ -297,7 +297,7 @@ class VideoBuilder:
             self._calculate_durations()
             self._build_filters()
             self._encode()
-            return {"video_url": f"{API_PUBLIC_URL}/outputs/videos/{self.video_filename}"}
+            return {"video_url": f"/outputs/videos/{self.video_filename}"}
         except Exception as exc:
             logger.exception("Video Create Error")
             raise exc

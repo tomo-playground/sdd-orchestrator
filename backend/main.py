@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from config import ASSETS_DIR
 from routers import (
+    admin_router,
     assets_router,
     avatar_router,
     characters_router,
@@ -47,7 +48,7 @@ async def startup_event():
     """Initialize resources on startup."""
     from database import get_db, engine
     from models.base import Base
-    from services.keywords.db_cache import TagCategoryCache
+    from services.keywords.db_cache import TagCategoryCache, TagAliasCache, TagRuleCache
     from services.keywords.core import TagFilterCache
     from config import logger
     
@@ -59,6 +60,8 @@ async def startup_event():
     try:
         TagCategoryCache.initialize(db)
         TagFilterCache.initialize(db)
+        TagAliasCache.initialize(db)
+        TagRuleCache.initialize(db)
     except Exception as e:
         logger.error(f"Failed to initialize tag caches: {e}")
     finally:
@@ -67,6 +70,7 @@ async def startup_event():
     logger.info("🚀 [Startup] Application started successfully")
 
 # --- Routers ---
+app.include_router(admin_router)
 app.include_router(assets_router)
 app.include_router(avatar_router)
 app.include_router(characters_router)

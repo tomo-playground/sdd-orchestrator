@@ -86,5 +86,15 @@ def create_storyboard(request: StoryboardRequest) -> dict:
         return {"scenes": scenes}
     except Exception as exc:
         from config import logger
+        
+        # Check if it's a Gemini API quota error
+        error_msg = str(exc)
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            logger.error("Gemini API quota exhausted")
+            raise HTTPException(
+                status_code=429,
+                detail="Gemini API quota exhausted. Please try again later or check your API limits at https://aistudio.google.com/app/apikey"
+            ) from exc
+        
         logger.exception("Storyboard generation failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

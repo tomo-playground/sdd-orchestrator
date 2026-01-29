@@ -213,6 +213,7 @@ export default function Home() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [loraTriggerWords, setLoraTriggerWords] = useState<string[]>([]);
   const [characterLoras, setCharacterLoras] = useState<Array<{
+    id: number;
     name: string;
     weight?: number;
     trigger_words?: string[];
@@ -234,12 +235,14 @@ export default function Home() {
         const triggers = charFull.loras.flatMap((lora: { trigger_words?: string[] }) => lora.trigger_words || []);
         setLoraTriggerWords(triggers);
         setCharacterLoras(charFull.loras.map((lora: {
+          id: number;
           name: string;
           weight?: number;
           trigger_words?: string[];
           lora_type?: string;
           optimal_weight?: number;
         }) => ({
+          id: lora.id,
           name: lora.name,
           weight: lora.weight,
           trigger_words: lora.trigger_words,
@@ -721,7 +724,7 @@ export default function Home() {
   };
 
   const fetchStoryboardScenes = async () => {
-    const res = await axios.post(`${API_BASE}/storyboard/create`, {
+    const res = await axios.post(`${API_BASE}/storyboards/create`, {
       topic,
       duration,
       style,
@@ -1182,6 +1185,11 @@ export default function Home() {
           // Ignore errors
         }
       }
+
+      // Auto-save to DB
+      showToast("Auto Run 완료! 데이터를 저장 중입니다...", "success");
+      await handleSaveStoryboard(false);
+
       showToast("Auto Run 완료! 영상이 생성되었습니다.", "success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Autopilot failed";
@@ -1388,6 +1396,35 @@ export default function Home() {
     previewTimeoutRef.current = window.setTimeout(() => {
       stopBgmPreview();
     }, 10000);
+  };
+
+  const handleSaveStoryboard = async (showSuccessToast = true) => {
+    try {
+      if (!scenes.length) {
+        if (showSuccessToast) showToast("스토리보드에 씬이 없습니다.", "error");
+        return;
+      }
+
+      await axios.post(`${API_BASE}/storyboards`, {
+        title: topic || "Untitled Storyboard",
+        description: `Generated from topic: ${topic}`,
+        scenes: scenes.map((s) => ({
+          scene_id: s.id,
+          script: s.script,
+          speaker: s.speaker,
+          duration: s.duration,
+          image_prompt: s.image_prompt,
+          image_prompt_ko: s.image_prompt_ko,
+          image_url: s.image_url,
+        })),
+        default_character_id: selectedCharacterId,
+      });
+
+      if (showSuccessToast) showToast("스토리보드가 저장되었습니다!", "success");
+    } catch (error) {
+      console.error("Failed to save storyboard:", error);
+      if (showSuccessToast) showToast("스토리보드 저장 실패", "error");
+    }
   };
 
   const resolveAvatarPreview = async (avatarKey: string, setUrl: (url: string | null) => void) => {
@@ -1629,7 +1666,7 @@ export default function Home() {
           trigger_words: lora.trigger_words ?? [],
           lora_type: lora.lora_type ?? "character",
           optimal_weight: lora.optimal_weight,
-        })) : null,
+        })) : [],
         use_break: true,
       });
       if (composeRes.data.prompt) {
@@ -1768,6 +1805,7 @@ export default function Home() {
         clip_skip: scene.clip_skip,
         width: 512,
         height: 768,
+        character_id: selectedCharacterId,
         ...hiResPayload,
         ...controlnetPayload,
         ...ipAdapterPayload,
@@ -1782,7 +1820,7 @@ export default function Home() {
           const projectName = (topic.trim().replace(/\s+/g, "_") || "my_shorts").substring(0, 200);
           const logRes = await axios.post(`${API_BASE}/generation-logs`, {
             project_name: projectName,
-            scene_index: scene.id,
+            scene_id: scene.id,
             prompt,
             tags: prompt.split(",").map((t: string) => t.trim()),
             sd_params: {
@@ -2099,8 +2137,7 @@ export default function Home() {
         sampler_name: scene.sampler_name,
         seed: scene.seed,
         clip_skip: scene.clip_skip,
-        preview_image_url: scene.image_url,
-        context_tags: scene.context_tags,
+        context_tags: scene.context_tags ? Object.values(scene.context_tags).flat() : [],
       };
 
       // Add character_id if selected
@@ -2111,9 +2148,10 @@ export default function Home() {
       // Add LoRA settings if present
       if (characterLoras && characterLoras.length > 0) {
         payload.lora_settings = characterLoras.map((lora) => ({
-          lora_id: 0, // Not tracked in current state
+          lora_id: lora.id ?? 0,
           name: lora.name,
           weight: lora.optimal_weight ?? lora.weight ?? 0.7,
+          trigger_words: lora.trigger_words ?? [],
         }));
       }
 

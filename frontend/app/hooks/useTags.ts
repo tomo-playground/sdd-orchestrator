@@ -27,7 +27,7 @@ const SCENE_TAG_GROUPS = ["expression", "gaze", "pose", "action", "camera", "env
 /**
  * Hook to load and manage tags for scene context.
  */
-export function useTags(): UseTagsResult {
+export function useTags(category: string | null = "scene"): UseTagsResult {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +36,12 @@ export function useTags(): UseTagsResult {
     setIsLoading(true);
     setError(null);
     try {
+      const params: any = {};
+      if (category) {
+        params.category = category;
+      }
       const res = await axios.get(`${API_BASE}/tags`, {
-        params: { category: "scene" },
+        params,
       });
       setTags(res.data || []);
     } catch {

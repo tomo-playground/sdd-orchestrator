@@ -9,6 +9,7 @@ import base64
 import io
 import random
 from pathlib import Path
+import os
 from typing import Any
 
 import httpx
@@ -26,6 +27,7 @@ from config import (
     logger,
 )
 from models import Character, LoRA, Tag
+from services.image import load_image_bytes
 
 # Pose reference directory
 POSE_DIR = Path("assets/poses")
@@ -291,12 +293,13 @@ def ensure_reference_dir() -> Path:
     return REFERENCE_DIR
 
 
-def save_reference_image(character_key: str, image_b64: str) -> str:
+def save_reference_image(character_key: str, image_b64: str, db: Session | None = None) -> str:
     """Save a reference image for IP-Adapter.
 
     Args:
         character_key: Unique key for the character (e.g., "eureka", "midoriya")
         image_b64: Base64 encoded image (with or without data URI prefix)
+        db: Optional DB session to update character.preview_image_url
 
     Returns:
         Saved filename
@@ -311,38 +314,76 @@ def save_reference_image(character_key: str, image_b64: str) -> str:
     filepath = REFERENCE_DIR / filename
     filepath.write_bytes(base64.b64decode(image_b64))
     logger.info(f"Saved reference image: {filepath}")
+
+    # If db session provided, update character record (V3 compatibility)
+    if db:
+        char = db.query(Character).filter(Character.name == character_key).first()
+        if char:
+            char.preview_image_url = f"/assets/references/{filename}"
+            db.commit()
+            logger.info(f"Updated character preview URL in DB for: {character_key}")
+
     return filename
 
 
-def load_reference_image(character_key: str) -> str | None:
+def load_reference_image(character_key: str, db: Session | None = None) -> str | None:
     """Load a reference image for IP-Adapter.
+    Prioritizes DB preview_image_url if available.
 
     Args:
         character_key: Unique key for the character
+        db: Optional DB session
 
     Returns:
         Base64 encoded image or None if not found
     """
+    # 1. Try DB first (V3)
+    if db:
+        char = db.query(Character).filter(Character.name == character_key).first()
+        if char and char.preview_image_url:
+            try:
+                img_bytes = load_image_bytes(char.preview_image_url)
+                return base64.b64encode(img_bytes).decode("utf-8")
+            except Exception as e:
+                logger.warning(f"Failed to load image from DB path {char.preview_image_url}: {e}")
+
+    # 2. Fallback to physical file in assets/references
     filepath = REFERENCE_DIR / f"{character_key}.png"
-    if not filepath.exists():
-        return None
-    return base64.b64encode(filepath.read_bytes()).decode("utf-8")
+    if filepath.exists():
+        return base64.b64encode(filepath.read_bytes()).decode("utf-8")
+    
+    return None
 
 
-def list_reference_images() -> list[dict[str, str]]:
+def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
     """List all saved reference images.
+    Merges physical files in assets/references with characters in DB that have previews.
 
     Returns:
         List of dicts with character_key and filename
     """
     ensure_reference_dir()
-    refs = []
+    unique_refs = {}
+
+    # 1. Add physical files
     for path in REFERENCE_DIR.glob("*.png"):
-        refs.append({
-            "character_key": path.stem,
+        key = path.stem
+        unique_refs[key] = {
+            "character_key": key,
             "filename": path.name,
-        })
-    return refs
+        }
+
+    # 2. Add/Override with DB characters (V3)
+    if db:
+        chars = db.query(Character).filter(Character.preview_image_url.isnot(None)).all()
+        for char in chars:
+            unique_refs[char.name] = {
+                "character_key": char.name,
+                "filename": os.path.basename(char.preview_image_url),
+                "is_db": True
+            }
+
+    return list(unique_refs.values())
 
 
 def delete_reference_image(character_key: str) -> bool:
@@ -571,9 +612,7 @@ async def generate_reference_for_character(
         Saved filename
     """
     # 1. Build prompt from tags
-    i_tags = db.query(Tag).filter(Tag.id.in_(character.identity_tags or [])).all()
-    c_tags = db.query(Tag).filter(Tag.id.in_(character.clothing_tags or [])).all()
-    tag_list = [t.name.replace("_", " ") for t in i_tags + c_tags]
+    tag_list = [char_tag.tag.name.replace("_", " ") for char_tag in character.tags]
 
     # 2. Build LoRA prompt
     lora_prompt_parts = []

@@ -17,13 +17,13 @@ def test_create_generation_log_minimal(client: TestClient):
         "/generation-logs",
         json={
             "project_name": project_name,
-            "scene_index": 0,
+            "scene_id": 0,
         },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["project_name"] == project_name
-    assert data["scene_index"] == 0
+    assert data["scene_id"] == 0
     assert data["status"] == "pending"
     assert "id" in data
 
@@ -35,7 +35,7 @@ def test_create_generation_log_full(client: TestClient):
         "/generation-logs",
         json={
             "project_name": project_name,
-            "scene_index": 1,
+            "scene_id": 1,
             "prompt": "1girl, smiling, classroom, sitting",
             "tags": ["1girl", "smiling", "classroom", "sitting"],
             "sd_params": {"steps": 20, "cfg_scale": 7, "seed": 12345},
@@ -48,7 +48,7 @@ def test_create_generation_log_full(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["project_name"] == project_name
-    assert data["scene_index"] == 1
+    assert data["scene_id"] == 1
     assert data["status"] == "success"
     assert data["match_rate"] == 0.85
     assert "id" in data
@@ -73,7 +73,7 @@ def test_get_project_logs_with_data(client: TestClient):
             "/generation-logs",
             json={
                 "project_name": project_name,
-                "scene_index": i,
+                "scene_id": i,
                 "status": "success" if i % 2 == 0 else "fail",
             },
         )
@@ -95,7 +95,7 @@ def test_get_project_logs_filter_by_status(client: TestClient):
             "/generation-logs",
             json={
                 "project_name": project_name,
-                "scene_index": i,
+                "scene_id": i,
                 "status": "success" if i < 2 else "fail",
             },
         )
@@ -124,7 +124,7 @@ def test_get_project_logs_with_limit(client: TestClient):
             "/generation-logs",
             json={
                 "project_name": project_name,
-                "scene_index": i,
+                "scene_id": i,
             },
         )
 
@@ -144,7 +144,7 @@ def test_update_log_status(client: TestClient):
         "/generation-logs",
         json={
             "project_name": project_name,
-            "scene_index": 0,
+            "scene_id": 0,
             "status": "pending",
         },
     )
@@ -188,7 +188,7 @@ def test_delete_log(client: TestClient):
         "/generation-logs",
         json={
             "project_name": project_name,
-            "scene_index": 0,
+            "scene_id": 0,
         },
     )
     log_id = create_response.json()["id"]
@@ -216,7 +216,7 @@ def test_log_data_integrity(client: TestClient):
     # Create log with full data
     test_data = {
         "project_name": project_name,
-        "scene_index": 5,
+        "scene_id": 5,
         "prompt": "complex prompt with multiple tags",
         "tags": ["tag1", "tag2", "tag3", "tag4"],
         "sd_params": {
@@ -243,7 +243,7 @@ def test_log_data_integrity(client: TestClient):
 
     log = logs[0]
     assert log["project_name"] == test_data["project_name"]
-    assert log["scene_index"] == test_data["scene_index"]
+    assert log["scene_id"] == test_data["scene_id"]
     assert log["prompt"] == test_data["prompt"]
     assert log["tags"] == test_data["tags"]
     assert log["sd_params"] == test_data["sd_params"]
@@ -262,14 +262,14 @@ def test_multiple_projects_isolation(client: TestClient):
     for i in range(3):
         client.post(
             "/generation-logs",
-            json={"project_name": project_a, "scene_index": i},
+            json={"project_name": project_a, "scene_id": i},
         )
 
     # Create logs for project B
     for i in range(2):
         client.post(
             "/generation-logs",
-            json={"project_name": project_b, "scene_index": i},
+            json={"project_name": project_b, "scene_id": i},
         )
 
     # Verify project A
@@ -303,21 +303,21 @@ def test_success_combinations_with_success_logs(client: TestClient):
     success_logs = [
         {
             "project_name": project_name,
-            "scene_index": 0,
+            "scene_id": 0,
             "tags": ["smile", "standing", "cowboy shot", "classroom"],
             "match_rate": 0.85,
             "status": "success",
         },
         {
             "project_name": project_name,
-            "scene_index": 1,
+            "scene_id": 1,
             "tags": ["smile", "standing", "cowboy shot", "outdoors"],
             "match_rate": 0.90,
             "status": "success",
         },
         {
             "project_name": project_name,
-            "scene_index": 2,
+            "scene_id": 2,
             "tags": ["smile", "sitting", "close-up", "classroom"],
             "match_rate": 0.80,
             "status": "success",
@@ -365,21 +365,21 @@ def test_success_combinations_filtering(client: TestClient):
     logs = [
         {
             "project_name": project_name,
-            "scene_index": 0,
+            "scene_id": 0,
             "tags": ["smile"],
             "match_rate": 0.95,
             "status": "success",
         },
         {
             "project_name": project_name,
-            "scene_index": 1,
+            "scene_id": 1,
             "tags": ["frown"],
             "match_rate": 0.60,
             "status": "fail",
         },
         {
             "project_name": project_name,
-            "scene_index": 2,
+            "scene_id": 2,
             "tags": ["neutral"],
             "match_rate": 0.75,
             "status": "success",
@@ -414,9 +414,9 @@ def test_analyze_patterns_basic(client: TestClient):
 
     # Create mix of success and fail logs
     logs = [
-        {"project_name": project_name, "scene_index": 0, "tags": ["smile", "standing"], "status": "success"},
-        {"project_name": project_name, "scene_index": 1, "tags": ["smile", "sitting"], "status": "success"},
-        {"project_name": project_name, "scene_index": 2, "tags": ["frown", "standing"], "status": "fail"},
+        {"project_name": project_name, "scene_id": 0, "tags": ["smile", "standing"], "status": "success"},
+        {"project_name": project_name, "scene_id": 1, "tags": ["smile", "sitting"], "status": "success"},
+        {"project_name": project_name, "scene_id": 2, "tags": ["frown", "standing"], "status": "fail"},
     ]
 
     for log_data in logs:

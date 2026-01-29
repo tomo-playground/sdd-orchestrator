@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import axios from "axios";
+import { API_BASE } from "../constants";
 import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode } from "../types";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 
@@ -36,7 +38,7 @@ export default function CharacterEditModal({
   const [clothingTagIds, setClothingTagIds] = useState<number[]>(character?.clothing_tags || []);
   const [tagSearch, setTagSearch] = useState("");
   const [activeTagInput, setActiveTagInput] = useState<"identity" | "clothing" | null>(null);
-  
+
   // Raw Edit Mode State
   const [rawEditMode, setRawEditMode] = useState<"identity" | "clothing" | null>(null);
   const [rawEditText, setRawEditText] = useState("");
@@ -44,6 +46,24 @@ export default function CharacterEditModal({
   // LoRAs state
   const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character?.loras || []);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateReference = async () => {
+    if (isCreateMode || !character?.id) return;
+
+    setIsGenerating(true);
+    try {
+      const res = await axios.post(`${API_BASE}/characters/${character.id}/regenerate-reference`);
+      if (res.data.url) {
+        setPreviewImageUrl(res.data.url);
+      }
+    } catch (error) {
+      console.error("Failed to generate reference", error);
+      alert("Failed to generate reference image.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const [referenceBasePrompt, setReferenceBasePrompt] = useState(isCreateMode ? customBasePrompt : character?.reference_base_prompt || "");
   const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(isCreateMode ? customNegativePrompt : character?.reference_negative_prompt || "");
@@ -56,12 +76,12 @@ export default function CharacterEditModal({
   }, [character]);
 
   // Derived state for tags
-  const identityTags = useMemo(() => 
+  const identityTags = useMemo(() =>
     identityTagIds.map(id => allTags.find(t => t.id === id)).filter(Boolean) as Tag[],
     [identityTagIds, allTags]
   );
-  
-  const clothingTags = useMemo(() => 
+
+  const clothingTags = useMemo(() =>
     clothingTagIds.map(id => allTags.find(t => t.id === id)).filter(Boolean) as Tag[],
     [clothingTagIds, allTags]
   );
@@ -103,7 +123,7 @@ export default function CharacterEditModal({
         .split(",")
         .map(t => t.trim())
         .filter(t => t.length > 0);
-      
+
       const newIds: number[] = [];
       const notFound: string[] = [];
 
@@ -112,12 +132,12 @@ export default function CharacterEditModal({
         let tag = allTags.find(t => t.name === tagName);
         // Try loose match (case insensitive) if not found
         if (!tag) {
-            tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+          tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
         }
-        
+
         if (tag) {
           if (!newIds.includes(tag.id)) {
-             newIds.push(tag.id);
+            newIds.push(tag.id);
           }
         } else {
           notFound.push(tagName);
@@ -173,7 +193,7 @@ export default function CharacterEditModal({
         .split(",")
         .map(t => t.trim())
         .filter(t => t.length > 0);
-      
+
       const newIds: number[] = [];
       newTags.forEach(tagName => {
         const tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
@@ -267,32 +287,54 @@ export default function CharacterEditModal({
               className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 resize-none"
             />
           </div>
-          
-           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Preview Image URL</label>
-            <input
-              value={previewImageUrl}
-              onChange={(e) => setPreviewImageUrl(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-mono text-zinc-600 outline-none focus:border-zinc-400"
-            />
-          </div>
-          
+
           <div>
-             <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Prompt Mode</label>
-             <select
-                value={promptMode}
-                onChange={(e) => setPromptMode(e.target.value as PromptMode)}
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
-             >
-                <option value="auto">Auto (Smart Compose)</option>
-                <option value="standard">Standard (No LoRA)</option>
-                <option value="lora">LoRA Only</option>
-             </select>
-             <p className="text-[10px] text-zinc-400 mt-1">
-               Auto: Automatically decides whether to use LoRA based on prompt complexity.<br/>
-               Standard: Forces standard generation.<br/>
-               LoRA: Forces usage of character LoRAs.
-             </p>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Preview Image URL</label>
+            <div className="flex gap-2">
+              <input
+                value={previewImageUrl}
+                readOnly
+                className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-mono text-zinc-500 outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleGenerateReference}
+                disabled={isCreateMode || isGenerating}
+                className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <LoadingSpinner size="sm" color="text-zinc-400" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  "Generate"
+                )}
+              </button>
+            </div>
+            {isCreateMode && (
+              <p className="text-[10px] text-zinc-400 mt-1">
+                Save the character first to generate a reference image.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Prompt Mode</label>
+            <select
+              value={promptMode}
+              onChange={(e) => setPromptMode(e.target.value as PromptMode)}
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+            >
+              <option value="auto">Auto (Smart Compose)</option>
+              <option value="standard">Standard (No LoRA)</option>
+              <option value="lora">LoRA Only</option>
+            </select>
+            <p className="text-[10px] text-zinc-400 mt-1">
+              Auto: Automatically decides whether to use LoRA based on prompt complexity.<br />
+              Standard: Forces standard generation.<br />
+              LoRA: Forces usage of character LoRAs.
+            </p>
           </div>
 
           <div>
@@ -370,63 +412,12 @@ export default function CharacterEditModal({
             </div>
           </div>
 
-          {/* Reference Image Prompts */}
-          <div className="border-t border-zinc-200 pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Reference Image Generation</label>
-              <span className="text-[10px] text-zinc-400">For IP-Adapter reference creation</span>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-zinc-400">Reference Positive</label>
-                  {!isCreateMode && (
-                    <button
-                      type="button"
-                      onClick={() => setReferenceBasePrompt(customBasePrompt)}
-                      className="text-[10px] text-zinc-500 hover:underline"
-                    >
-                      Copy from Base
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  value={referenceBasePrompt}
-                  onChange={(e) => setReferenceBasePrompt(e.target.value)}
-                  rows={3}
-                  placeholder="masterpiece, best quality, anime portrait, looking at viewer..."
-                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-zinc-400">Reference Negative</label>
-                  {!isCreateMode && (
-                    <button
-                      type="button"
-                      onClick={() => setReferenceNegativePrompt(customNegativePrompt)}
-                      className="text-[10px] text-zinc-500 hover:underline"
-                    >
-                      Copy from Base
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  value={referenceNegativePrompt}
-                  onChange={(e) => setReferenceNegativePrompt(e.target.value)}
-                  rows={3}
-                  placeholder="easynegative, from side, from behind, profile..."
-                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 font-mono resize-none"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Identity Tags */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Identity Tags</label>
-              <button 
+              <button
                 onClick={() => toggleRawEdit("identity")}
                 className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-800 underline"
               >
@@ -482,7 +473,7 @@ export default function CharacterEditModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Clothing Tags</label>
-              <button 
+              <button
                 onClick={() => toggleRawEdit("clothing")}
                 className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-800 underline"
               >
@@ -505,18 +496,18 @@ export default function CharacterEditModal({
                     <button onClick={() => handleRemoveTag(tag.id, "clothing")} className="hover:text-amber-900">×</button>
                   </span>
                 ))}
-                 <div className="relative">
+                <div className="relative">
                   <input
                     value={activeTagInput === "clothing" ? tagSearch : ""}
                     onChange={(e) => {
                       setActiveTagInput("clothing");
                       setTagSearch(e.target.value);
                     }}
-                     onFocus={() => setActiveTagInput("clothing")}
+                    onFocus={() => setActiveTagInput("clothing")}
                     placeholder="+ Add tag"
                     className="rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs outline-none focus:border-zinc-400 w-24 focus:w-48 transition-all"
                   />
-                   {activeTagInput === "clothing" && tagSearch && filteredTags.length > 0 && (
+                  {activeTagInput === "clothing" && tagSearch && filteredTags.length > 0 && (
                     <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
                       {filteredTags.map(tag => (
                         <button
@@ -545,7 +536,7 @@ export default function CharacterEditModal({
                 + Add LoRA
               </button>
             </div>
-            
+
             <div className="space-y-2">
               {selectedLoras.map((lora, index) => (
                 <div key={index} className="flex items-center gap-2 p-2 rounded-xl border border-zinc-100 bg-zinc-50/50">
@@ -575,6 +566,94 @@ export default function CharacterEditModal({
               {selectedLoras.length === 0 && (
                 <p className="text-xs text-zinc-400 italic">No LoRAs assigned.</p>
               )}
+            </div>
+          </div>
+
+          {/* Reference Image Prompts */}
+          <div className="border-t border-zinc-200 pt-6 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+                <label className="block text-sm font-bold text-zinc-800 uppercase tracking-tight">Reference Image Generation</label>
+                <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-500 uppercase">IP-Adapter Context</span>
+              </div>
+              <span className="text-[10px] text-zinc-400 font-medium bg-zinc-50 px-2 py-0.5 rounded-full border border-zinc-100">
+                Determines the visual quality of the character profile image
+              </span>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reference Positive</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReferenceBasePrompt("masterpiece, best_quality, ultra-detailed, solo, upper_body, portrait, facing_viewer, front_view, looking_at_viewer, straight_on, white_background, simple_background, plain_background, solid_background")}
+                      className="text-[9px] text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors"
+                    >
+                      RESET TO DEFAULT
+                    </button>
+                    {!isCreateMode && (
+                      <button
+                        type="button"
+                        onClick={() => setReferenceBasePrompt(customBasePrompt)}
+                        className="text-[9px] text-zinc-500 hover:text-zinc-700 font-bold bg-zinc-100 hover:bg-zinc-200 px-1.5 py-0.5 rounded transition-colors"
+                      >
+                        COPY FROM BASE
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="relative group">
+                  <textarea
+                    value={referenceBasePrompt}
+                    onChange={(e) => setReferenceBasePrompt(e.target.value)}
+                    rows={4}
+                    placeholder="masterpiece, best_quality, anime_portrait, looking_at_viewer..."
+                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50/50 px-4 py-3 text-[11px] outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 font-mono resize-none transition-all"
+                  />
+                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[9px] text-zinc-300 font-mono">Positive</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reference Negative</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReferenceNegativePrompt("lowres, (bad_anatomy:1.2), (bad_hands:1.2), text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, normal_quality, jpeg_artifacts, signature, watermark, username, blurry, easynegative, verybadimagenegative_v1.3, detailed_background, scenery, outdoors, indoors")}
+                      className="text-[9px] text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors"
+                    >
+                      RESET TO DEFAULT
+                    </button>
+                    {!isCreateMode && (
+                      <button
+                        type="button"
+                        onClick={() => setReferenceNegativePrompt(customNegativePrompt)}
+                        className="text-[9px] text-zinc-500 hover:text-zinc-700 font-bold bg-zinc-100 hover:bg-zinc-200 px-1.5 py-0.5 rounded transition-colors"
+                      >
+                        COPY FROM BASE
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="relative group">
+                  <textarea
+                    value={referenceNegativePrompt}
+                    onChange={(e) => setReferenceNegativePrompt(e.target.value)}
+                    rows={4}
+                    placeholder="easynegative, from_side, from_behind, profile..."
+                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50/50 px-4 py-3 text-[11px] outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 font-mono resize-none transition-all"
+                  />
+                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[9px] text-zinc-300 font-mono">Negative</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

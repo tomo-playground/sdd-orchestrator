@@ -42,7 +42,11 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   hair_color: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
   hair_length: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
   hair_style: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  hair_accessory: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
   eye_color: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
+  skin_color: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  body_feature: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  appearance: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
   expression: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
   gaze: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
   pose: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
@@ -70,7 +74,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   hair_color: "Hair",
   hair_length: "Hair",
   hair_style: "Hair",
+  hair_accessory: "Hair",
   eye_color: "Eyes",
+  skin_color: "Skin",
+  body_feature: "Body",
+  appearance: "Appearance",
   expression: "Expression",
   gaze: "Gaze",
   pose: "Pose",
@@ -111,7 +119,7 @@ function getTokenCategory(token: string): string {
   // Eyes
   if (lower.includes("eyes")) return "eye_color";
   // Expression
-  if (["smile", "smiling", "crying", "blush", "angry", "sad", "happy"].some((e) => lower.includes(e))) {
+  if (["smile", "smiling", "crying", "blush", "angry", "sad", "happy", "surprised", "shocked", "embarrassed", "pout"].some((e) => lower.includes(e))) {
     return "expression";
   }
   // Gaze
@@ -222,7 +230,7 @@ export default function ComposedPromptPreview({
         body: JSON.stringify({
           tokens,
           mode,
-          loras: loras.map((l) => ({
+          loras: (loras || []).map((l) => ({
             name: l.name,
             weight: l.weight || 0.5,
             trigger_words: l.trigger_words || [],
@@ -312,24 +320,22 @@ export default function ComposedPromptPreview({
           )}
           {result && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                result.effective_mode === "lora"
-                  ? "bg-violet-100 text-violet-700"
-                  : "bg-zinc-100 text-zinc-600"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${result.effective_mode === "lora"
+                ? "bg-violet-100 text-violet-700"
+                : "bg-zinc-100 text-zinc-600"
+                }`}
             >
               {result.effective_mode.toUpperCase()}
             </span>
           )}
           {result?.scene_complexity && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                result.scene_complexity === "complex"
-                  ? "bg-red-100 text-red-700"
-                  : result.scene_complexity === "moderate"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-emerald-100 text-emerald-700"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${result.scene_complexity === "complex"
+                ? "bg-red-100 text-red-700"
+                : result.scene_complexity === "moderate"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-emerald-100 text-emerald-700"
+                }`}
             >
               {result.scene_complexity}
             </span>

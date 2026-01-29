@@ -176,7 +176,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "indoors", "room", "interior",
         "bedroom", "living_room", "kitchen", "bathroom",
         "classroom", "library", "office", "study",
-        "cafe", "restaurant", "bar", "shop", "store",
+        "cafe", "restaurant", "bar", "shop", "store", "convenience_store",
         "train", "bus", "car_interior", "airplane",
         "hospital", "church", "temple", "shrine",
         "gym", "pool", "locker_room",

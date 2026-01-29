@@ -59,7 +59,7 @@ async def store_scene_image(request: ImageStoreRequest):
         logger.info("💾 [Image Store] Saved new image: %s", target)
     else:
         logger.info("💾 [Image Store] Image already exists: %s", target)
-    return {"url": f"{API_PUBLIC_URL}/outputs/images/stored/{filename}"}
+    return {"url": f"/outputs/images/stored/{filename}"}
 
 
 @router.post("/scene/validate_image")

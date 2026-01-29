@@ -1,0 +1,10 @@
+from sqlalchemy import create_engine, text
+import os
+from dotenv import load_dotenv
+
+load_dotenv('backend/.env')
+engine = create_engine(os.getenv('DATABASE_URL'))
+with engine.connect() as conn:
+    result = conn.execute(text("SELECT id, project_name, scene_id, image_url FROM activity_logs ORDER BY id DESC LIMIT 5"))
+    for row in result:
+        print(row)

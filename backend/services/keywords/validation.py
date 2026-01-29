@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from database import SessionLocal
-from models.tag import Tag, TagRule
+from models.tag import Tag
 
 from .core import normalize_prompt_token
 
@@ -32,6 +32,7 @@ def validate_prompt_tags(prompt_tags: list[str]) -> dict[str, Any]:
         conflicts, missing_deps, warnings = [], [], []
 
         if tag_ids:
+            from models.tag import TagRule
             conflict_rules = db.query(TagRule).filter(
                 TagRule.rule_type == "conflict",
                 TagRule.source_tag_id.in_(tag_ids),
@@ -78,6 +79,7 @@ def get_tag_rules_summary() -> dict[str, Any]:
     """Get summary of all tag rules in the database."""
     db = SessionLocal()
     try:
+        from models.tag import TagRule
         conflict_count = db.query(TagRule).filter(TagRule.rule_type == "conflict").count()
         requires_count = db.query(TagRule).filter(TagRule.rule_type == "requires").count()
 
@@ -104,3 +106,11 @@ def get_tag_rules_summary() -> dict[str, Any]:
         }
     finally:
         db.close()
+
+def get_effective_tags() -> dict[str, list[str]]:
+    """Get tags grouped by effectiveness level (Stub for V3)."""
+    return {"high": [], "medium": [], "low": [], "unknown": []}
+
+def get_tag_effectiveness_report() -> list[dict[str, Any]]:
+    """Get full effectiveness report for all tags (Stub for V3)."""
+    return []

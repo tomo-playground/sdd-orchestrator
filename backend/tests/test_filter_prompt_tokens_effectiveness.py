@@ -189,7 +189,7 @@ class TestEffectivenessFiltering:
         mock_load_synonyms.return_value = mock_synonyms
 
         eff_data = {
-            "medium shot": (0.0, 321),  # Space format
+            "medium_shot": (0.0, 321),  # Normalized format
         }
         mock_load_eff.return_value = eff_data
 

@@ -1,12 +1,32 @@
 from __future__ import annotations
-
+from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Type alias for prompt mode
 PromptMode = Literal["auto", "standard", "lora"]
 
+
+class CharacterLoRA(BaseModel):
+    lora_id: int
+    weight: float = 1.0
+    name: str | None = None
+    trigger_words: list[str] | None = None
+    lora_type: str | None = None
+
+class StoryboardBase(BaseModel):
+    title: str
+    description: str | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
+
+class StoryboardSave(StoryboardBase):
+    scenes: list[StoryboardScene]
+
+class StoryboardResponse(StoryboardBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
 
 class StoryboardRequest(BaseModel):
     topic: str
@@ -24,6 +44,7 @@ class StoryboardScene(BaseModel):
     duration: float = 3
     image_prompt: str = ""
     image_prompt_ko: str = ""
+    image_url: str | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -101,6 +122,8 @@ class SceneGenerateRequest(BaseModel):
     hr_upscaler: str = "Latent"
     hr_second_pass_steps: int = 10
     denoising_strength: float = 0.25
+    # V3 Character Integration
+    character_id: int | None = None
     # ControlNet options
     use_controlnet: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
@@ -155,6 +178,7 @@ class PromptComposeLoRA(BaseModel):
     trigger_words: list[str] | None = None
     lora_type: str | None = None  # character, style, concept
     optimal_weight: float | None = None
+    calibration_score: int | None = None
 
 
 class PromptComposeRequest(BaseModel):
@@ -198,23 +222,25 @@ class BatchApproveRequest(BaseModel):
 
 class TagBase(BaseModel):
     name: str
-    category: str  # character, scene, meta
+    ko_name: str | None = None
+    category: str | None = None
     group_name: str | None = None
-    priority: int = 5
-    exclusive: bool = False
-
+    priority: int = 100
+    default_layer: int = 0
+    usage_scope: str = "ANY"
+    wd14_count: int = 0
+    wd14_category: int = 0
+    classification_source: str | None = None
+    classification_confidence: float | None = None
 
 class TagCreate(TagBase):
     pass
 
-
 class TagUpdate(BaseModel):
     name: str | None = None
-    category: str | None = None
-    group_name: str | None = None
-    priority: int | None = None
-    exclusive: bool | None = None
-
+    ko_name: str | None = None
+    default_layer: int | None = None
+    usage_scope: str | None = None
 
 class TagResponse(TagBase):
     id: int
@@ -225,19 +251,16 @@ class TagResponse(TagBase):
 class LoRABase(BaseModel):
     name: str
     display_name: str | None = None
-    lora_type: str | None = None  # character, style, pose, other
-    gender_locked: str | None = None  # female, male, null(자유)
+    lora_type: str | None = None  # character, style, pose
+    trigger_words: list[str] | None = None
+    default_weight: float = 0.7
+    optimal_weight: float | None = None
+    calibration_score: int | None = None
+    weight_min: float = 0.1
+    weight_max: float = 1.0
+    gender_locked: str | None = None
     civitai_id: int | None = None
     civitai_url: str | None = None
-    trigger_words: list[str] | None = None
-    default_weight: float = 0.7  # 0.7 optimal for scene expression
-    optimal_weight: float | None = None  # Auto-calibrated weight
-    calibration_score: float | None = None  # Match rate at optimal_weight
-    weight_min: float = 0.5
-    weight_max: float = 1.5
-    base_models: list[str] | None = None
-    character_defaults: dict | None = None
-    recommended_negative: list[str] | None = None
     preview_image_url: str | None = None
 
 
@@ -249,18 +272,12 @@ class LoRAUpdate(BaseModel):
     name: str | None = None
     display_name: str | None = None
     lora_type: str | None = None
-    gender_locked: str | None = None
-    civitai_id: int | None = None
-    civitai_url: str | None = None
     trigger_words: list[str] | None = None
     default_weight: float | None = None
     optimal_weight: float | None = None
-    calibration_score: float | None = None
+    calibration_score: int | None = None
     weight_min: float | None = None
     weight_max: float | None = None
-    base_models: list[str] | None = None
-    character_defaults: dict | None = None
-    recommended_negative: list[str] | None = None
     preview_image_url: str | None = None
 
 
@@ -270,17 +287,17 @@ class LoRAResponse(LoRABase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class CharacterLoRA(BaseModel):
-    lora_id: int
+class CharacterTagLink(BaseModel):
+    tag_id: int
+    name: str | None = None # Tag name for display
+    layer: int | None = None # Tag default_layer
     weight: float = 1.0
-
+    is_permanent: bool = True
 
 class CharacterBase(BaseModel):
     name: str
     description: str | None = None
-    gender: str | None = None  # female, male
-    identity_tags: list[int] | None = None
-    clothing_tags: list[int] | None = None
+    gender: str | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     custom_base_prompt: str | None = None
@@ -288,21 +305,17 @@ class CharacterBase(BaseModel):
     reference_base_prompt: str | None = None
     reference_negative_prompt: str | None = None
     preview_image_url: str | None = None
-    prompt_mode: PromptMode = "auto"  # auto | standard | lora
+    prompt_mode: PromptMode = "auto"
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
 
-
 class CharacterCreate(CharacterBase):
-    pass
-
+    tags: list[CharacterTagLink] | None = None
 
 class CharacterUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     gender: str | None = None
-    identity_tags: list[int] | None = None
-    clothing_tags: list[int] | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     custom_base_prompt: str | None = None
@@ -313,10 +326,11 @@ class CharacterUpdate(BaseModel):
     prompt_mode: PromptMode | None = None
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
-
+    tags: list[CharacterTagLink] | None = None
 
 class CharacterResponse(CharacterBase):
     id: int
+    tags: list[CharacterTagLink] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -442,74 +456,33 @@ class StyleProfileResponse(StyleProfileBase):
 
 
 # ============================================================
-# Prompt History Schemas
+# Activity Log Schemas (Unified Memory)
 # ============================================================
 
-
-class PromptHistoryLoRA(BaseModel):
-    lora_id: int
-    name: str
-    weight: float = 0.7
-
-
-class PromptHistoryBase(BaseModel):
-    name: str
-    positive_prompt: str
-    negative_prompt: str | None = None
-    steps: int | None = None
-    cfg_scale: float | None = None
-    sampler_name: str | None = None
-    seed: int | None = None
-    clip_skip: int | None = None
+class ActivityLogBase(BaseModel):
+    project_name: str | None = None
+    scene_id: int | None = None
     character_id: int | None = None
-    lora_settings: list[PromptHistoryLoRA] | None = None
-    context_tags: dict | None = None
-    preview_image_url: str | None = None
+    prompt: str
+    negative_prompt: str | None = None
+    sd_params: dict | None = None
+    seed: int | None = None
+    image_url: str | None = None
+    match_rate: float | None = None
+    tags_used: list[str] | None = None
+    is_favorite: bool = False
+    name: str | None = None
 
-
-class PromptHistoryCreate(PromptHistoryBase):
+class ActivityLogCreate(ActivityLogBase):
     pass
 
-
-class PromptHistoryUpdate(BaseModel):
-    name: str | None = None
-    positive_prompt: str | None = None
-    negative_prompt: str | None = None
-    steps: int | None = None
-    cfg_scale: float | None = None
-    sampler_name: str | None = None
-    seed: int | None = None
-    clip_skip: int | None = None
-    character_id: int | None = None
-    lora_settings: list[PromptHistoryLoRA] | None = None
-    context_tags: dict | None = None
-    preview_image_url: str | None = None
+class ActivityLogUpdate(BaseModel):
     is_favorite: bool | None = None
+    name: str | None = None
 
-
-class PromptHistoryResponse(PromptHistoryBase):
+class ActivityLogResponse(ActivityLogBase):
     id: int
-    last_match_rate: float | None = None
-    avg_match_rate: float | None = None
-    validation_count: int = 0
-    is_favorite: bool = False
-    use_count: int = 0
-
     model_config = ConfigDict(from_attributes=True)
-
-
-class PromptHistoryApplyResponse(BaseModel):
-    id: int
-    positive_prompt: str
-    negative_prompt: str | None
-    steps: int | None
-    cfg_scale: float | None
-    sampler_name: str | None
-    seed: int | None
-    clip_skip: int | None
-    lora_settings: list[PromptHistoryLoRA] | None
-    context_tags: dict | None
-    use_count: int
 
 
 # Gemini Image Editing
@@ -559,3 +532,51 @@ class GeminiSuggestResponse(BaseModel):
     has_mismatch: bool  # 불일치 발견 여부
     suggestions: list[GeminiEditSuggestion]  # 제안 목록
     cost_usd: float  # 비용 ($)
+
+
+# --- Prompt History ---
+
+class PromptHistoryBase(BaseModel):
+    name: str | None = None
+    positive_prompt: str
+    negative_prompt: str | None = None
+    steps: int = 20
+    cfg_scale: float = 7.0
+    sampler_name: str | None = None
+    seed: int | None = None
+    clip_skip: int = 2
+    lora_settings: list[dict] | None = None
+    context_tags: list[str] | None = None
+    character_id: int | None = None
+
+class PromptHistoryCreate(PromptHistoryBase):
+    pass
+
+class PromptHistoryUpdate(BaseModel):
+    name: str | None = None
+    is_favorite: bool | None = None
+
+class PromptHistoryResponse(PromptHistoryBase):
+    id: int
+    is_favorite: bool
+    use_count: int
+    last_match_rate: float | None = None
+    avg_match_rate: float | None = None
+    validation_count: int
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PromptHistoryApplyResponse(BaseModel):
+    id: int
+    positive_prompt: str
+    negative_prompt: str | None = None
+    steps: int
+    cfg_scale: float
+    sampler_name: str | None = None
+    seed: int | None = None
+    clip_skip: int
+    lora_settings: list[dict] | None = None
+    context_tags: list[str] | None = None
+    use_count: int
+

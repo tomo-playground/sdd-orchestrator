@@ -14,29 +14,16 @@ from .cleanup import (
     cleanup_test_folders,
     get_storage_stats,
 )
-from .evaluation import (
-    TEST_PROMPTS,
-    get_evaluation_results,
-    get_evaluation_summary,
-    get_test_prompts,
-    run_evaluation_batch,
-)
 from .image import (
     decode_data_url,
     load_image_bytes,
 )
 from .keywords import (
-    expand_synonyms,
-    filter_prompt_tokens,
-    format_keyword_context,
-    get_effective_tags,
-    get_tag_effectiveness_report,
-    load_keyword_suggestions,
-    load_known_keywords,
-    load_tag_effectiveness_map,
     normalize_prompt_token,
-    update_keyword_suggestions,
-    update_tag_effectiveness,
+    load_known_keywords,
+    # These are currently slimmed/disabled in Pure V3
+    # update_tag_effectiveness,
+    # get_tag_effectiveness_report,
 )
 from .prompt import (
     is_scene_token,
@@ -88,17 +75,8 @@ __all__ = [
     "cleanup_test_folders",
     "get_storage_stats",
     # Keywords
-    "expand_synonyms",
-    "filter_prompt_tokens",
-    "format_keyword_context",
-    "get_effective_tags",
-    "get_tag_effectiveness_report",
-    "load_keyword_suggestions",
-    "load_known_keywords",
-    "load_tag_effectiveness_map",
     "normalize_prompt_token",
-    "update_keyword_suggestions",
-    "update_tag_effectiveness",
+    "load_known_keywords",
     # Validation
     "cache_key_for_validation",
     "compare_prompt_to_tags",
@@ -138,10 +116,4 @@ __all__ = [
     "clean_script_for_tts",
     "generate_video_filename",
     "sanitize_project_name",
-    # Evaluation
-    "TEST_PROMPTS",
-    "get_test_prompts",
-    "run_evaluation_batch",
-    "get_evaluation_results",
-    "get_evaluation_summary",
 ]

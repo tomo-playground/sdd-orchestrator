@@ -30,7 +30,7 @@ const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 export default function ManagePage() {
   const router = useRouter();
   const { characters, reload: fetchCharacters } = useCharacters();
-  const { tags: allTags, tagsByGroup: tagGroupsByCategory, reload: fetchTagsData } = useTags();
+  const { tags: allTags, tagsByGroup: tagGroupsByCategory, reload: fetchTagsData } = useTags(null);
 
   const [manageTab, setManageTab] = useState<ManageTab>("keywords");
   const [keywordSuggestions, setKeywordSuggestions] = useState<KeywordSuggestion[]>([]);
@@ -381,7 +381,7 @@ export default function ManagePage() {
       setLoraEntries(lorasRes.data || []);
       setSdModels(modelsRes.data || []);
       setEmbeddings(embsRes.data || []);
-      
+
       // Sync hooks
       void fetchCharacters();
       void fetchTagsData();
@@ -824,11 +824,10 @@ export default function ManagePage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setManageTab(tab.id as typeof manageTab)}
-                className={`rounded-full px-4 py-2 text-[10px] font-semibold tracking-[0.2em] uppercase transition ${
-                  active
-                    ? "bg-zinc-900 text-white"
-                    : "border border-zinc-200 bg-white text-zinc-600"
-                }`}
+                className={`rounded-full px-4 py-2 text-[10px] font-semibold tracking-[0.2em] uppercase transition ${active
+                  ? "bg-zinc-900 text-white"
+                  : "border border-zinc-200 bg-white text-zinc-600"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -927,11 +926,10 @@ export default function ManagePage() {
                       return (
                         <div
                           key={item.tag}
-                          className={`grid gap-3 rounded-2xl border p-4 md:grid-cols-[1.4fr_1fr_auto] ${
-                            isSkip
-                              ? "border-rose-200 bg-rose-50/50 opacity-60"
-                              : "border-zinc-200 bg-white"
-                          }`}
+                          className={`grid gap-3 rounded-2xl border p-4 md:grid-cols-[1.4fr_1fr_auto] ${isSkip
+                            ? "border-rose-200 bg-rose-50/50 opacity-60"
+                            : "border-zinc-200 bg-white"
+                            }`}
                         >
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
@@ -1040,11 +1038,10 @@ export default function ManagePage() {
                             {items.map((item) => (
                               <label
                                 key={item.tag}
-                                className={`flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-[10px] transition ${
-                                  batchSelected.has(item.tag)
-                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                    : "border-zinc-200 bg-zinc-50 text-zinc-500"
-                                }`}
+                                className={`flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-[10px] transition ${batchSelected.has(item.tag)
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                  : "border-zinc-200 bg-zinc-50 text-zinc-500"
+                                  }`}
                               >
                                 <input
                                   type="checkbox"
@@ -1225,11 +1222,10 @@ export default function ManagePage() {
                 <button
                   key={tab.id}
                   onClick={() => setStyleSubTab(tab.id as StyleSubTab)}
-                  className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase transition ${
-                    styleSubTab === tab.id
-                      ? "bg-zinc-800 text-white"
-                      : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
-                  }`}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] uppercase transition ${styleSubTab === tab.id
+                    ? "bg-zinc-800 text-white"
+                    : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -1263,11 +1259,10 @@ export default function ManagePage() {
                     {styleProfiles.map((profile) => (
                       <div
                         key={profile.id}
-                        className={`rounded-2xl border p-4 transition cursor-pointer ${
-                          profile.is_default
-                            ? "border-emerald-300 bg-emerald-50"
-                            : "border-zinc-200 bg-white hover:border-zinc-300"
-                        }`}
+                        className={`rounded-2xl border p-4 transition cursor-pointer ${profile.is_default
+                          ? "border-emerald-300 bg-emerald-50"
+                          : "border-zinc-200 bg-white hover:border-zinc-300"
+                          }`}
                         onClick={() => fetchProfileFull(profile.id)}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -1434,14 +1429,31 @@ export default function ManagePage() {
                         <div key={lora.id} className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-3">
                           <div className="flex items-center gap-3">
                             {lora.preview_image_url ? (
-                              <img src={`${API_BASE}${lora.preview_image_url}`} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                              <img
+                                src={lora.preview_image_url.startsWith('http') ? lora.preview_image_url : `${API_BASE}${lora.preview_image_url}`}
+                                alt=""
+                                className="h-10 w-10 rounded-lg object-cover"
+                              />
                             ) : (
                               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-400">
                                 <span className="text-lg">L</span>
                               </div>
                             )}
                             <div>
-                              <p className="text-xs font-semibold text-zinc-700">{lora.display_name || lora.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-semibold text-zinc-700">{lora.display_name || lora.name}</p>
+                                {lora.civitai_url && (
+                                  <a
+                                    href={lora.civitai_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-600 hover:bg-blue-100"
+                                  >
+                                    Civitai ↗
+                                  </a>
+                                )}
+                              </div>
                               <p className="text-[10px] text-zinc-400">
                                 Weight: {lora.weight_min}~{lora.weight_max} (default: {lora.default_weight})
                               </p>
@@ -1500,14 +1512,22 @@ export default function ManagePage() {
                         <div key={char.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
-                              {char.preview_image_url ? (
-                                <img
-                                  src={`${API_BASE}${char.preview_image_url}${charImageTimestamps[char.id] ? `?t=${charImageTimestamps[char.id]}` : ""}`}
-                                  alt=""
-                                  className="h-14 w-14 rounded-xl object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
-                                  onClick={() => setEnlargedImage({ url: `${API_BASE}${char.preview_image_url}${charImageTimestamps[char.id] ? `?t=${charImageTimestamps[char.id]}` : ""}`, title: char.name })}
-                                />
-                              ) : (
+                              {char.preview_image_url ? (() => {
+                                const previewUrl = char.preview_image_url as string;
+                                const fullUrl = previewUrl.startsWith('http') ? previewUrl : `${API_BASE}${previewUrl}`;
+                                const timestampedUrl = `${fullUrl}${charImageTimestamps[char.id] ? `?t=${charImageTimestamps[char.id]}` : ""}`;
+                                return (
+                                  <img
+                                    src={timestampedUrl}
+                                    alt=""
+                                    className="h-14 w-14 rounded-xl object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
+                                    onClick={() => setEnlargedImage({
+                                      url: timestampedUrl,
+                                      title: char.name
+                                    })}
+                                  />
+                                );
+                              })() : (
                                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-2xl">
                                   {char.name.charAt(0).toUpperCase()}
                                 </div>
@@ -1601,9 +1621,8 @@ export default function ManagePage() {
                             <p className="mt-1 text-xs text-zinc-400">{model.description}</p>
                           )}
                         </div>
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                          model.is_active ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
-                        }`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${model.is_active ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
+                          }`}>
                           {model.is_active ? "Active" : "Inactive"}
                         </span>
                       </div>
@@ -1627,9 +1646,8 @@ export default function ManagePage() {
                       <div key={emb.id} className="rounded-2xl border border-zinc-200 bg-white p-3">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xs font-semibold text-zinc-800">{emb.display_name || emb.name}</h3>
-                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                            emb.embedding_type === "negative" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
-                          }`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${emb.embedding_type === "negative" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                            }`}>
                             {emb.embedding_type}
                           </span>
                         </div>
@@ -1695,11 +1713,10 @@ export default function ManagePage() {
                           setTagCategoryFilter("scene");
                         }
                       }}
-                      className={`rounded-xl border p-3 text-center transition ${
-                        isActive
-                          ? "border-indigo-300 bg-indigo-50"
-                          : "border-zinc-200 bg-white hover:border-zinc-300"
-                      }`}
+                      className={`rounded-xl border p-3 text-center transition ${isActive
+                        ? "border-indigo-300 bg-indigo-50"
+                        : "border-zinc-200 bg-white hover:border-zinc-300"
+                        }`}
                     >
                       <div className={`text-lg font-bold ${isActive ? "text-indigo-600" : "text-zinc-700"}`}>
                         {count}
@@ -1718,11 +1735,12 @@ export default function ManagePage() {
               <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
                 Character Tag Groups
               </span>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {Object.keys(tagGroupsByCategory).filter(cat => cat !== "scene").map((group: string) => {
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                {[...new Set(allTags.filter(t => t.category === "character").map(t => t.group_name || "other"))].map((group: string) => {
                   const count = allTags.filter(
-                    (t: Tag) => t.category === "character" && t.group_name === group
+                    (t: Tag) => t.category === "character" && (group === "other" ? !t.group_name : t.group_name === group)
                   ).length;
+                  if (count === 0) return null;
                   const isActive = tagGroupFilter === group && tagCategoryFilter === "character";
                   return (
                     <button
@@ -1737,11 +1755,10 @@ export default function ManagePage() {
                           setTagCategoryFilter("character");
                         }
                       }}
-                      className={`rounded-xl border p-3 text-center transition ${
-                        isActive
-                          ? "border-violet-300 bg-violet-50"
-                          : "border-zinc-200 bg-white hover:border-zinc-300"
-                      }`}
+                      className={`rounded-xl border p-3 text-center transition ${isActive
+                        ? "border-violet-300 bg-violet-50"
+                        : "border-zinc-200 bg-white hover:border-zinc-300"
+                        }`}
                     >
                       <div className={`text-lg font-bold ${isActive ? "text-violet-600" : "text-zinc-700"}`}>
                         {count}
@@ -1752,6 +1769,48 @@ export default function ManagePage() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Meta Tag Groups (Quality, Style) */}
+              <div className="grid gap-4">
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+                  Meta Tag Groups (Quality & Style)
+                </span>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                  {[...new Set(allTags.filter(t => t.category === "meta").map(t => t.group_name || "other"))].map((group: string) => {
+                    const count = allTags.filter(
+                      (t: Tag) => t.category === "meta" && (group === "other" ? !t.group_name : t.group_name === group)
+                    ).length;
+                    if (count === 0) return null;
+                    const isActive = tagGroupFilter === group && tagCategoryFilter === "meta";
+                    return (
+                      <button
+                        key={group}
+                        type="button"
+                        onClick={() => {
+                          if (isActive) {
+                            setTagGroupFilter("");
+                            setTagCategoryFilter("");
+                          } else {
+                            setTagGroupFilter(group);
+                            setTagCategoryFilter("meta");
+                          }
+                        }}
+                        className={`rounded-xl border p-3 text-center transition ${isActive
+                          ? "border-emerald-300 bg-emerald-50"
+                          : "border-zinc-200 bg-white hover:border-zinc-300"
+                          }`}
+                      >
+                        <div className={`text-lg font-bold ${isActive ? "text-emerald-600" : "text-zinc-700"}`}>
+                          {count}
+                        </div>
+                        <div className={`text-[9px] font-medium uppercase tracking-wider ${isActive ? "text-emerald-500" : "text-zinc-400"}`}>
+                          {group}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -1878,10 +1937,16 @@ export default function ManagePage() {
                 <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Character Tags</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-emerald-600">
-                  {allTags.filter((t: Tag) => t.category === "quality").length}
+                <div className="text-2xl font-bold text-teal-600">
+                  {allTags.filter((t: Tag) => t.category === "meta" && t.group_name === "quality").length}
                 </div>
                 <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Quality Tags</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-emerald-600">
+                  {allTags.filter((t: Tag) => t.category === "meta" && t.group_name === "style").length}
+                </div>
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400">Style Tags</div>
               </div>
             </div>
 
@@ -1931,16 +1996,22 @@ export default function ManagePage() {
                     <div className="border-t border-zinc-100 p-4">
                       {Object.keys(tagGroupsByCategory).map((group: string) => {
                         const groupTags = allTags.filter(
-                          (t: Tag) => t.category === category && (group === "" ? !t.group_name : t.group_name === group)
+                          (t: Tag) => t.category === category &&
+                            (group === "other" ? !t.group_name : t.group_name === group)
                         );
                         if (groupTags.length === 0) return null;
+
+                        // Limit display to 500 tags per group to prevent browser lag
+                        const displayTags = groupTags.slice(0, 500);
+                        const hasMore = groupTags.length > 500;
+
                         return (
                           <div key={group || "ungrouped"} className="mb-3">
                             <div className="mb-2 text-[9px] font-medium uppercase tracking-wider text-zinc-400">
-                              {group || "Ungrouped"} ({groupTags.length})
+                              {group === "other" ? "Ungrouped/Other" : group} ({groupTags.length})
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {groupTags.map((tag: Tag) => (
+                              {displayTags.map((tag: Tag) => (
                                 <span
                                   key={tag.id}
                                   className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[9px] text-zinc-500"
@@ -1948,6 +2019,11 @@ export default function ManagePage() {
                                   {tag.name}
                                 </span>
                               ))}
+                              {hasMore && (
+                                <span className="px-2 py-0.5 text-[9px] text-zinc-400 italic">
+                                  ... and {groupTags.length - 500} more
+                                </span>
+                              )}
                             </div>
                           </div>
                         );
@@ -2083,11 +2159,10 @@ export default function ManagePage() {
                         <button
                           type="button"
                           onClick={() => togglePromptFavorite(prompt.id)}
-                          className={`rounded-full p-2 text-xs transition ${
-                            prompt.is_favorite
-                              ? "bg-amber-50 text-amber-500 hover:bg-amber-100"
-                              : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100"
-                          }`}
+                          className={`rounded-full p-2 text-xs transition ${prompt.is_favorite
+                            ? "bg-amber-50 text-amber-500 hover:bg-amber-100"
+                            : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100"
+                            }`}
                           title={prompt.is_favorite ? "Remove from favorites" : "Add to favorites"}
                         >
                           {prompt.is_favorite ? "★" : "☆"}
@@ -2169,11 +2244,10 @@ export default function ManagePage() {
                 {testPrompts.map((test) => (
                   <label
                     key={test.name}
-                    className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 transition ${
-                      selectedTests.has(test.name)
-                        ? "border-indigo-300 bg-indigo-50"
-                        : "border-zinc-200 bg-white hover:border-zinc-300"
-                    }`}
+                    className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 transition ${selectedTests.has(test.name)
+                      ? "border-indigo-300 bg-indigo-50"
+                      : "border-zinc-200 bg-white hover:border-zinc-300"
+                      }`}
                   >
                     <input
                       type="checkbox"
@@ -2232,13 +2306,12 @@ export default function ManagePage() {
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-semibold text-zinc-800">Overall</span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        evalSummary.overall.winner === "lora"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : evalSummary.overall.winner === "standard"
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${evalSummary.overall.winner === "lora"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : evalSummary.overall.winner === "standard"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-zinc-100 text-zinc-600"
-                      }`}
+                        }`}
                     >
                       {evalSummary.overall.winner === "tie"
                         ? "Tie"
@@ -2285,13 +2358,12 @@ export default function ManagePage() {
                           </span>
                         </div>
                         <span
-                          className={`w-16 rounded-full px-2 py-0.5 text-center text-[10px] font-semibold ${
-                            test.winner === "lora"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : test.winner === "standard"
+                          className={`w-16 rounded-full px-2 py-0.5 text-center text-[10px] font-semibold ${test.winner === "lora"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : test.winner === "standard"
                               ? "bg-blue-100 text-blue-700"
                               : "bg-zinc-100 text-zinc-500"
-                          }`}
+                            }`}
                         >
                           {test.winner === "tie" ? "Tie" : test.winner.toUpperCase()}
                         </span>
@@ -2473,24 +2545,21 @@ export default function ManagePage() {
                   {/* Cleanup Result */}
                   {cleanupResult && (
                     <div
-                      className={`rounded-2xl border p-4 ${
-                        cleanupResult.dry_run
-                          ? "border-amber-200 bg-amber-50"
-                          : "border-emerald-200 bg-emerald-50"
-                      }`}
+                      className={`rounded-2xl border p-4 ${cleanupResult.dry_run
+                        ? "border-amber-200 bg-amber-50"
+                        : "border-emerald-200 bg-emerald-50"
+                        }`}
                     >
                       <div className="mb-2 flex items-baseline justify-between">
                         <span
-                          className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${
-                            cleanupResult.dry_run ? "text-amber-600" : "text-emerald-600"
-                          }`}
+                          className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${cleanupResult.dry_run ? "text-amber-600" : "text-emerald-600"
+                            }`}
                         >
                           {cleanupResult.dry_run ? "Preview Result" : "Cleanup Complete"}
                         </span>
                         <span
-                          className={`text-sm font-semibold ${
-                            cleanupResult.dry_run ? "text-amber-700" : "text-emerald-700"
-                          }`}
+                          className={`text-sm font-semibold ${cleanupResult.dry_run ? "text-amber-700" : "text-emerald-700"
+                            }`}
                         >
                           {cleanupResult.freed_mb.toFixed(1)} MB{" "}
                           {cleanupResult.dry_run ? "to free" : "freed"}

@@ -135,67 +135,16 @@ ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").low
 # --- Reference Image Generation Defaults ---
 # Default prompts for generating IP-Adapter reference images
 # Used when creating new characters without custom reference prompts
-DEFAULT_REFERENCE_BASE_PROMPT = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
-DEFAULT_REFERENCE_NEGATIVE_PROMPT = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
+DEFAULT_REFERENCE_BASE_PROMPT = "masterpiece, best_quality, ultra-detailed, solo, upper_body, portrait, facing_viewer, front_view, looking_at_viewer, straight_on, white_background, simple_background, plain_background, solid_background"
+DEFAULT_REFERENCE_NEGATIVE_PROMPT = "lowres, (bad_anatomy:1.2), (bad_hands:1.2), text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, normal_quality, jpeg_artifacts, signature, watermark, username, blurry, easynegative, verybadimagenegative_v1.3, detailed_background, scenery, outdoors, indoors"
 
 # --- IP-Adapter Character Presets ---
 # Per-character IP-Adapter settings for optimal consistency
 # weight: Higher = more similar to reference (0.6-0.95)
 # model: "clip" (style), "clip_face" (face+style), "faceid" (real faces only)
-CHARACTER_PRESETS: dict[str, dict] = {
-    # Standard anime characters - moderate weight for flexibility
-    "Generic Anime Boy": {
-        "weight": 0.75,
-        "model": "clip_face",
-        "description": "Standard anime male character",
-        "reference_image": "outputs/character_presets/generic_anime_boy.png",
-        "reference_weight": 0.75,  # Reference-only weight (0.75-0.9 recommended)
-    },
-    "Generic Anime Girl": {
-        "weight": 0.75,
-        "model": "clip_face",
-        "description": "Standard anime female character",
-        "reference_image": "outputs/character_presets/generic_anime_girl.png",
-        "reference_weight": 0.75,  # Reference-only weight (0.75-0.9 recommended)
-    },
-    "Eureka": {
-        "weight": 0.80,
-        "model": "clip_face",
-        "description": "Eureka anime character",
-    },
-    "Midoriya": {
-        "weight": 0.80,
-        "model": "clip_face",
-        "description": "Midoriya anime character",
-    },
-    # Chibi style - higher weight to maintain proportions
-    "Chibi": {
-        "weight": 0.85,
-        "model": "clip",
-        "description": "Generic chibi style",
-    },
-    "Eureka Chibi": {
-        "weight": 0.85,
-        "model": "clip",
-        "description": "Eureka in chibi style",
-    },
-    "Midoriya Chibi": {
-        "weight": 0.85,
-        "model": "clip",
-        "description": "Midoriya in chibi style",
-    },
-    # Blindbox/3D style - highest weight for stylized look
-    "Blindbox": {
-        "weight": 0.90,
-        "model": "clip",
-        "description": "3D blindbox figure style",
-    },
-    "Eureka Blindbox": {
-        "weight": 0.90,
-        "model": "clip",
-        "description": "Eureka in blindbox style",
-    },
-}
+# --- IP-Adapter Character Presets ---
+# Legacy presets removed. Now fully managed via database (Character model).
+CHARACTER_PRESETS: dict[str, dict] = {}
 
 # Default IP-Adapter settings for unknown characters
 DEFAULT_CHARACTER_PRESET = {
