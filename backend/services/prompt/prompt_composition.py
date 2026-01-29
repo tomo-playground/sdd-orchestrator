@@ -229,17 +229,8 @@ MUTUALLY_EXCLUSIVE_GROUPS = {
     "background": ["background_type"],  # Can only have one background
 }
 
-# Conflicting category pairs (first wins) - same category = only keep first
-CONFLICTING_CATEGORY_PAIRS = [
-    ("hair_length", "hair_length"),  # Only one hair length
-    ("skin_color", "skin_color"),  # Only one skin color
-    ("location_indoor", "location_indoor"),  # Only one indoor location
-    ("location_outdoor", "location_outdoor"),  # Only one outdoor location
-    ("location_indoor", "location_outdoor"),  # Can't be both indoor and outdoor
-    ("background_type", "background_type"),  # Only one background type
-    ("camera", "camera"),  # Only one camera angle/shot type
-    # Note: expression, gaze, pose conflicts are now handled by specific tag-pair rules in DB
-]
+# Conflicting category pairs are now managed in the database (tag_rules table)
+# and accessed via TagRuleCache.is_category_conflicting()
 
 # CONFLICTING_TAG_PAIRS is now managed in the database (tag_rules table)
 # and accessed via TagRuleCache
@@ -306,20 +297,10 @@ def filter_conflicting_tokens(
         if skip:
             continue
 
-        # Check conflicting category pairs
-        # For pair (cat1, cat2): if we've seen cat1, skip cat2 (and vice versa)
-        for cat1, cat2 in CONFLICTING_CATEGORY_PAIRS:
-            if cat1 == cat2:
-                # Same category conflict (e.g., only one hair_length)
-                if category == cat1 and cat1 in seen_categories:
-                    skip = True
-                    break
-            else:
-                # Cross-category conflict (e.g., indoor vs outdoor)
-                if category == cat1 and cat2 in seen_categories:
-                    skip = True
-                    break
-                if category == cat2 and cat1 in seen_categories:
+        # Check conflicting category pairs using DB cache
+        if TagRuleCache._initialized and category:
+            for seen_cat in seen_categories.values():
+                if TagRuleCache.is_category_conflicting(category, seen_cat):
                     skip = True
                     break
 

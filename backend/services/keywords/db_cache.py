@@ -128,6 +128,8 @@ class TagRuleCache:
     
     # Map tag1_name -> set(conflicting_tag2_names)
     _conflicts: dict[str, set[str]] = {}
+    # Map category1 -> set(conflicting_category2)
+    _category_conflicts: dict[str, set[str]] = {}
     _initialized = False
     
     @classmethod
@@ -137,12 +139,12 @@ class TagRuleCache:
             return
             
         try:
-            # Join with Tag table to get names
             from sqlalchemy.orm import aliased
             SourceTag = aliased(Tag)
             TargetTag = aliased(Tag)
             
-            rules = (
+            # Load tag-level conflicts
+            tag_rules = (
                 db.query(
                     SourceTag.name.label("source_name"),
                     TargetTag.name.label("target_name")
@@ -150,21 +152,49 @@ class TagRuleCache:
                 .select_from(TagRule)
                 .join(SourceTag, TagRule.source_tag_id == SourceTag.id)
                 .join(TargetTag, TagRule.target_tag_id == TargetTag.id)
-                .filter(TagRule.rule_type == "conflict", TagRule.active == True)
+                .filter(
+                    TagRule.rule_type == "conflict",
+                    TagRule.active == True,
+                    TagRule.source_tag_id.isnot(None)
+                )
                 .all()
             )
             
-            count = 0
-            for rule in rules:
+            tag_count = 0
+            for rule in tag_rules:
                 s_name = rule.source_name.lower().strip()
                 t_name = rule.target_name.lower().strip()
                 
                 cls._conflicts.setdefault(s_name, set()).add(t_name)
                 cls._conflicts.setdefault(t_name, set()).add(s_name)
-                count += 1
+                tag_count += 1
+            
+            # Load category-level conflicts
+            category_rules = (
+                db.query(TagRule)
+                .filter(
+                    TagRule.rule_type == "conflict",
+                    TagRule.active == True,
+                    TagRule.source_category.isnot(None)
+                )
+                .all()
+            )
+            
+            cat_count = 0
+            for rule in category_rules:
+                s_cat = rule.source_category.lower().strip()
+                t_cat = rule.target_category.lower().strip()
+                
+                cls._category_conflicts.setdefault(s_cat, set()).add(t_cat)
+                # Bidirectional for symmetric conflicts
+                cls._category_conflicts.setdefault(t_cat, set()).add(s_cat)
+                cat_count += 1
                 
             cls._initialized = True
-            logger.info(f"✅ [TagRuleCache] Loaded {count} conflict rules into cache")
+            logger.info(
+                f"✅ [TagRuleCache] Loaded {tag_count} tag conflicts "
+                f"and {cat_count} category conflicts into cache"
+            )
         except Exception as e:
             logger.error(f"❌ [TagRuleCache] Failed to initialize: {e}")
 
@@ -174,9 +204,17 @@ class TagRuleCache:
         t1 = tag1.lower().strip()
         t2 = tag2.lower().strip()
         return t2 in cls._conflicts.get(t1, set())
+    
+    @classmethod
+    def is_category_conflicting(cls, cat1: str, cat2: str) -> bool:
+        """Check if two categories conflict."""
+        c1 = cat1.lower().strip()
+        c2 = cat2.lower().strip()
+        return c2 in cls._category_conflicts.get(c1, set())
 
     @classmethod
     def refresh(cls, db: Session):
         cls._initialized = False
         cls._conflicts.clear()
+        cls._category_conflicts.clear()
         cls.initialize(db)

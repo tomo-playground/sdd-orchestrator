@@ -50,14 +50,26 @@ class ClassificationRule(Base, TimestampMixin):
     active: Mapped[bool] = mapped_column(default=True)
 
 class TagRule(Base, TimestampMixin):
-    """Rules for tag interactions (conflict, requires)."""
+    """Rules for tag interactions (conflict, requires).
+    
+    Supports both tag-level and category-level conflicts:
+    - Tag-level: source_tag_id and target_tag_id are set
+    - Category-level: source_category and target_category are set
+    """
 
     __tablename__ = "tag_rules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    rule_type: Mapped[str] = mapped_column(String(20)) # conflict, requires
-    source_tag_id: Mapped[int] = mapped_column(Integer, index=True)
-    target_tag_id: Mapped[int] = mapped_column(Integer, index=True)
+    rule_type: Mapped[str] = mapped_column(String(20))  # conflict, requires
+    
+    # Tag-level conflicts
+    source_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    target_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    
+    # Category-level conflicts
+    source_category: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)
+    target_category: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)
+    
     message: Mapped[str | None] = mapped_column(String(200))
     priority: Mapped[int] = mapped_column(Integer, default=0)
     active: Mapped[bool] = mapped_column(default=True)

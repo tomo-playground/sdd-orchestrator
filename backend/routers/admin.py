@@ -100,6 +100,77 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
     }
 
 
+@router.post("/migrate-category-rules")
+async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
+    """Migrate hardcoded category conflict rules to database.
+    
+    This migrates CONFLICTING_CATEGORY_PAIRS that were previously hardcoded.
+    """
+    
+    # Category conflict pairs (source, target, message)
+    category_conflicts = [
+        ("hair_length", "hair_length", "Only one hair length allowed"),
+        ("skin_color", "skin_color", "Only one skin color allowed"),
+        ("location_indoor", "location_indoor", "Only one indoor location allowed"),
+        ("location_outdoor", "location_outdoor", "Only one outdoor location allowed"),
+        ("location_indoor", "location_outdoor", "Cannot be both indoor and outdoor"),
+        ("location_outdoor", "location_indoor", "Cannot be both outdoor and indoor"),
+        ("background_type", "background_type", "Only one background type allowed"),
+        ("camera", "camera", "Only one camera angle allowed"),
+    ]
+    
+    added = []
+    skipped = []
+    errors = []
+    
+    for s_cat, t_cat, message in category_conflicts:
+        try:
+            # Check if rule already exists
+            exists = db.query(TagRule).filter(
+                TagRule.source_category == s_cat,
+                TagRule.target_category == t_cat,
+                TagRule.rule_type == 'conflict'
+            ).first()
+            
+            if not exists:
+                rule = TagRule(
+                    rule_type='conflict',
+                    source_category=s_cat,
+                    target_category=t_cat,
+                    message=message,
+                    active=True
+                )
+                db.add(rule)
+                added.append(f"{s_cat} <-> {t_cat}")
+            else:
+                skipped.append(f"{s_cat} <-> {t_cat} (already exists)")
+                
+        except Exception as e:
+            errors.append(f"Error processing {s_cat} <-> {t_cat}: {str(e)}")
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        return {
+            "success": False,
+            "error": str(e),
+            "added": added,
+            "skipped": skipped,
+            "errors": errors
+        }
+    
+    return {
+        "success": True,
+        "added": added,
+        "skipped": skipped,
+        "errors": errors,
+        "total_added": len(added),
+        "total_skipped": len(skipped),
+        "total_errors": len(errors)
+    }
+
+
 @router.post("/refresh-caches")
 async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.

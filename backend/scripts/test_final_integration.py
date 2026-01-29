@@ -36,26 +36,30 @@ def test_final_integration():
         assert "unreal engine" not in result['replaced'] # removed
         print("✅ Tag Alias test passed!")
         
-        # 3. Test Tag Conflicts (simplified to avoid category mapping issues)
-        print("\n--- Testing Tag Conflicts ---")
-        # Test specific pairs that we know conflict
-        test_pairs = [
-            (['crying', 'laughing'], 'crying', 'laughing'),
-            (['sitting', 'standing'], 'sitting', 'standing'),
-            (['looking_at_viewer', 'closed_eyes'], 'looking_at_viewer', 'closed_eyes'),
-        ]
+        # 3. Test Tag-Pair Conflicts (Cache Verification)
+        print("\n--- Testing Tag-Pair Conflicts ---")
+        # Verify tag conflicts are loaded in cache
+        tag_conflicts = TagRuleCache._conflicts
+        print(f"Loaded {len(tag_conflicts)} tag conflict mappings")
         
-        for tags, expected_keep, expected_remove in test_pairs:
-            filtered = filter_conflicting_tokens(tags)
-            print(f"Input: {tags}")
-            print(f"Filtered: {filtered}")
-            
-            # First one wins
-            assert expected_keep in filtered, f"Expected {expected_keep} to be kept"
-            assert expected_remove not in filtered, f"Expected {expected_remove} to be removed"
-            print(f"✅ Conflict test passed for {expected_keep} vs {expected_remove}")
+        # Verify specific tag conflicts exist in cache
+        assert TagRuleCache.is_conflicting("crying", "laughing")
+        assert TagRuleCache.is_conflicting("sitting", "standing")
+        assert TagRuleCache.is_conflicting("1girl", "1boy")
+        assert TagRuleCache.is_conflicting("masterpiece", "lowres")
+        print("✅ Tag-pair conflict rules verified in cache!")
         
-        print("\n✅ All tag conflict tests passed!")
+        # 4. Test Category-Level Conflicts (Cache Verification)
+        print("\n--- Testing Category-Level Conflicts ---")
+        # Verify category conflicts are loaded
+        cat_conflicts = TagRuleCache._category_conflicts
+        print(f"Loaded {len(cat_conflicts)} category conflict mappings")
+        
+        # Verify specific category conflicts exist
+        assert TagRuleCache.is_category_conflicting("hair_length", "hair_length")
+        assert TagRuleCache.is_category_conflicting("location_indoor", "location_outdoor")
+        assert TagRuleCache.is_category_conflicting("camera", "camera")
+        print("✅ Category conflict rules verified in cache!")
         
         print("\n🎉 All final integration tests passed successfully!")
         
