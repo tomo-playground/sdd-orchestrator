@@ -29,23 +29,11 @@ from routers import (
     video_router,
 )
 
-# --- App Setup ---
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from contextlib import asynccontextmanager
 
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
-app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
-
-# --- Startup Event ---
-@app.on_event("startup")
-async def startup_event():
-    """Initialize resources on startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize resources on startup and clean up on shutdown."""
     from database import get_db, engine
     from models.base import Base
     from services.keywords.db_cache import TagCategoryCache, TagAliasCache, TagRuleCache
@@ -68,6 +56,21 @@ async def startup_event():
         db.close()
         
     logger.info("🚀 [Startup] Application started successfully")
+    
+    yield
+    
+    # Shutdown logic (if any)
+    logger.info("🛑 [Shutdown] Application execution finished")
+
+# --- App Setup ---
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Routers ---
 app.include_router(admin_router)
