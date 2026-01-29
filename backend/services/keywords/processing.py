@@ -27,7 +27,7 @@ def expand_synonyms(tokens: list[str]) -> set[str]:
 def filter_prompt_tokens(prompt: str) -> str:
     """Filter prompt tokens to only include known/allowed keywords (DB-based)."""
     import services.keywords as kw
-    from services.prompt import RISKY_TAG_REPLACEMENTS
+    from services.keywords.db_cache import TagAliasCache
     
     allowed = kw.load_allowed_tags_from_db()
     synonym_lookup = kw.load_synonyms_from_db()
@@ -49,9 +49,9 @@ def filter_prompt_tokens(prompt: str) -> str:
         if eff_data:
             eff_score, use_count = eff_data
             if eff_score is not None and use_count >= TAG_MIN_USE_COUNT_FOR_FILTERING and eff_score < TAG_EFFECTIVENESS_THRESHOLD:
-                # Use normalized key for RISKY_TAG_REPLACEMENTS
-                replacement = RISKY_TAG_REPLACEMENTS.get(normalized)
-                if replacement:
+                # Use TagAliasCache for replacements
+                replacement = TagAliasCache.get_replacement(normalized)
+                if replacement is not ...:  # Ellipsis means no replacement found
                     _get_logger().warning(f"⚠️  [Filter] Replacing low-effectiveness tag: '{normalized}' -> '{replacement}'")
                     normalized = normalize_prompt_token(replacement)
                     replaced_count += 1
