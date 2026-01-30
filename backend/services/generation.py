@@ -36,7 +36,12 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     db = SessionLocal()
     try:
         # V3 Logic: If character_id is provided, use V3PromptService
+        character_obj = None
         if request.character_id:
+            # Load character for V3 prompt composition and IP-Adapter automation
+            from models import Character
+            character_obj = db.query(Character).filter(Character.id == request.character_id).first()
+
             v3_service = V3PromptService(db)
             # Treat request.prompt as scene tags (comma-separated)
             scene_tags = split_prompt_tokens(request.prompt)
@@ -45,6 +50,20 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                 scene_tags=scene_tags
             )
             logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+
+            # 23.7 Character Consistency: Auto-apply IP-Adapter if reference exists
+            if character_obj and not request.use_ip_adapter:
+                ref_image_test = load_reference_image(character_obj.name, db=db)
+                if ref_image_test:
+                    request.use_ip_adapter = True
+                    request.ip_adapter_reference = character_obj.name
+                    # Use character's weight or optimal weight from experiments (0.75)
+                    if character_obj.ip_adapter_weight:
+                        request.ip_adapter_weight = character_obj.ip_adapter_weight
+                    else:
+                        request.ip_adapter_weight = 0.75  # Optimal from CHARACTER_CONSISTENCY experiments
+                    logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
+                               character_obj.name, request.ip_adapter_weight)
         else:
             cleaned_prompt = normalize_prompt_tokens(request.prompt)
     except Exception as e:
@@ -72,10 +91,18 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     lora_names = extract_lora_names(cleaned_prompt)
     if lora_names:
         try:
-            optimal_weights = get_optimal_weights_from_db(lora_names)
-            if optimal_weights:
+            # 23.7 Character Consistency: Override weights to 0.6 when IP-Adapter is active
+            if request.use_ip_adapter and character_obj:
+                # Force all LoRA weights to 0.6 for optimal IP-Adapter + LoRA balance
+                optimal_weights = {name.lower(): 0.6 for name in lora_names}
                 cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
-                logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
+                logger.info("🔧 [LoRA] Applied IP-Adapter optimal weights (0.6): %s", list(lora_names))
+            else:
+                # Use calibrated weights from DB
+                optimal_weights = get_optimal_weights_from_db(lora_names)
+                if optimal_weights:
+                    cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
+                    logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
         except Exception as e:
             logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
 
