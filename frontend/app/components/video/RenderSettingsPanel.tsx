@@ -36,8 +36,8 @@ const TRANSITION_OPTIONS: { value: string; label: string; visual: string }[] = [
 ];
 
 /** Truncate string with ellipsis if too long */
-const truncate = (str: string, maxLen: number) =>
-  str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : str;
+const truncate = (str: string | undefined, maxLen: number) =>
+  str && str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : (str || "");
 
 type RenderSettingsPanelProps = {
   // Layout
