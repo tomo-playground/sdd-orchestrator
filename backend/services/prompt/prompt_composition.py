@@ -461,19 +461,14 @@ def insert_break_token(
 # Mode A (Standard) priority order - as defined in CATEGORY_PRIORITY
 # Quality → Subject → Identity → Appearance → Clothing → Expression → ...
 
-# Mode B (LoRA) priority order - scene-first for better LoRA control
+# Mode B (LoRA) priority order - LoRA-first for proper SD composition
+# Quality → Subject → **LoRA** → Character → Actions → Scene
 MODE_B_PRIORITY: dict[str, int] = {
     # Higher priority (earlier in prompt)
     "quality": 1,
     "subject": 2,
-    # Scene core (before LoRA to establish scene)
-    "expression": 3,
-    "gaze": 4,
-    "pose": 5,
-    "action": 6,
-    "camera": 7,
-    # LoRA trigger inserted here (priority ~8)
-    # Character appearance (after LoRA)
+    # LoRA trigger inserted here (priority 3-9, after quality/subject, before character)
+    # Character identity and appearance (after LoRA for proper application)
     "identity": 10,
     "hair_color": 11,
     "hair_length": 11,
@@ -484,14 +479,20 @@ MODE_B_PRIORITY: dict[str, int] = {
     "body_feature": 11,
     "appearance": 11,
     "clothing": 12,
+    # Actions/expressions (after character features)
+    "expression": 13,
+    "gaze": 14,
+    "pose": 15,
+    "action": 16,
+    "camera": 17,
     # Scene extras (lowest priority, after BREAK)
-    "location_indoor": 13,
-    "location_outdoor": 13,
-    "background_type": 13,
-    "time_weather": 14,
-    "lighting": 15,
-    "mood": 16,
-    "style": 17,
+    "location_indoor": 18,
+    "location_outdoor": 18,
+    "background_type": 18,
+    "time_weather": 19,
+    "lighting": 20,
+    "mood": 21,
+    "style": 22,
 }
 
 
