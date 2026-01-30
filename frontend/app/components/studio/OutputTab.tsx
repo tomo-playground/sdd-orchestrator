@@ -113,6 +113,8 @@ export default function OutputTab() {
           bgm_file: bgmFile,
           audio_ducking: audioDucking,
           bgm_volume: bgmVolume,
+          overlay_settings: mode === "full" ? overlaySettings : null,
+          post_card_settings: mode === "post" ? postCardSettings : null,
         };
         const res = await axios.post(`${API_BASE}/video/create`, payload);
         const url = res.data.video_url;
@@ -134,14 +136,14 @@ export default function OutputTab() {
         setOutput({ isRendering: false });
       }
     },
-    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSubtitles, subtitleFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, recentVideos, setOutput, showToast]
+    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSubtitles, subtitleFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, overlaySettings, postCardSettings, recentVideos, setOutput, showToast]
   );
 
   const handleDeleteRecentVideo = useCallback(
     async (url: string) => {
       try {
         const filename = url.split("/").pop();
-        await axios.delete(`${API_BASE}/video`, { data: { filename } });
+        await axios.post(`${API_BASE}/video/delete`, { filename });
         setOutput({ recentVideos: recentVideos.filter((v) => v.url !== url) });
       } catch {
         showToast("Failed to delete video", "error");
