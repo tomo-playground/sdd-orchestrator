@@ -360,26 +360,46 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
     Merges physical files in assets/references with characters in DB that have previews.
 
     Returns:
-        List of dicts with character_key and filename
+        List of dicts with character_key, character_id (if matched), and filename
     """
     ensure_reference_dir()
     unique_refs = {}
 
-    # 1. Add physical files
+    # Build character lookup map (name -> Character) from DB
+    char_map = {}
+    if db:
+        chars = db.query(Character).all()
+        char_map = {char.name.lower(): char for char in chars}
+
+    # 1. Add physical files with character_id lookup
     for path in REFERENCE_DIR.glob("*.png"):
         key = path.stem
+        # Try to match with DB character by name (case-insensitive)
+        # First try exact match
+        char = char_map.get(key.lower())
+
+        # If no exact match, try partial match (character name contains file name)
+        if not char:
+            key_lower = key.lower()
+            for char_name_lower, candidate_char in char_map.items():
+                if key_lower in char_name_lower or char_name_lower in key_lower:
+                    char = candidate_char
+                    break
+
         unique_refs[key] = {
             "character_key": key,
+            "character_id": char.id if char else None,
             "filename": path.name,
         }
 
-    # 2. Add/Override with DB characters (V3)
+    # 2. Add/Override with DB characters that have preview images
     if db:
-        chars = db.query(Character).filter(Character.preview_image_url.isnot(None)).all()
-        for char in chars:
+        chars_with_preview = db.query(Character).filter(Character.preview_image_url.isnot(None)).all()
+        for char in chars_with_preview:
             unique_refs[char.name] = {
                 "character_key": char.name,
-                "filename": os.path.basename(char.preview_image_url),
+                "character_id": char.id,
+                "filename": os.path.basename(char.preview_image_url) if char.preview_image_url else "",
                 "is_db": True
             }
 

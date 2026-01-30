@@ -12,6 +12,7 @@ import {
   getBasePromptForScene,
   buildPositivePrompt,
 } from "./promptActions";
+import { autoSaveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return a URL */
 export async function storeSceneImage(dataUrl: string): Promise<string> {
@@ -56,6 +57,7 @@ export async function generateSceneImageFor(
     ipAdapterReference,
     ipAdapterWeight,
     selectedCharacterId,
+    storyboardId,
     showToast,
   } = useStudioStore.getState();
 
@@ -135,6 +137,7 @@ export async function generateSceneImageFor(
       let activityLogId: number | undefined;
       try {
         const logRes = await axios.post(`${API_BASE}/activity-logs`, {
+          storyboard_id: storyboardId || undefined,
           scene_id: scene.id,
           character_id: selectedCharacterId || undefined,
           prompt,
@@ -237,7 +240,16 @@ export async function generateSceneCandidates(
 
 /** Generate image for a scene (single or multi-gen) and update store */
 export async function handleGenerateImage(scene: Scene) {
-  const { multiGenEnabled, updateScene } = useStudioStore.getState();
+  const { multiGenEnabled, updateScene, showToast } = useStudioStore.getState();
+
+  // Auto-save storyboard before image generation
+  // Ensures activity logs have proper storyboard_id
+  const storyboardId = await autoSaveStoryboard();
+  if (!storyboardId) {
+    showToast("Failed to save storyboard before generation", "error");
+    return;
+  }
+
   updateScene(scene.id, { isGenerating: true });
   try {
     const result = multiGenEnabled

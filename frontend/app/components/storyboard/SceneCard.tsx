@@ -350,7 +350,10 @@ export default function SceneCard({
                   triggerWords={loraTriggerWords}
                 />
                 <ComposedPromptPreview
-                  tokens={scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean)}
+                  tokens={[
+                    ...getBasePromptForScene(scene).split(",").map((t) => t.trim()).filter(Boolean),
+                    ...scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean),
+                  ]}
                   loras={characterLoras}
                   mode={promptMode}
                   useBreak={true}

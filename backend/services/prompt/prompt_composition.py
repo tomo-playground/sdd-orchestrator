@@ -374,7 +374,7 @@ def deduplicate_triggers(
 # ============================================================
 
 # Default quality tags (added if none present)
-DEFAULT_QUALITY_TAGS = ["masterpiece", "best_quality", "high_quality"]
+DEFAULT_QUALITY_TAGS = ["masterpiece", "best_quality"]
 
 
 def ensure_quality_tags(tokens: list[str]) -> list[str]:

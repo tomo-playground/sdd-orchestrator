@@ -14,7 +14,7 @@ router = APIRouter(prefix="/activity-logs", tags=["activity-logs"])
 class CreateActivityLogRequest(BaseModel):
     """Request for creating an activity log."""
 
-    storyboard_id: int
+    storyboard_id: int | None = None
     scene_id: int
     character_id: int | None = None
     prompt: str | None = None

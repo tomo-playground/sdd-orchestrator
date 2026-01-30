@@ -184,6 +184,7 @@ export type LoRA = {
 
 export type ReferenceImage = {
   character_key: string;
+  character_id?: number;
   filename: string;
   preset?: { weight: number; model: string; description?: string };
 };

@@ -12,6 +12,7 @@ import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StoryboardActionsBar from "../storyboard/StoryboardActionsBar";
 import AutoRunStatus from "../storyboard/AutoRunStatus";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
+import { saveStoryboard } from "../../store/actions/storyboardActions";
 
 export default function PlanTab() {
   const store = useStudioStore();
@@ -32,58 +33,92 @@ export default function PlanTab() {
   const storyboardId = useStudioStore((s) => s.storyboardId);
   const isRendering = useStudioStore((s) => s.isRendering);
 
-  const { characters, getCharacterFull } = useCharacters();
+  const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
 
   // Autopilot
   const autopilot = useAutopilot();
 
+  // Load IP-Adapter reference images on mount
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/controlnet/ip-adapter/references`)
+      .then((res) => {
+        useStudioStore.getState().setScenesState({
+          referenceImages: res.data.references || [],
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   // Auto-load character LoRA/prompt settings when character changes
   useEffect(() => {
     if (!selectedCharacterId) {
-      setPlan({ loraTriggerWords: [], characterLoras: [], characterPromptMode: "auto" });
+      setPlan({
+        loraTriggerWords: [],
+        characterLoras: [],
+        characterPromptMode: "auto",
+        basePromptA: "",
+        baseNegativePromptA: "",
+      });
       return;
     }
     getCharacterFull(selectedCharacterId).then((charFull) => {
       if (!charFull) return;
-      if (charFull.loras?.length) {
-        const triggers = charFull.loras.flatMap((l) => l.trigger_words || []);
-        setPlan({
-          loraTriggerWords: triggers,
-          characterLoras: charFull.loras.map((l) => ({
+
+      // Load base prompts
+      const basePrompt = buildCharacterPrompt(charFull);
+      const baseNegative = buildCharacterNegative(charFull);
+      console.log("[PlanTab] Loading character:", charFull.name);
+      console.log("[PlanTab] Base prompt:", basePrompt);
+      console.log("[PlanTab] Base negative:", baseNegative);
+
+      // Load LoRAs
+      const triggers = charFull.loras?.length
+        ? charFull.loras.flatMap((l) => l.trigger_words || [])
+        : [];
+      const characterLoras = charFull.loras?.length
+        ? charFull.loras.map((l) => ({
             id: l.id,
             name: l.name,
             weight: l.weight,
             trigger_words: l.trigger_words,
             lora_type: l.lora_type,
             optimal_weight: l.optimal_weight,
-          })),
-        });
-      } else {
-        setPlan({ loraTriggerWords: [], characterLoras: [] });
-      }
+          }))
+        : [];
+
       // Prompt mode
       const mode = charFull.prompt_mode
         || (charFull.effective_mode === "lora" ? "lora" : "standard");
-      setPlan({ characterPromptMode: mode || "auto" });
 
       // Auto-set IP-Adapter reference if available
       const refs = useStudioStore.getState().referenceImages;
-      if (charFull.name && refs.length > 0) {
-        const match = refs.find((r) => r.character_key === charFull.name);
-        if (match) {
-          setPlan({
-            useIpAdapter: true,
-            ipAdapterReference: match.character_key,
-            ipAdapterWeight: match.preset?.weight
-              ?? charFull.ip_adapter_weight
-              ?? 0.75,
-          });
-        }
-      }
+      console.log("[PlanTab] Available references:", refs.length, refs.map(r => `${r.character_key} (ID: ${r.character_id})`));
+      console.log("[PlanTab] Looking for character ID:", charFull.id);
+      const match = refs.length > 0
+        ? refs.find((r) => r.character_id === charFull.id)
+        : null;
+      console.log("[PlanTab] Matched reference:", match ? `${match.character_key} (ID: ${match.character_id})` : "none");
+
+      // Apply all settings in a single setPlan call
+      setPlan({
+        basePromptA: basePrompt,
+        baseNegativePromptA: baseNegative,
+        loraTriggerWords: triggers,
+        characterLoras,
+        characterPromptMode: mode || "auto",
+        ...(match && {
+          useIpAdapter: true,
+          ipAdapterReference: match.character_key,
+          ipAdapterWeight: match.preset?.weight
+            ?? charFull.ip_adapter_weight
+            ?? 0.75,
+        }),
+      });
     });
-  }, [selectedCharacterId, getCharacterFull, setPlan]);
+  }, [selectedCharacterId, getCharacterFull, buildCharacterPrompt, buildCharacterNegative, setPlan]);
 
   const handleGenerateStoryboard = useCallback(async () => {
     if (!topic.trim()) {
@@ -102,6 +137,8 @@ export default function PlanTab() {
       });
       const data = res.data;
       if (data.scenes) {
+        console.log("[PlanTab] Received scenes from backend:", data.scenes.length);
+        console.log("[PlanTab] First scene negative_prompt:", data.scenes[0]?.negative_prompt);
         const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => ({
           id: i,
           script: (s.script as string) || "",
@@ -113,7 +150,7 @@ export default function PlanTab() {
           description: (s.description as string) || "",
           width: 512,
           height: 768,
-          negative_prompt: "",
+          negative_prompt: (s.negative_prompt as string) || "",
           steps: baseStepsA,
           cfg_scale: baseCfgScaleA,
           sampler_name: baseSamplerA,
@@ -134,48 +171,8 @@ export default function PlanTab() {
   }, [topic, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, setScenes, setActiveTab, showToast]);
 
   const handleSaveStoryboard = useCallback(async () => {
-    if (scenes.length === 0) {
-      showToast("No scenes to save", "error");
-      return;
-    }
-    try {
-      const payload = {
-        title: topic || "Untitled",
-        description: topic,
-        default_character_id: selectedCharacterId,
-        scenes: scenes.map((s, i) => ({
-          scene_id: i,
-          script: s.script,
-          speaker: s.speaker,
-          duration: s.duration,
-          image_prompt: s.image_prompt,
-          image_prompt_ko: s.image_prompt_ko,
-          image_url: s.image_url,
-          description: s.description,
-          width: s.width || 512,
-          height: s.height || 768,
-          negative_prompt: s.negative_prompt,
-          steps: s.steps,
-          cfg_scale: s.cfg_scale,
-          sampler_name: s.sampler_name,
-          seed: s.seed,
-          clip_skip: s.clip_skip,
-          context_tags: s.context_tags,
-        })),
-      };
-
-      if (storyboardId) {
-        await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload);
-        showToast("Storyboard updated", "success");
-      } else {
-        const res = await axios.post(`${API_BASE}/storyboards`, payload);
-        setMeta({ storyboardId: res.data.storyboard_id, storyboardTitle: topic });
-        showToast("Storyboard saved", "success");
-      }
-    } catch {
-      showToast("Failed to save storyboard", "error");
-    }
-  }, [scenes, topic, selectedCharacterId, storyboardId, showToast, setMeta]);
+    await saveStoryboard();
+  }, []);
 
   const handleResetScenes = useCallback(() => {
     if (confirm("Reset all scenes?")) {

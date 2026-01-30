@@ -4,7 +4,7 @@ import json
 
 from fastapi import HTTPException
 
-from config import GEMINI_TEXT_MODEL, gemini_client, template_env
+from config import GEMINI_TEXT_MODEL, gemini_client, template_env, DEFAULT_SCENE_NEGATIVE_PROMPT
 from schemas import StoryboardRequest
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure
@@ -115,6 +115,17 @@ def create_storyboard(request: StoryboardRequest) -> dict:
             logger.info(f"  ✅ Final Prompt: {filtered}")
 
             scene["image_prompt"] = filtered
+
+            # Apply default negative prompt if not present
+            if not scene.get("negative_prompt"):
+                logger.info(f"  🔧 Adding default negative prompt to scene {scene_id}")
+                scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+            else:
+                logger.info(f"  ℹ️  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}...")
+
+        logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
+        for i, s in enumerate(scenes):
+            logger.info(f"  Scene {i+1} negative: {s.get('negative_prompt', 'NONE')[:80]}")
         return {"scenes": scenes}
     except Exception as exc:
         from config import logger

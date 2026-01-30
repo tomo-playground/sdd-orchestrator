@@ -574,23 +574,23 @@ export default function ManagePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fff3db,_#f7f1ff_45%,_#e6f7ff_100%)] text-zinc-900">
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase">Workspace Tools</p>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Manage</h1>
-            <p className="max-w-xl text-sm text-zinc-600">
-              Review keyword suggestions and manage assets.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 text-zinc-900">
+      {/* Header */}
+      <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+          <h1 className="text-lg font-bold tracking-tight text-zinc-900">
+            Manage
+          </h1>
           <Link
             href="/"
-            className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
+            className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition"
           >
             Home
           </Link>
-        </header>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-6">
 
         <div className="flex flex-wrap items-center gap-2">
           {[
@@ -619,7 +619,7 @@ export default function ManagePage() {
         </div>
 
         {manageTab === "tags" && (
-          <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
+          <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-6 text-xs text-zinc-600 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Tag Analysis
@@ -965,7 +965,7 @@ export default function ManagePage() {
         )}
 
         {manageTab === "assets" && (
-          <section className="grid gap-8 rounded-3xl border border-white/60 bg-white/80 p-8 shadow-xl shadow-slate-200/40 backdrop-blur">
+          <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 shadow-sm">
             {/* Overlay Styles */}
             <div className="grid gap-4">
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -1104,7 +1104,7 @@ export default function ManagePage() {
         )}
 
         {manageTab === "style" && (
-          <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+          <section className="grid gap-4 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
             {/* Style Sub-tabs */}
             <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-100/50 rounded-2xl border border-zinc-200/50 mb-6">
               {[
@@ -1154,7 +1154,7 @@ export default function ManagePage() {
                     {styleProfiles.map((profile) => (
                       <div
                         key={profile.id}
-                        className={`group relative rounded-3xl border p-5 transition-all duration-300 cursor-pointer overflow-hidden ${profile.is_default
+                        className={`group relative rounded-2xl border p-5 transition-all duration-300 cursor-pointer overflow-hidden ${profile.is_default
                           ? "border-indigo-200 bg-indigo-50/30 ring-1 ring-indigo-100"
                           : "border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-0.5"
                           }`}
@@ -1344,7 +1344,7 @@ export default function ManagePage() {
                   ) : (
                     <div className="grid gap-2 md:grid-cols-2">
                       {loraEntries.map((lora) => (
-                        <div key={lora.id} className="group relative flex items-center gap-4 rounded-3xl border border-zinc-200 bg-white p-4 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
+                        <div key={lora.id} className="group relative flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-4 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
                           <div className="relative shrink-0">
                             {lora.preview_image_url ? (
                               <img
@@ -1436,7 +1436,7 @@ export default function ManagePage() {
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
                     {sdModels.map((model) => (
-                      <div key={model.id} className="group relative flex items-center justify-between rounded-3xl border border-zinc-200 bg-white p-5 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
+                      <div key={model.id} className="group relative flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-sm font-bold text-zinc-900 truncate">{model.display_name || model.name}</h3>
@@ -1486,7 +1486,7 @@ export default function ManagePage() {
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {embeddings.map((emb) => (
-                      <div key={emb.id} className={`group flex flex-col rounded-3xl border p-4 transition-all duration-300 hover:shadow-lg ${emb.embedding_type === "negative"
+                      <div key={emb.id} className={`group flex flex-col rounded-2xl border p-4 transition-all duration-300 hover:shadow-lg ${emb.embedding_type === "negative"
                         ? "border-zinc-200 hover:border-rose-200 bg-white"
                         : "border-zinc-200 hover:border-emerald-200 bg-white"
                         }`}>
@@ -1520,7 +1520,7 @@ export default function ManagePage() {
 
 
         {manageTab === "prompts" && (
-          <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+          <section className="grid gap-4 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2">
               <select
@@ -1669,7 +1669,7 @@ export default function ManagePage() {
         )}
 
         {manageTab === "evaluation" && (
-          <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
+          <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-6 text-xs text-zinc-600 shadow-sm">
             {/* Controls */}
             <div className="flex flex-wrap items-center gap-3">
               <select
@@ -1876,7 +1876,7 @@ export default function ManagePage() {
         )}
 
         {manageTab === "settings" && (
-          <section className="grid gap-8 rounded-3xl border border-white/60 bg-white/80 p-8 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
+          <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
             {/* Storage Section */}
             <div className="grid gap-6">
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -1895,7 +1895,7 @@ export default function ManagePage() {
 
               {storageStats && (
                 <div className="grid gap-6">
-                  <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
                     <div className="mb-6 flex items-end justify-between">
                       <div>
                         <div className="text-3xl font-black text-zinc-900">
@@ -1945,7 +1945,7 @@ export default function ManagePage() {
 
                   {/* Cleanup Matrix */}
                   <div className="grid md:grid-cols-2 gap-6">
-                    <div className="rounded-3xl border border-zinc-200 bg-white p-6">
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
                       <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">Retention Policies</h4>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50/50 border border-zinc-50">
@@ -2022,7 +2022,7 @@ export default function ManagePage() {
                     </div>
 
                     {/* Cleanup Result Box */}
-                    <div className="rounded-3xl border border-zinc-200 bg-zinc-50/50 p-6">
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-6">
                       <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">Operation Result</h4>
                       {cleanupResult ? (
                         <div className="space-y-4">
@@ -2123,7 +2123,7 @@ export default function ManagePage() {
         {/* LoRA Edit Modal */}
         {editingLora && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-zinc-800">Edit LoRA Settings</h2>
                 <button onClick={() => setEditingLora(null)} className="text-zinc-400 hover:text-zinc-600">✕</button>
