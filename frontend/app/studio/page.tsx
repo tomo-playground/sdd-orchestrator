@@ -15,6 +15,7 @@ import InsightsTab from "../components/studio/InsightsTab";
 import Toast from "../components/ui/Toast";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../components/ui/ImagePreviewModal";
+import VideoPreviewModal from "../components/ui/VideoPreviewModal";
 
 function StudioContent() {
   const router = useRouter();
@@ -31,6 +32,7 @@ function StudioContent() {
   const scenes = useStudioStore((s) => s.scenes);
   const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
   const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
+  const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -120,7 +122,7 @@ function StudioContent() {
         // Map DB scenes → frontend Scene type
         if (data.scenes?.length > 0) {
           const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => ({
-            id: i,
+            id: (s.id as number) || i,  // Use DB ID if available, fallback to index
             script: s.script || "",
             speaker: s.speaker || "Narrator",
             duration: s.duration || 3,
@@ -206,6 +208,11 @@ function StudioContent() {
       <ImagePreviewModal
         src={imagePreviewSrc}
         onClose={() => setMeta({ imagePreviewSrc: null })}
+      />
+
+      <VideoPreviewModal
+        src={videoPreviewSrc}
+        onClose={() => setMeta({ videoPreviewSrc: null })}
       />
     </div>
   );

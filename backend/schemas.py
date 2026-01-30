@@ -162,7 +162,7 @@ class SceneGenerateRequest(BaseModel):
     # Analytics tracking
     storyboard_id: int | None = None
     topic: str | None = None  # Optional: Content topic for reference
-    scene_index: int | None = None  # Optional: Scene number within storyboard
+    scene_index: int | None = None  # [DEPRECATED] Use scene DB ID in frontend activity log instead
 
 
 class SceneValidateRequest(BaseModel):

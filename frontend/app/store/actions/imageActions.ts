@@ -12,7 +12,7 @@ import {
   getBasePromptForScene,
   buildPositivePrompt,
 } from "./promptActions";
-import { autoSaveStoryboard } from "./storyboardActions";
+import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return a URL */
 export async function storeSceneImage(dataUrl: string): Promise<string> {
@@ -136,23 +136,33 @@ export async function generateSceneImageFor(
       // Activity log
       let activityLogId: number | undefined;
       try {
-        const logRes = await axios.post(`${API_BASE}/activity-logs`, {
-          storyboard_id: storyboardId || undefined,
-          scene_id: scene.id,
-          character_id: selectedCharacterId || undefined,
-          prompt,
-          tags: prompt.split(",").map((t: string) => t.trim()),
-          sd_params: {
-            steps: scene.steps,
-            cfg_scale: scene.cfg_scale,
-            sampler_name: scene.sampler_name,
-            clip_skip: scene.clip_skip,
-          },
-          seed: scene.seed,
-          status: "pending",
-          image_url: storedUrl,
-        });
-        activityLogId = logRes.data.id;
+        // Re-read storyboardId from store to ensure we have the latest value
+        // (after autoSaveStoryboard in handleGenerateImage)
+        const currentStoryboardId = useStudioStore.getState().storyboardId;
+
+        if (!currentStoryboardId) {
+          console.warn("[Activity Log] Skipping: storyboardId is required");
+        } else {
+          const logRes = await axios.post(`${API_BASE}/activity-logs`, {
+            storyboard_id: currentStoryboardId,
+            scene_id: scene.id,
+            character_id: selectedCharacterId || undefined,
+            prompt,
+            negative_prompt: negativePrompt,
+            tags: prompt.split(",").map((t: string) => t.trim()),
+            sd_params: {
+              steps: scene.steps,
+              cfg_scale: scene.cfg_scale,
+              sampler_name: scene.sampler_name,
+              clip_skip: scene.clip_skip,
+            },
+            seed: scene.seed,
+            status: "pending",
+            image_url: storedUrl,
+            match_rate: res.data.match_rate || null,
+          });
+          activityLogId = logRes.data.id;
+        }
       } catch {
         // non-critical
       }
@@ -255,7 +265,13 @@ export async function handleGenerateImage(scene: Scene) {
     const result = multiGenEnabled
       ? await generateSceneCandidates(scene)
       : await generateSceneImageFor(scene);
-    if (result) updateScene(scene.id, result);
+    if (result) {
+      updateScene(scene.id, result);
+
+      // Auto-save after image generation to persist image_url to DB
+      // Prevents image loss on page refresh
+      await saveStoryboard();
+    }
   } finally {
     updateScene(scene.id, { isGenerating: false });
   }
@@ -272,6 +288,9 @@ export function handleImageUpload(sceneId: number, file?: File) {
       image_url: storedUrl,
       candidates: [],
     });
+
+    // Auto-save after image upload to persist to DB
+    await saveStoryboard();
   };
   reader.readAsDataURL(file);
 }
@@ -307,6 +326,9 @@ export async function handleEditWithGemini(
         `Gemini edit done (${res.data.edit_type}) - $${res.data.cost_usd.toFixed(4)}`,
         "success"
       );
+
+      // Auto-save after Gemini edit to persist to DB
+      await saveStoryboard();
     }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";

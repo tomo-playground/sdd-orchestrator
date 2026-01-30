@@ -59,7 +59,8 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
 def _serialize_scene(scene: Scene) -> dict:
     """Serialize a Scene ORM object to dict for API response."""
     return {
-        "scene_id": scene.order,
+        "id": scene.id,  # Actual DB primary key
+        "scene_id": scene.order,  # Keep for backwards compatibility (scene order)
         "script": scene.script,
         "speaker": scene.speaker,
         "duration": scene.duration,

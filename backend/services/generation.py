@@ -212,21 +212,9 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                 except Exception:
                     logger.warning("Failed to parse info from SD response", exc_info=True)
 
-            # Save activity log for analytics
-            _save_activity_log(
-                request=request,
-                prompt=cleaned_prompt,
-                negative_prompt=cleaned_negative,
-                tags=tokens,
-                sd_params={
-                    "steps": final_steps,
-                    "cfg_scale": final_cfg,
-                    "sampler": request.sampler_name,
-                    "width": request.width,
-                    "height": request.height,
-                },
-                seed=actual_seed,
-            )
+            # Activity log is now created by Frontend after image storage
+            # This ensures proper scene_id (DB primary key) and image_url inclusion
+            # See: frontend/app/store/actions/imageActions.ts
 
             return {"image": img, "controlnet_pose": controlnet_used, "ip_adapter_reference": ip_adapter_used}
     except httpx.HTTPError as exc:
@@ -245,7 +233,13 @@ def _save_activity_log(
     sd_params: dict,
     seed: int | None,
 ) -> None:
-    """Save activity log for analytics (non-blocking).
+    """[DEPRECATED] Save activity log for analytics (non-blocking).
+
+    This function is deprecated and no longer called.
+    Activity logs are now created by the Frontend to ensure:
+    - Proper scene_id (DB primary key, not index)
+    - image_url inclusion (after image storage)
+    - Proper negative_prompt and match_rate tracking
 
     Args:
         request: Original generation request

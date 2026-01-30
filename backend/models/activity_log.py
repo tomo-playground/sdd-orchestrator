@@ -1,6 +1,6 @@
 """Unified Activity Log model for generation history and favorites."""
 
-from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,7 +15,9 @@ class ActivityLog(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     # Context
-    storyboard_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("storyboards.id"), index=True)
+    storyboard_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("storyboards.id"), nullable=False, index=True
+    )
     scene_id: Mapped[int | None] = mapped_column(Integer, index=True)
     character_id: Mapped[int | None] = mapped_column(Integer, index=True)
 
