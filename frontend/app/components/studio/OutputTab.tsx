@@ -114,7 +114,7 @@ export default function OutputTab() {
           audio_ducking: audioDucking,
           bgm_volume: bgmVolume,
         };
-        const res = await axios.post(`${API_BASE}/video/render`, payload);
+        const res = await axios.post(`${API_BASE}/video/create`, payload);
         const url = res.data.video_url;
         if (mode === "full") {
           setOutput({ videoUrlFull: url, videoUrl: url });

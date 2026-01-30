@@ -167,7 +167,7 @@ export async function runAutoRunFromStep(
           include_subtitles: useStudioStore.getState().includeSubtitles,
           subtitle_font: useStudioStore.getState().subtitleFont,
         };
-        const res = await axios.post(`${API_BASE}/video/render`, payload);
+        const res = await axios.post(`${API_BASE}/video/create`, payload);
         const videoUrl = res.data?.video_url;
         if (!videoUrl) throw new Error(`${layoutStyle} render failed`);
         const withTs = `${videoUrl}?t=${Date.now()}`;
