@@ -21,6 +21,7 @@ V3 아키텍처 전환 (Storyboard-Centric + DB-Driven) 완료를 반영하여 v
     *   **Storyboard-Centric**: Storyboard → Scene → CharacterAction 계층 구조로 데이터 영속화.
     *   **V3 Relational Tags**: `character_tags`, `scene_tags`, `scene_character_actions` 연관 테이블.
     *   **Activity Logs**: 생성 이력 + 즐겨찾기 통합 (`activity_logs` 테이블).
+    *   **Video Persistence**: 각 스토리보드별 렌더링 결과(URL, 히스토리) 영구 저장.
 *   **Planning**:
     *   Gemini 스토리보드 생성 + **Danbooru Strict Tag Rule** 적용.
     *   스토리보드 DB 저장/조회 (`POST /storyboards`, `GET /storyboards`).
