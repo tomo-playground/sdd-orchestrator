@@ -14,8 +14,9 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, JSON, Text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Paths
 TESTS_DIR = Path(__file__).parent
@@ -27,7 +28,8 @@ BACKEND_DIR = TESTS_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 from main import app  # Import app after sys.path setup
-from database import Base, get_db
+from database import get_db
+from models import Base
 
 # Test database URL (SQLite in-memory for speed and isolation)
 TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -105,11 +107,28 @@ def db_session():
 
     Database is automatically destroyed after each test.
     """
-    # Create engine with SQLite in-memory
+    # Create engine with SQLite in-memory (StaticPool ensures single shared connection)
     engine = create_engine(
         TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},  # Allow multi-thread for SQLite
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
+
+    # Map PostgreSQL-specific types → SQLite-compatible equivalents
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_conn, _connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    for table in Base.metadata.tables.values():
+        for col in table.columns:
+            type_name = type(col.type).__name__
+            if type_name == "JSONB":
+                col.type = JSON()
+            elif type_name == "ARRAY":
+                col.type = JSON()
+
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     # Create all tables
