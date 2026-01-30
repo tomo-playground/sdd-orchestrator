@@ -35,7 +35,7 @@ export default function StoryboardActionsBar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       {/* Reset Actions - Left */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
         <button
           onClick={onResetScenes}
           disabled={isAutoRunning}
@@ -46,9 +46,9 @@ export default function StoryboardActionsBar({
         <button
           onClick={onResetDraft}
           disabled={isAutoRunning}
-          className="rounded-full border border-zinc-200 bg-white/60 px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-zinc-500 uppercase transition hover:border-zinc-300 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full border border-red-300 bg-white/60 px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] text-red-600 uppercase transition hover:border-red-400 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Reset Draft
+          ⚠ Reset Draft
         </button>
       </div>
       {/* Primary Actions - Right */}
