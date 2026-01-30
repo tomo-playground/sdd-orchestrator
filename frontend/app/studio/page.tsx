@@ -29,6 +29,8 @@ function StudioContent() {
   const setScenes = useStudioStore((s) => s.setScenes);
   const setPlan = useStudioStore((s) => s.setPlan);
   const scenes = useStudioStore((s) => s.scenes);
+  const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
+  const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -170,14 +172,14 @@ function StudioContent() {
             </button>
             <span className="text-zinc-300">/</span>
             <h1 data-testid="storyboard-title" className="text-sm font-bold text-zinc-900">
-              {useStudioStore.getState().storyboardTitle || "New Storyboard"}
+              {storyboardTitle || "New Storyboard"}
             </h1>
           </div>
           <div className="flex items-center gap-2 text-[10px] text-zinc-400">
             {scenes.length > 0 && <span>{scenes.length} scenes</span>}
-            {useStudioStore.getState().storyboardId && (
+            {storyboardId && (
               <span className="rounded bg-zinc-100 px-2 py-0.5">
-                ID: {useStudioStore.getState().storyboardId}
+                ID: {storyboardId}
               </span>
             )}
           </div>
@@ -202,8 +204,8 @@ function StudioContent() {
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       <ImagePreviewModal
-        src={useStudioStore.getState().imagePreviewSrc}
-        onClose={() => useStudioStore.getState().setMeta({ imagePreviewSrc: null })}
+        src={imagePreviewSrc}
+        onClose={() => setMeta({ imagePreviewSrc: null })}
       />
     </div>
   );
