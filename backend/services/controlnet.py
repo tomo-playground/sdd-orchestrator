@@ -373,21 +373,29 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
 
     # 1. Add physical files with character_id lookup
     for path in REFERENCE_DIR.glob("*.png"):
-        key = path.stem
-        # Try to match with DB character by name (case-insensitive)
-        # First try exact match
-        char = char_map.get(key.lower())
+        stem = path.stem
+        char = None
+        display_name = stem
 
-        # If no exact match, try partial match (character name contains file name)
+        # Try ID-based matching first: "9_Doremi" → ID=9
+        if "_" in stem:
+            parts = stem.split("_", 1)
+            try:
+                char_id = int(parts[0])
+                if db:
+                    char = db.query(Character).filter(Character.id == char_id).first()
+                if char:
+                    display_name = parts[1]  # Use display name from filename
+            except (ValueError, IndexError):
+                # Not an ID-based filename, fall back to name matching
+                pass
+
+        # Fall back to name-based matching if ID matching failed
         if not char:
-            key_lower = key.lower()
-            for char_name_lower, candidate_char in char_map.items():
-                if key_lower in char_name_lower or char_name_lower in key_lower:
-                    char = candidate_char
-                    break
+            char = char_map.get(stem.lower())
 
-        unique_refs[key] = {
-            "character_key": key,
+        unique_refs[display_name] = {
+            "character_key": display_name,
             "character_id": char.id if char else None,
             "filename": path.name,
         }
