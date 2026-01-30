@@ -182,6 +182,12 @@ export type LoRA = {
   calibration_score: number | null;
 };
 
+export type ReferenceImage = {
+  character_key: string;
+  filename: string;
+  preset?: { weight: number; model: string; description?: string };
+};
+
 export type CharacterLoRA = {
   lora_id: number;
   weight: number;

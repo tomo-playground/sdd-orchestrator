@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { useTags } from "../../hooks";
+import { API_BASE } from "../../constants";
 import SceneFilmstrip from "../storyboard/SceneFilmstrip";
 import SceneListHeader from "../storyboard/SceneListHeader";
 import SceneCard from "../storyboard/SceneCard";
@@ -65,8 +67,21 @@ export default function ScenesTab() {
     setPlan,
   } = useStudioStore();
 
+  const referenceImages = useStudioStore((s) => s.referenceImages);
   const showToast = useStudioStore((s) => s.showToast);
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
+
+  // Fetch IP-Adapter reference images on mount
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/controlnet/ip-adapter/references`)
+      .then((res) => {
+        useStudioStore.getState().setScenesState({
+          referenceImages: res.data.references || [],
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const currentScene = scenes[currentSceneIndex];
 
@@ -143,7 +158,7 @@ export default function ScenesTab() {
         onIpAdapterReferenceChange={(v) => setPlan({ ipAdapterReference: v })}
         ipAdapterWeight={ipAdapterWeight}
         onIpAdapterWeightChange={(v) => setPlan({ ipAdapterWeight: v })}
-        referenceImages={[]}
+        referenceImages={referenceImages}
         validationSummary={validationSummary}
         scenesCount={scenes.length}
       />

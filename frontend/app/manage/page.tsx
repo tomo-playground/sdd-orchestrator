@@ -276,7 +276,7 @@ export default function ManagePage() {
     try {
       const res = await axios.post(`${API_BASE}/prompt-histories/${id}/apply`);
       localStorage.setItem(PROMPT_APPLY_KEY, JSON.stringify(res.data));
-      router.push("/");
+      router.push("/studio");
     } catch {
       console.error("Failed to apply prompt history");
     }

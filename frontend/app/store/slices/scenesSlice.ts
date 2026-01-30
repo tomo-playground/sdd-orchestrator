@@ -1,11 +1,14 @@
 import type { StateCreator } from "zustand";
-import type { Scene, SceneValidation, ImageValidation } from "../../types";
+import type { Scene, SceneValidation, ImageValidation, ReferenceImage } from "../../types";
 
 export interface ScenesSlice {
   scenes: Scene[];
   currentSceneIndex: number;
   isGenerating: boolean;
   multiGenEnabled: boolean;
+
+  // IP-Adapter reference images
+  referenceImages: ReferenceImage[];
 
   // Validation
   validationResults: Record<number, SceneValidation>;
@@ -35,6 +38,7 @@ const initialScenesState = {
   currentSceneIndex: 0,
   isGenerating: false,
   multiGenEnabled: true,
+  referenceImages: [] as ReferenceImage[],
   validationResults: {} as Record<number, SceneValidation>,
   validationSummary: { ok: 0, warn: 0, error: 0 },
   imageValidationResults: {} as Record<number, ImageValidation>,

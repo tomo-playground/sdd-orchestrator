@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { useCharacters } from "../../hooks/useCharacters";
@@ -32,12 +32,58 @@ export default function PlanTab() {
   const storyboardId = useStudioStore((s) => s.storyboardId);
   const isRendering = useStudioStore((s) => s.isRendering);
 
-  const { characters } = useCharacters();
+  const { characters, getCharacterFull } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
 
   // Autopilot
   const autopilot = useAutopilot();
+
+  // Auto-load character LoRA/prompt settings when character changes
+  useEffect(() => {
+    if (!selectedCharacterId) {
+      setPlan({ loraTriggerWords: [], characterLoras: [], characterPromptMode: "auto" });
+      return;
+    }
+    getCharacterFull(selectedCharacterId).then((charFull) => {
+      if (!charFull) return;
+      if (charFull.loras?.length) {
+        const triggers = charFull.loras.flatMap((l) => l.trigger_words || []);
+        setPlan({
+          loraTriggerWords: triggers,
+          characterLoras: charFull.loras.map((l) => ({
+            id: l.id,
+            name: l.name,
+            weight: l.weight,
+            trigger_words: l.trigger_words,
+            lora_type: l.lora_type,
+            optimal_weight: l.optimal_weight,
+          })),
+        });
+      } else {
+        setPlan({ loraTriggerWords: [], characterLoras: [] });
+      }
+      // Prompt mode
+      const mode = charFull.prompt_mode
+        || (charFull.effective_mode === "lora" ? "lora" : "standard");
+      setPlan({ characterPromptMode: mode || "auto" });
+
+      // Auto-set IP-Adapter reference if available
+      const refs = useStudioStore.getState().referenceImages;
+      if (charFull.name && refs.length > 0) {
+        const match = refs.find((r) => r.character_key === charFull.name);
+        if (match) {
+          setPlan({
+            useIpAdapter: true,
+            ipAdapterReference: match.character_key,
+            ipAdapterWeight: match.preset?.weight
+              ?? charFull.ip_adapter_weight
+              ?? 0.75,
+          });
+        }
+      }
+    });
+  }, [selectedCharacterId, getCharacterFull, setPlan]);
 
   const handleGenerateStoryboard = useCallback(async () => {
     if (!topic.trim()) {

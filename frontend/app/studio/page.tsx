@@ -6,7 +6,7 @@ import axios from "axios";
 import { useStudioStore } from "../store/useStudioStore";
 import type { StudioTab } from "../store/slices/metaSlice";
 import type { Scene } from "../types";
-import { API_BASE } from "../constants";
+import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
 import TabBar from "../components/studio/TabBar";
 import PlanTab from "../components/studio/PlanTab";
 import ScenesTab from "../components/studio/ScenesTab";
@@ -28,6 +28,70 @@ function StudioContent() {
   const setScenes = useStudioStore((s) => s.setScenes);
   const setPlan = useStudioStore((s) => s.setPlan);
   const scenes = useStudioStore((s) => s.scenes);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) return;
+
+      const { scenes: sc, currentSceneIndex: idx } = useStudioStore.getState();
+      if (e.key === "ArrowLeft" && sc.length > 0) {
+        e.preventDefault();
+        useStudioStore.getState().setCurrentSceneIndex(Math.max(0, idx - 1));
+      }
+      if (e.key === "ArrowRight" && sc.length > 0) {
+        e.preventDefault();
+        useStudioStore.getState().setCurrentSceneIndex(Math.min(sc.length - 1, idx + 1));
+      }
+      if (e.key === "Escape") {
+        useStudioStore.getState().setMeta({ imagePreviewSrc: null, videoPreviewSrc: null });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Apply prompt from localStorage (from /manage Prompts tab)
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PROMPT_APPLY_KEY);
+    if (!stored) return;
+    try {
+      const data = JSON.parse(stored) as Record<string, unknown>;
+      const plan: Record<string, unknown> = {};
+      if (data.positive_prompt) plan.basePromptA = data.positive_prompt;
+      if (data.negative_prompt) plan.baseNegativePromptA = data.negative_prompt;
+      if (data.steps) plan.baseStepsA = data.steps;
+      if (data.cfg_scale) plan.baseCfgScaleA = data.cfg_scale;
+      if (data.sampler_name) plan.baseSamplerA = data.sampler_name;
+      if (data.seed) plan.baseSeedA = data.seed;
+      if (data.clip_skip) plan.baseClipSkipA = data.clip_skip;
+      setPlan(plan);
+
+      // Apply to current scene if exists
+      const { scenes: sc, currentSceneIndex: idx, updateScene } = useStudioStore.getState();
+      if (sc.length > 0 && sc[idx]) {
+        const updates: Partial<Scene> = {};
+        if (data.positive_prompt) updates.image_prompt = data.positive_prompt as string;
+        if (data.negative_prompt) updates.negative_prompt = data.negative_prompt as string;
+        if (data.steps) updates.steps = data.steps as number;
+        if (data.cfg_scale) updates.cfg_scale = data.cfg_scale as number;
+        if (data.sampler_name) updates.sampler_name = data.sampler_name as string;
+        if (data.seed) updates.seed = data.seed as number;
+        if (data.clip_skip) updates.clip_skip = data.clip_skip as number;
+        if (data.context_tags) updates.context_tags = data.context_tags as Record<string, string[]>;
+        if (data.id) updates.prompt_history_id = data.id as number;
+        updateScene(sc[idx].id, updates);
+      }
+      window.localStorage.removeItem(PROMPT_APPLY_KEY);
+      useStudioStore.getState().showToast("Prompt applied!", "success");
+    } catch {
+      window.localStorage.removeItem(PROMPT_APPLY_KEY);
+    }
+  }, [setPlan]);
 
   // Load storyboard from DB if ?id=X
   useEffect(() => {
