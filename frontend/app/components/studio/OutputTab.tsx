@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE, VOICES } from "../../constants";
@@ -8,7 +8,12 @@ import type { SetStateAction } from "react";
 import type { AudioItem, FontItem, OverlaySettings, PostCardSettings, SdModel } from "../../types";
 import RenderSettingsPanel from "../video/RenderSettingsPanel";
 import RenderedVideosSection from "../video/RenderedVideosSection";
-import { getAvatarInitial, slugifyAvatarKey } from "../../utils";
+import {
+  getAvatarInitial,
+  slugifyAvatarKey,
+  applyHeartPrefix,
+  generateChannelName,
+} from "../../utils";
 
 export default function OutputTab() {
   const store = useStudioStore();
@@ -47,7 +52,11 @@ export default function OutputTab() {
     setMeta,
   } = store;
 
-  // Load audio and font lists on mount
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewTimeoutRef = useRef<number | null>(null);
+  const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
+
+  // Load audio, font, and SD model lists on mount
   useEffect(() => {
     axios
       .get(`${API_BASE}/audio/list`)
@@ -63,7 +72,21 @@ export default function OutputTab() {
       .catch(() => {});
   }, [setOutput]);
 
+  // Resolve avatar previews when keys change
+  useEffect(() => {
+    resolveAvatarPreview(overlaySettings.avatar_key ?? "", "overlay");
+  }, [overlaySettings.avatar_key]);
+
+  useEffect(() => {
+    resolveAvatarPreview(postCardSettings.avatar_key ?? "", "post");
+  }, [postCardSettings.avatar_key]);
+
+  // Cleanup audio on unmount
+  useEffect(() => () => stopBgmPreview(), []);
+
   const canRender = scenes.filter((s) => !!s.image_url).length > 0;
+
+  // ---------- Render ----------
 
   const handleRender = useCallback(
     async (mode: "full" | "post") => {
@@ -127,6 +150,145 @@ export default function OutputTab() {
     [recentVideos, setOutput, showToast]
   );
 
+  // ---------- BGM Preview ----------
+
+  function stopBgmPreview() {
+    if (previewTimeoutRef.current) {
+      window.clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+    }
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.currentTime = 0;
+    }
+    setIsPreviewingBgm(false);
+  }
+
+  function handlePreviewBgm() {
+    const sourceUrl = bgmList.find((b) => b.name === bgmFile)?.url ?? "";
+    if (!sourceUrl) return;
+    stopBgmPreview();
+    const audio = new Audio(sourceUrl);
+    audio.onerror = () => stopBgmPreview();
+    previewAudioRef.current = audio;
+    setIsPreviewingBgm(true);
+    audio.play().catch(() => stopBgmPreview());
+    previewTimeoutRef.current = window.setTimeout(() => stopBgmPreview(), 10000);
+  }
+
+  // ---------- Auto-fill Overlay / PostCard ----------
+
+  function buildOverlayContext() {
+    const fallbackProfile = generateChannelName(store.topic);
+    const scripts = scenes.map((s) => s.script.trim()).filter(Boolean);
+    const baseCaption = scripts[0] || store.topic.trim() || "Today's shorts";
+    const hashtagSource = (store.topic || baseCaption).split(/\s+/).slice(0, 2);
+    const hashtags = hashtagSource
+      .map((t) => t.replace(/[^\w가-힣]/g, ""))
+      .filter(Boolean)
+      .map((t) => `#${t}`);
+    const caption = applyHeartPrefix(hashtags.join(" "));
+    const likesPool = ["1.2k", "3.8k", "7.4k", "12.5k", "18.9k"];
+    const likes_count = likesPool[baseCaption.length % likesPool.length];
+    return {
+      channel_name: fallbackProfile,
+      avatar_key: slugifyAvatarKey(fallbackProfile),
+      likes_count,
+      caption,
+    };
+  }
+
+  function handleAutoFillOverlay() {
+    const auto = buildOverlayContext();
+    setOutput({ overlaySettings: { ...overlaySettings, ...auto } });
+  }
+
+  function handleAutoFillPostCard() {
+    const auto = buildOverlayContext();
+    setOutput({
+      postCardSettings: {
+        ...postCardSettings,
+        channel_name: auto.channel_name,
+        avatar_key: auto.avatar_key,
+        caption: auto.caption,
+      },
+    });
+  }
+
+  // ---------- Avatar ----------
+
+  async function resolveAvatarPreview(avatarKey: string, target: "overlay" | "post") {
+    const trimmed = avatarKey.trim();
+    if (!trimmed) {
+      setOutput(target === "overlay" ? { overlayAvatarUrl: null } : { postAvatarUrl: null });
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/avatar/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar_key: trimmed }),
+      });
+      if (!res.ok) {
+        setOutput(target === "overlay" ? { overlayAvatarUrl: null } : { postAvatarUrl: null });
+        return;
+      }
+      const data = await res.json();
+      if (data?.filename) {
+        const url = `${API_BASE}/outputs/avatars/${data.filename}?t=${Date.now()}`;
+        setOutput(target === "overlay" ? { overlayAvatarUrl: url } : { postAvatarUrl: url });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleRegenerateAvatar(avatarKey: string) {
+    const trimmed = avatarKey.trim();
+    if (!trimmed) return;
+    setOutput({ isRegeneratingAvatar: true });
+    try {
+      const res = await fetch(`${API_BASE}/avatar/regenerate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar_key: trimmed }),
+      });
+      if (!res.ok) throw new Error("Avatar regenerate failed");
+      const data = await res.json();
+      if (data?.filename) {
+        const url = `${API_BASE}/outputs/avatars/${data.filename}?t=${Date.now()}`;
+        if (trimmed === overlaySettings.avatar_key?.trim()) {
+          setOutput({ overlayAvatarUrl: url });
+        }
+        if (trimmed === postCardSettings.avatar_key?.trim()) {
+          setOutput({ postAvatarUrl: url });
+        }
+      }
+    } catch {
+      showToast("Avatar regeneration failed", "error");
+    } finally {
+      setOutput({ isRegeneratingAvatar: false });
+    }
+  }
+
+  // ---------- SD Model ----------
+
+  async function handleModelChange(value: string) {
+    if (!value) return;
+    setOutput({ selectedModel: value, isModelUpdating: true });
+    try {
+      const res = await axios.post(`${API_BASE}/sd/options`, {
+        sd_model_checkpoint: value,
+      });
+      setOutput({ currentModel: res.data.model || value });
+    } catch {
+      showToast("Model update failed", "error");
+      setOutput({ selectedModel: currentModel });
+    } finally {
+      setOutput({ isModelUpdating: false });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <RenderSettingsPanel
@@ -156,8 +318,8 @@ export default function OutputTab() {
         bgmFile={bgmFile}
         setBgmFile={(v) => setOutput({ bgmFile: v })}
         bgmList={bgmList}
-        onPreviewBgm={() => {}}
-        isPreviewingBgm={false}
+        onPreviewBgm={handlePreviewBgm}
+        isPreviewingBgm={isPreviewingBgm}
         audioDucking={audioDucking}
         setAudioDucking={(v) => setOutput({ audioDucking: v })}
         bgmVolume={bgmVolume}
@@ -174,16 +336,16 @@ export default function OutputTab() {
           setOutput({ postCardSettings: next });
         }) as React.Dispatch<SetStateAction<PostCardSettings>>}
         postAvatarUrl={postAvatarUrl}
-        onAutoFillOverlay={() => {}}
-        onAutoFillPostCard={() => {}}
-        onRegenerateAvatar={() => {}}
+        onAutoFillOverlay={handleAutoFillOverlay}
+        onAutoFillPostCard={handleAutoFillPostCard}
+        onRegenerateAvatar={handleRegenerateAvatar}
         isRegeneratingAvatar={isRegeneratingAvatar}
         getAvatarInitial={getAvatarInitial}
         slugifyAvatarKey={slugifyAvatarKey}
         currentModel={currentModel}
         selectedModel={selectedModel}
         sdModels={sdModels}
-        onModelChange={() => {}}
+        onModelChange={handleModelChange}
         isModelUpdating={isModelUpdating}
       />
 
