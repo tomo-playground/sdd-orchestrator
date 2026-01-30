@@ -7,9 +7,6 @@ import axios from "axios";
 import { API_BASE, CATEGORY_DESCRIPTIONS, OVERLAY_STYLES, PROMPT_APPLY_KEY } from "../constants";
 import { useCharacters, useTags } from "../hooks";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
-import QualityDashboard from "../components/quality/QualityDashboard";
-import AnalyticsDashboard from "../components/analytics/AnalyticsDashboard";
-import StoryboardList from "../components/manage/StoryboardList";
 import CharacterEditModal from "./CharacterEditModal";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
@@ -27,7 +24,6 @@ export default function ManagePage() {
   const { tags: allTags, tagsByGroup: tagGroupsByCategory, reload: fetchTagsData } = useTags(null);
 
   const [manageTab, setManageTab] = useState<ManageTab>("tags");
-  const [selectedStoryboardId, setSelectedStoryboardId] = useState<number | null>(null);
   const [isRegeneratingChar, setIsRegeneratingChar] = useState<Record<number, boolean>>({});
   const [charImageTimestamps, setCharImageTimestamps] = useState<Record<number, number>>({});
 
