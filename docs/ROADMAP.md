@@ -379,7 +379,7 @@ Phase 1~1.7 완료 (MVP Pose + Expression/Gaze + 자동 제안). [실험 결과 
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
 | 23.6 | Character Prompt SSOT & Reference Fields | Custom Prompt + Reference Prompt 필드 | [x] |
-| 23.7 | Backend API 확장 | `generate_with_character_preset()`, Reference-only 자동 적용 | [ ] |
+| 23.7 | Backend API 확장 | `generate_with_character_preset()`, Reference-only 자동 적용 | [x] |
 | 23.8 | Frontend UI | Preset 드롭다운, Reference On/Off, Weight 슬라이더 (0.5~1.0) | [ ] |
 | 23.9 | Multi-Character 시스템 | 장면 유형 자동 판단, LoRA weight 자동 조절 | [ ] |
 
