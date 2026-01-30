@@ -314,7 +314,13 @@ class TestPromptComposition:
 
 
 class TestTriggerDeduplication:
-    """Tests for trigger word deduplication."""
+    """Tests for trigger word deduplication.
+
+    IMPORTANT: LoRA trigger words are EXCEPTION to Danbooru underscore rule.
+    - Civitai original format is preserved (e.g., "flat color", "cubism style")
+    - Character names may use underscores (e.g., "Midoriya_Izuku")
+    - Trigger words are NOT normalized to match Danbooru tags
+    """
 
     def test_deduplicate_existing_trigger(self):
         tokens = ["eureka", "smiling"]
@@ -330,6 +336,27 @@ class TestTriggerDeduplication:
 
         result = deduplicate_triggers(tokens, triggers)
         assert len(result) == 2
+
+    def test_trigger_with_space_preserved(self):
+        """LoRA triggers with spaces are kept as-is (not converted to underscores)."""
+        tokens = ["smiling"]
+        triggers = ["flat color", "cubism style"]
+
+        result = deduplicate_triggers(tokens, triggers)
+        # Should preserve space format (Civitai original)
+        assert "flat color" in result
+        assert "cubism style" in result
+        assert "flat_color" not in result
+
+    def test_trigger_with_underscore_preserved(self):
+        """Character LoRA triggers with underscores are kept as-is."""
+        tokens = ["smiling"]
+        triggers = ["Midoriya_Izuku", "hrkzdrm_cs"]
+
+        result = deduplicate_triggers(tokens, triggers)
+        # Should preserve underscore format (character names)
+        assert "Midoriya_Izuku" in result
+        assert "hrkzdrm_cs" in result
 
 
 class TestLoRADeduplication:

@@ -82,6 +82,7 @@ export default function StoryboardGeneratorPanel({
             Topic
           </label>
           <textarea
+            data-testid="topic-input"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             rows={12}

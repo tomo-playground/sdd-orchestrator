@@ -155,6 +155,30 @@ describe('computeValidationResults', () => {
       expect(results[1].status).toBe('ok');
       expect(results[1].issues).toHaveLength(0);
     });
+
+    it('should pass with LoRA trigger words (space format exception)', () => {
+      // LoRA triggers are NOT normalized to underscores (Civitai original format)
+      const scenes = [createScene({
+        image_prompt: 'flat color, chibi, standing, full body, library, soft light'
+      })];
+      const { results } = computeValidationResults(scenes);
+
+      // Should pass: "flat color" is a LoRA trigger, not a Danbooru tag
+      // Validation checks CAMERA/ACTION/BACKGROUND/LIGHTING keywords only
+      expect(results[1].status).toBe('ok');
+      expect(results[1].issues).toHaveLength(0);
+    });
+
+    it('should pass with character trigger words (underscore format)', () => {
+      // Character LoRA triggers may use underscores (e.g., Midoriya_Izuku)
+      const scenes = [createScene({
+        image_prompt: 'Midoriya_Izuku, standing, full body, library, soft light'
+      })];
+      const { results } = computeValidationResults(scenes);
+
+      expect(results[1].status).toBe('ok');
+      expect(results[1].issues).toHaveLength(0);
+    });
   });
 
   describe('Negative Prompt Validation', () => {

@@ -25,8 +25,12 @@ export const computeValidationResults = (inputScenes: Scene[]) => {
   inputScenes.forEach((scene) => {
     const issues: ValidationIssue[] = [];
     const script = scene.script.trim();
-    const prompt = scene.image_prompt.toLowerCase();
-    const negative = scene.negative_prompt.toLowerCase();
+
+    // Normalize to underscore format (Danbooru standard)
+    // Exception: LoRA trigger words keep original format (e.g., "flat color", "Midoriya_Izuku")
+    // This validation only checks CAMERA/ACTION/BACKGROUND/LIGHTING keywords, not LoRA triggers
+    const prompt = scene.image_prompt.toLowerCase().replace(/ /g, "_");
+    const negative = scene.negative_prompt.toLowerCase().replace(/ /g, "_");
 
     if (!script) {
       issues.push({ level: "error", message: "Script is empty." });

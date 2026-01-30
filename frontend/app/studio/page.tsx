@@ -161,13 +161,14 @@ function StudioContent() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <button
+              data-testid="studio-home-btn"
               onClick={() => router.push("/")}
               className="text-xs text-zinc-500 hover:text-zinc-700"
             >
               Home
             </button>
             <span className="text-zinc-300">/</span>
-            <h1 className="text-sm font-bold text-zinc-900">
+            <h1 data-testid="storyboard-title" className="text-sm font-bold text-zinc-900">
               {useStudioStore.getState().storyboardTitle || "New Storyboard"}
             </h1>
           </div>
@@ -188,13 +189,13 @@ function StudioContent() {
       {/* Tab Content */}
       <main className="mx-auto max-w-5xl px-6 py-4">
         {/* Scenes tab uses display:none for state preservation */}
-        <div style={{ display: activeTab === "scenes" ? "block" : "none" }}>
+        <div data-testid="tab-content-scenes" style={{ display: activeTab === "scenes" ? "block" : "none" }}>
           <ScenesTab />
         </div>
 
-        {activeTab === "plan" && <PlanTab />}
-        {activeTab === "output" && <OutputTab />}
-        {activeTab === "insights" && <InsightsTab />}
+        {activeTab === "plan" && <div data-testid="tab-content-plan"><PlanTab /></div>}
+        {activeTab === "output" && <div data-testid="tab-content-output"><OutputTab /></div>}
+        {activeTab === "insights" && <div data-testid="tab-content-insights"><InsightsTab /></div>}
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} />}

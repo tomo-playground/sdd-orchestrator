@@ -33,6 +33,7 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
           return (
             <button
               key={tab.id}
+              data-testid={`tab-${tab.id}`}
               onClick={() => onTabChange(tab.id)}
               className={`relative flex-1 rounded-lg py-2 text-xs font-semibold transition ${
                 activeTab === tab.id

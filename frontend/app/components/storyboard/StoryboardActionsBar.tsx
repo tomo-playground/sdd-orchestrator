@@ -54,6 +54,7 @@ export default function StoryboardActionsBar({
       {/* Primary Actions - Right */}
       <div className="flex items-center gap-2">
         <button
+          data-testid="generate-btn"
           onClick={onGenerate}
           disabled={isGenerating || topicEmpty || isAutoRunning}
           className="min-w-[120px] rounded-full border border-zinc-300 bg-white px-5 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition hover:bg-zinc-50 hover:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"

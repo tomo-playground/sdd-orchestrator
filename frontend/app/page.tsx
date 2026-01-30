@@ -109,12 +109,14 @@ export default function Home() {
           </h1>
           <div className="flex items-center gap-2">
             <button
+              data-testid="new-storyboard-btn"
               onClick={() => router.push("/studio")}
               className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition"
             >
               + New Storyboard
             </button>
             <button
+              data-testid="manage-link"
               onClick={() => router.push("/manage")}
               className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition"
             >
@@ -130,6 +132,7 @@ export default function Home() {
           {(["storyboards", "characters"] as HomeTab[]).map((t) => (
             <button
               key={t}
+              data-testid={`home-tab-${t}`}
               onClick={() => setTab(t)}
               className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
                 tab === t
@@ -169,6 +172,7 @@ export default function Home() {
                 {storyboards.map((sb) => (
                   <div
                     key={sb.id}
+                    data-testid={`storyboard-card-${sb.id}`}
                     className="group relative flex flex-col gap-2 rounded-2xl border border-zinc-200/60 bg-white p-4 shadow-sm hover:shadow-md transition cursor-pointer"
                     onClick={() => router.push(`/studio?id=${sb.id}`)}
                   >
