@@ -141,6 +141,7 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = "lowres, (bad_anatomy:1.2), (bad_hands:1.2),
 # Default negative prompt for scene generation (applied to Gemini-generated scenes)
 DEFAULT_SCENE_NEGATIVE_PROMPT = "lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, jpeg_artifacts, signature, watermark, username, blurry, easynegative, verybadimagenegative_v1.3"
 
+
 # --- IP-Adapter Character Presets ---
 # Per-character IP-Adapter settings for optimal consistency
 # weight: Higher = more similar to reference (0.6-0.95)

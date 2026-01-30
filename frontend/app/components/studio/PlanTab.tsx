@@ -139,26 +139,43 @@ export default function PlanTab() {
       if (data.scenes) {
         console.log("[PlanTab] Received scenes from backend:", data.scenes.length);
         console.log("[PlanTab] First scene negative_prompt:", data.scenes[0]?.negative_prompt);
-        const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => ({
-          id: i,
-          script: (s.script as string) || "",
-          speaker: (s.speaker as string) || "Narrator",
-          duration: (s.duration as number) || 3,
-          image_prompt: (s.image_prompt as string) || "",
-          image_prompt_ko: (s.image_prompt_ko as string) || "",
-          image_url: null,
-          description: (s.description as string) || "",
-          width: 512,
-          height: 768,
-          negative_prompt: (s.negative_prompt as string) || "",
-          steps: baseStepsA,
-          cfg_scale: baseCfgScaleA,
-          sampler_name: baseSamplerA,
-          seed: baseSeedA,
-          clip_skip: baseClipSkipA,
-          isGenerating: false,
-          debug_payload: "",
-        }));
+        console.log("[PlanTab] Character negative_prompt (baseNegativePromptA):", baseNegativePromptA);
+
+        // Combine scene negative + character negative
+        const combinedNegative = [baseNegativePromptA, data.scenes[0]?.negative_prompt]
+          .filter(Boolean)
+          .join(", ")
+          .trim();
+        console.log("[PlanTab] Combined negative_prompt:", combinedNegative);
+
+        const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => {
+          const sceneNegative = (s.negative_prompt as string) || "";
+          const combined = [baseNegativePromptA, sceneNegative]
+            .filter(Boolean)
+            .join(", ")
+            .trim();
+
+          return {
+            id: i,
+            script: (s.script as string) || "",
+            speaker: (s.speaker as string) || "Narrator",
+            duration: (s.duration as number) || 3,
+            image_prompt: (s.image_prompt as string) || "",
+            image_prompt_ko: (s.image_prompt_ko as string) || "",
+            image_url: null,
+            description: (s.description as string) || "",
+            width: 512,
+            height: 768,
+            negative_prompt: combined,
+            steps: baseStepsA,
+            cfg_scale: baseCfgScaleA,
+            sampler_name: baseSamplerA,
+            seed: baseSeedA,
+            clip_skip: baseClipSkipA,
+            isGenerating: false,
+            debug_payload: "",
+          };
+        });
         setScenes(mapped);
         setActiveTab("scenes");
         showToast(`Generated ${mapped.length} scenes`, "success");
@@ -168,7 +185,7 @@ export default function PlanTab() {
     } finally {
       setIsGenerating(false);
     }
-  }, [topic, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, setScenes, setActiveTab, showToast]);
+  }, [topic, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, baseNegativePromptA, setScenes, setActiveTab, showToast]);
 
   const handleSaveStoryboard = useCallback(async () => {
     await saveStoryboard();
