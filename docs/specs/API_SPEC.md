@@ -1336,6 +1336,71 @@ Mode A/B 비교 평가를 실행합니다.
 
 대상 캐시: `TagCategoryCache`, `TagFilterCache`, `TagAliasCache`, `TagRuleCache`
 
+### `GET /admin/tags/deprecated`
+비활성화된 태그 목록을 조회합니다.
+
+**Response:**
+```json
+{
+  "total": 2,
+  "tags": [
+    {
+      "id": 9118,
+      "name": "room",
+      "category": "scene",
+      "deprecated_reason": "Not in Danbooru dataset (0 posts)",
+      "replacement": {
+        "id": 148,
+        "name": "indoors",
+        "category": "scene"
+      },
+      "created_at": "2026-01-30T16:43:30Z",
+      "updated_at": "2026-01-30T16:43:44Z"
+    }
+  ]
+}
+```
+
+### `PUT /admin/tags/{tag_id}/deprecate`
+태그를 비활성화하고 대체 태그를 지정합니다.
+
+**Request Body:**
+```json
+{
+  "deprecated_reason": "Not in Danbooru dataset (0 posts)",
+  "replacement_tag_id": 148
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "tag": {
+    "id": 9118,
+    "name": "room",
+    "is_active": false,
+    "deprecated_reason": "Not in Danbooru dataset (0 posts)",
+    "replacement_tag_id": 148
+  }
+}
+```
+
+### `PUT /admin/tags/{tag_id}/activate`
+비활성화된 태그를 재활성화합니다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "tag": {
+    "id": 9118,
+    "name": "room",
+    "is_active": true
+  }
+}
+```
+
 ---
 
 ## 📌 공통 사항

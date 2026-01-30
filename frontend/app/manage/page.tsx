@@ -593,11 +593,11 @@ export default function ManagePage() {
 
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: "assets", label: "Assets" },
-            { id: "style", label: "Style" },
             { id: "tags", label: "Tags" },
+            { id: "style", label: "Style" },
             { id: "prompts", label: "Prompts" },
             { id: "evaluation", label: "Eval" },
+            { id: "assets", label: "Assets" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;

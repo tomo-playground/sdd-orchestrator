@@ -47,8 +47,8 @@ class TagClassifier:
         """Classify a single tag.
 
         Priority:
-        1. DB cache (existing tag with group_name)
-        2. Pattern rules (classification_rules table)
+        1. Pattern rules (classification_rules table) - always check first
+        2. DB cache (existing tag with group_name)
         3. Danbooru API (if available)
         4. LLM fallback (Gemini)
         """
@@ -59,17 +59,17 @@ class TagClassifier:
         normalized = normalize_prompt_token(tag)
         # DB uses underscores, normalize_prompt_token uses underscores. Perfect.
 
-        # Step 1: DB lookup
+        # Step 1: Rule-based classification (highest priority)
+        rule_result = self._apply_rules(normalized)
+        if rule_result and rule_result["confidence"] >= 0.9:
+            # Save to DB (will override any existing Danbooru classification)
+            self._save_classification(normalized, rule_result)
+            return rule_result
+
+        # Step 2: DB lookup (only if no rule matched)
         db_result = self._lookup_db(normalized)
         if db_result and db_result["confidence"] >= 0.8:
             return db_result
-
-        # Step 2: Rule-based classification
-        rule_result = self._apply_rules(normalized)
-        if rule_result and rule_result["confidence"] >= 0.9:
-            # Save to DB for future lookups
-            self._save_classification(normalized, rule_result)
-            return rule_result
 
         # Step 3: Danbooru API
         danbooru_result = self._classify_via_danbooru(normalized)
@@ -120,25 +120,25 @@ class TagClassifier:
         from services.keywords.core import normalize_prompt_token
 
         results = {}
-        uncached = []
+        no_rule_match = []
 
-        # First pass: check DB cache
+        # First pass: check pattern rules (highest priority)
         for tag in tags:
-            normalized = normalize_prompt_token(tag)
-            db_result = self._lookup_db(normalized)
-            if db_result and db_result["confidence"] >= 0.8:
-                results[tag] = db_result
-            else:
-                uncached.append(tag)
-
-        # Second pass: apply rules to uncached
-        still_unknown = []
-        for tag in uncached:
             normalized = normalize_prompt_token(tag)
             rule_result = self._apply_rules(normalized)
             if rule_result and rule_result["confidence"] >= 0.9:
                 self._save_classification(normalized, rule_result)
                 results[tag] = rule_result
+            else:
+                no_rule_match.append(tag)
+
+        # Second pass: check DB cache for tags without rule match
+        still_unknown = []
+        for tag in no_rule_match:
+            normalized = normalize_prompt_token(tag)
+            db_result = self._lookup_db(normalized)
+            if db_result and db_result["confidence"] >= 0.8:
+                results[tag] = db_result
             else:
                 still_unknown.append(tag)
 

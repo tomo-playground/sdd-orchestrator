@@ -130,8 +130,12 @@ YouTube Shorts 프로젝트 단위.
 | `classification_confidence` | Float | 분류 신뢰도 (0.0-1.0) |
 | `wd14_count` | Integer | WD14 출현 횟수 |
 | `wd14_category` | Integer | WD14 카테고리 코드 |
+| `is_active` | Boolean | 태그 활성화 상태 (default: TRUE) |
+| `deprecated_reason` | String(200) | 비활성화 이유 |
+| `replacement_tag_id` | Integer | 대체 태그 ID (FK to tags.id) |
 
 > **Removed**: `subcategory` 컬럼 (deprecated Phase 6-4.25, removed Phase 6-4.26)
+> **Added** (Phase 6-4.15.8): `is_active`, `deprecated_reason`, `replacement_tag_id` - DB 기반 태그 비활성화 시스템
 
 ### `tag_rules`
 태그 간 충돌/의존성 규칙 (개별 태그 레벨).
