@@ -63,8 +63,8 @@ export default function OutputTab() {
       .then((r) => setOutput({ bgmList: r.data.audios || [] }))
       .catch(() => {});
     axios
-      .get(`${API_BASE}/fonts`)
-      .then((r) => setOutput({ fontList: r.data || [] }))
+      .get(`${API_BASE}/fonts/list`)
+      .then((r) => setOutput({ fontList: r.data.fonts || [] }))
       .catch(() => {});
     axios
       .get(`${API_BASE}/sd/models`)

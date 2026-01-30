@@ -96,8 +96,8 @@ export async function mockStudioApis(page: Page) {
   await page.route("**/audio/list", (route) =>
     route.fulfill({ json: { audios: [{ name: "bgm_chill.mp3", url: "/audio/bgm_chill.mp3" }] } }),
   );
-  await page.route("**/fonts", (route) =>
-    route.fulfill({ json: [{ name: "온글잎 박다현체.ttf" }] }),
+  await page.route("**/fonts/list", (route) =>
+    route.fulfill({ json: { fonts: ["온글잎 박다현체.ttf"] } }),
   );
   await page.route("**/sd/models", (route) =>
     route.fulfill({ json: { models: [{ title: "animagine-v3", model_name: "animagine-v3" }] } }),
