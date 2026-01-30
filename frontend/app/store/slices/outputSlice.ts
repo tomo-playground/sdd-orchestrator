@@ -1,0 +1,97 @@
+import type { StateCreator } from "zustand";
+import type {
+  AudioItem,
+  FontItem,
+  KenBurnsPreset,
+  OverlaySettings,
+  PostCardSettings,
+  RecentVideo,
+  SdModel,
+} from "../../types";
+import {
+  DEFAULT_OVERLAY_SETTINGS,
+  DEFAULT_POST_CARD_SETTINGS,
+  DEFAULT_SUBTITLE_FONT,
+  VOICES,
+} from "../../constants";
+
+export interface OutputSlice {
+  // Render settings
+  layoutStyle: "full" | "post";
+  kenBurnsPreset: KenBurnsPreset;
+  kenBurnsIntensity: number;
+  transitionType: string;
+  isRendering: boolean;
+
+  // Audio
+  includeSubtitles: boolean;
+  narratorVoice: string;
+  bgmList: AudioItem[];
+  bgmFile: string | null;
+  audioDucking: boolean;
+  bgmVolume: number;
+  speedMultiplier: number;
+  fontList: FontItem[];
+  subtitleFont: string;
+  loadedFonts: Set<string>;
+
+  // Overlay
+  overlaySettings: OverlaySettings;
+  postCardSettings: PostCardSettings;
+  overlayAvatarUrl: string | null;
+  postAvatarUrl: string | null;
+  isRegeneratingAvatar: boolean;
+
+  // SD Model
+  sdModels: SdModel[];
+  currentModel: string;
+  selectedModel: string;
+  isModelUpdating: boolean;
+
+  // Video results
+  videoUrl: string | null;
+  videoUrlFull: string | null;
+  videoUrlPost: string | null;
+  recentVideos: RecentVideo[];
+
+  // Setters
+  setOutput: (updates: Partial<OutputSlice>) => void;
+  resetOutput: () => void;
+}
+
+const initialOutputState = {
+  layoutStyle: "post" as const,
+  kenBurnsPreset: "random" as KenBurnsPreset,
+  kenBurnsIntensity: 1.0,
+  transitionType: "random",
+  isRendering: false,
+  includeSubtitles: true,
+  narratorVoice: VOICES[0].id,
+  bgmList: [] as AudioItem[],
+  bgmFile: "random" as string | null,
+  audioDucking: true,
+  bgmVolume: 0.25,
+  speedMultiplier: 1.3,
+  fontList: [] as FontItem[],
+  subtitleFont: DEFAULT_SUBTITLE_FONT,
+  loadedFonts: new Set<string>(),
+  overlaySettings: DEFAULT_OVERLAY_SETTINGS,
+  postCardSettings: DEFAULT_POST_CARD_SETTINGS,
+  overlayAvatarUrl: null as string | null,
+  postAvatarUrl: null as string | null,
+  isRegeneratingAvatar: false,
+  sdModels: [] as SdModel[],
+  currentModel: "Unknown",
+  selectedModel: "",
+  isModelUpdating: false,
+  videoUrl: null as string | null,
+  videoUrlFull: null as string | null,
+  videoUrlPost: null as string | null,
+  recentVideos: [] as RecentVideo[],
+};
+
+export const createOutputSlice: StateCreator<OutputSlice, [], [], OutputSlice> = (set) => ({
+  ...initialOutputState,
+  setOutput: (updates) => set((state) => ({ ...state, ...updates })),
+  resetOutput: () => set(initialOutputState),
+});

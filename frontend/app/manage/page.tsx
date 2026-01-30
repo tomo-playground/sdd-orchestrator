@@ -17,7 +17,7 @@ import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Cha
 type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
-type ManageTab = "assets" | "style" | "tags" | "prompts" | "evaluation" | "quality" | "analytics" | "settings" | "storyboards";
+type ManageTab = "assets" | "style" | "tags" | "prompts" | "evaluation" | "settings";
 
 
 
@@ -38,7 +38,7 @@ export default function ManagePage() {
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
 
   // Style tab state
-  type StyleSubTab = "profiles" | "loras" | "characters" | "models" | "embeddings";
+  type StyleSubTab = "profiles" | "loras" | "models" | "embeddings";
   const [styleSubTab, setStyleSubTab] = useState<StyleSubTab>("profiles");
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [isCreatingCharacter, setIsCreatingCharacter] = useState(false);
@@ -592,20 +592,17 @@ export default function ManagePage() {
             href="/"
             className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
           >
-            Back to Studio
+            Home
           </Link>
         </header>
 
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: "storyboards", label: "Storyboards" },
             { id: "assets", label: "Assets" },
             { id: "style", label: "Style" },
             { id: "tags", label: "Tags" },
             { id: "prompts", label: "Prompts" },
             { id: "evaluation", label: "Eval" },
-            { id: "quality", label: "Quality" },
-            { id: "analytics", label: "Analytics" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;
@@ -624,24 +621,6 @@ export default function ManagePage() {
             );
           })}
         </div>
-
-        {manageTab === "storyboards" && (
-          <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                Storyboard Manager
-              </span>
-            </div>
-            <StoryboardList
-              selectedStoryboardId={selectedStoryboardId}
-              onSelect={(id) => {
-                setSelectedStoryboardId(id);
-                // Optionally switch to analytics or quality tab after selection?
-                // For now, just stay here so they can see selection state
-              }}
-            />
-          </section>
-        )}
 
         {manageTab === "tags" && (
           <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -1135,7 +1114,6 @@ export default function ManagePage() {
               {[
                 { id: "profiles", label: "Profiles" },
                 { id: "loras", label: "LoRAs" },
-                { id: "characters", label: "Characters" },
                 { id: "models", label: "Models" },
                 { id: "embeddings", label: "Embeddings" },
               ].map((tab) => (
@@ -1444,132 +1422,6 @@ export default function ManagePage() {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Characters Sub-tab */}
-            {styleSubTab === "characters" && (
-              <div className="grid gap-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-zinc-500">
-                    Character presets bundle identity tags, clothing, and LoRA settings.
-                  </p>
-                  <button
-                    onClick={() => setIsCreatingCharacter(true)}
-                    className="rounded-full bg-indigo-600 px-4 py-2 text-[10px] font-semibold tracking-[0.1em] text-white uppercase shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700"
-                  >
-                    + Create New
-                  </button>
-                </div>
-                {characters.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
-                    <p className="text-xs text-zinc-400">No characters created yet.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {characters.map((char: Character) => {
-                      const charLoras = char.loras?.map((cl: any) => {
-                        const lora = loraEntries.find((l) => l.id === cl.lora_id);
-                        return lora ? { ...lora, weight: cl.weight } : null;
-                      }).filter(Boolean) || [];
-                      const identityTagNames = char.identity_tags?.map((id: number) => allTags.find((t: Tag) => t.id === id)?.name).filter(Boolean) || [];
-                      const clothingTagNames = char.clothing_tags?.map((id: number) => allTags.find((t: Tag) => t.id === id)?.name).filter(Boolean) || [];
-                      return (
-                        <div key={char.id} className="group flex flex-col rounded-3xl border border-zinc-200 bg-white p-5 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
-                          <div className="flex items-start gap-4 mb-4">
-                            <div className="relative shrink-0">
-                              {char.preview_image_url ? (() => {
-                                const previewUrl = char.preview_image_url as string;
-                                const fullUrl = previewUrl.startsWith('http') ? previewUrl : `${API_BASE}${previewUrl}`;
-                                const timestampedUrl = `${fullUrl}${charImageTimestamps[char.id] ? `?t=${charImageTimestamps[char.id]}` : ""}`;
-                                return (
-                                  <img
-                                    src={timestampedUrl}
-                                    alt=""
-                                    className="h-20 w-20 rounded-2xl object-cover cursor-pointer shadow-md group-hover:scale-105 transition-transform duration-300"
-                                    onClick={() => setEnlargedImage({
-                                      url: timestampedUrl,
-                                      title: char.name
-                                    })}
-                                  />
-                                );
-                              })() : (
-                                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 text-3xl font-bold text-indigo-300 border border-indigo-100">
-                                  {char.name.charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-base font-bold text-zinc-900 group-hover:text-indigo-600 transition-colors truncate">{char.name}</h3>
-                              {char.description && (
-                                <p className="mt-1 text-[11px] text-zinc-500 line-clamp-2 leading-relaxed">{char.description}</p>
-                              )}
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {charLoras.map((l: any, idx) => (
-                                  <span key={idx} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">
-                                    {l?.display_name || l?.name}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-auto space-y-3 pt-4 border-t border-zinc-50">
-                            {identityTagNames.length > 0 && (
-                              <div>
-                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest block mb-1.5">Identity</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {identityTagNames.map((tag) => (
-                                    <span key={tag!} className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-medium text-zinc-600">
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {clothingTagNames.length > 0 && (
-                              <div>
-                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest block mb-1.5">Clothing</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {clothingTagNames.map((tag) => (
-                                    <span key={tag!} className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-medium text-zinc-600">
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-5 flex items-center justify-between">
-                            <button
-                              onClick={() => setEditingCharacter(char)}
-                              className="text-[10px] font-bold text-zinc-400 hover:text-indigo-600 transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <div className="flex gap-3">
-                              <button
-                                onClick={() => handleRegenerateReference(char.id)}
-                                disabled={isRegeneratingChar[char.id]}
-                                className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 disabled:opacity-50 transition-colors"
-                              >
-                                {isRegeneratingChar[char.id] ? "Regenerating..." : "Regenerate"}
-                              </button>
-                              <button
-                                onClick={() => deleteCharacter(char.id)}
-                                className="text-[10px] font-bold text-rose-400 hover:text-rose-600 transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             )}
 
@@ -2026,10 +1878,6 @@ export default function ManagePage() {
             )}
           </section>
         )}
-
-        {manageTab === "quality" && <QualityDashboard storyboardId={selectedStoryboardId} />}
-
-        {manageTab === "analytics" && <AnalyticsDashboard storyboardId={selectedStoryboardId} />}
 
         {manageTab === "settings" && (
           <section className="grid gap-8 rounded-3xl border border-white/60 bg-white/80 p-8 text-xs text-zinc-600 shadow-xl shadow-slate-200/40 backdrop-blur">

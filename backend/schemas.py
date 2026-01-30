@@ -50,6 +50,15 @@ class StoryboardScene(BaseModel):
     width: int = 512
     height: int = 768
 
+    # SD Generation Params
+    negative_prompt: str | None = None
+    steps: int | None = None
+    cfg_scale: float | None = None
+    sampler_name: str | None = None
+    seed: int | None = None
+    clip_skip: int | None = None
+    context_tags: dict | None = None
+
     # V3 Data Persistence
     tags: list[SceneTagSave] | None = None
     character_actions: list[SceneActionSave] | None = None
