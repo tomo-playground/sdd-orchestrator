@@ -121,7 +121,6 @@ YouTube Shorts 프로젝트 단위.
 | `name` | String(100) | Unique, 언더바 형식 (`brown_hair`) |
 | `ko_name` | String(100) | 한국어 이름 |
 | `category` | String(50) | `character`, `scene`, `meta` |
-| `subcategory` | String(50) | **DEPRECATED** (미사용, 항상 NULL) |
 | `group_name` | String(50) | 의미론적 그룹 (`hair_color`, `expression`, `camera` 등 24종) |
 | `description` | String(500) | 태그 설명 |
 | `default_layer` | Integer | 12-Layer 위치 (0-11) |
@@ -131,6 +130,8 @@ YouTube Shorts 프로젝트 단위.
 | `classification_confidence` | Float | 분류 신뢰도 (0.0-1.0) |
 | `wd14_count` | Integer | WD14 출현 횟수 |
 | `wd14_category` | Integer | WD14 카테고리 코드 |
+
+> **Removed**: `subcategory` 컬럼 (deprecated Phase 6-4.25, removed Phase 6-4.26)
 
 ### `tag_rules`
 태그 간 충돌/의존성 규칙 (태그 레벨 + 카테고리 레벨).
@@ -233,12 +234,10 @@ Stable Diffusion LoRA 모델.
 | `trigger_words` | Text[] | 트리거 키워드 |
 | `default_weight` | Decimal(3,2) | 기본 가중치 |
 | `optimal_weight` | Decimal(3,2) | 보정된 최적 가중치 |
-| `calibration_score` | Decimal(5,2) | 최적 가중치 시 점수 |
+| `calibration_score` | Integer | 최적 가중치 시 점수 |
 | `weight_min`, `weight_max` | Decimal(3,2) | 가중치 범위 |
-| `base_models` | Text[] | 호환 베이스 모델 |
-| `character_defaults` | JSONB | 캐릭터별 기본값 |
-| `recommended_negative` | Text[] | 추천 네거티브 |
 | `preview_image_url` | String(500) | |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `sd_models`
 Stable Diffusion 체크포인트.
@@ -336,13 +335,19 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `test_name` | String(100) | |
-| `mode` | String(20) | |
-| `character_id` | Integer | |
-| `prompt_used` | Text | |
-| `match_rate` | Float | |
-| `matched_tags`, `missing_tags`, `extra_tags` | JSONB | |
-| `image_path` | String(500) | |
+| `batch_id` | String(50) | 배치 실행 그룹 |
+| `test_name` | String(100) | 테스트명 |
+| `mode` | String(20) | `standard`, `lora` |
+| `character_id` | Integer | 캐릭터 ID |
+| `character_name` | String(100) | 캐릭터명 |
+| `prompt_used` | Text | 사용된 프롬프트 |
+| `negative_prompt` | Text | 네거티브 프롬프트 |
+| `seed` | Integer | 생성 시드 |
+| `steps` | Integer | 샘플링 스텝 |
+| `cfg_scale` | Float | CFG 스케일 |
+| `match_rate` | Float | WD14 매치율 |
+| `matched_tags`, `missing_tags`, `extra_tags` | JSONB | 태그 분석 결과 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ---
 

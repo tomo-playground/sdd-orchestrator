@@ -18,7 +18,7 @@ class Tag(Base, TimestampMixin):
 
     # Taxonomy
     category: Mapped[str | None] = mapped_column(String(50), index=True)
-    subcategory: Mapped[str | None] = mapped_column(String(50), index=True)
+    # subcategory removed (deprecated Phase 6-4.25, removed Phase 6-4.26)
     group_name: Mapped[str | None] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(String(500))
 
