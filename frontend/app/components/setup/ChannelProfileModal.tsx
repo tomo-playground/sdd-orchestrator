@@ -27,9 +27,6 @@ export default function ChannelProfileModal({
 }: ChannelProfileModalProps) {
   const [channelName, setChannelName] = useState(initialProfile?.channel_name || "");
   const [avatarKey, setAvatarKey] = useState(initialProfile?.avatar_key || "");
-  const [frameStyle, setFrameStyle] = useState(
-    initialProfile?.default_frame_style || "overlay_minimal.png"
-  );
   const [availableAvatars, setAvailableAvatars] = useState<ReferenceImage[]>([]);
 
   // Load available avatars
@@ -46,7 +43,7 @@ export default function ChannelProfileModal({
       })
       .catch(() => {
         // Fallback to default
-        setAvailableAvatars(["default_avatar"]);
+        setAvailableAvatars([{ character_key: "default_avatar" }]);
         if (!avatarKey) setAvatarKey("default_avatar");
       });
   }, []);
@@ -59,7 +56,6 @@ export default function ChannelProfileModal({
     const profile: ChannelProfile = {
       channel_name: channelName.trim(),
       avatar_key: avatarKey,
-      default_frame_style: frameStyle,
       created_at: initialProfile?.created_at || Date.now(),
     };
 
@@ -141,21 +137,6 @@ export default function ChannelProfileModal({
             )}
           </div>
 
-          {/* Frame Style */}
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
-              기본 프레임 스타일
-            </label>
-            <select
-              value={frameStyle}
-              onChange={(e) => setFrameStyle(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all bg-white"
-            >
-              <option value="overlay_minimal.png">Minimal</option>
-              <option value="overlay_modern.png">Modern</option>
-              <option value="overlay_classic.png">Classic</option>
-            </select>
-          </div>
         </div>
 
         {/* Footer */}

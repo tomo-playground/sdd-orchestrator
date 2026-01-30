@@ -5,7 +5,10 @@ from models.associations import CharacterTag, SceneCharacterAction, SceneTag
 from models.base import Base
 from models.character import Character
 from models.evaluation import EvaluationRun
+from models.group import Group
 from models.lora import LoRA
+from models.media_asset import MediaAsset
+from models.project import Project
 from models.prompt_history import PromptHistory
 from models.scene import Scene
 from models.scene_quality import SceneQualityScore
@@ -27,8 +30,11 @@ __all__ = [
     "SDModel",
     "Embedding",
     "StyleProfile",
+    "Project",
+    "Group",
     "Storyboard",
     "Scene",
+    "MediaAsset",
     "SceneTag",
     "SceneCharacterAction",
     "ActivityLog",

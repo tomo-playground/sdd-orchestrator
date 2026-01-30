@@ -40,8 +40,10 @@ V3 아키텍처 전환 (Storyboard-Centric + DB-Driven) 완료를 반영하여 v
     *   **Audio**: Edge-TTS (Script) + **Random BGM** + Audio Ducking.
 *   **Quality Control**:
     *   **Tag Classification**: DB/Rule 기반 태그 자동 분류 (24개 카테고리).
+    *   **Tag Deprecation System**: 비활성 태그 DB 관리 + 자동 대체 (is_active, replacement_tag_id).
+    *   **Location Tag Priority**: Two-Pass 필터링으로 우선순위 기반 충돌 해결 (specific > general).
     *   **Evaluation Framework**: Mode A/B 품질 비교 시스템 (`/manage` Eval 탭).
-    *   **Admin API**: DB 마이그레이션, 캐시 리프레시 엔드포인트.
+    *   **Admin API**: DB 마이그레이션, 캐시 리프레시, 태그 비활성화/재활성화 엔드포인트.
 
 ### v3.x Backlog (Next Steps)
 품질 안정화 및 고도화를 위해 예정된 작업입니다 (`docs/ROADMAP.md` 참조).

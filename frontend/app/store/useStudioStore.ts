@@ -27,11 +27,6 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "imageValidationResults",
   // OutputSlice transient
   "isRendering",
-  "isModelUpdating",
-  "isRegeneratingAvatar",
-  "sdModels",
-  "currentModel",
-  "selectedModel",
   "bgmList",
   "fontList",
   "loadedFonts",

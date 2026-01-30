@@ -123,6 +123,7 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "validate") {
         setAutoRunStep("validate", "Validating images...");
+        const { storyboardId } = useStudioStore.getState();
         for (const scene of workingScenes) {
           assertNotCancelled();
           if (!scene.image_url) continue;
@@ -130,6 +131,8 @@ export async function runAutoRunFromStep(
             await axios.post(`${API_BASE}/scene/validate_image`, {
               image_b64: scene.image_url,
               prompt: scene.debug_prompt || scene.image_prompt,
+              storyboard_id: storyboardId,
+              scene_id: scene.id,
             });
           } catch {
             // non-critical

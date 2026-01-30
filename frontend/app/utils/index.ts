@@ -33,9 +33,9 @@ export const slugifyAvatarKey = (value: string): string => {
  * Normalize overlay settings from potentially malformed data.
  * Handles legacy field names and ensures all required fields are present.
  */
-export const normalizeOverlaySettings = (raw: any): OverlaySettings => {
-  const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
-  const avatarKey = raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
+export const normalizeOverlaySettings = (raw: Record<string, unknown> | null | undefined): OverlaySettings => {
+  const channelName = (raw?.channel_name ?? raw?.profile_name ?? "") as string;
+  const avatarKey = (raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName)) as string;
   return {
     ...DEFAULT_OVERLAY_SETTINGS,
     ...(raw || {}),
@@ -48,9 +48,9 @@ export const normalizeOverlaySettings = (raw: any): OverlaySettings => {
  * Normalize post card settings from potentially malformed data.
  * Handles legacy field names and ensures all required fields are present.
  */
-export const normalizePostCardSettings = (raw: any): PostCardSettings => {
-  const channelName = raw?.channel_name ?? raw?.profile_name ?? "";
-  const avatarKey = raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName);
+export const normalizePostCardSettings = (raw: Record<string, unknown> | null | undefined): PostCardSettings => {
+  const channelName = (raw?.channel_name ?? raw?.profile_name ?? "") as string;
+  const avatarKey = (raw?.avatar_key ?? raw?.profile_name ?? slugifyAvatarKey(channelName)) as string;
   return {
     ...DEFAULT_POST_CARD_SETTINGS,
     ...(raw || {}),

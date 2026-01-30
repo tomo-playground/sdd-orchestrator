@@ -15,7 +15,16 @@ export default function SceneImagePanel({
 }: SceneImagePanelProps) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="aspect-square w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white/70">
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white/70">
+        {scene.isGenerating && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-200 border-t-indigo-500"></div>
+            <p className="text-sm font-semibold text-zinc-700">이미지 생성 중...</p>
+            <div className="h-1 w-32 overflow-hidden rounded-full bg-zinc-200">
+              <div className="h-full animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" style={{ width: '100%' }}></div>
+            </div>
+          </div>
+        )}
         {scene.image_url ? (
           <img
             src={scene.image_url}

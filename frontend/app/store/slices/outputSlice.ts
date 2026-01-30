@@ -6,7 +6,6 @@ import type {
   OverlaySettings,
   PostCardSettings,
   RecentVideo,
-  SdModel,
 } from "../../types";
 import {
   DEFAULT_OVERLAY_SETTINGS,
@@ -16,8 +15,22 @@ import {
 } from "../../constants";
 
 export interface OutputSlice {
+  // Style Profile
+  currentStyleProfile: {
+    id: number;
+    name: string;
+    display_name: string | null;
+    sd_model_name: string | null;
+    loras: { name: string; trigger_words: string[]; weight: number }[];
+    negative_embeddings: { name: string; trigger_word: string }[];
+    positive_embeddings: { name: string; trigger_word: string }[];
+    default_positive: string | null;
+    default_negative: string | null;
+  } | null;
+
   // Render settings
   layoutStyle: "full" | "post";
+  frameStyle: string;
   kenBurnsPreset: KenBurnsPreset;
   kenBurnsIntensity: number;
   transitionType: string;
@@ -40,13 +53,6 @@ export interface OutputSlice {
   postCardSettings: PostCardSettings;
   overlayAvatarUrl: string | null;
   postAvatarUrl: string | null;
-  isRegeneratingAvatar: boolean;
-
-  // SD Model
-  sdModels: SdModel[];
-  currentModel: string;
-  selectedModel: string;
-  isModelUpdating: boolean;
 
   // Video results
   videoUrl: string | null;
@@ -60,7 +66,19 @@ export interface OutputSlice {
 }
 
 const initialOutputState = {
+  currentStyleProfile: null as {
+    id: number;
+    name: string;
+    display_name: string | null;
+    sd_model_name: string | null;
+    loras: { name: string; trigger_words: string[]; weight: number }[];
+    negative_embeddings: { name: string; trigger_word: string }[];
+    positive_embeddings: { name: string; trigger_word: string }[];
+    default_positive: string | null;
+    default_negative: string | null;
+  } | null,
   layoutStyle: "post" as const,
+  frameStyle: "overlay_minimal.png",
   kenBurnsPreset: "random" as KenBurnsPreset,
   kenBurnsIntensity: 1.0,
   transitionType: "random",
@@ -79,11 +97,6 @@ const initialOutputState = {
   postCardSettings: DEFAULT_POST_CARD_SETTINGS,
   overlayAvatarUrl: null as string | null,
   postAvatarUrl: null as string | null,
-  isRegeneratingAvatar: false,
-  sdModels: [] as SdModel[],
-  currentModel: "Unknown",
-  selectedModel: "",
-  isModelUpdating: false,
   videoUrl: null as string | null,
   videoUrlFull: null as string | null,
   videoUrlPost: null as string | null,

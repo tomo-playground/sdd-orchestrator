@@ -105,6 +105,7 @@ export default function ScenesTab() {
     const { baseNegativePromptA } = useStudioStore.getState();
     const newScene = {
       id: newId,
+      order: scenes.length,
       script: "",
       speaker: "Narrator" as const,
       duration: 3,
@@ -173,6 +174,7 @@ export default function ScenesTab() {
         <SceneCard
           key={currentScene.id}
           scene={currentScene}
+          sceneIndex={currentSceneIndex}
           validationResult={validationResults[currentScene.id]}
           imageValidationResult={imageValidationResults[currentScene.id]}
           qualityScore={

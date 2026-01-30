@@ -15,9 +15,10 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
+import os
+
 import psycopg2
 from dotenv import load_dotenv
-import os
 
 load_dotenv(backend_dir / ".env")
 
@@ -56,12 +57,12 @@ def check_entity_ids():
             """, (table,))
 
             if not cur.fetchone()[0]:
-                print(f"  ⚠️  Table does not exist")
+                print("  ⚠️  Table does not exist")
                 continue
 
             # Check primary key
             if info["pk"]:
-                cur.execute(f"""
+                cur.execute("""
                     SELECT column_name, data_type, is_nullable
                     FROM information_schema.columns
                     WHERE table_name = %s AND column_name = %s
@@ -75,7 +76,7 @@ def check_entity_ids():
 
             # Check foreign keys
             for fk in info["refs"]:
-                cur.execute(f"""
+                cur.execute("""
                     SELECT column_name, data_type, is_nullable
                     FROM information_schema.columns
                     WHERE table_name = %s AND column_name = %s

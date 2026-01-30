@@ -227,7 +227,9 @@ def calculate_lora_weight_for_scene(
 # Mutually exclusive category groups
 # When tokens from the same group appear, keep only the first one
 MUTUALLY_EXCLUSIVE_GROUPS = {
-    "location": ["location_indoor", "location_outdoor"],
+    "location_type": ["location_indoor_general", "location_outdoor"],
+    "location_indoor": ["location_indoor_general", "location_indoor_specific"],  # General vs specific indoor
+    "location_specific": ["location_indoor_specific"],  # Only one specific location (library OR cafe OR bedroom)
     "background": ["background_type"],  # Can only have one background
 }
 
@@ -253,8 +255,7 @@ def filter_conflicting_tokens(
 
     Rules:
         1. Remove duplicate tokens (case-insensitive)
-        2. For mutually exclusive categories (location_indoor vs outdoor),
-           keep only the first occurrence
+        2. For mutually exclusive groups, keep highest priority category
         3. Remove LoRA trigger words if they already appear in tokens
         4. Remove specific conflicting tag pairs (crying vs laughing, etc.)
     """
@@ -271,6 +272,27 @@ def filter_conflicting_tokens(
     # Conflict checking is now done via TagRuleCache.is_conflicting()
     from services.keywords.core import normalize_prompt_token
 
+    # Pass 1: Determine best category for each mutually exclusive group
+    # This ensures highest priority tokens are kept regardless of order
+    group_best_category: dict[str, tuple[str, int]] = {}  # group → (category, priority)
+
+    for token in tokens:
+        category = get_token_category(token)
+        if not category:
+            continue
+
+        priority = CATEGORY_PRIORITY.get(category, 99)
+
+        for group_name, group_categories in MUTUALLY_EXCLUSIVE_GROUPS.items():
+            if category in group_categories:
+                if group_name not in group_best_category:
+                    group_best_category[group_name] = (category, priority)
+                else:
+                    _, existing_priority = group_best_category[group_name]
+                    if priority < existing_priority:  # Lower number = higher priority
+                        group_best_category[group_name] = (category, priority)
+
+    # Pass 2: Filter tokens in original order
     for token in tokens:
         # Use robust normalization (ignores weights/parentheses) for deduplication
         # e.g. "(happy:1.2)" -> "happy", so it conflicts with "happy"
@@ -296,19 +318,28 @@ def filter_conflicting_tokens(
         # Get token category
         category = get_token_category(token)
 
-        # Check mutually exclusive groups
-        # Check mutually exclusive groups
-        # (This logic checks if we already have a token from this group)
+        # Check mutually exclusive groups with priority
+        # Keep only tokens matching the best category for each group
         skip = False
-        matching_group = None
+        matching_groups = []
 
         for group_name, group_categories in MUTUALLY_EXCLUSIVE_GROUPS.items():
             if category in group_categories:
-                if group_name in seen_categories:
-                    # Already have a token from this group, skip
-                    skip = True
-                    break
-                matching_group = group_name
+                # Special case: If group has only 1 category, keep only first token from that category
+                if len(group_categories) == 1:
+                    if group_name in seen_categories:
+                        # Already have a token from this category in this group
+                        skip = True
+                        break
+                    matching_groups.append(group_name)
+                else:
+                    # Multiple categories: use priority comparison
+                    best_category, _ = group_best_category.get(group_name, (None, 99))
+                    if category != best_category:
+                        # This category is not the highest priority, skip
+                        skip = True
+                        break
+                    matching_groups.append(group_name)
 
         if skip:
             continue
@@ -324,9 +355,10 @@ def filter_conflicting_tokens(
         if skip:
             continue
 
-        # If passed all checks, update tracking
-        if matching_group:
-            seen_categories[matching_group] = category
+        # If passed all checks, update tracking for ALL matching groups
+        if matching_groups and category:
+            for group_name in matching_groups:
+                seen_categories[group_name] = category
 
         # Check specific tag pair conflicts using DB cache
         if TagRuleCache._initialized:
@@ -656,6 +688,16 @@ def compose_prompt_tokens(
 
     if trigger_words:
         trigger_words = [normalize_prompt_token(t) for t in trigger_words if normalize_prompt_token(t)]
+
+    # Step 0-pre: Replace deprecated tags with active replacements (Phase 6-4.15.8)
+    from services.keywords.processing import replace_deprecated_tags
+    tokens, replacements = replace_deprecated_tags(tokens)
+    if replacements:
+        # Log replacements for debugging
+        import logging
+        logger = logging.getLogger("backend")
+        for old, new in replacements.items():
+            logger.info(f"[PromptComposition] Replaced deprecated tag: {old} → {new}")
 
     # Step 0a: Normalize BREAK tokens (convert lowercase, remove duplicates)
     tokens = _normalize_break_tokens(tokens)

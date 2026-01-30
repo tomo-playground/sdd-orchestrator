@@ -5,11 +5,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import or_
+
 from database import SessionLocal
-from models.tag_alias import TagAlias
 from models.character import Character
 from models.lora import LoRA
-from models.sd_model import StyleProfile
+from models.tag_alias import TagAlias
+
 
 def migrate_and_cleanup():
     db = SessionLocal()
@@ -18,9 +19,9 @@ def migrate_and_cleanup():
         updated_count = 0
         deleted_count = 0
         migrated_chars = 0
-        
+
         print("🔍 Scanning TagAliases for LoRA definitions...")
-        
+
         lora_pattern = re.compile(r'<lora:([^:>]+)(?::[^:>]+)?(?::([0-9.]+))?>')
 
         for alias in aliases:
@@ -33,7 +34,7 @@ def migrate_and_cleanup():
                 continue
 
             print(f"\nProcessing alias: '{alias.source_tag}' -> '{alias.target_tag}'")
-            
+
             # Check if source_tag matches a Character
             char = db.query(Character).filter(
                 or_(Character.name.ilike(alias.source_tag), Character.name.ilike(alias.source_tag.replace('_', ' ')))
@@ -43,16 +44,16 @@ def migrate_and_cleanup():
                 print(f"  ✨ Found matching character: {char.name}")
                 current_loras = char.loras or []
                 modified_char = False
-                
+
                 for lora_name, weight_str in matches:
                     weight = float(weight_str) if weight_str else 0.8
-                    
+
                     # Find LoRA in DB
                     lora_obj = db.query(LoRA).filter(LoRA.name == lora_name).first()
                     # Try fuzzy search if not found
                     if not lora_obj:
                          lora_obj = db.query(LoRA).filter(LoRA.name.ilike(f"%{lora_name}%")).first()
-                    
+
                     if lora_obj:
                         # Check duplication
                         exists = any(l.get('lora_id') == lora_obj.id for l in current_loras)
@@ -75,20 +76,20 @@ def migrate_and_cleanup():
                     char.loras = current_loras
                     migrated_chars += 1
             else:
-                print(f"  ℹ️  No character matched. LoRA info will be removed from alias but not migrated.")
+                print("  ℹ️  No character matched. LoRA info will be removed from alias but not migrated.")
 
             # Remove LoRA string from target_tag
             new_target = lora_pattern.sub('', alias.target_tag)
             # Clean up commas and spaces
             new_target = re.sub(r',\s*,', ',', new_target)
             new_target = new_target.strip().strip(',').strip()
-            
+
             source_norm = alias.source_tag.strip().lower()
             target_norm = new_target.strip().lower()
 
             # Decide action
             if not target_norm or target_norm == source_norm:
-                print(f"  🗑️  Result is empty or redundant. Deleting alias.")
+                print("  🗑️  Result is empty or redundant. Deleting alias.")
                 db.delete(alias)
                 deleted_count += 1
             else:
@@ -97,7 +98,7 @@ def migrate_and_cleanup():
                 updated_count += 1
 
         db.commit()
-        print(f"\n✅ Migration & Cleanup Complete!")
+        print("\n✅ Migration & Cleanup Complete!")
         print(f"   - Updated Aliases: {updated_count}")
         print(f"   - Deleted Aliases: {deleted_count}")
         print(f"   - Migrated Characters: {migrated_chars}")

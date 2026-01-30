@@ -1,6 +1,5 @@
 """Test database isolation - verify test DB doesn't affect production."""
 
-import pytest
 from models.activity_log import ActivityLog
 from models.storyboard import Storyboard
 

@@ -10,6 +10,7 @@ from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from models.associations import SceneCharacterAction, SceneTag
+    from models.storyboard import Storyboard
 
 
 class Scene(Base, TimestampMixin):
@@ -49,6 +50,8 @@ class Scene(Base, TimestampMixin):
     image_url: Mapped[str | None] = mapped_column(String(500))
 
     # Relationships
+    storyboard: Mapped["Storyboard"] = relationship("Storyboard", back_populates="scenes")
+
     # Global/Ambient tags (Weather, Location, etc.)
     tags: Mapped[list["SceneTag"]] = relationship("SceneTag", backref="scene", cascade="all, delete-orphan")
 

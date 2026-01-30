@@ -214,6 +214,7 @@ async def get_reference(character_key: str):
 async def get_reference_image(character_key: str, db: Session = Depends(get_db)):
     """Get a specific reference image as PNG file."""
     import base64
+
     from services.controlnet import load_reference_image
 
     image_b64 = load_reference_image(character_key, db=db)

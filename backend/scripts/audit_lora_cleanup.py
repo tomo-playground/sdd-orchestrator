@@ -1,26 +1,29 @@
 
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import SessionLocal
-from models.lora import LoRA
-from models.character import Character
 from sqlalchemy import or_
+
+from database import SessionLocal
+from models.character import Character
+from models.lora import LoRA
+
 
 def check_loras():
     db = SessionLocal()
     try:
         lora_names = [
-            "mha_midoriya-10", 
-            "flat_color", 
-            "Gentle_Cubism_Light", 
-            "harukaze-doremi-casual", 
+            "mha_midoriya-10",
+            "flat_color",
+            "Gentle_Cubism_Light",
+            "harukaze-doremi-casual",
             "blindbox_v1_mix"
         ]
-        
+
         print(f"Checking {len(lora_names)} LoRAs...")
-        
+
         for name in lora_names:
             lora = db.query(LoRA).filter(or_(LoRA.name == name, LoRA.name.ilike(f"%{name}%"))).first()
             if lora:
@@ -39,7 +42,7 @@ def check_loras():
                 print(f"   - LoRAs: {char.loras}")
             else:
                 print(f"❌ Character NOT found: {name}")
-                
+
     finally:
         db.close()
 

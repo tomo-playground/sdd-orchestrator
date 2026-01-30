@@ -8,8 +8,9 @@ Kept for historical reference only.
 Original Purpose: Analyzed the impact of subcategory field on prompt composition quality.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from database import SessionLocal
@@ -37,12 +38,12 @@ def main():
         Tag.subcategory != ''
     ).count()
 
-    print(f"\n📊 Basic Statistics:")
+    print("\n📊 Basic Statistics:")
     print(f"  Total Tags:              {total_tags:,}")
     print(f"  Tags with subcategory:   {tags_with_subcategory:,} ({tags_with_subcategory/total_tags*100:.1f}%)")
 
     # 2. Subcategory Distribution
-    print(f"\n📈 Subcategory Distribution:")
+    print("\n📈 Subcategory Distribution:")
     from sqlalchemy import text
     result = db.execute(text("""
         SELECT subcategory, COUNT(*) as cnt
@@ -58,7 +59,7 @@ def main():
         print(f"  {subcategory:15} → {prompt_cat:20} | {count:5} tags")
 
     # 3. Mismatch Analysis (subcategory vs group_name)
-    print(f"\n⚠️  Mismatch Analysis (subcategory != group_name logic):")
+    print("\n⚠️  Mismatch Analysis (subcategory != group_name logic):")
 
     for subcategory, expected_prompt_cat in SUBCATEGORY_TO_PROMPT.items():
         # Find tags where subcategory suggests one category but group_name says another
@@ -87,7 +88,7 @@ def main():
                     print(f"      ... and {len(tags) - 5} more")
 
     # 4. Semantic Validation (check if subcategory makes sense)
-    print(f"\n🔍 Semantic Validation (subcategory='indoor' but NOT location tag):")
+    print("\n🔍 Semantic Validation (subcategory='indoor' but NOT location tag):")
 
     # Tags that have subcategory=indoor but are NOT actually location tags
     semantic_errors = db.query(Tag).filter(
@@ -101,8 +102,8 @@ def main():
             print(f"    {tag.name:25} | category={tag.category:15} | group={tag.group_name or 'NULL':20} | layer={tag.default_layer}")
 
     # 5. Consistency Check (same tag, different subcategory?)
-    print(f"\n🧐 Priority Logic Test:")
-    print(f"  Current priority: subcategory > group_name (if granular) > category")
+    print("\n🧐 Priority Logic Test:")
+    print("  Current priority: subcategory > group_name (if granular) > category")
 
     # Find cases where subcategory and group_name both exist
     both_set = db.query(Tag).filter(
@@ -135,12 +136,12 @@ def main():
     print(f"    ❌ Inconsistent (subcategory != group_name):    {inconsistent_count}")
 
     if inconsistent_examples:
-        print(f"\n  Examples of inconsistent tags:")
+        print("\n  Examples of inconsistent tags:")
         for ex in inconsistent_examples:
             print(f"    {ex['tag']:25} | subcategory={ex['subcategory']:10} → expects '{ex['expected']:20}' | actual group={ex['group_name']}")
 
     # 6. Recommendation
-    print(f"\n" + "=" * 80)
+    print("\n" + "=" * 80)
     print("💡 RECOMMENDATION")
     print("=" * 80)
 

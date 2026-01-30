@@ -9,10 +9,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests
 from dotenv import load_dotenv
+
 from database import SessionLocal
-from models.storyboard import Storyboard
 from models.activity_log import ActivityLog
-from sqlalchemy import text
+from models.storyboard import Storyboard
 
 load_dotenv()
 API_BASE = "http://localhost:8000"
@@ -20,7 +20,7 @@ API_BASE = "http://localhost:8000"
 def main():
     db = SessionLocal()
     storyboard_id = None
-    
+
     try:
         # 1. Create Test Storyboard
         print("Creating test storyboard...")
@@ -78,11 +78,11 @@ def main():
         for log_data in logs:
             log = ActivityLog(**log_data)
             db.add(log)
-        
+
         db.commit()
         print(f"✅ Created {len(logs)} logs")
         print()
-        
+
         # 3. Get suggestions via API
         print("Getting conflict rule suggestions...")
         response = requests.get(
@@ -148,7 +148,7 @@ def main():
                 print("✅ Cleanup complete")
             except Exception as e:
                 print(f"⚠️ Cleanup failed: {e}")
-        
+
         db.close()
 
 if __name__ == "__main__":

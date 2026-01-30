@@ -172,8 +172,11 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "depth_of_field", "bokeh", "motion_blur", "lens_flare",
         "out_of_frame", "cropped", "partially_visible",
     ],
-    "location_indoor": [
-        "indoors", "room", "interior",
+    "location_indoor_general": [
+        "indoors",
+    ],
+    "location_indoor_specific": [
+        # Specific indoor locations (mutually exclusive)
         "bedroom", "living_room", "kitchen", "bathroom",
         "classroom", "library", "office", "study",
         "cafe", "restaurant", "bar", "shop", "store", "convenience_store",
@@ -258,8 +261,8 @@ CATEGORY_PRIORITY: dict[str, int] = {
     "hair_color": 4, "hair_length": 4, "hair_style": 4, "hair_accessory": 4,
     "eye_color": 4, "skin_color": 4, "body_feature": 4, "appearance": 4,
     "clothing": 5, "expression": 6, "gaze": 7, "pose": 8, "action": 9, "camera": 10,
-    "location_indoor": 11, "location_outdoor": 11, "environment": 11,
-    "background_type": 11, "time_weather": 12, "lighting": 13, "mood": 14, "style": 15,
+    "location_indoor_specific": 11, "location_outdoor": 11, "environment": 11,
+    "location_indoor_general": 12, "background_type": 12, "time_weather": 13, "lighting": 14, "mood": 15, "style": 16,
 }
 
 

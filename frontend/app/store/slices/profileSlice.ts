@@ -3,7 +3,6 @@ import type { StateCreator } from "zustand";
 export interface ChannelProfile {
   channel_name: string;
   avatar_key: string;
-  default_frame_style: string;
   created_at: number;
 }
 

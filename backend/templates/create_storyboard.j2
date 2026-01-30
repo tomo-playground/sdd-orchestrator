@@ -67,8 +67,18 @@ Instructions:
        - Extract key location words from script (역무원 → station employee)
        - Find matching environment tags from Allowed Keywords list
        - Use ONLY ONE primary location per scene
-       - WRONG: Multiple unrelated locations in one scene
-       - RIGHT: ONE consistent location matching script meaning
+       - WRONG: "bedroom, classroom" (multiple unrelated specific locations)
+       - WRONG: "library, cafe" (two different places)
+       - WRONG: "library, room" (room is NOT a Danbooru tag)
+       - RIGHT: "bedroom, indoors" (one specific + general)
+       - RIGHT: "classroom, indoors, chalkboard" (consistent school setting)
+       - RIGHT: "library, indoors" (specific location + general context)
+
+       PRIORITY RULE (specific beats general):
+       - If script implies specific location, use SPECIFIC tag, not general
+       - WRONG: Script says "침대에서" → "indoors" only (too vague)
+       - RIGHT: Script says "침대에서" → "bedroom, indoors" (specific + context)
+       - If choosing between library/cafe/bedroom, pick ONE that matches script best
 
      * ENVIRONMENT MATCHING EXAMPLES (Learn the pattern):
 
@@ -88,10 +98,10 @@ Instructions:
        - Script: "교실에서 칠판을 가리키며 설명합니다"
          → Key words: "교실", "칠판" → Environment: classroom, indoors, chalkboard
 
-       ❌ WRONG EXAMPLES (Mismatch):
+       ❌ WRONG EXAMPLES (Mismatch or Multiple Locations):
        - Script: "기차에서 내립니다"
          → Environment: library ❌ (NO! Script says "train" not "library")
-         → CORRECT: train_station, platform
+         → CORRECT: train_station, platform, outdoors
 
        - Script: "하늘을 보며 미소 짓습니다"
          → Environment: indoors ❌ (NO! Can't see sky indoors)
@@ -99,7 +109,11 @@ Instructions:
 
        - Script: "책상에 앉아 공부합니다"
          → Environment: kitchen ❌ (NO! Studying happens at desk, not kitchen)
-         → CORRECT: classroom, library, or indoors
+         → CORRECT: classroom, indoors  or  library, indoors
+
+       - Script: "침대에 누워 쉬고 있습니다"
+         → Environment: bedroom, cafe ❌ (NO! Can't be in TWO places at once)
+         → CORRECT: bedroom, indoors
 
        PATTERN TO FOLLOW:
        1. Read script carefully
@@ -117,9 +131,15 @@ Instructions:
 
 ⚠️ CRITICAL TAG SELECTION RULES:
 1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags
+   - ❌ FORBIDDEN TAGS (NOT in Danbooru, will break image generation):
+     * "room" (use specific: bedroom/classroom/kitchen, or general: indoors)
+     * "interior" (use: indoors)
+     * "medium shot" (use: cowboy_shot or upper_body)
+     * "bust shot" (use: upper_body)
+   - ✅ ALWAYS use underscore format: library ✓, cafe ✓, bedroom ✓
 2. **PRIORITIZE "Recommended High-Performance Tags"** (proven >80% effectiveness)
-   - Example: Use "cowboy shot" (729K posts) NOT "medium shot" (0 posts)
-   - Example: Use "open mouth" (detected) NOT "surprised" (not detected)
+   - Example: Use "cowboy_shot" (729K posts) NOT "medium shot" (0 posts)
+   - Example: Use "open_mouth" (detected) NOT "surprised" (not detected)
 3. **ENVIRONMENT MUST MATCH SCRIPT** - This is MANDATORY, not optional
    - Script mentions location → MUST use matching environment tag
    - Script: "기차" → MUST include train/train_station tags

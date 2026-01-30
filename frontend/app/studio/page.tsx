@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
@@ -18,10 +18,12 @@ import ImagePreviewModal from "../components/ui/ImagePreviewModal";
 import VideoPreviewModal from "../components/ui/VideoPreviewModal";
 import AutoRunStatus from "../components/storyboard/AutoRunStatus";
 import ChannelProfileModal from "../components/setup/ChannelProfileModal";
+import StyleProfileModal from "../components/setup/StyleProfileModal";
 import { useAutopilot } from "../hooks/useAutopilot";
 import { runAutoRunFromStep } from "../store/actions/autopilotActions";
 import PromptHelperSidebar from "../components/prompt/PromptHelperSidebar";
 import { suggestPromptSplit, copyPromptHelperText } from "../store/actions/promptHelperActions";
+import { autoSaveStoryboard } from "../store/actions/storyboardActions";
 
 function StudioContent() {
   const router = useRouter();
@@ -29,6 +31,8 @@ function StudioContent() {
   const storyboardId = searchParams.get("id");
   const [isLoadingDb, setIsLoadingDb] = useState(false);
   const [showChannelProfileModal, setShowChannelProfileModal] = useState(false);
+  const [showStyleProfileModal, setShowStyleProfileModal] = useState(false);
+  const [loadedProfileId, setLoadedProfileId] = useState<number | null>(null);
 
   const activeTab = useStudioStore((s) => s.activeTab);
   const setActiveTab = useStudioStore((s) => s.setActiveTab);
@@ -44,6 +48,8 @@ function StudioContent() {
   const hasValidProfile = useStudioStore((s) => s.hasValidProfile);
   const setChannelProfile = useStudioStore((s) => s.setChannelProfile);
   const setChannelAvatarUrl = useStudioStore((s) => s.setChannelAvatarUrl);
+  const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
+  const setOutput = useStudioStore((s) => s.setOutput);
   const showToast = useStudioStore((s) => s.showToast);
 
   // Meta for Prompt Helper
@@ -57,6 +63,59 @@ function StudioContent() {
   // Autopilot state (shared across all tabs)
   const autopilot = useAutopilot();
 
+  // Load Style Profile function
+  const loadStyleProfile = useCallback(async (profileId: number) => {
+    try {
+      // 1. 프로필 상세 정보 조회
+      const res = await axios.get(`${API_BASE}/style-profiles/${profileId}`);
+      const profile = res.data;
+
+      // 2. Store에 프로필 정보 저장
+      setOutput({
+        currentStyleProfile: {
+          id: profile.id,
+          name: profile.name,
+          display_name: profile.display_name,
+          sd_model_name: profile.sd_model?.name || profile.sd_model?.display_name || null,
+          loras: profile.loras || [],
+          negative_embeddings: profile.negative_embeddings || [],
+          positive_embeddings: profile.positive_embeddings || [],
+          default_positive: profile.default_positive,
+          default_negative: profile.default_negative,
+        },
+      });
+
+      // 3. SD Model 변경 (백그라운드)
+      if (profile.sd_model?.name) {
+        axios
+          .post(`${API_BASE}/sd/options`, {
+            sd_model_checkpoint: profile.sd_model.name,
+          })
+          .then(() => {
+            showToast(
+              `스타일 프로필 "${profile.display_name || profile.name}" 로드 완료\n` +
+              `Model: ${profile.sd_model.name}\n` +
+              `LoRAs: ${profile.loras?.length || 0}개\n` +
+              `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}개`,
+              "success"
+            );
+          })
+          .catch((err) => {
+            console.error("Failed to change SD model:", err);
+            showToast(
+              `프로필은 로드되었으나 Model 변경 실패: ${profile.sd_model.name}`,
+              "error"
+            );
+          });
+      } else {
+        showToast(`스타일 프로필 "${profile.display_name || profile.name}"이(가) 로드되었습니다.`, "success");
+      }
+    } catch (error) {
+      console.error("Failed to load style profile:", error);
+      showToast("스타일 프로필 로드 실패", "error");
+    }
+  }, [setOutput, showToast]);
+
   // Channel Profile Onboarding (첫 진입 시 자동 표시)
   useEffect(() => {
     const hasProfile = hasValidProfile();
@@ -68,6 +127,25 @@ function StudioContent() {
     }
   }, [hasValidProfile]);
 
+  // Style Profile Selection (새 스토리보드만)
+  useEffect(() => {
+    const hasProfile = hasValidProfile();
+
+    // 기존 스토리보드 로드 중이거나 채널 프로필 모달 표시 중이면 스킵
+    if (isLoadingDb || storyboardId || showChannelProfileModal) {
+      return;
+    }
+
+    // 프로필이 없고 현재 스타일 프로필도 없으면 모달 표시 (새 스토리보드)
+    if (hasProfile && !currentStyleProfile) {
+      const styleOnboardingDone = sessionStorage.getItem("style_onboarding_done");
+      if (!styleOnboardingDone) {
+        setShowStyleProfileModal(true);
+        sessionStorage.setItem("style_onboarding_done", "true");
+      }
+    }
+  }, [hasValidProfile, currentStyleProfile, showChannelProfileModal, isLoadingDb, storyboardId]);
+
   // Load channel avatar URL when profile changes
   useEffect(() => {
     if (!channelProfile?.avatar_key) {
@@ -75,28 +153,9 @@ function StudioContent() {
       return;
     }
 
-    const resolveChannelAvatar = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/avatar/resolve`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ avatar_key: channelProfile.avatar_key }),
-        });
-        if (!res.ok) {
-          setChannelAvatarUrl(null);
-          return;
-        }
-        const data = await res.json();
-        if (data?.filename) {
-          const url = `${API_BASE}/outputs/avatars/${data.filename}?t=${Date.now()}`;
-          setChannelAvatarUrl(url);
-        }
-      } catch {
-        setChannelAvatarUrl(null);
-      }
-    };
-
-    resolveChannelAvatar();
+    // Use the same URL pattern as ChannelProfileModal
+    const url = `${API_BASE}/controlnet/ip-adapter/reference/${channelProfile.avatar_key}/image?t=${Date.now()}`;
+    setChannelAvatarUrl(url);
   }, [channelProfile?.avatar_key, setChannelAvatarUrl]);
 
   // Keyboard shortcuts
@@ -216,6 +275,14 @@ function StudioContent() {
           topic: data.description || "",
         });
 
+        // Load style profile automatically if set
+        if (data.default_style_profile_id) {
+          loadStyleProfile(data.default_style_profile_id);
+        } else {
+          // No profile set - show modal for selection
+          setShowStyleProfileModal(true);
+        }
+
         // Map DB scenes → frontend Scene type
         if (data.scenes?.length > 0) {
           const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => ({
@@ -246,7 +313,7 @@ function StudioContent() {
         setMeta({ storyboardId: null });
       })
       .finally(() => setIsLoadingDb(false));
-  }, [storyboardId, setMeta, setPlan, setScenes]);
+  }, [storyboardId, setMeta, setPlan, setScenes, loadStyleProfile]);
 
   if (isLoadingDb) {
     return (
@@ -349,6 +416,129 @@ function StudioContent() {
             setChannelProfile(profile);
             setShowChannelProfileModal(false);
             showToast("채널 프로필이 저장되었습니다", "success");
+            // Channel Profile 설정 후 Style Profile 선택 모달 표시 (아직 선택 안했을 때만)
+            if (!currentStyleProfile) {
+              setShowStyleProfileModal(true);
+            }
+          }}
+        />
+      )}
+
+      {/* Style Profile Modal */}
+      {showStyleProfileModal && (
+        <StyleProfileModal
+          defaultProfileId={loadedProfileId}
+          onComplete={async (profile) => {
+            // Store에 프로필 저장
+            console.log("[StyleProfileModal] Selected profile:", profile);
+            setOutput({ currentStyleProfile: profile });
+            console.log("[StyleProfileModal] Store updated");
+            setShowStyleProfileModal(false);
+
+            // 스토리보드에 프로필 ID 즉시 저장
+            const { storyboardId: currentId, scenes, topic, selectedCharacterId } = useStudioStore.getState();
+            console.log("[StyleProfileModal] Current state:", { currentId, scenesCount: scenes.length, topic, selectedCharacterId });
+
+            if (currentId) {
+              // 기존 스토리보드가 있으면 업데이트
+              try {
+                await axios.put(`${API_BASE}/storyboards/${currentId}`, {
+                  title: topic || "Untitled",
+                  description: topic,
+                  default_character_id: selectedCharacterId,
+                  default_style_profile_id: profile.id,
+                  scenes: scenes.map((s, i) => ({
+                    scene_id: i,
+                    script: s.script,
+                    speaker: s.speaker,
+                    duration: s.duration,
+                    image_prompt: s.image_prompt,
+                    image_prompt_ko: s.image_prompt_ko,
+                    image_url: s.image_url,
+                    description: s.description,
+                    width: s.width || 512,
+                    height: s.height || 768,
+                    negative_prompt: s.negative_prompt,
+                    steps: s.steps,
+                    cfg_scale: s.cfg_scale,
+                    sampler_name: s.sampler_name,
+                    seed: s.seed,
+                    clip_skip: s.clip_skip,
+                    context_tags: s.context_tags,
+                  })),
+                });
+                console.log("[StyleProfileModal] ✅ Storyboard updated with profile ID:", profile.id);
+                showToast("스토리보드 업데이트 완료", "success");
+              } catch (err) {
+                console.error("[StyleProfileModal] ❌ Failed to update storyboard:", err);
+                showToast("스토리보드 업데이트 실패", "error");
+              }
+            } else {
+              // 새 스토리보드 (씬이 없어도 프로필 정보는 저장)
+              try {
+                const res = await axios.post(`${API_BASE}/storyboards`, {
+                  title: topic || "Draft Storyboard",
+                  description: topic || "Style profile selected",
+                  default_character_id: selectedCharacterId,
+                  default_style_profile_id: profile.id,
+                  scenes: scenes.map((s, i) => ({
+                    scene_id: i,
+                    script: s.script,
+                    speaker: s.speaker,
+                    duration: s.duration,
+                    image_prompt: s.image_prompt,
+                    image_prompt_ko: s.image_prompt_ko,
+                    image_url: s.image_url,
+                    description: s.description,
+                    width: s.width || 512,
+                    height: s.height || 768,
+                    negative_prompt: s.negative_prompt,
+                    steps: s.steps,
+                    cfg_scale: s.cfg_scale,
+                    sampler_name: s.sampler_name,
+                    seed: s.seed,
+                    clip_skip: s.clip_skip,
+                    context_tags: s.context_tags,
+                  })),
+                });
+                setMeta({ storyboardId: res.data.storyboard_id });
+                console.log("[StyleProfileModal] ✅ Storyboard created with ID:", res.data.storyboard_id, "profile ID:", profile.id);
+                showToast("스토리보드 생성 완료", "success");
+              } catch (err) {
+                console.error("[StyleProfileModal] ❌ Failed to create storyboard:", err);
+                showToast("스토리보드 생성 실패: " + (err as Error).message, "error");
+              }
+            }
+
+            // SD Model 변경 (백그라운드)
+            if (profile.sd_model_name) {
+              axios
+                .post(`${API_BASE}/sd/options`, {
+                  sd_model_checkpoint: profile.sd_model_name,
+                })
+                .then(() => {
+                  showToast(
+                    `스타일 프로필 "${profile.display_name || profile.name}" 로드 완료\n` +
+                    `Model: ${profile.sd_model_name}\n` +
+                    `LoRAs: ${profile.loras?.length || 0}개\n` +
+                    `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}개`,
+                    "success"
+                  );
+                })
+                .catch((err) => {
+                  console.error("Failed to change SD model:", err);
+                  showToast(
+                    `프로필은 로드되었으나 Model 변경 실패: ${profile.sd_model_name}`,
+                    "error"
+                  );
+                });
+            } else {
+              showToast(`스타일 프로필 "${profile.display_name || profile.name}"이(가) 선택되었습니다`, "success");
+            }
+          }}
+          onSkip={() => {
+            setShowStyleProfileModal(false);
+            showToast("스타일 프로필 선택을 건너뛰었습니다", "success");
           }}
         />
       )}

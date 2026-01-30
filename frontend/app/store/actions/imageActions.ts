@@ -128,6 +128,7 @@ export async function generateSceneImageFor(
     const res = await axios.post(`${API_BASE}/scene/generate`, {
       ...debugPayload,
       character_id: selectedCharacterId,
+      storyboard_id: storyboardId,
     });
     if (res.data.image) {
       const dataUrl = `data:image/png;base64,${res.data.image}`;
@@ -186,11 +187,14 @@ export async function generateSceneImageFor(
   }
 }
 
-async function validateImageCandidate(imageUrl: string, prompt: string) {
+async function validateImageCandidate(imageUrl: string, prompt: string, sceneId?: number) {
   try {
+    const { storyboardId } = useStudioStore.getState();
     const res = await axios.post(`${API_BASE}/scene/validate_image`, {
       image_b64: imageUrl,
       prompt,
+      storyboard_id: storyboardId,
+      scene_id: sceneId,
     });
     return res.data;
   } catch {
@@ -214,7 +218,7 @@ export async function generateSceneCandidates(
   for (let i = 0; i < 3; i += 1) {
     const result = await generateSceneImageFor(scene, true);
     if (!result?.image_url) continue;
-    const validation = await validateImageCandidate(result.image_url, prompt);
+    const validation = await validateImageCandidate(result.image_url, prompt, scene.id);
     candidates.push({
       image_url: result.image_url,
       match_rate:
@@ -228,7 +232,7 @@ export async function generateSceneCandidates(
   )[0];
 
   if (best?.image_url) {
-    const validation = await validateImageCandidate(best.image_url, prompt);
+    const validation = await validateImageCandidate(best.image_url, prompt, scene.id);
     if (validation) {
       const { imageValidationResults } = useStudioStore.getState();
       useStudioStore.getState().setScenesState({

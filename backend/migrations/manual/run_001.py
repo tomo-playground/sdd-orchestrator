@@ -35,7 +35,7 @@ def main():
         print("❌ Invalid DATABASE_URL format")
         return 1
 
-    print(f"🔗 Connecting to database...")
+    print("🔗 Connecting to database...")
 
     try:
         conn = psycopg2.connect(db_url)

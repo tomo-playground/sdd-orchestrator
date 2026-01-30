@@ -1,12 +1,23 @@
 """Admin endpoints for database management."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Tag, TagRule
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+# ============================================================
+# Pydantic Schemas
+# ============================================================
+
+class DeprecateTagRequest(BaseModel):
+    """Request schema for deprecating a tag."""
+    deprecated_reason: str
+    replacement_tag_id: int | None = None
 
 
 @router.post("/migrate-tag-rules")
@@ -144,3 +155,132 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
             "success": False,
             "error": str(e)
         }
+
+
+# ============================================================
+# Tag Deprecation Management (Phase 6-4.15.8)
+# ============================================================
+
+@router.get("/tags/deprecated")
+async def get_deprecated_tags(db: Session = Depends(get_db)):
+    """Get all deprecated tags with their replacement information."""
+    deprecated_tags = db.query(Tag).filter(Tag.is_active == False).all()
+
+    result = []
+    for tag in deprecated_tags:
+        replacement = None
+        if tag.replacement_tag_id:
+            replacement_tag = db.query(Tag).filter(Tag.id == tag.replacement_tag_id).first()
+            if replacement_tag:
+                replacement = {
+                    "id": replacement_tag.id,
+                    "name": replacement_tag.name,
+                    "category": replacement_tag.category
+                }
+
+        result.append({
+            "id": tag.id,
+            "name": tag.name,
+            "category": tag.category,
+            "deprecated_reason": tag.deprecated_reason,
+            "replacement": replacement,
+            "created_at": tag.created_at.isoformat() if tag.created_at else None,
+            "updated_at": tag.updated_at.isoformat() if tag.updated_at else None
+        })
+
+    return {
+        "total": len(result),
+        "tags": result
+    }
+
+
+@router.put("/tags/{tag_id}/deprecate")
+async def deprecate_tag(
+    tag_id: int,
+    request: DeprecateTagRequest,
+    db: Session = Depends(get_db)
+):
+    """Deprecate a tag and optionally set a replacement.
+
+    Args:
+        tag_id: ID of the tag to deprecate
+        request: Deprecation details (reason, replacement_tag_id)
+
+    Returns:
+        Updated tag information
+    """
+    # Find tag
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail=f"Tag with id {tag_id} not found")
+
+    # Validate replacement tag if provided
+    if request.replacement_tag_id:
+        replacement = db.query(Tag).filter(Tag.id == request.replacement_tag_id).first()
+        if not replacement:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Replacement tag with id {request.replacement_tag_id} not found"
+            )
+        if replacement.id == tag_id:
+            raise HTTPException(status_code=400, detail="Cannot replace tag with itself")
+
+    # Update tag
+    tag.is_active = False
+    tag.deprecated_reason = request.deprecated_reason
+    tag.replacement_tag_id = request.replacement_tag_id
+
+    try:
+        db.commit()
+        db.refresh(tag)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    return {
+        "success": True,
+        "tag": {
+            "id": tag.id,
+            "name": tag.name,
+            "is_active": tag.is_active,
+            "deprecated_reason": tag.deprecated_reason,
+            "replacement_tag_id": tag.replacement_tag_id
+        }
+    }
+
+
+@router.put("/tags/{tag_id}/activate")
+async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
+    """Reactivate a deprecated tag.
+
+    Args:
+        tag_id: ID of the tag to activate
+
+    Returns:
+        Updated tag information
+    """
+    # Find tag
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail=f"Tag with id {tag_id} not found")
+
+    # Update tag
+    tag.is_active = True
+    tag.deprecated_reason = None
+    tag.replacement_tag_id = None
+
+    try:
+        db.commit()
+        db.refresh(tag)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    return {
+        "success": True,
+        "tag": {
+            "id": tag.id,
+            "name": tag.name,
+            "is_active": tag.is_active
+        }
+    }

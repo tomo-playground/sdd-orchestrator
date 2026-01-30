@@ -8,6 +8,7 @@ import { API_BASE, CATEGORY_DESCRIPTIONS, OVERLAY_STYLES, PROMPT_APPLY_KEY } fro
 import { useCharacters, useTags } from "../hooks";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import CharacterEditModal from "./CharacterEditModal";
+import DeprecatedTagsPanel from "./DeprecatedTagsPanel";
 
 import type { LoRA, SDModelEntry, Embedding, StyleProfile, StyleProfileFull, Character, Tag, PromptHistory } from "../types";
 
@@ -34,8 +35,6 @@ export default function ManagePage() {
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
 
   // Style tab state
-  type StyleSubTab = "profiles" | "loras" | "models" | "embeddings";
-  const [styleSubTab, setStyleSubTab] = useState<StyleSubTab>("profiles");
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [isCreatingCharacter, setIsCreatingCharacter] = useState(false);
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
@@ -620,6 +619,9 @@ export default function ManagePage() {
 
         {manageTab === "tags" && (
           <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-6 text-xs text-zinc-600 shadow-sm">
+            {/* Deprecated Tags */}
+            <DeprecatedTagsPanel />
+
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Tag Analysis
@@ -1104,30 +1106,19 @@ export default function ManagePage() {
         )}
 
         {manageTab === "style" && (
-          <section className="grid gap-4 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
-            {/* Style Sub-tabs */}
-            <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-100/50 rounded-2xl border border-zinc-200/50 mb-6">
-              {[
-                { id: "profiles", label: "Profiles" },
-                { id: "loras", label: "LoRAs" },
-                { id: "models", label: "Models" },
-                { id: "embeddings", label: "Embeddings" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setStyleSubTab(tab.id as StyleSubTab)}
-                  className={`flex-1 rounded-xl px-4 py-2.5 text-[10px] font-bold tracking-[0.1em] uppercase transition-all duration-300 ${styleSubTab === tab.id
-                    ? "bg-white text-zinc-900 shadow-sm shadow-zinc-200"
-                    : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/40"
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
+            {/* Header with Refresh */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900">Style Profiles</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Model + LoRAs + Embeddings as cohesive sets
+                </p>
+              </div>
               <button
                 onClick={fetchStyleData}
                 disabled={isStyleLoading}
-                className="ml-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-zinc-600 uppercase disabled:text-zinc-400"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.15em] text-zinc-600 uppercase disabled:text-zinc-400"
               >
                 {isStyleLoading ? (
                   <div className="flex items-center gap-2">
@@ -1139,12 +1130,8 @@ export default function ManagePage() {
               </button>
             </div>
 
-            {/* Style Profiles Sub-tab */}
-            {styleSubTab === "profiles" && (
-              <div className="grid gap-4">
-                <p className="text-xs text-zinc-500">
-                  Style profiles bundle SD model, LoRAs, embeddings, and default prompts.
-                </p>
+            {/* Style Profiles (Main Content - Always Visible) */}
+            <div className="grid gap-4">
                 {styleProfiles.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
                     <p className="text-xs text-zinc-400">No style profiles found.</p>
@@ -1262,14 +1249,22 @@ export default function ManagePage() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
+            </div>
 
-            {/* LoRAs Sub-tab */}
-            {styleSubTab === "loras" && (
-              <div className="grid gap-4">
-                {/* Civitai Search */}
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+            {/* Available Assets (Collapsible Secondary Content) */}
+            <details className="group rounded-2xl border border-zinc-200 bg-white/80">
+              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+                Available Assets
+                <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
+              </summary>
+              <div className="border-t border-zinc-100 p-4 grid gap-6">
+
+                {/* LoRAs Section */}
+                <div className="grid gap-4">
+                  <h3 className="text-sm font-semibold text-zinc-700">LoRAs</h3>
+
+                  {/* Civitai Search */}
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
                   <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
                     Search Civitai
                   </span>
@@ -1419,16 +1414,10 @@ export default function ManagePage() {
                   )}
                 </div>
               </div>
-            )}
 
-            {/* SD Models Sub-tab */}
-            {styleSubTab === "models" && (
-              <div className="grid gap-6">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-zinc-500 font-medium">
-                    Registered Stable Diffusion model checkpoints.
-                  </p>
-                </div>
+                {/* SD Models Section */}
+                <div className="grid gap-4">
+                  <h3 className="text-sm font-semibold text-zinc-700">SD Models</h3>
                 {sdModels.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
                     <p className="text-xs text-zinc-400">No models registered yet.</p>
@@ -1468,17 +1457,11 @@ export default function ManagePage() {
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Embeddings Sub-tab */}
-            {styleSubTab === "embeddings" && (
-              <div className="grid gap-6">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-zinc-500 font-medium">
-                    Textual inversion embeddings for quality and style control.
-                  </p>
                 </div>
+
+                {/* Embeddings Section */}
+                <div className="grid gap-4">
+                  <h3 className="text-sm font-semibold text-zinc-700">Embeddings</h3>
                 {embeddings.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
                     <p className="text-xs text-zinc-400">No embeddings found.</p>
@@ -1513,8 +1496,10 @@ export default function ManagePage() {
                     ))}
                   </div>
                 )}
+                </div>
+
               </div>
-            )}
+            </details>
           </section>
         )}
 

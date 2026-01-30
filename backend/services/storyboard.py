@@ -4,7 +4,7 @@ import json
 
 from fastapi import HTTPException
 
-from config import GEMINI_TEXT_MODEL, gemini_client, template_env, DEFAULT_SCENE_NEGATIVE_PROMPT
+from config import DEFAULT_SCENE_NEGATIVE_PROMPT, GEMINI_TEXT_MODEL, gemini_client, template_env
 from schemas import StoryboardRequest
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure

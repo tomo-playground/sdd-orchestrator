@@ -135,9 +135,13 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
 
         # Create/Update validation score in DB
         image_url = f"/outputs/images/scene_{hashlib.sha1(image_bytes).hexdigest()[:16]}.png"  # dummy or resolved path
+
+        # Use scene_id (DB PK) if provided, fallback to scene_index
+        actual_scene_id = request.scene_id or request.scene_index or 0
+
         _save_scene_quality_score(
             storyboard_id=request.storyboard_id,
-            scene_id=request.scene_index or 0,
+            scene_id=actual_scene_id,
             image_url=image_url,
             prompt=request.prompt,
             match_rate=match_rate,
@@ -148,7 +152,7 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
 
         _update_activity_log_match_rate(
             storyboard_id=request.storyboard_id,
-            scene_id=request.scene_index,
+            scene_id=actual_scene_id,
             match_rate=match_rate,
             image_url=image_url
         )

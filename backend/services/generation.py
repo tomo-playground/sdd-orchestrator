@@ -28,6 +28,94 @@ from services.prompt import (
 from services.prompt.v3_service import V3PromptService
 
 
+def apply_style_profile_to_prompt(
+    prompt: str,
+    negative_prompt: str,
+    storyboard_id: int | None,
+    db
+) -> tuple[str, str]:
+    """
+    Apply Style Profile settings from Storyboard to prompt.
+
+    Returns: (modified_prompt, modified_negative_prompt)
+    """
+    if not storyboard_id:
+        return prompt, negative_prompt
+
+    try:
+        from models import Storyboard, StyleProfile, LoRA
+
+        # Get storyboard and its default style profile
+        storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+        if not storyboard or not storyboard.default_style_profile_id:
+            return prompt, negative_prompt
+
+        # Get style profile
+        profile = db.query(StyleProfile).filter(StyleProfile.id == storyboard.default_style_profile_id).first()
+        if not profile:
+            return prompt, negative_prompt
+
+        logger.info("🎨 [Style Profile] Applying '%s' (ID: %d)", profile.name, profile.id)
+
+        # Build LoRA tags and trigger words
+        lora_tags = []
+        trigger_words = []
+
+        if profile.loras:
+            for lora_config in profile.loras:
+                lora_id = lora_config.get("lora_id")
+                lora_name = lora_config.get("name")
+                weight = lora_config.get("weight", 0.7)
+
+                # Get trigger words from LoRA model
+                if lora_id:
+                    lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
+                    if lora_obj and lora_obj.trigger_words:
+                        trigger_words.extend(lora_obj.trigger_words)
+
+                # Add LoRA tag
+                if lora_name:
+                    lora_tags.append(f"<lora:{lora_name}:{weight}>")
+
+        # Compose final prompt
+        parts = []
+
+        # 1. Default positive prompt (quality tags)
+        if profile.default_positive:
+            parts.append(profile.default_positive.strip())
+
+        # 2. Trigger words
+        if trigger_words:
+            parts.append(", ".join(trigger_words))
+
+        # 3. Original prompt
+        if prompt:
+            parts.append(prompt.strip())
+
+        # 4. LoRA tags (at the end)
+        if lora_tags:
+            parts.append(", ".join(lora_tags))
+
+        modified_prompt = ", ".join(parts)
+
+        # Compose final negative prompt
+        modified_negative = negative_prompt or ""
+        if profile.default_negative:
+            if modified_negative:
+                modified_negative = f"{modified_negative}, {profile.default_negative}"
+            else:
+                modified_negative = profile.default_negative
+
+        logger.info("✅ [Style Profile] Applied %d LoRAs, %d trigger words", len(lora_tags), len(trigger_words))
+        logger.info("📝 [Style Profile] Final prompt: %s", modified_prompt[:200])
+
+        return modified_prompt, modified_negative
+
+    except Exception as e:
+        logger.error(f"❌ [Style Profile] Error applying profile: {e}")
+        return prompt, negative_prompt
+
+
 async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     """Generate a scene image using Stable Diffusion."""
     if not request.prompt:
@@ -35,6 +123,13 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 
     db = SessionLocal()
     try:
+        # Apply Style Profile from Storyboard (if specified)
+        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+            request.prompt,
+            request.negative_prompt or "",
+            request.storyboard_id,
+            db
+        )
         # V3 Logic: If character_id is provided, use V3PromptService
         character_obj = None
         if request.character_id:

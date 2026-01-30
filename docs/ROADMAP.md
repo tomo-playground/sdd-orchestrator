@@ -214,6 +214,13 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 15.7.6 | WD14 피드백 루프 | 생성 이미지 태그 vs 프롬프트 태그 비교 → 분류 정확도 검증 | [x] |
 | 15.7.7 | **카테고리 한국어 설명** | CATEGORY_DESCRIPTIONS 상수, UI 메타정보 표시 | [x] |
 | 15.7.8 | **분류 테스트 케이스** | 109개 회귀 방지 테스트 (clothing, hair, camera 등) | [x] |
+| **15.8** | **Location Tag Priority & Conflict** | 장소 태그 우선순위 및 충돌 해결 시스템 | [x] |
+| 15.8.1 | patterns.py 데이터 정합성 | Danbooru 미존재 태그 제거 (room, interior) | [x] |
+| 15.8.2 | CATEGORY_PRIORITY 추가 | location_indoor_specific(11) > general(12) 우선순위 정의 | [x] |
+| 15.8.3 | Two-Pass 필터링 로직 | 우선순위 기반 충돌 해결 (순서 무관, bedroom > indoors) | [x] |
+| 15.8.4 | Gemini 템플릿 강화 | 금지 태그 명시 + 우선순위 규칙 (library OR cafe, NOT both) | [x] |
+| 15.8.5 | DB 비활성 플래그 시스템 | is_active, deprecated_reason, replacement_tag_id 필드 추가 | [x] |
+| 15.8.6 | Admin API 태그 관리 | /admin/tags/deprecated, deprecate, activate 엔드포인트 | [x] |
 | 16 | Prompt History | 성공한 프롬프트 저장/재사용 | [x] |
 | 16.1 | DB 모델 | `prompt_histories` 테이블 (JSONB: lora_settings, context_tags) | [x] |
 | 16.2 | CRUD API | `/prompt-histories` 엔드포인트 (목록/상세/생성/수정/삭제) | [x] |
@@ -233,6 +240,52 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 #### 6-4.22. Gemini Image Editing System (진행 중)
 - Match Rate 낮은 씬에 대해 Gemini Nano Banana를 활용한 직접 이미지 편집. [상세 내용](file:///Users/tomo/Workspace/shorts-producer/docs/archive/ROADMAP_ANALYTICS_SYSTEM.md)
+
+#### 6-4.30. Style Profile System (진행 중)
+
+**목표**: Model + LoRAs + Embeddings를 세트로 관리하는 Profile 시스템 구축
+
+**배경**:
+- LoRA는 특정 모델에 종속적 (SD 1.5 ≠ SDXL)
+- 화풍별로 Model/LoRA/Embeddings/Prompt가 세트로 구성되어야 함
+- 애니메이션, 리얼리스틱, 일러스트 등 스타일별 일관된 설정 필요
+
+**Phase 1: 핵심 구조 개편** (완료 ✅)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | Manage > Style 탭 개편 | Profile 중심 계층 구조, Assets 하위 배치 | [x] |
+| 2 | Profile 선택 플로우 | Studio 진입 시 Style Profile 선택 모달 | [x] |
+| 3 | Output Tab 간소화 | ADVANCED → CURRENT STYLE 섹션 (읽기 전용) | [x] |
+| 4 | Profile 세트 관리 | Model/LoRA/Embeddings 그룹 일관성 보장 | [x] |
+| 5 | Frame Style 이동 | 채널 프로필 → RenderSettings (영상별 설정) | [x] |
+
+**Phase 2: Civitai 간편 연계** (대기)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 6 | Profile 생성 옵션 | From Scratch / From Template / From Civitai | [ ] |
+| 7 | Civitai 검색 | 스타일 카테고리별 모델 검색 | [ ] |
+| 8 | 자동 LoRA 추천 | 선택한 모델에 호환되는 LoRA 추천 | [ ] |
+| 9 | 원클릭 다운로드 | Model + LoRA + Embeddings 세트 다운로드 | [ ] |
+
+**Phase 3: 스마트 기능** (나중)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 10 | 호환성 자동 체크 | SD 1.5 vs SDXL 자동 필터링 | [ ] |
+| 11 | 커뮤니티 큐레이션 | 인기 조합 추천 (Most Used Combinations) | [ ] |
+| 12 | Profile Import/Export | 프로필 공유 기능 | [ ] |
+| 13 | 자동 업데이트 | Civitai 신버전 알림 | [ ] |
+
+**아키텍처**:
+```
+Style Profile (세트)
+├─ Model: anythingV3_fp16.safetensors
+├─ LoRAs: [anime_face (0.8), anime_bg (0.6)]
+├─ Embeddings: [anime_quality]
+└─ Default Prompt: "anime style, vibrant colors"
+```
 
 ---
 

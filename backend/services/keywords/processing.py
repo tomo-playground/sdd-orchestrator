@@ -11,6 +11,61 @@ from .core import (
 )
 
 
+def replace_deprecated_tags(tokens: list[str]) -> tuple[list[str], dict[str, str]]:
+    """Replace deprecated tags with their active replacements.
+
+    Args:
+        tokens: List of prompt tokens
+
+    Returns:
+        Tuple of (replaced_tokens, replacement_map)
+        replacement_map: {deprecated_tag: replacement_tag}
+
+    Example:
+        >>> replace_deprecated_tags(["1girl", "room", "sitting"])
+        (["1girl", "indoors", "sitting"], {"room": "indoors"})
+    """
+    from database import SessionLocal
+    from models.tag import Tag
+
+    db = SessionLocal()
+    try:
+        # Get all deprecated tags and their replacements in one query
+        deprecated_tags = db.query(Tag).filter(
+            Tag.is_active == False,
+            Tag.replacement_tag_id.isnot(None)
+        ).all()
+
+        # Build replacement map: {deprecated_name: replacement_name}
+        replacement_map = {}
+        for tag in deprecated_tags:
+            if tag.replacement_tag_id:
+                replacement = db.query(Tag).filter(Tag.id == tag.replacement_tag_id).first()
+                if replacement:
+                    replacement_map[tag.name.lower()] = replacement.name
+
+        # Replace tokens
+        result = []
+        replacements_made = {}
+
+        for token in tokens:
+            normalized = normalize_prompt_token(token)
+            if normalized in replacement_map:
+                replacement = replacement_map[normalized]
+                result.append(replacement)
+                replacements_made[normalized] = replacement
+                _get_logger().info(
+                    f"[TagReplacement] Deprecated tag '{normalized}' → '{replacement}'"
+                )
+            else:
+                result.append(token)
+
+        return result, replacements_made
+
+    finally:
+        db.close()
+
+
 def expand_synonyms(tokens: list[str]) -> set[str]:
     """Expand a list of tokens to include all known synonyms (bidirectional)."""
     import services.keywords as kw

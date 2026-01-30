@@ -8,11 +8,12 @@ Backend activity log 생성 제거 후 검증:
 4. scene_id가 올바른 DB ID인지
 """
 
+import os
 import sys
 from pathlib import Path
+
 import psycopg2
 from dotenv import load_dotenv
-import os
 
 # Add backend to path
 backend_dir = Path(__file__).parent.parent

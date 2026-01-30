@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, JSON, Text
+from sqlalchemy import JSON, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -27,8 +27,8 @@ BACKEND_DIR = TESTS_DIR.parent
 # Add backend to path for imports
 sys.path.insert(0, str(BACKEND_DIR))
 
-from main import app  # Import app after sys.path setup
 from database import get_db
+from main import app  # Import app after sys.path setup
 from models import Base
 
 # Test database URL (SQLite in-memory for speed and isolation)

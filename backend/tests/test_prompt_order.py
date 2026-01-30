@@ -9,8 +9,6 @@ Tests the fundamental requirements:
 
 from __future__ import annotations
 
-import pytest
-
 from services.prompt.prompt_composition import compose_prompt_tokens
 
 
@@ -228,5 +226,5 @@ class TestPromptOrderRealWorld:
         assert masterpiece_idx < lora_idx, "Quality should come before LoRA"
         assert lora_idx < smile_idx, "LoRA should come before actions"
 
-        print(f"✅ All assertions passed")
+        print("✅ All assertions passed")
         print(f"   masterpiece: {masterpiece_idx}, LoRA: {lora_idx}, smile: {smile_idx}")

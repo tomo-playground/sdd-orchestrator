@@ -208,10 +208,14 @@ export async function handleValidateImage(scene: Scene) {
   }
   useStudioStore.getState().setScenesState({ validatingSceneId: scene.id });
   const prompt = scene.debug_prompt || buildPositivePrompt(scene);
+  const { storyboardId } = useStudioStore.getState();
+
   try {
     const res = await axios.post(`${API_BASE}/scene/validate_image`, {
       image_b64: scene.image_url,
       prompt,
+      storyboard_id: storyboardId,
+      scene_id: scene.id,
     });
     const prev = useStudioStore.getState().imageValidationResults;
     useStudioStore.getState().setScenesState({

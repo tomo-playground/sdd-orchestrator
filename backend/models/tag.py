@@ -35,6 +35,11 @@ class Tag(Base, TimestampMixin):
     wd14_count: Mapped[int] = mapped_column(Integer, default=0)
     wd14_category: Mapped[int] = mapped_column(Integer, default=0)
 
+    # Deprecation & replacement (15.8)
+    is_active: Mapped[bool] = mapped_column(default=True, index=True)
+    deprecated_reason: Mapped[str | None] = mapped_column(String(200))
+    replacement_tag_id: Mapped[int | None] = mapped_column(Integer)
+
 
 class ClassificationRule(Base, TimestampMixin):
     """Dynamic tag classification rules (15.7)."""

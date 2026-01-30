@@ -13,6 +13,7 @@ import TagAutocomplete from "../ui/TagAutocomplete";
 
 type SceneCardProps = {
   scene: Scene;
+  sceneIndex: number;  // 씬 순서 (0-based, 표시는 +1)
   validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
@@ -68,6 +69,7 @@ type SceneCardProps = {
 
 export default function SceneCard({
   scene,
+  sceneIndex,
   validationResult,
   imageValidationResult,
   qualityScore,
@@ -151,7 +153,7 @@ export default function SceneCard({
     <div className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-zinc-800">Scene {scene.id}</h3>
+        <h3 className="text-sm font-semibold text-zinc-800">Scene {sceneIndex + 1}</h3>
         <div className="flex items-center gap-2">
           {qualityScore && (
             <span
@@ -187,7 +189,7 @@ export default function SceneCard({
           )}
           <button
             onClick={() => {
-              if (window.confirm(`Scene ${scene.id}를 삭제하시겠습니까?`)) {
+              if (window.confirm(`Scene ${sceneIndex + 1}을(를) 삭제하시겠습니까?`)) {
                 onRemoveScene();
               }
             }}

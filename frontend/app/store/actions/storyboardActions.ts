@@ -14,6 +14,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
     scenes,
     topic,
     selectedCharacterId,
+    currentStyleProfile,
     setMeta,
     showToast,
   } = useStudioStore.getState();
@@ -33,6 +34,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       title: topic || "Draft Storyboard",
       description: topic || "Auto-saved before image generation",
       default_character_id: selectedCharacterId,
+      default_style_profile_id: currentStyleProfile?.id || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
@@ -62,7 +64,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       storyboardTitle: topic || "Draft Storyboard"
     });
 
-    showToast("Storyboard auto-saved", "info");
+    showToast("Storyboard auto-saved", "success");
 
     return newStoryboardId;
   } catch (error) {
@@ -82,6 +84,7 @@ export async function saveStoryboard(): Promise<boolean> {
     scenes,
     topic,
     selectedCharacterId,
+    currentStyleProfile,
     setMeta,
     showToast,
   } = useStudioStore.getState();
@@ -92,10 +95,14 @@ export async function saveStoryboard(): Promise<boolean> {
   }
 
   try {
+    console.log("[saveStoryboard] currentStyleProfile:", currentStyleProfile);
+    console.log("[saveStoryboard] default_style_profile_id:", currentStyleProfile?.id || null);
+
     const payload = {
       title: topic || "Untitled",
       description: topic,
       default_character_id: selectedCharacterId,
+      default_style_profile_id: currentStyleProfile?.id || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,

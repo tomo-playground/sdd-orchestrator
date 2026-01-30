@@ -24,13 +24,14 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
     video_url = res.get("video_url")
 
     if video_url and request.storyboard_id:
-        from models.storyboard import Storyboard
         import json
+
+        from models.storyboard import Storyboard
 
         storyboard = db.query(Storyboard).filter(Storyboard.id == request.storyboard_id).first()
         if storyboard:
             storyboard.video_url = video_url
-            
+
             # Update recent_videos
             recent = []
             if storyboard.recent_videos_json:
@@ -38,12 +39,12 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
                     recent = json.loads(storyboard.recent_videos_json)
                 except Exception:
                     recent = []
-            
+
             # Add new video to the beginning
             new_entry = {"url": video_url, "label": request.layout_style, "createdAt": int(time.time() * 1000)}
             recent = [new_entry] + recent[:9] # Keep last 10
             storyboard.recent_videos_json = json.dumps(recent)
-            
+
             db.commit()
             logger.info("✅ Video associated with storyboard id=%d", request.storyboard_id)
 

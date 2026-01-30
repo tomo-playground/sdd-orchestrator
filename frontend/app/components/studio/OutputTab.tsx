@@ -20,6 +20,7 @@ export default function OutputTab() {
   const {
     scenes,
     layoutStyle,
+    frameStyle,
     isRendering,
     includeSubtitles,
     subtitleFont,
@@ -36,11 +37,7 @@ export default function OutputTab() {
     bgmVolume,
     overlaySettings,
     postCardSettings,
-    isRegeneratingAvatar,
-    sdModels,
-    currentModel,
-    selectedModel,
-    isModelUpdating,
+    currentStyleProfile,
     videoUrl,
     videoUrlFull,
     videoUrlPost,
@@ -85,10 +82,6 @@ export default function OutputTab() {
       .get(`${API_BASE}/fonts/list`)
       .then((r) => setOutput({ fontList: r.data.fonts || [] }))
       .catch(() => { });
-    axios
-      .get(`${API_BASE}/sd/models`)
-      .then((r) => setOutput({ sdModels: r.data.models || [] }))
-      .catch(() => { });
   }, [setOutput]);
 
   // Cleanup audio on unmount
@@ -112,7 +105,7 @@ export default function OutputTab() {
         const finalOverlaySettings = mode === "full" && channelProfile ? {
           channel_name: channelProfile.channel_name,
           avatar_key: channelProfile.avatar_key,
-          frame_style: channelProfile.default_frame_style,
+          frame_style: frameStyle,
           caption: videoCaption || store.topic || "AI 영상",
           likes_count: videoLikesCount || `${Math.floor(Math.random() * 50 + 10)}K`,
         } : null;
@@ -250,32 +243,6 @@ export default function OutputTab() {
     });
   }
 
-  // ---------- Avatar ----------
-
-  async function handleRegenerateAvatar(avatarKey: string) {
-    // Avatar regeneration is now handled globally in studio/page.tsx
-    // This function kept for compatibility with RenderSettingsPanel
-    showToast("아바타 재생성은 채널 프로필 모달에서 가능합니다", "error");
-  }
-
-  // ---------- SD Model ----------
-
-  async function handleModelChange(value: string) {
-    if (!value) return;
-    setOutput({ selectedModel: value, isModelUpdating: true });
-    try {
-      const res = await axios.post(`${API_BASE}/sd/options`, {
-        sd_model_checkpoint: value,
-      });
-      setOutput({ currentModel: res.data.model || value });
-    } catch {
-      showToast("Model update failed", "error");
-      setOutput({ selectedModel: currentModel });
-    } finally {
-      setOutput({ isModelUpdating: false });
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Channel Profile Section */}
@@ -299,7 +266,7 @@ export default function OutputTab() {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-sm text-zinc-800">{channelProfile.channel_name}</p>
-              <p className="text-xs text-zinc-500">{channelProfile.default_frame_style.replace('.png', '').replace('overlay_', '')} 스타일</p>
+              <p className="text-xs text-zinc-500">@{channelProfile.avatar_key}</p>
             </div>
           </div>
 
@@ -379,6 +346,8 @@ export default function OutputTab() {
       <RenderSettingsPanel
         layoutStyle={layoutStyle}
         setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
+        frameStyle={frameStyle}
+        setFrameStyle={(v) => setOutput({ frameStyle: v })}
         canRender={canRender}
         isRendering={isRendering}
         scenesWithImages={scenes.filter((s) => !!s.image_url).length}
@@ -409,30 +378,7 @@ export default function OutputTab() {
         setAudioDucking={(v) => setOutput({ audioDucking: v })}
         bgmVolume={bgmVolume}
         setBgmVolume={(v) => setOutput({ bgmVolume: v })}
-        overlaySettings={overlaySettings}
-        setOverlaySettings={((v: SetStateAction<OverlaySettings>) => {
-          const next = typeof v === "function" ? v(overlaySettings) : v;
-          setOutput({ overlaySettings: next });
-        }) as React.Dispatch<SetStateAction<OverlaySettings>>}
-        postCardSettings={postCardSettings}
-        setPostCardSettings={((v: SetStateAction<PostCardSettings>) => {
-          const next = typeof v === "function" ? v(postCardSettings) : v;
-          setOutput({ postCardSettings: next });
-        }) as React.Dispatch<SetStateAction<PostCardSettings>>}
-        onAutoFillOverlay={handleAutoFillOverlay}
-        onAutoFillPostCard={handleAutoFillPostCard}
-        onRegenerateAvatar={handleRegenerateAvatar}
-        isRegeneratingAvatar={isRegeneratingAvatar}
-        getAvatarInitial={getAvatarInitial}
-        slugifyAvatarKey={slugifyAvatarKey}
-        currentModel={currentModel}
-        selectedModel={selectedModel}
-        sdModels={sdModels}
-        onModelChange={handleModelChange}
-        isModelUpdating={isModelUpdating}
-        channelProfile={channelProfile}
-        channelAvatarUrl={channelAvatarUrl}
-        videoCaption={videoCaption}
+        currentStyleProfile={currentStyleProfile}
       />
 
       <RenderedVideosSection

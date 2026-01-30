@@ -43,16 +43,16 @@ export default function SceneFilmstrip({
             {s.image_url ? (
               <img
                 src={s.image_url}
-                alt={`Scene ${s.id}`}
+                alt={`Scene ${idx + 1}`}
                 className="h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] text-zinc-400">
-                {s.id}
+                {idx + 1}
               </div>
             )}
             <span className="absolute bottom-0 left-0 right-0 bg-black/50 py-0.5 text-center text-[9px] text-white">
-              Scene {s.id}
+              Scene {idx + 1}
             </span>
           </button>
         ))}

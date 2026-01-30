@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Storyboard(Base, TimestampMixin):
-    """A YouTube Shorts project containing multiple scenes."""
+    """An individual video content (Episode) within a series/group."""
 
     __tablename__ = "storyboards"
 
@@ -30,5 +30,5 @@ class Storyboard(Base, TimestampMixin):
     video_url: Mapped[str | None] = mapped_column(String(500))
     recent_videos_json: Mapped[str | None] = mapped_column(Text)  # JSON string of recent videos
 
-    # Relationship to scenes
-    scenes: Mapped[list[Scene]] = relationship("Scene", backref="storyboard", cascade="all, delete-orphan")
+    # Relationships
+    scenes: Mapped[list[Scene]] = relationship("Scene", back_populates="storyboard", cascade="all, delete-orphan")

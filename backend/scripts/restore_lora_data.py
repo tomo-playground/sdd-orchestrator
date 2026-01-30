@@ -1,12 +1,15 @@
 
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from sqlalchemy.orm.attributes import flag_modified
 
 from database import SessionLocal
 from models.character import Character
 from models.tag_alias import TagAlias
-from sqlalchemy.orm.attributes import flag_modified
+
 
 def restore_and_fix():
     db = SessionLocal()
@@ -17,7 +20,7 @@ def restore_and_fix():
             # Check if LoRA exists in list
             current_loras = midoriya.loras or []
             if not any(l.get('name') == 'mha_midoriya-10' for l in current_loras):
-                print(f"fixing Midoriya: adding mha_midoriya-10")
+                print("fixing Midoriya: adding mha_midoriya-10")
                 current_loras.append({
                     "lora_id": 9, # from list_candidates
                     "name": "mha_midoriya-10",
@@ -33,7 +36,7 @@ def restore_and_fix():
         if doremi:
              current_loras = doremi.loras or []
              if not any(l.get('name') == 'harukaze-doremi-casual' for l in current_loras):
-                print(f"fixing Doremi: adding harukaze-doremi-casual")
+                print("fixing Doremi: adding harukaze-doremi-casual")
                 current_loras.append({
                     "lora_id": 7, # from list_candidates
                     "name": "harukaze-doremi-casual",
@@ -64,13 +67,13 @@ def restore_and_fix():
                 target_tag="geometric, <lora:Gentle_Cubism_Light:0.8>",
                 active=True
             ))
-            
+
         # 5. Restore blindbox (Verify/Ensure)
         # blindbox alias was kept/updated to "BTM..." without lora, but character has lora.
-        
+
         db.commit()
         print("✅ Restore complete.")
-        
+
     except Exception as e:
         db.rollback()
         print(f"❌ Error: {e}")

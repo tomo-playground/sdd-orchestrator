@@ -153,6 +153,8 @@ class SceneGenerateRequest(BaseModel):
     denoising_strength: float = 0.25
     # V3 Character Integration
     character_id: int | None = None
+    # Storyboard Integration (for Style Profile lookup)
+    storyboard_id: int | None = None
     # ControlNet options
     use_controlnet: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
@@ -172,8 +174,9 @@ class SceneValidateRequest(BaseModel):
     prompt: str = ""
     # Analytics tracking
     storyboard_id: int | None = None
+    scene_id: int | None = None  # Scene DB ID
     topic: str | None = None  # Optional: Content topic for reference
-    scene_index: int | None = None  # Optional: Scene number
+    scene_index: int | None = None  # Optional: Scene number (순서)
 
 
 class ImageStoreRequest(BaseModel):

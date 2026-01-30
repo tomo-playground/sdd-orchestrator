@@ -1,6 +1,6 @@
 "use client";
 
-import type { AudioItem, FontItem, KenBurnsPreset, OverlaySettings, PostCardSettings, SdModel } from "../../types";
+import type { AudioItem, FontItem, KenBurnsPreset, OverlaySettings, PostCardSettings } from "../../types";
 import { VOICES } from "../../constants";
 
 // Ken Burns preset options for dropdown
@@ -43,6 +43,8 @@ type RenderSettingsPanelProps = {
   // Layout
   layoutStyle: "full" | "post";
   setLayoutStyle: (value: "full" | "post") => void;
+  frameStyle: string;
+  setFrameStyle: (value: string) => void;
   // Render Actions
   canRender: boolean;
   isRendering: boolean;
@@ -76,32 +78,25 @@ type RenderSettingsPanelProps = {
   setAudioDucking: (value: boolean) => void;
   bgmVolume: number;
   setBgmVolume: (value: number) => void;
-  // Overlay / Post Card Settings
-  overlaySettings: OverlaySettings;
-  setOverlaySettings: React.Dispatch<React.SetStateAction<OverlaySettings>>;
-  postCardSettings: PostCardSettings;
-  setPostCardSettings: React.Dispatch<React.SetStateAction<PostCardSettings>>;
-  onAutoFillOverlay: () => void;
-  onAutoFillPostCard: () => void;
-  onRegenerateAvatar: (avatarKey: string) => void;
-  isRegeneratingAvatar: boolean;
-  getAvatarInitial: (name: string) => string;
-  slugifyAvatarKey: (name: string) => string;
-  // Channel Profile
-  channelProfile: { channel_name: string; avatar_key: string; default_frame_style: string } | null;
-  channelAvatarUrl: string | null;
-  videoCaption: string;
-  // Advanced
-  currentModel: string;
-  selectedModel: string;
-  sdModels: SdModel[];
-  onModelChange: (model: string) => void;
-  isModelUpdating: boolean;
+  // Current Style
+  currentStyleProfile: {
+    id: number;
+    name: string;
+    display_name: string | null;
+    sd_model_name: string | null;
+    loras: { name: string; trigger_words: string[]; weight: number }[];
+    negative_embeddings: { name: string; trigger_word: string }[];
+    positive_embeddings: { name: string; trigger_word: string }[];
+    default_positive: string | null;
+    default_negative: string | null;
+  } | null;
 };
 
 export default function RenderSettingsPanel({
   layoutStyle,
   setLayoutStyle,
+  frameStyle,
+  setFrameStyle,
   canRender,
   isRendering,
   scenesWithImages,
@@ -132,24 +127,7 @@ export default function RenderSettingsPanel({
   setAudioDucking,
   bgmVolume,
   setBgmVolume,
-  overlaySettings,
-  setOverlaySettings,
-  postCardSettings,
-  setPostCardSettings,
-  onAutoFillOverlay,
-  onAutoFillPostCard,
-  onRegenerateAvatar,
-  isRegeneratingAvatar,
-  getAvatarInitial,
-  slugifyAvatarKey,
-  currentModel,
-  selectedModel,
-  sdModels,
-  onModelChange,
-  isModelUpdating,
-  channelProfile,
-  channelAvatarUrl,
-  videoCaption,
+  currentStyleProfile,
 }: RenderSettingsPanelProps) {
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -163,8 +141,7 @@ export default function RenderSettingsPanel({
 
       {/* 1. LAYOUT + RENDER (Compact) */}
       <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-5">
-        <div className="flex items-center gap-4">
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Layout</span>
+        <div className="flex items-center gap-3">
           <div className="flex rounded-full border border-zinc-200 bg-white p-1">
             <button
               type="button"
@@ -189,6 +166,20 @@ export default function RenderSettingsPanel({
               Post 1:1
             </button>
           </div>
+          {layoutStyle === "full" && (
+            <>
+              <span className="text-zinc-300">|</span>
+              <select
+                value={frameStyle}
+                onChange={(e) => setFrameStyle(e.target.value)}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+              >
+                <option value="overlay_minimal.png">Minimal</option>
+                <option value="overlay_modern.png">Modern</option>
+                <option value="overlay_classic.png">Classic</option>
+              </select>
+            </>
+          )}
         </div>
         <button
           onClick={onRender}
@@ -230,8 +221,8 @@ export default function RenderSettingsPanel({
               className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
             >
               {fontList.length === 0 && <option value="">Default</option>}
-              {fontList.map((font) => (
-                <option key={font} value={font}>{truncate(font, 20)}</option>
+              {fontList.map((font, idx) => (
+                <option key={`${font.name}-${idx}`} value={font.name}>{truncate(font.name, 20)}</option>
               ))}
             </select>
             <div
@@ -359,255 +350,79 @@ export default function RenderSettingsPanel({
         </div>
       </details>
 
-      {/* 3. OVERLAY / POST CARD (Collapsible) */}
-      <details className="group rounded-2xl border border-zinc-200 bg-white/80">
-        <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-          {layoutStyle === "full" ? "SNS Overlay" : "Post Card Meta"}
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[10px] font-semibold text-zinc-600">
-              {layoutStyle === "full" ? (
-                channelAvatarUrl ? (
-                  <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                ) : (
-                  getAvatarInitial(overlaySettings.channel_name ?? "")
-                )
-              ) : channelAvatarUrl ? (
-                <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-              ) : (
-                getAvatarInitial(postCardSettings.channel_name ?? "")
-              )}
-            </div>
-            <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
-          </div>
-        </summary>
-        <div className="border-t border-zinc-100 p-4">
-          {layoutStyle === "full" ? (
-            <div className="grid gap-4">
-              {channelProfile ? (
-                <div className="rounded-xl bg-indigo-50/50 border border-indigo-100 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-200 bg-white text-sm font-semibold text-indigo-600">
-                        {channelAvatarUrl ? (
-                          <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                        ) : (
-                          getAvatarInitial(channelProfile.channel_name)
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div>
-                        <div className="text-[10px] font-semibold tracking-wider text-indigo-600 uppercase">Channel Profile</div>
-                        <div className="text-sm font-semibold text-zinc-800 mt-1">{channelProfile.channel_name}</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-zinc-500">Avatar:</span>{" "}
-                          <span className="font-medium text-zinc-700">{channelProfile.avatar_key}</span>
-                        </div>
-                        <div>
-                          <span className="text-zinc-500">Caption:</span>{" "}
-                          <span className="font-medium text-zinc-700">{videoCaption || "스토리보드 주제"}</span>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-indigo-600/70">
-                        ✓ 채널 프로필에서 자동으로 적용됩니다
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-                  <p className="text-sm text-amber-800">
-                    ⚠️ 채널 프로필을 먼저 설정해주세요
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={onAutoFillOverlay}
-                  className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50"
-                >
-                  Auto Fill (Legacy)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => channelProfile && onRegenerateAvatar(channelProfile.avatar_key)}
-                  disabled={isRegeneratingAvatar || !channelProfile}
-                  className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
-                >
-                  {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
-                </button>
-              </div>
-              <input type="hidden" value={overlaySettings.frame_style} />
-              <div className="hidden grid gap-3 md:grid-cols-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Channel</label>
-                  <input
-                    value={overlaySettings.channel_name ?? ""}
-                    onChange={(e) =>
-                      setOverlaySettings((prev) => ({
-                        ...prev,
-                        channel_name: e.target.value,
-                        avatar_key:
-                          !prev.avatar_key || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
-                            ? slugifyAvatarKey(e.target.value)
-                            : prev.avatar_key,
-                      }))
-                    }
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Avatar Key</label>
-                  <input
-                    value={overlaySettings.avatar_key ?? ""}
-                    onChange={(e) => setOverlaySettings((prev) => ({ ...prev, avatar_key: e.target.value }))}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Likes</label>
-                  <input
-                    value={overlaySettings.likes_count ?? ""}
-                    onChange={(e) => setOverlaySettings((prev) => ({ ...prev, likes_count: e.target.value }))}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Caption</label>
-                  <input
-                    value={overlaySettings.caption ?? ""}
-                    onChange={(e) => setOverlaySettings((prev) => ({ ...prev, caption: e.target.value }))}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {channelProfile ? (
-                <div className="rounded-xl bg-indigo-50/50 border border-indigo-100 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-200 bg-white text-sm font-semibold text-indigo-600">
-                        {channelAvatarUrl ? (
-                          <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                        ) : (
-                          getAvatarInitial(channelProfile.channel_name)
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div>
-                        <div className="text-[10px] font-semibold tracking-wider text-indigo-600 uppercase">Channel Profile</div>
-                        <div className="text-sm font-semibold text-zinc-800 mt-1">{channelProfile.channel_name}</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-zinc-500">Avatar:</span>{" "}
-                          <span className="font-medium text-zinc-700">{channelProfile.avatar_key}</span>
-                        </div>
-                        <div>
-                          <span className="text-zinc-500">Caption:</span>{" "}
-                          <span className="font-medium text-zinc-700">{videoCaption || "스토리보드 주제"}</span>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-indigo-600/70">
-                        ✓ 채널 프로필에서 자동으로 적용됩니다
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-                  <p className="text-sm text-amber-800">
-                    ⚠️ 채널 프로필을 먼저 설정해주세요
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={onAutoFillPostCard}
-                  className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50"
-                >
-                  Auto Fill (Legacy)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => channelProfile && onRegenerateAvatar(channelProfile.avatar_key)}
-                  disabled={isRegeneratingAvatar || !channelProfile}
-                  className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
-                >
-                  {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
-                </button>
-              </div>
-              <div className="hidden grid gap-3 md:grid-cols-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Channel</label>
-                  <input
-                    value={postCardSettings.channel_name ?? ""}
-                    onChange={(e) =>
-                      setPostCardSettings((prev) => ({
-                        ...prev,
-                        channel_name: e.target.value,
-                        avatar_key:
-                          !prev.avatar_key || prev.avatar_key === slugifyAvatarKey(prev.channel_name)
-                            ? slugifyAvatarKey(e.target.value)
-                            : prev.avatar_key,
-                      }))
-                    }
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Avatar Key</label>
-                  <input
-                    value={postCardSettings.avatar_key ?? ""}
-                    onChange={(e) => setPostCardSettings((prev) => ({ ...prev, avatar_key: e.target.value }))}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Caption</label>
-                  <input
-                    value={postCardSettings.caption ?? ""}
-                    onChange={(e) => setPostCardSettings((prev) => ({ ...prev, caption: e.target.value }))}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+      {/* 3. CURRENT STYLE (Read-only) */}
+      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-indigo-50/50 to-white p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+            Current Style
+          </h3>
+          <a
+            href="/manage?tab=style"
+            className="rounded-full bg-white border border-zinc-200 px-3 py-1.5 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-50 transition"
+          >
+            Change
+          </a>
         </div>
-      </details>
 
-      {/* 4. ADVANCED (Collapsible - SD Model) */}
-      <details className="group rounded-2xl border border-zinc-200 bg-white/80">
-        <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-          Advanced
-          <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
-        </summary>
-        <div className="border-t border-zinc-100 p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-500 whitespace-nowrap">SD Model</span>
-            {isModelUpdating && <span className="text-[10px] text-zinc-400">Updating...</span>}
-            <select
-              value={selectedModel}
-              onChange={(e) => onModelChange(e.target.value)}
-              disabled={isModelUpdating || sdModels.length === 0}
-              className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400 disabled:bg-zinc-100"
-            >
-              {sdModels.length === 0 && <option value="">No models found</option>}
-              {sdModels.map((model) => (
-                <option key={model.title} value={model.title}>{model.title}</option>
-              ))}
-            </select>
+        {currentStyleProfile ? (
+          <div className="grid gap-3">
+            <div>
+              <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">Profile</span>
+              <p className="text-sm font-bold text-zinc-900">
+                {currentStyleProfile.display_name || currentStyleProfile.name}
+              </p>
+            </div>
+            {currentStyleProfile.sd_model_name && (
+              <div>
+                <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">SD Model</span>
+                <p className="text-xs text-zinc-700">
+                  {currentStyleProfile.sd_model_name}
+                </p>
+              </div>
+            )}
+            {currentStyleProfile.loras && currentStyleProfile.loras.length > 0 && (
+              <div>
+                <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">LoRAs</span>
+                <div className="flex flex-wrap gap-1">
+                  {currentStyleProfile.loras.map((lora) => (
+                    <span key={lora.name} className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] text-blue-700 font-medium">
+                      {lora.name.split('.')[0]} ({lora.weight})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {((currentStyleProfile.negative_embeddings && currentStyleProfile.negative_embeddings.length > 0) ||
+              (currentStyleProfile.positive_embeddings && currentStyleProfile.positive_embeddings.length > 0)) && (
+              <div>
+                <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">Embeddings</span>
+                <div className="flex flex-wrap gap-1">
+                  {currentStyleProfile.positive_embeddings?.map((emb, idx) => (
+                    <span key={emb.name || `pos-${idx}`} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] text-emerald-700 font-medium">
+                      {emb.name}
+                    </span>
+                  ))}
+                  {currentStyleProfile.negative_embeddings?.map((emb, idx) => (
+                    <span key={emb.name || `neg-${idx}`} className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] text-rose-700 font-medium">
+                      {emb.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </details>
+        ) : (
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-white/50 p-4 text-center">
+            <p className="text-xs text-zinc-400 mb-2">No style profile selected</p>
+            <a
+              href="/manage?tab=style"
+              className="inline-block rounded-full bg-indigo-500 px-4 py-1.5 text-[10px] font-semibold text-white hover:bg-indigo-600 transition"
+            >
+              Select Profile
+            </a>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
