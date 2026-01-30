@@ -51,7 +51,7 @@ class ClassificationRule(Base, TimestampMixin):
 
 class TagRule(Base, TimestampMixin):
     """Rules for tag interactions (conflict, requires).
-    
+
     Supports both tag-level and category-level conflicts:
     - Tag-level: source_tag_id and target_tag_id are set
     - Category-level: source_category and target_category are set

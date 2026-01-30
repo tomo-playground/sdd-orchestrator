@@ -20,8 +20,8 @@ def split_prompt_tokens(prompt: str) -> list[str]:
 
 def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
     """Merge two lists of prompt tokens, removing duplicates while preserving order.
-    
-    Uses normalize_prompt_token for deduplication, so "tag" and "(tag:1.2)" 
+
+    Uses normalize_prompt_token for deduplication, so "tag" and "(tag:1.2)"
     are treated as the same tag. The last occurrence wins (override).
     """
     from services.keywords.core import normalize_prompt_token

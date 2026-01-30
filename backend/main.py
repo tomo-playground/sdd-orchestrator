@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from routers import (
+    activity_logs_router,
     admin_router,
     assets_router,
     avatar_router,
@@ -14,7 +15,6 @@ from routers import (
     cleanup_router,
     controlnet_router,
     evaluation_router,
-    generation_logs_router,
     keywords_router,
     loras_router,
     presets_router,
@@ -96,7 +96,7 @@ app.include_router(characters_router)
 app.include_router(cleanup_router)
 app.include_router(controlnet_router)
 app.include_router(evaluation_router)
-app.include_router(generation_logs_router)
+app.include_router(activity_logs_router)
 app.include_router(keywords_router)
 app.include_router(loras_router)
 app.include_router(presets_router)

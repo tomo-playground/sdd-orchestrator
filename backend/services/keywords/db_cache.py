@@ -100,7 +100,7 @@ class TagAliasCache:
             return
 
         try:
-            aliases = db.query(TagAlias).filter(TagAlias.active == True).all()
+            aliases = db.query(TagAlias).filter(TagAlias.active).all()
 
             count = 0
             for alias in aliases:
@@ -160,7 +160,7 @@ class TagRuleCache:
                 .join(TargetTag, TagRule.target_tag_id == TargetTag.id)
                 .filter(
                     TagRule.rule_type == "conflict",
-                    TagRule.active == True,
+                    TagRule.active,
                     TagRule.source_tag_id.isnot(None)
                 )
                 .all()
@@ -180,7 +180,7 @@ class TagRuleCache:
                 db.query(TagRule)
                 .filter(
                     TagRule.rule_type == "conflict",
-                    TagRule.active == True,
+                    TagRule.active,
                     TagRule.source_category.isnot(None)
                 )
                 .all()

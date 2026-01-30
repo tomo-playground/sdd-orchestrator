@@ -89,7 +89,7 @@ async def main():
     try:
         # Get characters without preview images
         characters = db.query(Character).filter(
-            (Character.preview_image_url == None) | (Character.preview_image_url == "")
+            (Character.preview_image_url is None) | (Character.preview_image_url == "")
         ).all()
 
         if not characters:

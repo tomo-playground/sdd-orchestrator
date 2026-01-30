@@ -8,7 +8,7 @@ from models.base import Base, TimestampMixin
 
 class TagAlias(Base, TimestampMixin):
     """Tag aliases for replacing risky/invalid tags with safe alternatives.
-    
+
     Examples:
     - "medium shot" → "cowboy_shot"
     - "close up" → "close-up"

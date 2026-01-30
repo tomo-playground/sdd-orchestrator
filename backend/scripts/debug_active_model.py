@@ -13,7 +13,7 @@ def main():
     db = SessionLocal()
     try:
         # Find active models
-        active_models = db.query(SDModel).filter(SDModel.is_active == True).all()
+        active_models = db.query(SDModel).filter(SDModel.is_active).all()
 
         if not active_models:
             print("No active models found in database.")

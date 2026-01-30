@@ -81,7 +81,7 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
 def list_storyboards(db: Session = Depends(get_db)):
     """List all storyboards."""
     storyboards = db.query(Storyboard).all()
-    
+
     return [
         {
             "id": s.id,

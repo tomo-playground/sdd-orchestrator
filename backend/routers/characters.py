@@ -23,7 +23,7 @@ async def list_characters(db: Session = Depends(get_db)):
 
     # Pre-fetch all LoRAs to avoid N+1
     all_loras = db.query(LoRA).all()
-    lora_map = {l.id: l for l in all_loras}
+    lora_map = {lora.id: lora for lora in all_loras}
 
     # Map tag metadata and enrich LoRAs
     for char in characters:
@@ -64,10 +64,10 @@ async def get_character(character_id: int, db: Session = Depends(get_db)):
 
     if character.loras:
         # Enrich LoRA data
-        lora_ids = [l.get("lora_id") for l in character.loras if l.get("lora_id")]
+        lora_ids = [lora_item.get("lora_id") for lora_item in character.loras if lora_item.get("lora_id")]
         if lora_ids:
             lora_objs = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
-            lora_map = {l.id: l for l in lora_objs}
+            lora_map = {lora_obj.id: lora_obj for lora_obj in lora_objs}
 
             enriched = []
             for l_data in character.loras:

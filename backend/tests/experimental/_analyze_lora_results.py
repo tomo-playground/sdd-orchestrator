@@ -43,7 +43,7 @@ except:
 
 positions = [(0, 0), (512, 0), (0, 768 + 50), (512, 768 + 50)]
 
-for (title, path), (x, y) in zip(images, positions):
+for (title, path), (x, y) in zip(images, positions, strict=False):
     if path.exists():
         img = Image.open(path)
         # 제목 추가

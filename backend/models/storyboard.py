@@ -27,4 +27,4 @@ class Storyboard(Base, TimestampMixin):
     default_style_profile_id: Mapped[int | None] = mapped_column(Integer)
 
     # Relationship to scenes
-    scenes: Mapped[list["Scene"]] = relationship("Scene", backref="storyboard", cascade="all, delete-orphan")
+    scenes: Mapped[list[Scene]] = relationship("Scene", backref="storyboard", cascade="all, delete-orphan")

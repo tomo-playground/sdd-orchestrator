@@ -211,7 +211,7 @@ def _save_generation_log(
     seed: int | None,
 ) -> None:
     """Save generation log for analytics (non-blocking).
- 
+
     Args:
         request: Original generation request
         prompt: Normalized prompt used for generation
@@ -221,14 +221,13 @@ def _save_generation_log(
         seed: Actual seed used (or None)
     """
     try:
-        from datetime import date
 
         from database import SessionLocal
         from models.activity_log import ActivityLog
 
         # Use storyboard_id from request
         storyboard_id = request.storyboard_id
-        
+
         scene_index = request.scene_index if request.scene_index is not None else 0
 
         db = SessionLocal()

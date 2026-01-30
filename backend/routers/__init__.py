@@ -1,5 +1,6 @@
 """API Routers for Shorts Producer Backend."""
 
+from .activity_logs import router as activity_logs_router
 from .admin import router as admin_router
 from .assets import router as assets_router
 from .avatar import router as avatar_router
@@ -7,7 +8,6 @@ from .characters import router as characters_router
 from .cleanup import router as cleanup_router
 from .controlnet import router as controlnet_router
 from .evaluation import router as evaluation_router
-from .generation_logs import router as generation_logs_router
 from .keywords import router as keywords_router
 from .loras import router as loras_router
 from .presets import router as presets_router
@@ -43,5 +43,5 @@ __all__ = [
     "tags_router",
     "video_router",
     "evaluation_router",
-    "generation_logs_router",
+    "activity_logs_router",
 ]

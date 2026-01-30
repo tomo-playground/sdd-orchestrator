@@ -56,14 +56,14 @@ class TagFilterCache:
             # Load ignore tokens
             ignore_filters = db.query(TagFilter).filter(
                 TagFilter.filter_type == 'ignore',
-                TagFilter.active == True
+                TagFilter.active
             ).all()
             cls._ignore_tokens = frozenset(f.tag_name for f in ignore_filters)
 
             # Load skip tags
             skip_filters = db.query(TagFilter).filter(
                 TagFilter.filter_type == 'skip',
-                TagFilter.active == True
+                TagFilter.active
             ).all()
             cls._skip_tags = frozenset(f.tag_name for f in skip_filters)
 

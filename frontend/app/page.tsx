@@ -1852,7 +1852,7 @@ export default function Home() {
         let generationLogId: number | undefined;
         try {
           const projectName = (topic.trim().replace(/\s+/g, "_") || "my_shorts").substring(0, 200);
-          const logRes = await axios.post(`${API_BASE}/generation-logs`, {
+          const logRes = await axios.post(`${API_BASE}/activity-logs`, {
             project_name: projectName,
             scene_id: scene.id,
             prompt,
@@ -2317,7 +2317,7 @@ export default function Home() {
     }
     setMarkingStatusSceneId(scene.id);
     try {
-      await axios.patch(`${API_BASE}/generation-logs/${scene.generation_log_id}/status`, {
+      await axios.patch(`${API_BASE}/activity-logs/${scene.generation_log_id}/status`, {
         status: "success",
       });
       showToast("Marked as success 👍", "success");
@@ -2335,7 +2335,7 @@ export default function Home() {
     }
     setMarkingStatusSceneId(scene.id);
     try {
-      await axios.patch(`${API_BASE}/generation-logs/${scene.generation_log_id}/status`, {
+      await axios.patch(`${API_BASE}/activity-logs/${scene.generation_log_id}/status`, {
         status: "fail",
       });
       showToast("Marked as fail 👎", "error");

@@ -195,7 +195,7 @@ async def compose_prompt(request: PromptComposeRequest):
     # Standard Mode metadata (Static Weights)
     elif request.loras:
         result_metadata["lora_weights"] = {
-            l.name: l.weight for l in request.loras
+            lora.name: lora.weight for lora in request.loras
         }
 
     logger.info(

@@ -92,7 +92,7 @@ def main():
             # Find sitting + standing
             sitting_standing = None
             for rule in result["suggested_rules"]:
-                if set([rule["tag1"], rule["tag2"]]) == {"sitting", "standing"}:
+                if {rule["tag1"], rule["tag2"]} == {"sitting", "standing"}:
                     sitting_standing = rule
                     break
 

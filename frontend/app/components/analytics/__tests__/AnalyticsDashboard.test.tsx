@@ -191,7 +191,7 @@ describe("AnalyticsDashboard", () => {
 
     await waitFor(() => {
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining("/generation-logs/success-combinations"),
+        expect.stringContaining("/activity-logs/success-combinations"),
         expect.objectContaining({
           params: expect.objectContaining({
             storyboard_id: 1,

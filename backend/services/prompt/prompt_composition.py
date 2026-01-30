@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Literal
 
 from config import logger
 from services.keywords import CATEGORY_PATTERNS, CATEGORY_PRIORITY
+from services.keywords.db_cache import TagCategoryCache, TagRuleCache
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -34,9 +35,6 @@ _TOKEN_TO_CATEGORY: dict[str, str] = {}
 for _category, _tokens in CATEGORY_PATTERNS.items():
     for _token in _tokens:
         _TOKEN_TO_CATEGORY[_token.lower()] = _category
-
-
-from services.keywords.db_cache import TagCategoryCache, TagRuleCache
 
 
 @lru_cache(maxsize=1024)

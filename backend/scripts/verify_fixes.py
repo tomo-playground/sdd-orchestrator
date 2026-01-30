@@ -85,7 +85,6 @@ def verify_prompt_logic():
 
     # We expect "(happy:1.2)" to stay, and "happy" to be removed because (happy:1.2) normalizes to 'happy'
     # Same for smile.
-    expected_contains = ["(happy:1.2)", "smile"]
     # Note: 'smile' comes before '(smile:0.8)' so 'smile' stays if we iterate in order and 'smile' is first seen?
     # Wait, filter_conflicting_tokens iterates and adds to seen.
     # 1. (happy:1.2) -> seen 'happy'

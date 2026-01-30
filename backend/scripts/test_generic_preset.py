@@ -22,8 +22,8 @@ def main():
             return
 
         # Get tag names
-        i_tags = [t.name for t in db.query(Tag).filter(Tag.id.in_(char.identity_tags or [])).all()]
-        c_tags = [t.name for t in db.query(Tag).filter(Tag.id.in_(char.clothing_tags or [])).all()]
+        [t.name for t in db.query(Tag).filter(Tag.id.in_(char.identity_tags or [])).all()]
+        [t.name for t in db.query(Tag).filter(Tag.id.in_(char.clothing_tags or [])).all()]
 
         # Test Scene
         scene_prompt = "1girl, smiling, holding a coffee cup, sitting in a cozy cafe, soft sunlight, highly detailed"

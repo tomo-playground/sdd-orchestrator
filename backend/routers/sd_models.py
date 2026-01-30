@@ -28,7 +28,7 @@ async def list_sd_models(active_only: bool = True, db: Session = Depends(get_db)
     """List all SD models."""
     query = db.query(SDModel)
     if active_only:
-        query = query.filter(SDModel.is_active == True)
+        query = query.filter(SDModel.is_active)
     models = query.order_by(SDModel.name).all()
     logger.info("📋 [SDModels] Listed %d models", len(models))
     return models
@@ -103,7 +103,7 @@ async def list_embeddings(
     """List all embeddings."""
     query = db.query(Embedding)
     if active_only:
-        query = query.filter(Embedding.is_active == True)
+        query = query.filter(Embedding.is_active)
     if embedding_type:
         query = query.filter(Embedding.embedding_type == embedding_type)
     embeddings = query.order_by(Embedding.name).all()

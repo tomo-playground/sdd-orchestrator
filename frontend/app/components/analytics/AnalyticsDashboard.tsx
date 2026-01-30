@@ -56,7 +56,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
       }
 
       const response = await axios.get<SuccessCombinationsResponse>(
-        `${API_BASE}/generation-logs/success-combinations`,
+        `${API_BASE}/activity-logs/success-combinations`,
         { params }
       );
       setData(response.data);

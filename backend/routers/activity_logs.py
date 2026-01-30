@@ -7,7 +7,7 @@ from config import logger
 from database import SessionLocal
 from models.activity_log import ActivityLog
 
-router = APIRouter(prefix="/generation-logs", tags=["generation-logs"])
+router = APIRouter(prefix="/activity-logs", tags=["activity-logs"])
 
 
 class CreateActivityLogRequest(BaseModel):
@@ -420,7 +420,7 @@ def suggest_conflict_rules(
             }
 
         # Calculate fail logs
-        success_logs = [log for log in logs if log.status == "success" or (log.match_rate and log.match_rate >= 0.7)]
+        [log for log in logs if log.status == "success" or (log.match_rate and log.match_rate >= 0.7)]
         fail_logs = [log for log in logs if log.status == "fail" or (log.match_rate and log.match_rate < 0.7)]
 
         # Find tag pairs with high fail rate
@@ -686,7 +686,7 @@ def get_success_combinations(
             # Calculate average success rate
             avg_success_rate = sum(
                 next((t["success_rate"] for t in combinations_by_category.get(cat, []) if t["tag"] == tag), 0)
-                for cat, tag in zip(combination_categories, combination_tags)
+                for cat, tag in zip(combination_categories, combination_tags, strict=False)
             ) / len(combination_tags) if combination_tags else 0
 
             suggested_combinations.append({

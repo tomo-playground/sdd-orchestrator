@@ -112,7 +112,7 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
         new_identity_tag_names: list[str] = [] # Use names for easier management, convert to IDs at end
         new_clothing_tag_names: list[str] = [] # Use names for easier management, convert to IDs at end
 
-        for token in sorted(list(all_collected_tokens)): # Sort for consistent order
+        for token in sorted(all_collected_tokens): # Sort for consistent order
             if not token:
                 continue
 

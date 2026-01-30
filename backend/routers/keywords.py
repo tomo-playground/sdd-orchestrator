@@ -66,7 +66,7 @@ async def list_tags(
     db: Session = Depends(get_db),
 ):
     """List tags from database with filtering and pagination.
-    
+
     Args:
         category: Filter by category (e.g., 'layer_0', 'layer_1', etc.)
         search: Search tags by name

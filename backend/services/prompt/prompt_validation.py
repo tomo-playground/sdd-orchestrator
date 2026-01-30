@@ -208,7 +208,6 @@ def check_tag_conflicts(tags: list[str], db: Session) -> dict:
 
     # Get tag IDs from DB
     tag_objects = db.query(Tag).filter(Tag.name.in_(tag_names)).all()
-    tag_id_map = {tag.name: tag.id for tag in tag_objects}
     tag_name_map = {tag.id: tag.name for tag in tag_objects}
 
     # Get all conflict rules

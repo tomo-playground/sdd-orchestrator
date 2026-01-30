@@ -90,7 +90,7 @@ async def fetch_embeddings(client, db):
         loaded = data.get("loaded", {})
         count = 0
 
-        for name, info in loaded.items():
+        for name, _info in loaded.items():
             # Check if exists
             existing = db.query(Embedding).filter(Embedding.name == name).first()
             if not existing:

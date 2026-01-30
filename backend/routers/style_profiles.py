@@ -16,7 +16,7 @@ async def list_style_profiles(active_only: bool = True, db: Session = Depends(ge
     """List all style profiles."""
     query = db.query(StyleProfile)
     if active_only:
-        query = query.filter(StyleProfile.is_active == True)
+        query = query.filter(StyleProfile.is_active)
     profiles = query.order_by(StyleProfile.name).all()
     logger.info("📋 [StyleProfiles] Listed %d profiles", len(profiles))
     return profiles
@@ -25,7 +25,7 @@ async def list_style_profiles(active_only: bool = True, db: Session = Depends(ge
 @router.get("/default")
 async def get_default_profile(db: Session = Depends(get_db)):
     """Get the default style profile with full details."""
-    profile = db.query(StyleProfile).filter(StyleProfile.is_default == True).first()
+    profile = db.query(StyleProfile).filter(StyleProfile.is_default).first()
     if not profile:
         raise HTTPException(status_code=404, detail="No default profile set")
     return _build_full_profile(db, profile)
@@ -114,7 +114,7 @@ async def create_style_profile(data: StyleProfileCreate, db: Session = Depends(g
 
     # If this is set as default, unset other defaults
     if data.is_default:
-        db.query(StyleProfile).filter(StyleProfile.is_default == True).update({"is_default": False})
+        db.query(StyleProfile).filter(StyleProfile.is_default).update({"is_default": False})
 
     profile = StyleProfile(**profile_data)
     db.add(profile)
@@ -139,7 +139,7 @@ async def update_style_profile(profile_id: int, data: StyleProfileUpdate, db: Se
 
     # If setting as default, unset other defaults
     if update_data.get("is_default"):
-        db.query(StyleProfile).filter(StyleProfile.is_default == True, StyleProfile.id != profile_id).update(
+        db.query(StyleProfile).filter(StyleProfile.is_default, StyleProfile.id != profile_id).update(
             {"is_default": False}
         )
 

@@ -23,8 +23,8 @@ def populate_tags():
         # Fetch tags missing ko_name or description
         print("🔍 Fetching incomplete tags...")
         tags_to_update = session.query(Tag).filter(
-            (Tag.ko_name == None) | (Tag.ko_name == "") |
-            (Tag.description == None) | (Tag.description == "")
+            (Tag.ko_name is None) | (Tag.ko_name == "") |
+            (Tag.description is None) | (Tag.description == "")
         ).all()
 
         total = len(tags_to_update)

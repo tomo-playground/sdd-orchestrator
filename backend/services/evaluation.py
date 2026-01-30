@@ -474,7 +474,7 @@ async def run_evaluation_batch(
 
     for test_name in request.test_names:
         for mode in modes:
-            for i in range(request.repetitions):
+            for _i in range(request.repetitions):
                 result = await run_single_evaluation(
                     test_name=test_name,
                     mode=mode,

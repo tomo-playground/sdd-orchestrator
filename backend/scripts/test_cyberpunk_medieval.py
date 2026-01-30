@@ -122,7 +122,7 @@ def main():
         # Find cyberpunk + medieval
         target_rule = None
         for rule in result["suggested_rules"]:
-            if set([rule["tag1"], rule["tag2"]]) == {"cyberpunk", "medieval"}:
+            if {rule["tag1"], rule["tag2"]} == {"cyberpunk", "medieval"}:
                 target_rule = rule
                 break
 

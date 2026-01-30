@@ -12,7 +12,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.post("/migrate-tag-rules")
 async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
     """Migrate hardcoded tag conflict rules to database.
-    
+
     This is a one-time migration endpoint to populate tag_rules table
     with conflict pairs that were previously hardcoded in prompt_composition.py.
     """
@@ -103,7 +103,7 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
 @router.post("/migrate-category-rules")
 async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
     """Migrate hardcoded category conflict rules to database.
-    
+
     This migrates CONFLICTING_CATEGORY_PAIRS that were previously hardcoded.
     """
 
@@ -174,7 +174,7 @@ async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
 @router.post("/refresh-caches")
 async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.
-    
+
     Call this after migrating data to ensure caches are up-to-date.
     """
     from services.keywords.core import TagFilterCache

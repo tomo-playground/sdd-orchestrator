@@ -37,9 +37,9 @@ def upgrade() -> None:
     for pattern in indoor_patterns:
         connection.execute(
             sa.text(f"""
-                UPDATE tags 
+                UPDATE tags
                 SET subcategory = 'indoor'
-                WHERE category = 'scene' 
+                WHERE category = 'scene'
                 AND (name LIKE '%{pattern}%' OR name = '{pattern}')
                 AND subcategory IS NULL
             """)
@@ -55,9 +55,9 @@ def upgrade() -> None:
     for pattern in outdoor_patterns:
         connection.execute(
             sa.text(f"""
-                UPDATE tags 
+                UPDATE tags
                 SET subcategory = 'outdoor'
-                WHERE category = 'scene' 
+                WHERE category = 'scene'
                 AND (name LIKE '%{pattern}%' OR name = '{pattern}')
                 AND subcategory IS NULL
             """)
@@ -72,9 +72,9 @@ def upgrade() -> None:
     for pattern in time_patterns:
         connection.execute(
             sa.text(f"""
-                UPDATE tags 
+                UPDATE tags
                 SET subcategory = 'time'
-                WHERE category = 'scene' 
+                WHERE category = 'scene'
                 AND (name LIKE '%{pattern}%' OR name = '{pattern}')
                 AND subcategory IS NULL
             """)
@@ -90,9 +90,9 @@ def upgrade() -> None:
     for pattern in clothing_patterns:
         connection.execute(
             sa.text(f"""
-                UPDATE tags 
+                UPDATE tags
                 SET subcategory = 'clothing'
-                WHERE category = 'general' 
+                WHERE category = 'general'
                 AND (name LIKE '%{pattern}%' OR name = '{pattern}')
                 AND subcategory IS NULL
             """)

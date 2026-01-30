@@ -48,8 +48,8 @@ def batch_validate(request: BatchValidateRequest):
     try:
         # Pass storyboard_id
         result = batch_validate_scenes(
-            request.scenes, 
-            db, 
+            request.scenes,
+            db,
             storyboard_id=request.storyboard_id
         )
         logger.info(

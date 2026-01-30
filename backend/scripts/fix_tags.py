@@ -44,7 +44,7 @@ def classify_existing_tags(db):
     """Classify tags that have no category or group_name."""
     # Load rules
     rules = db.execute(
-        select(ClassificationRule).where(ClassificationRule.active == True)
+        select(ClassificationRule).where(ClassificationRule.active)
     ).scalars().all()
 
     # Map rules for fast lookup
@@ -52,7 +52,7 @@ def classify_existing_tags(db):
 
     # Get tags needing classification
     tags = db.execute(
-        select(Tag).where(Tag.group_name == None)
+        select(Tag).where(Tag.group_name is None)
     ).scalars().all()
 
     print(f"🔍 Found {len(tags)} tags needing classification.")
