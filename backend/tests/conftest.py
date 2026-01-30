@@ -166,3 +166,96 @@ def client(db_session) -> TestClient:
     # Cleanup
     app.dependency_overrides.clear()
 
+
+@pytest.fixture(autouse=True)
+def init_tag_caches():
+    """Initialize tag caches with mock data for all tests.
+
+    Production caches are loaded from DB at startup; tests need mock data
+    so that cache-dependent logic (skip tags, conflicts, aliases) works.
+    """
+    from services.keywords.core import TagFilterCache
+    from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
+    from services.prompt.prompt_composition import get_token_category
+
+    # --- TagFilterCache: skip tags ---
+    TagFilterCache._initialized = True
+    TagFilterCache._skip_tags = frozenset({
+        "breasts", "medium_breasts", "large_breasts", "small_breasts", "huge_breasts",
+        "child", "male_child", "female_child", "loli", "shota",
+    })
+
+    # --- TagRuleCache: conflict rules ---
+    TagRuleCache._initialized = True
+    TagRuleCache._conflicts = {
+        # hair_length conflicts
+        "short_hair": {"long_hair", "medium_hair", "very_long_hair"},
+        "long_hair": {"short_hair", "medium_hair", "very_long_hair"},
+        "medium_hair": {"short_hair", "long_hair", "very_long_hair"},
+        "very_long_hair": {"short_hair", "long_hair", "medium_hair"},
+        # camera shot conflicts (mutual exclusion among all camera tokens)
+        "full_body": {"medium_shot", "close-up", "upper_body", "cowboy_shot", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
+        "upper_body": {"full_body", "cowboy_shot", "close-up", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
+        "cowboy_shot": {"full_body", "upper_body", "close-up", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
+        "close-up": {"full_body", "upper_body", "cowboy_shot", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
+        "portrait": {"full_body", "upper_body", "cowboy_shot", "close-up", "wide_shot", "from_above", "from_below", "side_view"},
+        "wide_shot": {"full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "from_above", "from_below", "side_view"},
+        "medium_shot": {"full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
+        # camera angle conflicts
+        "from_above": {"from_below", "side_view", "full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot"},
+        "from_below": {"from_above", "side_view", "full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot"},
+        "side_view": {"from_above", "from_below", "full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot"},
+        # expression conflicts (opposing emotions conflict)
+        "smile": {"angry", "crying", "sad", "frown"},
+        "angry": {"smile", "happy", "laughing", "crying", "sad"},
+        "crying": {"smile", "happy", "laughing", "angry", "sad", "grin"},
+        "laughing": {"crying", "sad", "angry", "frown"},
+        "sad": {"smile", "happy", "laughing", "angry", "crying"},
+        "frown": {"smile", "laughing", "happy"},
+        "happy": {"sad", "angry", "crying", "frown"},
+        # gaze conflicts (all gaze directions mutually exclusive)
+        "looking_at_viewer": {"looking_away", "looking_down", "looking_up", "looking_back", "looking_to_the_side", "eyes_closed", "closed_eyes"},
+        "looking_away": {"looking_at_viewer", "looking_down", "looking_up", "looking_back", "looking_to_the_side"},
+        "looking_down": {"looking_at_viewer", "looking_away", "looking_up", "looking_back", "looking_to_the_side"},
+        "looking_up": {"looking_at_viewer", "looking_away", "looking_down", "looking_back", "looking_to_the_side"},
+        "looking_back": {"looking_at_viewer", "looking_away", "looking_down", "looking_up", "looking_to_the_side"},
+        "looking_to_the_side": {"looking_at_viewer", "looking_away", "looking_down", "looking_up", "looking_back"},
+        "eyes_closed": {"looking_at_viewer"},
+        "closed_eyes": {"looking_at_viewer"},
+        # pose conflicts
+        "standing": {"sitting", "lying", "lying_down", "kneeling"},
+        "sitting": {"standing", "lying", "lying_down"},
+        "lying": {"standing", "sitting"},
+        "lying_down": {"standing", "sitting"},
+        "kneeling": {"standing"},
+    }
+    TagRuleCache._category_conflicts = {}
+
+    # --- TagAliasCache: alias replacements ---
+    TagAliasCache._initialized = True
+    TagAliasCache._cache = {
+        "medium_shot": "cowboy_shot",
+        "medium shot": "cowboy_shot",
+    }
+
+    # --- TagCategoryCache: ensure NOT initialized so pattern matching is used ---
+    TagCategoryCache._initialized = False
+    TagCategoryCache._cache = {}
+
+    # Clear lru_cache on get_token_category to prevent stale results
+    get_token_category.cache_clear()
+
+    yield
+
+    # Teardown
+    TagFilterCache._initialized = False
+    TagFilterCache._skip_tags = frozenset()
+    TagRuleCache._initialized = False
+    TagRuleCache._conflicts = {}
+    TagRuleCache._category_conflicts = {}
+    TagAliasCache._initialized = False
+    TagAliasCache._cache = {}
+    TagCategoryCache._initialized = False
+    TagCategoryCache._cache = {}
+    get_token_category.cache_clear()
+

@@ -1,10 +1,11 @@
 """Activity log routes for analytics and pattern learning."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from config import logger
-from database import SessionLocal
+from database import get_db
 from models.activity_log import ActivityLog
 
 router = APIRouter(prefix="/activity-logs", tags=["activity-logs"])
@@ -32,7 +33,7 @@ class UpdateStatusRequest(BaseModel):
 
 
 @router.post("")
-def create_activity_log(request: CreateActivityLogRequest):
+def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends(get_db)):
     """Create a new activity log entry.
 
     Example request:
@@ -62,7 +63,6 @@ def create_activity_log(request: CreateActivityLogRequest):
     }
     ```
     """
-    db = SessionLocal()
     try:
         log = ActivityLog(
             storyboard_id=request.storyboard_id,
@@ -97,19 +97,16 @@ def create_activity_log(request: CreateActivityLogRequest):
         db.rollback()
         logger.exception("Failed to create activity log")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/storyboard/{storyboard_id}")
-def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: int = 100):
+def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: int = 100, db: Session = Depends(get_db)):
     """Get activity logs for a storyboard.
 
     Query parameters:
     - status: Filter by status (success, fail, pending)
     - limit: Max number of results (default: 100)
     """
-    db = SessionLocal()
     try:
         query = db.query(ActivityLog).filter(ActivityLog.storyboard_id == storyboard_id)
 
@@ -141,18 +138,16 @@ def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: in
     except Exception as exc:
         logger.exception(f"Failed to get logs for storyboard {storyboard_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/{storyboard_id}/logs")
-def get_storyboard_logs_v2(storyboard_id: int, status: str | None = None, limit: int = 100):
+def get_storyboard_logs_v2(storyboard_id: int, status: str | None = None, limit: int = 100, db: Session = Depends(get_db)):
     """Compatibility alias for get_storyboard_logs."""
-    return get_storyboard_logs(storyboard_id, status, limit)
+    return get_storyboard_logs(storyboard_id, status, limit, db)
 
 
 @router.patch("/{log_id}/status")
-def update_log_status(log_id: int, request: UpdateStatusRequest):
+def update_log_status(log_id: int, request: UpdateStatusRequest, db: Session = Depends(get_db)):
     """Update the status of an activity log.
 
     Example request:
@@ -164,7 +159,6 @@ def update_log_status(log_id: int, request: UpdateStatusRequest):
 
     Returns updated log.
     """
-    db = SessionLocal()
     try:
         log = db.query(ActivityLog).filter(ActivityLog.id == log_id).first()
 
@@ -188,14 +182,11 @@ def update_log_status(log_id: int, request: UpdateStatusRequest):
         db.rollback()
         logger.exception(f"Failed to update log {log_id} status")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.delete("/{log_id}")
-def delete_log(log_id: int):
+def delete_log(log_id: int, db: Session = Depends(get_db)):
     """Delete an activity log."""
-    db = SessionLocal()
     try:
         log = db.query(ActivityLog).filter(ActivityLog.id == log_id).first()
 
@@ -214,8 +205,6 @@ def delete_log(log_id: int):
         db.rollback()
         logger.exception(f"Failed to delete log {log_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/analyze/patterns")
@@ -223,9 +212,9 @@ def analyze_patterns(
     storyboard_id: int,
     min_occurrences: int = 3,
     match_rate_threshold: float = 0.7,
+    db: Session = Depends(get_db),
 ):
     """Analyze activity patterns for a storyboard."""
-    db = SessionLocal()
     try:
         # Base query
         query = db.query(ActivityLog).filter(
@@ -365,8 +354,6 @@ def analyze_patterns(
     except Exception as exc:
         logger.exception("Failed to analyze patterns")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/suggest-conflict-rules")
@@ -374,6 +361,7 @@ def suggest_conflict_rules(
     storyboard_id: int,
     min_occurrences: int = 5,
     fail_rate_threshold: float = 0.6,
+    db: Session = Depends(get_db),
 ):
     """Suggest new conflict rules based on activity log patterns.
 
@@ -403,7 +391,6 @@ def suggest_conflict_rules(
     }
     ```
     """
-    db = SessionLocal()
     try:
         from models.tag import Tag, TagRule
 
@@ -509,8 +496,6 @@ def suggest_conflict_rules(
     except Exception as exc:
         logger.exception("Failed to suggest conflict rules")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/success-combinations")
@@ -519,6 +504,7 @@ def get_success_combinations(
     match_rate_threshold: float = 0.7,
     min_occurrences: int = 3,
     top_n_per_category: int = 5,
+    db: Session = Depends(get_db),
 ):
     """Generate optimal tag combinations based on successful activities.
 
@@ -562,7 +548,6 @@ def get_success_combinations(
     }
     ```
     """
-    db = SessionLocal()
     try:
         from models.tag import Tag, TagRule
 
@@ -717,8 +702,6 @@ def get_success_combinations(
     except Exception as exc:
         logger.exception("Failed to generate success combinations")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 class ApplyConflictRulesRequest(BaseModel):
@@ -728,7 +711,7 @@ class ApplyConflictRulesRequest(BaseModel):
 
 
 @router.post("/apply-conflict-rules")
-def apply_conflict_rules(request: ApplyConflictRulesRequest):
+def apply_conflict_rules(request: ApplyConflictRulesRequest, db: Session = Depends(get_db)):
     """Apply suggested conflict rules to the database.
 
     Creates bidirectional conflict rules for each tag pair.
@@ -755,7 +738,6 @@ def apply_conflict_rules(request: ApplyConflictRulesRequest):
     }
     ```
     """
-    db = SessionLocal()
     try:
         from models.tag import Tag, TagRule
 
@@ -836,5 +818,3 @@ def apply_conflict_rules(request: ApplyConflictRulesRequest):
         db.rollback()
         logger.exception("Failed to apply conflict rules")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()

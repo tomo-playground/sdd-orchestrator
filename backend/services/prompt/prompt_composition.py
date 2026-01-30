@@ -635,6 +635,11 @@ def compose_prompt_tokens(
     seen_normalized = set()
 
     for t in tokens:
+        # Preserve LoRA tokens as-is (they are extracted in Step 0b)
+        if t.startswith("<lora:"):
+            unique_tokens.append(t)
+            continue
+
         norm = normalize_prompt_token(t)
         if norm and norm not in seen_normalized:
             # If the original has weights or parens, keep it to preserve emphasis

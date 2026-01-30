@@ -34,7 +34,7 @@ class TestNormalizeTagSpaces:
             (["looking at viewer", "green_hair"], ["looking_at_viewer", "green_hair"]),
             # Extra whitespace handling
             (["  thumbs up  "], ["thumbs_up"]),
-            (["  looking  at  viewer  "], ["looking__at__viewer"]),
+            (["  looking  at  viewer  "], ["looking_at_viewer"]),
         ],
     )
     def test_space_to_underscore(self, input_tags, expected):

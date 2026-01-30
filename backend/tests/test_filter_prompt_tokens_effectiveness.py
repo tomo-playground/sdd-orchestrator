@@ -226,4 +226,5 @@ class TestEffectivenessFiltering:
         assert "smile" in result
         assert "surprised" in result
         assert "standing" in result
-        assert "medium_shot" in result or "medium shot" in result
+        # medium_shot is alias-replaced to cowboy_shot (TagAliasCache)
+        assert "cowboy_shot" in result or "medium_shot" in result

@@ -11,9 +11,14 @@ def test_db_isolation_activity_logs(db_session):
     initial_count = db_session.query(ActivityLog).count()
     assert initial_count == 0, "Test DB should start empty"
 
+    # Create parent storyboard (FK requirement)
+    storyboard = Storyboard(title="Test")
+    db_session.add(storyboard)
+    db_session.commit()
+
     # Create test data
     log = ActivityLog(
-        storyboard_id=999,
+        storyboard_id=storyboard.id,
         scene_id=0,
         character_id=1,
         prompt="test prompt",
@@ -38,8 +43,6 @@ def test_db_isolation_storyboards(db_session):
     # Create test data
     storyboard = Storyboard(
         title="Test Storyboard",
-        topic="Test Topic",
-        duration=30,
     )
     db_session.add(storyboard)
     db_session.commit()
@@ -59,24 +62,29 @@ def test_db_independence_between_tests(db_session):
     assert storyboard_count == 0, "Fresh DB should have no storyboards"
 
 
-def test_api_endpoint_uses_test_db(client):
+def test_api_endpoint_uses_test_db(client, db_session):
     """Verify API endpoints use test DB through dependency injection."""
+    # Create parent storyboard (FK requirement)
+    storyboard = Storyboard(title="API Test")
+    db_session.add(storyboard)
+    db_session.commit()
+
     # Create via API
     response = client.post(
         "/activity-logs",
         json={
-            "storyboard_id": 1,
+            "storyboard_id": storyboard.id,
             "scene_id": 0,
             "character_id": 5,
             "prompt": "1girl, smile",
             "status": "success",
         },
     )
-    assert response.status_code == 201, f"Failed: {response.text}"
+    assert response.status_code == 200, f"Failed: {response.text}"
 
     # Verify it's in test DB only
     data = response.json()
     assert "id" in data
     assert data["character_id"] == 5
 
-    # Production DB remains untouched ✅
+    # Production DB remains untouched

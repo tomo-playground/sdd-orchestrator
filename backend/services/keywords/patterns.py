@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .core import SKIP_TAGS
+from .core import TagFilterCache
 
 # --- Category suggestion patterns ---
 CATEGORY_PATTERNS: dict[str, list[str]] = {
@@ -267,7 +267,7 @@ def suggest_category_for_tag(tag: str) -> tuple[str, float]:
     """Suggest a category for a tag based on patterns."""
     # Always normalize to underscores for Danbooru standard
     normalized = tag.lower().replace(" ", "_").strip()
-    if normalized in SKIP_TAGS:
+    if normalized in TagFilterCache.get_skip_tags():
         return ("skip", 1.0)
 
     best_category = ""
