@@ -262,8 +262,26 @@ export default function Home() {
       } else {
         setCharacterPromptMode("auto");
       }
+
+      // 23.8 Character Consistency: Auto-set IP-Adapter reference if available
+      if (charFull?.name && referenceImages.length > 0) {
+        const matchingRef = referenceImages.find(ref => ref.character_key === charFull.name);
+        if (matchingRef) {
+          setIpAdapterReference(matchingRef.character_key);
+          // Use preset weight if available, otherwise use character's ip_adapter_weight or default
+          if (matchingRef.preset?.weight) {
+            setIpAdapterWeight(matchingRef.preset.weight);
+          } else if (charFull.ip_adapter_weight) {
+            setIpAdapterWeight(charFull.ip_adapter_weight);
+          } else {
+            setIpAdapterWeight(0.75); // Optimal from experiments
+          }
+          // Auto-enable IP-Adapter
+          setUseIpAdapter(true);
+        }
+      }
     });
-  }, [selectedCharacterId, getCharacterFull]);
+  }, [selectedCharacterId, getCharacterFull, referenceImages]);
 
   // Scene Tags hook
   const { tags, tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
