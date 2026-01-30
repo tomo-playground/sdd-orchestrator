@@ -1,14 +1,28 @@
-"""Tests for quality measurement API endpoints."""
-
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 
 
+def _create_storyboard(client: TestClient) -> int:
+    """Create a test storyboard and return its ID."""
+    response = client.post(
+        "/storyboards",
+        json={
+            "title": f"Test Storyboard {uuid.uuid4().hex[:4]}",
+            "description": "testing",
+            "scenes": [],
+        },
+    )
+    assert response.status_code == 200
+    return response.json()["storyboard_id"]
+
+
 def test_batch_validate_empty_scenes(client: TestClient):
     """Test batch validation with empty scenes list."""
+    storyboard_id = _create_storyboard(client)
     response = client.post(
         "/quality/batch-validate",
-        json={"project_name": "test_project", "scenes": []},
+        json={"storyboard_id": storyboard_id, "scenes": []},
     )
     assert response.status_code == 200
     data = response.json()
@@ -20,10 +34,11 @@ def test_batch_validate_empty_scenes(client: TestClient):
 
 def test_batch_validate_missing_images(client: TestClient):
     """Test batch validation with scenes that have no images."""
+    storyboard_id = _create_storyboard(client)
     response = client.post(
         "/quality/batch-validate",
         json={
-            "project_name": "test_project",
+            "storyboard_id": storyboard_id,
             "scenes": [
                 {"scene_id": 1, "image_url": None, "prompt": "test prompt"},
                 {"scene_id": 2, "image_url": "", "prompt": "test prompt 2"},
@@ -38,10 +53,11 @@ def test_batch_validate_missing_images(client: TestClient):
 
 def test_batch_validate_nonexistent_images(client: TestClient):
     """Test batch validation with non-existent image paths."""
+    storyboard_id = _create_storyboard(client)
     response = client.post(
         "/quality/batch-validate",
         json={
-            "project_name": "test_project",
+            "storyboard_id": storyboard_id,
             "scenes": [
                 {
                     "scene_id": 1,
@@ -58,9 +74,9 @@ def test_batch_validate_nonexistent_images(client: TestClient):
     assert data["validated"] == 0
 
 
-def test_quality_summary_empty_project(client: TestClient):
-    """Test quality summary for non-existent project."""
-    response = client.get("/quality/summary/nonexistent_project_12345")
+def test_quality_summary_empty_storyboard(client: TestClient):
+    """Test quality summary for non-existent storyboard."""
+    response = client.get("/quality/summary/99999")
     assert response.status_code == 200
     data = response.json()
     assert data["total_scenes"] == 0
@@ -71,11 +87,10 @@ def test_quality_summary_empty_project(client: TestClient):
     assert data["scores"] == []
 
 
-def test_quality_alerts_empty_project(client: TestClient):
-    """Test quality alerts for non-existent project."""
-    response = client.post(
-        "/quality/alerts",
-        json={"project_name": "nonexistent_project_12345", "threshold": 0.7},
+def test_quality_alerts_empty_storyboard(client: TestClient):
+    """Test quality alerts for non-existent storyboard."""
+    response = client.get(
+        "/quality/alerts/99999?threshold=0.7",
     )
     assert response.status_code == 200
     data = response.json()
@@ -87,9 +102,9 @@ def test_quality_alerts_empty_project(client: TestClient):
 
 def test_quality_alerts_default_threshold(client: TestClient):
     """Test quality alerts with default threshold (0.7)."""
-    response = client.post(
-        "/quality/alerts",
-        json={"project_name": "test_project"},
+    storyboard_id = _create_storyboard(client)
+    response = client.get(
+        f"/quality/alerts/{storyboard_id}",
     )
     assert response.status_code == 200
     data = response.json()
@@ -99,9 +114,9 @@ def test_quality_alerts_default_threshold(client: TestClient):
 
 def test_quality_alerts_custom_threshold(client: TestClient):
     """Test quality alerts with custom threshold."""
-    response = client.post(
-        "/quality/alerts",
-        json={"project_name": "test_project", "threshold": 0.5},
+    storyboard_id = _create_storyboard(client)
+    response = client.get(
+        f"/quality/alerts/{storyboard_id}?threshold=0.5",
     )
     assert response.status_code == 200
     data = response.json()
@@ -112,7 +127,7 @@ def test_quality_alerts_custom_threshold(client: TestClient):
 
 def test_batch_validate_request_validation(client: TestClient):
     """Test batch validate request validation."""
-    # Missing project_name
+    # Missing storyboard_id
     response = client.post(
         "/quality/batch-validate",
         json={"scenes": []},
@@ -129,7 +144,8 @@ def test_batch_validate_request_validation(client: TestClient):
 
 def test_quality_summary_route_format(client: TestClient):
     """Test quality summary returns correct structure."""
-    response = client.get("/quality/summary/any_project")
+    storyboard_id = _create_storyboard(client)
+    response = client.get(f"/quality/summary/{storyboard_id}")
     assert response.status_code == 200
     data = response.json()
 
@@ -156,9 +172,9 @@ def test_quality_summary_route_format(client: TestClient):
 
 def test_quality_alerts_response_structure(client: TestClient):
     """Test quality alerts returns correct structure."""
-    response = client.post(
-        "/quality/alerts",
-        json={"project_name": "test_project", "threshold": 0.7},
+    storyboard_id = _create_storyboard(client)
+    response = client.get(
+        f"/quality/alerts/{storyboard_id}?threshold=0.7",
     )
     assert response.status_code == 200
     data = response.json()
@@ -190,8 +206,8 @@ def test_quality_alerts_response_structure(client: TestClient):
 )
 def test_quality_alerts_various_thresholds(client: TestClient, threshold: float, expected_status: int):
     """Test quality alerts with various threshold values."""
-    response = client.post(
-        "/quality/alerts",
-        json={"project_name": "test_project", "threshold": threshold},
+    storyboard_id = _create_storyboard(client)
+    response = client.get(
+        f"/quality/alerts/{storyboard_id}?threshold={threshold}",
     )
     assert response.status_code == expected_status

@@ -1,10 +1,10 @@
 
-import os
 import shutil
-from pathlib import Path
+
+from config import ASSETS_DIR, IMAGE_DIR
 from database import SessionLocal
 from models.character import Character
-from config import IMAGE_DIR, ASSETS_DIR
+
 
 def migrate_references():
     db = SessionLocal()
@@ -25,19 +25,19 @@ def migrate_references():
 
         # Find character in DB
         character = db.query(Character).filter(Character.name == char_name).first()
-        
+
         if character:
             # New filename for stored directory
             new_filename = f"char_ref_{file_path.name}"
             target_path = stored_dir / new_filename
-            
+
             # Copy file to stored directory
             shutil.copy2(file_path, target_path)
-            
+
             # Update DB
             old_preview = character.preview_image_url
             character.preview_image_url = f"/outputs/images/stored/{new_filename}"
-            
+
             print(f"✅ Migrated Character '{char_name}':")
             print(f"   - Old Preview: {old_preview}")
             print(f"   - New Preview: {character.preview_image_url}")

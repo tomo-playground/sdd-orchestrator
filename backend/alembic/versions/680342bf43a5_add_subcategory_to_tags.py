@@ -5,17 +5,17 @@ Revises: 9809a1824ca3
 Create Date: 2026-01-29 12:23:29.638594
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '680342bf43a5'
-down_revision: Union[str, Sequence[str], None] = '9809a1824ca3'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '9809a1824ca3'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -23,17 +23,17 @@ def upgrade() -> None:
     # Add the column
     op.add_column('tags', sa.Column('subcategory', sa.String(50), nullable=True))
     op.create_index('ix_tags_subcategory', 'tags', ['subcategory'])
-    
+
     # Populate subcategory for scene tags
     connection = op.get_bind()
-    
+
     # Indoor locations
     indoor_patterns = [
         'indoor', 'room', 'library', 'cafe', 'store', 'shop', 'office', 'classroom',
         'bedroom', 'kitchen', 'bathroom', 'living', 'hall', 'gym', 'train', 'bus',
         'convenience_store', 'restaurant', 'bar', 'hospital', 'church', 'temple'
     ]
-    
+
     for pattern in indoor_patterns:
         connection.execute(
             sa.text(f"""
@@ -44,14 +44,14 @@ def upgrade() -> None:
                 AND subcategory IS NULL
             """)
         )
-    
+
     # Outdoor locations
     outdoor_patterns = [
         'outdoor', 'forest', 'beach', 'park', 'street', 'sky', 'cloud', 'mountain',
         'sea', 'ocean', 'river', 'garden', 'city', 'town', 'village', 'view',
         'field', 'meadow', 'hill', 'valley', 'bridge', 'rooftop'
     ]
-    
+
     for pattern in outdoor_patterns:
         connection.execute(
             sa.text(f"""
@@ -62,13 +62,13 @@ def upgrade() -> None:
                 AND subcategory IS NULL
             """)
         )
-    
+
     # Time/weather
     time_patterns = [
         'day', 'night', 'morning', 'evening', 'sunset', 'sunrise', 'dusk', 'dawn',
         'sunny', 'cloudy', 'rainy', 'snowy', 'foggy'
     ]
-    
+
     for pattern in time_patterns:
         connection.execute(
             sa.text(f"""
@@ -79,14 +79,14 @@ def upgrade() -> None:
                 AND subcategory IS NULL
             """)
         )
-    
+
     # Clothing (for general category)
     clothing_patterns = [
         'shirt', 'dress', 'skirt', 'pants', 'uniform', 'suit', 'jacket', 'coat',
         'hat', 'shoes', 'boots', 'gloves', 'glasses', 'necklace', 'tie', 'hoodie',
         'sweater', 'blouse', 'vest', 'shorts', 'socks', 'stockings'
     ]
-    
+
     for pattern in clothing_patterns:
         connection.execute(
             sa.text(f"""

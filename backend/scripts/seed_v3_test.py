@@ -1,20 +1,22 @@
 """Seeds test data for V3 Prompt Engine verification."""
 
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import SessionLocal
-from models.tag import Tag
+from models.associations import CharacterTag
 from models.character import Character
 from models.lora import LoRA
-from models.associations import CharacterTag
+from models.tag import Tag
+
 
 def seed_v3():
     session = SessionLocal()
     try:
         print("🌱 Seeding V3 Test Data...")
-        
+
         # 1. Create/Update Essential Tags with Layers
         tags_data = [
             ("masterpiece", 0, "ANY", "High quality output", "명작"),
@@ -30,7 +32,7 @@ def seed_v3():
             ("1boy", 1, "PERMANENT", "One boy in the scene", "1소년"),
             ("lowres", 0, "ANY", "Low resolution (negative)", "저화질"),
         ]
-        
+
         for name, layer, scope, desc, ko in tags_data:
             tag = session.query(Tag).filter(Tag.name == name).first()
             if not tag:
@@ -41,7 +43,7 @@ def seed_v3():
                 tag.usage_scope = scope
                 tag.description = desc
                 tag.ko_name = ko
-        
+
         session.commit()
         print("   ✅ Tags created/updated")
 
@@ -62,7 +64,7 @@ def seed_v3():
         hana = session.query(Character).filter(Character.name == "Hana").first()
         if not hana:
             hana = Character(
-                name="Hana", 
+                name="Hana",
                 description="Test character for V3",
                 gender="female",
                 loras=[{"lora_id": lora.id, "weight": 0.8}]
@@ -73,7 +75,7 @@ def seed_v3():
         else:
             hana.loras = [{"lora_id": lora.id, "weight": 0.8}]
             session.commit()
-        
+
         # 3. Associate Tags to Hana
         # Identity (Permanent)
         identity_tags = ["1girl", "solo", "long_hair", "blue_eyes"]
@@ -87,7 +89,7 @@ def seed_v3():
                 if not link:
                     link = CharacterTag(character_id=hana.id, tag_id=tag.id, is_permanent=True)
                     session.add(link)
-        
+
         session.commit()
         print("   ✅ Hana tags associated")
 

@@ -4,9 +4,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
+from config import DEFAULT_REFERENCE_BASE_PROMPT, DEFAULT_REFERENCE_NEGATIVE_PROMPT, logger
 from database import SessionLocal
 from models import Character, CharacterTag, Tag
-from config import logger, DEFAULT_REFERENCE_BASE_PROMPT, DEFAULT_REFERENCE_NEGATIVE_PROMPT
+
 
 def main():
     db = SessionLocal()
@@ -21,7 +22,7 @@ def main():
             hana.reference_base_prompt = DEFAULT_REFERENCE_BASE_PROMPT + ", 1girl, long hair, blue eyes"
             hana.reference_negative_prompt = DEFAULT_REFERENCE_NEGATIVE_PROMPT
             logger.info("✅ Updated Hana with complete data")
-        
+
         # Update Eureka
         eureka = db.query(Character).filter(Character.name == "Eureka").first()
         if eureka:
@@ -32,7 +33,7 @@ def main():
                 ("purple_hair", True, 1.0),
                 ("green_eyes", True, 1.0),
             ]
-            
+
             for tag_name, is_permanent, weight in tags_to_add:
                 tag = db.query(Tag).filter(Tag.name == tag_name).first()
                 if not tag:
@@ -40,13 +41,13 @@ def main():
                     tag = Tag(name=tag_name, category="character", default_layer=0)
                     db.add(tag)
                     db.flush()
-                
+
                 # Check if tag is already linked
                 existing = db.query(CharacterTag).filter(
                     CharacterTag.character_id == eureka.id,
                     CharacterTag.tag_id == tag.id
                 ).first()
-                
+
                 if not existing:
                     char_tag = CharacterTag(
                         character_id=eureka.id,
@@ -55,9 +56,9 @@ def main():
                         is_permanent=is_permanent
                     )
                     db.add(char_tag)
-            
+
             logger.info("✅ Updated Eureka with character tags")
-        
+
         # Update Midoriya
         midoriya = db.query(Character).filter(Character.name == "Midoriya").first()
         if midoriya:
@@ -67,19 +68,19 @@ def main():
                 ("green_hair", True, 1.0),
                 ("green_eyes", True, 1.0),
             ]
-            
+
             for tag_name, is_permanent, weight in tags_to_add:
                 tag = db.query(Tag).filter(Tag.name == tag_name).first()
                 if not tag:
                     tag = Tag(name=tag_name, category="character", default_layer=0)
                     db.add(tag)
                     db.flush()
-                
+
                 existing = db.query(CharacterTag).filter(
                     CharacterTag.character_id == midoriya.id,
                     CharacterTag.tag_id == tag.id
                 ).first()
-                
+
                 if not existing:
                     char_tag = CharacterTag(
                         character_id=midoriya.id,
@@ -88,9 +89,9 @@ def main():
                         is_permanent=is_permanent
                     )
                     db.add(char_tag)
-            
+
             logger.info("✅ Updated Midoriya with character tags")
-        
+
         # Update Generic Anime Girl
         generic_girl = db.query(Character).filter(Character.name == "Generic Anime Girl").first()
         if generic_girl:
@@ -98,19 +99,19 @@ def main():
                 ("1girl", True, 1.0),
                 ("solo", True, 1.0),
             ]
-            
+
             for tag_name, is_permanent, weight in tags_to_add:
                 tag = db.query(Tag).filter(Tag.name == tag_name).first()
                 if not tag:
                     tag = Tag(name=tag_name, category="character", default_layer=0)
                     db.add(tag)
                     db.flush()
-                
+
                 existing = db.query(CharacterTag).filter(
                     CharacterTag.character_id == generic_girl.id,
                     CharacterTag.tag_id == tag.id
                 ).first()
-                
+
                 if not existing:
                     char_tag = CharacterTag(
                         character_id=generic_girl.id,
@@ -119,9 +120,9 @@ def main():
                         is_permanent=is_permanent
                     )
                     db.add(char_tag)
-            
+
             logger.info("✅ Updated Generic Anime Girl with character tags")
-        
+
         # Update Generic Anime Boy
         generic_boy = db.query(Character).filter(Character.name == "Generic Anime Boy").first()
         if generic_boy:
@@ -129,19 +130,19 @@ def main():
                 ("1boy", True, 1.0),
                 ("solo", True, 1.0),
             ]
-            
+
             for tag_name, is_permanent, weight in tags_to_add:
                 tag = db.query(Tag).filter(Tag.name == tag_name).first()
                 if not tag:
                     tag = Tag(name=tag_name, category="character", default_layer=0)
                     db.add(tag)
                     db.flush()
-                
+
                 existing = db.query(CharacterTag).filter(
                     CharacterTag.character_id == generic_boy.id,
                     CharacterTag.tag_id == tag.id
                 ).first()
-                
+
                 if not existing:
                     char_tag = CharacterTag(
                         character_id=generic_boy.id,
@@ -150,12 +151,12 @@ def main():
                         is_permanent=is_permanent
                     )
                     db.add(char_tag)
-            
+
             logger.info("✅ Updated Generic Anime Boy with character tags")
-        
+
         db.commit()
         logger.info("🎉 All characters updated successfully!")
-        
+
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error updating characters: {e}")

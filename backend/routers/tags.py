@@ -111,7 +111,7 @@ async def search_tags(
     2. Priority (lower is better)
     3. Name length (shorter is better)
     """
-    from sqlalchemy import asc, case, func
+    from sqlalchemy import case, func
 
     query = db.query(Tag).filter(Tag.name.ilike(f"%{q}%"))
 

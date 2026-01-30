@@ -4,24 +4,25 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import select
+
 from database import SessionLocal
-from models.tag import Tag, ClassificationRule
+from models.tag import ClassificationRule, Tag
 from services.keywords.patterns import CATEGORY_PATTERNS, suggest_category_for_tag
-from config import logger
+
 
 def migrate_patterns_to_rules(db):
     """Migrate all patterns to ClassificationRule table."""
     count = 0
     patterns_processed = set()
-    
+
     for group_name, patterns in CATEGORY_PATTERNS.items():
         for pattern in patterns:
             pattern = pattern.lower().replace(" ", "_")
             if pattern in patterns_processed:
                 continue
             patterns_processed.add(pattern)
-            
+
             # Check if exists
             exists = db.execute(
                 select(ClassificationRule).where(
@@ -29,7 +30,7 @@ def migrate_patterns_to_rules(db):
                     ClassificationRule.pattern == pattern
                 )
             ).first()
-            
+
             if not exists:
                 rule = ClassificationRule(
                     rule_type="exact",
@@ -40,37 +41,37 @@ def migrate_patterns_to_rules(db):
                 )
                 db.add(rule)
                 count += 1
-    
+
     db.commit()
     print(f"✅ Migrated {count} patterns to rules.")
 
 def classify_tags_comprehensively(db):
     """Classify tags using the suggestion engine and assign default categories."""
-    
+
     CHARACTER_GROUPS = {
         "identity", "hair_color", "hair_length", "hair_style", "hair_accessory",
         "eye_color", "skin_color", "body_feature", "appearance", "clothing"
     }
     META_GROUPS = {"quality", "style"}
-    
+
     # Get all tags
     tags = db.execute(select(Tag)).scalars().all()
     print(f"🔍 Processing {len(tags)} tags...")
-    
+
     updated = 0
     assigned_groups = 0
-    
+
     for tag in tags:
         # 1. Use suggest_category_for_tag logic
         group, confidence = suggest_category_for_tag(tag.name)
-        
+
         # 2. Assign group and category
         if group:
             tag.group_name = group
             tag.classification_confidence = confidence
             tag.classification_source = "rule"
             assigned_groups += 1
-            
+
             if group in CHARACTER_GROUPS:
                 tag.category = "character"
             elif group in META_GROUPS:
@@ -84,7 +85,7 @@ def classify_tags_comprehensively(db):
                 tag.group_name = "subject"
                 tag.classification_source = "default"
                 tag.classification_confidence = 0.5
-        
+
         updated += 1
         if updated % 2000 == 0:
             db.commit()

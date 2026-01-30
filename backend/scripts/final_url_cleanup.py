@@ -4,9 +4,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from database import SessionLocal
-from models import Character, ActivityLog
 from config import logger
+from database import SessionLocal
+from models import ActivityLog, Character
+
 
 def fix_url(url):
     if not url:
@@ -34,7 +35,7 @@ def main():
                 logger.info(f"Fixed Character {char.name}: {char.preview_image_url} -> {new_url}")
                 char.preview_image_url = new_url
                 char_count += 1
-        
+
         # Avoid fixing ActivityLog if it's too much, but let's try for recent ones
         logs = db.query(ActivityLog).filter(ActivityLog.image_url.like("http%")).all()
         log_count = 0
@@ -43,10 +44,10 @@ def main():
             if new_url != log.image_url:
                 log.image_url = new_url
                 log_count += 1
-        
+
         db.commit()
         logger.info(f"🎉 Cleanup complete! Fixed {char_count} characters and {log_count} activity logs.")
-        
+
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error during cleanup: {e}")

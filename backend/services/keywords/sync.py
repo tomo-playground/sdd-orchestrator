@@ -35,7 +35,7 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
             for trigger in lora.trigger_words:
                 if not trigger or not trigger.strip(): continue
                 trigger_clean = trigger.strip().lower()
-                
+
                 # Ensure trigger exists as a Tag
                 existing_tag = db.query(Tag).filter(Tag.name == trigger_clean).first()
                 if not existing_tag:
@@ -49,7 +49,7 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
                         classification_source="lora_sync"
                     ))
                     added.append(trigger_clean)
-        
+
         db.commit()
         return {"added_tags": len(added), "summary": {"added_count": len(added)}}
         db.commit()

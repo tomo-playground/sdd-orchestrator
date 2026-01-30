@@ -36,7 +36,6 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import SD_BASE_URL
-from services.controlnet import build_reference_only_args
 
 # Configuration
 SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"

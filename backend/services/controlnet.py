@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 import random
 from pathlib import Path
-import os
 from typing import Any
 
 import httpx
@@ -26,7 +26,7 @@ from config import (
     SD_TXT2IMG_URL,
     logger,
 )
-from models import Character, LoRA, Tag
+from models import Character, LoRA
 from services.image import load_image_bytes
 
 # Pose reference directory
@@ -146,7 +146,7 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
         # Check exact match
         if pose in prompt_tags:
             return pose
-        
+
         # Check synonyms
         if pose in pose_synonyms:
             for synonym in pose_synonyms[pose]:
@@ -351,7 +351,7 @@ def load_reference_image(character_key: str, db: Session | None = None) -> str |
     filepath = REFERENCE_DIR / f"{character_key}.png"
     if filepath.exists():
         return base64.b64encode(filepath.read_bytes()).decode("utf-8")
-    
+
     return None
 
 

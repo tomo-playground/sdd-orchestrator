@@ -74,9 +74,9 @@ async def list_tags(
         offset: Number of tags to skip
     """
     from models import Tag
-    
+
     query = db.query(Tag)
-    
+
     # Filter by category (default_layer)
     if category:
         # Extract layer number from category (e.g., 'layer_0' -> 0)
@@ -86,17 +86,17 @@ async def list_tags(
                 query = query.filter(Tag.default_layer == layer_num)
             except (IndexError, ValueError):
                 pass
-    
+
     # Search by name
     if search:
         query = query.filter(Tag.name.ilike(f"%{search}%"))
-    
+
     # Get total count before pagination
     total = query.count()
-    
+
     # Apply pagination and ordering
     tags = query.order_by(Tag.name).offset(offset).limit(limit).all()
-    
+
     # Convert to dict format
     tag_list = [
         {
@@ -106,9 +106,9 @@ async def list_tags(
         }
         for tag in tags
     ]
-    
+
     logger.info(f"[Tags] Found {total} tags (returning {len(tag_list)})")
-    
+
     return {
         "tags": tag_list,
         "total": total,

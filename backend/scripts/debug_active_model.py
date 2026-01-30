@@ -1,6 +1,6 @@
 
-import sys
 import os
+import sys
 
 # Add backend to sys.path
 sys.path.append(os.path.join(os.getcwd(), 'backend'))
@@ -8,12 +8,13 @@ sys.path.append(os.path.join(os.getcwd(), 'backend'))
 from backend.database import SessionLocal
 from backend.models.sd_model import SDModel
 
+
 def main():
     db = SessionLocal()
     try:
         # Find active models
         active_models = db.query(SDModel).filter(SDModel.is_active == True).all()
-        
+
         if not active_models:
             print("No active models found in database.")
             # Fallback: check all models

@@ -276,7 +276,7 @@ def suggest_category_for_tag(tag: str) -> tuple[str, float]:
     for category, patterns in CATEGORY_PATTERNS.items():
         if normalized in patterns:
             return (category, 1.0)
-    
+
     # Fallback to word subset matching (using underscores for internal comparison)
     normalized_words = set(normalized.split("_"))
     for category, patterns in CATEGORY_PATTERNS.items():

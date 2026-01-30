@@ -1,14 +1,16 @@
 import asyncio
-import httpx
 import sys
 from pathlib import Path
+
+import httpx
 
 # Add backend directory to path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from config import SD_BASE_URL, logger
 from database import SessionLocal
-from models import SDModel, LoRA, Embedding
+from models import Embedding, LoRA, SDModel
+
 
 async def fetch_sd_models(client, db):
     logger.info("📡 Fetching SD Models from WebUI...")
@@ -16,13 +18,13 @@ async def fetch_sd_models(client, db):
         response = await client.get(f"{SD_BASE_URL}/sdapi/v1/sd-models")
         response.raise_for_status()
         models = response.json()
-        
+
         count = 0
         for m in models:
             title = m.get("title")
             model_name = m.get("model_name")
             # hash = m.get("hash")
-            
+
             # Check if exists
             existing = db.query(SDModel).filter(SDModel.name == title).first()
             if not existing:
@@ -54,12 +56,12 @@ async def fetch_loras(client, db):
         response = await client.get(f"{SD_BASE_URL}/sdapi/v1/loras")
         response.raise_for_status()
         loras = response.json()
-        
+
         count = 0
         for l in loras:
             name = l.get("name")
             alias = l.get("alias")
-            
+
             # Check if exists
             existing = db.query(LoRA).filter(LoRA.name == name).first()
             if not existing:
@@ -84,17 +86,17 @@ async def fetch_embeddings(client, db):
         response = await client.get(f"{SD_BASE_URL}/sdapi/v1/embeddings")
         response.raise_for_status()
         data = response.json()
-        
+
         loaded = data.get("loaded", {})
         count = 0
-        
+
         for name, info in loaded.items():
             # Check if exists
             existing = db.query(Embedding).filter(Embedding.name == name).first()
             if not existing:
                 # Heuristic: Negative embeddings often have "negative" or "bad" in name
                 emb_type = "negative" if "neg" in name.lower() or "bad" in name.lower() else "positive"
-                
+
                 new_emb = Embedding(
                     name=name,
                     display_name=name,
@@ -112,13 +114,13 @@ async def fetch_embeddings(client, db):
 
 async def main():
     logger.info(f"🔌 Connecting to SD WebUI at {SD_BASE_URL}...")
-    
+
     db = SessionLocal()
     async with httpx.AsyncClient(timeout=30.0) as client:
         await fetch_sd_models(client, db)
         await fetch_loras(client, db)
         await fetch_embeddings(client, db)
-    
+
     db.close()
     logger.info("🎉 Sync complete!")
 

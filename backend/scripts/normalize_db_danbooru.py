@@ -1,6 +1,7 @@
+
 from database import SessionLocal
 from models.tag import Tag
-from sqlalchemy import text
+
 
 def normalize_db_tags():
     db = SessionLocal()
@@ -8,7 +9,7 @@ def normalize_db_tags():
         # 1. Update standard tags
         tags = db.query(Tag).filter(Tag.name.like('% %')).all()
         print(f"Found {len(tags)} tags with spaces.")
-        
+
         updated_count = 0
         for tag in tags:
             new_name = tag.name.replace(" ", "_").lower()
@@ -20,10 +21,10 @@ def normalize_db_tags():
             else:
                 tag.name = new_name
             updated_count += 1
-            
+
         db.commit()
         print(f"✅ Normalized {updated_count} tags in DB.")
-        
+
         # 2. Cleanup Character prompts (as they might have been created with spaces)
         from models.character import Character
         chars = db.query(Character).all()
@@ -36,8 +37,8 @@ def normalize_db_tags():
                 char.reference_base_prompt = ", ".join(parts)
             # Add others if needed
         db.commit()
-        print(f"✅ Normalized character prompts in DB.")
-        
+        print("✅ Normalized character prompts in DB.")
+
     except Exception as e:
         db.rollback()
         print(f"❌ Error during normalization: {e}")

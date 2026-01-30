@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any
 
 from config import logger
 from services.danbooru import get_tag_info_sync
-
 from services.keywords.db_cache import TagAliasCache
+
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 

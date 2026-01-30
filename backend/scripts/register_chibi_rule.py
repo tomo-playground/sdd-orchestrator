@@ -1,6 +1,7 @@
 from database import SessionLocal
 from models.tag_alias import TagAlias
 
+
 def register_chibi_rule():
     db = SessionLocal()
     try:
@@ -9,9 +10,9 @@ def register_chibi_rule():
         # LoRA name is 'chibi-laugh' (confirmed from previous list).
         trigger_words = "chibi, laughing"
         lora_name = "chibi-laugh"
-        
+
         target_tag = f"{trigger_words}, <lora:{lora_name}:0.8>"
-        
+
         existing = db.query(TagAlias).filter(TagAlias.source_tag == source_tag).first()
         if existing:
             print(f"Updating existing alias for '{source_tag}'")
@@ -25,12 +26,12 @@ def register_chibi_rule():
                 reason="User manual trigger definition",
                 active=True
             ))
-            
+
         db.commit()
         print("✅ Chibi rule registered successfully!")
         print(f"   Input: '{source_tag}'")
         print(f"   Result: '{target_tag}'")
-        
+
     except Exception as e:
         print(f"❌ Error: {e}")
         db.rollback()

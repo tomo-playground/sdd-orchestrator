@@ -3,6 +3,7 @@
 from database import SessionLocal
 from models import LoRA
 
+
 def main():
     db = SessionLocal()
     try:
@@ -11,7 +12,7 @@ def main():
         if lora_eureka:
             print(f"Fixing {lora_eureka.name}")
             lora_eureka.trigger_words = ["eureka (eureka seven)"]
-            
+
         # LoRA ID 9: mha_midoriya-10 -> should be Midoriya
         lora_mha = db.query(LoRA).filter(LoRA.id == 9).first()
         if lora_mha:

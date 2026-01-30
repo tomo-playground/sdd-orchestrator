@@ -1,8 +1,9 @@
 from typing import Any
-from functools import lru_cache
+
 from sqlalchemy.orm import Session
-from models import Tag, TagAlias, TagRule
+
 from config import logger
+from models import Tag, TagAlias, TagRule
 
 # Map DB categories + subcategories to prompt composition categories
 SUBCATEGORY_TO_PROMPT = {
@@ -21,48 +22,48 @@ DB_TO_PROMPT_CATEGORY = {
 
 class TagCategoryCache:
     """In-memory cache for tag -> category mapping from DB."""
-    
+
     _cache: dict[str, str] = {}
     _initialized = False
-    
+
     @classmethod
     def initialize(cls, db: Session):
         """Load all tags from DB into memory cache."""
         if cls._initialized:
             return
-        
+
         try:
             # Load all tags that have a category
             tags = db.query(Tag).filter(Tag.category.isnot(None)).all()
-            
+
             count = 0
             for tag in tags:
                 normalized = tag.name.lower().replace(" ", "_").strip()
-                
+
                 # Map DB entry to prompt category (prioritize subcategory and group_name)
                 prompt_category = cls._map_db_category(tag.category, tag.subcategory, tag.group_name)
                 if prompt_category:
                     cls._cache[normalized] = prompt_category
                     count += 1
-            
+
             cls._initialized = True
             logger.info(f"✅ [TagCache] Loaded {count} tags into cache")
         except Exception as e:
             logger.error(f"❌ [TagCache] Failed to initialize: {e}")
-    
+
     @classmethod
     def get_category(cls, token: str) -> str | None:
         """Get category for a token from cache."""
         normalized = token.lower().replace(" ", "_").strip()
         return cls._cache.get(normalized)
-    
+
     @classmethod
     def refresh(cls, db: Session):
         """Refresh cache from DB."""
         cls._initialized = False
         cls._cache.clear()
         cls.initialize(db)
-    
+
     @staticmethod
     def _map_db_category(category: str, subcategory: str | None, group_name: str | None = None) -> str | None:
         """Map DB category + subcategory + group_name to prompt composition category."""
@@ -71,7 +72,7 @@ class TagCategoryCache:
             prompt_cat = SUBCATEGORY_TO_PROMPT.get(subcategory)
             if prompt_cat:
                 return prompt_cat
-        
+
         # 2. Use group_name for granular categories (expression, pose, action, etc.)
         granular_groups = {
             "expression", "gaze", "pose", "action", "camera",
@@ -79,35 +80,35 @@ class TagCategoryCache:
         }
         if group_name in granular_groups:
             return group_name
-            
+
         # 3. Fallback to category mapping
         if category == "scene":
             return "scene"
-        
+
         return DB_TO_PROMPT_CATEGORY.get(category, category)
 
 class TagAliasCache:
     """In-memory cache for tag aliases (replacements) from DB."""
-    
+
     _cache: dict[str, str | None] = {}
     _initialized = False
-    
+
     @classmethod
     def initialize(cls, db: Session):
         """Load all active tag aliases from DB."""
         if cls._initialized:
             return
-            
+
         try:
             aliases = db.query(TagAlias).filter(TagAlias.active == True).all()
-            
+
             count = 0
             for alias in aliases:
                 source = alias.source_tag.lower().strip()
                 target = alias.target_tag.lower().strip() if alias.target_tag else None
                 cls._cache[source] = target
                 count += 1
-                
+
             cls._initialized = True
             logger.info(f"✅ [TagAliasCache] Loaded {count} aliases into cache")
         except Exception as e:
@@ -130,24 +131,24 @@ class TagAliasCache:
 
 class TagRuleCache:
     """In-memory cache for tag interaction rules (conflicts) from DB."""
-    
+
     # Map tag1_name -> set(conflicting_tag2_names)
     _conflicts: dict[str, set[str]] = {}
     # Map category1 -> set(conflicting_category2)
     _category_conflicts: dict[str, set[str]] = {}
     _initialized = False
-    
+
     @classmethod
     def initialize(cls, db: Session):
         """Load all active tag rules from DB and map to names."""
         if cls._initialized:
             return
-            
+
         try:
             from sqlalchemy.orm import aliased
             SourceTag = aliased(Tag)
             TargetTag = aliased(Tag)
-            
+
             # Load tag-level conflicts
             tag_rules = (
                 db.query(
@@ -164,16 +165,16 @@ class TagRuleCache:
                 )
                 .all()
             )
-            
+
             tag_count = 0
             for rule in tag_rules:
                 s_name = rule.source_name.lower().strip()
                 t_name = rule.target_name.lower().strip()
-                
+
                 cls._conflicts.setdefault(s_name, set()).add(t_name)
                 cls._conflicts.setdefault(t_name, set()).add(s_name)
                 tag_count += 1
-            
+
             # Load category-level conflicts
             category_rules = (
                 db.query(TagRule)
@@ -184,17 +185,17 @@ class TagRuleCache:
                 )
                 .all()
             )
-            
+
             cat_count = 0
             for rule in category_rules:
                 s_cat = rule.source_category.lower().strip()
                 t_cat = rule.target_category.lower().strip()
-                
+
                 cls._category_conflicts.setdefault(s_cat, set()).add(t_cat)
                 # Bidirectional for symmetric conflicts
                 cls._category_conflicts.setdefault(t_cat, set()).add(s_cat)
                 cat_count += 1
-                
+
             cls._initialized = True
             logger.info(
                 f"✅ [TagRuleCache] Loaded {tag_count} tag conflicts "
@@ -209,7 +210,7 @@ class TagRuleCache:
         t1 = tag1.lower().strip()
         t2 = tag2.lower().strip()
         return t2 in cls._conflicts.get(t1, set())
-    
+
     @classmethod
     def is_category_conflicting(cls, cat1: str, cat2: str) -> bool:
         """Check if two categories conflict."""
@@ -226,20 +227,20 @@ class TagRuleCache:
 
 class LoRATriggerCache:
     """In-memory cache for mapping trigger words to LoRA names."""
-    
+
     _cache: dict[str, str] = {}
     _initialized = False
-    
+
     @classmethod
     def initialize(cls, db: Session):
         """Load all LoRA trigger words from DB."""
         if cls._initialized:
             return
-            
+
         try:
             from models.lora import LoRA
             loras = db.query(LoRA).all()
-            
+
             count = 0
             for lora in loras:
                 if not lora.trigger_words:
@@ -249,7 +250,7 @@ class LoRATriggerCache:
                     # If multiple LoRAs share a trigger, the last one wins (could be refined)
                     cls._cache[normalized] = lora.name
                     count += 1
-            
+
             cls._initialized = True
             logger.info(f"✅ [LoRATriggerCache] Loaded {count} trigger-to-LoRA mappings")
         except Exception as e:

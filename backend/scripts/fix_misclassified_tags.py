@@ -1,7 +1,8 @@
 
+from config import logger
 from database import SessionLocal
 from models import Tag
-from config import logger
+
 
 def fix_misclassified_tags():
     db = SessionLocal()
@@ -12,7 +13,7 @@ def fix_misclassified_tags():
             logger.info(f"Updating 'sun': {sun.group_name} -> time_weather")
             sun.category = "environment" # or scene
             sun.group_name = "time_weather"
-        
+
         # 2. Add 'soft_light' as 'lighting'
         soft_light = db.query(Tag).filter(Tag.name == "soft_light").first()
         if not soft_light:

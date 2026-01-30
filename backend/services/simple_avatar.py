@@ -50,9 +50,9 @@ def generate_simple_avatar(
         font_size = size // 2
         try:
             font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
-        except:
+        except OSError:
             font = ImageFont.truetype("/System/Library/Fonts/SFNSDisplay.ttf", font_size)
-    except:
+    except OSError:
         # Fallback to default font
         font = ImageFont.load_default()
 

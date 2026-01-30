@@ -1,6 +1,6 @@
 """Tag filter model for managing ignore/skip tags."""
 
-from sqlalchemy import Integer, String, Boolean
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin

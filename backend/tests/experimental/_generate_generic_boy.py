@@ -2,12 +2,13 @@
 
 목표: Generic Anime Boy 캐릭터 프리셋용 기준 이미지 생성
 """
-import httpx
 import base64
-from io import BytesIO
-from PIL import Image
-from pathlib import Path
 import sys
+from io import BytesIO
+from pathlib import Path
+
+import httpx
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import SD_BASE_URL
@@ -45,7 +46,7 @@ payload = {
     "clip_skip": 2,
 }
 
-print(f"\n📤 Generating Generic Anime Boy...")
+print("\n📤 Generating Generic Anime Boy...")
 
 with httpx.Client(timeout=180.0) as client:
     res = client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload)

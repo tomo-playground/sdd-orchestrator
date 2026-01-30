@@ -16,7 +16,6 @@ from config import logger
 from database import SessionLocal
 from models import Character
 
-
 # Default reference prompts (moved from controlnet.py hardcoding)
 DEFAULT_REFERENCE_BASE = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
 

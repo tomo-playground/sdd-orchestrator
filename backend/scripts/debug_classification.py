@@ -1,11 +1,12 @@
 
-from services.tag_classifier import TagClassifier
-from services.keywords.core import normalize_prompt_token
 from database import SessionLocal
+from services.keywords.core import normalize_prompt_token
+from services.tag_classifier import TagClassifier
+
 
 def debug_classification():
     tags = ["_day", "_sun", "soft_light", "casual_outfit", "doremi", "sun"]
-    
+
     print("--- Normalization ---")
     for t in tags:
         norm = normalize_prompt_token(t)
@@ -14,11 +15,11 @@ def debug_classification():
     print("\n--- Classification ---")
     db = SessionLocal()
     classifier = TagClassifier(db)
-    
+
     results = classifier.classify_batch(tags)
     for t, group in results.items():
         print(f"'{t}': {group}")
-        
+
     db.close()
 
 if __name__ == "__main__":

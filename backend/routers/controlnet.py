@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import get_db
 from config import CHARACTER_PRESETS, DEFAULT_CHARACTER_PRESET, logger
+from database import get_db
 from services.controlnet import (
     IP_ADAPTER_MODELS,
     POSE_MAPPING,
@@ -148,15 +148,15 @@ async def list_references(db: Session = Depends(get_db)):
     """List all saved reference images for IP-Adapter with presets from DB/Config."""
     # 1. Get physical files
     refs = list_reference_images(db=db)
-    
+
     # 2. Get all characters from DB for enrichment
     from models.character import Character
     db_chars = {c.name: c for c in db.query(Character).all()}
-    
+
     # Enrich with preset info
     for ref in refs:
         char_key = ref["character_key"]
-        
+
         # Priority 1: Database character settings
         if char_key in db_chars:
             db_char = db_chars[char_key]
@@ -169,7 +169,7 @@ async def list_references(db: Session = Depends(get_db)):
             # Priority 2: Static config presets
             preset = get_character_preset(char_key)
             ref["preset"] = preset
-            
+
     return {"references": refs}
 
 

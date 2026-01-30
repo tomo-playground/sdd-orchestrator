@@ -652,10 +652,10 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
             and prioritizes high-effectiveness tags.
     """
     from config import (
-        TAG_EFFECTIVENESS_THRESHOLD,
-        TAG_MIN_USE_COUNT_FOR_FILTERING,
         RECOMMENDATION_EFFECTIVENESS_THRESHOLD,
         RECOMMENDATION_MIN_USE_COUNT,
+        TAG_EFFECTIVENESS_THRESHOLD,
+        TAG_MIN_USE_COUNT_FOR_FILTERING,
     )
 
     grouped = load_tags_from_db()
@@ -794,7 +794,7 @@ def filter_prompt_tokens(prompt: str) -> str:
                 # Check for replacement
                 space_format = normalized.replace("_", " ")
                 replacement = RISKY_TAG_REPLACEMENTS.get(normalized) or RISKY_TAG_REPLACEMENTS.get(space_format)
-                
+
                 if replacement:
                     _get_logger().warning(
                         f"⚠️  [Filter] Replacing low-effectiveness tag: '{normalized}' "

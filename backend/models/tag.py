@@ -20,11 +20,11 @@ class Tag(Base, TimestampMixin):
     category: Mapped[str | None] = mapped_column(String(50), index=True)
     subcategory: Mapped[str | None] = mapped_column(String(50), index=True)  # indoor, outdoor, time, clothing, etc.
     description: Mapped[str | None] = mapped_column(String(500))
-    
+
     # V3 Logic: The core of the 12-Layer system
     default_layer: Mapped[int] = mapped_column(Integer, default=0)  # 0-11
     usage_scope: Mapped[str] = mapped_column(String(20), default="ANY") # PERMANENT, TRANSIENT, ANY
-    
+
     # Metadata for sorting/recommendation
     wd14_count: Mapped[int] = mapped_column(Integer, default=0)
     wd14_category: Mapped[int] = mapped_column(Integer, default=0)
@@ -61,15 +61,15 @@ class TagRule(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     rule_type: Mapped[str] = mapped_column(String(20))  # conflict, requires
-    
+
     # Tag-level conflicts
     source_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
     target_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
-    
+
     # Category-level conflicts
     source_category: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)
     target_category: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)
-    
+
     message: Mapped[str | None] = mapped_column(String(200))
     priority: Mapped[int] = mapped_column(Integer, default=0)
     active: Mapped[bool] = mapped_column(default=True)

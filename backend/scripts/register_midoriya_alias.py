@@ -1,6 +1,7 @@
 from database import SessionLocal
 from models.tag_alias import TagAlias
 
+
 def register_midoriya_alias():
     db = SessionLocal()
     try:
@@ -10,9 +11,9 @@ def register_midoriya_alias():
         lora_name_part = "mha_midoriya-10" # Based on Civitai search result earlier (even though search said Mount Lady, user seems to trust this file)
         # Actually user just said "LoRA of Midoriya Izuku, Trigger: Midoriya_Izuku".
         # Let's assume the existing LoRA 'mha_midoriya-10' is the correct one.
-        
+
         target_tag = f"{trigger_word}, <lora:{lora_name_part}:0.8>"
-        
+
         existing = db.query(TagAlias).filter(TagAlias.source_tag == source_tag).first()
         if existing:
             print(f"Updating existing alias for '{source_tag}'")
@@ -26,7 +27,7 @@ def register_midoriya_alias():
                 reason="User manual trigger definition",
                 active=True
             ))
-        
+
         db.commit()
         print("✅ Midoriya alias registered successfully!")
         print(f"   Input: '{source_tag}'")

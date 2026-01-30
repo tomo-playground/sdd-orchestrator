@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, Literal
 
 from config import logger
 from services.keywords import CATEGORY_PATTERNS, CATEGORY_PRIORITY
-from services.prompt import split_prompt_tokens, merge_prompt_tokens, normalize_tag_spaces
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -38,6 +37,7 @@ for _category, _tokens in CATEGORY_PATTERNS.items():
 
 
 from services.keywords.db_cache import TagCategoryCache, TagRuleCache
+
 
 @lru_cache(maxsize=1024)
 def get_token_category(token: str) -> TokenCategory | None:
@@ -303,7 +303,7 @@ def filter_conflicting_tokens(
         # (This logic checks if we already have a token from this group)
         skip = False
         matching_group = None
-        
+
         for group_name, group_categories in MUTUALLY_EXCLUSIVE_GROUPS.items():
             if category in group_categories:
                 if group_name in seen_categories:
@@ -325,7 +325,7 @@ def filter_conflicting_tokens(
 
         if skip:
             continue
-            
+
         # If passed all checks, update tracking
         if matching_group:
             seen_categories[matching_group] = category
@@ -337,10 +337,10 @@ def filter_conflicting_tokens(
                 if TagRuleCache.is_conflicting(normalized, seen_tag):
                     has_conflict = True
                     break
-            
+
             if has_conflict:
                 continue
-        
+
         # Track this tag for future conflict checks
         seen_tag_conflicts.add(normalized)
 
@@ -632,10 +632,10 @@ def compose_prompt_tokens(
     # Step 0: Robust normalization and deduplication
     # Ensures all tags follow SD format and ignores malformed ones like _day or __sun
     from services.keywords.core import normalize_prompt_token
-    
+
     unique_tokens = []
     seen_normalized = set()
-    
+
     for t in tokens:
         norm = normalize_prompt_token(t)
         if norm and norm not in seen_normalized:
@@ -644,12 +644,12 @@ def compose_prompt_tokens(
             clean_tag = t
             if ":" not in t and "(" not in t:
                 clean_tag = norm
-            
+
             unique_tokens.append(clean_tag)
             seen_normalized.add(norm)
-            
+
     tokens = unique_tokens
-    
+
     if trigger_words:
         trigger_words = [normalize_prompt_token(t) for t in trigger_words if normalize_prompt_token(t)]
 

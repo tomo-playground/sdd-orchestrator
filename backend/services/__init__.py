@@ -19,11 +19,11 @@ from .image import (
     load_image_bytes,
 )
 from .keywords import (
-    normalize_prompt_token,
     load_known_keywords,
     # These are currently slimmed/disabled in Pure V3
     # update_tag_effectiveness,
     # get_tag_effectiveness_report,
+    normalize_prompt_token,
 )
 from .prompt import (
     is_scene_token,

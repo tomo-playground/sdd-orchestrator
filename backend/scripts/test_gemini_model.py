@@ -1,9 +1,11 @@
 
-import sys
 import os
+import sys
+
 sys.path.append(os.getcwd())
 
-from config import gemini_client, GEMINI_TEXT_MODEL
+from config import GEMINI_TEXT_MODEL, gemini_client
+
 
 def test_model():
     if not gemini_client:

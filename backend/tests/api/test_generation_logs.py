@@ -5,24 +5,33 @@ import uuid
 from fastapi.testclient import TestClient
 
 
-def _unique_project() -> str:
-    """Generate a unique project name for test isolation."""
-    return f"test_{uuid.uuid4().hex[:8]}"
+def _create_storyboard(client: TestClient) -> int:
+    """Create a test storyboard and return its ID."""
+    response = client.post(
+        "/storyboards",
+        json={
+            "title": f"Test Storyboard {uuid.uuid4().hex[:4]}",
+            "description": "testing",
+            "scenes": [],
+        },
+    )
+    assert response.status_code == 200
+    return response.json()["storyboard_id"]
 
 
 def test_create_generation_log_minimal(client: TestClient):
     """Test creating a generation log with minimal data."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     response = client.post(
         "/generation-logs",
         json={
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 0,
         },
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["project_name"] == project_name
+    assert data["storyboard_id"] == storyboard_id
     assert data["scene_id"] == 0
     assert data["status"] == "pending"
     assert "id" in data
@@ -30,11 +39,11 @@ def test_create_generation_log_minimal(client: TestClient):
 
 def test_create_generation_log_full(client: TestClient):
     """Test creating a generation log with full data."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     response = client.post(
         "/generation-logs",
         json={
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 1,
             "prompt": "1girl, smiling, classroom, sitting",
             "tags": ["1girl", "smiling", "classroom", "sitting"],
@@ -47,89 +56,89 @@ def test_create_generation_log_full(client: TestClient):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["project_name"] == project_name
+    assert data["storyboard_id"] == storyboard_id
     assert data["scene_id"] == 1
     assert data["status"] == "success"
     assert data["match_rate"] == 0.85
     assert "id" in data
 
 
-def test_get_project_logs_empty(client: TestClient):
-    """Test getting logs for a project with no logs."""
-    project_name = _unique_project()
-    response = client.get(f"/generation-logs/project/{project_name}")
+def test_get_storyboard_logs_empty(client: TestClient):
+    """Test getting logs for a storyboard with no logs."""
+    storyboard_id = _create_storyboard(client)
+    response = client.get(f"/generation-logs/storyboard/{storyboard_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
     assert data["logs"] == []
 
 
-def test_get_project_logs_with_data(client: TestClient):
-    """Test getting logs for a project after creating some."""
-    project_name = _unique_project()
+def test_get_storyboard_logs_with_data(client: TestClient):
+    """Test getting logs for a storyboard after creating some."""
+    storyboard_id = _create_storyboard(client)
     # Create logs
     for i in range(3):
         client.post(
             "/generation-logs",
             json={
-                "project_name": project_name,
+                "storyboard_id": storyboard_id,
                 "scene_id": i,
                 "status": "success" if i % 2 == 0 else "fail",
             },
         )
 
     # Get all logs
-    response = client.get(f"/generation-logs/project/{project_name}")
+    response = client.get(f"/generation-logs/storyboard/{storyboard_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 3
     assert len(data["logs"]) == 3
 
 
-def test_get_project_logs_filter_by_status(client: TestClient):
+def test_get_storyboard_logs_filter_by_status(client: TestClient):
     """Test filtering logs by status."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     # Create logs with different statuses
     for i in range(4):
         client.post(
             "/generation-logs",
             json={
-                "project_name": project_name,
+                "storyboard_id": storyboard_id,
                 "scene_id": i,
                 "status": "success" if i < 2 else "fail",
             },
         )
 
     # Filter success only
-    response = client.get(f"/generation-logs/project/{project_name}?status=success")
+    response = client.get(f"/generation-logs/storyboard/{storyboard_id}?status=success")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
     assert all(log["status"] == "success" for log in data["logs"])
 
     # Filter fail only
-    response = client.get(f"/generation-logs/project/{project_name}?status=fail")
+    response = client.get(f"/generation-logs/storyboard/{storyboard_id}?status=fail")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
     assert all(log["status"] == "fail" for log in data["logs"])
 
 
-def test_get_project_logs_with_limit(client: TestClient):
+def test_get_storyboard_logs_with_limit(client: TestClient):
     """Test limiting the number of returned logs."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     # Create 10 logs
     for i in range(10):
         client.post(
             "/generation-logs",
             json={
-                "project_name": project_name,
+                "storyboard_id": storyboard_id,
                 "scene_id": i,
             },
         )
 
     # Get with limit=5
-    response = client.get(f"/generation-logs/project/{project_name}?limit=5")
+    response = client.get(f"/generation-logs/storyboard/{storyboard_id}?limit=5")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 5
@@ -138,12 +147,12 @@ def test_get_project_logs_with_limit(client: TestClient):
 
 def test_update_log_status(client: TestClient):
     """Test updating a log's status."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     # Create log
     create_response = client.post(
         "/generation-logs",
         json={
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 0,
             "status": "pending",
         },
@@ -182,12 +191,12 @@ def test_update_nonexistent_log_status(client: TestClient):
 
 def test_delete_log(client: TestClient):
     """Test deleting a log."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     # Create log
     create_response = client.post(
         "/generation-logs",
         json={
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 0,
         },
     )
@@ -199,7 +208,7 @@ def test_delete_log(client: TestClient):
     assert "deleted successfully" in response.json()["message"]
 
     # Verify deletion
-    get_response = client.get(f"/generation-logs/project/{project_name}")
+    get_response = client.get(f"/generation-logs/storyboard/{storyboard_id}")
     assert get_response.json()["total"] == 0
 
 
@@ -212,10 +221,10 @@ def test_delete_nonexistent_log(client: TestClient):
 
 def test_log_data_integrity(client: TestClient):
     """Test that log data is stored and retrieved correctly."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     # Create log with full data
     test_data = {
-        "project_name": project_name,
+        "storyboard_id": storyboard_id,
         "scene_id": 5,
         "prompt": "complex prompt with multiple tags",
         "tags": ["tag1", "tag2", "tag3", "tag4"],
@@ -236,13 +245,13 @@ def test_log_data_integrity(client: TestClient):
     log_id = create_response.json()["id"]
 
     # Retrieve and verify
-    get_response = client.get(f"/generation-logs/project/{project_name}")
+    get_response = client.get(f"/generation-logs/storyboard/{storyboard_id}")
     assert get_response.status_code == 200
     logs = get_response.json()["logs"]
     assert len(logs) == 1
 
     log = logs[0]
-    assert log["project_name"] == test_data["project_name"]
+    assert log["storyboard_id"] == storyboard_id
     assert log["scene_id"] == test_data["scene_id"]
     assert log["prompt"] == test_data["prompt"]
     assert log["tags"] == test_data["tags"]
@@ -253,39 +262,39 @@ def test_log_data_integrity(client: TestClient):
     assert log["image_url"] == test_data["image_url"]
 
 
-def test_multiple_projects_isolation(client: TestClient):
-    """Test that logs from different projects are isolated."""
-    project_a = _unique_project()
-    project_b = _unique_project()
+def test_isolation(client: TestClient):
+    """Test that logs from different storyboards are isolated."""
+    storyboard_a = _create_storyboard(client)
+    storyboard_b = _create_storyboard(client)
 
-    # Create logs for project A
+    # Create logs for storyboard A
     for i in range(3):
         client.post(
             "/generation-logs",
-            json={"project_name": project_a, "scene_id": i},
+            json={"storyboard_id": storyboard_a, "scene_id": i},
         )
 
-    # Create logs for project B
+    # Create logs for storyboard B
     for i in range(2):
         client.post(
             "/generation-logs",
-            json={"project_name": project_b, "scene_id": i},
+            json={"storyboard_id": storyboard_b, "scene_id": i},
         )
 
-    # Verify project A
-    response_a = client.get(f"/generation-logs/project/{project_a}")
+    # Verify storyboard A
+    response_a = client.get(f"/generation-logs/storyboard/{storyboard_a}")
     assert response_a.json()["total"] == 3
 
-    # Verify project B
-    response_b = client.get(f"/generation-logs/project/{project_b}")
+    # Verify storyboard B
+    response_b = client.get(f"/generation-logs/storyboard/{storyboard_b}")
     assert response_b.json()["total"] == 2
 
 
-def test_success_combinations_empty_project(client: TestClient):
+def test_success_combinations_empty(client: TestClient):
     """Test success combinations with no data."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     response = client.get(
-        f"/generation-logs/success-combinations?project_name={project_name}"
+        f"/generation-logs/success-combinations?storyboard_id={storyboard_id}"
     )
     assert response.status_code == 200
     data = response.json()
@@ -297,26 +306,26 @@ def test_success_combinations_empty_project(client: TestClient):
 
 def test_success_combinations_with_success_logs(client: TestClient):
     """Test success combinations generation with real data."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
 
     # Create success logs with tags
     success_logs = [
         {
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 0,
             "tags": ["smile", "standing", "cowboy shot", "classroom"],
             "match_rate": 0.85,
             "status": "success",
         },
         {
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 1,
             "tags": ["smile", "standing", "cowboy shot", "outdoors"],
             "match_rate": 0.90,
             "status": "success",
         },
         {
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 2,
             "tags": ["smile", "sitting", "close-up", "classroom"],
             "match_rate": 0.80,
@@ -329,7 +338,7 @@ def test_success_combinations_with_success_logs(client: TestClient):
 
     # Test success combinations
     response = client.get(
-        f"/generation-logs/success-combinations?project_name={project_name}&min_occurrences=2"
+        f"/generation-logs/success-combinations?storyboard_id={storyboard_id}&min_occurrences=2"
     )
 
     assert response.status_code == 200
@@ -359,26 +368,26 @@ def test_success_combinations_with_success_logs(client: TestClient):
 
 def test_success_combinations_filtering(client: TestClient):
     """Test success combinations with different match rate thresholds."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
 
     # Create logs with different match rates
     logs = [
         {
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 0,
             "tags": ["smile"],
             "match_rate": 0.95,
             "status": "success",
         },
         {
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 1,
             "tags": ["frown"],
             "match_rate": 0.60,
             "status": "fail",
         },
         {
-            "project_name": project_name,
+            "storyboard_id": storyboard_id,
             "scene_id": 2,
             "tags": ["neutral"],
             "match_rate": 0.75,
@@ -391,7 +400,7 @@ def test_success_combinations_filtering(client: TestClient):
 
     # Test with default threshold (0.7)
     response = client.get(
-        f"/generation-logs/success-combinations?project_name={project_name}&min_occurrences=1"
+        f"/generation-logs/success-combinations?storyboard_id={storyboard_id}&min_occurrences=1"
     )
 
     assert response.status_code == 200
@@ -400,7 +409,7 @@ def test_success_combinations_filtering(client: TestClient):
 
     # Test with higher threshold (0.8)
     response = client.get(
-        f"/generation-logs/success-combinations?project_name={project_name}&match_rate_threshold=0.8&min_occurrences=1"
+        f"/generation-logs/success-combinations?storyboard_id={storyboard_id}&match_rate_threshold=0.8&min_occurrences=1"
     )
 
     assert response.status_code == 200
@@ -410,20 +419,20 @@ def test_success_combinations_filtering(client: TestClient):
 
 def test_analyze_patterns_basic(client: TestClient):
     """Test basic pattern analysis."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
 
     # Create mix of success and fail logs
     logs = [
-        {"project_name": project_name, "scene_id": 0, "tags": ["smile", "standing"], "status": "success"},
-        {"project_name": project_name, "scene_id": 1, "tags": ["smile", "sitting"], "status": "success"},
-        {"project_name": project_name, "scene_id": 2, "tags": ["frown", "standing"], "status": "fail"},
+        {"storyboard_id": storyboard_id, "scene_id": 0, "tags": ["smile", "standing"], "status": "success"},
+        {"storyboard_id": storyboard_id, "scene_id": 1, "tags": ["smile", "sitting"], "status": "success"},
+        {"storyboard_id": storyboard_id, "scene_id": 2, "tags": ["frown", "standing"], "status": "fail"},
     ]
 
     for log_data in logs:
         client.post("/generation-logs", json=log_data)
 
     response = client.get(
-        f"/generation-logs/analyze/patterns?project_name={project_name}&min_occurrences=1"
+        f"/generation-logs/analyze/patterns?storyboard_id={storyboard_id}&min_occurrences=1"
     )
 
     assert response.status_code == 200
@@ -442,9 +451,9 @@ def test_analyze_patterns_basic(client: TestClient):
 
 def test_suggest_conflict_rules_no_data(client: TestClient):
     """Test conflict rules suggestion with no data."""
-    project_name = _unique_project()
+    storyboard_id = _create_storyboard(client)
     response = client.get(
-        f"/generation-logs/suggest-conflict-rules?project_name={project_name}"
+        f"/generation-logs/suggest-conflict-rules?storyboard_id={storyboard_id}"
     )
 
     assert response.status_code == 200

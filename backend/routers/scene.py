@@ -8,7 +8,7 @@ import io
 from fastapi import APIRouter, HTTPException
 from PIL import Image
 
-from config import API_PUBLIC_URL, IMAGE_DIR, logger
+from config import IMAGE_DIR, logger
 from schemas import (
     GeminiEditRequest,
     GeminiEditResponse,

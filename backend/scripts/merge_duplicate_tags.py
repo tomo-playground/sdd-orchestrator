@@ -22,9 +22,10 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from sqlalchemy import text
+
 from database import SessionLocal
 from models.tag import Tag, TagEffectiveness
-from sqlalchemy import text
 
 
 def find_duplicate_pairs(db):

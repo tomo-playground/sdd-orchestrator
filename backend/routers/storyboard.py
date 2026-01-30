@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import get_db
-from models.storyboard import Storyboard
+from models.associations import SceneCharacterAction, SceneTag
 from models.scene import Scene
-from models.associations import SceneTag, SceneCharacterAction
+from models.storyboard import Storyboard
 from schemas import StoryboardRequest, StoryboardSave
 from services.storyboard import create_storyboard
 
@@ -26,7 +26,7 @@ async def create_storyboard_endpoint(request: StoryboardRequest):
 async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)):
     """Save a full storyboard and its scenes to the DB."""
     logger.info("💾 [Storyboard Save] %s", request.title)
-    
+
     # 1. Create Storyboard
     db_storyboard = Storyboard(
         title=request.title,
@@ -36,7 +36,7 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
     )
     db.add(db_storyboard)
     db.flush() # Get ID
-    
+
     # 2. Create Scenes
     for idx, s_data in enumerate(request.scenes):
         db_scene = Scene(
@@ -60,7 +60,7 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
                     weight=t_data.weight
                 )
                 db.add(s_tag)
-        
+
         # 4. Save Scene Character Actions
         if s_data.character_actions:
             for a_data in s_data.character_actions:
@@ -71,7 +71,24 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
                     weight=a_data.weight
                 )
                 db.add(s_action)
-    
+
     db.commit()
     db.refresh(db_storyboard)
     return {"status": "success", "storyboard_id": db_storyboard.id}
+
+
+@router.get("")
+def list_storyboards(db: Session = Depends(get_db)):
+    """List all storyboards."""
+    storyboards = db.query(Storyboard).all()
+    
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "description": s.description,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+        }
+        for s in storyboards
+    ]

@@ -9,18 +9,16 @@ from .db import (
     load_tags_from_db,
 )
 from .formatting import format_keyword_context
-from .patterns import (
-    CATEGORY_PATTERNS, CATEGORY_PRIORITY, suggest_category_for_tag
-)
+from .patterns import CATEGORY_PATTERNS, CATEGORY_PRIORITY, suggest_category_for_tag
 from .processing import expand_synonyms, filter_prompt_tokens
+from .suggestions import load_keyword_suggestions, update_keyword_suggestions
+from .sync import sync_category_patterns_to_tags, sync_lora_triggers_to_tags
 from .validation import (
     get_effective_tags,
     get_tag_effectiveness_report,
     get_tag_rules_summary,
     validate_prompt_tags,
 )
-from .suggestions import load_keyword_suggestions, update_keyword_suggestions
-from .sync import sync_category_patterns_to_tags, sync_lora_triggers_to_tags
 
 __all__ = [
     "IGNORE_TOKENS",

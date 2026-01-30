@@ -1,12 +1,12 @@
 import sys
 from pathlib import Path
-from sqlalchemy.future import select
 
 # Add backend directory to path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from database import SessionLocal
 from models import LoRA
+
 
 def main():
     db = SessionLocal()

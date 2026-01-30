@@ -33,32 +33,31 @@ type SuccessCombinationsResponse = {
   suggested_combinations: SuggestedCombination[];
 };
 
-export default function AnalyticsDashboard() {
-  const [projectName, setProjectName] = useState("");
+export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: number | null }) {
   const [data, setData] = useState<SuccessCombinationsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const loadAnalytics = async () => {
-    if (!projectName.trim()) {
-      setError("Please enter a project name");
-      return;
-    }
+    if (!storyboardId) return;
 
     setIsLoading(true);
     setError("");
 
     try {
+      const params: any = {
+        match_rate_threshold: 0.7,
+        min_occurrences: 2,
+        top_n_per_category: 10,
+      };
+
+      if (storyboardId) {
+        params.storyboard_id = storyboardId;
+      }
+
       const response = await axios.get<SuccessCombinationsResponse>(
         `${API_BASE}/generation-logs/success-combinations`,
-        {
-          params: {
-            project_name: projectName,
-            match_rate_threshold: 0.7,
-            min_occurrences: 2,
-            top_n_per_category: 10,
-          },
-        }
+        { params }
       );
       setData(response.data);
     } catch (err: any) {
@@ -68,6 +67,13 @@ export default function AnalyticsDashboard() {
       setIsLoading(false);
     }
   };
+
+  // Reload when storyboard changes
+  useEffect(() => {
+    if (storyboardId) {
+      loadAnalytics();
+    }
+  }, [storyboardId]);
 
   const categoryColors: Record<string, string> = {
     expression: "bg-pink-500",
@@ -99,19 +105,12 @@ export default function AnalyticsDashboard() {
 
       {/* Input Section */}
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          placeholder="Enter project name"
-          className="flex-1 min-w-[200px] rounded-full border border-zinc-200 bg-white px-4 py-2 text-[11px] outline-none focus:border-zinc-400"
-        />
         <button
           onClick={loadAnalytics}
-          disabled={isLoading}
+          disabled={isLoading || !storyboardId}
           className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase disabled:bg-zinc-400 transition"
         >
-          {isLoading ? "Loading..." : "Analyze"}
+          {isLoading ? "Loading..." : "Refresh"}
         </button>
       </div>
 
@@ -251,7 +250,7 @@ export default function AnalyticsDashboard() {
       {!data && !isLoading && !error && (
         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-8 text-center">
           <p className="text-sm text-zinc-500">
-            Enter a project name and click Analyze to view insights
+            Select a storyboard to view insights
           </p>
         </div>
       )}

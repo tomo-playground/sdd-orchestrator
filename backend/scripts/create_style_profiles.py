@@ -4,9 +4,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from database import SessionLocal
-from models import StyleProfile, SDModel, LoRA, Embedding
 from config import logger
+from database import SessionLocal
+from models import Embedding, SDModel, StyleProfile
+
 
 def main():
     db = SessionLocal()
@@ -16,18 +17,18 @@ def main():
         if not sd_model:
             logger.error("❌ No SD models found. Run sync_webui_data.py first.")
             return
-        
+
         # Get negative embeddings
         negative_embs = db.query(Embedding).filter(
             Embedding.embedding_type == "negative"
         ).all()
         negative_emb_ids = [emb.id for emb in negative_embs]
-        
+
         # Create default profile
         default_profile = db.query(StyleProfile).filter(
             StyleProfile.name == "Default Anime"
         ).first()
-        
+
         if not default_profile:
             default_profile = StyleProfile(
                 name="Default Anime",
@@ -47,17 +48,17 @@ def main():
             logger.info(f"✅ Created default profile: {default_profile.name}")
         else:
             logger.info(f"⏭️  Default profile already exists: {default_profile.name}")
-        
+
         # Create realistic profile if realistic model exists
         realistic_model = db.query(SDModel).filter(
             SDModel.name.ilike("%realistic%")
         ).first()
-        
+
         if realistic_model:
             realistic_profile = db.query(StyleProfile).filter(
                 StyleProfile.name == "Realistic"
             ).first()
-            
+
             if not realistic_profile:
                 realistic_profile = StyleProfile(
                     name="Realistic",
@@ -75,9 +76,9 @@ def main():
                 db.add(realistic_profile)
                 db.commit()
                 logger.info(f"✅ Created realistic profile: {realistic_profile.name}")
-        
+
         logger.info("🎉 Style profiles created successfully!")
-        
+
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error creating style profiles: {e}")

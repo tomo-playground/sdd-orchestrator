@@ -8,9 +8,10 @@ sys.path.append(str(backend_dir))
 
 from config import gemini_client
 
+
 async def check_available_models():
     print("🔍 Checking available models with current API Key...")
-    
+
     if not gemini_client:
         print("❌ Gemini Client not initialized. Check GEMINI_API_KEY.")
         return
@@ -20,20 +21,20 @@ async def check_available_models():
         # It's client.models.list()
         count = 0
         pager = gemini_client.models.list()
-        
+
         print(f"{ 'Model Name':<40} | { 'Display Name'}")
         print("-" * 60)
-        
+
         for model in pager:
             count += 1
             print(f"{model.name:<40} | {model.display_name}")
-            
+
             # Check for image generation capability if attributes exist
             # Note: The SDK object attributes might vary, just printing name is safest first step.
-            
+
         print("-" * 60)
         print(f"✅ Found {count} models.")
-        
+
     except Exception as e:
         print(f"❌ Failed to list models: {e}")
         # Try fallback for older SDK versions or different structures

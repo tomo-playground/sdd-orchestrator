@@ -1,7 +1,8 @@
 
+from config import logger
 from database import SessionLocal
 from models import Tag
-from config import logger
+
 
 def fix_tag_categories():
     db = SessionLocal()
@@ -19,7 +20,7 @@ def fix_tag_categories():
             ("full_body", "camera", "camera"),
             ("upper_body", "camera", "camera"),
         ]
-        
+
         count = 0
         for name, category, group in tag_corrections:
             tag = db.query(Tag).filter(Tag.name == name).first()
@@ -41,7 +42,7 @@ def fix_tag_categories():
                 )
                 db.add(new_tag)
                 count += 1
-                
+
         db.commit()
         logger.info(f"✅ {count} tags corrected in database.")
     except Exception as e:

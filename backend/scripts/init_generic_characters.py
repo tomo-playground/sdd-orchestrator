@@ -4,10 +4,8 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Character
-from config import logger
 
 # Generic character data
 GENERIC_CHARACTERS = [
@@ -36,12 +34,12 @@ def create_characters():
             if existing:
                 print(f"  ⏭️  Character exists: {char_data['name']}")
                 continue
-            
+
             new_char = Character(**char_data)
             db.add(new_char)
             created_count += 1
             print(f"  ✅ Created character: {char_data['name']}")
-        
+
         db.commit()
         print(f"\n🎉 Done! Created {created_count} characters.")
     finally:

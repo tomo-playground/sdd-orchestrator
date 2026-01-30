@@ -1,7 +1,8 @@
 
+from config import logger
 from database import SessionLocal
 from models import Tag
-from config import logger
+
 
 def upsert_tags():
     db = SessionLocal()
@@ -14,7 +15,7 @@ def upsert_tags():
             {"name": "day", "category": "time_weather", "group_name": "time_weather"},
             {"name": "beckoning", "category": "action", "group_name": "pose"},
         ]
-        
+
         for data in tag_data:
             tag = db.query(Tag).filter(Tag.name == data["name"]).first()
             if not tag:
@@ -32,7 +33,7 @@ def upsert_tags():
                 tag.category = data["category"]
                 tag.group_name = data["group_name"]
                 tag.classification_confidence = 1.0
-                
+
         db.commit()
         logger.info("✅ All requested tags upserted/updated.")
     except Exception as e:

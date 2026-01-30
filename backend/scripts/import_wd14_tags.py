@@ -1,14 +1,15 @@
 import csv
-import sys
 import os
+import sys
 
 # Add backend directory to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 from sqlalchemy.dialects.postgresql import insert
+
 from database import SessionLocal
 from models.tag import Tag
-import re
 
 CSV_PATH = "models/wd14/selected_tags.csv"
 
@@ -47,7 +48,7 @@ def determine_layer_and_scope(name, wd14_category):
         return LAYER_QUALITY, SCOPE_ANY
     if name in ["1girl", "1boy", "solo", "multiple_girls", "2girls"]:
         return LAYER_SUBJECT, SCOPE_ANY
-    
+
     # Priority Rule: Style/Atmosphere (Before falling through)
     if name in ["anime", "photorealistic", "realistic", "illustration", "3d", "comic", "sketch"]:
         return LAYER_ATMOSPHERE, SCOPE_TRANSIENT
@@ -115,19 +116,19 @@ def import_tags():
             return
 
         print(f"🚀 Importing WD14 tags from {CSV_PATH}...")
-        
+
         # Determine "Legacy Category" default
-        
+
         tags_to_insert = []
-        
-        with open(CSV_PATH, "r", encoding="utf-8") as f:
+
+        with open(CSV_PATH, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 # CSV usage: tag_id,name,category,count
                 name = row["name"]
                 wd14_cat = int(row["category"])
                 count = int(row["count"])
-                
+
                 layer, scope = determine_layer_and_scope(name, wd14_cat)
 
                 tags_to_insert.append({
@@ -137,7 +138,7 @@ def import_tags():
                     "default_layer": layer,
                     "usage_scope": scope,
                 })
-        
+
         # Inject Custom/Critical Tags that might be missing from WD14
         custom_tags = [
             ("masterpiece", LAYER_QUALITY, SCOPE_ANY),
@@ -151,7 +152,7 @@ def import_tags():
             ("3d", LAYER_ATMOSPHERE, SCOPE_TRANSIENT),
             ("illustration", LAYER_ATMOSPHERE, SCOPE_TRANSIENT),
         ]
-        
+
         print(f"➕ Injecting {len(custom_tags)} custom tags...")
         for name, layer, scope in custom_tags:
             tags_to_insert.append({
@@ -161,9 +162,9 @@ def import_tags():
                 "default_layer": layer,
                 "usage_scope": scope,
             })
-        
+
         print(f"📦 Prepared {len(tags_to_insert)} tags. Executing bulk upsert...")
-        
+
         # Batch insert
         batch_size = 1000
         for i in range(0, len(tags_to_insert), batch_size):
@@ -181,7 +182,7 @@ def import_tags():
             session.execute(stmt)
             session.commit()
             print(f"   Processed {i + len(batch)} / {len(tags_to_insert)}")
-            
+
         print("✅ Import Completed!")
 
     except Exception as e:

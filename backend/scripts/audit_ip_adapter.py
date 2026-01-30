@@ -1,7 +1,8 @@
-import sys
 import os
-from sqlalchemy import create_engine, text
+import sys
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
 # Load env variables
 load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), '../.env')))
@@ -15,7 +16,7 @@ def audit_characters_vs_files():
     engine = create_engine(DATABASE_URL)
     with engine.connect() as conn:
         result = conn.execute(text("SELECT id, name, preview_image_url, ip_adapter_weight, ip_adapter_model FROM characters"))
-        
+
         characters = list(result)
         print(f"--- Database Characters ({len(characters)}) ---")
         char_names = set()
@@ -26,7 +27,7 @@ def audit_characters_vs_files():
             print(f"  Preview URL: {char.preview_image_url}")
             print(f"  IP Adapter: weight={char.ip_adapter_weight}, model={char.ip_adapter_model}")
             print("-" * 20)
-            
+
         print("\n--- Orphaned Reference Files ---")
         ref_dir = os.path.join(os.path.dirname(__file__), '..', 'assets', 'references')
         if os.path.exists(ref_dir):

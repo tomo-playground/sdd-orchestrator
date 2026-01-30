@@ -13,7 +13,7 @@ router = APIRouter(prefix="/generation-logs", tags=["generation-logs"])
 class CreateActivityLogRequest(BaseModel):
     """Request for creating a generation log."""
 
-    project_name: str
+    storyboard_id: int
     scene_id: int
     prompt: str | None = None
     tags: list[str] | None = None
@@ -37,6 +37,7 @@ def create_generation_log(request: CreateActivityLogRequest):
     Example request:
     ```json
     {
+        "storyboard_id": 1,
         "project_name": "my_project",
         "scene_id": 0,
         "prompt": "1girl, smiling, classroom, ...",
@@ -62,7 +63,7 @@ def create_generation_log(request: CreateActivityLogRequest):
     db = SessionLocal()
     try:
         log = ActivityLog(
-            project_name=request.project_name,
+            storyboard_id=request.storyboard_id,
             scene_id=request.scene_id,
             prompt=request.prompt or "",
             tags_used=request.tags,
@@ -77,13 +78,13 @@ def create_generation_log(request: CreateActivityLogRequest):
         db.refresh(log)
 
         logger.info(
-            f"Created activity log: project={request.project_name}, "
+            f"Created activity log: storyboard={request.storyboard_id}, "
             f"scene={request.scene_id}, status={request.status}"
         )
 
         return {
             "id": log.id,
-            "project_name": log.project_name,
+            "storyboard_id": log.storyboard_id,
             "scene_id": log.scene_id,
             "status": log.status,
             "match_rate": log.match_rate,
@@ -96,33 +97,17 @@ def create_generation_log(request: CreateActivityLogRequest):
         db.close()
 
 
-@router.get("/project/{project_name}")
-def get_project_logs(project_name: str, status: str | None = None, limit: int = 100):
-    """Get generation logs for a project.
+@router.get("/storyboard/{storyboard_id}")
+def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: int = 100):
+    """Get generation logs for a storyboard.
 
     Query parameters:
     - status: Filter by status (success, fail, pending)
     - limit: Max number of results (default: 100)
-
-    Returns:
-    ```json
-    {
-        "logs": [
-            {
-                "id": 1,
-                "scene_id": 0,
-                "match_rate": 0.85,
-                "status": "success",
-                ...
-            }
-        ],
-        "total": 10
-    }
-    ```
     """
     db = SessionLocal()
     try:
-        query = db.query(ActivityLog).filter(ActivityLog.project_name == project_name)
+        query = db.query(ActivityLog).filter(ActivityLog.storyboard_id == storyboard_id)
 
         if status:
             query = query.filter(ActivityLog.status == status)
@@ -133,7 +118,7 @@ def get_project_logs(project_name: str, status: str | None = None, limit: int = 
             "logs": [
                 {
                     "id": log.id,
-                    "project_name": log.project_name,
+                    "storyboard_id": log.storyboard_id,
                     "scene_id": log.scene_id,
                     "prompt": log.prompt,
                     "tags": log.tags_used,
@@ -149,10 +134,16 @@ def get_project_logs(project_name: str, status: str | None = None, limit: int = 
             "total": len(logs),
         }
     except Exception as exc:
-        logger.exception(f"Failed to get logs for project {project_name}")
+        logger.exception(f"Failed to get logs for storyboard {storyboard_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         db.close()
+
+
+@router.get("/{storyboard_id}/logs")
+def get_storyboard_logs_v2(storyboard_id: int, status: str | None = None, limit: int = 100):
+    """Compatibility alias for get_storyboard_logs."""
+    return get_storyboard_logs(storyboard_id, status, limit)
 
 
 @router.patch("/{log_id}/status")
@@ -224,57 +215,19 @@ def delete_log(log_id: int):
 
 @router.get("/analyze/patterns")
 def analyze_patterns(
-    project_name: str | None = None,
+    storyboard_id: int,
     min_occurrences: int = 3,
     match_rate_threshold: float = 0.7,
 ):
-    """Analyze generation patterns to find successful tags and conflicts.
-
-    Query parameters:
-    - project_name: Filter by project (optional)
-    - min_occurrences: Minimum tag occurrences to include (default: 3)
-    - match_rate_threshold: Match rate threshold for "success" (default: 0.7)
-
-    Returns:
-    ```json
-    {
-        "summary": {
-            "total_logs": 100,
-            "success_count": 75,
-            "fail_count": 25,
-            "avg_match_rate": 0.82
-        },
-        "tag_stats": [
-            {
-                "tag": "smile",
-                "total": 50,
-                "success": 45,
-                "fail": 5,
-                "success_rate": 0.90,
-                "avg_match_rate": 0.85
-            }
-        ],
-        "conflict_candidates": [
-            {
-                "tag1": "upper body",
-                "tag2": "full body",
-                "co_occurrence": 10,
-                "fail_rate": 0.80,
-                "avg_match_rate": 0.45
-            }
-        ]
-    }
-    ```
-    """
+    """Analyze generation patterns for a storyboard."""
     db = SessionLocal()
     try:
         # Base query
         query = db.query(ActivityLog).filter(
+            ActivityLog.storyboard_id == storyboard_id,
             ActivityLog.status.in_(["success", "fail"]),
             ActivityLog.tags_used.isnot(None),
         )
-        if project_name:
-            query = query.filter(ActivityLog.project_name == project_name)
 
         logs = query.all()
 
@@ -389,7 +342,7 @@ def analyze_patterns(
         conflict_candidates.sort(key=lambda x: (-x["fail_rate"], -x["co_occurrence"]))
 
         logger.info(
-            f"[Analyze Patterns] project={project_name}, logs={len(logs)}, "
+            f"[Analyze Patterns] storyboard={storyboard_id}, logs={len(logs)}, "
             f"tags={len(tag_stats)}, conflicts={len(conflict_candidates)}"
         )
 
@@ -413,7 +366,7 @@ def analyze_patterns(
 
 @router.get("/suggest-conflict-rules")
 def suggest_conflict_rules(
-    project_name: str | None = None,
+    storyboard_id: int,
     min_occurrences: int = 5,
     fail_rate_threshold: float = 0.6,
 ):
@@ -452,11 +405,10 @@ def suggest_conflict_rules(
 
         # Get conflict candidates from pattern analysis
         query = db.query(ActivityLog).filter(
+            ActivityLog.storyboard_id == storyboard_id,
             ActivityLog.status.in_(["success", "fail"]),
             ActivityLog.tags_used.isnot(None),
         )
-        if project_name:
-            query = query.filter(ActivityLog.project_name == project_name)
 
         logs = query.all()
 
@@ -540,7 +492,7 @@ def suggest_conflict_rules(
         new_candidates.sort(key=lambda x: (-x["fail_rate"], -x["co_occurrence"]))
 
         logger.info(
-            f"[Suggest Conflict Rules] project={project_name}, "
+            f"[Suggest Conflict Rules] storyboard={storyboard_id}, "
             f"candidates={len(candidates)}, new={len(new_candidates)}, existing={len(existing_pairs)}"
         )
 
@@ -559,7 +511,7 @@ def suggest_conflict_rules(
 
 @router.get("/success-combinations")
 def get_success_combinations(
-    project_name: str | None = None,
+    storyboard_id: int,
     match_rate_threshold: float = 0.7,
     min_occurrences: int = 3,
     top_n_per_category: int = 5,
@@ -613,10 +565,9 @@ def get_success_combinations(
 
         # Get successful logs
         query = db.query(ActivityLog).filter(
+            ActivityLog.storyboard_id == storyboard_id,
             ActivityLog.tags_used.isnot(None),
         )
-        if project_name:
-            query = query.filter(ActivityLog.project_name == project_name)
 
         logs = query.all()
 
@@ -746,7 +697,7 @@ def get_success_combinations(
             })
 
         logger.info(
-            f"[Success Combinations] project={project_name}, success_logs={len(success_logs)}, "
+            f"[Success Combinations] storyboard={storyboard_id}, success_logs={len(success_logs)}, "
             f"categories={len(combinations_by_category)}, combinations={len(suggested_combinations)}"
         )
 

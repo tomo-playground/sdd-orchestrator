@@ -351,7 +351,7 @@ async def run_single_evaluation(
             # Use character's recommended negative + custom negative
             if character.recommended_negative:
                 negative_prompt = ", ".join(character.recommended_negative)
-            
+
             if character.custom_negative_prompt:
                 negative_prompt = f"{negative_prompt}, {character.custom_negative_prompt}"
 

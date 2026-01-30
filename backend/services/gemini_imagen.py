@@ -7,15 +7,10 @@ Uses Standard API Key (No Vertex AI/GCP required).
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
-from config import (
-    gemini_client,
-    GEMINI_IMAGE_MODEL,
-    logger,
-    ASSETS_DIR
-)
 from google.genai import types
+
+from config import ASSETS_DIR, GEMINI_IMAGE_MODEL, gemini_client, logger
 
 # Directory to save generated poses
 POSE_CACHE_DIR = ASSETS_DIR / "poses" / "generated"
@@ -76,7 +71,7 @@ def generate_pose_image_via_gemini(description: str) -> str | None:
             image_bytes = response.generated_images[0].image.image_bytes
             with open(output_path, "wb") as f:
                 f.write(image_bytes)
-            
+
             logger.info(f"✅ [Gemini Image] Success! Saved to: {output_path}")
             return str(output_path)
         else:

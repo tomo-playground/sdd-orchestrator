@@ -1,12 +1,11 @@
 """Pure V3 Prompt Composition Service with 12-Layer System."""
 
-import re
-from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from models.tag import Tag
-from models.lora import LoRA
-from models.character import Character
+
 from database import SessionLocal
+from models.character import Character
+from models.lora import LoRA
+from models.tag import Tag
 from services.keywords.db_cache import LoRATriggerCache
 
 # Defined Layers (from PROMPT_LAYERS.md)
@@ -29,24 +28,24 @@ class V3PromptBuilder:
 
     def __init__(self, db: Session):
         self.db = db
-        self._lora_weight_cache: Dict[str, float] = {}
+        self._lora_weight_cache: dict[str, float] = {}
 
-    def get_tag_info(self, tag_names: List[str]) -> Dict[str, Dict]:
+    def get_tag_info(self, tag_names: list[str]) -> dict[str, dict]:
         """Fetches metadata for a list of tags from the DB."""
         if not tag_names:
             return {}
-        
+
         # Normalize tags for DB lookup
         normalized_names = [t.lower().replace(" ", "_").strip() for t in tag_names]
-        
+
         tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
         return {tag.name: {"layer": tag.default_layer, "scope": tag.usage_scope} for tag in tags}
 
     def compose_for_character(
         self,
         character_id: int,
-        scene_tags: List[str],
-        style_loras: Optional[List[Dict]] = None,
+        scene_tags: list[str],
+        style_loras: list[dict] | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
         character = self.db.query(Character).filter(Character.id == character_id).first()
@@ -65,10 +64,10 @@ class V3PromptBuilder:
 
         # 2. Get Scene tag info
         scene_tag_info = self.get_tag_info(scene_tags)
-        
+
         # 3. Initialize 12 layers
-        layers: List[List[str]] = [[] for _ in range(12)]
-        
+        layers: list[list[str]] = [[] for _ in range(12)]
+
         # 4. Distribute Character Tags
         for ct in char_tags_data:
             token = ct["name"]
@@ -84,18 +83,18 @@ class V3PromptBuilder:
 
         # 6. Inject Character LoRAs & Triggers
         # Character explicitly defined LoRAs
-        active_loras: Dict[str, float] = {} # name -> weight
-        
+        active_loras: dict[str, float] = {} # name -> weight
+
         if character.loras and character.prompt_mode != "standard":
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
                 weight = lora_info.get("weight") # Explicit weight from character settings
-                
+
                 lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
                 if lora_obj:
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
-                    
+
                     active_loras[lora_obj.name] = weight
                     # Triggers go to Identity layer
                     for trigger in (lora_obj.trigger_words or []):
@@ -111,7 +110,7 @@ class V3PromptBuilder:
 
         # 8. Inject LoRA Tags into Layers
         for name, weight in active_loras.items():
-            # For now, put all triggered LoRAs into IDENTITY layer 
+            # For now, put all triggered LoRAs into IDENTITY layer
             # (In future, style LoRAs could go to ATMOSPHERE)
             layers[LAYER_IDENTITY].append(f"<lora:{name}:{weight}>")
 
@@ -122,7 +121,7 @@ class V3PromptBuilder:
                 weight = lora_info.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(name)
-                
+
                 triggers = lora_info.get("trigger_words", [])
                 for trigger in triggers:
                     if trigger not in layers[LAYER_ATMOSPHERE]:
@@ -137,34 +136,34 @@ class V3PromptBuilder:
 
     def compose(
         self,
-        tags: List[str],
-        character_loras: Optional[List[Dict]] = None,
-        style_loras: Optional[List[Dict]] = None,
+        tags: list[str],
+        character_loras: list[dict] | None = None,
+        style_loras: list[dict] | None = None,
     ) -> str:
         """Generic composition without direct DB character object."""
-        layers: List[List[str]] = [[] for _ in range(12)]
+        layers: list[list[str]] = [[] for _ in range(12)]
         tag_info = self.get_tag_info(tags)
-        
+
         for tag in tags:
             norm_tag = tag.lower().replace(" ", "_").strip()
             info = tag_info.get(norm_tag, {"layer": LAYER_SUBJECT})
             layers[info["layer"]].append(tag)
-            
+
         if character_loras:
             for lora in character_loras:
                 # Triggers
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_IDENTITY]:
                         layers[LAYER_IDENTITY].append(trigger)
-                
+
                 # LoRA tag logic
                 weight = lora.get("weight")
                 if weight is None:
                     # Resolve from name
                     weight = self.get_lora_weight_by_name(lora["name"])
-                
+
                 layers[LAYER_IDENTITY].append(f"<lora:{lora['name']}:{weight}>")
-                
+
         # Auto-triggered LoRAs from tags
         for tag in tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
@@ -181,12 +180,12 @@ class V3PromptBuilder:
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
-                
+
                 # LoRA tag logic
                 weight = lora.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora["name"])
-                
+
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
 
         if not layers[LAYER_QUALITY]:
@@ -194,7 +193,7 @@ class V3PromptBuilder:
 
         return self._flatten_layers(layers, has_character_lora=bool(character_loras))
 
-    def _flatten_layers(self, layers: List[List[str]], has_character_lora: bool = False) -> str:
+    def _flatten_layers(self, layers: list[list[str]], has_character_lora: bool = False) -> str:
         """Flattens 12 layers into a final string with deduplication and BREAK."""
         final_tokens = []
         for i, layer_tokens in enumerate(layers):
@@ -205,16 +204,16 @@ class V3PromptBuilder:
                     if t.lower() not in seen:
                         unique_layer_tokens.append(t)
                         seen.add(t.lower())
-                
+
                 # Layer 7, 8 (Expression, Action) weight boost
                 if i in [LAYER_EXPRESSION, LAYER_ACTION]:
                     unique_layer_tokens = [
-                        f"({t}:1.1)" if ":" not in t else t 
+                        f"({t}:1.1)" if ":" not in t else t
                         for t in unique_layer_tokens
                     ]
-                    
+
                 final_tokens.extend(unique_layer_tokens)
-            
+
             # BREAK after Layer 6 (Accessory) if character LoRA is used
             # This must trigger even if layer 6 is empty
             if i == LAYER_ACCESSORY and has_character_lora:
@@ -235,17 +234,17 @@ class V3PromptBuilder:
         """Looks up LoRA weight by name with caching."""
         if name in self._lora_weight_cache:
             return self._lora_weight_cache[name]
-        
+
         lora = self.db.query(LoRA).filter(LoRA.name == name).first()
         if not lora:
             weight = 0.7
         else:
             weight = self.get_effective_lora_weight(lora)
-        
+
         self._lora_weight_cache[name] = weight
         return weight
 
-    def _resolve_lora_placeholders(self, tokens: List[str]) -> List[str]:
+    def _resolve_lora_placeholders(self, tokens: list[str]) -> list[str]:
         """Finds <lora:NAME> (without weight) and injects calibrated value."""
         resolved = []
         for t in tokens:
@@ -253,14 +252,14 @@ class V3PromptBuilder:
                 # Check if it has weight (contains second colon)
                 content = t[6:-1] # name[:weight]
                 parts = content.split(":")
-                
+
                 if len(parts) == 1:
                     # Missing weight! Resolve it.
                     name = parts[0]
                     weight = self.get_lora_weight_by_name(name)
                     resolved.append(f"<lora:{name}:{weight}>")
                     continue
-            
+
             resolved.append(t)
         return resolved
 

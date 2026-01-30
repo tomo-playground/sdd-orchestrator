@@ -18,7 +18,6 @@ import edge_tts
 from fastapi import HTTPException
 
 from config import (
-    API_PUBLIC_URL,
     AUDIO_DIR,
     IMAGE_DIR,
     VIDEO_DIR,
@@ -249,7 +248,7 @@ class VideoBuilder:
         # State
         self.project_id = f"build_{int(time.time())}"
         self.temp_dir = IMAGE_DIR / self.project_id
-        self.safe_project_name = sanitize_project_name(request.project_name)
+        self.safe_project_name = sanitize_project_name(request.storyboard_title)
         self.video_filename = generate_video_filename(
             self.safe_project_name, request.layout_style
         )
@@ -287,7 +286,7 @@ class VideoBuilder:
 
     async def build(self) -> dict[str, str]:
         """Execute the video build pipeline."""
-        logger.info("Video build started: %s", self.request.project_name)
+        logger.info("Video build started: %s", self.request.storyboard_title)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -3,12 +3,13 @@
 문제: "1girl, solo" 프롬프트인데 2명 생성됨
 목표: LoRA 없이 vs LoRA 있이 vs 다른 seed 테스트
 """
-import httpx
 import base64
-from io import BytesIO
-from PIL import Image
-from pathlib import Path
 import sys
+from io import BytesIO
+from pathlib import Path
+
+import httpx
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import SD_BASE_URL
@@ -48,7 +49,7 @@ payload = {
     "clip_skip": 2,
 }
 
-print(f"📤 Generating without LoRA (seed 12345)...")
+print("📤 Generating without LoRA (seed 12345)...")
 with httpx.Client(timeout=180.0) as client:
     res = client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload)
     res.raise_for_status()
@@ -73,7 +74,7 @@ masterpiece, best quality"""
 payload["prompt"] = prompt_with_lora
 payload["seed"] = -1  # Random seed
 
-print(f"📤 Generating with LoRA (random seed)...")
+print("📤 Generating with LoRA (random seed)...")
 with httpx.Client(timeout=180.0) as client:
     res = client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload)
     res.raise_for_status()
@@ -98,7 +99,7 @@ masterpiece, best quality"""
 payload["prompt"] = prompt_low_weight
 payload["seed"] = -1
 
-print(f"📤 Generating with LoRA weight 0.5...")
+print("📤 Generating with LoRA weight 0.5...")
 with httpx.Client(timeout=180.0) as client:
     res = client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload)
     res.raise_for_status()
@@ -127,7 +128,7 @@ masterpiece, best quality"""
 payload["negative_prompt"] = strong_negative
 payload["seed"] = -1
 
-print(f"📤 Generating with strong negative...")
+print("📤 Generating with strong negative...")
 with httpx.Client(timeout=180.0) as client:
     res = client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload)
     res.raise_for_status()

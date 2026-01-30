@@ -148,14 +148,14 @@ async def update_lora(lora_id: int, data: LoRAUpdate, db: Session = Depends(get_
 
     update_data = data.model_dump(exclude_unset=True)
     old_name = lora.name
-    
+
     for key, value in update_data.items():
         setattr(lora, key, value)
 
     db.commit()
     db.refresh(lora)
     logger.info("✏️ [LoRAs] Updated: %s", lora.name)
-    
+
     return lora
 
 

@@ -1,9 +1,7 @@
-import urllib.request
-import urllib.error
 import base64
 import json
-import os
-import sys
+import urllib.error
+import urllib.request
 
 API_URL = "http://localhost:8000/scene/generate"
 
@@ -42,18 +40,18 @@ print(f"🚀 Sending V3 Prompt to Backend...\nPrompt: {PROMPT}\n")
 try:
     data_json = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
-        API_URL, 
-        data=data_json, 
+        API_URL,
+        data=data_json,
         headers={'Content-Type': 'application/json'}
     )
-    
+
     with urllib.request.urlopen(req, timeout=60) as response:
         response_body = response.read()
         data = json.loads(response_body)
-    
+
     # Check response structure
     print("✅ Response received!")
-    
+
     image_b64 = None
     if "image_b64" in data:
         image_b64 = data["image_b64"]
@@ -62,12 +60,12 @@ try:
     elif "images" in data and len(data["images"]) > 0:
          # Some SD backends return list of images
         image_b64 = data["images"][0]
-        
+
     if image_b64:
         # Save image
         if "," in image_b64:
             image_b64 = image_b64.split(",")[1]
-            
+
         with open("v3_test_result.png", "wb") as f:
             f.write(base64.b64decode(image_b64))
         print("🎉 Image saved to: v3_test_result.png")

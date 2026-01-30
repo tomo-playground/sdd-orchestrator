@@ -17,9 +17,10 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from sqlalchemy import text
+
 from database import SessionLocal
 from models.tag import Tag, TagEffectiveness
-from sqlalchemy import text
 
 
 def find_duplicate_pairs(db):
@@ -187,7 +188,7 @@ def main():
         else:
             print("  (No remaining space-format tags)")
 
-        print(f"\n✅ Migration complete!")
+        print("\n✅ Migration complete!")
         print(f"  - Merged: {len(pairs)} duplicate pairs")
         print(f"  - Converted: {len(converted)} remaining tags")
 

@@ -3,9 +3,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
+from config import logger
 from database import SessionLocal
 from models import Character, LoRA
-from config import CHARACTER_PRESETS, logger
+
 
 def main():
     db = SessionLocal()
@@ -13,7 +14,7 @@ def main():
         # Get available LoRAs
         eureka_lora = db.query(LoRA).filter(LoRA.name == "eureka_v9").first()
         midoriya_lora = db.query(LoRA).filter(LoRA.name == "mha_midoriya-10").first()
-        
+
         characters_data = [
             {
                 "name": "Eureka",
@@ -68,7 +69,7 @@ def main():
                 "ip_adapter_model": "clip_face",
             },
         ]
-        
+
         created_count = 0
         for char_data in characters_data:
             # Check if character already exists
@@ -76,15 +77,15 @@ def main():
             if existing:
                 logger.info(f"⏭️  Skipping existing character: {char_data['name']}")
                 continue
-            
+
             character = Character(**char_data)
             db.add(character)
             created_count += 1
             logger.info(f"✅ Created character: {char_data['name']}")
-        
+
         db.commit()
         logger.info(f"🎉 Character creation complete! Created {created_count} new characters.")
-        
+
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error creating characters: {e}")

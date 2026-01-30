@@ -1,9 +1,37 @@
-"""Tests for prompt validation API endpoints."""
-
 from unittest.mock import patch
-
 import pytest
 from fastapi.testclient import TestClient
+from models import TagAlias, TagRule
+from services.keywords.db_cache import TagAliasCache, TagRuleCache
+from database import SessionLocal
+
+
+@pytest.fixture(autouse=True)
+def seed_prompt_rules():
+    """Seed risky tag replacements and rules for tests."""
+    db = SessionLocal()
+    try:
+        # Seed Aliases (Risky Tag Replacements)
+        replacements = [
+            ("medium shot", "cowboy_shot"),
+            ("close up", "close-up"),
+            ("birds eye view", "from above"),
+            ("unreal engine", None),  # removed
+            ("octane render", None),  # removed
+        ]
+        for source, target in replacements:
+            existing = db.query(TagAlias).filter(TagAlias.source_tag == source).first()
+            if not existing:
+                db.add(TagAlias(source_tag=source, target_tag=target, active=True))
+        
+        db.commit()
+        
+        # Refresh Caches
+        TagAliasCache.refresh(db)
+        TagRuleCache.refresh(db)
+    finally:
+        db.close()
+    yield
 
 
 def test_validate_tags_empty(client: TestClient):

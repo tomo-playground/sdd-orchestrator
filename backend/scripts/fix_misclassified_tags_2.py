@@ -1,7 +1,8 @@
 
+from config import logger
 from database import SessionLocal
 from models import Tag
-from config import logger
+
 
 def fix_misclassified_tags_2():
     db = SessionLocal()

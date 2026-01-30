@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # We assume this script is run with PYTHONPATH=backend
 # So we can import directly from models and database
@@ -22,12 +22,12 @@ def check_trigger_words():
         for lora in loras:
             if not lora.trigger_words:
                 continue
-            
+
             issues = []
             for tag in lora.trigger_words:
                 if " " in tag:
                     issues.append(f"Space found in '{tag}' (should be '{tag.replace(' ', '_')}')")
-                if tag != tag.lower() and not tag.startswith("by "): 
+                if tag != tag.lower() and not tag.startswith("by "):
                      issues.append(f"Uppercase found in '{tag}' (should be '{tag.lower()}')")
 
             if issues:
@@ -35,10 +35,10 @@ def check_trigger_words():
                 print(f"LoRA: {lora.name}")
                 for issue in issues:
                     print(f"  - {issue}")
-        
+
         if not param_issues:
             print("All trigger words seem to follow basic Danbooru standards (snake_case, lowercase).")
-            
+
     finally:
         db.close()
 

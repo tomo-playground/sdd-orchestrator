@@ -53,7 +53,7 @@ class TagClassifier:
         4. LLM fallback (Gemini)
         """
         from services.keywords.core import normalize_prompt_token
-        
+
         # Disable lower() in normalize_prompt_token if we want case-sensitive (but tokens are usually lower)
         # normalize_prompt_token returns lowercased, stripped, weight-removed string
         normalized = normalize_prompt_token(tag)
@@ -118,7 +118,7 @@ class TagClassifier:
     def classify_batch(self, tags: list[str]) -> dict[str, ClassificationResult]:
         """Classify multiple tags at once."""
         from services.keywords.core import normalize_prompt_token
-        
+
         results = {}
         uncached = []
 
@@ -268,8 +268,8 @@ class TagClassifier:
             return "character"
         if group in meta_groups:
             return "meta"
-            
-        # For granular groups (action, pose, expression, camera, etc.), 
+
+        # For granular groups (action, pose, expression, camera, etc.),
         # return the group itself as the category so it matches composition priorities.
         granular_groups = {
             "expression", "gaze", "pose", "action", "camera",
@@ -277,7 +277,7 @@ class TagClassifier:
         }
         if group in granular_groups:
             return group
-            
+
         return "scene"
 
 

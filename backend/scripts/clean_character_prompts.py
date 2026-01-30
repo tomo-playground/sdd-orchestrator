@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import SessionLocal
 from models import Character, Tag
-from services.keywords import CATEGORY_PATTERNS, normalize_prompt_token, CATEGORY_PRIORITY
+from services.keywords import CATEGORY_PATTERNS, normalize_prompt_token
 
 
 # Helper to classify a tag into one of our custom categories for cleanup
@@ -63,17 +63,17 @@ def classify_tag_for_cleanup(tag_name: str, tag_db_info: dict[str, Any]) -> str:
     # Higher priority (lower number) in CATEGORY_PRIORITY usually means style/quality
     if db_group_name in {"quality", "style"} or (db_category == "quality") or (db_category == "style"):
         return "style_quality"
-    
+
     # Character appearance-related
     if db_category == "character":
         if db_group_name in {"hair_color", "hair_length", "hair_style", "hair_accessory", "eye_color", "skin_color", "body_feature", "appearance", "identity"}:
             return "appearance"
         if db_group_name == "clothing":
             return "clothing"
-    
+
     # If DB info is not precise enough, use pattern-based classification
     return get_category_from_patterns(tag_name)
-    
+
 
 def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
     logger.info("🚀 Starting character prompt cleanup...")
@@ -92,14 +92,14 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
         original_base_prompt = character.custom_base_prompt or ""
         original_identity_ids = character.identity_tags or []
         original_clothing_ids = character.clothing_tags or []
-        
+
         all_collected_tokens: set[str] = set()
-        
+
         # Collect tokens from custom_base_prompt
         if original_base_prompt:
             tokens_from_base = [normalize_prompt_token(t) for t in original_base_prompt.split(',') if t.strip()]
             all_collected_tokens.update(tokens_from_base)
-            
+
         # Collect tokens from identity_tags
         tokens_from_identity = [tag_id_to_name[tid] for tid in original_identity_ids if tid in tag_id_to_name]
         all_collected_tokens.update(tokens_from_identity)
@@ -137,7 +137,7 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
         # Convert tag names back to IDs
         final_identity_tag_ids = sorted([tag_name_to_id[name] for name in new_identity_tag_names if name in tag_name_to_id])
         final_clothing_tag_ids = sorted([tag_name_to_id[name] for name in new_clothing_tag_names if name in tag_name_to_id])
-        
+
         # New base prompt (sorted for consistency)
         new_base_prompt_string = ", ".join(sorted(new_custom_base_prompt_tokens))
 

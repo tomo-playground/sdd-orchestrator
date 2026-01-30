@@ -1,15 +1,15 @@
 
-import sys
-import os
 import json
+import os
+import sys
 import time
 
 # Add backend directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from config import GEMINI_TEXT_MODEL, gemini_client
 from database import SessionLocal
 from models.tag import Tag
-from config import gemini_client, GEMINI_TEXT_MODEL, logger
 
 BATCH_SIZE = 5
 
@@ -23,7 +23,7 @@ def populate_tags():
         # Fetch tags missing ko_name or description
         print("🔍 Fetching incomplete tags...")
         tags_to_update = session.query(Tag).filter(
-            (Tag.ko_name == None) | (Tag.ko_name == "") | 
+            (Tag.ko_name == None) | (Tag.ko_name == "") |
             (Tag.description == None) | (Tag.description == "")
         ).all()
 
@@ -38,7 +38,7 @@ def populate_tags():
         for i in range(0, total, BATCH_SIZE):
             batch = tags_to_update[i : i + BATCH_SIZE]
             tag_names = [t.name for t in batch]
-            
+
             print(f"🔄 Processing batch {i//BATCH_SIZE + 1}/{(total + BATCH_SIZE - 1)//BATCH_SIZE}: {tag_names}")
 
             prompt = (
@@ -61,13 +61,13 @@ def populate_tags():
                         model=GEMINI_TEXT_MODEL,
                         contents=prompt
                     )
-                    
+
                     # Clean up response
                     text = response.text.replace("```json", "").replace("```", "").strip()
                     try:
                         data = json.loads(text)
                     except json.JSONDecodeError:
-                        print(f"   ⚠️ JSON Parse Error, skipping batch.")
+                        print("   ⚠️ JSON Parse Error, skipping batch.")
                         break
 
                     # Update tags
@@ -80,11 +80,11 @@ def populate_tags():
                             if not tag.description:
                                 tag.description = info.get("description")
                             updated_count += 1
-                    
+
                     session.commit()
                     print(f"   ✅ Updated {updated_count} tags in this batch.")
                     break # Success, exit retry loop
-                    
+
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
@@ -94,7 +94,7 @@ def populate_tags():
                     else:
                         print(f"   ❌ Batch failed: {e}")
                         break
-            
+
             # Rate limiting niceness
             time.sleep(2)
 

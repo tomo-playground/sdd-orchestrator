@@ -9,7 +9,7 @@ from config import (
     logger,
 )
 from database import get_db
-from models import Character, LoRA, Tag, CharacterTag
+from models import Character, CharacterTag, LoRA
 from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 
 router = APIRouter(prefix="/characters", tags=["characters"])
@@ -20,7 +20,7 @@ async def list_characters(db: Session = Depends(get_db)):
     characters = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
     ).order_by(Character.name).all()
-    
+
     # Pre-fetch all LoRAs to avoid N+1
     all_loras = db.query(LoRA).all()
     lora_map = {l.id: l for l in all_loras}
@@ -30,7 +30,7 @@ async def list_characters(db: Session = Depends(get_db)):
         for char_tag in char.tags:
             char_tag.name = char_tag.tag.name
             char_tag.layer = char_tag.tag.default_layer
-            
+
         if char.loras:
             # Enrich LoRA data
             enriched = []
@@ -45,7 +45,7 @@ async def list_characters(db: Session = Depends(get_db)):
                     l_new["lora_type"] = lora.lora_type
                 enriched.append(l_new)
             char.loras = enriched
-            
+
     return characters
 
 @router.get("/{character_id}", response_model=CharacterResponse)
@@ -54,21 +54,21 @@ async def get_character(character_id: int, db: Session = Depends(get_db)):
     character = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
     ).filter(Character.id == character_id).first()
-    
+
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
-        
+
     for char_tag in character.tags:
         char_tag.name = char_tag.tag.name
         char_tag.layer = char_tag.tag.default_layer
-        
+
     if character.loras:
         # Enrich LoRA data
         lora_ids = [l.get("lora_id") for l in character.loras if l.get("lora_id")]
         if lora_ids:
             lora_objs = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
             lora_map = {l.id: l for l in lora_objs}
-            
+
             enriched = []
             for l_data in character.loras:
                 l_new = l_data.copy()
@@ -80,7 +80,7 @@ async def get_character(character_id: int, db: Session = Depends(get_db)):
                     l_new["lora_type"] = lora.lora_type
                 enriched.append(l_new)
             character.loras = enriched
-            
+
     return character
 
 @router.post("", response_model=CharacterResponse, status_code=201)
@@ -91,7 +91,7 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="Character already exists")
 
     char_data = data.model_dump(exclude={"tags", "identity_tags", "clothing_tags"})
-    
+
     # Enrich LoRA data before saving (Denormalization)
     if char_data.get("loras"):
         enriched_loras = []
@@ -105,7 +105,7 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
                     l_item["lora_type"] = lora_obj.lora_type
             enriched_loras.append(l_item)
         char_data["loras"] = enriched_loras
-    
+
     if not char_data.get("reference_base_prompt"):
         char_data["reference_base_prompt"] = DEFAULT_REFERENCE_BASE_PROMPT
     if not char_data.get("reference_negative_prompt"):
@@ -119,14 +119,14 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     final_tags = []
     if data.tags:
         final_tags.extend(data.tags)
-    
+
     # Legacy Fallback: Convert legacy id lists to CharacterTagLink objects
     if data.identity_tags:
         from schemas import CharacterTagLink
         for tid in data.identity_tags:
             if not any(t.tag_id == tid for t in final_tags):
                 final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=True))
-    
+
     if data.clothing_tags:
         from schemas import CharacterTagLink
         for tid in data.clothing_tags:
@@ -154,7 +154,7 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
         raise HTTPException(status_code=404, detail="Character not found")
 
     update_data = data.model_dump(exclude={"tags", "identity_tags", "clothing_tags"}, exclude_unset=True)
-    
+
     # Enrich LoRA data if being updated
     if "loras" in update_data and update_data["loras"]:
         enriched_loras = []
@@ -174,18 +174,18 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
 
     if data.tags is not None or data.identity_tags is not None or data.clothing_tags is not None:
         db.query(CharacterTag).filter(CharacterTag.character_id == character_id).delete()
-        
+
         # Merge tags from all sources (V3 'tags' vs Legacy 'identity/clothing_tags')
         final_tags = []
         if data.tags:
             final_tags.extend(data.tags)
-            
+
         if data.identity_tags:
             from schemas import CharacterTagLink
             for tid in data.identity_tags:
                 if not any(t.tag_id == tid for t in final_tags):
                     final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=True))
-        
+
         if data.clothing_tags:
             from schemas import CharacterTagLink
             for tid in data.clothing_tags:
@@ -232,22 +232,23 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
 @router.post("/{character_id}/regenerate-reference")
 async def regenerate_reference(character_id: int, db: Session = Depends(get_db)):
     """Regenerate the character's reference image using its tags and reference prompts."""
+
+    from schemas import ImageStoreRequest, SceneGenerateRequest
     from services.generation import generate_scene_image
-    from schemas import SceneGenerateRequest, ImageStoreRequest
+
     from .scene import store_scene_image
-    import base64
 
     character = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
     ).filter(Character.id == character_id).first()
-    
+
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
     # Build prompt from reference_base_prompt + character tags + LoRAs
     tag_names = [t.tag.name for t in character.tags]
     base = character.reference_base_prompt or ""
-    
+
     # Include LoRAs
     lora_tags = []
     if character.loras:
@@ -261,11 +262,11 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
                     tag_names.extend(lora_obj.trigger_words)
 
     full_prompt_raw = f"{base}, {', '.join(tag_names)}, {', '.join(lora_tags)}" if base else f"{', '.join(tag_names)}, {', '.join(lora_tags)}"
-    
+
     # Normalize to Danbooru standard
     from services.prompt.prompt import normalize_and_fix_tags
     full_prompt = normalize_and_fix_tags(full_prompt_raw)
-    
+
     # Generate image
     request = SceneGenerateRequest(
         prompt=full_prompt,
@@ -276,7 +277,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
         height=768,
         seed=-1
     )
-    
+
     res = await generate_scene_image(request)
     if "image" not in res:
         raise HTTPException(status_code=500, detail="Generation failed")
@@ -284,9 +285,9 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     # Store image
     image_b64 = f"data:image/png;base64,{res['image']}"
     store_res = await store_scene_image(ImageStoreRequest(image_b64=image_b64))
-    
+
     # Update character
     character.preview_image_url = store_res["url"]
     db.commit()
-    
+
     return {"ok": True, "url": character.preview_image_url}

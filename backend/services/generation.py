@@ -6,6 +6,7 @@ import httpx
 from fastapi import HTTPException
 
 from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from database import SessionLocal
 from schemas import SceneGenerateRequest
 from services.controlnet import (
     build_controlnet_args,
@@ -18,14 +19,14 @@ from services.controlnet import (
 from services.lora_calibration import get_optimal_weights_from_db
 from services.prompt import (
     apply_optimal_lora_weights,
+    detect_scene_complexity,
     extract_lora_names,
     normalize_negative_prompt,
     normalize_prompt_tokens,
     split_prompt_tokens,
-    detect_scene_complexity,
 )
 from services.prompt.v3_service import V3PromptService
-from database import SessionLocal
+
 
 async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     """Generate a scene image using Stable Diffusion."""
@@ -221,20 +222,19 @@ def _save_generation_log(
     """
     try:
         from datetime import date
- 
+
         from database import SessionLocal
         from models.activity_log import ActivityLog
- 
-        # Simple strategy: Use today's date as project_name
-        # All generations on the same day are grouped together
-        project_name = request.session_id if request.session_id else f"daily_{date.today().strftime('%Y%m%d')}"
- 
+
+        # Use storyboard_id from request
+        storyboard_id = request.storyboard_id
+        
         scene_index = request.scene_index if request.scene_index is not None else 0
- 
+
         db = SessionLocal()
         try:
             log = ActivityLog(
-                project_name=project_name,
+                storyboard_id=storyboard_id,
                 scene_id=scene_index,
                 character_id=request.character_id,
                 prompt=prompt,
@@ -249,8 +249,8 @@ def _save_generation_log(
             db.add(log)
             db.commit()
             logger.info(
-                "📊 [Analytics] Saved activity log: project=%s, scene=%d, tags=%d%s",
-                project_name,
+                "📊 [Analytics] Saved activity log: storyboard=%s, scene=%d, tags=%d%s",
+                storyboard_id,
                 scene_index,
                 len(tags),
                 f" (topic={request.topic})" if request.topic else "",

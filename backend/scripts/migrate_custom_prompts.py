@@ -13,8 +13,7 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import SessionLocal
-from models import Character, LoRA
-
+from models import Character
 
 # Character-specific prompt templates
 CHARACTER_PROMPTS = {

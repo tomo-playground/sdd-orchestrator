@@ -1,6 +1,7 @@
 from database import SessionLocal
 from models.tag import Tag
 
+
 def check_tag():
     db = SessionLocal()
     tag = db.query(Tag).filter(Tag.name == "best_quality").first()

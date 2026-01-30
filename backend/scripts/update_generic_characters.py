@@ -15,7 +15,6 @@ from config import logger
 from database import SessionLocal
 from models import Character
 
-
 # Generic character prompts (simple, innocent style)
 GENERIC_PROMPTS = {
     "Generic Anime Girl": {

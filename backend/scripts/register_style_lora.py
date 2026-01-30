@@ -1,8 +1,9 @@
-import sys
 import argparse
+
 from database import SessionLocal
-from models.tag_alias import TagAlias
 from models.lora import LoRA
+from models.tag_alias import TagAlias
+
 
 def register_style_lora(tag_name: str, lora_name_query: str, weight: float = 0.8):
     """Register a style tag to automatically trigger a LoRA via TagAlias."""
@@ -15,13 +16,13 @@ def register_style_lora(tag_name: str, lora_name_query: str, weight: float = 0.8
             return
 
         print(f"✅ Found LoRA: {lora.name}")
-        
+
         # 2. Construct Target Tag
         # e.g., "chibi, <lora:blindbox_v1_mix:0.8>"
         # If trigger words exist, we could add them, but sometimes they are weird (BTM).
         # Let's keep it simple: Tag + LoRA
         target_tag = f"{tag_name}, <lora:{lora.name}:{weight}>"
-        
+
         # 3. Create or Update Alias
         existing = db.query(TagAlias).filter(TagAlias.source_tag == tag_name).first()
         if existing:
@@ -39,10 +40,10 @@ def register_style_lora(tag_name: str, lora_name_query: str, weight: float = 0.8
                 active=True
             )
             db.add(alias)
-        
+
         db.commit()
         print("Done! Restart backend to apply changes.")
-        
+
     except Exception as e:
         print(f"❌ Error: {e}")
         db.rollback()
@@ -54,6 +55,6 @@ if __name__ == "__main__":
     parser.add_argument("tag", help=" The prompt tag (e.g. 'chibi')")
     parser.add_argument("lora", help="Part of the LoRA name (e.g. 'blindbox')")
     parser.add_argument("--weight", type=float, default=0.8, help="LoRA weight")
-    
+
     args = parser.parse_args()
     register_style_lora(args.tag, args.lora, args.weight)

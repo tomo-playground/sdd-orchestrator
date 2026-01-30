@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 # Type alias for prompt mode
 PromptMode = Literal["auto", "standard", "lora"]
@@ -48,7 +49,7 @@ class StoryboardScene(BaseModel):
     description: str | None = None
     width: int = 512
     height: int = 768
-    
+
     # V3 Data Persistence
     tags: list[SceneTagSave] | None = None
     character_actions: list[SceneActionSave] | None = None
@@ -100,7 +101,8 @@ class AvatarResolveRequest(BaseModel):
 
 class VideoRequest(BaseModel):
     scenes: list[VideoScene]
-    project_name: str = "my_shorts"
+    storyboard_id: int | None = None
+    storyboard_title: str = "my_shorts"
     bgm_file: str | None = None
     width: int = 1080
     height: int = 1920
@@ -148,17 +150,17 @@ class SceneGenerateRequest(BaseModel):
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
     ip_adapter_weight: float = 0.7
-    # Analytics tracking (optional, all fields auto-generated if not provided)
-    session_id: str | None = None  # Optional: Frontend session ID (uses date if not provided)
+    # Analytics tracking
+    storyboard_id: int | None = None
     topic: str | None = None  # Optional: Content topic for reference
-    scene_index: int | None = None  # Optional: Scene number  # Scene number within session  # Scene number within project  # Scene number within project
+    scene_index: int | None = None  # Optional: Scene number within storyboard
 
 
 class SceneValidateRequest(BaseModel):
     image_b64: str
     prompt: str = ""
-    # Analytics tracking (optional, auto-generated if not provided)
-    session_id: str | None = None  # Optional: Frontend session ID
+    # Analytics tracking
+    storyboard_id: int | None = None
     topic: str | None = None  # Optional: Content topic for reference
     scene_index: int | None = None  # Optional: Scene number
 
@@ -482,7 +484,7 @@ class StyleProfileResponse(StyleProfileBase):
 # ============================================================
 
 class ActivityLogBase(BaseModel):
-    project_name: str | None = None
+    storyboard_id: int
     scene_id: int | None = None
     character_id: int | None = None
     prompt: str

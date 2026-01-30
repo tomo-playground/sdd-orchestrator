@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import AnalyticsDashboard from "../AnalyticsDashboard";
+import axios from "axios";
 
 // Mock axios
 vi.mock("axios", () => ({
@@ -9,7 +10,6 @@ vi.mock("axios", () => ({
   },
 }));
 
-import axios from "axios";
 const mockedAxios = axios as any;
 
 describe("AnalyticsDashboard", () => {
@@ -17,41 +17,41 @@ describe("AnalyticsDashboard", () => {
     vi.clearAllMocks();
   });
 
-  it("renders initial state with input and button", () => {
-    render(<AnalyticsDashboard />);
+  it("renders initial state with button and starts loading", async () => {
+    mockedAxios.get.mockResolvedValue({ data: { summary: {}, combinations_by_category: {}, suggested_combinations: [] } });
+    render(<AnalyticsDashboard storyboardId={1} />);
 
     expect(screen.getByText("Analytics Dashboard")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Enter project name")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /analyze/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /refresh/i })).toBeInTheDocument();
+    });
   });
 
-  it("shows error when analyzing without project name", async () => {
+  it("shows idle state when no storyboardId provided", async () => {
     render(<AnalyticsDashboard />);
-
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("Please enter a project name")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Select a storyboard to view insights")).toBeInTheDocument();
   });
 
   it("disables button when loading", async () => {
     mockedAxios.get.mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ data: {} }), 1000))
+      () => new Promise((resolve) => setTimeout(() => resolve({
+        data: {
+          summary: { total_success: 0, analyzed_tags: 0, categories_found: 0 },
+          combinations_by_category: {},
+          suggested_combinations: [],
+        }
+      }), 100))
     );
 
-    render(<AnalyticsDashboard />);
+    render(<AnalyticsDashboard storyboardId={1} />);
 
-    const input = screen.getByPlaceholderText("Enter project name");
-    fireEvent.change(input, { target: { value: "test_project" } });
+    // Initially should be loading
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
 
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
-
+    // Wait for it to finish
     await waitFor(() => {
-      expect(screen.getByText("Loading...")).toBeInTheDocument();
-    });
+      expect(screen.getByRole("button", { name: /refresh/i })).toBeInTheDocument();
+    }, { timeout: 2000 });
   });
 
   it("displays summary stats after successful data load", async () => {
@@ -67,13 +67,7 @@ describe("AnalyticsDashboard", () => {
 
     mockedAxios.get.mockResolvedValue({ data: mockData });
 
-    render(<AnalyticsDashboard />);
-
-    const input = screen.getByPlaceholderText("Enter project name");
-    fireEvent.change(input, { target: { value: "test_project" } });
-
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
+    render(<AnalyticsDashboard storyboardId={1} />);
 
     await waitFor(() => {
       expect(screen.getByText("75")).toBeInTheDocument();
@@ -106,13 +100,7 @@ describe("AnalyticsDashboard", () => {
 
     mockedAxios.get.mockResolvedValue({ data: mockData });
 
-    render(<AnalyticsDashboard />);
-
-    const input = screen.getByPlaceholderText("Enter project name");
-    fireEvent.change(input, { target: { value: "test_project" } });
-
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
+    render(<AnalyticsDashboard storyboardId={1} />);
 
     await waitFor(() => {
       expect(screen.getByText("Suggested Combinations")).toBeInTheDocument();
@@ -161,13 +149,7 @@ describe("AnalyticsDashboard", () => {
 
     mockedAxios.get.mockResolvedValue({ data: mockData });
 
-    render(<AnalyticsDashboard />);
-
-    const input = screen.getByPlaceholderText("Enter project name");
-    fireEvent.change(input, { target: { value: "test_project" } });
-
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
+    render(<AnalyticsDashboard storyboardId={1} />);
 
     await waitFor(() => {
       expect(screen.getByText("Top Tags by Category")).toBeInTheDocument();
@@ -186,19 +168,13 @@ describe("AnalyticsDashboard", () => {
 
   it("handles API error gracefully", async () => {
     mockedAxios.get.mockRejectedValue({
-      response: { data: { detail: "Project not found" } },
+      response: { data: { detail: "Data not found" } },
     });
 
-    render(<AnalyticsDashboard />);
-
-    const input = screen.getByPlaceholderText("Enter project name");
-    fireEvent.change(input, { target: { value: "nonexistent_project" } });
-
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
+    render(<AnalyticsDashboard storyboardId={1} />);
 
     await waitFor(() => {
-      expect(screen.getByText("Project not found")).toBeInTheDocument();
+      expect(screen.getByText("Data not found")).toBeInTheDocument();
     });
   });
 
@@ -211,20 +187,14 @@ describe("AnalyticsDashboard", () => {
       },
     });
 
-    render(<AnalyticsDashboard />);
-
-    const input = screen.getByPlaceholderText("Enter project name");
-    fireEvent.change(input, { target: { value: "my_test_project" } });
-
-    const analyzeButton = screen.getByRole("button", { name: /analyze/i });
-    fireEvent.click(analyzeButton);
+    render(<AnalyticsDashboard storyboardId={1} />);
 
     await waitFor(() => {
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.stringContaining("/generation-logs/success-combinations"),
         expect.objectContaining({
           params: expect.objectContaining({
-            project_name: "my_test_project",
+            storyboard_id: 1,
             match_rate_threshold: 0.7,
             min_occurrences: 2,
             top_n_per_category: 10,

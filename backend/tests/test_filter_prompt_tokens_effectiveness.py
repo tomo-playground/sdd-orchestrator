@@ -1,7 +1,8 @@
 """Test effectiveness-based filtering in filter_prompt_tokens (Phase 6-4.21 Track 2)."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from services.keywords import filter_prompt_tokens
 

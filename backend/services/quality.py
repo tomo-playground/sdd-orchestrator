@@ -19,16 +19,16 @@ if TYPE_CHECKING:
 
 
 def batch_validate_scenes(
-    project_name: str,
     scenes: list[dict[str, Any]],
     db: Session,
+    storyboard_id: int,
 ) -> dict[str, Any]:
     """Validate all scenes in a project and save quality scores.
 
     Args:
-        project_name: Name of the project
         scenes: List of scene dictionaries with image_url and prompt
         db: Database session
+        storyboard_id: ID of the storyboard
 
     Returns:
         {
@@ -71,7 +71,7 @@ def batch_validate_scenes(
 
             # Save to database
             score = SceneQualityScore(
-                project_name=project_name,
+                storyboard_id=storyboard_id,
                 scene_id=scene_id,
                 image_url=image_url,
                 prompt=prompt,
@@ -111,12 +111,14 @@ def batch_validate_scenes(
     }
 
 
-def get_quality_summary(project_name: str, db: Session) -> dict[str, Any]:
-    """Get quality summary for a project.
+def get_quality_summary(
+    db: Session, storyboard_id: int
+) -> dict[str, Any]:
+    """Get quality summary for a project or storyboard.
 
     Args:
-        project_name: Name of the project
         db: Database session
+        storyboard_id: ID of the storyboard
 
     Returns:
         {
@@ -130,12 +132,21 @@ def get_quality_summary(project_name: str, db: Session) -> dict[str, Any]:
     """
     from models.scene_quality import SceneQualityScore
 
-    scores = (
-        db.query(SceneQualityScore)
-        .filter(SceneQualityScore.project_name == project_name)
-        .order_by(SceneQualityScore.scene_id)
-        .all()
-    )
+    query = db.query(SceneQualityScore)
+
+    if storyboard_id:
+        query = query.filter(SceneQualityScore.storyboard_id == storyboard_id)
+    else:
+        return {
+            "total_scenes": 0,
+            "average_match_rate": 0.0,
+            "excellent_count": 0,
+            "good_count": 0,
+            "poor_count": 0,
+            "scores": [],
+        }
+
+    scores = query.order_by(SceneQualityScore.scene_id).all()
 
     if not scores:
         return {
@@ -174,13 +185,13 @@ def get_quality_summary(project_name: str, db: Session) -> dict[str, Any]:
     }
 
 
-def get_quality_alerts(project_name: str, threshold: float, db: Session) -> list[dict[str, Any]]:
+def get_quality_alerts(threshold: float, db: Session, storyboard_id: int) -> list[dict[str, Any]]:
     """Get scenes with quality below threshold.
 
     Args:
-        project_name: Name of the project
         threshold: Match rate threshold (default: 0.7)
         db: Database session
+        storyboard_id: ID of the storyboard
 
     Returns:
         [{"scene_id": int, "match_rate": float, "missing_tags": [...], ...}, ...]
@@ -190,7 +201,7 @@ def get_quality_alerts(project_name: str, threshold: float, db: Session) -> list
     poor_scores = (
         db.query(SceneQualityScore)
         .filter(
-            SceneQualityScore.project_name == project_name,
+            SceneQualityScore.storyboard_id == storyboard_id,
             SceneQualityScore.match_rate < threshold,
         )
         .order_by(SceneQualityScore.match_rate)

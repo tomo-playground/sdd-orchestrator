@@ -51,19 +51,19 @@ def apply_high_confidence_suggestions(min_confidence: float = 1.0) -> int:
     """Automatically apply high-confidence suggestions to the DB (Self-Correction)."""
     from database import SessionLocal
     from models import Tag
-    
+
     suggestions = load_keyword_suggestions(min_count=1, limit=1000)
     applied_count = 0
-    
+
     db = SessionLocal()
     try:
         known_tags = {t.name: t for t in db.query(Tag).all()}
-        
+
         for item in suggestions:
             tag_name = item["tag"]
             category = item["suggested_category"]
             confidence = item["confidence"]
-            
+
             if confidence >= min_confidence and category:
                 # Update existing or create new
                 if tag_name in known_tags:
@@ -74,17 +74,17 @@ def apply_high_confidence_suggestions(min_confidence: float = 1.0) -> int:
                         tag.classification_source = "auto_correction"
                         tag.classification_confidence = confidence
                         applied_count += 1
-                # Note: We typically don't create new tags automatically to avoid pollution, 
+                # Note: We typically don't create new tags automatically to avoid pollution,
                 # but valid tags should already be in DB if they are "unknown" (in DB but missing category)
-                
+
         if applied_count > 0:
             db.commit()
             _get_logger().info(f"✅ Auto-corrected {applied_count} tags based on high confidence patterns.")
-            
+
     except Exception:
         _get_logger().exception("Failed to apply high confidence suggestions")
         db.rollback()
     finally:
         db.close()
-        
+
     return applied_count

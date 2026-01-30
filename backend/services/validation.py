@@ -1,19 +1,19 @@
 """Image validation service using WD14 and Gemini."""
 
 from __future__ import annotations
+
 import csv
 import hashlib
 import io
-import json
 import time
-from pathlib import Path
 from typing import Any
+
 import numpy as np
 import onnxruntime as ort
 from fastapi import HTTPException
 from PIL import Image
 
-from config import CACHE_DIR, CACHE_TTL_SECONDS, WD14_MODEL_DIR, WD14_THRESHOLD, logger
+from config import WD14_MODEL_DIR, WD14_THRESHOLD, logger
 from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 from services.keywords import normalize_prompt_token
@@ -37,9 +37,10 @@ def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
     tags, categories = [], []
     with tags_path.open("r", encoding="utf-8") as f:
         reader = csv.reader(f)
-        next(reader, None) # headers
+        next(reader, None)  # headers
         for row in reader:
-            if len(row) < 3: continue
+            if len(row) < 3:
+                continue
             tags.append(row[1].strip())
             categories.append(row[2].strip())
 
@@ -47,7 +48,8 @@ def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
     return session, tags, categories
 
 def wd14_predict_tags(image: Image.Image, threshold: float | None = None) -> list[dict[str, Any]]:
-    if threshold is None: threshold = WD14_THRESHOLD
+    if threshold is None:
+        threshold = WD14_THRESHOLD
     session, tags, categories = load_wd14_model()
     image = image.convert("RGBA")
     background = Image.new("RGBA", image.size, (255, 255, 255, 255))
@@ -60,7 +62,8 @@ def wd14_predict_tags(image: Image.Image, threshold: float | None = None) -> lis
 
     results = []
     for score, tag, category in zip(preds, tags, categories, strict=False):
-        if category == "9" or score < threshold: continue
+        if category == "9" or score < threshold:
+            continue
         results.append({"tag": tag, "score": float(score), "category": category})
     results.sort(key=lambda item: item["score"], reverse=True)
     return results
@@ -83,35 +86,35 @@ def cache_key_for_validation(image_bytes: bytes, prompt: str) -> str:
 
 def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str, Any]:
     from services.prompt import split_prompt_tokens
-    
+
     # Tokens to skip during comparison (abstract, quality, or lighting tags)
     SKIP_KEYWORDS = {
         "masterpiece", "best_quality", "high_quality", "normal_quality", "worst_quality",
         "absurdres", "incredibly_absurdres", "soft_lighting", "natural_light", "natural_lighting",
-        "dramatic_lighting", "volumetric_lighting", "beautiful_lighting", "peaceful", 
+        "dramatic_lighting", "volumetric_lighting", "beautiful_lighting", "peaceful",
         "romantic", "mysterious", "morning", "night", "dawn", "dusk", "evening"
     }
 
     tokens = [normalize_prompt_token(t) for t in split_prompt_tokens(prompt)]
     # Filter out empty tokens and skip keywords
     tokens = [t for t in tokens if t and t not in SKIP_KEYWORDS]
-    
+
     if not tokens:
         return {"matched": [], "missing": [], "extra": []}
 
     # Normalize prediction tags for comparison
     tag_set = {normalize_prompt_token(item["tag"]) for item in tags}
-    
+
     matched = []
     missing = []
-    
+
     for t in tokens:
         # Exact match or substring match (e.g. "hair" matches "blue_hair")
         if t in tag_set or any(t in tag for tag in tag_set):
             matched.append(t)
         else:
             missing.append(t)
-    
+
     extra = []
     for item in tags[:20]:
         name = normalize_prompt_token(item["tag"])
@@ -132,10 +135,11 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         match_rate = (len(comparison["matched"]) / total) if total else 0.0
 
         # Create/Update validation score in DB
+        image_url = f"/outputs/images/scene_{hashlib.sha1(image_bytes).hexdigest()[:16]}.png"  # dummy or resolved path
         _save_scene_quality_score(
-            project_name=request.topic or f"session_{request.session_id}" if request.session_id else "unknown",
+            storyboard_id=request.storyboard_id,
             scene_id=request.scene_index or 0,
-            image_url=f"/outputs/images/scene_{hashlib.sha1(image_bytes).hexdigest()[:16]}.png", # dummy or resolved path
+            image_url=image_url,
             prompt=request.prompt,
             match_rate=match_rate,
             matched=comparison["matched"],
@@ -144,7 +148,7 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         )
 
         _update_activity_log_match_rate(
-            project_name=request.session_id if request.session_id else f"daily_{time.strftime('%Y%m%d')}",
+            storyboard_id=request.storyboard_id,
             scene_id=request.scene_index,
             match_rate=match_rate,
             image_url=image_url
@@ -162,15 +166,16 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         logger.exception("Validation failed")
         raise HTTPException(status_code=500, detail="Validation failed") from exc
 
-def _save_scene_quality_score(project_name: str, scene_id: int, image_url: str, prompt: str, match_rate: float, matched: list, missing: list, extra: list):
+def _save_scene_quality_score(storyboard_id: int | None, scene_id: int, image_url: str, prompt: str, match_rate: float, matched: list, missing: list, extra: list):
     from datetime import datetime
+
     from database import SessionLocal
     from models.scene_quality import SceneQualityScore
-    
+
     db = SessionLocal()
     try:
         score = SceneQualityScore(
-            project_name=project_name,
+            storyboard_id=storyboard_id,
             scene_id=scene_id,
             image_url=image_url,
             prompt=prompt,
@@ -188,14 +193,15 @@ def _save_scene_quality_score(project_name: str, scene_id: int, image_url: str, 
     finally:
         db.close()
 
-def _update_activity_log_match_rate(project_name: str | None, scene_id: int | None, match_rate: float, image_url: str | None = None):
-    if not project_name or scene_id is None: return
+def _update_activity_log_match_rate(storyboard_id: int | None, scene_id: int | None, match_rate: float, image_url: str | None = None):
+    if not storyboard_id or scene_id is None:
+        return
     from database import SessionLocal
     from models.activity_log import ActivityLog
     db = SessionLocal()
     try:
         log = db.query(ActivityLog).filter(
-            ActivityLog.project_name == project_name,
+            ActivityLog.storyboard_id == storyboard_id,
             ActivityLog.scene_id == scene_id
         ).order_by(ActivityLog.created_at.desc()).first()
         if log:

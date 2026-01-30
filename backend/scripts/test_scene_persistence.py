@@ -24,16 +24,16 @@ def test_scene_tag_persistence():
             }
         ]
     }
-    
+
     print("\n--- Testing Scene Tag & Action Save ---")
     res = requests.post(f"{API_BASE}/storyboards", json=payload)
     if res.status_code == 200:
         data = res.json()
         storyboard_id = data["storyboard_id"]
         print(f"✅ Storyboard saved with ID: {storyboard_id}")
-        
+
         # NOTE: Since we don't have a GET endpoint that returns these relations easily yet,
-        # we would normally check the DB directly. But for this test, if status is 200, 
+        # we would normally check the DB directly. But for this test, if status is 200,
         # it means the flush and commit worked without error.
     else:
         print(f"❌ Failed to save storyboard: {res.text}")

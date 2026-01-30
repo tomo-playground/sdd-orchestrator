@@ -1,8 +1,10 @@
 
+from sqlalchemy.orm.attributes import flag_modified
+
 from database import SessionLocal
 from models.character import Character
 from models.lora import LoRA
-from sqlalchemy.orm.attributes import flag_modified
+
 
 def fix_data():
     db = SessionLocal()
@@ -27,7 +29,7 @@ def fix_data():
                                 print(f"  -> Enriched LoRA for {char.name}: {lora.name}")
                                 modified = True
                     new_loras.append(l_item)
-                
+
                 if modified:
                     char.loras = new_loras
                     flag_modified(char, "loras") # Force update for JSON/JSONB

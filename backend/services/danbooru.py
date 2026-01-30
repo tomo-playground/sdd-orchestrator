@@ -44,7 +44,7 @@ async def get_tag_info(tag_name: str) -> dict | None:
     # Always normalize to pure tag name for Danbooru
     from .keywords.core import normalize_prompt_token
     normalized = normalize_prompt_token(tag_name)
-    
+
     # Skip API calls for known quality/style tags that won't have useful Danbooru info
     from .keywords.patterns import CATEGORY_PATTERNS
     if normalized in CATEGORY_PATTERNS.get("quality", []) or normalized in CATEGORY_PATTERNS.get("style", []):

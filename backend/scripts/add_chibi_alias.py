@@ -1,6 +1,7 @@
 from database import SessionLocal
 from models.tag_alias import TagAlias
 
+
 def add_chibi_alias():
     db = SessionLocal()
     try:
@@ -19,7 +20,7 @@ def add_chibi_alias():
                 active=True
             )
             db.add(alias)
-        
+
         db.commit()
         print("✅ Successfully added/updated alias for 'chibi'")
     except Exception as e:

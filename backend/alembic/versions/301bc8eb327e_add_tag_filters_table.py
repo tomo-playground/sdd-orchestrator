@@ -5,17 +5,17 @@ Revises: 680342bf43a5
 Create Date: 2026-01-29 12:31:23.712416
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '301bc8eb327e'
-down_revision: Union[str, Sequence[str], None] = '680342bf43a5'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '680342bf43a5'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -34,10 +34,10 @@ def upgrade() -> None:
         sa.UniqueConstraint('tag_name')
     )
     op.create_index('ix_tag_filters_tag_name', 'tag_filters', ['tag_name'])
-    
+
     # Populate with IGNORE_TOKENS from core.py
     connection = op.get_bind()
-    
+
     ignore_tokens = [
         ("nsfw", "Sensitive content"),
         ("nude", "Sensitive content"),
@@ -73,7 +73,7 @@ def upgrade() -> None:
         ("highres", "Meta tag"),
         ("absurdres", "Meta tag"),
     ]
-    
+
     for tag, reason in ignore_tokens:
         connection.execute(
             sa.text("""
@@ -82,7 +82,7 @@ def upgrade() -> None:
             """),
             {"tag": tag, "reason": reason}
         )
-    
+
     # Populate with SKIP_TAGS from core.py
     skip_tags = [
         # Anatomy
@@ -149,7 +149,7 @@ def upgrade() -> None:
         ("manga", "Too vague"),
         ("illustration", "Too vague"),
     ]
-    
+
     for tag, reason in skip_tags:
         connection.execute(
             sa.text("""

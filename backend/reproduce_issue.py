@@ -1,7 +1,8 @@
 
-import requests
 import json
 import logging
+
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,14 +45,14 @@ try:
     logger.info("Sending request to %s...", API_URL)
     response = requests.post(API_URL, json=payload)
     response.raise_for_status()
-    
+
     data = response.json()
     print("--- Response ---")
     print(json.dumps(data, indent=2, ensure_ascii=False))
-    
+
     prompt = data.get("prompt", "")
     weights = data.get("lora_weights")
-    
+
     if "<lora:harukaze-doremi-casual:0.61>" in prompt:
          print("\n✅ SUCCESS: LoRA tag found in composed prompt.")
     else:
@@ -67,7 +68,7 @@ try:
          print("\n✅ SUCCESS: LoRA weights metadata found.")
     else:
          print(f"\n❌ FAILURE: LoRA weights metadata MISSING or incorrect. Got: {weights}")
-         
+
 except Exception as e:
     logger.error("Request failed: %s", e)
     if hasattr(e, 'response') and e.response:

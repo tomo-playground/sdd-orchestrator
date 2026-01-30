@@ -1,8 +1,12 @@
 from __future__ import annotations
+
 from typing import Any
+
 from database import SessionLocal
 from models.tag import Tag
+
 from .core import IGNORE_TOKENS, normalize_prompt_token
+
 
 def load_tags_from_db() -> dict[str, list[str]]:
     """Load tags from database grouped by default_layer."""

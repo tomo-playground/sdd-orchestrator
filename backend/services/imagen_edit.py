@@ -14,9 +14,9 @@ import io
 import logging
 from typing import Literal
 
-from PIL import Image
 from google import genai
 from google.genai import types
+from PIL import Image
 
 from config import GEMINI_TEXT_MODEL, gemini_client
 from services.image import decode_data_url
@@ -185,7 +185,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             edited_image_data = response.candidates[0].content.parts[0].inline_data.data
             edited_b64 = base64.b64encode(edited_image_data).decode("utf-8")
 
-            logger.info(f"✅ Image editing complete (cost: $0.0401)")
+            logger.info("✅ Image editing complete (cost: $0.0401)")
 
             return {
                 "edited_image": edited_b64,

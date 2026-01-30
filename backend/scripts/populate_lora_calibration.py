@@ -1,10 +1,13 @@
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import random
 
 from database import SessionLocal
 from models.lora import LoRA
-import random
+
 
 def populate_lora_calibration():
     session = SessionLocal()
@@ -20,9 +23,9 @@ def populate_lora_calibration():
             # weights
             lora.weight_min = 0.5
             lora.weight_max = 1.0
-            
+
             print(f"   ✅ {lora.name}: {lora.optimal_weight:.2f} ({lora.calibration_score}%)")
-            
+
         session.commit()
         print("Success!")
     except Exception as e:

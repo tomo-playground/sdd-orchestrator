@@ -1,9 +1,11 @@
 """Service layer for V3 Prompt Engine integration."""
 
-from typing import List, Optional, Dict
+
 from sqlalchemy.orm import Session
-from services.prompt.v3_composition import V3PromptBuilder
+
 from database import SessionLocal
+from services.prompt.v3_composition import V3PromptBuilder
+
 
 class V3PromptService:
     """Unified service for generating V3 prompts for characters and scenes."""
@@ -13,9 +15,9 @@ class V3PromptService:
 
     def generate_prompt_for_scene(
         self,
-        character_id: Optional[int],
-        scene_tags: List[str],
-        style_loras: Optional[List[Dict]] = None,
+        character_id: int | None,
+        scene_tags: list[str],
+        style_loras: list[dict] | None = None,
     ) -> str:
         """Generates a full V3 prompt for a specific scene and character."""
         if character_id:

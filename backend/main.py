@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from config import ASSETS_DIR
 from routers import (
     admin_router,
     assets_router,
@@ -17,8 +18,8 @@ from routers import (
     keywords_router,
     loras_router,
     presets_router,
-    prompt_router,
     prompt_histories_router,
+    prompt_router,
     quality_router,
     scene_router,
     sd_models_router,
@@ -29,20 +30,19 @@ from routers import (
     video_router,
 )
 
-from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize resources on startup and clean up on shutdown."""
-    from database import get_db, engine
-    from models.base import Base
-    from services.keywords.db_cache import TagCategoryCache, TagAliasCache, TagRuleCache, LoRATriggerCache
-    from services.keywords.core import TagFilterCache
     from config import logger
-    
+    from database import engine, get_db
+    from models.base import Base
+    from services.keywords.core import TagFilterCache
+    from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache
+
     # Ensure database tables exist
     Base.metadata.create_all(bind=engine)
-    
+
     # Initialize Tag Caches
     db = next(get_db())
     try:
@@ -52,22 +52,22 @@ async def lifespan(app: FastAPI):
         TagRuleCache.initialize(db)
         TagRuleCache.initialize(db)
         LoRATriggerCache.initialize(db)
-        
+
         # Self-Correction: Apply high-confidence tag suggestions
         from services.keywords.suggestions import apply_high_confidence_suggestions
         applied = apply_high_confidence_suggestions()
         if applied > 0:
             logger.info(f"✅ [Self-Correction] Auto-classified {applied} tags on startup")
-            
+
     except Exception as e:
         logger.error(f"Failed to initialize tag caches or self-correct: {e}")
     finally:
         db.close()
-        
+
     logger.info("🚀 [Startup] Application started successfully")
-    
+
     yield
-    
+
     # Shutdown logic (if any)
     logger.info("🛑 [Shutdown] Application execution finished")
 
@@ -84,6 +84,7 @@ app.add_middleware(
 
 # --- Static Files ---
 import os
+
 os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 

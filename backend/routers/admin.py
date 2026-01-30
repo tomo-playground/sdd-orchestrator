@@ -16,7 +16,7 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
     This is a one-time migration endpoint to populate tag_rules table
     with conflict pairs that were previously hardcoded in prompt_composition.py.
     """
-    
+
     # List of conflicting pairs to migrate
     conflicts = [
         # Expression conflicts
@@ -29,28 +29,28 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
         # Pose conflicts
         ('sitting', 'standing'), ('lying', 'standing'), ('lying', 'sitting'),
     ]
-    
+
     added = []
     skipped = []
     errors = []
-    
+
     for s_name, t_name in conflicts:
         try:
             # Find tags
             s_tag = db.query(Tag).filter(Tag.name == s_name).first()
             t_tag = db.query(Tag).filter(Tag.name == t_name).first()
-            
+
             if not s_tag or not t_tag:
                 errors.append(f"Tag not found: {s_name} or {t_name}")
                 continue
-                
+
             # Check if rule already exists
             exists = db.query(TagRule).filter(
                 TagRule.source_tag_id == s_tag.id,
                 TagRule.target_tag_id == t_tag.id,
                 TagRule.rule_type == 'conflict'
             ).first()
-            
+
             if not exists:
                 # Also check reverse direction
                 reverse_exists = db.query(TagRule).filter(
@@ -58,7 +58,7 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
                     TagRule.target_tag_id == s_tag.id,
                     TagRule.rule_type == 'conflict'
                 ).first()
-                
+
                 if not reverse_exists:
                     rule = TagRule(
                         source_tag_id=s_tag.id,
@@ -73,10 +73,10 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
                     skipped.append(f"{s_name} <-> {t_name} (reverse exists)")
             else:
                 skipped.append(f"{s_name} <-> {t_name} (already exists)")
-                
+
         except Exception as e:
             errors.append(f"Error processing {s_name} <-> {t_name}: {str(e)}")
-    
+
     try:
         db.commit()
     except Exception as e:
@@ -88,7 +88,7 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
             "skipped": skipped,
             "errors": errors
         }
-    
+
     return {
         "success": True,
         "added": added,
@@ -106,7 +106,7 @@ async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
     
     This migrates CONFLICTING_CATEGORY_PAIRS that were previously hardcoded.
     """
-    
+
     # Category conflict pairs (source, target, message)
     category_conflicts = [
         ("hair_length", "hair_length", "Only one hair length allowed"),
@@ -118,11 +118,11 @@ async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
         ("background_type", "background_type", "Only one background type allowed"),
         ("camera", "camera", "Only one camera angle allowed"),
     ]
-    
+
     added = []
     skipped = []
     errors = []
-    
+
     for s_cat, t_cat, message in category_conflicts:
         try:
             # Check if rule already exists
@@ -131,7 +131,7 @@ async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
                 TagRule.target_category == t_cat,
                 TagRule.rule_type == 'conflict'
             ).first()
-            
+
             if not exists:
                 rule = TagRule(
                     rule_type='conflict',
@@ -144,10 +144,10 @@ async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
                 added.append(f"{s_cat} <-> {t_cat}")
             else:
                 skipped.append(f"{s_cat} <-> {t_cat} (already exists)")
-                
+
         except Exception as e:
             errors.append(f"Error processing {s_cat} <-> {t_cat}: {str(e)}")
-    
+
     try:
         db.commit()
     except Exception as e:
@@ -159,7 +159,7 @@ async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
             "skipped": skipped,
             "errors": errors
         }
-    
+
     return {
         "success": True,
         "added": added,
@@ -177,15 +177,15 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
     
     Call this after migrating data to ensure caches are up-to-date.
     """
-    from services.keywords.db_cache import TagCategoryCache, TagAliasCache, TagRuleCache
     from services.keywords.core import TagFilterCache
-    
+    from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
+
     try:
         TagCategoryCache.refresh(db)
         TagFilterCache.refresh(db)
         TagAliasCache.refresh(db)
         TagRuleCache.refresh(db)
-        
+
         return {
             "success": True,
             "message": "All caches refreshed successfully"

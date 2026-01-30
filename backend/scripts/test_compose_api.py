@@ -1,6 +1,6 @@
 """Test /prompt/compose API endpoint."""
+
 import httpx
-import json
 
 API_BASE = "http://127.0.0.1:8000"
 
@@ -42,14 +42,14 @@ async def test_compose():
             print(f"Status: {response.status_code}")
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ Success!")
+                print("✅ Success!")
                 print(f"Prompt: {result['prompt']}")
                 print(f"Mode: {result['effective_mode']}")
             else:
                 print(f"❌ Error: {response.text}")
         except Exception as e:
             print(f"❌ Exception: {e}")
-        
+
         print("\n" + "=" * 60)
         print("Test Case 2: With LoRA")
         print("=" * 60)
@@ -62,7 +62,7 @@ async def test_compose():
             print(f"Status: {response.status_code}")
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ Success!")
+                print("✅ Success!")
                 print(f"Prompt: {result['prompt']}")
                 print(f"Mode: {result['effective_mode']}")
             else:

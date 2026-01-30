@@ -27,12 +27,12 @@ def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
     from services.keywords.core import normalize_prompt_token
 
     unique_map: dict[str, str] = {}
-    
+
     for token in primary + secondary:
         t_strip = token.strip()
         if not t_strip:
             continue
-            
+
         # Special case: LoRA and BREAK
         # normalize_prompt_token returns empty for <lora:...>, so handle separately
         if t_strip == "BREAK" or (t_strip.startswith("<") and t_strip.endswith(">")):
@@ -47,9 +47,9 @@ def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
             # Fallback if normalization fails (should be rare)
             unique_map[t_strip.lower()] = token
             continue
-            
+
         unique_map[key] = token
-        
+
     return ", ".join(unique_map.values())
 
 
@@ -377,20 +377,20 @@ def normalize_tag_spaces(tags: list[str]) -> list[str]:
         t = tag.strip()
         if not t:
             continue
-        
+
         # 2. Replace spaces with underscores
         t = t.replace(" ", "_")
-        
+
         # 3. Strip leading/trailing underscores (Fix for _day, _sun)
         t = t.strip("_")
-        
+
         # 4. Collapse multiple underscores
         while "__" in t:
             t = t.replace("__", "_")
-            
+
         if t:
             normalized.append(t)
-            
+
     return normalized
 
 

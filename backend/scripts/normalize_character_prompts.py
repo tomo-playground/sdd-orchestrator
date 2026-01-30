@@ -86,13 +86,13 @@ def normalize_all_characters(db: Session, dry_run: bool = True) -> None:
             normalized = normalize_prompt(original, db)
 
             if original != normalized:
-                logger.info(f"  custom_base_prompt:")
+                logger.info("  custom_base_prompt:")
                 logger.info(f"    Before: {original}")
                 logger.info(f"    After:  {normalized}")
                 char.custom_base_prompt = normalized
                 changed = True
             else:
-                logger.info(f"  custom_base_prompt: OK (no changes)")
+                logger.info("  custom_base_prompt: OK (no changes)")
 
         # Normalize reference_base_prompt
         if char.reference_base_prompt:
@@ -100,20 +100,20 @@ def normalize_all_characters(db: Session, dry_run: bool = True) -> None:
             normalized = normalize_prompt(original, db)
 
             if original != normalized:
-                logger.info(f"  reference_base_prompt:")
+                logger.info("  reference_base_prompt:")
                 logger.info(f"    Before: {original[:80]}...")
                 logger.info(f"    After:  {normalized[:80]}...")
                 char.reference_base_prompt = normalized
                 changed = True
             else:
-                logger.info(f"  reference_base_prompt: OK (no changes)")
+                logger.info("  reference_base_prompt: OK (no changes)")
 
         if changed:
             updated_count += 1
 
     logger.info(f"\n{'='*60}")
     if dry_run:
-        logger.info(f"🔍 DRY RUN - No changes committed")
+        logger.info("🔍 DRY RUN - No changes committed")
         logger.info(f"Characters that would be updated: {updated_count}/{len(characters)}")
         db.rollback()
     else:

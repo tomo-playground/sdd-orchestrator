@@ -2,12 +2,16 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
     """Format keyword categories for use in Gemini prompts (DB-based)."""
     import services.keywords as kw
     from config import (
-        RECOMMENDATION_EFFECTIVENESS_THRESHOLD, RECOMMENDATION_MIN_USE_COUNT,
-        TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING, logger
+        RECOMMENDATION_EFFECTIVENESS_THRESHOLD,
+        RECOMMENDATION_MIN_USE_COUNT,
+        TAG_EFFECTIVENESS_THRESHOLD,
+        TAG_MIN_USE_COUNT_FOR_FILTERING,
+        logger,
     )
     from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY, _SCENE_GROUPS
+
     from .core import normalize_prompt_token
-    
+
     grouped = kw.load_tags_from_db()
     if not grouped:
         logger.warning("No tags found in database")
@@ -47,7 +51,7 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         if category_name not in category_tags:
             category_tags[category_name] = []
         category_tags[category_name].extend(filtered_values)
-        
+
         if category_recommended:
             if category_name not in recommended_tags:
                 recommended_tags[category_name] = []
@@ -73,7 +77,7 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
             values = [v[0] for v in category_tags[category_name]]
             # Limit tags per category to prevent context overflow and "spam" detection (Prohibited Content)
             # 100 tags per category is usually enough for diversity
-            if values: 
+            if values:
                 lines.append(f"- {category_name}: {', '.join(values[:100])}")
 
     return "\n".join(lines)

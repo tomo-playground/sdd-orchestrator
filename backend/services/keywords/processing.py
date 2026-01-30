@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING
 
-from .core import IGNORE_TOKENS, _get_logger, _get_normalize_prompt_tokens, _get_split_prompt_tokens, normalize_prompt_token
+from .core import (
+    IGNORE_TOKENS,
+    _get_logger,
+    _get_normalize_prompt_tokens,
+    _get_split_prompt_tokens,
+    normalize_prompt_token,
+)
 
 
 def expand_synonyms(tokens: list[str]) -> set[str]:
@@ -28,7 +34,7 @@ def filter_prompt_tokens(prompt: str) -> str:
     """Filter prompt tokens to only include known/allowed keywords (DB-based)."""
     import services.keywords as kw
     from services.keywords.db_cache import TagAliasCache
-    
+
     allowed = kw.load_allowed_tags_from_db()
     synonym_lookup = kw.load_synonyms_from_db()
     eff_map = kw.load_tag_effectiveness_map()
@@ -53,7 +59,7 @@ def filter_prompt_tokens(prompt: str) -> str:
             # normalize_prompt_token handles single token. If replacement is "a, b", it might need splitting?
             # But here we are appending to 'cleaned'. Ideally we append the replacement string directly.
             # But wait, 'cleaned' is joined by ", " at the end.
-            
+
             # Simple replacement
             cleaned.append(replacement)
             replaced_count += 1

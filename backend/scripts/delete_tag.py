@@ -1,11 +1,12 @@
-import sys
 import os
+import sys
 
 # Add backend directory to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import SessionLocal
 from models.tag import Tag
+
 
 def delete_tag(name):
     session = SessionLocal()

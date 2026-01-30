@@ -69,9 +69,9 @@ def create_storyboard(request: StoryboardRequest) -> dict:
                 error_reason = f"Blocked by safety filters: {res.prompt_feedback.block_reason}"
             elif res.candidates and res.candidates[0].finish_reason:
                 error_reason = f"Finished with reason: {res.candidates[0].finish_reason}"
-            
+
             raise ValueError(f"Gemini returned empty response. Reason: {error_reason}")
-            
+
         scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
         for scene in scenes:
             from config import ENABLE_DANBOORU_VALIDATION, logger
@@ -118,7 +118,7 @@ def create_storyboard(request: StoryboardRequest) -> dict:
         return {"scenes": scenes}
     except Exception as exc:
         from config import logger
-        
+
         # Check if it's a Gemini API quota error
         error_msg = str(exc)
         if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
@@ -127,6 +127,6 @@ def create_storyboard(request: StoryboardRequest) -> dict:
                 status_code=429,
                 detail="Gemini API quota exhausted. Please try again later or check your API limits at https://aistudio.google.com/app/apikey"
             ) from exc
-        
+
         logger.exception("Storyboard generation failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

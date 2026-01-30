@@ -45,7 +45,9 @@ export const VOICES = [
 
 export const SAMPLERS = ["DPM++ 2M Karras", "Euler a", "Euler", "DDIM"];
 
-export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
+export const OVERLAY_STYLES = [
+  { id: "overlay_minimal.png", label: "Minimal" },
+];
 
 export const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
 export const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];

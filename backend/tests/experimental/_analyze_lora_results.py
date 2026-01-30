@@ -1,5 +1,6 @@
 """LoRA 검증 결과 분석"""
 from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
 
 OUTPUT_DIR = Path("outputs/lora_emergency_check")

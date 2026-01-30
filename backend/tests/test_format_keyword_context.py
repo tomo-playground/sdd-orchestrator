@@ -3,8 +3,9 @@
 Validates tag effectiveness filtering and Gemini prompt formatting.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from services.keywords import format_keyword_context
 

@@ -48,3 +48,30 @@ async def get_font_file(filename: str):
         ".woff2": "font/woff2",
     }.get(ext, "application/octet-stream")
     return FileResponse(font_path, media_type=content_type)
+
+
+@router.get("/overlay/list")
+async def list_overlays():
+    """List available overlay frame styles."""
+    overlay_dir = ASSETS_DIR / "overlay"
+    if not overlay_dir.exists():
+        return {"overlays": []}
+    overlays = []
+    for ext in ("*.png", "*.PNG", "*.jpg", "*.JPG", "*.jpeg", "*.JPEG"):
+        for path in overlay_dir.glob(ext):
+            overlays.append({
+                "id": path.name,
+                "name": path.stem.replace("overlay_", "").replace("_", " ").title(),
+                "url": f"{API_PUBLIC_URL}/assets/overlay/{path.name}"
+            })
+    return {"overlays": sorted(overlays, key=lambda x: x["name"])}
+
+
+@router.get("/assets/overlay/{filename}")
+async def get_overlay_file(filename: str):
+    """Serve overlay frame image."""
+    overlay_dir = ASSETS_DIR / "overlay"
+    overlay_path = overlay_dir / filename
+    if not overlay_path.exists() or not overlay_path.is_file():
+        raise HTTPException(status_code=404, detail="Overlay not found")
+    return FileResponse(overlay_path, media_type="image/png")
