@@ -37,6 +37,7 @@ export default function PlanTab() {
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
+  const [planSubTab, setPlanSubTab] = useState<"generator" | "prompt">("generator");
 
   // Autopilot
   const autopilot = useAutopilot();
@@ -206,8 +207,46 @@ export default function PlanTab() {
 
   return (
     <div className="space-y-6">
-      {/* Generator Panel */}
-      <StoryboardGeneratorPanel
+      {/* Sub Tabs */}
+      <div className="flex items-center gap-1 border-b border-zinc-200/60">
+        <button
+          onClick={() => setPlanSubTab("generator")}
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+            planSubTab === "generator"
+              ? "text-zinc-900"
+              : "text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <span>🎬</span>
+            <span>Generator</span>
+          </span>
+          {planSubTab === "generator" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900" />
+          )}
+        </button>
+        <button
+          onClick={() => setPlanSubTab("prompt")}
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+            planSubTab === "prompt"
+              ? "text-zinc-900"
+              : "text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <span>🎨</span>
+            <span>Prompt</span>
+          </span>
+          {planSubTab === "prompt" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900" />
+          )}
+        </button>
+      </div>
+
+      {/* Generator Tab Content */}
+      {planSubTab === "generator" && (
+        <>
+          <StoryboardGeneratorPanel
         topic={topic}
         setTopic={(v: string) => setPlan({ topic: v })}
         duration={duration}
@@ -218,42 +257,6 @@ export default function PlanTab() {
         setLanguage={(v: string) => setPlan({ language: v })}
         structure={structure}
         setStructure={(v: string) => setPlan({ structure: v })}
-      />
-
-      {/* Prompt Setup */}
-      <PromptSetupPanel
-        baseTab={baseTab}
-        setBaseTab={setBaseTab}
-        autoComposePrompt={autoComposePrompt}
-        setAutoComposePrompt={(v: boolean) => setPlan({ autoComposePrompt: v })}
-        autoRewritePrompt={autoRewritePrompt}
-        setAutoRewritePrompt={(v: boolean) => setPlan({ autoRewritePrompt: v })}
-        autoReplaceRiskyTags={autoReplaceRiskyTags}
-        setAutoReplaceRiskyTags={(v: boolean) => setPlan({ autoReplaceRiskyTags: v })}
-        hiResEnabled={hiResEnabled}
-        setHiResEnabled={(v: boolean) => setPlan({ hiResEnabled: v })}
-        veoEnabled={veoEnabled}
-        setVeoEnabled={(v: boolean) => setPlan({ veoEnabled: v })}
-        actorAGender={actorAGender}
-        setActorAGender={(v) => setPlan({ actorAGender: v })}
-        basePromptA={basePromptA}
-        setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
-        baseNegativePromptA={baseNegativePromptA}
-        setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
-        baseStepsA={baseStepsA}
-        setBaseStepsA={(v: number) => setPlan({ baseStepsA: v })}
-        baseCfgScaleA={baseCfgScaleA}
-        setBaseCfgScaleA={(v: number) => setPlan({ baseCfgScaleA: v })}
-        baseSamplerA={baseSamplerA}
-        setBaseSamplerA={(v: string) => setPlan({ baseSamplerA: v })}
-        baseSeedA={baseSeedA}
-        setBaseSeedA={(v: number) => setPlan({ baseSeedA: v })}
-        baseClipSkipA={baseClipSkipA}
-        setBaseClipSkipA={(v: number) => setPlan({ baseClipSkipA: v })}
-        onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
-        characters={characters}
-        selectedCharacterId={selectedCharacterId}
-        onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
       />
 
       {/* Actions Bar */}
@@ -289,6 +292,46 @@ export default function PlanTab() {
             {storyboardId ? "Update Storyboard" : "Save to DB"}
           </button>
         </div>
+      )}
+        </>
+      )}
+
+      {/* Prompt Tab Content */}
+      {planSubTab === "prompt" && (
+        <PromptSetupPanel
+        baseTab={baseTab}
+        setBaseTab={setBaseTab}
+        autoComposePrompt={autoComposePrompt}
+        setAutoComposePrompt={(v: boolean) => setPlan({ autoComposePrompt: v })}
+        autoRewritePrompt={autoRewritePrompt}
+        setAutoRewritePrompt={(v: boolean) => setPlan({ autoRewritePrompt: v })}
+        autoReplaceRiskyTags={autoReplaceRiskyTags}
+        setAutoReplaceRiskyTags={(v: boolean) => setPlan({ autoReplaceRiskyTags: v })}
+        hiResEnabled={hiResEnabled}
+        setHiResEnabled={(v: boolean) => setPlan({ hiResEnabled: v })}
+        veoEnabled={veoEnabled}
+        setVeoEnabled={(v: boolean) => setPlan({ veoEnabled: v })}
+        actorAGender={actorAGender}
+        setActorAGender={(v) => setPlan({ actorAGender: v })}
+        basePromptA={basePromptA}
+        setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
+        baseNegativePromptA={baseNegativePromptA}
+        setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
+        baseStepsA={baseStepsA}
+        setBaseStepsA={(v: number) => setPlan({ baseStepsA: v })}
+        baseCfgScaleA={baseCfgScaleA}
+        setBaseCfgScaleA={(v: number) => setPlan({ baseCfgScaleA: v })}
+        baseSamplerA={baseSamplerA}
+        setBaseSamplerA={(v: string) => setPlan({ baseSamplerA: v })}
+        baseSeedA={baseSeedA}
+        setBaseSeedA={(v: number) => setPlan({ baseSeedA: v })}
+        baseClipSkipA={baseClipSkipA}
+        setBaseClipSkipA={(v: number) => setPlan({ baseClipSkipA: v })}
+        onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
+        characters={characters}
+        selectedCharacterId={selectedCharacterId}
+        onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
+      />
       )}
     </div>
   );
