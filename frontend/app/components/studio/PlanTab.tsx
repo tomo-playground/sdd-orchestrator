@@ -6,11 +6,12 @@ import { useStudioStore } from "../../store/useStudioStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import { useAutopilot } from "../../hooks";
 import { API_BASE } from "../../constants";
-import type { Scene } from "../../types";
+import type { Scene, AutoRunStepId } from "../../types";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StoryboardActionsBar from "../storyboard/StoryboardActionsBar";
 import AutoRunStatus from "../storyboard/AutoRunStatus";
+import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 
 export default function PlanTab() {
   const store = useStudioStore();
@@ -202,9 +203,7 @@ export default function PlanTab() {
         onResetScenes={handleResetScenes}
         onResetDraft={handleResetDraft}
         onGenerate={handleGenerateStoryboard}
-        onAutoRun={() => {
-          if (scenes.length > 0) setActiveTab("scenes");
-        }}
+        onAutoRun={() => runAutoRunFromStep("storyboard", autopilot)}
         isGenerating={isGenerating}
         isRendering={isRendering}
         isAutoRunning={autopilot.isAutoRunning}
@@ -217,8 +216,8 @@ export default function PlanTab() {
         <AutoRunStatus
           autoRunState={autopilot.autoRunState}
           autoRunLog={autopilot.autoRunLog}
-          onResume={() => {}}
-          onRestart={() => {}}
+          onResume={() => runAutoRunFromStep(autopilot.autoRunState.step as AutoRunStepId, autopilot)}
+          onRestart={() => runAutoRunFromStep("storyboard", autopilot)}
         />
       )}
 
