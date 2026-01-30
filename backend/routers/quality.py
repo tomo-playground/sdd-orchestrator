@@ -26,7 +26,6 @@ def batch_validate(request: BatchValidateRequest):
     ```json
     {
         "storyboard_id": 1,
-        "project_name": "my_project",
         "scenes": [
             {"scene_id": 1, "image_url": "/outputs/images/scene_1.png", "prompt": "..."},
             {"scene_id": 2, "image_url": "/outputs/images/scene_2.png", "prompt": "..."}

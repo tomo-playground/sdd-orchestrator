@@ -14,6 +14,7 @@ class PromptHistory(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str | None] = mapped_column(String(200))
+    character_id: Mapped[int | None] = mapped_column(Integer, index=True)
 
     # Prompt Data
     positive_prompt: Mapped[str] = mapped_column(Text, nullable=False)
@@ -26,18 +27,15 @@ class PromptHistory(Base, TimestampMixin):
     seed: Mapped[int | None] = mapped_column(Integer)
     clip_skip: Mapped[int] = mapped_column(Integer, default=2)
 
-    # Complex Data
+    # Bundles
     lora_settings: Mapped[list[dict] | None] = mapped_column(JSONB)
     context_tags: Mapped[list[str] | None] = mapped_column(JSONB)
 
-    # Metadata
+    # Usage & Status
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     use_count: Mapped[int] = mapped_column(Integer, default=1)
 
-    # Quality metrics
+    # Quality Metrics
     last_match_rate: Mapped[float | None] = mapped_column(Float)
     avg_match_rate: Mapped[float | None] = mapped_column(Float)
     validation_count: Mapped[int] = mapped_column(Integer, default=0)
-
-    # Optional character link
-    character_id: Mapped[int | None] = mapped_column(Integer, index=True)

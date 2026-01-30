@@ -13,6 +13,7 @@ from models.base import Base
 
 class CharacterTag(Base):
     """Link between Character and Tag with metadata."""
+
     __tablename__ = "character_tags"
 
     character_id: Mapped[int] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), primary_key=True)
@@ -27,6 +28,7 @@ class CharacterTag(Base):
 
 class SceneTag(Base):
     """Link between Scene and Tag (Ambient/Global tags)."""
+
     __tablename__ = "scene_tags"
 
     scene_id: Mapped[int] = mapped_column(ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
@@ -40,6 +42,7 @@ class SceneTag(Base):
 
 class SceneCharacterAction(Base):
     """Link between Scene, Character, and Tag (Action/Expression)."""
+
     __tablename__ = "scene_character_actions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

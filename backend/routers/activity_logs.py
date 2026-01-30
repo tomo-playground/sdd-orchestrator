@@ -38,7 +38,6 @@ def create_activity_log(request: CreateActivityLogRequest):
     ```json
     {
         "storyboard_id": 1,
-        "project_name": "my_project",
         "scene_id": 0,
         "prompt": "1girl, smiling, classroom, ...",
         "tags": ["1girl", "smiling", "classroom"],
@@ -54,7 +53,7 @@ def create_activity_log(request: CreateActivityLogRequest):
     ```json
     {
         "id": 1,
-        "project_name": "my_project",
+        "storyboard_id": 1,
         "scene_id": 0,
         ...
     }
@@ -376,7 +375,6 @@ def suggest_conflict_rules(
     Only suggests pairs that don't already exist in the tag_rules table.
 
     Query parameters:
-    - project_name: Filter by project (optional)
     - min_occurrences: Minimum co-occurrences to consider (default: 5)
     - fail_rate_threshold: Minimum fail rate to suggest (default: 0.6 = 60%)
 
@@ -522,7 +520,6 @@ def get_success_combinations(
     grouped by category (expression, pose, camera, environment, etc.).
 
     Query parameters:
-    - project_name: Filter by project (optional)
     - match_rate_threshold: Minimum match rate for "success" (default: 0.7)
     - min_occurrences: Minimum tag occurrences to include (default: 3)
     - top_n_per_category: Number of top tags per category (default: 5)

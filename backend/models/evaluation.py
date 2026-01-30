@@ -16,7 +16,7 @@ class EvaluationRun(Base, TimestampMixin):
     batch_id: Mapped[str | None] = mapped_column(String(50), index=True)
 
     test_name: Mapped[str] = mapped_column(String(100), index=True)
-    mode: Mapped[str] = mapped_column(String(20), index=True) # standard, lora
+    mode: Mapped[str] = mapped_column(String(20), index=True)  # standard, lora
 
     # Character context
     character_id: Mapped[int | None] = mapped_column(Integer, index=True)

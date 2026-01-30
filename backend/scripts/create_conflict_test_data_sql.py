@@ -15,21 +15,24 @@ def main():
     cur = conn.cursor()
 
     try:
-        project_name = "conflict_test"
-
-        # Clear existing test data
-        cur.execute("DELETE FROM activity_logs WHERE project_name = %s", (project_name,))
-        print(f"Cleared existing test data for project '{project_name}'")
+        # Create a test storyboard
+        cur.execute("""
+            INSERT INTO storyboards (title, description, created_at, updated_at)
+            VALUES (%s, %s, NOW(), NOW())
+            RETURNING id
+        """, ("Conflict Test SQL", "Temporary storyboard for SQL test script"))
+        storyboard_id = cur.fetchone()[0]
+        print(f"Created temporary storyboard ID: {storyboard_id}")
 
         logs = []
 
         # Conflict pattern 1: upper body + full body (10 fails)
         for i in range(10, 20):
             logs.append({
-                "project_name": project_name,
-                "scene_index": i,
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
                 "prompt": "1girl, sitting, upper body, full body, classroom",
-                "tags": ["1girl", "sitting", "upper body", "full body", "classroom"],
+                "tags_used": ["1girl", "sitting", "upper body", "full body", "classroom"],
                 "status": "fail",
                 "match_rate": 0.45,
                 "sd_params": {"steps": 20, "cfg_scale": 7},
@@ -39,10 +42,10 @@ def main():
         # Conflict pattern 2: indoors + outdoors (8 fails)
         for i in range(20, 28):
             logs.append({
-                "project_name": project_name,
-                "scene_index": i,
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
                 "prompt": "1girl, standing, indoors, outdoors, city",
-                "tags": ["1girl", "standing", "indoors", "outdoors", "city"],
+                "tags_used": ["1girl", "standing", "indoors", "outdoors", "city"],
                 "status": "fail",
                 "match_rate": 0.40,
                 "sd_params": {"steps": 20, "cfg_scale": 7},
@@ -52,10 +55,10 @@ def main():
         # Conflict pattern 3: day + night (7 fails)
         for i in range(30, 37):
             logs.append({
-                "project_name": project_name,
-                "scene_index": i,
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
                 "prompt": "landscape, day, night, dramatic",
-                "tags": ["landscape", "day", "night", "dramatic"],
+                "tags_used": ["landscape", "day", "night", "dramatic"],
                 "status": "fail",
                 "match_rate": 0.35,
                 "sd_params": {"steps": 20, "cfg_scale": 7},
@@ -65,17 +68,17 @@ def main():
         # Success cases (3 successes, no conflicts)
         for i in range(40, 43):
             logs.append({
-                "project_name": project_name,
-                "scene_index": i,
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
                 "prompt": "1girl, sitting, upper body, classroom",
-                "tags": ["1girl", "sitting", "upper body", "classroom"],
+                "tags_used": ["1girl", "sitting", "upper body", "classroom"],
                 "status": "success",
                 "match_rate": 0.85,
                 "sd_params": {"steps": 20, "cfg_scale": 7},
                 "seed": 12348,
             })
 
-        print(f"\nCreating {len(logs)} test generation logs...")
+        print(f"\nCreating {len(logs)} test activity logs...")
         print("  - 10 logs with 'upper body + full body' conflict (fail)")
         print("  - 8 logs with 'indoors + outdoors' conflict (fail)")
         print("  - 7 logs with 'day + night' conflict (fail)")
@@ -86,14 +89,14 @@ def main():
         for log in logs:
             cur.execute("""
                 INSERT INTO activity_logs (
-                    project_name, scene_index, prompt, tags, sd_params,
-                    match_rate, status, seed
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    storyboard_id, scene_id, prompt, tags_used, sd_params,
+                    match_rate, status, seed, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
             """, (
-                log["project_name"],
-                log["scene_index"],
+                log["storyboard_id"],
+                log["scene_id"],
                 log["prompt"],
-                json.dumps(log["tags"]),
+                json.dumps(log["tags_used"]),
                 json.dumps(log["sd_params"]),
                 log["match_rate"],
                 log["status"],
@@ -101,12 +104,15 @@ def main():
             ))
 
         conn.commit()
-        print(f"✅ Created {len(logs)} test logs in project '{project_name}'")
+        print(f"✅ Created {len(logs)} test logs in storyboard {storyboard_id}")
         print()
         print("Next steps:")
-        print(f"  1. curl 'http://localhost:8000/generation-logs/suggest-conflict-rules?project_name={project_name}&min_occurrences=5&fail_rate_threshold=0.6'")
+        print(f"  1. curl 'http://localhost:8000/activity-logs/suggest-conflict-rules?storyboard_id={storyboard_id}&min_occurrences=5&fail_rate_threshold=0.6'")
         print("  2. Review suggested rules")
-        print("  3. Apply rules via POST /generation-logs/apply-conflict-rules")
+        print("  3. Apply rules via POST /activity-logs/apply-conflict-rules")
+        print()
+        print("Cleanup:")
+        print("  Manually delete storyboard when done, or run scripts/cleanup_orphans.py")
 
     except Exception as exc:
         conn.rollback()

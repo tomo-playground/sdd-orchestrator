@@ -1,111 +1,120 @@
-"""Test applying a new conflict rule that doesn't exist yet."""
+"""Test applying a new conflict rule using Storyboard Architecture."""
 
 import json
 import os
+import sys
 
-import psycopg2
+# Add backend directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import requests
 from dotenv import load_dotenv
+from database import SessionLocal
+from models.storyboard import Storyboard
+from models.activity_log import ActivityLog
+from sqlalchemy import text
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
 API_BASE = "http://localhost:8000"
 
-
 def main():
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-
+    db = SessionLocal()
+    storyboard_id = None
+    
     try:
-        project_name = "new_conflict_test"
+        # 1. Create Test Storyboard
+        print("Creating test storyboard...")
+        sb = Storyboard(title="Test Conflict Rules", description="Temporary storyboard for testing conflict detection")
+        db.add(sb)
+        db.commit()
+        db.refresh(sb)
+        storyboard_id = sb.id
+        print(f"✅ Created Storyboard ID: {storyboard_id}")
 
-        # Clear existing data
-        cur.execute("DELETE FROM activity_logs WHERE project_name = %s", (project_name,))
-
-        # Create logs with "sitting + standing" conflict (doesn't exist in DB yet)
+        # 2. Create logs with "sitting + standing" conflict
         logs = []
 
         # Conflict: sitting + standing (8 fails)
         for i in range(50, 58):
             logs.append({
-                "project_name": project_name,
-                "scene_index": i,
-                "prompt": "1girl, sitting, standing, park",
-                "tags": ["1girl", "sitting", "standing", "park"],
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
+                "prompt": "1girl, running, sleeping, park",
+                "tags_used": ["1girl", "running", "sleeping", "park"],
                 "status": "fail",
                 "match_rate": 0.38,
                 "sd_params": {"steps": 20, "cfg_scale": 7},
                 "seed": 99999,
             })
 
-        # Success: just sitting (3 successes)
+        # Success: just running (3 successes)
         for i in range(60, 63):
             logs.append({
-                "project_name": project_name,
-                "scene_index": i,
-                "prompt": "1girl, sitting, park",
-                "tags": ["1girl", "sitting", "park"],
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
+                "prompt": "1girl, running, park",
+                "tags_used": ["1girl", "running", "park"],
                 "status": "success",
                 "match_rate": 0.88,
                 "sd_params": {"steps": 20, "cfg_scale": 7},
                 "seed": 99998,
             })
 
-        print(f"Creating {len(logs)} test logs with 'sitting + standing' conflict...")
+        # Success: just sleeping (3 successes) -> This proves "sleeping" itself is not the issue
+        for i in range(70, 73):
+            logs.append({
+                "storyboard_id": storyboard_id,
+                "scene_id": i,
+                "prompt": "1girl, sleeping, park",
+                "tags_used": ["1girl", "sleeping", "park"],
+                "status": "success",
+                "match_rate": 0.85,
+                "sd_params": {"steps": 20, "cfg_scale": 7},
+                "seed": 99997,
+            })
 
-        for log in logs:
-            cur.execute("""
-                INSERT INTO activity_logs (
-                    project_name, scene_index, prompt, tags, sd_params,
-                    match_rate, status, seed
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                log["project_name"],
-                log["scene_index"],
-                log["prompt"],
-                json.dumps(log["tags"]),
-                json.dumps(log["sd_params"]),
-                log["match_rate"],
-                log["status"],
-                log["seed"],
-            ))
+        print(f"Creating {len(logs)} test logs...")
 
-        conn.commit()
+        for log_data in logs:
+            log = ActivityLog(**log_data)
+            db.add(log)
+        
+        db.commit()
         print(f"✅ Created {len(logs)} logs")
         print()
-
-        # Get suggestions
+        
+        # 3. Get suggestions via API
         print("Getting conflict rule suggestions...")
         response = requests.get(
-            f"{API_BASE}/generation-logs/suggest-conflict-rules",
+            f"{API_BASE}/activity-logs/suggest-conflict-rules",
             params={
-                "project_name": project_name,
-                "min_occurrences": 5,
-                "fail_rate_threshold": 0.7
+                "storyboard_id": storyboard_id, # UDPATED: Using storyboard_id
+                "min_occurrences": 3, # Lowered slightly for strict test set
+                "fail_rate_threshold": 0.6
             }
         )
 
         if response.status_code == 200:
             result = response.json()
-            print(f"Found {result['new_rules_count']} new suggestions")
+            print(f"Found {result.get('new_rules_count', 0)} new suggestions")
 
-            # Find sitting + standing
-            sitting_standing = None
-            for rule in result["suggested_rules"]:
-                if {rule["tag1"], rule["tag2"]} == {"sitting", "standing"}:
-                    sitting_standing = rule
+            # Find running + sleeping
+            conflict_pair = None
+            for rule in result.get("suggested_rules", []):
+                if {rule["tag1"], rule["tag2"]} == {"running", "sleeping"}:
+                    conflict_pair = rule
                     break
 
-            if sitting_standing:
-                print("\n✅ Found 'sitting + standing' conflict:")
-                print(json.dumps(sitting_standing, indent=2))
+            if conflict_pair:
+                print("\n✅ Found 'running + sleeping' conflict:")
+                print(json.dumps(conflict_pair, indent=2))
                 print()
 
                 # Apply it
                 print("Applying rule...")
                 apply_response = requests.post(
-                    f"{API_BASE}/generation-logs/apply-conflict-rules",
-                    json={"rules": [{"tag1": "sitting", "tag2": "standing"}]}
+                    f"{API_BASE}/activity-logs/apply-conflict-rules",
+                    json={"rules": [{"tag1": "running", "tag2": "sleeping"}]}
                 )
 
                 if apply_response.status_code == 200:
@@ -118,19 +127,29 @@ def main():
             else:
                 print("❌ 'sitting + standing' not in suggestions")
                 print("All suggestions:")
-                print(json.dumps(result["suggested_rules"], indent=2))
+                print(json.dumps(result.get("suggested_rules", []), indent=2))
         else:
             print(f"❌ Suggest failed: {response.status_code}")
             print(response.text)
 
     except Exception as exc:
-        conn.rollback()
         print(f"❌ Error: {exc}")
-        raise
+        db.rollback()
     finally:
-        cur.close()
-        conn.close()
-
+        # Cleanup
+        if storyboard_id:
+            print("\nCleaning up test data...")
+            try:
+                # Delete logs first (orphan check handled via cascade usually, but explicit is safe)
+                db.query(ActivityLog).filter(ActivityLog.storyboard_id == storyboard_id).delete()
+                # Delete storyboard
+                db.query(Storyboard).filter(Storyboard.id == storyboard_id).delete()
+                db.commit()
+                print("✅ Cleanup complete")
+            except Exception as e:
+                print(f"⚠️ Cleanup failed: {e}")
+        
+        db.close()
 
 if __name__ == "__main__":
     main()

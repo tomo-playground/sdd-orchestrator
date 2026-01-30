@@ -22,7 +22,7 @@ class ActivityLog(Base, TimestampMixin):
     # The Prompt Bundle
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
     negative_prompt: Mapped[str | None] = mapped_column(Text)
-    sd_params: Mapped[dict | None] = mapped_column(JSONB) # steps, cfg, sampler, etc.
+    sd_params: Mapped[dict | None] = mapped_column(JSONB)  # steps, cfg, sampler, etc.
     seed: Mapped[int | None] = mapped_column(BigInteger)
 
     # Results & Quality
@@ -31,6 +31,6 @@ class ActivityLog(Base, TimestampMixin):
     tags_used: Mapped[list[str] | None] = mapped_column(JSONB)
 
     # Status & Management
+    status: Mapped[str] = mapped_column(String(20), default="success")  # success, fail
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    status: Mapped[str] = mapped_column(String(20), default="success") # success, fail
-    name: Mapped[str | None] = mapped_column(String(200)) # Human-readable name if favorited
+    name: Mapped[str | None] = mapped_column(String(200))  # Human-readable name if favorited

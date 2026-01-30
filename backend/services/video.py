@@ -34,17 +34,17 @@ if TYPE_CHECKING:
     from schemas import VideoRequest, VideoScene
 
 
-def sanitize_project_name(project_name: str, max_length: int = 40) -> str:
-    """Sanitize project name for use in filenames.
+def sanitize_filename(name: str, max_length: int = 40) -> str:
+    """Sanitize name for use in filenames.
 
     Args:
-        project_name: Raw project name from request
+        name: Raw name from request
         max_length: Maximum length of sanitized name
 
     Returns:
-        Safe filename-friendly project name
+        Safe filename-friendly name
     """
-    safe_name = re.sub(r"[^\w가-힣]+", "_", project_name).strip("_")
+    safe_name = re.sub(r"[^\w가-힣]+", "_", name).strip("_")
     if not safe_name:
         safe_name = "my_shorts"
     return safe_name[:max_length]
@@ -88,14 +88,14 @@ def resolve_bgm_file(
 
 
 def generate_video_filename(
-    project_name: str,
+    safe_title: str,
     layout_style: str,
     timestamp: int | None = None,
 ) -> str:
     """Generate a unique video filename.
 
     Args:
-        project_name: Sanitized project name
+        safe_title: Sanitized storyboard title
         layout_style: "post" or "full"
         timestamp: Unix timestamp (defaults to current time)
 
@@ -105,9 +105,9 @@ def generate_video_filename(
     if timestamp is None:
         timestamp = int(time.time())
     layout_tag = "post" if layout_style == "post" else "full"
-    hash_seed = f"{project_name}|{layout_tag}|{timestamp}"
+    hash_seed = f"{safe_title}|{layout_tag}|{timestamp}"
     hash_value = hashlib.sha1(hash_seed.encode("utf-8")).hexdigest()[:12]
-    return f"{project_name}_{layout_tag}_{hash_value}.mp4"
+    return f"{safe_title}_{layout_tag}_{hash_value}.mp4"
 
 
 def calculate_speed_params(speed_multiplier: float) -> tuple[float, float, float]:
@@ -248,9 +248,9 @@ class VideoBuilder:
         # State
         self.project_id = f"build_{int(time.time())}"
         self.temp_dir = IMAGE_DIR / self.project_id
-        self.safe_project_name = sanitize_project_name(request.storyboard_title)
+        self.safe_title = sanitize_filename(request.storyboard_title)
         self.video_filename = generate_video_filename(
-            self.safe_project_name, request.layout_style
+            self.safe_title, request.layout_style
         )
         self.video_path = VIDEO_DIR / self.video_filename
         self.font_path = self._resolve_subtitle_font_path(request.subtitle_font)

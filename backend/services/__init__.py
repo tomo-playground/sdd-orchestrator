@@ -61,7 +61,7 @@ from .video import (
     calculate_speed_params,
     clean_script_for_tts,
     generate_video_filename,
-    sanitize_project_name,
+    sanitize_filename,
 )
 
 __all__ = [
@@ -115,5 +115,5 @@ __all__ = [
     "calculate_speed_params",
     "clean_script_for_tts",
     "generate_video_filename",
-    "sanitize_project_name",
+    "sanitize_filename",
 ]

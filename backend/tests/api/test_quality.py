@@ -138,7 +138,7 @@ def test_batch_validate_request_validation(client: TestClient):
     # Missing scenes
     response = client.post(
         "/quality/batch-validate",
-        json={"project_name": "test"},
+        json={"storyboard_id": 1},
     )
     assert response.status_code == 422
 

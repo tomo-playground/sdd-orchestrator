@@ -21,7 +21,7 @@ class Scene(Base, TimestampMixin):
     order: Mapped[int] = mapped_column(Integer, default=0)
 
     script: Mapped[str | None] = mapped_column(Text)
-    description: Mapped[str | None] = mapped_column(Text) # LLM generated visual description
+    description: Mapped[str | None] = mapped_column(Text)  # LLM generated visual description
 
     # Image Generation Params (Optional overrides)
     width: Mapped[int] = mapped_column(Integer, default=512)
