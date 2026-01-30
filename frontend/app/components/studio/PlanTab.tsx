@@ -32,6 +32,7 @@ export default function PlanTab() {
   const setMeta = useStudioStore((s) => s.setMeta);
   const storyboardId = useStudioStore((s) => s.storyboardId);
   const isRendering = useStudioStore((s) => s.isRendering);
+  const referenceImages = useStudioStore((s) => s.referenceImages);
 
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -94,11 +95,10 @@ export default function PlanTab() {
         || (charFull.effective_mode === "lora" ? "lora" : "standard");
 
       // Auto-set IP-Adapter reference if available
-      const refs = useStudioStore.getState().referenceImages;
-      console.log("[PlanTab] Available references:", refs.length, refs.map(r => `${r.character_key} (ID: ${r.character_id})`));
+      console.log("[PlanTab] Available references:", referenceImages.length, referenceImages.map(r => `${r.character_key} (ID: ${r.character_id})`));
       console.log("[PlanTab] Looking for character ID:", charFull.id);
-      const match = refs.length > 0
-        ? refs.find((r) => r.character_id === charFull.id)
+      const match = referenceImages.length > 0
+        ? referenceImages.find((r) => r.character_id === charFull.id)
         : null;
       console.log("[PlanTab] Matched reference:", match ? `${match.character_key} (ID: ${match.character_id})` : "none");
 
@@ -109,16 +109,14 @@ export default function PlanTab() {
         loraTriggerWords: triggers,
         characterLoras,
         characterPromptMode: mode || "auto",
-        ...(match && {
-          useIpAdapter: true,
-          ipAdapterReference: match.character_key,
-          ipAdapterWeight: match.preset?.weight
-            ?? charFull.ip_adapter_weight
-            ?? 0.75,
-        }),
+        useIpAdapter: !!match,
+        ipAdapterReference: match?.character_key || "",
+        ipAdapterWeight: match?.preset?.weight
+          ?? charFull.ip_adapter_weight
+          ?? 0.75,
       });
     });
-  }, [selectedCharacterId, getCharacterFull, buildCharacterPrompt, buildCharacterNegative, setPlan]);
+  }, [selectedCharacterId, referenceImages, getCharacterFull, buildCharacterPrompt, buildCharacterNegative, setPlan]);
 
   const handleGenerateStoryboard = useCallback(async () => {
     if (!topic.trim()) {

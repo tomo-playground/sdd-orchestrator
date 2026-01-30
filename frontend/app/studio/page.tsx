@@ -14,6 +14,7 @@ import OutputTab from "../components/studio/OutputTab";
 import InsightsTab from "../components/studio/InsightsTab";
 import Toast from "../components/ui/Toast";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import ImagePreviewModal from "../components/ui/ImagePreviewModal";
 
 function StudioContent() {
   const router = useRouter();
@@ -199,6 +200,11 @@ function StudioContent() {
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} />}
+
+      <ImagePreviewModal
+        src={useStudioStore.getState().imagePreviewSrc}
+        onClose={() => useStudioStore.getState().setMeta({ imagePreviewSrc: null })}
+      />
     </div>
   );
 }
