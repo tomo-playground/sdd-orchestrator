@@ -10,13 +10,15 @@ SD 프롬프트 문법을 검증하는 원자적 명령입니다.
 
 ## 검증 항목
 
-### 1. 순서 검증
+### 1. 순서 검증 (V3 12-Layer)
 ```
-올바른 순서:
-[Quality] → [Subject] → [Identity] → [Clothing] → [Pose] → [Environment] → [LoRA]
+올바른 순서 (12-Layer):
+[Quality(0)] → [Subject(1)] → [Identity(2)] → [Body(3)] → [MainCloth(4)] →
+[DetailCloth(5)] → [Accessory(6)] → BREAK → [Expression(7)] → [Action(8)] →
+[Camera(9)] → [Environment(10)] → [Atmosphere(11)]
 
 예시:
-masterpiece, best quality, 1girl, solo, blue hair, school uniform, sitting, classroom, <lora:name:1.0>
+masterpiece, best quality, 1girl, solo, blue_hair, school_uniform, BREAK, smile, sitting, classroom, <lora:name:1.0>
 ```
 
 ### 2. LoRA 위치
@@ -27,16 +29,15 @@ masterpiece, best quality, 1girl, solo, blue hair, school uniform, sitting, clas
 - 같은 의미의 태그 반복 감지
 - 예: `blue hair, blue_hair` (중복)
 
-### 4. 충돌 검사
-Exclusive 그룹 내 다중 선택 감지:
-- hair_length: `long hair` vs `short hair`
-- time: `day` vs `night`
-- shot_type: `close-up` vs `full body`
+### 4. 충돌 검사 (DB-driven `tag_rules`)
+태그 레벨 및 카테고리 레벨 충돌 감지:
+- 태그: `sitting` vs `standing`, `crying` vs `laughing`
+- 카테고리: `hair_length` 다중 선택, `location_indoor` vs `location_outdoor`
 
-### 5. 의존성 검사
+### 5. 의존성 검사 (DB-driven `tag_rules`)
 Requires 규칙 확인:
-- `twintails` → `long hair` 필요
-- `ponytail` → `long hair` 또는 `medium hair` 필요
+- `twintails` → `long_hair` 필요
+- `ponytail` → `long_hair` 또는 `medium_hair` 필요
 
 ### 6. 가중치 범위
 - 권장: 0.5 ~ 1.5
@@ -93,5 +94,6 @@ masterpiece, best quality, 1girl, solo, long hair, twintails, ...
 ```
 
 ## 관련 파일
-- `.claude/agents/prompt-engineer.md` - 프롬프트 규칙 상세
-- `frontend/app/constants/index.ts` - 키워드 정의
+- `docs/specs/PROMPT_SPEC.md` - 프롬프트 설계 규칙 (12-Layer, 충돌 규칙)
+- `backend/services/prompt/v3_composition.py` - V3 PromptBuilder (12-Layer)
+- `backend/services/keywords/validation.py` - 태그 검증 로직

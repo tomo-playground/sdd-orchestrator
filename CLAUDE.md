@@ -1,4 +1,4 @@
-# 프로젝트: Shorts Producer
+# 프로젝트: Shorts Producer (V3)
 
 AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) + Stable Diffusion (이미지) + FFmpeg (렌더링).
 
@@ -8,11 +8,24 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 |--------|------|------|
 | Backend | FastAPI | `routers/` (API), `services/` (로직) |
 | Frontend | Next.js 14 | `app/page.tsx` (스튜디오), `hooks/useAutopilot.ts` |
+| DB | PostgreSQL | Storyboard → Scene → CharacterAction 계층 구조 |
+
+### V3 Backend 구조
+```
+backend/
+├── routers/          # API 엔드포인트 (storyboard, characters, admin, activity_logs 등)
+├── services/
+│   ├── keywords/     # 태그 시스템 패키지 (core, db, db_cache, processing, validation 등)
+│   └── prompt/       # 프롬프트 엔진 (v3_composition.py: 12-Layer Builder)
+├── models/           # SQLAlchemy ORM (associations.py: V3 relational tags)
+└── config.py         # 모든 상수/환경변수 SSOT
+```
 
 ## 문서 참조
 - **작업 선택**: `docs/ROADMAP.md`
 - **제품 스펙**: `docs/PRD.md`
 - **API 명세**: `docs/specs/API_SPEC.md`
+- **DB 스키마**: `docs/specs/DB_SCHEMA.md`
 - **프롬프트 설계**: `docs/specs/PROMPT_SPEC.md`
 - **개발 가이드**: `docs/guides/CONTRIBUTING.md`
 
@@ -33,7 +46,9 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 
 ## Configuration Principles (SSOT)
 - **설정 값**: 모든 환경 변수 및 상수는 `backend/config.py`에서 관리합니다. 개별 파일 하드코딩 금지.
-- **로직 기준**: 태그 우선순위(`TOKEN_PRIORITY`) 등의 비즈니스 로직은 **Backend**(`backend/services/keywords.py`)가 Single Source of Truth입니다. Frontend는 이를 따르거나 동기화해야 합니다.
+- **로직 기준**: 태그 우선순위 등의 비즈니스 로직은 **Backend**(`backend/services/keywords/` 패키지)가 Single Source of Truth입니다.
+- **태그 규칙**: 충돌(`tag_rules`), 별칭(`tag_aliases`), 필터(`tag_filters`) 모두 **DB 테이블**에서 관리. 코드 하드코딩 금지.
+- **런타임 캐시**: `TagCategoryCache`, `TagAliasCache`, `TagRuleCache`, `LoRATriggerCache` — startup 시 DB에서 로드, 변경 시 `/admin/refresh-caches`.
 
 ## Tag Format Standard (Danbooru 표준)
 **원칙**: 모든 태그는 **언더바(_) 형식**을 사용합니다. 공백 형식 절대 금지.
