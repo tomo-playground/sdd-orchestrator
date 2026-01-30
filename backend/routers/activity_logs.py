@@ -1,4 +1,4 @@
-"""Generation log routes for analytics and pattern learning."""
+"""Activity log routes for analytics and pattern learning."""
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/activity-logs", tags=["activity-logs"])
 
 
 class CreateActivityLogRequest(BaseModel):
-    """Request for creating a generation log."""
+    """Request for creating an activity log."""
 
     storyboard_id: int
     scene_id: int
@@ -25,14 +25,14 @@ class CreateActivityLogRequest(BaseModel):
 
 
 class UpdateStatusRequest(BaseModel):
-    """Request for updating generation log status."""
+    """Request for updating activity log status."""
 
     status: str  # success, fail, pending
 
 
 @router.post("")
-def create_generation_log(request: CreateActivityLogRequest):
-    """Create a new generation log entry.
+def create_activity_log(request: CreateActivityLogRequest):
+    """Create a new activity log entry.
 
     Example request:
     ```json
@@ -91,7 +91,7 @@ def create_generation_log(request: CreateActivityLogRequest):
         }
     except Exception as exc:
         db.rollback()
-        logger.exception("Failed to create generation log")
+        logger.exception("Failed to create activity log")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         db.close()
@@ -99,7 +99,7 @@ def create_generation_log(request: CreateActivityLogRequest):
 
 @router.get("/storyboard/{storyboard_id}")
 def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: int = 100):
-    """Get generation logs for a storyboard.
+    """Get activity logs for a storyboard.
 
     Query parameters:
     - status: Filter by status (success, fail, pending)
@@ -148,7 +148,7 @@ def get_storyboard_logs_v2(storyboard_id: int, status: str | None = None, limit:
 
 @router.patch("/{log_id}/status")
 def update_log_status(log_id: int, request: UpdateStatusRequest):
-    """Update the status of a generation log.
+    """Update the status of an activity log.
 
     Example request:
     ```json
@@ -170,7 +170,7 @@ def update_log_status(log_id: int, request: UpdateStatusRequest):
         db.commit()
         db.refresh(log)
 
-        logger.info(f"Updated generation log {log_id} status to {request.status}")
+        logger.info(f"Updated activity log {log_id} status to {request.status}")
 
         return {
             "id": log.id,
@@ -189,7 +189,7 @@ def update_log_status(log_id: int, request: UpdateStatusRequest):
 
 @router.delete("/{log_id}")
 def delete_log(log_id: int):
-    """Delete a generation log."""
+    """Delete an activity log."""
     db = SessionLocal()
     try:
         log = db.query(ActivityLog).filter(ActivityLog.id == log_id).first()
@@ -200,7 +200,7 @@ def delete_log(log_id: int):
         db.delete(log)
         db.commit()
 
-        logger.info(f"Deleted generation log {log_id}")
+        logger.info(f"Deleted activity log {log_id}")
 
         return {"message": f"Log {log_id} deleted successfully"}
     except HTTPException:
@@ -219,7 +219,7 @@ def analyze_patterns(
     min_occurrences: int = 3,
     match_rate_threshold: float = 0.7,
 ):
-    """Analyze generation patterns for a storyboard."""
+    """Analyze activity patterns for a storyboard."""
     db = SessionLocal()
     try:
         # Base query
@@ -370,7 +370,7 @@ def suggest_conflict_rules(
     min_occurrences: int = 5,
     fail_rate_threshold: float = 0.6,
 ):
-    """Suggest new conflict rules based on generation log patterns.
+    """Suggest new conflict rules based on activity log patterns.
 
     Analyzes tag pairs with high fail rates and suggests them as conflict rules.
     Only suggests pairs that don't already exist in the tag_rules table.
@@ -516,7 +516,7 @@ def get_success_combinations(
     min_occurrences: int = 3,
     top_n_per_category: int = 5,
 ):
-    """Generate optimal tag combinations based on successful generations.
+    """Generate optimal tag combinations based on successful activities.
 
     Analyzes successful logs and extracts high-performing tag combinations
     grouped by category (expression, pose, camera, environment, etc.).

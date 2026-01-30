@@ -18,7 +18,7 @@ def main():
         project_name = "conflict_test"
 
         # Clear existing test data
-        cur.execute("DELETE FROM generation_logs WHERE project_name = %s", (project_name,))
+        cur.execute("DELETE FROM activity_logs WHERE project_name = %s", (project_name,))
         print(f"Cleared existing test data for project '{project_name}'")
 
         logs = []
@@ -85,7 +85,7 @@ def main():
         # Insert logs
         for log in logs:
             cur.execute("""
-                INSERT INTO generation_logs (
+                INSERT INTO activity_logs (
                     project_name, scene_index, prompt, tags, sd_params,
                     match_rate, status, seed
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)

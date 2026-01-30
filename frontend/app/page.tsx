@@ -1849,7 +1849,7 @@ export default function Home() {
         const storedUrl = await storeSceneImage(dataUrl);
 
         // Create generation log entry
-        let generationLogId: number | undefined;
+        let activityLogId: number | undefined;
         try {
           const projectName = (topic.trim().replace(/\s+/g, "_") || "my_shorts").substring(0, 200);
           const logRes = await axios.post(`${API_BASE}/activity-logs`, {
@@ -1867,7 +1867,7 @@ export default function Home() {
             status: "pending",
             image_url: storedUrl,
           });
-          generationLogId = logRes.data.id;
+          activityLogId = logRes.data.id;
         } catch (error) {
           console.warn("Failed to create generation log:", error);
         }
@@ -1877,7 +1877,7 @@ export default function Home() {
           image_prompt: autoComposePrompt ? prompt : undefined,
           debug_prompt: prompt,
           debug_payload: JSON.stringify(debugPayload, null, 2),
-          generation_log_id: generationLogId,
+          activity_log_id: activityLogId,
         } as Partial<Scene>;
       }
       return {
@@ -2311,13 +2311,13 @@ export default function Home() {
   };
 
   const handleMarkSuccess = async (scene: Scene) => {
-    if (!scene.generation_log_id) {
+    if (!scene.activity_log_id) {
       showToast("No generation log to mark", "error");
       return;
     }
     setMarkingStatusSceneId(scene.id);
     try {
-      await axios.patch(`${API_BASE}/activity-logs/${scene.generation_log_id}/status`, {
+      await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
         status: "success",
       });
       showToast("Marked as success 👍", "success");
@@ -2329,13 +2329,13 @@ export default function Home() {
   };
 
   const handleMarkFail = async (scene: Scene) => {
-    if (!scene.generation_log_id) {
+    if (!scene.activity_log_id) {
       showToast("No generation log to mark", "error");
       return;
     }
     setMarkingStatusSceneId(scene.id);
     try {
-      await axios.patch(`${API_BASE}/activity-logs/${scene.generation_log_id}/status`, {
+      await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
         status: "fail",
       });
       showToast("Marked as fail 👎", "error");

@@ -19,7 +19,7 @@ def wipe_data():
         "scene_character_actions",
         "scenes",
         "characters",
-        "generation_logs",
+        "activity_logs",
         "prompt_histories"
     ]
 

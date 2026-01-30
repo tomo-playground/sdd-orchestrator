@@ -177,8 +177,8 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                 except Exception:
                     logger.warning("Failed to parse info from SD response", exc_info=True)
 
-            # Save generation log for analytics
-            _save_generation_log(
+            # Save activity log for analytics
+            _save_activity_log(
                 request=request,
                 prompt=cleaned_prompt,
                 negative_prompt=cleaned_negative,
@@ -202,7 +202,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 
 
 
-def _save_generation_log(
+def _save_activity_log(
     request: SceneGenerateRequest,
     prompt: str,
     negative_prompt: str,
@@ -210,7 +210,7 @@ def _save_generation_log(
     sd_params: dict,
     seed: int | None,
 ) -> None:
-    """Save generation log for analytics (non-blocking).
+    """Save activity log for analytics (non-blocking).
 
     Args:
         request: Original generation request

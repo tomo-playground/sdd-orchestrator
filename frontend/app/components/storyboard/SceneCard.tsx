@@ -511,7 +511,7 @@ export default function SceneCard({
                   {isLoadingSuggestions ? "분석중..." : "🤖 Auto Suggest"}
                 </button>
               )}
-              {scene.generation_log_id && onMarkSuccess && onMarkFail && (
+              {scene.activity_log_id && onMarkSuccess && onMarkFail && (
                 <>
                   <button
                     type="button"

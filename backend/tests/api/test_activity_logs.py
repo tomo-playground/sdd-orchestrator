@@ -1,4 +1,4 @@
-"""Tests for generation logs API endpoints."""
+"""Tests for activity logs API endpoints."""
 
 import uuid
 
@@ -19,8 +19,8 @@ def _create_storyboard(client: TestClient) -> int:
     return response.json()["storyboard_id"]
 
 
-def test_create_generation_log_minimal(client: TestClient):
-    """Test creating a generation log with minimal data."""
+def test_create_activity_log_minimal(client: TestClient):
+    """Test creating a activity log with minimal data."""
     storyboard_id = _create_storyboard(client)
     response = client.post(
         "/activity-logs",
@@ -37,8 +37,8 @@ def test_create_generation_log_minimal(client: TestClient):
     assert "id" in data
 
 
-def test_create_generation_log_full(client: TestClient):
-    """Test creating a generation log with full data."""
+def test_create_activity_log_full(client: TestClient):
+    """Test creating a activity log with full data."""
     storyboard_id = _create_storyboard(client)
     response = client.post(
         "/activity-logs",
