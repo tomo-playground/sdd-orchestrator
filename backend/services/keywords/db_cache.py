@@ -162,31 +162,12 @@ class TagRuleCache:
                 cls._conflicts.setdefault(t_name, set()).add(s_name)
                 tag_count += 1
 
-            # Load category-level conflicts
-            category_rules = (
-                db.query(TagRule)
-                .filter(
-                    TagRule.rule_type == "conflict",
-                    TagRule.active,
-                    TagRule.source_category.isnot(None)
-                )
-                .all()
-            )
-
-            cat_count = 0
-            for rule in category_rules:
-                s_cat = rule.source_category.lower().strip()
-                t_cat = rule.target_category.lower().strip()
-
-                cls._category_conflicts.setdefault(s_cat, set()).add(t_cat)
-                # Bidirectional for symmetric conflicts
-                cls._category_conflicts.setdefault(t_cat, set()).add(s_cat)
-                cat_count += 1
+            # Category-level conflicts removed (Phase 6-4.26)
+            # Reason: Never used (0/16 rules), logically unnecessary
 
             cls._initialized = True
             logger.info(
-                f"✅ [TagRuleCache] Loaded {tag_count} tag conflicts "
-                f"and {cat_count} category conflicts into cache"
+                f"✅ [TagRuleCache] Loaded {tag_count} tag conflicts into cache"
             )
         except Exception as e:
             logger.error(f"❌ [TagRuleCache] Failed to initialize: {e}")
