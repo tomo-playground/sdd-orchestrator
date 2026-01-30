@@ -1,5 +1,10 @@
 """
 VRT (Visual Regression Test) pytest configuration and fixtures.
+
+DB Isolation:
+- Tests use SQLite in-memory database (fast, isolated)
+- Each test gets a fresh database
+- Production PostgreSQL database is never touched
 """
 
 import os
@@ -9,6 +14,8 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Paths
 TESTS_DIR = Path(__file__).parent
@@ -20,6 +27,10 @@ BACKEND_DIR = TESTS_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 from main import app  # Import app after sys.path setup
+from database import Base, get_db
+
+# Test database URL (SQLite in-memory for speed and isolation)
+TEST_DATABASE_URL = "sqlite:///:memory:"
 
 
 @pytest.fixture(autouse=True)
@@ -83,8 +94,56 @@ def test_random() -> random.Random:
     return create_seeded_random()
 
 
+@pytest.fixture(scope="function")
+def db_session():
+    """Create a fresh test database for each test.
+
+    Uses SQLite in-memory for:
+    - Speed: No disk I/O
+    - Isolation: Each test gets a clean database
+    - Safety: Production PostgreSQL is never touched
+
+    Database is automatically destroyed after each test.
+    """
+    # Create engine with SQLite in-memory
+    engine = create_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},  # Allow multi-thread for SQLite
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
+
+    # Create session
+    session = TestingSessionLocal()
+
+    yield session
+
+    # Cleanup
+    session.close()
+    # Tables automatically destroyed when in-memory DB closes
+
+
 @pytest.fixture
-def client() -> TestClient:
-    """Return a FastAPI TestClient."""
-    return TestClient(app)
+def client(db_session) -> TestClient:
+    """Return a FastAPI TestClient with test database.
+
+    Overrides the app's database dependency to use test DB.
+    Production database is never touched during tests.
+    """
+    # Override database dependency
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass  # Session cleanup handled by db_session fixture
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    # Cleanup
+    app.dependency_overrides.clear()
 
