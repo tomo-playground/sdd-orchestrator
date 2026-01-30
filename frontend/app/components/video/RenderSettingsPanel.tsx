@@ -228,7 +228,7 @@ export default function RenderSettingsPanel({
             >
               {fontList.length === 0 && <option value="">Default</option>}
               {fontList.map((font) => (
-                <option key={font.name} value={font.name}>{truncate(font.name, 20)}</option>
+                <option key={font} value={font}>{truncate(font, 20)}</option>
               ))}
             </select>
             <div
