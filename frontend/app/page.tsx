@@ -1870,6 +1870,7 @@ export default function Home() {
         try {
           const logRes = await axios.post(`${API_BASE}/activity-logs`, {
             scene_id: scene.id,
+            character_id: selectedCharacterId || undefined,
             prompt,
             tags: prompt.split(",").map((t: string) => t.trim()),
             sd_params: {

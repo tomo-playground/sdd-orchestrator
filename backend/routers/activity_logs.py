@@ -15,6 +15,7 @@ class CreateActivityLogRequest(BaseModel):
 
     storyboard_id: int
     scene_id: int
+    character_id: int | None = None
     prompt: str | None = None
     tags: list[str] | None = None
     sd_params: dict | None = None
@@ -39,6 +40,7 @@ def create_activity_log(request: CreateActivityLogRequest):
     {
         "storyboard_id": 1,
         "scene_id": 0,
+        "character_id": 3,
         "prompt": "1girl, smiling, classroom, ...",
         "tags": ["1girl", "smiling", "classroom"],
         "sd_params": {"steps": 20, "cfg_scale": 7, "seed": 12345},
@@ -55,6 +57,7 @@ def create_activity_log(request: CreateActivityLogRequest):
         "id": 1,
         "storyboard_id": 1,
         "scene_id": 0,
+        "character_id": 3,
         ...
     }
     ```
@@ -64,6 +67,7 @@ def create_activity_log(request: CreateActivityLogRequest):
         log = ActivityLog(
             storyboard_id=request.storyboard_id,
             scene_id=request.scene_id,
+            character_id=request.character_id,
             prompt=request.prompt or "",
             tags_used=request.tags,
             sd_params=request.sd_params,
@@ -85,6 +89,7 @@ def create_activity_log(request: CreateActivityLogRequest):
             "id": log.id,
             "storyboard_id": log.storyboard_id,
             "scene_id": log.scene_id,
+            "character_id": log.character_id,
             "status": log.status,
             "match_rate": log.match_rate,
         }
@@ -119,6 +124,7 @@ def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: in
                     "id": log.id,
                     "storyboard_id": log.storyboard_id,
                     "scene_id": log.scene_id,
+                    "character_id": log.character_id,
                     "prompt": log.prompt,
                     "tags": log.tags_used,
                     "sd_params": log.sd_params,

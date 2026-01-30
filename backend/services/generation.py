@@ -65,6 +65,14 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                     logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
                                character_obj.name, request.ip_adapter_weight)
         else:
+            # Phase 6-4.26: Auto-populate character_id from IP-Adapter reference
+            if request.use_ip_adapter and request.ip_adapter_reference and not request.character_id:
+                from models import Character
+                character_obj = db.query(Character).filter(Character.name == request.ip_adapter_reference).first()
+                if character_obj:
+                    request.character_id = character_obj.id
+                    logger.info("📊 [Activity Log] Auto-set character_id=%d from IP-Adapter reference '%s'",
+                               request.character_id, request.ip_adapter_reference)
             cleaned_prompt = normalize_prompt_tokens(request.prompt)
     except Exception as e:
         logger.error(f"Error during prompt preparation: {e}")
