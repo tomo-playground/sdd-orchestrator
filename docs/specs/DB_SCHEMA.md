@@ -291,14 +291,14 @@ Textual Inversion 임베딩.
 ## 📊 Analytics & History
 
 ### `activity_logs`
-생성 이력 + 즐겨찾기 통합 로그.
+생성 이력 로그 (Analytics & Tracking).
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `storyboard_id` | Integer (FK → storyboards) | 소속 스토리보드 |
 | `scene_id` | Integer | 씬 인덱스 |
-| `character_id` | Integer | 캐릭터 |
+| `character_id` | Integer | 캐릭터 ID (Character Consistency 추적용) |
 | `prompt` | Text | 사용된 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `sd_params` | JSONB | `{steps, cfg_scale, sampler, ...}` |
@@ -307,11 +307,10 @@ Textual Inversion 임베딩.
 | `match_rate` | Float | WD14 매치율 |
 | `tags_used` | JSONB | 사용된 태그 배열 |
 | `status` | String(20) | `success`, `fail` |
-| `is_favorite` | Boolean | 즐겨찾기 여부 |
-| `name` | String(200) | 즐겨찾기 이름 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 > v3.0: `generation_logs` → `activity_logs`로 이름 변경 및 통합
+> **Removed** (Phase 6-4.26): `is_favorite`, `name` - 즐겨찾기 기능 미구현 (0 usage, 0 data)
 
 ### `prompt_histories`
 저장된 프롬프트 설정.

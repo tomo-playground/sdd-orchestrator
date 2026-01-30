@@ -494,15 +494,12 @@ class ActivityLogBase(BaseModel):
     image_url: str | None = None
     match_rate: float | None = None
     tags_used: list[str] | None = None
-    is_favorite: bool = False
-    name: str | None = None
 
 class ActivityLogCreate(ActivityLogBase):
     pass
 
 class ActivityLogUpdate(BaseModel):
-    is_favorite: bool | None = None
-    name: str | None = None
+    pass  # No updateable fields currently
 
 class ActivityLogResponse(ActivityLogBase):
     id: int

@@ -30,7 +30,8 @@ class ActivityLog(Base, TimestampMixin):
     match_rate: Mapped[float | None] = mapped_column(Float, index=True)
     tags_used: Mapped[list[str] | None] = mapped_column(JSONB)
 
-    # Status & Management
+    # Status
     status: Mapped[str] = mapped_column(String(20), default="success")  # success, fail
-    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    name: Mapped[str | None] = mapped_column(String(200))  # Human-readable name if favorited
+
+    # Removed (Phase 6-4.26): is_favorite, name
+    # Reason: Favorite/bookmark feature never implemented (0 usage, 0 data)
