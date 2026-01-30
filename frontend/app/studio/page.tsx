@@ -3,9 +3,9 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import { useStudioStore } from "../store/useStudioStore";
+import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
 import type { StudioTab } from "../store/slices/metaSlice";
-import type { Scene } from "../types";
+import type { Scene, AutoRunStepId } from "../types";
 import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
 import TabBar from "../components/studio/TabBar";
 import PlanTab from "../components/studio/PlanTab";
@@ -16,12 +16,19 @@ import Toast from "../components/ui/Toast";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../components/ui/ImagePreviewModal";
 import VideoPreviewModal from "../components/ui/VideoPreviewModal";
+import AutoRunStatus from "../components/storyboard/AutoRunStatus";
+import ChannelProfileModal from "../components/setup/ChannelProfileModal";
+import { useAutopilot } from "../hooks/useAutopilot";
+import { runAutoRunFromStep } from "../store/actions/autopilotActions";
+import PromptHelperSidebar from "../components/prompt/PromptHelperSidebar";
+import { suggestPromptSplit, copyPromptHelperText } from "../store/actions/promptHelperActions";
 
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const storyboardId = searchParams.get("id");
   const [isLoadingDb, setIsLoadingDb] = useState(false);
+  const [showChannelProfileModal, setShowChannelProfileModal] = useState(false);
 
   const activeTab = useStudioStore((s) => s.activeTab);
   const setActiveTab = useStudioStore((s) => s.setActiveTab);
@@ -33,6 +40,64 @@ function StudioContent() {
   const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
   const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
   const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
+  const channelProfile = useStudioStore((s) => s.channelProfile);
+  const hasValidProfile = useStudioStore((s) => s.hasValidProfile);
+  const setChannelProfile = useStudioStore((s) => s.setChannelProfile);
+  const setChannelAvatarUrl = useStudioStore((s) => s.setChannelAvatarUrl);
+  const showToast = useStudioStore((s) => s.showToast);
+
+  // Meta for Prompt Helper
+  const isHelperOpen = useStudioStore((s) => s.isHelperOpen);
+  const examplePrompt = useStudioStore((s) => s.examplePrompt);
+  const suggestedBase = useStudioStore((s) => s.suggestedBase);
+  const suggestedScene = useStudioStore((s) => s.suggestedScene);
+  const isSuggesting = useStudioStore((s) => s.isSuggesting);
+  const copyStatus = useStudioStore((s) => s.copyStatus);
+
+  // Autopilot state (shared across all tabs)
+  const autopilot = useAutopilot();
+
+  // Channel Profile Onboarding (첫 진입 시 자동 표시)
+  useEffect(() => {
+    const hasProfile = hasValidProfile();
+    const hasSeenOnboarding = localStorage.getItem("channel_onboarding_done");
+
+    if (!hasProfile && !hasSeenOnboarding) {
+      setShowChannelProfileModal(true);
+      localStorage.setItem("channel_onboarding_done", "true");
+    }
+  }, [hasValidProfile]);
+
+  // Load channel avatar URL when profile changes
+  useEffect(() => {
+    if (!channelProfile?.avatar_key) {
+      setChannelAvatarUrl(null);
+      return;
+    }
+
+    const resolveChannelAvatar = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/avatar/resolve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatar_key: channelProfile.avatar_key }),
+        });
+        if (!res.ok) {
+          setChannelAvatarUrl(null);
+          return;
+        }
+        const data = await res.json();
+        if (data?.filename) {
+          const url = `${API_BASE}/outputs/avatars/${data.filename}?t=${Date.now()}`;
+          setChannelAvatarUrl(url);
+        }
+      } catch {
+        setChannelAvatarUrl(null);
+      }
+    };
+
+    resolveChannelAvatar();
+  }, [channelProfile?.avatar_key, setChannelAvatarUrl]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -59,6 +124,32 @@ function StudioContent() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Reset store only when explicitly creating a new storyboard or switching IDs
+  useEffect(() => {
+    const isNewStoryboard = searchParams.get("new") === "true";
+    if (isNewStoryboard) {
+      resetStudioStore();
+      // Clear the 'new' param after reset to avoid re-triggering
+      const url = new URL(window.location.href);
+      url.searchParams.delete("new");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
+
+  // Handle case where user navigates between existing storyboards directly
+  useEffect(() => {
+    if (storyboardId) {
+      // Clear transient session data when ID changes
+      // but don't reset everything yet because we're about to load from DB
+      useStudioStore.getState().setOutput({
+        videoUrl: null,
+        videoUrlFull: null,
+        videoUrlPost: null,
+        recentVideos: [],
+      });
+    }
+  }, [storyboardId]);
 
   // Apply prompt from localStorage (from /manage Prompts tab)
   useEffect(() => {
@@ -113,6 +204,12 @@ function StudioContent() {
           storyboardId: data.id,
           storyboardTitle: data.title,
           activeTab: data.scenes?.length > 0 ? "scenes" : "plan",
+        });
+        // Load video results into output slice
+        useStudioStore.getState().setOutput({
+          videoUrl: data.video_url || null,
+          videoUrlFull: data.video_url || null, // Fallback
+          recentVideos: data.recent_videos || [],
         });
         setPlan({
           selectedCharacterId: data.default_character_id || null,
@@ -189,19 +286,48 @@ function StudioContent() {
       </header>
 
       {/* Tab Bar */}
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenChannelProfile={() => setShowChannelProfileModal(true)}
+      />
 
       {/* Tab Content */}
       <main className="mx-auto max-w-5xl px-6 py-4">
+        {/* Autopilot Status - Always visible */}
+        {autopilot.autoRunState.status !== "idle" && (
+          <div className="mb-4">
+            <AutoRunStatus
+              autoRunState={autopilot.autoRunState}
+              autoRunLog={autopilot.autoRunLog}
+              onResume={() => runAutoRunFromStep(autopilot.autoRunState.step as AutoRunStepId, autopilot)}
+              onRestart={() => runAutoRunFromStep("storyboard", autopilot)}
+            />
+          </div>
+        )}
+
         {/* Scenes tab uses display:none for state preservation */}
         <div data-testid="tab-content-scenes" style={{ display: activeTab === "scenes" ? "block" : "none" }}>
           <ScenesTab />
         </div>
 
-        {activeTab === "plan" && <div data-testid="tab-content-plan"><PlanTab /></div>}
+        {activeTab === "plan" && <div data-testid="tab-content-plan"><PlanTab autopilot={autopilot} /></div>}
         {activeTab === "output" && <div data-testid="tab-content-output"><OutputTab /></div>}
         {activeTab === "insights" && <div data-testid="tab-content-insights"><InsightsTab /></div>}
       </main>
+
+      <PromptHelperSidebar
+        isOpen={isHelperOpen}
+        onClose={() => setMeta({ isHelperOpen: false })}
+        examplePrompt={examplePrompt}
+        setExamplePrompt={(v) => setMeta({ examplePrompt: v })}
+        onSuggestSplit={suggestPromptSplit}
+        isSuggesting={isSuggesting}
+        suggestedBase={suggestedBase}
+        suggestedScene={suggestedScene}
+        copyStatus={copyStatus}
+        onCopyText={copyPromptHelperText}
+      />
 
       {toast && <Toast message={toast.message} type={toast.type} />}
 
@@ -214,6 +340,18 @@ function StudioContent() {
         src={videoPreviewSrc}
         onClose={() => setMeta({ videoPreviewSrc: null })}
       />
+
+      {/* Channel Profile Modal */}
+      {showChannelProfileModal && (
+        <ChannelProfileModal
+          initialProfile={channelProfile}
+          onComplete={(profile) => {
+            setChannelProfile(profile);
+            setShowChannelProfileModal(false);
+            showToast("채널 프로필이 저장되었습니다", "success");
+          }}
+        />
+      )}
     </div>
   );
 }

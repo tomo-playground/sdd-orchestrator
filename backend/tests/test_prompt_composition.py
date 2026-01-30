@@ -240,10 +240,11 @@ class TestTokenSorting:
     def test_lora_mode_order(self):
         tokens = ["blue_hair", "1girl", "smiling", "masterpiece"]
         result = sort_prompt_tokens(tokens, "lora")
-        # In LoRA mode, scene (expression) comes before appearance (hair)
+        # In LoRA mode, appearance (hair) comes before scene (expression)
+        # This allows LoRA to apply character features first, then actions
         smiling_idx = result.index("smiling")
         hair_idx = result.index("blue_hair")
-        assert smiling_idx < hair_idx
+        assert hair_idx < smiling_idx
 
 
 class TestPromptComposition:

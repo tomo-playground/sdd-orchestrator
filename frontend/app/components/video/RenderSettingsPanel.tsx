@@ -79,16 +79,18 @@ type RenderSettingsPanelProps = {
   // Overlay / Post Card Settings
   overlaySettings: OverlaySettings;
   setOverlaySettings: React.Dispatch<React.SetStateAction<OverlaySettings>>;
-  overlayAvatarUrl: string | null;
   postCardSettings: PostCardSettings;
   setPostCardSettings: React.Dispatch<React.SetStateAction<PostCardSettings>>;
-  postAvatarUrl: string | null;
   onAutoFillOverlay: () => void;
   onAutoFillPostCard: () => void;
   onRegenerateAvatar: (avatarKey: string) => void;
   isRegeneratingAvatar: boolean;
   getAvatarInitial: (name: string) => string;
   slugifyAvatarKey: (name: string) => string;
+  // Channel Profile
+  channelProfile: { channel_name: string; avatar_key: string; default_frame_style: string } | null;
+  channelAvatarUrl: string | null;
+  videoCaption: string;
   // Advanced
   currentModel: string;
   selectedModel: string;
@@ -132,10 +134,8 @@ export default function RenderSettingsPanel({
   setBgmVolume,
   overlaySettings,
   setOverlaySettings,
-  overlayAvatarUrl,
   postCardSettings,
   setPostCardSettings,
-  postAvatarUrl,
   onAutoFillOverlay,
   onAutoFillPostCard,
   onRegenerateAvatar,
@@ -147,6 +147,9 @@ export default function RenderSettingsPanel({
   sdModels,
   onModelChange,
   isModelUpdating,
+  channelProfile,
+  channelAvatarUrl,
+  videoCaption,
 }: RenderSettingsPanelProps) {
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -363,13 +366,13 @@ export default function RenderSettingsPanel({
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white text-[10px] font-semibold text-zinc-600">
               {layoutStyle === "full" ? (
-                overlayAvatarUrl ? (
-                  <img src={overlayAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                channelAvatarUrl ? (
+                  <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                 ) : (
                   getAvatarInitial(overlaySettings.channel_name ?? "")
                 )
-              ) : postAvatarUrl ? (
-                <img src={postAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+              ) : channelAvatarUrl ? (
+                <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
                 getAvatarInitial(postCardSettings.channel_name ?? "")
               )}
@@ -380,25 +383,65 @@ export default function RenderSettingsPanel({
         <div className="border-t border-zinc-100 p-4">
           {layoutStyle === "full" ? (
             <div className="grid gap-4">
+              {channelProfile ? (
+                <div className="rounded-xl bg-indigo-50/50 border border-indigo-100 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-200 bg-white text-sm font-semibold text-indigo-600">
+                        {channelAvatarUrl ? (
+                          <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                        ) : (
+                          getAvatarInitial(channelProfile.channel_name)
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="text-[10px] font-semibold tracking-wider text-indigo-600 uppercase">Channel Profile</div>
+                        <div className="text-sm font-semibold text-zinc-800 mt-1">{channelProfile.channel_name}</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-zinc-500">Avatar:</span>{" "}
+                          <span className="font-medium text-zinc-700">{channelProfile.avatar_key}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Caption:</span>{" "}
+                          <span className="font-medium text-zinc-700">{videoCaption || "스토리보드 주제"}</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-indigo-600/70">
+                        ✓ 채널 프로필에서 자동으로 적용됩니다
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                  <p className="text-sm text-amber-800">
+                    ⚠️ 채널 프로필을 먼저 설정해주세요
+                  </p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={onAutoFillOverlay}
                   className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50"
                 >
-                  Auto Fill
+                  Auto Fill (Legacy)
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRegenerateAvatar(overlaySettings.avatar_key ?? "")}
-                  disabled={isRegeneratingAvatar || !(overlaySettings.avatar_key ?? "").trim()}
+                  onClick={() => channelProfile && onRegenerateAvatar(channelProfile.avatar_key)}
+                  disabled={isRegeneratingAvatar || !channelProfile}
                   className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
                 >
                   {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
                 </button>
               </div>
               <input type="hidden" value={overlaySettings.frame_style} />
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="hidden grid gap-3 md:grid-cols-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Channel</label>
                   <input
@@ -444,24 +487,64 @@ export default function RenderSettingsPanel({
             </div>
           ) : (
             <div className="grid gap-4">
+              {channelProfile ? (
+                <div className="rounded-xl bg-indigo-50/50 border border-indigo-100 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-200 bg-white text-sm font-semibold text-indigo-600">
+                        {channelAvatarUrl ? (
+                          <img src={channelAvatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                        ) : (
+                          getAvatarInitial(channelProfile.channel_name)
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="text-[10px] font-semibold tracking-wider text-indigo-600 uppercase">Channel Profile</div>
+                        <div className="text-sm font-semibold text-zinc-800 mt-1">{channelProfile.channel_name}</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-zinc-500">Avatar:</span>{" "}
+                          <span className="font-medium text-zinc-700">{channelProfile.avatar_key}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Caption:</span>{" "}
+                          <span className="font-medium text-zinc-700">{videoCaption || "스토리보드 주제"}</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-indigo-600/70">
+                        ✓ 채널 프로필에서 자동으로 적용됩니다
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                  <p className="text-sm text-amber-800">
+                    ⚠️ 채널 프로필을 먼저 설정해주세요
+                  </p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={onAutoFillPostCard}
                   className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50"
                 >
-                  Auto Fill
+                  Auto Fill (Legacy)
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRegenerateAvatar(postCardSettings.avatar_key ?? "")}
-                  disabled={isRegeneratingAvatar || !(postCardSettings.avatar_key ?? "").trim()}
+                  onClick={() => channelProfile && onRegenerateAvatar(channelProfile.avatar_key)}
+                  disabled={isRegeneratingAvatar || !channelProfile}
                   className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
                 >
                   {isRegeneratingAvatar ? "Regenerating..." : "Regenerate Avatar"}
                 </button>
               </div>
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="hidden grid gap-3 md:grid-cols-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Channel</label>
                   <input

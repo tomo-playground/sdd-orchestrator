@@ -1,6 +1,6 @@
 """ControlNet API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -194,7 +194,7 @@ async def upload_reference(request: ReferenceImageRequest):
 
 @router.get("/ip-adapter/reference/{character_key}", response_model=ReferenceImageResponse)
 async def get_reference(character_key: str):
-    """Get a specific reference image."""
+    """Get a specific reference image as JSON with base64."""
     image_b64 = load_reference_image(character_key)
     if not image_b64:
         return ReferenceImageResponse(
@@ -208,6 +208,22 @@ async def get_reference(character_key: str):
         image_b64=image_b64,
         success=True,
     )
+
+
+@router.get("/ip-adapter/reference/{character_key}/image")
+async def get_reference_image(character_key: str, db: Session = Depends(get_db)):
+    """Get a specific reference image as PNG file."""
+    import base64
+    from services.controlnet import load_reference_image
+
+    image_b64 = load_reference_image(character_key, db=db)
+    if not image_b64:
+        raise HTTPException(status_code=404, detail=f"Reference '{character_key}' not found")
+
+    # Decode base64 to bytes
+    image_bytes = base64.b64decode(image_b64)
+
+    return Response(content=image_bytes, media_type="image/png")
 
 
 @router.delete("/ip-adapter/reference/{character_key}")

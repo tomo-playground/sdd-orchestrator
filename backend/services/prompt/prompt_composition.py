@@ -479,7 +479,7 @@ MODE_B_PRIORITY: dict[str, int] = {
     "body_feature": 11,
     "appearance": 11,
     "clothing": 12,
-    # Actions/expressions (after character features)
+    # Scene/Actions (after character features for LoRA to apply properly)
     "expression": 13,
     "gaze": 14,
     "pose": 15,

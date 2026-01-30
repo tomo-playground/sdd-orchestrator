@@ -27,6 +27,8 @@ class StoryboardSave(StoryboardBase):
 
 class StoryboardResponse(StoryboardBase):
     id: int
+    video_url: str | None = None
+    recent_videos: list[dict] | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class StoryboardRequest(BaseModel):

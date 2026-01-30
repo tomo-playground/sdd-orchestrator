@@ -4,9 +4,10 @@ import { createPlanSlice, type PlanSlice } from "./slices/planSlice";
 import { createScenesSlice, type ScenesSlice } from "./slices/scenesSlice";
 import { createOutputSlice, type OutputSlice } from "./slices/outputSlice";
 import { createMetaSlice, type MetaSlice } from "./slices/metaSlice";
+import { createProfileSlice, type ProfileSlice } from "./slices/profileSlice";
 import { migrateDraft } from "./migrations/draftMigration";
 
-export type StudioState = PlanSlice & ScenesSlice & OutputSlice & MetaSlice;
+export type StudioState = PlanSlice & ScenesSlice & OutputSlice & MetaSlice & ProfileSlice;
 
 const STORE_KEY = "shorts-producer:studio:v1";
 
@@ -61,6 +62,7 @@ export const useStudioStore = create<StudioState>()(
       ...createScenesSlice(...a),
       ...createOutputSlice(...a),
       ...createMetaSlice(...a),
+      ...createProfileSlice(...a),
     }),
     {
       name: STORE_KEY,
@@ -85,3 +87,17 @@ export const useStudioStore = create<StudioState>()(
     }
   )
 );
+
+/**
+ * Reset all store slices to initial state.
+ * Call this when creating a new storyboard to clear previous data.
+ * Note: Profile is NOT reset as it's user-level persistent data.
+ */
+export const resetStudioStore = () => {
+  const state = useStudioStore.getState();
+  state.resetMeta();
+  state.resetPlan();
+  state.resetScenes();
+  state.resetOutput();
+  // Profile is intentionally NOT reset - it persists across storyboards
+};

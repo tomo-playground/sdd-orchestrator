@@ -10,6 +10,7 @@ import { useCharacters } from "./hooks/useCharacters";
 import CharacterEditModal from "./components/shared/CharacterEditModal";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 import Toast from "./components/ui/Toast";
+import ImagePreviewModal from "./components/ui/ImagePreviewModal";
 
 type HomeTab = "storyboards" | "characters";
 
@@ -38,6 +39,7 @@ export default function Home() {
   const [allLoras, setAllLoras] = useState<LoRA[]>([]);
   const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
+  const [characterImagePreview, setCharacterImagePreview] = useState<string | null>(null);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -110,7 +112,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <button
               data-testid="new-storyboard-btn"
-              onClick={() => router.push("/studio")}
+              onClick={() => router.push("/studio?new=true")}
               className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition"
             >
               + New Storyboard
@@ -228,7 +230,8 @@ export default function Home() {
                       <img
                         src={`${API_BASE}${ch.preview_image_url}`}
                         alt={ch.name}
-                        className="h-14 w-14 rounded-xl object-cover bg-zinc-100"
+                        onClick={() => setCharacterImagePreview(`${API_BASE}${ch.preview_image_url}`)}
+                        className="h-14 w-14 rounded-xl object-cover bg-zinc-100 cursor-pointer hover:ring-2 hover:ring-zinc-300 transition-all"
                       />
                     ) : (
                       <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-100 text-lg font-bold text-zinc-400">
@@ -269,6 +272,14 @@ export default function Home() {
           allLoras={allLoras}
           onClose={() => setShowCharacterModal(false)}
           onSave={handleSaveCharacter}
+        />
+      )}
+
+      {/* Character Image Preview Modal */}
+      {characterImagePreview && (
+        <ImagePreviewModal
+          src={characterImagePreview}
+          onClose={() => setCharacterImagePreview(null)}
         />
       )}
 

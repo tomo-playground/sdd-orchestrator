@@ -150,12 +150,22 @@ def get_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
 
     scenes = sorted(storyboard.scenes, key=lambda s: s.order)
 
+    import json
+    recent_videos = []
+    if storyboard.recent_videos_json:
+        try:
+            recent_videos = json.loads(storyboard.recent_videos_json)
+        except Exception:
+            recent_videos = []
+
     return {
         "id": storyboard.id,
         "title": storyboard.title,
         "description": storyboard.description,
         "default_character_id": storyboard.default_character_id,
         "default_style_profile_id": storyboard.default_style_profile_id,
+        "video_url": storyboard.video_url,
+        "recent_videos": recent_videos,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "scenes": [_serialize_scene(sc) for sc in scenes],

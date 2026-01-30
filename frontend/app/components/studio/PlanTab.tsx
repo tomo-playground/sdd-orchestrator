@@ -4,17 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { useCharacters } from "../../hooks/useCharacters";
-import { useAutopilot } from "../../hooks";
+import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import { API_BASE } from "../../constants";
 import type { Scene, AutoRunStepId } from "../../types";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StoryboardActionsBar from "../storyboard/StoryboardActionsBar";
-import AutoRunStatus from "../storyboard/AutoRunStatus";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { saveStoryboard } from "../../store/actions/storyboardActions";
 
-export default function PlanTab() {
+type PlanTabProps = {
+  autopilot: UseAutopilotReturn;
+};
+
+export default function PlanTab({ autopilot }: PlanTabProps) {
   const store = useStudioStore();
   const {
     topic, duration, style, language, structure, actorAGender,
@@ -37,10 +40,7 @@ export default function PlanTab() {
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
-  const [planSubTab, setPlanSubTab] = useState<"generator" | "prompt">("generator");
-
-  // Autopilot
-  const autopilot = useAutopilot();
+  const [planSubTab, setPlanSubTab] = useState<"generator" | "prompt">("prompt");
 
   // Load IP-Adapter reference images on mount
   useEffect(() => {
@@ -210,22 +210,6 @@ export default function PlanTab() {
       {/* Sub Tabs */}
       <div className="flex items-center gap-1 border-b border-zinc-200/60">
         <button
-          onClick={() => setPlanSubTab("generator")}
-          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-            planSubTab === "generator"
-              ? "text-zinc-900"
-              : "text-zinc-500 hover:text-zinc-700"
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <span>🎬</span>
-            <span>Generator</span>
-          </span>
-          {planSubTab === "generator" && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900" />
-          )}
-        </button>
-        <button
           onClick={() => setPlanSubTab("prompt")}
           className={`px-4 py-2 text-sm font-medium transition-colors relative ${
             planSubTab === "prompt"
@@ -235,9 +219,25 @@ export default function PlanTab() {
         >
           <span className="flex items-center gap-2">
             <span>🎨</span>
-            <span>Prompt</span>
+            <span>캐릭터</span>
           </span>
           {planSubTab === "prompt" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900" />
+          )}
+        </button>
+        <button
+          onClick={() => setPlanSubTab("generator")}
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+            planSubTab === "generator"
+              ? "text-zinc-900"
+              : "text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <span>🎬</span>
+            <span>스토리</span>
+          </span>
+          {planSubTab === "generator" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900" />
           )}
         </button>
@@ -271,16 +271,6 @@ export default function PlanTab() {
         topicEmpty={!topic.trim()}
         autoRunStep={autopilot.autoRunState.step}
       />
-
-      {/* Auto Run Status */}
-      {autopilot.autoRunState.status !== "idle" && (
-        <AutoRunStatus
-          autoRunState={autopilot.autoRunState}
-          autoRunLog={autopilot.autoRunLog}
-          onResume={() => runAutoRunFromStep(autopilot.autoRunState.step as AutoRunStepId, autopilot)}
-          onRestart={() => runAutoRunFromStep("storyboard", autopilot)}
-        />
-      )}
 
       {/* Save Button */}
       {scenes.length > 0 && (

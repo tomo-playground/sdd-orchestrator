@@ -5,6 +5,7 @@ import axios from "axios";
 import { API_BASE } from "../constants";
 import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode } from "../types";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import ImagePreviewModal from "../components/ui/ImagePreviewModal";
 
 type Props = {
   character?: Character; // Make character optional for create mode
@@ -51,6 +52,9 @@ export default function CharacterEditModal({
   const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character?.loras || []);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Preview modal state
+  const [previewImageOpen, setPreviewImageOpen] = useState(false);
 
   const handleGenerateReference = async () => {
     if (isCreateMode || !character?.id) return;
@@ -322,6 +326,16 @@ export default function CharacterEditModal({
               <p className="text-[10px] text-zinc-400 mt-1">
                 Save the character first to generate a reference image.
               </p>
+            )}
+            {previewImageUrl && (
+              <div className="mt-3">
+                <img
+                  src={previewImageUrl}
+                  alt="Character Preview"
+                  onClick={() => setPreviewImageOpen(true)}
+                  className="h-32 w-auto rounded-xl border-2 border-zinc-200 object-cover cursor-pointer hover:border-zinc-400 hover:shadow-lg transition-all"
+                />
+              </div>
             )}
           </div>
 
@@ -684,6 +698,14 @@ export default function CharacterEditModal({
           </button>
         </div>
       </div>
+
+      {/* Image Preview Modal */}
+      {previewImageOpen && (
+        <ImagePreviewModal
+          src={previewImageUrl}
+          onClose={() => setPreviewImageOpen(false)}
+        />
+      )}
     </div>
   );
 }

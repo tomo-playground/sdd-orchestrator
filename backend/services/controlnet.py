@@ -327,91 +327,53 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
 
 
 def load_reference_image(character_key: str, db: Session | None = None) -> str | None:
-    """Load a reference image for IP-Adapter.
-    Prioritizes DB preview_image_url if available.
+    """Load a reference image for IP-Adapter from DB.
 
     Args:
-        character_key: Unique key for the character
+        character_key: Character name to load
         db: Optional DB session
 
     Returns:
         Base64 encoded image or None if not found
     """
-    # 1. Try DB first (V3)
-    if db:
-        char = db.query(Character).filter(Character.name == character_key).first()
-        if char and char.preview_image_url:
-            try:
-                img_bytes = load_image_bytes(char.preview_image_url)
-                return base64.b64encode(img_bytes).decode("utf-8")
-            except Exception as e:
-                logger.warning(f"Failed to load image from DB path {char.preview_image_url}: {e}")
+    if not db:
+        return None
 
-    # 2. Fallback to physical file in assets/references
-    filepath = REFERENCE_DIR / f"{character_key}.png"
-    if filepath.exists():
-        return base64.b64encode(filepath.read_bytes()).decode("utf-8")
+    # Load from DB preview_image_url
+    char = db.query(Character).filter(Character.name == character_key).first()
+    if not char or not char.preview_image_url:
+        return None
 
-    return None
+    try:
+        img_bytes = load_image_bytes(char.preview_image_url)
+        return base64.b64encode(img_bytes).decode("utf-8")
+    except Exception as e:
+        logger.warning(f"Failed to load image for {character_key}: {e}")
+        return None
 
 
 def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
-    """List all saved reference images.
-    Merges physical files in assets/references with characters in DB that have previews.
+    """List all characters with preview images from DB.
 
     Returns:
-        List of dicts with character_key, character_id (if matched), and filename
+        List of dicts with character_key, character_id, and filename
     """
-    ensure_reference_dir()
-    unique_refs = {}
+    if not db:
+        return []
 
-    # Build character lookup map (name -> Character) from DB
-    char_map = {}
-    if db:
-        chars = db.query(Character).all()
-        char_map = {char.name.lower(): char for char in chars}
+    # Get all characters with preview images
+    chars = db.query(Character).filter(
+        Character.preview_image_url.isnot(None)
+    ).order_by(Character.id).all()
 
-    # 1. Add physical files with character_id lookup
-    for path in REFERENCE_DIR.glob("*.png"):
-        stem = path.stem
-        char = None
-        display_name = stem
-
-        # Try ID-based matching first: "9_Doremi" → ID=9
-        if "_" in stem:
-            parts = stem.split("_", 1)
-            try:
-                char_id = int(parts[0])
-                if db:
-                    char = db.query(Character).filter(Character.id == char_id).first()
-                if char:
-                    display_name = parts[1]  # Use display name from filename
-            except (ValueError, IndexError):
-                # Not an ID-based filename, fall back to name matching
-                pass
-
-        # Fall back to name-based matching if ID matching failed
-        if not char:
-            char = char_map.get(stem.lower())
-
-        unique_refs[display_name] = {
-            "character_key": display_name,
-            "character_id": char.id if char else None,
-            "filename": path.name,
+    return [
+        {
+            "character_key": char.name,
+            "character_id": char.id,
+            "filename": os.path.basename(char.preview_image_url) if char.preview_image_url else "",
         }
-
-    # 2. Add/Override with DB characters that have preview images
-    if db:
-        chars_with_preview = db.query(Character).filter(Character.preview_image_url.isnot(None)).all()
-        for char in chars_with_preview:
-            unique_refs[char.name] = {
-                "character_key": char.name,
-                "character_id": char.id,
-                "filename": os.path.basename(char.preview_image_url) if char.preview_image_url else "",
-                "is_db": True
-            }
-
-    return list(unique_refs.values())
+        for char in chars
+    ]
 
 
 def delete_reference_image(character_key: str) -> bool:

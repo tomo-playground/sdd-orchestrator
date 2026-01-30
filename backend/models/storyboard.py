@@ -26,5 +26,9 @@ class Storyboard(Base, TimestampMixin):
     default_character_id: Mapped[int | None] = mapped_column(Integer)
     default_style_profile_id: Mapped[int | None] = mapped_column(Integer)
 
+    # Results
+    video_url: Mapped[str | None] = mapped_column(String(500))
+    recent_videos_json: Mapped[str | None] = mapped_column(Text)  # JSON string of recent videos
+
     # Relationship to scenes
     scenes: Mapped[list[Scene]] = relationship("Scene", backref="storyboard", cascade="all, delete-orphan")
