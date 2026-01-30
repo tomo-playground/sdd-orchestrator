@@ -12,8 +12,6 @@ from models.activity_log import ActivityLog
 def main():
     db = SessionLocal()
     try:
-        project_name = "conflict_test"
-
         # Conflict pattern 1: upper body + full body (should fail)
         conflict_logs_1 = [
             {
@@ -73,7 +71,6 @@ def main():
 
         for log_data in all_logs:
             log = ActivityLog(
-                project_name=project_name,
                 scene_id=log_data["scene_index"],
                 prompt=log_data["prompt"],
                 tags_used=log_data["tags"],
@@ -85,10 +82,10 @@ def main():
             db.add(log)
 
         db.commit()
-        print(f"✅ Created {len(all_logs)} test logs in project '{project_name}'")
+        print(f"✅ Created {len(all_logs)} test logs")
         print()
         print("Next steps:")
-        print(f"  1. curl 'http://localhost:8000/generation-logs/suggest-conflict-rules?project_name={project_name}&min_occurrences=5'")
+        print("  1. curl 'http://localhost:8000/generation-logs/suggest-conflict-rules?min_occurrences=5'")
         print("  2. Review suggested rules")
         print("  3. Apply rules via POST /generation-logs/apply-conflict-rules")
 

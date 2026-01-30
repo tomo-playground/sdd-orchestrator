@@ -17,8 +17,6 @@ def main():
     cur = conn.cursor()
 
     try:
-        project_name = "cyberpunk_medieval_test"
-
         # Ensure tags exist in tags table
         print("Ensuring tags exist in DB...")
         for tag_name in ["cyberpunk", "medieval", "fantasy", "city", "castle"]:
@@ -30,15 +28,12 @@ def main():
         conn.commit()
         print("✅ Tags ensured\n")
 
-        # Clear existing data
-        cur.execute("DELETE FROM activity_logs WHERE project_name = %s", (project_name,))
-
         logs = []
 
         # Conflict: cyberpunk + medieval (10 fails)
         for i in range(100, 110):
             logs.append({
-                "project_name": project_name,
+
                 "scene_index": i,
                 "prompt": "1girl, cyberpunk, medieval, fantasy",
                 "tags": ["1girl", "cyberpunk", "medieval", "fantasy"],
@@ -51,7 +46,7 @@ def main():
         # Success: just cyberpunk (3 successes)
         for i in range(110, 113):
             logs.append({
-                "project_name": project_name,
+
                 "scene_index": i,
                 "prompt": "1girl, cyberpunk, city",
                 "tags": ["1girl", "cyberpunk", "city"],
@@ -64,7 +59,7 @@ def main():
         # Success: just medieval (3 successes)
         for i in range(113, 116):
             logs.append({
-                "project_name": project_name,
+
                 "scene_index": i,
                 "prompt": "1girl, medieval, castle",
                 "tags": ["1girl", "medieval", "castle"],
@@ -83,11 +78,10 @@ def main():
         for log in logs:
             cur.execute("""
                 INSERT INTO activity_logs (
-                    project_name, scene_index, prompt, tags, sd_params,
+                    scene_index, prompt, tags, sd_params,
                     match_rate, status, seed
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
-                log["project_name"],
                 log["scene_index"],
                 log["prompt"],
                 json.dumps(log["tags"]),
@@ -105,7 +99,7 @@ def main():
         response = requests.get(
             f"{API_BASE}/generation-logs/suggest-conflict-rules",
             params={
-                "project_name": project_name,
+
                 "min_occurrences": 5,
                 "fail_rate_threshold": 0.8
             }

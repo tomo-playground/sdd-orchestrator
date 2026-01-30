@@ -27,7 +27,6 @@ def test_video_render():
     # Create test request (matching VideoRequest schema)
     # Use /outputs/ prefix for backend image loading
     request_data = {
-        "project_name": "test_video_render",
         "scenes": [
             {
                 "image_url": f"/outputs/images/stored/{img}",

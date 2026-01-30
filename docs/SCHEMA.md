@@ -150,7 +150,6 @@ Saved prompts with their generation settings.
 ### Generation Logs (`generation_logs`)
 Logs of all generation attempts for analytics.
 - `id`: Integer (PK)
-- `project_name`: String(200)
 - `scene_index`: Integer
 - `prompt`: Text
 - `tags`: JSONB
@@ -162,7 +161,6 @@ Logs of all generation attempts for analytics.
 ### Scene Quality Scores (`scene_quality_scores`)
 Quality metrics per scene.
 - `id`: Integer (PK)
-- `project_name`: String(200)
 - `scene_id`: Integer
 - `match_rate`: Float
 - `matched_tags`, `missing_tags`, `extra_tags`: JSONB
@@ -171,7 +169,6 @@ Quality metrics per scene.
 ### Gemini Usage Logs (`gemini_usage_logs`)
 Cost and usage tracking for Gemini API calls (Image Editing).
 - `id`: Integer (PK)
-- `project_name`: String(200)
 - `scene_index`: Integer
 - `edit_type`: String(20)
 - `original_prompt`: Text

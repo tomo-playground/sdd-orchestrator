@@ -999,7 +999,6 @@ export default function Home() {
       speaker: scene.speaker,
       duration: scene.duration,
     })),
-    project_name: topic.trim().replace(/\s+/g, "_") || "my_shorts",
     width: 1080,
     height: 1920,
     layout_style: layoutOverride ?? layoutStyle,
@@ -1851,9 +1850,7 @@ export default function Home() {
         // Create generation log entry
         let activityLogId: number | undefined;
         try {
-          const projectName = (topic.trim().replace(/\s+/g, "_") || "my_shorts").substring(0, 200);
           const logRes = await axios.post(`${API_BASE}/activity-logs`, {
-            project_name: projectName,
             scene_id: scene.id,
             prompt,
             tags: prompt.split(",").map((t: string) => t.trim()),

@@ -154,6 +154,25 @@
 | Multi-LoRA 지원 | 캐릭터당 여러 LoRA 조합 (eureka + chibi) | [x] |
 | Style Profile 통합 | Character Preset으로 단일화, UI 제거 | [x] |
 
+### 6-2.5. V3 Core Architecture Transition - **COMPLETE** (2026-01-28~30)
+16커밋, 275파일 변경 (+12,980/-6,320줄). Storyboard-Centric + DB-Driven 아키텍처 전면 전환.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Storyboard-Centric 전환** | Project → Storyboard → Scene → CharacterAction 계층 | [x] |
+| 2 | **V3 Relational Tags** | character_tags, scene_tags, scene_character_actions 연관 테이블 | [x] |
+| 3 | **Keywords 서비스 모듈화** | `keywords/` 패키지 8개 모듈 (core, db, db_cache, formatting, patterns, processing, suggestions, sync, validation) | [x] |
+| 4 | **Prompt V3 서비스** | `prompt/` 패키지 + 12-Layer PromptBuilder (v3_composition, v3_service) | [x] |
+| 5 | **4개 런타임 캐시** | TagCategory, TagAlias, TagRule, LoRATrigger (startup frozen 초기화) | [x] |
+| 6 | **DB-Driven 완전 전환** | 하드코딩 충돌규칙/태그별칭/필터 → tag_rules, tag_aliases, tag_filters 테이블 | [x] |
+| 7 | **Alembic V3 Baseline** | 15개 마이그레이션 → 1개 기준점 통합 (clean slate) | [x] |
+| 8 | **Activity Logs 통합** | generation_logs → activity_logs 통합 (생성+즐겨찾기), project_name 제거 | [x] |
+| 9 | **Frontend Gemini 제거** | Gemini 직접 호출 제거, Backend API 경유로 통일 | [x] |
+| 10 | **FastAPI Lifespan** | `on_event("startup")` → `asynccontextmanager` lifespan 패턴 | [x] |
+| 11 | **신규 라우터** | admin (DB 관리/캐시 리프레시), assets (미디어), keywords (태그 API) | [x] |
+| 12 | **코드베이스 경량화** | 미사용 템플릿(일본어/수학)/프리셋 제거, Danbooru 태그 표준 전면 적용 | [x] |
+| 13 | **모델 필드 재배치** | Character, LoRA, Tag, PromptHistory 등 논리적 그룹별 정렬 | [x] |
+
 ### 6-3. Scene Expression & Multi-Character (🟡 확장)
 
 **8.x Gender System - ARCHIVED** (6개 완료):
@@ -165,8 +184,8 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 | [ ] |
-| 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 | [ ] |
+| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (DB 스키마 완료, UI 대기) | [ ] |
+| 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 (DB 스키마 완료, UI 대기) | [ ] |
 | 12 | **Tag Autocomplete** | Danbooru 스타일 태그 자동완성 (Backend API + Frontend UI) | [x] |
 
 ### 6-4. Advanced Features (🔵 고급)
@@ -228,8 +247,9 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 **점진적 진화 전략 (Gradual Evolution Strategy)**:
 
-### 8-1. Hardcoding Removal (Ongoing)
-- `masterpiece`, `anime style` 등 특정 화풍 종속 태그를 코드에서 제거.
+### 8-1. Hardcoding Removal (🟢 태그 시스템 완료)
+- ✅ 태그 충돌규칙/별칭/필터 → DB 전환 완료 (6-2.5)
+- ✅ `masterpiece`, `anime style` 등 화풍 종속 태그 Config 분리
 - 상수/Config로 분리하여 `DEFAULT_QUALITY_TAGS`, `DEFAULT_STYLE_TAGS` 등 활용.
 
 ### 8-2. Config-based Switching (Mid-term)
@@ -326,424 +346,45 @@ brew install claude-squad  # 명령어: cs
 
 ---
 
-### 현재 세션 완료 작업 (2026-01-28)
-- **ROADMAP.md 다이어트**: 1,500줄 초과 문서를 마케팅/전략 위주로 슬림화 (Phase 1-4, Phase 6-4 아카이빙).
-- **문서 가이드라인**: `CLAUDE.md`에 문서당 최대 800줄 제한 명시. [walkthrough](file:///Users/tomo/.gemini/antigravity/brain/7444c761-fad2-45e5-a65d-459210ecb04c/walkthrough.md)
-- **Image Check 표준화**: WD14 단일 검증 체계 구축 및 Gemini Vision Legacy 제거 (Frontend/Backend).
-- **코드베이스 경량화**: 미사용 템플릿(일본어/수학) 및 프리셋 제거, Danbooru 태그 표준(언더스코어) 전면 적용.
+### 세션 이력
+- **2026-01-28**: ROADMAP 다이어트 (1500줄→800줄), WD14 단일 검증 표준화, 코드베이스 경량화
+- **2026-01-28~30**: V3 Core Architecture 전환 (16커밋, 275파일, +12,980/-6,320줄) → 6-2.5 기록
+- **2026-01-30**: project_name 잔존 참조 정리 (스크립트 4개 + 프론트엔드 + 문서), 모델 필드 재배치, 로드맵 전면 정리
 
 ---
 
-## Phase 6-4.22: Gemini Image Editing System (다음 작업)
-
-**목표**: Match Rate 낮은 케이스에 대해 Gemini Nano Banana로 이미지 직접 편집, 비용 효율적으로 품질 향상
-
-### 배경
-- 현재 Match Rate < 70% 실패 케이스 존재 (주로 포즈/표정 불일치)
-- Generation Log Analytics 완성으로 실패 패턴 자동 감지 가능
-- **전략 피벗**: 프롬프트 개선 → 이미지 직접 편집 (얼굴/화풍 보존 + 포즈 수정)
-- **선택적 개입**으로 비용 효율화 (월 $30-50)
-
-### Gemini Nano Banana 테스트 결과 (2026-01-27)
-
-**테스트 환경**:
-- Model: `gemini-2.5-flash-image` (Google AI Studio)
-- Cost: $0.0401/edit ($0.0011 input + $0.039 output)
-- Test Character: Eureka (chibi style)
-
-**테스트 케이스 & 결과**:
-
-| Test Case | Target Change | Visual Result | WD14 Evaluation | Cost |
-|-----------|---------------|---------------|-----------------|------|
-| Standing → Sitting | "sitting on chair with hands on lap" | ✅ Perfect | 🟡 Partial (66.7%) | $0.0404 |
-| Neutral → Waving | "waving with right hand raised" | ✅ Perfect | ❌ Failed (0%) | $0.0404 |
-
-**핵심 발견 (Phase 1 - Pose Editing)**:
-- ✅ **시각적 성공률**: 100% (2/2) - 포즈 변경 정확, 얼굴/화풍 완벽 보존
-- ⚠️ **WD14 평가**: 50% (1 partial, 1 fail) - **WD14의 한계**로 확인 (실제로는 성공)
-  - WD14는 미묘한 포즈 변화 감지 어려움 (sitting, waving 등)
-  - 시각적 품질은 완벽했으나 태그 감지 실패
-- 💰 **비용**: $0.0808 (2 edits) - 예상 월 비용 $2.40 (10 scenes/day × 20% failure)
-- ⚡ **설정 간편성**: API Key만으로 즉시 사용 (Vertex AI 대비 훨씬 간단)
-
-### Phase 1.5 테스트 결과 - Expression & Gaze (2026-01-27)
-
-**추가 테스트 케이스**:
-
-| Test Case | Category | Visual Result | WD14 Evaluation | Cost |
-|-----------|----------|---------------|-----------------|------|
-| Front → Looking Back | Gaze | ✅ Perfect | ✅ Success (100%) | $0.0404 |
-| Smiling → Frowning | Expression | ✅ Good | 🟡 Partial (33.3%) | $0.0404 |
-| Neutral → Surprised | Expression | ✅ Good | 🟡 Partial (50%) | $0.0404 |
-
-**핵심 발견 (Phase 1.5)**:
-- ✅ **Gaze Editing**: 완벽! WD14 평가 100% - `from_behind`, `looking_back` 정확 인식
-- ⚠️ **Expression Editing**: 시각적 성공하나 WD14 한계 재확인
-  - Smile 제거, open_mouth 추가 성공 (실제로는 작동)
-  - WD14가 `frown`, `worried`, `surprised` 같은 표정 태그 인식 어려움
-- 💰 **총 비용**: $0.1212 (3 edits)
-
-**결론**:
-- ✅ **Pose & Gaze Editing**: 프로덕션 준비 완료 (시각적 100% 성공)
-- ⚠️ **Expression Editing**: 기능 작동하나 평가 방식 개선 필요 (Vision API 활용)
-- ✅ **Gemini Nano Banana 채택 권장** - 시각적 품질 완벽, 비용 적정, 설정 간단
-
-### Generation Log 실패 패턴 분석 (Match Rate < 70%)
-
-**데이터 기반 우선순위** (60개 실패 케이스 분석):
-
-| Category | 발생 빈도 | Priority | 예시 태그 |
-|----------|-----------|----------|-----------|
-| **Pose/Action** | 34회 (57%) | ✅ Implemented | sitting (18), standing (16) |
-| **Expression** | 17회 (28%) | ⭐ High | frown (17), angry, surprised |
-| **Gaze Direction** | ~10회 (17%) | ⭐ High | looking_at_viewer, looking_back |
-| **Framing** | 20회 (33%) | 🟡 Medium | upper_body (10), full_body (10) |
-| **Hand Poses** | ~8회 (13%) | 🟡 Medium | peace_sign, open_hand, clenched_hands |
-
-**다음 구현 우선순위**:
-1. Expression Editing (표정 수정) - High
-2. Gaze Direction (시선 조정) - High
-3. Hand Pose Correction (손 자세 보정) - Medium
-
-### 전략: 3단계 접근
-
-#### Phase 1: MVP - Pose Editing (2주, 비용 검증)
-```
-Match Rate < 60% 감지 (포즈 불일치)
-  ↓
-수동 Gemini 이미지 편집 트리거 (UI 버튼)
-  ↓
-효과 측정 & 비용 추적
-```
-
-**구현 내용**:
-- [x] 6-4.22.1: `services/imagen_edit.py` 생성 ✅ (2026-01-27)
-  - Gemini Nano Banana API 통합 (google.genai)
-  - `edit_with_analysis()` 함수 구현 (Vision 분석 + 편집)
-- [x] 6-4.22.2: `/scene/edit-with-gemini` API 엔드포인트 ✅ (2026-01-27)
-  - Input: image_url, original_prompt, target_change
-  - Output: edited_image, cost_usd, edit_type, analysis
-- [x] 6-4.22.3: Frontend: "✨ Edit with Gemini" 버튼 ✅ (2026-01-27)
-  - Scene Card에 통합 (모든 씬 표시, Match Rate < 70% 시 강조)
-  - 한국어 자연어 입력 지원 (예: "의자에 앉아서 무릎에 손 올리기")
-- [x] 6-4.22.4: `gemini_usage_logs` 테이블 추가 ✅ (2026-01-27)
-  - schema: session_id, scene_id, edit_type, cost_usd, match_rate_before/after
-
-**실제 결과** (2026-01-27):
-- ✅ Gemini 이미지 편집 기능 프로덕션 배포 완료
-- ✅ 한국어 자연어 입력 지원 ("의자에 앉아서 무릎에 손 올리기")
-- ✅ 모든 씬에 편집 버튼 표시 (Match Rate < 70% 시 강조 표시)
-- ✅ 자동 재검증 (편집 후 500ms 후 WD14 실행)
-- 💰 실제 비용: $0.0404/edit (예상 범위 내)
-
-**예상 비용**: $50-100 (2주 테스트, ~125 edits)
-
-#### Phase 1.5: Expression & Gaze Editing (1주, 추가 검증)
-```
-표정/시선 불일치 감지
-  ↓
-Gemini 이미지 편집 (expression, gaze)
-  ↓
-효과 측정
-```
-
-**구현 내용**:
-- [x] 6-4.22.5: `edit_image_expression()` 테스트 완료 ✅
-  - Target: frown, surprised, angry, smiling 등
-  - Test Cases: smiling → frowning, neutral → surprised
-- [x] 6-4.22.6: `edit_image_gaze()` 테스트 완료 ✅
-  - Target: looking_at_viewer, looking_back, looking_away 등
-  - Test Cases: front → looking_back
-- [x] 6-4.22.7: Frontend: Edit Type 자동 감지 ✅ (Phase 1.7에서 구현)
-  - Gemini Vision이 자동으로 edit_type 결정 (Pose/Expression/Gaze/Framing/Hands)
-- [x] 6-4.22.8: Edit Type 기록 ✅ (gemini_usage_logs 테이블)
-
-**테스트 결과 (2026-01-27)**:
-
-| Test Case | Category | Visual Result | WD14 Score | Cost |
-|-----------|----------|---------------|------------|------|
-| Front → Looking Back | Gaze | ✅ Perfect | 100% | $0.0404 |
-| Smiling → Frowning | Expression | ✅ Good | 33.3% | $0.0404 |
-| Neutral → Surprised | Expression | ✅ Good | 50% | $0.0404 |
-
-**핵심 발견**:
-- ✅ **Gaze Editing**: 완벽! (100% WD14 score)
-  - `from_behind`, `looking_back` 태그 정확히 추가
-  - 캐릭터 시선/방향 변경 완벽 구현
-- ⚠️ **Expression Editing**: 시각적으로는 성공하나 WD14 한계 노출
-  - Smile 제거, open_mouth 추가 성공
-  - WD14가 `frown`, `worried`, `surprised`, `wide-eyed` 같은 표정 태그 인식 어려움
-  - **결론**: 표정 편집 기능은 작동하나, 평가 지표를 시각적 검증으로 전환 필요
-- 💰 **비용**: $0.1212 (3 tests) - 예상 범위 내
-
-**권장사항**:
-1. Gaze Editing: ✅ 프로덕션 준비 완료
-2. Expression Editing: ✅ 기능 작동 확인, 단 평가 방식 개선 필요 (Vision API 활용)
-3. WD14 평가 한계: 표정 태그 인식률 낮음 → Gemini Vision으로 보완
-
-**실제 결과**:
-- Gaze Editing 성공률: 100% (예상 85% 초과!)
-- Expression Editing 시각적 성공률: ~80% (WD14 score: 42%)
-- 비용: $0.12 (3 tests, 예상 $0.08보다 약간 초과)
-
-**예상 비용**: $20-30 (1주 테스트)
-
-#### Phase 1.7: 자동 제안 + 수동 승인 (완료 ✅ 2026-01-27)
-```
-"🤖 Auto Suggest" 버튼 클릭
-  ↓
-Gemini Vision이 이미지 + 프롬프트 비교 분석
-  ↓
-불일치 발견 → 제안 모달 표시 (issue, description, target_change)
-  ↓
-사용자 제안 검토 → "✅ 이 제안 승인하고 편집" 클릭
-  ↓
-Gemini Nano Banana 자동 편집 실행
-```
-
-**구현 내용**:
-- [x] 6-4.22.9: `suggest_edit_from_prompt()` 함수 추가 ✅
-  - Gemini Vision으로 프롬프트와 이미지 비교
-  - 불일치 감지 → 편집 제안 자동 생성 (issue, description, target_change, confidence, edit_type)
-- [x] 6-4.22.10: `/scene/suggest-edit` API 엔드포인트 ✅
-  - Input: image_url, original_prompt
-  - Output: has_mismatch, suggestions[], cost_usd
-- [x] 6-4.22.11: Frontend: "🤖 Auto Suggest" 버튼 ✅
-  - 인디고/퍼플 그라디언트 버튼 (모든 이미지에 표시)
-  - 제안 모달: 불일치 항목별 표시 (POSE, EXPRESSION, GAZE, FRAMING, HANDS)
-  - 각 제안마다 승인 버튼: "✅ 이 제안 승인하고 편집 (~$0.04)"
-- [x] 6-4.22.12: Gemini Edit Suggestion Schema 추가 ✅
-  - GeminiSuggestRequest, GeminiEditSuggestion, GeminiSuggestResponse
-
-**실제 결과**:
-- ✅ **자동 제안 성공**: 3개 제안 정확 감지 (Expression, Pose, Hands)
-- ✅ **신뢰도 표시**: 각 제안마다 confidence score (90%, 100%, 100%)
-- ✅ **사용자 선택권**: 원하는 제안만 승인 가능
-- 💰 **비용**: Vision API $0.0003 + Edit $0.0404 = **$0.0407/edit**
-
-**핵심 발견**:
-- ✅ Gemini Vision이 프롬프트와 이미지 불일치를 정확히 감지
-- ✅ 자동 제안 + 수동 승인으로 UX 개선 (사용자가 제안 검토 후 결정)
-- ✅ 한국어/영어 자연어 모두 지원 ("의자에 앉아서", "sitting on chair")
-- ⭐ **Phase 2 자동화 전 필수 단계**: 사용자 신뢰 구축 + 제안 품질 검증
-
-**예상 비용**: $10-20/월 (제안 생성만, 편집은 승인 시에만 실행)
-
-#### Phase 2: 자동화 (효과 검증 후)
-```
-Match Rate < [임계값] 자동 감지
-  ↓
-실패 유형 분류 (pose/expression/gaze)
-  ↓
-Gemini 자동 이미지 편집 (1회)
-  ↓
-재검증 (WD14 + Vision)
-  ↓
-Generation Log 기록
-```
-
-**구현 내용**:
-- [ ] 6-4.22.13: `auto_edit_with_gemini()` 완전 자동 편집 로직
-  - 실패 태그 분석 → 편집 타입 자동 선택
-  - 사용자 승인 없이 자동 실행
-- [ ] 6-4.22.14: 임계값 config 설정 (`GEMINI_AUTO_EDIT_THRESHOLD`)
-- [ ] 6-4.22.15: Fallback 이력 추적 (generation_logs.gemini_edited)
-- [ ] 6-4.22.16: Analytics: Gemini Edit 효과 대시보드
-  - Before/After Match Rate 시각화
-  - 편집 타입별 성공률 추적
-
-**예상 결과**:
-- 자동화로 UX 개선 (수동 개입 불필요)
-- 시각적 성공률: 80% → 95% (+15%p)
-- Gemini 사용: 실패 케이스의 20%만 (전체의 4-6%)
-
-**예상 비용**: $30-50/월
-
-#### Phase 3: 학습 기반 최적화 (장기)
-```
-Generation Log 패턴 학습
-  ↓
-Rule-based 프롬프트 사전 개선 (편집 전)
-  ↓
-Gemini는 edge case만 (5% 미만)
-```
-
-**구현 내용**:
-- [ ] 6-4.22.13: 성공 패턴 추출 (`/generation-logs/success-patterns`)
-  - 캐릭터별 성공 태그 조합 학습
-- [ ] 6-4.22.14: Rule-based 프롬프트 사전 개선 엔진
-  - 위험 태그 자동 대체 (medium_shot → cowboy_shot)
-- [ ] 6-4.22.15: Gemini 의존도 점진적 감소
-  - 사전 개선으로 실패율 자체를 줄임
-
-**예상 결과**:
-- Gemini 비용 90% 절감 (편집 필요 케이스 자체가 감소)
-- 자체 프롬프트 개선 엔진 구축
-- 시각적 성공률: 95% → 98% (+3%p)
-
-**예상 비용**: $5-10/월
-
-### 성공 지표 (KPI)
-
-| 지표 | 현재 | Phase 1 목표 | Phase 1.5 목표 | Phase 2 목표 | Phase 3 목표 |
-|------|------|--------------|----------------|--------------|--------------|
-| 시각적 성공률 | 80% | 90% (+10%p) | 92% (+12%p) | 95% (+15%p) | 98% (+18%p) |
-| 실패율 (< 70%) | 20% | 12% | 10% | 5% | 2% |
-| 월 Gemini 비용 | $0 | $50-100 | $70-130 | $30-50 | $5-10 |
-| Gemini 편집 비율 | 0% | 수동 | 수동 | 4-6% | 1-2% |
-| 편집당 비용 | - | $0.0401 | $0.0401 | $0.0401 | $0.0401 |
-
-**참고**: Match Rate는 WD14 한계로 정확도 낮음. 시각적 성공률이 실제 품질 지표.
-
-### 기술 스택
-- **Gemini Nano Banana** (`gemini-2.5-flash-image`) - Google AI Studio
-- **WD14 Tagger** - 태그 추출 (보조 지표)
-- **Vision Analysis** - 실제 품질 평가 (주 지표)
-- **Generation Log Analytics** - 실패 패턴 자동 감지
-- **SD WebUI** - 기본 이미지 생성
-
-### 리스크 & 대응
-| 리스크 | 영향 | 대응 방안 |
-|--------|------|-----------|
-| Gemini 비용 초과 | 중간 | Phase 1에서 엄격한 비용 모니터링 ($100 한도), 편집당 $0.04로 예측 가능 |
-| 얼굴/화풍 변형 | 높음 | ✅ 테스트 결과: 완벽 보존 확인. preserve_elements 명시로 방지 |
-| API 장애 | 낮음 | Fallback 실패 시 원본 유지 (degradation) |
-| WD14 평가 부정확 | 중간 | Vision Analysis로 보완, 시각적 품질 우선 평가 |
-
-### 의존성
-- ✅ Generation Log Analytics 완료 (6-4.21)
-- ✅ Gemini Nano Banana 테스트 완료 (100% 시각적 성공)
-- ✅ Gemini API 키 설정 완료
-- ✅ SD WebUI 연동 완료
-
-### 테스트 결과 파일
-- **Location**: `test_results/vertex_imagen/20260127_154138/`
-- **Files**:
-  - `eureka_standing_to_sitting_1_base.png` / `_2_edited.png`
-  - `eureka_waving_1_base.png` / `_2_edited.png`
-  - `report.json` (상세 메트릭)
-- **Test Script**: `backend/scripts/test_gemini_nano_banana.py`
-
----
-
-## Phase 6-4.23: Character Consistency System (🟢 실험 완료 - 2026-01-27)
-
-**목표**: Reference-only ControlNet 기반 캐릭터 일관성 시스템 구축 (LoRA 의존성 제거)
-
-### 완료된 실험 (90% 성공률)
-
-#### ✅ Single Character Consistency
-- [x] 6-4.23.1: Reference-only ControlNet 검증 ✅ (90% 성공률)
-  - Weight: 0.75-0.9 (Strong ~ Ultra)
-  - guidance_end: 1.0 (전 구간 적용)
-  - 복장/얼굴/머리 일관성 유지 확인
-- [x] 6-4.23.2: 최적 파라미터 확정 ✅
-  - LoRA weight: 0.6 (Reference와 충돌 방지)
-  - Reference weight: 0.75 (권장), 0.9 (강력)
-  - guidance_end: 1.0 (필수)
-- [x] 6-4.23.3: Generic Character Presets 생성 ✅
-  - `generic_anime_girl.png` (세일러복 여학생)
-  - `generic_anime_boy.png` (블레이저 남학생)
-  - config.py 업데이트 (reference_image, reference_weight 추가)
-
-#### ✅ Multi-Character Consistency
-- [x] 6-4.23.4: 2인 상호작용 장면 테스트 ✅ (90% 성공률)
-  - 단일 생성 방식 (포옹, 손잡기) - 권장
-  - 분리 생성 + 합성 방식 (대화 장면)
-- [x] 6-4.23.5: LoRA 조합 실험 ✅
-  - eureka_v9 LoRA **사용 불가 판정** (2명 생성 버그)
-  - 결론: Reference-only만으로 충분, LoRA 의존성 제거
-
-#### 📁 실험 결과 파일
-- `outputs/clothing_test/` - 복장 일관성 90% 성공
-- `outputs/multi_char_test/` - 멀티 캐릭터 90% 성공
-- `outputs/character_presets/` - Generic 캐릭터 프리셋
-- `outputs/preset_verification/` - 프리셋 검증 (4/4 성공)
-- `outputs/lora_emergency_check/` - eureka_v9 LoRA 문제 확인
-
-### 프로덕션 통합 계획
-
-#### Phase 6-4.23.6: Character Prompt SSOT & Reference Fields (✅ 완료 - 2026-01-27)
-- [x] Character Custom Prompt SSOT 확립
-  - Character Edit Modal을 Single Source of Truth로 설정
-  - auto-combination 로직 제거 (`useCharacters.ts` 단순화)
-  - 중복 태그 방지 (easynegative 중복 해결)
-- [x] Character Reference Prompt Fields 추가
-  - DB 마이그레이션: `reference_base_prompt`, `reference_negative_prompt` 필드
-  - Character Edit Modal UI 추가 (Reference Image Generation 섹션)
-  - `controlnet.py` 하드코딩 제거 → `config.py` 상수 사용
-  - `routers/characters.py` - 캐릭터 생성 시 기본값 자동 설정
-  - 마이그레이션 스크립트: 기존 9개 캐릭터 데이터 초기화
-- [x] BGM Random 지속성 수정
-  - Draft restore 로직 개선 (truthy check)
-  - BGM list validation - "random" 특수값 처리
-
-#### Phase 6-4.23.7: Backend API 확장 (대기 중)
-- [ ] `generate_with_character_preset()` 함수 추가
-  - CHARACTER_PRESETS에서 reference_image 자동 로드
-  - Reference-only ControlNet args 자동 생성
-- [ ] Storyboard 생성 시 Reference-only 자동 적용
-  - 첫 씬 기준 이미지 생성
-  - 이후 씬에 Reference-only weight 0.75 적용
-
-#### Phase 6-4.23.8: Frontend UI 추가 (대기 중)
-- [ ] Character Preset 선택 드롭다운
-  - Generic Anime Girl/Boy 기본 제공
-- [ ] Reference-only On/Off 토글
-- [ ] Reference Weight 슬라이더 (0.5 ~ 1.0)
-  - 0.75: Strong (권장)
-  - 0.9: Ultra (강력)
-
-#### Phase 6-4.23.9: Multi-Character 시스템 (대기 중)
-- [ ] Gemini 템플릿 수정 (create_storyboard.j2)
-  - 상호작용 장면 → 단일 생성 (권장)
-  - 대화 장면 → 분리 생성 + 합성
-- [ ] 장면 유형 자동 판단 로직
-  - `detect_scene_type()`: interaction / dialogue / generic
-- [ ] LoRA weight 자동 조절
-  - 1 캐릭터: lora 0.6, ref 0.75
-  - 2 캐릭터: lora 0.5, ref 0.5 (균등)
-
-#### Phase 6-4.24: Character Tag Auto-Suggestion (✅ 완료 - 2026-01-27)
-**목표**: Base Prompt 입력 시 누락된 태그 자동 제안으로 캐릭터 개성 정보 필수 설정 지원
-
-**문제**:
-- Base Prompt에 "1girl, brown_hair, school_uniform" 입력
-- IDENTITY/CLOTHING TAGS는 비어있음 (미설정)
-- 개성 정보가 구조화되지 않아 통계/분석 불가
-
-**솔루션**:
-- [x] Backend: Base Prompt 파싱 및 DB 태그 매칭 API
-  - `/characters/suggest-tags` POST 엔드포인트
-  - 프롬프트 → 쉼표 분리 → tags 테이블 매칭
-  - 카테고리별 그룹핑 (identity vs clothing)
-  - 공백/언더바 양쪽 포맷 지원 (brown_hair, brown hair)
-- [x] Frontend: Tag Suggestion UI
-  - Base Prompt textarea onBlur 시 자동 제안
-  - 매칭된 태그 카테고리별로 표시 (Identity, Clothing)
-  - "Add All" / "Ignore" 버튼
-  - 승인 시 IDENTITY/CLOTHING TAGS에 자동 추가
-  - 로딩 상태 표시 및 중복 필터링
-
-**결과**:
-- ✅ 캐릭터 설정 누락 방지
-- ✅ 빠른 태그 설정 (수동 검색 불필요)
-- ✅ 데이터 품질 향상 (구조화된 태그)
-- ✅ 신규 캐릭터 생성 시 편의성
-
-### 기술 스택
-- **Reference-only ControlNet** - 전신 스타일 일관성
-- **Generic Character Presets** - 재사용 가능한 기준 이미지
-- **IP-Adapter** (선택) - 얼굴 위주 일관성 보조
-
-### 성공 지표
-- **Single Character 일관성**: 90% 검증 완료 ✅
-- **Multi-Character 일관성**: 90% 검증 완료 ✅
-- **LoRA 의존성**: 제거 (Reference-only로 충분)
-
-### 의존성
-- ✅ ControlNet Reference-only 모듈 (SD WebUI)
-- ✅ `services/controlnet.py` - `build_reference_only_args()` 구현
-- ✅ Generic Character 참조 이미지 (512x768)
+#### 6-4.22. Gemini Image Editing System
+Phase 1~1.7 완료 (MVP Pose + Expression/Gaze + 자동 제안). [실험 결과 상세](archive/ROADMAP_V3_EXPERIMENTS.md)
+- 시각적 성공률 100%, 비용 $0.04/edit, WD14 평가 한계 확인
+
+**Phase 2: 자동화 (다음 작업)**:
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 22.13 | `auto_edit_with_gemini()` | 실패 태그 분석 → 편집 타입 자동 선택, 승인 없이 실행 | [ ] |
+| 22.14 | 임계값 config | `GEMINI_AUTO_EDIT_THRESHOLD` 설정 | [ ] |
+| 22.15 | Fallback 이력 추적 | activity_logs.gemini_edited 플래그 | [ ] |
+| 22.16 | Analytics 대시보드 | Before/After Match Rate 시각화, 편집 타입별 성공률 | [ ] |
+
+**Phase 3: 학습 기반 최적화 (장기)**:
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 22.17 | 성공 패턴 추출 | `/activity-logs/success-patterns` 캐릭터별 조합 학습 | [ ] |
+| 22.18 | Rule-based 사전 개선 | 위험 태그 자동 대체 엔진 (medium_shot → cowboy_shot) | [ ] |
+| 22.19 | Gemini 의존도 감소 | 사전 개선으로 실패율 자체 감소 → 비용 90% 절감 | [ ] |
+
+#### 6-4.23. Character Consistency System
+실험 90% 성공, Reference-only ControlNet 채택. [실험 결과 상세](archive/ROADMAP_V3_EXPERIMENTS.md)
+
+**프로덕션 통합 (대기 중)**:
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 23.6 | Character Prompt SSOT & Reference Fields | Custom Prompt + Reference Prompt 필드 | [x] |
+| 23.7 | Backend API 확장 | `generate_with_character_preset()`, Reference-only 자동 적용 | [ ] |
+| 23.8 | Frontend UI | Preset 드롭다운, Reference On/Off, Weight 슬라이더 (0.5~1.0) | [ ] |
+| 23.9 | Multi-Character 시스템 | 장면 유형 자동 판단, LoRA weight 자동 조절 | [ ] |
+
+#### 6-4.24. Character Tag Auto-Suggestion - **COMPLETE**
+- Base Prompt → DB 태그 매칭 → 카테고리별 자동 제안 (identity/clothing)
+- `/characters/suggest-tags` API + Frontend onBlur 자동 제안 UI
 
 ---

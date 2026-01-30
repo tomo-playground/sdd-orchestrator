@@ -1,6 +1,14 @@
-# Prompt Design Specification
+# Prompt Design Specification (v3.0)
 
 SD 이미지 생성을 위한 프롬프트 설계 규칙.
+
+## 📝 변경 이력
+
+| 버전 | 날짜 | 주요 변경사항 |
+|------|------|--------------|
+| v3.0 | 2026-01-30 | V3 12-Layer PromptBuilder, DB-driven 충돌 규칙, Character V3 relational tags |
+| v2.0 | 2026-01-25 | Dynamic Tag Classification, Character Mode |
+| v1.0 | 2025-01-25 | 초기 문서: Standard/LoRA Mode, Priority Order |
 
 ---
 
@@ -183,6 +191,55 @@ warm lighting, cozy
 | **BREAK 사용** | 선택적 | 권장 |
 | **일관성** | 낮음 | 높음 |
 | **장면 표현력** | 높음 | 조절 필요 |
+
+---
+
+## V3: 12-Layer Prompt Builder
+
+> v3.0 신규. `backend/services/prompt/v3_composition.py`의 `V3PromptBuilder` 참조.
+
+V3에서는 태그를 **12개 시맨틱 레이어**에 배치하여 순서를 결정합니다.
+각 태그의 `default_layer` 값 (tags 테이블)이 배치 기준입니다.
+
+### 레이어 정의
+
+| Layer | 이름 | 역할 | 예시 |
+|:-----:|------|------|------|
+| 0 | **Quality** | 품질 | `masterpiece`, `best_quality` |
+| 1 | **Subject** | 인원 | `1girl`, `solo` |
+| 2 | **Identity** | 캐릭터 LoRA + 트리거 | `midoriya_izuku`, `<lora:...>` |
+| 3 | **Body** | 신체 특징 | `long_hair`, `blue_eyes` |
+| 4 | **Main Cloth** | 주요 의상 | `school_uniform`, `dress` |
+| 5 | **Detail Cloth** | 의상 디테일 | `pleated_skirt`, `ribbon` |
+| 6 | **Accessory** | 악세서리 | `glasses`, `hat` |
+| 7 | **Expression** | 표정 (1.1x 부스트) | `smile`, `blush` |
+| 8 | **Action** | 행동 (1.1x 부스트) | `sitting`, `running` |
+| 9 | **Camera** | 카메라 앵글 | `close-up`, `from_above` |
+| 10 | **Environment** | 배경/장소 | `classroom`, `night` |
+| 11 | **Atmosphere** | 분위기 + 스타일 LoRA | `soft_lighting`, `anime` |
+
+### 특수 처리
+
+- **BREAK 삽입**: Layer 6 이후 (캐릭터 LoRA 사용 시) → LoRA 편향 분리
+- **Expression/Action 부스트**: Layer 7, 8의 태그에 자동 `(tag:1.1)` 적용
+- **Quality 자동 추가**: Layer 0이 비어있으면 `masterpiece, best_quality` 삽입
+- **LoRA 트리거 자동 감지**: `LoRATriggerCache`로 씬 태그에서 LoRA 자동 활성화
+
+### 사용 예시
+
+```python
+from services.prompt.v3_composition import V3PromptBuilder
+
+builder = V3PromptBuilder(db)
+prompt = builder.compose_for_character(
+    character_id=1,
+    scene_tags=["sitting", "classroom", "smile", "close-up"],
+    style_loras=[{"name": "chibi-laugh", "weight": 0.6}]
+)
+# → "masterpiece, best_quality, 1boy, midoriya_izuku, <lora:mha_midoriya:0.7>,
+#    green_hair, freckles, BREAK, (smile:1.1), (sitting:1.1), close-up,
+#    classroom, chibi, <lora:chibi-laugh:0.6>"
+```
 
 ---
 
@@ -453,30 +510,44 @@ energetic,
 
 ## 충돌 규칙
 
+> v3.0: 하드코딩 → DB `tag_rules` + `tag_aliases` + `tag_filters` 테이블로 이관 완료.
+> `/admin/migrate-tag-rules`, `/admin/migrate-category-rules` 엔드포인트로 마이그레이션.
+
 ### Conflict (상호 배타적)
-같은 카테고리 내에서 동시에 사용할 수 없는 태그.
+
+**태그 레벨** (`tag_rules.source_tag_id` ↔ `target_tag_id`):
 ```yaml
-hair_length:
-  - [long_hair, short_hair, medium_hair]
+expression: [crying ↔ laughing, sad ↔ happy, angry ↔ smile]
+gaze: [looking_down ↔ looking_up, looking_away ↔ looking_at_viewer]
+pose: [sitting ↔ standing, lying ↔ standing, lying ↔ sitting]
+```
 
-hair_style:
-  - [twintails, ponytail]  # 동시에 가능
-  - [straight_hair, curly_hair, wavy_hair]
-
-gaze:
-  - [looking_at_viewer, looking_away, looking_down]
-  - [eyes_closed, eyes_open]
-
-pose:
-  - [standing, sitting, lying_down, kneeling]
+**카테고리 레벨** (`tag_rules.source_category` ↔ `target_category`):
+```yaml
+hair_length ↔ hair_length    # Only one hair length
+location_indoor ↔ location_outdoor  # Cannot be both
+camera ↔ camera              # Only one camera angle
 ```
 
 ### Requires (필수 동반)
-특정 태그가 있으면 함께 필요한 태그.
 ```yaml
-twintails: [long_hair]  # twintails → long_hair 필요
-ponytail: [long_hair]   # ponytail → long_hair 필요
-glasses: [wearing_glasses]  # 의미 명확화
+twintails: [long_hair]
+ponytail: [long_hair]
+```
+
+### Tag Aliases (`tag_aliases` 테이블)
+위험/비표준 태그의 자동 치환:
+```yaml
+"medium shot" → "cowboy_shot"
+"close up" → "close-up"
+"unreal engine" → NULL  # 삭제
+```
+
+### Tag Filters (`tag_filters` 테이블)
+프롬프트에서 무시/스킵할 태그:
+```yaml
+ignore: ["rating:general", "commentary"]  # 완전 무시
+skip: ["simple_background"]               # 조건부 스킵
 ```
 
 ---
@@ -515,120 +586,53 @@ SKIP_TAGS = [
 
 ## 구현 위치
 
-| 기능 | 파일 | 함수/상수 |
+### V3 Prompt Engine (Backend)
+
+| 기능 | 파일 | 함수/클래스 |
 |------|------|-----------|
-| 토큰 우선순위 | `frontend/app/constants/index.ts` | `TOKEN_PRIORITY`, `TOKEN_PRIORITY_PATTERNS` |
-| 우선순위 계산 | `frontend/app/constants/index.ts` | `getTokenPriority()` |
-| 프롬프트 병합 | `frontend/app/utils/index.ts` | `mergePromptTokens()` |
-| 프롬프트 빌드 | `frontend/app/page.tsx` | `buildPositivePrompt()` |
+| **12-Layer Builder** | `backend/services/prompt/v3_composition.py` | `V3PromptBuilder` |
+| **V3 Service** | `backend/services/prompt/v3_service.py` | V3 서비스 인터페이스 |
+| 프롬프트 정규화 | `backend/services/prompt/prompt.py` | `normalize_and_fix_tags()` |
+| 프롬프트 조합 | `backend/services/prompt/prompt_composition.py` | `compose_prompt()` |
+| 프롬프트 검증 | `backend/services/prompt/prompt_validation.py` | 태그 유효성 검사 |
 | 카테고리 우선순위 | `backend/services/keywords/patterns.py` | `CATEGORY_PRIORITY` |
-| 태그 DB 처리 | `backend/services/keywords/db.py` | `load_tags_from_db`, `update_tag_effectiveness` |
-| 프롬프트 프로세싱 | `backend/services/keywords/processing.py` | `expand_synonyms`, `filter_prompt_tokens` |
+| 태그 DB 처리 | `backend/services/keywords/db.py` | `load_tags_from_db` |
+| 프로세싱 | `backend/services/keywords/processing.py` | `expand_synonyms`, `filter_prompt_tokens` |
 | 충돌/의존성 검증 | `backend/services/keywords/validation.py` | `validate_prompt_tags` |
 | 동기화 로직 | `backend/services/keywords/sync.py` | `sync_lora_triggers_to_tags` |
-| 백엔드 병합 | `backend/services/prompt.py` | `merge_prompt_tokens()` |
-| **태그 분류** | `backend/services/tag_classifier.py` | `TagClassifier`, `classify_batch()` |
-| **분류 API** | `backend/routers/keywords.py` | `POST /keywords/classify` |
-| **프론트엔드 분류** | `frontend/app/hooks/useTagClassifier.ts` | `useTagClassifier()` |
+| 태그 분류 | `backend/services/tag_classifier.py` | `TagClassifier` |
+
+### V3 Runtime Caches
+
+| 캐시 | 파일 | 역할 |
+|------|------|------|
+| `TagCategoryCache` | `backend/services/keywords/db_cache.py` | 태그 카테고리 매핑 |
+| `TagAliasCache` | `backend/services/keywords/db_cache.py` | 태그 치환 규칙 |
+| `TagRuleCache` | `backend/services/keywords/db_cache.py` | 충돌/의존성 규칙 |
+| `LoRATriggerCache` | `backend/services/keywords/db_cache.py` | LoRA 트리거 → LoRA명 매핑 |
+| `TagFilterCache` | `backend/services/keywords/core.py` | 무시/스킵 태그 |
+
+### Frontend
+
+| 기능 | 파일 | 함수/상수 |
+|------|------|-----------|
+| 토큰 우선순위 | `frontend/app/constants/index.ts` | `TOKEN_PRIORITY` |
+| 프롬프트 병합 | `frontend/app/utils/index.ts` | `mergePromptTokens()` |
+| 프롬프트 빌드 | `frontend/app/page.tsx` | `buildPositivePrompt()` |
+| 태그 분류 훅 | `frontend/app/hooks/useTagClassifier.ts` | `useTagClassifier()` |
 
 ---
 
-## Dynamic Tag Classification (15.7)
+## Dynamic Tag Classification
 
-태그 분류를 **하드코딩에서 DB 기반 동적 시스템**으로 전환.
-
-### 왜 동적 분류가 필요한가?
-
-| 기존 방식 | 문제점 |
-|----------|--------|
-| `CATEGORY_PATTERNS` 하드코딩 | 새 태그마다 코드 수정 필요 |
-| Frontend `getTokenCategory()` | Backend와 동기화 어려움 |
-| 정적 패턴 매칭 | Gemini가 생성하는 새 태그 미분류 |
-
-### 분류 흐름
+태그 분류를 DB 기반 동적 시스템으로 전환 완료. 분류 흐름:
 
 ```
-태그 입력 → DB 캐시 조회 → classification_rules 패턴 → Danbooru API → LLM Fallback
-              ↓                    ↓                       ↓            ↓
-          group 반환          group 반환              카테고리 추론   Gemini 분류
-                                                      (General 세분화)
+태그 입력 → DB 캐시 (TagCategoryCache) → classification_rules 패턴 → Danbooru API → LLM Fallback
 ```
 
-### DB 스키마
-
-```sql
--- 분류 규칙 테이블 (CATEGORY_PATTERNS 대체)
-CREATE TABLE classification_rules (
-    id SERIAL PRIMARY KEY,
-    rule_type VARCHAR(20) NOT NULL,  -- 'suffix', 'prefix', 'contains', 'exact'
-    pattern VARCHAR(100) NOT NULL,
-    target_group VARCHAR(50) NOT NULL,
-    priority INT DEFAULT 0,
-    active BOOLEAN DEFAULT TRUE,
-    UNIQUE(rule_type, pattern)
-);
-
--- tags 테이블 확장
-ALTER TABLE tags ADD COLUMN classification_source VARCHAR(20) DEFAULT 'pattern';
-  -- 'pattern' | 'danbooru' | 'llm' | 'manual'
-ALTER TABLE tags ADD COLUMN classification_confidence FLOAT DEFAULT 1.0;
-```
-
-### API
-
-#### POST /tags/classify
-태그 배치 분류 (최대 50개).
-
-**Request**:
-```json
-{
-  "tags": ["smile", "starry sky", "on bed", "unknown_tag"]
-}
-```
-
-**Response**:
-```json
-{
-  "results": {
-    "smile": { "group": "expression", "confidence": 1.0, "source": "db" },
-    "starry sky": { "group": "time_weather", "confidence": 1.0, "source": "db" },
-    "on bed": { "group": "environment", "confidence": 1.0, "source": "db" },
-    "unknown_tag": { "group": null, "confidence": 0.0, "source": "unknown" }
-  },
-  "classified": 3,
-  "unknown": 1
-}
-```
-
-### Frontend 통합
-
-```typescript
-// hooks/useTagClassifier.ts
-const { classifyTags, getCachedCategory } = useTagClassifier();
-
-// 컴포넌트에서 사용
-useEffect(() => {
-  classifyTags(tokens).then(setCategories);
-}, [tokens]);
-
-// 분류 결과 사용 (API 우선, 로컬 패턴 fallback)
-const category = apiCategories[tag] || getTokenCategory(tag);
-```
-
-### 분류 우선순위
-
-1. **DB 캐시**: `tags` 테이블의 `group_name` (confidence >= 0.8)
-2. **패턴 규칙**: `classification_rules` 테이블
-3. **Danbooru API**: Wiki 조회로 카테고리 추론 (미구현)
-4. **LLM Fallback**: Gemini로 분류 후 DB 저장 (미구현)
-
-### 마이그레이션
-
-`CATEGORY_PATTERNS` → `classification_rules` 테이블:
-```bash
-curl -X POST http://localhost:8000/tags/migrate-patterns
-# → 677개 규칙 이관
-```
+> DB 스키마: `docs/specs/DB_SCHEMA.md` 참조
+> API: `POST /tags/classify` (`docs/specs/API_SPEC.md` 참조)
 
 ### 24개 카테고리 (Group)
 
@@ -664,19 +668,14 @@ curl -X POST http://localhost:8000/tags/migrate-patterns
 
 ## 현재 이슈 (TODO)
 
-### Issue #1: Backend 정렬 없음
-- **문제**: `backend/services/prompt.py`의 `merge_prompt_tokens`가 정렬하지 않음
-- **영향**: `/prompt/rewrite` API 결과가 정렬되지 않음
-- **해결**: Backend에 `CATEGORY_PRIORITY` 기반 정렬 추가
+### ~~Issue #1: Backend 정렬 없음~~ → V3 해결
+- V3 `V3PromptBuilder`가 12-Layer 기반으로 자동 정렬
 
-### Issue #2: Frontend 정렬 우회
-- **문제**: `buildScenePrompt`가 `buildPositivePrompt` 결과를 덮어씀
-- **영향**: Frontend 정렬 로직이 무용지물
-- **해결**: Backend 결과도 Frontend에서 재정렬
+### ~~Issue #2: Frontend 정렬 우회~~ → V3 해결
+- V3 PromptBuilder가 Backend에서 최종 순서 확정
 
-### Issue #3: Quality 태그 누락
-- **문제**: Base prompt에 quality 태그가 없으면 최종에도 없음
-- **해결**: 정렬 후 quality 태그 자동 추가
+### ~~Issue #3: Quality 태그 누락~~ → V3 해결
+- V3 PromptBuilder가 Layer 0 비어있으면 자동 `masterpiece, best_quality` 삽입
 
 ---
 
@@ -708,16 +707,19 @@ def get_character_mode(character) -> str:
 {
   "name": "Generic Anime Girl",
   "prompt_mode": "standard",
-  "identity_tags": ["1girl", "solo"],
-  "appearance_tags": [
-    "long pink hair", "blue eyes", "pale skin",
-    "twintails", "hair ribbon", "small breasts"
+  "tags": [
+    {"tag_id": 1, "name": "1girl", "is_permanent": true},
+    {"tag_id": 2, "name": "long_hair", "is_permanent": true},
+    {"tag_id": 3, "name": "pink_hair", "is_permanent": true},
+    {"tag_id": 4, "name": "blue_eyes", "is_permanent": true},
+    {"tag_id": 10, "name": "school_uniform", "is_permanent": false},
+    {"tag_id": 11, "name": "pleated_skirt", "is_permanent": false}
   ],
-  "clothing_tags": ["school uniform", "pleated skirt", "thighhighs"],
-  "loras": [],
-  "negative_embedding": "easynegative"
+  "loras": []
 }
 ```
+
+- `is_permanent: true` = Identity 태그 (외모), `false` = Clothing 태그
 
 **특징**:
 - Appearance 태그 상세 기술 필수 (LoRA가 없으므로)
@@ -732,21 +734,21 @@ def get_character_mode(character) -> str:
 {
   "name": "Midoriya Izuku",
   "prompt_mode": "lora",
-  "identity_tags": ["1boy", "solo"],
-  "appearance_tags": ["green hair", "freckles"],
-  "clothing_tags": [],
-  "loras": [
-    {"name": "mha_midoriya-10", "weight": 0.7, "category": "character"}
+  "tags": [
+    {"tag_id": 1, "name": "1boy", "is_permanent": true},
+    {"tag_id": 5, "name": "green_hair", "is_permanent": true},
+    {"tag_id": 6, "name": "freckles", "is_permanent": true}
   ],
-  "trigger_words": ["midoriya_izuku"],
-  "negative_embedding": "easynegative"
+  "loras": [
+    {"lora_id": 5, "weight": 0.7, "name": "mha_midoriya-10", "lora_type": "character"}
+  ]
 }
 ```
 
 **특징**:
 - Appearance 태그 최소화 (LoRA가 처리)
 - LoRA 학습 특성과 충돌하는 태그 사용 금지
-- 장면 복잡도에 따라 LoRA weight 자동 조절
+- V3 PromptBuilder가 BREAK 자동 삽입 (Layer 6 이후)
 
 ### 스타일 LoRA만 사용하는 경우
 
@@ -756,57 +758,38 @@ def get_character_mode(character) -> str:
 {
   "name": "Chibi Girl",
   "prompt_mode": "standard",
-  "identity_tags": ["1girl", "solo", "chibi"],
-  "appearance_tags": ["blonde hair", "green eyes", "short hair"],
-  "clothing_tags": ["dress", "bow"],
-  "loras": [
-    {"name": "chibi-laugh", "weight": 0.6, "category": "style"}
+  "tags": [
+    {"tag_id": 1, "name": "1girl", "is_permanent": true},
+    {"tag_id": 7, "name": "blonde_hair", "is_permanent": true},
+    {"tag_id": 8, "name": "short_hair", "is_permanent": true},
+    {"tag_id": 12, "name": "dress", "is_permanent": false}
   ],
-  "negative_embedding": "easynegative"
+  "loras": [
+    {"lora_id": 3, "weight": 0.6, "name": "chibi-laugh", "lora_type": "style"}
+  ]
 }
 ```
 
 **이유**: 스타일 LoRA는 캐릭터 외모를 정의하지 않으므로, Appearance 태그로 상세 기술 필요
 
-### DB 스키마
+### V3 데이터 구조
 
-```sql
--- characters 테이블
-ALTER TABLE characters ADD COLUMN prompt_mode VARCHAR(10) DEFAULT 'auto';
--- 'auto' | 'standard' | 'lora'
--- auto: LoRA 유무에 따라 자동 결정
-
--- loras 테이블 (기존)
--- category: 'character' | 'style' | 'concept'
 ```
+characters 테이블 → character_tags 연결 테이블 → tags 테이블
+  prompt_mode          is_permanent, weight       default_layer (0-11)
+```
+
+- `prompt_mode`: `auto` | `standard` | `lora` (auto = LoRA 유무에 따라 자동 결정)
+- `character_tags.is_permanent`: identity (true) vs clothing (false)
+- `tags.default_layer`: 12-Layer 시스템 내 위치 결정
 
 ### 프롬프트 조합 시 모드 적용
 
-```python
-def compose_prompt(character, scene) -> dict:
-    mode = get_character_mode(character)
-
-    if mode == "standard":
-        # 표준 순서: Quality → Subject → Appearance → Scene
-        return compose_standard_prompt(character, scene)
-    else:
-        # LoRA 순서: Quality → Subject → Trigger → Scene Core → Appearance
-        complexity = detect_scene_complexity(scene)
-        adjusted_weight = calculate_lora_weight(character.loras, complexity)
-        return compose_lora_prompt(character, scene, adjusted_weight)
-```
+> V3에서는 `V3PromptBuilder.compose_for_character()`가 모드 감지 + 12-Layer 배치 + BREAK 삽입을 자동 처리합니다.
+> 상세: "V3: 12-Layer Prompt Builder" 섹션 참조
 
 ---
 
 ## 변경 이력
 
-| 날짜 | 변경 내용 |
-|------|-----------|
-| 2025-01-25 | 초기 문서 작성 |
-| 2025-01-25 | Mode A (Standard) / Mode B (LoRA) 규칙 분리 |
-| 2025-01-25 | Character Mode 설정 스펙 추가 |
-| 2025-01-25 | LoRA 타입별 Weight 테이블 추가 (ChatGPT 피드백 반영) |
-| 2025-01-25 | 트리거 태그 중복 제거 로직 추가 |
-| 2026-01-25 | 15.7 Dynamic Tag Classification 시스템 추가 |
-| 2026-01-25 | classification_rules 테이블 + /tags/classify API |
-| 2026-01-25 | Frontend useTagClassifier 훅 통합 |
+> 상세 이력은 문서 상단 변경 이력 테이블 참조
