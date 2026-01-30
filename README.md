@@ -27,9 +27,9 @@ graph TD
         end
         
         subgraph Data [Data & Assets]
-            DB[(PostgreSQL - Tags, Characters, LoRAs)]
-            AssetsDir[./assets (Fonts, Overlays)]
-            OutputsDir[./outputs (Images, Videos)]
+            DB[(PostgreSQL - Storyboards, Scenes, Tags, Characters, LoRAs)]
+            AssetsDir[./assets (Fonts, Overlays, BGM)]
+            OutputsDir[./outputs (Images, Avatars, Videos)]
         end
     end
 
