@@ -1,7 +1,7 @@
 """Extend scene columns for full frontend mapping
 
 Revision ID: b1f2a3c4d5e6
-Revises: a7be23c70433
+Revises: 4bd92b46246d
 Create Date: 2026-01-30 20:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'b1f2a3c4d5e6'
-down_revision: Union[str, None] = 'a7be23c70433'
+down_revision: Union[str, None] = '4bd92b46246d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
