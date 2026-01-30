@@ -53,9 +53,8 @@ class ClassificationRule(Base, TimestampMixin):
 class TagRule(Base, TimestampMixin):
     """Rules for tag interactions (conflict, requires).
 
-    Supports both tag-level and category-level conflicts:
-    - Tag-level: source_tag_id and target_tag_id are set
-    - Category-level: source_category and target_category are set
+    Tag-level conflicts only (e.g., crying ↔ happy, looking_down ↔ looking_up).
+    Category-level was removed (Phase 6-4.26) - never used, logically unnecessary.
     """
 
     __tablename__ = "tag_rules"
@@ -63,13 +62,12 @@ class TagRule(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     rule_type: Mapped[str] = mapped_column(String(20))  # conflict, requires
 
-    # Tag-level conflicts
+    # Tag-level conflicts (individual tags)
     source_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
     target_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
 
-    # Category-level conflicts
-    source_category: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)
-    target_category: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)
+    # Removed (Phase 6-4.26): source_category, target_category
+    # Reason: Never used (0/16 rules), logically unnecessary
 
     message: Mapped[str | None] = mapped_column(String(200))
     priority: Mapped[int] = mapped_column(Integer, default=0)

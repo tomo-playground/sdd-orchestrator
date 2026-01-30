@@ -134,19 +134,21 @@ YouTube Shorts 프로젝트 단위.
 > **Removed**: `subcategory` 컬럼 (deprecated Phase 6-4.25, removed Phase 6-4.26)
 
 ### `tag_rules`
-태그 간 충돌/의존성 규칙 (태그 레벨 + 카테고리 레벨).
+태그 간 충돌/의존성 규칙 (개별 태그 레벨).
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `rule_type` | String(20) | `conflict` or `requires` |
-| `source_tag_id` | Integer | 태그 레벨 충돌 소스 |
-| `target_tag_id` | Integer | 태그 레벨 충돌 대상 |
-| `source_category` | String(50) | 카테고리 레벨 충돌 소스 |
-| `target_category` | String(50) | 카테고리 레벨 충돌 대상 |
+| `source_tag_id` | Integer | 충돌 소스 태그 |
+| `target_tag_id` | Integer | 충돌 대상 태그 |
 | `message` | String(200) | 규칙 설명 |
 | `priority` | Integer | 우선순위 |
 | `active` | Boolean | 활성 여부 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+> **Removed**: `source_category`, `target_category` (Phase 6-4.26)
+> 카테고리 간 충돌은 논리적으로 불가능. 모든 충돌은 개별 태그 레벨에서만 발생.
 
 ### `tag_aliases`
 위험/비표준 태그의 자동 치환 규칙.
