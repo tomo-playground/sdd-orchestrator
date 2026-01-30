@@ -121,8 +121,8 @@ YouTube Shorts 프로젝트 단위.
 | `name` | String(100) | Unique, 언더바 형식 (`brown_hair`) |
 | `ko_name` | String(100) | 한국어 이름 |
 | `category` | String(50) | `character`, `scene`, `meta` |
-| `subcategory` | String(50) | 세부 카테고리 |
-| `group_name` | String(50) | 그룹 (`hair_color`, `expression`) |
+| `subcategory` | String(50) | **DEPRECATED** (미사용, 항상 NULL) |
+| `group_name` | String(50) | 의미론적 그룹 (`hair_color`, `expression`, `camera` 등 24종) |
 | `description` | String(500) | 태그 설명 |
 | `default_layer` | Integer | 12-Layer 위치 (0-11) |
 | `usage_scope` | String(20) | `PERMANENT`, `TRANSIENT`, `ANY` |

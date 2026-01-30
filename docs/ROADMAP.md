@@ -387,4 +387,18 @@ Phase 1~1.7 완료 (MVP Pose + Expression/Gaze + 자동 제안). [실험 결과 
 - Base Prompt → DB 태그 매칭 → 카테고리별 자동 제안 (identity/clothing)
 - `/characters/suggest-tags` API + Frontend onBlur 자동 제안 UI
 
+#### 6-4.25. Tag DB Integrity Cleanup - **COMPLETE** (2026-01-30)
+DB 정합성 점검에서 발견된 3건의 데이터/로직 오류 일괄 수정.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | 공백 태그 4건 삭제 | 언더바 버전과 중복된 공백 형식 태그 제거 (미사용) | [x] |
+| 2 | 자기참조 alias 2건 삭제 | source=target인 무의미한 tag_aliases 제거 | [x] |
+| 3 | **category 정규화 (58건)** | 비표준 category를 character/scene/meta 3종으로 통일 | [x] |
+| 4 | **subcategory 제거** | 73.6% 오분류 데이터 전체 NULL + 코드에서 우선순위 로직 제거 | [x] |
+
+**근거**: subcategory가 `_map_db_category()` 1순위로 사용되나 정확도 20.2% (292건 중 59건만 정확).
+`bare_arms`=indoor, `cloud`=indoor 등 오분류로 인해 프롬프트 레이어 배치 오류 발생.
+`group_name`이 95%+ 정확도로 완전 대체 가능하므로 subcategory 의존성 제거.
+
 ---

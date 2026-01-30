@@ -5,14 +5,7 @@ from sqlalchemy.orm import Session
 from config import logger
 from models import Tag, TagAlias, TagRule
 
-# Map DB categories + subcategories to prompt composition categories
-SUBCATEGORY_TO_PROMPT = {
-    "indoor": "location_indoor",
-    "outdoor": "location_outdoor",
-    "time": "time_weather",
-    "clothing": "clothing",
-}
-
+# Map DB categories to prompt composition categories
 DB_TO_PROMPT_CATEGORY = {
     "character": "identity",
     "style": "style",
@@ -40,8 +33,8 @@ class TagCategoryCache:
             for tag in tags:
                 normalized = tag.name.lower().replace(" ", "_").strip()
 
-                # Map DB entry to prompt category (prioritize subcategory and group_name)
-                prompt_category = cls._map_db_category(tag.category, tag.subcategory, tag.group_name)
+                # Map DB entry to prompt category (group_name priority)
+                prompt_category = cls._map_db_category(tag.category, tag.group_name)
                 if prompt_category:
                     cls._cache[normalized] = prompt_category
                     count += 1
@@ -65,15 +58,9 @@ class TagCategoryCache:
         cls.initialize(db)
 
     @staticmethod
-    def _map_db_category(category: str, subcategory: str | None, group_name: str | None = None) -> str | None:
-        """Map DB category + subcategory + group_name to prompt composition category."""
-        # 1. Use subcategory if set (explicitly for location/time/clothing)
-        if subcategory:
-            prompt_cat = SUBCATEGORY_TO_PROMPT.get(subcategory)
-            if prompt_cat:
-                return prompt_cat
-
-        # 2. Use group_name for granular categories (expression, pose, action, etc.)
+    def _map_db_category(category: str, group_name: str | None = None) -> str | None:
+        """Map DB category + group_name to prompt composition category."""
+        # 1. Use group_name for granular categories (expression, pose, action, etc.)
         granular_groups = {
             "expression", "gaze", "pose", "action", "camera",
             "time_weather", "lighting", "mood", "location_indoor", "location_outdoor"
@@ -81,7 +68,7 @@ class TagCategoryCache:
         if group_name in granular_groups:
             return group_name
 
-        # 3. Fallback to category mapping
+        # 2. Fallback to category mapping
         if category == "scene":
             return "scene"
 
