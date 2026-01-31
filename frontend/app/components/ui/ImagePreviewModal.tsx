@@ -53,7 +53,7 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
       onClick={onClose}
     >
       <div className="relative flex max-h-[90vh] max-w-[90vw] items-center justify-center">
@@ -112,7 +112,7 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
         {/* Close Button - Fixed to screen top-right */}
         <button
           onClick={onClose}
-          className="fixed top-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+          className="fixed top-6 right-6 z-[110] flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
           aria-label="Close preview"
         >
           <svg

@@ -293,26 +293,24 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     storage_key = f"characters/{character_id}/preview/{file_name}"
 
     # Use AssetService to save
-    from services.storage import storage
-    if storage:
-        storage.save(storage_key, image_bytes, content_type="image/png")
+    from services.storage import get_storage
+    storage = get_storage()
+    storage.save(storage_key, image_bytes, content_type="image/png")
 
-        # Register in DB
-        asset_service = AssetService(db)
-        asset = asset_service.register_asset(
-            file_name=file_name,
-            file_type="image",
-            storage_key=storage_key,
-            owner_type="character",
-            owner_id=character_id,
-            file_size=len(image_bytes),
-            mime_type="image/png"
-        )
+    # Register in DB
+    asset_service = AssetService(db)
+    asset = asset_service.register_asset(
+        file_name=file_name,
+        file_type="image",
+        storage_key=storage_key,
+        owner_type="character",
+        owner_id=character_id,
+        file_size=len(image_bytes),
+        mime_type="image/png"
+    )
 
-        # Update character
-        character.preview_image_asset_id = asset.id
-        db.commit()
+    # Update character
+    character.preview_image_asset_id = asset.id
+    db.commit()
 
-        return {"ok": True, "url": asset.url}
-    else:
-        raise HTTPException(status_code=500, detail="Storage not initialized")
+    return {"ok": True, "url": asset.url}

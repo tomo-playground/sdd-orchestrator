@@ -6,13 +6,14 @@ from fastapi import APIRouter, HTTPException
 
 from schemas import AvatarRegenerateRequest, AvatarResolveRequest
 from services.avatar import avatar_filename, ensure_avatar_file
-from services.storage import storage
+from services.storage import get_storage
 
 router = APIRouter(prefix="/avatar", tags=["avatar"])
 
 
 @router.post("/regenerate")
 async def regenerate_avatar(request: AvatarRegenerateRequest):
+    storage = get_storage()
     avatar_key = request.avatar_key.strip()
     if not avatar_key:
         raise HTTPException(status_code=400, detail="Avatar key is required")
@@ -35,6 +36,7 @@ async def regenerate_avatar(request: AvatarRegenerateRequest):
 
 @router.post("/resolve")
 async def resolve_avatar(request: AvatarResolveRequest):
+    storage = get_storage()
     avatar_key = request.avatar_key.strip()
     if not avatar_key:
         raise HTTPException(status_code=400, detail="Avatar key is required")

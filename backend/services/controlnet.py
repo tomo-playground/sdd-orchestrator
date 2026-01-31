@@ -432,15 +432,16 @@ def delete_reference_image(character_key: str) -> bool:
     Returns:
         True if deleted, False if not found
     """
-    from services.storage import storage
+    from services.storage import get_storage
 
-    if storage is None:
+    try:
+        storage = get_storage()
+        storage_key = f"shared/references/{character_key}.png"
+        if storage.exists(storage_key):
+            return storage.delete(storage_key)
         return False
-
-    storage_key = f"shared/references/{character_key}.png"
-    if storage.exists(storage_key):
-        return storage.delete(storage_key)
-    return False
+    except Exception:
+        return False
 
 
 def get_character_preset(character_key: str) -> dict[str, Any]:

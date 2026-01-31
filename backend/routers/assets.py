@@ -48,16 +48,18 @@ async def list_fonts():
         for key in all_keys:
             if key.lower().endswith((".ttf", ".otf", ".ttc")):
                 name = key.replace(prefix, "", 1)
-                fonts.append(name)
+                fonts.append({"name": name})
     else:
         fonts_dir = ASSETS_DIR / "fonts"
         if not fonts_dir.exists():
             return {"fonts": []}
         for ext in ("*.ttf", "*.otf", "*.ttc", "*.TTF", "*.OTF", "*.TTC"):
             for path in fonts_dir.glob(ext):
-                fonts.append(path.name)
-    
-    return {"fonts": sorted(set(fonts))}
+                fonts.append({"name": path.name})
+
+    # Sort by name and remove duplicates
+    unique_fonts = {f["name"]: f for f in fonts}.values()
+    return {"fonts": sorted(unique_fonts, key=lambda x: x["name"])}
 
 
 @router.get("/fonts/file/{filename}")

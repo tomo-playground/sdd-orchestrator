@@ -190,6 +190,7 @@ def _is_emoji_char(char: str) -> bool:
 
 def resolve_subtitle_font_path(font_name: str | None) -> str:
     """Resolve font path for subtitles using shared storage."""
+    storage = get_storage()
     default_font = "온글잎 박다현체.ttf"
 
     # 1. Try provided font_name in storage

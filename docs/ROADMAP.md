@@ -300,11 +300,34 @@ Style Profile (세트)
 | 6 | **서비스 레이어 통합** | `VideoBuilder`, `AvatarService`, `CleanupService` 통합 완료 | [x] |
 | 7 | **Shared Assets 통합** | BGM, 폰트 등 정적 리소스의 중앙 스토리지 관리 | [x] |
 | 8 | **DB Schema Migration** | Legacy URL 제거 및 MediaAsset FK 기반 완전 전환 | [x] |
+| 9 | **Storage 초기화 일관성** | 전역 import 제거, `get_storage()` 패턴으로 통일 (rendering, controlnet, avatar, characters) | [x] |
+| 10 | **DB 무결성 정리** | storage_key 중복 bucket prefix 제거 (4건), 고아 레코드 삭제 (2건) | [x] |
+| 11 | **API 응답 형식 통일** | `/fonts/list` 응답 형식 수정 (`string[]` → `{name: string}[]`) | [x] |
+| 12 | **Assets API 테스트** | `test_router_assets.py` 10개 테스트 (폰트/오디오/오버레이 리스트, 파일 서빙) | [x] |
 
 **아키텍처**:
 - **Hierarchy**: `projects/{p_id}/groups/{g_id}/storyboards/{s_id}/{type}/{filename}`
 - **Storage**: MinIO (S3 API) + Public Read Policy (Serving 최적화)
 - **Logic**: DB 기반 존재 여부 확인 → 필요 시 원격 다운로드/캐싱 → 렌더링
+
+**Storage 초기화 패턴**:
+```python
+# ❌ 잘못된 패턴
+from services.storage import storage  # 전역 import
+storage.get_url(key)  # NameError 가능
+
+# ✅ 올바른 패턴
+from services.storage import get_storage
+storage = get_storage()  # 함수 내에서 초기화
+storage.get_url(key)
+```
+
+**수정된 파일** (7개):
+- `routers/storyboard.py`: URL 파싱 시 bucket prefix 제거
+- `services/rendering.py`, `video.py`, `controlnet.py`: `get_storage()` 패턴
+- `routers/avatar.py`, `characters.py`: import 및 초기화 수정
+- `routers/assets.py`: `/fonts/list` 응답 형식 변경
+- `tests/test_router_assets.py`: 10개 API 테스트 추가
 
 ---
 
@@ -579,7 +602,52 @@ Media Asset 마이그레이션 완료 및 스튜디오 상태 관리 개선.
 - ✅ New Storyboard 시 과거 데이터 표시 (localStorage + URL 파라미터 잔존)
 
 **마이그레이션**:
-- `ca169902f4a4`: Media Asset References 추가
-- `4249c8f1cd5c`: Legacy URL 컬럼 삭제 (preview_image_url, video_url, avatar_url, image_url)
+- **2026-01-31**: **영상의 스토리보드별 영구 저장**, **계층형 에셋 스토리지(MinIO)** 도입, **데이터 기반 포즈 라이브러리 확장** (그림/가중치/언더바 인식 강화), **유지보수 가이드** 작성.
+
+---
+
+#### 6-4.32. Data-Driven Pose Expansion - **COMPLETE** (2026-01-31)
+**목표**: DB 사용 데이터를 분석하여 누락된 핵심 포즈를 보강하고 감지 로직 고도화.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Pose gap analysis** | DB 전수 감사(`final_audit.py`)를 통한 실사용 태그 분석 | [x] |
+| 2 | **Robust Pose Detection** | 가중치(`:1.2`), 언더바(`_`) 포함 태그 인식 로직 개선 | [x] |
+| 3 | **Storytelling Pose Assets** | 3종 에셋(`lying`, `kneeling`, `crouching`) 생성 및 매핑 | [x] |
+| 4 | **Admin Shortcut (/pose)** | 포즈 관리 전용 Claude 커맨드 설정 | [x] |
+| 5 | **Maintenance Guide** | 에셋 추출 및 추가 절차 문서화 (`docs/POSE_MAINTENANCE.md`) | [x] |
+| 6 | **Remaining Assets** | `pointing`, `covering face` 등 잔여 2종 생성 (Imagen 4 API 활용) | [x] |
+| 7 | **Pose Sanitization** | `scripts/clean_pose_assets.py`를 통한 텍스트/그리드 제거 및 최적화 | [x] |
+
+---
+
+#### 6-4.33. Multi-Character & Layout Control (Next)
+**목표**: 한 장면에 다중 캐릭터를 배치하고 개별 포즈 및 레이아웃을 정밀 제어하는 UI/UX 구축.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Multi-Character UI** | 씬 편집기 내 캐릭터 추가/선택 및 개별 설정 인터페이스 | [ ] |
+| 2 | **Positioning Logic** | 캐릭터별 프롬프트 분리 및 스택 배치 최적화 | [ ] |
+| 3 | **Interactive Layout** | 드래그 또는 프리셋 기반 캐릭터 위치/스케일 조정 | [ ] |
+
+#### 6-4.34. Intelligent Auto-Edit Pipeline (Next)
+**목표**: 이미지 생성 후 품질 미달 씬을 Gemini를 통해 자동으로 보정하는 무인 파이프라인 완성.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Auto-Detection** | WD14 Match Rate 기반 자동 보정 트리거 (임계값 설정) | [ ] |
+| 2 | **Prompt Refinement** | Gemini를 이용한 실패 원인 분석 및 수정 프롬프트 자동 생성 | [ ] |
+| 3 | **Seamless Update** | 수정된 이미지를 스토리보드에 자동 반영 및 히스토리 관리 | [ ] |
+
+#### 6-4.35. Dynamic Character Variation System (Next)
+**목표**: 단일 캐릭터의 상황별 의상(Uniform, Casual 등) 및 액세서리 변형 관리 시스템 고도화.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Variation Schema** | 캐릭터 모델 하위 '의상/스타일' 레이어 데이터 구조화 | [ ] |
+| 2 | **Dynamic Selector** | 시나리오 맥락에 따른 최적 의상 자동 추천 로직 | [ ] |
+| 3 | **Trigger Word Sync** | 의상별 전용 LoRA/Tag 세트 자동 바인딩 | [ ] |
+
+---
 
 ---

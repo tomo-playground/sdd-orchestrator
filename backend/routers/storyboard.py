@@ -65,8 +65,12 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
 
         # Handle MediaAsset for image_url
         if image_url:
+            from config import MINIO_BUCKET
             path = urlparse(image_url).path
             if path.startswith("/"): path = path[1:]
+            # Remove bucket prefix if present (MinIO/S3 URLs)
+            if path.startswith(f"{MINIO_BUCKET}/"):
+                path = path.replace(f"{MINIO_BUCKET}/", "", 1)
             if path.startswith("assets/"): path = path.replace("assets/", "", 1)
             storage_key = path
 

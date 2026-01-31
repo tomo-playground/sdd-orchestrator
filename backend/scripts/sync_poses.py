@@ -10,7 +10,7 @@ from config import logger
 
 def sync_poses():
     storage = get_storage()
-    pose_dir = Path("assets/poses")
+    pose_dir = Path("backend/assets/poses")
     
     if not pose_dir.exists():
         print(f"Error: Directory {pose_dir} not found")

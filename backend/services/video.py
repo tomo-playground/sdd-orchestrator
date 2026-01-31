@@ -838,6 +838,9 @@ class VideoBuilder:
 
     def _apply_bgm(self) -> None:
         """Apply background music with optional audio ducking."""
+        from services.storage import get_storage
+        storage = get_storage()
+
         # Resolve BGM file (supports 'random' selection with project-based seed)
         seed = hash(self.project_id)
         resolved_bgm = resolve_bgm_file(self.request.bgm_file, seed=seed)
