@@ -28,11 +28,11 @@ class FullLayout:
     """
 
     # === Subtitle Rendering ===
-    SUBTITLE_FONT_RATIO: float = 0.034  # height * ratio = font size
-    SUBTITLE_MIN_FONT_RATIO: float = 0.026  # minimum font size ratio (약 50px for 1920h)
+    SUBTITLE_FONT_RATIO: float = 0.042  # height * ratio = font size (81px for 1920h, YouTube Shorts standard)
+    SUBTITLE_MIN_FONT_RATIO: float = 0.032  # minimum font size ratio (61px for 1920h)
     SUBTITLE_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
-    SUBTITLE_Y_SINGLE_LINE_RATIO: float = 0.72  # Y position for 1 line
-    SUBTITLE_Y_MULTI_LINE_RATIO: float = 0.70  # Y position for 2+ lines
+    SUBTITLE_Y_SINGLE_LINE_RATIO: float = 0.85  # Y position for 1 line (bottom 15%)
+    SUBTITLE_Y_MULTI_LINE_RATIO: float = 0.82  # Y position for 2+ lines (bottom 18%)
     SUBTITLE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
     SUBTITLE_STROKE_WIDTH: int = 5
     SUBTITLE_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
@@ -59,7 +59,12 @@ class FullLayout:
     BOLD_TEXT_COLOR: RGBA = (0, 0, 0, 255)  # Black
     BOLD_SUB_TEXT_COLOR: RGBA = (60, 60, 60, 255)  # Dark gray
 
-    # === FFmpeg/Video (Legacy) ===
+    # === FFmpeg/Video ===
+    # Crop positioning for 512x768 → 1080x1920 conversion
+    CROP_Y_RATIO: float = 0.3  # Crop Y position (0=top, 0.5=center, 1=bottom)
+    # Top-weighted crop (30% from top) preserves character head in portrait shots
+
+    # === Legacy (Deprecated) ===
     # NOTE: These constants are deprecated since 2026-01-28
     # Full Layout now uses full cover mode (no blur background, no square overlay)
     # SQUARE_IMAGE_Y_RATIO: float = 0.10  # DEPRECATED

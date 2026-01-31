@@ -142,7 +142,8 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             scene_tags = split_prompt_tokens(request.prompt)
             cleaned_prompt = v3_service.generate_prompt_for_scene(
                 character_id=request.character_id,
-                scene_tags=scene_tags
+                scene_tags=scene_tags,
+                style_loras=request.style_loras
             )
             logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
         else:

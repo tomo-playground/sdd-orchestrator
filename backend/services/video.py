@@ -667,17 +667,8 @@ class VideoBuilder:
                 sub_idx = subtitle_base_idx + i
                 logger.info(f"🎬 Scene {i}: Adding subtitle overlay (input [{sub_idx}:v])")
 
-                # Build subtitle filter with fade animation
-                fade_duration = 0.3  # seconds
+                # Build subtitle filter (NO FADE - testing fix)
                 sub_filter = f"[{sub_idx}:v]scale={self.out_w}:{self.out_h},format=rgba"
-
-                # Add fade in/out only if clip is long enough
-                if clip_dur > fade_duration * 2:
-                    fade_out_start = clip_dur - fade_duration
-                    sub_filter += (
-                        f",fade=t=in:st=0:d={fade_duration}:alpha=1"
-                        f",fade=t=out:st={fade_out_start}:d={fade_duration}:alpha=1"
-                    )
 
                 self.filters.append(f"{sub_filter}[sub{i}]")
                 self.filters.append(
@@ -712,11 +703,18 @@ class VideoBuilder:
         )
 
     def _build_full_layout_base(self, i: int, v_idx: int) -> None:
-        """Build base scaling/cropping filter for full layout style (no Ken Burns yet)."""
+        """Build base scaling/cropping filter for full layout style.
+
+        512x768 (2:3) → 1080x1920 (9:16) conversion:
+        - Scale to cover output size (vertical priority)
+        - Crop with top-weighted positioning (30% from top)
+        - Preserves character head in portrait shots
+        """
+        crop_y_ratio = self._FullLayout.CROP_Y_RATIO
         self.filters.append(
             f"[{v_idx}:v]scale={self.out_w}:{self.out_h}:"
             f"force_original_aspect_ratio=increase,"
-            f"crop={self.out_w}:{self.out_h}[v{i}_scaled]"
+            f"crop={self.out_w}:{self.out_h}:0:(ih-oh)*{crop_y_ratio}[v{i}_scaled]"
         )
 
     def _resolve_scene_preset(self, scene_idx: int) -> str:

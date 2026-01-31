@@ -167,6 +167,8 @@ class SceneGenerateRequest(BaseModel):
     character_id: int | None = None
     # Storyboard Integration (for Style Profile lookup)
     storyboard_id: int | None = None
+    # Style LoRAs (V3)
+    style_loras: list[dict] | None = None
     # ControlNet options
     use_controlnet: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect

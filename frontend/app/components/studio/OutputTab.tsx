@@ -191,9 +191,24 @@ export default function OutputTab() {
     async (url: string) => {
       try {
         const filename = url.split("/").pop();
+        if (!filename) {
+          showToast("Invalid video URL", "error");
+          return;
+        }
+
         await axios.post(`${API_BASE}/video/delete`, { filename });
-        setOutput({ recentVideos: recentVideos.filter((v) => v.url !== url) });
-      } catch {
+
+        // Filter by filename instead of full URL (more reliable)
+        setOutput({
+          recentVideos: recentVideos.filter((v) => {
+            const vFilename = v.url.split("/").pop();
+            return vFilename !== filename;
+          })
+        });
+
+        showToast("Video deleted successfully", "success");
+      } catch (error) {
+        console.error("Delete failed:", error);
         showToast("Failed to delete video", "error");
       }
     },
