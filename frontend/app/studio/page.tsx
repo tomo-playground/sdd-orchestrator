@@ -313,6 +313,7 @@ function StudioContent() {
             image_prompt: s.image_prompt || "",
             image_prompt_ko: s.image_prompt_ko || "",
             image_url: s.image_url || null,
+            image_asset_id: (s.image_asset_id as number) || null,
             description: s.description || "",
             width: s.width || 512,
             height: s.height || 768,
