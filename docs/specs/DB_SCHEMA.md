@@ -7,7 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
-| v3.1 | 2026-01-31 | Media Asset 시스템: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합 |
+| v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
 | v3.0 | 2026-01-30 | V3 아키텍처: Storyboard-Centric, Relational Tags, Activity Logs, Tag Aliases/Filters |
 | v2.0 | 2026-01-27 | Characters, LoRAs, Style Profiles, Tag System |
 
@@ -221,21 +221,28 @@ WD14 피드백 루프 데이터.
 | `id` | Integer (PK) | |
 | `file_name` | String(500) | 원본 파일명 |
 | `file_type` | String(50) | `image`, `video`, `audio` |
-| `storage_key` | String(1000) | 스토리지 경로 (S3: `characters/6/preview/xxx.png`) |
+| `storage_key` | String(1000) | 스토리지 경로 (버킷명 제외, 상대 경로만) |
 | `file_size` | BigInteger | 파일 크기 (bytes) |
 | `mime_type` | String(100) | `image/png`, `video/mp4` 등 |
-| `owner_type` | String(50) | 폴리모픽 타입 (`Character`, `Scene`, `LoRA`, `SDModel`, `Storyboard`) |
+| `owner_type` | String(50) | 폴리모픽 타입 (`character`, `scene`, `lora`, `sdmodel`, `storyboard`) |
 | `owner_id` | Integer | 폴리모픽 ID |
 | `created_at` | DateTime | 생성 시각 |
 
 **특징**:
 - **폴리모픽 연관**: `owner_type` + `owner_id`로 모든 엔티티 연결
-- **URL 생성**: `url` property가 storage_key 기반 public URL 반환
+- **URL 생성**: `url` property가 storage_key 기반 public URL 반환 (`http://minio:9000/shorts-producer/{storage_key}`)
 - **S3/Local 통합**: LocalStorage/S3Storage 모두 지원
+- **계층 구조**:
+  - 영상: `projects/{p_id}/groups/{g_id}/storyboards/{s_id}/videos/{file}`
+  - 씬 이미지: `projects/{p_id}/groups/{g_id}/storyboards/{s_id}/images/{file}`
+  - 캐릭터: `characters/{id}/preview/{file}`
+  - 공유 에셋: `shared/{type}/{file}` (audio, fonts, overlay, references, poses)
 
 **마이그레이션**:
 - `ca169902f4a4`: 모든 모델에 `*_asset_id` FK 추가
 - `4249c8f1cd5c`: Legacy `*_url` 컬럼 삭제
+
+**중요**: `storage_key`는 버킷명(`shorts-producer`)을 포함하지 않음. `get_storage().get_url(key)`가 버킷명을 자동 추가.
 
 ### `characters`
 캐릭터 프리셋. V3에서는 `character_tags` 관계형 테이블로 태그 연결.
@@ -429,7 +436,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-01-30
-**Schema Version:** v3.0
+**Last Updated:** 2026-01-31
+**Schema Version:** v3.1
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline)
+**Migrations:** Alembic (V3 Baseline + Media Assets)
