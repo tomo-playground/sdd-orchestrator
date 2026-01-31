@@ -817,10 +817,14 @@ LoRA의 최적 가중치(optimal weight)를 자동으로 보정합니다.
 ### `GET /fonts/list`
 사용 가능한 폰트 파일 목록을 조회합니다.
 
-**Response:**
+**Response:** (v3.1: object array 형식)
 ```json
 {
-  "fonts": ["NanumGothic.ttf", "NanumMyeongjo.ttf", "Pretendard.otf"]
+  "fonts": [
+    {"name": "NanumGothic.ttf"},
+    {"name": "NanumMyeongjo.ttf"},
+    {"name": "Pretendard.otf"}
+  ]
 }
 ```
 
@@ -1497,7 +1501,7 @@ SD_WEBUI_URL=http://127.0.0.1:7860
 
 ---
 
-**Last Updated:** 2026-01-30
-**API Version:** v3.0
+**Last Updated:** 2026-01-31
+**API Version:** v3.1
 **Backend Version:** FastAPI 0.109+
-**Database:** PostgreSQL 14+
+**Database:** PostgreSQL 14+ (v3.1)
