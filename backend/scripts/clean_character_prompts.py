@@ -32,7 +32,8 @@ def get_category_from_patterns(tag_name: str) -> str:
         return "appearance"
     if "dress" in normalized or "uniform" in normalized or "shirt" in normalized or "pants" in normalized:
         return "clothing"
-    if "background" in normalized: return "style_quality" # e.g., simple_background
+    if "background" in normalized:
+        return "style_quality" # e.g., simple_background
 
 
     # Iterate through CATEGORY_PATTERNS for more general classification

@@ -38,7 +38,7 @@ draw = ImageDraw.Draw(grid)
 
 try:
     font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 24)
-except:
+except Exception:
     font = ImageFont.load_default()
 
 positions = [(0, 0), (512, 0), (0, 768 + 50), (512, 768 + 50)]

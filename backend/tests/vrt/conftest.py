@@ -11,7 +11,7 @@ import pytest
 BACKEND_DIR = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
-from tests.vrt.compare import VRTComparison
+from tests.vrt.compare import VRTComparison  # noqa: E402
 
 
 @pytest.fixture

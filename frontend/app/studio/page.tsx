@@ -275,6 +275,23 @@ function StudioContent() {
           topic: data.description || "",
         });
 
+        // Load character LoRAs if character is selected
+        if (data.default_character_id) {
+          axios.get(`${API_BASE}/characters/${data.default_character_id}`)
+            .then((charRes) => {
+              const char = charRes.data;
+              setPlan({
+                characterLoras: char.loras || [],
+                characterPromptMode: char.prompt_mode || "auto",
+                basePromptA: char.base_prompt || "",
+                baseNegativePromptA: char.base_negative || "",
+              });
+            })
+            .catch((err) => {
+              console.error("Failed to load character:", err);
+            });
+        }
+
         // Load style profile automatically if set
         if (data.default_style_profile_id) {
           loadStyleProfile(data.default_style_profile_id);

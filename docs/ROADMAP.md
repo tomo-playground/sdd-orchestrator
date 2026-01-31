@@ -287,6 +287,26 @@ Style Profile (세트)
 └─ Default Prompt: "anime style, vibrant colors"
 ```
 
+#### 6-4.31. Asset Management & Storage Optimization - **IN PROGRESS**
+**목표**: 객체 스토리지(MinIO) 기반의 3단계 계층 구조 및 중앙 집중식 에셋 관리 시스템 구축
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **3단계 계층 모델링** | Project(채널) > Group(시리즈) > Storyboard(영상) DB 모델 확립 | [x] |
+| 2 | **Media Asset Registry** | `media_assets` 테이블을 통한 모든 파일 메타데이터(크기, 타입, 경로) 추적 | [x] |
+| 3 | **MinIO S3 통합** | 단일 버킷(`shorts-producer`) + Prefix 기반 경로 구조 및 Public 접근 정책 설정 | [x] |
+| 4 | **Storage Driver (S3/Local)** | 코드 내 물리 경로 의존성 제거를 위한 추상화 드라이버(`StorageService`) | [x] |
+| 5 | **FFmpeg 스마트 캐싱** | 렌더링 시 원격 에셋 자동 인출(fetch) 및 로컬 캐시 관리 | [x] |
+| 6 | **서비스 레이어 통합** | `VideoBuilder`, `AvatarService`, `CleanupService` 통합 완료 | [x] |
+| 7 | **Shared Assets 통합** | BGM, 폰트 등 정적 리소스의 중앙 스토리지 관리 | [ ] |
+
+**아키텍처**:
+- **Hierarchy**: `projects/{p_id}/groups/{g_id}/storyboards/{s_id}/{type}/{filename}`
+- **Storage**: MinIO (S3 API) + Public Read Policy (Serving 최적화)
+- **Logic**: DB 기반 존재 여부 확인 → 필요 시 원격 다운로드/캐싱 → 렌더링
+
+---
+
 ---
 
 ## 🔮 Phase 7: ControlNet & Pose Control - **ARCHIVED** ✅

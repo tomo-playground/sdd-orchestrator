@@ -15,13 +15,27 @@ import {
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return a URL */
-export async function storeSceneImage(dataUrl: string): Promise<string> {
+export async function storeSceneImage(
+  dataUrl: string,
+  projectId: number,
+  groupId: number,
+  storyboardId: number,
+  sceneId: number,
+  fileName?: string
+): Promise<string> {
   if (!dataUrl || !dataUrl.startsWith("data:")) return dataUrl;
   try {
     const res = await fetch(`${API_BASE}/image/store`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_b64: dataUrl }),
+      body: JSON.stringify({
+        image_b64: dataUrl,
+        project_id: projectId,
+        group_id: groupId,
+        storyboard_id: storyboardId,
+        scene_id: sceneId,
+        file_name: fileName,
+      }),
     });
     if (!res.ok) return dataUrl;
     const data = await res.json();
@@ -35,12 +49,12 @@ function buildHiResPayload() {
   const { hiResEnabled } = useStudioStore.getState();
   return hiResEnabled
     ? {
-        enable_hr: true,
-        hr_scale: 1.5,
-        hr_upscaler: "Latent",
-        hr_second_pass_steps: 10,
-        denoising_strength: 0.25,
-      }
+      enable_hr: true,
+      hr_scale: 1.5,
+      hr_upscaler: "Latent",
+      hr_second_pass_steps: 10,
+      denoising_strength: 0.25,
+    }
     : {};
 }
 
@@ -103,10 +117,10 @@ export async function generateSceneImageFor(
   const ipAdapterPayload =
     useIpAdapter && ipAdapterReference
       ? {
-          use_ip_adapter: true,
-          ip_adapter_reference: ipAdapterReference,
-          ip_adapter_weight: ipAdapterWeight,
-        }
+        use_ip_adapter: true,
+        ip_adapter_reference: ipAdapterReference,
+        ip_adapter_weight: ipAdapterWeight,
+      }
       : { use_ip_adapter: false };
 
   const debugPayload = {
@@ -130,15 +144,62 @@ export async function generateSceneImageFor(
       character_id: selectedCharacterId,
       storyboard_id: storyboardId,
     });
-    if (res.data.image) {
-      const dataUrl = `data:image/png;base64,${res.data.image}`;
-      const storedUrl = await storeSceneImage(dataUrl);
+    const images = res.data.images || (res.data.image ? [res.data.image] : []);
 
-      // Activity log
+    if (images.length > 0) {
+      const { projectId, groupId, storyboardId: currentId } = useStudioStore.getState();
+
+      // 1. Store all images in parallel
+      const storedUrls = await Promise.all(
+        images.map((b64: string, idx: number) => {
+          const dataUrl = `data:image/png;base64,${b64}`;
+          return storeSceneImage(
+            dataUrl,
+            projectId || 1,
+            groupId || 1,
+            currentId || 1,
+            scene.id,
+            `scene_${scene.id}_${Date.now()}_${idx}.png`
+          );
+        })
+      );
+
+      // 2. Validate all images to find the best match (Candidates creation)
+      // Parallel validation for performance
+      const validationResults = await Promise.all(
+        storedUrls.map(async (url) => {
+          const validation = await validateImageCandidate(url, prompt, scene.id);
+          return {
+            image_url: url,
+            match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
+            validation: validation, // Store full validation result for caching
+          };
+        })
+      );
+
+      // 3. Sort by match_rate descending (Best first)
+      const sortedCandidates = validationResults.sort(
+        (a, b) => b.match_rate - a.match_rate
+      );
+
+      const bestCandidate = sortedCandidates[0];
+      const mainImageUrl = bestCandidate.image_url;
+      const candidates = sortedCandidates.map(c => ({ image_url: c.image_url }));
+
+      // Update validation results cache in store for the best image
+      if (bestCandidate.validation) {
+        const { imageValidationResults } = useStudioStore.getState();
+        useStudioStore.getState().setScenesState({
+          imageValidationResults: {
+            ...imageValidationResults,
+            [scene.id]: bestCandidate.validation,
+          },
+        });
+      }
+
+      // Activity log (log the best image)
       let activityLogId: number | undefined;
       try {
-        // Re-read storyboardId from store to ensure we have the latest value
-        // (after autoSaveStoryboard in handleGenerateImage)
         const currentStoryboardId = useStudioStore.getState().storyboardId;
 
         if (!currentStoryboardId) {
@@ -159,8 +220,8 @@ export async function generateSceneImageFor(
             },
             seed: scene.seed,
             status: "pending",
-            image_url: storedUrl,
-            match_rate: res.data.match_rate || null,
+            image_url: mainImageUrl, // Use the best image
+            match_rate: bestCandidate.match_rate || null, // Use the best match rate
           });
           activityLogId = logRes.data.id;
         }
@@ -169,7 +230,8 @@ export async function generateSceneImageFor(
       }
 
       return {
-        image_url: storedUrl,
+        image_url: mainImageUrl,
+        candidates: candidates,
         image_prompt: autoComposePrompt ? prompt : undefined,
         debug_prompt: prompt,
         debug_payload: JSON.stringify(debugPayload, null, 2),
@@ -287,7 +349,15 @@ export function handleImageUpload(sceneId: number, file?: File) {
   const reader = new FileReader();
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
-    const storedUrl = await storeSceneImage(dataUrl);
+    const { projectId, groupId, storyboardId } = useStudioStore.getState();
+    const storedUrl = await storeSceneImage(
+      dataUrl,
+      projectId || 1,
+      groupId || 1,
+      storyboardId || 1,
+      sceneId,
+      `upload_${sceneId}_${Date.now()}.png`
+    );
     useStudioStore.getState().updateScene(sceneId, {
       image_url: storedUrl,
       candidates: [],
@@ -324,7 +394,15 @@ export async function handleEditWithGemini(
     });
     if (res.data.edited_image) {
       const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
-      const storedUrl = await storeSceneImage(dataUrl);
+      const { projectId, groupId, storyboardId } = useStudioStore.getState();
+      const storedUrl = await storeSceneImage(
+        dataUrl,
+        projectId || 1,
+        groupId || 1,
+        storyboardId || 1,
+        scene.id,
+        `gemini_edit_${scene.id}_${Date.now()}.png`
+      );
       updateScene(scene.id, { image_url: storedUrl, isGenerating: false });
       showToast(
         `Gemini edit done (${res.data.edit_type}) - $${res.data.cost_usd.toFixed(4)}`,

@@ -13,7 +13,22 @@ from dotenv import load_dotenv
 from google import genai
 from jinja2 import Environment, FileSystemLoader
 
-load_dotenv()
+# --- Base Directory ---
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+
+load_dotenv(BASE_DIR / ".env")
+
+# --- Public URL ---
+API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000")
+
+# --- Storage Configuration ---
+STORAGE_MODE = os.getenv("STORAGE_MODE", "s3")  # 's3' or 'local'
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "admin")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "password123")
+MINIO_BUCKET = os.getenv("MINIO_BUCKET", "shorts-producer")
+# Public URL for S3/MinIO assets (if different from API_PUBLIC_URL)
+STORAGE_PUBLIC_URL = os.getenv("STORAGE_PUBLIC_URL", "http://localhost:9000")
 
 # --- Logging ---
 LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
@@ -55,21 +70,21 @@ if not DATABASE_URL:
     logger.warning("DATABASE_URL is not set. Database functionality will fail.")
 
 # --- Directory Configuration ---
-OUTPUT_DIR = pathlib.Path("outputs")
+OUTPUT_DIR = BASE_DIR / "outputs"
 IMAGE_DIR = OUTPUT_DIR / "images"
 VIDEO_DIR = OUTPUT_DIR / "videos"
 CANDIDATE_DIR = OUTPUT_DIR / "candidates"
 AVATAR_DIR = OUTPUT_DIR / "avatars"
 CACHE_DIR = OUTPUT_DIR / "cache"
 CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "86400"))
-ASSETS_DIR = pathlib.Path("assets")
+ASSETS_DIR = BASE_DIR / "assets"
 AUDIO_DIR = ASSETS_DIR / "audio"
 OVERLAY_DIR = ASSETS_DIR / "overlay"
 FONTS_DIR = ASSETS_DIR / "fonts"
-TEMPLATES_DIR = pathlib.Path("templates")
+TEMPLATES_DIR = BASE_DIR / "templates"
 
 # Ensure directories exist
-for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DIR, AUDIO_DIR, OVERLAY_DIR, FONTS_DIR, TEMPLATES_DIR):
+for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DIR, ASSETS_DIR, AUDIO_DIR, OVERLAY_DIR, FONTS_DIR, TEMPLATES_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 # --- API Configuration ---
@@ -82,8 +97,7 @@ GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
 # Used for storyboard generation, prompt rewriting, and vision analysis
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
 
-BASE_DIR = pathlib.Path(__file__).resolve().parent
-template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / TEMPLATES_DIR)))
+template_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 if SD_BASE_URL == "http://127.0.0.1:7860":
@@ -141,6 +155,33 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = "lowres, (bad_anatomy:1.2), (bad_hands:1.2),
 # Default negative prompt for scene generation (applied to Gemini-generated scenes)
 DEFAULT_SCENE_NEGATIVE_PROMPT = "lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, jpeg_artifacts, signature, watermark, username, blurry, easynegative, verybadimagenegative_v1.3"
 
+# --- Gemini Auto Edit Configuration (Phase 6-4.22) ---
+# Master switch: Enable automatic image editing with Gemini when match_rate is low
+# WARNING: This feature incurs API costs (~$0.04 per edit)
+# Default: False (must be explicitly enabled)
+GEMINI_AUTO_EDIT_ENABLED = os.getenv("GEMINI_AUTO_EDIT_ENABLED", "false").lower() == "true"
+
+# Match Rate threshold for triggering auto-edit (0.0 ~ 1.0)
+# Images with match_rate < threshold will be automatically edited
+# Lower = more edits, Higher = fewer edits
+GEMINI_AUTO_EDIT_THRESHOLD = float(os.getenv("GEMINI_AUTO_EDIT_THRESHOLD", "0.7"))
+
+# Maximum cost per storyboard (USD)
+# Auto-edit will stop if total Gemini edit cost exceeds this limit
+GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD = float(os.getenv("GEMINI_AUTO_EDIT_MAX_COST", "1.0"))
+
+# Maximum retry count per scene
+# Prevents infinite edit loops on problematic scenes
+GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE = int(os.getenv("GEMINI_AUTO_EDIT_MAX_RETRIES", "1"))
+
+# Log startup status
+logger.info(
+    "Gemini Auto Edit: %s (threshold=%.2f, max_cost=$%.2f, max_retries=%d)",
+    "ENABLED" if GEMINI_AUTO_EDIT_ENABLED else "DISABLED",
+    GEMINI_AUTO_EDIT_THRESHOLD,
+    GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD,
+    GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
+)
 
 # --- IP-Adapter Character Presets ---
 # Per-character IP-Adapter settings for optimal consistency

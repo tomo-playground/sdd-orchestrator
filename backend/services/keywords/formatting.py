@@ -23,12 +23,15 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
     recommended_tags: dict[str, list[str]] = {}
 
     for group in _SCENE_GROUPS:
-        if group not in grouped: continue
+        if group not in grouped:
+            continue
         category_name = _DB_GROUP_TO_GEMINI_CATEGORY.get(group, group)
-        if category_name is None: continue
+        if category_name is None:
+            continue
 
         values = grouped[group]
-        if not values: continue
+        if not values:
+            continue
 
         filtered_values, category_recommended = [], []
         for tag in values:

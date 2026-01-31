@@ -167,7 +167,7 @@ class TestVRTWithFixedSeeds:
         """Verify multiple test runs produce identical results."""
         # This test should always pass because seeds are fixed
         results = []
-        for i in range(3):
+        for _ in range(3):
             result = render_subtitle_image(
                 lines=["반복 테스트"],
                 width=1080,

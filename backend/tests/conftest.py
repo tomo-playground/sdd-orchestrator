@@ -27,9 +27,9 @@ BACKEND_DIR = TESTS_DIR.parent
 # Add backend to path for imports
 sys.path.insert(0, str(BACKEND_DIR))
 
-from database import get_db
-from main import app  # Import app after sys.path setup
-from models import Base
+from database import get_db  # noqa: E402
+from main import app  # noqa: E402
+from models import Base  # noqa: E402
 
 # Test database URL (SQLite in-memory for speed and isolation)
 TEST_DATABASE_URL = "sqlite:///:memory:"

@@ -4,9 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from main import app
-from models import Storyboard, StyleProfile, SDModel, LoRA
-from schemas import SceneGenerateRequest
+from models import LoRA, SDModel, Storyboard, StyleProfile
 
 
 @pytest.fixture
@@ -108,7 +106,6 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     def mock_session_local():
         return db_session
 
-    from database import SessionLocal
     monkeypatch.setattr("services.generation.SessionLocal", mock_session_local)
 
     # Request scene generation
@@ -159,7 +156,7 @@ def test_scene_generation_without_storyboard(client: TestClient):
         "height": 768,
         "clip_skip": 2,
     }
-    
+
     # Should work without Style Profile
     # (Actual SD call would be mocked in real test)
     assert request_data["storyboard_id"] is None
@@ -177,5 +174,5 @@ def test_storyboard_without_style_profile(db_session: Session):
     )
     db_session.add(storyboard)
     db_session.commit()
-    
+
     assert storyboard.default_style_profile_id is None

@@ -32,7 +32,7 @@ def replace_deprecated_tags(tokens: list[str]) -> tuple[list[str], dict[str, str
     try:
         # Get all deprecated tags and their replacements in one query
         deprecated_tags = db.query(Tag).filter(
-            Tag.is_active == False,
+            Tag.is_active.is_(False),
             Tag.replacement_tag_id.isnot(None)
         ).all()
 
@@ -72,16 +72,20 @@ def expand_synonyms(tokens: list[str]) -> set[str]:
     synonym_lookup = kw.load_synonyms_from_db()
     reverse_map: dict[str, set[str]] = {}
     for syn, tag in synonym_lookup.items():
-        if tag not in reverse_map: reverse_map[tag] = set()
+        if tag not in reverse_map:
+            reverse_map[tag] = set()
         reverse_map[tag].add(syn)
 
     expanded: set[str] = set()
     for token in tokens:
-        if not token: continue
+        if not token:
+            continue
         normalized = normalize_prompt_token(token)
         expanded.add(normalized)
-        if normalized in reverse_map: expanded.update(reverse_map[normalized])
-        if normalized in synonym_lookup: expanded.add(synonym_lookup[normalized])
+        if normalized in reverse_map:
+            expanded.update(reverse_map[normalized])
+        if normalized in synonym_lookup:
+            expanded.add(synonym_lookup[normalized])
     return expanded
 
 

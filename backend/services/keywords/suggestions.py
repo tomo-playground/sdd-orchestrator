@@ -10,13 +10,15 @@ from .patterns import suggest_category_for_tag
 
 def update_keyword_suggestions(unknown_tags: list[str]) -> None:
     """Update the keyword suggestions cache with unknown tags."""
-    if not unknown_tags: return
+    if not unknown_tags:
+        return
     suggestions_path = _get_cache_dir() / "keyword_suggestions.json"
     try:
         data = json.loads(suggestions_path.read_text(encoding="utf-8")) if suggestions_path.exists() else {}
         for tag in unknown_tags:
             normalized_tag = normalize_prompt_token(tag.replace(" ", "_"))
-            if not normalized_tag: continue
+            if not normalized_tag:
+                continue
             data[normalized_tag] = int(data.get(normalized_tag, 0)) + 1
         suggestions_path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
     except Exception:
@@ -26,7 +28,8 @@ def update_keyword_suggestions(unknown_tags: list[str]) -> None:
 def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[str, Any]]:
     """Load keyword suggestions filtered by minimum count."""
     suggestions_path = _get_cache_dir() / "keyword_suggestions.json"
-    if not suggestions_path.exists(): return []
+    if not suggestions_path.exists():
+        return []
     try:
         data = json.loads(suggestions_path.read_text(encoding="utf-8"))
     except Exception:
@@ -37,7 +40,8 @@ def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[s
     items = []
     for tag, count in data.items():
         normalized_tag = normalize_prompt_token(tag.replace(" ", "_"))
-        if not normalized_tag: continue
+        if not normalized_tag:
+            continue
         if int(count) >= min_count and normalized_tag not in known:
             category, confidence = suggest_category_for_tag(normalized_tag)
             items.append({

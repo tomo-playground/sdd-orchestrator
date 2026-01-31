@@ -15,7 +15,8 @@ from typing import Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-from config import ASSETS_DIR, AVATAR_DIR, OVERLAY_DIR, logger
+from config import ASSETS_DIR, OVERLAY_DIR, logger
+from services.storage import storage
 
 
 def _get_assets_dir() -> pathlib.Path:
@@ -23,6 +24,7 @@ def _get_assets_dir() -> pathlib.Path:
 
 
 def _get_avatar_dir() -> pathlib.Path:
+    from config import AVATAR_DIR
     return AVATAR_DIR
 
 
@@ -32,16 +34,27 @@ def _get_overlay_dir() -> pathlib.Path:
 
 # --- Avatar loading ---
 def load_avatar_image(filename: str | None) -> Image.Image | None:
-    """Load avatar image from file."""
+    """Load avatar image from storage or legacy local directory."""
     if not filename:
         return None
-    candidate = _get_avatar_dir() / filename
-    if not candidate.exists():
-        return None
+
+    # Try as storage key first
     try:
-        return Image.open(candidate).convert("RGBA")
+        path = storage.get_local_path(filename)
+        if path.exists():
+            return Image.open(path).convert("RGBA")
     except Exception:
-        return None
+        pass
+
+    # Fallback for legacy filenames (none-storage keys)
+    from config import AVATAR_DIR
+    candidate = AVATAR_DIR / filename
+    if candidate.exists():
+        try:
+            return Image.open(candidate).convert("RGBA")
+        except Exception:
+            return None
+    return None
 
 
 # --- Post meta helpers ---
@@ -112,12 +125,23 @@ def _build_post_meta(
 
 # --- Font utilities ---
 def _get_font(size: int) -> ImageFont.FreeTypeFont:
-    """Get default Korean font."""
+    """Get default Korean font from storage or repo assets."""
+    # 1. Try shared storage first
+    font_key = "shared/fonts/온글잎 박다현체.ttf"
+    try:
+        if storage.exists(font_key):
+            local_path = storage.get_local_path(font_key)
+            return ImageFont.truetype(str(local_path), size=size)
+    except Exception:
+        pass
+
+    # 2. Fallback to repo assets
     font_path = str(_get_assets_dir() / "fonts" / "온글잎 박다현체.ttf")
     if not os.path.exists(font_path):
         font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
         if not os.path.exists(font_path):
             font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+
     try:
         return ImageFont.truetype(font_path, size=size)
     except Exception:
@@ -164,15 +188,27 @@ def _is_emoji_char(char: str) -> bool:
 
 
 def resolve_subtitle_font_path(font_name: str | None) -> str:
-    """Resolve font path for subtitles."""
-    default_path = str(_get_assets_dir() / "fonts" / "온글잎 박다현체.ttf")
+    """Resolve font path for subtitles using shared storage."""
+    default_font = "온글잎 박다현체.ttf"
+
+    # 1. Try provided font_name in storage
     if font_name:
         safe_name = os.path.basename(font_name)
-        candidate = _get_assets_dir() / "fonts" / safe_name
-        if candidate.exists():
-            return str(candidate)
-    if os.path.exists(default_path):
-        return default_path
+        storage_key = f"shared/fonts/{safe_name}"
+        if storage.exists(storage_key):
+            return str(storage.get_local_path(storage_key))
+
+    # 2. Try default font in storage
+    default_key = f"shared/fonts/{default_font}"
+    if storage.exists(default_key):
+        return str(storage.get_local_path(default_key))
+
+    # 3. Fallback to repo assets (legacy/safety)
+    repo_default = ASSETS_DIR / "fonts" / default_font
+    if repo_default.exists():
+        return str(repo_default)
+
+    # 4. Final system fallback
     return "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
 
 
@@ -525,21 +561,20 @@ def _draw_overlay_header(
 
     avatar_image = None
     if settings.avatar_file:
-        try:
-            from config import AVATAR_DIR
-            avatar_path = AVATAR_DIR / settings.avatar_file
-            avatar_image = Image.open(avatar_path).convert("RGBA")
-            avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS)
-            mask = Image.new("L", (avatar_radius * 2, avatar_radius * 2), 0)
-            mask_draw = ImageDraw.Draw(mask)
-            mask_draw.ellipse((0, 0, avatar_radius * 2, avatar_radius * 2), fill=255)
-            canvas.alpha_composite(
-                avatar_resized,
-                (avatar_center[0] - avatar_radius, avatar_center[1] - avatar_radius),
-            )
-        except Exception as e:
-            logger.warning(f"Failed to load avatar {settings.avatar_file}: {e}")
-            avatar_image = None
+        avatar_image = load_avatar_image(settings.avatar_file)
+        if avatar_image:
+            try:
+                avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS)
+                mask = Image.new("L", (avatar_radius * 2, avatar_radius * 2), 0)
+                mask_draw = ImageDraw.Draw(mask)
+                mask_draw.ellipse((0, 0, avatar_radius * 2, avatar_radius * 2), fill=255)
+                canvas.alpha_composite(
+                    avatar_resized,
+                    (avatar_center[0] - avatar_radius, avatar_center[1] - avatar_radius),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to composite avatar {settings.avatar_file}: {e}")
+                avatar_image = None
 
     if not avatar_image:
         draw.ellipse(

@@ -9,7 +9,6 @@ import base64
 import io
 import os
 import random
-from pathlib import Path
 from typing import Any
 
 import httpx
@@ -29,8 +28,7 @@ from config import (
 from models import Character, LoRA
 from services.image import load_image_bytes
 
-# Pose reference directory
-POSE_DIR = Path("assets/poses")
+# Dynamic import to avoid initialization order issues
 
 # Pose tag to reference image mapping
 POSE_MAPPING: dict[str, str] = {
@@ -67,8 +65,6 @@ IP_ADAPTER_MODELS = {
 # Default IP-Adapter for anime characters
 DEFAULT_IP_ADAPTER_MODEL = "clip_face"
 
-# Reference image directory for IP-Adapter
-REFERENCE_DIR = Path("assets/references")
 
 
 def check_controlnet_available() -> bool:
@@ -92,7 +88,7 @@ def get_controlnet_models() -> list[str]:
 
 
 def load_pose_reference(pose_name: str) -> str | None:
-    """Load a pose reference image as base64.
+    """Load a pose reference image as base64 using StorageService.
 
     Args:
         pose_name: Name of the pose (e.g., "standing", "waving")
@@ -100,16 +96,26 @@ def load_pose_reference(pose_name: str) -> str | None:
     Returns:
         Base64 encoded image or None if not found
     """
+    from services.storage import storage
+
+    if storage is None:
+        logger.error("Storage not initialized")
+        return None
+
     filename = POSE_MAPPING.get(pose_name)
     if not filename:
         return None
 
-    pose_path = POSE_DIR / filename
-    if not pose_path.exists():
-        logger.warning(f"Pose reference not found: {pose_path}")
+    storage_key = f"shared/poses/{filename}"
+    if not storage.exists(storage_key):
+        logger.warning(f"Pose reference not found in storage: {storage_key}")
         return None
 
-    return base64.b64encode(pose_path.read_bytes()).decode("utf-8")
+    try:
+        return base64.b64encode(storage.get_local_path(storage_key).read_bytes()).decode("utf-8")
+    except Exception as e:
+        logger.error(f"Failed to load pose from storage {storage_key}: {e}")
+        return None
 
 
 def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
@@ -287,14 +293,10 @@ def create_pose_from_image(image_b64: str) -> dict[str, Any]:
 # ============================================================
 
 
-def ensure_reference_dir() -> Path:
-    """Ensure reference directory exists."""
-    REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
-    return REFERENCE_DIR
 
 
 def save_reference_image(character_key: str, image_b64: str, db: Session | None = None) -> str:
-    """Save a reference image for IP-Adapter.
+    """Save a reference image for IP-Adapter using StorageService.
 
     Args:
         character_key: Unique key for the character (e.g., "eureka", "midoriya")
@@ -304,22 +306,28 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     Returns:
         Saved filename
     """
-    ensure_reference_dir()
+    from services.storage import storage
+
+    if storage is None:
+        raise RuntimeError("Storage not initialized")
 
     # Remove data URI prefix if present
     if "," in image_b64:
         image_b64 = image_b64.split(",", 1)[1]
 
+    image_bytes = base64.b64decode(image_b64)
     filename = f"{character_key}.png"
-    filepath = REFERENCE_DIR / filename
-    filepath.write_bytes(base64.b64decode(image_b64))
-    logger.info(f"Saved reference image: {filepath}")
+    storage_key = f"shared/references/{filename}"
 
-    # If db session provided, update character record (V3 compatibility)
+    # Save to storage
+    storage.save(storage_key, image_bytes, content_type="image/png")
+    logger.info(f"Saved reference image to storage: {storage_key}")
+
+    # If db session provided, update character record with storage key (URL formatted for frontend)
     if db:
         char = db.query(Character).filter(Character.name == character_key).first()
         if char:
-            char.preview_image_url = f"/assets/references/{filename}"
+            char.preview_image_url = f"/outputs/{storage_key}"
             db.commit()
             logger.info(f"Updated character preview URL in DB for: {character_key}")
 
@@ -377,7 +385,7 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
 
 
 def delete_reference_image(character_key: str) -> bool:
-    """Delete a reference image.
+    """Delete a reference image from storage.
 
     Args:
         character_key: Character key to delete
@@ -385,11 +393,14 @@ def delete_reference_image(character_key: str) -> bool:
     Returns:
         True if deleted, False if not found
     """
-    filepath = REFERENCE_DIR / f"{character_key}.png"
-    if filepath.exists():
-        filepath.unlink()
-        logger.info(f"Deleted reference image: {filepath}")
-        return True
+    from services.storage import storage
+
+    if storage is None:
+        return False
+
+    storage_key = f"shared/references/{character_key}.png"
+    if storage.exists(storage_key):
+        return storage.delete(storage_key)
     return False
 
 

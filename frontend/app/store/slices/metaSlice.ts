@@ -5,6 +5,8 @@ export type StudioTab = "plan" | "scenes" | "output" | "insights";
 
 export interface MetaSlice {
   // Storyboard identity
+  projectId: number | null;
+  groupId: number | null;
   storyboardId: number | null;
   storyboardTitle: string;
 
@@ -35,6 +37,8 @@ export interface MetaSlice {
 }
 
 const initialMetaState = {
+  projectId: null as number | null,
+  groupId: null as number | null,
   storyboardId: null as number | null,
   storyboardTitle: "",
   activeTab: "plan" as StudioTab,

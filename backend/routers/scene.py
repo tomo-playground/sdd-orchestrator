@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import hashlib
-import io
 
-from fastapi import APIRouter, HTTPException
-from PIL import Image
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from config import IMAGE_DIR, logger
+from config import logger
+from database import get_db
 from schemas import (
     GeminiEditRequest,
     GeminiEditResponse,
@@ -18,6 +18,7 @@ from schemas import (
     SceneGenerateRequest,
     SceneValidateRequest,
 )
+from services.asset_service import AssetService
 from services.generation import generate_scene_image
 from services.image import decode_data_url, load_image_bytes
 from services.imagen_edit import get_imagen_service
@@ -42,30 +43,179 @@ async def generate_scene_image_endpoint(request: SceneGenerateRequest):
 
 
 @router.post("/image/store")
-async def store_scene_image(request: ImageStoreRequest):
+def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db)):
     try:
         image_bytes = decode_data_url(request.image_b64)
-        image = Image.open(io.BytesIO(image_bytes))
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid image data") from exc
+
     digest = hashlib.sha1(image_bytes).hexdigest()[:16]
-    store_dir = IMAGE_DIR / "stored"
-    store_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"scene_{digest}.png"
-    target = store_dir / filename
-    if not target.exists():
-        image = image.convert("RGBA")
-        image.save(target, format="PNG")
-        logger.info("💾 [Image Store] Saved new image: %s", target)
-    else:
-        logger.info("💾 [Image Store] Image already exists: %s", target)
-    return {"url": f"/outputs/images/stored/{filename}"}
+    file_name = request.file_name or f"scene_{digest}.png"
+
+    asset_service = AssetService(db)
+    try:
+        asset = asset_service.save_scene_image(
+            image_bytes=image_bytes,
+            project_id=request.project_id,
+            group_id=request.group_id,
+            storyboard_id=request.storyboard_id,
+            scene_id=request.scene_id,
+            file_name=file_name
+        )
+        url = asset_service.get_asset_url(asset.storage_key)
+        logger.info("💾 [Image Store] Saved: %s", asset.storage_key)
+        return {"url": url}
+    except Exception as e:
+        logger.exception("❌ [Image Store] Failed")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/scene/validate_image")
 async def validate_scene_image_endpoint(request: SceneValidateRequest):
     logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
     return validate_scene_image(request)
+
+
+@router.post("/scene/validate-and-auto-edit")
+async def validate_and_auto_edit_scene(request: SceneValidateRequest):
+    """WD14 검증 + Gemini 자동 편집 (조건부)
+
+    이미지 검증 후 Match Rate가 임계값 미만이면 자동으로 Gemini 편집을 실행합니다.
+
+    Args:
+        request: SceneValidateRequest
+            - image_url: 검증할 이미지 URL
+            - prompt: 원본 프롬프트
+            - storyboard_id: 스토리보드 ID (비용 추적용)
+            - scene_id: 씬 ID (재시도 카운트용)
+
+    Returns:
+        {
+            "validation_result": {...},  # WD14 검증 결과
+            "auto_edit_triggered": True/False,
+            "edited_image": "base64" (if edited),
+            "edit_cost": 0.0404 (if edited),
+            "original_match_rate": 0.65,
+            "final_match_rate": 0.88 (if edited)
+        }
+
+    비용 제어:
+        - GEMINI_AUTO_EDIT_ENABLED=false → 자동 편집 안 함
+        - match_rate >= threshold → 자동 편집 안 함
+        - 스토리보드 비용 한도 초과 → 자동 편집 안 함
+        - 씬 재시도 횟수 초과 → 자동 편집 안 함
+    """
+    from sqlalchemy import func
+
+    from config import (
+        GEMINI_AUTO_EDIT_ENABLED,
+        GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD,
+        GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
+        GEMINI_AUTO_EDIT_THRESHOLD,
+    )
+    from database import SessionLocal
+    from models import ActivityLog
+
+    # Step 1: WD14 검증
+    logger.info("📥 [Validate + Auto-Edit] %s", scrub_payload(request.model_dump()))
+    validation_result = validate_scene_image(request)
+    match_rate = validation_result.get("match_rate", 1.0)
+    missing_tags = validation_result.get("missing_tags", [])
+
+    result = {
+        "validation_result": validation_result,
+        "auto_edit_triggered": False,
+    }
+
+    # Step 2: 자동 편집 체크 (Multi-Level Safety)
+
+    # Check 1: 글로벌 스위치
+    if not GEMINI_AUTO_EDIT_ENABLED:
+        logger.debug("[Auto Edit] Skipped (globally disabled)")
+        return result
+
+    # Check 2: 임계값 체크
+    if match_rate >= GEMINI_AUTO_EDIT_THRESHOLD:
+        logger.debug(
+            f"[Auto Edit] Skipped (match_rate={match_rate:.2f} >= {GEMINI_AUTO_EDIT_THRESHOLD})"
+        )
+        return result
+
+    # Check 3: 스토리보드 비용 한도 체크
+    if request.storyboard_id:
+        db = SessionLocal()
+        try:
+            current_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
+                ActivityLog.storyboard_id == request.storyboard_id
+            ).scalar() or 0.0
+
+            if current_cost >= GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD:
+                logger.warning(
+                    f"⚠️ [Auto Edit] Skipped (cost limit reached: ${current_cost:.2f} >= "
+                    f"${GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD})"
+                )
+                result["skip_reason"] = "cost_limit_reached"
+                result["current_cost"] = current_cost
+                return result
+
+            # Check 4: 씬 재시도 횟수 체크
+            if request.scene_id:
+                retry_count = db.query(func.count(ActivityLog.id)).filter(
+                    ActivityLog.storyboard_id == request.storyboard_id,
+                    ActivityLog.scene_id == request.scene_id,
+                    ActivityLog.gemini_edited == True  # noqa: E712
+                ).scalar()
+
+                if retry_count >= GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE:
+                    logger.warning(
+                        f"⚠️ [Auto Edit] Skipped (max retries reached: {retry_count})"
+                    )
+                    result["skip_reason"] = "max_retries_reached"
+                    result["retry_count"] = retry_count
+                    return result
+        finally:
+            db.close()
+
+    # === 모든 체크 통과 → 자동 편집 실행 ===
+    logger.info(
+        f"🔍 [Auto Edit] Triggered (match_rate={match_rate:.2f} < {GEMINI_AUTO_EDIT_THRESHOLD})"
+    )
+
+    try:
+        import base64
+
+        from services.imagen_edit import auto_edit_with_gemini
+
+        # Load image as base64
+        image_bytes = load_image_bytes(request.image_url)
+        image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+
+        # Execute auto-edit
+        edit_result = await auto_edit_with_gemini(
+            image_b64=image_b64,
+            original_prompt=request.prompt,
+            match_rate=match_rate,
+            missing_tags=missing_tags
+        )
+
+        result["auto_edit_triggered"] = True
+        result["edited_image"] = edit_result["edited_image"]
+        result["edit_cost"] = edit_result["cost_usd"]
+        result["original_match_rate"] = match_rate
+        result["edit_type"] = edit_result.get("edit_type", "unknown")
+
+        logger.info(
+            f"✅ [Auto Edit] Success (type={result['edit_type']}, cost=${result['edit_cost']:.4f})"
+        )
+
+        # Optional: Re-validate edited image
+        # (Frontend can call /scene/validate_image separately)
+
+    except Exception as e:
+        logger.error(f"❌ [Auto Edit] Failed: {e}")
+        result["auto_edit_error"] = str(e)
+
+    return result
 
 
 @router.post("/scene/edit-with-gemini", response_model=GeminiEditResponse)

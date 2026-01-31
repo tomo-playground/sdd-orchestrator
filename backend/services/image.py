@@ -8,8 +8,6 @@ from urllib.parse import urlparse
 import numpy as np
 from PIL import Image
 
-from config import OUTPUT_DIR
-
 
 def decode_data_url(data_url: str) -> bytes:
     """Decode a base64 data URL to bytes."""
@@ -40,12 +38,44 @@ def load_image_bytes(source: str) -> bytes:
         path = parsed.path
     else:
         path = source
+
+    # Legacy redirect for /assets/ to shared storage
+    if path.startswith("/assets/references/"):
+        storage_key = path.replace("/assets/references/", "shared/references/", 1).lstrip("/")
+        try:
+            from services.storage import storage
+            if storage:
+                return storage.get_local_path(storage_key).read_bytes()
+        except Exception:
+            pass
+    if path.startswith("/assets/poses/"):
+        storage_key = path.replace("/assets/poses/", "shared/poses/", 1).lstrip("/")
+        try:
+            from services.storage import storage
+            if storage:
+                return storage.get_local_path(storage_key).read_bytes()
+        except Exception:
+            pass
+
     if path.startswith("/outputs/"):
-        rel_path = path.replace("/outputs/", "", 1)
-        candidate = (OUTPUT_DIR / rel_path).resolve()
-        if OUTPUT_DIR.resolve() not in candidate.parents and candidate != OUTPUT_DIR.resolve():
-            raise ValueError("Invalid image path")
-        return candidate.read_bytes()
+        storage_key = path.replace("/outputs/", "", 1)
+
+        # 1. Try direct local file first (e.g., if switching storage modes)
+        try:
+            from config import OUTPUT_DIR
+            direct_path = OUTPUT_DIR / storage_key
+            if direct_path.exists():
+                return direct_path.read_bytes()
+        except Exception:
+            pass
+
+        # 2. Try storage service (S3 download or local lookup)
+        try:
+            from services.storage import storage
+            local_path = storage.get_local_path(storage_key)
+            return local_path.read_bytes()
+        except Exception as e:
+            raise ValueError(f"Failed to load image from storage: {e}") from e
     # Try raw base64 as fallback
     try:
         return base64.b64decode(source)

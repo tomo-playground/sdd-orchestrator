@@ -11,14 +11,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from config import (
-    AVATAR_DIR,
-    CACHE_DIR,
     CACHE_TTL_SECONDS,
-    IMAGE_DIR,
-    OUTPUT_DIR,
-    VIDEO_DIR,
     logger,
 )
+from services.storage import storage
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -78,12 +74,15 @@ def get_storage_stats() -> dict:
     Returns:
         Dictionary with total size and per-directory breakdown.
     """
+    base_dir = storage.base_dir
     directories = {
-        "videos": VIDEO_DIR,
-        "images": IMAGE_DIR / "stored",
-        "cache": CACHE_DIR,
-        "avatars": AVATAR_DIR,
-        "candidates": OUTPUT_DIR / "candidates",
+        "projects": base_dir / "projects",
+        "videos": base_dir / "videos",
+        "images": base_dir / "images" / "stored",
+        "cache": base_dir / "cache",
+        "avatars": base_dir / "avatars",
+        "shared": base_dir / "shared",
+        "candidates": base_dir / "candidates",
     }
 
     result = {"directories": {}}
@@ -102,7 +101,7 @@ def get_storage_stats() -> dict:
     # Check for test folders
     test_folders = ["ffmpeg_test", "font_test"]
     for folder_name in test_folders:
-        folder_path = OUTPUT_DIR / folder_name
+        folder_path = storage.base_dir / folder_name
         if folder_path.exists():
             stats = _get_dir_stats(folder_path)
             result["directories"][folder_name] = {
@@ -131,12 +130,13 @@ def cleanup_old_videos(max_age_days: int = 7, dry_run: bool = False) -> CleanupR
     result = CleanupResult()
     cutoff_time = time.time() - (max_age_days * 24 * 60 * 60)
 
-    for file_path in _iter_files(VIDEO_DIR):
+    video_dir = storage.base_dir / "videos"
+    for file_path in _iter_files(video_dir):
         try:
             mtime = file_path.stat().st_mtime
             if mtime < cutoff_time:
                 size = file_path.stat().st_size
-                result.deleted_files.append(str(file_path.relative_to(OUTPUT_DIR)))
+                result.deleted_files.append(str(file_path.relative_to(storage.base_dir)))
                 result.freed_bytes += size
                 result.deleted_count += 1
 
@@ -162,24 +162,28 @@ def cleanup_old_images(max_age_days: int = 7, dry_run: bool = False) -> CleanupR
     result = CleanupResult()
     cutoff_time = time.time() - (max_age_days * 24 * 60 * 60)
 
-    # Clean both root images and stored subfolder
-    for file_path in _iter_files(IMAGE_DIR):
-        if file_path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
-            continue
+    # Clean root images, stored subfolder, and projects folder
+    base_dir = storage.base_dir
+    scan_dirs = [base_dir / "images", base_dir / "projects"]
 
-        try:
-            mtime = file_path.stat().st_mtime
-            if mtime < cutoff_time:
-                size = file_path.stat().st_size
-                result.deleted_files.append(str(file_path.relative_to(OUTPUT_DIR)))
-                result.freed_bytes += size
-                result.deleted_count += 1
+    for scan_dir in scan_dirs:
+        for file_path in _iter_files(scan_dir):
+            if file_path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+                continue
 
-                if not dry_run:
-                    file_path.unlink()
-                    logger.info("Deleted old image: %s", file_path)
-        except OSError as e:
-            logger.warning("Failed to process image file %s: %s", file_path, e)
+            try:
+                mtime = file_path.stat().st_mtime
+                if mtime < cutoff_time:
+                    size = file_path.stat().st_size
+                    result.deleted_files.append(str(file_path.relative_to(base_dir)))
+                    result.freed_bytes += size
+                    result.deleted_count += 1
+
+                    if not dry_run:
+                        file_path.unlink()
+                        logger.info("Deleted old image: %s", file_path)
+            except OSError as e:
+                logger.warning("Failed to process image file %s: %s", file_path, e)
 
     return result
 
@@ -200,12 +204,13 @@ def cleanup_cache(max_age_seconds: int | None = None, dry_run: bool = False) -> 
     result = CleanupResult()
     cutoff_time = time.time() - max_age_seconds
 
-    for file_path in _iter_files(CACHE_DIR):
+    cache_dir = storage.base_dir / "cache"
+    for file_path in _iter_files(cache_dir):
         try:
             mtime = file_path.stat().st_mtime
             if mtime < cutoff_time:
                 size = file_path.stat().st_size
-                result.deleted_files.append(str(file_path.relative_to(OUTPUT_DIR)))
+                result.deleted_files.append(str(file_path.relative_to(storage.base_dir)))
                 result.freed_bytes += size
                 result.deleted_count += 1
 
@@ -231,14 +236,14 @@ def cleanup_test_folders(dry_run: bool = False) -> CleanupResult:
     test_folders = ["ffmpeg_test", "font_test"]
 
     for folder_name in test_folders:
-        folder_path = OUTPUT_DIR / folder_name
+        folder_path = storage.base_dir / folder_name
         if not folder_path.exists():
             continue
 
         for file_path in _iter_files(folder_path):
             try:
                 size = file_path.stat().st_size
-                result.deleted_files.append(str(file_path.relative_to(OUTPUT_DIR)))
+                result.deleted_files.append(str(file_path.relative_to(storage.base_dir)))
                 result.freed_bytes += size
                 result.deleted_count += 1
 
@@ -276,7 +281,7 @@ def cleanup_candidates(dry_run: bool = False) -> CleanupResult:
         CleanupResult with details of deleted files.
     """
     result = CleanupResult()
-    candidates_dir = OUTPUT_DIR / "candidates"
+    candidates_dir = storage.base_dir / "candidates"
 
     if not candidates_dir.exists():
         return result
@@ -284,7 +289,7 @@ def cleanup_candidates(dry_run: bool = False) -> CleanupResult:
     for file_path in _iter_files(candidates_dir):
         try:
             size = file_path.stat().st_size
-            result.deleted_files.append(str(file_path.relative_to(OUTPUT_DIR)))
+            result.deleted_files.append(str(file_path.relative_to(storage.base_dir)))
             result.freed_bytes += size
             result.deleted_count += 1
 

@@ -19,6 +19,11 @@ router = APIRouter(prefix="/storyboards", tags=["storyboard"])
 def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
     """Create scenes with tags and character actions for a storyboard."""
     for idx, s_data in enumerate(scenes_data):
+        # Filter out base64 data URLs (they exceed VARCHAR(500) limit)
+        image_url = s_data.image_url
+        if image_url and image_url.startswith("data:"):
+            image_url = None
+
         db_scene = Scene(
             storyboard_id=storyboard_id,
             order=idx,
@@ -29,7 +34,7 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             image_prompt=s_data.image_prompt,
             image_prompt_ko=s_data.image_prompt_ko,
             negative_prompt=s_data.negative_prompt,
-            image_url=s_data.image_url,
+            image_url=image_url,
             width=s_data.width,
             height=s_data.height,
             steps=s_data.steps,

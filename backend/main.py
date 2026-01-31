@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from routers import (
     activity_logs_router,
     admin_router,
+    analytics_router,
     assets_router,
     avatar_router,
     characters_router,
@@ -24,6 +25,7 @@ from routers import (
     scene_router,
     sd_models_router,
     sd_router,
+    settings_router,
     storyboard_router,
     style_profiles_router,
     tags_router,
@@ -39,8 +41,14 @@ async def lifespan(app: FastAPI):
     from models.base import Base
     from services.keywords.core import TagFilterCache
     from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache
+    from services.storage import initialize_storage
 
-    # Ensure database tables exist
+    # Initialize Storage Service
+    initialize_storage()
+
+    # Ensure repository assets are in shared storage
+    from services.asset_service import AssetService
+    AssetService.ensure_shared_assets()
     Base.metadata.create_all(bind=engine)
 
     # Initialize Tag Caches
@@ -90,6 +98,7 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 # --- Routers ---
 app.include_router(admin_router)
+app.include_router(analytics_router)
 app.include_router(assets_router)
 app.include_router(avatar_router)
 app.include_router(characters_router)
@@ -106,6 +115,7 @@ app.include_router(quality_router)
 app.include_router(scene_router)
 app.include_router(sd_models_router)
 app.include_router(sd_router)
+app.include_router(settings_router)
 app.include_router(storyboard_router)
 app.include_router(style_profiles_router)
 app.include_router(tags_router)

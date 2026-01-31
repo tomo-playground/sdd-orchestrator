@@ -397,6 +397,167 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
 _imagen_service = None
 
 
+def _infer_edit_type_from_missing_tags(missing_tags: list[str]) -> EditType:
+    """누락된 태그에서 편집 타입 추론
+
+    Args:
+        missing_tags: WD14 검증에서 누락된 태그 목록
+
+    Returns:
+        EditType: pose, expression, gaze, framing, hands
+
+    Examples:
+        ["sitting", "chair"] → "pose"
+        ["smiling", "happy"] → "expression"
+        ["looking_at_viewer"] → "gaze"
+        ["close-up", "cowboy_shot"] → "framing"
+        ["peace_sign", "waving"] → "hands"
+    """
+    # 우선순위: pose > expression > gaze > hands > framing
+    tag_lower = " ".join(missing_tags).lower()
+
+    # Pose keywords (body position)
+    if any(kw in tag_lower for kw in [
+        "sit", "stand", "jump", "kneel", "lying", "crouch", "lean",
+        "앉", "서", "점프", "무릎", "누워", "서있"
+    ]):
+        return "pose"
+
+    # Expression keywords (facial emotion)
+    if any(kw in tag_lower for kw in [
+        "smile", "smiling", "frown", "surprised", "angry", "sad", "happy",
+        "웃", "찡그", "놀란", "화난", "슬픈", "표정"
+    ]):
+        return "expression"
+
+    # Gaze keywords (viewing direction)
+    if any(kw in tag_lower for kw in [
+        "look", "looking", "gaze", "viewer", "back", "away",
+        "보", "시선", "쳐다", "바라"
+    ]):
+        return "gaze"
+
+    # Hands keywords (hand gestures)
+    if any(kw in tag_lower for kw in [
+        "hand", "hands", "finger", "wave", "waving", "peace", "pointing",
+        "손", "손가락", "흔들", "가리"
+    ]):
+        return "hands"
+
+    # Framing keywords (camera angle)
+    if any(kw in tag_lower for kw in [
+        "close", "full", "shot", "cowboy", "upper_body", "portrait",
+        "클로즈", "전신", "반신"
+    ]):
+        return "framing"
+
+    # Default to pose if no specific keywords found
+    return "pose"
+
+
+def _generate_target_change(missing_tags: list[str], edit_type: EditType) -> str:
+    """누락 태그 → 자연어 변경사항 생성
+
+    Args:
+        missing_tags: 누락된 태그 목록
+        edit_type: 편집 타입
+
+    Returns:
+        자연어 변경 지시 (Gemini가 이해할 수 있는 형태)
+
+    Examples:
+        ["sitting", "chair"] + pose → "sitting on chair"
+        ["smiling"] + expression → "smiling with bright expression"
+        ["looking_at_viewer"] + gaze → "looking directly at viewer"
+    """
+    if not missing_tags:
+        return "adjust to match prompt"
+
+    # Join tags with natural spacing
+    tags_str = " ".join(missing_tags)
+
+    if edit_type == "pose":
+        # Pose: use tags directly (Gemini will infer natural positioning)
+        return tags_str
+    elif edit_type == "expression":
+        # Expression: emphasize emotion
+        return f"{tags_str} expression" if "expression" not in tags_str else tags_str
+    elif edit_type == "gaze":
+        # Gaze: keep simple
+        return tags_str
+    elif edit_type == "hands":
+        # Hands: specify gesture
+        return f"hand gesture: {tags_str}" if "hand" not in tags_str else tags_str
+    else:
+        # Framing: use tags directly
+        return tags_str
+
+
+async def auto_edit_with_gemini(
+    image_b64: str,
+    original_prompt: str,
+    match_rate: float,
+    missing_tags: list[str]
+) -> dict:
+    """Match Rate가 낮을 때 자동으로 Gemini 편집 실행
+
+    Args:
+        image_b64: Base64 인코딩된 이미지 (Data URL 또는 raw base64)
+        original_prompt: 원본 프롬프트
+        match_rate: WD14 Match Rate (0.0~1.0)
+        missing_tags: 누락된 태그 목록
+
+    Returns:
+        {
+            "edited_image": "base64",
+            "cost_usd": 0.0404,
+            "edit_type": "pose",
+            "auto_generated": True,
+            "original_match_rate": 0.65,
+            "analysis": {...}
+        }
+
+    Raises:
+        Exception: Gemini API 실패 시
+    """
+    try:
+        logger.info(
+            f"🤖 [Auto Edit] Starting (match_rate={match_rate:.2f}, missing_tags={len(missing_tags)})"
+        )
+
+        # Step 1: 실패 태그 분석 → 편집 타입 추론
+        edit_type = _infer_edit_type_from_missing_tags(missing_tags)
+        logger.info(f"   Inferred edit_type: {edit_type}")
+
+        # Step 2: 누락 태그 → 자연어 target_change 생성
+        target_change = _generate_target_change(missing_tags, edit_type)
+        logger.info(f"   Generated target_change: {target_change}")
+
+        # Step 3: Gemini 편집 실행 (ImagenEditService 재사용)
+        service = get_imagen_service()
+        result = await service.edit_with_analysis(
+            image_b64=image_b64,
+            original_prompt=original_prompt,
+            target_change=target_change
+        )
+
+        # Step 4: 자동 생성 플래그 추가
+        result["auto_generated"] = True
+        result["original_match_rate"] = match_rate
+        result["inferred_edit_type"] = edit_type
+        result["generated_target_change"] = target_change
+
+        logger.info(
+            f"✅ [Auto Edit] Success (type={edit_type}, cost=${result['cost_usd']:.4f})"
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ [Auto Edit] Failed: {e}")
+        raise
+
+
 def get_imagen_service() -> ImagenEditService:
     """ImagenEditService 싱글톤 인스턴스 반환"""
     global _imagen_service

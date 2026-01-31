@@ -97,6 +97,47 @@ export default function ManagePage() {
     cleanup_candidates: false,
   });
 
+  // Gemini Auto Edit state (Phase 6-4.22)
+  type AutoEditSettings = {
+    enabled: boolean;
+    threshold: number;
+    max_cost_per_storyboard: number;
+    max_retries_per_scene: number;
+  };
+  type CostSummary = {
+    today: number;
+    this_week: number;
+    this_month: number;
+    total: number;
+    edit_count_today: number;
+    edit_count_month: number;
+  };
+  const [autoEditSettings, setAutoEditSettings] = useState<AutoEditSettings | null>(null);
+  const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
+  const [isLoadingAutoEdit, setIsLoadingAutoEdit] = useState(false);
+  const [isSavingAutoEdit, setIsSavingAutoEdit] = useState(false);
+
+  // Gemini Analytics state (Phase 6-4.22)
+  type EditAnalytics = {
+    total_edits: number;
+    total_cost_usd: number;
+    avg_improvement: number;
+    edits: Array<{
+      id: number;
+      storyboard_id: number;
+      scene_id: number;
+      original_match_rate: number;
+      final_match_rate: number;
+      improvement: number;
+      cost_usd: number;
+      created_at: string;
+    }>;
+    by_improvement_range: Record<string, number>;
+  };
+  const [analytics, setAnalytics] = useState<EditAnalytics | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsStoryboardFilter, setAnalyticsStoryboardFilter] = useState<number | null>(null);
+
   // Prompt History state
   const [promptHistories, setPromptHistories] = useState<PromptHistory[]>([]);
   const [isPromptsLoading, setIsPromptsLoading] = useState(false);
@@ -222,11 +263,63 @@ export default function ManagePage() {
     }
   };
 
+  // Gemini Auto Edit Settings (Phase 6-4.22)
+  const fetchAutoEditSettings = async () => {
+    setIsLoadingAutoEdit(true);
+    try {
+      const [settingsRes, costRes] = await Promise.all([
+        axios.get(`${API_BASE}/settings/auto-edit`),
+        axios.get(`${API_BASE}/settings/auto-edit/cost-summary`),
+      ]);
+      setAutoEditSettings(settingsRes.data);
+      setCostSummary(costRes.data);
+    } catch {
+      setAutoEditSettings(null);
+      setCostSummary(null);
+    } finally {
+      setIsLoadingAutoEdit(false);
+    }
+  };
+
+  const saveAutoEditSettings = async () => {
+    if (!autoEditSettings) return;
+    setIsSavingAutoEdit(true);
+    try {
+      await axios.put(`${API_BASE}/settings/auto-edit`, {
+        enabled: autoEditSettings.enabled,
+        threshold: autoEditSettings.threshold,
+        max_cost: autoEditSettings.max_cost_per_storyboard,
+        max_retries: autoEditSettings.max_retries_per_scene,
+      });
+      await fetchAutoEditSettings(); // Refresh to confirm
+      alert("✅ Settings updated successfully!");
+    } catch (err: any) {
+      alert(`❌ Failed to save settings: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setIsSavingAutoEdit(false);
+    }
+  };
+
+  const fetchAnalytics = async (storyboardId?: number | null) => {
+    setIsLoadingAnalytics(true);
+    try {
+      const params = storyboardId ? { storyboard_id: storyboardId } : {};
+      const res = await axios.get(`${API_BASE}/analytics/gemini-edits`, { params });
+      setAnalytics(res.data);
+    } catch {
+      setAnalytics(null);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
   useEffect(() => {
     if (manageTab === "settings") {
       void fetchStorageStats();
+      void fetchAutoEditSettings();
+      void fetchAnalytics(analyticsStoryboardFilter);
     }
-  }, [manageTab]);
+  }, [manageTab, analyticsStoryboardFilter]);
 
   // Prompt History tab data fetching
   const fetchPromptHistories = async () => {
@@ -2043,6 +2136,314 @@ export default function ManagePage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Gemini Auto Edit Configuration (Phase 6-4.22) */}
+            <div className="grid gap-6">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                  Gemini Auto Edit
+                </span>
+                <button
+                  type="button"
+                  onClick={fetchAutoEditSettings}
+                  disabled={isLoadingAutoEdit}
+                  className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                >
+                  {isLoadingAutoEdit ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+
+              {autoEditSettings && costSummary && (
+                <div className="grid gap-6">
+                  {/* Cost Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                      <div className="text-2xl font-black text-zinc-900">
+                        ${costSummary.today.toFixed(2)}
+                      </div>
+                      <p className="mt-1 text-[10px] font-medium text-zinc-400 uppercase tracking-widest">Today</p>
+                      <p className="text-[9px] text-zinc-400">{costSummary.edit_count_today} edits</p>
+                    </div>
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                      <div className="text-2xl font-black text-zinc-900">
+                        ${costSummary.this_week.toFixed(2)}
+                      </div>
+                      <p className="mt-1 text-[10px] font-medium text-zinc-400 uppercase tracking-widest">This Week</p>
+                    </div>
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                      <div className="text-2xl font-black text-zinc-900">
+                        ${costSummary.this_month.toFixed(2)}
+                      </div>
+                      <p className="mt-1 text-[10px] font-medium text-zinc-400 uppercase tracking-widest">This Month</p>
+                      <p className="text-[9px] text-zinc-400">{costSummary.edit_count_month} edits</p>
+                    </div>
+                    <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+                      <div className="text-2xl font-black text-indigo-600">
+                        ${costSummary.total.toFixed(2)}
+                      </div>
+                      <p className="mt-1 text-[10px] font-medium text-indigo-500 uppercase tracking-widest">Total</p>
+                    </div>
+                  </div>
+
+                  {/* Settings Controls */}
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+                    <div className="grid gap-6">
+                      {/* Master Switch - Read Only */}
+                      <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50/50 border border-zinc-50">
+                        <div>
+                          <p className="text-sm font-bold text-zinc-700">Auto Edit Enabled</p>
+                          <p className="text-[10px] text-zinc-400 mt-1">
+                            Automatically fix images with low Match Rate
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-not-allowed opacity-75">
+                          <input
+                            type="checkbox"
+                            checked={autoEditSettings.enabled}
+                            disabled
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-zinc-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                      </div>
+
+                      {/* Threshold Slider - Read Only */}
+                      <div className="grid gap-3 opacity-75">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-zinc-700">Match Rate Threshold</label>
+                          <span className="text-sm font-black text-indigo-600">
+                            {(autoEditSettings.threshold * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="0.9"
+                          step="0.05"
+                          value={autoEditSettings.threshold}
+                          disabled
+                          className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-not-allowed accent-indigo-600"
+                        />
+                        <p className="text-[10px] text-zinc-400">
+                          Trigger auto-edit when Match Rate &lt; {(autoEditSettings.threshold * 100).toFixed(0)}%
+                        </p>
+                      </div>
+
+                      {/* Max Cost Input - Read Only */}
+                      <div className="grid gap-3 opacity-75">
+                        <label className="text-xs font-bold text-zinc-700">Max Cost per Storyboard</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-zinc-400">$</span>
+                          <input
+                            type="number"
+                            min="0.1"
+                            max="10"
+                            step="0.1"
+                            value={autoEditSettings.max_cost_per_storyboard}
+                            disabled
+                            className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-zinc-700 cursor-not-allowed"
+                          />
+                        </div>
+                        <p className="text-[10px] text-zinc-400">
+                          Stop auto-editing when storyboard cost exceeds this limit
+                        </p>
+                      </div>
+
+                      {/* Max Retries Input - Read Only */}
+                      <div className="grid gap-3 opacity-75">
+                        <label className="text-xs font-bold text-zinc-700">Max Retries per Scene</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="5"
+                          step="1"
+                          value={autoEditSettings.max_retries_per_scene}
+                          disabled
+                          className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-zinc-700 cursor-not-allowed"
+                        />
+                        <p className="text-[10px] text-zinc-400">
+                          Maximum edit attempts per scene before giving up
+                        </p>
+                      </div>
+
+                      {/* .env Configuration Notice */}
+                      <div className="rounded-xl bg-indigo-50 border border-indigo-200 p-4 text-center">
+                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">
+                          📄 Configuration Source
+                        </p>
+                        <p className="text-[11px] text-indigo-700">
+                          These settings are managed in <code className="bg-indigo-100 px-1 py-0.5 rounded font-mono">.env</code> file
+                        </p>
+                        <p className="text-[10px] text-indigo-500 mt-2">
+                          Edit <code className="bg-indigo-100 px-1 py-0.5 rounded font-mono">backend/.env</code> to change configuration
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Gemini Analytics Dashboard (Phase 6-4.22) */}
+            <div className="grid gap-6">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                  Performance Analytics
+                </span>
+                <button
+                  type="button"
+                  onClick={() => fetchAnalytics(analyticsStoryboardFilter)}
+                  disabled={isLoadingAnalytics}
+                  className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                >
+                  {isLoadingAnalytics ? "Loading..." : "Refresh Analytics"}
+                </button>
+              </div>
+
+              {analytics && (
+                <div className="grid gap-6">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+                      <div className="flex items-end justify-between mb-2">
+                        <div className="text-3xl font-black text-zinc-900">{analytics.total_edits}</div>
+                        <div className="text-xs font-bold text-zinc-400">EDITS</div>
+                      </div>
+                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">Total Auto-Edits</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                      <div className="flex items-end justify-between mb-2">
+                        <div className="text-3xl font-black text-emerald-600">
+                          +{(analytics.avg_improvement * 100).toFixed(1)}%
+                        </div>
+                        <div className="text-xs font-bold text-emerald-400">AVG</div>
+                      </div>
+                      <p className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest">Match Rate Boost</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                      <div className="flex items-end justify-between mb-2">
+                        <div className="text-3xl font-black text-amber-600">
+                          ${analytics.total_cost_usd.toFixed(2)}
+                        </div>
+                        <div className="text-xs font-bold text-amber-400">USD</div>
+                      </div>
+                      <p className="text-[10px] font-medium text-amber-500 uppercase tracking-widest">Total Investment</p>
+                    </div>
+                  </div>
+
+                  {/* Improvement Range Distribution */}
+                  {analytics.by_improvement_range && Object.keys(analytics.by_improvement_range).length > 0 && (
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+                      <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                        Improvement Distribution
+                      </h4>
+                      <div className="grid gap-3">
+                        {Object.entries(analytics.by_improvement_range)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([range, count]) => {
+                            const maxCount = Math.max(...Object.values(analytics.by_improvement_range));
+                            const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+
+                            // Color coding based on improvement range
+                            let colorClass = "bg-zinc-400";
+                            if (range.includes("20-30") || range.includes("30+")) {
+                              colorClass = "bg-emerald-500";
+                            } else if (range.includes("10-20")) {
+                              colorClass = "bg-indigo-500";
+                            } else if (range.includes("0-10")) {
+                              colorClass = "bg-amber-500";
+                            }
+
+                            return (
+                              <div key={range} className="grid grid-cols-[120px_1fr_60px] items-center gap-3">
+                                <span className="text-[10px] font-bold text-zinc-600 uppercase">{range}</span>
+                                <div className="h-6 w-full rounded-full bg-zinc-100 overflow-hidden">
+                                  <div
+                                    className={`h-full ${colorClass} transition-all duration-500`}
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm font-black text-zinc-700 text-right">{count}</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recent Edits Table */}
+                  {analytics.edits && analytics.edits.length > 0 && (
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+                      <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                        Recent Auto-Edits ({analytics.edits.length})
+                      </h4>
+                      <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                        <table className="w-full text-xs">
+                          <thead className="sticky top-0 bg-white border-b border-zinc-200">
+                            <tr className="text-[10px] font-bold text-zinc-400 uppercase">
+                              <th className="pb-2 text-left">Storyboard</th>
+                              <th className="pb-2 text-left">Scene</th>
+                              <th className="pb-2 text-right">Before</th>
+                              <th className="pb-2 text-right">After</th>
+                              <th className="pb-2 text-right">Boost</th>
+                              <th className="pb-2 text-right">Cost</th>
+                              <th className="pb-2 text-left">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-zinc-600">
+                            {analytics.edits.slice(0, 20).map((edit) => {
+                              const improvement = edit.improvement * 100;
+                              let improvementColor = "text-zinc-600";
+                              if (improvement >= 20) {
+                                improvementColor = "text-emerald-600 font-bold";
+                              } else if (improvement >= 10) {
+                                improvementColor = "text-indigo-600 font-semibold";
+                              } else if (improvement >= 5) {
+                                improvementColor = "text-amber-600";
+                              }
+
+                              return (
+                                <tr key={edit.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                                  <td className="py-2 font-semibold">#{edit.storyboard_id}</td>
+                                  <td className="py-2">Scene {edit.scene_id}</td>
+                                  <td className="py-2 text-right text-rose-600 font-mono">
+                                    {(edit.original_match_rate * 100).toFixed(0)}%
+                                  </td>
+                                  <td className="py-2 text-right text-emerald-600 font-mono font-bold">
+                                    {(edit.final_match_rate * 100).toFixed(0)}%
+                                  </td>
+                                  <td className={`py-2 text-right font-mono ${improvementColor}`}>
+                                    +{improvement.toFixed(1)}%
+                                  </td>
+                                  <td className="py-2 text-right text-amber-600 font-mono">
+                                    ${edit.cost_usd.toFixed(4)}
+                                  </td>
+                                  <td className="py-2 text-[10px] text-zinc-400">
+                                    {new Date(edit.created_at).toLocaleDateString()}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {analytics.total_edits === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-zinc-200 bg-zinc-50/50">
+                      <div className="mb-3 text-4xl opacity-20">📊</div>
+                      <p className="text-sm font-bold text-zinc-500">No auto-edits yet</p>
+                      <p className="text-[10px] text-zinc-400 mt-1">
+                        Enable Auto Edit and start generating scenes to see analytics
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

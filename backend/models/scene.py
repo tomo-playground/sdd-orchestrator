@@ -49,6 +49,9 @@ class Scene(Base, TimestampMixin):
     # Generated Image Path
     image_url: Mapped[str | None] = mapped_column(String(500))
 
+    # Candidate images (list of dicts with image_url, match_rate, etc.)
+    candidates: Mapped[list[dict] | None] = mapped_column(JSONB)
+
     # Relationships
     storyboard: Mapped["Storyboard"] = relationship("Storyboard", back_populates="scenes")
 

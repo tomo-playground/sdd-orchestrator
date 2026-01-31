@@ -43,7 +43,7 @@ def apply_style_profile_to_prompt(
         return prompt, negative_prompt
 
     try:
-        from models import Storyboard, StyleProfile, LoRA
+        from models import LoRA, Storyboard, StyleProfile
 
         # Get storyboard and its default style profile
         storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
@@ -223,6 +223,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             "CLIP_stop_at_last_layers": max(1, int(request.clip_skip)),
         },
         "override_settings_restore_afterwards": True,
+        "batch_size": request.batch_size,
     }
     if request.enable_hr:
         payload.update({
@@ -287,23 +288,26 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
         async with httpx.AsyncClient() as client:
             res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=SD_TIMEOUT_SECONDS)
             res.raise_for_status()
+            res.raise_for_status()
             data = res.json()
-            img = data.get("images", [None])[0]
-            if not img:
-                raise HTTPException(status_code=500, detail="No image returned")
+            images = data.get("images", [])
+            if not images:
+                raise HTTPException(status_code=500, detail="No images returned")
+
+            img = images[0]
 
             # Extract seed from response info
-            actual_seed = None
             if request.seed != -1:
-                actual_seed = request.seed
+                pass
             elif "info" in data:
                 try:
                     info_val = data["info"]
                     if isinstance(info_val, str):
-                        info_data = json.loads(info_val)
-                        actual_seed = info_data.get("seed")
+                        json.loads(info_val)
+                        # actual_seed = info_data.get("seed")
                     elif isinstance(info_val, dict):
-                        actual_seed = info_val.get("seed")
+                        # actual_seed = info_val.get("seed")
+                        pass
                 except Exception:
                     logger.warning("Failed to parse info from SD response", exc_info=True)
 
@@ -311,7 +315,12 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             # This ensures proper scene_id (DB primary key) and image_url inclusion
             # See: frontend/app/store/actions/imageActions.ts
 
-            return {"image": img, "controlnet_pose": controlnet_used, "ip_adapter_reference": ip_adapter_used}
+            return {
+                "image": img,
+                "images": images,
+                "controlnet_pose": controlnet_used,
+                "ip_adapter_reference": ip_adapter_used
+            }
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc

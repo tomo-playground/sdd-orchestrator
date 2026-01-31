@@ -31,9 +31,11 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
         added, updated, skipped = [], [], []
         loras = db.query(LoRA).all()
         for lora in loras:
-            if not lora.trigger_words: continue
+            if not lora.trigger_words:
+                continue
             for trigger in lora.trigger_words:
-                if not trigger or not trigger.strip(): continue
+                if not trigger or not trigger.strip():
+                    continue
                 trigger_clean = trigger.strip().lower()
 
                 # Ensure trigger exists as a Tag
@@ -86,7 +88,8 @@ def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, A
 
             for pattern in patterns:
                 tag_name = pattern.strip().lower()
-                if not tag_name: continue
+                if not tag_name:
+                    continue
                 existing = existing_tags.get(tag_name)
                 if existing:
                     if update_existing:

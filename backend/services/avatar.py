@@ -7,7 +7,8 @@ import hashlib
 
 import httpx
 
-from config import AVATAR_DIR, SD_TXT2IMG_URL, logger
+from config import SD_TXT2IMG_URL, logger
+from services.storage import storage
 
 
 def avatar_filename(avatar_key: str) -> str:
@@ -28,27 +29,24 @@ async def ensure_avatar_file(
     avatar_key: str,
     timeout: float = 60.0,
 ) -> str | None:
-    """Ensure an avatar file exists, generating it if necessary.
+    """Ensure an avatar file exists, using StorageService.
 
     Args:
         avatar_key: The avatar key to generate for
         timeout: Request timeout in seconds
 
     Returns:
-        The avatar filename if successful, None otherwise
+        The storage key of the avatar if successful, None otherwise
     """
-    # Ensure avatar directory exists
-    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
-
     filename = avatar_filename(avatar_key)
-    target = AVATAR_DIR / filename
+    storage_key = f"shared/avatars/{filename}"
 
-    if target.exists():
-        logger.info(f"Avatar found: {filename}")
-        return filename
+    if storage.exists(storage_key):
+        logger.info(f"Avatar found in storage: {storage_key}")
+        return storage_key
 
-    logger.info(f"Avatar not found, generating: {avatar_key} -> {filename}")
-
+    logger.info(f"Avatar not found, generating: {avatar_key} -> {storage_key}")
+    # ... (payload and other logic remains same, but save via storage)
     prompt = (
         "anime avatar portrait, clean background, head and shoulders, "
         "soft lighting, centered, high quality"
@@ -76,16 +74,25 @@ async def ensure_avatar_file(
             logger.warning("SD WebUI returned no images")
             return None
         image_bytes = base64.b64decode(image_b64)
-        target.write_bytes(image_bytes)
-        logger.info(f"✅ Avatar generated successfully: {filename}")
-        return filename
+        storage.save(storage_key, image_bytes, content_type="image/png")
+        logger.info(f"✅ Avatar generated successfully: {storage_key}")
+        return storage_key
     except httpx.ConnectError:
         logger.warning("SD WebUI not running, generating simple avatar instead")
         try:
             from services.simple_avatar import generate_simple_avatar
-            generate_simple_avatar(avatar_key, target)
-            logger.info(f"✅ Simple avatar generated: {filename}")
-            return filename
+
+            # Simple avatar currently writes to path, we might need to adapt it
+            # or just use a temporary file.
+            fake_path = storage.get_local_path(storage_key)
+            fake_path.parent.mkdir(parents=True, exist_ok=True)
+            generate_simple_avatar(avatar_key, fake_path)
+
+            if storage_key.startswith("shared/"): # Trigger sync if needed for S3
+                 storage.save(storage_key, fake_path.read_bytes(), content_type="image/png")
+
+            logger.info(f"✅ Simple avatar generated: {storage_key}")
+            return storage_key
         except Exception as e2:
             logger.exception(f"Simple avatar generation failed: {e2}")
             return None

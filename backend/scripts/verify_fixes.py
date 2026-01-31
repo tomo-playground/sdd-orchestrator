@@ -47,7 +47,8 @@ def verify_classification(db):
     for tag, result in classification.items():
         group = result.get("group")
         status = "✅" if group and group != "unknown" else "❌"
-        if status == "❌": all_pass = False
+        if status == "❌":
+            all_pass = False
         print(f"{status} {tag} -> group='{group}', source='{result.get('source')}'")
 
     if all_pass:

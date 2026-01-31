@@ -61,6 +61,9 @@ class StoryboardScene(BaseModel):
     clip_skip: int | None = None
     context_tags: dict | None = None
 
+    # Candidate images
+    candidates: list[dict] | None = None
+
     # V3 Data Persistence
     tags: list[SceneTagSave] | None = None
     character_actions: list[SceneActionSave] | None = None
@@ -112,6 +115,8 @@ class AvatarResolveRequest(BaseModel):
 
 class VideoRequest(BaseModel):
     scenes: list[VideoScene]
+    project_id: int | None = None
+    group_id: int | None = None
     storyboard_id: int | None = None
     storyboard_title: str = "my_shorts"
     bgm_file: str | None = None
@@ -163,10 +168,13 @@ class SceneGenerateRequest(BaseModel):
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
     ip_adapter_weight: float = 0.7
-    # Analytics tracking
+    # Analytics/Hierarchy tracking
+    project_id: int | None = None
+    group_id: int | None = None
     storyboard_id: int | None = None
     topic: str | None = None  # Optional: Content topic for reference
     scene_index: int | None = None  # [DEPRECATED] Use scene DB ID in frontend activity log instead
+    batch_size: int = 3  # Default to 3 images per generation
 
 
 class SceneValidateRequest(BaseModel):
@@ -181,6 +189,11 @@ class SceneValidateRequest(BaseModel):
 
 class ImageStoreRequest(BaseModel):
     image_b64: str
+    project_id: int
+    group_id: int
+    storyboard_id: int
+    scene_id: int
+    file_name: str | None = None
 
 
 class PromptRewriteRequest(BaseModel):

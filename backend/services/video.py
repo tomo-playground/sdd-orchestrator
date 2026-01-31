@@ -18,17 +18,20 @@ import edge_tts
 from fastapi import HTTPException
 
 from config import (
-    AUDIO_DIR,
     IMAGE_DIR,
+    STORAGE_MODE,
     VIDEO_DIR,
     logger,
 )
+from database import SessionLocal
+from services.asset_service import AssetService
 from services.motion import (
     build_zoompan_filter,
     get_preset,
     get_random_preset,
     resolve_preset_name,
 )
+from services.storage import storage
 
 if TYPE_CHECKING:
     from schemas import VideoRequest, VideoScene
@@ -52,37 +55,41 @@ def sanitize_filename(name: str, max_length: int = 40) -> str:
 
 def resolve_bgm_file(
     bgm_file: str | None,
-    audio_dir: Path,
     seed: int | None = None,
 ) -> str | None:
     """Resolve BGM filename, supporting 'random' selection.
 
     Args:
         bgm_file: BGM filename or 'random' for random selection
-        audio_dir: Directory containing audio files
         seed: Optional seed for reproducible random selection
 
     Returns:
-        Resolved BGM filename or None
+        Resolved BGM filename (storage key suffix) or None
     """
     if not bgm_file or not bgm_file.strip():
         return None
 
     # Check for random selection (case-insensitive)
     if bgm_file.lower() == "random":
-        if not audio_dir.exists():
+        # Find all mp3 files in shared/audio/ prefix
+        prefix = "shared/audio/"
+        all_keys = storage.list_prefix(prefix)
+        mp3_keys = [k for k in all_keys if k.lower().endswith(".mp3")]
+
+        if not mp3_keys:
+            logger.warning(f"⚠️ [BGM Resolve] No MP3 files found in {prefix}")
             return None
 
-        # Find all mp3 files
-        mp3_files = list(audio_dir.glob("*.mp3"))
-        if not mp3_files:
-            return None
-
-        # Select random file
+        # Select random key
         rng = random.Random(seed) if seed is not None else random.Random()
-        selected = rng.choice(mp3_files)
-        logger.info(f"Random BGM selected: {selected.name}")
-        return selected.name
+        selected_key = rng.choice(mp3_keys)
+        # We return just the filename part or the relative path from shared/audio/
+        # to keep compatibility or simplify. Let's return the full key for clarity?
+        # Actually, previous return was selected.name (just filename).
+        # Let's return just the filename for now.
+        filename = Path(selected_key).name
+        logger.info(f"Random BGM selected: {filename} (from {selected_key})")
+        return filename
 
     return bgm_file
 
@@ -264,6 +271,8 @@ class VideoBuilder:
         self.use_post_layout = request.layout_style == "post"
         self.out_w = request.width
         self.out_h = request.height
+        self.project_id_int = request.project_id
+        self.group_id_int = request.group_id
 
         # Ken Burns settings
         self.ken_burns_preset = resolve_preset_name(request.ken_burns_preset)
@@ -296,6 +305,25 @@ class VideoBuilder:
             self._calculate_durations()
             self._build_filters()
             self._encode()
+
+            # Upload and register final video
+            if self.project_id_int and self.group_id_int and self.request.storyboard_id:
+                db = SessionLocal()
+                try:
+                    asset_service = AssetService(db)
+                    asset = asset_service.save_rendered_video(
+                        video_path=self.video_path,
+                        project_id=self.project_id_int,
+                        group_id=self.group_id_int,
+                        storyboard_id=self.request.storyboard_id,
+                        file_name=self.video_filename
+                    )
+                    url = asset_service.get_asset_url(asset.storage_key)
+                    logger.info("✅ [Video Build] Video uploaded and registered: %s", asset.storage_key)
+                    return {"video_url": url}
+                finally:
+                    db.close()
+
             return {"video_url": f"/outputs/videos/{self.video_filename}"}
         except Exception as exc:
             logger.exception("Video Create Error")
@@ -334,7 +362,26 @@ class VideoBuilder:
             tts_path = self.temp_dir / f"tts_{i}.mp3"
 
             # Load and process image
-            image_bytes = self._load_image_bytes(scene.image_url)
+            # Try to resolve local path from storage if it's a managed asset
+            img_src = scene.image_url
+            if img_src and ("/projects/" in img_src or (STORAGE_MODE == "s3" and "shorts-producer" in img_src)):
+                try:
+                    # Extract storage key from URL
+                    # Example URL: http://.../shorts-producer/projects/1/...
+                    if "projects/" in img_src:
+                        storage_key = img_src.split("projects/", 1)[1]
+                        storage_key = "projects/" + storage_key
+                        local_path = storage.get_local_path(storage_key)
+                        image_bytes = local_path.read_bytes()
+                        logger.info("📦 [Video Build] Loaded image from storage: %s", storage_key)
+                    else:
+                        image_bytes = self._load_image_bytes(img_src)
+                except Exception as e:
+                    logger.warning("📦 [Video Build] Failed to load from storage, fallback to URL: %s", e)
+                    image_bytes = self._load_image_bytes(img_src)
+            else:
+                image_bytes = self._load_image_bytes(img_src)
+
             raw_script = scene.script or ""
             logger.info(f"Scene {i}: script='{raw_script}', len={len(raw_script)}")
             clean_script = clean_script_for_tts(raw_script)
@@ -781,13 +828,16 @@ class VideoBuilder:
         """Apply background music with optional audio ducking."""
         # Resolve BGM file (supports 'random' selection with project-based seed)
         seed = hash(self.project_id)
-        resolved_bgm = resolve_bgm_file(self.request.bgm_file, AUDIO_DIR, seed=seed)
+        resolved_bgm = resolve_bgm_file(self.request.bgm_file, seed=seed)
         if not resolved_bgm:
             return
 
-        bgm_path = AUDIO_DIR / resolved_bgm
-        if not bgm_path.exists():
+        storage_key = f"shared/audio/{resolved_bgm}"
+        if not storage.exists(storage_key):
+            logger.warning(f"⚠️ [Video Build] BGM file not found in storage: {storage_key}")
             return
+
+        bgm_path = storage.get_local_path(storage_key)
 
         self.input_args.extend(["-i", str(bgm_path)])
         bgm_idx = self._next_input_idx
