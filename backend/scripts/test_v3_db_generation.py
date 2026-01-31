@@ -72,7 +72,8 @@ def generate_with_v3_builder():
         image_b64 = data.get("image") or (data.get("images")[0] if "images" in data else None)
 
         if image_b64:
-            if "," in image_b64: image_b64 = image_b64.split(",")[1]
+            if "," in image_b64:
+                image_b64 = image_b64.split(",")[1]
             output_file = "v3_db_verification.png"
             with open(output_file, "wb") as f:
                 f.write(base64.b64decode(image_b64))

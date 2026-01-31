@@ -1,6 +1,7 @@
 import os
 import sys
 from collections import Counter
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -8,11 +9,10 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(os.getcwd())
 
 from config import DATABASE_URL
-from models.scene import Scene
 from models.activity_log import ActivityLog
-from models.associations import CharacterTag
 from models.tag import Tag
-from services.controlnet import POSE_MAPPING, detect_pose_from_prompt
+from services.controlnet import detect_pose_from_prompt
+
 
 def analyze_db_assets():
     engine = create_engine(DATABASE_URL)
@@ -31,17 +31,18 @@ def analyze_db_assets():
     # Get tags classified as 'pose' or 'action' or 'motion'
     pose_related_tags = db.query(Tag.name).filter(Tag.category.in_(['pose', 'action', 'motion', 'character_action'])).all()
     print(f"Total tags in pose segments: {len(pose_related_tags)}")
-    
+
     # Check top tags in prompts
     log_prompts = db.query(ActivityLog.prompt).limit(500).all()
     all_tokens = []
     for p in log_prompts:
-        if p[0]: all_tokens.extend([t.strip().lower() for t in p[0].split(",")])
-    
+        if p[0]:
+            all_tokens.extend([t.strip().lower() for t in p[0].split(",")])
+
     token_counts = Counter(all_tokens)
-    
+
     pose_keywords = ["standing", "sitting", "leaning", "lying", "kneeling", "arms", "hands", "looking", "facing", "pose", "action", "walking", "running"]
-    
+
     print(f"\n{'Tag (Top Prompts)':30} | {'Count':6} | {'Status'}")
     print("-" * 50)
     for tag, count in token_counts.most_common(200):

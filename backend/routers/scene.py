@@ -77,7 +77,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         return {"url": url, "asset_id": asset.id}
     except Exception as e:
         logger.exception("❌ [Image Store] Failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/scene/validate_image")

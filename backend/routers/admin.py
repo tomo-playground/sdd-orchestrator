@@ -164,7 +164,7 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
 @router.get("/tags/deprecated")
 async def get_deprecated_tags(db: Session = Depends(get_db)):
     """Get all deprecated tags with their replacement information."""
-    deprecated_tags = db.query(Tag).filter(Tag.is_active == False).all()
+    deprecated_tags = db.query(Tag).filter(Tag.is_active.is_(False)).all()
 
     result = []
     for tag in deprecated_tags:
@@ -235,7 +235,7 @@ async def deprecate_tag(
         db.refresh(tag)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
     return {
         "success": True,
@@ -274,7 +274,7 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
         db.refresh(tag)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
     return {
         "success": True,

@@ -46,6 +46,11 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             seed=s_data.seed,
             clip_skip=s_data.clip_skip,
             context_tags=s_data.context_tags,
+            # Consistency Enhancements
+            use_reference_only=s_data.use_reference_only if s_data.use_reference_only is not None else True,
+            reference_only_weight=s_data.reference_only_weight or 0.5,
+            environment_reference_id=s_data.environment_reference_id,
+            environment_reference_weight=s_data.environment_reference_weight or 0.3,
         )
         db.add(db_scene)
         db.flush()
@@ -67,11 +72,13 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         if image_url:
             from config import MINIO_BUCKET
             path = urlparse(image_url).path
-            if path.startswith("/"): path = path[1:]
+            if path.startswith("/"):
+                path = path[1:]
             # Remove bucket prefix if present (MinIO/S3 URLs)
             if path.startswith(f"{MINIO_BUCKET}/"):
                 path = path.replace(f"{MINIO_BUCKET}/", "", 1)
-            if path.startswith("assets/"): path = path.replace("assets/", "", 1)
+            if path.startswith("assets/"):
+                path = path.replace("assets/", "", 1)
             storage_key = path
 
             # Check for existing asset to avoid IntegrityError
@@ -111,7 +118,6 @@ def _serialize_scene(scene: Scene) -> dict:
         "image_prompt": scene.image_prompt,
         "image_prompt_ko": scene.image_prompt_ko,
         "negative_prompt": scene.negative_prompt,
-        "negative_prompt": scene.negative_prompt,
         "image_url": scene.image_asset.url if scene.image_asset else scene.image_url,
         "width": scene.width,
         "height": scene.height,
@@ -126,6 +132,11 @@ def _serialize_scene(scene: Scene) -> dict:
             {"character_id": a.character_id, "tag_id": a.tag_id, "weight": a.weight}
             for a in scene.character_actions
         ],
+        "use_reference_only": scene.use_reference_only,
+        "reference_only_weight": scene.reference_only_weight,
+        "environment_reference_id": scene.environment_reference_id,
+        "environment_reference_weight": scene.environment_reference_weight,
+        "image_asset_id": scene.image_asset_id,
     }
 
 
@@ -253,7 +264,7 @@ async def update_storyboard(
     # 2. Delete existing scenes (CASCADE removes tags & actions)
     # Get IDs of scenes to also delete their MediaAsset records
     scene_ids = [s.id for s in db.query(Scene).filter(Scene.storyboard_id == storyboard_id).all()]
-    
+
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id).delete()
 
     # 3. Now delete media_assets (no longer referenced)
@@ -263,14 +274,14 @@ async def update_storyboard(
         MediaAsset.owner_type == "storyboard",
         MediaAsset.owner_id == storyboard_id
     ).delete()
-    
+
     # Also delete assets owned by the deleted scenes
     if scene_ids:
         db.query(MediaAsset).filter(
             MediaAsset.owner_type == "scene",
             MediaAsset.owner_id.in_(scene_ids)
         ).delete()
-        
+
     db.flush()
 
     # Recreate scenes

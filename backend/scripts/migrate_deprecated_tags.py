@@ -30,7 +30,7 @@ def get_deprecated_tags_map(db) -> dict[int, int]:
         {deprecated_tag_id: replacement_tag_id}
     """
     deprecated = db.query(Tag).filter(
-        Tag.is_active == False,
+        Tag.is_active.is_(False),
         Tag.replacement_tag_id.isnot(None)
     ).all()
 

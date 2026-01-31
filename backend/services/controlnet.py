@@ -60,6 +60,7 @@ CONTROLNET_MODELS = {
     "openpose": "control_v11p_sd15_openpose [cab727d4]",
     "depth": "control_v11f1p_sd15_depth [cfd03158]",
     "canny": "control_v11p_sd15_canny [d14c016b]",
+    "reference": "None", # Reference-only doesn't need a specific model if using the preprocessor
 }
 
 # IP-Adapter models
@@ -197,7 +198,7 @@ def build_controlnet_args(
 
     Args:
         input_image: Base64 encoded input image
-        model: ControlNet model type ("openpose", "depth", "canny")
+        model: ControlNet model type ("openpose", "depth", "canny", "reference")
         weight: ControlNet weight (0.0-2.0)
         control_mode: "Balanced", "My prompt is more important", "ControlNet is more important"
         preprocessor: Preprocessor module (None for auto)
@@ -205,28 +206,25 @@ def build_controlnet_args(
     Returns:
         ControlNet args dict for alwayson_scripts
     """
-    model_name = CONTROLNET_MODELS.get(model)
-    if not model_name:
-        raise ValueError(f"Unknown ControlNet model: {model}")
-
-    # Default preprocessors
-    default_preprocessors = {
-        "openpose": "openpose_full",
-        "depth": "depth_midas",
-        "canny": "canny",
-    }
-
-    return {
+    args = {
         "enabled": True,
         "image": input_image,
-        "module": preprocessor or default_preprocessors.get(model, "none"),
-        "model": model_name,
+        "model": CONTROLNET_MODELS.get(model, model),
+        "module": preprocessor or model, # Default module same as model name (e.g. openpose, canny)
         "weight": weight,
-        "resize_mode": "Crop and Resize",
-        "processor_res": 512,
-        "control_mode": control_mode,
+        "control_mode": control_mode, # "Balanced", "My prompt is more important", "ControlNet is more important"
         "pixel_perfect": True,
+        "lowvram": False,
+        "guidance_start": 0.0,
+        "guidance_end": 1.0,
     }
+
+    if model == "reference":
+        args["module"] = "reference_only"
+        args["model"] = "None"
+        args["guidance_end"] = 0.75 # Allow prompt to take over in later steps for better flexibility
+
+    return args
 
 
 def generate_with_controlnet(
@@ -326,10 +324,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     Returns:
         Saved filename
     """
-    from services.storage import storage
-
-    if storage is None:
-        raise RuntimeError("Storage not initialized")
+    from services.storage import get_storage
 
     # Remove data URI prefix if present
     if "," in image_b64:
@@ -342,10 +337,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     try:
         storage = get_storage()
         storage.save(storage_key, image_bytes, content_type="image/png")
-        if is_reference:
-            logger.info(f"Saved ControlNet reference image to storage: {storage_key}")
-        else:
-            logger.info(f"Saved reference image to storage: {storage_key}")
+        logger.info(f"Saved reference image to storage: {storage_key}")
     except Exception as e:
         logger.error(f"Failed to save reference image to storage: {e}")
         # Continue with DB registration if possible or handles as needed
