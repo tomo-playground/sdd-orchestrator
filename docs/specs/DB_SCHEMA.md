@@ -1,4 +1,4 @@
-# Database Schema (v3.0)
+# Database Schema (v3.1)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.1 | 2026-01-31 | Media Asset 시스템: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합 |
 | v3.0 | 2026-01-30 | V3 아키텍처: Storyboard-Centric, Relational Tags, Activity Logs, Tag Aliases/Filters |
 | v2.0 | 2026-01-27 | Characters, LoRAs, Style Profiles, Tag System |
 
@@ -57,7 +58,13 @@ YouTube Shorts 프로젝트 단위.
 | `description` | Text | 설명 |
 | `default_character_id` | Integer | 기본 캐릭터 |
 | `default_style_profile_id` | Integer | 기본 스타일 프로파일 |
+| `video_asset_id` | Integer (FK → media_assets) | 최신 렌더링 영상 (폴리모픽 참조) |
+| `recent_videos_json` | JSONB | 최근 렌더링 이력 (최대 5개) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `video_url` (`@property`): `video_asset.url` 반환
+- `recent_videos` (`@property`): `recent_videos_json` 파싱 결과
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -71,8 +78,11 @@ YouTube Shorts 프로젝트 단위.
 | `description` | Text | LLM 생성 시각적 설명 |
 | `width` | Integer | 이미지 너비 (default: 512) |
 | `height` | Integer | 이미지 높이 (default: 768) |
-| `image_url` | String(500) | 생성된 이미지 경로 |
+| `image_asset_id` | Integer (FK → media_assets) | 생성된 이미지 (폴리모픽 참조) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `image_url` (`@property`): `image_asset.url` 반환
 
 ---
 
@@ -203,6 +213,30 @@ WD14 피드백 루프 데이터.
 
 ## 🎨 Asset System
 
+### `media_assets` (V3.1)
+통합 미디어 저장소. S3/Local 스토리지 폴리모픽 참조 시스템.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `file_name` | String(500) | 원본 파일명 |
+| `file_type` | String(50) | `image`, `video`, `audio` |
+| `storage_key` | String(1000) | 스토리지 경로 (S3: `characters/6/preview/xxx.png`) |
+| `file_size` | BigInteger | 파일 크기 (bytes) |
+| `mime_type` | String(100) | `image/png`, `video/mp4` 등 |
+| `owner_type` | String(50) | 폴리모픽 타입 (`Character`, `Scene`, `LoRA`, `SDModel`, `Storyboard`) |
+| `owner_id` | Integer | 폴리모픽 ID |
+| `created_at` | DateTime | 생성 시각 |
+
+**특징**:
+- **폴리모픽 연관**: `owner_type` + `owner_id`로 모든 엔티티 연결
+- **URL 생성**: `url` property가 storage_key 기반 public URL 반환
+- **S3/Local 통합**: LocalStorage/S3Storage 모두 지원
+
+**마이그레이션**:
+- `ca169902f4a4`: 모든 모델에 `*_asset_id` FK 추가
+- `4249c8f1cd5c`: Legacy `*_url` 컬럼 삭제
+
 ### `characters`
 캐릭터 프리셋. V3에서는 `character_tags` 관계형 테이블로 태그 연결.
 
@@ -218,12 +252,16 @@ WD14 피드백 루프 데이터.
 | `custom_negative_prompt` | Text | 커스텀 네거티브 |
 | `reference_base_prompt` | Text | 참조 이미지 생성용 |
 | `reference_negative_prompt` | Text | 참조 네거티브 |
-| `preview_image_url` | String(500) | 미리보기 이미지 |
+| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
 | `prompt_mode` | String(20) | `auto`, `standard`, `lora` |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
 
+**Read-only 속성**:
+- `preview_image_url` (`@property`): `preview_image_asset.url` 반환
+
 > V3 변경: `identity_tags Integer[]`, `clothing_tags Integer[]` 제거 → `character_tags` 테이블로 이관
+> V3.1 변경: `preview_image_url` 제거 → `preview_image_asset_id` FK로 전환
 
 ### `loras`
 Stable Diffusion LoRA 모델.
@@ -242,8 +280,11 @@ Stable Diffusion LoRA 모델.
 | `optimal_weight` | Decimal(3,2) | 보정된 최적 가중치 |
 | `calibration_score` | Integer | 최적 가중치 시 점수 |
 | `weight_min`, `weight_max` | Decimal(3,2) | 가중치 범위 |
-| `preview_image_url` | String(500) | |
+| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `preview_image_url` (`@property`): `preview_image_asset.url` 반환
 
 ### `sd_models`
 Stable Diffusion 체크포인트.
@@ -258,8 +299,11 @@ Stable Diffusion 체크포인트.
 | `civitai_id` | Integer | |
 | `civitai_url` | String(500) | |
 | `description` | Text | |
-| `preview_image_url` | String(500) | |
+| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
 | `is_active` | Boolean | |
+
+**Read-only 속성**:
+- `preview_image_url` (`@property`): `preview_image_asset.url` 반환
 
 ### `style_profiles`
 Model + LoRAs + Embeddings 번들.
