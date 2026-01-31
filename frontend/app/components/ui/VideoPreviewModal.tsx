@@ -20,7 +20,7 @@ export default function VideoPreviewModal({ src, onClose }: VideoPreviewModalPro
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 p-4"
       onClick={onClose}
     >
       <div className="relative max-h-[90vh] max-w-[90vw]">
@@ -33,7 +33,7 @@ export default function VideoPreviewModal({ src, onClose }: VideoPreviewModalPro
         />
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 transition"
+          className="fixed top-6 right-6 z-[1010] flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
           aria-label="Close preview"
         >
           <svg

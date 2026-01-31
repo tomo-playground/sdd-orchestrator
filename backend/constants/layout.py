@@ -27,17 +27,30 @@ class FullLayout:
     Standard resolution: 1080x1920
     """
 
-    # === Subtitle Rendering ===
-    SUBTITLE_FONT_RATIO: float = 0.042  # height * ratio = font size (81px for 1920h, YouTube Shorts standard)
-    SUBTITLE_MIN_FONT_RATIO: float = 0.032  # minimum font size ratio (61px for 1920h)
-    SUBTITLE_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
-    SUBTITLE_Y_SINGLE_LINE_RATIO: float = 0.85  # Y position for 1 line (bottom 15%)
-    SUBTITLE_Y_MULTI_LINE_RATIO: float = 0.82  # Y position for 2+ lines (bottom 18%)
-    SUBTITLE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
-    SUBTITLE_STROKE_WIDTH: int = 5
-    SUBTITLE_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
-    SUBTITLE_MAX_LINES: int = 2
-    SUBTITLE_MAX_WIDTH_RATIO: float = 0.85  # width * ratio = max subtitle width
+    # === Scene Text Rendering (formerly "Subtitles") ===
+    # Scene text = script text overlaid on video (not to be confused with caption metadata)
+    SCENE_TEXT_FONT_RATIO: float = 0.042  # height * ratio = font size (81px for 1920h, YouTube Shorts standard)
+    SCENE_TEXT_MIN_FONT_RATIO: float = 0.032  # minimum font size ratio (61px for 1920h)
+    SCENE_TEXT_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
+    SCENE_TEXT_Y_SINGLE_LINE_RATIO: float = 0.85  # Y position for 1 line (bottom 15%)
+    SCENE_TEXT_Y_MULTI_LINE_RATIO: float = 0.82  # Y position for 2+ lines (bottom 18%)
+    SCENE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
+    SCENE_TEXT_STROKE_WIDTH: int = 5
+    SCENE_TEXT_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
+    SCENE_TEXT_MAX_LINES: int = 2
+    SCENE_TEXT_MAX_WIDTH_RATIO: float = 0.85  # width * ratio = max scene text width
+
+    # Deprecated aliases for backward compatibility
+    SUBTITLE_FONT_RATIO = SCENE_TEXT_FONT_RATIO
+    SUBTITLE_MIN_FONT_RATIO = SCENE_TEXT_MIN_FONT_RATIO
+    SUBTITLE_LINE_HEIGHT_RATIO = SCENE_TEXT_LINE_HEIGHT_RATIO
+    SUBTITLE_Y_SINGLE_LINE_RATIO = SCENE_TEXT_Y_SINGLE_LINE_RATIO
+    SUBTITLE_Y_MULTI_LINE_RATIO = SCENE_TEXT_Y_MULTI_LINE_RATIO
+    SUBTITLE_TEXT_COLOR = SCENE_TEXT_COLOR
+    SUBTITLE_STROKE_WIDTH = SCENE_TEXT_STROKE_WIDTH
+    SUBTITLE_STROKE_COLOR = SCENE_TEXT_STROKE_COLOR
+    SUBTITLE_MAX_LINES = SCENE_TEXT_MAX_LINES
+    SUBTITLE_MAX_WIDTH_RATIO = SCENE_TEXT_MAX_WIDTH_RATIO
 
     # === Overlay Layout ===
     SAFE_MARGIN_RATIO: float = 0.06  # width * ratio
@@ -92,9 +105,10 @@ class PostLayout:
 
     # === Section Heights (relative to card_height) ===
     HEADER_HEIGHT_RATIO: float = 0.055
-    SUBTITLE_AREA_HEIGHT_RATIO: float = 0.18  # 3줄 자막 대응
+    SCENE_TEXT_AREA_HEIGHT_RATIO: float = 0.18  # Scene text area (above image)
+    SUBTITLE_AREA_HEIGHT_RATIO = SCENE_TEXT_AREA_HEIGHT_RATIO  # Deprecated alias
     ACTION_BAR_HEIGHT_RATIO: float = 0.045
-    CAPTION_HEIGHT_RATIO: float = 0.13
+    CAPTION_HEIGHT_RATIO: float = 0.13  # Post metadata (likes, time, etc.)
 
     # === Profile/Avatar ===
     PROFILE_RADIUS_RATIO: float = 0.022  # card_height * ratio

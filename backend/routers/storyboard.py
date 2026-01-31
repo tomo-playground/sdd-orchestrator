@@ -47,10 +47,11 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             clip_skip=s_data.clip_skip,
             context_tags=s_data.context_tags,
             # Consistency Enhancements
-            use_reference_only=s_data.use_reference_only if s_data.use_reference_only is not None else True,
+            use_reference_only=int(s_data.use_reference_only) if s_data.use_reference_only is not None else 1,
             reference_only_weight=s_data.reference_only_weight or 0.5,
             environment_reference_id=s_data.environment_reference_id,
             environment_reference_weight=s_data.environment_reference_weight or 0.3,
+            candidates=s_data.candidates,  # Persist candidates
         )
         db.add(db_scene)
         db.flush()
@@ -137,6 +138,7 @@ def _serialize_scene(scene: Scene) -> dict:
         "environment_reference_id": scene.environment_reference_id,
         "environment_reference_weight": scene.environment_reference_weight,
         "image_asset_id": scene.image_asset_id,
+        "candidates": scene.candidates,  # Return candidates
     }
 
 
@@ -146,13 +148,24 @@ async def create_storyboard_endpoint(request: StoryboardRequest):
     return create_storyboard(request)
 
 
+
+def _truncate_title(title: str, max_length: int = 190) -> str:
+    """Truncate title if it exceeds constraints."""
+    if not title:
+        return "Untitled"
+    if len(title) > max_length:
+        return title[:max_length] + "..."
+    return title
+
+
 @router.post("")
 async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)):
     """Save a full storyboard and its scenes to the DB."""
-    logger.info("💾 [Storyboard Save] %s", request.title)
+    safe_title = _truncate_title(request.title)
+    logger.info("💾 [Storyboard Save] %s (truncated from %d chars)", safe_title, len(request.title))
 
     db_storyboard = Storyboard(
-        title=request.title,
+        title=safe_title,
         description=request.description,
         default_character_id=request.default_character_id,
         default_style_profile_id=request.default_style_profile_id,
@@ -247,10 +260,11 @@ async def update_storyboard(
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
-    logger.info("✏️ [Storyboard Update] id=%d title=%s", storyboard_id, request.title)
+    safe_title = _truncate_title(request.title)
+    logger.info("✏️ [Storyboard Update] id=%d title=%s", storyboard_id, safe_title)
 
     # Update metadata
-    storyboard.title = request.title
+    storyboard.title = safe_title
     storyboard.description = request.description
     storyboard.default_character_id = request.default_character_id
     storyboard.default_style_profile_id = request.default_style_profile_id

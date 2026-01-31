@@ -56,7 +56,7 @@ export default function PreflightModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -66,9 +66,11 @@ export default function PreflightModal({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
           >
-            ✕
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -197,11 +199,10 @@ export default function PreflightModal({
           <button
             onClick={handleRun}
             disabled={!preflight.canRun || !hasStepsToRun}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              preflight.canRun && hasStepsToRun
+            className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${preflight.canRun && hasStepsToRun
                 ? "bg-blue-600 hover:bg-blue-700 text-white"
                 : "bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed"
-            }`}
+              }`}
           >
             <span>▶</span>
             <span>실행 ({stepsToRun.length}단계)</span>
@@ -227,8 +228,8 @@ function SettingRow({
   const iconColor = check.valid
     ? "text-green-500"
     : check.required
-    ? "text-red-500"
-    : "text-yellow-500";
+      ? "text-red-500"
+      : "text-yellow-500";
 
   return (
     <div className="flex items-center justify-between px-3 py-2 text-sm">
@@ -277,11 +278,10 @@ function StepRow({
           </span>
         )}
         <span
-          className={`text-xs ${
-            check.needed
+          className={`text-xs ${check.needed
               ? "text-blue-600 dark:text-blue-400"
               : "text-gray-400 dark:text-gray-500"
-          }`}
+            }`}
         >
           {check.needed ? check.reason : `✓ ${check.reason}`}
         </span>

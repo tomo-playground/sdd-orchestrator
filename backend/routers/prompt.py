@@ -37,9 +37,37 @@ def get_effective_mode_from_dict(data: dict) -> str:
 
 
 def compose_prompt_tokens(tokens: list[str], mode: str, loras: list = None,
-                         complexity: str = None) -> str:
-    """Stub: Compose prompt tokens into final prompt."""
-    return " ".join(tokens)
+                          lora_strings: list[str] = None, trigger_words: list[str] = None,
+                          use_break: bool = True, complexity: str = None) -> list[str]:
+    """Compose prompt tokens into final token list."""
+    # Simple implementation: basic concatenation
+    composed = []
+    
+    # 1. Quality tags (if needed)
+    composed.extend(["best quality", "masterpiece"])
+    
+    # 2. Main tokens
+    composed.extend(tokens)
+    
+    # 3. LoRA triggers
+    if trigger_words:
+        composed.extend(trigger_words)
+        
+    # 4. Mode B specific: LoRA strings + BREAK
+    if mode == "lora":
+        if use_break:
+            composed.append("BREAK")
+        if lora_strings:
+            composed.extend(lora_strings)
+            
+    # Deduplicate and return
+    seen = set()
+    final = []
+    for t in composed:
+        if t not in seen:
+            final.append(t)
+            seen.add(t)
+    return final
 
 
 def calculate_lora_weight(base_weight: float, complexity: str,

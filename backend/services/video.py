@@ -667,8 +667,17 @@ class VideoBuilder:
                 sub_idx = subtitle_base_idx + i
                 logger.info(f"🎬 Scene {i}: Adding subtitle overlay (input [{sub_idx}:v])")
 
-                # Build subtitle filter (NO FADE - testing fix)
+                # Build subtitle filter with fade animation
+                fade_duration = 0.3  # seconds
                 sub_filter = f"[{sub_idx}:v]scale={self.out_w}:{self.out_h},format=rgba"
+
+                # Add fade in/out only if clip is long enough
+                if clip_dur > fade_duration * 2:
+                    fade_out_start = clip_dur - fade_duration
+                    sub_filter += (
+                        f",fade=t=in:st=0:d={fade_duration}:alpha=1"
+                        f",fade=t=out:st={fade_out_start}:d={fade_duration}:alpha=1"
+                    )
 
                 self.filters.append(f"{sub_filter}[sub{i}]")
                 self.filters.append(

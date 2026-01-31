@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Type alias for prompt mode
 PromptMode = Literal["auto", "standard", "lora"]
@@ -121,6 +121,8 @@ class AvatarResolveRequest(BaseModel):
 
 
 class VideoRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)  # Allow alias names
+
     scenes: list[VideoScene]
     project_id: int | None = None
     group_id: int | None = None
@@ -135,8 +137,9 @@ class VideoRequest(BaseModel):
     transition_type: str = "fade"  # Scene transition effect
     narrator_voice: str = "ko-KR-SunHiNeural"
     speed_multiplier: float = 1.0
-    include_subtitles: bool = True
-    subtitle_font: str | None = None
+    # Scene text (formerly "subtitles") - shows scene script on video
+    include_scene_text: bool = Field(default=True, alias="include_subtitles")
+    scene_text_font: str | None = Field(default=None, alias="subtitle_font")
     overlay_settings: OverlaySettings | None = None
     post_card_settings: PostCardSettings | None = None
     audio_ducking: bool = True

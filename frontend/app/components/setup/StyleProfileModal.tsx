@@ -112,8 +112,19 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl rounded-3xl border border-white/20 bg-white p-8 shadow-2xl">
+        {/* Close Button */}
+        {onSkip && (
+          <button
+            onClick={onSkip}
+            className="absolute top-4 right-4 rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         {/* Header */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-zinc-900">스타일 프로필 선택</h2>
@@ -142,11 +153,10 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
                 <button
                   key={profile.id}
                   onClick={() => setSelectedProfileId(profile.id)}
-                  className={`group relative rounded-2xl border p-5 text-left transition-all duration-300 ${
-                    selectedProfileId === profile.id
+                  className={`group relative rounded-2xl border p-5 text-left transition-all duration-300 ${selectedProfileId === profile.id
                       ? "border-indigo-300 bg-indigo-50 shadow-lg shadow-indigo-500/10"
                       : "border-zinc-200 bg-white hover:border-indigo-200 hover:shadow-md"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -170,11 +180,10 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
                       )}
                     </div>
                     {/* Radio indicator */}
-                    <div className={`shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedProfileId === profile.id
+                    <div className={`shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedProfileId === profile.id
                         ? "border-indigo-500 bg-indigo-500"
                         : "border-zinc-300 bg-white"
-                    }`}>
+                      }`}>
                       {selectedProfileId === profile.id && (
                         <div className="h-2 w-2 rounded-full bg-white" />
                       )}

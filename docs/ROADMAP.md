@@ -70,7 +70,34 @@
 | **Overlay Animation** | 헤더/푸터 슬라이드 인 효과 (0.5초, 상하 분리) | [x] |
 | **Ken Burns Vertical Presets** | Full Layout 최적화 프리셋 6종 (pan_up_vertical 등, Y축 2배 확장) | [x] |
 | **Ken Burns + Subtitle Sync** | 자막을 켄번 효과 전에 합성하여 이미지와 함께 자연스럽게 움직임 | [x] |
+| **Full Layout Improvements** | 자막 크기/위치 최적화 + 크롭 위치 명시 (4개 작업, ~40분) | [→] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
+
+#### 5-2.8. Full Layout Improvements (진행 중)
+**목표**: YouTube Shorts 표준 부합 및 전신 샷 최적화 (자막 가독성 + 크롭 안정성)
+
+**이미지 해상도**: 512x768 유지 (VRAM 8GB 환경 고려)
+
+| # | 작업 | 파일 | 변경 내용 | 상태 |
+|---|------|------|----------|------|
+| 1 | 자막 크기 증가 | `backend/constants/layout.py:31-32` | `SUBTITLE_FONT_RATIO: 0.034→0.042` (65px→81px)<br>`SUBTITLE_MIN_FONT_RATIO: 0.026→0.032` (50px→61px) | [ ] |
+| 2 | 자막 위치 하향 | `backend/constants/layout.py:34-35` | `SUBTITLE_Y_SINGLE_LINE_RATIO: 0.72→0.85`<br>`SUBTITLE_Y_MULTI_LINE_RATIO: 0.70→0.82` | [ ] |
+| 3 | 크롭 위치 명시 | `backend/services/video.py:705-711` | FFmpeg crop 필터에 Y축 위치 추가<br>`crop=w:h:0:(ih-oh)*0.3` | [ ] |
+| 4 | Layout 상수 추가 | `backend/constants/layout.py` | `CROP_Y_RATIO: float = 0.3` 추가 | [ ] |
+
+**예상 소요 시간**: 40분 (수정 18분 + 테스트 22분)
+
+**DoD**:
+- [ ] 4개 파일 수정 완료 (~8줄)
+- [ ] 테스트 영상 생성
+- [ ] 자막 하단 15-18% 위치 확인
+- [ ] 전신 샷 머리 보존 확인
+- [ ] 자막 크기 81px 확인
+
+**검증 계획**:
+1. Visual Test: 자막 크기/위치 시각적 확인
+2. VRT: 크롭 위치 변경 전후 비교
+3. Full Render: 실제 스토리보드 렌더링 테스트
 
 ### 5-3. 콘텐츠 확장
 | 작업 | 설명 | 상태 |
@@ -301,13 +328,34 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 3 | **Batch Tools** | 관리자용 Character Reference 일괄 재생성 도구 (UI/API) | [x] |
 | 4 | **Refactoring Preparation** | `ManagePage.tsx` 분할을 위한 구조 검토 | [x] |
 
+### 6-4.37. Stability & Polish - **COMPLETE** (2026-01-31)
+**목표**: 운영 중 발견된 크리티컬 버그 수정 및 UI/UX 개선.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **UI Polish** | 헤더 제목 말줄임표 처리, 불필요한 레이아웃 여백 제거 | [x] |
+| 2 | **DB Stability** | Storyboard Title 길이 제한(200자), Boolean 타입 캐스팅 오류 수정 | [x] |
+| 3 | **Prompt Engine Fix** | `compose_prompt_tokens` 로직 구현 및 500 에러 해결 | [x] |
+| 4 | **Warning Cleanup** | ControlNet `lowvram` → `low_vram` 파라미터 최신화 | [x] |
+
+---
+
+#### 6-4.38. ManagePage Refactoring - **COMPLETE** (2026-01-31)
+**목표**: 유지보수성 향상을 위해 거대 컴포넌트를 모듈화.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **ManagePage Modularization** | 2,600줄 → 6개 탭 컴포넌트 분리 (Settings/Assets/Tags/Style/Prompts/Eval) | [x] |
+| 2 | **Component Isolation** | 각 탭의 독립적 데이터 페칭 및 상태 관리 구현 | [x] |
+| 3 | **Hook Optimization** | `useTags`, `useCharacters` 등 기존 훅 재사용 및 최적화 | [x] |
+
 ---
 
 ### 6-5. Upcoming Refactoring (Technical Debt)
 | 작업 | 설명 | 상태 |
 |---|------|------|
-| **ManagePage Modularization** | 2,600줄 거대 컴포넌트를 탭별 서브 컴포넌트로 분리 (Style/Assets/Tags) | [ ] |
-| **Hook Extraction** | `useManageState` 등 커스텀 훅 분리 | [ ] |
+| **Hook Extraction** | `useManageState` 등 커스텀 훅 분리 (부분 완료) | [ ] |
+| **Common UI Toolkit** | 버튼, 인풋 등 공통 컴포넌트 라이브러리화 | [ ] |
 
 ---
 

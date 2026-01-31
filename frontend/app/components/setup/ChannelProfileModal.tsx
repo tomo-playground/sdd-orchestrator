@@ -19,11 +19,13 @@ type ReferenceImage = {
 type ChannelProfileModalProps = {
   onComplete: (profile: ChannelProfile) => void;
   initialProfile?: ChannelProfile | null;
+  onCancel?: () => void;
 };
 
 export default function ChannelProfileModal({
   onComplete,
   initialProfile,
+  onCancel,
 }: ChannelProfileModalProps) {
   const [channelName, setChannelName] = useState(initialProfile?.channel_name || "");
   const [avatarKey, setAvatarKey] = useState(initialProfile?.avatar_key || "");
@@ -63,8 +65,19 @@ export default function ChannelProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* Close Button */}
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4">
           <h2 className="text-xl font-bold text-white">
@@ -106,11 +119,10 @@ export default function ChannelProfileModal({
                     key={avatar.character_key}
                     type="button"
                     onClick={() => setAvatarKey(avatar.character_key)}
-                    className={`relative rounded-xl border-2 p-2 transition-all ${
-                      avatarKey === avatar.character_key
-                        ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
-                        : "border-zinc-200 hover:border-zinc-300 bg-white"
-                    }`}
+                    className={`relative rounded-xl border-2 p-2 transition-all ${avatarKey === avatar.character_key
+                      ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                      : "border-zinc-200 hover:border-zinc-300 bg-white"
+                      }`}
                   >
                     <div className="aspect-square rounded-lg bg-zinc-100 flex items-center justify-center overflow-hidden">
                       <img

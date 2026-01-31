@@ -356,7 +356,7 @@ function StudioContent() {
               Home
             </button>
             <span className="text-zinc-300">/</span>
-            <h1 data-testid="storyboard-title" className="text-sm font-bold text-zinc-900">
+            <h1 data-testid="storyboard-title" className="text-sm font-bold text-zinc-900 truncate max-w-[200px] md:max-w-md">
               {storyboardTitle || "New Storyboard"}
             </h1>
           </div>
@@ -441,6 +441,7 @@ function StudioContent() {
               setShowStyleProfileModal(true);
             }
           }}
+          onCancel={() => setShowChannelProfileModal(false)}
         />
       )}
 

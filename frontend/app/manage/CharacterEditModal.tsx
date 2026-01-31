@@ -270,14 +270,21 @@ export default function CharacterEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
           <h2 className="text-lg font-bold text-zinc-900">
             {isCreateMode ? "Create New Character" : `Edit Character: ${character?.name}`}
           </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">✕</button>
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Body */}

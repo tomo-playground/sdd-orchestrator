@@ -214,7 +214,7 @@ def build_controlnet_args(
         "weight": weight,
         "control_mode": control_mode, # "Balanced", "My prompt is more important", "ControlNet is more important"
         "pixel_perfect": True,
-        "lowvram": False,
+        "low_vram": False,
         "guidance_start": 0.0,
         "guidance_end": 1.0,
     }

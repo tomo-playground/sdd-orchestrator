@@ -176,7 +176,7 @@ def init_tag_caches():
     """
     from services.keywords.core import TagFilterCache
     from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
-    from services.prompt.prompt_composition import get_token_category
+    from services.prompt.prompt import get_token_category
 
     # --- TagFilterCache: skip tags ---
     TagFilterCache._initialized = True

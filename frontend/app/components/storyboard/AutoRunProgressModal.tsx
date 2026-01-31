@@ -18,7 +18,7 @@ export default function AutoRunProgressModal({
   onCancel,
 }: AutoRunProgressModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl">
         <div className="mb-3 flex items-center justify-between text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           <div className="flex items-center gap-2">

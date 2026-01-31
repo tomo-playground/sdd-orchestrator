@@ -78,14 +78,21 @@ export default function StoryboardGeneratorPanel({
       </div>
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Topic
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              Topic
+            </label>
+            <span className={`text-[10px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
+              }`}>
+              {topic.length}/200
+            </span>
+          </div>
           <textarea
             data-testid="topic-input"
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            onChange={(e) => setTopic(e.target.value.slice(0, 200))}
             rows={12}
+            maxLength={200}
             className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
             placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
           />
