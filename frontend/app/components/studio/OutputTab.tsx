@@ -22,7 +22,7 @@ export default function OutputTab() {
     layoutStyle,
     frameStyle,
     isRendering,
-    includeSubtitles,
+    includeSceneText,
     subtitleFont,
     fontList,
     loadedFonts,
@@ -153,7 +153,7 @@ export default function OutputTab() {
           ken_burns_preset: kenBurnsPreset,
           ken_burns_intensity: kenBurnsIntensity,
           transition_type: transitionType,
-          include_subtitles: includeSubtitles,
+          include_scene_text: includeSceneText,
           subtitle_font: subtitleFont,
           narrator_voice: narratorVoice,
           speed_multiplier: speedMultiplier,
@@ -184,7 +184,7 @@ export default function OutputTab() {
         setOutput({ isRendering: false });
       }
     },
-    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSubtitles, subtitleFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, channelProfile, hasValidProfile, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
+    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, subtitleFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, channelProfile, hasValidProfile, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
   );
 
   const handleDeleteRecentVideo = useCallback(
@@ -390,8 +390,8 @@ export default function OutputTab() {
         scenesWithImages={scenes.filter((s) => !!s.image_url).length}
         totalScenes={scenes.length}
         onRender={() => handleRender(layoutStyle)}
-        includeSubtitles={includeSubtitles}
-        setIncludeSubtitles={(v) => setOutput({ includeSubtitles: v })}
+        includeSceneText={includeSceneText}
+        setIncludeScene Text={(v) => setOutput({ includeSceneText: v })}
         subtitleFont={subtitleFont}
         setSubtitleFont={(v) => setOutput({ subtitleFont: v })}
         fontList={fontList}

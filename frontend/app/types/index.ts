@@ -332,7 +332,7 @@ export type DraftData = {
   baseSamplerA?: string;
   baseSeedA?: number;
   baseClipSkipA?: number;
-  includeSubtitles?: boolean;
+  includeSceneText?: boolean;
   narratorVoice?: string;
   bgmFile?: string | null;
   audioDucking?: boolean;

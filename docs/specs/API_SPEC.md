@@ -225,8 +225,8 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "ken_burns_intensity": 1.0,
   "narrator_voice": "ko-KR-SunHiNeural",
   "speed_multiplier": 1.0,
-  "include_subtitles": true,
-  "subtitle_font": "NanumGothic.ttf",
+  "include_scene_text": true,
+  "scene_text_font": "NanumGothic.ttf",
   "overlay_settings": {
     "channel_name": "daily_shorts",
     "avatar_key": "daily_shorts",

@@ -37,7 +37,7 @@ export interface OutputSlice {
   isRendering: boolean;
 
   // Audio
-  includeSubtitles: boolean;
+  includeSceneText: boolean;
   narratorVoice: string;
   bgmList: AudioItem[];
   bgmFile: string | null;
@@ -83,7 +83,7 @@ const initialOutputState = {
   kenBurnsIntensity: 1.0,
   transitionType: "random",
   isRendering: false,
-  includeSubtitles: true,
+  includeSceneText: true,
   narratorVoice: VOICES[0].id,
   bgmList: [] as AudioItem[],
   bgmFile: "random" as string | null,

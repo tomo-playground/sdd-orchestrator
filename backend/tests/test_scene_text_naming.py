@@ -65,8 +65,10 @@ class TestSceneTextNaming:
         assert hasattr(FullLayout, "SCENE_TEXT_MIN_FONT_RATIO")
         assert hasattr(FullLayout, "SCENE_TEXT_Y_SINGLE_LINE_RATIO")
 
-        # Should NOT have old naming
-        assert not hasattr(FullLayout, "SUBTITLE_FONT_RATIO")
+        # OLD NAMING (deprecated but still available for backward compatibility)
+        assert hasattr(FullLayout, "SUBTITLE_FONT_RATIO")
+        # Verify aliases point to same values
+        assert FullLayout.SUBTITLE_FONT_RATIO == FullLayout.SCENE_TEXT_FONT_RATIO
 
     def test_render_scene_text_function_signature(self):
         """render_scene_text_image function should exist (not render_subtitle_image)."""

@@ -215,7 +215,7 @@ class VideoBuilder:
         from schemas import OverlaySettings, PostCardSettings
         from services.avatar import ensure_avatar_file
         from services.image import (
-            calculate_optimal_subtitle_y,
+            calculate_optimal_scene_text_y,
             load_image_bytes,
         )
         from services.rendering import (
@@ -225,25 +225,25 @@ class VideoBuilder:
             compose_post_frame,
             create_overlay_footer,
             create_overlay_header,
-            render_subtitle_image,
+            render_scene_text_image,
             resolve_overlay_frame,
-            resolve_subtitle_font_path,
+            resolve_scene_text_font_path,
         )
         from services.utils import get_audio_duration, to_edge_tts_rate, wrap_text, wrap_text_by_font
 
         self.request = request
         self._ensure_avatar_file = ensure_avatar_file
         self._load_image_bytes = load_image_bytes
-        self._calculate_optimal_subtitle_y = calculate_optimal_subtitle_y
+        self._calculate_optimal_scene_text_y = calculate_optimal_scene_text_y
         self._random_meta_values = _random_meta_values
         self._apply_post_overlay_mask = apply_post_overlay_mask
         self._calculate_post_layout_metrics = calculate_post_layout_metrics
         self._compose_post_frame = compose_post_frame
         self._create_overlay_header = create_overlay_header
         self._create_overlay_footer = create_overlay_footer
-        self._render_subtitle_image = render_subtitle_image
+        self._render_scene_text_image = render_scene_text_image
         self._resolve_overlay_frame = resolve_overlay_frame
-        self._resolve_subtitle_font_path = resolve_subtitle_font_path
+        self._resolve_scene_text_font_path = resolve_scene_text_font_path
         self._get_audio_duration = get_audio_duration
         self._to_edge_tts_rate = to_edge_tts_rate
         self._wrap_text = wrap_text
@@ -261,7 +261,7 @@ class VideoBuilder:
             self.safe_title, request.layout_style
         )
         self.video_path = VIDEO_DIR / self.video_filename
-        self.font_path = self._resolve_subtitle_font_path(request.subtitle_font)
+        self.font_path = self._resolve_scene_text_font_path(request.scene_text_font)
 
         # Calculated values
         self.num_scenes = len(request.scenes)
@@ -288,7 +288,7 @@ class VideoBuilder:
         self.tts_valid: list[bool] = []
         self.tts_durations: list[float] = []
         self.subtitle_lines: list[list[str]] = []
-        self.subtitle_font_sizes: list[int] = []  # Dynamic font size per scene
+        self.scene_text_font_sizes: list[int] = []  # Dynamic font size per scene
         self.scene_durations: list[float] = []
         self.avatar_file: str | None = None
         self.post_avatar_file: str | None = None
@@ -405,13 +405,13 @@ class VideoBuilder:
                 img_path.write_bytes(image_bytes)
 
             # Process subtitles with pixel-based wrapping and dynamic font sizing
-            if self.request.include_subtitles:
-                lines, font_size = self._wrap_subtitle_text(clean_script)
+            if self.request.include_scene_text:
+                lines, font_size = self._wrap_scene_text_text(clean_script)
                 self.subtitle_lines.append(lines)
-                self.subtitle_font_sizes.append(font_size)
+                self.scene_text_font_sizes.append(font_size)
             else:
                 self.subtitle_lines.append([])
-                self.subtitle_font_sizes.append(0)
+                self.scene_text_font_sizes.append(0)
 
             # Generate TTS (use cleaned script for better pronunciation)
             has_valid_tts, tts_duration = await self._generate_tts(
@@ -431,7 +431,7 @@ class VideoBuilder:
             self.tts_valid.append(has_valid_tts)
             self.tts_durations.append(tts_duration)
 
-    def _wrap_subtitle_text(self, text: str) -> tuple[list[str], int]:
+    def _wrap_scene_text_text(self, text: str) -> tuple[list[str], int]:
         """Wrap subtitle text based on font pixel width with dynamic font sizing.
 
         Calculates max width and font size based on layout type,
@@ -577,24 +577,24 @@ class VideoBuilder:
                 self.out_w, self.out_h
             )
 
-        self._add_subtitle_inputs()
+        self._add_scene_text_inputs()
         self._build_video_filters()
         self._build_audio_filters()
         self._apply_transitions()
         self._apply_overlays()
         self._apply_bgm()
 
-    def _add_subtitle_inputs(self) -> None:
+    def _add_scene_text_inputs(self) -> None:
         """Add subtitle image inputs with dynamic positioning."""
-        if not self.request.include_subtitles:
-            logger.info("🚫 Subtitles disabled (include_subtitles=False)")
+        if not self.request.include_scene_text:
+            logger.info("🚫 Subtitles disabled (include_scene_text=False)")
             return
 
         from PIL import Image
 
         for i in range(self.num_scenes):
             subtitle_path = self.temp_dir / f"subtitle_{i}.png"
-            font_size = self.subtitle_font_sizes[i] if self.subtitle_font_sizes[i] > 0 else None
+            font_size = self.scene_text_font_sizes[i] if self.scene_text_font_sizes[i] > 0 else None
 
             logger.info(f"📝 Scene {i} subtitle:")
             logger.info(f"  - Lines: {self.subtitle_lines[i]}")
@@ -607,7 +607,7 @@ class VideoBuilder:
             try:
                 if scene_img_path.exists():
                     scene_img = Image.open(scene_img_path)
-                    subtitle_y_ratio = self._calculate_optimal_subtitle_y(
+                    subtitle_y_ratio = self._calculate_optimal_scene_text_y(
                         scene_img,
                         layout_style=self.request.layout_style
                     )
@@ -615,7 +615,7 @@ class VideoBuilder:
             except Exception as e:
                 logger.warning(f"Scene {i}: failed to calculate dynamic subtitle position: {e}")
 
-            subtitle_img = self._render_subtitle_image(
+            subtitle_img = self._render_scene_text_image(
                 self.subtitle_lines[i],
                 self.out_w, self.out_h,
                 self.font_path,
@@ -663,7 +663,7 @@ class VideoBuilder:
 
             # Step 2: Apply subtitles BEFORE Ken Burns
             presub_label = f"v{i}_scaled"
-            if self.request.include_subtitles:
+            if self.request.include_scene_text:
                 sub_idx = subtitle_base_idx + i
                 logger.info(f"🎬 Scene {i}: Adding subtitle overlay (input [{sub_idx}:v])")
 
@@ -686,7 +686,7 @@ class VideoBuilder:
                 presub_label = f"v{i}_with_sub"
                 logger.info(f"🎬 Scene {i}: Subtitle overlay complete → [{presub_label}]")
             else:
-                logger.info(f"🎬 Scene {i}: No subtitles (include_subtitles={self.request.include_subtitles})")
+                logger.info(f"🎬 Scene {i}: No subtitles (include_scene_text={self.request.include_scene_text})")
 
             # Step 3: Apply Ken Burns effect to composited image
             preset_name = self._resolve_scene_preset(i)
@@ -799,7 +799,7 @@ class VideoBuilder:
     def _apply_overlays(self) -> None:
         """Apply overlay graphics to video with slide-in animation."""
         next_input_idx = self.num_scenes * 2
-        if self.request.include_subtitles:
+        if self.request.include_scene_text:
             next_input_idx += self.num_scenes
 
         if not self.request.overlay_settings:
@@ -925,7 +925,7 @@ class VideoBuilder:
         logger.info("-" * 80)
         logger.info(f"Video map: {self._map_v}")
         logger.info(f"Audio map: {self._map_a}")
-        logger.info(f"Include subtitles: {self.request.include_subtitles}")
+        logger.info(f"Include subtitles: {self.request.include_scene_text}")
         logger.info("=" * 80)
 
         cmd = ["ffmpeg", "-y"] + self.input_args + [

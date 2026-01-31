@@ -64,7 +64,7 @@ export function migrateDraft(): void {
         layoutStyle: draft.layoutStyle ?? "post",
         kenBurnsPreset: draft.kenBurnsPreset ?? "random",
         kenBurnsIntensity: draft.kenBurnsIntensity ?? 1.0,
-        includeSubtitles: draft.includeSubtitles ?? true,
+        includeSceneText: draft.includeSceneText ?? true,
         narratorVoice: draft.narratorVoice ?? "ko-KR-SunHiNeural",
         bgmFile: draft.bgmFile ?? "random",
         audioDucking: draft.audioDucking ?? true,

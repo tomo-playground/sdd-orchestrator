@@ -52,8 +52,8 @@ type RenderSettingsPanelProps = {
   totalScenes: number;
   onRender: () => void;
   // Video Settings
-  includeSubtitles: boolean;
-  setIncludeSubtitles: (value: boolean) => void;
+  includeSceneText: boolean;
+  setIncludeScene Text: (value: boolean) => void;
   subtitleFont: string;
   setSubtitleFont: (value: string) => void;
   fontList: FontItem[];
@@ -102,8 +102,8 @@ export default function RenderSettingsPanel({
   scenesWithImages,
   totalScenes,
   onRender,
-  includeSubtitles,
-  setIncludeSubtitles,
+  includeSceneText,
+  setIncludeScene Text,
   subtitleFont,
   setSubtitleFont,
   fontList,
@@ -206,11 +206,11 @@ export default function RenderSettingsPanel({
           {/* Video Row */}
           <div className="grid gap-3 md:grid-cols-3">
             <label className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600">
-              Subtitles
+              Scene Text
               <input
                 type="checkbox"
-                checked={includeSubtitles}
-                onChange={(e) => setIncludeSubtitles(e.target.checked)}
+                checked={includeSceneText}
+                onChange={(e) => setIncludeScene Text(e.target.checked)}
                 className="h-4 w-4 accent-zinc-900"
               />
             </label>

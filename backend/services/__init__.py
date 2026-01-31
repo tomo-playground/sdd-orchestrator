@@ -37,7 +37,8 @@ from .rendering import (
     compose_post_frame,
     create_overlay_image,
     load_avatar_image,
-    render_subtitle_image,
+    render_scene_text_image,
+    render_subtitle_image,  # Deprecated alias
     resolve_overlay_frame,
     resolve_subtitle_font_path,
 )
@@ -88,7 +89,8 @@ __all__ = [
     "compose_post_frame",
     "create_overlay_image",
     "load_avatar_image",
-    "render_subtitle_image",
+    "render_scene_text_image",
+    "render_subtitle_image",  # Deprecated alias
     "resolve_overlay_frame",
     "resolve_subtitle_font_path",
     # Image

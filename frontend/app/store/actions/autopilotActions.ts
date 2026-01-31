@@ -167,7 +167,7 @@ export async function runAutoRunFromStep(
           bgm_file: useStudioStore.getState().bgmFile,
           audio_ducking: useStudioStore.getState().audioDucking,
           bgm_volume: useStudioStore.getState().bgmVolume,
-          include_subtitles: useStudioStore.getState().includeSubtitles,
+          include_scene_text: useStudioStore.getState().includeSceneText,
           subtitle_font: useStudioStore.getState().subtitleFont,
         };
         const res = await axios.post(`${API_BASE}/video/create`, payload);

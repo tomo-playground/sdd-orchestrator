@@ -6,6 +6,15 @@ import { API_BASE } from "../../constants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import type { StyleProfile, StyleProfileFull, LoRA, SDModelEntry, Embedding } from "../../types";
 
+type CivitaiResult = {
+    id: number;
+    name: string;
+    type: string;
+    version_id: number;
+    preview_url: string;
+    image_url: string;
+};
+
 export default function StyleTab() {
     const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
     const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
@@ -21,7 +30,7 @@ export default function StyleTab() {
 
     // Civitai Search
     const [civitaiSearch, setCivitaiSearch] = useState("");
-    const [civitaiResults, setCivitaiResults] = useState<LoRA[]>([]);
+    const [civitaiResults, setCivitaiResults] = useState<CivitaiResult[]>([]);
     const [isSearchingCivitai, setIsSearchingCivitai] = useState(false);
 
     useEffect(() => {
@@ -125,8 +134,8 @@ export default function StyleTab() {
 
             // 3. Update new style with original's content
             await axios.put(`${API_BASE}/styles/${newId}`, {
-                prompt: fullOriginal.prompt,
-                negative_prompt: fullOriginal.negative_prompt,
+                default_positive: fullOriginal.default_positive,
+                default_negative: fullOriginal.default_negative,
             });
 
             await fetchStyles();
@@ -149,7 +158,7 @@ export default function StyleTab() {
         setIsSearchingCivitai(true);
         setCivitaiResults([]);
         try {
-            const res = await axios.get<{ items: LoRA[] }>(`${API_BASE}/civitai/search`, {
+            const res = await axios.get<{ items: CivitaiResult[] }>(`${API_BASE}/civitai/search`, {
                 params: { query: civitaiSearch, limit: 10 },
             });
             setCivitaiResults(res.data.items || []);
@@ -182,8 +191,8 @@ export default function StyleTab() {
         try {
             await axios.put(`${API_BASE}/loras/${editingLora.id}`, {
                 name: editingLora.name,
-                trigger_word: editingLora.trigger_word,
-                preferred_weight: editingLora.preferred_weight,
+                trigger_words: editingLora.trigger_words,
+                default_weight: editingLora.default_weight,
             });
             setEditingLora(null);
             await fetchPublicLoras();
@@ -298,8 +307,8 @@ export default function StyleTab() {
                                 Positive Prompt
                             </label>
                             <textarea
-                                value={selectedProfile.prompt || ""}
-                                onChange={(e) => handleUpdateStyle(selectedProfile.id, { prompt: e.target.value })}
+                                value={selectedProfile.default_positive || ""}
+                                onChange={(e) => handleUpdateStyle(selectedProfile.id, { default_positive: e.target.value })}
                                 className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
                                 placeholder="Describe the style..."
                             />
@@ -309,8 +318,8 @@ export default function StyleTab() {
                                 Negative Prompt
                             </label>
                             <textarea
-                                value={selectedProfile.negative_prompt || ""}
-                                onChange={(e) => handleUpdateStyle(selectedProfile.id, { negative_prompt: e.target.value })}
+                                value={selectedProfile.default_negative || ""}
+                                onChange={(e) => handleUpdateStyle(selectedProfile.id, { default_negative: e.target.value })}
                                 className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
                                 placeholder="What to avoid..."
                             />
@@ -331,11 +340,11 @@ export default function StyleTab() {
                         </div>
                         <div className="max-h-60 overflow-y-auto custom-scrollbar rounded-xl border border-zinc-200 bg-zinc-50 p-2">
                             {sdModels.map((model) => (
-                                <div key={model.model_name} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition">
+                                <div key={model.name} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition">
                                     <div className="h-2 w-2 rounded-full bg-emerald-400" />
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-xs font-bold text-zinc-700">{model.title}</p>
-                                        <p className="truncate text-[9px] text-zinc-400">{model.model_name}</p>
+                                        <p className="truncate text-xs font-bold text-zinc-700">{model.display_name || model.name}</p>
+                                        <p className="truncate text-[9px] text-zinc-400">{model.base_model || "Unknown Base"}</p>
                                     </div>
                                 </div>
                             ))}
@@ -353,7 +362,7 @@ export default function StyleTab() {
                             {embeddings.map((emb) => (
                                 <div key={emb.name} className="flex items-center justify-between p-2 hover:bg-white rounded-lg transition">
                                     <span className="text-[10px] font-bold text-zinc-600">{emb.name}</span>
-                                    <span className="text-[9px] text-zinc-400">{emb.step || "?"} steps</span>
+                                    <span className="text-[9px] text-zinc-400">{emb.embedding_type}</span>
                                 </div>
                             ))}
                         </div>
@@ -403,7 +412,7 @@ export default function StyleTab() {
                                         </h4>
                                         <div className="mt-3 flex items-center justify-between">
                                             <button
-                                                onClick={() => handleDownloadModel(item.version_id!, item.type as "LORA" | "Checkpoint")}
+                                                onClick={() => handleDownloadModel(item.version_id, "LORA")}
                                                 className="flex-1 rounded-lg bg-zinc-900 py-1.5 text-[10px] font-bold text-white transition hover:bg-indigo-600"
                                             >
                                                 Download
@@ -433,7 +442,7 @@ export default function StyleTab() {
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-zinc-700">{lora.name}</p>
-                                            <p className="text-[10px] text-zinc-400">{lora.trigger_word || "No trigger word"}</p>
+                                            <p className="text-[10px] text-zinc-400">{lora.trigger_words?.join(", ") || "No trigger words"}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-1">
@@ -457,7 +466,7 @@ export default function StyleTab() {
                                 </div>
                                 {lora.preview_url && (
                                     <div className="mt-3 aspect-[3/2] w-full overflow-hidden rounded-lg bg-zinc-100">
-                                        <img src={lora.preview_url} alt="" className="h-full w-full object-cover opacity-80" />
+                                        <img src={lora.preview_image_url} alt="" className="h-full w-full object-cover opacity-80" />
                                     </div>
                                 )}
                             </div>
@@ -487,23 +496,23 @@ export default function StyleTab() {
                                     Trigger Word (Optional)
                                 </label>
                                 <input
-                                    value={editingLora.trigger_word || ""}
-                                    onChange={(e) => setEditingLora({ ...editingLora, trigger_word: e.target.value })}
+                                    value={editingLora.trigger_words?.join(", ") || ""}
+                                    onChange={(e) => setEditingLora({ ...editingLora, trigger_words: e.target.value.split(",").map(s => s.trim()) })}
                                     className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-indigo-500"
                                     placeholder="e.g. style-pixel"
                                 />
                             </div>
                             <div>
                                 <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                                    Preferred Weight: {editingLora.preferred_weight ?? 1.0}
+                                    Default Weight: {editingLora.default_weight.toFixed(1)}
                                 </label>
                                 <input
                                     type="range"
                                     min="0.1"
                                     max="2.0"
                                     step="0.1"
-                                    value={editingLora.preferred_weight ?? 1.0}
-                                    onChange={(e) => setEditingLora({ ...editingLora, preferred_weight: parseFloat(e.target.value) })}
+                                    value={editingLora.default_weight ?? 1.0}
+                                    onChange={(e) => setEditingLora({ ...editingLora, default_weight: parseFloat(e.target.value) })}
                                     className="w-full"
                                 />
                             </div>

@@ -124,3 +124,24 @@ backend/
 | `/prompt-validate` | 프롬프트 문법 검증 |
 
 > Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조
+
+## 용어 정의 (Terminology)
+
+### Scene Text vs Caption (2026-01-31 변경)
+
+**혼란 방지를 위한 명확한 용어 구분:**
+
+| 용어 | 설명 | 위치 | 예시 |
+|------|------|------|------|
+| **Scene Text** | 씬의 스크립트 텍스트 (영상 위 오버레이) | Full: 영상 위 하단<br>Post: 이미지 위 영역 | "처음 칼을 잡았을 때,<br>너무 무서웠어" |
+| **Caption** | 게시물 메타데이터 (좋아요, 시간 등) | Post: 카드 하단 | "좋아요 6만개<br>15분 전" |
+
+**변경 사항:**
+- `subtitles` → `scene_text` (네이밍 혼란 해소)
+- `include_subtitles` → `include_scene_text`
+- `SUBTITLE_*` → `SCENE_TEXT_*` (상수)
+
+**후방 호환성:**
+- 기존 `include_subtitles` 필드명은 별칭(alias)으로 작동
+- 기존 코드 수정 없이 동작하지만, 신규 코드는 `scene_text` 사용 권장
+

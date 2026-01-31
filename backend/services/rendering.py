@@ -263,7 +263,7 @@ def _draw_text_with_fallback(
 
 
 # --- Subtitle rendering ---
-def render_subtitle_image(
+def render_scene_text_image(
     lines: list[str],
     width: int,
     height: int,
@@ -271,7 +271,7 @@ def render_subtitle_image(
     use_post_layout: bool,
     post_layout_metrics: dict[str, int] | None,
     font_size_override: int | None = None,
-    subtitle_y_ratio: float | None = None,
+    scene_text_y_ratio: float | None = None,
 ) -> Image.Image:
     """Render subtitle text as transparent image.
 
@@ -283,7 +283,7 @@ def render_subtitle_image(
         use_post_layout: Whether to use post (1:1) layout.
         post_layout_metrics: Layout metrics for post mode.
         font_size_override: Optional font size to use instead of calculated size.
-        subtitle_y_ratio: Optional Y position ratio (0-1). If provided, overrides default positioning.
+        scene_text_y_ratio: Optional Y position ratio (0-1). If provided, overrides default positioning.
     """
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
@@ -300,11 +300,11 @@ def render_subtitle_image(
         card_x = post_layout_metrics["card_x"]
         card_width = post_layout_metrics["card_width"]
         card_padding = post_layout_metrics["card_padding"]
-        subtitle_y = post_layout_metrics["subtitle_y"]
-        subtitle_area_height = post_layout_metrics["subtitle_area_height"]
+        scene_text_y = post_layout_metrics["scene_text_y"]
+        scene_text_area_height = post_layout_metrics["scene_text_area_height"]
 
         text_area_width = card_width - (card_padding * 2)
-        text_start_y = subtitle_y + int(subtitle_area_height * 0.1)
+        text_start_y = scene_text_y + int(scene_text_area_height * 0.1)
 
         for idx, line in enumerate(lines[:3]):
             line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
@@ -330,8 +330,8 @@ def render_subtitle_image(
     line_count = len(lines)
 
     # Use dynamic subtitle position if provided
-    if subtitle_y_ratio is not None:
-        text_y_pos = int(height * subtitle_y_ratio)
+    if scene_text_y_ratio is not None:
+        text_y_pos = int(height * scene_text_y_ratio)
     elif line_count > 1:
         text_y_pos = int(height * 0.70)
     else:
@@ -351,6 +351,10 @@ def render_subtitle_image(
             stroke_fill=(0, 0, 0, 255),
         )
     return canvas
+
+
+# Deprecated alias for backward compatibility
+render_subtitle_image = render_scene_text_image
 
 
 # --- Overlay rendering ---
@@ -783,7 +787,7 @@ def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
     card_height = int(height * 0.86)
     card_padding = int(card_width * 0.04)
     header_height = int(card_height * 0.055)
-    subtitle_area_height = int(card_height * 0.18)
+    scene_text_area_height = int(card_height * 0.18)
     action_bar_height = int(card_height * 0.045)
     caption_height = int(card_height * 0.13)
 
@@ -792,7 +796,7 @@ def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
 
     inner_width = card_width - (card_padding * 2)
     inner_height = card_height - (
-        card_padding * 2 + header_height + subtitle_area_height +
+        card_padding * 2 + header_height + scene_text_area_height +
         action_bar_height + caption_height
     )
     image_area = min(inner_width, inner_height)
@@ -800,8 +804,8 @@ def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
     image_area = int(image_area * 0.98)
 
     image_x = card_x + card_padding
-    subtitle_y = card_y + card_padding + header_height
-    image_y = subtitle_y + subtitle_area_height
+    scene_text_y = card_y + card_padding + header_height
+    image_y = scene_text_y + scene_text_area_height
 
     return {
         "card_width": card_width,
@@ -810,13 +814,13 @@ def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
         "card_x": card_x,
         "card_y": card_y,
         "header_height": header_height,
-        "subtitle_area_height": subtitle_area_height,
+        "scene_text_area_height": scene_text_area_height,
         "action_bar_height": action_bar_height,
         "caption_height": caption_height,
         "image_area": image_area,
         "image_x": image_x,
         "image_y": image_y,
-        "subtitle_y": subtitle_y,
+        "scene_text_y": scene_text_y,
     }
 
 
