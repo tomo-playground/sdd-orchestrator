@@ -304,6 +304,8 @@ Style Profile (세트)
 | 10 | **DB 무결성 정리** | storage_key 중복 bucket prefix 제거 (4건), 고아 레코드 삭제 (2건) | [x] |
 | 11 | **API 응답 형식 통일** | `/fonts/list` 응답 형식 수정 (`string[]` → `{name: string}[]`) | [x] |
 | 12 | **Assets API 테스트** | `test_router_assets.py` 10개 테스트 (폰트/오디오/오버레이 리스트, 파일 서빙) | [x] |
+| 13 | **UI/UX 개선** | 폰트 미리보기 (FontFace API 동적 로딩), Audio 레이아웃 겹침 수정 (2-row grid) | [x] |
+| 14 | **Video Asset 생성 활성화** | Frontend payload에 project_id/group_id 전송, MinIO URL 저장 (로컬 경로 제거) | [x] |
 
 **아키텍처**:
 - **Hierarchy**: `projects/{p_id}/groups/{g_id}/storyboards/{s_id}/{type}/{filename}`
@@ -322,12 +324,17 @@ storage = get_storage()  # 함수 내에서 초기화
 storage.get_url(key)
 ```
 
-**수정된 파일** (7개):
-- `routers/storyboard.py`: URL 파싱 시 bucket prefix 제거
-- `services/rendering.py`, `video.py`, `controlnet.py`: `get_storage()` 패턴
-- `routers/avatar.py`, `characters.py`: import 및 초기화 수정
-- `routers/assets.py`: `/fonts/list` 응답 형식 변경
-- `tests/test_router_assets.py`: 10개 API 테스트 추가
+**수정된 파일** (11개):
+- **Backend (7개)**:
+  - `routers/storyboard.py`: URL 파싱 시 bucket prefix 제거
+  - `services/rendering.py`, `video.py`, `controlnet.py`: `get_storage()` 패턴
+  - `routers/avatar.py`, `characters.py`: import 및 초기화 수정
+  - `routers/assets.py`: `/fonts/list` 응답 형식 변경
+  - `tests/test_router_assets.py`: 10개 API 테스트 추가
+- **Frontend (2개)**:
+  - `components/studio/OutputTab.tsx`: 폰트 동적 로딩 + project_id/group_id 전송
+  - `components/video/RenderSettingsPanel.tsx`: Audio grid 레이아웃 2-row 재구성
+- **Assets (2개)**: `poses/` 신규 2종 + 기존 4종 최적화
 
 ---
 
@@ -460,6 +467,7 @@ brew install claude-squad  # 명령어: cs
 - **2026-01-28~30**: V3 Core Architecture 전환 (16커밋, 275파일, +12,980/-6,320줄) → 6-2.5 기록
 - **2026-01-30**: project_name 잔존 참조 정리 (스크립트 4개 + 프론트엔드 + 문서), 모델 필드 재배치, 로드맵 전면 정리
 - **2026-01-30**: **영상 중복 표시 수정**, 탭 순서 변경 (캐릭터 우선), **프롬프트 헬퍼 복구**, DB 마이그레이션(v3.1)
+- **2026-01-31**: **Asset Management 완전 통합** - Storage 초기화 일관성, Assets API 테스트 10개, UI 개선 (폰트 미리보기/레이아웃), Video MediaAsset 생성 활성화
 
 ---
 
