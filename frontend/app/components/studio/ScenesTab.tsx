@@ -133,7 +133,7 @@ export default function ScenesTab() {
         <p className="text-sm text-zinc-400">No scenes yet. Generate a storyboard first.</p>
         <button
           onClick={() => useStudioStore.getState().setActiveTab("plan")}
-          className="rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+          className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 hover:bg-zinc-800"
         >
           Go to Plan
         </button>

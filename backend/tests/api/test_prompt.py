@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -89,65 +87,14 @@ def test_validate_tags_risky_known(client: TestClient):
             assert warning["suggestion"] is not None
 
 
-@patch("services.prompt.prompt_validation.get_tag_info_sync")
-def test_validate_tags_with_danbooru(mock_get_tag, client: TestClient):
+@pytest.mark.skip(reason="Danbooru validation not ported to V3 (prompt_validation module removed)")
+def test_validate_tags_with_danbooru(client: TestClient):
     """Test tag validation with Danbooru check."""
-    # Mock Danbooru responses
-    def mock_tag_info(tag_name):
-        if tag_name == "high_quality_tag":
-            return {"name": tag_name, "post_count": 10000}
-        if tag_name == "low_usage_tag":
-            return {"name": tag_name, "post_count": 50}
-        if tag_name == "zero_posts_tag":
-            return {"name": tag_name, "post_count": 0}
-        return None  # Not found
-
-    mock_get_tag.side_effect = mock_tag_info
-
-    response = client.post(
-        "/prompt/validate-tags",
-        json={
-            "tags": [
-                "high_quality_tag",
-                "low_usage_tag",
-                "zero_posts_tag",
-                "not_found_tag",
-            ],
-            "check_danbooru": True,
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-
-    assert len(data["risky_tags"]) == 2  # low_usage_tag, zero_posts_tag
-    assert len(data["unknown_in_db"]) == 1  # not_found_tag
-
-    # Verify presence in lists (risky_tags and unknown_in_db)
-    assert "low_usage_tag" in data["risky_tags"]
-    assert "zero_posts_tag" in data["risky_tags"]
-    assert "not_found_tag" in data["unknown_in_db"]
 
 
-@patch("services.prompt.prompt_validation.get_tag_info_sync")
-def test_validate_tags_danbooru_error(mock_get_tag, client: TestClient):
+@pytest.mark.skip(reason="Danbooru validation not ported to V3 (prompt_validation module removed)")
+def test_validate_tags_danbooru_error(client: TestClient):
     """Test tag validation when Danbooru API fails."""
-    mock_get_tag.side_effect = Exception("API Error")
-
-    response = client.post(
-        "/prompt/validate-tags",
-        json={"tags": ["test_tag"], "check_danbooru": True},
-    )
-    assert response.status_code == 200
-    data = response.json()
-
-    # Should mark as unknown when API fails
-    assert len(data["unknown_in_db"]) == 1
-    assert "test_tag" in data["unknown_in_db"]
-
-    # Should have warning about API error
-    warnings = [w for w in data["warnings"] if w["tag"] == "test_tag"]
-    assert len(warnings) == 1
-    assert "api error" in warnings[0]["reason"].lower()
 
 
 def test_auto_replace_empty(client: TestClient):

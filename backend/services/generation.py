@@ -157,23 +157,36 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             if ref_image_test:
                 request.use_ip_adapter = True
                 request.ip_adapter_reference = character_obj.name
-                # Use character's weight or optimal weight from experiments (0.75)
                 if character_obj.ip_adapter_weight:
                     request.ip_adapter_weight = character_obj.ip_adapter_weight
                 else:
-                    request.ip_adapter_weight = 0.75  # Optimal from CHARACTER_CONSISTENCY experiments
+                    request.ip_adapter_weight = 0.75
                     logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
                                character_obj.name, request.ip_adapter_weight)
-        else:
+        elif not character_obj:
             # Phase 6-4.26: Auto-populate character_id from IP-Adapter reference
-            if request.use_ip_adapter and request.ip_adapter_reference and not request.character_id:
+            if request.use_ip_adapter and request.ip_adapter_reference:
                 from models import Character
-                character_obj = db.query(Character).filter(Character.name == request.ip_adapter_reference).first()
+                character_obj = db.query(Character).filter(
+                    Character.name == request.ip_adapter_reference
+                ).first()
                 if character_obj:
                     request.character_id = character_obj.id
                     logger.info("📊 [Activity Log] Auto-set character_id=%d from IP-Adapter reference '%s'",
                                request.character_id, request.ip_adapter_reference)
-            cleaned_prompt = normalize_prompt_tokens(request.prompt)
+                    # Run V3 composition for auto-populated character
+                    v3_service = V3PromptService(db)
+                    scene_tags = split_prompt_tokens(request.prompt)
+                    cleaned_prompt = v3_service.generate_prompt_for_scene(
+                        character_id=request.character_id,
+                        scene_tags=scene_tags,
+                        style_loras=request.style_loras,
+                    )
+                    logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d",
+                               request.character_id)
+            # No character at all — just normalize the raw prompt
+            if not request.character_id:
+                cleaned_prompt = normalize_prompt_tokens(request.prompt)
     except Exception as e:
         logger.error(f"Error during prompt preparation: {e}")
         cleaned_prompt = normalize_prompt_tokens(request.prompt)

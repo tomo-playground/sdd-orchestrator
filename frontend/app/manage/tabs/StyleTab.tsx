@@ -7,12 +7,13 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import type { StyleProfile, StyleProfileFull, LoRA, SDModelEntry, Embedding } from "../../types";
 
 type CivitaiResult = {
-    id: number;
+    civitai_id: number;
     name: string;
-    type: string;
-    version_id: number;
-    preview_url: string;
-    image_url: string;
+    type: "LORA" | "Checkpoint";
+    trigger_words: string[];
+    base_model: string;
+    preview_image: string;
+    civitai_url: string;
 };
 
 export default function StyleTab() {
@@ -43,8 +44,8 @@ export default function StyleTab() {
     const fetchStyles = async () => {
         setIsStyleLoading(true);
         try {
-            const res = await axios.get<{ styles: StyleProfile[] }>(`${API_BASE}/styles/`);
-            setStyleProfiles(res.data.styles || []);
+            const res = await axios.get<StyleProfile[]>(`${API_BASE}/style-profiles/`);
+            setStyleProfiles(res.data || []);
         } catch {
             console.error("Failed to fetch styles");
         } finally {
@@ -54,8 +55,8 @@ export default function StyleTab() {
 
     const fetchSdModels = async () => {
         try {
-            const res = await axios.get<{ models: SDModelEntry[] }>(`${API_BASE}/sd/models/entries`);
-            setSdModels(res.data.models || []);
+            const res = await axios.get<SDModelEntry[]>(`${API_BASE}/sd-models`);
+            setSdModels(res.data || []);
         } catch {
             console.error("Failed to fetch SD models");
         }
@@ -63,8 +64,8 @@ export default function StyleTab() {
 
     const fetchEmbeddings = async () => {
         try {
-            const res = await axios.get<{ embeddings: Embedding[] }>(`${API_BASE}/sd/embeddings`);
-            setEmbeddings(res.data.embeddings || []);
+            const res = await axios.get<Embedding[]>(`${API_BASE}/embeddings`);
+            setEmbeddings(res.data || []);
         } catch {
             console.error("Failed to fetch embeddings");
         }
@@ -72,8 +73,8 @@ export default function StyleTab() {
 
     const fetchPublicLoras = async () => {
         try {
-            const res = await axios.get<{ loras: LoRA[] }>(`${API_BASE}/loras/`);
-            setLoraEntries(res.data.loras || []);
+            const res = await axios.get<LoRA[]>(`${API_BASE}/loras/`);
+            setLoraEntries(res.data || []);
         } catch {
             console.error("Failed to fetch public LoRAs");
         }
@@ -83,7 +84,7 @@ export default function StyleTab() {
         const name = prompt("New Style Name:");
         if (!name) return;
         try {
-            await axios.post(`${API_BASE}/styles/`, { name });
+            await axios.post(`${API_BASE}/style-profiles/`, { name });
             await fetchStyles();
         } catch {
             alert("Failed to create style");
@@ -93,7 +94,7 @@ export default function StyleTab() {
     const handleDeleteStyle = async (id: number) => {
         if (!confirm("Delete this style?")) return;
         try {
-            await axios.delete(`${API_BASE}/styles/${id}`);
+            await axios.delete(`${API_BASE}/style-profiles/${id}`);
             if (selectedProfile?.id === id) setSelectedProfile(null);
             await fetchStyles();
         } catch {
@@ -103,11 +104,11 @@ export default function StyleTab() {
 
     const handleUpdateStyle = async (id: number, data: Partial<StyleProfile>) => {
         try {
-            await axios.put(`${API_BASE}/styles/${id}`, data);
+            await axios.put(`${API_BASE}/style-profiles/${id}`, data);
             await fetchStyles();
             // Update selected profile locally if it's the one being edited
             if (selectedProfile && selectedProfile.id === id) {
-                const res = await axios.get<StyleProfileFull>(`${API_BASE}/styles/${id}`);
+                const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
                 setSelectedProfile(res.data);
             }
         } catch {
@@ -123,17 +124,17 @@ export default function StyleTab() {
 
         try {
             // 1. Create new style
-            const createRes = await axios.post<{ id: number; name: string }>(`${API_BASE}/styles/`, {
+            const createRes = await axios.post<{ id: number; name: string }>(`${API_BASE}/style-profiles/`, {
                 name: newName,
             });
             const newId = createRes.data.id;
 
             // 2. Fetch full details of original to get prompt/neg
-            const detailRes = await axios.get<StyleProfileFull>(`${API_BASE}/styles/${id}`);
+            const detailRes = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
             const fullOriginal = detailRes.data;
 
             // 3. Update new style with original's content
-            await axios.put(`${API_BASE}/styles/${newId}`, {
+            await axios.put(`${API_BASE}/style-profiles/${newId}`, {
                 default_positive: fullOriginal.default_positive,
                 default_negative: fullOriginal.default_negative,
             });
@@ -146,7 +147,7 @@ export default function StyleTab() {
 
     const handleLoadProfile = async (id: number) => {
         try {
-            const res = await axios.get<StyleProfileFull>(`${API_BASE}/styles/${id}`);
+            const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
             setSelectedProfile(res.data);
         } catch {
             alert("Failed to load style details");
@@ -158,10 +159,10 @@ export default function StyleTab() {
         setIsSearchingCivitai(true);
         setCivitaiResults([]);
         try {
-            const res = await axios.get<{ items: CivitaiResult[] }>(`${API_BASE}/civitai/search`, {
+            const res = await axios.get<{ results: CivitaiResult[] }>(`${API_BASE}/loras/search-civitai`, {
                 params: { query: civitaiSearch, limit: 10 },
             });
-            setCivitaiResults(res.data.items || []);
+            setCivitaiResults(res.data.results || []);
         } catch {
             alert("Search failed or no results");
         } finally {
@@ -169,17 +170,17 @@ export default function StyleTab() {
         }
     };
 
-    const handleDownloadModel = async (versionId: number, type: "LORA" | "Checkpoint") => {
-        const userConfirm = confirm(`Download this ${type}? It may take a while.`);
+    const handleDownloadModel = async (modelId: number, type: "LORA" | "Checkpoint") => {
+        if (type !== "LORA") {
+            alert("Only LoRA download is supported by backend for now.");
+            return;
+        }
+        const userConfirm = confirm(`Download this LoRA (ID: ${modelId})? It may take a while.`);
         if (!userConfirm) return;
 
         try {
-            await axios.post(`${API_BASE}/civitai/download`, {
-                model_version_id: versionId,
-                type: type,
-            });
-            alert("Download started in background. Check console/logs.");
-            // Refresh component lists after a delay? Or just let user refresh manually.
+            await axios.post(`${API_BASE}/loras/import-civitai/${modelId}`);
+            alert("Download started. Check database later.");
         } catch {
             alert("Download request failed");
         }
@@ -397,13 +398,13 @@ export default function StyleTab() {
                     {civitaiResults.length > 0 && (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {civitaiResults.map((item) => (
-                                <div key={item.id} className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm hover:shadow-md">
+                                <div key={item.civitai_id} className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm hover:shadow-md">
                                     <div className="aspect-video bg-zinc-100 w-full relative">
-                                        {item.preview_url && (
-                                            <img src={item.preview_url} alt={item.name} className="h-full w-full object-cover" />
+                                        {item.preview_image && (
+                                            <img src={item.preview_image} alt={item.name} className="h-full w-full object-cover" />
                                         )}
                                         <div className="absolute top-2 right-2 rounded bg-black/50 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
-                                            {item.type}
+                                            LoRA
                                         </div>
                                     </div>
                                     <div className="p-4">
@@ -412,7 +413,7 @@ export default function StyleTab() {
                                         </h4>
                                         <div className="mt-3 flex items-center justify-between">
                                             <button
-                                                onClick={() => handleDownloadModel(item.version_id, "LORA")}
+                                                onClick={() => handleDownloadModel(item.civitai_id, "LORA")}
                                                 className="flex-1 rounded-lg bg-zinc-900 py-1.5 text-[10px] font-bold text-white transition hover:bg-indigo-600"
                                             >
                                                 Download
@@ -464,7 +465,7 @@ export default function StyleTab() {
                                         </button>
                                     </div>
                                 </div>
-                                {lora.preview_url && (
+                                {lora.preview_image_url && (
                                     <div className="mt-3 aspect-[3/2] w-full overflow-hidden rounded-lg bg-zinc-100">
                                         <img src={lora.preview_image_url} alt="" className="h-full w-full object-cover opacity-80" />
                                     </div>

@@ -20,6 +20,7 @@ router = APIRouter(prefix="/video", tags=["video"])
 @router.post("/create")
 async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
     logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
+    logger.info(f"🔍 [DEBUG] include_scene_text={request.include_scene_text}, scene_text_font={request.scene_text_font}")
     res = await create_video_task(request)
     video_url = res.get("video_url")
 
@@ -155,3 +156,66 @@ async def get_transitions():
     from constants.transition import get_transition_list
 
     return {"transitions": get_transition_list()}
+
+
+@router.post("/extract-caption")
+async def extract_caption(request: dict):
+    """Extract a concise caption from longer text using LLM.
+
+    Accepts:
+        - text: str (the long text to extract from)
+
+    Returns:
+        - caption: str (extracted concise caption, max 60 chars)
+    """
+    from config import GEMINI_TEXT_MODEL, gemini_client
+
+    text = request.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini API not configured")
+
+    # If text is already short enough, return as-is
+    if len(text) <= 60:
+        return {"caption": text}
+
+    try:
+        prompt = f"""다음 텍스트에서 핵심 내용만 추출하여 60자 이내의 간결한 캡션을 만들어주세요.
+규칙:
+- 반드시 60자 이내로 작성
+- 핵심 키워드와 주제만 포함
+- 해시태그 포함 가능
+- 이모지 사용 가능하지만 과도하지 않게
+
+텍스트:
+{text}
+
+캡션만 출력하세요 (설명이나 따옴표 없이):"""
+
+        response = gemini_client.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=prompt
+        )
+
+        caption = response.text.strip()
+
+        # Remove quotes if present
+        if caption.startswith('"') and caption.endswith('"'):
+            caption = caption[1:-1]
+        if caption.startswith("'") and caption.endswith("'"):
+            caption = caption[1:-1]
+
+        # Ensure it's within 60 chars (hard truncate if needed)
+        if len(caption) > 60:
+            caption = caption[:60].rstrip()
+
+        logger.info(f"📝 Caption extracted: {len(text)} chars → {len(caption)} chars")
+        return {"caption": caption, "original_length": len(text)}
+
+    except Exception as exc:
+        logger.exception("Caption extraction failed")
+        # Fallback: simple truncation
+        fallback = text[:60].rstrip()
+        return {"caption": fallback, "fallback": True}

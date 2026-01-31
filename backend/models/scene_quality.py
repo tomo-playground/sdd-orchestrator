@@ -13,7 +13,7 @@ class SceneQualityScore(Base, TimestampMixin):
     __tablename__ = "scene_quality_scores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    storyboard_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("storyboards.id"), index=True)
+    storyboard_id: Mapped[int | None] = mapped_column(Integer, index=True)
     scene_id: Mapped[int] = mapped_column(Integer, index=True)
     image_url: Mapped[str] = mapped_column(String(500))
     prompt: Mapped[str | None] = mapped_column(Text)

@@ -31,8 +31,7 @@ export default function AssetsTab() {
         axios
             .get(`${API_BASE}/fonts/list`)
             .then((res) => {
-                const list = (res.data.fonts || []).map((name: string) => ({ name }));
-                setFontList(list);
+                setFontList(res.data.fonts || []);
             })
             .catch(() => setFontList([]));
 
@@ -110,7 +109,7 @@ export default function AssetsTab() {
                 <div className="grid gap-4">
                     <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                         <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
-                            Subtitle Typography
+                            Scene Text Typography
                         </span>
                     </div>
                     {fontList.length === 0 ? (

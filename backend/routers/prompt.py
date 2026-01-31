@@ -24,7 +24,6 @@ from services.prompt import (
     validate_identity_tags,
     validate_loras,
 )
-from services.keywords.validation import validate_prompt_tags
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 
@@ -42,24 +41,24 @@ def compose_prompt_tokens(tokens: list[str], mode: str, loras: list = None,
     """Compose prompt tokens into final token list."""
     # Simple implementation: basic concatenation
     composed = []
-    
+
     # 1. Quality tags (if needed)
     composed.extend(["best quality", "masterpiece"])
-    
+
     # 2. Main tokens
     composed.extend(tokens)
-    
+
     # 3. LoRA triggers
     if trigger_words:
         composed.extend(trigger_words)
-        
+
     # 4. Mode B specific: LoRA strings + BREAK
     if mode == "lora":
         if use_break:
             composed.append("BREAK")
         if lora_strings:
             composed.extend(lora_strings)
-            
+
     # Deduplicate and return
     seen = set()
     final = []
@@ -190,73 +189,76 @@ async def compose_prompt(request: PromptComposeRequest):
         [lora.name for lora in (request.loras or [])],
     )
 
-    # Detect effective mode
-    effective_mode = get_effective_mode_from_dict(request.model_dump())
+    try:
+        # Detect effective mode
+        effective_mode = get_effective_mode_from_dict(request.model_dump())
 
-    # Extract LoRA strings and trigger words (if Mode B)
-    lora_strings = []
-    trigger_words = []
-    # Extract LoRA strings and trigger words (regardless of mode)
-    lora_strings = []
-    trigger_words = []
-    if request.loras:
-        for lora in request.loras:
-            lora_strings.append(f"<lora:{lora.name}:{lora.weight}>")
-            if lora.trigger_words:
-                trigger_words.extend(lora.trigger_words)
+        # Extract LoRA strings and trigger words (regardless of mode)
+        lora_strings = []
+        trigger_words = []
+        if request.loras:
+            for lora in request.loras:
+                lora_strings.append(f"<lora:{lora.name}:{lora.weight}>")
+                if lora.trigger_words:
+                    trigger_words.extend(lora.trigger_words)
 
-    # Compose prompt tokens
-    composed_tokens = compose_prompt_tokens(
-        tokens=request.tokens,
-        mode=effective_mode,
-        lora_strings=lora_strings,
-        trigger_words=trigger_words,
-        use_break=request.use_break if request.use_break is not None else True,
-    )
-
-    # Build final prompt string
-    composed_prompt = ", ".join(composed_tokens)
-
-    # Calculate scene complexity (for all modes)
-    scene_complexity = detect_scene_complexity(request.tokens)
-
-    # Calculate metadata
-    result_metadata = {
-        "prompt": composed_prompt,
-        "tokens": composed_tokens,
-        "effective_mode": effective_mode,
-        "scene_complexity": scene_complexity,
-        "lora_weights": None,
-        "meta": {
-            "token_count": len(composed_tokens),
-            "has_break": "BREAK" in composed_tokens,
-            "quality_tags_added": any(t in composed_tokens for t in ["best_quality", "masterpiece"]),
-        },
-    }
-
-    # Mode B specific metadata (Dynamic Adjustment)
-    if effective_mode == "lora" and request.loras:
-        adjusted_weight = calculate_lora_weight(
-            base_weight=request.loras[0].weight,
-            scene_complexity=scene_complexity,
+        # Compose prompt tokens
+        composed_tokens = compose_prompt_tokens(
+            tokens=request.tokens,
+            mode=effective_mode,
+            lora_strings=lora_strings,
+            trigger_words=trigger_words,
+            use_break=request.use_break if request.use_break is not None else True,
         )
-        result_metadata["lora_weights"] = {
-            request.loras[0].name: adjusted_weight
-        }
-    # Standard Mode metadata (Static Weights)
-    elif request.loras:
-        result_metadata["lora_weights"] = {
-            lora.name: lora.weight for lora in request.loras
+
+        # Build final prompt string
+        composed_prompt = ", ".join(composed_tokens)
+
+        # Calculate scene complexity (for all modes)
+        scene_complexity = detect_scene_complexity(request.tokens)
+
+        # Calculate metadata
+        result_metadata = {
+            "prompt": composed_prompt,
+            "tokens": composed_tokens,
+            "effective_mode": effective_mode,
+            "scene_complexity": scene_complexity,
+            "lora_weights": None,
+            "meta": {
+                "token_count": len(composed_tokens),
+                "has_break": "BREAK" in composed_tokens,
+                "quality_tags_added": any(t in composed_tokens for t in ["best_quality", "masterpiece"]),
+            },
         }
 
-    logger.info(
-        "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",
-        effective_mode,
-        len(request.tokens),
-        len(composed_tokens),
-    )
+        # Mode B specific metadata (Dynamic Adjustment)
+        if effective_mode == "lora" and request.loras:
+            adjusted_weight = calculate_lora_weight(
+                base_weight=request.loras[0].weight,
+                complexity=scene_complexity,
+                token_count=len(composed_tokens),
+            )
+            result_metadata["lora_weights"] = {
+                request.loras[0].name: adjusted_weight
+            }
+        # Standard Mode metadata (Static Weights)
+        elif request.loras:
+            result_metadata["lora_weights"] = {
+                lora.name: lora.weight for lora in request.loras
+            }
 
-    return result_metadata
+        logger.info(
+            "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",
+            effective_mode,
+            len(request.tokens),
+            len(composed_tokens),
+        )
+
+        return result_metadata
+
+    except Exception as e:
+        logger.exception("❌ [Prompt Compose Error]")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class ValidateTagsRequest(BaseModel):
@@ -281,28 +283,46 @@ async def validate_tags(
 
     Checks:
     1. Tag existence in local DB
-    2. Tag post count in Danbooru (if enabled)
-    3. Known problematic tags (e.g., "medium shot")
+    2. Known problematic tags via TagAliasCache
+    3. Tag post count in Danbooru (if enabled)
 
     Returns validation results with warnings for risky tags.
     """
+    from models.tag import Tag
+    from services.keywords.db_cache import TagAliasCache
+
     logger.info("📥 [Validate Tags] tags=%d, check_danbooru=%s", len(request.tags), request.check_danbooru)
 
-    result = validate_prompt_tags(prompt_tags=request.tags)
+    risky_tags: list[str] = []
+    unknown_in_db: list[str] = []
+    warnings: list[dict] = []
+
+    for tag in request.tags:
+        # Check if risky (has alias replacement)
+        replacement = TagAliasCache.get_replacement(tag)
+        if replacement is not ...:
+            risky_tags.append(tag)
+            suggestion = replacement if replacement else None
+            reason = "removed (no alternative)" if not replacement else "risky tag"
+            warnings.append({"tag": tag, "reason": reason, "suggestion": suggestion})
+            continue
+
+        # Check DB existence
+        normalized = tag.strip().replace(" ", "_")
+        exists = db.query(Tag).filter(Tag.name == normalized).first()
+        if not exists:
+            unknown_in_db.append(tag)
 
     logger.info(
-        "✅ [Validate Tags] risky=%d, unknown=%d, low_posts=%d",
-        len(result["risky"]),
-        len(result["unknown"]),
-        len(result.get("low_post_count", [])),
+        "✅ [Validate Tags] risky=%d, unknown=%d",
+        len(risky_tags), len(unknown_in_db),
     )
 
     return {
-        "risky_tags": result["risky"],
-        "unknown_in_db": result["unknown"],
-        "low_post_count": result.get("low_post_count", []),
-        "warnings": result["warnings"],
-        "total": result["total_tags"],
+        "risky_tags": risky_tags,
+        "unknown_in_db": unknown_in_db,
+        "warnings": warnings,
+        "total": len(request.tags),
     }
 
 
@@ -310,21 +330,40 @@ async def validate_tags(
 async def replace_tags(request: AutoReplaceRequest):
     """Automatically replace known risky tags with safe alternatives.
 
-    Replaces problematic tags like "medium shot" with Danbooru-verified alternatives
-    like "cowboy shot".
-
-    Returns replacement results with original/replaced tags.
-
-    TODO: Re-implement auto_replace_risky_tags function
+    Uses TagAliasCache to replace problematic tags like "medium shot"
+    with Danbooru-verified alternatives like "cowboy_shot".
     """
-    logger.warning("⚠️ [Auto Replace] Function disabled - returning original tags")
+    from services.keywords.db_cache import TagAliasCache
 
-    # Temporary stub implementation
+    logger.info("📥 [Auto Replace] tags=%d", len(request.tags))
+
+    replaced: list[str] = []
+    replacements: list[dict] = []
+    removed: list[str] = []
+
+    for tag in request.tags:
+        replacement = TagAliasCache.get_replacement(tag)
+        if replacement is ...:
+            # Not a risky tag, keep as-is
+            replaced.append(tag)
+        elif replacement is None:
+            # Should be removed (no alternative)
+            removed.append(tag)
+            replacements.append({"from": tag, "to": None, "action": "removed"})
+        else:
+            # Replace with alternative
+            replaced.append(replacement)
+            replacements.append({"from": tag, "to": replacement, "action": "replaced"})
+
+    replaced_count = sum(1 for r in replacements if r["action"] == "replaced")
+
     return {
-        "original_tags": request.tags,
-        "replaced_tags": request.tags,
-        "replacements": [],
-        "replaced_count": 0
+        "original": request.tags,
+        "replaced": replaced,
+        "replacements": replacements,
+        "replaced_count": replaced_count,
+        "removed_count": len(removed),
+        "removed": removed,
     }
 
 

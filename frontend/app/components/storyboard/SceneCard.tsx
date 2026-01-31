@@ -686,7 +686,7 @@ export default function SceneCard({
                   seed: scene.seed,
                   clip_skip: scene.clip_skip,
                   width: 512,
-                  height: 512,
+                  height: 768,
                 };
                 onUpdateScene({
                   debug_payload: JSON.stringify(payload, null, 2),

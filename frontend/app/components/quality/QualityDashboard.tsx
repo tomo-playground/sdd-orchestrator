@@ -40,7 +40,7 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
       setSummary(res.data);
     } catch (err: any) {
       console.error("Failed to load quality summary:", err);
-      setError(err.response?.data?.detail || "Failed to load quality data");
+      setError(err.response?.data?.detail || err.message || "Failed to load quality data");
     } finally {
       setLoading(false);
     }

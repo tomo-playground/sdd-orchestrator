@@ -137,12 +137,12 @@ def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> 
     return float(min(1.0, max(0.0, complexity)))
 
 
-def calculate_optimal_subtitle_y(
+def calculate_optimal_scene_text_y(
     image: Image.Image,
     default_y_ratio: float = 0.72,
     layout_style: str = "full"
 ) -> float:
-    """Calculate optimal Y position for subtitle based on image content.
+    """Calculate optimal Y position for scene text based on image content.
 
     Args:
         image: PIL Image to analyze
@@ -155,14 +155,14 @@ def calculate_optimal_subtitle_y(
     complexity = analyze_bottom_complexity(image)
 
     # Thresholds for adjustment (calibrated for std_dev + edge_density metric)
-    HIGH_COMPLEXITY = 0.20  # Move subtitle up if complexity > 0.20
-    LOW_COMPLEXITY = 0.10   # Move subtitle down if complexity < 0.10
+    HIGH_COMPLEXITY = 0.20  # Move scene text up if complexity > 0.20
+    LOW_COMPLEXITY = 0.10   # Move scene text down if complexity < 0.10
 
     if complexity > HIGH_COMPLEXITY:
-        # High complexity: move subtitle up significantly
+        # High complexity: move scene text up significantly
         return 0.60 if layout_style == "full" else 0.78
     elif complexity < LOW_COMPLEXITY:
-        # Low complexity: can place subtitle lower
+        # Low complexity: can place scene text lower
         return 0.75 if layout_style == "full" else 0.85
     else:
         # Moderate complexity: use default

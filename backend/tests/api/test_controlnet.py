@@ -101,24 +101,24 @@ class TestReferenceImages:
         assert isinstance(data["references"], list)
 
     def test_load_reference_image_existing(self):
-        """Test loading an existing reference image."""
-        from services.controlnet import REFERENCE_DIR, load_reference_image
+        """Test loading an existing reference image via DB."""
+        from unittest.mock import MagicMock, patch
 
-        # Check if any reference images exist
-        ref_files = list(REFERENCE_DIR.glob("*.png"))
-        if not ref_files:
-            pytest.skip("No reference images available for testing")
+        from services.controlnet import load_reference_image
 
-        character_key = ref_files[0].stem
-        result = load_reference_image(character_key)
+        # Mock DB with a character that has a preview image
+        mock_db = MagicMock()
+        mock_char = MagicMock()
+        mock_char.preview_image_url = "s3://bucket/ref.png"
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_char
+
+        fake_bytes = b"fake_image_data"
+        fake_b64 = base64.b64encode(fake_bytes).decode()
+        with patch("services.controlnet.load_image_bytes", return_value=fake_bytes):
+            result = load_reference_image("test_character", db=mock_db)
 
         assert result is not None
-        # Should be valid base64
-        try:
-            decoded = base64.b64decode(result)
-            assert len(decoded) > 0
-        except Exception as e:
-            pytest.fail(f"Invalid base64 data: {e}")
+        assert result == fake_b64
 
     def test_load_reference_image_nonexistent(self):
         """Test loading a non-existent reference image returns None."""
@@ -181,21 +181,9 @@ class TestSceneGenerationWithIpAdapter:
 
     def test_ip_adapter_payload_construction(self):
         """Test that IP-Adapter payload is correctly constructed."""
-        from services.controlnet import (
-            REFERENCE_DIR,
-            build_ip_adapter_args,
-            load_reference_image,
-        )
+        from services.controlnet import build_ip_adapter_args
 
-        # Check if any reference images exist
-        ref_files = list(REFERENCE_DIR.glob("*.png"))
-        if not ref_files:
-            pytest.skip("No reference images available for testing")
-
-        character_key = ref_files[0].stem
-        ref_image = load_reference_image(character_key)
-
-        assert ref_image is not None
+        ref_image = base64.b64encode(b"fake_reference_image").decode()
 
         # Build IP-Adapter args
         args = build_ip_adapter_args(
@@ -213,17 +201,7 @@ class TestSceneGenerationWithIpAdapter:
 
     def test_scene_generate_ip_adapter_reference_returned(self, client: TestClient):
         """Test that response includes IP-Adapter reference info (integration test)."""
-        from services.controlnet import REFERENCE_DIR
-
-        # Check if any reference images exist
-        ref_files = list(REFERENCE_DIR.glob("*.png"))
-        if not ref_files:
-            pytest.skip("No reference images available for testing")
-
-        character_key = ref_files[0].stem
-
         # This test requires SD WebUI to be running
-        # Skip if not available
         try:
             import requests
             resp = requests.get("http://localhost:7860/sdapi/v1/sd-models", timeout=2)
@@ -240,7 +218,7 @@ class TestSceneGenerationWithIpAdapter:
             "width": 512,
             "height": 512,
             "use_ip_adapter": True,
-            "ip_adapter_reference": character_key,
+            "ip_adapter_reference": "test_character",
             "ip_adapter_weight": 0.7,
         })
 

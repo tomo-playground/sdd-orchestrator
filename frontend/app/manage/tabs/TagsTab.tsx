@@ -423,10 +423,15 @@ export default function TagsTab() {
                         {filteredTags.map((tag: Tag) => (
                             <span
                                 key={tag.id}
-                                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] text-zinc-600"
+                                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] text-zinc-600 flex items-center gap-1.5"
                                 title={`Priority: ${tag.priority}`}
                             >
-                                {tag.name}
+                                <span className="font-medium">{tag.name}</span>
+                                {tag.group_name && (
+                                    <span className="text-[8px] text-zinc-300 font-normal border-l border-zinc-100 pl-1.5 uppercase">
+                                        {tag.group_name}
+                                    </span>
+                                )}
                             </span>
                         ))}
                     </div>
@@ -442,16 +447,21 @@ export default function TagsTab() {
                     {tagCategories.map((category: string) => (
                         <details key={category} className="rounded-xl border border-zinc-200 bg-white">
                             <summary className="cursor-pointer px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:bg-zinc-50">
-                                {category} ({allTags.filter((t: Tag) => t.category === category).length} tags)
+                                {category || "UNCATEGORIZED"} ({allTags.filter((t: Tag) => t.category === category).length} tags)
                             </summary>
                             <div className="border-t border-zinc-100 p-4">
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {allTags.filter((t: Tag) => t.category === category).slice(0, 500).map((tag: Tag) => (
                                         <span
                                             key={tag.id}
-                                            className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[9px] text-zinc-500"
+                                            className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[9px] text-zinc-500 inline-flex items-center gap-1"
                                         >
-                                            {tag.name}
+                                            <span>{tag.name}</span>
+                                            {tag.group_name && (
+                                                <span className="text-[7px] text-zinc-300 font-normal border-l border-zinc-200 pl-1 uppercase">
+                                                    {tag.group_name}
+                                                </span>
+                                            )}
                                         </span>
                                     ))}
                                 </div>

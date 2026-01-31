@@ -21,8 +21,11 @@ class Project(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     # avatar_url column removed
-    avatar_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
-    avatar_asset: Mapped[MediaAsset] = relationship(foreign_keys=[avatar_asset_id])
+    avatar_asset_id: Mapped[int | None] = mapped_column()
+    avatar_asset: Mapped[MediaAsset] = relationship(
+        primaryjoin="Project.avatar_asset_id == MediaAsset.id",
+        foreign_keys=[avatar_asset_id], viewonly=True,
+    )
 
     @property
     def avatar_url(self) -> str | None:

@@ -21,6 +21,7 @@ class StoryboardBase(BaseModel):
     description: str | None = None
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
+    default_caption: str | None = None
 
 class StoryboardSave(StoryboardBase):
     scenes: list[StoryboardScene]

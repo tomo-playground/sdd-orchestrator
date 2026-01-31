@@ -52,6 +52,57 @@
     2. PostgreSQL 연결 확인 (`DATABASE_URL` 환경변수)
     3. `tags` 테이블에 데이터 존재 확인
 
+## 🎬 Post Layout 자막(Scene Text) 미표시
+
+### 증상
+Post layout 영상에서 이미지 상단(scene_text_area)에 자막이 나타나지 않음. Full layout은 정상.
+
+### 원인
+`compose_post_frame()`에 `subtitle_text` 파라미터는 있으나, scene_text_area에 실제 렌더링하는 코드 누락.
+
+**원래 흐름 (버그):**
+1. `compose_post_frame(subtitle_text="")` ← 빈 문자열 전달
+2. 자막을 별도 FFmpeg overlay로 처리 시도 → 실패
+
+**원인 체인:**
+- `_process_post_layout_image()`에서 `subtitle_text=""`로 호출
+- `subtitle_lines`가 Post layout 처리 **이후**에 생성됨 (순서 문제)
+- `compose_post_frame` 내부에 scene_text_area 렌더링 코드 자체가 없었음
+
+### 해결 (2026-01-31)
+
+1. **rendering.py** - `compose_post_frame`에 scene_text_area 렌더링 코드 추가
+2. **video.py** - `subtitle_lines`를 Post layout 처리 **전**에 생성
+3. **video.py** - `_process_post_layout_image`에서 실제 자막 텍스트 전달
+4. **video.py** - Post layout은 FFmpeg subtitle overlay 비활성화 (카드에 직접 포함)
+
+### 이미지 합성 순서 (확정)
+
+**Post layout:**
+```
+1. subtitle_lines 생성 (wrap_scene_text)
+2. compose_post_frame(subtitle_text=실제자막) → scene_X.png (카드에 자막 포함)
+3. Ken Burns 효과 → [v{i}_kb]
+4. [v{i}_kb]null[v{i}_base] (FFmpeg overlay 없음)
+5. Trim → [v{i}_raw]
+```
+
+**Full layout:**
+```
+1. 원본 이미지 저장 → scene_X.png
+2. subtitle 투명 PNG 생성 → subtitle_X.png
+3. Ken Burns 효과 → [v{i}_kb]
+4. FFmpeg overlay: [v{i}_kb] + [sub{i}] → [v{i}_base]
+5. Trim → [v{i}_raw]
+```
+
+### 교훈
+- `subtitles` → `scene_text` rename 시, 관련 렌더링 로직도 함께 검증 필요
+- Post/Full layout의 자막 처리 방식이 다름을 인지
+- 함수 파라미터만 있고 실제 사용 코드가 없는 경우 주의
+
+---
+
 ## 🔤 Font Issue
 *   **증상**: 자막 폰트가 기본 고딕체로 나옴.
 *   **원인**: 맥북(NFD)과 윈도우(NFC)의 한글 자모 분리 현상으로 파일명 불일치.

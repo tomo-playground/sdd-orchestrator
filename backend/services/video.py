@@ -398,13 +398,7 @@ class VideoBuilder:
             logger.info(f"Scene {i}: script='{raw_script}', len={len(raw_script)}")
             clean_script = clean_script_for_tts(raw_script)
 
-            # Apply post layout if needed
-            if self.use_post_layout:
-                self._process_post_layout_image(i, image_bytes, img_path)
-            else:
-                img_path.write_bytes(image_bytes)
-
-            # Process subtitles with pixel-based wrapping and dynamic font sizing
+            # Process subtitles FIRST (before post layout)
             if self.request.include_scene_text:
                 lines, font_size = self._wrap_scene_text_text(clean_script)
                 self.subtitle_lines.append(lines)
@@ -412,6 +406,12 @@ class VideoBuilder:
             else:
                 self.subtitle_lines.append([])
                 self.scene_text_font_sizes.append(0)
+
+            # Apply post layout (now subtitle_lines[i] is available)
+            if self.use_post_layout:
+                self._process_post_layout_image(i, image_bytes, img_path)
+            else:
+                img_path.write_bytes(image_bytes)
 
             # Generate TTS (use cleaned script for better pronunciation)
             has_valid_tts, tts_duration = await self._generate_tts(
@@ -523,10 +523,12 @@ class VideoBuilder:
                 avatar_key=overlay_settings.avatar_key,
                 caption=overlay_settings.caption,
             )
+            # Use actual subtitle text if available
+            subtitle_text = "\n".join(self.subtitle_lines[i]) if self.subtitle_lines[i] else ""
             composed = self._compose_post_frame(
                 image_bytes, self.out_w, self.out_h,
                 post_settings.channel_name, post_settings.caption,
-                "", self.font_path,
+                subtitle_text, self.font_path,
                 self.post_avatar_file or self.avatar_file,
                 self._post_views, self._post_time,
             )
@@ -590,6 +592,11 @@ class VideoBuilder:
             logger.info("🚫 Subtitles disabled (include_scene_text=False)")
             return
 
+        # For post layout, subtitles are already rendered in compose_post_frame
+        if self.use_post_layout:
+            logger.info("🚫 Subtitles already in post frame (skipping FFmpeg overlay)")
+            return
+
         from PIL import Image
 
         for i in range(self.num_scenes):
@@ -625,25 +632,20 @@ class VideoBuilder:
                 subtitle_y_ratio,
             )
             subtitle_img.save(subtitle_path, "PNG")
-
-            # Debug: Check if subtitle image has content
-            img_pixels = list(subtitle_img.getdata())
-            non_transparent = sum(1 for p in img_pixels if len(p) == 4 and p[3] > 0)
             logger.info(f"  - Subtitle image saved: {subtitle_path}")
-            logger.info(f"  - Non-transparent pixels: {non_transparent}/{len(img_pixels)}")
-
             self.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])
 
     def _build_video_filters(self) -> None:
         """Build video processing filters for each scene.
 
-        Filter chain order (Ken Burns + Subtitle sync):
+        Filter chain order:
         1. Scale/Crop image → [v{i}_scaled]
-        2. Overlay subtitle on scaled image → [v{i}_with_sub] or [v{i}_presub]
-        3. Apply Ken Burns effect to composited image → [v{i}_base]
+        2. Apply Ken Burns effect to scaled image → [v{i}_kb]
+        3. Overlay subtitle on zoomed frame → [v{i}_base]
         4. Trim to duration → [v{i}_raw]
 
-        This ensures subtitles move naturally with Ken Burns effects.
+        Applying subtitles AFTER zoompan ensures they remain sharp and fixed
+        relative to the screen, and prevents them from moving with the motion effect.
         """
         subtitle_base_idx = self.num_scenes * 2
 
@@ -655,17 +657,28 @@ class VideoBuilder:
             )
             motion_frames = max(1, int(clip_dur * 25))
 
-            # Step 1: Scale/Crop image (no Ken Burns yet)
+            # Step 1: Scale/Crop image (base preparation)
             if self.use_post_layout:
                 self._build_post_layout_base(i, v_idx)
             else:
                 self._build_full_layout_base(i, v_idx)
 
-            # Step 2: Apply subtitles BEFORE Ken Burns
-            presub_label = f"v{i}_scaled"
-            if self.request.include_scene_text:
+            # Step 2: Apply Ken Burns effect to base image [v{i}_scaled]
+            preset_name = self._resolve_scene_preset(i)
+            if preset_name == "none":
+                # No Ken Burns - rename [v{i}_scaled] to [v{i}_kb]
+                self.filters.append(f"[v{i}_scaled]null[v{i}_kb]")
+            else:
+                params = get_preset(preset_name)
+                zoompan = build_zoompan_filter(
+                    params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
+                )
+                self.filters.append(f"[v{i}_scaled]{zoompan}[v{i}_kb]")
+
+            # Step 3: Apply subtitles AFTER Ken Burns [v{i}_kb] (Full layout only)
+            if self.request.include_scene_text and not self.use_post_layout:
                 sub_idx = subtitle_base_idx + i
-                logger.info(f"🎬 Scene {i}: Adding subtitle overlay (input [{sub_idx}:v])")
+                logger.info(f"🎬 Scene {i}: Adding subtitle overlay after Ken Burns (input [{sub_idx}:v])")
 
                 # Build subtitle filter with fade animation
                 fade_duration = 0.3  # seconds
@@ -680,25 +693,16 @@ class VideoBuilder:
                     )
 
                 self.filters.append(f"{sub_filter}[sub{i}]")
+                # Ensure base is RGBA before overlay
+                self.filters.append(f"[v{i}_kb]format=rgba[v{i}_kb_rgba]")
                 self.filters.append(
-                    f"[{presub_label}][sub{i}]overlay=0:0:format=auto[v{i}_with_sub]"
+                    f"[v{i}_kb_rgba][sub{i}]overlay=0:0:format=auto[v{i}_base]"
                 )
-                presub_label = f"v{i}_with_sub"
-                logger.info(f"🎬 Scene {i}: Subtitle overlay complete → [{presub_label}]")
+                logger.info(f"🎬 Scene {i}: Subtitle overlay complete → [v{i}_base]")
             else:
+                # No subtitles, [v{i}_kb] becomes [v{i}_base]
+                self.filters.append(f"[v{i}_kb]null[v{i}_base]")
                 logger.info(f"🎬 Scene {i}: No subtitles (include_scene_text={self.request.include_scene_text})")
-
-            # Step 3: Apply Ken Burns effect to composited image
-            preset_name = self._resolve_scene_preset(i)
-            if preset_name == "none":
-                # No Ken Burns - rename to [v{i}_base]
-                self.filters.append(f"[{presub_label}]null[v{i}_base]")
-            else:
-                params = get_preset(preset_name)
-                zoompan = build_zoompan_filter(
-                    params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
-                )
-                self.filters.append(f"[{presub_label}]{zoompan}[v{i}_base]")
 
             # Step 4: Trim to duration
             self.filters.append(
@@ -799,7 +803,8 @@ class VideoBuilder:
     def _apply_overlays(self) -> None:
         """Apply overlay graphics to video with slide-in animation."""
         next_input_idx = self.num_scenes * 2
-        if self.request.include_scene_text:
+        # Subtitle inputs only exist for Full layout (Post layout has subtitles in frame)
+        if self.request.include_scene_text and not self.use_post_layout:
             next_input_idx += self.num_scenes
 
         if not self.request.overlay_settings:
@@ -917,7 +922,6 @@ class VideoBuilder:
         filter_complex_str = ";".join(self.filters)
 
         # Debug: Log filter chain
-        logger.info("=" * 80)
         logger.info("🎬 FFmpeg Filter Chain Debug:")
         logger.info("-" * 80)
         for i, f in enumerate(self.filters):

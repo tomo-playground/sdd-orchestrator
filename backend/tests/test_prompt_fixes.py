@@ -5,7 +5,6 @@ from models.tag import Tag
 
 # Import functions to test
 from services.prompt.prompt import normalize_tag_spaces
-from services.prompt.prompt_composition import filter_conflicting_tokens
 from services.tag_classifier import TagClassifier
 
 
@@ -37,27 +36,7 @@ class TestPromptFixes:
         result = normalize_tag_spaces(inputs)
         assert result == ["day", "bright", "sun", "moon", "flower_field"]
 
-    # Fix 2: Duplicate tags with weights (e.g. (happy:1.2) vs happy)
-    def test_filter_weighted_duplicates(self):
-        """filter_conflicting_tokens should deduplicate (tag:1.2) and tag."""
-
-        # Case 1: Weighted comes first (should be kept)
-        tokens = ["(happy:1.2)", "happy", "smile"]
-        filtered = filter_conflicting_tokens(tokens)
-        assert "(happy:1.2)" in filtered
-        assert "happy" not in filtered
-        assert "smile" in filtered
-        assert len(filtered) == 2
-
-        # Case 2: Plain comes first (should be kept)
-        # Note: In our implementation, the FIRST occurrence wins
-        tokens_2 = ["happy", "(happy:1.2)", "smile"]
-        filtered_2 = filter_conflicting_tokens(tokens_2)
-        assert "happy" in filtered_2
-        assert "(happy:1.2)" not in filtered_2
-        assert len(filtered_2) == 2
-
-    # Fix 3: TagClassifier looking up underscores correctly
+    # Fix 2: TagClassifier looking up underscores correctly
     def test_tag_classifier_lookup_underscore(self):
         """TagClassifier should find tags in DB even if input has spaces/underscores."""
 

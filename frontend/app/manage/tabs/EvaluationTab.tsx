@@ -73,9 +73,10 @@ export default function EvaluationTab() {
     const fetchEvalData = async () => {
         setIsEvalLoading(true);
         try {
-            const res = await axios.get<{ summary: EvaluationSummary; batch_id?: string }>(`${API_BASE}/evaluation/latest`);
-            setEvalSummary(res.data.summary || null);
-            if (res.data.batch_id) setEvalLastBatchId(res.data.batch_id);
+            const res = await axios.get<EvaluationSummary>(`${API_BASE}/eval/summary`);
+            setEvalSummary(res.data || null);
+            // batch_id is not returned by summary endpoint currently
+            // if (res.data.batch_id) setEvalLastBatchId(res.data.batch_id);
         } catch {
             console.error("Failed to fetch evaluation data");
         } finally {
@@ -92,7 +93,7 @@ export default function EvaluationTab() {
                 repetitions: evalRepetitions,
                 tests: Array.from(selectedTests),
             };
-            await axios.post(`${API_BASE}/evaluation/run`, payload);
+            await axios.post(`${API_BASE}/eval/run`, payload);
             // Poll for results or just wait? For now, simple wait then refresh.
             // In a real scenario, we might want a polling mechanism or websocket.
             // Assuming the backend is synchronous or fast enough, or we just refresh.

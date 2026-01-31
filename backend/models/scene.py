@@ -50,16 +50,22 @@ class Scene(Base, TimestampMixin):
     # Consistency Enhancements
     use_reference_only: Mapped[bool] = mapped_column(Integer, default=1)  # 1 for True
     reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)
-    environment_reference_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    environment_reference_id: Mapped[int | None] = mapped_column()
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
 
-    environment_asset: Mapped["MediaAsset | None"] = relationship(foreign_keys="Scene.environment_reference_id")
+    environment_asset: Mapped["MediaAsset | None"] = relationship(
+        primaryjoin="Scene.environment_reference_id == MediaAsset.id",
+        foreign_keys=[environment_reference_id], viewonly=True,
+    )
 
     # Generated Image Path
     # Generated Image Path
     # image_url column removed, use property below
-    image_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
-    image_asset: Mapped["MediaAsset | None"] = relationship(foreign_keys="Scene.image_asset_id")
+    image_asset_id: Mapped[int | None] = mapped_column()
+    image_asset: Mapped["MediaAsset | None"] = relationship(
+        primaryjoin="Scene.image_asset_id == MediaAsset.id",
+        foreign_keys=[image_asset_id], viewonly=True,
+    )
 
     @property
     def image_url(self) -> str | None:

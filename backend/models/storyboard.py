@@ -26,11 +26,15 @@ class Storyboard(Base, TimestampMixin):
     # Project-level defaults
     default_character_id: Mapped[int | None] = mapped_column(Integer)
     default_style_profile_id: Mapped[int | None] = mapped_column(Integer)
+    default_caption: Mapped[str | None] = mapped_column(Text)
 
     # Results
     # video_url column removed
-    video_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
-    video_asset: Mapped[MediaAsset | None] = relationship(foreign_keys="Storyboard.video_asset_id")
+    video_asset_id: Mapped[int | None] = mapped_column()
+    video_asset: Mapped[MediaAsset | None] = relationship(
+        primaryjoin="Storyboard.video_asset_id == MediaAsset.id",
+        foreign_keys=[video_asset_id], viewonly=True,
+    )
 
     @property
     def video_url(self) -> str | None:

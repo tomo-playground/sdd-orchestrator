@@ -108,11 +108,11 @@ class TestEnvironmentCategory:
     """Test that environment/location tags are correctly categorized."""
 
     @pytest.mark.parametrize("tag,expected_category", [
-        # Indoor locations
-        ("classroom", "location_indoor"),
-        ("bedroom", "location_indoor"),
-        ("library", "location_indoor"),
-        ("cafe", "location_indoor"),
+        # Indoor locations (specific)
+        ("classroom", "location_indoor_specific"),
+        ("bedroom", "location_indoor_specific"),
+        ("library", "location_indoor_specific"),
+        ("cafe", "location_indoor_specific"),
         # Outdoor locations
         ("beach", "location_outdoor"),
         ("forest", "location_outdoor"),

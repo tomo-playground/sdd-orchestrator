@@ -18,6 +18,7 @@ class CreateActivityLogRequest(BaseModel):
     scene_id: int
     character_id: int | None = None
     prompt: str | None = None
+    negative_prompt: str | None = None
     tags: list[str] | None = None
     sd_params: dict | None = None
     match_rate: float | None = None
@@ -74,6 +75,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
             scene_id=request.scene_id,
             character_id=request.character_id,
             prompt=request.prompt or "",
+            negative_prompt=request.negative_prompt,
             tags_used=request.tags,
             sd_params=request.sd_params,
             match_rate=request.match_rate,

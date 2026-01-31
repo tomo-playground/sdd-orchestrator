@@ -83,8 +83,8 @@ class TestSubtitleRenderingPost:
             "card_x": 54,  # 5% margin
             "card_width": 972,  # 90% of width
             "card_padding": 40,
-            "subtitle_y": 800,
-            "subtitle_area_height": 200,
+            "scene_text_y": 800,
+            "scene_text_area_height": 200,
         }
 
     def test_post_layout_single_line(

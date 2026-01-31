@@ -255,7 +255,9 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
             weight = lora_info.get("weight", 0.7)
             lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
             if lora_obj:
-                lora_tags.append(f"<lora:{lora_obj.name}:{weight}>")
+                # Scale down LoRA weight for reference (face identity only)
+                ref_weight = round(weight * 0.25, 2)
+                lora_tags.append(f"<lora:{lora_obj.name}:{ref_weight}>")
                 if lora_obj.trigger_words:
                     tag_names.extend(lora_obj.trigger_words)
 
@@ -270,7 +272,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
         prompt=full_prompt,
         negative_prompt=character.reference_negative_prompt or "",
         steps=25,
-        cfg_scale=7.5,
+        cfg_scale=9.0,
         width=512,
         height=768,
         seed=-1,

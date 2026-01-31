@@ -13,7 +13,7 @@ def mock_asset_service():
 
 @pytest.fixture
 def mock_storage():
-    with patch("services.video.storage") as m:
+    with patch("services.video.get_storage") as m:
         yield m
 
 @pytest.mark.anyio

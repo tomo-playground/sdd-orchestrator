@@ -266,11 +266,12 @@ function StudioContent() {
           storyboardTitle: data.title,
           activeTab: data.scenes?.length > 0 ? "scenes" : "plan",
         });
-        // Load video results into output slice
+        // Load video results and caption into output slice
         useStudioStore.getState().setOutput({
           videoUrl: data.video_url || null,
           videoUrlFull: data.video_url || null, // Fallback
           recentVideos: data.recent_videos || [],
+          videoCaption: data.default_caption || "",
         });
         setPlan({
           selectedCharacterId: data.default_character_id || null,
@@ -345,7 +346,7 @@ function StudioContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg">
+      <header className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md transition-all duration-300">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <button
@@ -379,7 +380,7 @@ function StudioContent() {
       />
 
       {/* Tab Content */}
-      <main className="mx-auto max-w-5xl px-6 py-4">
+      <main className="mx-auto max-w-5xl px-6 py-8 pb-32">
         {/* Autopilot Status - Always visible */}
         {autopilot.autoRunState.status !== "idle" && (
           <div className="mb-4">

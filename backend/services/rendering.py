@@ -188,8 +188,8 @@ def _is_emoji_char(char: str) -> bool:
     return bool(re.match(r"[\U0001F300-\U0001FAFF\U00002600-\U000027BF]", char))
 
 
-def resolve_subtitle_font_path(font_name: str | None) -> str:
-    """Resolve font path for subtitles using shared storage."""
+def resolve_scene_text_font_path(font_name: str | None) -> str:
+    """Resolve font path for scene text using shared storage."""
     storage = get_storage()
     default_font = "온글잎 박다현체.ttf"
 
@@ -211,7 +211,21 @@ def resolve_subtitle_font_path(font_name: str | None) -> str:
         return str(repo_default)
 
     # 4. Final system fallback
-    return "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+    font_path_candidates = [
+        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+        "/System/Library/Fonts/Arial Unicode.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    for p in font_path_candidates:
+        if os.path.exists(p):
+            return p
+
+    return "Arial"  # Final fallback string for PIL
+
+
+# Deprecated alias for backward compatibility
+resolve_subtitle_font_path = resolve_scene_text_font_path
 
 
 def _measure_text_with_fallback(
@@ -316,14 +330,14 @@ def render_scene_text_image(
                 line,
                 font,
                 emoji_font,
-                (0, 0, 0, 255),  # 검은색으로 변경
-                stroke_width=2,   # 흰색 외곽선 추가
+                (0, 0, 0, 255),  # 완전한 검은색으로 변경 (가시성 개선)
+                stroke_width=0,  # 외곽선 제거 (흰색 배경에서 불필요)
                 stroke_fill=(255, 255, 255, 255),
             )
         return canvas
 
-    # Full layout
-    subtitle_size = font_size_override if font_size_override else int(height * 0.034)
+    # Full layout - 하단에서 상단으로 위치 변경 (사용자 피드백 반영)
+    subtitle_size = font_size_override if font_size_override else int(height * 0.042)
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
     line_height = int(subtitle_size * 1.45)
@@ -332,10 +346,9 @@ def render_scene_text_image(
     # Use dynamic subtitle position if provided
     if scene_text_y_ratio is not None:
         text_y_pos = int(height * scene_text_y_ratio)
-    elif line_count > 1:
-        text_y_pos = int(height * 0.70)
     else:
-        text_y_pos = int(height * 0.72)
+        # 기본 위치를 상단 12-15% 영역으로 설정
+        text_y_pos = int(height * 0.12) if line_count > 1 else int(height * 0.15)
 
     for idx, line in enumerate(lines[:2]):
         line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
@@ -875,6 +888,28 @@ def compose_post_frame(
     background.alpha_composite(inner, (image_x, image_y))
 
     draw = ImageDraw.Draw(background)
+
+    # Scene text in scene_text_area (between header and image)
+    if subtitle_text:
+        scene_text_y = metrics["scene_text_y"]
+        scene_text_area_height = metrics["scene_text_area_height"]
+        subtitle_font_size = int(height * 0.04)
+        subtitle_font = _get_font_from_path(font_path, subtitle_font_size)
+        emoji_font = _emoji_font(subtitle_font_size)
+        line_height = int(subtitle_font_size * 1.4)
+        text_area_width = card_width - (card_padding * 2)
+        text_start_y = scene_text_y + int(scene_text_area_height * 0.1)
+        lines = subtitle_text.split("\n")[:3]
+        for idx, line in enumerate(lines):
+            line_w, _ = _measure_text_with_fallback(draw, line, subtitle_font, emoji_font)
+            text_x = card_x + card_padding + (text_area_width - line_w) // 2
+            text_y = text_start_y + idx * line_height
+            _draw_text_with_fallback(
+                draw, (text_x, text_y), line, subtitle_font, emoji_font,
+                (0, 0, 0, 255),
+                stroke_width=0,
+                stroke_fill=(255, 255, 255, 255),
+            )
     base_post_font = int(height * 0.022)
     name_font_size = base_post_font
     meta_font_size = max(10, int(base_post_font * 0.85))

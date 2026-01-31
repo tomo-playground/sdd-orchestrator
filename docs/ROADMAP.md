@@ -58,32 +58,33 @@
 ### 5-2. 영상 품질 강화
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
+| Pixel-based Scene Text Wrapping | 폰트 기반 씬 텍스트 줄바꿈 및 동적 크기 조절 | [x] |
 | Professional Audio Ducking | 내레이션-BGM 볼륨 자동 조절 (sidechaincompress) | [x] |
 | Ken Burns Effect | 정지 이미지에 줌/팬 효과 (10개 프리셋, slow_zoom 제거됨) | [x] |
 | **Random BGM** | `bgm_file: "random"` → Backend에서 랜덤 선택 | [x] |
 | **Resolution Optimization** | 512x768 (2:3) 표준화 + Cowboy Shot 전략 (Post/Full 겸용) | [x] |
 | **Full Layout Polishing** | 검은 여백 제거 (YouTube Shorts 스타일, Cover 스케일) | [x] |
-| **Subtitle Animation** | Fade in/out (0.3초, 알파 채널 fade) | [x] |
+| **Scene Text Animation** | Fade in/out (0.3초, 알파 채널 fade) | [x] |
 | **Advanced Transitions** | 13개 씬 전환 효과 (fade, wipe, slide, circle, random) | [x] |
-| **Dynamic Subtitle Position** | 이미지 복잡도 기반 자동 Y 위치 조정 (하단 분석) | [x] |
+| **Dynamic Scene Text Position** | 이미지 복잡도 기반 자동 Y 위치 조정 (하단 분석) | [x] |
 | **Overlay Animation** | 헤더/푸터 슬라이드 인 효과 (0.5초, 상하 분리) | [x] |
 | **Ken Burns Vertical Presets** | Full Layout 최적화 프리셋 6종 (pan_up_vertical 등, Y축 2배 확장) | [x] |
-| **Ken Burns + Subtitle Sync** | 자막을 켄번 효과 전에 합성하여 이미지와 함께 자연스럽게 움직임 | [x] |
-| **Full Layout Improvements** | 자막 크기/위치 최적화 + 크롭 위치 명시 (4개 작업, ~40분) | [→] |
+| **Ken Burns + Scene Text Sync** | Full: 켄번 효과 **후** 합성 (자막 선명+고정), Post: 카드에 직접 렌더링 | [x] |
+| **Post Layout Scene Text Fix** | compose_post_frame에 scene_text_area 렌더링 코드 추가 (2026-01-31) | [x] |
+| **Full Layout Improvements** | 씬 텍스트 크기/위치 최적화 + 크롭 위치 명시 (4개 작업, ~40분) | [→] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
-#### 5-2.8. Full Layout Improvements (진행 중)
-**목표**: YouTube Shorts 표준 부합 및 전신 샷 최적화 (자막 가독성 + 크롭 안정성)
+#### 5-2.8. Full Layout Improvements (완료)
+**목표**: YouTube Shorts 표준 부합 및 전신 샷 최적화 (씬 텍스트 가독성 + 크롭 안정성)
 
 **이미지 해상도**: 512x768 유지 (VRAM 8GB 환경 고려)
 
 | # | 작업 | 파일 | 변경 내용 | 상태 |
 |---|------|------|----------|------|
-| 1 | 자막 크기 증가 | `backend/constants/layout.py:31-32` | `SUBTITLE_FONT_RATIO: 0.034→0.042` (65px→81px)<br>`SUBTITLE_MIN_FONT_RATIO: 0.026→0.032` (50px→61px) | [ ] |
-| 2 | 자막 위치 하향 | `backend/constants/layout.py:34-35` | `SUBTITLE_Y_SINGLE_LINE_RATIO: 0.72→0.85`<br>`SUBTITLE_Y_MULTI_LINE_RATIO: 0.70→0.82` | [ ] |
-| 3 | 크롭 위치 명시 | `backend/services/video.py:705-711` | FFmpeg crop 필터에 Y축 위치 추가<br>`crop=w:h:0:(ih-oh)*0.3` | [ ] |
-| 4 | Layout 상수 추가 | `backend/constants/layout.py` | `CROP_Y_RATIO: float = 0.3` 추가 | [ ] |
+| 1 | 씬 텍스트 크기 증가 | `backend/constants/layout.py:31-32` | `SCENE_TEXT_FONT_RATIO: 0.034→0.042` (65px→81px)<br>`SCENE_TEXT_MIN_FONT_RATIO: 0.026→0.032` (50px→61px) | [x] |
+| 2 | 씬 텍스트 위치 하향 | `backend/constants/layout.py:34-35` | `SCENE_TEXT_Y_SINGLE_LINE_RATIO: 0.72→0.85`<br>`SCENE_TEXT_Y_MULTI_LINE_RATIO: 0.70→0.82` | [x] |
+| 3 | 크롭 위치 명시 | `backend/services/video.py:705-711` | FFmpeg crop 필터에 Y축 위치 추가<br>`crop=w:h:0:(ih-oh)*0.3` | [x] |
+| 4 | Layout 상수 추가 | `backend/constants/layout.py` | `CROP_Y_RATIO: float = 0.3` 추가 | [x] |
 
 **예상 소요 시간**: 40분 (수정 18분 + 테스트 22분)
 
@@ -299,7 +300,12 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 #### 6-4.32. Data-Driven Pose Expansion - **COMPLETE** (2026-01-31)
 **목표**: DB 사용 데이터를 분석하여 누락된 핵심 포즈를 보강하고 감지 로직 고도화.
-(상세 내용은 위와 동일)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Pose Audit** | 924개 태그 분석 및 핵심 포즈 32종 정의 | [x] |
+| 2 | **Gemini Pose Expansion** | "pointing forward", "covering face" 등 신규 포즈 생성 및 라이브러리 확장 | [x] |
+| 3 | **Detection Logic** | WD14 결과와의 매칭 로직 고도화 | [x] |
 
 ---
 
@@ -326,7 +332,8 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 1 | **Dead Code Removal** | Legacy `generation.py` 로직 및 `prompt_composition.py` 삭제 | [x] |
 | 2 | **M4 Pro Optimization** | OpenPose Control Mode 'Balanced'로 상향 (안정성 확보) | [x] |
 | 3 | **Batch Tools** | 관리자용 Character Reference 일괄 재생성 도구 (UI/API) | [x] |
-| 4 | **Refactoring Preparation** | `ManagePage.tsx` 분할을 위한 구조 검토 | [x] |
+| 4 | **Remnant Cleanup** | 테스트 잔유물 스크립트(test_render.py 등) 및 임시 결과 이미지 대규모 정리 | [x] |
+| 5 | **Refactoring Preparation** | `ManagePage.tsx` 분할을 위한 구조 검토 | [x] |
 
 ### 6-4.37. Stability & Polish - **COMPLETE** (2026-01-31)
 **목표**: 운영 중 발견된 크리티컬 버그 수정 및 UI/UX 개선.
@@ -336,7 +343,9 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 1 | **UI Polish** | 헤더 제목 말줄임표 처리, 불필요한 레이아웃 여백 제거 | [x] |
 | 2 | **DB Stability** | Storyboard Title 길이 제한(200자), Boolean 타입 캐스팅 오류 수정 | [x] |
 | 3 | **Prompt Engine Fix** | `compose_prompt_tokens` 로직 구현 및 500 에러 해결 | [x] |
-| 4 | **Warning Cleanup** | ControlNet `lowvram` → `low_vram` 파라미터 최신화 | [x] |
+| 4 | **Modal Bug Fix** | ImagePreviewModal 닫기 버튼 오작동 수정 (src null 동기화) | [x] |
+| 5 | **Warning Cleanup** | ControlNet `lowvram` → `low_vram` 파라미터 최신화 | [x] |
+| 6 | **UI/UX Quick Wins** | 버튼 입체감(Shadow/Hover), 모달 블러 효과, 헤더 간소화 적용 | [x] |
 
 ---
 
@@ -356,6 +365,24 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 |---|------|------|
 | **Hook Extraction** | `useManageState` 등 커스텀 훅 분리 (부분 완료) | [ ] |
 | **Common UI Toolkit** | 버튼, 인풋 등 공통 컴포넌트 라이브러리화 | [ ] |
+| **Inter-Layer Dedup** | V3 Prompt 12-Layer 간 중복 태그 제거 (nice-to-have, 아래 상세) | [ ] |
+
+#### 6-5.1. Inter-Layer Prompt Deduplication (Nice-to-Have)
+**현황 분석** (`backend/services/prompt/v3_composition.py`):
+
+| 범위 | 중복 제거 | 구현 방식 |
+|------|----------|----------|
+| 레이어 내부 (intra-layer) | O | `_flatten_layers`에서 `seen` set (case-insensitive) |
+| LoRA trigger 주입 시 | O | `if trigger not in layers[LAYER_*]` 가드 |
+| 레이어 간 (inter-layer) | **X** | `seen` set이 레이어별로 초기화되어, 동일 태그가 다른 레이어에 존재하면 둘 다 출력 |
+
+**예시**: Layer 2 (Identity)에 `brown_hair`, Layer 5 (Clothing)에도 `brown_hair`가 있으면 최종 프롬프트에 2번 등장.
+
+**개선 시 고려사항**:
+- 레이어 간 중복은 **의도적 설계일 수 있음** (레이어 우선순위에 따른 강조 효과)
+- 제거 시 **레이어 우선순위 전략** 필요: 낮은 번호(상위 레이어)의 태그를 보존하고 하위 레이어에서 제거
+- SD 프롬프트에서 동일 태그의 반복이 가중치에 미치는 영향 검증 필요
+- `BREAK` 구분자 전후의 중복은 SD 엔진 특성상 별도 처리가 필요할 수 있음
 
 ---
 

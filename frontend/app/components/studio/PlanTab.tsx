@@ -39,6 +39,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
 
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
   const [planSubTab, setPlanSubTab] = useState<"generator" | "prompt">("prompt");
 
@@ -51,7 +52,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
           referenceImages: res.data.references || [],
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Auto-load character LoRA/prompt settings when character changes
@@ -82,13 +83,13 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
         : [];
       const characterLoras = charFull.loras?.length
         ? charFull.loras.map((l) => ({
-            id: l.id,
-            name: l.name,
-            weight: l.weight,
-            trigger_words: l.trigger_words,
-            lora_type: l.lora_type,
-            optimal_weight: l.optimal_weight,
-          }))
+          id: l.id,
+          name: l.name,
+          weight: l.weight,
+          trigger_words: l.trigger_words,
+          lora_type: l.lora_type,
+          optimal_weight: l.optimal_weight,
+        }))
         : [];
 
       // Prompt mode
@@ -187,7 +188,12 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
   }, [topic, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, baseNegativePromptA, setScenes, setActiveTab, showToast]);
 
   const handleSaveStoryboard = useCallback(async () => {
-    await saveStoryboard();
+    setIsSaving(true);
+    try {
+      await saveStoryboard();
+    } finally {
+      setIsSaving(false);
+    }
   }, []);
 
   const handleResetScenes = useCallback(() => {
@@ -211,11 +217,10 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
       <div className="flex items-center gap-1 border-b border-zinc-200/60">
         <button
           onClick={() => setPlanSubTab("prompt")}
-          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-            planSubTab === "prompt"
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${planSubTab === "prompt"
               ? "text-zinc-900"
               : "text-zinc-500 hover:text-zinc-700"
-          }`}
+            }`}
         >
           <span className="flex items-center gap-2">
             <span>🎨</span>
@@ -227,11 +232,10 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
         </button>
         <button
           onClick={() => setPlanSubTab("generator")}
-          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-            planSubTab === "generator"
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${planSubTab === "generator"
               ? "text-zinc-900"
               : "text-zinc-500 hover:text-zinc-700"
-          }`}
+            }`}
         >
           <span className="flex items-center gap-2">
             <span>🎬</span>
@@ -247,81 +251,85 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
       {planSubTab === "generator" && (
         <>
           <StoryboardGeneratorPanel
-        topic={topic}
-        setTopic={(v: string) => setPlan({ topic: v })}
-        duration={duration}
-        setDuration={(v: number) => setPlan({ duration: v })}
-        style={style}
-        setStyle={(v: string) => setPlan({ style: v })}
-        language={language}
-        setLanguage={(v: string) => setPlan({ language: v })}
-        structure={structure}
-        setStructure={(v: string) => setPlan({ structure: v })}
-      />
+            topic={topic}
+            setTopic={(v: string) => setPlan({ topic: v })}
+            duration={duration}
+            setDuration={(v: number) => setPlan({ duration: v })}
+            style={style}
+            setStyle={(v: string) => setPlan({ style: v })}
+            language={language}
+            setLanguage={(v: string) => setPlan({ language: v })}
+            structure={structure}
+            setStructure={(v: string) => setPlan({ structure: v })}
+          />
 
-      {/* Actions Bar */}
-      <StoryboardActionsBar
-        onResetScenes={handleResetScenes}
-        onResetDraft={handleResetDraft}
-        onGenerate={handleGenerateStoryboard}
-        onAutoRun={() => runAutoRunFromStep("storyboard", autopilot)}
-        isGenerating={isGenerating}
-        isRendering={isRendering}
-        isAutoRunning={autopilot.isAutoRunning}
-        topicEmpty={!topic.trim()}
-        autoRunStep={autopilot.autoRunState.step}
-      />
+          {/* Actions Bar */}
+          <StoryboardActionsBar
+            onResetScenes={handleResetScenes}
+            onResetDraft={handleResetDraft}
+            onGenerate={handleGenerateStoryboard}
+            onAutoRun={() => runAutoRunFromStep("storyboard", autopilot)}
+            isGenerating={isGenerating}
+            isRendering={isRendering}
+            isAutoRunning={autopilot.isAutoRunning}
+            topicEmpty={!topic.trim()}
+            autoRunStep={autopilot.autoRunState.step}
+          />
 
-      {/* Save Button */}
-      {scenes.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleSaveStoryboard}
-            className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition"
-          >
-            {storyboardId ? "Update Storyboard" : "Save to DB"}
-          </button>
-        </div>
-      )}
+          {/* Save Button */}
+          {scenes.length > 0 && (
+            <div className="mt-8 flex justify-end">
+              <button
+                onClick={handleSaveStoryboard}
+                disabled={isSaving}
+                className={`rounded-lg px-8 py-3 font-medium text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 ${isSaving
+                  ? "cursor-not-allowed bg-zinc-400"
+                  : "bg-zinc-900 hover:bg-zinc-800"
+                  }`}
+              >
+                {isSaving ? "Saving..." : "Validate & Save Plan"}
+              </button>
+            </div>
+          )}
         </>
       )}
 
       {/* Prompt Tab Content */}
       {planSubTab === "prompt" && (
         <PromptSetupPanel
-        baseTab={baseTab}
-        setBaseTab={setBaseTab}
-        autoComposePrompt={autoComposePrompt}
-        setAutoComposePrompt={(v: boolean) => setPlan({ autoComposePrompt: v })}
-        autoRewritePrompt={autoRewritePrompt}
-        setAutoRewritePrompt={(v: boolean) => setPlan({ autoRewritePrompt: v })}
-        autoReplaceRiskyTags={autoReplaceRiskyTags}
-        setAutoReplaceRiskyTags={(v: boolean) => setPlan({ autoReplaceRiskyTags: v })}
-        hiResEnabled={hiResEnabled}
-        setHiResEnabled={(v: boolean) => setPlan({ hiResEnabled: v })}
-        veoEnabled={veoEnabled}
-        setVeoEnabled={(v: boolean) => setPlan({ veoEnabled: v })}
-        actorAGender={actorAGender}
-        setActorAGender={(v) => setPlan({ actorAGender: v })}
-        basePromptA={basePromptA}
-        setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
-        baseNegativePromptA={baseNegativePromptA}
-        setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
-        baseStepsA={baseStepsA}
-        setBaseStepsA={(v: number) => setPlan({ baseStepsA: v })}
-        baseCfgScaleA={baseCfgScaleA}
-        setBaseCfgScaleA={(v: number) => setPlan({ baseCfgScaleA: v })}
-        baseSamplerA={baseSamplerA}
-        setBaseSamplerA={(v: string) => setPlan({ baseSamplerA: v })}
-        baseSeedA={baseSeedA}
-        setBaseSeedA={(v: number) => setPlan({ baseSeedA: v })}
-        baseClipSkipA={baseClipSkipA}
-        setBaseClipSkipA={(v: number) => setPlan({ baseClipSkipA: v })}
-        onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
-        characters={characters}
-        selectedCharacterId={selectedCharacterId}
-        onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
-      />
+          baseTab={baseTab}
+          setBaseTab={setBaseTab}
+          autoComposePrompt={autoComposePrompt}
+          setAutoComposePrompt={(v: boolean) => setPlan({ autoComposePrompt: v })}
+          autoRewritePrompt={autoRewritePrompt}
+          setAutoRewritePrompt={(v: boolean) => setPlan({ autoRewritePrompt: v })}
+          autoReplaceRiskyTags={autoReplaceRiskyTags}
+          setAutoReplaceRiskyTags={(v: boolean) => setPlan({ autoReplaceRiskyTags: v })}
+          hiResEnabled={hiResEnabled}
+          setHiResEnabled={(v: boolean) => setPlan({ hiResEnabled: v })}
+          veoEnabled={veoEnabled}
+          setVeoEnabled={(v: boolean) => setPlan({ veoEnabled: v })}
+          actorAGender={actorAGender}
+          setActorAGender={(v) => setPlan({ actorAGender: v })}
+          basePromptA={basePromptA}
+          setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
+          baseNegativePromptA={baseNegativePromptA}
+          setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
+          baseStepsA={baseStepsA}
+          setBaseStepsA={(v: number) => setPlan({ baseStepsA: v })}
+          baseCfgScaleA={baseCfgScaleA}
+          setBaseCfgScaleA={(v: number) => setPlan({ baseCfgScaleA: v })}
+          baseSamplerA={baseSamplerA}
+          setBaseSamplerA={(v: string) => setPlan({ baseSamplerA: v })}
+          baseSeedA={baseSeedA}
+          setBaseSeedA={(v: number) => setPlan({ baseSeedA: v })}
+          baseClipSkipA={baseClipSkipA}
+          setBaseClipSkipA={(v: number) => setPlan({ baseClipSkipA: v })}
+          onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
+          characters={characters}
+          selectedCharacterId={selectedCharacterId}
+          onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
+        />
       )}
     </div>
   );

@@ -139,9 +139,14 @@ backend/
 **변경 사항:**
 - `subtitles` → `scene_text` (네이밍 혼란 해소)
 - `include_subtitles` → `include_scene_text`
-- `SUBTITLE_*` → `SCENE_TEXT_*` (상수)
+- `subtitle_font` → `scene_text_font`
+- `subtitleFont` → `sceneTextFont` (Frontend)
+- `DEFAULT_SUBTITLE_FONT` → `DEFAULT_SCENE_TEXT_FONT` (Frontend 상수)
+- `SUBTITLE_*` → `SCENE_TEXT_*` (Backend 상수)
 
 **후방 호환성:**
 - 기존 `include_subtitles` 필드명은 별칭(alias)으로 작동
+- 기존 `subtitle_font` 필드명은 별칭(alias)으로 작동
+- Frontend: 마이그레이션 로직에서 `subtitleFont` → `sceneTextFont` 자동 변환
 - 기존 코드 수정 없이 동작하지만, 신규 코드는 `scene_text` 사용 권장
 

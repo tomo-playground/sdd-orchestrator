@@ -53,8 +53,8 @@ type RenderSettingsPanelProps = {
   onRender: () => void;
   // Video Settings
   includeSceneText: boolean;
-  setIncludeScene Text: (value: boolean) => void;
-  subtitleFont: string;
+  setIncludeSceneText: (value: boolean) => void;
+  sceneTextFont: string;
   setSubtitleFont: (value: string) => void;
   fontList: FontItem[];
   loadedFonts: Set<string>;
@@ -103,8 +103,8 @@ export default function RenderSettingsPanel({
   totalScenes,
   onRender,
   includeSceneText,
-  setIncludeScene Text,
-  subtitleFont,
+  setIncludeSceneText,
+  sceneTextFont,
   setSubtitleFont,
   fontList,
   loadedFonts,
@@ -146,22 +146,20 @@ export default function RenderSettingsPanel({
             <button
               type="button"
               onClick={() => setLayoutStyle("full")}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                layoutStyle === "full"
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${layoutStyle === "full"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-500 hover:text-zinc-700"
+                }`}
             >
               Full 9:16
             </button>
             <button
               type="button"
               onClick={() => setLayoutStyle("post")}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                layoutStyle === "post"
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${layoutStyle === "post"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-500 hover:text-zinc-700"
+                }`}
             >
               Post 1:1
             </button>
@@ -210,14 +208,14 @@ export default function RenderSettingsPanel({
               <input
                 type="checkbox"
                 checked={includeSceneText}
-                onChange={(e) => setIncludeScene Text(e.target.checked)}
+                onChange={(e) => setIncludeSceneText(e.target.checked)}
                 className="h-4 w-4 accent-zinc-900"
               />
             </label>
             <select
-              value={subtitleFont ?? ""}
+              value={sceneTextFont ?? ""}
               onChange={(e) => setSubtitleFont(e.target.value)}
-              title="Subtitle Font"
+              title="Scene Text Font"
               className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
             >
               {fontList.length === 0 && <option value="">Default</option>}
@@ -228,12 +226,12 @@ export default function RenderSettingsPanel({
             <div
               className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-center text-white text-sm"
               style={{
-                fontFamily: loadedFonts.has(subtitleFont)
-                  ? `"${subtitleFont}", sans-serif`
+                fontFamily: loadedFonts.has(sceneTextFont)
+                  ? `"${sceneTextFont}", sans-serif`
                   : "sans-serif",
               }}
             >
-              {loadedFonts.has(subtitleFont) ? "가나다 ABC" : "Loading..."}
+              {loadedFonts.has(sceneTextFont) ? "가나다 ABC" : "Loading..."}
             </div>
           </div>
           {/* Motion Effects Row */}
@@ -398,22 +396,22 @@ export default function RenderSettingsPanel({
             )}
             {((currentStyleProfile.negative_embeddings && currentStyleProfile.negative_embeddings.length > 0) ||
               (currentStyleProfile.positive_embeddings && currentStyleProfile.positive_embeddings.length > 0)) && (
-              <div>
-                <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">Embeddings</span>
-                <div className="flex flex-wrap gap-1">
-                  {currentStyleProfile.positive_embeddings?.map((emb, idx) => (
-                    <span key={emb.name || `pos-${idx}`} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] text-emerald-700 font-medium">
-                      {emb.name}
-                    </span>
-                  ))}
-                  {currentStyleProfile.negative_embeddings?.map((emb, idx) => (
-                    <span key={emb.name || `neg-${idx}`} className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] text-rose-700 font-medium">
-                      {emb.name}
-                    </span>
-                  ))}
+                <div>
+                  <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">Embeddings</span>
+                  <div className="flex flex-wrap gap-1">
+                    {currentStyleProfile.positive_embeddings?.map((emb, idx) => (
+                      <span key={emb.name || `pos-${idx}`} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] text-emerald-700 font-medium">
+                        {emb.name}
+                      </span>
+                    ))}
+                    {currentStyleProfile.negative_embeddings?.map((emb, idx) => (
+                      <span key={emb.name || `neg-${idx}`} className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] text-rose-700 font-medium">
+                        {emb.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-zinc-300 bg-white/50 p-4 text-center">

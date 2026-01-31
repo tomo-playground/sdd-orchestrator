@@ -35,8 +35,8 @@ export default function PromptsTab() {
             if (promptsCharacterFilter) {
                 params.character_id = promptsCharacterFilter;
             }
-            const res = await axios.get<{ items: PromptHistory[] }>(`${API_BASE}/prompts/history`, { params });
-            setPromptHistories(res.data.items || []);
+            const res = await axios.get<PromptHistory[]>(`${API_BASE}/prompt-histories`, { params });
+            setPromptHistories(res.data || []);
         } catch {
             setPromptHistories([]);
         } finally {
@@ -48,7 +48,7 @@ export default function PromptsTab() {
         if (!confirm("Delete this prompt history?")) return;
         setDeletingPromptId(id);
         try {
-            await axios.delete(`${API_BASE}/prompts/history/${id}`);
+            await axios.delete(`${API_BASE}/prompt-histories/${id}`);
             setPromptHistories((prev) => prev.filter((p) => p.id !== id));
         } catch {
             alert("Failed to delete prompt");
@@ -61,7 +61,7 @@ export default function PromptsTab() {
         try {
             const prompt = promptHistories.find((p) => p.id === id);
             if (!prompt) return;
-            await axios.put(`${API_BASE}/prompts/history/${id}`, { is_favorite: !prompt.is_favorite });
+            await axios.put(`${API_BASE}/prompt-histories/${id}`, { is_favorite: !prompt.is_favorite });
             setPromptHistories((prev) =>
                 prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p))
             );

@@ -10,6 +10,7 @@ import { useCharacters } from "./hooks/useCharacters";
 import CharacterEditModal from "./components/shared/CharacterEditModal";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 import Toast from "./components/ui/Toast";
+import Footer from "./components/ui/Footer";
 import ImagePreviewModal from "./components/ui/ImagePreviewModal";
 
 type HomeTab = "storyboards" | "characters";
@@ -67,7 +68,7 @@ export default function Home() {
     Promise.all([
       axios.get(`${API_BASE}/tags`).then((r) => setAllTags(r.data)),
       axios.get(`${API_BASE}/loras`).then((r) => setAllLoras(r.data)),
-    ]).catch(() => {});
+    ]).catch(() => { });
   }, [tab]);
 
   const handleDeleteStoryboard = async (id: number) => {
@@ -136,11 +137,10 @@ export default function Home() {
               key={t}
               data-testid={`home-tab-${t}`}
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-                tab === t
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${tab === t
+                ? "bg-white text-zinc-900 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-700"
+                }`}
             >
               {t === "storyboards" ? "Storyboards" : "Characters"}
             </button>
@@ -230,7 +230,7 @@ export default function Home() {
                       <img
                         src={ch.preview_image_url.startsWith('http') ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`}
                         alt={ch.name}
-                        onClick={() => setCharacterImagePreview(ch.preview_image_url.startsWith('http') ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`)}
+                        onClick={() => ch.preview_image_url && setCharacterImagePreview(ch.preview_image_url.startsWith('http') ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`)}
                         className="h-14 w-14 rounded-xl object-cover bg-zinc-100 cursor-pointer hover:ring-2 hover:ring-zinc-300 transition-all"
                       />
                     ) : (
@@ -263,6 +263,8 @@ export default function Home() {
           </section>
         )}
       </main>
+
+      <Footer />
 
       {/* Character Edit Modal */}
       {showCharacterModal && (
@@ -305,7 +307,7 @@ function DraftCard({ onClick }: { onClick: () => void }) {
           setHasDraft(true);
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   if (!hasDraft) return null;

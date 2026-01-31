@@ -23,7 +23,7 @@ export default function OutputTab() {
     frameStyle,
     isRendering,
     includeSceneText,
-    subtitleFont,
+    sceneTextFont,
     fontList,
     loadedFonts,
     kenBurnsPreset,
@@ -54,23 +54,54 @@ export default function OutputTab() {
   const previewTimeoutRef = useRef<number | null>(null);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
 
-  // Video-specific metadata (not in profile)
-  const [videoCaption, setVideoCaption] = useState("");
-  const [videoLikesCount, setVideoLikesCount] = useState("");
+  // Video-specific metadata (from store for persistence)
+  const videoCaption = useStudioStore((state) => state.videoCaption);
+  const videoLikesCount = useStudioStore((state) => state.videoLikesCount);
   const captionInitialized = useRef(false);
+  const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const likesInitialized = useRef(false);
 
   // Auto-populate video metadata with smart defaults (only once)
   useEffect(() => {
     if (!captionInitialized.current && !videoCaption && store.topic) {
-      setVideoCaption(store.topic);
+      setOutput({ videoCaption: store.topic });
       captionInitialized.current = true;
     }
     if (!likesInitialized.current && !videoLikesCount) {
-      setVideoLikesCount(`${Math.floor(Math.random() * 50 + 10)}K`);
+      setOutput({ videoLikesCount: `${Math.floor(Math.random() * 50 + 10)}K` });
       likesInitialized.current = true;
     }
-  }, [store.topic, videoCaption, videoLikesCount]);
+  }, [store.topic, videoCaption, videoLikesCount, setOutput]);
+
+  // Extract caption using LLM
+  const handleExtractCaption = async () => {
+    if (!videoCaption || videoCaption.length <= 60) {
+      showToast("캡션이 이미 60자 이내입니다", "success");
+      return;
+    }
+
+    setIsExtractingCaption(true);
+    try {
+      const res = await axios.post(`${API_BASE}/video/extract-caption`, {
+        text: videoCaption
+      });
+
+      if (res.data.caption) {
+        setOutput({ videoCaption: res.data.caption });
+        showToast(
+          res.data.fallback
+            ? "캡션을 잘라냈습니다"
+            : `캡션 요약 완료 (${res.data.original_length} → ${res.data.caption.length}자)`,
+          "success"
+        );
+      }
+    } catch (err: any) {
+      console.error("Caption extraction failed:", err);
+      showToast(err.response?.data?.detail || "캡션 요약 실패", "error");
+    } finally {
+      setIsExtractingCaption(false);
+    }
+  };
 
   // Load audio, font, and SD model lists on mount
   useEffect(() => {
@@ -86,23 +117,23 @@ export default function OutputTab() {
 
   // Load selected font dynamically
   useEffect(() => {
-    if (!subtitleFont || loadedFonts.has(subtitleFont)) return;
+    if (!sceneTextFont || loadedFonts.has(sceneTextFont)) return;
 
     const fontFace = new FontFace(
-      subtitleFont,
-      `url(${API_BASE}/fonts/file/${encodeURIComponent(subtitleFont)})`
+      sceneTextFont,
+      `url(${API_BASE}/fonts/file/${encodeURIComponent(sceneTextFont)})`
     );
 
     fontFace
       .load()
       .then((loaded) => {
         document.fonts.add(loaded);
-        setOutput({ loadedFonts: new Set([...loadedFonts, subtitleFont]) });
+        setOutput({ loadedFonts: new Set([...loadedFonts, sceneTextFont]) });
       })
       .catch((err) => {
-        console.warn(`Failed to load font ${subtitleFont}:`, err);
+        console.warn(`Failed to load font ${sceneTextFont}:`, err);
       });
-  }, [subtitleFont, loadedFonts, setOutput]);
+  }, [sceneTextFont, loadedFonts, setOutput]);
 
   // Cleanup audio on unmount
   useEffect(() => () => stopBgmPreview(), []);
@@ -154,7 +185,7 @@ export default function OutputTab() {
           ken_burns_intensity: kenBurnsIntensity,
           transition_type: transitionType,
           include_scene_text: includeSceneText,
-          subtitle_font: subtitleFont,
+          scene_text_font: sceneTextFont,
           narrator_voice: narratorVoice,
           speed_multiplier: speedMultiplier,
           bgm_file: bgmFile,
@@ -184,7 +215,7 @@ export default function OutputTab() {
         setOutput({ isRendering: false });
       }
     },
-    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, subtitleFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, channelProfile, hasValidProfile, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
+    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, channelProfile, hasValidProfile, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
   );
 
   const handleDeleteRecentVideo = useCallback(
@@ -314,19 +345,30 @@ export default function OutputTab() {
                 <label className="block text-xs font-semibold text-zinc-600">
                   캡션 (이 영상) <span className="text-red-500">*</span>
                 </label>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${videoCaption.length >= 60 ? 'bg-red-100 text-red-600' :
-                  videoCaption.length >= 50 ? 'bg-amber-100 text-amber-600' :
-                    'text-zinc-400'
-                  }`}>
-                  {videoCaption.length}/60
-                </span>
+                <div className="flex items-center gap-2">
+                  {videoCaption.length > 60 && (
+                    <button
+                      onClick={handleExtractCaption}
+                      disabled={isExtractingCaption}
+                      className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 hover:bg-indigo-200 disabled:opacity-50 transition-colors"
+                      title="LLM으로 캡션 요약"
+                    >
+                      {isExtractingCaption ? "⏳" : "✨ 요약"}
+                    </button>
+                  )}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${videoCaption.length >= 60 ? 'bg-red-100 text-red-600' :
+                    videoCaption.length >= 50 ? 'bg-amber-100 text-amber-600' :
+                      'text-zinc-400'
+                    }`}>
+                    {videoCaption.length}/60
+                  </span>
+                </div>
               </div>
               <input
                 type="text"
                 value={videoCaption}
-                onChange={(e) => setVideoCaption(e.target.value.slice(0, 60))}
+                onChange={(e) => setOutput({ videoCaption: e.target.value })}
                 placeholder={`예: ${store.topic || "AI 생성 영상"}`}
-                maxLength={60}
                 className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 transition-colors ${videoCaption.length >= 60
                   ? 'border-red-300 focus:border-red-400 focus:ring-red-50 bg-red-50/30'
                   : videoCaption.length >= 50
@@ -361,7 +403,7 @@ export default function OutputTab() {
               <input
                 type="text"
                 value={videoLikesCount}
-                onChange={(e) => setVideoLikesCount(e.target.value)}
+                onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
                 placeholder="예: 1.2K (비워두면 랜덤)"
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
               />
@@ -391,9 +433,9 @@ export default function OutputTab() {
         totalScenes={scenes.length}
         onRender={() => handleRender(layoutStyle)}
         includeSceneText={includeSceneText}
-        setIncludeScene Text={(v) => setOutput({ includeSceneText: v })}
-        subtitleFont={subtitleFont}
-        setSubtitleFont={(v) => setOutput({ subtitleFont: v })}
+        setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
+        sceneTextFont={sceneTextFont}
+        setSubtitleFont={(v) => setOutput({ sceneTextFont: v })}
         fontList={fontList}
         loadedFonts={loadedFonts}
         kenBurnsPreset={kenBurnsPreset}

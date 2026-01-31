@@ -70,7 +70,7 @@ export function migrateDraft(): void {
         audioDucking: draft.audioDucking ?? true,
         bgmVolume: draft.bgmVolume ?? 0.25,
         speedMultiplier: draft.speedMultiplier ?? 1.3,
-        subtitleFont: draft.subtitleFont ?? "",
+        sceneTextFont: draft.sceneTextFont ?? draft.subtitleFont ?? "",
         videoUrl: draft.videoUrl ?? null,
         videoUrlFull: draft.videoUrlFull ?? null,
         videoUrlPost: draft.videoUrlPost ?? null,

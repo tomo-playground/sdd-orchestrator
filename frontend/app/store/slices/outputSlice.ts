@@ -10,7 +10,7 @@ import type {
 import {
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
-  DEFAULT_SUBTITLE_FONT,
+  DEFAULT_SCENE_TEXT_FONT,
   VOICES,
 } from "../../constants";
 
@@ -45,8 +45,12 @@ export interface OutputSlice {
   bgmVolume: number;
   speedMultiplier: number;
   fontList: FontItem[];
-  subtitleFont: string;
+  sceneTextFont: string;
   loadedFonts: Set<string>;
+
+  // Video metadata
+  videoCaption: string;
+  videoLikesCount: string;
 
   // Overlay
   overlaySettings: OverlaySettings;
@@ -91,8 +95,10 @@ const initialOutputState = {
   bgmVolume: 0.25,
   speedMultiplier: 1.3,
   fontList: [] as FontItem[],
-  subtitleFont: DEFAULT_SUBTITLE_FONT,
+  sceneTextFont: DEFAULT_SCENE_TEXT_FONT,
   loadedFonts: new Set<string>(),
+  videoCaption: "",
+  videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,
   postCardSettings: DEFAULT_POST_CARD_SETTINGS,
   overlayAvatarUrl: null as string | null,

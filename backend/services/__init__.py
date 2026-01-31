@@ -40,7 +40,8 @@ from .rendering import (
     render_scene_text_image,
     render_subtitle_image,  # Deprecated alias
     resolve_overlay_frame,
-    resolve_subtitle_font_path,
+    resolve_scene_text_font_path,
+    resolve_subtitle_font_path,  # Deprecated alias
 )
 from .utils import (
     get_audio_duration,
@@ -92,7 +93,8 @@ __all__ = [
     "render_scene_text_image",
     "render_subtitle_image",  # Deprecated alias
     "resolve_overlay_frame",
-    "resolve_subtitle_font_path",
+    "resolve_scene_text_font_path",
+    "resolve_subtitle_font_path",  # Deprecated alias
     # Image
     "decode_data_url",
     "load_image_bytes",

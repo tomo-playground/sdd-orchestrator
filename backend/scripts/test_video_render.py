@@ -52,7 +52,7 @@ def test_video_render():
         "transition_type": "fade",
         "ken_burns_preset": "none",
         "ken_burns_intensity": 1.0,
-        "include_subtitles": True,
+        "include_scene_text": True,
         "speed_multiplier": 1.0,
     }
 

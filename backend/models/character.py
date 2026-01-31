@@ -40,8 +40,11 @@ class Character(Base, TimestampMixin):
 
     # Media & Display
     # preview_image_url column removed
-    preview_image_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
-    preview_image_asset: Mapped["MediaAsset"] = relationship()
+    preview_image_asset_id: Mapped[int | None] = mapped_column()
+    preview_image_asset: Mapped["MediaAsset"] = relationship(
+        primaryjoin="Character.preview_image_asset_id == MediaAsset.id",
+        foreign_keys=[preview_image_asset_id], viewonly=True,
+    )
 
     @property
     def preview_image_url(self) -> str | None:

@@ -169,6 +169,7 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
         description=request.description,
         default_character_id=request.default_character_id,
         default_style_profile_id=request.default_style_profile_id,
+        default_caption=request.default_caption,
     )
     db.add(db_storyboard)
     db.flush()
@@ -268,33 +269,36 @@ async def update_storyboard(
     storyboard.description = request.description
     storyboard.default_character_id = request.default_character_id
     storyboard.default_style_profile_id = request.default_style_profile_id
+    storyboard.default_caption = request.default_caption
 
-    # 1. Nullify image_asset_id FK references first
+    # 1. Nullify asset FK references on scenes first
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
-        {Scene.image_asset_id: None}, synchronize_session=False
+        {Scene.image_asset_id: None, Scene.environment_reference_id: None},
+        synchronize_session=False,
     )
     db.flush()
 
-    # 2. Delete existing scenes (CASCADE removes tags & actions)
-    # Get IDs of scenes to also delete their MediaAsset records
-    scene_ids = [s.id for s in db.query(Scene).filter(Scene.storyboard_id == storyboard_id).all()]
+    # 2. Collect scene IDs, then delete scenes (CASCADE removes tags & actions)
+    scene_ids = [
+        s.id for s in db.query(Scene.id).filter(Scene.storyboard_id == storyboard_id).all()
+    ]
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id
+    ).delete(synchronize_session=False)
 
-    db.query(Scene).filter(Scene.storyboard_id == storyboard_id).delete()
-
-    # 3. Now delete media_assets (no longer referenced)
+    # 3. Delete orphaned media_assets (no longer referenced by scenes)
     from models.media_asset import MediaAsset
-    # Delete assets owned by the storyboard itself (like final video)
+
     db.query(MediaAsset).filter(
         MediaAsset.owner_type == "storyboard",
-        MediaAsset.owner_id == storyboard_id
-    ).delete()
+        MediaAsset.owner_id == storyboard_id,
+    ).delete(synchronize_session=False)
 
-    # Also delete assets owned by the deleted scenes
     if scene_ids:
         db.query(MediaAsset).filter(
             MediaAsset.owner_type == "scene",
-            MediaAsset.owner_id.in_(scene_ids)
-        ).delete()
+            MediaAsset.owner_id.in_(scene_ids),
+        ).delete(synchronize_session=False)
 
     db.flush()
 
@@ -308,13 +312,48 @@ async def update_storyboard(
 
 @router.delete("/{storyboard_id}")
 async def delete_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
-    """Delete a storyboard and all its scenes (CASCADE)."""
+    """Delete a storyboard and all its scenes (CASCADE) + cleanup assets."""
     storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
     logger.info("🗑️ [Storyboard Delete] id=%d title=%s", storyboard_id, storyboard.title)
 
-    db.delete(storyboard)
-    db.commit()
-    return {"status": "success"}
+    try:
+        # 1. Nullify asset references in scenes to prevent FK constraint errors during deletion
+        # (Though CASCADE should handle it, explicit nullifying is safer for some DB configs)
+        db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
+            {Scene.image_asset_id: None, Scene.environment_reference_id: None},
+            synchronize_session=False,
+        )
+        
+        # 2. Delete video asset
+        if storyboard.video_asset_id:
+            db.query(MediaAsset).filter(MediaAsset.id == storyboard.video_asset_id).delete(synchronize_session=False)
+
+        # Scene Assets (Garbage collect assets owned by these scenes or the storyboard)
+        # Note: Generic owner deletion
+        db.query(MediaAsset).filter(
+            MediaAsset.owner_type == "storyboard",
+            MediaAsset.owner_id == storyboard_id,
+        ).delete(synchronize_session=False)
+
+        # We also need to find assets owned by the scenes of this storyboard
+        scene_ids = [s.id for s in storyboard.scenes]
+        if scene_ids:
+            db.query(MediaAsset).filter(
+                MediaAsset.owner_type == "scene",
+                MediaAsset.owner_id.in_(scene_ids),
+            ).delete(synchronize_session=False)
+
+        # 4. Delete Storyboard (Cascade triggers Scene deletion)
+        db.delete(storyboard)
+        db.commit()
+        return {"status": "success"}
+    except Exception as e:
+        import sys
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        logger.exception("Failed to delete storyboard %d", storyboard_id)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")

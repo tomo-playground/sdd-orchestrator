@@ -62,7 +62,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
       setData(response.data);
     } catch (err: any) {
       console.error("Failed to load analytics:", err);
-      setError(err.response?.data?.detail || "Failed to load analytics data");
+      setError(err.response?.data?.detail || err.message || "Failed to load analytics data");
     } finally {
       setIsLoading(false);
     }
@@ -116,11 +116,20 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
 
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
+          {error || "Failed to load analytics data"}
+          <div className="mt-1 text-xs text-red-500 opacity-70">
+            Check console for details. (Status: {storyboardId ? "Active" : "Inactive"})
+          </div>
         </div>
       )}
 
-      {data && (
+      {data && data.summary.total_success === 0 ? (
+        <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
+          No successful generations found for analysis.
+          <br />
+          Try generating more scenes with high quality tags.
+        </div>
+      ) : data && (
         <div className="grid gap-6">
           {/* Summary Stats */}
           <div className="grid grid-cols-3 gap-4">

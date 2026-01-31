@@ -142,7 +142,17 @@ class V3PromptBuilder:
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{weight}>")
 
-        # 10. Add Quality Tags to Layer 0
+        # 10. Resolve location conflicts in ENVIRONMENT layer
+        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(
+            layers[LAYER_ENVIRONMENT]
+        )
+
+        # 10b. Resolve camera conflicts in CAMERA layer
+        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(
+            layers[LAYER_CAMERA]
+        )
+
+        # 11. Add Quality Tags to Layer 0
         if not layers[LAYER_QUALITY]:
             layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
 
@@ -202,6 +212,16 @@ class V3PromptBuilder:
 
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
 
+        # Resolve location conflicts
+        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(
+            layers[LAYER_ENVIRONMENT]
+        )
+
+        # Resolve camera conflicts
+        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(
+            layers[LAYER_CAMERA]
+        )
+
         if not layers[LAYER_QUALITY]:
             layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
 
@@ -257,6 +277,91 @@ class V3PromptBuilder:
 
         self._lora_weight_cache[name] = weight
         return weight
+
+    # Location tag groups for conflict resolution
+    _OUTDOOR_TAGS = frozenset({
+        "outdoors", "street", "park", "forest", "beach", "mountain",
+        "garden", "city", "field", "lake", "river", "rooftop",
+    })
+    _INDOOR_TAGS = frozenset({
+        "indoors", "room", "bedroom", "kitchen", "bathroom", "classroom",
+        "library", "office", "cafe", "school", "hospital", "church",
+        "restaurant", "shop", "hallway", "living_room",
+    })
+
+    # Camera tags that conflict with each other (only one framing allowed)
+    _CAMERA_WIDE = frozenset({"full_body", "wide_shot"})
+    _CAMERA_MID = frozenset({"cowboy_shot", "upper_body", "from_waist"})
+    _CAMERA_CLOSE = frozenset({"close-up", "close_up", "portrait", "face", "headshot"})
+
+    def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
+        """Remove conflicting location tags from the environment layer.
+
+        1. Indoor vs outdoor conflict: keep the majority group.
+        2. Same-category dedup: keep only the first specific location.
+           Generic tags (indoors/outdoors) are kept as-is.
+        """
+        if not env_tokens:
+            return env_tokens
+
+        outdoor_found = []
+        indoor_found = []
+        neutral = []
+
+        for token in env_tokens:
+            norm = token.lower().replace(" ", "_").strip()
+            if norm in self._OUTDOOR_TAGS:
+                outdoor_found.append(token)
+            elif norm in self._INDOOR_TAGS:
+                indoor_found.append(token)
+            else:
+                neutral.append(token)
+
+        # Resolve indoor vs outdoor conflict
+        if outdoor_found and indoor_found:
+            if len(outdoor_found) >= len(indoor_found):
+                winner = outdoor_found
+            else:
+                winner = indoor_found
+        else:
+            winner = outdoor_found + indoor_found
+
+        # Limit to 1 specific location + generic tag (indoors/outdoors)
+        generic = {"indoors", "outdoors"}
+        specific = []
+        generic_tags = []
+        for token in winner:
+            norm = token.lower().replace(" ", "_").strip()
+            if norm in generic:
+                generic_tags.append(token)
+            elif not specific:  # Keep only first specific location
+                specific.append(token)
+
+        return specific + generic_tags + neutral
+
+    def _resolve_camera_conflicts(self, cam_tokens: list[str]) -> list[str]:
+        """Keep only one framing tag when conflicts exist.
+
+        Priority: first tag wins. Removes conflicting framing tags.
+        """
+        if not cam_tokens:
+            return cam_tokens
+
+        all_camera = self._CAMERA_WIDE | self._CAMERA_MID | self._CAMERA_CLOSE
+        first_framing = None
+        result = []
+
+        for token in cam_tokens:
+            norm = token.lower().replace(" ", "_").strip()
+            if norm in all_camera:
+                if first_framing is None:
+                    first_framing = token
+                    result.append(token)
+                # Skip subsequent conflicting framing tags
+            else:
+                result.append(token)
+
+        return result
 
     def _resolve_lora_placeholders(self, tokens: list[str]) -> list[str]:
         """Finds <lora:NAME> (without weight) and injects calibrated value."""

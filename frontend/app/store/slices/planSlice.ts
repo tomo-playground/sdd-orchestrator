@@ -3,7 +3,7 @@ import type { ActorGender, KenBurnsPreset, OverlaySettings, PostCardSettings } f
 import {
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
-  DEFAULT_SUBTITLE_FONT,
+  DEFAULT_SCENE_TEXT_FONT,
   VOICES,
 } from "../../constants";
 

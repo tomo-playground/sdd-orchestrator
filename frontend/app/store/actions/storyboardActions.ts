@@ -96,6 +96,7 @@ export async function saveStoryboard(): Promise<boolean> {
     topic,
     selectedCharacterId,
     currentStyleProfile,
+    videoCaption,
     setMeta,
     showToast,
   } = useStudioStore.getState();
@@ -114,6 +115,7 @@ export async function saveStoryboard(): Promise<boolean> {
       description: topic,
       default_character_id: selectedCharacterId,
       default_style_profile_id: currentStyleProfile?.id || null,
+      default_caption: videoCaption || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
