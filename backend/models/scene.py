@@ -47,6 +47,14 @@ class Scene(Base, TimestampMixin):
     # Context tags (JSONB for flexible tag groups)
     context_tags: Mapped[dict | None] = mapped_column(JSONB)
 
+    # Consistency Enhancements
+    use_reference_only: Mapped[bool] = mapped_column(Integer, default=1)  # 1 for True
+    reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)
+    environment_reference_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
+
+    environment_asset: Mapped["MediaAsset | None"] = relationship(foreign_keys="Scene.environment_reference_id")
+
     # Generated Image Path
     # Generated Image Path
     # image_url column removed, use property below

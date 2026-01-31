@@ -17,6 +17,7 @@ export type Scene = {
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
+  image_asset_id?: number | null;
   description?: string;
   width?: number;
   height?: number;
@@ -33,6 +34,11 @@ export type Scene = {
   context_tags?: SceneContextTags;
   prompt_history_id?: number;  // Track which prompt history was applied
   activity_log_id?: number;  // Track generation log for success/fail marking
+  // Consistency Enhancements
+  use_reference_only?: boolean;
+  reference_only_weight?: number;
+  environment_reference_id?: number | null;
+  environment_reference_weight?: number;
 };
 
 export type AudioItem = { name: string; url: string };
@@ -138,6 +144,7 @@ export type DraftScene = {
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
+  image_asset_id?: number | null;
   candidates?: Array<{ image_url: string; match_rate?: number }>;
   negative_prompt: string;
   steps: number;
@@ -148,6 +155,8 @@ export type DraftScene = {
   context_tags?: SceneContextTags;
   prompt_history_id?: number;
   activity_log_id?: number;
+  environment_reference_id?: number | null;
+  environment_reference_weight?: number;
 };
 
 // ============================================================
@@ -342,6 +351,8 @@ export type DraftData = {
   useIpAdapter?: boolean;
   ipAdapterReference?: string;
   ipAdapterWeight?: number;
+  // Environment Pinning defaults
+  environmentReferenceWeight?: number;
   videoUrl?: string | null;
   videoUrlFull?: string | null;
   videoUrlPost?: string | null;

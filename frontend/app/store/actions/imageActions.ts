@@ -51,9 +51,9 @@ function buildHiResPayload() {
     ? {
       enable_hr: true,
       hr_scale: 1.5,
-      hr_upscaler: "Latent",
+      hr_upscaler: "R-ESRGAN 4x+ Anime6B",
       hr_second_pass_steps: 10,
-      denoising_strength: 0.25,
+      denoising_strength: 0.35,
     }
     : {};
 }
@@ -145,6 +145,11 @@ export async function generateSceneImageFor(
       storyboard_id: storyboardId,
     });
     const images = res.data.images || (res.data.image ? [res.data.image] : []);
+    const warnings = res.data.warnings || [];
+
+    if (!silent && warnings.length > 0) {
+      warnings.forEach((msg: string) => showToast(msg, "success")); // Use success color for informational unpin
+    }
 
     if (images.length > 0) {
       const { projectId, groupId, storyboardId: currentId } = useStudioStore.getState();

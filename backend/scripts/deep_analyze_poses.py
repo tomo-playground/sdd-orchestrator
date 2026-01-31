@@ -1,7 +1,8 @@
 import os
+import re
 import sys
 from collections import Counter
-import re
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -9,9 +10,10 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(os.getcwd())
 
 from config import DATABASE_URL
-from models.scene import Scene
 from models.activity_log import ActivityLog
+from models.scene import Scene
 from services.controlnet import detect_pose_from_prompt
+
 
 def deep_analyze_poses():
     engine = create_engine(DATABASE_URL)
@@ -21,7 +23,7 @@ def deep_analyze_poses():
     # 1. Fetch all prompts
     prompts = [r[0] for r in db.query(Scene.image_prompt).all() if r[0]]
     prompts += [r[0] for r in db.query(ActivityLog.prompt).all() if r[0]]
-    
+
     # 2. Extract tags and clean them
     all_tags = []
     for p in prompts:
@@ -39,7 +41,7 @@ def deep_analyze_poses():
 
     # 3. Filter for action/body related keywords
     body_keywords = [
-        "pose", "standing", "sitting", "lying", "laying", "kneeling", "crouching", 
+        "pose", "standing", "sitting", "lying", "laying", "kneeling", "crouching",
         "leaning", "running", "walking", "jumping", "dancing", "sleeping",
         "arm", "hand", "leg", "foot", "looking", "facing", "view",
         "pointing", "reaching", "holding", "shouting", "crying", "laughing",
@@ -49,7 +51,7 @@ def deep_analyze_poses():
     print("\n[Deep Data Analysis: Most Frequent Action/Pose Tags]")
     print(f"{'Tag':35} | {'Count':6} | {'Status'}")
     print("-" * 60)
-    
+
     candidates = []
     for tag, count in tag_counts.most_common(1000):
         if any(kw in tag for kw in body_keywords):

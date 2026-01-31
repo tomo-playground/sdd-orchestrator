@@ -31,10 +31,10 @@ class TestAssetService:
         assert isinstance(asset, MediaAsset)
         assert asset.owner_type == "project"
         assert asset.owner_id == 1
-        
+
         mock_db.add.assert_called_once()
         mock_db.commit.assert_called_once()
-    
+
     def test_save_scene_image(self, mock_db, mock_storage):
         service = AssetService(mock_db)
         # Mock _get_storage return value

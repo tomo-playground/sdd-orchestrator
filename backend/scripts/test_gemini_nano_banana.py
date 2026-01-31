@@ -15,13 +15,13 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 # Backend 경로 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # .env 파일 로드
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 # 유레카 캐릭터 베이스 프롬프트
@@ -129,12 +129,12 @@ class ImagenTester:
             self.genai_client = genai.Client(api_key=api_key)
             self.gemini_available = True
 
-            print(f"✅ Gemini API initialized")
-            print(f"   Model: gemini-2.5-flash-image (Nano Banana)")
+            print("✅ Gemini API initialized")
+            print("   Model: gemini-2.5-flash-image (Nano Banana)")
 
         except Exception as e:
             print(f"❌ Gemini API initialization failed: {e}")
-            print(f"   Install: pip install google-genai")
+            print("   Install: pip install google-genai")
             self.gemini_available = False
 
     async def run_all_tests(self, limit: int | None = None, use_mock: bool = False, test_ids: list[str] | None = None):
@@ -152,7 +152,7 @@ class ImagenTester:
             return
 
         print(f"\n{'='*70}")
-        print(f"🧪 Gemini Nano Banana Test Suite - Eureka Character")
+        print("🧪 Gemini Nano Banana Test Suite - Eureka Character")
         print(f"{'='*70}")
         print(f"📁 Output: {self.session_dir}")
         print(f"📊 Test cases: {len(test_cases)}")
@@ -214,7 +214,7 @@ class ImagenTester:
         if use_mock:
             edited_image_b64 = base_image_b64  # Mock: 원본 그대로
             edit_cost = 0.0
-            print(f"      ⚠️  Mock mode: no actual editing")
+            print("      ⚠️  Mock mode: no actual editing")
         else:
             edit_result = await self._edit_with_gemini(
                 base_image_b64,
@@ -294,9 +294,11 @@ class ImagenTester:
 
     async def _analyze_with_wd14(self, image_b64: str) -> list[dict]:
         """WD14로 태그 분석"""
-        from services.validation import wd14_predict_tags
-        from PIL import Image
         import io
+
+        from PIL import Image
+
+        from services.validation import wd14_predict_tags
 
         image_bytes = base64.b64decode(image_b64)
         image = Image.open(io.BytesIO(image_bytes))
@@ -307,8 +309,9 @@ class ImagenTester:
         self, image_b64: str, prompt: str, target_change: str
     ) -> dict:
         """Gemini Vision으로 포즈 분석"""
-        from config import GEMINI_IMAGE_MODEL, GEMINI_TEXT_MODEL, gemini_client
         from google.genai import types
+
+        from config import GEMINI_TEXT_MODEL, gemini_client
         from services.utils import parse_json_payload
 
         image_bytes = base64.b64decode(image_b64)
@@ -330,21 +333,22 @@ OUTPUT (JSON only):
 """
 
         client = gemini_client
-                    res = client.models.generate_content(
-                        model=GEMINI_TEXT_MODEL,
-                        contents=[
-                            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-                            instruction,
-                        ],
-                    )
+        res = client.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
+                instruction,
+            ],
+        )
         return parse_json_payload(res.text)
 
     async def _edit_with_gemini(
         self, image_b64: str, target_pose: str, preserve_elements: list[str]
     ) -> dict:
         """Gemini Nano Banana (2.5 Flash Image)로 이미지 편집"""
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         # Base64 → PIL
         image_bytes = base64.b64decode(image_b64)
@@ -474,7 +478,7 @@ Edit this image to match the new pose while keeping everything else identical.
         print(f"\n{'='*70}")
         print("📊 TEST SUMMARY")
         print(f"{'='*70}")
-        print(f"Character: Eureka Chibi")
+        print("Character: Eureka Chibi")
         print(f"Total Tests: {len(self.results)}")
         print(f"Completed: {len(completed)}")
         if completed:
@@ -484,7 +488,7 @@ Edit this image to match the new pose while keeping everything else identical.
         print(f"💰 Total Cost: ${total_cost:.4f}")
 
         # 난이도별
-        print(f"\n📈 By Difficulty:")
+        print("\n📈 By Difficulty:")
         for difficulty in ["easy", "medium", "hard"]:
             cases = [r for r in completed if r.get("difficulty") == difficulty]
             if cases:

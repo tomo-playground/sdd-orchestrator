@@ -587,6 +587,7 @@ class VideoBuilder:
     def _add_subtitle_inputs(self) -> None:
         """Add subtitle image inputs with dynamic positioning."""
         if not self.request.include_subtitles:
+            logger.info("🚫 Subtitles disabled (include_subtitles=False)")
             return
 
         from PIL import Image
@@ -594,6 +595,11 @@ class VideoBuilder:
         for i in range(self.num_scenes):
             subtitle_path = self.temp_dir / f"subtitle_{i}.png"
             font_size = self.subtitle_font_sizes[i] if self.subtitle_font_sizes[i] > 0 else None
+
+            logger.info(f"📝 Scene {i} subtitle:")
+            logger.info(f"  - Lines: {self.subtitle_lines[i]}")
+            logger.info(f"  - Font size: {font_size}")
+            logger.info(f"  - Layout: {'Post' if self.use_post_layout else 'Full'}")
 
             # Calculate dynamic subtitle position based on image content
             scene_img_path = self.temp_dir / f"scene_{i}.png"
@@ -605,7 +611,7 @@ class VideoBuilder:
                         scene_img,
                         layout_style=self.request.layout_style
                     )
-                    logger.info(f"Scene {i}: dynamic subtitle Y = {subtitle_y_ratio:.3f}")
+                    logger.info(f"  - Dynamic Y position: {subtitle_y_ratio:.3f}")
             except Exception as e:
                 logger.warning(f"Scene {i}: failed to calculate dynamic subtitle position: {e}")
 
@@ -619,10 +625,26 @@ class VideoBuilder:
                 subtitle_y_ratio,
             )
             subtitle_img.save(subtitle_path, "PNG")
+
+            # Debug: Check if subtitle image has content
+            img_pixels = list(subtitle_img.getdata())
+            non_transparent = sum(1 for p in img_pixels if len(p) == 4 and p[3] > 0)
+            logger.info(f"  - Subtitle image saved: {subtitle_path}")
+            logger.info(f"  - Non-transparent pixels: {non_transparent}/{len(img_pixels)}")
+
             self.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])
 
     def _build_video_filters(self) -> None:
-        """Build video processing filters for each scene."""
+        """Build video processing filters for each scene.
+
+        Filter chain order (Ken Burns + Subtitle sync):
+        1. Scale/Crop image → [v{i}_scaled]
+        2. Overlay subtitle on scaled image → [v{i}_with_sub] or [v{i}_presub]
+        3. Apply Ken Burns effect to composited image → [v{i}_base]
+        4. Trim to duration → [v{i}_raw]
+
+        This ensures subtitles move naturally with Ken Burns effects.
+        """
         subtitle_base_idx = self.num_scenes * 2
 
         for i in range(self.num_scenes):
@@ -633,14 +655,17 @@ class VideoBuilder:
             )
             motion_frames = max(1, int(clip_dur * 25))
 
+            # Step 1: Scale/Crop image (no Ken Burns yet)
             if self.use_post_layout:
-                self._build_post_layout_filter(i, v_idx, motion_frames)
+                self._build_post_layout_base(i, v_idx)
             else:
-                self._build_full_layout_filter(i, v_idx, motion_frames)
+                self._build_full_layout_base(i, v_idx)
 
-            # Apply subtitles and trim
+            # Step 2: Apply subtitles BEFORE Ken Burns
+            presub_label = f"v{i}_scaled"
             if self.request.include_subtitles:
                 sub_idx = subtitle_base_idx + i
+                logger.info(f"🎬 Scene {i}: Adding subtitle overlay (input [{sub_idx}:v])")
 
                 # Build subtitle filter with fade animation
                 fade_duration = 0.3  # seconds
@@ -656,53 +681,43 @@ class VideoBuilder:
 
                 self.filters.append(f"{sub_filter}[sub{i}]")
                 self.filters.append(
-                    f"[v{i}_base][sub{i}]overlay=0:0:format=auto[v{i}_text]"
+                    f"[{presub_label}][sub{i}]overlay=0:0:format=auto[v{i}_with_sub]"
                 )
-                self.filters.append(
-                    f"[v{i}_text]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]"
-                )
+                presub_label = f"v{i}_with_sub"
+                logger.info(f"🎬 Scene {i}: Subtitle overlay complete → [{presub_label}]")
             else:
-                self.filters.append(
-                    f"[v{i}_base]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]"
+                logger.info(f"🎬 Scene {i}: No subtitles (include_subtitles={self.request.include_subtitles})")
+
+            # Step 3: Apply Ken Burns effect to composited image
+            preset_name = self._resolve_scene_preset(i)
+            if preset_name == "none":
+                # No Ken Burns - rename to [v{i}_base]
+                self.filters.append(f"[{presub_label}]null[v{i}_base]")
+            else:
+                params = get_preset(preset_name)
+                zoompan = build_zoompan_filter(
+                    params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
                 )
+                self.filters.append(f"[{presub_label}]{zoompan}[v{i}_base]")
 
-    def _build_post_layout_filter(
-        self, i: int, v_idx: int, motion_frames: int
-    ) -> None:
-        """Build filter for post layout style."""
-        preset_name = self._resolve_scene_preset(i)
-        if preset_name == "none":
+            # Step 4: Trim to duration
             self.filters.append(
-                f"[{v_idx}:v]scale={self.out_w}:{self.out_h}[v{i}_base]"
-            )
-        else:
-            params = get_preset(preset_name)
-            zoompan = build_zoompan_filter(
-                params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
-            )
-            self.filters.append(
-                f"[{v_idx}:v]scale={self.out_w}:{self.out_h},{zoompan}[v{i}_base]"
+                f"[v{i}_base]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]"
             )
 
-    def _build_full_layout_filter(
-        self, i: int, v_idx: int, motion_frames: int
-    ) -> None:
-        """Build filter for full layout style - full cover mode (YouTube Shorts style)."""
-        base_scale = (
-            f"[{v_idx}:v]scale={self.out_w}:{self.out_h}:"
-            f"force_original_aspect_ratio=increase,"
-            f"crop={self.out_w}:{self.out_h}"
+    def _build_post_layout_base(self, i: int, v_idx: int) -> None:
+        """Build base scaling filter for post layout style (no Ken Burns yet)."""
+        self.filters.append(
+            f"[{v_idx}:v]scale={self.out_w}:{self.out_h}[v{i}_scaled]"
         )
 
-        preset_name = self._resolve_scene_preset(i)
-        if preset_name == "none":
-            self.filters.append(f"{base_scale}[v{i}_base]")
-        else:
-            params = get_preset(preset_name)
-            zoompan = build_zoompan_filter(
-                params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
-            )
-            self.filters.append(f"{base_scale},{zoompan}[v{i}_base]")
+    def _build_full_layout_base(self, i: int, v_idx: int) -> None:
+        """Build base scaling/cropping filter for full layout style (no Ken Burns yet)."""
+        self.filters.append(
+            f"[{v_idx}:v]scale={self.out_w}:{self.out_h}:"
+            f"force_original_aspect_ratio=increase,"
+            f"crop={self.out_w}:{self.out_h}[v{i}_scaled]"
+        )
 
     def _resolve_scene_preset(self, scene_idx: int) -> str:
         """Resolve Ken Burns preset for a specific scene.
@@ -838,7 +853,6 @@ class VideoBuilder:
 
     def _apply_bgm(self) -> None:
         """Apply background music with optional audio ducking."""
-        from services.storage import get_storage
         storage = get_storage()
 
         # Resolve BGM file (supports 'random' selection with project-based seed)
@@ -894,6 +908,19 @@ class VideoBuilder:
     def _encode(self) -> None:
         """Encode the final video using FFmpeg."""
         filter_complex_str = ";".join(self.filters)
+
+        # Debug: Log filter chain
+        logger.info("=" * 80)
+        logger.info("🎬 FFmpeg Filter Chain Debug:")
+        logger.info("-" * 80)
+        for i, f in enumerate(self.filters):
+            logger.info(f"Filter {i:2d}: {f}")
+        logger.info("-" * 80)
+        logger.info(f"Video map: {self._map_v}")
+        logger.info(f"Audio map: {self._map_a}")
+        logger.info(f"Include subtitles: {self.request.include_subtitles}")
+        logger.info("=" * 80)
+
         cmd = ["ffmpeg", "-y"] + self.input_args + [
             "-filter_complex", filter_complex_str,
             "-map", self._map_v,

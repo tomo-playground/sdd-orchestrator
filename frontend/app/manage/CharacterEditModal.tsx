@@ -643,7 +643,7 @@ export default function CharacterEditModal({
                     <button
                       type="button"
                       onClick={() => setReferenceBasePrompt(prev => {
-                        const studio = "white_background, simple_background, solo, straight_on, facing_viewer";
+                        const studio = "full_body, (standing:1.2), white_background, simple_background, solo, straight_on, facing_viewer";
                         let updated = prev;
                         if (!updated.includes("masterpiece")) updated = `masterpiece, best_quality, ${updated}`;
                         if (!updated.includes("white_background")) updated = `${updated}, ${studio}`;

@@ -273,7 +273,11 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
         cfg_scale=7.5,
         width=512,
         height=768,
-        seed=-1
+        seed=-1,
+        enable_hr=True,
+        hr_scale=1.5,
+        hr_upscaler="R-ESRGAN 4x+ Anime6B",  # Fix blurriness with Latent
+        denoising_strength=0.35  # Slight boost for better details
     )
 
     res = await generate_scene_image(request)
@@ -314,3 +318,22 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     db.commit()
 
     return {"ok": True, "url": asset.url}
+
+
+@router.post("/batch-regenerate-references")
+async def batch_regenerate_references(db: Session = Depends(get_db)):
+    """Regenerate reference images for ALL characters using latest Hires. fix settings."""
+    characters = db.query(Character).all()
+    results = []
+
+    for char in characters:
+        try:
+            logger.info("🔄 [Batch] Regenerating reference for: %s", char.name)
+            # Call the same logic as regenerate_reference
+            await regenerate_reference(char.id, db)
+            results.append({"id": char.id, "name": char.name, "status": "success"})
+        except Exception as e:
+            logger.error("❌ [Batch] Failed for %s: %s", char.name, e)
+            results.append({"id": char.id, "name": char.name, "status": "failed", "error": str(e)})
+
+    return {"ok": True, "results": results}

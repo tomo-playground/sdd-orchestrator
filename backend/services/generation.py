@@ -145,18 +145,22 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                 scene_tags=scene_tags
             )
             logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+        else:
+            cleaned_prompt = request.prompt
 
-            # 23.7 Character Consistency: Auto-apply IP-Adapter if reference exists
-            if character_obj and not request.use_ip_adapter:
-                ref_image_test = load_reference_image(character_obj.name, db=db)
-                if ref_image_test:
-                    request.use_ip_adapter = True
-                    request.ip_adapter_reference = character_obj.name
-                    # Use character's weight or optimal weight from experiments (0.75)
-                    if character_obj.ip_adapter_weight:
-                        request.ip_adapter_weight = character_obj.ip_adapter_weight
-                    else:
-                        request.ip_adapter_weight = 0.75  # Optimal from CHARACTER_CONSISTENCY experiments
+        final_warnings = []
+
+        # 23.7 Character Consistency: Auto-apply IP-Adapter if reference exists
+        if character_obj and not request.use_ip_adapter:
+            ref_image_test = load_reference_image(character_obj.name, db=db)
+            if ref_image_test:
+                request.use_ip_adapter = True
+                request.ip_adapter_reference = character_obj.name
+                # Use character's weight or optimal weight from experiments (0.75)
+                if character_obj.ip_adapter_weight:
+                    request.ip_adapter_weight = character_obj.ip_adapter_weight
+                else:
+                    request.ip_adapter_weight = 0.75  # Optimal from CHARACTER_CONSISTENCY experiments
                     logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
                                character_obj.name, request.ip_adapter_weight)
         else:
@@ -223,7 +227,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             "CLIP_stop_at_last_layers": max(1, int(request.clip_skip)),
         },
         "override_settings_restore_afterwards": True,
-        "batch_size": request.batch_size,
+        "batch_size": 1,
     }
     if request.enable_hr:
         payload.update({
@@ -254,10 +258,86 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                         input_image=pose_image,
                         model="openpose",
                         weight=request.controlnet_weight,
+                        control_mode="Balanced" # M4 Pro precision: Stable and precise
                     ))
                     controlnet_used = pose_name
                     logger.info("🎭 [ControlNet] Using pose: %s (weight=%.1f)", pose_name, request.controlnet_weight)
 
+        # 1. Reference-only for Character Consistency (Shape/Face structure)
+        if request.character_id and request.use_reference_only:
+            ref_image = load_reference_image(character_obj.name if character_obj else request.ip_adapter_reference, db=db)
+            if ref_image:
+                controlnet_args_list.append(build_controlnet_args(
+                    input_image=ref_image,
+                    model="reference",
+                    weight=request.reference_only_weight,
+                    control_mode="Balanced"
+                ))
+                logger.info("🎨 [Reference-only] Enabled for character consistency (weight=%.2f)", request.reference_only_weight)
+
+        # 2. Environment Pinning for Background Consistency
+        if request.environment_reference_id:
+            import base64  # Import base64 here as it's used in this block
+
+            from models.media_asset import MediaAsset
+            from models.scene import Scene
+            from services.prompt.v3_composition import LAYER_ENVIRONMENT, V3PromptBuilder
+
+            env_asset = db.query(MediaAsset).filter(MediaAsset.id == request.environment_reference_id).first()
+            if env_asset and env_asset.local_path:
+                try:
+                    # Automatic conflict detection: 부엌 vs 해변 등 장소 변화 감지
+                    is_conflict = False
+                    reason = ""
+
+                    if env_asset.owner_type == "scene":
+                        ref_scene = db.query(Scene).filter(Scene.id == env_asset.owner_id).first()
+                        if ref_scene:
+                            # 1. Compare context_tags
+                            ref_env = set(ref_scene.context_tags.get("environment", [])) if ref_scene.context_tags else set()
+
+                            # 2. Get environment tags from current prompt
+                            builder = V3PromptBuilder(db)
+                            curr_tokens = split_prompt_tokens(request.prompt)
+                            curr_tag_info = builder.get_tag_info(curr_tokens)
+                            curr_env = {tag for tag, info in curr_tag_info.items() if info.get("layer") == LAYER_ENVIRONMENT}
+
+                            if ref_env and curr_env and not (ref_env & curr_env):
+                                is_conflict = True
+                                reason = f"Location mismatch: {list(ref_env)} vs {list(curr_env)}"
+
+                            # 3. Hardcoded fallback check for basic keywords if no tags matched
+                            if not is_conflict:
+                                loc_kws = ["kitchen", "beach", "forest", "room", "office", "street", "indoors", "outdoors"]
+                                ref_p = (ref_scene.image_prompt or "").lower()
+                                curr_p = request.prompt.lower()
+                                for kw in loc_kws:
+                                    if kw in ref_p and any(other for other in loc_kws if other != kw and other in curr_p):
+                                        is_conflict = True
+                                        reason = f"Keyword mismatch: Detected '{kw}' in reference but location changed in prompt"
+                                        break
+
+                    if is_conflict:
+                        msg = f"장소 변화가 감지되어 배경 고정이 자동으로 해제되었습니다. ({reason})"
+                        logger.warning("⚠️ [Environment Pinning] %s", msg)
+                        final_warnings.append(msg)
+                    else:
+                        import os
+                        if os.path.exists(env_asset.local_path):
+                            with open(env_asset.local_path, "rb") as f:
+                                env_base64 = base64.b64encode(f.read()).decode("utf-8")
+                            controlnet_args_list.append(build_controlnet_args(
+                                input_image=env_base64,
+                                model="canny",
+                                weight=request.environment_reference_weight,
+                                control_mode="My prompt is more important" # Keep structure but allow stylistic change
+                            ))
+                            logger.info("🏠 [Environment Pinning] Enabled using asset %d (weight=%.2f)",
+                                       request.environment_reference_id, request.environment_reference_weight)
+                except Exception as e:
+                    logger.error("❌ [Environment Pinning] Failed to load or check asset: %s", e)
+
+        # 3. IP-Adapter for Style/Identity Transfer
         # IP-Adapter character consistency
         if request.use_ip_adapter and request.ip_adapter_reference:
             ref_image = load_reference_image(request.ip_adapter_reference, db=db)
@@ -319,7 +399,8 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                 "image": img,
                 "images": images,
                 "controlnet_pose": controlnet_used,
-                "ip_adapter_reference": ip_adapter_used
+                "ip_adapter_reference": ip_adapter_used,
+                "warnings": final_warnings
             }
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
@@ -329,69 +410,3 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 
 
 
-def _save_activity_log(
-    request: SceneGenerateRequest,
-    prompt: str,
-    negative_prompt: str,
-    tags: list[str],
-    sd_params: dict,
-    seed: int | None,
-) -> None:
-    """[DEPRECATED] Save activity log for analytics (non-blocking).
-
-    This function is deprecated and no longer called.
-    Activity logs are now created by the Frontend to ensure:
-    - Proper scene_id (DB primary key, not index)
-    - image_url inclusion (after image storage)
-    - Proper negative_prompt and match_rate tracking
-
-    Args:
-        request: Original generation request
-        prompt: Normalized prompt used for generation
-        negative_prompt: Negative prompt used for generation
-        tags: Extracted prompt tokens
-        sd_params: SD parameters (steps, cfg_scale, sampler, etc.)
-        seed: Actual seed used (or None)
-    """
-    try:
-
-        from database import SessionLocal
-        from models.activity_log import ActivityLog
-
-        # Use storyboard_id from request
-        storyboard_id = request.storyboard_id
-
-        scene_index = request.scene_index if request.scene_index is not None else 0
-
-        db = SessionLocal()
-        try:
-            log = ActivityLog(
-                storyboard_id=storyboard_id,
-                scene_id=scene_index,
-                character_id=request.character_id,
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                tags_used=tags,
-                sd_params=sd_params,
-                seed=seed,
-                status="pending",  # Will be updated after validation
-                match_rate=None,  # Will be calculated during validation
-                image_url=None,  # Not available yet (base64 only)
-            )
-            db.add(log)
-            db.commit()
-            logger.info(
-                "📊 [Analytics] Saved activity log: storyboard=%s, scene=%d, tags=%d%s",
-                storyboard_id,
-                scene_index,
-                len(tags),
-                f" (topic={request.topic})" if request.topic else "",
-            )
-        except Exception as e:
-            db.rollback()
-            logger.warning("📊 [Analytics] Failed to save activity log: %s", str(e))
-        finally:
-            db.close()
-    except Exception as e:
-        # Non-blocking: log warning but don't fail generation
-        logger.warning("📊 [Analytics] Failed to import ActivityLog: %s", str(e))

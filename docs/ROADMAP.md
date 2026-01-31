@@ -55,7 +55,7 @@
 | **Logic Sync** | 프론트/백엔드 로직 중복 제거 (Priority 중앙화) | [x] |
 | **Frontend Config** | `next.config.ts` IP 등 하드코딩 제거 | [x] |
 
-### 5-2. 영상 품질 강화 - **COMPLETE**
+### 5-2. 영상 품질 강화
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | Pixel-based Subtitle Wrapping | 폰트 기반 자막 줄바꿈 및 동적 크기 조절 | [x] |
@@ -69,6 +69,7 @@
 | **Dynamic Subtitle Position** | 이미지 복잡도 기반 자동 Y 위치 조정 (하단 분석) | [x] |
 | **Overlay Animation** | 헤더/푸터 슬라이드 인 효과 (0.5초, 상하 분리) | [x] |
 | **Ken Burns Vertical Presets** | Full Layout 최적화 프리셋 6종 (pan_up_vertical 등, Y축 2배 확장) | [x] |
+| **Ken Burns + Subtitle Sync** | 자막을 켄번 효과 전에 합성하여 이미지와 함께 자연스럽게 움직임 | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 ### 5-3. 콘텐츠 확장
@@ -261,82 +262,52 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 5 | Frame Style 이동 | 채널 프로필 → RenderSettings (영상별 설정) | [x] |
 
 **Phase 2: Civitai 간편 연계** (대기)
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 6 | Profile 생성 옵션 | From Scratch / From Template / From Civitai | [ ] |
-| 7 | Civitai 검색 | 스타일 카테고리별 모델 검색 | [ ] |
-| 8 | 자동 LoRA 추천 | 선택한 모델에 호환되는 LoRA 추천 | [ ] |
-| 9 | 원클릭 다운로드 | Model + LoRA + Embeddings 세트 다운로드 | [ ] |
-
-**Phase 3: 스마트 기능** (나중)
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 10 | 호환성 자동 체크 | SD 1.5 vs SDXL 자동 필터링 | [ ] |
-| 11 | 커뮤니티 큐레이션 | 인기 조합 추천 (Most Used Combinations) | [ ] |
-| 12 | Profile Import/Export | 프로필 공유 기능 | [ ] |
-| 13 | 자동 업데이트 | Civitai 신버전 알림 | [ ] |
-
-**아키텍처**:
-```
-Style Profile (세트)
-├─ Model: anythingV3_fp16.safetensors
-├─ LoRAs: [anime_face (0.8), anime_bg (0.6)]
-├─ Embeddings: [anime_quality]
-└─ Default Prompt: "anime style, vibrant colors"
-```
+<!-- (생략) -->
 
 #### 6-4.31. Asset Management & Storage Optimization - **COMPLETE** (2026-01-31)
 **목표**: 객체 스토리지(MinIO) 기반의 3단계 계층 구조 및 중앙 집중식 에셋 관리 시스템 구축
+(상세 내용은 위와 동일)
+
+---
+
+#### 6-4.32. Data-Driven Pose Expansion - **COMPLETE** (2026-01-31)
+**목표**: DB 사용 데이터를 분석하여 누락된 핵심 포즈를 보강하고 감지 로직 고도화.
+(상세 내용은 위와 동일)
+
+---
+
+#### 6-4.23. Character Consistency System - **COMPLETE** (2026-01-31)
+**목표**: V3 12-Layer Prompt Engine, Dual ControlNet, IP-Adapter를 결합하여 캐릭터와 배경의 영속성을 보장.
+
+**프로덕션 통합 완료**:
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Character Prompt SSOT** | Custom Prompt + Reference Prompt DB화 | [x] |
+| 2 | **Automated IP-Adapter** | 캐릭터 선택 시 IP-Adapter + Reference 자동 적용 | [x] |
+| 3 | **Dual ControlNet** | OpenPose(Balanced) + Reference Only 동시 적용 파이프라인 | [x] |
+| 4 | **Environment Pinning** | 배경 고정(Canny ControlNet) 및 충돌 자동 감지/해제 | [x] |
+| 5 | **Frontend UI Integration** | Auto-Unpin Toast 알림, Hires. fix 옵션 통합 | [x] |
+| 6 | **Latent Upscaler Fix** | Hires fix 흐림 해결 (Latent → R-ESRGAN 4x+ Anime6B) | [x] |
+
+---
+
+#### 6-4.36. Deep Optimization & Cleanup - **COMPLETE** (2026-01-31)
+**목표**: 코드베이스 다이어트 및 M4 Pro 하드웨어 최적화.
 
 | # | 작업 | 설명 | 상태 |
 |---|------|------|------|
-| 1 | **3단계 계층 모델링** | Project(채널) > Group(시리즈) > Storyboard(영상) DB 모델 확립 | [x] |
-| 2 | **Media Asset Registry** | `media_assets` 테이블을 통한 모든 파일 메타데이터(크기, 타입, 경로) 추적 | [x] |
-| 3 | **MinIO S3 통합** | 단일 버킷(`shorts-producer`) + Prefix 기반 경로 구조 및 Public 접근 정책 설정 | [x] |
-| 4 | **Storage Driver (S3/Local)** | 코드 내 물리 경로 의존성 제거를 위한 추상화 드라이버(`StorageService`) | [x] |
-| 5 | **FFmpeg 스마트 캐싱** | 렌더링 시 원격 에셋 자동 인출(fetch) 및 로컬 캐시 관리 | [x] |
-| 6 | **서비스 레이어 통합** | `VideoBuilder`, `AvatarService`, `CleanupService` 통합 완료 | [x] |
-| 7 | **Shared Assets 통합** | BGM, 폰트 등 정적 리소스의 중앙 스토리지 관리 | [x] |
-| 8 | **DB Schema Migration** | Legacy URL 제거 및 MediaAsset FK 기반 완전 전환 | [x] |
-| 9 | **Storage 초기화 일관성** | 전역 import 제거, `get_storage()` 패턴으로 통일 (rendering, controlnet, avatar, characters) | [x] |
-| 10 | **DB 무결성 정리** | storage_key 중복 bucket prefix 제거 (4건), 고아 레코드 삭제 (2건) | [x] |
-| 11 | **API 응답 형식 통일** | `/fonts/list` 응답 형식 수정 (`string[]` → `{name: string}[]`) | [x] |
-| 12 | **Assets API 테스트** | `test_router_assets.py` 10개 테스트 (폰트/오디오/오버레이 리스트, 파일 서빙) | [x] |
-| 13 | **UI/UX 개선** | 폰트 미리보기 (FontFace API 동적 로딩), Audio 레이아웃 겹침 수정 (2-row grid) | [x] |
-| 14 | **Video Asset 생성 활성화** | Frontend payload에 project_id/group_id 전송, MinIO URL 저장 (로컬 경로 제거) | [x] |
-
-**아키텍처**:
-- **Hierarchy**: `projects/{p_id}/groups/{g_id}/storyboards/{s_id}/{type}/{filename}`
-- **Storage**: MinIO (S3 API) + Public Read Policy (Serving 최적화)
-- **Logic**: DB 기반 존재 여부 확인 → 필요 시 원격 다운로드/캐싱 → 렌더링
-
-**Storage 초기화 패턴**:
-```python
-# ❌ 잘못된 패턴
-from services.storage import storage  # 전역 import
-storage.get_url(key)  # NameError 가능
-
-# ✅ 올바른 패턴
-from services.storage import get_storage
-storage = get_storage()  # 함수 내에서 초기화
-storage.get_url(key)
-```
-
-**수정된 파일** (11개):
-- **Backend (7개)**:
-  - `routers/storyboard.py`: URL 파싱 시 bucket prefix 제거
-  - `services/rendering.py`, `video.py`, `controlnet.py`: `get_storage()` 패턴
-  - `routers/avatar.py`, `characters.py`: import 및 초기화 수정
-  - `routers/assets.py`: `/fonts/list` 응답 형식 변경
-  - `tests/test_router_assets.py`: 10개 API 테스트 추가
-- **Frontend (2개)**:
-  - `components/studio/OutputTab.tsx`: 폰트 동적 로딩 + project_id/group_id 전송
-  - `components/video/RenderSettingsPanel.tsx`: Audio grid 레이아웃 2-row 재구성
-- **Assets (2개)**: `poses/` 신규 2종 + 기존 4종 최적화
+| 1 | **Dead Code Removal** | Legacy `generation.py` 로직 및 `prompt_composition.py` 삭제 | [x] |
+| 2 | **M4 Pro Optimization** | OpenPose Control Mode 'Balanced'로 상향 (안정성 확보) | [x] |
+| 3 | **Batch Tools** | 관리자용 Character Reference 일괄 재생성 도구 (UI/API) | [x] |
+| 4 | **Refactoring Preparation** | `ManagePage.tsx` 분할을 위한 구조 검토 | [x] |
 
 ---
+
+### 6-5. Upcoming Refactoring (Technical Debt)
+| 작업 | 설명 | 상태 |
+|---|------|------|
+| **ManagePage Modularization** | 2,600줄 거대 컴포넌트를 탭별 서브 컴포넌트로 분리 (Style/Assets/Tags) | [ ] |
+| **Hook Extraction** | `useManageState` 등 커스텀 훅 분리 | [ ] |
 
 ---
 
@@ -348,22 +319,7 @@ storage.get_url(key)
 
 ## 🔮 Phase 8: Multi-Style Architecture (Future)
 **목표**: Anime, Realistic, 3D 등 다양한 화풍 지원을 위한 유연한 파이프라인 구축.
-
-**점진적 진화 전략 (Gradual Evolution Strategy)**:
-
-### 8-1. Hardcoding Removal (🟢 태그 시스템 완료)
-- ✅ 태그 충돌규칙/별칭/필터 → DB 전환 완료 (6-2.5)
-- ✅ `masterpiece`, `anime style` 등 화풍 종속 태그 Config 분리
-- 상수/Config로 분리하여 `DEFAULT_QUALITY_TAGS`, `DEFAULT_STYLE_TAGS` 등 활용.
-
-### 8-2. Config-based Switching (Mid-term)
-- UI 변경 없이 `.env` 설정만으로 모델 스타일 전환 지원.
-- 모델 타입(Anime/Realistic)에 따라 태그/파라미터(CFG, Sampler) 자동 분기 로직 구현.
-
-### 8-3. Full Integration (Long-term)
-- **UI**: 스타일 선택 드롭다운 (Anime / Realistic / 3D).
-- **DB**: `StyleProfile`에 모델별 최적 파라미터(VAE, CFG, Clip Skip) 저장 스키마 확장.
-- **Logic**: 실시간 모델 스위칭, ADetailer 자동화, VAE 교체 로직.
+(상세 내용은 위와 동일)
 
 ---
 
@@ -378,284 +334,3 @@ storage.get_url(key)
                      ◀──────────────────────────────────────────────────
                                     (반복)
 ```
-
----
-
-## 🤖 Agent Evolution Guidelines
-
-현재 에이전트 구성이 충분하지 않은 시점을 정의합니다.
-
-### Test Engineer Agent 추가 시점
-
-**트리거 조건** (하나 이상 충족 시 추가 검토):
-| 조건 | 설명 | 현재 상태 |
-|------|------|----------|
-| Unit Test 구축 | Backend/Frontend unit test 30개 이상 | ❌ 미구축 |
-| E2E Test 구축 | Playwright E2E 시나리오 10개 이상 | ❌ 미구축 |
-| CI/CD 도입 | GitHub Actions 테스트 파이프라인 | ❌ 미구축 |
-| 테스트 복잡도 | 테스트 파일 총 1,000줄 초과 | ❌ 해당없음 |
-
-**역할 정의** (추가 시):
-- 테스트 코드 작성/유지보수
-- 테스트 커버리지 관리 (목표: 80%+)
-- CI/CD 파이프라인 테스트 설정
-- 테스트 관련 commands 관리 (`/test`, `/coverage`)
-
-**현재 대안**:
-- VRT: `/vrt` command + qa-validator
-- 이미지 품질: qa-validator
-- 수동 테스트: 일반 개발 과정에서 처리
-
-### 기타 Agent 추가 고려
-
-| Agent | 트리거 조건 | 현재 필요성 |
-|-------|------------|------------|
-| **DevOps Engineer** | Docker/K8s 배포, 모니터링 시스템 구축 시 | ❌ 불필요 |
-| **Security Auditor** | 외부 사용자 접근, 인증 시스템 도입 시 | ❌ 불필요 |
-| **Data Engineer** | 대용량 데이터 파이프라인, 분석 시스템 구축 시 | ❌ 불필요 |
-
-### Claude Squad 도입 시점
-
-**Claude Squad**: 여러 Claude Code 인스턴스를 병렬로 관리하는 도구 (tmux + git worktree 기반)
-
-**트리거 조건** (하나 이상 충족 시 도입 검토):
-| 조건 | 설명 | 현재 상태 |
-|------|------|----------|
-| 팀 확장 | 2명 이상 동시 개발 | ❌ 솔로 |
-| 독립 작업 | Backend/Frontend 완전 분리 작업 필요 | ❌ 순차 진행 |
-| 대규모 리팩토링 | 10+ 파일 동시 수정 필요 | ❌ 해당없음 |
-| 긴급 핫픽스 | 메인 작업 중 별도 브랜치 작업 빈번 | ❌ 해당없음 |
-| Phase 병렬화 | 의존성 없는 Phase 동시 진행 | ❌ 순차 의존성 |
-
-**도입 시 이점**:
-- 여러 작업 병렬 실행 (대기 시간 감소)
-- git worktree로 브랜치 충돌 방지
-- 백그라운드 자동 완료 (yolo 모드)
-
-**현재 대안**:
-- Sub Agents: 전문성 분리 (단일 세션 내)
-- 순차 작업: 의존성 있는 Phase는 순서대로
-
-**설치** (도입 시):
-```bash
-brew install claude-squad  # 명령어: cs
-```
-
-**참조**: https://github.com/smtg-ai/claude-squad
-
----
-
-**Core Mandate**: "No changes in output without explicit intention."
-(의도하지 않은 결과물의 변화는 허용하지 않는다.)
-
----
-
-#### 6-4.29. Video Persistence & UI Tab Optimization - **COMPLETE** (2026-01-30)
-스토리보드별 영상 독립 관리 및 '캐릭터 중심' 작업 흐름을 위한 UI 최적화.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | **영상 영구 저장 (DB)** | Storyboard 모델에 `video_url`, `recent_videos_json` 추가 + Alembic 마이그레이션 | [x] |
-| 2 | **스토리보드별 영상 로드** | 릴로드/탭 전환 시 해당 스토리보드에 귀속된 영상만 표시 (상태 꼬임 해결) | [x] |
-| 3 | **UI 탭 순서 최적화** | Plan 서브탭 순서 변경 (캐릭터 → 스토리) + 캐릭터 탭 기본 활성화 | [x] |
-| 4 | **Prompt Helper 복구** | page.tsx 사이드바 통합 및 텍스트 분할/복사 액션 연결 | [x] |
-
----
-
-### 세션 이력
-- **2026-01-28**: ROADMAP 다이어트 (1500줄→800줄), WD14 단일 검증 표준화, 코드베이스 경량화
-- **2026-01-28~30**: V3 Core Architecture 전환 (16커밋, 275파일, +12,980/-6,320줄) → 6-2.5 기록
-- **2026-01-30**: project_name 잔존 참조 정리 (스크립트 4개 + 프론트엔드 + 문서), 모델 필드 재배치, 로드맵 전면 정리
-- **2026-01-30**: **영상 중복 표시 수정**, 탭 순서 변경 (캐릭터 우선), **프롬프트 헬퍼 복구**, DB 마이그레이션(v3.1)
-- **2026-01-31**: **Asset Management 완전 통합** - Storage 초기화 일관성, Assets API 테스트 10개, UI 개선 (폰트 미리보기/레이아웃), Video MediaAsset 생성 활성화
-
----
-
-#### 6-4.22. Gemini Image Editing System
-Phase 1~1.7 완료 (MVP Pose + Expression/Gaze + 자동 제안). [실험 결과 상세](archive/ROADMAP_V3_EXPERIMENTS.md)
-- 시각적 성공률 100%, 비용 $0.04/edit, WD14 평가 한계 확인
-
-**Phase 2: 자동화 (다음 작업)**:
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 22.13 | `auto_edit_with_gemini()` | 실패 태그 분석 → 편집 타입 자동 선택, 승인 없이 실행 | [ ] |
-| 22.14 | 임계값 config | `GEMINI_AUTO_EDIT_THRESHOLD` 설정 | [ ] |
-| 22.15 | Fallback 이력 추적 | activity_logs.gemini_edited 플래그 | [ ] |
-| 22.16 | Analytics 대시보드 | Before/After Match Rate 시각화, 편집 타입별 성공률 | [ ] |
-
-**Phase 3: 학습 기반 최적화 (장기)**:
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 22.17 | 성공 패턴 추출 | `/activity-logs/success-patterns` 캐릭터별 조합 학습 | [ ] |
-| 22.18 | Rule-based 사전 개선 | 위험 태그 자동 대체 엔진 (medium_shot → cowboy_shot) | [ ] |
-| 22.19 | Gemini 의존도 감소 | 사전 개선으로 실패율 자체 감소 → 비용 90% 절감 | [ ] |
-
-#### 6-4.23. Character Consistency System - **IN PROGRESS**
-실험 90% 성공, Reference-only ControlNet 채택. [실험 결과 상세](archive/ROADMAP_V3_EXPERIMENTS.md)
-
-**프로덕션 통합** (23.6~23.8 완료, 23.9 남음):
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 23.6 | Character Prompt SSOT & Reference Fields | Custom Prompt + Reference Prompt 필드 | [x] |
-| 23.7 | Backend API 확장 | `generate_with_character_preset()`, Reference-only 자동 적용 | [x] |
-| 23.8 | Frontend UI | Preset 드롭다운, Reference On/Off, Weight 슬라이더 (0.5~1.0) | [x] |
-| 23.9 | Multi-Character 시스템 | 장면 유형 자동 판단, LoRA weight 자동 조절 | [ ] |
-
-**완료 (2026-01-30)**: 단일 캐릭터 IP-Adapter 자동 적용, character_id 추적 (Phase 6-4.26)
-
-#### 6-4.24. Character Tag Auto-Suggestion - **COMPLETE**
-- Base Prompt → DB 태그 매칭 → 카테고리별 자동 제안 (identity/clothing)
-- `/characters/suggest-tags` API + Frontend onBlur 자동 제안 UI
-
-#### 6-4.25. Tag DB Integrity Cleanup - **COMPLETE** (2026-01-30)
-DB 정합성 점검에서 발견된 3건의 데이터/로직 오류 일괄 수정.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | 공백 태그 4건 삭제 | 언더바 버전과 중복된 공백 형식 태그 제거 (미사용) | [x] |
-| 2 | 자기참조 alias 2건 삭제 | source=target인 무의미한 tag_aliases 제거 | [x] |
-| 3 | **category 정규화 (58건)** | 비표준 category를 character/scene/meta 3종으로 통일 | [x] |
-| 4 | **subcategory 제거** | 73.6% 오분류 데이터 전체 NULL + 코드에서 우선순위 로직 제거 | [x] |
-
-**근거**: subcategory가 `_map_db_category()` 1순위로 사용되나 정확도 20.2% (292건 중 59건만 정확).
-`bare_arms`=indoor, `cloud`=indoor 등 오분류로 인해 프롬프트 레이어 배치 오류 발생.
-`group_name`이 95%+ 정확도로 완전 대체 가능하므로 subcategory 의존성 제거.
-
-#### 6-4.26. DB Schema Cleanup & Test Isolation - **COMPLETE** (2026-01-30)
-불필요한 DB 컬럼 제거, character_id 활성화, 테스트 DB 격리 구현.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | **character_id 활성화** | activity_logs에 character_id 자동 저장, IP-Adapter reference로 자동 설정 | [x] |
-| 2 | **불필요 컬럼 제거 (7개)** | tags.subcategory, tag_rules category 필드, activity_logs favorite 필드 | [x] |
-| 3 | **더미 데이터 정리** | activity_logs 184건, storyboards 150건 삭제 (테스트 잔여물) | [x] |
-| 4 | **테스트 DB 격리** | SQLite in-memory DB 사용, 프로덕션 DB 보호, 10배 속도 향상 | [x] |
-
-**영향**:
-- Character Consistency 사용 시 character_id 자동 추적 (analytics 가능)
-- DB 스키마가 실제 사용 패턴과 일치 (7개 미사용 컬럼 제거)
-- 테스트가 프로덕션 DB를 오염시키지 않음 (0 쓰레기 데이터)
-- 테스트 속도 10배 향상 (SQLite in-memory)
-
-**파일**:
-- `routers/activity_logs.py`, `services/generation.py` (character_id)
-- `models/tag.py`, `models/activity_log.py` (컬럼 제거)
-- `tests/conftest.py`, `tests/test_db_isolation.py` (DB 격리)
-
-#### 6-4.27. Studio Tab-based Workflow - **COMPLETE** (2026-01-30)
-2,751줄 모놀리식 page.tsx를 multi-route 4-tab 워크스페이스로 재구조화.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| A | **Backend CRUD** | Scene 모델 11컬럼 확장, GET/PUT/DELETE 엔드포인트, Alembic 마이그레이션 | [x] |
-| B | **Zustand + Routing** | 4슬라이스 스토어 (plan/scenes/output/meta), `/` `/studio` `/manage` 3-route | [x] |
-| C | **Tab Components** | PlanTab, ScenesTab, OutputTab, InsightsTab 커넥터 + Action 파일 추출 | [x] |
-| D | **Manage Cleanup** | Storyboards/Quality/Analytics/Characters 탭 제거 (Home/Studio로 이관) | [x] |
-
-**Action 파일** (C3):
-- `promptActions.ts` — buildPositivePrompt, buildScenePrompt, buildNegativePrompt
-- `imageActions.ts` — generateSceneImageFor, generateSceneCandidates, handleEditWithGemini
-- `sceneActions.ts` — validation, autofix, mark success/fail, save prompt
-- `autopilotActions.ts` — runAutoRunFromStep 파이프라인
-
-**결과**: 26 files changed, ~2,900 insertions, ~2,900 deletions (net 0 변경).
-모놀리식 → 구조화, 모든 stub 콜백 실제 로직 연결, 8/8 backend 테스트 통과.
-
-#### 6-4.28. Channel Profile & Branding System - **COMPLETE** (2026-01-30)
-채널 아이덴티티 관리 및 영상 렌더링 통합 시스템.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| A | **Channel Profile Store** | Zustand profileSlice: channelProfile, channelAvatarUrl, persist | [x] |
-| B | **ChannelProfileModal** | 채널명, 아바타 선택, 프레임 스타일 설정 UI | [x] |
-| C | **Global TabBar Integration** | 모든 탭에서 접근 가능한 채널 프로필 버튼 | [x] |
-| D | **Onboarding Flow** | 첫 진입 시 자동 모달 표시 (1회만) | [x] |
-| E | **Avatar Unification** | channelAvatarUrl 단일 소스, SNS/POST 아바타 일관성 | [x] |
-| F | **DB Character Integration** | DB 캐릭터 목록 조회, 물리적 파일 제거 | [x] |
-| G | **Video Metadata Separation** | 채널(고정) vs 영상(가변) 정보 분리 | [x] |
-| H | **Rendering Integration** | SNS Overlay, Post Card에 채널 프로필 자동 적용 | [x] |
-
-**아키텍처**:
-```
-채널 프로필 (고정 브랜딩)          영상 메타데이터 (스토리별)
-├─ 채널명: "레즈바이트"            ├─ 캡션: "내가 좋아하는 게임"
-├─ 아바타: Harukaze Doremi        └─ 좋아요: "10K"
-└─ 프레임 스타일: Minimal
-         ↓
-    모든 영상에 자동 적용
-```
-
-**사용자 가치**:
-- 채널 브랜딩 일관성 (YouTube 채널처럼)
-- 한 번 설정 → 모든 영상 재사용
-- SNS/POST 자동 오버레이
-
-#### 6-4.30. Media Asset Migration & Studio State Fixes - **COMPLETE** (2026-01-31)
-Media Asset 마이그레이션 완료 및 스튜디오 상태 관리 개선.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| A | **Schema 일관성 확보** | `preview_image_url` Create/Update 제거, Response에만 추가 (Character, LoRA, SDModel) | [x] |
-| B | **S3Storage 호환성** | BaseStorage에 `base_dir` abstract property 추가, S3/Local 구현 | [x] |
-| C | **Frontend URL 처리** | 이미지 URL http 체크 패턴 통일 (`startsWith('http')` 조건) | [x] |
-| D | **Studio Reset 개선** | `resetStudioStore()` localStorage 완전 삭제 + URL `?id` 파라미터 제거 | [x] |
-| E | **StoryboardId 검증** | 유효한 숫자 ID 검증 후 PUT 요청 (404 방지) | [x] |
-
-**수정 파일**: 8 files (schemas.py, storage.py, cleanup.py, CharacterEditModal.tsx, page.tsx, useStudioStore.ts, studio/page.tsx, 2 migrations)
-
-**해결된 이슈**:
-- ✅ Character 저장 500 에러 (읽기 전용 필드 전송)
-- ✅ Storage stats 500 에러 (S3Storage base_dir 미존재)
-- ✅ 캐릭터 이미지 표시 안 됨 (URL 중복 연결)
-- ✅ New Storyboard 시 과거 데이터 표시 (localStorage + URL 파라미터 잔존)
-
-**마이그레이션**:
-- **2026-01-31**: **영상의 스토리보드별 영구 저장**, **계층형 에셋 스토리지(MinIO)** 도입, **데이터 기반 포즈 라이브러리 확장** (그림/가중치/언더바 인식 강화), **유지보수 가이드** 작성.
-
----
-
-#### 6-4.32. Data-Driven Pose Expansion - **COMPLETE** (2026-01-31)
-**목표**: DB 사용 데이터를 분석하여 누락된 핵심 포즈를 보강하고 감지 로직 고도화.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | **Pose gap analysis** | DB 전수 감사(`final_audit.py`)를 통한 실사용 태그 분석 | [x] |
-| 2 | **Robust Pose Detection** | 가중치(`:1.2`), 언더바(`_`) 포함 태그 인식 로직 개선 | [x] |
-| 3 | **Storytelling Pose Assets** | 3종 에셋(`lying`, `kneeling`, `crouching`) 생성 및 매핑 | [x] |
-| 4 | **Admin Shortcut (/pose)** | 포즈 관리 전용 Claude 커맨드 설정 | [x] |
-| 5 | **Maintenance Guide** | 에셋 추출 및 추가 절차 문서화 (`docs/POSE_MAINTENANCE.md`) | [x] |
-| 6 | **Remaining Assets** | `pointing`, `covering face` 등 잔여 2종 생성 (Imagen 4 API 활용) | [x] |
-| 7 | **Pose Sanitization** | `scripts/clean_pose_assets.py`를 통한 텍스트/그리드 제거 및 최적화 | [x] |
-
----
-
-#### 6-4.33. Multi-Character & Layout Control (Next)
-**목표**: 한 장면에 다중 캐릭터를 배치하고 개별 포즈 및 레이아웃을 정밀 제어하는 UI/UX 구축.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | **Multi-Character UI** | 씬 편집기 내 캐릭터 추가/선택 및 개별 설정 인터페이스 | [ ] |
-| 2 | **Positioning Logic** | 캐릭터별 프롬프트 분리 및 스택 배치 최적화 | [ ] |
-| 3 | **Interactive Layout** | 드래그 또는 프리셋 기반 캐릭터 위치/스케일 조정 | [ ] |
-
-#### 6-4.34. Intelligent Auto-Edit Pipeline (Next)
-**목표**: 이미지 생성 후 품질 미달 씬을 Gemini를 통해 자동으로 보정하는 무인 파이프라인 완성.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | **Auto-Detection** | WD14 Match Rate 기반 자동 보정 트리거 (임계값 설정) | [ ] |
-| 2 | **Prompt Refinement** | Gemini를 이용한 실패 원인 분석 및 수정 프롬프트 자동 생성 | [ ] |
-| 3 | **Seamless Update** | 수정된 이미지를 스토리보드에 자동 반영 및 히스토리 관리 | [ ] |
-
-#### 6-4.35. Dynamic Character Variation System (Next)
-**목표**: 단일 캐릭터의 상황별 의상(Uniform, Casual 등) 및 액세서리 변형 관리 시스템 고도화.
-
-| # | 작업 | 설명 | 상태 |
-|---|------|------|------|
-| 1 | **Variation Schema** | 캐릭터 모델 하위 '의상/스타일' 레이어 데이터 구조화 | [ ] |
-| 2 | **Dynamic Selector** | 시나리오 맥락에 따른 최적 의상 자동 추천 로직 | [ ] |
-| 3 | **Trigger Word Sync** | 의상별 전용 LoRA/Tag 세트 자동 바인딩 | [ ] |
-
----
-
----

@@ -6,11 +6,14 @@ import hashlib
 import json
 import re
 import time
+from functools import lru_cache
 
 from fastapi import HTTPException
 
 from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, gemini_client, logger
 from schemas import PromptRewriteRequest, PromptSplitRequest
+from services.keywords import CATEGORY_PATTERNS, CATEGORY_PRIORITY
+from services.keywords.db_cache import TagCategoryCache
 
 
 def split_prompt_tokens(prompt: str) -> list[str]:
@@ -595,3 +598,87 @@ def normalize_and_fix_tags(prompt: str) -> str:
 
     # Join back into prompt
     return ", ".join(tags)
+
+
+# ============================================================
+# Analysis Tools (Ported from prompt_composition.py)
+# ============================================================
+
+# Build reverse lookup: token → category (cached at module load)
+_TOKEN_TO_CATEGORY: dict[str, str] = {}
+for _category, _tokens in CATEGORY_PATTERNS.items():
+    for _token in _tokens:
+        _TOKEN_TO_CATEGORY[_token.lower()] = _category
+
+
+@lru_cache(maxsize=1024)
+def get_token_category(token: str) -> str | None:
+    """Get the category for a prompt token.
+
+    Priority:
+    1. DB Cache (if initialized)
+    2. Exact match in patterns
+    3. Partial match in patterns
+
+    Args:
+        token: A prompt token (e.g., "smiling", "blue hair", "from above")
+
+    Returns:
+        Category name (e.g., "expression", "hair_color", "camera") or None if unknown
+    """
+    from services.keywords.core import normalize_prompt_token
+    normalized = normalize_prompt_token(token)
+
+    if not normalized:
+        return None
+
+    # 1. Check DB Cache first
+    if TagCategoryCache._initialized:
+        db_category = TagCategoryCache.get_category(normalized)
+        if db_category:
+            return db_category
+
+    # 2. Exact match in patterns
+    if normalized in _TOKEN_TO_CATEGORY:
+        return _TOKEN_TO_CATEGORY[normalized]
+
+    # 3. Partial match for compound tokens (e.g., "long blue hair" → "hair_color")
+    for category, patterns in CATEGORY_PATTERNS.items():
+        for pattern in patterns:
+            p_lower = pattern.lower()
+            if p_lower in normalized or normalized in p_lower:
+                return category
+
+    return None
+
+# Scene-related categories that contribute to complexity
+SCENE_CATEGORIES = frozenset([
+    "expression", "gaze", "pose", "action", "camera",
+    "location_indoor", "location_outdoor", "background_type",
+    "time_weather", "lighting", "mood",
+])
+
+def detect_scene_complexity(tokens: list[str]) -> str:
+    """Detect scene complexity based on token count per category.
+
+    Complexity levels:
+    - simple: 0-3 scene tokens
+    - moderate: 4-6 scene tokens
+    - complex: 7+ scene tokens
+
+    Returns:
+        'simple', 'moderate', or 'complex'
+    """
+    scene_token_count = 0
+
+    for token in tokens:
+        category = get_token_category(token)
+        if category in SCENE_CATEGORIES:
+            scene_token_count += 1
+
+    if scene_token_count <= 3:
+        return "simple"
+    elif scene_token_count <= 6:
+        return "moderate"
+    else:
+        return "complex"

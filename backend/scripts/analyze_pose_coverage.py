@@ -1,6 +1,7 @@
 import os
 import sys
 from collections import Counter
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -8,11 +9,12 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(os.getcwd())
 
 from config import DATABASE_URL
-from models.scene import Scene
 from models.activity_log import ActivityLog
 from models.associations import CharacterTag
+from models.scene import Scene
 from models.tag import Tag
-from services.controlnet import POSE_MAPPING, detect_pose_from_prompt
+from services.controlnet import detect_pose_from_prompt
+
 
 def analyze_pose_coverage():
     engine = create_engine(DATABASE_URL)
@@ -44,7 +46,7 @@ def analyze_pose_coverage():
 
     # 4. Known pose keywords from controlnet.py
     pose_keywords = [
-        "standing", "sitting", "lying", "kneeling", "bending", 
+        "standing", "sitting", "lying", "kneeling", "bending",
         "pointing", "reaching", "holding", "carrying", "looking",
         "dancing", "fighting", "sleeping", "reading", "typing",
         "eating", "drinking", "shouting", "crying", "laughing",
@@ -56,7 +58,7 @@ def analyze_pose_coverage():
 
     print("\n[DB Pose Tag Analysis]")
     print(f"Total Unique Tags Found: {len(all_found_tags)}")
-    
+
     print("\n--- Common Potential Pose Tags Found in DB ---")
     potential_poses = []
     for tag, count in all_found_tags.most_common(500):
@@ -64,7 +66,7 @@ def analyze_pose_coverage():
         if any(pk in tag for pk in pose_keywords) or "pose" in tag:
             is_supported = detect_pose_from_prompt([tag]) is not None
             potential_poses.append((tag, count, is_supported))
-            
+
     for tag, count, supported in sorted(potential_poses, key=lambda x: x[1], reverse=True)[:50]:
         status = "✅ Supported" if supported else "❌ MISSING"
         print(f"{tag:35} | Count: {count:4} | {status}")

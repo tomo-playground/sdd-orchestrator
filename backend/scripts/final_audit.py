@@ -1,7 +1,8 @@
 import os
+import re
 import sys
 from collections import Counter
-import re
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -9,10 +10,11 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(os.getcwd())
 
 from config import DATABASE_URL
-from models.scene import Scene
 from models.activity_log import ActivityLog
+from models.scene import Scene
 from models.tag import Tag
 from services.controlnet import detect_pose_from_prompt
+
 
 def final_audit():
     engine = create_engine(DATABASE_URL)
@@ -22,7 +24,7 @@ def final_audit():
     # 1. Fetch all prompts
     prompts = [r[0] for r in db.query(Scene.image_prompt).all() if r[0]]
     prompts += [r[0] for r in db.query(ActivityLog.prompt).all() if r[0]]
-    
+
     all_tags = []
     for p in prompts:
         tags = p.split(",")
@@ -36,7 +38,7 @@ def final_audit():
     print("\n[Audit: Pose Coverage Check]")
     print(f"{'Tag':35} | {'Count':6} | {'Status'}")
     print("-" * 60)
-    
+
     missing_targets = []
     for tag, count in tag_counts.most_common(100):
         is_supported = detect_pose_from_prompt([tag]) is not None

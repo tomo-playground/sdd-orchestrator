@@ -31,7 +31,7 @@ async def get_audio_list():
         for ext in ("*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a", "*.M4A"):
             for f in AUDIO_DIR.glob(ext):
                 files.append({"name": f.name, "url": f"{API_PUBLIC_URL}/assets/audio/{f.name}"})
-    
+
     return {"audios": sorted(files, key=lambda x: x["name"])}
 
 
@@ -75,7 +75,7 @@ async def get_font_file(filename: str):
             raise HTTPException(status_code=404, detail="Font not found in storage")
         from fastapi.responses import RedirectResponse
         return RedirectResponse(storage.get_url(storage_key))
-    
+
     fonts_dir = ASSETS_DIR / "fonts"
     font_path = fonts_dir / filename
     if not font_path.exists() or not font_path.is_file():

@@ -1,5 +1,6 @@
 import os
 import sys
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
@@ -8,6 +9,7 @@ sys.path.append(os.getcwd())
 
 from config import DATABASE_URL
 from models.tag import Tag
+
 
 def reclassify_tags():
     engine = create_engine(DATABASE_URL)
@@ -24,7 +26,7 @@ def reclassify_tags():
 
     print("[Tag Reclassification Start]")
     total_updated = 0
-    
+
     for category, keywords in rules.items():
         for kw in keywords:
             # Case-insensitive match
@@ -33,7 +35,7 @@ def reclassify_tags():
                 if tag.category != category:
                     tag.category = category
                     total_updated += 1
-    
+
     db.commit()
     print(f"[Finished] Total tags reclassified: {total_updated}")
 

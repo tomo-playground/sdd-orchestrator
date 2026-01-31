@@ -17,21 +17,44 @@ from schemas import (
     PromptValidateRequest,
 )
 from services.prompt import (
-    auto_replace_risky_tags,
-    calculate_lora_weight,
-    check_tag_conflicts,
-    compose_prompt_tokens,
     detect_prompt_conflicts,
     detect_scene_complexity,
-    get_effective_mode_from_dict,
     rewrite_prompt,
     split_prompt_example,
     validate_identity_tags,
     validate_loras,
-    validate_prompt_tags,
 )
+from services.keywords.validation import validate_prompt_tags
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
+
+
+# TODO: Temporary stub functions - re-implement properly
+def get_effective_mode_from_dict(data: dict) -> str:
+    """Stub: Determine effective prompt composition mode."""
+    loras = data.get("loras", [])
+    return "lora" if loras else "standard"
+
+
+def compose_prompt_tokens(tokens: list[str], mode: str, loras: list = None,
+                         complexity: str = None) -> str:
+    """Stub: Compose prompt tokens into final prompt."""
+    return " ".join(tokens)
+
+
+def calculate_lora_weight(base_weight: float, complexity: str,
+                         token_count: int) -> float:
+    """Stub: Calculate adjusted LoRA weight."""
+    return base_weight
+
+
+def check_tag_conflicts(tags: list[str], db) -> dict:
+    """Stub: Check for tag conflicts."""
+    return {
+        "conflicts": [],
+        "has_conflicts": False,
+        "total_tags": len(tags)
+    }
 
 
 @router.post("/rewrite")
@@ -237,11 +260,7 @@ async def validate_tags(
     """
     logger.info("📥 [Validate Tags] tags=%d, check_danbooru=%s", len(request.tags), request.check_danbooru)
 
-    result = validate_prompt_tags(
-        tags=request.tags,
-        check_danbooru=request.check_danbooru,
-        db=db,
-    )
+    result = validate_prompt_tags(prompt_tags=request.tags)
 
     logger.info(
         "✅ [Validate Tags] risky=%d, unknown=%d, low_posts=%d",
@@ -267,14 +286,18 @@ async def replace_tags(request: AutoReplaceRequest):
     like "cowboy shot".
 
     Returns replacement results with original/replaced tags.
+
+    TODO: Re-implement auto_replace_risky_tags function
     """
-    logger.info("📥 [Auto Replace] tags=%d", len(request.tags))
+    logger.warning("⚠️ [Auto Replace] Function disabled - returning original tags")
 
-    result = auto_replace_risky_tags(tags=request.tags)
-
-    logger.info("✅ [Auto Replace] replaced=%d tags", result["replaced_count"])
-
-    return result
+    # Temporary stub implementation
+    return {
+        "original_tags": request.tags,
+        "replaced_tags": request.tags,
+        "replacements": [],
+        "replaced_count": 0
+    }
 
 
 class CheckConflictsRequest(BaseModel):

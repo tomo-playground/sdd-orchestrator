@@ -33,6 +33,7 @@ export default function ManagePage() {
   const [fontList, setFontList] = useState<FontItem[]>([]);
   const [loraList, setLoraList] = useState<LoraItem[]>([]);
   const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
+  const [isBatchRegenerating, setIsBatchRegenerating] = useState(false);
 
   // Style tab state
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
@@ -192,19 +193,30 @@ export default function ManagePage() {
     }
   };
 
-  const handleRegenerateReference = async (charId: number) => {
-    if (!confirm("Regenerate reference image for this character? This will overwrite the existing image.")) return;
-    setIsRegeneratingChar((prev) => ({ ...prev, [charId]: true }));
+  const handleBatchRegenerateReferences = async () => {
+    if (!confirm("Regenerate reference images for ALL characters? This may take several minutes.")) return;
+    setIsBatchRegenerating(true);
     try {
-      await axios.post(`${API_BASE}/characters/${charId}/regenerate-reference`);
-      // Update timestamp to bust cache
-      setCharImageTimestamps((prev) => ({ ...prev, [charId]: Date.now() }));
+      const res = await axios.post(`${API_BASE}/characters/batch-regenerate-references`);
+      const results = res.data.results;
+      const successCount = results.filter((r: any) => r.status === "success").length;
+      const failCount = results.length - successCount;
+
+      alert(`Batch regeneration complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+
+      // Update all timestamps to bust cache
+      const newTimestamps = { ...charImageTimestamps };
+      results.forEach((r: any) => {
+        if (r.status === "success") newTimestamps[r.id] = Date.now();
+      });
+      setCharImageTimestamps(newTimestamps);
+      await fetchCharacters();
       await fetchStyleData();
-      alert("Reference regenerated successfully!");
-    } catch {
-      alert("Failed to regenerate reference");
+    } catch (error) {
+      console.error("Batch regeneration failed", error);
+      alert("Failed to start batch regeneration");
     } finally {
-      setIsRegeneratingChar((prev) => ({ ...prev, [charId]: false }));
+      setIsBatchRegenerating(false);
     }
   };
 
@@ -1208,140 +1220,157 @@ export default function ManagePage() {
                   Model + LoRAs + Embeddings as cohesive sets
                 </p>
               </div>
-              <button
-                onClick={fetchStyleData}
-                disabled={isStyleLoading}
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.15em] text-zinc-600 uppercase disabled:text-zinc-400"
-              >
-                {isStyleLoading ? (
-                  <div className="flex items-center gap-2">
-                    <LoadingSpinner size="sm" color="text-zinc-400" />
-                  </div>
-                ) : (
-                  "Refresh"
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBatchRegenerateReferences}
+                  disabled={isBatchRegenerating || isStyleLoading}
+                  className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-[10px] font-bold tracking-[0.1em] text-indigo-600 uppercase disabled:opacity-50"
+                  title="Regenerate all character references with latest High-Res settings"
+                >
+                  {isBatchRegenerating ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" color="text-indigo-400" />
+                      <span>Regenerating...</span>
+                    </div>
+                  ) : (
+                    "Batch Regenerate (Hires)"
+                  )}
+                </button>
+                <button
+                  onClick={fetchStyleData}
+                  disabled={isStyleLoading}
+                  className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.15em] text-zinc-600 uppercase disabled:text-zinc-400"
+                >
+                  {isStyleLoading ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" color="text-zinc-400" />
+                    </div>
+                  ) : (
+                    "Refresh"
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Style Profiles (Main Content - Always Visible) */}
             <div className="grid gap-4">
-                {styleProfiles.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
-                    <p className="text-xs text-zinc-400">No style profiles found.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {styleProfiles.map((profile) => (
-                      <div
-                        key={profile.id}
-                        className={`group relative rounded-2xl border p-5 transition-all duration-300 cursor-pointer overflow-hidden ${profile.is_default
-                          ? "border-indigo-200 bg-indigo-50/30 ring-1 ring-indigo-100"
-                          : "border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-0.5"
-                          }`}
-                        onClick={() => fetchProfileFull(profile.id)}
-                      >
-                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!profile.is_default && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDefaultProfile(profile.id); }}
-                              className="rounded-full bg-emerald-500 p-2 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors"
-                              title="Set as Default"
-                            >
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <h3 className="text-sm font-bold text-zinc-900">
-                                {profile.display_name || profile.name}
-                              </h3>
-                              {profile.is_default && (
-                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-bold text-emerald-600 uppercase tracking-wider">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] leading-relaxed text-zinc-500 line-clamp-2">{profile.description || "No description provided."}</p>
-                          </div>
-                        </div>
-
-                        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
-                          <div className="flex gap-2">
-                            <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-medium text-zinc-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                              SD 1.5
-                            </span>
-                          </div>
+              {styleProfiles.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
+                  <p className="text-xs text-zinc-400">No style profiles found.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {styleProfiles.map((profile) => (
+                    <div
+                      key={profile.id}
+                      className={`group relative rounded-2xl border p-5 transition-all duration-300 cursor-pointer overflow-hidden ${profile.is_default
+                        ? "border-indigo-200 bg-indigo-50/30 ring-1 ring-indigo-100"
+                        : "border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-0.5"
+                        }`}
+                      onClick={() => fetchProfileFull(profile.id)}
+                    >
+                      <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {!profile.is_default && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); deleteStyleProfile(profile.id); }}
-                            className="text-[10px] font-bold text-rose-400 hover:text-rose-600 hover:underline px-2 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setDefaultProfile(profile.id); }}
+                            className="rounded-full bg-emerald-500 p-2 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors"
+                            title="Set as Default"
                           >
-                            Delete
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
                           </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <h3 className="text-sm font-bold text-zinc-900">
+                              {profile.display_name || profile.name}
+                            </h3>
+                            {profile.is_default && (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-bold text-emerald-600 uppercase tracking-wider">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] leading-relaxed text-zinc-500 line-clamp-2">{profile.description || "No description provided."}</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
 
-                {/* Selected Profile Details */}
-                {selectedProfile && (
-                  <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                    <h4 className="mb-3 text-xs font-semibold text-zinc-700">
-                      {selectedProfile.display_name || selectedProfile.name} Details
-                    </h4>
-                    <div className="grid gap-3 text-xs">
-                      <div>
-                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">SD Model</span>
-                        <p className="text-zinc-700">{selectedProfile.sd_model?.display_name || selectedProfile.sd_model?.name || "None"}</p>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">LoRAs</span>
-                        {selectedProfile.loras.length > 0 ? (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {selectedProfile.loras.map((lora) => (
-                              <span key={lora.id} className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
-                                {lora.display_name || lora.name} ({lora.weight})
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-zinc-400">None</p>
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">Negative Embeddings</span>
-                        {selectedProfile.negative_embeddings.length > 0 ? (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {selectedProfile.negative_embeddings.map((emb) => (
-                              <span key={emb.id} className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] text-rose-700">
-                                {emb.name}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-zinc-400">None</p>
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">Default Positive</span>
-                        <p className="mt-1 text-zinc-600 font-mono text-[10px] bg-white p-2 rounded border border-zinc-200">
-                          {selectedProfile.default_positive || "None"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold text-zinc-500 uppercase">Default Negative</span>
-                        <p className="mt-1 text-zinc-600 font-mono text-[10px] bg-white p-2 rounded border border-zinc-200">
-                          {selectedProfile.default_negative || "None"}
-                        </p>
+                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
+                        <div className="flex gap-2">
+                          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-medium text-zinc-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                            SD 1.5
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteStyleProfile(profile.id); }}
+                          className="text-[10px] font-bold text-rose-400 hover:text-rose-600 hover:underline px-2 transition-colors"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Selected Profile Details */}
+              {selectedProfile && (
+                <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <h4 className="mb-3 text-xs font-semibold text-zinc-700">
+                    {selectedProfile.display_name || selectedProfile.name} Details
+                  </h4>
+                  <div className="grid gap-3 text-xs">
+                    <div>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">SD Model</span>
+                      <p className="text-zinc-700">{selectedProfile.sd_model?.display_name || selectedProfile.sd_model?.name || "None"}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">LoRAs</span>
+                      {selectedProfile.loras.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {selectedProfile.loras.map((lora) => (
+                            <span key={lora.id} className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
+                              {lora.display_name || lora.name} ({lora.weight})
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-zinc-400">None</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">Negative Embeddings</span>
+                      {selectedProfile.negative_embeddings.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {selectedProfile.negative_embeddings.map((emb) => (
+                            <span key={emb.id} className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] text-rose-700">
+                              {emb.name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-zinc-400">None</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">Default Positive</span>
+                      <p className="mt-1 text-zinc-600 font-mono text-[10px] bg-white p-2 rounded border border-zinc-200">
+                        {selectedProfile.default_positive || "None"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">Default Negative</span>
+                      <p className="mt-1 text-zinc-600 font-mono text-[10px] bg-white p-2 rounded border border-zinc-200">
+                        {selectedProfile.default_negative || "None"}
+                      </p>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
             </div>
 
             {/* Available Assets (Collapsible Secondary Content) */}
@@ -1358,237 +1387,237 @@ export default function ManagePage() {
 
                   {/* Civitai Search */}
                   <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
-                    Search Civitai
-                  </span>
-                  <div className="flex gap-2">
-                    <input
-                      value={civitaiSearch}
-                      onChange={(e) => setCivitaiSearch(e.target.value)}
-                      placeholder="Search LoRA name..."
-                      className="flex-1 rounded-full border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400"
-                      onKeyDown={(e) => e.key === "Enter" && searchCivitai()}
-                    />
-                    <button
-                      onClick={searchCivitai}
-                      disabled={isSearchingCivitai}
-                      className="rounded-full bg-zinc-800 px-4 py-2 text-[10px] font-semibold text-white disabled:bg-zinc-400"
-                    >
-                      {isSearchingCivitai ? (
-                        <div className="flex items-center gap-2">
-                          <LoadingSpinner size="sm" color="text-white/70" />
-                          <span>Searching...</span>
-                        </div>
-                      ) : (
-                        "Search"
-                      )}
-                    </button>
-                  </div>
-                  {civitaiResults.length > 0 && (
-                    <div className="mt-3 grid gap-2">
-                      {civitaiResults.map((result) => (
-                        <div key={result.civitai_id} className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 p-3">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            {result.preview_image_url && (
-                              <img src={result.preview_image_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-zinc-700 truncate">{result.display_name || result.name}</p>
-                              <p className="text-[10px] text-zinc-400 truncate">
-                                {result.trigger_words?.slice(0, 3).join(", ") || "No trigger words"}
-                              </p>
-                              <a
-                                href={`https://civitai.com/models/${result.civitai_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-1 flex items-center gap-1 text-[9px] font-bold text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-widest"
-                              >
-                                <span>View on Civitai</span>
-                                <svg className="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                              </a>
-                            </div>
+                    <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
+                      Search Civitai
+                    </span>
+                    <div className="flex gap-2">
+                      <input
+                        value={civitaiSearch}
+                        onChange={(e) => setCivitaiSearch(e.target.value)}
+                        placeholder="Search LoRA name..."
+                        className="flex-1 rounded-full border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400"
+                        onKeyDown={(e) => e.key === "Enter" && searchCivitai()}
+                      />
+                      <button
+                        onClick={searchCivitai}
+                        disabled={isSearchingCivitai}
+                        className="rounded-full bg-zinc-800 px-4 py-2 text-[10px] font-semibold text-white disabled:bg-zinc-400"
+                      >
+                        {isSearchingCivitai ? (
+                          <div className="flex items-center gap-2">
+                            <LoadingSpinner size="sm" color="text-white/70" />
+                            <span>Searching...</span>
                           </div>
-                          <button
-                            onClick={() => importFromCivitai(result.civitai_id!)}
-                            className="shrink-0 rounded-full bg-emerald-500 px-4 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-emerald-500/10 hover:bg-emerald-600 transition-all active:scale-95"
-                          >
-                            Import
-                          </button>
-                        </div>
-                      ))}
+                        ) : (
+                          "Search"
+                        )}
+                      </button>
                     </div>
-                  )}
-                </div>
-
-                {/* Registered LoRAs */}
-                <div>
-                  <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
-                    Registered LoRAs ({loraEntries.length})
-                  </span>
-                  {loraEntries.length === 0 ? (
-                    <p className="text-xs text-zinc-400">No LoRAs registered yet.</p>
-                  ) : (
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {loraEntries.map((lora) => (
-                        <div key={lora.id} className="group relative flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-4 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
-                          <div className="relative shrink-0">
-                            {lora.preview_image_url ? (
-                              <img
-                                src={lora.preview_image_url.startsWith('http') ? lora.preview_image_url : `${API_BASE}${lora.preview_image_url}`}
-                                alt=""
-                                className="h-16 w-16 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-300 border border-zinc-100 font-bold text-xl">
-                                {lora.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="truncate text-sm font-bold text-zinc-900">{lora.display_name || lora.name}</h3>
-                              {lora.civitai_url && (
+                    {civitaiResults.length > 0 && (
+                      <div className="mt-3 grid gap-2">
+                        {civitaiResults.map((result) => (
+                          <div key={result.civitai_id} className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              {result.preview_image_url && (
+                                <img src={result.preview_image_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-zinc-700 truncate">{result.display_name || result.name}</p>
+                                <p className="text-[10px] text-zinc-400 truncate">
+                                  {result.trigger_words?.slice(0, 3).join(", ") || "No trigger words"}
+                                </p>
                                 <a
-                                  href={lora.civitai_url}
+                                  href={`https://civitai.com/models/${result.civitai_id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="shrink-0 p-1 text-zinc-400 hover:text-indigo-500 transition-colors"
-                                  title="Open in Civitai"
+                                  className="mt-1 flex items-center gap-1 text-[9px] font-bold text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-widest"
                                 >
-                                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  <span>View on Civitai</span>
+                                  <svg className="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                   </svg>
                                 </a>
-                              )}
+                              </div>
                             </div>
+                            <button
+                              onClick={() => importFromCivitai(result.civitai_id!)}
+                              className="shrink-0 rounded-full bg-emerald-500 px-4 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-emerald-500/10 hover:bg-emerald-600 transition-all active:scale-95"
+                            >
+                              Import
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">
-                                Weight: {lora.default_weight.toFixed(1)}
-                              </span>
-                              {lora.optimal_weight !== null ? (
-                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">
-                                  Calibrated ({lora.calibration_score}%)
-                                </span>
+                  {/* Registered LoRAs */}
+                  <div>
+                    <span className="mb-2 block text-[10px] font-semibold tracking-[0.15em] text-zinc-500 uppercase">
+                      Registered LoRAs ({loraEntries.length})
+                    </span>
+                    {loraEntries.length === 0 ? (
+                      <p className="text-xs text-zinc-400">No LoRAs registered yet.</p>
+                    ) : (
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {loraEntries.map((lora) => (
+                          <div key={lora.id} className="group relative flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-4 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
+                            <div className="relative shrink-0">
+                              {lora.preview_image_url ? (
+                                <img
+                                  src={lora.preview_image_url.startsWith('http') ? lora.preview_image_url : `${API_BASE}${lora.preview_image_url}`}
+                                  alt=""
+                                  className="h-16 w-16 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform duration-300"
+                                />
                               ) : (
-                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-500 uppercase tracking-tighter">
-                                  Not Calibrated
-                                </span>
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-300 border border-zinc-100 font-bold text-xl">
+                                  {lora.name.charAt(0).toUpperCase()}
+                                </div>
                               )}
                             </div>
-                          </div>
 
-                          <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => setEditingLora(lora)}
-                              className="rounded-full bg-zinc-900 p-2 text-white shadow-lg hover:bg-indigo-600 transition-colors"
-                              title="Edit"
-                            >
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => deleteLoRA(lora.id)}
-                              className="rounded-full bg-white border border-rose-100 p-2 text-rose-500 shadow-sm hover:border-rose-300 transition-colors"
-                              title="Delete"
-                            >
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="truncate text-sm font-bold text-zinc-900">{lora.display_name || lora.name}</h3>
+                                {lora.civitai_url && (
+                                  <a
+                                    href={lora.civitai_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="shrink-0 p-1 text-zinc-400 hover:text-indigo-500 transition-colors"
+                                    title="Open in Civitai"
+                                  >
+                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  </a>
+                                )}
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">
+                                  Weight: {lora.default_weight.toFixed(1)}
+                                </span>
+                                {lora.optimal_weight !== null ? (
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">
+                                    Calibrated ({lora.calibration_score}%)
+                                  </span>
+                                ) : (
+                                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-500 uppercase tracking-tighter">
+                                    Not Calibrated
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingLora(lora)}
+                                className="rounded-full bg-zinc-900 p-2 text-white shadow-lg hover:bg-indigo-600 transition-colors"
+                                title="Edit"
+                              >
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => deleteLoRA(lora.id)}
+                                className="rounded-full bg-white border border-rose-100 p-2 text-rose-500 shadow-sm hover:border-rose-300 transition-colors"
+                                title="Delete"
+                              >
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
                 {/* SD Models Section */}
                 <div className="grid gap-4">
                   <h3 className="text-sm font-semibold text-zinc-700">SD Models</h3>
-                {sdModels.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
-                    <p className="text-xs text-zinc-400">No models registered yet.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {sdModels.map((model) => (
-                      <div key={model.id} className="group relative flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-sm font-bold text-zinc-900 truncate">{model.display_name || model.name}</h3>
-                            {model.is_active && (
-                              <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
+                  {sdModels.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
+                      <p className="text-xs text-zinc-400">No models registered yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {sdModels.map((model) => (
+                        <div key={model.id} className="group relative flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5 transition-all duration-300 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-sm font-bold text-zinc-900 truncate">{model.display_name || model.name}</h3>
+                              {model.is_active && (
+                                <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">
+                                {model.base_model || "SD 1.5"}
+                              </span>
+                              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">
+                                {model.model_type}
+                              </span>
+                            </div>
+                            {model.description && (
+                              <p className="mt-2 text-[10px] text-zinc-400 line-clamp-1">{model.description}</p>
                             )}
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">
-                              {model.base_model || "SD 1.5"}
-                            </span>
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">
-                              {model.model_type}
+                          <div className="shrink-0 ml-4">
+                            <span className={`rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${model.is_active
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : "bg-zinc-50 text-zinc-400 border border-zinc-100"
+                              }`}>
+                              {model.is_active ? "Active" : "Inactive"}
                             </span>
                           </div>
-                          {model.description && (
-                            <p className="mt-2 text-[10px] text-zinc-400 line-clamp-1">{model.description}</p>
-                          )}
                         </div>
-                        <div className="shrink-0 ml-4">
-                          <span className={`rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${model.is_active
-                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                            : "bg-zinc-50 text-zinc-400 border border-zinc-100"
-                            }`}>
-                            {model.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Embeddings Section */}
                 <div className="grid gap-4">
                   <h3 className="text-sm font-semibold text-zinc-700">Embeddings</h3>
-                {embeddings.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
-                    <p className="text-xs text-zinc-400">No embeddings found.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {embeddings.map((emb) => (
-                      <div key={emb.id} className={`group flex flex-col rounded-2xl border p-4 transition-all duration-300 hover:shadow-lg ${emb.embedding_type === "negative"
-                        ? "border-zinc-200 hover:border-rose-200 bg-white"
-                        : "border-zinc-200 hover:border-emerald-200 bg-white"
-                        }`}>
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="min-w-0">
-                            <h3 className="text-sm font-bold text-zinc-900 truncate">{emb.display_name || emb.name}</h3>
-                            {emb.trigger_word && (
-                              <code className="mt-1 block font-mono text-[9px] text-zinc-400 font-bold bg-zinc-50 px-1.5 py-0.5 rounded-md truncate">
-                                {emb.trigger_word}
-                              </code>
-                            )}
+                  {embeddings.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-zinc-200 p-12 text-center">
+                      <p className="text-xs text-zinc-400">No embeddings found.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {embeddings.map((emb) => (
+                        <div key={emb.id} className={`group flex flex-col rounded-2xl border p-4 transition-all duration-300 hover:shadow-lg ${emb.embedding_type === "negative"
+                          ? "border-zinc-200 hover:border-rose-200 bg-white"
+                          : "border-zinc-200 hover:border-emerald-200 bg-white"
+                          }`}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-zinc-900 truncate">{emb.display_name || emb.name}</h3>
+                              {emb.trigger_word && (
+                                <code className="mt-1 block font-mono text-[9px] text-zinc-400 font-bold bg-zinc-50 px-1.5 py-0.5 rounded-md truncate">
+                                  {emb.trigger_word}
+                                </code>
+                              )}
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${emb.embedding_type === "negative"
+                              ? "bg-rose-50 text-rose-600 border border-rose-100"
+                              : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              }`}>
+                              {emb.embedding_type}
+                            </span>
                           </div>
-                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${emb.embedding_type === "negative"
-                            ? "bg-rose-50 text-rose-600 border border-rose-100"
-                            : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                            }`}>
-                            {emb.embedding_type}
-                          </span>
+                          {emb.description && (
+                            <p className="text-[10px] text-zinc-500 leading-relaxed line-clamp-2">{emb.description}</p>
+                          )}
                         </div>
-                        {emb.description && (
-                          <p className="text-[10px] text-zinc-500 leading-relaxed line-clamp-2">{emb.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
                 </div>
 
               </div>

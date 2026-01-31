@@ -68,6 +68,13 @@ class StoryboardScene(BaseModel):
     tags: list[SceneTagSave] | None = None
     character_actions: list[SceneActionSave] | None = None
 
+    # Consistency Enhancements
+    use_reference_only: bool | None = None
+    reference_only_weight: float | None = None
+    environment_reference_id: int | None = None
+    environment_reference_weight: float | None = None
+    image_asset_id: int | None = None
+
     model_config = ConfigDict(extra="allow")
 
 class SceneTagSave(BaseModel):
@@ -168,13 +175,15 @@ class SceneGenerateRequest(BaseModel):
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
     ip_adapter_weight: float = 0.7
+    # Consistency Enhancements
+    use_reference_only: bool = True  # Default to True if character_id exists
+    reference_only_weight: float = 0.5
+    environment_reference_id: int | None = None  # For Environment Pinning
+    environment_reference_weight: float = 0.3
     # Analytics/Hierarchy tracking
-    project_id: int | None = None
-    group_id: int | None = None
     storyboard_id: int | None = None
-    topic: str | None = None  # Optional: Content topic for reference
-    scene_index: int | None = None  # [DEPRECATED] Use scene DB ID in frontend activity log instead
-    batch_size: int = 3  # Default to 3 images per generation
+    # Warnings field to return messages from backend
+    warnings: list[str] | None = None
 
 
 class SceneValidateRequest(BaseModel):

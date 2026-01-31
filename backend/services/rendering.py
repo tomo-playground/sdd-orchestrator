@@ -316,7 +316,9 @@ def render_subtitle_image(
                 line,
                 font,
                 emoji_font,
-                (40, 40, 40, 255),
+                (0, 0, 0, 255),  # 검은색으로 변경
+                stroke_width=2,   # 흰색 외곽선 추가
+                stroke_fill=(255, 255, 255, 255),
             )
         return canvas
 

@@ -480,10 +480,35 @@ export default function SceneCard({
                 type="button"
                 onClick={onGenerateImage}
                 disabled={scene.isGenerating}
-                className="rounded-full bg-zinc-900 px-5 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+                className="rounded-full bg-zinc-900 px-5 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400 flex items-center gap-2"
               >
                 {scene.isGenerating ? "Generating..." : "Generate Image"}
+                {scene.environment_reference_id && !scene.isGenerating && (
+                  <span className="ml-1 text-[#FFD700] animate-pulse" title="Background Pinned">📌</span>
+                )}
               </button>
+              {scene.image_url && !scene.isGenerating && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Toggle pinning: if already pinned to THIS asset, unpin.
+                    // If not pinned, pin to the current image's asset ID.
+                    if (!scene.image_asset_id && !scene.environment_reference_id) {
+                      showToast("이미지를 먼저 생성하거나 업로드해야 배경을 고정할 수 있습니다.", "error");
+                      return;
+                    }
+                    const isPinned = !!scene.environment_reference_id;
+                    onUpdateScene({
+                      environment_reference_id: isPinned ? null : scene.image_asset_id,
+                      environment_reference_weight: 0.3
+                    });
+                  }}
+                  className={`rounded-full p-2.5 text-[10px] shadow-md transition ${scene.environment_reference_id ? 'bg-amber-100 text-amber-600 border border-amber-300' : 'bg-white text-zinc-400 border border-zinc-200 hover:bg-zinc-50'}`}
+                  title={scene.environment_reference_id ? "배경 고정 해제" : "이 장면의 배경을 다음 생성 시 고정합니다"}
+                >
+                  📌
+                </button>
+              )}
               {scene.image_url && !scene.isGenerating && (
                 <button
                   type="button"

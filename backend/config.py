@@ -149,7 +149,7 @@ ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").low
 # --- Reference Image Generation Defaults ---
 # Default prompts for generating IP-Adapter reference images
 # Used when creating new characters without custom reference prompts
-DEFAULT_REFERENCE_BASE_PROMPT = "masterpiece, best_quality, ultra-detailed, solo, upper_body, portrait, facing_viewer, front_view, looking_at_viewer, straight_on, white_background, simple_background, plain_background, solid_background"
+DEFAULT_REFERENCE_BASE_PROMPT = "masterpiece, best_quality, ultra-detailed, solo, full_body, (standing:1.2), portrait, facing_viewer, front_view, looking_at_viewer, straight_on, white_background, simple_background, plain_background, solid_background"
 DEFAULT_REFERENCE_NEGATIVE_PROMPT = "lowres, (bad_anatomy:1.2), (bad_hands:1.2), text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, normal_quality, jpeg_artifacts, signature, watermark, username, blurry, easynegative, verybadimagenegative_v1.3, detailed_background, scenery, outdoors, indoors"
 
 # Default negative prompt for scene generation (applied to Gemini-generated scenes)
