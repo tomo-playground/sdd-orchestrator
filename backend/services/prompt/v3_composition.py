@@ -62,6 +62,20 @@ class V3PromptBuilder:
                 "weight": char_tag.weight
             })
 
+        # 2. Add Custom Base Prompt (Identity)
+        restricted = ["background", "kitchen", "room", "outdoors", "indoors", "scenery", "nature", "mountain", "street", "office", "bedroom", "bathroom", "garden"]
+        if character.custom_base_prompt:
+            base_tokens = [t.strip() for t in character.custom_base_prompt.split(",")]
+            for bt in base_tokens:
+                if any(r in bt.lower() for r in restricted):
+                    continue # Skip background/situation tags in Identity DNA
+                if bt:
+                    char_tags_data.append({
+                        "name": bt,
+                        "layer": LAYER_IDENTITY,
+                        "weight": 1.0
+                    })
+
         # 2. Get Scene tag info
         scene_tag_info = self.get_tag_info(scene_tags)
 

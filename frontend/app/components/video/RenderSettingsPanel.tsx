@@ -227,9 +227,13 @@ export default function RenderSettingsPanel({
             </select>
             <div
               className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-center text-white text-sm"
-              style={{ fontFamily: `"${subtitleFont}", sans-serif` }}
+              style={{
+                fontFamily: loadedFonts.has(subtitleFont)
+                  ? `"${subtitleFont}", sans-serif`
+                  : "sans-serif",
+              }}
             >
-              {loadedFonts.has(subtitleFont) ? "가나다" : "..."}
+              {loadedFonts.has(subtitleFont) ? "가나다 ABC" : "Loading..."}
             </div>
           </div>
           {/* Motion Effects Row */}
@@ -275,7 +279,7 @@ export default function RenderSettingsPanel({
             </select>
           </div>
           {/* Audio Row */}
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2">
             <select
               value={narratorVoice}
               onChange={(e) => setNarratorVoice(e.target.value)}
@@ -287,7 +291,7 @@ export default function RenderSettingsPanel({
               ))}
             </select>
             <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-              <span className="text-[10px] text-zinc-500">{speedMultiplier.toFixed(2)}x</span>
+              <span className="text-[10px] text-zinc-500 whitespace-nowrap">Speed {speedMultiplier.toFixed(2)}x</span>
               <input
                 type="range"
                 min={0.8}
@@ -298,6 +302,8 @@ export default function RenderSettingsPanel({
                 className="flex-1 accent-zinc-900"
               />
             </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
             <div className="flex items-center gap-1">
               <select
                 value={bgmFile ?? ""}
@@ -321,9 +327,9 @@ export default function RenderSettingsPanel({
                 ▶
               </button>
             </div>
-            {bgmFile ? (
+            {bgmFile && (
               <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-                <span className="text-[10px] text-zinc-500">{Math.round(bgmVolume * 100)}%</span>
+                <span className="text-[10px] text-zinc-500 whitespace-nowrap">{Math.round(bgmVolume * 100)}%</span>
                 <input
                   type="range"
                   min={0.05}
@@ -333,7 +339,7 @@ export default function RenderSettingsPanel({
                   onChange={(e) => setBgmVolume(Number(e.target.value))}
                   className="flex-1 accent-zinc-900"
                 />
-                <label className="flex items-center gap-1 text-[10px] text-zinc-500">
+                <label className="flex items-center gap-1 text-[10px] text-zinc-500 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={audioDucking}
@@ -343,8 +349,6 @@ export default function RenderSettingsPanel({
                   Duck
                 </label>
               </div>
-            ) : (
-              <div />
             )}
           </div>
         </div>

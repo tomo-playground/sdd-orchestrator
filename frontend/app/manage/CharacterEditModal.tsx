@@ -34,6 +34,25 @@ export default function CharacterEditModal({
   const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character?.ip_adapter_weight || 0.75); // Use optional chaining
   const [ipAdapterModel, setIpAdapterModel] = useState<string>(character?.ip_adapter_model || "clip_face"); // Use optional chaining
 
+  const [referenceBasePrompt, setReferenceBasePrompt] = useState(isCreateMode ? customBasePrompt : character?.reference_base_prompt || "");
+  const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(isCreateMode ? customNegativePrompt : character?.reference_negative_prompt || "");
+
+  // Linting warnings
+  const restrictedKeywords = ["background", "kitchen", "room", "outdoors", "indoors", "scenery", "nature", "mountain", "street", "office", "bedroom", "bathroom", "garden"];
+  const sceneIdentityWarning = useMemo(() => {
+    const tokens = customBasePrompt.toLowerCase().split(/[,\s]+/).map(t => t.trim());
+    const found = tokens.filter(t => restrictedKeywords.includes(t));
+    return found.length > 0 ? `Warning: Background tags detected (${found.join(", ")}). Please remove them for better consistency.` : null;
+  }, [customBasePrompt]);
+
+  const referenceProfileWarning = useMemo(() => {
+    const lower = referenceBasePrompt.toLowerCase();
+    if (!lower.includes("white background") && !lower.includes("simple background") && !lower.includes("plain background")) {
+      return "Tip: Adding 'white background' is recommended for cleaner character reference.";
+    }
+    return null;
+  }, [referenceBasePrompt]);
+
   // Tags state
   const [identityTagIds, setIdentityTagIds] = useState<number[]>(
     character?.tags?.filter(t => t.is_permanent).map(t => t.tag_id) || []
@@ -56,6 +75,7 @@ export default function CharacterEditModal({
   // Preview modal state
   const [previewImageOpen, setPreviewImageOpen] = useState(false);
 
+
   const handleGenerateReference = async () => {
     if (isCreateMode || !character?.id) return;
 
@@ -72,9 +92,6 @@ export default function CharacterEditModal({
       setIsGenerating(false);
     }
   };
-
-  const [referenceBasePrompt, setReferenceBasePrompt] = useState(isCreateMode ? customBasePrompt : character?.reference_base_prompt || "");
-  const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(isCreateMode ? customNegativePrompt : character?.reference_negative_prompt || "");
 
   // Initialize prompt_mode if it exists in character object (it might be missing in older types, but we saw it in schema)
   useEffect(() => {
@@ -390,28 +407,44 @@ export default function CharacterEditModal({
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Base Prompt (Raw Text)</label>
-                {!isCreateMode && (
+                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Scene Identity (Fixed Appearance)</label>
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setReferenceBasePrompt(customBasePrompt)}
-                    className="text-[10px] text-zinc-500 hover:underline"
+                    onClick={() => setCustomBasePrompt(prev => {
+                      const base = "masterpiece, best_quality";
+                      if (!prev.includes(base)) return `${base}, ${prev}`.trim().replace(/^,\s+/, "");
+                      return prev;
+                    })}
+                    className="text-[9px] text-zinc-500 hover:text-zinc-700 font-bold bg-zinc-100 hover:bg-zinc-200 px-1.5 py-0.5 rounded transition-colors"
                   >
-                    Copy to Ref.
+                    + QUALITY
                   </button>
-                )}
+                  {!isCreateMode && (
+                    <button
+                      type="button"
+                      onClick={() => setReferenceBasePrompt(customBasePrompt)}
+                      className="text-[10px] text-zinc-500 hover:underline"
+                    >
+                      Copy to Ref.
+                    </button>
+                  )}
+                </div>
               </div>
               <textarea
                 value={customBasePrompt}
                 onChange={(e) => setCustomBasePrompt(e.target.value)}
                 rows={3}
-                placeholder="Additional positive tags..."
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none"
+                placeholder="Tags that define character's core look (e.g. hair style, eye color, unique traits). NO BACKGROUND TAGS."
+                className={`w-full rounded-xl border ${sceneIdentityWarning ? 'border-amber-400' : 'border-zinc-200'} px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none`}
               />
+              {sceneIdentityWarning && (
+                <p className="text-[10px] text-amber-600 mt-1 font-medium italic">⚠️ {sceneIdentityWarning}</p>
+              )}
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Base Negative (Raw Text)</label>
+                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Common Negative (Scene)</label>
                 {!isCreateMode && (
                   <button
                     type="button"
@@ -605,14 +638,20 @@ export default function CharacterEditModal({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reference Positive</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reference Positive (Studio Profile)</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setReferenceBasePrompt("masterpiece, best_quality, ultra-detailed, solo, upper_body, portrait, facing_viewer, front_view, looking_at_viewer, straight_on, white_background, simple_background, plain_background, solid_background")}
+                      onClick={() => setReferenceBasePrompt(prev => {
+                        const studio = "white_background, simple_background, solo, straight_on, facing_viewer";
+                        let updated = prev;
+                        if (!updated.includes("masterpiece")) updated = `masterpiece, best_quality, ${updated}`;
+                        if (!updated.includes("white_background")) updated = `${updated}, ${studio}`;
+                        return updated.replace(/,\s*,/g, ",").replace(/^,\s+/, "").trim();
+                      })}
                       className="text-[9px] text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors"
                     >
-                      RESET TO DEFAULT
+                      SET STUDIO SETUP
                     </button>
                     {!isCreateMode && (
                       <button
@@ -631,8 +670,11 @@ export default function CharacterEditModal({
                     onChange={(e) => setReferenceBasePrompt(e.target.value)}
                     rows={4}
                     placeholder="masterpiece, best_quality, anime_portrait, looking_at_viewer..."
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50/50 px-4 py-3 text-[11px] outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 font-mono resize-none transition-all"
+                    className={`w-full rounded-2xl border ${referenceProfileWarning ? 'border-indigo-200' : 'border-zinc-200'} bg-zinc-50/50 px-4 py-3 text-[11px] outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 font-mono resize-none transition-all`}
                   />
+                  {referenceProfileWarning && (
+                    <p className="text-[10px] text-indigo-500 mt-1 font-medium italic">💡 {referenceProfileWarning}</p>
+                  )}
                   <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-[9px] text-zinc-300 font-mono">Positive</span>
                   </div>
@@ -641,7 +683,7 @@ export default function CharacterEditModal({
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reference Negative</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reference Negative (Studio Profile)</label>
                   <div className="flex gap-2">
                     <button
                       type="button"

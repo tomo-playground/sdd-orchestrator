@@ -84,6 +84,26 @@ export default function OutputTab() {
       .catch(() => { });
   }, [setOutput]);
 
+  // Load selected font dynamically
+  useEffect(() => {
+    if (!subtitleFont || loadedFonts.has(subtitleFont)) return;
+
+    const fontFace = new FontFace(
+      subtitleFont,
+      `url(${API_BASE}/fonts/file/${encodeURIComponent(subtitleFont)})`
+    );
+
+    fontFace
+      .load()
+      .then((loaded) => {
+        document.fonts.add(loaded);
+        setOutput({ loadedFonts: new Set([...loadedFonts, subtitleFont]) });
+      })
+      .catch((err) => {
+        console.warn(`Failed to load font ${subtitleFont}:`, err);
+      });
+  }, [subtitleFont, loadedFonts, setOutput]);
+
   // Cleanup audio on unmount
   useEffect(() => () => stopBgmPreview(), []);
 
