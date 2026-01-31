@@ -14,7 +14,7 @@ import {
 } from "./promptActions";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
-/** Store a base64 image on the backend and return a URL */
+/** Store a base64 image on the backend and return URL + asset_id */
 export async function storeSceneImage(
   dataUrl: string,
   projectId: number,
@@ -22,8 +22,8 @@ export async function storeSceneImage(
   storyboardId: number,
   sceneId: number,
   fileName?: string
-): Promise<string> {
-  if (!dataUrl || !dataUrl.startsWith("data:")) return dataUrl;
+): Promise<{ url: string; asset_id?: number }> {
+  if (!dataUrl || !dataUrl.startsWith("data:")) return { url: dataUrl };
   try {
     const res = await fetch(`${API_BASE}/image/store`, {
       method: "POST",
@@ -37,11 +37,14 @@ export async function storeSceneImage(
         file_name: fileName,
       }),
     });
-    if (!res.ok) return dataUrl;
+    if (!res.ok) return { url: dataUrl };
     const data = await res.json();
-    return (data?.url as string) ?? dataUrl;
+    return {
+      url: (data?.url as string) ?? dataUrl,
+      asset_id: data?.asset_id as number | undefined,
+    };
   } catch {
-    return dataUrl;
+    return { url: dataUrl };
   }
 }
 
@@ -156,7 +159,7 @@ export async function generateSceneImageFor(
       const { projectId, groupId, storyboardId: currentId } = useStudioStore.getState();
 
       // 1. Store all images in parallel
-      const storedUrls = await Promise.all(
+      const storedResults = await Promise.all(
         images.map((b64: string, idx: number) => {
           const dataUrl = `data:image/png;base64,${b64}`;
           return storeSceneImage(
@@ -173,10 +176,11 @@ export async function generateSceneImageFor(
       // 2. Validate all images to find the best match (Candidates creation)
       // Parallel validation for performance
       const validationResults = await Promise.all(
-        storedUrls.map(async (url) => {
-          const validation = await validateImageCandidate(url, prompt, scene.id);
+        storedResults.map(async (stored) => {
+          const validation = await validateImageCandidate(stored.url, prompt, scene.id);
           return {
-            image_url: url,
+            image_url: stored.url,
+            asset_id: stored.asset_id,
             match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
             validation: validation, // Store full validation result for caching
           };
@@ -190,6 +194,7 @@ export async function generateSceneImageFor(
 
       const bestCandidate = sortedCandidates[0];
       const mainImageUrl = bestCandidate.image_url;
+      const bestAssetId = bestCandidate.asset_id;
       const candidates = sortedCandidates.map(c => ({ image_url: c.image_url }));
 
       // Update validation results cache in store for the best image
@@ -237,6 +242,7 @@ export async function generateSceneImageFor(
 
       return {
         image_url: mainImageUrl,
+        image_asset_id: bestAssetId ?? null,
         candidates: candidates,
         image_prompt: autoComposePrompt ? prompt : undefined,
         debug_prompt: prompt,
@@ -368,7 +374,7 @@ export function handleImageUpload(sceneId: number, file?: File) {
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
     const { projectId, groupId, storyboardId } = useStudioStore.getState();
-    const storedUrl = await storeSceneImage(
+    const stored = await storeSceneImage(
       dataUrl,
       projectId || 1,
       groupId || 1,
@@ -377,7 +383,8 @@ export function handleImageUpload(sceneId: number, file?: File) {
       `upload_${sceneId}_${Date.now()}.png`
     );
     useStudioStore.getState().updateScene(sceneId, {
-      image_url: storedUrl,
+      image_url: stored.url,
+      image_asset_id: stored.asset_id ?? null,
       candidates: [],
     });
 
@@ -413,7 +420,7 @@ export async function handleEditWithGemini(
     if (res.data.edited_image) {
       const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
       const { projectId, groupId, storyboardId } = useStudioStore.getState();
-      const storedUrl = await storeSceneImage(
+      const stored = await storeSceneImage(
         dataUrl,
         projectId || 1,
         groupId || 1,
@@ -421,7 +428,7 @@ export async function handleEditWithGemini(
         scene.id,
         `gemini_edit_${scene.id}_${Date.now()}.png`
       );
-      updateScene(scene.id, { image_url: storedUrl, isGenerating: false });
+      updateScene(scene.id, { image_url: stored.url, image_asset_id: stored.asset_id ?? null, isGenerating: false });
       showToast(
         `Gemini edit done (${res.data.edit_type}) - $${res.data.cost_usd.toFixed(4)}`,
         "success"
