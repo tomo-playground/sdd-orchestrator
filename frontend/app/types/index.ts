@@ -289,6 +289,7 @@ export type CharacterFull = {
   name: string;
   description: string | null;
   gender: ActorGender | null;
+  tags: CharacterTagLink[];
   identity_tags: { id: number; name: string; group_name: string }[];
   clothing_tags: { id: number; name: string; group_name: string }[];
   loras: CharacterFullLoRA[];

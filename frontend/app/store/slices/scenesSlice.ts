@@ -37,7 +37,7 @@ const initialScenesState = {
   scenes: [] as Scene[],
   currentSceneIndex: 0,
   isGenerating: false,
-  multiGenEnabled: true,
+  multiGenEnabled: false,
   referenceImages: [] as ReferenceImage[],
   validationResults: {} as Record<number, SceneValidation>,
   validationSummary: { ok: 0, warn: 0, error: 0 },

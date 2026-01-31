@@ -55,12 +55,37 @@ export function useCharacters(): UseCharactersResult {
   }, []);
 
   /**
-   * Build a prompt string from character's custom_base_prompt.
-   * SSOT: Character Edit Modal - use exactly what user configured, no auto-combining.
+   * Build a prompt string from character's DB tags + custom_base_prompt.
+   * Includes identity/clothing tags from V3 character_tags relationship.
    */
   const buildCharacterPrompt = useCallback((character: CharacterFull): string => {
-    // Return custom_base_prompt as-is (user's configured value)
-    return character.custom_base_prompt || "";
+    const parts: string[] = [];
+
+    // 1. Include V3 DB tags (identity, clothing, etc.)
+    if (character.tags?.length) {
+      for (const tag of character.tags) {
+        if (!tag.name) continue;
+        if (tag.weight !== 1.0) {
+          parts.push(`(${tag.name}:${tag.weight})`);
+        } else {
+          parts.push(tag.name);
+        }
+      }
+    }
+
+    // 2. Append custom_base_prompt tokens (avoid duplicates)
+    if (character.custom_base_prompt) {
+      const existing = new Set(parts.map((p) => p.replace(/[():\d.]/g, "").toLowerCase()));
+      const custom = character.custom_base_prompt.split(",").map((t) => t.trim()).filter(Boolean);
+      for (const token of custom) {
+        const norm = token.replace(/[():\d.]/g, "").toLowerCase();
+        if (!existing.has(norm)) {
+          parts.push(token);
+        }
+      }
+    }
+
+    return parts.join(", ");
   }, []);
 
   /**

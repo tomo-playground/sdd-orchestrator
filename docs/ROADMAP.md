@@ -360,6 +360,19 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 ---
 
+#### 6-4.39. Character Tag Prompt & UX Fix - **COMPLETE** (2026-02-01)
+**목표**: 캐릭터 Identity/Clothing 태그가 프론트엔드 프롬프트 프리뷰 및 디버그 페이로드에 표시되도록 수정.
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **buildCharacterPrompt V3 태그 통합** | `custom_base_prompt`만 반환 → `character.tags`(DB) 포함으로 변경 | [x] |
+| 2 | **CharacterFull 타입 동기화** | V3 `tags: CharacterTagLink[]` 필드 추가 (백엔드 응답과 일치) | [x] |
+| 3 | **Debug Payload character_id** | `debugPayload`에 `character_id` 포함하여 디버그 뷰에서 확인 가능 | [x] |
+| 4 | **multiGenEnabled 기본값 변경** | `true` → `false` (ControlNet+IP-Adapter 환경에서 타임아웃 방지) | [x] |
+| 5 | **useCharacters 테스트** | 13개 테스트 케이스 (Flat Color Boy 시나리오, 가중치, 중복 제거 등) | [x] |
+
+---
+
 ### 6-5. Upcoming Refactoring (Technical Debt)
 | 작업 | 설명 | 상태 |
 |---|------|------|

@@ -136,6 +136,7 @@ export async function generateSceneImageFor(
     ...hiResPayload,
     ...controlnetPayload,
     ...ipAdapterPayload,
+    ...(selectedCharacterId ? { character_id: selectedCharacterId } : {}),
   };
 
   try {
