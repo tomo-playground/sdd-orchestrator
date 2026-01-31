@@ -58,6 +58,7 @@ YouTube Shorts 프로젝트 단위.
 | `description` | Text | 설명 |
 | `default_character_id` | Integer | 기본 캐릭터 |
 | `default_style_profile_id` | Integer | 기본 스타일 프로파일 |
+| `default_caption` | String(500), nullable | 기본 캡션 텍스트 (Post Layout용) |
 | `video_asset_id` | Integer (FK → media_assets) | 최신 렌더링 영상 (폴리모픽 참조) |
 | `recent_videos_json` | JSONB | 최근 렌더링 이력 (최대 5개) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
@@ -351,7 +352,7 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `storyboard_id` | Integer (FK → storyboards) | 소속 스토리보드 |
+| `storyboard_id` | Integer (nullable) | 소속 스토리보드 (FK 제거됨, NULL 허용) |
 | `scene_id` | Integer | 씬 인덱스 |
 | `character_id` | Integer | 캐릭터 ID (Character Consistency 추적용) |
 | `prompt` | Text | 사용된 프롬프트 |

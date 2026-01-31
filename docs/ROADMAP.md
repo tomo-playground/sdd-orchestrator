@@ -71,7 +71,7 @@
 | **Ken Burns Vertical Presets** | Full Layout 최적화 프리셋 6종 (pan_up_vertical 등, Y축 2배 확장) | [x] |
 | **Ken Burns + Scene Text Sync** | Full: 켄번 효과 **후** 합성 (자막 선명+고정), Post: 카드에 직접 렌더링 | [x] |
 | **Post Layout Scene Text Fix** | compose_post_frame에 scene_text_area 렌더링 코드 추가 (2026-01-31) | [x] |
-| **Full Layout Improvements** | 씬 텍스트 크기/위치 최적화 + 크롭 위치 명시 (4개 작업, ~40분) | [→] |
+| **Full Layout Improvements** | 씬 텍스트 크기/위치 최적화 + 크롭 위치 명시 (4개 작업) | [x] |
 | Character Consistency | → Phase 6 (LoRA 기반) → Phase 7 (IP-Adapter) | [-] |
 
 #### 5-2.8. Full Layout Improvements (완료)

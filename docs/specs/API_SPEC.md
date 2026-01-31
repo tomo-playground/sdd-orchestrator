@@ -89,6 +89,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
   "description": "카페에서의 하루",
   "default_character_id": 1,
   "default_style_profile_id": 1,
+  "default_caption": "좋아요 6만개\n15분 전",
   "scenes": [
     {
       "scene_id": 1,
@@ -109,6 +110,52 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 ```json
 {"status": "success", "storyboard_id": 1}
 ```
+
+### `PUT /storyboards/{storyboard_id}`
+기존 스토리보드를 업데이트합니다 (씬 전체 교체).
+
+**Request:**
+```json
+{
+  "title": "커피숍 일상 (수정)",
+  "description": "카페에서의 하루",
+  "default_character_id": 1,
+  "default_style_profile_id": 1,
+  "default_caption": "좋아요 6만개\n15분 전",
+  "scenes": [
+    {
+      "scene_id": 1,
+      "script": "나레이션 텍스트",
+      "image_url": "/outputs/images/scene_001.png",
+      "width": 512,
+      "height": 768,
+      "tags": [{"tag_id": 10, "weight": 1.0}],
+      "character_actions": [
+        {"character_id": 1, "tag_id": 5, "weight": 1.0}
+      ]
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "title": "커피숍 일상 (수정)",
+  "description": "카페에서의 하루",
+  "default_character_id": 1,
+  "default_style_profile_id": 1,
+  "video_url": null,
+  "recent_videos": [],
+  "created_at": "2026-01-30T12:00:00",
+  "updated_at": "2026-01-31T15:30:00",
+  "scenes": [...]
+}
+```
+
+> **동작**: 기존 씬을 모두 삭제 후 새 씬으로 교체 (orphaned media_assets 자동 정리).
+> Title은 200자로 자동 truncate됩니다.
 
 ### `GET /storyboards`
 저장된 스토리보드 목록을 조회합니다.
