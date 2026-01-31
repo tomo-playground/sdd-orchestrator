@@ -137,6 +137,8 @@ export default function OutputTab() {
         } : null;
 
         const payload = {
+          project_id: 1, // Default project for now (Phase 6-4.31 storage hierarchy)
+          group_id: 1,   // Default group for now
           storyboard_id: store.storyboardId,
           scenes: scenes
             .filter((s) => s.image_url)
