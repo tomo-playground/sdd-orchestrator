@@ -10,6 +10,12 @@ from config import logger
 class BaseStorage(ABC):
     """Abstract base class for storage drivers."""
 
+    @property
+    @abstractmethod
+    def base_dir(self) -> Path:
+        """Get the base directory for storage operations."""
+        pass
+
     @abstractmethod
     def save(self, key: str, body: bytes | BinaryIO, content_type: str | None = None) -> str:
         """Save a file and return its public URL or storage path."""
@@ -63,6 +69,13 @@ class S3Storage(BaseStorage):
         self.public_url = public_url
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # For compatibility with cleanup stats, use cache_dir's parent as base_dir
+        self._base_dir = cache_dir.parent if cache_dir.name == "cache" else cache_dir.parent
+
+    @property
+    def base_dir(self) -> Path:
+        """Get the base directory (cache parent for S3, used for stats compatibility)."""
+        return self._base_dir
 
     def save(self, key: str, body: bytes | BinaryIO, content_type: str | None = None) -> str:
         from botocore.exceptions import ClientError
@@ -79,7 +92,11 @@ class S3Storage(BaseStorage):
 
     def get_url(self, key: str) -> str:
         # Assuming bucket is public-read as per our setup
-        return f"{self.public_url}/{self.bucket_name}/{key}"
+        # Ensure no double slashes between components
+        base = self.public_url.rstrip("/")
+        bucket = self.bucket_name.strip("/")
+        clean_key = key.lstrip("/")
+        return f"{base}/{bucket}/{clean_key}"
 
     def get_local_path(self, key: str) -> Path:
         """Ensure the file is in local cache for FFmpeg processing."""
@@ -133,9 +150,14 @@ class LocalStorage(BaseStorage):
     """Local file system storage driver."""
 
     def __init__(self, base_dir: Path, public_url: str):
-        self.base_dir = base_dir
+        self._base_dir = base_dir
         self.public_url = public_url
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self._base_dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def base_dir(self) -> Path:
+        """Get the base directory for local storage."""
+        return self._base_dir
 
     def save(self, key: str, body: bytes | BinaryIO, content_type: str | None = None) -> str:
         file_path = self.base_dir / key
@@ -147,7 +169,16 @@ class LocalStorage(BaseStorage):
         return self.get_url(key)
 
     def get_url(self, key: str) -> str:
-        return f"{self.public_url}/outputs/{key}"
+        # Avoid double slashes: public_url has no trailing slash (usually), but better safe
+        # outputs is already part of key if local?
+        # In LocalStorage.save, key is relative to base_dir (outputs).
+        # We want: {public_url}/outputs/{key}
+        base = self.public_url.rstrip("/")
+        # If 'outputs/' is already in key, handle it?
+        # Usually key is 'videos/foo.mp4' or 'projects/1/foo.png'
+        # LocalStorage base_dir is OUTPUT_DIR.
+
+        return f"{base}/outputs/{key.lstrip('/')}"
 
     def get_local_path(self, key: str) -> Path:
         return self.base_dir / key

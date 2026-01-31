@@ -90,9 +90,29 @@ export const useStudioStore = create<StudioState>()(
  */
 export const resetStudioStore = () => {
   const state = useStudioStore.getState();
+
+  // Preserve profile data before reset
+  const profileData = {
+    channelProfile: state.channelProfile,
+    channelAvatarUrl: state.channelAvatarUrl,
+  };
+
+  // Clear localStorage to prevent rehydration of old data
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(STORE_KEY);
+  }
+
+  // Reset all slices
   state.resetMeta();
   state.resetPlan();
   state.resetScenes();
   state.resetOutput();
-  // Profile is intentionally NOT reset - it persists across storyboards
+
+  // Restore profile data (intentionally persists across storyboards)
+  if (profileData.channelProfile) {
+    state.setChannelProfile(profileData.channelProfile);
+  }
+  if (profileData.channelAvatarUrl) {
+    state.setChannelAvatarUrl(profileData.channelAvatarUrl);
+  }
 };

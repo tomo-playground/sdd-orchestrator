@@ -306,7 +306,7 @@ class LoRABase(BaseModel):
     gender_locked: str | None = None
     civitai_id: int | None = None
     civitai_url: str | None = None
-    preview_image_url: str | None = None
+    # preview_image_url removed - now read-only @property via preview_image_asset
 
 
 class LoRACreate(LoRABase):
@@ -323,11 +323,12 @@ class LoRAUpdate(BaseModel):
     calibration_score: int | None = None
     weight_min: float | None = None
     weight_max: float | None = None
-    preview_image_url: str | None = None
+    # preview_image_url removed - now read-only @property via preview_image_asset
 
 
 class LoRAResponse(LoRABase):
     id: int
+    preview_image_url: str | None = None  # Read-only from @property
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -349,7 +350,8 @@ class CharacterBase(BaseModel):
     custom_negative_prompt: str | None = None
     reference_base_prompt: str | None = None
     reference_negative_prompt: str | None = None
-    preview_image_url: str | None = None
+    # preview_image_url removed - now read-only @property via preview_image_asset
+    # CharacterResponse gets it automatically via from_attributes=True from ORM model
     prompt_mode: PromptMode = "auto"
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
@@ -370,7 +372,7 @@ class CharacterUpdate(BaseModel):
     custom_negative_prompt: str | None = None
     reference_base_prompt: str | None = None
     reference_negative_prompt: str | None = None
-    preview_image_url: str | None = None
+    # preview_image_url removed - now read-only @property via preview_image_asset
     prompt_mode: PromptMode | None = None
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
@@ -382,6 +384,7 @@ class CharacterUpdate(BaseModel):
 class CharacterResponse(CharacterBase):
     id: int
     tags: list[CharacterTagLink] = []
+    preview_image_url: str | None = None  # Read-only from @property
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -399,7 +402,7 @@ class SDModelBase(BaseModel):
     civitai_id: int | None = None
     civitai_url: str | None = None
     description: str | None = None
-    preview_image_url: str | None = None
+    # preview_image_url removed - now read-only @property via preview_image_asset
     is_active: bool = True
 
 
@@ -415,12 +418,13 @@ class SDModelUpdate(BaseModel):
     civitai_id: int | None = None
     civitai_url: str | None = None
     description: str | None = None
-    preview_image_url: str | None = None
+    # preview_image_url removed - now read-only @property via preview_image_asset
     is_active: bool | None = None
 
 
 class SDModelResponse(SDModelBase):
     id: int
+    preview_image_url: str | None = None  # Read-only from @property
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -224,7 +224,7 @@ export default function CharacterEditModal({
       name,
       description,
       gender,
-      preview_image_url: previewImageUrl,
+      // preview_image_url removed - now read-only via backend @property
       tags: [
         ...finalIdentityTagIds.map(id => ({ tag_id: id, weight: 1.0, is_permanent: true })),
         ...finalClothingTagIds.map(id => ({ tag_id: id, weight: 1.0, is_permanent: false })),

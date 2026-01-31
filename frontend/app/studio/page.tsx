@@ -43,6 +43,7 @@ function StudioContent() {
   const scenes = useStudioStore((s) => s.scenes);
   const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
   const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
+  const imagePreviewCandidates = useStudioStore((s) => s.imagePreviewCandidates);
   const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
   const channelProfile = useStudioStore((s) => s.channelProfile);
   const hasValidProfile = useStudioStore((s) => s.hasValidProfile);
@@ -189,9 +190,10 @@ function StudioContent() {
     const isNewStoryboard = searchParams.get("new") === "true";
     if (isNewStoryboard) {
       resetStudioStore();
-      // Clear the 'new' param after reset to avoid re-triggering
+      // Clear the 'new' AND 'id' params to prevent loading old storyboard
       const url = new URL(window.location.href);
       url.searchParams.delete("new");
+      url.searchParams.delete("id");  // CRITICAL: Remove storyboard ID
       window.history.replaceState({}, "", url.toString());
     }
   }, [searchParams]);
@@ -417,7 +419,8 @@ function StudioContent() {
 
       <ImagePreviewModal
         src={imagePreviewSrc}
-        onClose={() => setMeta({ imagePreviewSrc: null })}
+        candidates={imagePreviewCandidates || undefined}
+        onClose={() => setMeta({ imagePreviewSrc: null, imagePreviewCandidates: null })}
       />
 
       <VideoPreviewModal
@@ -456,7 +459,10 @@ function StudioContent() {
             const { storyboardId: currentId, scenes, topic, selectedCharacterId } = useStudioStore.getState();
             console.log("[StyleProfileModal] Current state:", { currentId, scenesCount: scenes.length, topic, selectedCharacterId });
 
-            if (currentId) {
+            // Validate currentId is a valid number
+            const validId = currentId && typeof currentId === 'number' && !isNaN(currentId) && currentId > 0;
+
+            if (validId) {
               // 기존 스토리보드가 있으면 업데이트
               try {
                 await axios.put(`${API_BASE}/storyboards/${currentId}`, {
