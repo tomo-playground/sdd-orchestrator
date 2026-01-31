@@ -34,6 +34,8 @@ def test_store_scene_image_endpoint(mock_asset_service):
 
     response = client.post("/image/store", json=request_data)
 
+    resp_json = response.json()
     assert response.status_code == 200
-    assert response.json() == {"url": "http://minio/scene_1.png"}
+    assert resp_json["url"] == "http://minio/scene_1.png"
+    # assert resp_json["asset_id"] is not None # If we implemented asset_id return
     mock_service_instance.save_scene_image.assert_called_once()

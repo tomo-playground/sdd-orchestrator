@@ -316,30 +316,42 @@ export async function generateSceneCandidates(
 
 /** Generate image for a scene (single or multi-gen) and update store */
 export async function handleGenerateImage(scene: Scene) {
-  const { multiGenEnabled, updateScene, showToast } = useStudioStore.getState();
+  const { multiGenEnabled, updateScene, showToast, scenes } = useStudioStore.getState();
 
   // Auto-save storyboard before image generation
-  // Ensures activity logs have proper storyboard_id
+  // Ensures activity logs have proper storyboard_id and scene IDs are assigned
   const storyboardId = await autoSaveStoryboard();
   if (!storyboardId) {
     showToast("Failed to save storyboard before generation", "error");
     return;
   }
 
-  updateScene(scene.id, { isGenerating: true });
+  // Get updated scene with DB-assigned ID
+  const updatedScene = scenes.find(s => s.id === scene.id || (s.script === scene.script && s.order === scene.order));
+  if (!updatedScene) {
+    showToast("Scene not found after save", "error");
+    return;
+  }
+
+  updateScene(updatedScene.id, { isGenerating: true });
   try {
     const result = multiGenEnabled
-      ? await generateSceneCandidates(scene)
-      : await generateSceneImageFor(scene);
+      ? await generateSceneCandidates(updatedScene)
+      : await generateSceneImageFor(updatedScene);
     if (result) {
-      updateScene(scene.id, result);
+      console.log("[handleGenerateImage] Image generation result:", result);
+      updateScene(updatedScene.id, result);
 
       // Auto-save after image generation to persist image_url to DB
       // Prevents image loss on page refresh
-      await saveStoryboard();
+      console.log("[handleGenerateImage] Calling saveStoryboard...");
+      const saved = await saveStoryboard();
+      console.log("[handleGenerateImage] saveStoryboard result:", saved);
+    } else {
+      console.warn("[handleGenerateImage] No result from image generation");
     }
   } finally {
-    updateScene(scene.id, { isGenerating: false });
+    updateScene(updatedScene.id, { isGenerating: false });
   }
 }
 

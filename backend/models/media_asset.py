@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import BigInteger, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from models.project import Project
+    pass
 
 
 class MediaAsset(Base, TimestampMixin):
@@ -18,10 +18,12 @@ class MediaAsset(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    # Hierarchy Reference
-    project_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("projects.id"), nullable=True)
-    storyboard_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("storyboards.id"), nullable=True)
-    scene_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("scenes.id"), nullable=True)
+    # Generic Relationship (Polymorphic)
+    owner_type: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)  # e.g. 'project', 'storyboard', 'scene'
+    owner_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+
+    # Garbage Collection Flag
+    is_temp: Mapped[bool] = mapped_column(default=False, index=True)
 
     # File details
     file_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'image', 'video', 'audio', 'cache', 'candidate'
@@ -33,5 +35,12 @@ class MediaAsset(Base, TimestampMixin):
     # Hash for integrity/deduplication
     checksum: Mapped[str | None] = mapped_column(String(64)) # SHA-256
 
-    # Relationships
-    project: Mapped[Project | None] = relationship("Project", back_populates="media_assets")
+    # Relationships - Removed specific back_populates to keep it generic
+    # Project relationship removed as it's now handled via owner_type='project'
+    # Use helper methods in Service to fetch owners if needed.
+
+    @property
+    def url(self) -> str:
+        from services.storage import initialize_storage
+        storage = initialize_storage()
+        return storage.get_url(self.storage_key)

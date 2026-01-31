@@ -58,11 +58,22 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
 
     const res = await axios.post(`${API_BASE}/storyboards`, payload);
     const newStoryboardId = res.data.storyboard_id;
+    const sceneIds = res.data.scene_ids || [];
 
     setMeta({
       storyboardId: newStoryboardId,
       storyboardTitle: topic || "Draft Storyboard"
     });
+
+    // Update scene IDs with DB-assigned IDs
+    if (sceneIds.length > 0) {
+      const { scenes: currentScenes, setScenes } = useStudioStore.getState();
+      const updatedScenes = currentScenes.map((scene, idx) => ({
+        ...scene,
+        id: sceneIds[idx] || scene.id
+      }));
+      setScenes(updatedScenes);
+    }
 
     showToast("Storyboard auto-saved", "success");
 

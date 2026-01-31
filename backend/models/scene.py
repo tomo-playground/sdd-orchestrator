@@ -10,6 +10,7 @@ from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from models.associations import SceneCharacterAction, SceneTag
+    from models.media_asset import MediaAsset
     from models.storyboard import Storyboard
 
 
@@ -47,7 +48,16 @@ class Scene(Base, TimestampMixin):
     context_tags: Mapped[dict | None] = mapped_column(JSONB)
 
     # Generated Image Path
-    image_url: Mapped[str | None] = mapped_column(String(500))
+    # Generated Image Path
+    # image_url column removed, use property below
+    image_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    image_asset: Mapped["MediaAsset | None"] = relationship(foreign_keys="Scene.image_asset_id")
+
+    @property
+    def image_url(self) -> str | None:
+        if self.image_asset:
+            return self.image_asset.url
+        return None
 
     # Candidate images (list of dicts with image_url, match_rate, etc.)
     candidates: Mapped[list[dict] | None] = mapped_column(JSONB)

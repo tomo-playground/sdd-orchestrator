@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from models.media_asset import MediaAsset
     from models.scene import Scene
 
 
@@ -27,7 +28,16 @@ class Storyboard(Base, TimestampMixin):
     default_style_profile_id: Mapped[int | None] = mapped_column(Integer)
 
     # Results
-    video_url: Mapped[str | None] = mapped_column(String(500))
+    # video_url column removed
+    video_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    video_asset: Mapped[MediaAsset | None] = relationship(foreign_keys="Storyboard.video_asset_id")
+
+    @property
+    def video_url(self) -> str | None:
+        if self.video_asset:
+            return self.video_asset.url
+        return None
+
     recent_videos_json: Mapped[str | None] = mapped_column(Text)  # JSON string of recent videos
 
     # Relationships

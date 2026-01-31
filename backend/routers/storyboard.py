@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import os
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from config import logger
 from database import get_db
 from models.associations import SceneCharacterAction, SceneTag
+from models.media_asset import MediaAsset
 from models.scene import Scene
 from models.storyboard import Storyboard
 from schemas import StoryboardRequest, StoryboardSave
@@ -34,7 +38,6 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             image_prompt=s_data.image_prompt,
             image_prompt_ko=s_data.image_prompt_ko,
             negative_prompt=s_data.negative_prompt,
-            image_url=image_url,
             width=s_data.width,
             height=s_data.height,
             steps=s_data.steps,
@@ -60,6 +63,37 @@ def _create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
                     weight=a_data.weight,
                 ))
 
+        # Handle MediaAsset for image_url
+        if image_url:
+            path = urlparse(image_url).path
+            if path.startswith("/"): path = path[1:]
+            if path.startswith("assets/"): path = path.replace("assets/", "", 1)
+            storage_key = path
+
+            # Check for existing asset to avoid IntegrityError
+            asset = db.query(MediaAsset).filter(MediaAsset.storage_key == storage_key).first()
+
+            if not asset:
+                asset = MediaAsset(
+                    file_type="image",
+                    storage_key=storage_key,
+                    file_name=os.path.basename(storage_key),
+                    mime_type="image/png", # Default
+                    owner_type="scene",
+                    owner_id=db_scene.id
+                )
+                db.add(asset)
+                db.flush()
+            else:
+                # Update external references if needed (optional)
+                # If asset exists but scene_id is different, we might want to update it?
+                # But one asset belongs to one scene ideally (unless shared).
+                # For now, just link it.
+                pass
+
+            db_scene.image_asset_id = asset.id
+            # db_scene.image_url = image_url # Keep legacy field populated for now? Yes.
+
 
 def _serialize_scene(scene: Scene) -> dict:
     """Serialize a Scene ORM object to dict for API response."""
@@ -73,7 +107,8 @@ def _serialize_scene(scene: Scene) -> dict:
         "image_prompt": scene.image_prompt,
         "image_prompt_ko": scene.image_prompt_ko,
         "negative_prompt": scene.negative_prompt,
-        "image_url": scene.image_url,
+        "negative_prompt": scene.negative_prompt,
+        "image_url": scene.image_asset.url if scene.image_asset else scene.image_url,
         "width": scene.width,
         "height": scene.height,
         "steps": scene.steps,
@@ -114,13 +149,23 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
 
     db.commit()
     db.refresh(db_storyboard)
-    return {"status": "success", "storyboard_id": db_storyboard.id}
+
+    # Return scene IDs for frontend to update local state
+    scene_ids = [scene.id for scene in db_storyboard.scenes]
+
+    return {
+        "status": "success",
+        "storyboard_id": db_storyboard.id,
+        "scene_ids": scene_ids
+    }
 
 
 @router.get("")
 def list_storyboards(db: Session = Depends(get_db)):
     """List all storyboards with scene/image counts."""
-    storyboards = db.query(Storyboard).options(joinedload(Storyboard.scenes)).all()
+    storyboards = db.query(Storyboard).options(
+        joinedload(Storyboard.scenes).joinedload(Scene.image_asset)
+    ).all()
 
     result = []
     for s in storyboards:
@@ -145,6 +190,7 @@ def get_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
         .options(
             joinedload(Storyboard.scenes).joinedload(Scene.tags),
             joinedload(Storyboard.scenes).joinedload(Scene.character_actions),
+            joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
         )
         .filter(Storyboard.id == storyboard_id)
         .first()
@@ -194,8 +240,33 @@ async def update_storyboard(
     storyboard.default_character_id = request.default_character_id
     storyboard.default_style_profile_id = request.default_style_profile_id
 
-    # Delete existing scenes (CASCADE removes tags & actions)
+    # 1. Nullify image_asset_id FK references first
+    db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
+        {Scene.image_asset_id: None}, synchronize_session=False
+    )
+    db.flush()
+
+    # 2. Delete existing scenes (CASCADE removes tags & actions)
+    # Get IDs of scenes to also delete their MediaAsset records
+    scene_ids = [s.id for s in db.query(Scene).filter(Scene.storyboard_id == storyboard_id).all()]
+    
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id).delete()
+
+    # 3. Now delete media_assets (no longer referenced)
+    from models.media_asset import MediaAsset
+    # Delete assets owned by the storyboard itself (like final video)
+    db.query(MediaAsset).filter(
+        MediaAsset.owner_type == "storyboard",
+        MediaAsset.owner_id == storyboard_id
+    ).delete()
+    
+    # Also delete assets owned by the deleted scenes
+    if scene_ids:
+        db.query(MediaAsset).filter(
+            MediaAsset.owner_type == "scene",
+            MediaAsset.owner_id.in_(scene_ids)
+        ).delete()
+        
     db.flush()
 
     # Recreate scenes

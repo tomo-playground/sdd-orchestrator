@@ -51,7 +51,7 @@ type SceneCardProps = {
   onSuggestEditWithGemini: () => Promise<any[]>;
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
-  onImagePreview: (url: string | null) => void;
+  onImagePreview: (url: string | null, candidates?: string[]) => void;
   onSavePrompt?: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
@@ -157,14 +157,12 @@ export default function SceneCard({
         <div className="flex items-center gap-2">
           {qualityScore && (
             <span
-              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
-                getQualityBadge(qualityScore.match_rate).color
-              }`}
-              title={`Match Rate: ${(qualityScore.match_rate * 100).toFixed(0)}%${
-                qualityScore.missing_tags.length > 0
-                  ? `\nMissing: ${qualityScore.missing_tags.slice(0, 3).join(", ")}`
-                  : ""
-              }`}
+              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${getQualityBadge(qualityScore.match_rate).color
+                }`}
+              title={`Match Rate: ${(qualityScore.match_rate * 100).toFixed(0)}%${qualityScore.missing_tags.length > 0
+                ? `\nMissing: ${qualityScore.missing_tags.slice(0, 3).join(", ")}`
+                : ""
+                }`}
             >
               {getQualityBadge(qualityScore.match_rate).emoji} {(qualityScore.match_rate * 100).toFixed(0)}%
             </span>
@@ -176,13 +174,12 @@ export default function SceneCard({
                 if (validationResult.status === "ok") return;
                 onSuggestionToggle();
               }}
-              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
-                validationResult.status === "ok"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : validationResult.status === "warn"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-rose-100 text-rose-700"
-              }`}
+              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${validationResult.status === "ok"
+                ? "bg-emerald-100 text-emerald-700"
+                : validationResult.status === "warn"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-rose-100 text-rose-700"
+                }`}
             >
               {validationResult.status}
             </button>
@@ -491,11 +488,10 @@ export default function SceneCard({
                 <button
                   type="button"
                   onClick={() => setGeminiEditOpen(true)}
-                  className={`rounded-full px-4 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md transition ${
-                    qualityScore && qualityScore.match_rate < 0.7
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-purple-500/20 hover:from-purple-600 hover:to-pink-600"
-                      : "bg-gradient-to-r from-purple-400/80 to-pink-400/80 shadow-purple-400/10 hover:from-purple-500/80 hover:to-pink-500/80"
-                  }`}
+                  className={`rounded-full px-4 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md transition ${qualityScore && qualityScore.match_rate < 0.7
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-purple-500/20 hover:from-purple-600 hover:to-pink-600"
+                    : "bg-gradient-to-r from-purple-400/80 to-pink-400/80 shadow-purple-400/10 hover:from-purple-500/80 hover:to-pink-500/80"
+                    }`}
                   title={
                     qualityScore && qualityScore.match_rate < 0.7
                       ? `Match Rate가 낮습니다 (${(qualityScore.match_rate * 100).toFixed(0)}%). Gemini로 수정하세요.`
@@ -609,24 +605,22 @@ export default function SceneCard({
                 key={tab}
                 type="button"
                 onClick={() => onSceneTabChange(sceneTab === tab ? null : tab)}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase transition ${
-                  sceneTab === tab
-                    ? "bg-white text-zinc-900 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-700"
-                }`}
+                className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase transition ${sceneTab === tab
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+                  }`}
               >
                 {tab === "validate" && (
                   <span className="flex items-center justify-center gap-1">
                     Validate
                     {imageValidationResult && (
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          imageValidationResult.match_rate >= 0.8
-                            ? "bg-emerald-500"
-                            : imageValidationResult.match_rate >= 0.5
-                              ? "bg-amber-500"
-                              : "bg-red-500"
-                        }`}
+                        className={`h-1.5 w-1.5 rounded-full ${imageValidationResult.match_rate >= 0.8
+                          ? "bg-emerald-500"
+                          : imageValidationResult.match_rate >= 0.5
+                            ? "bg-amber-500"
+                            : "bg-red-500"
+                          }`}
                       />
                     )}
                   </span>
@@ -681,7 +675,7 @@ export default function SceneCard({
         {/* Right Column: Image Panel */}
         <SceneImagePanel
           scene={scene}
-          onImageClick={onImagePreview}
+          onImageClick={(url) => onImagePreview(url, scene.candidates?.map((c) => c.image_url))}
           onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}
         />
       </div>

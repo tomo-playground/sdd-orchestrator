@@ -233,10 +233,8 @@ async def get_character_full(character_id: int, db: Session = Depends(get_db)):
 async def regenerate_reference(character_id: int, db: Session = Depends(get_db)):
     """Regenerate the character's reference image using its tags and reference prompts."""
 
-    from schemas import ImageStoreRequest, SceneGenerateRequest
+    from schemas import SceneGenerateRequest
     from services.generation import generate_scene_image
-
-    from .scene import store_scene_image
 
     character = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
@@ -282,12 +280,39 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     if "image" not in res:
         raise HTTPException(status_code=500, detail="Generation failed")
 
-    # Store image
+    # Store image using AssetService
+    import hashlib
+
+    from services.asset_service import AssetService
+    from services.image import decode_data_url
+
     image_b64 = f"data:image/png;base64,{res['image']}"
-    store_res = await store_scene_image(ImageStoreRequest(image_b64=image_b64))
+    image_bytes = decode_data_url(image_b64)
+    digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+    file_name = f"character_{character_id}_preview_{digest}.png"
+    storage_key = f"characters/{character_id}/preview/{file_name}"
 
-    # Update character
-    character.preview_image_url = store_res["url"]
-    db.commit()
+    # Use AssetService to save
+    from services.storage import storage
+    if storage:
+        storage.save(storage_key, image_bytes, content_type="image/png")
 
-    return {"ok": True, "url": character.preview_image_url}
+        # Register in DB
+        asset_service = AssetService(db)
+        asset = asset_service.register_asset(
+            file_name=file_name,
+            file_type="image",
+            storage_key=storage_key,
+            owner_type="character",
+            owner_id=character_id,
+            file_size=len(image_bytes),
+            mime_type="image/png"
+        )
+
+        # Update character
+        character.preview_image_asset_id = asset.id
+        db.commit()
+
+        return {"ok": True, "url": asset.url}
+    else:
+        raise HTTPException(status_code=500, detail="Storage not initialized")

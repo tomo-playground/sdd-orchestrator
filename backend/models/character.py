@@ -2,12 +2,13 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Float, Integer, String, Text
+from sqlalchemy import ARRAY, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from models.associations import CharacterTag
+    from models.media_asset import MediaAsset
 
 from models.base import Base, TimestampMixin
 
@@ -38,7 +39,15 @@ class Character(Base, TimestampMixin):
     tags: Mapped[list["CharacterTag"]] = relationship("CharacterTag", backref="character", cascade="all, delete-orphan")
 
     # Media & Display
-    preview_image_url: Mapped[str | None] = mapped_column(String(500))
+    # preview_image_url column removed
+    preview_image_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    preview_image_asset: Mapped["MediaAsset"] = relationship()
+
+    @property
+    def preview_image_url(self) -> str | None:
+        if self.preview_image_asset:
+            return self.preview_image_asset.url
+        return None
 
     # System Settings
     prompt_mode: Mapped[str] = mapped_column(String(20), default="auto")  # auto, standard, lora

@@ -64,6 +64,11 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
     ```
     """
     try:
+        # Filter out base64 data URLs (they exceed VARCHAR(500) limit)
+        image_url = request.image_url
+        if image_url and image_url.startswith("data:"):
+            image_url = None
+
         log = ActivityLog(
             storyboard_id=request.storyboard_id,
             scene_id=request.scene_id,
@@ -74,7 +79,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
             match_rate=request.match_rate,
             seed=request.seed,
             status=request.status or "pending",
-            image_url=request.image_url,
+            image_url=image_url,
         )
         db.add(log)
         db.commit()

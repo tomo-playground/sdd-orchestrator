@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from models.media_asset import MediaAsset
+from services.storage import get_storage
 
 
 class AssetService:
@@ -16,28 +17,45 @@ class AssetService:
 
     def _get_storage(self):
         """Get storage instance dynamically to avoid import-time issues."""
-        from services.storage import storage
-        if storage is None:
-            raise RuntimeError("Storage not initialized. Call initialize_storage() first.")
-        return storage
+        return get_storage()
+
+    def get_asset_url(self, storage_key: str) -> str:
+        """Get the public URL for a given storage key."""
+        return self._get_storage().get_url(storage_key)
 
     def register_asset(
         self,
         file_name: str,
         file_type: str,
         storage_key: str,
-        project_id: int | None = None,
-        storyboard_id: int | None = None,
-        scene_id: int | None = None,
+        owner_type: str | None = None,
+        owner_id: int | None = None,
+        is_temp: bool = False,
         file_size: int | None = None,
         mime_type: str | None = None,
         checksum: str | None = None,
+        # Backward compatibility args (ignored or mapped)
+        project_id: int | None = None,
+        storyboard_id: int | None = None,
+        scene_id: int | None = None,
     ) -> MediaAsset:
         """Create a MediaAsset record in the database."""
+
+        # Backward compatibility mapping
+        if project_id:
+            owner_type = "project"
+            owner_id = project_id
+        elif storyboard_id:
+            owner_type = "storyboard"
+            owner_id = storyboard_id
+        elif scene_id:
+            owner_type = "scene"
+            owner_id = scene_id
+
         asset = MediaAsset(
-            project_id=project_id,
-            storyboard_id=storyboard_id,
-            scene_id=scene_id,
+            owner_type=owner_type,
+            owner_id=owner_id,
+            is_temp=is_temp,
             file_type=file_type,
             storage_key=storage_key,
             file_name=file_name,
@@ -48,7 +66,9 @@ class AssetService:
         self.db.add(asset)
         self.db.commit()
         self.db.refresh(asset)
-        logger.info(f"📊 [Asset Registry] Registered {file_type}: {file_name} (ID: {asset.id})")
+
+        owner_info = f" ({owner_type}:{owner_id})" if owner_type else " (Orphan)"
+        logger.info(f"📊 [Asset Registry] Registered {file_type}: {file_name}{owner_info} ID: {asset.id}")
         return asset
 
     def save_scene_image(
@@ -62,20 +82,18 @@ class AssetService:
     ) -> MediaAsset:
         """Save a scene image to storage and register it in the DB."""
         # Define hierarchical key
-        # projects/{p_id}/groups/{g_id}/storyboards/{s_id}/images/{filename}
         storage_key = f"projects/{project_id}/groups/{group_id}/storyboards/{storyboard_id}/images/{file_name}"
 
         # Save to storage (MinIO/S3 or Local)
         self._get_storage().save(storage_key, image_bytes, content_type="image/png")
 
-        # Register in DB
+        # Register in DB with generic relationship
         return self.register_asset(
             file_name=file_name,
             file_type="image",
             storage_key=storage_key,
-            project_id=project_id,
-            storyboard_id=storyboard_id,
-            scene_id=scene_id,
+            owner_type="scene",
+            owner_id=scene_id,
             file_size=len(image_bytes),
             mime_type="image/png"
         )
@@ -99,8 +117,8 @@ class AssetService:
             file_name=file_name,
             file_type="video",
             storage_key=storage_key,
-            project_id=project_id,
-            storyboard_id=storyboard_id,
+            owner_type="storyboard",
+            owner_id=storyboard_id,
             file_size=file_size,
             mime_type="video/mp4"
         )
@@ -108,17 +126,14 @@ class AssetService:
     @staticmethod
     def ensure_shared_assets():
         """Synchronize repository assets (audio, fonts) to centralized storage."""
-        from config import ASSETS_DIR, AUDIO_DIR, FONTS_DIR
-        from services.storage import storage
-
-        if storage is None:
-            logger.error("❌ [Asset Sync] Storage not initialized")
-            return
+        from config import ASSETS_DIR, AUDIO_DIR, FONTS_DIR, OVERLAY_DIR
+        storage = get_storage()
 
         # Mapping: local_dir -> storage_prefix
         sync_map = {
             AUDIO_DIR: "shared/audio/",
             FONTS_DIR: "shared/fonts/",
+            OVERLAY_DIR: "shared/overlay/",
             ASSETS_DIR / "references": "shared/references/",
             ASSETS_DIR / "poses": "shared/poses/",
         }

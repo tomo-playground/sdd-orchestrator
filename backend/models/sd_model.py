@@ -1,10 +1,15 @@
 """SD Model and Style Profile models."""
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ARRAY, Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from models.media_asset import MediaAsset
 
 
 class SDModel(Base, TimestampMixin):
@@ -20,7 +25,15 @@ class SDModel(Base, TimestampMixin):
     civitai_id: Mapped[int | None] = mapped_column(Integer)
     civitai_url: Mapped[str | None] = mapped_column(String(500))
     description: Mapped[str | None] = mapped_column(Text)
-    preview_image_url: Mapped[str | None] = mapped_column(String(500))
+    # preview_image_url column removed
+    preview_image_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    preview_image_asset: Mapped["MediaAsset"] = relationship()
+
+    @property
+    def preview_image_url(self) -> str | None:
+        if self.preview_image_asset:
+            return self.preview_image_asset.url
+        return None
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 

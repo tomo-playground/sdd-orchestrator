@@ -62,9 +62,19 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
             scene_id=request.scene_id,
             file_name=file_name
         )
+
+        # Update Scene record
+        if request.scene_id:
+            from models.scene import Scene
+            db_scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+            if db_scene:
+                db_scene.image_asset_id = asset.id
+                db.add(db_scene)
+                db.commit()
+
         url = asset_service.get_asset_url(asset.storage_key)
         logger.info("💾 [Image Store] Saved: %s", asset.storage_key)
-        return {"url": url}
+        return {"url": url, "asset_id": asset.id}
     except Exception as e:
         logger.exception("❌ [Image Store] Failed")
         raise HTTPException(status_code=500, detail=str(e))

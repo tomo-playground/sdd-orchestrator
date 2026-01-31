@@ -1,11 +1,15 @@
 """LoRA model for Pure V3."""
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Index, Integer, Numeric, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ARRAY, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from models.media_asset import MediaAsset
 
 
 class LoRA(Base, TimestampMixin):
@@ -35,4 +39,12 @@ class LoRA(Base, TimestampMixin):
     # External Metadata & Media
     civitai_id: Mapped[int | None] = mapped_column(Integer)
     civitai_url: Mapped[str | None] = mapped_column(String(500))
-    preview_image_url: Mapped[str | None] = mapped_column(String(500))
+    # preview_image_url column removed
+    preview_image_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id"))
+    preview_image_asset: Mapped["MediaAsset"] = relationship()
+
+    @property
+    def preview_image_url(self) -> str | None:
+        if self.preview_image_asset:
+            return self.preview_image_asset.url
+        return None

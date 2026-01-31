@@ -8,7 +8,7 @@ import hashlib
 import httpx
 
 from config import SD_TXT2IMG_URL, logger
-from services.storage import storage
+from services.storage import get_storage
 
 
 def avatar_filename(avatar_key: str) -> str:
@@ -40,6 +40,7 @@ async def ensure_avatar_file(
     """
     filename = avatar_filename(avatar_key)
     storage_key = f"shared/avatars/{filename}"
+    storage = get_storage()
 
     if storage.exists(storage_key):
         logger.info(f"Avatar found in storage: {storage_key}")
@@ -74,7 +75,7 @@ async def ensure_avatar_file(
             logger.warning("SD WebUI returned no images")
             return None
         image_bytes = base64.b64decode(image_b64)
-        storage.save(storage_key, image_bytes, content_type="image/png")
+        get_storage().save(storage_key, image_bytes, content_type="image/png")
         logger.info(f"✅ Avatar generated successfully: {storage_key}")
         return storage_key
     except httpx.ConnectError:
@@ -84,12 +85,13 @@ async def ensure_avatar_file(
 
             # Simple avatar currently writes to path, we might need to adapt it
             # or just use a temporary file.
+            storage = get_storage()
             fake_path = storage.get_local_path(storage_key)
             fake_path.parent.mkdir(parents=True, exist_ok=True)
             generate_simple_avatar(avatar_key, fake_path)
 
             if storage_key.startswith("shared/"): # Trigger sync if needed for S3
-                 storage.save(storage_key, fake_path.read_bytes(), content_type="image/png")
+                 get_storage().save(storage_key, fake_path.read_bytes(), content_type="image/png")
 
             logger.info(f"✅ Simple avatar generated: {storage_key}")
             return storage_key

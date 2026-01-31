@@ -31,7 +31,7 @@ from services.motion import (
     get_random_preset,
     resolve_preset_name,
 )
-from services.storage import storage
+from services.storage import get_storage
 
 if TYPE_CHECKING:
     from schemas import VideoRequest, VideoScene
@@ -73,6 +73,7 @@ def resolve_bgm_file(
     if bgm_file.lower() == "random":
         # Find all mp3 files in shared/audio/ prefix
         prefix = "shared/audio/"
+        storage = get_storage()
         all_keys = storage.list_prefix(prefix)
         mp3_keys = [k for k in all_keys if k.lower().endswith(".mp3")]
 
@@ -318,6 +319,16 @@ class VideoBuilder:
                         storyboard_id=self.request.storyboard_id,
                         file_name=self.video_filename
                     )
+
+                    # Update Storyboard record
+                    from models.storyboard import Storyboard
+                    sb = db.query(Storyboard).filter(Storyboard.id == self.request.storyboard_id).first()
+                    if sb:
+                        sb.video_asset_id = asset.id
+                        # sb.video_url = asset_service.get_asset_url(asset.storage_key) # Legacy update? Yes, for compatibility
+                        db.add(sb)
+                        db.commit()
+
                     url = asset_service.get_asset_url(asset.storage_key)
                     logger.info("✅ [Video Build] Video uploaded and registered: %s", asset.storage_key)
                     return {"video_url": url}
@@ -371,6 +382,7 @@ class VideoBuilder:
                     if "projects/" in img_src:
                         storage_key = img_src.split("projects/", 1)[1]
                         storage_key = "projects/" + storage_key
+                        storage = get_storage()
                         local_path = storage.get_local_path(storage_key)
                         image_bytes = local_path.read_bytes()
                         logger.info("📦 [Video Build] Loaded image from storage: %s", storage_key)

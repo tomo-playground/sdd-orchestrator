@@ -16,6 +16,7 @@ export interface MetaSlice {
 
   // Modals
   imagePreviewSrc: string | null;
+  imagePreviewCandidates: string[] | null;
   videoPreviewSrc: string | null;
   showResumeModal: boolean;
   resumableCheckpoint: AutopilotCheckpoint | null;
@@ -44,6 +45,7 @@ const initialMetaState = {
   activeTab: "plan" as StudioTab,
   toast: null as Toast,
   imagePreviewSrc: null as string | null,
+  imagePreviewCandidates: null as string[] | null,
   videoPreviewSrc: null as string | null,
   showResumeModal: false,
   resumableCheckpoint: null as AutopilotCheckpoint | null,

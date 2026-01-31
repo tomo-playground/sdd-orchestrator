@@ -16,7 +16,7 @@ from typing import Any
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from config import ASSETS_DIR, OVERLAY_DIR, logger
-from services.storage import storage
+from services.storage import get_storage
 
 
 def _get_assets_dir() -> pathlib.Path:
@@ -40,7 +40,7 @@ def load_avatar_image(filename: str | None) -> Image.Image | None:
 
     # Try as storage key first
     try:
-        path = storage.get_local_path(filename)
+        path = get_storage().get_local_path(filename)
         if path.exists():
             return Image.open(path).convert("RGBA")
     except Exception:
@@ -129,6 +129,7 @@ def _get_font(size: int) -> ImageFont.FreeTypeFont:
     # 1. Try shared storage first
     font_key = "shared/fonts/온글잎 박다현체.ttf"
     try:
+        storage = get_storage()
         if storage.exists(font_key):
             local_path = storage.get_local_path(font_key)
             return ImageFont.truetype(str(local_path), size=size)

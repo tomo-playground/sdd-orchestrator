@@ -211,6 +211,14 @@ class LocalStorage(BaseStorage):
 storage: BaseStorage = None
 
 
+def get_storage() -> BaseStorage:
+    """Get the global storage instance, ensuring it is initialized."""
+    global storage
+    if storage is None:
+        return initialize_storage()
+    return storage
+
+
 def initialize_storage():
     """Initialize the global storage instance based on config."""
     global storage

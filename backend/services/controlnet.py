@@ -38,14 +38,21 @@ POSE_MAPPING: dict[str, str] = {
     "arms up": "standing_arms_up.png",
     "arms crossed": "standing_arms_crossed.png",
     "hands on hips": "standing_hands_on_hips.png",
+    "looking at viewer": "looking_at_viewer_neutral.png",
+    "from behind": "standing_from_behind.png",
     # Sitting poses
     "sitting": "sitting_neutral.png",
     "chin rest": "sitting_chin_rest.png",
     "leaning": "sitting_leaning.png",
-    # Action poses
+    # Action/Storytelling poses
     "walking": "walking.png",
     "running": "running.png",
     "jumping": "jumping.png",
+    "lying": "lying_neutral.png",
+    "kneeling": "kneeling_neutral.png",
+    "crouching": "crouching_neutral.png",
+    "pointing forward": "pointing_forward.png",
+    "covering face": "covering_face.png",
 }
 
 # ControlNet models
@@ -96,11 +103,8 @@ def load_pose_reference(pose_name: str) -> str | None:
     Returns:
         Base64 encoded image or None if not found
     """
-    from services.storage import storage
-
-    if storage is None:
-        logger.error("Storage not initialized")
-        return None
+    from services.storage import get_storage
+    storage = get_storage()
 
     filename = POSE_MAPPING.get(pose_name)
     if not filename:
@@ -140,17 +144,33 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
         "waving": ["wave", "greeting", "signaling"],
         "arms up": ["hands up", "raising hands", "stretching", "cheering"],
         "arms crossed": ["folding arms", "crossed arms"],
-        "hands on hips": ["akimbo"],
+        "hands on hips": ["akimbo", "power pose"],
+        "looking at viewer": ["looking at camera", "frontal view", "face to face", "looking_at_viewer"],
+        "from behind": ["back view", "looking away", "from back", "backview"],
         "jumping": ["jump", "leap", "leaping"],
+        "lying": ["laying", "sleeping", "prone", "laying_down", "lying_down"],
+        "kneeling": ["on knees", "on_knees", "kneel"],
+        "crouching": ["squatting", "hiding", "squat", "crouch"],
+        "pointing forward": ["pointing", "pointing_forward", "reaching"],
+        "covering face": ["crying", "shy", "embarrassed", "covering_eyes", "covering_face"],
         "running": ["run", "sprinting", "jogging", "chasing"],
         "walking": ["walk", "stroll", "strolling"],
         "sitting": ["seated", "sits", "chair", "bench", "couch", "sofa"],
         "standing": ["stands", "wait", "waiting"],
     }
 
+    cleaned_tags = []
+    for tag in prompt_tags:
+        # Robust cleaning: remove (), [], and weight suffix
+        import re
+        clean = re.sub(r'[\(\)\[\]]', '', tag).split(":")[0].strip().lower()
+        # Handle underscores
+        clean = clean.replace('_', ' ')
+        cleaned_tags.append(clean)
+
     for pose in pose_priority:
         # Check exact match
-        if pose in prompt_tags:
+        if pose in cleaned_tags:
             return pose
 
         # Check synonyms
@@ -319,17 +339,36 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     filename = f"{character_key}.png"
     storage_key = f"shared/references/{filename}"
 
-    # Save to storage
-    storage.save(storage_key, image_bytes, content_type="image/png")
-    logger.info(f"Saved reference image to storage: {storage_key}")
+    try:
+        storage = get_storage()
+        storage.save(storage_key, image_bytes, content_type="image/png")
+        if is_reference:
+            logger.info(f"Saved ControlNet reference image to storage: {storage_key}")
+        else:
+            logger.info(f"Saved reference image to storage: {storage_key}")
+    except Exception as e:
+        logger.error(f"Failed to save reference image to storage: {e}")
+        # Continue with DB registration if possible or handles as needed
 
-    # If db session provided, update character record with storage key (URL formatted for frontend)
+    # Register asset via AssetService if DB is available (preferred)
     if db:
+        from services.asset_service import AssetService
+        asset_service = AssetService(db)
         char = db.query(Character).filter(Character.name == character_key).first()
+        asset = asset_service.register_asset(
+            file_name=filename,
+            file_type="image",
+            storage_key=storage_key,
+            owner_type="character",
+            owner_id=char.id if char else None,
+            mime_type="image/png",
+            file_size=len(image_bytes)
+        )
+
         if char:
-            char.preview_image_url = f"/outputs/{storage_key}"
+            char.preview_image_asset_id = asset.id
             db.commit()
-            logger.info(f"Updated character preview URL in DB for: {character_key}")
+            logger.info(f"Updated character preview Asset ID in DB for: {character_key} (Asset: {asset.id})")
 
     return filename
 
@@ -371,7 +410,7 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
 
     # Get all characters with preview images
     chars = db.query(Character).filter(
-        Character.preview_image_url.isnot(None)
+        Character.preview_image_asset_id.isnot(None)
     ).order_by(Character.id).all()
 
     return [

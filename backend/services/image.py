@@ -36,6 +36,19 @@ def load_image_bytes(source: str) -> bytes:
     if source.startswith(("http://", "https://")):
         parsed = urlparse(source)
         path = parsed.path
+
+        # Handle MinIO/S3 URLs: /{bucket_name}/{storage_key}
+        # Extract storage_key by removing bucket prefix
+        from config import MINIO_BUCKET
+        if path.startswith(f"/{MINIO_BUCKET}/"):
+            storage_key = path.replace(f"/{MINIO_BUCKET}/", "", 1)
+            try:
+                from services.storage import get_storage
+                storage = get_storage()
+                local_path = storage.get_local_path(storage_key)
+                return local_path.read_bytes()
+            except Exception as e:
+                raise ValueError(f"Failed to load image from storage URL: {e}") from e
     else:
         path = source
 
@@ -43,17 +56,15 @@ def load_image_bytes(source: str) -> bytes:
     if path.startswith("/assets/references/"):
         storage_key = path.replace("/assets/references/", "shared/references/", 1).lstrip("/")
         try:
-            from services.storage import storage
-            if storage:
-                return storage.get_local_path(storage_key).read_bytes()
+            from services.storage import get_storage
+            return get_storage().get_local_path(storage_key).read_bytes()
         except Exception:
             pass
     if path.startswith("/assets/poses/"):
         storage_key = path.replace("/assets/poses/", "shared/poses/", 1).lstrip("/")
         try:
-            from services.storage import storage
-            if storage:
-                return storage.get_local_path(storage_key).read_bytes()
+            from services.storage import get_storage
+            return get_storage().get_local_path(storage_key).read_bytes()
         except Exception:
             pass
 
@@ -71,7 +82,8 @@ def load_image_bytes(source: str) -> bytes:
 
         # 2. Try storage service (S3 download or local lookup)
         try:
-            from services.storage import storage
+            from services.storage import get_storage
+            storage = get_storage()
             local_path = storage.get_local_path(storage_key)
             return local_path.read_bytes()
         except Exception as e:
@@ -107,8 +119,9 @@ def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> 
     # Convert to numpy array
     pixels = np.array(bottom_region, dtype=np.float32)
 
-    # Calculate variance (normalized to 0-1)
-    variance = np.var(pixels) / (255.0 ** 2)
+    # Calculate standard deviation (normalized to 0-1)
+    # std_dev represents pixel value variation across the region
+    std_dev = np.std(pixels) / 255.0
 
     # Calculate edge density using simple gradient
     grad_x = np.abs(np.diff(pixels, axis=1))
@@ -116,10 +129,12 @@ def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> 
     edge_density = (np.mean(grad_x) + np.mean(grad_y)) / (2 * 255.0)
 
     # Combine metrics (weighted average)
-    complexity = variance * 0.6 + edge_density * 0.4
+    # std_dev: overall variation, edge_density: detail/texture
+    # Edge density is weighted higher as it better captures visual complexity
+    complexity = std_dev * 0.3 + edge_density * 0.7
 
     # Clamp to 0-1
-    return min(1.0, max(0.0, complexity))
+    return float(min(1.0, max(0.0, complexity)))
 
 
 def calculate_optimal_subtitle_y(
@@ -139,9 +154,9 @@ def calculate_optimal_subtitle_y(
     """
     complexity = analyze_bottom_complexity(image)
 
-    # Thresholds for adjustment
-    HIGH_COMPLEXITY = 0.6
-    LOW_COMPLEXITY = 0.3
+    # Thresholds for adjustment (calibrated for std_dev + edge_density metric)
+    HIGH_COMPLEXITY = 0.20  # Move subtitle up if complexity > 0.20
+    LOW_COMPLEXITY = 0.10   # Move subtitle down if complexity < 0.10
 
     if complexity > HIGH_COMPLEXITY:
         # High complexity: move subtitle up significantly

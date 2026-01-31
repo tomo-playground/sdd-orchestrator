@@ -80,7 +80,7 @@ export default function ScenesTab() {
           referenceImages: res.data.references || [],
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const currentScene = scenes[currentSceneIndex];
@@ -180,9 +180,9 @@ export default function ScenesTab() {
           qualityScore={
             imageValidationResults[currentScene.id]
               ? {
-                  match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
-                  missing_tags: imageValidationResults[currentScene.id].missing ?? [],
-                }
+                match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
+                missing_tags: imageValidationResults[currentScene.id].missing ?? [],
+              }
               : null
           }
           sceneTab={sceneTab[currentScene.id] ?? null}
@@ -224,7 +224,12 @@ export default function ScenesTab() {
           onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
           onValidateImage={() => handleValidateImage(currentScene)}
           onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
-          onImagePreview={(src) => useStudioStore.getState().setMeta({ imagePreviewSrc: src })}
+          onImagePreview={(src, candidates) =>
+            useStudioStore.getState().setMeta({
+              imagePreviewSrc: src,
+              imagePreviewCandidates: candidates || null,
+            })
+          }
           onSavePrompt={() => handleSavePrompt(currentScene)}
           onMarkSuccess={() => handleMarkSuccess(currentScene)}
           onMarkFail={() => handleMarkFail(currentScene)}

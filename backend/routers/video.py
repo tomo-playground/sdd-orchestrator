@@ -30,7 +30,7 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
 
         storyboard = db.query(Storyboard).filter(Storyboard.id == request.storyboard_id).first()
         if storyboard:
-            storyboard.video_url = video_url
+
 
             # Update recent_videos
             recent = []
