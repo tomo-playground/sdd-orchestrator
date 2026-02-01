@@ -153,7 +153,7 @@
 | 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [ ] |
 | 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [ ] |
 | 6 | Frontend Trash 탭 (Manage) | Soft Delete | [ ] |
-| 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [ ] |
+| 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [x] |
 | 8 | z-index 통합 관리 (Tailwind 설정) | UI | [ ] |
 | 9 | Hook Extraction (`useManageState` 등) | Frontend | [ ] |
 | 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] |
