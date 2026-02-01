@@ -130,7 +130,9 @@ Character LoRAs (character.loras[])
   → <lora:name:weight> → LAYER_IDENTITY(2)
 
 Scene-triggered LoRAs (LoRATriggerCache)
-  → <lora:name:weight> → LAYER_IDENTITY(2)  ← TODO: style은 L11로 분리
+  → _get_lora_info()로 lora_type 조회
+  → character → LAYER_IDENTITY(2)
+  → style → LAYER_ATMOSPHERE(11)
 
 Style LoRAs (API loras param)
   → trigger words → LAYER_ATMOSPHERE(11)
@@ -202,9 +204,10 @@ Frontend에서 `base_prompt`/`loras` 전송을 제거. Backend DB가 character d
 
 `is_permanent`은 포함 보장만 담당, 레이어는 항상 `tag.default_layer` 사용하도록 변경.
 
-### ~~Issue 3: Style LoRA 배치 미구현~~ (v1.2에서 해결)
+### ~~Issue 3: Style LoRA 배치 미구현~~ (v1.2 + v1.3에서 해결)
 
 `lora_type == "style"`인 LoRA는 `LAYER_ATMOSPHERE(11)`에 배치. trigger words도 동일 레이어.
+v1.2: Character LoRAs(`character.loras[]`)만 적용. v1.3: Scene-triggered LoRAs도 `_get_lora_info()`로 `lora_type` 조회하여 올바른 레이어에 배치.
 
 ### ~~Issue 4: 무효 태그 미검증~~ (v1.2에서 해결)
 
@@ -526,6 +529,7 @@ Backend schema 기본값을 Frontend에 맞춤: `hr_upscaler="R-ESRGAN 4x+ Anime
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v1.3 | 2026-02-01 | **Scene-triggered LoRA L11 분리 버그 수정**: `LoRATriggerCache`로 발견된 LoRA의 `lora_type`을 DB에서 조회하여 style→L11, character→L2로 올바르게 배치. `_get_lora_info()` 메서드 추가, `_lora_weight_cache` → `_lora_info_cache`로 통합 |
 | v1.2 | 2026-02-01 | **character_id 필수화**: schema required, FE 가드, dead else 분기 제거. **이중 주입 해결**: FE에서 base_prompt/loras 전송 제거 (DB SSOT). **Style LoRA L11 분리**: lora_type=style → LAYER_ATMOSPHERE. **IP-Adapter model 전달**: character.ip_adapter_model 반영. **Hi-Res 기본값 통일**. **별칭 해소**: `TagAliasCache`를 V3 compose에 통합 (`_resolve_aliases()`). **LoRA 가중치 캡**: IP-Adapter 활성 시 0.6 강제 → `min(calibrated, 0.6)` 캡. Dead code: `_resolve_lora_placeholders`, `CHARACTER_PRESETS`, `get_character_preset`, `/ip-adapter/presets` 엔드포인트 제거. **Known Issues 7건 모두 해결** |
 | v1.1 | 2026-02-01 | ControlNet(3유닛), IP-Adapter, Hi-Res, Complexity 자동조정, LoRA weight override 추가. Known Issues 5-7 추가. 코드 위치 맵/테스트 맵 확장 |
 | v1.0 | 2026-02-01 | 초기 작성. Prompt compose 파이프라인 전체 흐름 문서화, Known Issues 4건 기록 |

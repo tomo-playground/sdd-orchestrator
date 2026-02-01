@@ -28,7 +28,7 @@ class V3PromptBuilder:
 
     def __init__(self, db: Session):
         self.db = db
-        self._lora_weight_cache: dict[str, float] = {}
+        self._lora_info_cache: dict[str, tuple[float, str | None]] = {}
 
     def get_tag_info(self, tag_names: list[str]) -> dict[str, dict]:
         """Fetches metadata for a list of tags from the DB."""
@@ -122,7 +122,7 @@ class V3PromptBuilder:
         for tag in scene_tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name and lora_name not in active_loras:
-                active_loras[lora_name] = (self.get_lora_weight_by_name(lora_name), None)
+                active_loras[lora_name] = self._get_lora_info(lora_name)
 
         # 8. Inject LoRA Tags into Layers (character→L2, style→L11)
         for name, (weight, lora_type) in active_loras.items():
@@ -204,8 +204,9 @@ class V3PromptBuilder:
                 # Check if already added
                 already_present = any(f"<lora:{lora_name}:" in t for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE]))
                 if not already_present:
-                    weight = self.get_lora_weight_by_name(lora_name)
-                    layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{weight}>")
+                    weight, lora_type = self._get_lora_info(lora_name)
+                    target = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
+                    layers[target].append(f"<lora:{lora_name}:{weight}>")
 
         if style_loras:
             for lora in style_loras:
@@ -331,18 +332,23 @@ class V3PromptBuilder:
             return float(lora.default_weight)
         return 0.7
 
-    def get_lora_weight_by_name(self, name: str) -> float:
-        """Looks up LoRA weight by name with caching."""
-        if name in self._lora_weight_cache:
-            return self._lora_weight_cache[name]
+    def _get_lora_info(self, name: str) -> tuple[float, str | None]:
+        """Looks up LoRA weight and type by name with caching."""
+        if name in self._lora_info_cache:
+            return self._lora_info_cache[name]
 
         lora = self.db.query(LoRA).filter(LoRA.name == name).first()
         if not lora:
-            weight = 0.7
+            info = (0.7, None)
         else:
-            weight = self.get_effective_lora_weight(lora)
+            info = (self.get_effective_lora_weight(lora), lora.lora_type)
 
-        self._lora_weight_cache[name] = weight
+        self._lora_info_cache[name] = info
+        return info
+
+    def get_lora_weight_by_name(self, name: str) -> float:
+        """Looks up LoRA weight by name with caching."""
+        weight, _ = self._get_lora_info(name)
         return weight
 
     # Location tag groups for conflict resolution
