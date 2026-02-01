@@ -231,7 +231,7 @@ export default function Home() {
                         src={ch.preview_image_url.startsWith('http') ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`}
                         alt={ch.name}
                         onClick={() => { setEditingCharacter(ch); setShowCharacterModal(true); }}
-                        className="h-14 w-14 rounded-xl object-cover bg-zinc-100 cursor-pointer hover:ring-2 hover:ring-zinc-300 transition-all"
+                        className="h-14 w-14 rounded-xl object-cover object-top bg-zinc-100 cursor-pointer hover:ring-2 hover:ring-zinc-300 transition-all"
                       />
                     ) : (
                       <div

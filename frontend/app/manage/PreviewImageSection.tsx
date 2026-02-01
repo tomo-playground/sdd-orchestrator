@@ -39,11 +39,10 @@ export default function PreviewImageSection({
           <button
             type="button"
             onClick={() => setPreviewLocked(!previewLocked)}
-            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
-              previewLocked
+            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${previewLocked
                 ? "bg-amber-100 text-amber-700 border border-amber-300"
                 : "bg-zinc-100 text-zinc-500 border border-zinc-200 hover:bg-zinc-200"
-            }`}
+              }`}
           >
             {previewLocked ? "Locked" : "Unlocked"}
           </button>
@@ -103,9 +102,8 @@ export default function PreviewImageSection({
               src={previewImageUrl}
               alt="Character Preview"
               onClick={onOpenPreview}
-              className={`h-32 w-auto rounded-xl border-2 object-cover cursor-pointer hover:shadow-lg transition-all ${
-                previewLocked ? "border-amber-300" : "border-zinc-200 hover:border-zinc-400"
-              }`}
+              className={`h-32 w-auto rounded-xl border-2 object-cover object-top cursor-pointer hover:shadow-lg transition-all ${previewLocked ? "border-amber-300" : "border-zinc-200 hover:border-zinc-400"
+                }`}
             />
             {previewLocked && (
               <div className="absolute top-1 right-1 rounded-full bg-amber-500 p-1">
