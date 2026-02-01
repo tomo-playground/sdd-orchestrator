@@ -36,6 +36,18 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*"]
 - 런타임 캐시 (TagCategory, TagAlias, TagRule, LoRATrigger)
 - 환경 변수 관리
 
+### 6. 인프라 & 배포
+프로덕션 배포 전까지 인프라 관련 작업을 담당합니다 (규모 확장 시 DevOps Agent 분리 검토):
+- Docker/컨테이너 구성
+- CI/CD 파이프라인 설정
+- 환경별 설정 관리 (dev/staging/prod)
+- `docs/04_operations/DEPLOYMENT.md` 관리
+
+### 7. 운영 유지보수
+- 스토리지 정책 실행 및 Garbage Collection
+- 캐시 무효화 조율 (`/admin/refresh-caches`)
+- 외부 서비스 연동 안정성 (SD WebUI, Gemini API)
+
 ---
 
 ## 프로젝트 구조

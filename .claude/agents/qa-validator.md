@@ -33,6 +33,12 @@ allowed_tools: ["mcp__playwright__*", "mcp__memory__*"]
 - 문제 해결 후 검증하고 해결 방법을 기록
 - 반복되는 이슈 패턴 식별 및 문서화
 
+### 5. 평가 실행 & 운영 모니터링
+- Evaluation Run 실행 (31개 표준 테스트 시나리오)
+- 실행 결과를 **Prompt Engineer**에게 전달하여 해석/개선 의뢰
+- 런타임 품질 모니터링 (Match Rate 급락, 생성 실패율 증가 감지)
+- SD WebUI/Gemini API 연결 상태 정기 점검
+
 ---
 
 ## 검증 파이프라인

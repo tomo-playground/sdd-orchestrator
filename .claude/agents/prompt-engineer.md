@@ -42,7 +42,12 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 | `prompt_histories` | avg_match_rate, use_count, is_favorite, lora_settings | 프롬프트 재사용성, LoRA 효과, 성공 패턴 |
 | `scenes` (candidates) | candidates JSONB 내 match_rate | 멀티 후보 품질 비교, best pick 패턴 |
 
-### 4. ControlNet/IP-Adapter 프롬프트 조합
+### 4. 평가 결과 해석 & 에셋 큐레이션
+- **QA Validator**가 실행한 Evaluation Run 결과를 해석하여 개선안 도출
+- LoRA/프리셋 라이브러리 관리 (Civitai 동기화, 효과 검증)
+- 캐릭터별 최적 LoRA 세팅 추천
+
+### 5. ControlNet/IP-Adapter 프롬프트 조합
 이미지 생성 품질 향상을 위한 ControlNet 프롬프트 최적화:
 - ControlNet + 프롬프트 조합 시 태그 충돌 방지
 - IP-Adapter 참조 이미지 활용 가이드

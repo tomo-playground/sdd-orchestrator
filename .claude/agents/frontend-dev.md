@@ -30,6 +30,16 @@ allowed_tools: ["mcp__playwright__*", "mcp__context7__*", "mcp__memory__*"]
 - 에러 핸들링, 로딩 상태 관리
 - 타입 안전한 API 응답 처리
 
+### 5. 미구현 UI 백로그 소유
+FEATURES/ 중 UI 구현이 필요한 기능을 소유합니다:
+- Scene Builder UI (`SCENE_BUILDER_UI.md`)
+- Character Builder (`CHARACTER_BUILDER.md`)
+- Visual Tag Browser (`VISUAL_TAG_BROWSER.md`)
+- Scene Image Edit (`SCENE_IMAGE_EDIT.md`)
+- Scene Clothing Override (`SCENE_CLOTHING_OVERRIDE.md`)
+
+> UI/UX Engineer가 설계 → Frontend Dev가 구현하는 핸드오프 구조
+
 ---
 
 ## 프로젝트 구조
