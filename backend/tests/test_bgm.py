@@ -23,7 +23,7 @@ class TestResolveBgmFile:
         result = resolve_bgm_file("my_bgm.mp3")
         assert result == "my_bgm.mp3"
 
-    @patch("services.video.get_storage")
+    @patch("services.video.utils.get_storage")
     def test_random_selects_from_directory(self, mock_get_storage):
         """'random' should select a random mp3 from storage."""
         mock_storage = mock_get_storage.return_value
@@ -37,7 +37,7 @@ class TestResolveBgmFile:
 
         assert result in ["bgm1.mp3", "bgm2.mp3", "bgm3.mp3"]
 
-    @patch("services.video.get_storage")
+    @patch("services.video.utils.get_storage")
     def test_random_empty_directory_returns_none(self, mock_get_storage):
         """'random' with no mp3 files should return None."""
         mock_storage = mock_get_storage.return_value
@@ -47,7 +47,7 @@ class TestResolveBgmFile:
 
         assert result is None
 
-    @patch("services.video.get_storage")
+    @patch("services.video.utils.get_storage")
     def test_random_nonexistent_directory_returns_none(self, mock_get_storage):
         """'random' with empty storage should return None."""
         mock_storage = mock_get_storage.return_value
@@ -56,7 +56,7 @@ class TestResolveBgmFile:
         result = resolve_bgm_file("random")
         assert result is None
 
-    @patch("services.video.get_storage")
+    @patch("services.video.utils.get_storage")
     def test_random_seed_reproducibility(self, mock_get_storage):
         """Same seed should return same random selection."""
         mock_storage = mock_get_storage.return_value
@@ -71,7 +71,7 @@ class TestResolveBgmFile:
 
         assert result1 == result2
 
-    @patch("services.video.get_storage")
+    @patch("services.video.utils.get_storage")
     def test_random_different_seeds_may_differ(self, mock_get_storage):
         """Different seeds should (likely) produce different results."""
         keys = [f"shared/audio/bgm{i}.mp3" for i in range(10)]
@@ -86,7 +86,7 @@ class TestResolveBgmFile:
         # Should have multiple different selections
         assert len(results) > 1
 
-    @patch("services.video.get_storage")
+    @patch("services.video.utils.get_storage")
     def test_random_case_insensitive(self, mock_get_storage):
         """'RANDOM' and 'Random' should also work."""
         mock_storage = mock_get_storage.return_value

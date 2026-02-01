@@ -8,12 +8,12 @@ from services.video import VideoBuilder
 
 @pytest.fixture
 def mock_asset_service():
-    with patch("services.video.AssetService") as m:
+    with patch("services.video.builder.AssetService") as m:
         yield m
 
 @pytest.fixture
 def mock_storage():
-    with patch("services.video.get_storage") as m:
+    with patch("services.video.scene_processing.get_storage") as m:
         yield m
 
 @pytest.mark.anyio
