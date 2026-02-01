@@ -1,4 +1,4 @@
-"""Admin endpoints for database management."""
+"""Admin endpoints for database management and media asset GC."""
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Tag, TagRule
+from services.media_gc import MediaGCService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -287,3 +288,54 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
             "is_active": tag.is_active
         }
     }
+
+
+# ============================================================
+# Media Asset Garbage Collection (Phase 6-7)
+# ============================================================
+
+@router.get("/media-assets/orphans")
+async def detect_orphan_assets(db: Session = Depends(get_db)):
+    """Scan for orphaned media assets (dry-run detection only)."""
+    try:
+        gc = MediaGCService(db)
+        report = gc.detect_orphans()
+        return {"success": True, **report.to_dict()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/media-assets/cleanup")
+async def cleanup_orphan_assets(
+    dry_run: bool = True,
+    db: Session = Depends(get_db),
+):
+    """Clean up orphaned and expired temporary media assets.
+
+    Args:
+        dry_run: If True (default), only report what would be deleted.
+    """
+    try:
+        gc = MediaGCService(db)
+        orphan_result = gc.cleanup_orphans(dry_run=dry_run)
+        temp_result = gc.cleanup_expired_temp(dry_run=dry_run)
+        return {
+            "success": True,
+            "orphans": orphan_result.to_dict(),
+            "expired_temp": temp_result.to_dict(),
+            "total_deleted": orphan_result.deleted + temp_result.deleted,
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/media-assets/stats")
+async def media_asset_stats(db: Session = Depends(get_db)):
+    """Get media asset statistics including orphan counts."""
+    try:
+        gc = MediaGCService(db)
+        stats = gc.get_stats()
+        return {"success": True, **stats.to_dict()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
