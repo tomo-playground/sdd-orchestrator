@@ -65,10 +65,12 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
     ```
     """
     try:
-        # Filter out base64 data URLs (they exceed VARCHAR(500) limit)
-        image_url = request.image_url
-        if image_url and image_url.startswith("data:"):
-            image_url = None
+        # Extract storage key from image URL (ignore base64 data URLs)
+        image_storage_key = None
+        if request.image_url and not request.image_url.startswith("data:"):
+            # Use storage key directly if already in correct format
+            from services.validation import _extract_storage_key
+            image_storage_key = _extract_storage_key(request.image_url)
 
         log = ActivityLog(
             storyboard_id=request.storyboard_id,
@@ -81,7 +83,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
             match_rate=request.match_rate,
             seed=request.seed,
             status=request.status or "pending",
-            image_url=image_url,
+            image_storage_key=image_storage_key,
         )
         db.add(log)
         db.commit()
