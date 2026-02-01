@@ -140,79 +140,82 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
         return await _generate_scene_image_with_db(request, db)
 
 
-async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> dict:
-    """Internal generation logic with an externally managed DB session."""
-    try:
-        # Apply Style Profile from Storyboard (if specified)
-        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt,
-            request.negative_prompt or "",
-            request.storyboard_id,
-            db
+def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], object]:
+    """Prepare the final prompt via style profile + V3 composition.
+
+    Returns: (cleaned_prompt, final_warnings, character_obj)
+    """
+    request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+        request.prompt,
+        request.negative_prompt or "",
+        request.storyboard_id,
+        db
+    )
+
+    from models import Character
+    character_obj = db.query(Character).filter(Character.id == request.character_id).first()
+
+    prompt_already_composed = "BREAK" in request.prompt or "masterpiece" in request.prompt.lower()
+    if prompt_already_composed:
+        cleaned_prompt = request.prompt
+        logger.info("🎨 [V3 Engine] Using pre-composed prompt for character %d", request.character_id)
+    else:
+        v3_service = V3PromptService(db)
+        scene_tags = split_prompt_tokens(request.prompt)
+        cleaned_prompt = v3_service.generate_prompt_for_scene(
+            character_id=request.character_id,
+            scene_tags=scene_tags,
+            style_loras=request.style_loras
         )
-        # V3 Logic: character_id is required, use V3PromptService
-        # Skip V3 re-composition if prompt is already V3-composed (from /prompt/compose)
-        from models import Character
-        character_obj = db.query(Character).filter(Character.id == request.character_id).first()
+        logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
 
-        prompt_already_composed = "BREAK" in request.prompt or "masterpiece" in request.prompt.lower()
-        if prompt_already_composed:
-            # Frontend already composed via /prompt/compose V3 — use as-is
-            cleaned_prompt = request.prompt
-            logger.info("🎨 [V3 Engine] Using pre-composed prompt for character %d", request.character_id)
-        else:
-            v3_service = V3PromptService(db)
-            scene_tags = split_prompt_tokens(request.prompt)
-            cleaned_prompt = v3_service.generate_prompt_for_scene(
-                character_id=request.character_id,
-                scene_tags=scene_tags,
-                style_loras=request.style_loras
-            )
-            logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+    final_warnings: list[str] = []
 
-        final_warnings = []
+    # Character Consistency: Auto-apply IP-Adapter if reference exists
+    if character_obj and not request.use_ip_adapter:
+        ref_image_test = load_reference_image(character_obj.name, db=db)
+        if ref_image_test:
+            request.use_ip_adapter = True
+            request.ip_adapter_reference = character_obj.name
+            if character_obj.ip_adapter_weight:
+                request.ip_adapter_weight = character_obj.ip_adapter_weight
+            else:
+                request.ip_adapter_weight = 0.75
+                logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
+                           character_obj.name, request.ip_adapter_weight)
+    elif not character_obj:
+        # Auto-populate character_id from IP-Adapter reference
+        if request.use_ip_adapter and request.ip_adapter_reference:
+            from models import Character
+            character_obj = db.query(Character).filter(
+                Character.name == request.ip_adapter_reference
+            ).first()
+            if character_obj:
+                request.character_id = character_obj.id
+                logger.info("📊 [Activity Log] Auto-set character_id=%d from IP-Adapter reference '%s'",
+                           request.character_id, request.ip_adapter_reference)
+                v3_service = V3PromptService(db)
+                scene_tags = split_prompt_tokens(request.prompt)
+                cleaned_prompt = v3_service.generate_prompt_for_scene(
+                    character_id=request.character_id,
+                    scene_tags=scene_tags,
+                    style_loras=request.style_loras,
+                )
+                logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d",
+                           request.character_id)
+        if not request.character_id:
+            cleaned_prompt = normalize_prompt_tokens(request.prompt)
 
-        # 23.7 Character Consistency: Auto-apply IP-Adapter if reference exists
-        if character_obj and not request.use_ip_adapter:
-            ref_image_test = load_reference_image(character_obj.name, db=db)
-            if ref_image_test:
-                request.use_ip_adapter = True
-                request.ip_adapter_reference = character_obj.name
-                if character_obj.ip_adapter_weight:
-                    request.ip_adapter_weight = character_obj.ip_adapter_weight
-                else:
-                    request.ip_adapter_weight = 0.75
-                    logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
-                               character_obj.name, request.ip_adapter_weight)
-        elif not character_obj:
-            # Phase 6-4.26: Auto-populate character_id from IP-Adapter reference
-            if request.use_ip_adapter and request.ip_adapter_reference:
-                from models import Character
-                character_obj = db.query(Character).filter(
-                    Character.name == request.ip_adapter_reference
-                ).first()
-                if character_obj:
-                    request.character_id = character_obj.id
-                    logger.info("📊 [Activity Log] Auto-set character_id=%d from IP-Adapter reference '%s'",
-                               request.character_id, request.ip_adapter_reference)
-                    # Run V3 composition for auto-populated character
-                    v3_service = V3PromptService(db)
-                    scene_tags = split_prompt_tokens(request.prompt)
-                    cleaned_prompt = v3_service.generate_prompt_for_scene(
-                        character_id=request.character_id,
-                        scene_tags=scene_tags,
-                        style_loras=request.style_loras,
-                    )
-                    logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d",
-                               request.character_id)
-            # No character at all — just normalize the raw prompt
-            if not request.character_id:
-                cleaned_prompt = normalize_prompt_tokens(request.prompt)
-    except Exception as e:
-        logger.error(f"Error during prompt preparation: {e}")
-        cleaned_prompt = normalize_prompt_tokens(request.prompt)
+    return cleaned_prompt, final_warnings, character_obj
 
-    # Detect complexity and adjust parameters
+
+def _adjust_parameters(
+    cleaned_prompt: str, request: SceneGenerateRequest, character_obj
+) -> tuple[str, int, float]:
+    """Detect complexity, calibrate LoRA weights, adjust steps/cfg.
+
+    Returns: (calibrated_prompt, final_steps, final_cfg)
+    """
     tokens = split_prompt_tokens(cleaned_prompt)
     complexity = detect_scene_complexity(tokens)
 
@@ -225,7 +228,6 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
         logger.info(f"⚡ [Complexity] Boosted parameters for complex scene: steps={final_steps}, cfg={final_cfg}")
     elif complexity == "moderate":
         final_steps = max(final_steps, 25)
-        # Keep CFG as is or slight boost
         final_cfg = max(final_cfg, 7.5)
 
     # Apply optimal LoRA weights from calibration DB
@@ -235,7 +237,6 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
         try:
             optimal_weights = get_optimal_weights_from_db(lora_names)
             if request.use_ip_adapter and character_obj and optimal_weights:
-                # Cap weights for IP-Adapter compatibility (preserve lower calibrations)
                 optimal_weights = {
                     name: min(w, IP_ADAPTER_LORA_CAP) for name, w in optimal_weights.items()
                 }
@@ -246,12 +247,19 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
         except Exception as e:
             logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
 
+    return cleaned_prompt, final_steps, final_cfg
+
+
+def _build_payload(
+    prompt: str, request: SceneGenerateRequest, steps: int, cfg: float
+) -> dict:
+    """Build the SD txt2img payload."""
     cleaned_negative = normalize_negative_prompt(request.negative_prompt or "")
     payload = {
-        "prompt": cleaned_prompt,
+        "prompt": prompt,
         "negative_prompt": cleaned_negative,
-        "steps": final_steps,
-        "cfg_scale": final_cfg,
+        "steps": steps,
+        "cfg_scale": cfg,
         "sampler_name": request.sampler_name,
         "seed": request.seed,
         "width": request.width,
@@ -270,138 +278,154 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
             "hr_second_pass_steps": request.hr_second_pass_steps,
             "denoising_strength": request.denoising_strength,
         })
+    return payload
 
-    # ControlNet + IP-Adapter integration
+
+def _apply_controlnet(
+    request: SceneGenerateRequest, payload: dict,
+    character_obj, final_warnings: list[str], db
+) -> tuple[str | None, str | None]:
+    """Apply ControlNet + IP-Adapter to payload. Returns (controlnet_used, ip_adapter_used)."""
     controlnet_used = None
     ip_adapter_used = None
     controlnet_args_list = []
 
-    if check_controlnet_available():
-        # ControlNet pose control
-        if request.use_controlnet:
-            pose_name = request.controlnet_pose
-            if not pose_name:
-                prompt_tags = split_prompt_tokens(request.prompt)
-                pose_name = detect_pose_from_prompt(prompt_tags)
+    if not check_controlnet_available():
+        return controlnet_used, ip_adapter_used
 
-            if pose_name:
-                pose_image = load_pose_reference(pose_name)
-                if pose_image:
-                    controlnet_args_list.append(build_controlnet_args(
-                        input_image=pose_image,
-                        model="openpose",
-                        weight=request.controlnet_weight,
-                        control_mode="Balanced" # M4 Pro precision: Stable and precise
-                    ))
-                    controlnet_used = pose_name
-                    logger.info("🎭 [ControlNet] Using pose: %s (weight=%.1f)", pose_name, request.controlnet_weight)
+    # ControlNet pose control
+    if request.use_controlnet:
+        pose_name = request.controlnet_pose
+        if not pose_name:
+            prompt_tags = split_prompt_tokens(request.prompt)
+            pose_name = detect_pose_from_prompt(prompt_tags)
 
-        # 1. Reference-only for Character Consistency (Shape/Face structure)
-        if request.character_id and request.use_reference_only:
-            ref_image = load_reference_image(character_obj.name if character_obj else request.ip_adapter_reference, db=db)
-            if ref_image:
+        if pose_name:
+            pose_image = load_pose_reference(pose_name)
+            if pose_image:
                 controlnet_args_list.append(build_controlnet_args(
-                    input_image=ref_image,
-                    model="reference",
-                    weight=request.reference_only_weight,
+                    input_image=pose_image,
+                    model="openpose",
+                    weight=request.controlnet_weight,
                     control_mode="Balanced"
                 ))
-                logger.info("🎨 [Reference-only] Enabled for character consistency (weight=%.2f)", request.reference_only_weight)
+                controlnet_used = pose_name
+                logger.info("🎭 [ControlNet] Using pose: %s (weight=%.1f)", pose_name, request.controlnet_weight)
 
-        # 2. Environment Pinning for Background Consistency
-        if request.environment_reference_id:
-            import base64  # Import base64 here as it's used in this block
+    # Reference-only for Character Consistency
+    if request.character_id and request.use_reference_only:
+        ref_image = load_reference_image(character_obj.name if character_obj else request.ip_adapter_reference, db=db)
+        if ref_image:
+            controlnet_args_list.append(build_controlnet_args(
+                input_image=ref_image,
+                model="reference",
+                weight=request.reference_only_weight,
+                control_mode="Balanced"
+            ))
+            logger.info("🎨 [Reference-only] Enabled for character consistency (weight=%.2f)", request.reference_only_weight)
 
-            from models.media_asset import MediaAsset
-            from models.scene import Scene
-            from services.prompt.v3_composition import LAYER_ENVIRONMENT, V3PromptBuilder
+    # Environment Pinning for Background Consistency
+    if request.environment_reference_id:
+        _apply_environment_pinning(request, controlnet_args_list, final_warnings, db)
 
-            env_asset = db.query(MediaAsset).filter(MediaAsset.id == request.environment_reference_id).first()
-            if env_asset and env_asset.local_path:
-                try:
-                    # Automatic conflict detection: 부엌 vs 해변 등 장소 변화 감지
-                    is_conflict = False
-                    reason = ""
+    # IP-Adapter for Style/Identity Transfer
+    if request.use_ip_adapter and request.ip_adapter_reference:
+        ref_image = load_reference_image(request.ip_adapter_reference, db=db)
+        if ref_image:
+            try:
+                controlnet_args_list.append(build_ip_adapter_args(
+                    reference_image=ref_image,
+                    weight=request.ip_adapter_weight,
+                    model=character_obj.ip_adapter_model if character_obj else None,
+                ))
+                ip_adapter_used = request.ip_adapter_reference
+                logger.info("🧑 [IP-Adapter] Using reference: %s (weight=%.1f)", request.ip_adapter_reference, request.ip_adapter_weight)
+            except Exception as e:
+                logger.warning("🧑 [IP-Adapter] Skipped - %s", str(e))
 
-                    if env_asset.owner_type == "scene":
-                        ref_scene = db.query(Scene).filter(Scene.id == env_asset.owner_id).first()
-                        if ref_scene:
-                            # 1. Compare context_tags
-                            ref_env = set(ref_scene.context_tags.get("environment", [])) if ref_scene.context_tags else set()
+    # Apply combined ControlNet args
+    if controlnet_args_list:
+        payload["alwayson_scripts"] = {
+            "controlnet": {"args": controlnet_args_list}
+        }
+        for i, arg in enumerate(controlnet_args_list):
+            debug_arg = {k: (v[:50] + "..." if k == "image" and isinstance(v, str) and len(v) > 50 else v) for k, v in arg.items()}
+            logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
 
-                            # 2. Get environment tags from current prompt
-                            builder = V3PromptBuilder(db)
-                            curr_tokens = split_prompt_tokens(request.prompt)
-                            curr_tag_info = builder.get_tag_info(curr_tokens)
-                            curr_env = {tag for tag, info in curr_tag_info.items() if info.get("layer") == LAYER_ENVIRONMENT}
+    return controlnet_used, ip_adapter_used
 
-                            if ref_env and curr_env and not (ref_env & curr_env):
-                                is_conflict = True
-                                reason = f"Location mismatch: {list(ref_env)} vs {list(curr_env)}"
 
-                            # 3. Hardcoded fallback check for basic keywords if no tags matched
-                            if not is_conflict:
-                                loc_kws = ["kitchen", "beach", "forest", "room", "office", "street", "indoors", "outdoors"]
-                                ref_p = (ref_scene.image_prompt or "").lower()
-                                curr_p = request.prompt.lower()
-                                for kw in loc_kws:
-                                    if kw in ref_p and any(other for other in loc_kws if other != kw and other in curr_p):
-                                        is_conflict = True
-                                        reason = f"Keyword mismatch: Detected '{kw}' in reference but location changed in prompt"
-                                        break
+def _apply_environment_pinning(
+    request: SceneGenerateRequest, controlnet_args_list: list,
+    final_warnings: list[str], db
+) -> None:
+    """Handle environment reference pinning with conflict detection."""
+    import base64
 
-                    if is_conflict:
-                        msg = f"장소 변화가 감지되어 배경 고정이 자동으로 해제되었습니다. ({reason})"
-                        logger.warning("⚠️ [Environment Pinning] %s", msg)
-                        final_warnings.append(msg)
-                    else:
-                        import os
-                        if os.path.exists(env_asset.local_path):
-                            with open(env_asset.local_path, "rb") as f:
-                                env_base64 = base64.b64encode(f.read()).decode("utf-8")
-                            controlnet_args_list.append(build_controlnet_args(
-                                input_image=env_base64,
-                                model="canny",
-                                weight=request.environment_reference_weight,
-                                control_mode="My prompt is more important" # Keep structure but allow stylistic change
-                            ))
-                            logger.info("🏠 [Environment Pinning] Enabled using asset %d (weight=%.2f)",
-                                       request.environment_reference_id, request.environment_reference_weight)
-                except Exception as e:
-                    logger.error("❌ [Environment Pinning] Failed to load or check asset: %s", e)
+    from models.media_asset import MediaAsset
+    from models.scene import Scene
+    from services.prompt.v3_composition import LAYER_ENVIRONMENT, V3PromptBuilder
 
-        # 3. IP-Adapter for Style/Identity Transfer
-        # IP-Adapter character consistency
-        if request.use_ip_adapter and request.ip_adapter_reference:
-            ref_image = load_reference_image(request.ip_adapter_reference, db=db)
-            if ref_image:
-                try:
-                    controlnet_args_list.append(build_ip_adapter_args(
-                        reference_image=ref_image,
-                        weight=request.ip_adapter_weight,
-                        model=character_obj.ip_adapter_model if character_obj else None,
-                    ))
-                    ip_adapter_used = request.ip_adapter_reference
-                    logger.info("🧑 [IP-Adapter] Using reference: %s (weight=%.1f)", request.ip_adapter_reference, request.ip_adapter_weight)
-                except Exception as e:
-                    logger.warning("🧑 [IP-Adapter] Skipped - %s", str(e))
+    env_asset = db.query(MediaAsset).filter(MediaAsset.id == request.environment_reference_id).first()
+    if not env_asset or not env_asset.local_path:
+        return
 
-        # Apply combined ControlNet args
-        if controlnet_args_list:
-            payload["alwayson_scripts"] = {
-                "controlnet": {"args": controlnet_args_list}
-            }
-            # Debug: log controlnet config (without base64 image)
-            for i, arg in enumerate(controlnet_args_list):
-                debug_arg = {k: (v[:50] + "..." if k == "image" and isinstance(v, str) and len(v) > 50 else v) for k, v in arg.items()}
-                logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
+    try:
+        is_conflict = False
+        reason = ""
 
+        if env_asset.owner_type == "scene":
+            ref_scene = db.query(Scene).filter(Scene.id == env_asset.owner_id).first()
+            if ref_scene:
+                ref_env = set(ref_scene.context_tags.get("environment", [])) if ref_scene.context_tags else set()
+
+                builder = V3PromptBuilder(db)
+                curr_tokens = split_prompt_tokens(request.prompt)
+                curr_tag_info = builder.get_tag_info(curr_tokens)
+                curr_env = {tag for tag, info in curr_tag_info.items() if info.get("layer") == LAYER_ENVIRONMENT}
+
+                if ref_env and curr_env and not (ref_env & curr_env):
+                    is_conflict = True
+                    reason = f"Location mismatch: {list(ref_env)} vs {list(curr_env)}"
+
+                if not is_conflict:
+                    loc_kws = ["kitchen", "beach", "forest", "room", "office", "street", "indoors", "outdoors"]
+                    ref_p = (ref_scene.image_prompt or "").lower()
+                    curr_p = request.prompt.lower()
+                    for kw in loc_kws:
+                        if kw in ref_p and any(other for other in loc_kws if other != kw and other in curr_p):
+                            is_conflict = True
+                            reason = f"Keyword mismatch: Detected '{kw}' in reference but location changed in prompt"
+                            break
+
+        if is_conflict:
+            msg = f"장소 변화가 감지되어 배경 고정이 자동으로 해제되었습니다. ({reason})"
+            logger.warning("⚠️ [Environment Pinning] %s", msg)
+            final_warnings.append(msg)
+        else:
+            import os
+            if os.path.exists(env_asset.local_path):
+                with open(env_asset.local_path, "rb") as f:
+                    env_base64 = base64.b64encode(f.read()).decode("utf-8")
+                controlnet_args_list.append(build_controlnet_args(
+                    input_image=env_base64,
+                    model="canny",
+                    weight=request.environment_reference_weight,
+                    control_mode="My prompt is more important"
+                ))
+                logger.info("🏠 [Environment Pinning] Enabled using asset %d (weight=%.2f)",
+                           request.environment_reference_id, request.environment_reference_weight)
+    except Exception as e:
+        logger.error("❌ [Environment Pinning] Failed to load or check asset: %s", e)
+
+
+async def _call_sd_api(payload: dict, controlnet_used, ip_adapter_used, final_warnings) -> dict:
+    """Call the SD txt2img API and parse the response."""
     logger.info("🧾 [Scene Gen Payload] %s", {k: v for k, v in payload.items() if k != "alwayson_scripts"})
 
     try:
         async with httpx.AsyncClient() as client:
             res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=SD_TIMEOUT_SECONDS)
-            res.raise_for_status()
             res.raise_for_status()
             data = res.json()
             images = data.get("images", [])
@@ -410,24 +434,8 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
 
             img = images[0]
 
-            # Extract seed from response info
-            if request.seed != -1:
-                pass
-            elif "info" in data:
-                try:
-                    info_val = data["info"]
-                    if isinstance(info_val, str):
-                        json.loads(info_val)
-                        # actual_seed = info_data.get("seed")
-                    elif isinstance(info_val, dict):
-                        # actual_seed = info_val.get("seed")
-                        pass
-                except Exception:
-                    logger.warning("Failed to parse info from SD response", exc_info=True)
-
-            # Activity log is now created by Frontend after image storage
-            # This ensures proper scene_id (DB primary key) and image_url inclusion
-            # See: frontend/app/store/actions/imageActions.ts
+            if request_seed_is_random(data):
+                _try_parse_seed(data)
 
             return {
                 "image": img,
@@ -440,3 +448,42 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
         logger.exception("Scene generation failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+
+def request_seed_is_random(data: dict) -> bool:
+    """Check if we should try to parse seed from response."""
+    return "info" in data
+
+
+def _try_parse_seed(data: dict) -> None:
+    """Attempt to parse seed from SD response info (best-effort)."""
+    try:
+        info_val = data["info"]
+        if isinstance(info_val, str):
+            json.loads(info_val)
+        elif isinstance(info_val, dict):
+            pass
+    except Exception:
+        logger.warning("Failed to parse info from SD response", exc_info=True)
+
+
+async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> dict:
+    """Internal generation logic with an externally managed DB session."""
+    try:
+        cleaned_prompt, final_warnings, character_obj = _prepare_prompt(request, db)
+    except Exception as e:
+        logger.error(f"Error during prompt preparation: {e}")
+        cleaned_prompt = normalize_prompt_tokens(request.prompt)
+        final_warnings = []
+        character_obj = None
+
+    cleaned_prompt, final_steps, final_cfg = _adjust_parameters(
+        cleaned_prompt, request, character_obj
+    )
+
+    payload = _build_payload(cleaned_prompt, request, final_steps, final_cfg)
+
+    controlnet_used, ip_adapter_used = _apply_controlnet(
+        request, payload, character_obj, final_warnings, db
+    )
+
+    return await _call_sd_api(payload, controlnet_used, ip_adapter_used, final_warnings)

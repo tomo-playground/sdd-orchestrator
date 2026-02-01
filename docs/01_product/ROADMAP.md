@@ -126,16 +126,16 @@
 | 2 | `SceneCard.tsx` 894줄 → 383줄 + 5개 서브컴포넌트 | 코드 분리 | [x] |
 | 3 | `CharacterEditModal.tsx` 950줄 → 400줄 + 1 hook + 4개 서브컴포넌트 | 코드 분리 | [x] |
 | 4 | `studio/page.tsx` 594줄 → 201줄 + 2 hooks + 1 store action | 코드 분리 | [x] |
-| 5 | `generation.py` 300줄 함수 분해 | 코드 분리 | [ ] |
-| 6 | Router/Service 레이어 분리 (storyboard_routes) | 아키텍처 | [ ] |
+| 5 | `generation.py` 300줄 함수 → 6개 helper 추출 (orchestrator ~20줄) | 코드 분리 | [x] |
+| 6 | Router/Service 레이어 분리 (storyboard: 364줄→54줄 router + 497줄 service) | 아키텍처 | [x] |
 | 7 | 라우터 테스트 추가 (20/24 커버리지, 288개 테스트) | 테스트 | [x] |
 | 8 | `evaluation.py` 단위 테스트 작성 (47개) | 테스트 | [x] |
 | 9 | `TEST_STRATEGY.md` 수치 갱신 (948개 테스트) | 테스트 | [x] |
-| 10 | Error Boundary 구현 (Frontend) | 아키텍처 | [ ] |
-| 11 | 비동기 Gemini API 전환 + 재시도/폴백 | 아키텍처 | [ ] |
+| 10 | Error Boundary 구현 (app/error, global-error, studio/error) | 아키텍처 | [x] |
+| 11 | 비동기 Gemini API 전환 + 재시도/폴백 (storyboard, imagen_edit, gemini_imagen) | 아키텍처 | [x] |
 | 12 | `image_storage_key` 정규화 + `activity_logs.py` 수정 | 데이터 정합성 | [x] |
 
-**진척**: 8/12 완료 (66.7%), 테스트 +335개 (613→948)
+**진척**: 12/12 완료 (100%), 테스트 785개 통과
 **DoD**: 400줄 초과 코드 파일 0건, 라우터 테스트 커버리지 20/24+.
 
 ---

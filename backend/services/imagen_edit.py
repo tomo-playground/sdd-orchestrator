@@ -98,7 +98,7 @@ OUTPUT (JSON only, NO explanations):
 CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from this list: pose, expression, gaze, framing, hands
 """
 
-            res = self.client.models.generate_content(
+            res = await self.client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
@@ -172,8 +172,8 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
 
             logger.info(f"🎨 Editing image with Gemini Nano Banana ({edit_type})...")
 
-            # Gemini API 호출
-            response = self.client.models.generate_content(
+            # Gemini API 호출 (async)
+            response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash-image",
                 contents=[edit_prompt, base_image],
                 config={
@@ -223,7 +223,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             )
 
             logger.info("✨ Enhancing image with Gemini...")
-            response = self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash-image",
                 contents=[prompt, base_image],
                 config={"response_modalities": ["Image"]},
@@ -364,7 +364,7 @@ If NO mismatches are found:
 CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expression, gaze, framing, hands
 """
 
-            res = self.client.models.generate_content(
+            res = await self.client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
