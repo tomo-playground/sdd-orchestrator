@@ -37,8 +37,15 @@ E2E (Playwright)          ← 유저 플로우 검증
 |---------|------|
 | `db_session` | SQLite 인메모리 세션 (테스트별 생성/삭제) |
 | `client` | FastAPI TestClient (`get_db` 의존성 오버라이드) |
-| `init_tag_caches` | autouse. TagFilter/Rule/Alias/Category 캐시 초기화 |
+| `init_tag_caches` | autouse. TagFilter/Rule/Alias/Category/LoRA 캐시 초기화 |
 | `seed_random` | 난수 시드 고정 (결정적 테스트) |
+
+**주요 개선사항 (Phase 6-5)**:
+- DB Foreign Key 제약 정규화 (CASCADE 전략)
+- validation.py DI 패턴 적용 (conftest.py 통합)
+- Scene Text 네이밍 통일 (`subtitles` → `scene_text`)
+- TagRuleCache 추가 (tag_rules 테이블 캐싱)
+- LoRATriggerCache 추가 (loras 테이블 트리거 워드 캐싱)
 
 ### Frontend (vitest + Playwright)
 
@@ -92,12 +99,28 @@ npx playwright test
 
 | 영역 | 현재 | 목표 |
 |------|------|------|
-| Backend Unit + Integration | ~335 tests | 80% line coverage |
-| Frontend Unit | ~67 tests | 70% line coverage |
-| VRT | 36 tests | 주요 레이아웃 100% |
+| Backend Unit + Integration | 495 tests (40 files) | 80% line coverage |
+| Frontend Unit | 118 tests (10 files) | 70% line coverage |
+| VRT | 36 tests (4 files) | 주요 레이아웃 100% |
 | E2E | 3 specs | 핵심 플로우 커버 |
 
-**총 테스트**: ~402개 (Backend 335 + Frontend 67)
+**총 테스트**: 613개 (Backend 495 + Frontend 118)
+
+**Backend 구성**:
+- Unit: 382 tests (28 files, `tests/test_*.py`)
+- Integration: 77 tests (7 files, `tests/api/`)
+- VRT: 36 tests (4 files, `tests/vrt/`)
+
+**최근 추가된 주요 테스트** (2026-02-01):
+- `test_v3_composition.py` - V3 Prompt Engine 12-Layer 검증 (41 tests)
+- `test_generation_pipeline.py` - 이미지 생성 파이프라인 통합 테스트
+- `test_image_storage_key.py` - image_storage_key 정규화 검증
+- `test_db_cache.py` - TagRuleCache, LoRATriggerCache 검증
+- `test_scene_text_naming.py` - Scene Text 네이밍 통일 검증
+
+**Router 커버리지**: 7/24 라우터 (29%) - API 통합 테스트 확대 필요
+- 테스트 있음: storyboard, keywords, prompt, presets, activity_logs, controlnet, quality
+- 테스트 없음: characters, assets, loras, style_profiles, tags, video, scene, analytics 등
 
 ---
 
