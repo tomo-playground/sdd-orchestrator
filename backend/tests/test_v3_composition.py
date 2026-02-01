@@ -1,11 +1,12 @@
-"""Tests for V3PromptBuilder: _flatten_layers, _dedup_key, gender enhancement."""
+"""Tests for V3PromptBuilder: _flatten_layers, _dedup_key, gender enhancement, conflict resolution."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from services.prompt.v3_composition import (
     LAYER_ACTION,
+    LAYER_CAMERA,
     LAYER_ENVIRONMENT,
     LAYER_EXPRESSION,
     LAYER_IDENTITY,
@@ -229,3 +230,130 @@ class TestGenderEnhancement:
         # Count occurrences of the enhancement tag
         count = layers[LAYER_SUBJECT].count("(1boy:1.3)")
         assert count == 1
+
+
+# ────────────────────────────────────────────
+# D-2: TagRuleCache conflict resolution tests
+# ────────────────────────────────────────────
+
+class TestConflictResolution:
+    """Test TagRuleCache integration in _flatten_layers (D-2)."""
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    def test_conflicting_tags_removed(self, mock_cache, builder):
+        """When two tags conflict, keep first occurrence only."""
+        # Mock conflict: brown_hair vs blonde_hair
+        mock_cache.initialize.return_value = None
+        mock_cache.is_conflicting.side_effect = lambda t1, t2: (
+            (t1 == "blonde_hair" and t2 == "brown_hair") or
+            (t1 == "brown_hair" and t2 == "blonde_hair")
+        )
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_IDENTITY] = ["brown_hair", "blonde_hair"]
+
+        result = builder._flatten_layers(layers)
+        tokens = [t.strip() for t in result.split(",")]
+
+        # Only first tag (brown_hair) should remain
+        assert "brown_hair" in tokens
+        assert "blonde_hair" not in tokens
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    def test_no_conflict_both_kept(self, mock_cache, builder):
+        """Non-conflicting tags should both be kept."""
+        mock_cache.initialize.return_value = None
+        mock_cache.is_conflicting.return_value = False
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_IDENTITY] = ["brown_hair", "long_hair"]
+
+        result = builder._flatten_layers(layers)
+        tokens = [t.strip() for t in result.split(",")]
+
+        assert "brown_hair" in tokens
+        assert "long_hair" in tokens
+
+
+# ────────────────────────────────────────────
+# D-3: TagFilterCache restricted tags tests
+# ────────────────────────────────────────────
+
+class TestRestrictedTags:
+    """Test TagFilterCache integration (D-3)."""
+
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_restricted_tags_filtered(self, mock_cache, builder):
+        """Restricted tags should be filtered from custom_base_prompt."""
+        from unittest.mock import MagicMock
+
+        mock_cache.initialize.return_value = None
+        mock_cache.is_restricted.side_effect = lambda tag: tag.lower() in {"kitchen", "outdoors"}
+
+        # Mock character with custom_base_prompt containing restricted tags
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = "brown_hair, kitchen, long_hair, outdoors"
+        char.tags = []
+        char.loras = []
+        char.prompt_mode = "standard"
+
+        # Mock DB queries
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        result = builder.compose_for_character(
+            character_id=1,
+            scene_tags=["sitting"]
+        )
+
+        # kitchen and outdoors should be filtered out
+        assert "kitchen" not in result
+        assert "outdoors" not in result
+        assert "brown_hair" in result or "long_hair" in result  # Valid tags kept
+
+
+# ────────────────────────────────────────────
+# D-4: Pattern-based fallback tests
+# ────────────────────────────────────────────
+
+class TestPatternBasedFallback:
+    """Test _infer_layer_from_pattern for DB-missing tags (D-4)."""
+
+    def test_hair_pattern_to_identity(self):
+        """*_hair tags → LAYER_IDENTITY."""
+        assert V3PromptBuilder._infer_layer_from_pattern("pink_hair") == LAYER_IDENTITY
+        assert V3PromptBuilder._infer_layer_from_pattern("short_hair") == LAYER_IDENTITY
+
+    def test_eyes_pattern_to_identity(self):
+        """*_eyes tags → LAYER_IDENTITY."""
+        assert V3PromptBuilder._infer_layer_from_pattern("blue_eyes") == LAYER_IDENTITY
+        assert V3PromptBuilder._infer_layer_from_pattern("red_eyes") == LAYER_IDENTITY
+
+    def test_action_pattern(self):
+        """*ing tags → LAYER_ACTION."""
+        assert V3PromptBuilder._infer_layer_from_pattern("running") == LAYER_ACTION
+        assert V3PromptBuilder._infer_layer_from_pattern("walking") == LAYER_ACTION
+
+    def test_action_pattern_excludes_earring(self):
+        """earring should NOT be classified as action."""
+        # "ring" ending should exclude -ring suffix
+        result = V3PromptBuilder._infer_layer_from_pattern("earring")
+        # earring should fall to LAYER_SUBJECT (default)
+        assert result == LAYER_SUBJECT
+
+    def test_camera_shot_pattern(self):
+        """*_shot, *_view, from_* → LAYER_CAMERA."""
+        assert V3PromptBuilder._infer_layer_from_pattern("wide_shot") == LAYER_CAMERA
+        assert V3PromptBuilder._infer_layer_from_pattern("top_view") == LAYER_CAMERA
+        assert V3PromptBuilder._infer_layer_from_pattern("from_above") == LAYER_CAMERA
+
+    def test_expression_keywords(self):
+        """Known expression keywords → LAYER_EXPRESSION."""
+        assert V3PromptBuilder._infer_layer_from_pattern("smiling") == LAYER_EXPRESSION
+        assert V3PromptBuilder._infer_layer_from_pattern("crying") == LAYER_EXPRESSION
+
+    def test_unknown_tag_defaults_to_subject(self):
+        """Unknown pattern → LAYER_SUBJECT."""
+        assert V3PromptBuilder._infer_layer_from_pattern("unknown_tag") == LAYER_SUBJECT
+        assert V3PromptBuilder._infer_layer_from_pattern("mystery") == LAYER_SUBJECT

@@ -59,7 +59,20 @@ class TagCategoryCache:
 
     @staticmethod
     def _map_db_category(category: str, group_name: str | None = None) -> str | None:
-        """Map DB category + group_name to prompt composition category."""
+        """Map DB category + group_name to prompt composition category.
+
+        Gemini Template Context Tags → V3 12-Layer Mapping:
+        - expression → LAYER_EXPRESSION (7)
+        - gaze → LAYER_EXPRESSION (7)
+        - pose → LAYER_ACTION (8)
+        - action → LAYER_ACTION (8)
+        - camera → LAYER_CAMERA (9)
+        - environment (location_indoor, location_outdoor) → LAYER_ENVIRONMENT (10)
+        - time_weather, lighting → LAYER_ENVIRONMENT (10)
+        - mood → LAYER_ATMOSPHERE (11)
+
+        See: backend/templates/create_storyboard.j2 for Gemini context_tags structure
+        """
         # 1. Use group_name for granular categories (expression, pose, action, etc.)
         granular_groups = {
             "expression", "gaze", "pose", "action", "camera",
@@ -234,4 +247,61 @@ class LoRATriggerCache:
     def refresh(cls, db: Session):
         cls._initialized = False
         cls._cache.clear()
+        cls.initialize(db)
+
+
+class TagFilterCache:
+    """In-memory cache for restricted/ignored tags from DB."""
+
+    _restricted: set[str] = set()
+    _ignored: set[str] = set()
+    _initialized = False
+
+    @classmethod
+    def initialize(cls, db: Session):
+        """Load all active tag filters from DB."""
+        if cls._initialized:
+            return
+
+        try:
+            from models.tag_filter import TagFilter
+            filters = db.query(TagFilter).filter(TagFilter.active).all()
+
+            restricted_count = 0
+            ignored_count = 0
+
+            for filter_rule in filters:
+                normalized = filter_rule.tag_name.lower().strip()
+                if filter_rule.filter_type == "restricted":
+                    cls._restricted.add(normalized)
+                    restricted_count += 1
+                elif filter_rule.filter_type == "ignore":
+                    cls._ignored.add(normalized)
+                    ignored_count += 1
+
+            cls._initialized = True
+            logger.info(
+                f"✅ [TagFilterCache] Loaded {restricted_count} restricted tags, "
+                f"{ignored_count} ignored tags"
+            )
+        except Exception as e:
+            logger.error(f"❌ [TagFilterCache] Failed to initialize: {e}")
+
+    @classmethod
+    def is_restricted(cls, tag: str) -> bool:
+        """Check if a tag is restricted (should not be in Identity DNA)."""
+        normalized = tag.lower().strip()
+        return normalized in cls._restricted
+
+    @classmethod
+    def is_ignored(cls, tag: str) -> bool:
+        """Check if a tag should be ignored completely."""
+        normalized = tag.lower().strip()
+        return normalized in cls._ignored
+
+    @classmethod
+    def refresh(cls, db: Session):
+        cls._initialized = False
+        cls._restricted.clear()
+        cls._ignored.clear()
         cls.initialize(db)

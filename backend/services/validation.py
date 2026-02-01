@@ -11,6 +11,7 @@ import numpy as np
 import onnxruntime as ort
 from fastapi import HTTPException
 from PIL import Image
+from sqlalchemy.orm import Session
 
 from config import WD14_MODEL_DIR, WD14_THRESHOLD, logger
 from schemas import SceneValidateRequest
@@ -124,7 +125,16 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
 
     return {"matched": matched, "missing": missing, "extra": extra}
 
-def validate_scene_image(request: SceneValidateRequest) -> dict:
+def validate_scene_image(request: SceneValidateRequest, db: Session | None = None) -> dict:
+    """Validate scene image using WD14 tagger.
+
+    Args:
+        request: SceneValidateRequest with image and prompt
+        db: Database session (optional, for saving validation results)
+
+    Returns:
+        Validation result dict with match_rate, matched/missing/extra tags
+    """
     try:
         image_bytes = load_image_bytes(request.image_b64)
         image = Image.open(io.BytesIO(image_bytes))
@@ -133,29 +143,32 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         total = len(comparison["matched"]) + len(comparison["missing"])
         match_rate = (len(comparison["matched"]) / total) if total else 0.0
 
-        # Create/Update validation score in DB
-        image_url = f"/outputs/images/scene_{hashlib.sha1(image_bytes).hexdigest()[:16]}.png"  # dummy or resolved path
+        # Create/Update validation score in DB (if db session provided)
+        if db is not None:
+            image_url = f"/outputs/images/scene_{hashlib.sha1(image_bytes).hexdigest()[:16]}.png"  # dummy or resolved path
 
-        # Use scene_id (DB PK) if provided, fallback to scene_index
-        actual_scene_id = request.scene_id or request.scene_index or 0
+            # Use scene_id (DB PK) if provided, fallback to scene_index
+            actual_scene_id = request.scene_id or request.scene_index or 0
 
-        _save_scene_quality_score(
-            storyboard_id=request.storyboard_id,
-            scene_id=actual_scene_id,
-            image_url=image_url,
-            prompt=request.prompt,
-            match_rate=match_rate,
-            matched=comparison["matched"],
-            missing=comparison["missing"],
-            extra=comparison["extra"]
-        )
+            _save_scene_quality_score(
+                db=db,
+                storyboard_id=request.storyboard_id,
+                scene_id=actual_scene_id,
+                image_url=image_url,
+                prompt=request.prompt,
+                match_rate=match_rate,
+                matched=comparison["matched"],
+                missing=comparison["missing"],
+                extra=comparison["extra"]
+            )
 
-        _update_activity_log_match_rate(
-            storyboard_id=request.storyboard_id,
-            scene_id=actual_scene_id,
-            match_rate=match_rate,
-            image_url=image_url
-        )
+            _update_activity_log_match_rate(
+                db=db,
+                storyboard_id=request.storyboard_id,
+                scene_id=actual_scene_id,
+                match_rate=match_rate,
+                image_url=image_url
+            )
 
         return {
             "mode": "wd14",
@@ -169,13 +182,34 @@ def validate_scene_image(request: SceneValidateRequest) -> dict:
         logger.exception("Validation failed")
         raise HTTPException(status_code=500, detail="Validation failed") from exc
 
-def _save_scene_quality_score(storyboard_id: int | None, scene_id: int, image_url: str, prompt: str, match_rate: float, matched: list, missing: list, extra: list):
+def _save_scene_quality_score(
+    db: Session,
+    storyboard_id: int | None,
+    scene_id: int,
+    image_url: str,
+    prompt: str,
+    match_rate: float,
+    matched: list,
+    missing: list,
+    extra: list
+):
+    """Save scene quality score to database.
+
+    Args:
+        db: Database session
+        storyboard_id: Storyboard ID
+        scene_id: Scene ID
+        image_url: Image URL
+        prompt: Prompt text
+        match_rate: Match rate (0.0-1.0)
+        matched: List of matched tags
+        missing: List of missing tags
+        extra: List of extra tags
+    """
     from datetime import datetime
 
-    from database import SessionLocal
     from models.scene_quality import SceneQualityScore
 
-    db = SessionLocal()
     try:
         score = SceneQualityScore(
             storyboard_id=storyboard_id,
@@ -193,15 +227,28 @@ def _save_scene_quality_score(storyboard_id: int | None, scene_id: int, image_ur
     except Exception as e:
         logger.error(f"Failed to save quality score: {e}")
         db.rollback()
-    finally:
-        db.close()
 
-def _update_activity_log_match_rate(storyboard_id: int | None, scene_id: int | None, match_rate: float, image_url: str | None = None):
+def _update_activity_log_match_rate(
+    db: Session,
+    storyboard_id: int | None,
+    scene_id: int | None,
+    match_rate: float,
+    image_url: str | None = None
+):
+    """Update activity log with match rate.
+
+    Args:
+        db: Database session
+        storyboard_id: Storyboard ID
+        scene_id: Scene ID
+        match_rate: Match rate (0.0-1.0)
+        image_url: Image URL (optional)
+    """
     if not storyboard_id or scene_id is None:
         return
-    from database import SessionLocal
+
     from models.activity_log import ActivityLog
-    db = SessionLocal()
+
     try:
         log = db.query(ActivityLog).filter(
             ActivityLog.storyboard_id == storyboard_id,
@@ -215,5 +262,3 @@ def _update_activity_log_match_rate(storyboard_id: int | None, scene_id: int | N
             db.commit()
     except Exception:
         db.rollback()
-    finally:
-        db.close()

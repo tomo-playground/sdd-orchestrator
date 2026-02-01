@@ -50,7 +50,7 @@ export function useTags(category: string | null = "scene"): UseTagsResult {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [category]);
 
   useEffect(() => {
     void loadTags();

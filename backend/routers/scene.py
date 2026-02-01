@@ -81,13 +81,19 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
 
 
 @router.post("/scene/validate_image")
-async def validate_scene_image_endpoint(request: SceneValidateRequest):
+async def validate_scene_image_endpoint(
+    request: SceneValidateRequest,
+    db: Session = Depends(get_db)
+):
     logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
-    return validate_scene_image(request)
+    return validate_scene_image(request, db=db)
 
 
 @router.post("/scene/validate-and-auto-edit")
-async def validate_and_auto_edit_scene(request: SceneValidateRequest):
+async def validate_and_auto_edit_scene(
+    request: SceneValidateRequest,
+    db: Session = Depends(get_db)
+):
     """WD14 검증 + Gemini 자동 편집 (조건부)
 
     이미지 검증 후 Match Rate가 임계값 미만이면 자동으로 Gemini 편집을 실행합니다.
@@ -123,12 +129,11 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest):
         GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
         GEMINI_AUTO_EDIT_THRESHOLD,
     )
-    from database import SessionLocal
     from models import ActivityLog
 
     # Step 1: WD14 검증
     logger.info("📥 [Validate + Auto-Edit] %s", scrub_payload(request.model_dump()))
-    validation_result = validate_scene_image(request)
+    validation_result = validate_scene_image(request, db=db)
     match_rate = validation_result.get("match_rate", 1.0)
     missing_tags = validation_result.get("missing_tags", [])
 
@@ -153,38 +158,34 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest):
 
     # Check 3: 스토리보드 비용 한도 체크
     if request.storyboard_id:
-        db = SessionLocal()
-        try:
-            current_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
-                ActivityLog.storyboard_id == request.storyboard_id
-            ).scalar() or 0.0
+        current_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
+            ActivityLog.storyboard_id == request.storyboard_id
+        ).scalar() or 0.0
 
-            if current_cost >= GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD:
+        if current_cost >= GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD:
+            logger.warning(
+                f"⚠️ [Auto Edit] Skipped (cost limit reached: ${current_cost:.2f} >= "
+                f"${GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD})"
+            )
+            result["skip_reason"] = "cost_limit_reached"
+            result["current_cost"] = current_cost
+            return result
+
+        # Check 4: 씬 재시도 횟수 체크
+        if request.scene_id:
+            retry_count = db.query(func.count(ActivityLog.id)).filter(
+                ActivityLog.storyboard_id == request.storyboard_id,
+                ActivityLog.scene_id == request.scene_id,
+                ActivityLog.gemini_edited == True  # noqa: E712
+            ).scalar()
+
+            if retry_count >= GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE:
                 logger.warning(
-                    f"⚠️ [Auto Edit] Skipped (cost limit reached: ${current_cost:.2f} >= "
-                    f"${GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD})"
+                    f"⚠️ [Auto Edit] Skipped (max retries reached: {retry_count})"
                 )
-                result["skip_reason"] = "cost_limit_reached"
-                result["current_cost"] = current_cost
+                result["skip_reason"] = "max_retries_reached"
+                result["retry_count"] = retry_count
                 return result
-
-            # Check 4: 씬 재시도 횟수 체크
-            if request.scene_id:
-                retry_count = db.query(func.count(ActivityLog.id)).filter(
-                    ActivityLog.storyboard_id == request.storyboard_id,
-                    ActivityLog.scene_id == request.scene_id,
-                    ActivityLog.gemini_edited == True  # noqa: E712
-                ).scalar()
-
-                if retry_count >= GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE:
-                    logger.warning(
-                        f"⚠️ [Auto Edit] Skipped (max retries reached: {retry_count})"
-                    )
-                    result["skip_reason"] = "max_retries_reached"
-                    result["retry_count"] = retry_count
-                    return result
-        finally:
-            db.close()
 
     # === 모든 체크 통과 → 자동 편집 실행 ===
     logger.info(

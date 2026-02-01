@@ -7,7 +7,7 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 | 레이어 | 기술 | 핵심 |
 |--------|------|------|
 | Backend | FastAPI | `routers/` (API), `services/` (로직) |
-| Frontend | Next.js 14 | `app/page.tsx` (스튜디오), `hooks/useAutopilot.ts` |
+| Frontend | Next.js 15 | `app/page.tsx` (스튜디오), `hooks/useAutopilot.ts` |
 | DB | PostgreSQL | Storyboard → Scene → CharacterAction 계층 구조 |
 
 ### V3 Backend 구조

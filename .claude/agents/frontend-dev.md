@@ -10,7 +10,7 @@ allowed_tools: ["mcp__playwright__*", "mcp__context7__*", "mcp__memory__*"]
 
 ## 핵심 책임
 
-### 1. Next.js 14 App Router 개발
+### 1. Next.js 15 App Router 개발
 - 페이지/레이아웃 구현
 - Server/Client Component 분리
 - API Route 연동
@@ -75,10 +75,10 @@ frontend/
 
 | 도구 | 버전 | 용도 |
 |------|------|------|
-| Next.js | 14 | Framework (App Router) |
-| React | 18 | UI Library |
+| Next.js | 15 | Framework (App Router) |
+| React | 19 | UI Library |
 | TypeScript | 5 | Type Safety |
-| Zustand | 4 | State Management |
+| Zustand | 5 | State Management |
 | Tailwind CSS | 3 | Styling |
 | Vitest | - | Unit Test |
 | Playwright | - | E2E Test |

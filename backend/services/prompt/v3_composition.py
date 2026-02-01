@@ -6,7 +6,7 @@ from database import SessionLocal
 from models.character import Character
 from models.lora import LoRA
 from models.tag import Tag
-from services.keywords.db_cache import LoRATriggerCache, TagAliasCache
+from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagRuleCache, TagFilterCache
 
 # Defined Layers (from PROMPT_LAYERS.md)
 LAYER_QUALITY = 0
@@ -31,7 +31,7 @@ class V3PromptBuilder:
         self._lora_info_cache: dict[str, tuple[float, str | None]] = {}
 
     def get_tag_info(self, tag_names: list[str]) -> dict[str, dict]:
-        """Fetches metadata for a list of tags from the DB."""
+        """Fetches metadata for a list of tags from the DB with pattern-based fallback."""
         if not tag_names:
             return {}
 
@@ -39,7 +39,54 @@ class V3PromptBuilder:
         normalized_names = [t.lower().replace(" ", "_").strip() for t in tag_names]
 
         tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
-        return {tag.name: {"layer": tag.default_layer, "scope": tag.usage_scope} for tag in tags}
+        result = {tag.name: {"layer": tag.default_layer, "scope": tag.usage_scope} for tag in tags}
+
+        # Pattern-based fallback for DB-missing tags
+        for normalized in normalized_names:
+            if normalized not in result:
+                layer = self._infer_layer_from_pattern(normalized)
+                result[normalized] = {"layer": layer, "scope": "ANY"}
+
+        return result
+
+    @staticmethod
+    def _infer_layer_from_pattern(tag: str) -> int:
+        """Infer layer from tag pattern when not found in DB.
+
+        Pattern matching rules:
+        - *_hair, *_colored_hair → LAYER_IDENTITY (hair color)
+        - *_eyes, *_colored_eyes → LAYER_IDENTITY (eye color)
+        - Known expressions → LAYER_EXPRESSION (checked before *ing)
+        - *ing (e.g., running, walking) → LAYER_ACTION
+        - *_shot, *_view, from_* → LAYER_CAMERA
+        - Default: LAYER_SUBJECT
+        """
+        # Expression patterns (check BEFORE *ing to prioritize)
+        expression_keywords = {
+            "smiling", "crying", "angry", "sad", "happy", "surprised", "confused",
+            "blushing", "embarrassed", "scared", "worried", "nervous"
+        }
+        if tag in expression_keywords:
+            return LAYER_EXPRESSION
+
+        # Hair patterns
+        if tag.endswith("_hair") or "hair" in tag:
+            return LAYER_IDENTITY
+
+        # Eye patterns
+        if tag.endswith("_eyes") or "eyes" in tag:
+            return LAYER_IDENTITY
+
+        # Action patterns (verb-ing)
+        if tag.endswith("ing") and not tag.endswith("ring"):  # Exclude "earring", etc.
+            return LAYER_ACTION
+
+        # Camera patterns
+        if tag.endswith("_shot") or tag.endswith("_view") or tag.startswith("from_"):
+            return LAYER_CAMERA
+
+        # Default fallback
+        return LAYER_SUBJECT
 
     def compose_for_character(
         self,
@@ -63,12 +110,13 @@ class V3PromptBuilder:
             })
 
         # 2. Add Custom Base Prompt (Identity)
-        restricted = ["background", "kitchen", "room", "outdoors", "indoors", "scenery", "nature", "mountain", "street", "office", "bedroom", "bathroom", "garden"]
+        # Initialize TagFilterCache for restricted tag filtering
+        TagFilterCache.initialize(self.db)
         if character.custom_base_prompt:
             base_tokens = [t.strip() for t in character.custom_base_prompt.split(",")]
             for bt in base_tokens:
-                if any(r in bt.lower() for r in restricted):
-                    continue # Skip background/situation tags in Identity DNA
+                if TagFilterCache.is_restricted(bt):
+                    continue # Skip restricted tags (background/situation) in Identity DNA
                 if bt:
                     char_tags_data.append({
                         "name": bt,
@@ -294,7 +342,10 @@ class V3PromptBuilder:
         return t
 
     def _flatten_layers(self, layers: list[list[str]], has_character_lora: bool = False) -> str:
-        """Flattens 12 layers into a final string with global deduplication and BREAK."""
+        """Flattens 12 layers into a final string with global deduplication, conflict resolution, and BREAK."""
+        # Initialize TagRuleCache for conflict detection
+        TagRuleCache.initialize(self.db)
+
         final_tokens = []
         global_seen: set[str] = set()  # Cross-layer deduplication
 
@@ -304,8 +355,17 @@ class V3PromptBuilder:
                 for t in layer_tokens:
                     key = self._dedup_key(t)
                     if key not in global_seen:
-                        unique_layer_tokens.append(t)
-                        global_seen.add(key)
+                        # Check for conflicts with already-added tokens
+                        has_conflict = False
+                        for existing_key in global_seen:
+                            if TagRuleCache.is_conflicting(key, existing_key):
+                                has_conflict = True
+                                # Priority: first tag wins (already in global_seen)
+                                break
+
+                        if not has_conflict:
+                            unique_layer_tokens.append(t)
+                            global_seen.add(key)
 
                 # Layer 7, 8 (Expression, Action) weight boost
                 if i in [LAYER_EXPRESSION, LAYER_ACTION]:
