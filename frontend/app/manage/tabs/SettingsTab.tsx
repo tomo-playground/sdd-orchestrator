@@ -1,154 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import axios from "axios";
-import { API_BASE } from "../../constants";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
-
-type StorageStats = {
-    total_size_mb: number;
-    total_count: number;
-    directories: Record<string, { count: number; size_mb: number }>;
-};
-
-type CleanupResult = {
-    deleted_count: number;
-    freed_mb: number;
-    dry_run: boolean;
-    details: Record<string, { deleted: number; freed_mb: number; files?: string[] }>;
-};
-
-type AutoEditSettings = {
-    enabled: boolean;
-    threshold: number;
-    max_cost_per_storyboard: number;
-    max_retries_per_scene: number;
-};
-
-type CostSummary = {
-    today: number;
-    this_week: number;
-    this_month: number;
-    total: number;
-    edit_count_today: number;
-    edit_count_month: number;
-};
-
-type EditAnalytics = {
-    total_edits: number;
-    total_cost_usd: number;
-    avg_improvement: number;
-    edits: Array<{
-        id: number;
-        storyboard_id: number;
-        scene_id: number;
-        original_match_rate: number;
-        final_match_rate: number;
-        improvement: number;
-        cost_usd: number;
-        created_at: string;
-    }>;
-    by_improvement_range: Record<string, number>;
-};
+import { useSettingsTab } from "../hooks/useSettingsTab";
 
 export default function SettingsTab() {
-    // Storage state
-    const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
-    const [isLoadingStorage, setIsLoadingStorage] = useState(false);
-    const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
-    const [isCleaningUp, setIsCleaningUp] = useState(false);
-    const [cleanupOptions, setCleanupOptions] = useState({
-        cleanup_videos: true,
-        video_max_age_days: 7,
-        cleanup_cache: true,
-        cleanup_test_folders: true,
-        cleanup_candidates: false,
-    });
-
-    // Gemini Auto Edit state
-    const [autoEditSettings, setAutoEditSettings] = useState<AutoEditSettings | null>(null);
-    const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
-    const [isLoadingAutoEdit, setIsLoadingAutoEdit] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [isSavingAutoEdit, setIsSavingAutoEdit] = useState(false);
-
-    // Gemini Analytics state
-    const [analytics, setAnalytics] = useState<EditAnalytics | null>(null);
-    const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
-    const [analyticsStoryboardFilter, setAnalyticsStoryboardFilter] = useState<number | null>(null);
-
-    const fetchStorageStats = async () => {
-        setIsLoadingStorage(true);
-        try {
-            const res = await axios.get(`${API_BASE}/storage/stats`);
-            setStorageStats(res.data);
-        } catch {
-            setStorageStats(null);
-        } finally {
-            setIsLoadingStorage(false);
-        }
-    };
-
-    const handleCleanup = async (dryRun: boolean) => {
-        setIsCleaningUp(true);
-        setCleanupResult(null);
-        try {
-            const res = await axios.post(`${API_BASE}/storage/cleanup`, {
-                ...cleanupOptions,
-                dry_run: dryRun,
-            });
-            setCleanupResult(res.data);
-            if (!dryRun) {
-                await fetchStorageStats();
-            }
-        } catch {
-            alert("Cleanup failed.");
-        } finally {
-            setIsCleaningUp(false);
-        }
-    };
-
-    const fetchAutoEditSettings = async () => {
-        setIsLoadingAutoEdit(true);
-        try {
-            const [settingsRes, costRes] = await Promise.all([
-                axios.get(`${API_BASE}/settings/auto-edit`),
-                axios.get(`${API_BASE}/settings/auto-edit/cost-summary`),
-            ]);
-            setAutoEditSettings(settingsRes.data);
-            setCostSummary(costRes.data);
-        } catch {
-            setAutoEditSettings(null);
-            setCostSummary(null);
-        } finally {
-            setIsLoadingAutoEdit(false);
-        }
-    };
-
-    // Note: Save function removed from UI in original code? 
-    // Ah, looking at original code, saveAutoEditSettings was defined but the UI controls are disabled/read-only 
-    // with a notice that settings are in .env. 
-    // I will keep logic consistent with the original file (Read Only UI).
-
-    const fetchAnalytics = async (storyboardId?: number | null) => {
-        setIsLoadingAnalytics(true);
-        try {
-            const params = storyboardId ? { storyboard_id: storyboardId } : {};
-            const res = await axios.get(`${API_BASE}/analytics/gemini-edits`, { params });
-            setAnalytics(res.data);
-        } catch {
-            setAnalytics(null);
-        } finally {
-            setIsLoadingAnalytics(false);
-        }
-    };
-
-    useEffect(() => {
-        void fetchStorageStats();
-        void fetchAutoEditSettings();
-        void fetchAnalytics(analyticsStoryboardFilter);
-    }, [analyticsStoryboardFilter]);
+    const {
+        storageStats,
+        isLoadingStorage,
+        cleanupResult,
+        isCleaningUp,
+        cleanupOptions,
+        setCleanupOptions,
+        fetchStorageStats,
+        handleCleanup,
+        autoEditSettings,
+        costSummary,
+        isLoadingAutoEdit,
+        fetchAutoEditSettings,
+        analytics,
+        isLoadingAnalytics,
+        analyticsStoryboardFilter,
+        fetchAnalytics,
+    } = useSettingsTab();
 
     return (
         <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
@@ -546,7 +419,6 @@ export default function SettingsTab() {
                                             const maxCount = Math.max(...Object.values(analytics.by_improvement_range));
                                             const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
 
-                                            // Color coding based on improvement range
                                             let colorClass = "bg-zinc-400";
                                             if (range.includes("20-30") || range.includes("30+")) {
                                                 colorClass = "bg-emerald-500";

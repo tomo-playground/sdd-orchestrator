@@ -1,99 +1,35 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import axios from "axios";
-import { API_BASE } from "../../constants";
+import { useMemo } from "react";
 import { useTags } from "../../hooks";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import DeprecatedTagsPanel from "../DeprecatedTagsPanel";
+import { useTagManagement } from "../hooks/useTagManagement";
 import type { Tag } from "../../types";
-
-type PendingTag = {
-    id: number;
-    name: string;
-    category: string;
-    group_name: string | null;
-    classification_source: string | null;
-    classification_confidence: number | null;
-};
 
 export default function TagsTab() {
     const { tags: allTags, reload: fetchTagsData } = useTags(null);
 
-    // Local loading state for refresh button interaction
-    const [isTagsLoading, setIsTagsLoading] = useState(false);
-
-    // Filters
-    const [tagGroupFilter, setTagGroupFilter] = useState<string>("");
-    const [tagCategoryFilter, setTagCategoryFilter] = useState<string>("");
-
-    // Pending Classifications
-    const [pendingTags, setPendingTags] = useState<PendingTag[]>([]);
-    const [isPendingLoading, setIsPendingLoading] = useState(false);
-    const [pendingGroupSelection, setPendingGroupSelection] = useState<Record<number, string>>({});
-    const [pendingApproving, setPendingApproving] = useState<Record<number, boolean>>({});
-    const [showPendingSection, setShowPendingSection] = useState(true);
+    const {
+        isTagsLoading,
+        tagGroupFilter,
+        setTagGroupFilter,
+        tagCategoryFilter,
+        setTagCategoryFilter,
+        pendingTags,
+        isPendingLoading,
+        pendingGroupSelection,
+        setPendingGroupSelection,
+        pendingApproving,
+        showPendingSection,
+        setShowPendingSection,
+        handleRefresh,
+        fetchPendingTags,
+        handleApprovePendingTag,
+    } = useTagManagement(fetchTagsData);
 
     const SCENE_TAG_GROUPS = ["expression", "gaze", "pose", "action", "camera", "environment", "mood"];
 
-    // Fetch pending tags on mount
-    useEffect(() => {
-        void fetchPendingTags();
-    }, []);
-
-    const handleRefresh = async () => {
-        setIsTagsLoading(true);
-        await fetchTagsData();
-        await fetchPendingTags();
-        setIsTagsLoading(false);
-    };
-
-    const fetchPendingTags = async () => {
-        setIsPendingLoading(true);
-        try {
-            const res = await axios.get(`${API_BASE}/tags/pending?limit=50`);
-            setPendingTags(res.data.tags || []);
-            // Pre-populate group selections with existing values
-            const selections: Record<number, string> = {};
-            (res.data.tags || []).forEach((tag: PendingTag) => {
-                if (tag.group_name) {
-                    selections[tag.id] = tag.group_name;
-                }
-            });
-            setPendingGroupSelection(selections);
-        } catch {
-            console.error("Failed to fetch pending tags");
-        } finally {
-            setIsPendingLoading(false);
-        }
-    };
-
-    const handleApprovePendingTag = async (tagId: number) => {
-        const groupName = pendingGroupSelection[tagId];
-        if (!groupName) {
-            alert("Please select a group first");
-            return;
-        }
-        setPendingApproving((prev) => ({ ...prev, [tagId]: true }));
-        try {
-            await axios.post(`${API_BASE}/tags/approve-classification`, {
-                tag_id: tagId,
-                group_name: groupName,
-            });
-            setPendingTags((prev) => prev.filter((t) => t.id !== tagId));
-            setPendingGroupSelection((prev) => {
-                const next = { ...prev };
-                delete next[tagId];
-                return next;
-            });
-        } catch {
-            alert("Failed to approve tag");
-        } finally {
-            setPendingApproving((prev) => ({ ...prev, [tagId]: false }));
-        }
-    };
-
-    // Available groups for classification
     const availableGroups = useMemo(() => {
         const groups = new Set<string>();
         allTags.forEach((tag: Tag) => {

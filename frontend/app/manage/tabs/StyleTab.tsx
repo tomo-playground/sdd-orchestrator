@@ -1,218 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { API_BASE } from "../../constants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import type { StyleProfile, StyleProfileFull, LoRA, SDModelEntry, Embedding } from "../../types";
-
-type CivitaiResult = {
-    civitai_id: number;
-    name: string;
-    type: "LORA" | "Checkpoint";
-    trigger_words: string[];
-    base_model: string;
-    preview_image: string;
-    civitai_url: string;
-};
+import { useStyleTab } from "../hooks/useStyleTab";
 
 export default function StyleTab() {
-    const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
-    const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
-    const [isStyleLoading, setIsStyleLoading] = useState(false);
-
-    const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
-    const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
-    const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
-
-    // Editing state for Civitai LoRA
-    const [editingLora, setEditingLora] = useState<LoRA | null>(null);
-    const [isUpdatingLora, setIsUpdatingLora] = useState(false);
-
-    // Civitai Search
-    const [civitaiSearch, setCivitaiSearch] = useState("");
-    const [civitaiResults, setCivitaiResults] = useState<CivitaiResult[]>([]);
-    const [isSearchingCivitai, setIsSearchingCivitai] = useState(false);
-
-    useEffect(() => {
-        void fetchStyles();
-        void fetchSdModels();
-        void fetchEmbeddings();
-        void fetchPublicLoras();
-    }, []);
-
-    const fetchStyles = async () => {
-        setIsStyleLoading(true);
-        try {
-            const res = await axios.get<StyleProfile[]>(`${API_BASE}/style-profiles/`);
-            setStyleProfiles(res.data || []);
-        } catch {
-            console.error("Failed to fetch styles");
-        } finally {
-            setIsStyleLoading(false);
-        }
-    };
-
-    const fetchSdModels = async () => {
-        try {
-            const res = await axios.get<SDModelEntry[]>(`${API_BASE}/sd-models`);
-            setSdModels(res.data || []);
-        } catch {
-            console.error("Failed to fetch SD models");
-        }
-    };
-
-    const fetchEmbeddings = async () => {
-        try {
-            const res = await axios.get<Embedding[]>(`${API_BASE}/embeddings`);
-            setEmbeddings(res.data || []);
-        } catch {
-            console.error("Failed to fetch embeddings");
-        }
-    };
-
-    const fetchPublicLoras = async () => {
-        try {
-            const res = await axios.get<LoRA[]>(`${API_BASE}/loras/`);
-            setLoraEntries(res.data || []);
-        } catch {
-            console.error("Failed to fetch public LoRAs");
-        }
-    };
-
-    const handleCreateStyle = async () => {
-        const name = prompt("New Style Name:");
-        if (!name) return;
-        try {
-            await axios.post(`${API_BASE}/style-profiles/`, { name });
-            await fetchStyles();
-        } catch {
-            alert("Failed to create style");
-        }
-    };
-
-    const handleDeleteStyle = async (id: number) => {
-        if (!confirm("Delete this style?")) return;
-        try {
-            await axios.delete(`${API_BASE}/style-profiles/${id}`);
-            if (selectedProfile?.id === id) setSelectedProfile(null);
-            await fetchStyles();
-        } catch {
-            alert("Failed to delete style");
-        }
-    };
-
-    const handleUpdateStyle = async (id: number, data: Partial<StyleProfile>) => {
-        try {
-            await axios.put(`${API_BASE}/style-profiles/${id}`, data);
-            await fetchStyles();
-            // Update selected profile locally if it's the one being edited
-            if (selectedProfile && selectedProfile.id === id) {
-                const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
-                setSelectedProfile(res.data);
-            }
-        } catch {
-            alert("Failed to update style");
-        }
-    };
-
-    const handleDuplicateStyle = async (id: number) => {
-        const original = styleProfiles.find((s) => s.id === id);
-        if (!original) return;
-        const newName = `${original.name} (Copy)`;
-        if (!confirm(`Duplicate style as "${newName}"?`)) return;
-
-        try {
-            // 1. Create new style
-            const createRes = await axios.post<{ id: number; name: string }>(`${API_BASE}/style-profiles/`, {
-                name: newName,
-            });
-            const newId = createRes.data.id;
-
-            // 2. Fetch full details of original to get prompt/neg
-            const detailRes = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
-            const fullOriginal = detailRes.data;
-
-            // 3. Update new style with original's content
-            await axios.put(`${API_BASE}/style-profiles/${newId}`, {
-                default_positive: fullOriginal.default_positive,
-                default_negative: fullOriginal.default_negative,
-            });
-
-            await fetchStyles();
-        } catch {
-            alert("Failed to duplicate style");
-        }
-    };
-
-    const handleLoadProfile = async (id: number) => {
-        try {
-            const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
-            setSelectedProfile(res.data);
-        } catch {
-            alert("Failed to load style details");
-        }
-    };
-
-    const handleCivitaiSearch = async () => {
-        if (!civitaiSearch.trim()) return;
-        setIsSearchingCivitai(true);
-        setCivitaiResults([]);
-        try {
-            const res = await axios.get<{ results: CivitaiResult[] }>(`${API_BASE}/loras/search-civitai`, {
-                params: { query: civitaiSearch, limit: 10 },
-            });
-            setCivitaiResults(res.data.results || []);
-        } catch {
-            alert("Search failed or no results");
-        } finally {
-            setIsSearchingCivitai(false);
-        }
-    };
-
-    const handleDownloadModel = async (modelId: number, type: "LORA" | "Checkpoint") => {
-        if (type !== "LORA") {
-            alert("Only LoRA download is supported by backend for now.");
-            return;
-        }
-        const userConfirm = confirm(`Download this LoRA (ID: ${modelId})? It may take a while.`);
-        if (!userConfirm) return;
-
-        try {
-            await axios.post(`${API_BASE}/loras/import-civitai/${modelId}`);
-            alert("Download started. Check database later.");
-        } catch {
-            alert("Download request failed");
-        }
-    };
-
-    const handleUpdateLora = async () => {
-        if (!editingLora) return;
-        setIsUpdatingLora(true);
-        try {
-            await axios.put(`${API_BASE}/loras/${editingLora.id}`, {
-                name: editingLora.name,
-                trigger_words: editingLora.trigger_words,
-                default_weight: editingLora.default_weight,
-            });
-            setEditingLora(null);
-            await fetchPublicLoras();
-        } catch {
-            alert("Failed to update LoRA");
-        } finally {
-            setIsUpdatingLora(false);
-        }
-    };
-
-    const handleDeleteLora = async (id: number) => {
-        if (!confirm("Delete this LoRA registration? (File/Weights might remain on disk, this removes DB entry)")) return;
-        try {
-            await axios.delete(`${API_BASE}/loras/${id}`);
-            await fetchPublicLoras();
-        } catch {
-            alert("Failed to delete LoRA");
-        }
-    };
+    const {
+        styleProfiles,
+        selectedProfile,
+        setSelectedProfile,
+        isStyleLoading,
+        handleCreateStyle,
+        handleDeleteStyle,
+        handleUpdateStyle,
+        handleDuplicateStyle,
+        handleLoadProfile,
+        sdModels,
+        embeddings,
+        loraEntries,
+        editingLora,
+        setEditingLora,
+        isUpdatingLora,
+        handleUpdateLora,
+        handleDeleteLora,
+        civitaiSearch,
+        setCivitaiSearch,
+        civitaiResults,
+        isSearchingCivitai,
+        handleCivitaiSearch,
+        handleDownloadModel,
+    } = useStyleTab();
 
     return (
         <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
