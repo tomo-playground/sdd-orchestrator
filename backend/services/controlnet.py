@@ -52,6 +52,16 @@ POSE_MAPPING: dict[str, str] = {
     "crouching": "crouching_neutral.png",
     "pointing forward": "pointing_forward.png",
     "covering face": "covering_face.png",
+    # Daily life / interaction poses
+    "holding object": "holding_object.png",
+    "eating": "eating.png",
+    "cooking": "cooking.png",
+    "holding umbrella": "holding_umbrella.png",
+    "writing": "writing.png",
+    "profile standing": "profile_standing.png",
+    "standing looking up": "standing_looking_up.png",
+    "leaning wall": "leaning_wall.png",
+    "sitting eating": "sitting_eating.png",
 }
 
 # ControlNet models
@@ -131,11 +141,16 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
     Returns:
         Detected pose name or None
     """
-    # Priority order for pose detection
+    # Priority order for pose detection (specific actions before generic)
     pose_priority = [
+        "eating", "cooking", "writing", "holding umbrella", "holding object",
         "waving", "arms up", "arms crossed", "hands on hips",
         "jumping", "running", "walking",
+        "sitting eating", "leaning wall", "standing looking up", "profile standing",
         "chin rest", "leaning",
+        "covering face", "pointing forward",
+        "lying", "kneeling", "crouching",
+        "looking at viewer", "from behind",
         "sitting", "standing",
     ]
 
@@ -157,6 +172,15 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
         "walking": ["walk", "stroll", "strolling"],
         "sitting": ["seated", "sits", "chair", "bench", "couch", "sofa"],
         "standing": ["stands", "wait", "waiting"],
+        "holding object": ["holding", "carrying", "gripping"],
+        "eating": ["eating", "chewing", "chopsticks"],
+        "cooking": ["cooking", "chef", "preparing_food"],
+        "holding umbrella": ["umbrella", "holding_umbrella", "parasol"],
+        "writing": ["writing", "drawing", "sketching", "pencil"],
+        "profile standing": ["profile", "side_view", "side_profile"],
+        "standing looking up": ["looking_up", "low_angle", "gazing_up"],
+        "leaning wall": ["leaning_against_wall", "leaning_on_wall", "wall_lean"],
+        "sitting eating": ["sitting_eating", "dining", "meal"],
     }
 
     cleaned_tags = []
@@ -545,6 +569,7 @@ def build_combined_controlnet_args(
             input_image=pose_image,
             model="openpose",
             weight=pose_weight,
+            preprocessor="none",
         ))
 
     if reference_image:

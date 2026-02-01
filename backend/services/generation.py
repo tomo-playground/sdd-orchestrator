@@ -307,7 +307,8 @@ def _apply_controlnet(
                     input_image=pose_image,
                     model="openpose",
                     weight=request.controlnet_weight,
-                    control_mode="Balanced"
+                    control_mode="Balanced",
+                    preprocessor="none",
                 ))
                 controlnet_used = pose_name
                 logger.info("🎭 [ControlNet] Using pose: %s (weight=%.1f)", pose_name, request.controlnet_weight)
