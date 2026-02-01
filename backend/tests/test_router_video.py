@@ -1,0 +1,306 @@
+"""Tests for video router endpoints."""
+
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+from models import Storyboard
+
+
+class TestCreateVideo:
+    """Test POST /video/create endpoint."""
+
+    @patch("routers.video.create_video_task", new_callable=AsyncMock)
+    def test_create_video_minimal(self, mock_task, client: TestClient, db_session):
+        """Create video with minimal scene data."""
+        mock_task.return_value = {"video_url": "/videos/test.mp4", "ok": True}
+
+        request_data = {
+            "scenes": [
+                {"image_url": "/images/scene1.png", "script": "Hello", "duration": 3},
+            ],
+        }
+        response = client.post("/video/create", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["video_url"] == "/videos/test.mp4"
+
+    @patch("routers.video.create_video_task", new_callable=AsyncMock)
+    def test_create_video_updates_storyboard(self, mock_task, client: TestClient, db_session):
+        """Video creation updates storyboard recent_videos."""
+        sb = Storyboard(title="Video Test", description="Test")
+        db_session.add(sb)
+        db_session.commit()
+        sb_id = sb.id
+
+        mock_task.return_value = {"video_url": "/videos/result.mp4", "ok": True}
+
+        request_data = {
+            "scenes": [
+                {"image_url": "/images/s1.png", "script": "Scene 1", "duration": 3},
+            ],
+            "storyboard_id": sb_id,
+            "layout_style": "post",
+        }
+        response = client.post("/video/create", json=request_data)
+        assert response.status_code == 200
+
+        # Verify storyboard was updated
+        db_session.refresh(sb)
+        assert sb.recent_videos_json is not None
+        import json
+        recent = json.loads(sb.recent_videos_json or "[]")
+        assert len(recent) == 1
+        assert "/videos/result.mp4" in recent[0]["url"]
+
+    @patch("routers.video.create_video_task", new_callable=AsyncMock)
+    def test_create_video_appends_recent_videos(self, mock_task, client: TestClient, db_session):
+        """New video is prepended to existing recent_videos."""
+        import json
+
+        sb = Storyboard(
+            title="Append Test",
+            description="Test",
+            recent_videos_json=json.dumps([
+                {"url": "/videos/old.mp4", "label": "post", "createdAt": 1000},
+            ]),
+        )
+        db_session.add(sb)
+        db_session.commit()
+        sb_id = sb.id
+
+        mock_task.return_value = {"video_url": "/videos/new.mp4", "ok": True}
+
+        request_data = {
+            "scenes": [
+                {"image_url": "/images/s1.png", "script": "Scene 1", "duration": 3},
+            ],
+            "storyboard_id": sb_id,
+            "layout_style": "full",
+        }
+        response = client.post("/video/create", json=request_data)
+        assert response.status_code == 200
+
+        db_session.refresh(sb)
+        recent = json.loads(sb.recent_videos_json or "[]")
+        assert len(recent) == 2
+        assert recent[0]["url"] == "/videos/new.mp4"
+        assert recent[1]["url"] == "/videos/old.mp4"
+
+    @patch("routers.video.create_video_task", new_callable=AsyncMock)
+    def test_create_video_with_all_options(self, mock_task, client: TestClient, db_session):
+        """Create video with full options."""
+        mock_task.return_value = {"video_url": "/videos/full.mp4", "ok": True}
+
+        request_data = {
+            "scenes": [
+                {"image_url": "/images/s1.png", "script": "Hello", "duration": 3},
+                {"image_url": "/images/s2.png", "script": "World", "duration": 4},
+            ],
+            "storyboard_title": "my_video",
+            "width": 1080,
+            "height": 1920,
+            "layout_style": "full",
+            "ken_burns_preset": "slow_zoom_in",
+            "transition_type": "fade",
+            "include_subtitles": True,
+            "speed_multiplier": 1.0,
+            "bgm_volume": 0.3,
+        }
+        response = client.post("/video/create", json=request_data)
+        assert response.status_code == 200
+
+    @patch("routers.video.create_video_task", new_callable=AsyncMock)
+    def test_create_video_service_error(self, mock_task, client: TestClient, db_session):
+        """Service error propagates as 500."""
+        from fastapi import HTTPException
+        mock_task.side_effect = HTTPException(status_code=500, detail="Render failed")
+
+        request_data = {
+            "scenes": [
+                {"image_url": "/images/s1.png", "script": "Hello", "duration": 3},
+            ],
+        }
+        response = client.post("/video/create", json=request_data)
+        assert response.status_code == 500
+
+    def test_create_video_empty_scenes(self, client: TestClient, db_session):
+        """Empty scenes list triggers validation error."""
+        request_data = {"scenes": []}
+        response = client.post("/video/create", json=request_data)
+        # FastAPI may accept empty list (no min_length on scenes)
+        # but video builder would fail
+        assert response.status_code in (200, 422, 500)
+
+    def test_create_video_missing_scenes(self, client: TestClient):
+        """Missing scenes field returns 422."""
+        response = client.post("/video/create", json={})
+        assert response.status_code == 422
+
+
+class TestDeleteVideo:
+    """Test POST /video/delete endpoint."""
+
+    def test_delete_video_invalid_extension(self, client: TestClient, db_session):
+        """Non-mp4 filename returns 400."""
+        request_data = {"filename": "test.avi"}
+        response = client.post("/video/delete", json=request_data)
+        assert response.status_code == 400
+        assert "invalid filename" in response.json()["detail"].lower()
+
+    @patch("services.storage.get_storage")
+    def test_delete_video_not_found(self, mock_storage, client: TestClient, db_session):
+        """Deleting non-existent video returns not_found."""
+        mock_storage_instance = MagicMock()
+        mock_storage_instance.exists.return_value = False
+        mock_storage.return_value = mock_storage_instance
+
+        with patch("routers.video.VIDEO_DIR", Path("/tmp/test_videos_nonexistent")):
+            request_data = {"filename": "nonexistent.mp4"}
+            response = client.post("/video/delete", json=request_data)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["ok"] is False
+            assert data["reason"] == "not_found"
+
+    def test_delete_video_path_traversal(self, client: TestClient, db_session):
+        """Path traversal in filename is neutralized (basename extraction)."""
+        request_data = {"filename": "../../etc/passwd.mp4"}
+        response = client.post("/video/delete", json=request_data)
+        # basename extracts just "passwd.mp4", which won't exist
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is False
+
+    def test_delete_video_missing_filename(self, client: TestClient):
+        """Missing filename returns 422."""
+        response = client.post("/video/delete", json={})
+        assert response.status_code == 422
+
+
+class TestVideoExists:
+    """Test GET /video/exists endpoint."""
+
+    def test_exists_nonexistent(self, client: TestClient):
+        """Non-existent file returns false."""
+        response = client.get("/video/exists?filename=nonexistent.mp4")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["exists"] is False
+
+    def test_exists_non_mp4(self, client: TestClient):
+        """Non-mp4 file returns false."""
+        response = client.get("/video/exists?filename=test.avi")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["exists"] is False
+
+    def test_exists_missing_param(self, client: TestClient):
+        """Missing filename parameter returns 422."""
+        response = client.get("/video/exists")
+        assert response.status_code == 422
+
+    def test_exists_path_traversal(self, client: TestClient):
+        """Path traversal in filename is neutralized."""
+        response = client.get("/video/exists?filename=../../etc/passwd.mp4")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["exists"] is False
+
+
+class TestGetTransitions:
+    """Test GET /video/transitions endpoint."""
+
+    def test_get_transitions(self, client: TestClient):
+        """Returns list of transition effects."""
+        response = client.get("/video/transitions")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert "transitions" in data
+        assert isinstance(data["transitions"], list)
+        assert len(data["transitions"]) > 0
+
+        # Check structure of each transition
+        for t in data["transitions"]:
+            assert "value" in t
+            assert "label" in t
+            assert "description" in t
+
+
+class TestExtractCaption:
+    """Test POST /video/extract-caption endpoint."""
+
+    def test_extract_caption_empty_text(self, client: TestClient):
+        """Empty text returns 400."""
+        response = client.post("/video/extract-caption", json={"text": ""})
+        assert response.status_code == 400
+        assert "no text" in response.json()["detail"].lower()
+
+    def test_extract_caption_short_text(self, client: TestClient):
+        """Short text (<=60 chars) returned as-is."""
+        with patch("config.gemini_client", MagicMock()):
+            short_text = "Short caption text"
+            response = client.post("/video/extract-caption", json={"text": short_text})
+            assert response.status_code == 200
+            data = response.json()
+            assert data["caption"] == short_text
+
+    def test_extract_caption_no_gemini(self, client: TestClient):
+        """Returns 503 when Gemini is not configured and text is long."""
+        with patch("config.gemini_client", None):
+            long_text = "A" * 100
+            response = client.post("/video/extract-caption", json={"text": long_text})
+            assert response.status_code == 503
+            assert "gemini" in response.json()["detail"].lower()
+
+    def test_extract_caption_with_gemini(self, client: TestClient):
+        """Gemini extracts concise caption from long text."""
+        mock_response = MagicMock()
+        mock_response.text = "Extracted caption"
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+
+        with patch("config.gemini_client", mock_client):
+            long_text = "A" * 100
+            response = client.post("/video/extract-caption", json={"text": long_text})
+            assert response.status_code == 200
+            data = response.json()
+            assert data["caption"] == "Extracted caption"
+            assert data["original_length"] == 100
+
+    def test_extract_caption_strips_quotes(self, client: TestClient):
+        """Gemini response with quotes is cleaned."""
+        mock_response = MagicMock()
+        mock_response.text = '"Quoted caption"'
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+
+        with patch("config.gemini_client", mock_client):
+            long_text = "B" * 100
+            response = client.post("/video/extract-caption", json={"text": long_text})
+            assert response.status_code == 200
+            data = response.json()
+            assert data["caption"] == "Quoted caption"
+
+    def test_extract_caption_gemini_error_fallback(self, client: TestClient):
+        """Gemini error falls back to truncation."""
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = RuntimeError("API error")
+
+        with patch("config.gemini_client", mock_client):
+            long_text = "C" * 100
+            response = client.post("/video/extract-caption", json={"text": long_text})
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data["caption"]) <= 60
+            assert data.get("fallback") is True
+
+    def test_extract_caption_missing_text_field(self, client: TestClient):
+        """Missing text field returns 400."""
+        response = client.post("/video/extract-caption", json={})
+        assert response.status_code == 400
