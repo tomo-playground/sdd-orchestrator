@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 from fastapi import HTTPException
 
@@ -8,6 +9,34 @@ from config import DEFAULT_SCENE_NEGATIVE_PROMPT, GEMINI_TEXT_MODEL, gemini_clie
 from schemas import StoryboardRequest
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure
+
+
+def strip_markdown_codeblock(text: str) -> str:
+    """Strip markdown code block fences from Gemini response text.
+
+    Handles variations: ```json, ```JSON, ``` with/without language tag,
+    leading/trailing whitespace, and text outside the code block.
+    """
+    # Match ```<optional lang>\n<content>\n``` (case-insensitive, dotall)
+    pattern = r"```(?:json|JSON)?\s*\n?(.*?)\n?\s*```"
+    match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    # No code block found -- return stripped original text
+    return text.strip()
+
+
+def normalize_scene_tags_key(scenes: list[dict]) -> list[dict]:
+    """Rename 'scene_tags' to 'context_tags' if present in Gemini output.
+
+    The Jinja2 template historically asked Gemini for 'scene_tags', but the
+    backend and DB model expect 'context_tags'.  This normalizer bridges the
+    gap so both field names work seamlessly.
+    """
+    for scene in scenes:
+        if "scene_tags" in scene and "context_tags" not in scene:
+            scene["context_tags"] = scene.pop("scene_tags")
+    return scenes
 
 
 def create_storyboard(request: StoryboardRequest) -> dict:
@@ -72,7 +101,9 @@ def create_storyboard(request: StoryboardRequest) -> dict:
 
             raise ValueError(f"Gemini returned empty response. Reason: {error_reason}")
 
-        scenes = json.loads(res.text.strip().replace("```json", "").replace("```", ""))
+        cleaned = strip_markdown_codeblock(res.text)
+        scenes = json.loads(cleaned)
+        scenes = normalize_scene_tags_key(scenes)
         for scene in scenes:
             from config import ENABLE_DANBOORU_VALIDATION, logger
             from services.keywords import filter_prompt_tokens

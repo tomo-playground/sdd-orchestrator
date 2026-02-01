@@ -30,10 +30,11 @@ class Storyboard(Base, TimestampMixin):
 
     # Results
     # video_url column removed
-    video_asset_id: Mapped[int | None] = mapped_column()
+    video_asset_id: Mapped[int | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL"),
+    )
     video_asset: Mapped[MediaAsset | None] = relationship(
-        primaryjoin="Storyboard.video_asset_id == MediaAsset.id",
-        foreign_keys=[video_asset_id], viewonly=True,
+        foreign_keys=[video_asset_id],
     )
 
     @property

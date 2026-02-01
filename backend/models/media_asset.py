@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Integer, String
+from sqlalchemy import BigInteger, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin
@@ -15,12 +15,15 @@ class MediaAsset(Base, TimestampMixin):
     """Registry of all media files (images, videos, audio) stored in local or cloud storage."""
 
     __tablename__ = "media_assets"
+    __table_args__ = (
+        Index("ix_media_assets_owner", "owner_type", "owner_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     # Generic Relationship (Polymorphic)
-    owner_type: Mapped[str | None] = mapped_column(String(50), index=True, nullable=True)  # e.g. 'project', 'storyboard', 'scene'
-    owner_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    owner_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    owner_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Garbage Collection Flag
     is_temp: Mapped[bool] = mapped_column(default=False, index=True)
@@ -41,6 +44,18 @@ class MediaAsset(Base, TimestampMixin):
 
     @property
     def url(self) -> str:
-        from services.storage import initialize_storage
-        storage = initialize_storage()
+        from services.storage import get_storage
+        storage = get_storage()
         return storage.get_url(self.storage_key)
+
+    @property
+    def local_path(self) -> str:
+        """Resolve the local filesystem path for this asset.
+
+        For local storage, returns the direct path.
+        For S3 storage, downloads to cache first, then returns the cached path.
+        Returns the path as a string for compatibility with os.path and open().
+        """
+        from services.storage import get_storage
+        storage = get_storage()
+        return str(storage.get_local_path(self.storage_key))

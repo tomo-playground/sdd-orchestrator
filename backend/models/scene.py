@@ -20,7 +20,7 @@ class Scene(Base, TimestampMixin):
     __tablename__ = "scenes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    storyboard_id: Mapped[int] = mapped_column(Integer, ForeignKey("storyboards.id"), index=True)
+    storyboard_id: Mapped[int] = mapped_column(Integer, ForeignKey("storyboards.id", ondelete="CASCADE"), index=True)
     order: Mapped[int] = mapped_column(Integer, default=0)
 
     script: Mapped[str | None] = mapped_column(Text)
@@ -61,10 +61,11 @@ class Scene(Base, TimestampMixin):
     # Generated Image Path
     # Generated Image Path
     # image_url column removed, use property below
-    image_asset_id: Mapped[int | None] = mapped_column()
+    image_asset_id: Mapped[int | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL"),
+    )
     image_asset: Mapped["MediaAsset | None"] = relationship(
-        primaryjoin="Scene.image_asset_id == MediaAsset.id",
-        foreign_keys=[image_asset_id], viewonly=True,
+        foreign_keys=[image_asset_id],
     )
 
     @property

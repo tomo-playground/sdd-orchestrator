@@ -1,6 +1,6 @@
 """Tag model for Pure V3 Prompt Engine."""
 
-from sqlalchemy import Index, Integer, String
+from sqlalchemy import ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin
@@ -68,8 +68,12 @@ class TagRule(Base, TimestampMixin):
     rule_type: Mapped[str] = mapped_column(String(20))  # conflict, requires
 
     # Tag-level conflicts (individual tags)
-    source_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
-    target_tag_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    source_tag_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("tags.id", ondelete="CASCADE"), index=True, nullable=True,
+    )
+    target_tag_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("tags.id", ondelete="CASCADE"), index=True, nullable=True,
+    )
 
     # Removed (Phase 6-4.26): source_category, target_category
     # Reason: Never used (0/16 rules), logically unnecessary

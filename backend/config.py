@@ -183,6 +183,23 @@ logger.info(
     GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
 )
 
+# --- FFmpeg / Video Encoding Defaults ---
+# Output video FPS (used by zoompan, encoding, and frame calculations)
+VIDEO_FPS = int(os.getenv("VIDEO_FPS", "30"))
+# H.264 Constant Rate Factor (0=lossless, 18=visually lossless, 23=default, 51=worst)
+VIDEO_CRF = int(os.getenv("VIDEO_CRF", "20"))
+# x264 encoding preset (ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow)
+VIDEO_PRESET = os.getenv("VIDEO_PRESET", "medium")
+# Video codec
+VIDEO_CODEC = os.getenv("VIDEO_CODEC", "libx264")
+# Pixel format (yuv420p for maximum compatibility)
+VIDEO_PIX_FMT = os.getenv("VIDEO_PIX_FMT", "yuv420p")
+# Audio codec and bitrate
+AUDIO_CODEC = os.getenv("AUDIO_CODEC", "aac")
+AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "192k")
+# FFmpeg subprocess timeout in seconds (prevents infinite hangs)
+FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "600"))
+
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
 DEFAULT_CHARACTER_PRESET = {

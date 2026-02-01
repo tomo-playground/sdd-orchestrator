@@ -26,10 +26,11 @@ class SDModel(Base, TimestampMixin):
     civitai_url: Mapped[str | None] = mapped_column(String(500))
     description: Mapped[str | None] = mapped_column(Text)
     # preview_image_url column removed
-    preview_image_asset_id: Mapped[int | None] = mapped_column()
+    preview_image_asset_id: Mapped[int | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL"),
+    )
     preview_image_asset: Mapped["MediaAsset"] = relationship(
-        primaryjoin="SDModel.preview_image_asset_id == MediaAsset.id",
-        foreign_keys=[preview_image_asset_id], viewonly=True,
+        foreign_keys=[preview_image_asset_id],
     )
 
     @property

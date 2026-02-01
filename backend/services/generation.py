@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 
 import httpx
 from fastapi import HTTPException
@@ -26,6 +27,20 @@ from services.prompt import (
     split_prompt_tokens,
 )
 from services.prompt.v3_service import V3PromptService
+
+
+@contextmanager
+def get_db_session():
+    """Context manager for safe DB session lifecycle.
+
+    Ensures session.close() is always called, preventing leaks
+    that occurred with the old next(get_db()) pattern.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 def apply_style_profile_to_prompt(
@@ -121,7 +136,12 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     if not request.prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
-    db = SessionLocal()
+    with get_db_session() as db:
+        return await _generate_scene_image_with_db(request, db)
+
+
+async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> dict:
+    """Internal generation logic with an externally managed DB session."""
     try:
         # Apply Style Profile from Storyboard (if specified)
         request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
@@ -191,7 +211,6 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     except Exception as e:
         logger.error(f"Error during prompt preparation: {e}")
         cleaned_prompt = normalize_prompt_tokens(request.prompt)
-    # We keep db open for later IP-adapter use
 
     # Detect complexity and adjust parameters
     tokens = split_prompt_tokens(cleaned_prompt)
@@ -420,8 +439,4 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
     except httpx.HTTPError as exc:
         logger.exception("Scene generation failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    finally:
-        db.close()
-
-
 

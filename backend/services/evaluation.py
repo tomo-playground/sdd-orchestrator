@@ -305,7 +305,7 @@ async def run_single_evaluation(
     from PIL import Image
 
     from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL
-    from models import Character, EvaluationRun, LoRA, Tag
+    from models import Character, EvaluationRun, LoRA
     from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
     test = get_test_prompt(test_name)
@@ -326,15 +326,13 @@ async def run_single_evaluation(
         if character:
             character_name = character.name
 
-            # Resolve identity tags
-            if character.identity_tags:
-                tags = db.query(Tag).filter(Tag.id.in_(character.identity_tags)).all()
-                identity_tags = [t.name for t in tags]
-
-            # Resolve clothing tags
-            if character.clothing_tags:
-                tags = db.query(Tag).filter(Tag.id.in_(character.clothing_tags)).all()
-                clothing_tags = [t.name for t in tags]
+            # V3: Resolve tags via CharacterTag relationship
+            for ct in character.tags:
+                tag = ct.tag
+                if tag and tag.category in ("hair", "eyes", "body", "face"):
+                    identity_tags.append(tag.name)
+                elif tag and tag.category in ("clothing", "accessory"):
+                    clothing_tags.append(tag.name)
 
             # Resolve LoRAs (for lora mode)
             if mode == "lora" and character.loras:

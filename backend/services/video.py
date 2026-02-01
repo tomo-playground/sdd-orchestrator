@@ -18,9 +18,17 @@ import edge_tts
 from fastapi import HTTPException
 
 from config import (
+    AUDIO_BITRATE,
+    AUDIO_CODEC,
+    FFMPEG_TIMEOUT_SECONDS,
     IMAGE_DIR,
     STORAGE_MODE,
+    VIDEO_CODEC,
+    VIDEO_CRF,
     VIDEO_DIR,
+    VIDEO_FPS,
+    VIDEO_PIX_FMT,
+    VIDEO_PRESET,
     logger,
 )
 from database import SessionLocal
@@ -655,7 +663,7 @@ class VideoBuilder:
             clip_dur = base_dur + (
                 self.transition_dur if i < self.num_scenes - 1 else 0
             )
-            motion_frames = max(1, int(clip_dur * 25))
+            motion_frames = max(1, int(clip_dur * VIDEO_FPS))
 
             # Step 1: Scale/Crop image (base preparation)
             if self.use_post_layout:
@@ -671,7 +679,8 @@ class VideoBuilder:
             else:
                 params = get_preset(preset_name)
                 zoompan = build_zoompan_filter(
-                    params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity
+                    params, self.out_w, self.out_h, motion_frames, self.ken_burns_intensity,
+                    fps=VIDEO_FPS,
                 )
                 self.filters.append(f"[v{i}_scaled]{zoompan}[v{i}_kb]")
 
@@ -937,16 +946,28 @@ class VideoBuilder:
             "-map", self._map_v,
             "-map", self._map_a,
             "-s", f"{self.out_w}x{self.out_h}",
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-preset", "medium",
-            "-c:a", "aac",
-            "-b:a", "192k",
+            "-r", str(VIDEO_FPS),
+            "-c:v", VIDEO_CODEC,
+            "-pix_fmt", VIDEO_PIX_FMT,
+            "-preset", VIDEO_PRESET,
+            "-crf", str(VIDEO_CRF),
+            "-movflags", "+faststart",
+            "-c:a", AUDIO_CODEC,
+            "-b:a", AUDIO_BITRATE,
             str(self.video_path),
         ]
 
-        logger.info("Running FFmpeg")
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        logger.info("Running FFmpeg (timeout=%ds)", FFMPEG_TIMEOUT_SECONDS)
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True,
+                timeout=FFMPEG_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired:
+            logger.error("FFmpeg timed out after %d seconds", FFMPEG_TIMEOUT_SECONDS)
+            raise Exception(
+                f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds"
+            )
         if result.returncode != 0:
             logger.error("FFmpeg failed: %s", result.stderr)
             raise Exception(result.stderr)
