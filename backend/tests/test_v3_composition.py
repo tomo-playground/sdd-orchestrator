@@ -99,29 +99,21 @@ class TestFlattenLayers:
         assert tokens.count("(1boy:1.3)") == 1
         assert "1boy" not in tokens
 
-    def test_break_insertion_with_lora(self, builder):
-        """BREAK after L6 when character LoRA is active."""
+    def test_no_break_in_single_context(self, builder):
+        """BREAK is never inserted - single context for better scene control."""
         layers = [[] for _ in range(12)]
         layers[LAYER_QUALITY] = ["masterpiece"]
         layers[LAYER_SUBJECT] = ["1girl"]
         layers[LAYER_EXPRESSION] = ["smile"]
+        layers[LAYER_ACTION] = ["standing"]
+        layers[LAYER_ENVIRONMENT] = ["park", "outdoors"]
 
-        result = builder._flatten_layers(layers, has_character_lora=True)
-        tokens = [t.strip() for t in result.split(",")]
-        assert "BREAK" in tokens
-        # BREAK should come before expression tokens
-        break_idx = tokens.index("BREAK")
-        smile_idx = tokens.index("(smile:1.1)")
-        assert break_idx < smile_idx
-
-    def test_no_break_without_lora(self, builder):
-        """No BREAK when no character LoRA."""
-        layers = [[] for _ in range(12)]
-        layers[LAYER_QUALITY] = ["masterpiece"]
-        layers[LAYER_EXPRESSION] = ["smile"]
-
-        result = builder._flatten_layers(layers, has_character_lora=False)
+        result = builder._flatten_layers(layers)
         assert "BREAK" not in result
+        # All tokens in single context
+        assert "masterpiece" in result
+        assert "(smile:1.1)" in result
+        assert "park" in result
 
     def test_expression_action_weight_boost(self, builder):
         """L7 (Expression) and L8 (Action) get :1.1 boost."""

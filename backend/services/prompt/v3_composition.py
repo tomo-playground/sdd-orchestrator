@@ -212,7 +212,7 @@ class V3PromptBuilder:
             idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
             layers[LAYER_QUALITY].insert(idx, "best_quality")
 
-        return self._flatten_layers(layers, has_character_lora=bool(active_loras))
+        return self._flatten_layers(layers, )
 
     def compose(
         self,
@@ -287,7 +287,7 @@ class V3PromptBuilder:
             idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
             layers[LAYER_QUALITY].insert(idx, "best_quality")
 
-        return self._flatten_layers(layers, has_character_lora=bool(character_loras))
+        return self._flatten_layers(layers, )
 
     def _resolve_aliases(self, tags: list[str]) -> list[str]:
         """Replace aliased tags using TagAliasCache.
@@ -341,8 +341,8 @@ class V3PromptBuilder:
             t = t[1:].split(":")[0]
         return t
 
-    def _flatten_layers(self, layers: list[list[str]], has_character_lora: bool = False) -> str:
-        """Flattens 12 layers into a final string with global deduplication, conflict resolution, and BREAK."""
+    def _flatten_layers(self, layers: list[list[str]]) -> str:
+        """Flattens 12 layers into a final string with global deduplication and conflict resolution."""
         # Initialize TagRuleCache for conflict detection
         TagRuleCache.initialize(self.db)
 
@@ -375,12 +375,6 @@ class V3PromptBuilder:
                     ]
 
                 final_tokens.extend(unique_layer_tokens)
-
-            # BREAK after Layer 6 (Accessory) if character LoRA is used
-            # This must trigger even if layer 6 is empty
-            if i == LAYER_ACCESSORY and has_character_lora:
-                if final_tokens and final_tokens[-1] != "BREAK":
-                    final_tokens.append("BREAK")
 
         return ", ".join(final_tokens)
 

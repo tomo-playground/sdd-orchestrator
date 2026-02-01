@@ -224,11 +224,9 @@ def _adjust_parameters(
 
     if complexity == "complex":
         final_steps = max(final_steps, 28)
-        final_cfg = max(final_cfg, 8.0)
-        logger.info(f"⚡ [Complexity] Boosted parameters for complex scene: steps={final_steps}, cfg={final_cfg}")
+        logger.info(f"⚡ [Complexity] Boosted steps for complex scene: steps={final_steps}")
     elif complexity == "moderate":
         final_steps = max(final_steps, 25)
-        final_cfg = max(final_cfg, 7.5)
 
     # Apply optimal LoRA weights from calibration DB
     IP_ADAPTER_LORA_CAP = 0.6

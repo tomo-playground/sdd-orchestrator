@@ -49,7 +49,7 @@ export async function buildScenePrompt(
       tokens: sceneTokens,
       character_id: selectedCharacterId,
       context_tags: scene.context_tags || undefined,
-      use_break: true,
+      use_break: false,
     });
     if (res.data.prompt) return res.data.prompt;
   } catch {
