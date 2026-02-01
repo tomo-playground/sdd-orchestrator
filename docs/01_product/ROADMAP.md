@@ -97,19 +97,19 @@
 | # | 작업 | 우선순위 | 상태 |
 |---|------|---------|------|
 | 1 | Gemini JSON 파싱 강화 (마크다운 코드블록 제거) | P0 | [x] |
-| 2 | `TagRuleCache` 충돌 규칙 V3 compose 연동 | P1 | [ ] |
-| 3 | `restricted_tags` DB 이관 (하드코딩 제거) | P1 | [ ] |
-| 4 | DB-missing 태그 패턴 기반 fallback (전부 LAYER_SUBJECT 방지) | P1 | [ ] |
+| 2 | `TagRuleCache` 충돌 규칙 V3 compose 연동 | P1 | [x] |
+| 3 | `restricted_tags` DB 이관 (하드코딩 제거) | P1 | [x] |
+| 4 | DB-missing 태그 패턴 기반 fallback (전부 LAYER_SUBJECT 방지) | P1 | [x] |
 | 5 | `scene_tags` vs `context_tags` 필드명 통일 | P1 | [x] |
-| 6 | `_DB_GROUP_TO_GEMINI_CATEGORY` 매핑 12-Layer 정렬 | P1 | [ ] |
+| 6 | `_DB_GROUP_TO_GEMINI_CATEGORY` 매핑 12-Layer 정렬 | P1 | [x] |
 
 #### Batch E: Frontend & Docs (Frontend + PM)
 | # | 작업 | 우선순위 | 상태 |
 |---|------|---------|------|
-| 1 | `API_BASE` 중복 해소 (단일 env 변수) | P1 | [ ] |
-| 2 | `useTags` hook 카테고리 의존성 수정 | P1 | [ ] |
-| 3 | `validation.py` SessionLocal → DI 전환 | P0 | [ ] |
-| 4 | `CLAUDE.md` 버전 정보 현행화 (Next.js 16, React 19, Zustand 5) | P1 | [ ] |
+| 1 | `API_BASE` 중복 해소 (단일 env 변수) | P1 | [x] |
+| 2 | `useTags` hook 카테고리 의존성 수정 | P1 | [x] |
+| 3 | `validation.py` SessionLocal → DI 전환 | P0 | [x] |
+| 4 | `CLAUDE.md` 버전 정보 현행화 (Next.js 15, React 19, Zustand 5) | P1 | [x] |
 
 **DoD**: DB session leak 0건, FK/인덱스 마이그레이션 적용, 고아 정리 완료, 기존 테스트 전량 통과.
 
@@ -133,6 +133,7 @@
 | 9 | `TEST_STRATEGY.md` 수치 갱신 | 테스트 | [ ] |
 | 10 | Error Boundary 구현 (Frontend) | 아키텍처 | [ ] |
 | 11 | 비동기 Gemini API 전환 + 재시도/폴백 | 아키텍처 | [ ] |
+| 12 | `image_url` 형태 통일 (전체 URL vs 상대 경로 혼재 해결) | 데이터 정합성 | [ ] |
 
 **DoD**: 400줄 초과 코드 파일 0건, 라우터 테스트 커버리지 20/24+.
 
