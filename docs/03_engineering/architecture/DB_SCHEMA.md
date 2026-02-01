@@ -1,4 +1,4 @@
-# Database Schema (v3.2)
+# Database Schema (v3.3)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.3 | 2026-02-02 | `projects`, `groups`, `scene_quality_scores` 테이블 추가, `activity_logs`에 Gemini 트래킹 컬럼 추가, `media_assets`에 `is_temp`/`checksum` 추가, `storyboards`에 `default_caption` 반영 |
 | v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
 | v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
 | v3.0 | 2026-01-30 | V3 아키텍처: Storyboard-Centric, Relational Tags, Activity Logs, Tag Aliases/Filters |
@@ -18,9 +19,12 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 ```mermaid
 erDiagram
+    projects ||--o{ groups : "contains"
+    groups ||--o{ storyboards : "contains"
     storyboards ||--o{ scenes : "has"
     scenes ||--o{ scene_tags : "has"
     scenes ||--o{ scene_character_actions : "has"
+    scenes ||--o{ scene_quality_scores : "evaluated_by"
 
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
@@ -47,10 +51,35 @@ erDiagram
 
 ---
 
-## 📦 Core: Storyboard System
+## 📦 Core: Channel & Storyboard System
+
+### `projects`
+YouTube 채널 단위. 채널별 설정을 관리합니다.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `name` | String(200) | 채널/프로젝트 이름 |
+| `description` | Text | 설명 |
+| `avatar_asset_id` | Integer (FK → media_assets) | 아바타 이미지 |
+| `handle` | String(100) | 채널 핸들 (@...) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+### `groups`
+프로젝트 내의 개별 시리즈 또는 카테고리.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `project_id` | Integer (FK → projects) | 소속 프로젝트 |
+| `name` | String(200) | 시리즈 이름 |
+| `description` | Text | 설명 |
+| `default_bgm_file` | String(255) | 기본 BGM 경로 |
+| `default_narrator_voice` | String(100) | 기본 성우 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `storyboards`
-YouTube Shorts 프로젝트 단위.
+YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -59,14 +88,13 @@ YouTube Shorts 프로젝트 단위.
 | `description` | Text | 설명 |
 | `default_character_id` | Integer | 기본 캐릭터 |
 | `default_style_profile_id` | Integer | 기본 스타일 프로파일 |
-| `default_caption` | String(500), nullable | 기본 캡션 텍스트 (Post Layout용) |
+| `default_caption` | Text, nullable | 기본 캡션 텍스트 (Post Layout용) |
 | `video_asset_id` | Integer (FK → media_assets) | 최신 렌더링 영상 (폴리모픽 참조) |
-| `recent_videos_json` | JSONB | 최근 렌더링 이력 (최대 5개) |
+| `recent_videos_json` | Text | 최근 렌더링 이력 (JSON 스트링) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `video_url` (`@property`): `video_asset.url` 반환
-- `recent_videos` (`@property`): `recent_videos_json` 파싱 결과
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -285,13 +313,15 @@ WD14 피드백 루프 데이터.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `file_name` | String(500) | 원본 파일명 |
-| `file_type` | String(50) | `image`, `video`, `audio` |
-| `storage_key` | String(1000) | 스토리지 경로 (버킷명 제외, 상대 경로만) |
+| `owner_type` | String(50) | 폴리모픽 타입 (`character`, `scene`, `lora`, `sdmodel`, `storyboard`, `project`) |
+| `owner_id` | Integer | 폴리모픽 ID |
+| `file_name` | String(255) | 원본 파일명 |
+| `file_type` | String(20) | `image`, `video`, `audio`, `cache`, `candidate` |
+| `storage_key` | String(500) | 스토리지 경로 |
 | `file_size` | BigInteger | 파일 크기 (bytes) |
 | `mime_type` | String(100) | `image/png`, `video/mp4` 등 |
-| `owner_type` | String(50) | 폴리모픽 타입 (`character`, `scene`, `lora`, `sdmodel`, `storyboard`) |
-| `owner_id` | Integer | 폴리모픽 ID |
+| `is_temp` | Boolean | 임시 파일 여부 (GC 대상) |
+| `checksum` | String(64) | 파일 SHA-256 해시 |
 | `created_at` | DateTime | 생성 시각 |
 
 **특징**:
@@ -437,16 +467,41 @@ Textual Inversion 임베딩.
 | `id` | Integer (PK) | |
 | `storyboard_id` | Integer (nullable) | 소속 스토리보드 (FK 제거됨, NULL 허용) |
 | `scene_id` | Integer | 씬 인덱스 |
-| `character_id` | Integer | 캐릭터 ID (Character Consistency 추적용) |
+| `character_id` | Integer | 캐릭터 ID |
 | `prompt` | Text | 사용된 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `sd_params` | JSONB | `{steps, cfg_scale, sampler, ...}` |
 | `seed` | BigInteger | 생성 시드 |
-| `image_url` | String(500) | 생성 이미지 경로 |
+| `image_storage_key` | String(500) | 생성 이미지 경로 |
 | `match_rate` | Float | WD14 매치율 |
 | `tags_used` | JSONB | 사용된 태그 배열 |
 | `status` | String(20) | `success`, `fail` |
+| `gemini_edited` | Boolean | Gemini 자동 편집 여부 |
+| `gemini_cost_usd` | Float | Gemini 편집 비용 |
+| `original_match_rate` | Float | 편집 전 매치율 |
+| `final_match_rate` | Float | 편집 후 매치율 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `image_url` (`@property`): `image_storage_key` 기반 URL 반환
+
+### `scene_quality_scores`
+장면별 품질 점수 및 WD14 검증 결과 전용 스토어.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `storyboard_id` | Integer | 스토리보드 ID |
+| `scene_id` | Integer | 씬 인덱스 |
+| `image_storage_key` | String(500) | 이미지 경로 |
+| `prompt` | Text | 사용된 프롬프트 |
+| `match_rate` | Float | WD14 매치율 |
+| `matched_tags`, `missing_tags`, `extra_tags` | JSONB | 상세 태그 분석 결과 |
+| `validated_at` | DateTime | 검증 일시 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `image_url` (`@property`): `image_storage_key` 기반 URL 반환
 
 > v3.0: `generation_logs` → `activity_logs`로 이름 변경 및 통합
 > **Removed** (Phase 6-4.26): `is_favorite`, `name` - 즐겨찾기 기능 미구현 (0 usage, 0 data)
