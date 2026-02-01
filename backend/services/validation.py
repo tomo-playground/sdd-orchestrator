@@ -186,30 +186,42 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
 
         # Create/Update validation score in DB (if db session provided)
         if db is not None:
-            image_url = f"/outputs/images/scene_{hashlib.sha1(image_bytes).hexdigest()[:16]}.png"  # dummy or resolved path
-
             # Use scene_id (DB PK) if provided, fallback to scene_index
             actual_scene_id = request.scene_id or request.scene_index or 0
 
-            _save_scene_quality_score(
-                db=db,
-                storyboard_id=request.storyboard_id,
-                scene_id=actual_scene_id,
-                image_url=image_url,
-                prompt=request.prompt,
-                match_rate=match_rate,
-                matched=comparison["matched"],
-                missing=comparison["missing"],
-                extra=comparison["extra"]
-            )
+            # Resolve storage key from Scene's image_asset in DB
+            image_url = None
+            if request.scene_id:
+                from models.scene import Scene
+                scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+                if scene and scene.image_asset:
+                    image_url = scene.image_asset.storage_key
 
-            _update_activity_log_match_rate(
-                db=db,
-                storyboard_id=request.storyboard_id,
-                scene_id=actual_scene_id,
-                match_rate=match_rate,
-                image_url=image_url
-            )
+            if image_url:
+                _save_scene_quality_score(
+                    db=db,
+                    storyboard_id=request.storyboard_id,
+                    scene_id=actual_scene_id,
+                    image_url=image_url,
+                    prompt=request.prompt,
+                    match_rate=match_rate,
+                    matched=comparison["matched"],
+                    missing=comparison["missing"],
+                    extra=comparison["extra"]
+                )
+
+                _update_activity_log_match_rate(
+                    db=db,
+                    storyboard_id=request.storyboard_id,
+                    scene_id=actual_scene_id,
+                    match_rate=match_rate,
+                    image_url=image_url
+                )
+            else:
+                logger.debug(
+                    "Skipping quality score save: no image_asset for scene_id=%s",
+                    request.scene_id,
+                )
 
         return {
             "mode": "wd14",
