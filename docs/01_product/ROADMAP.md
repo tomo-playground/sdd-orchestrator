@@ -133,7 +133,7 @@
 | 9 | `TEST_STRATEGY.md` 수치 갱신 | 테스트 | [ ] |
 | 10 | Error Boundary 구현 (Frontend) | 아키텍처 | [ ] |
 | 11 | 비동기 Gemini API 전환 + 재시도/폴백 | 아키텍처 | [ ] |
-| 12 | `image_url` S3 스타일 정규화 (`s3://bucket/key` 또는 `bucket/key` 형태로 통일) | 데이터 정합성 | [ ] |
+| 12 | `image_storage_key` 정규화 (logging tables 컬럼 리네임 + URL 추출) | 데이터 정합성 | [x] |
 
 **DoD**: 400줄 초과 코드 파일 0건, 라우터 테스트 커버리지 20/24+.
 
