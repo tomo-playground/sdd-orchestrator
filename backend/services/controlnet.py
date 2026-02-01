@@ -478,7 +478,7 @@ def build_ip_adapter_args(
 
     # Use provided values or fall back to preset
     if weight is None:
-        weight = preset.get("weight", 0.75)
+        weight = preset.get("weight", 0.35)
     if model is None:
         model = preset.get("model", DEFAULT_IP_ADAPTER_MODEL)
 
@@ -569,7 +569,6 @@ def build_combined_controlnet_args(
             input_image=pose_image,
             model="openpose",
             weight=pose_weight,
-            preprocessor="none",
         ))
 
     if reference_image:

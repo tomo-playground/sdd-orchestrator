@@ -202,7 +202,8 @@ FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "600"))
 
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
+# weight=0.35: POC 30-scene 실험 검증값 (clip_face + no BREAK 최적)
 DEFAULT_CHARACTER_PRESET = {
-    "weight": 0.75,
+    "weight": 0.35,
     "model": "clip_face",
 }

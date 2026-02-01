@@ -155,7 +155,7 @@ class VideoDeleteRequest(BaseModel):
 class SceneGenerateRequest(BaseModel):
     prompt: str
     negative_prompt: str = ""
-    steps: int = 24
+    steps: int = 27
     cfg_scale: float = 7.0
     sampler_name: str = "DPM++ 2M Karras"
     seed: int = -1

@@ -180,7 +180,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             if character_obj.ip_adapter_weight:
                 request.ip_adapter_weight = character_obj.ip_adapter_weight
             else:
-                request.ip_adapter_weight = 0.75
+                request.ip_adapter_weight = 0.35
                 logger.info("✨ [Auto IP-Adapter] Enabled for character '%s' (weight=%.2f)",
                            character_obj.name, request.ip_adapter_weight)
     elif not character_obj:
@@ -308,7 +308,6 @@ def _apply_controlnet(
                     model="openpose",
                     weight=request.controlnet_weight,
                     control_mode="Balanced",
-                    preprocessor="none",
                 ))
                 controlnet_used = pose_name
                 logger.info("🎭 [ControlNet] Using pose: %s (weight=%.1f)", pose_name, request.controlnet_weight)

@@ -148,11 +148,21 @@ class TestPoseDetection:
         assert detect_pose_from_prompt(tags) is None
 
 
-class TestPreprocessorNone:
-    """Verify preprocessor='none' is applied for openpose."""
+class TestControlnetArgs:
+    """Verify ControlNet args builder for openpose."""
 
-    def test_build_controlnet_args_with_none_preprocessor(self):
-        """When preprocessor='none', module should be 'none'."""
+    def test_build_controlnet_args_default_preprocessor(self):
+        """Default openpose uses openpose module for runtime skeleton extraction."""
+        args = build_controlnet_args(
+            input_image="fake_b64",
+            model="openpose",
+            weight=1.0,
+        )
+        assert args["module"] == "openpose"
+        assert args["model"] == "control_v11p_sd15_openpose [cab727d4]"
+
+    def test_build_controlnet_args_explicit_preprocessor(self):
+        """Explicit preprocessor overrides default module."""
         args = build_controlnet_args(
             input_image="fake_b64",
             model="openpose",
@@ -160,22 +170,12 @@ class TestPreprocessorNone:
             preprocessor="none",
         )
         assert args["module"] == "none"
-        assert args["model"] == "control_v11p_sd15_openpose [cab727d4]"
 
-    def test_build_controlnet_args_default_preprocessor(self):
-        """Without explicit preprocessor, module defaults to model name."""
-        args = build_controlnet_args(
-            input_image="fake_b64",
-            model="openpose",
-            weight=1.0,
-        )
-        assert args["module"] == "openpose"
-
-    def test_combined_args_uses_none_preprocessor(self):
-        """build_combined_controlnet_args sets preprocessor='none' for pose."""
+    def test_combined_args_uses_default_preprocessor(self):
+        """build_combined_controlnet_args uses default openpose preprocessor."""
         args = build_combined_controlnet_args(
             pose_image="fake_b64",
             pose_weight=0.8,
         )
         assert len(args) == 1
-        assert args[0]["module"] == "none"
+        assert args[0]["module"] == "openpose"
