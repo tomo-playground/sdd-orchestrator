@@ -28,9 +28,17 @@ class ActivityLog(Base, TimestampMixin):
     seed: Mapped[int | None] = mapped_column(BigInteger)
 
     # Results & Quality
-    image_url: Mapped[str | None] = mapped_column(String(500))
+    image_storage_key: Mapped[str | None] = mapped_column(String(500))
     match_rate: Mapped[float | None] = mapped_column(Float, index=True)
     tags_used: Mapped[list[str] | None] = mapped_column(JSONB)
+
+    @property
+    def image_url(self) -> str | None:
+        """Generate URL from storage key at runtime (backward compatibility)."""
+        if not self.image_storage_key:
+            return None
+        from services.storage import get_storage
+        return get_storage().get_url(self.image_storage_key)
 
     # Status
     status: Mapped[str] = mapped_column(String(20), default="success")  # success, fail

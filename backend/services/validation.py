@@ -18,6 +18,47 @@ from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 from services.keywords import normalize_prompt_token
 
+
+def _extract_storage_key(image_url: str | None) -> str | None:
+    """Extract storage key from various URL formats.
+
+    Handles:
+    - Storage key: projects/.../images/scene_xxx.png → as-is
+    - Full URL: http://localhost:9000/shorts-producer/projects/... → extract
+    - Absolute path: /outputs/images/... → None (irrecoverable)
+
+    Args:
+        image_url: URL or path to extract from
+
+    Returns:
+        Storage key (e.g., "projects/1/groups/1/storyboards/1/images/scene_123.png")
+        or None if irrecoverable
+    """
+    if not image_url:
+        return None
+
+    # Already a storage key
+    if image_url.startswith("projects/") or image_url.startswith("shared/"):
+        return image_url
+
+    # Extract from MinIO URL (http://localhost:9000/shorts-producer/projects/...)
+    if "shorts-producer/" in image_url:
+        parts = image_url.split("shorts-producer/", 1)
+        return parts[1] if len(parts) > 1 else None
+
+    # Extract from bucket URL pattern (http://host/bucket/projects/...)
+    if "/projects/" in image_url:
+        parts = image_url.split("/projects/", 1)
+        return f"projects/{parts[1]}" if len(parts) > 1 else None
+
+    # Irrecoverable formats (absolute filesystem paths)
+    if image_url.startswith("/outputs/"):
+        logger.warning("⚠️ Cannot convert absolute path to storage key: %s", image_url)
+        return None
+
+    logger.warning("⚠️ Unknown image_url format: %s", image_url)
+    return None
+
 _WD14_SESSION: ort.InferenceSession | None = None
 _WD14_TAGS: list[str] | None = None
 _WD14_TAG_CATEGORIES: list[str] | None = None
@@ -199,7 +240,7 @@ def _save_scene_quality_score(
         db: Database session
         storyboard_id: Storyboard ID
         scene_id: Scene ID
-        image_url: Image URL
+        image_url: Image URL (will be converted to storage key)
         prompt: Prompt text
         match_rate: Match rate (0.0-1.0)
         matched: List of matched tags
@@ -210,11 +251,17 @@ def _save_scene_quality_score(
 
     from models.scene_quality import SceneQualityScore
 
+    # Convert image_url to storage_key
+    storage_key = _extract_storage_key(image_url)
+    if not storage_key:
+        logger.warning("⚠️ Cannot save quality score: invalid image_url format: %s", image_url)
+        return
+
     try:
         score = SceneQualityScore(
             storyboard_id=storyboard_id,
             scene_id=scene_id,
-            image_url=image_url,
+            image_storage_key=storage_key,
             prompt=prompt,
             match_rate=match_rate,
             matched_tags=matched,
@@ -242,7 +289,7 @@ def _update_activity_log_match_rate(
         storyboard_id: Storyboard ID
         scene_id: Scene ID
         match_rate: Match rate (0.0-1.0)
-        image_url: Image URL (optional)
+        image_url: Image URL (optional, will be converted to storage key)
     """
     if not storyboard_id or scene_id is None:
         return
@@ -257,8 +304,11 @@ def _update_activity_log_match_rate(
         if log:
             log.match_rate = match_rate
             log.status = "success" if match_rate >= 0.7 else "fail"
+            # Convert image_url to storage_key if provided
             if image_url:
-                log.image_url = image_url
+                storage_key = _extract_storage_key(image_url)
+                if storage_key:
+                    log.image_storage_key = storage_key
             db.commit()
     except Exception:
         db.rollback()
