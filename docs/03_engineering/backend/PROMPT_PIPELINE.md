@@ -513,17 +513,12 @@ Backend schema 기본값을 Frontend에 맞춤: `hr_upscaler="R-ESRGAN 4x+ Anime
 | `tests/test_filter_prompt_tokens_effectiveness.py` | 태그 필터링/유효성 |
 | `tests/api/test_keywords.py` | `/keywords/*` API |
 
-### 미커버 영역
+### V3 Composition 테스트 (v1.3 추가)
 
-| 영역 | 상태 |
-|------|------|
-| `_flatten_layers()` global dedup | 테스트 없음 |
-| `_dedup_key()` 가중치 정규화 | 테스트 없음 |
-| Gender enhancement 조건 분기 | 테스트 없음 |
-| IP-Adapter 자동 활성화 로직 | 테스트 없음 |
-| LoRA weight override (0.6 강제) | 테스트 없음 |
-| Complexity 기반 steps/cfg 조정 | 테스트 없음 |
-| Hi-Res payload 구성 | 테스트 없음 |
+| 테스트 파일 | 커버리지 |
+|-------------|----------|
+| `tests/test_v3_composition.py` | `_flatten_layers` dedup/BREAK, `_dedup_key` 정규화, Gender enhancement |
+| `tests/test_generation_pipeline.py` | IP-Adapter 자동 활성화, LoRA 0.6 캡, Complexity 조정, Hi-Res payload |
 
 ## Changelog
 
