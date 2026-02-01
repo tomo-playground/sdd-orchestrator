@@ -122,10 +122,10 @@
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
-| 1 | `video.py` 967줄 모듈화 (render/encoding/caption/overlay) | 코드 분리 | [ ] |
-| 2 | `SceneCard.tsx` 894줄 → 7개 하위 컴포넌트 분해 | 코드 분리 | [ ] |
-| 3 | `CharacterEditModal.tsx` 949줄 분리 | 코드 분리 | [ ] |
-| 4 | `studio/page.tsx` 593줄 로직 추출 (hooks/store) | 코드 분리 | [ ] |
+| 1 | `video.py` 987줄 → `services/video/` 패키지 6모듈 (max 329줄) | 코드 분리 | [x] |
+| 2 | `SceneCard.tsx` 894줄 → 383줄 + 5개 서브컴포넌트 | 코드 분리 | [x] |
+| 3 | `CharacterEditModal.tsx` 950줄 → 400줄 + 1 hook + 4개 서브컴포넌트 | 코드 분리 | [x] |
+| 4 | `studio/page.tsx` 594줄 → 201줄 + 2 hooks + 1 store action | 코드 분리 | [x] |
 | 5 | `generation.py` 300줄 함수 분해 | 코드 분리 | [ ] |
 | 6 | Router/Service 레이어 분리 (storyboard_routes) | 아키텍처 | [ ] |
 | 7 | 라우터 테스트 추가 (20/24 커버리지, 288개 테스트) | 테스트 | [x] |
@@ -135,7 +135,7 @@
 | 11 | 비동기 Gemini API 전환 + 재시도/폴백 | 아키텍처 | [ ] |
 | 12 | `image_storage_key` 정규화 + `activity_logs.py` 수정 | 데이터 정합성 | [x] |
 
-**진척**: 5/12 완료 (41.7%), 테스트 +335개 (613→948)
+**진척**: 8/12 완료 (66.7%), 테스트 +335개 (613→948)
 **DoD**: 400줄 초과 코드 파일 0건, 라우터 테스트 커버리지 20/24+.
 
 ---
