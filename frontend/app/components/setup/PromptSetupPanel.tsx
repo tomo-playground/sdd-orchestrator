@@ -201,11 +201,10 @@ export default function PromptSetupPanel({
                       if (char?.gender) setActorAGender(char.gender);
                     }
                   }}
-                  className={`rounded-2xl border px-3 py-2 text-sm outline-none focus:border-zinc-400 ${
-                    !selectedCharacterId
+                  className={`rounded-2xl border px-3 py-2 text-sm outline-none focus:border-zinc-400 ${!selectedCharacterId
                       ? "border-amber-300 bg-amber-50/80 text-amber-700"
                       : "border-zinc-200 bg-white/80"
-                  }`}
+                    }`}
                 >
                   <option value="" disabled>Select Character...</option>
                   {(() => {
@@ -250,7 +249,7 @@ export default function PromptSetupPanel({
                       <img
                         src={selectedChar.preview_image_url.startsWith('http') ? selectedChar.preview_image_url : `${API_BASE}${selectedChar.preview_image_url}`}
                         alt={selectedChar.name}
-                        className="h-20 w-20 shrink-0 rounded-2xl border border-zinc-200 object-cover transition group-hover:border-zinc-400"
+                        className="h-20 w-20 shrink-0 rounded-2xl border border-zinc-200 object-cover object-top transition group-hover:border-zinc-400"
                       />
                       <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/0 transition group-hover:bg-black/20">
                         <span className="text-white opacity-0 transition group-hover:opacity-100">🔍</span>
@@ -389,7 +388,7 @@ export default function PromptSetupPanel({
         if (!selectedChar?.preview_image_url) return null;
         return (
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[var(--z-preview)] flex items-center justify-center bg-black/70 backdrop-blur-sm"
             onClick={() => setPreviewModalOpen(false)}
           >
             <div className="relative" onClick={(e) => e.stopPropagation()}>

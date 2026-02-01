@@ -112,7 +112,7 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl rounded-3xl border border-white/20 bg-white p-8 shadow-2xl">
         {/* Close Button */}
         {onSkip && (

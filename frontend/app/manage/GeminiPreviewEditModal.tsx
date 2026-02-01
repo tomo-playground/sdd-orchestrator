@@ -38,7 +38,7 @@ export default function GeminiPreviewEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[var(--z-nested-modal)] flex items-center justify-center bg-black/50">
       <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">

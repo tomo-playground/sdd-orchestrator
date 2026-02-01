@@ -53,7 +53,7 @@ export default function Toast({ message, type, onClose, duration = 3000 }: Toast
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 z-[2000] flex -translate-x-1/2 items-center gap-3 rounded-full px-6 py-3 text-sm font-medium shadow-lg transition-all duration-300 ${styles[type]
+      className={`fixed bottom-6 left-1/2 z-[var(--z-toast)] flex -translate-x-1/2 items-center gap-3 rounded-full px-6 py-3 text-sm font-medium shadow-lg transition-all duration-300 ${styles[type]
         } ${isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
     >
       {icons[type]}

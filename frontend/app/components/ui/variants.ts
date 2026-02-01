@@ -15,7 +15,7 @@ export function cx(
 
 /** Overlay backdrop used by Modal / ConfirmDialog. */
 export const OVERLAY_CLASSES =
-  "fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-md";
+  "fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/80 backdrop-blur-md";
 
 /** Standard card surface (used inside modals, panels, etc.). */
 export const CARD_CLASSES =

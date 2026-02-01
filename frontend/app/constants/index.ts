@@ -2,6 +2,14 @@ import type { OverlaySettings, PostCardSettings } from "../types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export const Z_INDEX = {
+  PREVIEW: 100,
+  MODAL: 1000,
+  MODAL_CLOSE: 1010,
+  NESTED_MODAL: 1100,
+  TOAST: 2000,
+} as const;
+
 export const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
 export const DEFAULT_SCENE_TEXT_FONT = "온글잎 박다현체.ttf";
 export const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";

@@ -65,7 +65,7 @@ export default function ChannelProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Close Button */}
         {onCancel && (

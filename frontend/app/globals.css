@@ -8,6 +8,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --z-preview: 100;
+  --z-modal: 1000;
+  --z-modal-close: 1010;
+  --z-nested-modal: 1100;
+  --z-toast: 2000;
 }
 
 body {

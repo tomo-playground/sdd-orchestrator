@@ -10,10 +10,10 @@ export default function PreviewModal({ type, src, onClose }: PreviewModalProps) 
   return (
     <>
       <div
-        className="fixed inset-0 z-[1000] bg-black/60"
+        className="fixed inset-0 z-[var(--z-modal)] bg-black/60"
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-6">
         <div className="max-h-[90vh] w-full max-w-3xl rounded-3xl border border-white/40 bg-white/90 p-4 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
