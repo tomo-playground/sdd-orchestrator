@@ -138,13 +138,16 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
     Call this after migrating data to ensure caches are up-to-date.
     """
     from services.keywords.core import TagFilterCache
-    from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
+    from services.keywords.db_cache import (
+        LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache,
+    )
 
     try:
         TagCategoryCache.refresh(db)
         TagFilterCache.refresh(db)
         TagAliasCache.refresh(db)
         TagRuleCache.refresh(db)
+        LoRATriggerCache.refresh(db)
 
         return {
             "success": True,

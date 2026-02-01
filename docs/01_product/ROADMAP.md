@@ -74,7 +74,7 @@
 | 2 | `media_assets` 복합 인덱스 `(owner_type, owner_id)` | P0 | [x] |
 | 3 | 고아 레코드 정리 (media_assets 40건 + scene_quality_scores 787건) | P0 | [x] |
 | 4 | `scene_character_actions` 인덱스 + `tag_rules` FK | P1 | [x] |
-| 5 | `tag_effectiveness` 테이블 생성 (DB_SCHEMA.md 문서화 완료) | P1 | [ ] |
+| 5 | `tag_effectiveness` 테이블 생성 (DB_SCHEMA.md 문서화 완료) | P1 | [x] |
 
 #### Batch B: Backend Fixes (Backend)
 | # | 작업 | 우선순위 | 상태 |
@@ -82,8 +82,8 @@
 | 1 | `generation.py` DB session leak 수정 (`next()` → DI) | P0 | [x] |
 | 2 | `evaluation.py` legacy `identity_tags`/`clothing_tags` 제거 | P0 | [x] |
 | 3 | `MediaAsset.local_path` 속성 추가 | P0 | [x] |
-| 4 | `storyboard_routes.py` N+1 쿼리 해결 (eager load) | P1 | [ ] |
-| 5 | `LoRATriggerCache` admin/refresh-caches 등록 | P1 | [ ] |
+| 4 | `storyboard_routes.py` N+1 쿼리 해결 (eager load) | P1 | [x] |
+| 5 | `LoRATriggerCache` admin/refresh-caches 등록 | P1 | [x] |
 
 #### Batch C: FFmpeg Fixes (FFmpeg)
 | # | 작업 | 우선순위 | 상태 |

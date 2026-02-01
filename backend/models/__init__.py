@@ -14,13 +14,14 @@ from models.scene import Scene
 from models.scene_quality import SceneQualityScore
 from models.sd_model import Embedding, SDModel, StyleProfile
 from models.storyboard import Storyboard
-from models.tag import Tag, TagRule
+from models.tag import Tag, TagEffectiveness, TagRule
 from models.tag_alias import TagAlias
 from models.tag_filter import TagFilter
 
 __all__ = [
     "Base",
     "Tag",
+    "TagEffectiveness",
     "TagRule",
     "TagFilter",
     "TagAlias",

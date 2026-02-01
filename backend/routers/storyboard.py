@@ -6,7 +6,7 @@ import os
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import logger
 from database import get_db
@@ -217,8 +217,8 @@ def get_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     storyboard = (
         db.query(Storyboard)
         .options(
-            joinedload(Storyboard.scenes).joinedload(Scene.tags),
-            joinedload(Storyboard.scenes).joinedload(Scene.character_actions),
+            joinedload(Storyboard.scenes).joinedload(Scene.tags).joinedload(SceneTag.tag),
+            joinedload(Storyboard.scenes).joinedload(Scene.character_actions).joinedload(SceneCharacterAction.tag),
             joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
         )
         .filter(Storyboard.id == storyboard_id)
@@ -257,7 +257,9 @@ async def update_storyboard(
     storyboard_id: int, request: StoryboardSave, db: Session = Depends(get_db)
 ):
     """Update a storyboard by replacing all scenes."""
-    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+    storyboard = db.query(Storyboard).options(
+        selectinload(Storyboard.scenes),
+    ).filter(Storyboard.id == storyboard_id).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
@@ -313,7 +315,9 @@ async def update_storyboard(
 @router.delete("/{storyboard_id}")
 async def delete_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     """Delete a storyboard and all its scenes (CASCADE) + cleanup assets."""
-    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+    storyboard = db.query(Storyboard).options(
+        selectinload(Storyboard.scenes),
+    ).filter(Storyboard.id == storyboard_id).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 

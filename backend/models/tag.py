@@ -1,6 +1,6 @@
 """Tag model for Pure V3 Prompt Engine."""
 
-from sqlalchemy import ForeignKey, Index, Integer, String
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin
@@ -81,3 +81,20 @@ class TagRule(Base, TimestampMixin):
     message: Mapped[str | None] = mapped_column(String(200))
     priority: Mapped[int] = mapped_column(Integer, default=0)
     active: Mapped[bool] = mapped_column(default=True)
+
+
+class TagEffectiveness(Base, TimestampMixin):
+    """Per-tag prompt effectiveness tracking (use_count, match_count, ratio)."""
+
+    __tablename__ = "tag_effectiveness"
+    __table_args__ = (
+        UniqueConstraint("tag_id", name="uq_tag_effectiveness_tag_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tag_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
+    use_count: Mapped[int] = mapped_column(Integer, default=0)
+    match_count: Mapped[int] = mapped_column(Integer, default=0)
+    effectiveness: Mapped[float] = mapped_column(Float, default=0.0)
