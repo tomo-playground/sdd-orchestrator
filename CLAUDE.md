@@ -21,12 +21,35 @@ backend/
 └── config.py         # 모든 상수/환경변수 SSOT
 ```
 
-## 문서 참조
-- **작업 선택**: `docs/ROADMAP.md`
-- **제품 스펙**: `docs/PRD.md`
-- **API 명세**: `docs/specs/API_SPEC.md`
-- **DB 스키마**: `docs/specs/DB_SCHEMA.md`
-- **프롬프트 설계**: `docs/specs/PROMPT_SPEC.md`
+## 문서 구조
+```
+docs/
+├── 00_meta/          # 문서 관리 규칙
+├── 01_product/       # 제품 (PRD, 로드맵, 기능 명세)
+│   ├── PRD.md
+│   ├── ROADMAP.md
+│   └── FEATURES/     # 미구현 기능별 명세 (what/why)
+├── 02_design/        # UI/UX 설계
+├── 03_engineering/   # 기술 설계 (how)
+│   ├── api/          # REST API 명세
+│   ├── architecture/ # DB 스키마, 시스템 개요
+│   ├── backend/      # 프롬프트, 렌더링, Soft Delete 등
+│   ├── frontend/     # 상태 관리
+│   └── testing/      # 테스트 전략, 시나리오
+├── 04_operations/    # 운영 (배포, SD WebUI, 트러블슈팅)
+├── 99_archive/       # 완료된 문서 아카이브
+└── guides/           # 개발 가이드 (CONTRIBUTING)
+```
+
+### 주요 문서
+- **로드맵**: `docs/01_product/ROADMAP.md`
+- **기능 명세**: `docs/01_product/FEATURES/*.md`
+- **제품 스펙**: `docs/01_product/PRD.md`
+- **API 명세**: `docs/03_engineering/api/REST_API.md`
+- **DB 스키마**: `docs/03_engineering/architecture/DB_SCHEMA.md`
+- **프롬프트 설계**: `docs/03_engineering/backend/PROMPT_SPEC_V2.md`
+- **테스트 전략**: `docs/03_engineering/testing/TEST_STRATEGY.md`
+- **테스트 시나리오**: `docs/03_engineering/testing/TEST_SCENARIOS.md`
 - **개발 가이드**: `docs/guides/CONTRIBUTING.md`
 
 ## 코드 및 문서 크기 가이드라인
@@ -86,11 +109,16 @@ backend/
 
 | Agent | 역할 | Commands |
 |-------|------|----------|
-| **PM Agent** | 로드맵/우선순위/문서 관리 | `/roadmap`, `/vrt` |
-| **Prompt Engineer** | SD 프롬프트 최적화 + **적극적 품질 제안** | `/prompt-validate`, `/sd-status` |
+| **Tech Lead** | 개발 총괄, 코드 리뷰, 크로스 에이전트 조율 | `/roadmap`, `/test`, `/db`, `/docs` |
+| **PM Agent** | 로드맵/우선순위/문서 구조 관리 | `/roadmap`, `/docs`, `/vrt`, `/test` |
+| **Prompt Engineer** | SD 프롬프트 최적화 + 데이터 기반 고도화 | `/prompt-validate`, `/sd-status` |
 | **Storyboard Writer** | 스토리보드/스크립트 작성 | `/roadmap` |
-| **QA Validator** | 품질 체크/TROUBLESHOOTING 관리 | `/vrt`, `/sd-status`, `/prompt-validate` |
+| **QA Validator** | 품질 체크/테스트 검증/TROUBLESHOOTING | `/test`, `/vrt`, `/sd-status`, `/prompt-validate` |
 | **FFmpeg Expert** | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
+| **UI/UX Engineer** | UI 설계/와이어프레임/사용성 개선 | `/vrt`, `/test` |
+| **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/vrt` |
+| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/sd-status`, `/db` |
+| **DBA** | DB 설계, Alembic 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 
 ### Prompt Engineer 역할 상세
 **핵심 원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표. 수동적 대응이 아닌 **적극적 제안**으로 품질을 선제적으로 개선합니다.
@@ -118,10 +146,14 @@ backend/
 
 | Command | 역할 |
 |---------|------|
-| `/roadmap` | 로드맵 조회/업데이트 |
+| `/roadmap` | 로드맵 조회/업데이트/기능 목록 |
+| `/test` | 테스트 실행 (전체/backend/frontend/vrt/e2e) |
 | `/vrt` | Visual Regression Test 실행 |
 | `/sd-status` | SD WebUI 상태 확인 |
 | `/prompt-validate` | 프롬프트 문법 검증 |
+| `/pose` | 포즈 에셋 분석/동기화 |
+| `/db` | DB 마이그레이션 상태/생성/적용/롤백 |
+| `/docs` | 문서 구조 조회/정합성 체크/크기 점검 |
 
 > Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조
 

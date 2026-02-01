@@ -66,7 +66,7 @@
 | **Full Layout Polishing** | 검은 여백 제거 (YouTube Shorts 스타일, Cover 스케일) | [x] |
 | **Scene Text Animation** | Fade in/out (0.3초, 알파 채널 fade) | [x] |
 | **Advanced Transitions** | 13개 씬 전환 효과 (fade, wipe, slide, circle, random) | [x] |
-| **Dynamic Scene Text Position** | 이미지 복잡도 기반 자동 Y 위치 조정 (하단 분석) | [x] |
+| **Dynamic Scene Text Position** | 이미지 복잡도 기반 자동 Y 위치 조정 (Full: 상단 10-15%, Post: 하단) | [x] |
 | **Overlay Animation** | 헤더/푸터 슬라이드 인 효과 (0.5초, 상하 분리) | [x] |
 | **Ken Burns Vertical Presets** | Full Layout 최적화 프리셋 6종 (pan_up_vertical 등, Y축 2배 확장) | [x] |
 | **Ken Burns + Scene Text Sync** | Full: 켄번 효과 **후** 합성 (자막 선명+고정), Post: 카드에 직접 렌더링 | [x] |
@@ -82,7 +82,7 @@
 | # | 작업 | 파일 | 변경 내용 | 상태 |
 |---|------|------|----------|------|
 | 1 | 씬 텍스트 크기 증가 | `backend/constants/layout.py:31-32` | `SCENE_TEXT_FONT_RATIO: 0.034→0.042` (65px→81px)<br>`SCENE_TEXT_MIN_FONT_RATIO: 0.026→0.032` (50px→61px) | [x] |
-| 2 | 씬 텍스트 위치 하향 | `backend/constants/layout.py:34-35` | `SCENE_TEXT_Y_SINGLE_LINE_RATIO: 0.72→0.85`<br>`SCENE_TEXT_Y_MULTI_LINE_RATIO: 0.70→0.82` | [x] |
+| 2 | 씬 텍스트 위치 상단 고정 | `backend/constants/layout.py:34-35` | `SCENE_TEXT_Y_SINGLE_LINE_RATIO: 0.15` (상단 15%)<br>`SCENE_TEXT_Y_MULTI_LINE_RATIO: 0.12` (상단 12%) | [x] |
 | 3 | 크롭 위치 명시 | `backend/services/video.py:705-711` | FFmpeg crop 필터에 Y축 위치 추가<br>`crop=w:h:0:(ih-oh)*0.3` | [x] |
 | 4 | Layout 상수 추가 | `backend/constants/layout.py` | `CROP_Y_RATIO: float = 0.3` 추가 | [x] |
 
@@ -115,7 +115,7 @@
 #### 5-4-3. 확장 기능 (v1.x Backlog)
 | 작업 | 설명 | 상태 |
 |------|------|------|
-| VEO Clip | Video Generation 통합 | [ ] |
+| VEO Clip | Video Generation 통합. [기능 명세](FEATURES/VEO_CLIP.md) | [ ] |
 
 ### 5-5. UI/UX 개선
 | 작업 | 설명 | 상태 |
@@ -123,15 +123,15 @@
 | SetupPanel 제거 | 간소화 진입점 제거, Custom Start로 통합 | [x] |
 | SD 파라미터 Advanced 이동 | steps, cfg_scale 등 고급 설정화 | [x] |
 | **Media Defaults** | BGM/Motion/Transition 기본값 Random 설정 | [x] |
-| 간소화 진입점 재설계 | Phase 6 완료 후 Quick Start 재정의 | [ ] |
+| 간소화 진입점 재설계 | Phase 6 완료 후 Quick Start 재정의. [기능 명세](FEATURES/UX_IMPROVEMENTS.md) | [ ] |
 | **Render UX 개선** | 컴팩트 레이아웃 토글 + 단일 Render 버튼, Video+Audio→Media Settings 통합 | [x] |
 
 ### 5-6. UI Polish (완성도 향상)
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | **Loading/Error UI** | 스피너, 프로그레스 바, 에러 메시지 디자인 개선 | [x] |
-| **Character Image Modal** | Manage > Characters 섬네일 클릭 시 확대 모달 | [x] |
-| Setup Wizard | 초기 설정 및 에셋 상태 확인 UI | [ ] |
+| **Character Image Modal** | Characters 섬네일 클릭 시 Edit 모달 진입 (프리뷰 확대는 모달 내부) | [x] |
+| Setup Wizard | 초기 설정 및 에셋 상태 확인 UI. [기능 명세](FEATURES/UX_IMPROVEMENTS.md) | [ ] |
 
 ### 5-7. Quality Assurance (Test Coverage)
 **Goal**: Core Rule #9, #10 (TDD)에 따라 테스트 커버리지 80% 달성.
@@ -213,15 +213,15 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (DB 스키마 완료, UI 대기) | [ ] |
-| 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 (DB 스키마 완료, UI 대기) | [ ] |
+| 10 | Multi-Character 지원 | A, B, C... 다중 캐릭터 구조 (DB 스키마 완료, UI 대기). [기능 명세](FEATURES/MULTI_CHARACTER.md) | [ ] |
+| 11 | Scene Builder UI | 장면별 배경/시간/날씨 컨텍스트 태그 선택 (DB 스키마 완료, UI 대기). [기능 명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
 | 12 | **Tag Autocomplete** | Danbooru 스타일 태그 자동완성 (Backend API + Frontend UI) | [x] |
 
 ### 6-4. Advanced Features (🔵 고급)
 | 순서 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 13 | Civitai 연동 | LoRA 메타데이터 자동 가져오기 (MCP 활용) | [x] |
-| 14 | Visual Tag Browser | 태그별 예시 이미지 표시 | [ ] |
+| 14 | Visual Tag Browser | 태그별 예시 이미지 표시. [기능 명세](FEATURES/VISUAL_TAG_BROWSER.md) | [ ] |
 | 15 | Tag Usage Analytics | 사용 빈도, 성공/실패 패턴 추적 (기본 구현: 9.1.1) | [~] |
 | 15.1 | Batch Tag Approval | confidence >= 0.7 태그 일괄 승인 (미리보기 + 선택적 승인) | [x] |
 | 15.2 | **Tag Categorization V2** | SD Priority 기반 분류체계 개편 (24개 카테고리, environment 세분화) | [x] |
@@ -260,15 +260,71 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 | 16.7 | WD14 피드백 | 이미지 검증 시 match_rate 자동 업데이트 (avg_match_rate 누적) | [x] |
 | 16.8 | Draft 영속성 | prompt_history_id 저장/복원 지원 | [x] |
 | 17 | Feedback Loop | WD14 기반 태그 효과성 피드백 → **16.7에서 구현 완료** | [x] |
-| 18 | Profile Export/Import | Style Profile 공유 | [ ] |
-| 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA) | [ ] |
-| 20 | Scene Clothing Override | 장면별 의상 변경 기능 | [ ] |
+| 18 | Profile Export/Import | Style Profile 공유. [기능 명세](FEATURES/PROFILE_EXPORT_IMPORT.md) | [ ] |
+| 19 | Character Builder UI | 조합형 캐릭터 생성 (Gender + Appearance + LoRA). [기능 명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
+| 20 | Scene Clothing Override | 장면별 의상 변경 기능. [기능 명세](FEATURES/SCENE_CLOTHING_OVERRIDE.md) | [ ] |
 
 #### 6-4.21. Generation Log Analytics (🟢 완료)
 - 성공/실패 패턴 분석 및 데이터 기반 충돌 규칙 자동 제안 시스템. [상세 내용](file:///Users/tomo/Workspace/shorts-producer/docs/archive/ROADMAP_ANALYTICS_SYSTEM.md)
 
-#### 6-4.22. Gemini Image Editing System (진행 중)
-- Match Rate 낮은 씬에 대해 Gemini Nano Banana를 활용한 직접 이미지 편집. [상세 내용](file:///Users/tomo/Workspace/shorts-producer/docs/archive/ROADMAP_ANALYTICS_SYSTEM.md)
+#### 6-4.22. Gemini Image Editing System (🟢 완료)
+Match Rate 낮은 씬에 대해 Gemini Nano Banana를 활용한 직접 이미지 편집. [상세 내용](file:///Users/tomo/Workspace/shorts-producer/docs/archive/ROADMAP_ANALYTICS_SYSTEM.md)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | **Auto Edit Pipeline** | WD14 Match Rate 기반 자동 편집 (analyze → edit) | [x] |
+| 2 | **Character Preview Enhance** | Gemini로 프리뷰 이미지 고품질 보정 (`enhance-preview` API) | [x] |
+| 3 | **자연어 이미지 편집** | 자연어 입력 → Vision 분석 → 이미지 편집 (`edit-preview` API + UI) | [x] |
+| 4 | **Character Preview Lock** | 마음에 드는 프리뷰 이미지 재생성 방지 (preview_locked 필드) | [x] |
+| 5 | Scene 단위 자연어 편집 | SceneCard에서 개별 씬 이미지 자연어 편집. [기능 명세](FEATURES/SCENE_IMAGE_EDIT.md) | [ ] |
+
+#### 6-4.23. Environment Pinning System (🟡 진행 중)
+**목표**: 배경 일관성 자동 유지 시스템 (Context Tags 기반 지능형 핀)
+
+**배경**:
+- 연속된 씬이 같은 장소일 때 배경 구도 유지 필요
+- 수동 핀 설정은 반복 작업 (10개 씬 → 9번 클릭)
+- Gemini가 이미 `context_tags.environment`로 장소 정보 제공
+
+**Phase 1: 수동 핀 개선** (완료 ✅)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | 핀 버그 수정 | 자기 자신 참조 방지 (이전 씬 참조로 변경) | [x] |
+| 2 | 사용자 피드백 | "Scene X 배경 참조" 토스트 메시지 | [x] |
+| 3 | New Storyboard 버그 | localStorage hydration 타이밍 이슈 수정 | [x] |
+
+**Phase 2: 지능형 자동 핀** (완료 ✅)
+
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | Backend 자동 분석 | `context_tags.environment` 기반 `_auto_pin_previous` 플래그 | [x] |
+| 2 | Frontend 자동 적용 | 이미지 생성 성공 시 자동 핀 설정 (TDD 방식) | [x] |
+| 3 | 단위 테스트 커버리지 | autoPin, applyAutoPin (19개 테스트) | [x] |
+| 4 | 통합 테스트 | 수동 핀과 자동 핀 상호작용 (8개 테스트) | [x] |
+| 5 | UI 힌트 배지 | "💡 자동 핀 활성" 배지 표시 (이미지 생성 전) | [x] |
+| 6 | 성공 피드백 | 자동 핀 적용 시 Toast 메시지 표시 | [x] |
+
+**구현 상세** (TDD):
+- `app/utils/autoPin.ts`: shouldAutoPin, findPreviousSceneWithImage (11개 테스트)
+- `app/utils/applyAutoPin.ts`: applyAutoPinAfterGeneration (8개 테스트)
+- `app/utils/__tests__/pinIntegration.test.ts`: 수동/자동 핀 통합 (8개 테스트)
+- `app/store/actions/imageActions.ts`: handleGenerateImage 통합
+- `app/components/storyboard/SceneCard.tsx`: UI 힌트 배지
+- `backend/services/storyboard.py`: context_tags 분석 로직
+
+**테스트 결과**:
+- 총 118개 테스트 (기존 91개 + 신규 27개)
+- 100% 통과 ✅
+- TypeScript 에러 0개 ✅
+- Breaking Changes 0개 ✅
+
+**실제 효과**:
+- Before: 10개 씬 → 9번 📌 클릭
+- After: 10개 씬 → 0번 클릭 (완전 자동) ✅
+- 장소 변경 시 자동 핀 해제 ✅
+- 수동 핀 우선 (자동 핀 덮어쓰지 않음) ✅
+- 시각적 피드백 (배지 + Toast) ✅
 
 #### 6-4.30. Style Profile System (진행 중)
 
@@ -376,9 +432,10 @@ Character gender 필드, LoRA gender_locked, Gender 기반 UI 잠금/필터링, 
 ### 6-5. Upcoming Refactoring (Technical Debt)
 | 작업 | 설명 | 상태 |
 |---|------|------|
-| **Hook Extraction** | `useManageState` 등 커스텀 훅 분리 (부분 완료) | [ ] |
-| **Common UI Toolkit** | 버튼, 인풋 등 공통 컴포넌트 라이브러리화 | [ ] |
-| **Inter-Layer Dedup** | V3 Prompt 12-Layer 간 중복 태그 제거 (nice-to-have, 아래 상세) | [ ] |
+| **Hook Extraction** | `useManageState` 등 커스텀 훅 분리 (부분 완료). [상세](FEATURES/TECH_DEBT.md) | [ ] |
+| **Common UI Toolkit** | 버튼, 인풋 등 공통 컴포넌트 라이브러리화. [상세](FEATURES/TECH_DEBT.md) | [ ] |
+| **Inter-Layer Dedup** | V3 Prompt 12-Layer 간 중복 태그 제거 (nice-to-have). [상세](FEATURES/TECH_DEBT.md) | [ ] |
+| **Soft Delete** | Hard Delete → Soft Delete 전환 (Storyboard, Character, PromptHistory). [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | [ ] |
 
 #### 6-5.1. Inter-Layer Prompt Deduplication (Nice-to-Have)
 **현황 분석** (`backend/services/prompt/v3_composition.py`):

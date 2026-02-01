@@ -307,6 +307,7 @@ function StudioContent() {
         if (data.scenes?.length > 0) {
           const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => ({
             id: (s.id as number) || i,  // Use DB ID if available, fallback to index
+            order: (s.order as number) ?? (s.scene_id as number) ?? i,
             script: s.script || "",
             speaker: s.speaker || "Narrator",
             duration: s.duration || 3,
@@ -317,6 +318,7 @@ function StudioContent() {
             description: s.description || "",
             width: s.width || 512,
             height: s.height || 768,
+            candidates: (s.candidates as Scene["candidates"]) || undefined,
             negative_prompt: s.negative_prompt || "",
             steps: s.steps || 27,
             cfg_scale: s.cfg_scale || 7,
@@ -326,6 +328,10 @@ function StudioContent() {
             isGenerating: false,
             debug_payload: "",
             context_tags: s.context_tags || undefined,
+            environment_reference_id: (s.environment_reference_id as number) || null,
+            environment_reference_weight: (s.environment_reference_weight as number) || undefined,
+            use_reference_only: (s.use_reference_only as boolean) || undefined,
+            reference_only_weight: (s.reference_only_weight as number) || undefined,
           }));
           setScenes(mapped);
         }

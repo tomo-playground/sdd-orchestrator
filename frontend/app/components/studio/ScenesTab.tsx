@@ -9,10 +9,8 @@ import SceneFilmstrip from "../storyboard/SceneFilmstrip";
 import SceneListHeader from "../storyboard/SceneListHeader";
 import SceneCard from "../storyboard/SceneCard";
 import {
-  buildPositivePrompt,
   buildNegativePrompt,
   buildScenePrompt,
-  getBasePromptForScene,
   getBaseSettingsForSpeaker,
 } from "../../store/actions/promptActions";
 import {
@@ -59,6 +57,8 @@ export default function ScenesTab() {
     loraTriggerWords,
     characterLoras,
     characterPromptMode,
+    selectedCharacterId,
+    basePromptA,
     useControlnet,
     controlnetWeight,
     useIpAdapter,
@@ -85,12 +85,47 @@ export default function ScenesTab() {
 
   const currentScene = scenes[currentSceneIndex];
 
+  const storyboardId = useStudioStore((s) => s.storyboardId);
+
   const handleUpdateScene = useCallback(
     (updates: Partial<(typeof scenes)[0]>) => {
       if (currentScene) updateScene(currentScene.id, updates);
     },
     [currentScene, updateScene]
   );
+
+  const handlePinToggle = useCallback(async () => {
+    if (!currentScene) return;
+
+    // Already pinned → unpin
+    if (currentScene.environment_reference_id) {
+      updateScene(currentScene.id, { environment_reference_id: null });
+      return;
+    }
+
+    // Find previous scene with an image (cannot pin to self)
+    const currentIndex = scenes.findIndex(s => s.id === currentScene.id);
+    let referenceScene = null;
+
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (scenes[i].image_asset_id) {
+        referenceScene = scenes[i];
+        break;
+      }
+    }
+
+    if (!referenceScene) {
+      showToast("이전 씬에 고정할 배경 이미지가 없습니다.", "error");
+      return;
+    }
+
+    // Pin to previous scene's background
+    updateScene(currentScene.id, {
+      environment_reference_id: referenceScene.image_asset_id,
+      environment_reference_weight: 0.3,
+    });
+    showToast(`Scene ${referenceScene.order}의 배경을 참조로 설정했습니다.`, "success");
+  }, [currentScene, scenes, updateScene, showToast]);
 
   const handleRemoveScene = useCallback(
     (sceneId: number) => {
@@ -216,6 +251,7 @@ export default function ScenesTab() {
           sceneTagGroups={sceneTagGroups}
           isExclusiveGroup={isExclusiveGroup}
           onUpdateScene={handleUpdateScene}
+          onPinToggle={handlePinToggle}
           onRemoveScene={() => handleRemoveScene(currentScene.id)}
           onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
           onImageUpload={(file) => handleImageUpload(currentScene.id, file)}
@@ -239,10 +275,10 @@ export default function ScenesTab() {
             getFixSuggestions(scene, validation, useStudioStore.getState().topic)
           }
           applySuggestion={applySuggestion}
-          buildPositivePrompt={buildPositivePrompt}
+          selectedCharacterId={selectedCharacterId}
+          basePromptA={basePromptA}
           buildNegativePrompt={buildNegativePrompt}
           buildScenePrompt={buildScenePrompt}
-          getBasePromptForScene={getBasePromptForScene}
           showToast={showToast}
         />
       )}

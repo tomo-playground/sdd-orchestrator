@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -21,58 +21,41 @@ from services.prompt import (
     detect_scene_complexity,
     rewrite_prompt,
     split_prompt_example,
+    split_prompt_tokens,
     validate_identity_tags,
     validate_loras,
 )
+from services.prompt.v3_service import V3PromptService
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 
 
-# TODO: Temporary stub functions - re-implement properly
-def get_effective_mode_from_dict(data: dict) -> str:
-    """Stub: Determine effective prompt composition mode."""
-    loras = data.get("loras", [])
-    return "lora" if loras else "standard"
+def _collect_context_tags(context_tags: dict) -> list[str]:
+    """Flatten context_tags dict into a tag list."""
+    tags: list[str] = []
+    for key in ("expression", "pose", "action", "environment", "mood"):
+        val = context_tags.get(key)
+        if isinstance(val, list):
+            tags.extend(val)
+    for key in ("gaze", "camera"):
+        val = context_tags.get(key)
+        if isinstance(val, str) and val:
+            tags.append(val)
+    return tags
 
 
-def compose_prompt_tokens(tokens: list[str], mode: str, loras: list = None,
-                          lora_strings: list[str] = None, trigger_words: list[str] = None,
-                          use_break: bool = True, complexity: str = None) -> list[str]:
-    """Compose prompt tokens into final token list."""
-    # Simple implementation: basic concatenation
-    composed = []
-
-    # 1. Quality tags (if needed)
-    composed.extend(["best quality", "masterpiece"])
-
-    # 2. Main tokens
-    composed.extend(tokens)
-
-    # 3. LoRA triggers
-    if trigger_words:
-        composed.extend(trigger_words)
-
-    # 4. Mode B specific: LoRA strings + BREAK
-    if mode == "lora":
-        if use_break:
-            composed.append("BREAK")
-        if lora_strings:
-            composed.extend(lora_strings)
-
-    # Deduplicate and return
-    seen = set()
-    final = []
-    for t in composed:
-        if t not in seen:
-            final.append(t)
-            seen.add(t)
-    return final
-
-
-def calculate_lora_weight(base_weight: float, complexity: str,
-                         token_count: int) -> float:
-    """Stub: Calculate adjusted LoRA weight."""
-    return base_weight
+def _convert_loras(loras: list | None) -> list[dict] | None:
+    """Convert PromptComposeLoRA list to V3 style_loras dicts."""
+    if not loras:
+        return None
+    return [
+        {
+            "name": l.name,
+            "weight": l.weight,
+            "trigger_words": l.trigger_words or [],
+        }
+        for l in loras
+    ]
 
 
 def check_tag_conflicts(tags: list[str], db) -> dict:
@@ -164,97 +147,72 @@ async def validate_prompt(request: PromptValidateRequest):
 
 
 @router.post("/compose", response_model=PromptComposeResponse)
-async def compose_prompt(request: PromptComposeRequest):
-    """Compose a prompt using Mode A/B logic.
+async def compose_prompt(
+    request: PromptComposeRequest,
+    db: Session = Depends(get_db),
+):
+    """Compose a prompt using V3 12-Layer engine.
 
-    Mode A (Standard): No LoRA or style-only LoRA
-      - Token order: Quality → Subject → Character → Appearance → Scene
-      - Full appearance tags included
+    When character_id is provided, uses V3PromptService with full
+    character tags, LoRA triggers, and gender enhancement from DB.
+    Otherwise uses V3PromptBuilder.compose() for generic composition.
 
-    Mode B (LoRA): Character LoRA present
-      - Token order: Quality → Subject → Scene Core → LoRA → BREAK → Character
-      - Scene tags prioritized, LoRA weight dynamically adjusted
-
-    Returns the composed prompt with metadata including:
-    - composed_prompt: Final merged prompt string
-    - effective_mode: "standard" or "lora"
-    - token_count: Number of tokens in composed prompt
-    - lora_weight: Adjusted LoRA weight (Mode B only)
-    - scene_complexity: Scene complexity score (Mode B only)
+    Accepts optional base_prompt (quality tags) and context_tags
+    (scene context like expression, gaze, pose) which are merged
+    into the token list before V3 composition.
     """
     logger.info(
-        "📥 [Prompt Compose] mode=%s, %d tokens, loras=%s",
-        request.mode,
+        "📥 [Prompt Compose] character_id=%s, %d tokens, loras=%s",
+        request.character_id,
         len(request.tokens),
         [lora.name for lora in (request.loras or [])],
     )
 
     try:
-        # Detect effective mode
-        effective_mode = get_effective_mode_from_dict(request.model_dump())
+        # 1. Merge context_tags + scene tokens (character data loaded from DB via character_id)
+        all_tokens: list[str] = []
+        if request.context_tags:
+            all_tokens.extend(_collect_context_tags(request.context_tags))
+        all_tokens.extend(request.tokens)
 
-        # Extract LoRA strings and trigger words (regardless of mode)
-        lora_strings = []
-        trigger_words = []
-        if request.loras:
-            for lora in request.loras:
-                lora_strings.append(f"<lora:{lora.name}:{lora.weight}>")
-                if lora.trigger_words:
-                    trigger_words.extend(lora.trigger_words)
-
-        # Compose prompt tokens
-        composed_tokens = compose_prompt_tokens(
-            tokens=request.tokens,
-            mode=effective_mode,
-            lora_strings=lora_strings,
-            trigger_words=trigger_words,
-            use_break=request.use_break if request.use_break is not None else True,
+        # 2. V3 engine composition (character tags, LoRAs, gender loaded from DB)
+        v3_service = V3PromptService(db)
+        composed_prompt = v3_service.generate_prompt_for_scene(
+            character_id=request.character_id,
+            scene_tags=all_tokens,
+            style_loras=_convert_loras(request.loras),
         )
 
-        # Build final prompt string
-        composed_prompt = ", ".join(composed_tokens)
-
-        # Calculate scene complexity (for all modes)
+        # 3. Build response
+        composed_tokens = split_prompt_tokens(composed_prompt)
         scene_complexity = detect_scene_complexity(request.tokens)
+        effective_mode = "v3" if request.character_id else "standard"
 
-        # Calculate metadata
-        result_metadata = {
-            "prompt": composed_prompt,
-            "tokens": composed_tokens,
-            "effective_mode": effective_mode,
-            "scene_complexity": scene_complexity,
-            "lora_weights": None,
-            "meta": {
-                "token_count": len(composed_tokens),
-                "has_break": "BREAK" in composed_tokens,
-                "quality_tags_added": any(t in composed_tokens for t in ["best_quality", "masterpiece"]),
-            },
-        }
-
-        # Mode B specific metadata (Dynamic Adjustment)
-        if effective_mode == "lora" and request.loras:
-            adjusted_weight = calculate_lora_weight(
-                base_weight=request.loras[0].weight,
-                complexity=scene_complexity,
-                token_count=len(composed_tokens),
-            )
-            result_metadata["lora_weights"] = {
-                request.loras[0].name: adjusted_weight
-            }
-        # Standard Mode metadata (Static Weights)
-        elif request.loras:
-            result_metadata["lora_weights"] = {
-                lora.name: lora.weight for lora in request.loras
-            }
+        lora_weights = None
+        if request.loras:
+            lora_weights = {lora.name: lora.weight for lora in request.loras}
 
         logger.info(
             "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",
             effective_mode,
-            len(request.tokens),
+            len(all_tokens),
             len(composed_tokens),
         )
 
-        return result_metadata
+        return {
+            "prompt": composed_prompt,
+            "tokens": composed_tokens,
+            "effective_mode": effective_mode,
+            "scene_complexity": scene_complexity,
+            "lora_weights": lora_weights,
+            "meta": {
+                "token_count": len(composed_tokens),
+                "has_break": "BREAK" in composed_tokens,
+                "quality_tags_added": any(
+                    t in composed_tokens for t in ["best_quality", "masterpiece"]
+                ),
+            },
+        }
 
     except Exception as e:
         logger.exception("❌ [Prompt Compose Error]")

@@ -132,3 +132,20 @@ npm run dev
 ```
 
 Access the studio at `http://localhost:3000`.
+
+## 📖 Documentation
+
+```
+docs/
+├── 01_product/       # PRD, Roadmap, Feature specs
+├── 02_design/        # UI/UX wireframes
+├── 03_engineering/   # API spec, DB schema, technical design
+├── 04_operations/    # Deployment, SD WebUI setup, troubleshooting
+└── 99_archive/       # Completed phase archives
+```
+
+Key docs:
+- [Roadmap](docs/01_product/ROADMAP.md) - Development progress & upcoming tasks
+- [Feature Specs](docs/01_product/FEATURES/) - Individual feature requirements
+- [API Reference](docs/03_engineering/api/REST_API.md) - REST API endpoints
+- [DB Schema](docs/03_engineering/architecture/DB_SCHEMA.md) - Database structure

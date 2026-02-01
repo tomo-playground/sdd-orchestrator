@@ -50,11 +50,20 @@ def setup_test_data(db_session: Session):
     db_session.add(profile)
     db_session.flush()
 
+    # Create Character (required for generation)
+    from models.character import Character
+    character = Character(
+        name="test_character",
+        gender="female",
+    )
+    db_session.add(character)
+    db_session.flush()
+
     # Create Storyboard with Style Profile
     storyboard = Storyboard(
         title="Test Storyboard",
         description="Test",
-        default_character_id=None,
+        default_character_id=character.id,
         default_style_profile_id=profile.id
     )
     db_session.add(storyboard)
@@ -62,6 +71,7 @@ def setup_test_data(db_session: Session):
 
     return {
         "storyboard_id": storyboard.id,
+        "character_id": character.id,
         "profile_id": profile.id,
         "lora_name": lora.name,
         "default_positive": profile.default_positive,
@@ -112,6 +122,7 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     request_data = {
         "prompt": "1girl, standing",
         "negative_prompt": "bad anatomy",
+        "character_id": test_data["character_id"],
         "storyboard_id": test_data["storyboard_id"],
         "steps": 20,
         "cfg_scale": 7.0,
@@ -133,8 +144,8 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     # 2. Trigger words should be included
     assert "test_trigger" in captured_payload["prompt"]
 
-    # 3. Default positive should be prepended (normalized with underscores)
-    assert captured_payload["prompt"].startswith("masterpiece, best_quality")
+    # 3. Default positive should be prepended
+    assert captured_payload["prompt"].startswith("masterpiece, best quality")
 
     # 4. Default negative should be appended
     assert "lowres, bad quality" in captured_payload["negative_prompt"]

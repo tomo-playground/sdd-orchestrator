@@ -50,6 +50,14 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "characterPromptMode",
 ];
 
+// Pre-hydration cleanup: clear localStorage before Zustand hydrates old data
+if (typeof window !== "undefined") {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("new") === "true") {
+    localStorage.removeItem(STORE_KEY);
+  }
+}
+
 export const useStudioStore = create<StudioState>()(
   persist(
     (...a) => ({

@@ -6,7 +6,7 @@ from database import SessionLocal
 from models.character import Character
 from models.lora import LoRA
 from models.tag import Tag
-from services.keywords.db_cache import LoRATriggerCache
+from services.keywords.db_cache import LoRATriggerCache, TagAliasCache
 
 # Defined Layers (from PROMPT_LAYERS.md)
 LAYER_QUALITY = 0
@@ -52,13 +52,13 @@ class V3PromptBuilder:
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
 
-        # 1. Collect Character tags and their metadata from relationships
+        # 1. Collect Character tags (is_permanent = always include, layer from default_layer)
         char_tags_data = []
         for char_tag in character.tags:
             tag = char_tag.tag
             char_tags_data.append({
                 "name": tag.name,
-                "layer": LAYER_IDENTITY if char_tag.is_permanent else tag.default_layer,
+                "layer": tag.default_layer,
                 "weight": char_tag.weight
             })
 
@@ -76,57 +76,58 @@ class V3PromptBuilder:
                         "weight": 1.0
                     })
 
-        # 2. Get Scene tag info
+        # 2. Resolve aliases in scene tags
+        scene_tags = self._resolve_aliases(scene_tags)
+
+        # 3. Get Scene tag info
         scene_tag_info = self.get_tag_info(scene_tags)
 
-        # 3. Initialize 12 layers
+        # 4. Initialize 12 layers
         layers: list[list[str]] = [[] for _ in range(12)]
 
-        # 4. Distribute Character Tags
+        # 5. Distribute Character Tags
         for ct in char_tags_data:
             token = ct["name"]
             if ct["weight"] != 1.0:
                 token = f"({token}:{ct['weight']})"
             layers[ct["layer"]].append(token)
 
-        # 5. Distribute Scene Tags
+        # 6. Distribute Scene Tags
         for tag in scene_tags:
             norm_tag = tag.lower().replace(" ", "_").strip()
             info = scene_tag_info.get(norm_tag, {"layer": LAYER_SUBJECT})
             layers[info["layer"]].append(tag)
 
         # 6. Inject Character LoRAs & Triggers
-        # Character explicitly defined LoRAs
-        active_loras: dict[str, float] = {} # name -> weight
+        # active_loras: name -> (weight, lora_type)
+        active_loras: dict[str, tuple[float, str | None]] = {}
 
         if character.loras and character.prompt_mode != "standard":
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
-                weight = lora_info.get("weight") # Explicit weight from character settings
+                weight = lora_info.get("weight")
 
                 lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
                 if lora_obj:
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
 
-                    active_loras[lora_obj.name] = weight
-                    # Triggers go to Identity layer
+                    active_loras[lora_obj.name] = (weight, lora_obj.lora_type)
+                    trigger_layer = LAYER_ATMOSPHERE if lora_obj.lora_type == "style" else LAYER_IDENTITY
                     for trigger in (lora_obj.trigger_words or []):
-                        if trigger not in layers[LAYER_IDENTITY]:
-                            layers[LAYER_IDENTITY].append(trigger)
+                        if trigger not in layers[trigger_layer]:
+                            layers[trigger_layer].append(trigger)
 
         # 7. Collect Triggered LoRAs from Scene Tags
         for tag in scene_tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name and lora_name not in active_loras:
-                # Resolve calibrated weight
-                active_loras[lora_name] = self.get_lora_weight_by_name(lora_name)
+                active_loras[lora_name] = (self.get_lora_weight_by_name(lora_name), None)
 
-        # 8. Inject LoRA Tags into Layers
-        for name, weight in active_loras.items():
-            # For now, put all triggered LoRAs into IDENTITY layer
-            # (In future, style LoRAs could go to ATMOSPHERE)
-            layers[LAYER_IDENTITY].append(f"<lora:{name}:{weight}>")
+        # 8. Inject LoRA Tags into Layers (character→L2, style→L11)
+        for name, (weight, lora_type) in active_loras.items():
+            target_layer = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
+            layers[target_layer].append(f"<lora:{name}:{weight}>")
 
         # 9. Inject Style LoRAs (Atmosphere) - These are explicit overrides
         if style_loras:
@@ -142,19 +143,26 @@ class V3PromptBuilder:
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{weight}>")
 
-        # 10. Resolve location conflicts in ENVIRONMENT layer
+        # 10. Gender enhancement for male characters (SD model bias)
+        self._apply_gender_enhancement(character, char_tags_data, layers)
+
+        # 11. Resolve location conflicts in ENVIRONMENT layer
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(
             layers[LAYER_ENVIRONMENT]
         )
 
-        # 10b. Resolve camera conflicts in CAMERA layer
+        # 11b. Resolve camera conflicts in CAMERA layer
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(
             layers[LAYER_CAMERA]
         )
 
-        # 11. Add Quality Tags to Layer 0
-        if not layers[LAYER_QUALITY]:
-            layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
+        # 12. Ensure Quality Tags in Layer 0
+        quality_tokens = {t.lower().strip("() ").split(":")[0] for t in layers[LAYER_QUALITY]}
+        if "masterpiece" not in quality_tokens:
+            layers[LAYER_QUALITY].insert(0, "masterpiece")
+        if "best_quality" not in quality_tokens:
+            idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
+            layers[LAYER_QUALITY].insert(idx, "best_quality")
 
         return self._flatten_layers(layers, has_character_lora=bool(active_loras))
 
@@ -165,6 +173,7 @@ class V3PromptBuilder:
         style_loras: list[dict] | None = None,
     ) -> str:
         """Generic composition without direct DB character object."""
+        tags = self._resolve_aliases(tags)
         layers: list[list[str]] = [[] for _ in range(12)]
         tag_info = self.get_tag_info(tags)
 
@@ -222,22 +231,80 @@ class V3PromptBuilder:
             layers[LAYER_CAMERA]
         )
 
-        if not layers[LAYER_QUALITY]:
-            layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
+        quality_tokens = {t.lower().strip("() ").split(":")[0] for t in layers[LAYER_QUALITY]}
+        if "masterpiece" not in quality_tokens:
+            layers[LAYER_QUALITY].insert(0, "masterpiece")
+        if "best_quality" not in quality_tokens:
+            idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
+            layers[LAYER_QUALITY].insert(idx, "best_quality")
 
         return self._flatten_layers(layers, has_character_lora=bool(character_loras))
 
+    def _resolve_aliases(self, tags: list[str]) -> list[str]:
+        """Replace aliased tags using TagAliasCache.
+
+        Returns filtered list: aliases resolved, None-mapped tags dropped.
+        """
+        TagAliasCache.initialize(self.db)
+        resolved: list[str] = []
+        for tag in tags:
+            replacement = TagAliasCache.get_replacement(tag)
+            if replacement is ...:
+                resolved.append(tag)  # No alias — keep original
+            elif replacement is None:
+                continue  # Tag mapped to nothing — drop it
+            else:
+                resolved.append(replacement)
+        return resolved
+
+    # Male enhancement tags (Danbooru standard) to counter SD female bias
+    _MALE_INDICATORS = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
+    _FEMALE_INDICATORS = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
+    _MALE_ENHANCEMENT = ["(1boy:1.3)", "(male_focus:1.2)", "(bishounen:1.1)"]
+
+    def _apply_gender_enhancement(
+        self, character: "Character", char_tags_data: list[dict], layers: list[list[str]]
+    ) -> None:
+        """Add male enhancement tags if character is male (SD model bias fix)."""
+        # Detect gender from character DB field, custom_base_prompt, or tags
+        gender = (character.gender or "").lower()
+        if not gender:
+            all_names = {ct["name"].lower().strip("()").split(":")[0] for ct in char_tags_data}
+            for token in list(all_names) + [t.lower() for t in (layers[LAYER_SUBJECT] + layers[LAYER_IDENTITY])]:
+                if token in self._MALE_INDICATORS:
+                    gender = "male"
+                    break
+                if token in self._FEMALE_INDICATORS:
+                    gender = "female"
+                    break
+
+        if gender == "male":
+            for tag in self._MALE_ENHANCEMENT:
+                if tag not in layers[LAYER_SUBJECT]:
+                    layers[LAYER_SUBJECT].append(tag)
+
+    @staticmethod
+    def _dedup_key(token: str) -> str:
+        """Normalize token for dedup: strip weight parens e.g. (1boy:1.3) → 1boy."""
+        t = token.strip().lower()
+        # Strip weight syntax: (tag:weight) → tag
+        if t.startswith("(") and ":" in t and t.endswith(")"):
+            t = t[1:].split(":")[0]
+        return t
+
     def _flatten_layers(self, layers: list[list[str]], has_character_lora: bool = False) -> str:
-        """Flattens 12 layers into a final string with deduplication and BREAK."""
+        """Flattens 12 layers into a final string with global deduplication and BREAK."""
         final_tokens = []
+        global_seen: set[str] = set()  # Cross-layer deduplication
+
         for i, layer_tokens in enumerate(layers):
             if layer_tokens:
-                seen = set()
                 unique_layer_tokens = []
                 for t in layer_tokens:
-                    if t.lower() not in seen:
+                    key = self._dedup_key(t)
+                    if key not in global_seen:
                         unique_layer_tokens.append(t)
-                        seen.add(t.lower())
+                        global_seen.add(key)
 
                 # Layer 7, 8 (Expression, Action) weight boost
                 if i in [LAYER_EXPRESSION, LAYER_ACTION]:
@@ -363,24 +430,6 @@ class V3PromptBuilder:
 
         return result
 
-    def _resolve_lora_placeholders(self, tokens: list[str]) -> list[str]:
-        """Finds <lora:NAME> (without weight) and injects calibrated value."""
-        resolved = []
-        for t in tokens:
-            if t.startswith("<lora:") and t.endswith(">"):
-                # Check if it has weight (contains second colon)
-                content = t[6:-1] # name[:weight]
-                parts = content.split(":")
-
-                if len(parts) == 1:
-                    # Missing weight! Resolve it.
-                    name = parts[0]
-                    weight = self.get_lora_weight_by_name(name)
-                    resolved.append(f"<lora:{name}:{weight}>")
-                    continue
-
-            resolved.append(t)
-        return resolved
 
 def get_v3_prompt_builder():
     db = SessionLocal()

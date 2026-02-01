@@ -1,4 +1,4 @@
-# Database Schema (v3.1)
+# Database Schema (v3.2)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
 | v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
 | v3.0 | 2026-01-30 | V3 아키텍처: Storyboard-Centric, Relational Tags, Activity Logs, Tag Aliases/Filters |
 | v2.0 | 2026-01-27 | Characters, LoRAs, Style Profiles, Tag System |
@@ -75,29 +76,73 @@ YouTube Shorts 프로젝트 단위.
 | `id` | Integer (PK) | |
 | `storyboard_id` | Integer (FK → storyboards) | 소속 스토리보드 |
 | `order` | Integer | 씬 순서 (0-based) |
-| `script` | Text | 나레이션 텍스트 |
+| `script` | Text | 나레이션/Scene Text |
 | `description` | Text | LLM 생성 시각적 설명 |
+| `speaker` | String(20) | 화자 (default: `"Narrator"`) |
+| `duration` | Float | 씬 길이 초 (default: 3.0) |
+| **Prompt** | | |
+| `image_prompt` | Text | Gemini 생성 프롬프트 (V3 compose 입력) |
+| `image_prompt_ko` | Text | 한국어 프롬프트 |
+| `negative_prompt` | Text | 네거티브 프롬프트 |
+| `context_tags` | JSONB | 씬 컨텍스트 태그 (아래 구조 참조) |
+| **SD Parameters** | | |
+| `steps` | Integer | 샘플링 스텝 |
+| `cfg_scale` | Float | CFG 스케일 |
+| `sampler_name` | String(50) | 샘플러 이름 |
+| `seed` | BigInteger | 생성 시드 |
+| `clip_skip` | Integer | CLIP Skip |
 | `width` | Integer | 이미지 너비 (default: 512) |
 | `height` | Integer | 이미지 높이 (default: 768) |
+| **IP-Adapter** | | |
+| `use_reference_only` | Integer (bool) | IP-Adapter 사용 여부 (default: 1) |
+| `reference_only_weight` | Float | IP-Adapter 가중치 (default: 0.5) |
+| `environment_reference_id` | Integer | 환경 참조 이미지 ID |
+| `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
+| **Generated** | | |
 | `image_asset_id` | Integer (FK → media_assets) | 생성된 이미지 (폴리모픽 참조) |
+| `candidates` | JSONB | 후보 이미지 목록 (image_url, match_rate 등) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `image_url` (`@property`): `image_asset.url` 반환
+
+**`context_tags` JSONB 구조**:
+```json
+{
+  "expression": ["expressionless"],
+  "gaze": "looking_at_viewer",
+  "pose": ["standing"],
+  "action": ["adjusting_hair"],
+  "camera": "upper_body",
+  "environment": ["office", "indoors"],
+  "mood": ["melancholic"]
+}
+```
+> list 필드: `expression`, `pose`, `action`, `environment`, `mood`
+> string 필드: `gaze`, `camera`
 
 ---
 
 ## 🔗 Association Tables (V3 Relational Tags)
 
 ### `character_tags`
-캐릭터 ↔ 태그 연결 (identity/clothing 구분).
+캐릭터 ↔ 태그 연결.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `character_id` | Integer (PK, FK → characters) | |
 | `tag_id` | Integer (PK, FK → tags) | |
 | `weight` | Float | 태그 가중치 (default: 1.0) |
-| `is_permanent` | Boolean | `true` = identity, `false` = clothing |
+| `is_permanent` | Boolean | 항상 포함 여부 (아래 참조) |
+
+**`is_permanent`와 레이어 배치 규칙** (V3 Prompt Pipeline):
+- `is_permanent=true` → **LAYER_IDENTITY(2)에 강제 배치**, `tag.default_layer` 무시
+- `is_permanent=false` → `tag.default_layer` 사용
+
+> **Known Issue**: `is_permanent`가 "항상 포함"과 "캐릭터 identity"를 혼용하고 있음.
+> `anime_style`(스타일=L11), `solo`(subject=L1) 같은 비-identity 태그도 permanent로 등록되면
+> LAYER_IDENTITY(2)에 강제 배치되어 의미론적 오분류 발생.
+> → `PROMPT_PIPELINE_SPEC.md` Known Issue #2 참조
 
 ### `scene_tags`
 씬 ↔ 태그 연결 (환경/분위기 태그).
@@ -134,7 +179,7 @@ YouTube Shorts 프로젝트 단위.
 | `category` | String(50) | `character`, `scene`, `meta` |
 | `group_name` | String(50) | 의미론적 그룹 (`hair_color`, `expression`, `camera` 등 24종) |
 | `description` | String(500) | 태그 설명 |
-| `default_layer` | Integer | 12-Layer 위치 (0-11) |
+| `default_layer` | Integer | 12-Layer 위치 (0-11, 아래 매핑 참조) |
 | `usage_scope` | String(20) | `PERMANENT`, `TRANSIENT`, `ANY` |
 | `priority` | Integer | 정렬 우선순위 (default: 100) |
 | `classification_source` | String(20) | `pattern`, `danbooru`, `llm`, `manual` |
@@ -147,6 +192,26 @@ YouTube Shorts 프로젝트 단위.
 
 > **Removed**: `subcategory` 컬럼 (deprecated Phase 6-4.25, removed Phase 6-4.26)
 > **Added** (Phase 6-4.15.8): `is_active`, `deprecated_reason`, `replacement_tag_id` - DB 기반 태그 비활성화 시스템
+
+**`default_layer` 매핑** (V3 12-Layer System):
+
+| 값 | 상수 | 용도 | 예시 태그 |
+|----|------|------|-----------|
+| 0 | LAYER_QUALITY | 품질 태그 | `masterpiece`, `best_quality`, `highres` |
+| 1 | LAYER_SUBJECT | 주체 | `1boy`, `1girl`, `solo` |
+| 2 | LAYER_IDENTITY | 캐릭터 LoRA/트리거 | (주로 character_tags에서 배치) |
+| 3 | LAYER_BODY | 체형 | `super_deformed`, `tall`, `slim` |
+| 4 | LAYER_MAIN_CLOTH | 주요 의상 | `blue_shirt`, `school_uniform` |
+| 5 | LAYER_DETAIL_CLOTH | 의상 디테일 | `striped`, `frills` |
+| 6 | LAYER_ACCESSORY | 악세서리 | `glasses`, `hat` |
+| 7 | LAYER_EXPRESSION | 표정/시선 | `smile`, `looking_at_viewer` |
+| 8 | LAYER_ACTION | 포즈/동작 | `standing`, `walking`, `adjusting_hair` |
+| 9 | LAYER_CAMERA | 카메라 앵글 | `upper_body`, `close_up`, `from_above` |
+| 10 | LAYER_ENVIRONMENT | 배경/장소 | `office`, `indoors`, `outdoors` |
+| 11 | LAYER_ATMOSPHERE | 스타일/분위기/조명 | `anime_style`, `melancholic`, `day` |
+
+> Fallback: DB에 없는 태그는 `LAYER_SUBJECT(1)`로 배치됨.
+> 코드 위치: `backend/services/prompt/v3_composition.py` L12-23
 
 ### `tag_rules`
 태그 간 충돌/의존성 규칙 (개별 태그 레벨).
@@ -254,22 +319,40 @@ WD14 피드백 루프 데이터.
 | `name` | String(100) | Unique |
 | `gender` | String(10) | `female`, `male` |
 | `description` | String(500) | |
-| `loras` | JSONB | `[{"lora_id": 1, "weight": 0.8}]` |
+| **Prompt** | | |
+| `loras` | JSONB | LoRA 설정 (아래 구조 참조) |
 | `recommended_negative` | Text[] | 캐릭터별 네거티브 |
-| `custom_base_prompt` | Text | 커스텀 기본 프롬프트 |
-| `custom_negative_prompt` | Text | 커스텀 네거티브 |
-| `reference_base_prompt` | Text | 참조 이미지 생성용 |
-| `reference_negative_prompt` | Text | 참조 네거티브 |
-| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
+| `custom_base_prompt` | Text | V3 compose 입력: LAYER_IDENTITY(2)에 배치 |
+| `custom_negative_prompt` | Text | Frontend `buildNegativePrompt()` 입력 |
+| `reference_base_prompt` | Text | 레퍼런스 이미지 전용 (V3 compose 미사용) |
+| `reference_negative_prompt` | Text | 레퍼런스 이미지 전용 |
 | `prompt_mode` | String(20) | `auto`, `standard`, `lora` |
+| **IP-Adapter** | | |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
+| **Display** | | |
+| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
+| `preview_locked` | Boolean | 미리보기 자동 갱신 잠금 (default: false) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `preview_image_url` (`@property`): `preview_image_asset.url` 반환
 
+**V3 Prompt Pipeline에서의 사용** (→ `PROMPT_PIPELINE_SPEC.md` 참조):
+| 필드 | V3 compose 사용 | 용도 |
+|------|:-:|------|
+| `character.tags[]` (via character_tags) | O | `is_permanent` 기반 레이어 배치 |
+| `custom_base_prompt` | O | comma split → LAYER_IDENTITY(2), 배경 태그 필터 |
+| `loras` | O | trigger words + `<lora:>` → LAYER_IDENTITY(2) |
+| `gender` | O | male → gender enhancement → LAYER_SUBJECT(1) |
+| `prompt_mode` | O | `"standard"`이면 LoRA 주입 스킵 |
+| `custom_negative_prompt` | X | Frontend 로컬 처리 |
+| `reference_base_prompt` | X | 레퍼런스 이미지 전용 |
+| `reference_negative_prompt` | X | 레퍼런스 이미지 전용 |
+
 > V3 변경: `identity_tags Integer[]`, `clothing_tags Integer[]` 제거 → `character_tags` 테이블로 이관
 > V3.1 변경: `preview_image_url` 제거 → `preview_image_asset_id` FK로 전환
+> V3.1.1 변경: `preview_locked` 추가 (2026-02-01)
 
 ### `loras`
 Stable Diffusion LoRA 모델.
@@ -412,8 +495,34 @@ Textual Inversion 임베딩.
 
 ### `Character.loras`
 ```json
-[{"lora_id": 1, "weight": 0.8, "name": "lora_name", "trigger_words": ["word"], "lora_type": "character"}]
+[
+  {
+    "lora_id": 5,
+    "weight": 1.0,
+    "name": "flat_color",
+    "trigger_words": ["flat color"],
+    "lora_type": "character"
+  }
+]
 ```
+
+**V3 Pipeline 처리**: `lora_type`에 관계없이 현재 모두 LAYER_IDENTITY(2)에 배치.
+→ Known Issue: `lora_type=style`은 LAYER_ATMOSPHERE(11)에 배치해야 함.
+
+### `Scene.context_tags`
+```json
+{
+  "expression": ["expressionless"],
+  "gaze": "looking_at_viewer",
+  "pose": ["standing"],
+  "action": ["adjusting_hair"],
+  "camera": "upper_body",
+  "environment": ["office", "indoors"],
+  "mood": ["melancholic"]
+}
+```
+
+**V3 Pipeline 처리**: `_collect_context_tags()`에서 flat list로 변환 후 scene_tags에 병합.
 
 ### `ActivityLog.sd_params`
 ```json
@@ -437,7 +546,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-01-31
-**Schema Version:** v3.1
+**Last Updated:** 2026-02-01
+**Schema Version:** v3.2
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic (V3 Baseline + Media Assets)

@@ -3,14 +3,8 @@ import type { Scene } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 import {
-  splitPromptTokens,
-  getGenderEnhancements,
-} from "../../utils";
-import {
   buildScenePrompt,
   buildNegativePrompt,
-  getBasePromptForScene,
-  buildPositivePrompt,
 } from "./promptActions";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
@@ -78,22 +72,19 @@ export async function generateSceneImageFor(
     showToast,
   } = useStudioStore.getState();
 
+  if (!selectedCharacterId) {
+    if (!silent) showToast("Character selection is required", "error");
+    return null;
+  }
+
   const prompt = await buildScenePrompt(scene);
   if (!prompt) {
     if (!silent) showToast("Prompt is required", "error");
     return null;
   }
 
-  let negativePrompt = buildNegativePrompt(scene);
-
-  // Gender enhancement negative tags
-  const basePrompt = getBasePromptForScene(scene);
-  const baseTokens = basePrompt ? splitPromptTokens(basePrompt) : [];
-  const genderEnhancements = getGenderEnhancements(baseTokens);
-  if (genderEnhancements.negative.length > 0) {
-    const extra = genderEnhancements.negative.join(", ");
-    negativePrompt = negativePrompt ? `${negativePrompt}, ${extra}` : extra;
-  }
+  const negativePrompt = buildNegativePrompt(scene);
+  // Gender enhancement is now handled by V3 backend engine
 
   // Pre-generation validation
   try {
@@ -139,7 +130,7 @@ export async function generateSceneImageFor(
     ...hiResPayload,
     ...controlnetPayload,
     ...ipAdapterPayload,
-    ...(selectedCharacterId ? { character_id: selectedCharacterId } : {}),
+    character_id: selectedCharacterId,
   };
 
   try {
@@ -353,6 +344,18 @@ export async function handleGenerateImage(scene: Scene) {
     if (result) {
       console.log("[handleGenerateImage] Image generation result:", result);
       updateScene(updatedScene.id, result);
+
+      // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
+      const { applyAutoPinAfterGeneration } = await import('../../utils/applyAutoPin');
+      const autoPinResult = applyAutoPinAfterGeneration(
+        useStudioStore.getState().scenes,
+        updatedScene.id,
+        updateScene
+      );
+      if (autoPinResult?.success) {
+        console.log("[AutoPin]", autoPinResult.message);
+        showToast(`🔗 ${autoPinResult.message}`, "success");
+      }
 
       // Auto-save after image generation to persist image_url to DB
       // Prevents image loss on page refresh

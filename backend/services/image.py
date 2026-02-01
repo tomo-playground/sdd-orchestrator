@@ -139,14 +139,14 @@ def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> 
 
 def calculate_optimal_scene_text_y(
     image: Image.Image,
-    default_y_ratio: float = 0.72,
+    default_y_ratio: float = 0.12,
     layout_style: str = "full"
 ) -> float:
     """Calculate optimal Y position for scene text based on image content.
 
     Args:
         image: PIL Image to analyze
-        default_y_ratio: Default Y position ratio (0.72 = 72% from top)
+        default_y_ratio: Default Y position ratio (0.12 = top 12%)
         layout_style: "full" or "post" layout
 
     Returns:
@@ -158,12 +158,20 @@ def calculate_optimal_scene_text_y(
     HIGH_COMPLEXITY = 0.20  # Move scene text up if complexity > 0.20
     LOW_COMPLEXITY = 0.10   # Move scene text down if complexity < 0.10
 
-    if complexity > HIGH_COMPLEXITY:
-        # High complexity: move scene text up significantly
-        return 0.60 if layout_style == "full" else 0.78
-    elif complexity < LOW_COMPLEXITY:
-        # Low complexity: can place scene text lower
-        return 0.75 if layout_style == "full" else 0.85
+    if layout_style == "full":
+        # Full layout: scene text is at top (12-15% from top)
+        # Dynamic adjustment within top region only
+        if complexity > HIGH_COMPLEXITY:
+            return 0.10  # Move slightly higher
+        elif complexity < LOW_COMPLEXITY:
+            return 0.15  # Slightly lower in top region
+        else:
+            return default_y_ratio
     else:
-        # Moderate complexity: use default
-        return default_y_ratio
+        # Post layout: scene text stays in bottom region
+        if complexity > HIGH_COMPLEXITY:
+            return 0.78
+        elif complexity < LOW_COMPLEXITY:
+            return 0.85
+        else:
+            return default_y_ratio

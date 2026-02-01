@@ -198,6 +198,47 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             logger.error(f"❌ Image editing failed: {e}")
             raise
 
+    async def enhance_image(self, image_b64: str) -> dict:
+        """Gemini로 캐릭터 프리뷰 이미지 고품질 보정
+
+        캐릭터 identity/스타일/포즈를 보존하면서 선화/색감/디테일만 향상합니다.
+
+        Args:
+            image_b64: Base64 인코딩된 이미지 (Data URL 또는 raw base64)
+
+        Returns:
+            {"enhanced_image": "base64 string", "cost_usd": 0.0401}
+        """
+        try:
+            image_bytes = decode_data_url(image_b64)
+            base_image = Image.open(io.BytesIO(image_bytes))
+
+            prompt = (
+                "Enhance this anime character illustration while strictly preserving "
+                "the character's identity, pose, outfit, art style, and composition. "
+                "Improve ONLY: line art clarity, color vibrancy, shading quality, "
+                "and fine details (eyes, hair strands, fabric texture). "
+                "Do NOT change the character's face, body proportions, clothing design, "
+                "or background. Output a single improved image."
+            )
+
+            logger.info("✨ Enhancing image with Gemini...")
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[prompt, base_image],
+                config={"response_modalities": ["Image"]},
+            )
+
+            enhanced_data = response.candidates[0].content.parts[0].inline_data.data
+            enhanced_b64 = base64.b64encode(enhanced_data).decode("utf-8")
+
+            logger.info("✅ Image enhance complete (cost: $0.0401)")
+            return {"enhanced_image": enhanced_b64, "cost_usd": 0.0401}
+
+        except Exception as e:
+            logger.error(f"❌ Image enhance failed: {e}")
+            raise
+
     def _generate_edit_prompt(
         self, target_change: str, preserve_elements: list[str], edit_type: EditType
     ) -> str:

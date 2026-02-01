@@ -185,44 +185,53 @@ export default function PromptSetupPanel({
               </button>
             </div>
             <div className="flex flex-wrap items-end gap-3">
-              {/* Gender */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Gender
-                  {selectedCharacterId && <span className="ml-1 text-zinc-400 normal-case">🔒</span>}
-                </label>
-                <select
-                  value={actorAGender}
-                  onChange={(e) => setActorAGender(e.target.value as ActorGender)}
-                  disabled={selectedCharacterId !== null}
-                  className={`w-24 rounded-2xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 ${selectedCharacterId ? "bg-zinc-100 cursor-not-allowed text-zinc-500" : "bg-white/80"
-                    }`}
-                >
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
-                </select>
-              </div>
               {/* Character Preset */}
               <div className="flex flex-1 flex-col gap-1 min-w-[200px]">
                 <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Character Preset
+                  Character
                 </label>
                 <select
                   value={selectedCharacterId ?? ""}
                   onChange={(e) => {
                     const val = e.target.value;
-                    onSelectCharacter(val ? parseInt(val, 10) : null);
+                    const charId = val ? parseInt(val, 10) : null;
+                    onSelectCharacter(charId);
+                    if (charId) {
+                      const char = characters.find((c) => c.id === charId);
+                      if (char?.gender) setActorAGender(char.gender);
+                    }
                   }}
-                  className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  className={`rounded-2xl border px-3 py-2 text-sm outline-none focus:border-zinc-400 ${
+                    !selectedCharacterId
+                      ? "border-amber-300 bg-amber-50/80 text-amber-700"
+                      : "border-zinc-200 bg-white/80"
+                  }`}
                 >
-                  <option value="">None (Manual)</option>
-                  {characters
-                    .filter((char) => char.gender === actorAGender)
-                    .map((char) => (
-                      <option key={char.id} value={char.id}>
-                        {char.name}
-                      </option>
-                    ))}
+                  <option value="" disabled>Select Character...</option>
+                  {(() => {
+                    const female = characters.filter((c) => c.gender === "female");
+                    const male = characters.filter((c) => c.gender === "male");
+                    const other = characters.filter((c) => c.gender !== "female" && c.gender !== "male");
+                    return (
+                      <>
+                        {female.length > 0 && (
+                          <optgroup label="Female">
+                            {female.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </optgroup>
+                        )}
+                        {male.length > 0 && (
+                          <optgroup label="Male">
+                            {male.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </optgroup>
+                        )}
+                        {other.length > 0 && (
+                          <optgroup label="Other">
+                            {other.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </optgroup>
+                        )}
+                      </>
+                    );
+                  })()}
                 </select>
               </div>
             </div>

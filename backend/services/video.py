@@ -727,7 +727,7 @@ class VideoBuilder:
         self.filters.append(
             f"[{v_idx}:v]scale={self.out_w}:{self.out_h}:"
             f"force_original_aspect_ratio=increase,"
-            f"crop={self.out_w}:{self.out_h}:0:(ih-oh)*{crop_y_ratio}[v{i}_scaled]"
+            f"crop={self.out_w}:{self.out_h}:(iw-ow)/2:(ih-oh)*{crop_y_ratio}[v{i}_scaled]"
         )
 
     def _resolve_scene_preset(self, scene_idx: int) -> str:

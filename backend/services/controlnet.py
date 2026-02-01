@@ -17,7 +17,6 @@ from PIL import Image
 from sqlalchemy.orm import Session
 
 from config import (
-    CHARACTER_PRESETS,
     DEFAULT_CHARACTER_PRESET,
     DEFAULT_REFERENCE_BASE_PROMPT,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
@@ -436,39 +435,22 @@ def delete_reference_image(character_key: str) -> bool:
         return False
 
 
-def get_character_preset(character_key: str) -> dict[str, Any]:
-    """Get IP-Adapter preset for a character.
-
-    Args:
-        character_key: Character name/key
-
-    Returns:
-        Preset dict with weight, model, and description
-    """
-    preset = CHARACTER_PRESETS.get(character_key, DEFAULT_CHARACTER_PRESET)
-    logger.info(f"📋 Character preset for '{character_key}': weight={preset.get('weight')}, model={preset.get('model')}")
-    return preset
-
-
 def build_ip_adapter_args(
     reference_image: str,
     weight: float | None = None,
     model: str | None = None,
-    character_key: str | None = None,
 ) -> dict[str, Any]:
     """Build IP-Adapter arguments for txt2img.
 
     Args:
         reference_image: Base64 encoded reference face image
-        weight: IP-Adapter influence weight (0.0-1.5). If None, uses character preset.
-        model: IP-Adapter model type ("clip", "clip_face", "faceid"). If None, uses character preset.
-        character_key: Character name to load preset from. Used when weight/model not specified.
+        weight: IP-Adapter influence weight (0.0-1.5). If None, uses default.
+        model: IP-Adapter model type ("clip", "clip_face", "faceid"). If None, uses default.
 
     Returns:
         ControlNet args dict for IP-Adapter
     """
-    # Load preset if character_key provided
-    preset = get_character_preset(character_key) if character_key else DEFAULT_CHARACTER_PRESET
+    preset = DEFAULT_CHARACTER_PRESET
 
     # Use provided values or fall back to preset
     if weight is None:
@@ -544,7 +526,6 @@ def build_combined_controlnet_args(
     reference_image: str | None = None,
     pose_weight: float = 0.8,
     ip_adapter_weight: float | None = None,
-    character_key: str | None = None,
 ) -> list[dict[str, Any]]:
     """Build combined ControlNet + IP-Adapter args.
 
@@ -552,8 +533,7 @@ def build_combined_controlnet_args(
         pose_image: Base64 encoded pose reference (optional)
         reference_image: Base64 encoded face reference for IP-Adapter (optional)
         pose_weight: OpenPose weight
-        ip_adapter_weight: IP-Adapter weight (None = use character preset)
-        character_key: Character name for loading IP-Adapter preset
+        ip_adapter_weight: IP-Adapter weight (None = use default)
 
     Returns:
         List of ControlNet args for alwayson_scripts
@@ -571,7 +551,6 @@ def build_combined_controlnet_args(
         args.append(build_ip_adapter_args(
             reference_image=reference_image,
             weight=ip_adapter_weight,
-            character_key=character_key,
         ))
 
     return args

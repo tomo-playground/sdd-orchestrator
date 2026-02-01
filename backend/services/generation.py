@@ -130,15 +130,18 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
             request.storyboard_id,
             db
         )
-        # V3 Logic: If character_id is provided, use V3PromptService
-        character_obj = None
-        if request.character_id:
-            # Load character for V3 prompt composition and IP-Adapter automation
-            from models import Character
-            character_obj = db.query(Character).filter(Character.id == request.character_id).first()
+        # V3 Logic: character_id is required, use V3PromptService
+        # Skip V3 re-composition if prompt is already V3-composed (from /prompt/compose)
+        from models import Character
+        character_obj = db.query(Character).filter(Character.id == request.character_id).first()
 
+        prompt_already_composed = "BREAK" in request.prompt or "masterpiece" in request.prompt.lower()
+        if prompt_already_composed:
+            # Frontend already composed via /prompt/compose V3 — use as-is
+            cleaned_prompt = request.prompt
+            logger.info("🎨 [V3 Engine] Using pre-composed prompt for character %d", request.character_id)
+        else:
             v3_service = V3PromptService(db)
-            # Treat request.prompt as scene tags (comma-separated)
             scene_tags = split_prompt_tokens(request.prompt)
             cleaned_prompt = v3_service.generate_prompt_for_scene(
                 character_id=request.character_id,
@@ -146,8 +149,6 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                 style_loras=request.style_loras
             )
             logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
-        else:
-            cleaned_prompt = request.prompt
 
         final_warnings = []
 
@@ -209,21 +210,20 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
         final_cfg = max(final_cfg, 7.5)
 
     # Apply optimal LoRA weights from calibration DB
+    IP_ADAPTER_LORA_CAP = 0.6
     lora_names = extract_lora_names(cleaned_prompt)
     if lora_names:
         try:
-            # 23.7 Character Consistency: Override weights to 0.6 when IP-Adapter is active
-            if request.use_ip_adapter and character_obj:
-                # Force all LoRA weights to 0.6 for optimal IP-Adapter + LoRA balance
-                optimal_weights = {name.lower(): 0.6 for name in lora_names}
+            optimal_weights = get_optimal_weights_from_db(lora_names)
+            if request.use_ip_adapter and character_obj and optimal_weights:
+                # Cap weights for IP-Adapter compatibility (preserve lower calibrations)
+                optimal_weights = {
+                    name: min(w, IP_ADAPTER_LORA_CAP) for name, w in optimal_weights.items()
+                }
+                logger.info("🔧 [LoRA] IP-Adapter active, capped at %.1f: %s", IP_ADAPTER_LORA_CAP, optimal_weights)
+            if optimal_weights:
                 cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
-                logger.info("🔧 [LoRA] Applied IP-Adapter optimal weights (0.6): %s", list(lora_names))
-            else:
-                # Use calibrated weights from DB
-                optimal_weights = get_optimal_weights_from_db(lora_names)
-                if optimal_weights:
-                    cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
-                    logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
+                logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
         except Exception as e:
             logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
 
@@ -360,6 +360,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
                     controlnet_args_list.append(build_ip_adapter_args(
                         reference_image=ref_image,
                         weight=request.ip_adapter_weight,
+                        model=character_obj.ip_adapter_model if character_obj else None,
                     ))
                     ip_adapter_used = request.ip_adapter_reference
                     logger.info("🧑 [IP-Adapter] Using reference: %s (weight=%.1f)", request.ip_adapter_reference, request.ip_adapter_weight)

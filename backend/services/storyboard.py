@@ -123,6 +123,33 @@ def create_storyboard(request: StoryboardRequest) -> dict:
             else:
                 logger.info(f"  ℹ️  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}...")
 
+        # Auto-pin background based on context_tags.environment
+        logger.info("[Storyboard] Auto-pin: Analyzing environment tags for background consistency")
+        previous_env_tags = None
+
+        for i, scene in enumerate(scenes):
+            context_tags = scene.get("context_tags", {})
+            current_env_tags = set(context_tags.get("environment", [])) if context_tags else set()
+
+            # Scene 0: no reference (first scene)
+            if i == 0:
+                previous_env_tags = current_env_tags
+                logger.info(f"  Scene {i}: First scene, env={list(current_env_tags)}")
+                continue
+
+            # Same environment as previous scene → auto-pin
+            if current_env_tags and previous_env_tags and (current_env_tags & previous_env_tags):
+                # Note: We can't set environment_reference_id here because images don't exist yet
+                # Instead, mark with a flag for frontend to auto-apply after first image generation
+                scene["_auto_pin_previous"] = True
+                logger.info(f"  Scene {i}: Same location {list(current_env_tags)} → mark for auto-pin")
+            else:
+                # Location changed → no pin
+                scene["_auto_pin_previous"] = False
+                logger.info(f"  Scene {i}: Location changed {list(previous_env_tags)} → {list(current_env_tags)}, no pin")
+
+            previous_env_tags = current_env_tags
+
         logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
         for i, s in enumerate(scenes):
             logger.info(f"  Scene {i+1} negative: {s.get('negative_prompt', 'NONE')[:80]}")

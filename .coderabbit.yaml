@@ -160,7 +160,7 @@ knowledge_base:
     enabled: true
     filePatterns:
       - "GEMINI.md"
-      - "docs/CONTRIBUTING.md"
+      - "docs/guides/CONTRIBUTING.md"
 
   learnings:
     scope: auto

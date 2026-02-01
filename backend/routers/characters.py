@@ -1,6 +1,6 @@
 """Character CRUD endpoints for Pure V3."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from config import (
@@ -243,6 +243,9 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
+    if character.preview_locked:
+        raise HTTPException(status_code=400, detail="Preview image is locked")
+
     # Build prompt from reference_base_prompt + character tags + LoRAs
     tag_names = [t.tag.name for t in character.tags]
     base = character.reference_base_prompt or ""
@@ -320,6 +323,143 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     db.commit()
 
     return {"ok": True, "url": asset.url}
+
+
+@router.post("/{character_id}/enhance-preview")
+async def enhance_preview(character_id: int, db: Session = Depends(get_db)):
+    """Enhance the character's preview image using Gemini image generation."""
+    import base64
+    import hashlib
+
+    from services.asset_service import AssetService
+    from services.image import decode_data_url, load_image_bytes
+    from services.imagen_edit import get_imagen_service
+    from services.storage import get_storage
+
+    character = db.query(Character).filter(Character.id == character_id).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="Character not found")
+
+    if character.preview_locked:
+        raise HTTPException(status_code=400, detail="Preview image is locked")
+
+    if not character.preview_image_url:
+        raise HTTPException(status_code=400, detail="No preview image to enhance")
+
+    # Load current preview image
+    image_bytes = load_image_bytes(character.preview_image_url)
+    image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}"
+
+    # Enhance via Gemini
+    service = get_imagen_service()
+    result = await service.enhance_image(image_b64)
+
+    # Store enhanced image
+    enhanced_bytes = decode_data_url(
+        f"data:image/png;base64,{result['enhanced_image']}"
+    )
+    digest = hashlib.sha1(enhanced_bytes).hexdigest()[:16]
+    file_name = f"character_{character_id}_preview_{digest}.png"
+    storage_key = f"characters/{character_id}/preview/{file_name}"
+
+    storage = get_storage()
+    storage.save(storage_key, enhanced_bytes, content_type="image/png")
+
+    asset_service = AssetService(db)
+    asset = asset_service.register_asset(
+        file_name=file_name,
+        file_type="image",
+        storage_key=storage_key,
+        owner_type="character",
+        owner_id=character_id,
+        file_size=len(enhanced_bytes),
+        mime_type="image/png",
+    )
+
+    character.preview_image_asset_id = asset.id
+    db.commit()
+
+    return {"ok": True, "url": asset.url, "cost_usd": result["cost_usd"]}
+
+
+@router.post("/{character_id}/edit-preview")
+async def edit_preview(
+    character_id: int,
+    instruction: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+):
+    """Edit the character's preview image with a natural language instruction via Gemini."""
+    import base64
+    import hashlib
+
+    from services.asset_service import AssetService
+    from services.image import decode_data_url, load_image_bytes
+    from services.imagen_edit import get_imagen_service
+    from services.storage import get_storage
+
+    character = db.query(Character).filter(Character.id == character_id).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="Character not found")
+
+    if character.preview_locked:
+        raise HTTPException(status_code=400, detail="Preview image is locked")
+
+    if not character.preview_image_url:
+        raise HTTPException(status_code=400, detail="No preview image to edit")
+
+    # Load current preview image
+    image_bytes = load_image_bytes(character.preview_image_url)
+    image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}"
+
+    # Build original prompt context from character tags
+    tag_names = []
+    if character.tags:
+        from models import CharacterTag as CT
+        char_tags = db.query(CT).filter(CT.character_id == character_id).all()
+        for ct in char_tags:
+            if ct.tag:
+                tag_names.append(ct.tag.name)
+    original_prompt = ", ".join(tag_names) if tag_names else ""
+
+    # Edit via Gemini (Vision analysis + image edit)
+    service = get_imagen_service()
+    result = await service.edit_with_analysis(
+        image_b64=image_b64,
+        original_prompt=original_prompt,
+        target_change=instruction,
+    )
+
+    # Store edited image
+    edited_bytes = decode_data_url(
+        f"data:image/png;base64,{result['edited_image']}"
+    )
+    digest = hashlib.sha1(edited_bytes).hexdigest()[:16]
+    file_name = f"character_{character_id}_preview_{digest}.png"
+    storage_key = f"characters/{character_id}/preview/{file_name}"
+
+    storage = get_storage()
+    storage.save(storage_key, edited_bytes, content_type="image/png")
+
+    asset_service = AssetService(db)
+    asset = asset_service.register_asset(
+        file_name=file_name,
+        file_type="image",
+        storage_key=storage_key,
+        owner_type="character",
+        owner_id=character_id,
+        file_size=len(edited_bytes),
+        mime_type="image/png",
+    )
+
+    character.preview_image_asset_id = asset.id
+    db.commit()
+
+    return {
+        "ok": True,
+        "url": asset.url,
+        "cost_usd": result["cost_usd"],
+        "edit_type": result.get("edit_result", {}).get("edit_type"),
+    }
 
 
 @router.post("/batch-regenerate-references")

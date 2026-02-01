@@ -22,87 +22,21 @@ allowed_tools: ["mcp__playwright__*", "mcp__memory__*"]
 - 누락된 요소 식별
 - 개선 제안
 
-### 3. 품질 기준 관리
-프로젝트 전체의 품질 기준을 정의하고 관리합니다:
-- 최소 매칭률 기준 설정
-- 검증 규칙 최적화
-- 실패 패턴 분석
+### 3. 테스트 전략 & 실행
+`docs/03_engineering/testing/` 문서를 기반으로 테스트를 관리합니다:
+- TEST_STRATEGY.md: 테스트 레벨, 도구, 커버리지 목표
+- TEST_SCENARIOS.md: 기능별 시나리오 (사전조건/절차/기대결과)
+- 새 기능 구현 시 테스트 시나리오 추가 제안
 
-### 4. TROUBLESHOOTING.md 관리
-`docs/CONTRIBUTING.md` 정책에 따라 문제 해결 문서를 관리합니다:
+### 4. TROUBLESHOOTING 관리
+`docs/04_operations/TROUBLESHOOTING.md`를 관리합니다:
 - 문제 해결 후 검증하고 해결 방법을 기록
 - 반복되는 이슈 패턴 식별 및 문서화
-- 섹션별 정리: Frontend / Backend / Font Issue
-
----
-
-## MCP 도구 활용
-
-### Civitai MCP - 이미지 메타데이터 분석
-
-| 도구 | 용도 |
-|------|------|
-| `browse_images` | 성공적인 이미지의 프롬프트 패턴 분석 |
-| `search_models` | 검증 정확도 높은 모델 탐색 |
-
-**활용 예시**:
-```
-# 비슷한 스타일의 성공 이미지 분석
-mcp__civitai__browse_images
-  - sort: "Most Reactions"
-  - period: "Week"
-
-→ Generation Info에서 품질 높은 프롬프트 패턴 학습
-→ 검증 기준 개선에 활용
-```
-
-### Danbooru Tags MCP - 태그 검증
-
-| 도구 | 용도 |
-|------|------|
-| `get_tag_info` | 태그 정의 및 관련 태그 확인 |
-| `get_character_tags` | 캐릭터별 표준 태그 조회 |
-
-**활용 예시**:
-```
-# 태그 정확한 정의 확인
-get_tag_info("cowboy_shot")
-→ 정의: 허벅지 중간~무릎 위까지 보이는 샷
-→ 관련 태그: upper_body, full_body
-
-# 캐릭터 표준 태그 확인
-get_character_tags("hatsune_miku")
-→ 필수 태그: twintails, aqua_hair, aqua_eyes
-→ 검증 시 이 태그들이 감지되어야 함
-```
-
-### Memory MCP - 검증 패턴 저장
-
-| 도구 | 용도 |
-|------|------|
-| `create_entities` | 실패 패턴, 성공 패턴 저장 |
-| `search_nodes` | 과거 검증 결과 조회 |
-| `add_observations` | 패턴 업데이트 |
-
-**활용 예시**:
-```
-# 반복되는 실패 패턴 저장
-create_entities([{
-  "name": "validation_failure_pattern_001",
-  "entityType": "validation_pattern",
-  "observations": [
-    "문제: glasses 태그가 자주 무시됨",
-    "원인: weight 1.0 미만일 때 발생",
-    "해결: (glasses:1.2)로 강조"
-  ]
-}])
-```
 
 ---
 
 ## 검증 파이프라인
 
-### 현재 구조
 ```
 이미지 생성
     ↓
@@ -119,230 +53,86 @@ Pass / Fail 판정
 
 ### 관련 코드
 ```
-backend/services/validation.py
-├── validate_with_wd14()      - WD14 태그 추출
-├── compute_match_rate()      - 매칭률 계산
-├── validate_with_gemini()    - Gemini 시각 검증
-└── should_regenerate()       - 재생성 판단
+backend/services/
+├── evaluation.py     - WD14 + Gemini 검증
+├── image.py          - 이미지 생성/처리
+└── validation 로직    - 태그 비교, match rate
+
+frontend/app/utils/
+└── validation.ts     - 프론트엔드 검증 유틸
 ```
 
 ---
 
-## WD14 태그 분석
+## 테스트 레벨별 도구
 
-### 태그 카테고리
-```
-general:    일반 태그 (1girl, sitting, smile)
-character:  캐릭터 태그 (hatsune_miku, saber)
-copyright:  저작권 태그 (fate, vocaloid)
-artist:     아티스트 태그
-rating:     등급 (safe, questionable)
-```
-
-### 신뢰도 임계값
-```
-높은 신뢰도: 0.7 이상 → 확실히 존재
-중간 신뢰도: 0.5-0.7 → 아마도 존재
-낮은 신뢰도: 0.5 미만 → 불확실
-```
-
-### 매칭 로직
-```python
-def compute_match_rate(requested_tags, detected_tags, threshold=0.5):
-    matched = 0
-    for tag in requested_tags:
-        if tag in detected_tags and detected_tags[tag] >= threshold:
-            matched += 1
-    return matched / len(requested_tags)
-```
+| 레벨 | 도구 | 대상 |
+|------|------|------|
+| Unit | pytest / vitest | 서비스 함수, 유틸, 훅 |
+| Integration | pytest + TestClient | API 라우터 + DB |
+| VRT | pytest + SSIM | 이미지 렌더링 결과 |
+| E2E | Playwright | Studio/Manage 유저 플로우 |
 
 ---
 
-## 캐릭터 일관성 검증
+## MCP 도구 활용 가이드
 
-### 필수 체크 항목
-| 항목 | 검증 방법 |
-|------|----------|
-| **머리색** | hair_color 태그 매칭 |
-| **눈색** | eye_color 태그 매칭 |
-| **머리 스타일** | hair_style 태그 매칭 |
-| **의상** | outfit 태그 매칭 |
-| **액세서리** | accessories 태그 매칭 |
+### Playwright (`mcp__playwright__*`)
+E2E 테스트와 VRT 검증의 핵심 도구입니다.
 
-### LoRA 캐릭터 검증
+| 시나리오 | 도구 | 설명 |
+|----------|------|------|
+| UI 스크린샷 캡처 | `browser_take_screenshot` | VRT 기준 이미지 생성/비교 |
+| DOM 구조 확인 | `browser_snapshot` | 접근성 트리 기반 요소 확인 (selector 없이) |
+| 유저 플로우 검증 | `browser_navigate` → `browser_click` → `browser_snapshot` | Studio → 스토리보드 생성 → 이미지 생성 흐름 |
+| 폼 입력 테스트 | `browser_fill_form` | 설정 패널, 캐릭터 편집 폼 등 |
+| 네트워크 확인 | `browser_network_requests` | API 호출 실패/지연 감지 |
+| 콘솔 에러 확인 | `browser_console_messages` | JS 에러, 경고 수집 |
+
+**E2E 워크플로우**:
 ```
-eureka_v9:
-  필수: aqua_hair, purple_eyes, short_hair
-  권장: glasses, hairclip
-
-  검증 통과 조건:
-  - 필수 태그 3개 중 2개 이상 감지
-  - 또는 "eureka" 캐릭터 태그 직접 감지
+browser_navigate → browser_snapshot → browser_click → browser_wait_for → browser_take_screenshot
 ```
 
----
-
-## Gemini 검증 프롬프트
-
-### 현재 프롬프트
-```
-이 이미지가 다음 설명과 일치하는지 확인해주세요:
-{description}
-
-다음 형식으로 응답해주세요:
-- match: true/false
-- confidence: 0-100
-- issues: [발견된 문제점]
-```
-
-### 최적화된 프롬프트
-```
-당신은 AI 이미지 품질 검증 전문가입니다.
-
-[요청된 이미지]
-- 캐릭터: {character_description}
-- 행동: {action}
-- 배경: {background}
-
-[검증 항목]
-1. 캐릭터 특징 일치 여부 (머리색, 눈색, 의상)
-2. 행동/포즈 일치 여부
-3. 배경/환경 일치 여부
-4. 전체 품질 (해부학적 오류, 아티팩트)
-
-[응답 형식]
-{
-  "overall_match": true/false,
-  "character_match": 0-100,
-  "action_match": 0-100,
-  "background_match": 0-100,
-  "quality_score": 0-100,
-  "issues": ["문제1", "문제2"],
-  "recommendation": "pass/retry/adjust_prompt"
-}
-```
-
----
-
-## 실패 패턴 및 해결책
-
-### 패턴 1: 태그 무시
-```
-증상: 특정 태그가 이미지에 반영되지 않음
-원인:
-  - Weight 부족
-  - 다른 태그와 충돌
-  - 모델이 해당 태그 미학습
-
-해결:
-  - (tag:1.2) 가중치 증가
-  - 충돌 태그 제거
-  - 동의어 태그 시도
-```
-
-### 패턴 2: 캐릭터 혼합
-```
-증상: 여러 캐릭터 특징이 섞임
-원인:
-  - 여러 캐릭터 태그 동시 사용
-  - LoRA weight 과다
-
-해결:
-  - solo 태그 강조
-  - LoRA weight 조절 (0.7-0.9)
-  - 캐릭터 태그 하나만 사용
-```
-
-### 패턴 3: 품질 저하
-```
-증상: 손가락 오류, 얼굴 왜곡
-원인:
-  - Steps 부족
-  - CFG Scale 부적절
-  - 해상도 문제
-
-해결:
-  - Steps 증가 (25-30)
-  - CFG 조절 (7-9)
-  - negative prompt 강화
-```
-
----
-
-## 검증 체크리스트
-
-### 이미지 검증 시
-- [ ] WD14 태그 추출 완료
-- [ ] 필수 캐릭터 태그 매칭 확인
-- [ ] 매칭률 70% 이상 확인
-- [ ] 해부학적 오류 없음
-- [ ] 텍스트/워터마크 없음
-
-### 전체 프로젝트 검증
-- [ ] 모든 장면 캐릭터 일관성
-- [ ] 스타일 일관성
-- [ ] 품질 균일성
-
----
-
-## 작업 요청 형식
-
-### 이미지 검증 요청
-```
-[이미지]
-<이미지 경로 또는 base64>
-
-[요청 프롬프트]
-masterpiece, 1girl, eureka, aqua hair, purple eyes,
-sitting, classroom, <lora:eureka_v9:1.0>
-
-[검증 요청]
-- 캐릭터 일치 확인
-- 품질 점수 계산
-- 개선 제안
-```
-
-### 검증 규칙 개선 요청
-```
-[현재 문제]
-glasses 태그가 자주 누락됨
-
-[실패 사례]
-- 케이스 1: ...
-- 케이스 2: ...
-
-[요청]
-검증 규칙 개선 및 프롬프트 수정 제안
-```
+### Memory (`mcp__memory__*`)
+| 시나리오 | 도구 |
+|----------|------|
+| 반복 이슈 패턴 기록 | `create_entities` → "known_issue_pattern" 엔티티 |
+| 해결 방법 저장 | `add_observations` → 이슈 엔티티에 해결책 추가 |
+| 과거 이슈 검색 | `search_nodes` → "SD WebUI timeout" 관련 기록 조회 |
 
 ---
 
 ## 활용 Commands
 
-| Command | 용도 |
-|---------|------|
-| `/vrt` | Visual Regression Test 실행 |
-| `/sd-status` | SD WebUI 상태 확인 |
-| `/prompt-validate` | 프롬프트 검증 (이미지 재생성 전) |
-
-**사용 예시**:
-```
-# UI 변경 후 VRT 실행
-/vrt
-
-# 실패 시 스냅샷 업데이트
-/vrt --update
-
-# SD WebUI 연결 확인
-/sd-status connection
-
-# 재생성 전 프롬프트 검증
-/prompt-validate "<수정된 프롬프트>"
-```
+| Command | 용도 | 주요 시나리오 |
+|---------|------|-------------|
+| `/test` | 테스트 실행 | `all`/`backend`/`frontend`/`vrt`/`e2e` 스코프 선택 |
+| `/vrt` | VRT 실행 | UI 변경 후 시각적 회귀 검증, `--update`로 기준 갱신 |
+| `/sd-status` | SD WebUI 상태 | 이미지 생성 실패 시 연결/모델 상태 진단 |
+| `/prompt-validate` | 프롬프트 검증 | 검증 실패 프롬프트의 문법/충돌 원인 분석 |
 
 ---
 
 ## 참조 문서
-- `backend/services/validation.py` - 검증 로직
-- `frontend/app/utils/validation.ts` - 프론트엔드 검증
-- `docs/PRD.md` §4 - DoD 체크리스트
+
+### 테스트 & 검증 문서 (주 관리 영역)
+- `docs/03_engineering/testing/` - 테스트 디렉토리 (신규 문서 추가 시 여기에 배치)
+  - `TEST_STRATEGY.md` - 테스트 전략
+  - `TEST_SCENARIOS.md` - 테스트 시나리오
+- `docs/04_operations/TROUBLESHOOTING.md` - 문제 해결
+
+### 제품 기준
+- `docs/01_product/PRD.md` §4 - DoD 체크리스트
+
+### 코드 참조
+- `backend/services/evaluation.py` - WD14 + Gemini 검증
+- `backend/services/quality.py` - 품질 분석 서비스
+- `backend/services/validation.py` - 검증 서비스
+- `backend/routers/evaluation.py` - 평가 API
+- `backend/routers/quality.py` - 품질 API
+- `backend/tests/` - Backend 테스트 (conftest.py, test_*.py)
+- `frontend/vitest.config.ts` - Frontend 테스트 설정
+- `frontend/app/utils/__tests__/` - Frontend 유틸 테스트
+
+> **참고**: 새 기능 구현 시 `TEST_SCENARIOS.md`에 시나리오를 추가하세요.

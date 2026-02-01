@@ -254,8 +254,6 @@ def build_test_prompt(
     Returns:
         Complete prompt string
     """
-    from services.prompt import compose_prompt_string
-
     # Base tokens
     tokens = ["masterpiece", "best quality", test.subject]
 
@@ -270,13 +268,13 @@ def build_test_prompt(
     if character_clothing_tags:
         tokens.extend(character_clothing_tags)
 
-    # Compose with mode-specific ordering
-    return compose_prompt_string(
-        tokens=tokens,
-        mode=mode,
-        trigger_words=lora_trigger_words,
-        use_break=(mode == "lora"),
-    )
+    # Add trigger words and BREAK for LoRA mode
+    if lora_trigger_words:
+        tokens.extend(lora_trigger_words)
+    if mode == "lora":
+        tokens.append("BREAK")
+
+    return ", ".join(tokens)
 
 
 async def run_single_evaluation(

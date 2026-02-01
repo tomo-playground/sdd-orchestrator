@@ -52,18 +52,20 @@ type SceneCardProps = {
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
+  onPinToggle?: () => void;
   onSavePrompt?: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   isMarkingStatus?: boolean;
+  // V3 prompt integration
+  selectedCharacterId?: number | null;
+  basePromptA?: string;
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
   applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
-  buildPositivePrompt: (scene: Scene) => string;
   buildNegativePrompt: (scene: Scene) => string;
   buildScenePrompt: (scene: Scene) => Promise<string | null>;
-  getBasePromptForScene: (scene: Scene) => string;
   showToast: (message: string, type: "success" | "error") => void;
 };
 
@@ -98,17 +100,18 @@ export default function SceneCard({
   onValidateImage,
   onApplyMissingTags,
   onImagePreview,
+  onPinToggle,
   onSavePrompt,
   onMarkSuccess,
   onMarkFail,
   isMarkingStatus = false,
+  selectedCharacterId,
+  basePromptA = "",
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
-  buildPositivePrompt,
   buildNegativePrompt,
   buildScenePrompt,
-  getBasePromptForScene,
   showToast,
 }: SceneCardProps) {
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
@@ -349,10 +352,10 @@ export default function SceneCard({
                   triggerWords={loraTriggerWords}
                 />
                 <ComposedPromptPreview
-                  tokens={[
-                    ...getBasePromptForScene(scene).split(",").map((t) => t.trim()).filter(Boolean),
-                    ...scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean),
-                  ]}
+                  tokens={scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean)}
+                  characterId={selectedCharacterId}
+                  basePrompt={basePromptA}
+                  contextTags={scene.context_tags || undefined}
                   loras={characterLoras}
                   mode={promptMode}
                   useBreak={true}
@@ -487,27 +490,21 @@ export default function SceneCard({
                   <span className="ml-1 text-[#FFD700] animate-pulse" title="Background Pinned">📌</span>
                 )}
               </button>
-              {scene.image_url && !scene.isGenerating && (
+              {sceneIndex > 0 && !scene.isGenerating && onPinToggle && (
                 <button
                   type="button"
-                  onClick={() => {
-                    // Toggle pinning: if already pinned to THIS asset, unpin.
-                    // If not pinned, pin to the current image's asset ID.
-                    if (!scene.image_asset_id && !scene.environment_reference_id) {
-                      showToast("이미지를 먼저 생성하거나 업로드해야 배경을 고정할 수 있습니다.", "error");
-                      return;
-                    }
-                    const isPinned = !!scene.environment_reference_id;
-                    onUpdateScene({
-                      environment_reference_id: isPinned ? null : scene.image_asset_id,
-                      environment_reference_weight: 0.3
-                    });
-                  }}
+                  onClick={onPinToggle}
                   className={`rounded-full p-2.5 text-[10px] shadow-md transition ${scene.environment_reference_id ? 'bg-amber-100 text-amber-600 border border-amber-300' : 'bg-white text-zinc-400 border border-zinc-200 hover:bg-zinc-50'}`}
-                  title={scene.environment_reference_id ? "배경 고정 해제" : "이 장면의 배경을 다음 생성 시 고정합니다"}
+                  title={scene.environment_reference_id ? "배경 고정 해제" : "이전 장면의 배경을 참조합니다"}
                 >
                   📌
                 </button>
+              )}
+              {scene._auto_pin_previous && !scene.environment_reference_id && !scene.image_url && (
+                <div className="flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1.5 text-[10px] text-blue-600">
+                  <span>💡</span>
+                  <span className="font-medium">자동 핀 활성</span>
+                </div>
               )}
               {scene.image_url && !scene.isGenerating && (
                 <button
@@ -575,7 +572,7 @@ export default function SceneCard({
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(buildPositivePrompt(scene));
+                      navigator.clipboard.writeText(scene.debug_prompt || scene.image_prompt);
                       showToast("프롬프트 복사됨", "success");
                       onSceneMenuClose();
                     }}

@@ -32,8 +32,8 @@ class FullLayout:
     SCENE_TEXT_FONT_RATIO: float = 0.042  # height * ratio = font size (81px for 1920h, YouTube Shorts standard)
     SCENE_TEXT_MIN_FONT_RATIO: float = 0.032  # minimum font size ratio (61px for 1920h)
     SCENE_TEXT_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
-    SCENE_TEXT_Y_SINGLE_LINE_RATIO: float = 0.85  # Y position for 1 line (bottom 15%)
-    SCENE_TEXT_Y_MULTI_LINE_RATIO: float = 0.82  # Y position for 2+ lines (bottom 18%)
+    SCENE_TEXT_Y_SINGLE_LINE_RATIO: float = 0.15  # Y position for 1 line (top 15%)
+    SCENE_TEXT_Y_MULTI_LINE_RATIO: float = 0.12  # Y position for 2+ lines (top 12%)
     SCENE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
     SCENE_TEXT_STROKE_WIDTH: int = 5
     SCENE_TEXT_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black

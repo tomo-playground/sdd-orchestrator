@@ -13,16 +13,21 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*"]
 ### 1. 스토리보드 템플릿 작성
 Structure별 최적화된 Jinja2 템플릿을 작성합니다:
 - Monologue, Storytelling, Tutorial, Facts, Motivation
-- Japanese Lesson, Math Lesson
 - 새로운 Structure 템플릿 설계
 
 ### 2. 스크립트 최적화
 Gemini 프롬프트와 출력 품질을 개선합니다:
 - 장면 전환/페이싱 제안
 - TTS 스크립트 톤 조정 (자연스러운 말투)
-- 자막 길이 최적화 (화면 내 표시)
+- Scene Text 길이 최적화 (화면 내 표시)
 
-### 3. 콘텐츠 기획
+### 3. Gemini API 연동
+스토리보드 생성에 사용되는 Gemini 프롬프트를 관리합니다:
+- Gemini 생성 결과의 품질 검토 (태그 정확도, 장면 전환)
+- 템플릿 변수와 Gemini 출력 스키마 일치 검증
+- 캐릭터별 context_tags 정확도 개선
+
+### 4. 콘텐츠 기획
 효과적인 쇼츠 콘텐츠 구조를 제안합니다:
 - Hook (첫 3초) 최적화
 - 정보 밀도 조절
@@ -30,132 +35,51 @@ Gemini 프롬프트와 출력 품질을 개선합니다:
 
 ---
 
-## MCP 도구 활용
+## MCP 도구 활용 가이드
 
-### Context7 - 문서 참조
+### Context7 (`mcp__context7__*`)
+템플릿 작성 시 외부 라이브러리 문서를 참조합니다.
 
-| 용도 | 쿼리 예시 |
-|------|----------|
-| Jinja2 문법 | `resolve-library-id` → "jinja2" |
-| Gemini API | `resolve-library-id` → "google gemini" |
+| 시나리오 | 1단계: resolve-library-id | 2단계: query-docs |
+|----------|--------------------------|------------------|
+| Jinja2 필터/매크로 문법 | `"jinja2"` | `"custom filters and macros"` |
+| Gemini API 스키마 구조 | `"google generativeai"` | `"structured output JSON schema"` |
+| Gemini 프롬프트 최적화 | `"google generativeai"` | `"system instruction best practices"` |
 
-**활용 예시**:
-```
-# Jinja2 조건문/반복문 문법 확인
-mcp__context7__query-docs
-  - libraryId: "/pallets/jinja"
-  - query: "for loop with index"
+**2단계 필수**: `resolve-library-id`로 라이브러리 ID를 먼저 얻은 뒤, 해당 ID로 `query-docs`를 호출합니다.
 
-# Gemini 프롬프트 베스트 프랙티스
-mcp__context7__query-docs
-  - libraryId: "/google/generative-ai"
-  - query: "prompt engineering best practices"
-```
+### Memory (`mcp__memory__*`)
+성공한 템플릿 패턴을 축적하여 품질을 개선합니다.
 
-### Memory MCP - 템플릿 저장
-
-| 도구 | 용도 |
-|------|------|
-| `create_entities` | 성공한 템플릿/스크립트 저장 |
-| `search_nodes` | 기존 템플릿 검색 |
-| `add_observations` | 템플릿 개선 사항 기록 |
-
-**활용 예시**:
-```
-# 성공한 스토리보드 템플릿 저장
-create_entities([{
-  "name": "tutorial_template_v2",
-  "entityType": "storyboard_template",
-  "observations": [
-    "Structure: Tutorial",
-    "Scenes: 5-7개 최적",
-    "Hook: 질문형 오프닝 효과적"
-  ]
-}])
-```
+| 시나리오 | 도구 | 예시 |
+|----------|------|------|
+| 성공 템플릿 저장 | `create_entities` | Structure별 고품질 스크립트 패턴 저장 |
+| 기존 패턴 검색 | `search_nodes` | "Motivation structure hook" 패턴 조회 |
+| 패턴 개선 기록 | `add_observations` | 기존 엔티티에 A/B 테스트 결과 추가 |
 
 ---
 
 ## 현재 템플릿 구조
 
-### 위치
 ```
 backend/templates/
-├── monologue.j2
-├── storytelling.j2
-├── tutorial.j2
-├── facts.j2
-├── motivation.j2
-├── japanese_lesson.j2
-└── math_lesson.j2
+├── create_storyboard.j2    # 메인 스토리보드 생성 템플릿
+└── (Structure별 분기는 템플릿 내부 조건문)
 ```
 
-### 템플릿 변수
-```jinja2
-{# 공통 변수 #}
-{{ topic }}        - 주제
-{{ style }}        - 스타일 (anime, realistic 등)
-{{ scene_count }}  - 장면 수
-{{ language }}     - 출력 언어
-
-{# 출력 구조 #}
-scenes:
-  - scene_number: 1
-    script: "나레이션 텍스트"
-    image_prompt: "SD 프롬프트"
-    duration: 3.5
-```
-
----
-
-## Structure별 가이드라인
-
-### Monologue (독백)
-```
-특징: 1인칭 시점, 감정 전달
-장면 수: 5-7개
-Hook: 공감 유발 질문/상황
-Pacing: 감정 고조 → 클라이맥스 → 여운
-```
-
-### Storytelling (이야기)
-```
-특징: 3인칭 서술, 기승전결
-장면 수: 6-8개
-Hook: 흥미로운 상황 제시
-Pacing: 도입 → 전개 → 위기 → 해결
-```
-
-### Tutorial (튜토리얼)
-```
-특징: 단계별 설명, 명확한 지시
-장면 수: 5-7개
-Hook: "이것만 알면..." 형식
-Pacing: 문제 제시 → 단계별 해결 → 요약
-```
-
-### Facts (팩트)
-```
-특징: 짧은 정보 나열, 놀라운 사실
-장면 수: 5-6개
-Hook: 가장 충격적인 팩트
-Pacing: 강약 조절, 마지막에 반전
-```
-
-### Japanese Lesson (일본어 강좌)
-```
-특징: 표현 + 발음 + 예문
-장면 수: 4-6개
-Hook: 실용적인 상황 제시
-Pacing: 표현 소개 → 발음 → 예문 → 복습
-```
-
-### Math Lesson (수학 강좌)
-```
-특징: 공식 + 시각화 + 예제
-장면 수: 4-6개
-Hook: 실생활 문제
-Pacing: 문제 → 공식 소개 → 풀이 → 정리
+### 템플릿 출력 구조
+```json
+{
+  "scenes": [
+    {
+      "scene_number": 1,
+      "script": "나레이션 텍스트",
+      "image_prompt": "SD 프롬프트 태그",
+      "context_tags": { "environment": [...], "mood": [...] },
+      "duration": 3.5
+    }
+  ]
+}
 ```
 
 ---
@@ -163,80 +87,19 @@ Pacing: 문제 → 공식 소개 → 풀이 → 정리
 ## 스크립트 작성 규칙
 
 ### TTS 최적화
-```
 - 문장 길이: 15-25자 (한국어 기준)
 - 쉼표로 자연스러운 끊기
 - 숫자는 한글로 (3 → 셋)
-- 영어는 발음 고려
-```
 
-### 자막 최적화
-```
+### Scene Text 최적화
 - 한 줄 최대: 20자
 - 두 줄 이하 권장
 - 핵심 키워드 강조
-```
 
 ### Hook 패턴
-```
-질문형: "혹시 ~해본 적 있으세요?"
-놀람형: "이거 알면 인생이 바뀝니다"
-공감형: "저도 처음엔 ~했는데요"
-도전형: "이것만 알면 ~할 수 있어요"
-```
-
----
-
-## Gemini 프롬프트 최적화
-
-### 시스템 프롬프트 구조
-```
-1. 역할 정의 (Role)
-2. 출력 형식 (Format)
-3. 제약 조건 (Constraints)
-4. 예시 (Examples)
-```
-
-### 품질 개선 팁
-```
-- 구체적인 장면 수 지정
-- JSON 스키마 명시
-- Few-shot 예시 포함
-- Temperature 조절 (창의성 vs 일관성)
-```
-
----
-
-## 작업 요청 형식
-
-### 새 템플릿 요청
-```
-[Structure]
-Tutorial
-
-[주제 예시]
-- 포토샵 기초
-- 요리 레시피
-
-[요구사항]
-- 장면 수: 6개
-- 톤: 친근하고 쉬운 설명
-- Hook: 질문형
-```
-
-### 스크립트 개선 요청
-```
-[현재 스크립트]
-장면 1: "오늘은 ~에 대해 알아보겠습니다"
-장면 2: "먼저 ~부터 시작하죠"
-
-[문제점]
-- Hook이 약함
-- 문장이 딱딱함
-
-[요청]
-자연스러운 말투로 개선
-```
+- 질문형: "혹시 ~해본 적 있으세요?"
+- 놀람형: "이거 알면 인생이 바뀝니다"
+- 공감형: "저도 처음엔 ~했는데요"
 
 ---
 
@@ -244,20 +107,23 @@ Tutorial
 
 | Command | 용도 |
 |---------|------|
-| `/roadmap` | 현재 Phase 및 스토리보드 관련 작업 확인 |
+| `/roadmap` | 스토리보드 관련 작업 확인 |
 
-**사용 예시**:
-```
-# 스토리보드 관련 작업 확인
-/roadmap
+## 참조 문서/코드
 
-# 새 템플릿 추가 후 작업 완료 처리
-/roadmap update "템플릿 추가: quiz_lesson.j2"
-```
+### 제품 문서
+- `docs/01_product/PRD.md` - 제품 요구사항
+- `docs/01_product/FEATURES/` - 기능 명세 (스토리보드 관련 항목 확인)
+  - `MULTI_CHARACTER.md` - 다중 캐릭터 씬 구성
+  - `SCENE_BUILDER_UI.md` - 씬 빌더 UI 명세
 
----
+### 기술 문서
+- `docs/03_engineering/backend/PROMPT_PIPELINE.md` - 프롬프트 파이프라인 (Gemini → SD)
 
-## 참조 문서
-- `backend/templates/` - 기존 Jinja2 템플릿
+### 코드 참조
+- `backend/templates/` - Jinja2 템플릿 (스토리보드 생성)
 - `backend/routers/storyboard.py` - 스토리보드 API
-- `docs/PRD.md` - 제품 요구사항
+- `backend/services/storyboard.py` - 스토리보드 서비스 (Gemini 연동)
+- `backend/services/generation.py` - 이미지 생성 서비스 (스토리보드 후속)
+
+> **참고**: 스토리보드 관련 템플릿은 `backend/templates/`에, 신규 Structure 타입은 템플릿 내부 분기로 추가합니다.

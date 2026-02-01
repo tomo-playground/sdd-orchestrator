@@ -230,11 +230,14 @@ export default function Home() {
                       <img
                         src={ch.preview_image_url.startsWith('http') ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`}
                         alt={ch.name}
-                        onClick={() => ch.preview_image_url && setCharacterImagePreview(ch.preview_image_url.startsWith('http') ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`)}
+                        onClick={() => { setEditingCharacter(ch); setShowCharacterModal(true); }}
                         className="h-14 w-14 rounded-xl object-cover bg-zinc-100 cursor-pointer hover:ring-2 hover:ring-zinc-300 transition-all"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-100 text-lg font-bold text-zinc-400">
+                      <div
+                        onClick={() => { setEditingCharacter(ch); setShowCharacterModal(true); }}
+                        className="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-100 text-lg font-bold text-zinc-400 cursor-pointer hover:ring-2 hover:ring-zinc-300 transition-all"
+                      >
                         {ch.name.charAt(0)}
                       </div>
                     )}

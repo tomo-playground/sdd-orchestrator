@@ -14,6 +14,9 @@ type LoRAInfo = {
 
 type ComposedPromptPreviewProps = {
   tokens: string[];
+  characterId?: number | null;
+  basePrompt?: string;
+  contextTags?: Record<string, unknown>;
   loras?: LoRAInfo[];
   mode?: "auto" | "standard" | "lora";
   useBreak?: boolean;
@@ -113,6 +116,9 @@ function getTokenCategory(token: string): string {
 
 export default function ComposedPromptPreview({
   tokens,
+  characterId,
+  basePrompt,
+  contextTags,
   loras = [],
   mode = "auto",
   useBreak = true,
@@ -165,25 +171,20 @@ export default function ComposedPromptPreview({
   );
 
   const composePrompt = useCallback(async () => {
-    if (tokens.length === 0) return;
+    if (tokens.length === 0 || !characterId) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
+      // base_prompt / loras not sent — Backend loads from DB via character_id (SSOT)
       const response = await fetch(`${API_BASE}/prompt/compose`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tokens,
-          mode,
-          loras: (loras || []).map((l) => ({
-            name: l.name,
-            weight: l.weight || 0.5,
-            trigger_words: l.trigger_words || [],
-            lora_type: l.lora_type,
-            optimal_weight: l.optimal_weight,
-          })),
+          character_id: characterId,
+          context_tags: contextTags || undefined,
           use_break: useBreak,
         }),
       });
@@ -200,12 +201,12 @@ export default function ComposedPromptPreview({
     } finally {
       setIsLoading(false);
     }
-  }, [tokens, loras, mode, useBreak, onComposed]);
+  }, [tokens, characterId, basePrompt, contextTags, loras, mode, useBreak, onComposed]);
 
   // Auto-compose when tokens change (debounced)
   const prevTokensRef = useRef<string>("");
   useEffect(() => {
-    const tokenKey = tokens.join(",") + "|" + loras.map(l => l.name).join(",") + "|" + mode;
+    const tokenKey = tokens.join(",") + "|" + loras.map(l => l.name).join(",") + "|" + mode + "|" + (characterId ?? "") + "|" + (basePrompt ?? "");
 
     // Skip if same as previous
     if (tokenKey === prevTokensRef.current || tokens.length === 0) {

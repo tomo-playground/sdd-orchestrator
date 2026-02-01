@@ -15,22 +15,16 @@ class V3PromptService:
 
     def generate_prompt_for_scene(
         self,
-        character_id: int | None,
+        character_id: int,
         scene_tags: list[str],
         style_loras: list[dict] | None = None,
     ) -> str:
         """Generates a full V3 prompt for a specific scene and character."""
-        if character_id:
-            return self.builder.compose_for_character(
-                character_id=character_id,
-                scene_tags=scene_tags,
-                style_loras=style_loras
-            )
-        else:
-            return self.builder.compose(
-                tags=scene_tags,
-                style_loras=style_loras
-            )
+        return self.builder.compose_for_character(
+            character_id=character_id,
+            scene_tags=scene_tags,
+            style_loras=style_loras
+        )
 
 def get_v3_prompt_service():
     db = SessionLocal()

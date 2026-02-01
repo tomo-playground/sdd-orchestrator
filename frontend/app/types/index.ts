@@ -39,6 +39,8 @@ export type Scene = {
   reference_only_weight?: number;
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
+  // Auto-pin flag from backend (Gemini context_tags analysis)
+  _auto_pin_previous?: boolean;
 };
 
 export type AudioItem = { name: string; url: string };
@@ -227,6 +229,7 @@ export type Character = {
   reference_base_prompt: string | null;
   reference_negative_prompt: string | null;
   preview_image_url: string | null;
+  preview_locked: boolean;
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;

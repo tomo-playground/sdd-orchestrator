@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from config import CHARACTER_PRESETS, DEFAULT_CHARACTER_PRESET, logger
+from config import DEFAULT_CHARACTER_PRESET, logger
 from database import get_db
 from services.controlnet import (
     IP_ADAPTER_MODELS,
@@ -13,7 +13,6 @@ from services.controlnet import (
     create_pose_from_image,
     delete_reference_image,
     detect_pose_from_prompt,
-    get_character_preset,
     get_controlnet_models,
     list_reference_images,
     load_pose_reference,
@@ -167,8 +166,7 @@ async def list_references(db: Session = Depends(get_db)):
             }
         else:
             # Priority 2: Static config presets
-            preset = get_character_preset(char_key)
-            ref["preset"] = preset
+            ref["preset"] = DEFAULT_CHARACTER_PRESET
 
     return {"references": refs}
 
@@ -236,22 +234,3 @@ async def remove_reference(character_key: str):
     return {"deleted": character_key}
 
 
-@router.get("/ip-adapter/presets")
-async def get_character_presets():
-    """Get all character presets with recommended IP-Adapter settings."""
-    return {
-        "presets": CHARACTER_PRESETS,
-        "default": DEFAULT_CHARACTER_PRESET,
-    }
-
-
-@router.get("/ip-adapter/preset/{character_key}")
-async def get_preset_for_character(character_key: str):
-    """Get IP-Adapter preset for a specific character."""
-    preset = get_character_preset(character_key)
-    is_default = character_key not in CHARACTER_PRESETS
-    return {
-        "character_key": character_key,
-        "preset": preset,
-        "is_default": is_default,
-    }

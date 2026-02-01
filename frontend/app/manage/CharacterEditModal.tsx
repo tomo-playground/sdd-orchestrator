@@ -30,6 +30,7 @@ export default function CharacterEditModal({
   const [customNegativePrompt, setCustomNegativePrompt] = useState(character?.custom_negative_prompt || ""); // Use optional chaining
 
   const [previewImageUrl, setPreviewImageUrl] = useState(character?.preview_image_url || ""); // Use optional chaining
+  const [previewLocked, setPreviewLocked] = useState(character?.preview_locked ?? false);
   const [promptMode, setPromptMode] = useState<PromptMode>(character?.prompt_mode || "auto"); // Use optional chaining
   const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character?.ip_adapter_weight || 0.75); // Use optional chaining
   const [ipAdapterModel, setIpAdapterModel] = useState<string>(character?.ip_adapter_model || "clip_face"); // Use optional chaining
@@ -71,6 +72,10 @@ export default function CharacterEditModal({
   const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character?.loras || []);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [geminiEditOpen, setGeminiEditOpen] = useState(false);
+  const [geminiTargetChange, setGeminiTargetChange] = useState("");
 
   // Preview modal state
   const [previewImageOpen, setPreviewImageOpen] = useState(false);
@@ -90,6 +95,45 @@ export default function CharacterEditModal({
       alert("Failed to generate reference image.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleEnhancePreview = async () => {
+    if (isCreateMode || !character?.id || !previewImageUrl) return;
+    if (!confirm("Enhance preview image with Gemini? (~$0.04 cost)")) return;
+
+    setIsEnhancing(true);
+    try {
+      const res = await axios.post(`${API_BASE}/characters/${character.id}/enhance-preview`);
+      if (res.data.url) {
+        setPreviewImageUrl(res.data.url);
+      }
+    } catch (error) {
+      console.error("Failed to enhance preview", error);
+      alert("Failed to enhance preview image.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleEditPreview = async (instruction: string) => {
+    if (isCreateMode || !character?.id || !previewImageUrl || !instruction.trim()) return;
+
+    setIsEditing(true);
+    setGeminiEditOpen(false);
+    try {
+      const res = await axios.post(`${API_BASE}/characters/${character.id}/edit-preview`, {
+        instruction: instruction.trim(),
+      });
+      if (res.data.url) {
+        setPreviewImageUrl(res.data.url);
+        setGeminiTargetChange("");
+      }
+    } catch (error) {
+      console.error("Failed to edit preview", error);
+      alert("Failed to edit preview image.");
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -254,6 +298,7 @@ export default function CharacterEditModal({
       reference_negative_prompt: referenceNegativePrompt,
       ip_adapter_weight: ipAdapterWeight,
       ip_adapter_model: ipAdapterModel,
+      preview_locked: previewLocked,
     };
 
     console.log("💾 [CharacterEditModal] Saving character:", payload);
@@ -323,7 +368,22 @@ export default function CharacterEditModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Preview Image URL</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Preview Image</label>
+              {previewImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewLocked(!previewLocked)}
+                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
+                    previewLocked
+                      ? "bg-amber-100 text-amber-700 border border-amber-300"
+                      : "bg-zinc-100 text-zinc-500 border border-zinc-200 hover:bg-zinc-200"
+                  }`}
+                >
+                  {previewLocked ? "Locked" : "Unlocked"}
+                </button>
+              )}
+            </div>
             <div className="flex gap-2">
               <input
                 value={previewImageUrl}
@@ -333,7 +393,7 @@ export default function CharacterEditModal({
               <button
                 type="button"
                 onClick={handleGenerateReference}
-                disabled={isCreateMode || isGenerating}
+                disabled={isCreateMode || previewLocked || isGenerating || isEnhancing || isEditing}
                 className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isGenerating ? (
@@ -345,6 +405,21 @@ export default function CharacterEditModal({
                   "Generate"
                 )}
               </button>
+              <button
+                type="button"
+                onClick={handleEnhancePreview}
+                disabled={isCreateMode || previewLocked || !previewImageUrl || isEnhancing || isGenerating || isEditing}
+                className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isEnhancing ? (
+                  <>
+                    <LoadingSpinner size="sm" color="text-indigo-400" />
+                    <span>Enhancing...</span>
+                  </>
+                ) : (
+                  "Enhance"
+                )}
+              </button>
             </div>
             {isCreateMode && (
               <p className="text-[10px] text-zinc-400 mt-1">
@@ -352,13 +427,39 @@ export default function CharacterEditModal({
               </p>
             )}
             {previewImageUrl && (
-              <div className="mt-3">
-                <img
-                  src={previewImageUrl}
-                  alt="Character Preview"
-                  onClick={() => setPreviewImageOpen(true)}
-                  className="h-32 w-auto rounded-xl border-2 border-zinc-200 object-cover cursor-pointer hover:border-zinc-400 hover:shadow-lg transition-all"
-                />
+              <div className="mt-3 flex items-center gap-3">
+                <div className="relative">
+                  <img
+                    src={previewImageUrl}
+                    alt="Character Preview"
+                    onClick={() => setPreviewImageOpen(true)}
+                    className={`h-32 w-auto rounded-xl border-2 object-cover cursor-pointer hover:shadow-lg transition-all ${
+                      previewLocked ? "border-amber-300" : "border-zinc-200 hover:border-zinc-400"
+                    }`}
+                  />
+                  {previewLocked && (
+                    <div className="absolute top-1 right-1 rounded-full bg-amber-500 p-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-3 h-3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGeminiEditOpen(true)}
+                  disabled={isCreateMode || previewLocked || isEditing || isGenerating || isEnhancing}
+                  className="flex items-center gap-2 rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-2 text-xs font-semibold text-purple-600 hover:from-purple-100 hover:to-pink-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isEditing ? (
+                    <>
+                      <LoadingSpinner size="sm" color="text-purple-400" />
+                      <span>Editing...</span>
+                    </>
+                  ) : (
+                    "Edit with Gemini"
+                  )}
+                </button>
               </div>
             )}
           </div>
@@ -754,6 +855,94 @@ export default function CharacterEditModal({
           src={previewImageUrl}
           onClose={() => setPreviewImageOpen(false)}
         />
+      )}
+
+      {/* Gemini Edit Modal */}
+      {geminiEditOpen && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-zinc-800">Edit with Gemini</h3>
+              <button
+                type="button"
+                onClick={() => { setGeminiEditOpen(false); setGeminiTargetChange(""); }}
+                className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              >
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {previewImageUrl && (
+                <div className="flex justify-center">
+                  <img src={previewImageUrl} alt="Current Preview" className="h-40 w-auto rounded-xl border border-zinc-200 object-cover" />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-zinc-700">
+                  How would you like to change this image?
+                </label>
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {[
+                    "Smile brightly, looking at viewer",
+                    "Sitting on chair with hands on lap",
+                    "Turn around, looking over shoulder",
+                    "Wave hand with cheerful expression",
+                    "Close-up face portrait",
+                    "Standing with arms crossed",
+                  ].map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => setGeminiTargetChange(example)}
+                      className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600 transition hover:border-purple-300 hover:bg-purple-50"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={geminiTargetChange}
+                  onChange={(e) => setGeminiTargetChange(e.target.value)}
+                  placeholder="Describe the change in natural language..."
+                  className="w-full rounded-xl border border-zinc-200 bg-white/80 px-4 py-3 text-sm outline-none focus:border-purple-400"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setGeminiEditOpen(false); setGeminiTargetChange(""); }}
+                  className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!geminiTargetChange.trim()) {
+                      alert("Please describe what to change.");
+                      return;
+                    }
+                    handleEditPreview(geminiTargetChange.trim());
+                  }}
+                  disabled={!geminiTargetChange.trim()}
+                  className="flex-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-purple-600 hover:to-pink-600 disabled:cursor-not-allowed disabled:from-purple-300 disabled:to-pink-300"
+                >
+                  Start Editing (~$0.04)
+                </button>
+              </div>
+
+              <p className="text-[10px] text-zinc-400">
+                Gemini preserves face and art style while editing pose, expression, and gaze.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

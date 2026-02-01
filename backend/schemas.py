@@ -164,11 +164,11 @@ class SceneGenerateRequest(BaseModel):
     clip_skip: int = 2
     enable_hr: bool = False
     hr_scale: float = 1.5
-    hr_upscaler: str = "Latent"
+    hr_upscaler: str = "R-ESRGAN 4x+ Anime6B"
     hr_second_pass_steps: int = 10
-    denoising_strength: float = 0.25
-    # V3 Character Integration
-    character_id: int | None = None
+    denoising_strength: float = 0.35
+    # V3 Character Integration (required)
+    character_id: int
     # Storyboard Integration (for Style Profile lookup)
     storyboard_id: int | None = None
     # Style LoRAs (V3)
@@ -242,12 +242,15 @@ class PromptComposeLoRA(BaseModel):
 
 
 class PromptComposeRequest(BaseModel):
-    """Request for composing a prompt with Mode A/B logic."""
+    """Request for composing a prompt via V3 engine."""
 
     tokens: list[str]  # Raw prompt tokens
     mode: PromptMode = "auto"  # auto, standard, lora
     loras: list[PromptComposeLoRA] | None = None
-    use_break: bool = True  # Insert BREAK token in Mode B
+    use_break: bool = True  # Insert BREAK token
+    # V3 extension fields
+    character_id: int  # required — character tags/LoRAs loaded from DB
+    context_tags: dict | None = None  # scene.context_tags
 
 
 class PromptComposeResponse(BaseModel):
@@ -370,6 +373,7 @@ class CharacterBase(BaseModel):
     prompt_mode: PromptMode = "auto"
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
+    preview_locked: bool = False
 
 class CharacterCreate(CharacterBase):
     tags: list[CharacterTagLink] | None = None
@@ -391,6 +395,7 @@ class CharacterUpdate(BaseModel):
     prompt_mode: PromptMode | None = None
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
+    preview_locked: bool | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
@@ -400,6 +405,7 @@ class CharacterResponse(CharacterBase):
     id: int
     tags: list[CharacterTagLink] = []
     preview_image_url: str | None = None  # Read-only from @property
+    preview_locked: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

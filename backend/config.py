@@ -183,15 +183,8 @@ logger.info(
     GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
 )
 
-# --- IP-Adapter Character Presets ---
-# Per-character IP-Adapter settings for optimal consistency
-# weight: Higher = more similar to reference (0.6-0.95)
-# model: "clip" (style), "clip_face" (face+style), "faceid" (real faces only)
-# --- IP-Adapter Character Presets ---
-# Legacy presets removed. Now fully managed via database (Character model).
-CHARACTER_PRESETS: dict[str, dict] = {}
-
-# Default IP-Adapter settings for unknown characters
+# --- IP-Adapter Defaults ---
+# Default IP-Adapter settings (per-character overrides stored in DB)
 DEFAULT_CHARACTER_PRESET = {
     "weight": 0.75,
     "model": "clip_face",

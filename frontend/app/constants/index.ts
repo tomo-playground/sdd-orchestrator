@@ -114,22 +114,6 @@ export const LIGHTING_KEYWORDS = [
   "sunset",
 ];
 
-// Combined keywords for scene-specific tokens (used in buildPositivePrompt to filter base prompt)
-export const SCENE_SPECIFIC_KEYWORDS = [
-  // Actions/poses
-  "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
-  // Camera angles
-  "from_above", "top_down", "low_angle", "high_angle", "close_up", "wide_shot", "full_body",
-  // Locations
-  "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest", "beach", "city",
-  // Time/weather
-  "night", "sunset", "sunrise", "rain", "snow",
-  // Other
-  "background", "lighting", "indoors", "outdoors",
-];
-
-
-
 /**
  * Category descriptions in Korean for UI display
  * Helps users understand what tags belong in each category
@@ -169,11 +153,4 @@ export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   style: "스타일 (anime, realistic)",
 };
 
-/**
- * Get priority for a token (lower = earlier in prompt)
- * @deprecated Use backend sorting instead
- */
-export const getTokenPriority = (token: string): number => {
-  return 10.5;
-};
 

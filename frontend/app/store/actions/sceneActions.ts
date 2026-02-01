@@ -3,7 +3,7 @@ import type { Scene, FixSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE, CAMERA_KEYWORDS, ACTION_KEYWORDS, BACKGROUND_KEYWORDS } from "../../constants";
 import { computeValidationResults, getFixSuggestions } from "../../utils";
-import { buildPositivePrompt, buildNegativePrompt, getBaseSettingsForSpeaker } from "./promptActions";
+import { buildNegativePrompt, getBaseSettingsForSpeaker } from "./promptActions";
 
 // --------------- Validation ---------------
 
@@ -207,7 +207,7 @@ export async function handleValidateImage(scene: Scene) {
     return;
   }
   useStudioStore.getState().setScenesState({ validatingSceneId: scene.id });
-  const prompt = scene.debug_prompt || buildPositivePrompt(scene);
+  const prompt = scene.debug_prompt || scene.image_prompt;
   const { storyboardId } = useStudioStore.getState();
 
   try {
@@ -299,7 +299,7 @@ export async function handleSavePrompt(scene: Scene) {
   try {
     const payload: Record<string, unknown> = {
       name: name.trim(),
-      positive_prompt: buildPositivePrompt(scene),
+      positive_prompt: scene.debug_prompt || scene.image_prompt,
       negative_prompt: buildNegativePrompt(scene),
       steps: scene.steps,
       cfg_scale: scene.cfg_scale,

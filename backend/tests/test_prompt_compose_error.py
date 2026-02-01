@@ -12,6 +12,7 @@ def test_prompt_compose_repro():
     payload = {
         "mode": "standard",
         "tokens": ["1girl", "smile", "sitting", "indoors"],
+        "character_id": 1,
         "loras": []
     }
     
