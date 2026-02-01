@@ -1,815 +1,406 @@
-# Prompt Design Specification (v3.0)
+# Prompt System Specification (v4.0)
 
-SD 이미지 생성을 위한 프롬프트 설계 규칙.
+SD 이미지 생성을 위한 프롬프트 설계 규칙 + 파이프라인 전체 흐름.
 
-## 📝 변경 이력
-
-| 버전 | 날짜 | 주요 변경사항 |
-|------|------|--------------|
-| v3.0 | 2026-01-30 | V3 12-Layer PromptBuilder, DB-driven 충돌 규칙, Character V3 relational tags |
-| v2.0 | 2026-01-25 | Dynamic Tag Classification, Character Mode |
-| v1.0 | 2025-01-25 | 초기 문서: Standard/LoRA Mode, Priority Order |
-
----
-
-## 🏷️ Danbooru 스타일 정규화
-
-시스템은 Stable Diffusion의 표준인 Danbooru 스타일의 태그 형식을 준수합니다.
-
-### 1. 정규화 규칙 (Normalization)
-모든 입력된 태그는 다음의 `normalize_prompt_token` 프로세스를 거칩니다:
-- **소문자화**: 모든 대문자를 소문자로 변환
-- **언더스코어 변환**: 공백(` `)을 언더스코어(`_`)로 변환 (`blue eyes` → `blue_eyes`)
-- **특수문자 처리**: 앞뒤 공백 제거 및 중복 구분자 정리
-
-### 2. 가중치 표현 (Emphasis)
-- **NAI/Danbooru 스타일**: `(tag:1.1)` 형식을 사용하여 강조를 표현합니다.
-- **중첩**: 가급적 중첩보다는 수치형 가중치를 권장합니다.
-
-## 토큰 순서가 중요한 이유
-
-Stable Diffusion은 프롬프트의 **앞쪽 토큰에 더 높은 가중치**를 부여합니다:
-- 앞쪽 토큰: 이미지의 핵심 요소 결정
-- 뒤쪽 토큰: 부가적 디테일로 처리
-- 순서가 잘못되면 원하는 결과를 얻기 어려움
-
-### 예시
-```
-# Good: 캐릭터가 중심
-1girl, hatsune_miku, blue_hair, smile, standing, library
-
-# Bad: 배경이 중심이 됨
-library, standing, smile, blue_hair, hatsune_miku, 1girl
-```
-
----
-
-## 프롬프트 모드
-
-LoRA 사용 여부에 따라 **다른 규칙**을 적용합니다.
-
-### 왜 모드를 구분하는가?
-
-| 상황 | 문제 | 해결 |
-|------|------|------|
-| **LoRA 사용** | LoRA 학습 편향이 장면 표현을 방해 | 장면 태그 우선, LoRA weight 조절 |
-| **LoRA 미사용** | 캐릭터 특징을 프롬프트로 정의해야 함 | 표준 순서로 캐릭터 우선 기술 |
-
----
-
-## Mode A: Standard (LoRA 미사용)
-
-캐릭터를 프롬프트 태그로만 정의하는 경우.
-
-### 특징
-- 캐릭터 외모를 상세히 기술해야 함
-- 장면 태그가 정상 작동
-- 일관성 유지가 어려움 (씬마다 캐릭터 변동 가능)
-
-### Priority Order
-
-| Priority | Category | Examples |
-|:--------:|:---------|:---------|
-| 1 | **Quality** | `masterpiece`, `best quality` |
-| 2 | **Subject** | `1girl`, `solo` |
-| 3 | **Identity** | `hatsune miku` (태그만) |
-| 4 | **Appearance** | `blue_twintails`, `blue_eyes` |
-| 5 | **Clothing** | `black_dress`, `detached_sleeves` |
-| 6 | **Expression** | `smile`, `blush` |
-| 7 | **Gaze** | `looking at viewer` |
-| 8 | **Pose** | `standing`, `sitting` |
-| 9 | **Action** | `singing`, `dancing` |
-| 10 | **Camera** | `close-up`, `full body` |
-| 11 | **Location** | `concert stage`, `library` |
-| 12 | **Time/Weather** | `night`, `sunset` |
-| 13 | **Lighting** | `colorful lights`, `spotlight` |
-| 14 | **Mood** | `energetic`, `peaceful` |
-| 15 | **Style** | `anime`, `digital art` |
-
-### 예시
-```
-masterpiece, best quality,
-1girl, hatsune_miku,
-blue_twintails, blue_eyes, hair_ribbon,
-black_dress, detached_sleeves, thighhighs,
-smile, looking_at_viewer,
-standing, singing,
-close-up,
-concert_stage, night,
-colorful_lights,
-energetic
-```
-
----
-
-## Mode B: LoRA Mode (LoRA 사용)
-
-캐릭터 LoRA를 사용하여 일관성을 유지하는 경우.
-
-### 특징
-- LoRA가 캐릭터 외모를 정의 → Appearance 태그 최소화
-- **장면 태그가 LoRA 학습 편향에 의해 무시될 수 있음**
-- 장면 표현을 위해 특별한 처리 필요
-
-### 핵심 원칙
-
-> **"장면이 복잡할수록 LoRA를 약하게"**
-
-| 장면 복잡도 | LoRA Weight | 장면 태그 강조 |
-|------------|:-----------:|:-------------:|
-| 단순 (기본 포즈) | 0.7~0.8 | 없음 |
-| 보통 (다른 포즈) | 0.5~0.6 | `(tag:1.1)` |
-| 복잡 (액션/특수 구도) | 0.3~0.4 | `(tag:1.2~1.3)` |
-
-### Priority Order (변경됨!)
-
-| Priority | Category | 변경점 |
-|:--------:|:---------|:-------|
-| 1 | **Quality** | 동일 |
-| 2 | **Subject** | 동일 |
-| 3 | **Trigger** | LoRA 트리거 워드 (앞쪽 배치) |
-| 4 | **Scene Core** | ⬆️ **Pose/Action/Camera 우선!** |
-| 5 | **Expression/Gaze** | 장면 연출 요소 |
-| 6 | **Appearance** | ⬇️ LoRA가 처리하므로 보조적 |
-| 7 | **Location** | 배경 |
-| 8 | **Time/Lighting/Mood** | 분위기 |
-| 9 | **Style** | 스타일 |
-| 99 | **LoRA Tag** | `<lora:name:weight>` 맨 끝 |
-
-### 기본 구조
-```
-[Quality] [Subject] [Trigger] [Scene Core] [Expression] [Appearance] [Location] [Atmosphere] [LoRA]
-```
-
-### 예시: 단순 장면
-```
-masterpiece, best quality,
-1boy, midoriya_izuku,
-standing, looking_at_viewer,
-smile,
-green_hair, freckles,
-classroom, daytime,
-soft_lighting,
-<lora:mha_midoriya:0.7>
-```
-
-### 예시: 복잡한 장면
-```
-masterpiece, best quality,
-1boy, midoriya_izuku,
-(sitting:1.2), (cooking:1.2), (close-up:1.1),
-focused expression, looking down,
-green hair,
-(kitchen:1.1), warm lighting,
-cozy atmosphere,
-<lora:mha_midoriya:0.4>
-```
-
-### BREAK 활용 (권장)
-캐릭터와 장면을 분리하여 LoRA 편향 최소화:
-```
-masterpiece, best quality,
-1boy, midoriya_izuku, green hair, freckles,
-<lora:mha_midoriya:0.5>
-BREAK
-(sitting:1.2), (cooking:1.2),
-focused expression, looking down,
-kitchen, close-up,
-warm lighting, cozy
-```
-
----
-
-## Mode 비교 요약
-
-| 항목 | Standard Mode | LoRA Mode |
-|------|---------------|-----------|
-| **캐릭터 정의** | 프롬프트로 상세 기술 | LoRA + 트리거 워드 |
-| **Appearance 위치** | 앞쪽 (Priority 4) | 뒤쪽 (Priority 6) |
-| **Scene Core 위치** | 중간 (Priority 8-10) | 앞쪽 (Priority 4) |
-| **장면 태그 강조** | 불필요 | 필요 `(tag:1.2)` |
-| **BREAK 사용** | 선택적 | 권장 |
-| **일관성** | 낮음 | 높음 |
-| **장면 표현력** | 높음 | 조절 필요 |
-
----
-
-## V3: 12-Layer Prompt Builder
-
-> v3.0 신규. `backend/services/prompt/v3_composition.py`의 `V3PromptBuilder` 참조.
-
-V3에서는 태그를 **12개 시맨틱 레이어**에 배치하여 순서를 결정합니다.
-각 태그의 `default_layer` 값 (tags 테이블)이 배치 기준입니다.
-
-### 레이어 정의
-
-| Layer | 이름 | 역할 | 예시 |
-|:-----:|------|------|------|
-| 0 | **Quality** | 품질 | `masterpiece`, `best_quality` |
-| 1 | **Subject** | 인원 | `1girl`, `solo` |
-| 2 | **Identity** | 캐릭터 LoRA + 트리거 | `midoriya_izuku`, `<lora:...>` |
-| 3 | **Body** | 신체 특징 | `long_hair`, `blue_eyes` |
-| 4 | **Main Cloth** | 주요 의상 | `school_uniform`, `dress` |
-| 5 | **Detail Cloth** | 의상 디테일 | `pleated_skirt`, `ribbon` |
-| 6 | **Accessory** | 악세서리 | `glasses`, `hat` |
-| 7 | **Expression** | 표정 (1.1x 부스트) | `smile`, `blush` |
-| 8 | **Action** | 행동 (1.1x 부스트) | `sitting`, `running` |
-| 9 | **Camera** | 카메라 앵글 | `close-up`, `from_above` |
-| 10 | **Environment** | 배경/장소 | `classroom`, `night` |
-| 11 | **Atmosphere** | 분위기 + 스타일 LoRA | `soft_lighting`, `anime` |
-
-### 특수 처리
-
-- **BREAK 삽입**: Layer 6 이후 (캐릭터 LoRA 사용 시) → LoRA 편향 분리
-- **Expression/Action 부스트**: Layer 7, 8의 태그에 자동 `(tag:1.1)` 적용
-- **Quality 자동 추가**: Layer 0이 비어있으면 `masterpiece, best_quality` 삽입
-- **LoRA 트리거 자동 감지**: `LoRATriggerCache`로 씬 태그에서 LoRA 자동 활성화
-- **Location 충돌 해결**: indoor/outdoor 태그 혼재 시 다수 그룹만 유지, 동일 카테고리 중복 제거
-- **Camera 충돌 해결**: wide/mid/close 프레이밍 충돌 시 첫 번째만 유지
-
-### 중복 제거 (Deduplication)
-
-| 범위 | 처리 | 방식 |
-|------|------|------|
-| 레이어 내부 (intra-layer) | O | `_flatten_layers`에서 `seen` set (case-insensitive) |
-| LoRA trigger 주입 시 | O | `if trigger not in layers[LAYER_*]` 가드 |
-| 레이어 간 (inter-layer) | X | `seen` set이 레이어별 초기화 → 동일 태그가 다른 레이어에 존재 시 둘 다 출력 |
-
-### LoRA 주입 규칙
-
-| LoRA 유형 | 주입 위치 | Trigger 위치 | 자동/수동 |
-|-----------|----------|-------------|----------|
-| Character LoRA | Layer 2 (Identity) | Layer 2 | 자동 (캐릭터 연결 시) |
-| Style LoRA | Layer 11 (Atmosphere) | Layer 11 | `style_loras` 파라미터 |
-| Scene LoRA | Layer 11 (Atmosphere) | Layer 11 | `LoRATriggerCache` 자동 감지 |
-
-> Character LoRA trigger word를 Identity Tags에 수동으로 넣으면 **중복됩니다**. 자동 주입에 의존하세요.
-
-### 사용 예시
-
-```python
-from services.prompt.v3_composition import V3PromptBuilder
-
-builder = V3PromptBuilder(db)
-prompt = builder.compose_for_character(
-    character_id=1,
-    scene_tags=["sitting", "classroom", "smile", "close-up"],
-    style_loras=[{"name": "chibi-laugh", "weight": 0.6}]
-)
-# → "masterpiece, best_quality, 1boy, midoriya_izuku, <lora:mha_midoriya:0.7>,
-#    green_hair, freckles, BREAK, (smile:1.1), (sitting:1.1), close-up,
-#    classroom, chibi, <lora:chibi-laugh:0.6>"
-```
-
----
-
-## LoRA Weight 가이드
-
-### 장면 복잡도 판단 기준
-
-```python
-SCENE_COMPLEXITY = {
-    "simple": {
-        "poses": ["standing", "sitting", "portrait"],
-        "actions": [],
-        "camera": ["close-up", "upper body", "full body"],
-        "emphasis": 1.0,
-    },
-    "moderate": {
-        "poses": ["kneeling", "leaning", "arms crossed"],
-        "actions": ["reading", "writing", "holding"],
-        "camera": ["from side", "from behind"],
-        "emphasis": 1.1,
-    },
-    "complex": {
-        "poses": ["lying down", "crouching", "jumping"],
-        "actions": ["running", "dancing", "cooking", "fighting"],
-        "camera": ["from above", "from below", "dutch angle"],
-        "emphasis": 1.2,
-    },
-}
-```
-
-### LoRA 타입별 Weight 테이블
-
-> ChatGPT 피드백 + 캘리브레이션 결과 반영 (2026-01-25)
-
-```python
-LORA_WEIGHTS = {
-    "style": {
-        "simple": 0.6,
-        "moderate": 0.5,
-        "complex": 0.4,
-    },
-    "character": {
-        "simple": 0.6,
-        "moderate": 0.5,
-        "complex": 0.4,
-    },
-    "concept": {
-        "simple": 0.5,
-        "moderate": 0.4,
-        "complex": 0.3,
-    },
-}
-
-def calculate_lora_weight(lora: dict, complexity: str) -> float:
-    """LoRA 타입과 장면 복잡도에 따른 weight 계산"""
-    lora_type = lora.get("category", "character")
-    base = LORA_WEIGHTS.get(lora_type, LORA_WEIGHTS["character"]).get(complexity, 0.5)
-
-    # DB의 optimal_weight가 있으면 우선 사용 (캘리브레이션 결과)
-    if lora.get("optimal_weight"):
-        return min(lora["optimal_weight"], base)  # 둘 중 낮은 값
-
-    return base
-```
-
-### 트리거 태그 중복 제거
-
-LoRA가 이미 정의하는 외모 태그는 프롬프트에서 제거:
-
-```python
-def filter_redundant_triggers(prompt_tags: list[str], lora_defined_tags: list[str]) -> list[str]:
-    """LoRA가 정의하는 외모 태그 제거"""
-    lora_set = {t.lower().replace("_", " ") for t in lora_defined_tags}
-
-    return [
-        tag for tag in prompt_tags
-        if tag.lower().replace("_", " ") not in lora_set
-    ]
-
-# 예시: eureka LoRA가 "aqua hair, purple eyes" 정의
-# 프롬프트에서 "aqua hair", "aqua_hair" 자동 제거
-```
-
-### Weight 조절 규칙
-
-| LoRA Weight | 사용 상황 | 예시 |
-|:-----------:|----------|------|
-| 0.7~0.8 | 기본 포즈, LoRA 학습 데이터와 유사 | standing, looking at viewer |
-| 0.5~0.6 | 약간 다른 포즈/표정 | sitting, different expression |
-| 0.3~0.4 | 복잡한 액션/특수 구도 | cooking, running, from above |
-| 0.2 | 극단적 장면, 캐릭터 힌트만 필요 | fighting, complex action |
-
----
-
-## Category Definitions
-
-### Quality (우선순위 1)
-이미지 품질을 결정하는 태그. 항상 맨 앞에 배치.
-```
-masterpiece, best_quality, amazing_quality, highres, absurdres, 8k
-ultra_detailed, extremely_detailed, intricate_details
-```
-
-### Subject (우선순위 2)
-이미지에 포함된 대상의 수와 구성.
-```
-1girl, 1boy, 2girls, solo, duo, couple, group, multiple girls
-```
-
-### Identity (우선순위 3)
-캐릭터를 특정하는 이름이나 LoRA 트리거 워드.
-```
-hatsune_miku, rem_(re:zero), midoriya_izuku
-crimson_avenger_(elsword)
-```
-
-### Appearance (우선순위 4)
-캐릭터의 외모 특징.
-```
-# Hair
-long_hair, short_hair, twintails, ponytail, braids
-blue_hair, blonde_hair, pink_hair
-
-# Eyes
-blue_eyes, red_eyes, heterochromia
-
-# Other
-pale_skin, dark_skin, elf_ears, horns, wings
-```
-
-### Clothing (우선순위 5)
-의상과 액세서리.
-```
-school_uniform, maid_outfit, casual_clothes, armor
-white_dress, black_jacket, pleated_skirt
-glasses, ribbon, hat, boots
-```
-
-### Expression (우선순위 6)
-표정과 감정 상태.
-```
-smile, happy, sad, crying, angry, surprised
-shy, embarrassed, blush, confident, serious
-open_mouth, closed_mouth, tongue_out
-```
-
-### Gaze (우선순위 7)
-시선 방향.
-```
-looking_at_viewer, looking_away, looking_up, looking_down
-looking_to_the_side, looking_back, eye_contact
-eyes_closed, half-closed_eyes, wink
-```
-
-### Pose (우선순위 8)
-정적인 자세.
-```
-standing, sitting, kneeling, crouching, lying_down
-leaning, arms_crossed, hands_on_hips, peace_sign
-```
-
-### Action (우선순위 9)
-동적인 행동.
-```
-walking, running, jumping, dancing
-reading, writing, eating, drinking, cooking
-waving, pointing, hugging
-```
-
-### Camera (우선순위 10)
-촬영 구도와 앵글.
-```
-close-up, portrait, bust_shot, upper_body
-cowboy_shot, full_body, wide_shot
-from_above, from_below, from_side, from_behind
-dutch_angle, low_angle, high_angle, pov
-```
-
-### Location (우선순위 11)
-장소와 배경.
-```
-# Indoor
-indoors, library, cafe, classroom, bedroom, office
-
-# Outdoor
-outdoors, street, park, forest, beach, city
-
-# Background type
-simple_background, white_background, gradient_background
-detailed_background, blurry_background
-```
-
-### Time/Weather (우선순위 12)
-시간대와 날씨.
-```
-day, night, sunset, sunrise, dusk, dawn
-sunny, cloudy, rainy, snowy
-```
-
-### Lighting (우선순위 13)
-조명 효과.
-```
-natural_light, sunlight, moonlight
-backlighting, rim_light, dramatic_lighting
-soft_lighting, neon_lights
-```
-
-### Mood (우선순위 14)
-전체적인 분위기.
-```
-romantic, melancholic, peaceful, dramatic
-mysterious, ethereal, cozy, lonely
-```
-
-### Style (우선순위 15)
-아트 스타일.
-```
-anime, realistic, semi-realistic
-watercolor, oil_painting, digital_art
-```
-
-### LoRA (우선순위 99)
-LoRA 태그는 항상 맨 마지막에 배치.
-```
-<lora:character_lora:0.7>
-<lora:style_lora:0.5>
-```
-
----
-
-## 프롬프트 조합 규칙
-
-### 1. Base Prompt (캐릭터 기본)
-캐릭터의 고정 속성. 씬마다 변하지 않는 요소.
-```
-1girl, hatsune_miku, blue_twintails, blue_eyes,
-black_thighhighs, detached_sleeves, <lora:miku:0.8>
-```
-
-### 2. Scene Prompt (씬별)
-씬에 따라 변하는 요소.
-```
-smile, looking_at_viewer, standing, singing_on_stage,
-concert_hall, colorful_lights, energetic
-```
-
-### 3. 병합 규칙
-1. Base와 Scene 토큰 합치기
-2. 중복 제거 (대소문자 무시)
-3. Priority 순서로 정렬
-4. Quality 태그 추가 (없으면)
-5. LoRA는 맨 끝으로 이동
-
-### 4. 최종 결과 예시
-```
-masterpiece, best_quality,
-1girl, hatsune_miku,
-blue_twintails, blue_eyes,
-detached_sleeves, black_thighhighs,
-smile, looking_at_viewer,
-standing, singing,
-concert_hall, colorful_lights,
-energetic,
-<lora:miku:0.8>
-```
-
----
-
-## 충돌 규칙
-
-> v3.0: 하드코딩 → DB `tag_rules` + `tag_aliases` + `tag_filters` 테이블로 이관 완료.
-> `/admin/migrate-tag-rules`, `/admin/migrate-category-rules` 엔드포인트로 마이그레이션.
-
-### Conflict (상호 배타적)
-
-**태그 레벨** (`tag_rules.source_tag_id` ↔ `target_tag_id`):
-```yaml
-expression: [crying ↔ laughing, sad ↔ happy, angry ↔ smile]
-gaze: [looking_down ↔ looking_up, looking_away ↔ looking_at_viewer]
-pose: [sitting ↔ standing, lying ↔ standing, lying ↔ sitting]
-```
-
-**카테고리 레벨** (`tag_rules.source_category` ↔ `target_category`):
-```yaml
-hair_length ↔ hair_length    # Only one hair length
-location_indoor ↔ location_outdoor  # Cannot be both
-camera ↔ camera              # Only one camera angle
-```
-
-### Requires (필수 동반)
-```yaml
-twintails: [long_hair]
-ponytail: [long_hair]
-```
-
-### Tag Aliases (`tag_aliases` 테이블)
-위험/비표준 태그의 자동 치환:
-```yaml
-"medium shot" → "cowboy_shot"
-"close up" → "close-up"
-"unreal engine" → NULL  # 삭제
-```
-
-### Tag Filters (`tag_filters` 테이블)
-프롬프트에서 무시/스킵할 태그:
-```yaml
-ignore: ["rating:general", "commentary"]  # 완전 무시
-skip: ["simple_background"]               # 조건부 스킵
-```
-
----
-
-## 필터링 규칙
-
-### Scene-Specific Keywords
-Base prompt에서 제거해야 하는 씬별 키워드.
-```typescript
-const SCENE_SPECIFIC_KEYWORDS = [
-  // Poses
-  "sitting", "standing", "walking", "lying_down",
-  // Camera
-  "close-up", "full_body", "from_above",
-  // Locations
-  "library", "cafe", "bedroom", "outdoors",
-  // Time/Weather
-  "night", "sunset", "rain",
-];
-```
-
-### Skip Tags
-프롬프트에 포함하지 않는 태그.
-```python
-SKIP_TAGS = [
-  # NSFW/Sensitive
-  "breasts", "thighs", "cleavage",
-  # Meta tags
-  "highres", "absurdres",  # 별도 추가
-  # Useless
-  "simple_background",  # 씬에 따라 다름
-]
-```
-
----
-
-## 구현 위치
-
-### V3 Prompt Engine (Backend)
-
-| 기능 | 파일 | 함수/클래스 |
-|------|------|-----------|
-| **12-Layer Builder** | `backend/services/prompt/v3_composition.py` | `V3PromptBuilder` |
-| **V3 Service** | `backend/services/prompt/v3_service.py` | V3 서비스 인터페이스 |
-| 프롬프트 정규화 | `backend/services/prompt/prompt.py` | `normalize_and_fix_tags()` |
-| 프롬프트 조합 | `backend/services/prompt/prompt_composition.py` | `compose_prompt()` |
-| 프롬프트 검증 | `backend/services/prompt/prompt_validation.py` | 태그 유효성 검사 |
-| 카테고리 우선순위 | `backend/services/keywords/patterns.py` | `CATEGORY_PRIORITY` |
-| 태그 DB 처리 | `backend/services/keywords/db.py` | `load_tags_from_db` |
-| 프로세싱 | `backend/services/keywords/processing.py` | `expand_synonyms`, `filter_prompt_tokens` |
-| 충돌/의존성 검증 | `backend/services/keywords/validation.py` | `validate_prompt_tags` |
-| 동기화 로직 | `backend/services/keywords/sync.py` | `sync_lora_triggers_to_tags` |
-| 태그 분류 | `backend/services/tag_classifier.py` | `TagClassifier` |
-
-### V3 Runtime Caches
-
-| 캐시 | 파일 | 역할 |
-|------|------|------|
-| `TagCategoryCache` | `backend/services/keywords/db_cache.py` | 태그 카테고리 매핑 |
-| `TagAliasCache` | `backend/services/keywords/db_cache.py` | 태그 치환 규칙 |
-| `TagRuleCache` | `backend/services/keywords/db_cache.py` | 충돌/의존성 규칙 |
-| `LoRATriggerCache` | `backend/services/keywords/db_cache.py` | LoRA 트리거 → LoRA명 매핑 |
-| `TagFilterCache` | `backend/services/keywords/core.py` | 무시/스킵 태그 |
-
-### Frontend
-
-| 기능 | 파일 | 함수/상수 |
-|------|------|-----------|
-| 토큰 우선순위 | `frontend/app/constants/index.ts` | `TOKEN_PRIORITY` |
-| 프롬프트 병합 | `frontend/app/utils/index.ts` | `mergePromptTokens()` |
-| 프롬프트 빌드 | `frontend/app/page.tsx` | `buildPositivePrompt()` |
-| 태그 분류 훅 | `frontend/app/hooks/useTagClassifier.ts` | `useTagClassifier()` |
-
----
-
-## Dynamic Tag Classification
-
-태그 분류를 DB 기반 동적 시스템으로 전환 완료. 분류 흐름:
-
-```
-태그 입력 → DB 캐시 (TagCategoryCache) → classification_rules 패턴 → Danbooru API → LLM Fallback
-```
-
-> DB 스키마: `docs/specs/DB_SCHEMA.md` 참조
-> API: `POST /tags/classify` (`docs/specs/API_SPEC.md` 참조)
-
-### 24개 카테고리 (Group)
-
-| Priority | Group | SD Category | 예시 |
-|:--------:|-------|-------------|------|
-| 1 | quality | meta | masterpiece, best_quality |
-| 2 | subject | scene | 1girl, solo |
-| 3 | identity | character | midoriya_izuku |
-| 4 | hair_color | character | blue_hair |
-| 4 | hair_length | character | long_hair |
-| 4 | hair_style | character | twintails |
-| 4 | hair_accessory | character | ribbon |
-| 4 | eye_color | character | blue_eyes |
-| 4 | skin_color | character | pale_skin |
-| 4 | body_feature | character | elf_ears |
-| 4 | appearance | character | freckles |
-| 5 | clothing | character | school_uniform |
-| 6 | expression | scene | smile, blush |
-| 7 | gaze | scene | looking_at_viewer |
-| 8 | pose | scene | standing |
-| 9 | action | scene | running |
-| 10 | camera | scene | close-up |
-| 11 | location_indoor | scene | classroom |
-| 11 | location_outdoor | scene | forest |
-| 12 | background_type | scene | simple_background |
-| 13 | time_weather | scene | night, rain |
-| 14 | lighting | scene | backlighting |
-| 15 | mood | scene | peaceful |
-| 16 | style | meta | anime |
-| 99 | lora | - | `<lora:...:0.7>` |
-
----
-
-## 현재 이슈 (TODO)
-
-### ~~Issue #1: Backend 정렬 없음~~ → V3 해결
-- V3 `V3PromptBuilder`가 12-Layer 기반으로 자동 정렬
-
-### ~~Issue #2: Frontend 정렬 우회~~ → V3 해결
-- V3 PromptBuilder가 Backend에서 최종 순서 확정
-
-### ~~Issue #3: Quality 태그 누락~~ → V3 해결
-- V3 PromptBuilder가 Layer 0 비어있으면 자동 `masterpiece, best_quality` 삽입
-
----
-
----
-
-## Character Mode 설정
-
-캐릭터/Actor 생성 시 LoRA 사용 여부에 따라 모드를 설정합니다.
-
-### 모드 자동 감지
-
-```python
-def get_character_mode(character) -> str:
-    """LoRA 유무에 따라 모드 자동 결정"""
-    if character.loras and len(character.loras) > 0:
-        # 캐릭터 LoRA가 있으면 LoRA 모드
-        has_character_lora = any(
-            lora.category == "character" for lora in character.loras
-        )
-        return "lora" if has_character_lora else "standard"
-    return "standard"
-```
-
-### Mode A: Standard (LoRA 없음)
-
-**사용 케이스**: 일반/제네릭 캐릭터, 특정 IP 없는 오리지널 캐릭터
-
-```json
-{
-  "name": "Generic Anime Girl",
-  "prompt_mode": "standard",
-  "tags": [
-    {"tag_id": 1, "name": "1girl", "is_permanent": true},
-    {"tag_id": 2, "name": "long_hair", "is_permanent": true},
-    {"tag_id": 3, "name": "pink_hair", "is_permanent": true},
-    {"tag_id": 4, "name": "blue_eyes", "is_permanent": true},
-    {"tag_id": 10, "name": "school_uniform", "is_permanent": false},
-    {"tag_id": 11, "name": "pleated_skirt", "is_permanent": false}
-  ],
-  "loras": []
-}
-```
-
-- `is_permanent: true` = Identity 태그 (외모), `false` = Clothing 태그
-
-**특징**:
-- Appearance 태그 상세 기술 필수 (LoRA가 없으므로)
-- 장면 표현 제약 없음
-- 씬마다 캐릭터 외모 변동 가능 (일관성 낮음)
-
-### Mode B: LoRA (캐릭터 LoRA 사용)
-
-**사용 케이스**: 특정 IP 캐릭터, 일관성 중요한 시리즈물
-
-```json
-{
-  "name": "Midoriya Izuku",
-  "prompt_mode": "lora",
-  "tags": [
-    {"tag_id": 1, "name": "1boy", "is_permanent": true},
-    {"tag_id": 5, "name": "green_hair", "is_permanent": true},
-    {"tag_id": 6, "name": "freckles", "is_permanent": true}
-  ],
-  "loras": [
-    {"lora_id": 5, "weight": 0.7, "name": "mha_midoriya-10", "lora_type": "character"}
-  ]
-}
-```
-
-**특징**:
-- Appearance 태그 최소화 (LoRA가 처리)
-- LoRA 학습 특성과 충돌하는 태그 사용 금지
-- V3 PromptBuilder가 BREAK 자동 삽입 (Layer 6 이후)
-
-### 스타일 LoRA만 사용하는 경우
-
-스타일 LoRA (chibi, blindbox 등)만 사용하는 경우 **Standard 모드**로 처리합니다.
-
-```json
-{
-  "name": "Chibi Girl",
-  "prompt_mode": "standard",
-  "tags": [
-    {"tag_id": 1, "name": "1girl", "is_permanent": true},
-    {"tag_id": 7, "name": "blonde_hair", "is_permanent": true},
-    {"tag_id": 8, "name": "short_hair", "is_permanent": true},
-    {"tag_id": 12, "name": "dress", "is_permanent": false}
-  ],
-  "loras": [
-    {"lora_id": 3, "weight": 0.6, "name": "chibi-laugh", "lora_type": "style"}
-  ]
-}
-```
-
-**이유**: 스타일 LoRA는 캐릭터 외모를 정의하지 않으므로, Appearance 태그로 상세 기술 필요
-
-### V3 데이터 구조
-
-```
-characters 테이블 → character_tags 연결 테이블 → tags 테이블
-  prompt_mode          is_permanent, weight       default_layer (0-11)
-```
-
-- `prompt_mode`: `auto` | `standard` | `lora` (auto = LoRA 유무에 따라 자동 결정)
-- `character_tags.is_permanent`: identity (true) vs clothing (false)
-- `tags.default_layer`: 12-Layer 시스템 내 위치 결정
-
-### 프롬프트 조합 시 모드 적용
-
-> V3에서는 `V3PromptBuilder.compose_for_character()`가 모드 감지 + 12-Layer 배치 + BREAK 삽입을 자동 처리합니다.
-> 상세: "V3: 12-Layer Prompt Builder" 섹션 참조
-
----
+> 기존 `PROMPT_SPEC_V2.md` + `PROMPT_PIPELINE.md`를 통합한 단일 문서.
 
 ## 변경 이력
 
-> 상세 이력은 문서 상단 변경 이력 테이블 참조
+| 버전 | 날짜 | 주요 변경사항 |
+|------|------|--------------|
+| v4.0 | 2026-02-01 | PROMPT_SPEC_V2 + PROMPT_PIPELINE 통합, Known Issue #8 추가 |
+| v3.0 | 2026-01-30 | V3 12-Layer PromptBuilder, DB-driven 충돌 규칙 |
+| v1.3 | 2026-02-01 | Scene-triggered LoRA L11 분리, LoRATriggerCache 통합 |
+
+---
+
+## 1. 파이프라인 개요
+
+```
+[Frontend Studio]                    [Backend]                         [SD WebUI]
+
+ Storyboard Load ──┐
+   GET /storyboards/{id}             → scenes[], character_id
+   GET /characters/{id}              → tags, loras, gender, base_prompt
+                   │
+ Zustand Store ────┤
+   planSlice:      │
+     selectedCharacterId             (DB character_id)
+     basePromptA                     (character.custom_base_prompt)
+     characterLoras                  (character.loras[])
+     useControlnet / weight          (ControlNet 설정)
+     useIpAdapter / weight / ref     (IP-Adapter 설정)
+   scenesSlice:    │
+     scene.image_prompt              (Gemini 생성 프롬프트)
+     scene.context_tags              (Gemini 생성 컨텍스트)
+     scene.sd_params                 (steps, cfg, sampler, seed, clip_skip)
+                   │
+ ① Compose ────────┘
+   POST /prompt/compose ─────────→ V3 Engine (Section 3)
+                                     ├─ Token Merge
+                                     ├─ Character DB Load
+                                     ├─ 12-Layer Distribution
+                                     ├─ LoRA Injection
+                                     ├─ Gender Enhancement
+                                     ├─ Conflict Resolution
+                                     ├─ Quality Guarantee
+                                     └─ Flatten + Dedup
+                                  ←── composed prompt
+                   │
+ ② Generate ───────┘
+   POST /scene/generate ─────────→ Generation Orchestrator (Section 5)
+                                     ├─ Complexity 자동 조정
+                                     ├─ Auto IP-Adapter 활성화
+                                     ├─ LoRA weight override
+                                     ├─ SD Payload 구성
+                                     ├─ ControlNet 스택 (최대 3유닛)
+                                     └─ IP-Adapter
+                                                                  ─→ txt2img API
+```
+
+---
+
+## 2. 핵심 규칙
+
+### 2.1 Danbooru 정규화
+
+모든 태그는 `normalize_prompt_token` 처리:
+- **소문자화** + **공백→언더스코어** (`blue eyes` → `blue_eyes`)
+- **가중치**: `(tag:1.1)` NAI/Danbooru 형식
+- **LoRA 트리거 워드**: Civitai 원본 형식 유지 (예외)
+
+### 2.2 토큰 순서
+
+SD는 **앞쪽 토큰에 높은 가중치** 부여 → 12-Layer 시스템이 자동 정렬.
+
+### 2.3 프롬프트 모드
+
+| 모드 | 조건 | 특징 |
+|------|------|------|
+| **Standard** | LoRA 없음 또는 Style LoRA만 | Appearance 태그 상세 기술 필요, 일관성 낮음 |
+| **LoRA** | Character LoRA 존재 | LoRA가 외모 처리, 장면 태그 우선, BREAK 자동 삽입 |
+
+V3 `compose_for_character()`가 모드 자동 감지 + 12-Layer 배치 + BREAK 삽입 처리.
+
+---
+
+## 3. 12-Layer Prompt Builder
+
+`backend/services/prompt/v3_composition.py` → `V3PromptBuilder`
+
+### 3.1 레이어 정의
+
+| Layer | 이름 | 역할 | 예시 |
+|:-----:|------|------|------|
+| 0 | **Quality** | 품질 (자동 보장) | `masterpiece`, `best_quality` |
+| 1 | **Subject** | 인원 + Gender | `1girl`, `(1boy:1.3)` |
+| 2 | **Identity** | 캐릭터 LoRA/트리거/DNA | `midoriya_izuku`, `<lora:...>` |
+| 3 | **Body** | 신체 특징 | `long_hair`, `blue_eyes` |
+| 4 | **Main Cloth** | 주요 의상 | `school_uniform` |
+| 5 | **Detail Cloth** | 의상 디테일 | `pleated_skirt`, `ribbon` |
+| 6 | **Accessory** | 악세서리 → BREAK 지점 | `glasses`, `hat` |
+| 7 | **Expression** | 표정 (자동 1.1x) | `smile`, `blush` |
+| 8 | **Action** | 행동 (자동 1.1x) | `sitting`, `running` |
+| 9 | **Camera** | 카메라 앵글 | `close-up`, `from_above` |
+| 10 | **Environment** | 배경/장소 | `classroom`, `night` |
+| 11 | **Atmosphere** | 분위기 + Style LoRA | `soft_lighting`, `<lora:chibi:0.6>` |
+
+### 3.2 특수 처리
+
+- **BREAK 삽입**: L6 이후 (LoRA 사용 시) → LoRA 편향 분리
+- **Expression/Action 부스트**: L7, L8 태그에 자동 `(tag:1.1)`
+- **Quality 자동 추가**: L0 비어있으면 `masterpiece, best_quality` 삽입
+- **Location 충돌**: indoor/outdoor 혼재 시 다수 그룹만 유지
+- **Camera 충돌**: wide/mid/close 프레이밍 충돌 시 첫 번째만 유지
+- **LoRA 트리거 자동 감지**: `LoRATriggerCache`로 씬 태그에서 LoRA 활성화
+
+### 3.3 중복 제거
+
+| 범위 | 처리 | 방식 |
+|------|------|------|
+| 글로벌 (inter-layer) | O | `global_seen` set (v1.3에서 글로벌로 변경) |
+| dedup 키 | `(1boy:1.3)` → `1boy` | 가중치 무시 비교 |
+
+### 3.4 LoRA 주입 규칙
+
+| LoRA 유형 | 주입 위치 | Trigger 위치 | 활성화 |
+|-----------|----------|-------------|--------|
+| Character LoRA | L2 (Identity) | L2 | 자동 (캐릭터 연결) |
+| Style LoRA | L11 (Atmosphere) | L11 | `style_loras` 파라미터 |
+| Scene LoRA | L11 (Atmosphere) | L11 | `LoRATriggerCache` 자동 |
+
+가중치 결정: `lora.optimal_weight` → `lora.default_weight` → 기본값 `0.7`
+
+### 3.5 예시 출력
+
+캐릭터: Flat Color Boy (ID=12), 씬: 사무실에서 무표정으로 머리 정리
+
+```
+L0  QUALITY      masterpiece, best_quality
+L1  SUBJECT      (1boy:1.3), (male_focus:1.2), (bishounen:1.1)
+L2  IDENTITY     anime_style, blue_shirt, solo, flat color, <lora:flat_color:1.0>
+L6  ACCESSORY    → BREAK 삽입 지점
+L7  EXPRESSION   (expressionless:1.1), (looking_at_viewer:1.1)
+L8  ACTION       (standing:1.1), (adjusting_hair:1.1)
+L9  CAMERA       upper_body
+L10 ENVIRONMENT  office, indoors
+L11 ATMOSPHERE   day, melancholic
+```
+
+---
+
+## 4. 변환 단계 (Compose Pipeline)
+
+### Stage 1: Token Merge (Router)
+
+`routers/prompt.py`: `all_tokens = base_prompt + context_tags + scene_tokens`
+
+### Stage 2: Character DB Load
+
+`v3_composition.py` `compose_for_character()`:
+1. Character ORM 로드 (tags eager load)
+2. `character.tags[]` → `char_tags_data[]`: `is_permanent=true` → L2, 아니면 `tag.default_layer`
+3. `character.custom_base_prompt` → comma split → L2 (restricted 태그 필터링)
+
+### Stage 3: Scene Tag Classification
+
+`get_tag_info(scene_tags)` → DB `tags.default_layer` 조회. Fallback: DB에 없는 태그 → L1.
+
+### Stage 4: LoRA Injection
+
+Character LoRAs → L2, Style LoRAs → L11, Scene-triggered → `_get_lora_info()` 조회 후 type별 배치.
+
+### Stage 5: Gender Enhancement
+
+`character.gender == "male"` AND no female indicator → L1에 `(1boy:1.3), (male_focus:1.2)` 추가.
+
+### Stage 6-8: Conflict Resolution → Quality Guarantee → Flatten + Dedup
+
+충돌 해결 → 품질 보장 → 글로벌 dedup → BREAK 삽입 → `", ".join()`.
+
+---
+
+## 5. Generation Pipeline
+
+`services/generation.py` → `generate_scene_image()`
+
+### 5.1 SD 파라미터
+
+| 파라미터 | 기본값 | Complexity 조정 |
+|----------|--------|----------------|
+| `steps` | 24 | complex: max(28), moderate: max(25) |
+| `cfg_scale` | 7.0 | complex: max(8.0), moderate: max(7.5) |
+| `sampler_name` | DPM++ 2M Karras | - |
+| `width × height` | 512 × 768 | - |
+| `clip_skip` | 2 | - |
+
+### 5.2 Hi-Res Upscaling
+
+| 파라미터 | 값 |
+|----------|----|
+| `hr_scale` | 1.5 |
+| `hr_upscaler` | R-ESRGAN 4x+ Anime6B |
+| `denoising_strength` | 0.35 |
+
+### 5.3 ControlNet (최대 3유닛)
+
+**Unit 1: OpenPose** — `use_controlnet=true`, weight=0.8, 포즈 자동 감지
+**Unit 2: Reference-Only** — `use_reference_only=true`, weight=0.5, 캐릭터 미리보기
+**Unit 3: Canny (Environment Pinning)** — `environment_reference_id` 존재 시, weight=0.3
+
+### 5.4 IP-Adapter
+
+**활성화 경로**:
+- A (수동): Frontend에서 `useIpAdapter=true`
+- B (자동): `character_id` 존재 + preview image 있으면 자동 활성화
+
+**LoRA 가중치 캡**: IP-Adapter 활성 시 모든 LoRA → `min(calibrated, 0.6)`
+
+| 파라미터 | 값 |
+|----------|----|
+| model | `ip-adapter-plus-face_sd15` (기본: clip_face) |
+| weight | DB `character.ip_adapter_weight` or 0.75 |
+
+---
+
+## 6. LoRA Weight 가이드
+
+### 장면 복잡도별
+
+| 복잡도 | LoRA Weight | 태그 강조 | 예시 |
+|--------|:-----------:|:---------:|------|
+| 단순 | 0.6~0.8 | 없음 | standing, looking_at_viewer |
+| 보통 | 0.5~0.6 | `(tag:1.1)` | sitting, different expression |
+| 복잡 | 0.3~0.4 | `(tag:1.2)` | cooking, running, from_above |
+
+### BREAK 활용 (LoRA 모드)
+
+```
+masterpiece, best quality, 1boy, midoriya_izuku, green hair, <lora:mha_midoriya:0.5>
+BREAK
+(sitting:1.2), (cooking:1.2), focused expression, kitchen, close-up, warm lighting
+```
+
+---
+
+## 7. 충돌 & 필터 규칙
+
+> v3.0: 전부 DB `tag_rules` + `tag_aliases` + `tag_filters` 테이블로 이관 완료.
+
+### Conflict (상호 배타)
+
+```yaml
+expression: [crying ↔ laughing, sad ↔ happy, angry ↔ smile]
+gaze:       [looking_down ↔ looking_up, looking_away ↔ looking_at_viewer]
+pose:       [sitting ↔ standing, lying ↔ standing]
+category:   [hair_length ↔ hair_length, location_indoor ↔ location_outdoor, camera ↔ camera]
+```
+
+### Aliases
+
+`"medium shot" → "cowboy_shot"`, `"close up" → "close-up"`, `"unreal engine" → NULL`
+
+### Tag Filters (Restricted)
+
+`custom_base_prompt`에서 씬 프롬프트로 유입 차단하는 태그:
+
+```yaml
+restricted:
+  # 현재 등록된 13개
+  - background, kitchen, room, outdoors, indoors, scenery
+  - nature, mountain, street, office, bedroom, bathroom, garden
+```
+
+**Known Issue #8**: 아래 레퍼런스 전용 태그가 restricted 미등록 → 씬 오염 발생 (Section 9 참조)
+
+---
+
+## 8. 24개 태그 카테고리
+
+| Priority | Group | SD Category | 12-Layer |
+|:--------:|-------|-------------|:--------:|
+| 1 | quality | meta | L0 |
+| 2 | subject | scene | L1 |
+| 3 | identity | character | L2 |
+| 4 | hair_color, hair_length, hair_style, eye_color, skin_color, body_feature, appearance | character | L3 |
+| 5 | clothing, hair_accessory | character | L4-L6 |
+| 6 | expression | scene | L7 |
+| 7 | gaze | scene | L7 |
+| 8 | pose | scene | L8 |
+| 9 | action | scene | L8 |
+| 10 | camera | scene | L9 |
+| 11 | location_indoor, location_outdoor | scene | L10 |
+| 12 | background_type | scene | L10 |
+| 13 | time_weather | scene | L10 |
+| 14 | lighting | scene | L11 |
+| 15 | mood | scene | L11 |
+| 16 | style | meta | L11 |
+| 99 | lora | - | L2/L11 |
+
+분류 흐름: `태그 입력 → TagCategoryCache → classification_rules 패턴 → Danbooru API → LLM Fallback`
+
+---
+
+## 9. Known Issues
+
+### ~~Issue 1-7~~ (해결 완료)
+
+이중 주입, is_permanent 혼용, Style LoRA 배치, 무효 태그 검증, IP-Adapter 모델, LoRA 가중치 캡, Hi-Res 기본값 — 모두 v1.2~v1.3에서 해결.
+
+### **Issue 8: 레퍼런스 프롬프트 씬 오염 (CRITICAL)**
+
+**현상**: `custom_base_prompt`에 레퍼런스 전용 태그 포함 시, 모든 씬이 정자세 + 흰 배경으로 생성.
+
+**오염 경로**:
+```
+Character.custom_base_prompt
+  "white_background, standing, full_body, front_view..."
+       ↓
+v3_composition.py Stage 2: TagFilterCache.is_restricted() → False
+       ↓
+LAYER_IDENTITY (L2)에 추가 → 모든 씬에 포함
+```
+
+**원인**: `tag_filters` restricted 목록에 아래 태그 미등록:
+
+| 분류 | 누락 태그 |
+|------|----------|
+| 배경 | `white_background`, `simple_background`, `plain_background`, `solid_background` |
+| 포즈/구도 | `standing`, `full_body`, `front_view`, `facing_viewer`, `straight_on` |
+| 시선 | `looking_at_viewer` |
+| 기타 | `portrait`, `solo` |
+
+**출처**: `config.py` `DEFAULT_REFERENCE_BASE_PROMPT` 태그가 캐릭터 `custom_base_prompt`에 유입.
+
+**수정 방향**: restricted 태그 확장 + `custom_base_prompt` 입력 검증.
+
+---
+
+## 10. Negative Prompt
+
+V3 엔진 미사용. Frontend에서 로컬 처리:
+```
+character.custom_negative_prompt + scene.negative_prompt → deduplicatePromptTokens()
+```
+
+---
+
+## 11. 캐시 의존성
+
+### Compose 파이프라인
+
+| 캐시 | 파일 | 용도 |
+|------|------|------|
+| `LoRATriggerCache` | `keywords/db_cache.py` | scene tag → LoRA 자동 감지 |
+| `TagAliasCache` | `keywords/db_cache.py` | scene tag 별칭 해소 |
+| `TagFilterCache` | `keywords/db_cache.py` | restricted 태그 필터링 (`is_restricted()`) |
+
+> `keywords/core.py`에도 동명 `TagFilterCache`가 있으나, V3 compose는 `db_cache.py` 버전 사용.
+
+### 기타 (다른 서브시스템)
+
+| 캐시 | 파일 | 사용처 |
+|------|------|--------|
+| `TagCategoryCache` | `keywords/db_cache.py` | `keywords/` 패키지, 태그 분류 |
+| `TagRuleCache` | `keywords/db_cache.py` | `/prompt/validate-tags` |
+
+갱신: `POST /admin/refresh-caches`
+
+---
+
+## 12. 코드 위치 맵
+
+### Prompt Compose
+
+| 단계 | 파일 | 함수 |
+|------|------|------|
+| FE compose 호출 | `store/actions/promptActions.ts` | `buildScenePrompt()` |
+| FE negative | `store/actions/promptActions.ts` | `buildNegativePrompt()` |
+| Router | `routers/prompt.py` | `compose_prompt()` |
+| V3 Service | `services/prompt/v3_service.py` | `generate_prompt_for_scene()` |
+| V3 Builder | `services/prompt/v3_composition.py` | `compose_for_character()` |
+| Tag info | `services/prompt/v3_composition.py` | `get_tag_info()` |
+| Flatten | `services/prompt/v3_composition.py` | `_flatten_layers()` |
+
+### Image Generation
+
+| 단계 | 파일 | 함수 |
+|------|------|------|
+| FE payload | `store/actions/imageActions.ts` | `generateSceneImageFor()` |
+| Orchestrator | `services/generation.py` | `generate_scene_image()` |
+| Prompt prep | `services/generation.py` | `_prepare_prompt()` |
+| Param adjust | `services/generation.py` | `_adjust_parameters()` |
+| Payload build | `services/generation.py` | `_build_payload()` |
+| ControlNet | `services/generation.py` | `_apply_controlnet()` |
+| SD API call | `services/generation.py` | `_call_sd_api()` |
+
+### 관련 테스트
+
+| 파일 | 커버리지 |
+|------|----------|
+| `tests/test_v3_composition.py` | flatten/dedup, gender enhancement |
+| `tests/test_generation_pipeline.py` | IP-Adapter, LoRA cap, complexity |
+| `tests/test_prompt_quality.py` | 프롬프트 품질 검증 |
+| `tests/test_style_lora_integration.py` | Style LoRA 통합 |
+| `tests/api/test_prompt.py` | `/prompt/*` API |
+| `tests/api/test_controlnet.py` | ControlNet API |

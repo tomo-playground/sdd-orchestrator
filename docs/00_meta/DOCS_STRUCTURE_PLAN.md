@@ -32,7 +32,7 @@ docs/
 │   ├── api/                # 인터페이스 명세
 │   │   └── REST_API.md     # API 엔드포인트 명세 (기존 API_SPEC.md 이동)
 │   ├── backend/            # 백엔드 로직 명세
-│   │   ├── PROMPT_PIPELINE.md  # 12-Layer 프롬프트 엔진 상세 (기존 파일 이동)
+│   │   ├── PROMPT_SPEC_V2.md   # 프롬프트 시스템 통합 명세 v4.0 (PIPELINE + SPEC 통합)
 │   │   ├── RENDER_PIPELINE.md  # [신규] 영상 생성 및 FFmpeg 로직
 │   │   └── CORE_SERVICES.md    # 기타 서비스 로직
 │   └── frontend/           # 프론트엔드 아키텍처

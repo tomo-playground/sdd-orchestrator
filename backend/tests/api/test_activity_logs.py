@@ -237,7 +237,7 @@ def test_log_data_integrity(client: TestClient):
         "match_rate": 0.923,
         "seed": 999999,
         "status": "success",
-        "image_url": "/outputs/images/test_scene_5.png",
+        "image_url": "projects/1/scenes/test_scene_5.png",
     }
 
     create_response = client.post("/activity-logs", json=test_data)
@@ -258,7 +258,8 @@ def test_log_data_integrity(client: TestClient):
     assert log["match_rate"] == test_data["match_rate"]
     assert log["seed"] == test_data["seed"]
     assert log["status"] == test_data["status"]
-    assert log["image_url"] == test_data["image_url"]
+    # image_url is derived from storage key via storage service
+    assert log["image_url"] is not None
 
 
 def test_isolation(client: TestClient):
