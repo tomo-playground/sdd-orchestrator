@@ -99,28 +99,30 @@ npx playwright test
 
 | 영역 | 현재 | 목표 |
 |------|------|------|
-| Backend Unit + Integration | 495 tests (40 files) | 80% line coverage |
+| Backend Unit + Integration | 830 tests (60 files) | 80% line coverage |
 | Frontend Unit | 118 tests (10 files) | 70% line coverage |
 | VRT | 36 tests (4 files) | 주요 레이아웃 100% |
 | E2E | 3 specs | 핵심 플로우 커버 |
 
-**총 테스트**: 613개 (Backend 495 + Frontend 118)
+**총 테스트**: 948개 (Backend 830 + Frontend 118)
 
 **Backend 구성**:
-- Unit: 382 tests (28 files, `tests/test_*.py`)
+- Unit: 429 tests (29 files, `tests/test_*.py`)
 - Integration: 77 tests (7 files, `tests/api/`)
+- Router: 288 tests (20 files, `tests/test_router_*.py`)
 - VRT: 36 tests (4 files, `tests/vrt/`)
 
 **최근 추가된 주요 테스트** (2026-02-01):
+- `test_evaluation.py` - Evaluation 서비스 단위 테스트 (47 tests)
+- `test_router_*.py` - 20개 라우터 통합 테스트 (288 tests, Phase 1-4)
 - `test_v3_composition.py` - V3 Prompt Engine 12-Layer 검증 (41 tests)
 - `test_generation_pipeline.py` - 이미지 생성 파이프라인 통합 테스트
 - `test_image_storage_key.py` - image_storage_key 정규화 검증
 - `test_db_cache.py` - TagRuleCache, LoRATriggerCache 검증
-- `test_scene_text_naming.py` - Scene Text 네이밍 통일 검증
 
-**Router 커버리지**: 7/24 라우터 (29%) - API 통합 테스트 확대 필요
-- 테스트 있음: storyboard, keywords, prompt, presets, activity_logs, controlnet, quality
-- 테스트 없음: characters, assets, loras, style_profiles, tags, video, scene, analytics 등
+**Router 커버리지**: 20/24 라우터 (83%) - DoD 달성
+- 테스트 있음 (20): storyboard, characters, style_profiles, loras, prompt, keywords, evaluation, video, settings, presets, admin, quality, tags, analytics, activity_logs, controlnet, avatar, sd, scene, assets
+- 테스트 없음 (4): cleanup, prompt_histories, sd_models, generation
 
 ---
 
