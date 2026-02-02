@@ -1,4 +1,4 @@
-# Database Schema (v3.3)
+# Database Schema (v3.4)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`/`groups`에 Cascading Config FK 추가 (`render_preset_id`, `default_character_id`, `default_style_profile_id`). `groups`에서 `default_bgm_file`/`default_narrator_voice` 제거 |
 | v3.3 | 2026-02-02 | `projects`, `groups`, `scene_quality_scores` 테이블 추가, `activity_logs`에 Gemini 트래킹 컬럼 추가, `media_assets`에 `is_temp`/`checksum` 추가, `storyboards`에 `default_caption` 반영 |
 | v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
 | v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
@@ -20,11 +21,16 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 ```mermaid
 erDiagram
     projects ||--o{ groups : "contains"
+    projects }o--o| render_presets : "default_preset"
     groups ||--o{ storyboards : "contains"
+    groups }o--o| render_presets : "preset"
     storyboards ||--o{ scenes : "has"
     scenes ||--o{ scene_tags : "has"
     scenes ||--o{ scene_character_actions : "has"
     scenes ||--o{ scene_quality_scores : "evaluated_by"
+
+    render_presets }o--o| voice_presets : "voice"
+    voice_presets }o--o| media_assets : "audio"
 
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
@@ -54,29 +60,41 @@ erDiagram
 ## 📦 Core: Channel & Storyboard System
 
 ### `projects`
-YouTube 채널 단위. 채널별 설정을 관리합니다.
+YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `name` | String(200) | 채널/프로젝트 이름 |
 | `description` | Text | 설명 |
-| `avatar_asset_id` | Integer (FK → media_assets) | 아바타 이미지 |
+| `avatar_asset_id` | Integer (FK → media_assets, SET NULL) | 아바타 이미지 |
 | `handle` | String(100) | 채널 핸들 (@...) |
+| `avatar_key` | String(100) | 아바타 키 (localStorage 마이그레이션용) |
+| `render_preset_id` | Integer (FK → render_presets, SET NULL) | 기본 렌더 프리셋 |
+| `default_character_id` | Integer (FK → characters, SET NULL) | 기본 캐릭터 |
+| `default_style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
+**Read-only 속성**:
+- `avatar_url` (`@property`): `avatar_asset.url` 반환
+
+**Cascading Config 상속 순서**: Project → Group → Storyboard (하위가 상위를 오버라이드)
+
 ### `groups`
-프로젝트 내의 개별 시리즈 또는 카테고리.
+프로젝트 내의 개별 시리즈 또는 카테고리. Cascading Config으로 프로젝트 설정을 상속/오버라이드.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `project_id` | Integer (FK → projects) | 소속 프로젝트 |
+| `project_id` | Integer (FK → projects, RESTRICT) | 소속 프로젝트 |
 | `name` | String(200) | 시리즈 이름 |
 | `description` | Text | 설명 |
-| `default_bgm_file` | String(255) | 기본 BGM 경로 |
-| `default_narrator_voice` | String(100) | 기본 성우 |
+| `render_preset_id` | Integer (FK → render_presets, SET NULL) | 렌더 프리셋 |
+| `default_character_id` | Integer (FK → characters, SET NULL) | 기본 캐릭터 |
+| `default_style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+> v3.4 변경: `default_bgm_file`, `default_narrator_voice` 제거 → `render_presets` 테이블로 이관
 
 ### `storyboards`
 YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
@@ -442,6 +460,56 @@ Model + LoRAs + Embeddings 번들.
 | `is_default` | Boolean | |
 | `is_active` | Boolean | |
 
+### `render_presets`
+재사용 가능한 렌더링 설정 프리셋. Project/Group에서 참조.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `name` | String(200) | 프리셋 이름 |
+| `description` | Text | 설명 |
+| `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
+| `project_id` | Integer (FK → projects, CASCADE) | 소속 프로젝트 (NULL=글로벌) |
+| **Render Fields** | | |
+| `narrator_voice` | String(100) | 내레이터 목소리 |
+| `bgm_file` | String(255) | BGM 파일 경로 |
+| `bgm_volume` | Float | BGM 볼륨 |
+| `audio_ducking` | Boolean | 오디오 더킹 여부 |
+| `scene_text_font` | String(255) | Scene Text 폰트 |
+| `layout_style` | String(50) | 레이아웃 (`full`, `post`) |
+| `frame_style` | String(255) | 프레임 스타일 |
+| `transition_type` | String(50) | 전환 효과 |
+| `ken_burns_preset` | String(50) | Ken Burns 프리셋 |
+| `ken_burns_intensity` | Float | Ken Burns 강도 |
+| `speed_multiplier` | Float | 재생 속도 배율 |
+| **TTS Settings** | | |
+| `tts_engine` | String(20) | TTS 엔진 (`edge`, `qwen`) |
+| `voice_design_prompt` | Text | Qwen VoiceDesign 프롬프트 |
+| `voice_ref_audio_url` | Text | 참조 음성 URL |
+| `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 음성 프리셋 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+### `voice_presets`
+재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `name` | String(200) | 프리셋 이름 |
+| `description` | Text | 설명 |
+| `project_id` | Integer (FK → projects, SET NULL) | 소속 프로젝트 (NULL=글로벌) |
+| `source_type` | String(20) | `generated` (VoiceDesign) 또는 `uploaded` (파일) |
+| `tts_engine` | String(20) | TTS 엔진 (현재 `qwen`) |
+| `audio_asset_id` | Integer (FK → media_assets, SET NULL) | 음성 파일 |
+| `voice_design_prompt` | Text | VoiceDesign 프롬프트 |
+| `language` | String(20) | 언어 (default: `korean`) |
+| `sample_text` | Text | 샘플 텍스트 |
+| `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `audio_url` (`@property`): `audio_asset.url` 반환
+
 ### `embeddings`
 Textual Inversion 임베딩.
 
@@ -601,7 +669,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-01
-**Schema Version:** v3.2
+**Last Updated:** 2026-02-02
+**Schema Version:** v3.4
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets)
+**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets)

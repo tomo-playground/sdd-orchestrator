@@ -173,6 +173,15 @@
 | 2 | TTS 전용 스키마 확장 (Voice Design, Cloning 지원) | API | [x] |
 | 3 | M4 Pro 최적화 (Flash Attention / MLX 연동) | 인프라 | [x] |
 | 4 | 로컬 엔진 UI 연동 (목소리 설계 프롬프트 입력) | UX | [x] |
+| 5 | Voice Preset CRUD API + 음성 업로드/프리뷰 | API | [x] |
+| 6 | Render Preset에 `voice_preset_id` FK 연동 | DB | [x] |
+
+**6-8 세부 완료 항목**:
+- `voice_presets` 테이블: 생성/업로드 음성 프리셋 관리 (source_type: generated/uploaded)
+- `render_presets`에 TTS 설정 통합: `tts_engine`, `voice_design_prompt`, `voice_ref_audio_url`, `voice_preset_id`
+- Voice Preview API (`POST /voice-presets/preview`): VoiceDesign 모델 실시간 미리듣기
+- Voice Upload API (`POST /voice-presets/upload`): 커스텀 음성 파일 업로드 + MediaAsset 연동
+- Caption 해시태그 추출 기능 추가
 
 ---
 
@@ -261,13 +270,15 @@ Phase 8 이후 또는 우선순위 미정 항목.
 ## Development Cycle
 
 ```
-Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 7-1 (UX/Feature) → 8 (Multi-Style)
-     P0/P1 Fixes          Refactoring          CI + Soft Delete      New Features          Future
+Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI) → 7-0 (ControlNet) → 7-1 (UX/Feature)
+     P0/P1 Fixes          Refactoring          CI + Soft Delete      TTS/Voice       Pose Control      New Features
+                                                                                                            ↓
+                                                          7-2 (Project/Group) → 8 (Multi-Style)
+                                                           Cascading Config          Future
 ```
 
-**병렬 실행 트랙** (Phase 6-5):
-- Track A (DBA): DB FK + 인덱스 + 고아 정리
-- Track B (Backend): Session leak + evaluation fix
-- Track C (FFmpeg): CRF + FPS + timeout
-- Track D (Prompt): TagRule + restricted_tags
-- Track E (Frontend): API_BASE + useTags
+**현재 진행 상태** (2026-02-02):
+- Phase 6-5 ~ 6-8: **완료**
+- Phase 7-0 (ControlNet): **완료** (ARCHIVED)
+- Phase 7-2: Phase 1.5 **완료**, Phase 2 대기
+- Phase 7-1: 일부 완료 (#1 Quick Start, #9 OutputTab), 나머지 대기
