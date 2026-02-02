@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models.project import Project
 from schemas import EffectiveConfigResponse, ProjectCreate, ProjectResponse, ProjectUpdate
-from services.config_resolver import resolve_effective_config
+from services.config_resolver import apply_system_defaults, resolve_effective_config
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -59,6 +59,7 @@ def get_project_effective_config(project_id: int, db: Session = Depends(get_db))
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     result = resolve_effective_config(project)
+    apply_system_defaults(result, db)
     return EffectiveConfigResponse(
         render_preset_id=result["values"].get("render_preset_id"),
         default_character_id=result["values"].get("default_character_id"),

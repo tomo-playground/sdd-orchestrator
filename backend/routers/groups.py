@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models.group import Group
 from schemas import EffectiveConfigResponse, GroupCreate, GroupResponse, GroupUpdate
-from services.config_resolver import resolve_effective_config
+from services.config_resolver import apply_system_defaults, resolve_effective_config
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -62,6 +62,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     result = resolve_effective_config(group.project, group)
+    apply_system_defaults(result, db)
     # Resolve the actual render_preset object from whichever level provided the id
     preset = group.render_preset or getattr(group.project, "render_preset", None)
     return EffectiveConfigResponse(

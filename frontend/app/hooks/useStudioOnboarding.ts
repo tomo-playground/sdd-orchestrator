@@ -82,12 +82,21 @@ export function useStudioOnboarding({
     effectiveStyleProfileId,
   ]);
 
-  // DB-loaded storyboard without style profile
+  // DB-loaded storyboard without style profile — try cascade first
   useEffect(() => {
-    if (needsStyleProfile && !isLoadingDb) {
-      setShowStyleProfileModal(true);
+    if (!needsStyleProfile || isLoadingDb || !effectiveConfigLoaded) return;
+
+    // Cascade default available — auto-apply without modal
+    if (effectiveStyleProfileId) {
+      loadStyleProfileFromId(effectiveStyleProfileId).catch(() => {
+        setShowStyleProfileModal(true);
+      });
+      return;
     }
-  }, [needsStyleProfile, isLoadingDb]);
+
+    // No cascade default — show modal
+    setShowStyleProfileModal(true);
+  }, [needsStyleProfile, isLoadingDb, effectiveConfigLoaded, effectiveStyleProfileId]);
 
   // Keyboard shortcuts
   useEffect(() => {

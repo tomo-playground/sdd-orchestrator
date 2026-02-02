@@ -42,3 +42,25 @@ def resolve_effective_config(
                 sources[field] = level_name
 
     return {"values": values, "sources": sources}
+
+
+def apply_system_defaults(result: dict, db: Any) -> dict:
+    """Apply system-level defaults for fields not resolved by cascading.
+
+    Falls back to is_default=true records in DB.
+    """
+    values = result["values"]
+    sources = result["sources"]
+
+    if "default_style_profile_id" not in values:
+        from models import StyleProfile
+        default_profile = (
+            db.query(StyleProfile.id)
+            .filter(StyleProfile.is_default.is_(True))
+            .first()
+        )
+        if default_profile:
+            values["default_style_profile_id"] = default_profile.id
+            sources["default_style_profile_id"] = "system_default"
+
+    return result
