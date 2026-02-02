@@ -228,7 +228,7 @@ export default function Home() {
               >
                 + New Group
               </button>
-              {(filterGroupId || groups.length === 1) && (
+              {groups.length > 0 && (
                 <button
                   onClick={() => {
                     selectGroup(filterGroupId ?? groups[0].id);
