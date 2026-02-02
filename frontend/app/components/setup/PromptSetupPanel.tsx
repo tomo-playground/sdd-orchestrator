@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ActorGender, Character } from "../../types";
 import { SAMPLERS, API_BASE } from "../../constants";
+import CharacterSelector from "./CharacterSelector";
 
 type PromptSetupPanelProps = {
   // Tab state
@@ -186,53 +187,17 @@ export default function PromptSetupPanel({
             </div>
             <div className="flex flex-wrap items-end gap-3">
               {/* Character Preset */}
-              <div className="flex flex-1 flex-col gap-1 min-w-[200px]">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-                  Character
-                </label>
-                <select
-                  value={selectedCharacterId ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const charId = val ? parseInt(val, 10) : null;
-                    onSelectCharacter(charId);
-                    if (charId) {
-                      const char = characters.find((c) => c.id === charId);
-                      if (char?.gender) setActorAGender(char.gender);
-                    }
-                  }}
-                  className={`rounded-2xl border px-3 py-2 text-sm outline-none focus:border-zinc-400 ${!selectedCharacterId
-                      ? "border-amber-300 bg-amber-50/80 text-amber-700"
-                      : "border-zinc-200 bg-white/80"
-                    }`}
-                >
-                  <option value="" disabled>Select Character...</option>
-                  {(() => {
-                    const female = characters.filter((c) => c.gender === "female");
-                    const male = characters.filter((c) => c.gender === "male");
-                    const other = characters.filter((c) => c.gender !== "female" && c.gender !== "male");
-                    return (
-                      <>
-                        {female.length > 0 && (
-                          <optgroup label="Female">
-                            {female.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </optgroup>
-                        )}
-                        {male.length > 0 && (
-                          <optgroup label="Male">
-                            {male.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </optgroup>
-                        )}
-                        {other.length > 0 && (
-                          <optgroup label="Other">
-                            {other.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </optgroup>
-                        )}
-                      </>
-                    );
-                  })()}
-                </select>
-              </div>
+              <CharacterSelector
+                characters={characters}
+                selectedCharacterId={selectedCharacterId}
+                onSelect={(charId) => {
+                  onSelectCharacter(charId);
+                  if (charId) {
+                    const char = characters.find((c) => c.id === charId);
+                    if (char?.gender) setActorAGender(char.gender);
+                  }
+                }}
+              />
             </div>
             {/* Character Preview Row - only show when character selected */}
             {selectedCharacterId && (() => {

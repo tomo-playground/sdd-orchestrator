@@ -212,6 +212,7 @@
 |-------|------|------|
 | Phase 0: Foundation | DB 마이그레이션, CRUD API, FK 연결 | [x] |
 | Phase 1: Core | FK 강화, 캐릭터 프로젝트 스코핑, 렌더 프리셋 분리, 설정 상속 엔진, 그룹 편집 UI 완료 | [x] |
+| Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동 | [ ] |
 | Phase 2: Differentiation | Channel DNA (톤/세계관 주입), Tag Intelligence, Series Intelligence | [ ] |
 | Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
 
