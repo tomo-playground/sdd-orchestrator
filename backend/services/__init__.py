@@ -47,7 +47,6 @@ from .utils import (
     get_audio_duration,
     parse_json_payload,
     scrub_payload,
-    to_edge_tts_rate,
     wrap_text,
     wrap_text_by_font,
 )
@@ -111,7 +110,6 @@ __all__ = [
     "get_audio_duration",
     "parse_json_payload",
     "scrub_payload",
-    "to_edge_tts_rate",
     "wrap_text",
     "wrap_text_by_font",
     # Video

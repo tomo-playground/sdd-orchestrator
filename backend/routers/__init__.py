@@ -26,6 +26,7 @@ from .storyboard import router as storyboard_router
 from .style_profiles import router as style_profiles_router
 from .tags import router as tags_router
 from .video import router as video_router
+from .voice_presets import router as voice_presets_router
 
 __all__ = [
     "admin_router",
@@ -54,4 +55,5 @@ __all__ = [
     "groups_router",
     "projects_router",
     "render_presets_router",
+    "voice_presets_router",
 ]

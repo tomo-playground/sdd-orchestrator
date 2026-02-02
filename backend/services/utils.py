@@ -253,8 +253,3 @@ def get_audio_duration(path: pathlib.Path) -> float:
         return 0.0
 
 
-def to_edge_tts_rate(multiplier: float) -> str:
-    """Convert a speed multiplier to EdgeTTS rate format (e.g., +10%, -20%)."""
-    safe_multiplier = max(0.1, min(multiplier, 2.0))
-    percent = int(round((safe_multiplier - 1.0) * 100))
-    return f"+{percent}%" if percent >= 0 else f"{percent}%"

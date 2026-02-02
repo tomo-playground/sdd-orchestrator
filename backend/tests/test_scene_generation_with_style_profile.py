@@ -55,6 +55,7 @@ def setup_test_data(db_session: Session):
     character = Character(
         name="test_character",
         gender="female",
+        project_id=1,
     )
     db_session.add(character)
     db_session.flush()
@@ -63,8 +64,9 @@ def setup_test_data(db_session: Session):
     storyboard = Storyboard(
         title="Test Storyboard",
         description="Test",
+        group_id=1,
         default_character_id=character.id,
-        default_style_profile_id=profile.id
+        default_style_profile_id=profile.id,
     )
     db_session.add(storyboard)
     db_session.commit()
@@ -180,8 +182,9 @@ def test_storyboard_without_style_profile(db_session: Session):
     storyboard = Storyboard(
         title="No Profile Storyboard",
         description="Test",
+        group_id=1,
         default_character_id=None,
-        default_style_profile_id=None  # No style profile
+        default_style_profile_id=None,
     )
     db_session.add(storyboard)
     db_session.commit()

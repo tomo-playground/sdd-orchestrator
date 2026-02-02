@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { AudioItem } from "../../types";
-import { VOICES } from "../../constants";
 import LayoutSelector from "../video/LayoutSelector";
 
 type SetupPanelProps = {
@@ -10,8 +9,8 @@ type SetupPanelProps = {
   setTopic: (value: string) => void;
   layoutStyle: "full" | "post";
   setLayoutStyle: (value: "full" | "post") => void;
-  narratorVoice: string;
-  setNarratorVoice: (value: string) => void;
+  voiceDesignPrompt: string;
+  setVoiceDesignPrompt: (value: string) => void;
   bgmFile: string | null;
   setBgmFile: (value: string | null) => void;
   bgmList: AudioItem[];
@@ -26,8 +25,8 @@ export default function SetupPanel({
   setTopic,
   layoutStyle,
   setLayoutStyle,
-  narratorVoice,
-  setNarratorVoice,
+  voiceDesignPrompt,
+  setVoiceDesignPrompt,
   bgmFile,
   setBgmFile,
   bgmList,
@@ -72,16 +71,14 @@ export default function SetupPanel({
           {/* Voice, BGM, Speed */}
           <div className="grid gap-3 md:grid-cols-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice</label>
-              <select
-                value={narratorVoice}
-                onChange={(e) => setNarratorVoice(e.target.value)}
+              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice Style</label>
+              <input
+                type="text"
+                value={voiceDesignPrompt}
+                onChange={(e) => setVoiceDesignPrompt(e.target.value)}
                 className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              >
-                {VOICES.map((voice) => (
-                  <option key={voice.id} value={voice.id}>{voice.label}</option>
-                ))}
-              </select>
+                placeholder="예: 차분한 40대 여성"
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">BGM</label>

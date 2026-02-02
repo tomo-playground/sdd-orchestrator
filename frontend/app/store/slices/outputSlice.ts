@@ -36,7 +36,6 @@ export interface OutputSlice {
 
   // Audio
   includeSceneText: boolean;
-  narratorVoice: string;
   bgmList: AudioItem[];
   bgmFile: string | null;
   audioDucking: boolean;
@@ -45,9 +44,10 @@ export interface OutputSlice {
   fontList: FontItem[];
   sceneTextFont: string;
   loadedFonts: Set<string>;
-  ttsEngine: "edge" | "qwen";
+  ttsEngine: "qwen";
   voiceDesignPrompt: string;
   voiceRefAudioUrl: string;
+  voicePresetId: number | null;
 
   // Video metadata
   videoCaption: string;
@@ -89,7 +89,6 @@ const initialOutputState = {
   transitionType: "random",
   isRendering: false,
   includeSceneText: true,
-  narratorVoice: "",
   bgmList: [] as AudioItem[],
   bgmFile: null as string | null,
   audioDucking: true,
@@ -98,9 +97,10 @@ const initialOutputState = {
   fontList: [] as FontItem[],
   sceneTextFont: "",
   loadedFonts: new Set<string>(),
-  ttsEngine: "qwen" as "edge" | "qwen",
+  ttsEngine: "qwen" as const,
   voiceDesignPrompt: "",
   voiceRefAudioUrl: "",
+  voicePresetId: null as number | null,
   videoCaption: "",
   videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,

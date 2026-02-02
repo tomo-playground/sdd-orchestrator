@@ -4,7 +4,6 @@ import {
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
   DEFAULT_SCENE_TEXT_FONT,
-  VOICES,
 } from "../../constants";
 
 export interface PlanSlice {

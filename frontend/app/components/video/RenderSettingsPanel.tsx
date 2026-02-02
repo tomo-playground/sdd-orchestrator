@@ -1,7 +1,9 @@
 "use client";
 
-import type { AudioItem, FontItem, KenBurnsPreset, OverlaySettings, PostCardSettings } from "../../types";
-import { VOICES } from "../../constants";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { API_BASE } from "../../constants";
+import type { AudioItem, FontItem, KenBurnsPreset, VoicePreset } from "../../types";
 
 // Ken Burns preset options for dropdown
 const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
@@ -39,6 +41,101 @@ const TRANSITION_OPTIONS: { value: string; label: string; visual: string }[] = [
 const truncate = (str: string | undefined, maxLen: number) =>
   str && str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : (str || "");
 
+/** Voice Style sub-section with preset selector */
+function VoiceStyleSection({
+  voicePresetId,
+  setVoicePresetId,
+  voiceDesignPrompt,
+  setVoiceDesignPrompt,
+  voiceRefAudioUrl,
+  setVoiceRefAudioUrl,
+  speedMultiplier,
+  setSpeedMultiplier,
+}: {
+  voicePresetId?: number | null;
+  setVoicePresetId?: (v: number | null) => void;
+  voiceDesignPrompt: string;
+  setVoiceDesignPrompt: (v: string) => void;
+  voiceRefAudioUrl: string;
+  setVoiceRefAudioUrl: (v: string) => void;
+  speedMultiplier: number;
+  setSpeedMultiplier: (v: number) => void;
+}) {
+  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
+
+  useEffect(() => {
+    axios
+      .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
+      .then((r) => setVoicePresets(r.data))
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
+      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">AI Voice Style</span>
+      <div className="grid gap-2">
+        {/* Voice Preset Selector */}
+        {setVoicePresetId && (
+          <select
+            value={voicePresetId ?? ""}
+            onChange={(e) => setVoicePresetId(e.target.value ? Number(e.target.value) : null)}
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+          >
+            <option value="">-- Voice Preset (auto) --</option>
+            {voicePresets.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} {p.source_type === "uploaded" ? "(custom)" : ""}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Show VoiceDesign controls only when no preset is selected */}
+        {!voicePresetId && (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={voiceDesignPrompt}
+              onChange={(e) => setVoiceDesignPrompt(e.target.value)}
+              placeholder="Voice style (e.g. calm 40s female)"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+            />
+            <input
+              type="text"
+              value={voiceRefAudioUrl}
+              onChange={(e) => setVoiceRefAudioUrl(e.target.value)}
+              placeholder="Reference audio URL (cloning priority)"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+            />
+            <p className="text-[9px] text-zinc-400">
+              Generate voice from style text or clone from reference audio.
+            </p>
+          </div>
+        )}
+
+        {voicePresetId && (
+          <p className="text-[9px] text-indigo-500">
+            Voice preset selected — all scenes will use the same cloned voice.
+          </p>
+        )}
+
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-zinc-500 whitespace-nowrap">Speed x{speedMultiplier.toFixed(2)}</span>
+          <input
+            type="range"
+            min={0.8}
+            max={1.5}
+            step={0.05}
+            value={speedMultiplier}
+            onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
+            className="flex-1 accent-zinc-900 h-1.5"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type RenderSettingsPanelProps = {
   // Effective preset info
   renderPresetName?: string | null;
@@ -68,8 +165,6 @@ type RenderSettingsPanelProps = {
   transitionType: string;
   setTransitionType: (value: string) => void;
   // Audio Settings
-  narratorVoice: string;
-  setNarratorVoice: (value: string) => void;
   speedMultiplier: number;
   setSpeedMultiplier: (value: number) => void;
   bgmFile: string | null;
@@ -82,12 +177,12 @@ type RenderSettingsPanelProps = {
   bgmVolume: number;
   setBgmVolume: (value: number) => void;
   // TTS Settings
-  ttsEngine: "edge" | "qwen";
-  setTtsEngine: (value: "edge" | "qwen") => void;
   voiceDesignPrompt: string;
   setVoiceDesignPrompt: (value: string) => void;
   voiceRefAudioUrl: string;
   setVoiceRefAudioUrl: (value: string) => void;
+  voicePresetId?: number | null;
+  setVoicePresetId?: (value: number | null) => void;
 };
 
 export default function RenderSettingsPanel({
@@ -114,8 +209,6 @@ export default function RenderSettingsPanel({
   setKenBurnsIntensity,
   transitionType,
   setTransitionType,
-  narratorVoice,
-  setNarratorVoice,
   speedMultiplier,
   setSpeedMultiplier,
   bgmFile,
@@ -127,12 +220,12 @@ export default function RenderSettingsPanel({
   setAudioDucking,
   bgmVolume,
   setBgmVolume,
-  ttsEngine,
-  setTtsEngine,
   voiceDesignPrompt,
   setVoiceDesignPrompt,
   voiceRefAudioUrl,
   setVoiceRefAudioUrl,
+  voicePresetId,
+  setVoicePresetId,
 }: RenderSettingsPanelProps) {
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -292,75 +385,17 @@ export default function RenderSettingsPanel({
             </select>
           </div>
           {/* Audio Row */}
-          {/* Voice Engine Selector */}
-          <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">TTS Engine</span>
-              <div className="flex rounded-lg border border-zinc-200 bg-white p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setTtsEngine("qwen")}
-                  className={`rounded-md px-3 py-1 text-[10px] font-bold transition ${ttsEngine === "qwen"
-                    ? "bg-zinc-900 text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-700"
-                    }`}
-                >
-                  Qwen 로컬 (M4 Pro)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTtsEngine("edge")}
-                  className={`rounded-md px-3 py-1 text-[10px] font-bold transition ${ttsEngine === "edge"
-                    ? "bg-zinc-900 text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-700"
-                    }`}
-                >
-                  Edge API
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              {ttsEngine === "edge" ? (
-                <select
-                  value={narratorVoice}
-                  onChange={(e) => setNarratorVoice(e.target.value)}
-                  title="Edge TTS Voice"
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-                >
-                  {VOICES.map((voice) => (
-                    <option key={voice.id} value={voice.id}>{voice.label}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={voiceDesignPrompt}
-                    onChange={(e) => setVoiceDesignPrompt(e.target.value)}
-                    placeholder="목소리 스타일 설계 (예: 차분한 40대 여성)"
-                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-                  />
-                  <p className="text-[9px] text-zinc-400">
-                    💡 자유로운 텍스트나 샘플 오디오로 목소리를 생성합니다.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] text-zinc-500 whitespace-nowrap">배속 x{speedMultiplier.toFixed(2)}</span>
-                <input
-                  type="range"
-                  min={0.8}
-                  max={1.5}
-                  step={0.05}
-                  value={speedMultiplier}
-                  onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
-                  className="flex-1 accent-zinc-900 h-1.5"
-                />
-              </div>
-            </div>
-          </div>
+          {/* AI Voice Style */}
+          <VoiceStyleSection
+            voicePresetId={voicePresetId}
+            setVoicePresetId={setVoicePresetId}
+            voiceDesignPrompt={voiceDesignPrompt}
+            setVoiceDesignPrompt={setVoiceDesignPrompt}
+            voiceRefAudioUrl={voiceRefAudioUrl}
+            setVoiceRefAudioUrl={setVoiceRefAudioUrl}
+            speedMultiplier={speedMultiplier}
+            setSpeedMultiplier={setSpeedMultiplier}
+          />
           <div className="grid gap-3 md:grid-cols-2">
             <div className="flex items-center gap-1">
               <select

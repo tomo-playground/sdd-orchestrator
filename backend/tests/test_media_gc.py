@@ -48,7 +48,7 @@ def _make_project(db_session, *, name: str = "test-project") -> Project:
 
 
 def _make_character(db_session) -> Character:
-    char = Character(name=f"test-char-{id(object())}")
+    char = Character(name=f"test-char-{id(object())}", project_id=1)
     db_session.add(char)
     db_session.commit()
     db_session.refresh(char)

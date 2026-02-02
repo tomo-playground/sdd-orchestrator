@@ -339,13 +339,12 @@ export type DraftData = {
   baseSeedA?: number;
   baseClipSkipA?: number;
   includeSceneText?: boolean;
-  narratorVoice?: string;
   bgmFile?: string | null;
   audioDucking?: boolean;
   bgmVolume?: number;
   subtitleFont?: string;
   speedMultiplier?: number;
-  ttsEngine?: "edge" | "qwen";
+  ttsEngine?: "qwen";
   voiceDesignPrompt?: string;
   voiceRefAudioUrl?: string;
   overlaySettings?: OverlaySettings;
@@ -477,6 +476,24 @@ export type RenderPreset = {
   ken_burns_preset: string | null;
   ken_burns_intensity: number | null;
   speed_multiplier: number | null;
+  tts_engine: string | null;
+  voice_design_prompt: string | null;
+  voice_ref_audio_url: string | null;
+  voice_preset_id: number | null;
+};
+
+export type VoicePreset = {
+  id: number;
+  name: string;
+  description: string | null;
+  project_id: number | null;
+  source_type: "generated" | "uploaded";
+  audio_url: string | null;
+  voice_design_prompt: string | null;
+  language: string;
+  sample_text: string | null;
+  is_system: boolean;
+  created_at: string;
 };
 
 export type GroupItem = {

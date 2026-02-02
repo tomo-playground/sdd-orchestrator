@@ -18,6 +18,7 @@ from models.storyboard import Storyboard
 from models.tag import Tag, TagEffectiveness, TagRule
 from models.tag_alias import TagAlias
 from models.tag_filter import TagFilter
+from models.voice_preset import VoicePreset
 
 __all__ = [
     "Base",
@@ -44,4 +45,5 @@ __all__ = [
     "SceneQualityScore",
     "PromptHistory",
     "EvaluationRun",
+    "VoicePreset",
 ]

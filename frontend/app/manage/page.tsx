@@ -13,10 +13,11 @@ import StyleTab from "./tabs/StyleTab";
 import PromptsTab from "./tabs/PromptsTab";
 import EvaluationTab from "./tabs/EvaluationTab";
 import RenderPresetsTab from "./tabs/RenderPresetsTab";
+import VoicePresetsTab from "./tabs/VoicePresetsTab";
 import type { Character, Tag, LoRA } from "../types";
 
 // Manage Tab keys
-type ManageTab = "assets" | "style" | "tags" | "prompts" | "evaluation" | "presets" | "settings";
+type ManageTab = "assets" | "style" | "tags" | "prompts" | "evaluation" | "presets" | "voice" | "settings";
 
 export default function ManagePage() {
   const { tags: allTags, reload: fetchTagsData } = useTags(null);
@@ -98,6 +99,7 @@ export default function ManagePage() {
             { id: "evaluation", label: "Eval" },
             { id: "assets", label: "Assets" },
             { id: "presets", label: "Presets" },
+            { id: "voice", label: "Voice" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
             const active = manageTab === tab.id;
@@ -130,6 +132,8 @@ export default function ManagePage() {
         {manageTab === "assets" && <AssetsTab />}
 
         {manageTab === "presets" && <RenderPresetsTab />}
+
+        {manageTab === "voice" && <VoicePresetsTab />}
 
         {manageTab === "settings" && <SettingsTab />}
 

@@ -33,6 +33,7 @@ from routers import (
     style_profiles_router,
     tags_router,
     video_router,
+    voice_presets_router,
 )
 
 
@@ -74,6 +75,15 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize tag caches or self-correct: {e}")
     finally:
         db.close()
+
+    # TTS Model Preloading (non-blocking)
+    try:
+        from services.video.scene_processing import get_qwen_model
+        logger.info("[TTS] Preloading Qwen3-TTS model...")
+        get_qwen_model()
+        logger.info("[TTS] Qwen3-TTS model loaded successfully")
+    except Exception as e:
+        logger.warning(f"[TTS] Qwen preload failed (will retry on first request): {e}")
 
     logger.info("🚀 [Startup] Application started successfully")
 
@@ -126,6 +136,7 @@ app.include_router(storyboard_router)
 app.include_router(style_profiles_router)
 app.include_router(tags_router)
 app.include_router(video_router)
+app.include_router(voice_presets_router)
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ class TestCreateVideo:
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
     def test_create_video_updates_storyboard(self, mock_task, client: TestClient, db_session):
         """Video creation updates storyboard recent_videos."""
-        sb = Storyboard(title="Video Test", description="Test")
+        sb = Storyboard(title="Video Test", description="Test", group_id=1)
         db_session.add(sb)
         db_session.commit()
         sb_id = sb.id
@@ -63,6 +63,7 @@ class TestCreateVideo:
         sb = Storyboard(
             title="Append Test",
             description="Test",
+            group_id=1,
             recent_videos_json=json.dumps([
                 {"url": "/videos/old.mp4", "label": "post", "createdAt": 1000},
             ]),

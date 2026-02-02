@@ -97,7 +97,7 @@ class TestEvaluationV3Tags:
         db_session.flush()
 
         # Create character
-        char = Character(name="test_eval_char", gender="female")
+        char = Character(name="test_eval_char", gender="female", project_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -136,7 +136,7 @@ class TestEvaluationV3Tags:
         db_session.flush()
 
         # Create character
-        char = Character(name="test_eval_clothing", gender="female")
+        char = Character(name="test_eval_clothing", gender="female", project_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -168,7 +168,7 @@ class TestEvaluationV3Tags:
         """
         from models import Character
 
-        char = Character(name="test_no_legacy_fields", gender="female")
+        char = Character(name="test_no_legacy_fields", gender="female", project_id=1)
         db_session.add(char)
         db_session.commit()
 

@@ -31,3 +31,13 @@ class RenderPreset(Base, TimestampMixin):
     ken_burns_preset: Mapped[str | None] = mapped_column(String(50))
     ken_burns_intensity: Mapped[float | None] = mapped_column(Float)
     speed_multiplier: Mapped[float | None] = mapped_column(Float)
+
+    # TTS settings
+    tts_engine: Mapped[str | None] = mapped_column(String(20))
+    voice_design_prompt: Mapped[str | None] = mapped_column(Text)
+    voice_ref_audio_url: Mapped[str | None] = mapped_column(Text)
+
+    # Voice Preset
+    voice_preset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True
+    )

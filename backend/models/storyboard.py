@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from models.group import Group
     from models.media_asset import MediaAsset
     from models.scene import Scene
 
@@ -20,6 +21,7 @@ class Storyboard(Base, TimestampMixin):
     __tablename__ = "storyboards"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    group_id: Mapped[int] = mapped_column(Integer, ForeignKey("groups.id", ondelete="RESTRICT"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
 
@@ -46,4 +48,5 @@ class Storyboard(Base, TimestampMixin):
     recent_videos_json: Mapped[str | None] = mapped_column(Text)  # JSON string of recent videos
 
     # Relationships
+    group: Mapped[Group] = relationship("Group", back_populates="storyboards")
     scenes: Mapped[list[Scene]] = relationship("Scene", back_populates="storyboard", cascade="all, delete-orphan")

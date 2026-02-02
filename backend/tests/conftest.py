@@ -168,6 +168,43 @@ def client(db_session) -> TestClient:
 
 
 @pytest.fixture(autouse=True)
+def seed_default_project_group(db_session):
+    """Seed default Project (id=1) and Group (id=1) for every test.
+
+    Storyboard.group_id is NOT NULL with a default fallback of 1,
+    so every test DB needs these rows to exist.
+    """
+    from models.group import Group
+    from models.project import Project
+
+    project = Project(name="Default Project")
+    db_session.add(project)
+    db_session.flush()
+
+    group = Group(project_id=project.id, name="Default Series")
+    db_session.add(group)
+    db_session.commit()
+
+    yield
+
+    # Cleanup handled by in-memory DB teardown
+
+
+@pytest.fixture
+def test_project(db_session):
+    """Return the default test project (id=1)."""
+    from models.project import Project
+    return db_session.query(Project).first()
+
+
+@pytest.fixture
+def test_group(db_session):
+    """Return the default test group (id=1)."""
+    from models.group import Group
+    return db_session.query(Group).first()
+
+
+@pytest.fixture(autouse=True)
 def init_tag_caches():
     """Initialize tag caches with mock data for all tests.
 

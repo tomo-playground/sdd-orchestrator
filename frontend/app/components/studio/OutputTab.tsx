@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
-import { API_BASE, VOICES } from "../../constants";
+import { API_BASE } from "../../constants";
 import type { SetStateAction } from "react";
 import type { AudioItem, FontItem, OverlaySettings, PostCardSettings, SdModel } from "../../types";
 import RenderSettingsPanel from "../video/RenderSettingsPanel";
@@ -13,6 +13,8 @@ import {
   applyHeartPrefix,
   generateChannelName,
 } from "../../utils";
+import { createGroup } from "../../store/actions/groupActions";
+import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
 
 export default function OutputTab() {
@@ -29,7 +31,6 @@ export default function OutputTab() {
     kenBurnsPreset,
     kenBurnsIntensity,
     transitionType,
-    narratorVoice,
     speedMultiplier,
     bgmFile,
     bgmList,
@@ -37,9 +38,9 @@ export default function OutputTab() {
     bgmVolume,
     overlaySettings,
     postCardSettings,
-    ttsEngine,
     voiceDesignPrompt,
     voiceRefAudioUrl,
+    voicePresetId,
     videoUrl,
     videoUrlFull,
     videoUrlPost,
@@ -87,6 +88,8 @@ export default function OutputTab() {
 
       if (res.data.caption) {
         setOutput({ videoCaption: res.data.caption });
+        // Persist to DB immediately
+        updateStoryboardMetadata({ default_caption: res.data.caption });
         showToast(
           res.data.fallback
             ? "캡션을 잘라냈습니다"
@@ -191,10 +194,10 @@ export default function OutputTab() {
           transition_type: transitionType,
           include_scene_text: includeSceneText,
           scene_text_font: sceneTextFont,
-          narrator_voice: narratorVoice,
-          tts_engine: ttsEngine,
+          tts_engine: "qwen",
           voice_design_prompt: voiceDesignPrompt,
           voice_ref_audio_url: voiceRefAudioUrl,
+          voice_preset_id: voicePresetId || null,
           speed_multiplier: speedMultiplier,
           bgm_file: bgmFile,
           audio_ducking: audioDucking,
@@ -223,7 +226,7 @@ export default function OutputTab() {
         setOutput({ isRendering: false });
       }
     },
-    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
+    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, speedMultiplier, bgmFile, audioDucking, bgmVolume, voiceDesignPrompt, voiceRefAudioUrl, voicePresetId, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
   );
 
   const handleDeleteRecentVideo = useCallback(
@@ -352,6 +355,7 @@ export default function OutputTab() {
             type="text"
             value={videoCaption}
             onChange={(e) => setOutput({ videoCaption: e.target.value })}
+            onBlur={(e) => updateStoryboardMetadata({ default_caption: e.target.value })}
             placeholder={`예: ${store.topic || "AI 생성 영상"}`}
             className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 transition-colors ${videoCaption.length >= 60
               ? 'border-red-300 focus:border-red-400 focus:ring-red-50 bg-red-50/30'
@@ -418,8 +422,6 @@ export default function OutputTab() {
         setKenBurnsIntensity={(v) => setOutput({ kenBurnsIntensity: v })}
         transitionType={transitionType}
         setTransitionType={(v) => setOutput({ transitionType: v })}
-        narratorVoice={narratorVoice}
-        setNarratorVoice={(v) => setOutput({ narratorVoice: v })}
         speedMultiplier={speedMultiplier}
         setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
         bgmFile={bgmFile}
@@ -431,12 +433,12 @@ export default function OutputTab() {
         setAudioDucking={(v) => setOutput({ audioDucking: v })}
         bgmVolume={bgmVolume}
         setBgmVolume={(v) => setOutput({ bgmVolume: v })}
-        ttsEngine={ttsEngine}
-        setTtsEngine={(v) => setOutput({ ttsEngine: v })}
         voiceDesignPrompt={voiceDesignPrompt}
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voiceRefAudioUrl={voiceRefAudioUrl}
         setVoiceRefAudioUrl={(v) => setOutput({ voiceRefAudioUrl: v })}
+        voicePresetId={voicePresetId}
+        setVoicePresetId={(v) => setOutput({ voicePresetId: v })}
       />
 
       <RenderedVideosSection

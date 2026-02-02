@@ -91,7 +91,7 @@ class TestRunEvaluation:
         """Run evaluation with character_id."""
         from models import Character
 
-        char = Character(name="Eval Char", gender="female")
+        char = Character(name="Eval Char", gender="female", project_id=1)
         db_session.add(char)
         db_session.commit()
 

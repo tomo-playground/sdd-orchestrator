@@ -203,3 +203,29 @@ export async function saveStoryboard(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Partially update storyboard metadata (title, caption, etc) in DB.
+ */
+export async function updateStoryboardMetadata(
+  updates: {
+    title?: string;
+    description?: string;
+    default_character_id?: number | null;
+    default_style_profile_id?: number | null;
+    default_caption?: string | null;
+  }
+): Promise<boolean> {
+  const { storyboardId, showToast } = useStudioStore.getState();
+
+  if (!storyboardId) return false;
+
+  try {
+    await axios.patch(`${API_BASE}/storyboards/${storyboardId}/metadata`, updates);
+    return true;
+  } catch (error) {
+    console.error("[updateStoryboardMetadata] Failed:", error);
+    showToast("Failed to update metadata", "error");
+    return false;
+  }
+}

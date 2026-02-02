@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import get_db
-from schemas import StoryboardRequest, StoryboardSave
+from schemas import StoryboardRequest, StoryboardSave, StoryboardUpdate
 from services.storyboard import (
     create_storyboard,
     delete_storyboard_from_db,
@@ -15,6 +15,7 @@ from services.storyboard import (
     list_storyboards_from_db,
     save_storyboard_to_db,
     update_storyboard_in_db,
+    update_storyboard_metadata,
 )
 
 router = APIRouter(prefix="/storyboards", tags=["storyboard"])
@@ -32,8 +33,8 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
 
 
 @router.get("")
-def list_storyboards(db: Session = Depends(get_db)):
-    return list_storyboards_from_db(db)
+def list_storyboards(group_id: int | None = None, project_id: int | None = None, db: Session = Depends(get_db)):
+    return list_storyboards_from_db(db, group_id=group_id, project_id=project_id)
 
 
 @router.get("/{storyboard_id}")
@@ -46,6 +47,14 @@ async def update_storyboard(
     storyboard_id: int, request: StoryboardSave, db: Session = Depends(get_db)
 ):
     return update_storyboard_in_db(db, storyboard_id, request)
+
+
+@router.patch("/{storyboard_id}/metadata")
+async def patch_storyboard_metadata(
+    storyboard_id: int, request: StoryboardUpdate, db: Session = Depends(get_db)
+):
+    """Partially update storyboard metadata (title, caption, etc)."""
+    return update_storyboard_metadata(db, storyboard_id, request)
 
 
 @router.delete("/{storyboard_id}")

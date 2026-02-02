@@ -4,7 +4,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+import logging
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+logger = logging.getLogger(__name__)
 
 # Type alias for prompt mode
 PromptMode = Literal["auto", "standard", "lora"]
@@ -72,6 +76,10 @@ class RenderPresetCreate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
+    tts_engine: str | None = None
+    voice_design_prompt: str | None = None
+    voice_ref_audio_url: str | None = None
+    voice_preset_id: int | None = None
 
 
 class RenderPresetUpdate(BaseModel):
@@ -88,6 +96,10 @@ class RenderPresetUpdate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
+    tts_engine: str | None = None
+    voice_design_prompt: str | None = None
+    voice_ref_audio_url: str | None = None
+    voice_preset_id: int | None = None
 
 
 class RenderPresetResponse(BaseModel):
@@ -107,6 +119,10 @@ class RenderPresetResponse(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
+    tts_engine: str | None = None
+    voice_design_prompt: str | None = None
+    voice_ref_audio_url: str | None = None
+    voice_preset_id: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -167,6 +183,13 @@ class StoryboardBase(BaseModel):
 
 class StoryboardSave(StoryboardBase):
     scenes: list[StoryboardScene]
+
+class StoryboardUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
+    default_caption: str | None = None
 
 class StoryboardResponse(StoryboardBase):
     id: int
@@ -278,6 +301,14 @@ class AvatarResolveRequest(BaseModel):
 class VideoRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)  # Allow alias names
 
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_edge_to_qwen(cls, values):
+        if isinstance(values, dict) and values.get("tts_engine") == "edge":
+            logger.warning("[TTS] tts_engine='edge' deprecated, auto-converting to 'qwen'")
+            values["tts_engine"] = "qwen"
+        return values
+
     scenes: list[VideoScene]
     project_id: int | None = None
     group_id: int | None = None
@@ -290,10 +321,11 @@ class VideoRequest(BaseModel):
     ken_burns_preset: str = "none"  # Ken Burns preset (10 options)
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
     transition_type: str = "fade"  # Scene transition effect
-    narrator_voice: str = "ko-KR-SunHiNeural"
+    narrator_voice: str = ""
     tts_engine: TTSEngine = TTSEngine.QWEN
     voice_design_prompt: str | None = None  # For Qwen-TTS VD
     voice_ref_audio_url: str | None = None  # For Qwen-TTS Cloning
+    voice_preset_id: int | None = None  # Voice preset for TTS cloning
     speed_multiplier: float = 1.0
     # Scene text (formerly "subtitles") - shows scene script on video
     include_scene_text: bool = Field(default=True, alias="include_subtitles")
@@ -811,4 +843,46 @@ class PromptHistoryApplyResponse(BaseModel):
     lora_settings: list[dict] | None = None
     context_tags: list[str] | None = None
     use_count: int
+
+
+# ============================================================
+# Voice Preset Schemas
+# ============================================================
+
+
+class VoicePresetCreate(BaseModel):
+    name: str
+    description: str | None = None
+    project_id: int | None = None
+    source_type: str = "generated"
+    voice_design_prompt: str | None = None
+    language: str = "korean"
+    sample_text: str | None = None
+
+
+class VoicePresetUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+
+
+class VoicePreviewRequest(BaseModel):
+    voice_design_prompt: str
+    sample_text: str = "안녕하세요, 이것은 테스트 음성입니다."
+    language: str = "korean"
+
+
+class VoicePresetResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    project_id: int | None = None
+    source_type: str
+    audio_url: str | None = None
+    voice_design_prompt: str | None = None
+    language: str
+    sample_text: str | None = None
+    is_system: bool
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 

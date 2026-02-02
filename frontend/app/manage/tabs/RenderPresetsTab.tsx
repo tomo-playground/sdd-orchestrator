@@ -2,15 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE, VOICES } from "../../constants";
-import type { RenderPreset } from "../../types";
+import { API_BASE } from "../../constants";
+import type { RenderPreset, VoicePreset } from "../../types";
 
 type EditingPreset = Partial<RenderPreset> & { name: string };
 
 const EMPTY_PRESET: EditingPreset = {
   name: "",
   description: "",
-  narrator_voice: "ko-KR-SunHiNeural",
   bgm_file: "random",
   bgm_volume: 0.25,
   audio_ducking: true,
@@ -21,6 +20,9 @@ const EMPTY_PRESET: EditingPreset = {
   ken_burns_preset: "random",
   ken_burns_intensity: 1.0,
   speed_multiplier: 1.3,
+  voice_design_prompt: "",
+  voice_ref_audio_url: "",
+  voice_preset_id: null,
 };
 
 export default function RenderPresetsTab() {
@@ -33,6 +35,7 @@ export default function RenderPresetsTab() {
   const [bgmFiles, setBgmFiles] = useState<string[]>([]);
   const [fonts, setFonts] = useState<string[]>([]);
   const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
+  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
 
   const fetchPresets = useCallback(async () => {
     try {
@@ -55,6 +58,9 @@ export default function RenderPresetsTab() {
     void axios.get<{ overlays: { id: string; name: string }[] }>(`${API_BASE}/overlay/list`).then(
       (r) => setOverlays(r.data.overlays),
     ).catch(() => {});
+    void axios.get<VoicePreset[]>(`${API_BASE}/voice-presets`).then(
+      (r) => setVoicePresets(r.data),
+    ).catch(() => {});
   }, [fetchPresets]);
 
   const handleCreate = () => {
@@ -67,7 +73,6 @@ export default function RenderPresetsTab() {
     setEditing({
       name: p.name,
       description: p.description ?? "",
-      narrator_voice: p.narrator_voice ?? "",
       bgm_file: p.bgm_file ?? "",
       bgm_volume: p.bgm_volume ?? 0.25,
       audio_ducking: p.audio_ducking ?? true,
@@ -78,6 +83,9 @@ export default function RenderPresetsTab() {
       ken_burns_preset: p.ken_burns_preset ?? "random",
       ken_burns_intensity: p.ken_burns_intensity ?? 1.0,
       speed_multiplier: p.speed_multiplier ?? 1.0,
+      voice_design_prompt: p.voice_design_prompt ?? "",
+      voice_ref_audio_url: p.voice_ref_audio_url ?? "",
+      voice_preset_id: p.voice_preset_id ?? null,
     });
   };
 
@@ -235,17 +243,26 @@ export default function RenderPresetsTab() {
               </select>
             </div>
             <div>
-              <label className={labelCls}>Narrator Voice</label>
+              <label className={labelCls}>Voice Preset</label>
               <select
-                value={editing.narrator_voice ?? ""}
-                onChange={(e) => set("narrator_voice", e.target.value)}
+                value={editing.voice_preset_id ?? ""}
+                onChange={(e) => set("voice_preset_id", e.target.value ? Number(e.target.value) : null)}
                 className={inputCls}
               >
-                <option value="">-- None --</option>
-                {VOICES.map((v) => (
-                  <option key={v.id} value={v.id}>{v.label}</option>
+                <option value="">-- None (auto) --</option>
+                {voicePresets.map((vp) => (
+                  <option key={vp.id} value={vp.id}>{vp.name}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className={labelCls}>Voice Design Prompt</label>
+              <input
+                value={editing.voice_design_prompt ?? ""}
+                onChange={(e) => set("voice_design_prompt", e.target.value)}
+                className={inputCls}
+                placeholder="e.g. calm 40s female"
+              />
             </div>
             <div>
               <label className={labelCls}>BGM File</label>

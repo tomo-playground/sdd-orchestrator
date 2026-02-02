@@ -39,6 +39,7 @@ function buildCharacterNegative(character: CharacterFull): string {
 
 const BASE_CHARACTER: CharacterFull = {
   id: 1,
+  project_id: 1,
   name: "Test Character",
   description: null,
   gender: "male",

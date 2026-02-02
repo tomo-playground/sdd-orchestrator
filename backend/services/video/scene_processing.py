@@ -7,14 +7,121 @@ instance as its first argument.
 
 from __future__ import annotations
 
+import asyncio
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import edge_tts
+import torch
+from qwen_tts import Qwen3TTSModel
 
-from config import STORAGE_MODE, logger
+from config import (
+    GEMINI_TEXT_MODEL,
+    STORAGE_MODE,
+    TTS_ATTN_IMPLEMENTATION,
+    TTS_BASE_MODEL_NAME,
+    TTS_DEFAULT_LANGUAGE,
+    TTS_DEVICE,
+    TTS_MODEL_NAME,
+    gemini_client,
+    logger,
+)
 from services.storage import get_storage
 from services.video.utils import clean_script_for_tts
+
+# Global model cache for Qwen-TTS (single model swap)
+_current_model = None
+_current_model_type: str | None = None
+_model_lock = asyncio.Lock()
+
+# Simple cache: Korean prompt → English translation
+_VOICE_PROMPT_CACHE: dict[str, str] = {}
+_HANGUL_RE = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
+
+
+def _resolve_device() -> str:
+    device = TTS_DEVICE
+    if device == "auto":
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
+    return device
+
+
+def _load_model(model_name: str):
+    """Load a Qwen-TTS model (blocking)."""
+    device = _resolve_device()
+    logger.info(f"Loading Qwen-TTS model ({model_name}) on {device}...")
+    model = Qwen3TTSModel.from_pretrained(
+        model_name,
+        dtype=torch.bfloat16 if device == "mps" else torch.float32,
+        attn_implementation=TTS_ATTN_IMPLEMENTATION,
+    )
+    model.model.to(device)
+    model.device = torch.device(device)
+    return model
+
+
+def get_qwen_model():
+    """Synchronous model getter (for lifespan preload). Loads VoiceDesign model."""
+    global _current_model, _current_model_type
+    if _current_model is None:
+        _current_model = _load_model(TTS_MODEL_NAME)
+        _current_model_type = "voice_design"
+    return _current_model
+
+
+async def get_qwen_model_async(model_type: str = "voice_design"):
+    """Async model getter with single-model swap.
+
+    Only one model is loaded at a time. If a different model type is requested,
+    the current model is unloaded first to conserve memory.
+    """
+    global _current_model, _current_model_type
+    async with _model_lock:
+        if _current_model_type == model_type and _current_model is not None:
+            return _current_model
+        # Unload previous model
+        if _current_model is not None:
+            logger.info(f"[TTS] Swapping model: {_current_model_type} → {model_type}")
+            del _current_model
+            _current_model = None
+            _current_model_type = None
+            if torch.backends.mps.is_available():
+                torch.mps.empty_cache()
+            elif torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        # Load new model in executor to avoid blocking
+        model_name = TTS_MODEL_NAME if model_type == "voice_design" else TTS_BASE_MODEL_NAME
+        loop = asyncio.get_event_loop()
+        _current_model = await loop.run_in_executor(None, _load_model, model_name)
+        _current_model_type = model_type
+        return _current_model
+
+def _translate_voice_prompt(prompt: str) -> str:
+    """Translate Korean voice design prompt to English via Gemini."""
+    if not prompt or not _HANGUL_RE.search(prompt):
+        return prompt
+    if prompt in _VOICE_PROMPT_CACHE:
+        return _VOICE_PROMPT_CACHE[prompt]
+    if not gemini_client:
+        logger.warning("[TTS] No Gemini client, skipping voice prompt translation")
+        return prompt
+    try:
+        res = gemini_client.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=(
+                "Translate the following Korean TTS voice description to English. "
+                "Return ONLY the translated text, nothing else.\n\n"
+                f"{prompt}"
+            ),
+        )
+        translated = res.text.strip()
+        _VOICE_PROMPT_CACHE[prompt] = translated
+        logger.info(f"[TTS] Voice prompt translated: '{prompt}' → '{translated}'")
+        return translated
+    except Exception as e:
+        logger.warning(f"[TTS] Voice prompt translation failed: {e}")
+        return prompt
+
 
 if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
@@ -209,28 +316,125 @@ def process_post_layout_image(
         img_path.write_bytes(image_bytes)
 
 
+def _get_preset_audio_path(voice_preset_id: int) -> Path | None:
+    """Fetch voice preset audio file path from DB, with S3 download if needed."""
+    from database import get_db
+    from models.media_asset import MediaAsset
+    from models.voice_preset import VoicePreset
+
+    db = next(get_db())
+    try:
+        preset = db.get(VoicePreset, voice_preset_id)
+        if not preset or not preset.audio_asset_id:
+            return None
+        asset = db.get(MediaAsset, preset.audio_asset_id)
+        if not asset:
+            return None
+        local = Path(asset.local_path)
+        if local.exists():
+            return local
+        return None
+    except Exception as e:
+        logger.error(f"[TTS] Failed to get preset audio path: {e}")
+        return None
+    finally:
+        db.close()
+
+
+async def _generate_tts_with_preset(
+    raw_script: str, voice_preset_id: int, tts_path: Path, language: str,
+) -> bool:
+    """Generate TTS using Base model + voice preset audio for cloning."""
+    ref_path = _get_preset_audio_path(voice_preset_id)
+    if not ref_path:
+        logger.warning(f"[TTS] Preset {voice_preset_id} audio not found, falling back to VoiceDesign")
+        return False
+
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            model = await get_qwen_model_async("base")
+            loop = asyncio.get_event_loop()
+
+            def _clone():
+                import soundfile as sf
+                wavs, sr = model.generate_voice_clone(
+                    text=raw_script,
+                    ref_audio=str(ref_path),
+                    language=language,
+                )
+                sf.write(str(tts_path), wavs[0], sr)
+
+            await loop.run_in_executor(None, _clone)
+
+            if tts_path.exists() and tts_path.stat().st_size > 0:
+                return True
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(f"[TTS] Clone attempt {attempt + 1} failed, retrying: {e}")
+            else:
+                logger.error(f"[TTS] Clone failed after {max_retries + 1} attempts: {e}")
+    return False
+
+
 async def generate_tts(
     builder: VideoBuilder, i: int, raw_script: str, tts_path: Path
 ) -> tuple[bool, float]:
-    """Generate TTS audio for a scene."""
-    has_valid_tts = False
-    tts_duration = 0.0
+    """Generate TTS audio for a scene (Qwen-TTS only).
 
-    if raw_script.strip():
-        try:
-            voice = builder.request.narrator_voice
-            logger.info(f"TTS generation: voice={voice}, script={raw_script[:50]}...")
-            communicate = edge_tts.Communicate(raw_script, voice, rate=builder.tts_rate)
-            await communicate.save(str(tts_path))
-            if tts_path.exists() and tts_path.stat().st_size > 0:
-                has_valid_tts = True
-                tts_duration = builder._get_audio_duration(tts_path)
-                logger.info(f"TTS success: duration={tts_duration}s")
-            else:
-                logger.warning("TTS file creation failed or empty file")
-        except Exception as e:
-            logger.error(f"TTS generation error: {e}")
-    else:
+    If voice_preset_id is set, uses Base model + cloning.
+    Otherwise, uses VoiceDesign model (existing behavior).
+    """
+    if not raw_script.strip():
         logger.warning(f"Scene {i}: empty script, skipping TTS")
+        return False, 0.0
 
-    return has_valid_tts, tts_duration
+    scene_req = builder.request.scenes[i]
+
+    try:
+        # Voice Preset mode: Base model + cloning
+        if builder.request.voice_preset_id:
+            logger.info(f"TTS generation (Clone): preset={builder.request.voice_preset_id}, script={raw_script[:50]}...")
+            success = await _generate_tts_with_preset(
+                raw_script, builder.request.voice_preset_id, tts_path, TTS_DEFAULT_LANGUAGE,
+            )
+            if success:
+                tts_duration = builder._get_audio_duration(tts_path)
+                logger.info(f"TTS success (Clone): duration={tts_duration}s")
+                return True, tts_duration
+            # Fallback to VoiceDesign
+            logger.warning("[TTS] Clone failed, falling back to VoiceDesign")
+
+        # VoiceDesign mode (default)
+        logger.info(f"TTS generation (VoiceDesign): script={raw_script[:50]}...")
+        model = await get_qwen_model_async("voice_design")
+
+        voice_design = scene_req.voice_design_prompt or builder.request.voice_design_prompt
+        voice_design = _translate_voice_prompt(voice_design or "")
+
+        import soundfile as sf
+
+        loop = asyncio.get_event_loop()
+
+        def _voice_design():
+            return model.generate_voice_design(
+                text=raw_script,
+                instruct=voice_design or "",
+                language=TTS_DEFAULT_LANGUAGE,
+            )
+
+        logger.info(f"Scene {i}: voice design — '{(voice_design or '')[:40]}'")
+        wavs, sr = await loop.run_in_executor(None, _voice_design)
+
+        sf.write(str(tts_path), wavs[0], sr)
+
+        if tts_path.exists() and tts_path.stat().st_size > 0:
+            tts_duration = builder._get_audio_duration(tts_path)
+            logger.info(f"TTS success (VoiceDesign): duration={tts_duration}s")
+            return True, tts_duration
+
+        logger.warning("Qwen-TTS generation failed (empty file)")
+    except Exception as e:
+        logger.error(f"TTS generation error (Qwen): {e}")
+
+    return False, 0.0

@@ -193,7 +193,7 @@ class TestPromptCompose:
         """Compose prompt using V3 engine with character_id."""
         from models import Character
 
-        char = Character(name="Test Char", gender="female")
+        char = Character(name="Test Char", gender="female", project_id=1)
         db_session.add(char)
         db_session.commit()
         char_id = char.id
@@ -218,7 +218,7 @@ class TestPromptCompose:
         """Compose merges context_tags into tokens."""
         from models import Character
 
-        char = Character(name="Context Char", gender="female")
+        char = Character(name="Context Char", gender="female", project_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -241,7 +241,7 @@ class TestPromptCompose:
         """Compose includes LoRA weights in response."""
         from models import Character
 
-        char = Character(name="LoRA Char", gender="female")
+        char = Character(name="LoRA Char", gender="female", project_id=1)
         db_session.add(char)
         db_session.commit()
 

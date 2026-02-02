@@ -11,7 +11,7 @@ def test_db_isolation_activity_logs(db_session):
     assert initial_count == 0, "Test DB should start empty"
 
     # Create parent storyboard (FK requirement)
-    storyboard = Storyboard(title="Test")
+    storyboard = Storyboard(title="Test", group_id=1)
     db_session.add(storyboard)
     db_session.commit()
 
@@ -42,6 +42,7 @@ def test_db_isolation_storyboards(db_session):
     # Create test data
     storyboard = Storyboard(
         title="Test Storyboard",
+        group_id=1,
     )
     db_session.add(storyboard)
     db_session.commit()
@@ -64,7 +65,7 @@ def test_db_independence_between_tests(db_session):
 def test_api_endpoint_uses_test_db(client, db_session):
     """Verify API endpoints use test DB through dependency injection."""
     # Create parent storyboard (FK requirement)
-    storyboard = Storyboard(title="API Test")
+    storyboard = Storyboard(title="API Test", group_id=1)
     db_session.add(storyboard)
     db_session.commit()
 

@@ -18,8 +18,9 @@ type UseCharactersResult = {
 /**
  * Hook to load and manage characters.
  * Provides methods to fetch character details and build prompts.
+ * @param projectId - When provided, only fetches characters for this project.
  */
-export function useCharacters(): UseCharactersResult {
+export function useCharacters(projectId?: number | null): UseCharactersResult {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +29,9 @@ export function useCharacters(): UseCharactersResult {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("[useCharacters] Fetching from:", `${API_BASE}/characters`);
-      const res = await axios.get(`${API_BASE}/characters`);
-      console.log("[useCharacters] Response:", res.data?.length ?? 0, "characters");
+      const params: Record<string, unknown> = {};
+      if (projectId != null) params.project_id = projectId;
+      const res = await axios.get(`${API_BASE}/characters`, { params });
       setCharacters(res.data || []);
     } catch (err) {
       console.error("[useCharacters] Error:", err);
@@ -39,7 +40,7 @@ export function useCharacters(): UseCharactersResult {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     void loadCharacters();

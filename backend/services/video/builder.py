@@ -75,7 +75,6 @@ class VideoBuilder:
         )
         from services.utils import (
             get_audio_duration,
-            to_edge_tts_rate,
             wrap_text,
             wrap_text_by_font,
         )
@@ -94,7 +93,6 @@ class VideoBuilder:
         self._resolve_overlay_frame = resolve_overlay_frame
         self._resolve_scene_text_font_path = resolve_scene_text_font_path
         self._get_audio_duration = get_audio_duration
-        self._to_edge_tts_rate = to_edge_tts_rate
         self._wrap_text = wrap_text
         self._wrap_text_by_font = wrap_text_by_font
         self._FullLayout = FullLayout
@@ -119,7 +117,6 @@ class VideoBuilder:
         self.transition_dur, self.tts_padding, self.speed_multiplier = (
             calculate_speed_params(request.speed_multiplier or 1.0)
         )
-        self.tts_rate = self._to_edge_tts_rate(self.speed_multiplier)
         self.use_post_layout = request.layout_style == "post"
         self.out_w = request.width
         self.out_h = request.height

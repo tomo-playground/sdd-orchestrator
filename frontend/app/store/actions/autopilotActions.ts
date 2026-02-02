@@ -151,7 +151,15 @@ export async function runAutoRunFromStep(
         setAutoRunStep("render", `Rendering ${layoutStyle} video...`);
         setActiveTab("output");
         const { setOutput } = useStudioStore.getState();
+        const renderProjectId = useStudioStore.getState().projectId;
+        const renderGroupId = useStudioStore.getState().groupId;
+        if (!renderProjectId || !renderGroupId) {
+          throw new Error("Project/Group context required for render");
+        }
         const payload = {
+          project_id: renderProjectId,
+          group_id: renderGroupId,
+          storyboard_id: useStudioStore.getState().storyboardId,
           scenes: workingScenes.filter((s) => s.image_url).map((s) => ({
             image_url: s.image_url,
             script: s.script,
@@ -162,13 +170,16 @@ export async function runAutoRunFromStep(
           ken_burns_preset: useStudioStore.getState().kenBurnsPreset,
           ken_burns_intensity: useStudioStore.getState().kenBurnsIntensity,
           transition_type: useStudioStore.getState().transitionType,
-          narrator_voice: useStudioStore.getState().narratorVoice,
           speed_multiplier: useStudioStore.getState().speedMultiplier,
           bgm_file: useStudioStore.getState().bgmFile,
           audio_ducking: useStudioStore.getState().audioDucking,
           bgm_volume: useStudioStore.getState().bgmVolume,
           include_scene_text: useStudioStore.getState().includeSceneText,
           scene_text_font: useStudioStore.getState().sceneTextFont,
+          tts_engine: "qwen",
+          voice_design_prompt: useStudioStore.getState().voiceDesignPrompt || null,
+          voice_ref_audio_url: useStudioStore.getState().voiceRefAudioUrl || null,
+          voice_preset_id: useStudioStore.getState().voicePresetId || null,
         };
         const res = await axios.post(`${API_BASE}/video/create`, payload);
         const videoUrl = res.data?.video_url;

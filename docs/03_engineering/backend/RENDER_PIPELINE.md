@@ -11,7 +11,7 @@
     *   이미지 로드 (MinIO/S3 또는 로컬 스토리지).
     *   자막 텍스트 래핑 (가독성을 위한 동적 폰트 크기 조절 포함).
     *   Post Layout 이미지 합성 (Pillow 사용).
-    *   TTS 오디오 생성 (Edge TTS 사용).
+    *   TTS 오디오 생성 (Qwen3-TTS Local, Edge TTS Fallback).
 3.  **타이밍 계산 (Timing)**: TTS 길이와 사용자 설정 속도를 고려하여 각 씬의 최종 재생 시간 결정.
 4.  **FFmpeg 필터 빌드 (Filter Construction)**:
     *   **이미지 변환**: Scale & Crop (Full Layout: 9:16 최적화 크롭 적용).

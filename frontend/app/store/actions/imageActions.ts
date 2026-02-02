@@ -149,15 +149,20 @@ export async function generateSceneImageFor(
     if (images.length > 0) {
       const { projectId, groupId, storyboardId: currentId } = useStudioStore.getState();
 
+      if (!projectId || !groupId || !currentId) {
+        if (!silent) showToast("Project/Group context required", "error");
+        return null;
+      }
+
       // 1. Store all images in parallel
       const storedResults = await Promise.all(
         images.map((b64: string, idx: number) => {
           const dataUrl = `data:image/png;base64,${b64}`;
           return storeSceneImage(
             dataUrl,
-            projectId || 1,
-            groupId || 1,
-            currentId || 1,
+            projectId,
+            groupId,
+            currentId,
             scene.id,
             `scene_${scene.id}_${Date.now()}_${idx}.png`
           );
@@ -376,12 +381,16 @@ export function handleImageUpload(sceneId: number, file?: File) {
   const reader = new FileReader();
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
-    const { projectId, groupId, storyboardId } = useStudioStore.getState();
+    const { projectId, groupId, storyboardId, showToast: toast } = useStudioStore.getState();
+    if (!projectId || !groupId || !storyboardId) {
+      toast("Project/Group context required", "error");
+      return;
+    }
     const stored = await storeSceneImage(
       dataUrl,
-      projectId || 1,
-      groupId || 1,
-      storyboardId || 1,
+      projectId,
+      groupId,
+      storyboardId,
       sceneId,
       `upload_${sceneId}_${Date.now()}.png`
     );
@@ -423,11 +432,16 @@ export async function handleEditWithGemini(
     if (res.data.edited_image) {
       const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
       const { projectId, groupId, storyboardId } = useStudioStore.getState();
+      if (!projectId || !groupId || !storyboardId) {
+        showToast("Project/Group context required", "error");
+        updateScene(scene.id, { isGenerating: false });
+        return;
+      }
       const stored = await storeSceneImage(
         dataUrl,
-        projectId || 1,
-        groupId || 1,
-        storyboardId || 1,
+        projectId,
+        groupId,
+        storyboardId,
         scene.id,
         `gemini_edit_${scene.id}_${Date.now()}.png`
       );

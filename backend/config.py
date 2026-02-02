@@ -208,3 +208,16 @@ DEFAULT_CHARACTER_PRESET = {
     "weight": 0.35,
     "model": "clip_face",
 }
+
+# --- TTS Configuration ---
+TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
+TTS_BASE_MODEL_NAME = os.getenv("TTS_BASE_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
+TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
+TTS_DEVICE = os.getenv("TTS_DEVICE", "auto")  # "auto" | "mps" | "cpu"
+TTS_ATTN_IMPLEMENTATION = os.getenv("TTS_ATTN_IMPLEMENTATION", "sdpa")
+
+# --- Voice Preset Configuration ---
+VOICE_PRESET_MAX_FILE_SIZE = int(os.getenv("VOICE_PRESET_MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB
+VOICE_PRESET_MIN_DURATION = float(os.getenv("VOICE_PRESET_MIN_DURATION", "3.0"))
+VOICE_PRESET_MAX_DURATION = float(os.getenv("VOICE_PRESET_MAX_DURATION", "60.0"))
+VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}

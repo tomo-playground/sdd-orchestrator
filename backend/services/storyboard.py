@@ -455,6 +455,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "default_style_profile_id": storyboard.default_style_profile_id,
         "video_url": storyboard.video_url,
         "recent_videos": recent_videos,
+        "default_caption": storyboard.default_caption,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "scenes": [serialize_scene(sc) for sc in scenes],
@@ -511,6 +512,31 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
     db.commit()
     db.refresh(storyboard)
+    return {"status": "success", "storyboard_id": storyboard.id}
+
+
+def update_storyboard_metadata(
+    db: Session, storyboard_id: int, request: StoryboardUpdate
+) -> dict:
+    """Update only storyboard metadata (title, caption, etc) without touching scenes."""
+    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+    if not storyboard:
+        raise HTTPException(status_code=404, detail="Storyboard not found")
+
+    logger.info("\U0001f4dd [Storyboard Metadata Update] id=%d", storyboard_id)
+
+    if request.title is not None:
+        storyboard.title = truncate_title(request.title)
+    if request.description is not None:
+        storyboard.description = request.description
+    if request.default_character_id is not None:
+        storyboard.default_character_id = request.default_character_id
+    if request.default_style_profile_id is not None:
+        storyboard.default_style_profile_id = request.default_style_profile_id
+    if request.default_caption is not None:
+        storyboard.default_caption = request.default_caption
+
+    db.commit()
     return {"status": "success", "storyboard_id": storyboard.id}
 
 

@@ -8,16 +8,30 @@ import type { EffectiveConfig, GroupItem } from "../../types";
  * Called on initial load or when the active group changes.
  */
 export async function loadGroupDefaults(groupId: number): Promise<void> {
+  const { setEffectiveDefaults, setEffectivePreset } = useStudioStore.getState();
+  setEffectiveDefaults(null, null, false);
+
   try {
     const res = await axios.get<EffectiveConfig>(
       `${API_BASE}/groups/${groupId}/effective-config`,
     );
     const cfg = res.data;
+
+    // Store effective IDs (contextSlice — survives resetStudioStore)
+    setEffectiveDefaults(
+      cfg.default_style_profile_id ?? null,
+      cfg.default_character_id ?? null,
+      true,
+    );
+
     const p = cfg.render_preset;
-    if (!p) return;
+    if (!p) {
+      setEffectivePreset(null, null);
+      return;
+    }
+    setEffectivePreset(p.name, cfg.sources?.render_preset_id || "group");
 
     const updates: Record<string, unknown> = {};
-    if (p.narrator_voice) updates.narratorVoice = p.narrator_voice;
     if (p.bgm_file) updates.bgmFile = p.bgm_file;
     if (p.bgm_volume != null) updates.bgmVolume = p.bgm_volume;
     if (p.audio_ducking != null) updates.audioDucking = p.audio_ducking;
@@ -28,12 +42,15 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
     if (p.ken_burns_preset) updates.kenBurnsPreset = p.ken_burns_preset;
     if (p.ken_burns_intensity != null) updates.kenBurnsIntensity = p.ken_burns_intensity;
     if (p.speed_multiplier != null) updates.speedMultiplier = p.speed_multiplier;
+    if (p.voice_design_prompt) updates.voiceDesignPrompt = p.voice_design_prompt;
+    if (p.voice_ref_audio_url) updates.voiceRefAudioUrl = p.voice_ref_audio_url;
+    if (p.voice_preset_id != null) updates.voicePresetId = p.voice_preset_id;
 
     if (Object.keys(updates).length > 0) {
       useStudioStore.getState().setOutput(updates);
     }
   } catch {
-    // Effective config is optional; silently ignore failures
+    setEffectiveDefaults(null, null, true);
   }
 }
 

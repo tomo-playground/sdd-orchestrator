@@ -84,6 +84,14 @@ export const useStudioStore = create<StudioState>()(
         }
         return localStorage;
       }),
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted as object) };
+        // Force ttsEngine to "qwen" (Edge-TTS removed in Phase 6-8.2)
+        if ((merged as Record<string, unknown>).ttsEngine === "edge") {
+          (merged as Record<string, unknown>).ttsEngine = "qwen";
+        }
+        return merged as typeof current;
+      },
       partialize: (state) => {
         const persisted: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(state)) {
