@@ -8,13 +8,14 @@ import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { createDraftStoryboard } from "../store/actions/storyboardActions";
 import type { Scene } from "../types";
 import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
+import { updateProject } from "../store/actions/projectActions";
 
 /**
  * Handles all studio initialization logic:
  * - Store reset on ?new=true
  * - Storyboard loading from DB on ?id=X
  * - Prompt apply from localStorage
- * - Channel avatar URL loading
+ * - One-time channelProfile → Project migration
  * - Transient data clearing on storyboard ID change
  */
 export function useStudioInitialization() {
@@ -112,6 +113,28 @@ export function useStudioInitialization() {
       window.localStorage.removeItem(PROMPT_APPLY_KEY);
     }
   }, [setPlan]);
+
+  // One-time migration: localStorage channelProfile → Project.avatar_key
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("channel_profile_migrated")) return;
+
+    try {
+      const raw = localStorage.getItem("shorts-producer:studio:v1");
+      if (!raw) return;
+      const persisted = JSON.parse(raw)?.state;
+      const profile = persisted?.channelProfile;
+      if (!profile?.avatar_key) return;
+
+      const { projectId } = useStudioStore.getState();
+      if (!projectId) return;
+
+      updateProject(projectId, { avatar_key: profile.avatar_key });
+      localStorage.setItem("channel_profile_migrated", "true");
+    } catch {
+      // Silently ignore migration errors
+    }
+  }, []);
 
   // Load storyboard from DB if ?id=X
   useEffect(() => {
