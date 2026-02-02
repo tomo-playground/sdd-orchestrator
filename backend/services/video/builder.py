@@ -19,8 +19,8 @@ from fastapi import HTTPException
 from config import (
     AUDIO_BITRATE,
     AUDIO_CODEC,
+    BUILD_DIR,
     FFMPEG_TIMEOUT_SECONDS,
-    IMAGE_DIR,
     VIDEO_CODEC,
     VIDEO_CRF,
     VIDEO_DIR,
@@ -102,7 +102,7 @@ class VideoBuilder:
 
         # State
         self.project_id = f"build_{int(time.time())}"
-        self.temp_dir = IMAGE_DIR / self.project_id
+        self.temp_dir = BUILD_DIR / self.project_id
         self.safe_title = sanitize_filename(request.storyboard_title)
         self.video_filename = generate_video_filename(
             self.safe_title, request.layout_style

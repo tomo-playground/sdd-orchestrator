@@ -79,10 +79,10 @@ def get_storage_stats() -> dict:
         "projects": base_dir / "projects",
         "videos": base_dir / "videos",
         "images": base_dir / "images" / "stored",
-        "cache": base_dir / "cache",
-        "avatars": base_dir / "avatars",
+        "_prompt_cache": base_dir / "_prompt_cache",
+        "_s3_cache": base_dir / "_s3_cache",
+        "_build": base_dir / "_build",
         "shared": base_dir / "shared",
-        "candidates": base_dir / "candidates",
     }
 
     result = {"directories": {}}
@@ -206,7 +206,7 @@ def cleanup_cache(max_age_seconds: int | None = None, dry_run: bool = False) -> 
     cutoff_time = time.time() - max_age_seconds
     base_dir = get_storage().base_dir
 
-    cache_dir = base_dir / "cache"
+    cache_dir = base_dir / "_prompt_cache"
     for file_path in _iter_files(cache_dir):
         try:
             mtime = file_path.stat().st_mtime
@@ -274,34 +274,44 @@ def cleanup_test_folders(dry_run: bool = False) -> CleanupResult:
     return result
 
 
-def cleanup_candidates(dry_run: bool = False) -> CleanupResult:
-    """Delete all candidate images (temporary generation results).
+def cleanup_build(max_age_hours: int = 24, dry_run: bool = False) -> CleanupResult:
+    """Delete old build workspace directories.
 
     Args:
+        max_age_hours: Maximum age in hours. Build dirs older than this will be deleted.
         dry_run: If True, only report what would be deleted without actually deleting.
 
     Returns:
         CleanupResult with details of deleted files.
     """
     result = CleanupResult()
+    cutoff_time = time.time() - (max_age_hours * 60 * 60)
     base_dir = get_storage().base_dir
-    candidates_dir = base_dir / "candidates"
+    build_dir = base_dir / "_build"
 
-    if not candidates_dir.exists():
-        return result
-
-    for file_path in _iter_files(candidates_dir):
+    for file_path in _iter_files(build_dir):
         try:
-            size = file_path.stat().st_size
-            result.deleted_files.append(str(file_path.relative_to(base_dir)))
-            result.freed_bytes += size
-            result.deleted_count += 1
+            mtime = file_path.stat().st_mtime
+            if mtime < cutoff_time:
+                size = file_path.stat().st_size
+                result.deleted_files.append(str(file_path.relative_to(base_dir)))
+                result.freed_bytes += size
+                result.deleted_count += 1
 
-            if not dry_run:
-                file_path.unlink()
-                logger.info("Deleted candidate: %s", file_path)
+                if not dry_run:
+                    file_path.unlink()
+                    logger.info("Deleted build file: %s", file_path)
         except OSError as e:
-            logger.warning("Failed to delete candidate %s: %s", file_path, e)
+            logger.warning("Failed to process build file %s: %s", file_path, e)
+
+    # Remove empty build_* subdirectories
+    if not dry_run and build_dir.exists():
+        for subdir in sorted(build_dir.rglob("*"), reverse=True):
+            if subdir.is_dir():
+                try:
+                    subdir.rmdir()
+                except OSError:
+                    pass
 
     return result
 
@@ -316,8 +326,9 @@ class CleanupOptions:
     image_max_age_days: int = 7
     cleanup_cache: bool = True
     cache_max_age_seconds: int | None = None
+    cleanup_build: bool = True
+    build_max_age_hours: int = 24
     cleanup_test_folders: bool = True
-    cleanup_candidates: bool = False
     dry_run: bool = False
 
 
@@ -364,9 +375,9 @@ def cleanup_all(options: CleanupOptions) -> dict:
         total_deleted += result.deleted_count
         total_freed += result.freed_bytes
 
-    if options.cleanup_test_folders:
-        result = cleanup_test_folders(options.dry_run)
-        details["test_folders"] = {
+    if options.cleanup_build:
+        result = cleanup_build(options.build_max_age_hours, options.dry_run)
+        details["build"] = {
             "deleted": result.deleted_count,
             "freed_mb": result.freed_mb,
             "files": result.deleted_files if options.dry_run else [],
@@ -374,9 +385,9 @@ def cleanup_all(options: CleanupOptions) -> dict:
         total_deleted += result.deleted_count
         total_freed += result.freed_bytes
 
-    if options.cleanup_candidates:
-        result = cleanup_candidates(options.dry_run)
-        details["candidates"] = {
+    if options.cleanup_test_folders:
+        result = cleanup_test_folders(options.dry_run)
+        details["test_folders"] = {
             "deleted": result.deleted_count,
             "freed_mb": result.freed_mb,
             "files": result.deleted_files if options.dry_run else [],

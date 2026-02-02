@@ -73,9 +73,12 @@ if not DATABASE_URL:
 OUTPUT_DIR = BASE_DIR / "outputs"
 IMAGE_DIR = OUTPUT_DIR / "images"
 VIDEO_DIR = OUTPUT_DIR / "videos"
-CANDIDATE_DIR = OUTPUT_DIR / "candidates"
-AVATAR_DIR = OUTPUT_DIR / "avatars"
-CACHE_DIR = OUTPUT_DIR / "cache"
+BUILD_DIR = OUTPUT_DIR / "_build"
+PROMPT_CACHE_DIR = OUTPUT_DIR / "_prompt_cache"
+S3_CACHE_DIR = OUTPUT_DIR / "_s3_cache"
+AVATAR_DIR = OUTPUT_DIR / "shared" / "avatars"
+# Backward-compatible alias (existing code importing CACHE_DIR keeps working)
+CACHE_DIR = PROMPT_CACHE_DIR
 CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "86400"))
 MEDIA_ASSET_TEMP_TTL_SECONDS = int(os.getenv("MEDIA_ASSET_TEMP_TTL_SECONDS", "86400"))
 ASSETS_DIR = BASE_DIR / "assets"
@@ -85,7 +88,7 @@ FONTS_DIR = ASSETS_DIR / "fonts"
 TEMPLATES_DIR = BASE_DIR / "templates"
 
 # Ensure directories exist
-for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, CANDIDATE_DIR, AVATAR_DIR, CACHE_DIR, ASSETS_DIR, AUDIO_DIR, OVERLAY_DIR, FONTS_DIR, TEMPLATES_DIR):
+for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, BUILD_DIR, PROMPT_CACHE_DIR, S3_CACHE_DIR, AVATAR_DIR, ASSETS_DIR, AUDIO_DIR, OVERLAY_DIR, FONTS_DIR, TEMPLATES_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 # --- API Configuration ---
@@ -212,6 +215,7 @@ DEFAULT_CHARACTER_PRESET = {
 # --- TTS Configuration ---
 TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
 TTS_BASE_MODEL_NAME = os.getenv("TTS_BASE_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
+TTS_PRELOAD_MODEL = os.getenv("TTS_PRELOAD_MODEL", "base")  # "base" | "voice_design"
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
 TTS_DEVICE = os.getenv("TTS_DEVICE", "auto")  # "auto" | "mps" | "cpu"
 TTS_ATTN_IMPLEMENTATION = os.getenv("TTS_ATTN_IMPLEMENTATION", "sdpa")

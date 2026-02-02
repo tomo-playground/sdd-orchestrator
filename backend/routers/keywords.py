@@ -7,7 +7,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import CACHE_DIR, logger
+from config import PROMPT_CACHE_DIR, logger
 from database import get_db
 from models.tag import Tag
 from schemas import BatchApproveRequest, KeywordApproveRequest
@@ -144,7 +144,7 @@ async def approve_keyword(request: KeywordApproveRequest, db: Session = Depends(
         db.commit()
 
         # Remove from suggestions cache
-        suggestions_path = CACHE_DIR / "keyword_suggestions.json"
+        suggestions_path = PROMPT_CACHE_DIR / "keyword_suggestions.json"
         if suggestions_path.exists():
             try:
                 suggestions = json.loads(suggestions_path.read_text(encoding="utf-8"))
@@ -329,7 +329,7 @@ async def batch_approve(
             db.commit()
 
             # Remove approved tags from suggestions cache
-            suggestions_path = CACHE_DIR / "keyword_suggestions.json"
+            suggestions_path = PROMPT_CACHE_DIR / "keyword_suggestions.json"
             if suggestions_path.exists():
                 try:
                     cache_data = json.loads(suggestions_path.read_text(encoding="utf-8"))

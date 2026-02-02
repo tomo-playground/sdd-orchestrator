@@ -69,8 +69,7 @@ class S3Storage(BaseStorage):
         self.public_url = public_url
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        # For compatibility with cleanup stats, use cache_dir's parent as base_dir
-        self._base_dir = cache_dir.parent if cache_dir.name == "cache" else cache_dir.parent
+        self._base_dir = cache_dir.parent
 
     @property
     def base_dir(self) -> Path:
@@ -235,13 +234,14 @@ def initialize_storage():
     )
 
     if STORAGE_MODE == "s3":
+        from config import S3_CACHE_DIR
         storage = S3Storage(
             endpoint_url=MINIO_ENDPOINT,
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
             bucket_name=MINIO_BUCKET,
             public_url=STORAGE_PUBLIC_URL,
-            cache_dir=OUTPUT_DIR / "cache",
+            cache_dir=S3_CACHE_DIR,
         )
         logger.info("📦 Storage initialized: S3 (MinIO)")
     else:
