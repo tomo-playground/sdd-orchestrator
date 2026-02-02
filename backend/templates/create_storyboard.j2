@@ -59,6 +59,8 @@ Instructions:
        - gaze: eye direction
        - pose: body position
        - action: what character is doing
+       - props: objects character holds or interacts with (holding_phone, holding_book, etc.)
+         * If script mentions an object (스마트폰, 책, 우산, etc.), MUST include matching props tag
        - camera: shot type and angle
        - environment: location (MUST match script), time, weather, lighting
        - mood: overall atmosphere
@@ -169,6 +171,7 @@ Output Format:
       "gaze": "[gaze_tag]",
       "pose": ["[pose_tag]"],
       "action": ["[action_tag]"],
+      "props": ["[props_tag if script mentions objects]"],
       "camera": "[camera_tag]",
       "environment": ["[location_tag]", "[time_tag]", "[lighting_tag]"],
       "mood": ["[mood_tag]"]

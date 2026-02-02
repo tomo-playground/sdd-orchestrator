@@ -93,7 +93,7 @@ async def validate_prompt(request: PromptValidateRequest):
                 len(request.positive), len(request.negative))
 
     # Fetch available LoRAs from SD WebUI
-    available_loras = []
+    available_loras: list[str] | None = None
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(SD_LORAS_URL, timeout=10.0)
@@ -101,12 +101,21 @@ async def validate_prompt(request: PromptValidateRequest):
             data = res.json()
             if isinstance(data, list):
                 available_loras = [item.get("name", "") for item in data if item.get("name")]
-    except httpx.HTTPError as exc:
+    except Exception as exc:
         logger.warning("⚠️ [Prompt Validate] Failed to fetch LoRAs: %s", exc)
-        # Continue validation without LoRA check
 
-    # Validate LoRAs
-    lora_result = validate_loras(request.positive, available_loras)
+    # Validate LoRAs (skip if SD WebUI unreachable)
+    if available_loras is not None:
+        lora_result = validate_loras(request.positive, available_loras)
+    else:
+        from services.prompt.prompt import extract_lora_names
+        lora_result = {
+            "valid": True,
+            "prompt_loras": extract_lora_names(request.positive),
+            "missing": [],
+            "available": [],
+            "skipped": True,
+        }
 
     # Detect conflicts
     conflict_result = detect_prompt_conflicts(request.positive, request.negative)
@@ -123,8 +132,11 @@ async def validate_prompt(request: PromptValidateRequest):
     warnings = []
     errors = []
 
-    if not lora_result["valid"]:
-        errors.append(f"Missing LoRAs: {', '.join(lora_result['missing'])}")
+    if lora_result.get("skipped"):
+        warnings.append("SD WebUI 연결 실패 — LoRA 검증 건너뜀")
+    elif not lora_result["valid"]:
+        missing_names = ", ".join(lora_result["missing"])
+        errors.append(f"SD WebUI에 LoRA가 없습니다: {missing_names} (models/Lora 폴더 확인)")
 
     if conflict_result["has_conflicts"]:
         warnings.append(f"Conflicting tags in positive/negative: {', '.join(conflict_result['conflicts'])}")

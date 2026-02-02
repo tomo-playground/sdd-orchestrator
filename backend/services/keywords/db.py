@@ -59,17 +59,28 @@ _SCENE_GROUPS = [
     "expression", "pose", "camera", "location_indoor", "location_outdoor", "lighting", "mood", "time"
 ]
 
+# Maps DB layer groups → Gemini-readable category names
+# Must align with v3_composition.py 12-Layer system and create_storyboard.j2 template
 _DB_GROUP_TO_GEMINI_CATEGORY = {
-    "layer_0": "composition",
-    "layer_1": "subject",
-    "layer_2": "pose",
-    "layer_3": "clothing",
-    "layer_4": "hair",
-    "layer_5": "expression",
-    "layer_6": "background",
+    "layer_0": None,           # QUALITY — auto-composed, not for Gemini selection
+    "layer_1": None,           # SUBJECT — auto-composed (1boy, solo, etc.)
+    "layer_2": "character",    # IDENTITY — character features
+    "layer_3": "body",         # BODY — body type
+    "layer_4": "clothing",     # MAIN_CLOTH
+    "layer_5": "clothing",     # DETAIL_CLOTH — merge with clothing
+    "layer_6": "props",        # ACCESSORY — held items, worn accessories (holding_phone, etc.)
+    "layer_7": "expression",   # EXPRESSION
+    "layer_8": "action",       # ACTION — pose, gesture
+    "layer_9": "camera",       # CAMERA — shot type, angle
+    "layer_10": "environment", # ENVIRONMENT — location, time
+    "layer_11": "mood",        # ATMOSPHERE — mood, lighting
+    # Legacy groups
     "expression": "expression",
-    "pose": "pose",
+    "pose": "action",
     "camera": "camera",
     "location_indoor": "environment",
     "location_outdoor": "environment",
+    "lighting": "mood",
+    "mood": "mood",
+    "time": "environment",
 }

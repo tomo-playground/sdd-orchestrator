@@ -94,11 +94,11 @@ export async function generateSceneImageFor(
     });
     const validation = validateRes.data;
     if (validation.errors?.length > 0) {
-      if (!silent) showToast(`Blocked: ${validation.errors.join("; ")}`, "error");
+      if (!silent) showToast(validation.errors.join("; "), "error");
       return null;
     }
     if (validation.warnings?.length > 0 && !silent) {
-      showToast(`Warning: ${validation.warnings.join("; ")}`, "error");
+      showToast(validation.warnings.join("; "), "warning");
     }
   } catch {
     // continue

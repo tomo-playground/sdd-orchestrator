@@ -54,10 +54,10 @@ class TestBasicFormatting:
 
         # Should include header
         assert "Allowed Keywords (use exactly as written):" in result
-        # Should include all categories
+        # Should include all categories (pose legacy group maps to action)
         assert "expression:" in result.lower()
-        assert "pose:" in result.lower()
-        assert ("camera" in result.lower() or "shot_type" in result.lower())
+        assert "action:" in result.lower()
+        assert "camera:" in result.lower()
         # Should include all tags
         assert "smile" in result
         assert "crying" in result
@@ -197,6 +197,83 @@ class TestCategoryMapping:
         # Should use Gemini-friendly category name
         assert "environment:" in result.lower() or "location:" in result.lower()
         assert "classroom" in result
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    def test_v3_layer_mapping_completeness(self, mock_load_tags, mock_load_eff):
+        """All v3 layers (0-11) must have explicit mapping in _DB_GROUP_TO_GEMINI_CATEGORY."""
+        from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY
+
+        for i in range(12):
+            key = f"layer_{i}"
+            assert key in _DB_GROUP_TO_GEMINI_CATEGORY, (
+                f"{key} missing from _DB_GROUP_TO_GEMINI_CATEGORY"
+            )
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    def test_layer6_maps_to_props_not_background(self, mock_load_tags, mock_load_eff):
+        """Layer 6 (ACCESSORY) must map to 'props', not 'background'."""
+        from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY
+
+        assert _DB_GROUP_TO_GEMINI_CATEGORY["layer_6"] == "props"
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    def test_layer8_maps_to_action(self, mock_load_tags, mock_load_eff):
+        """Layer 8 (ACTION) must map to 'action'."""
+        from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY
+
+        assert _DB_GROUP_TO_GEMINI_CATEGORY["layer_8"] == "action"
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    def test_props_tags_appear_in_output(self, mock_load_tags, mock_load_eff):
+        """Props tags (holding_phone, etc.) must appear under 'props' category."""
+        mock_load_tags.return_value = {
+            "layer_6": ["holding_phone", "smartphone", "headphones"],
+            "layer_8": ["walking", "running"],
+        }
+        mock_load_eff.return_value = {}
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        assert "- props:" in result
+        assert "holding_phone" in result
+        assert "smartphone" in result
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    def test_action_tags_appear_in_output(self, mock_load_tags, mock_load_eff):
+        """Action tags (layer_8) must appear under 'action' category."""
+        mock_load_tags.return_value = {
+            "layer_8": ["walking", "running", "jumping"],
+        }
+        mock_load_eff.return_value = {}
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        assert "- action:" in result
+        assert "walking" in result
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    def test_quality_and_subject_layers_excluded(self, mock_load_tags, mock_load_eff):
+        """Layer 0 (QUALITY) and Layer 1 (SUBJECT) should be excluded (auto-composed)."""
+        mock_load_tags.return_value = {
+            "layer_0": ["masterpiece", "best_quality"],
+            "layer_1": ["1boy", "solo"],
+            "layer_8": ["walking"],
+        }
+        mock_load_eff.return_value = {}
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        # Quality/subject auto-composed, should not appear
+        assert "masterpiece" not in result
+        assert "1boy" not in result
+        # Action should appear
+        assert "walking" in result
 
 
 class TestConfigurableThresholds:

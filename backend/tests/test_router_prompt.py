@@ -168,6 +168,27 @@ class TestPromptValidate:
             assert data["lora_validation"]["valid"] is False
             assert "missing_lora" in data["lora_validation"]["missing"]
 
+    def test_validate_prompt_lora_skip_on_sd_failure(self, client: TestClient):
+        """LoRA validation is skipped when SD WebUI is unreachable."""
+        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(side_effect=Exception("Connection refused"))
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            request_data = {
+                "positive": "<lora:some_lora:0.8>, 1girl",
+                "negative": "",
+            }
+            response = client.post("/prompt/validate", json=request_data)
+            assert response.status_code == 200
+            data = response.json()
+            # Should NOT block — LoRA validation skipped
+            assert data["lora_validation"]["valid"] is True
+            assert data["lora_validation"].get("skipped") is True
+            assert "some_lora" in data["lora_validation"]["prompt_loras"]
+
     def test_validate_prompt_minimal_body(self, client: TestClient):
         """Validate with only positive prompt (negative defaults to empty)."""
         with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
