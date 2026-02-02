@@ -47,12 +47,7 @@ export default function ProjectDropdown({ projects, currentId, onSelect, onNew, 
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 transition max-w-[200px]"
       >
         {current && <ProjectAvatar project={current} />}
-        <div className="flex flex-col items-start min-w-0">
-          <span className="truncate text-xs font-semibold leading-tight">{current?.name ?? "Project"}</span>
-          {current?.handle && (
-            <span className="truncate text-[9px] text-zinc-400 leading-tight">@{current.handle}</span>
-          )}
-        </div>
+        <span className="truncate text-xs font-semibold">{current?.name ?? "Project"}</span>
         <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
         </svg>

@@ -78,15 +78,20 @@ function StudioContent() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md transition-all duration-300">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5">
             <button
               data-testid="studio-home-btn"
               onClick={() => router.push("/")}
-              className="text-xs text-zinc-500 hover:text-zinc-700"
+              className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition"
+              title="Home"
             >
-              Home
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              </svg>
             </button>
-            <span className="text-zinc-300 text-xs">/</span>
+            <svg className="h-3.5 w-3.5 shrink-0 text-zinc-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+            </svg>
             <ContextBar title={storyboardTitle || "New Storyboard"} />
           </div>
           <div className="flex items-center gap-2 text-[10px] text-zinc-400">

@@ -191,7 +191,7 @@
 | 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
 | 7 | Structure별 전용 Gemini 템플릿 (5종) | 기능 | - | [ ] |
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
-| 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [ ] |
+| 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [x] |
 | 10 | Automated Evaluation Runner | 품질 | - | [ ] |
 
 ---
@@ -212,9 +212,23 @@
 |-------|------|------|
 | Phase 0: Foundation | DB 마이그레이션, CRUD API, FK 연결 | [x] |
 | Phase 1: Core | FK 강화, 캐릭터 프로젝트 스코핑, 렌더 프리셋 분리, 설정 상속 엔진, 그룹 편집 UI 완료 | [x] |
-| Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동 | [ ] |
+| Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동, Studio UX Polish | [x] |
 | Phase 2: Differentiation | Channel DNA (톤/세계관 주입), Tag Intelligence, Series Intelligence | [ ] |
 | Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
+
+**Phase 1.5 세부 완료 항목** (2026-02-02):
+- Channel Profile → Project 통합 (profileSlice 삭제, avatar_key DB 이관)
+- 캐릭터 글로벌화 (project_id nullable, 전역 유니크)
+- ProjectDropdown 아바타/편집 UI, ProjectFormModal 캐릭터 셀렉터
+- `page.tsx` God Component 분리 (545줄 → 107줄 + StoryboardsSection + CharactersSection)
+- OutputTab 채널 프로필 섹션 제거, Current Style 섹션 제거
+- TabBar 프로젝트 정보 중복 제거
+- PromptSetupPanel Global/Actor A 탭 → 별도 카드 분리
+- Actor A Advanced Settings (SD Parameters) 제거 (Style Profile로 통합)
+- StoryboardActionsBar Reset 버튼 제거
+- StoryboardGeneratorPanel Visual Style 필드 제거, Language select 전환
+- ContextBar breadcrumb chevron 아이콘, Home 아이콘 전환
+- Manage > Assets 표시명 개선 (확장자 제거, flex wrap)
 
 상세: [기능 명세](FEATURES/PROJECT_GROUP.md)
 

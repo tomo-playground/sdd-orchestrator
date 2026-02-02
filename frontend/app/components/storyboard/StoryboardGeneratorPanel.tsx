@@ -20,8 +20,6 @@ type StoryboardGeneratorPanelProps = {
   setDuration: (value: number) => void;
   language: string;
   setLanguage: (value: string) => void;
-  style: string;
-  setStyle: (value: string) => void;
   structure: string;
   setStructure: (value: string) => void;
 };
@@ -33,8 +31,6 @@ export default function StoryboardGeneratorPanel({
   setDuration,
   language,
   setLanguage,
-  style,
-  setStyle,
   structure,
   setStructure,
 }: StoryboardGeneratorPanelProps) {
@@ -130,22 +126,16 @@ export default function StoryboardGeneratorPanel({
               <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Language
               </label>
-              <input
+              <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
+              >
+                <option value="Korean">한국어</option>
+                <option value="English">English</option>
+                <option value="Japanese">日本語</option>
+              </select>
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Visual Style
-            </label>
-            <input
-              value={style}
-              onChange={(e) => setStyle(e.target.value)}
-              className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-            />
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">

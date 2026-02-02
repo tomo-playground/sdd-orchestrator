@@ -40,7 +40,6 @@ export default function OutputTab() {
     ttsEngine,
     voiceDesignPrompt,
     voiceRefAudioUrl,
-    currentStyleProfile,
     videoUrl,
     videoUrlFull,
     videoUrlPost,
@@ -438,7 +437,6 @@ export default function OutputTab() {
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voiceRefAudioUrl={voiceRefAudioUrl}
         setVoiceRefAudioUrl={(v) => setOutput({ voiceRefAudioUrl: v })}
-        currentStyleProfile={currentStyleProfile}
       />
 
       <RenderedVideosSection

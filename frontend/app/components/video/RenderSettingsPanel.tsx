@@ -40,6 +40,9 @@ const truncate = (str: string | undefined, maxLen: number) =>
   str && str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : (str || "");
 
 type RenderSettingsPanelProps = {
+  // Effective preset info
+  renderPresetName?: string | null;
+  renderPresetSource?: string | null;
   // Layout
   layoutStyle: "full" | "post";
   setLayoutStyle: (value: "full" | "post") => void;
@@ -78,21 +81,18 @@ type RenderSettingsPanelProps = {
   setAudioDucking: (value: boolean) => void;
   bgmVolume: number;
   setBgmVolume: (value: number) => void;
-  // Current Style
-  currentStyleProfile: {
-    id: number;
-    name: string;
-    display_name: string | null;
-    sd_model_name: string | null;
-    loras: { name: string; trigger_words: string[]; weight: number }[];
-    negative_embeddings: { name: string; trigger_word: string }[];
-    positive_embeddings: { name: string; trigger_word: string }[];
-    default_positive: string | null;
-    default_negative: string | null;
-  } | null;
+  // TTS Settings
+  ttsEngine: "edge" | "qwen";
+  setTtsEngine: (value: "edge" | "qwen") => void;
+  voiceDesignPrompt: string;
+  setVoiceDesignPrompt: (value: string) => void;
+  voiceRefAudioUrl: string;
+  setVoiceRefAudioUrl: (value: string) => void;
 };
 
 export default function RenderSettingsPanel({
+  renderPresetName,
+  renderPresetSource,
   layoutStyle,
   setLayoutStyle,
   frameStyle,
@@ -127,7 +127,12 @@ export default function RenderSettingsPanel({
   setAudioDucking,
   bgmVolume,
   setBgmVolume,
-  currentStyleProfile,
+  ttsEngine,
+  setTtsEngine,
+  voiceDesignPrompt,
+  setVoiceDesignPrompt,
+  voiceRefAudioUrl,
+  setVoiceRefAudioUrl,
 }: RenderSettingsPanelProps) {
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -137,6 +142,16 @@ export default function RenderSettingsPanel({
           <h2 className="text-lg font-semibold text-zinc-900">Render Settings</h2>
           <p className="text-xs text-zinc-500">Configure layout, audio, and rendering.</p>
         </div>
+        {renderPresetName && (
+          <span className="rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-medium text-indigo-600">
+            Preset: {renderPresetName}
+            {renderPresetSource && (
+              <span className="ml-1 text-indigo-400">
+                (from {renderPresetSource})
+              </span>
+            )}
+          </span>
+        )}
       </div>
 
       {/* 1. LAYOUT + RENDER (Compact) */}
@@ -277,28 +292,73 @@ export default function RenderSettingsPanel({
             </select>
           </div>
           {/* Audio Row */}
-          <div className="grid gap-3 md:grid-cols-2">
-            <select
-              value={narratorVoice}
-              onChange={(e) => setNarratorVoice(e.target.value)}
-              title="Voice"
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-            >
-              {VOICES.map((voice) => (
-                <option key={voice.id} value={voice.id}>{voice.label}</option>
-              ))}
-            </select>
-            <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-              <span className="text-[10px] text-zinc-500 whitespace-nowrap">Speed {speedMultiplier.toFixed(2)}x</span>
-              <input
-                type="range"
-                min={0.8}
-                max={1.5}
-                step={0.05}
-                value={speedMultiplier}
-                onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
-                className="flex-1 accent-zinc-900"
-              />
+          {/* Voice Engine Selector */}
+          <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">TTS Engine</span>
+              <div className="flex rounded-lg border border-zinc-200 bg-white p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setTtsEngine("qwen")}
+                  className={`rounded-md px-3 py-1 text-[10px] font-bold transition ${ttsEngine === "qwen"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                >
+                  Qwen 로컬 (M4 Pro)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTtsEngine("edge")}
+                  className={`rounded-md px-3 py-1 text-[10px] font-bold transition ${ttsEngine === "edge"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                >
+                  Edge API
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              {ttsEngine === "edge" ? (
+                <select
+                  value={narratorVoice}
+                  onChange={(e) => setNarratorVoice(e.target.value)}
+                  title="Edge TTS Voice"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+                >
+                  {VOICES.map((voice) => (
+                    <option key={voice.id} value={voice.id}>{voice.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={voiceDesignPrompt}
+                    onChange={(e) => setVoiceDesignPrompt(e.target.value)}
+                    placeholder="목소리 스타일 설계 (예: 차분한 40대 여성)"
+                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+                  />
+                  <p className="text-[9px] text-zinc-400">
+                    💡 자유로운 텍스트나 샘플 오디오로 목소리를 생성합니다.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-zinc-500 whitespace-nowrap">배속 x{speedMultiplier.toFixed(2)}</span>
+                <input
+                  type="range"
+                  min={0.8}
+                  max={1.5}
+                  step={0.05}
+                  value={speedMultiplier}
+                  onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
+                  className="flex-1 accent-zinc-900 h-1.5"
+                />
+              </div>
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -351,80 +411,6 @@ export default function RenderSettingsPanel({
           </div>
         </div>
       </details>
-
-      {/* 3. CURRENT STYLE (Read-only) */}
-      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-indigo-50/50 to-white p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-            Current Style
-          </h3>
-          <a
-            href="/manage?tab=style"
-            className="rounded-full bg-white border border-zinc-200 px-3 py-1.5 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-50 transition"
-          >
-            Change
-          </a>
-        </div>
-
-        {currentStyleProfile ? (
-          <div className="grid gap-3">
-            <div>
-              <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">Profile</span>
-              <p className="text-sm font-bold text-zinc-900">
-                {currentStyleProfile.display_name || currentStyleProfile.name}
-              </p>
-            </div>
-            {currentStyleProfile.sd_model_name && (
-              <div>
-                <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">SD Model</span>
-                <p className="text-xs text-zinc-700">
-                  {currentStyleProfile.sd_model_name}
-                </p>
-              </div>
-            )}
-            {currentStyleProfile.loras && currentStyleProfile.loras.length > 0 && (
-              <div>
-                <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">LoRAs</span>
-                <div className="flex flex-wrap gap-1">
-                  {currentStyleProfile.loras.map((lora) => (
-                    <span key={lora.name} className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] text-blue-700 font-medium">
-                      {lora.name.split('.')[0]} ({lora.weight})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {((currentStyleProfile.negative_embeddings && currentStyleProfile.negative_embeddings.length > 0) ||
-              (currentStyleProfile.positive_embeddings && currentStyleProfile.positive_embeddings.length > 0)) && (
-                <div>
-                  <span className="text-[10px] font-semibold text-zinc-500 uppercase block mb-1">Embeddings</span>
-                  <div className="flex flex-wrap gap-1">
-                    {currentStyleProfile.positive_embeddings?.map((emb, idx) => (
-                      <span key={emb.name || `pos-${idx}`} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] text-emerald-700 font-medium">
-                        {emb.name}
-                      </span>
-                    ))}
-                    {currentStyleProfile.negative_embeddings?.map((emb, idx) => (
-                      <span key={emb.name || `neg-${idx}`} className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] text-rose-700 font-medium">
-                        {emb.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-white/50 p-4 text-center">
-            <p className="text-xs text-zinc-400 mb-2">No style profile selected</p>
-            <a
-              href="/manage?tab=style"
-              className="inline-block rounded-full bg-indigo-500 px-4 py-1.5 text-[10px] font-semibold text-white hover:bg-indigo-600 transition"
-            >
-              Select Profile
-            </a>
-          </div>
-        )}
-      </div>
     </section>
   );
 }

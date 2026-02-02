@@ -43,7 +43,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [baseTab, setBaseTab] = useState<"global" | "A">("A");
   const [planSubTab, setPlanSubTab] = useState<"generator" | "setup">("setup");
 
   // Load IP-Adapter reference images on mount
@@ -201,21 +200,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
     }
   }, []);
 
-  const handleResetScenes = useCallback(() => {
-    if (confirm("Reset all scenes?")) {
-      setScenes([]);
-    }
-  }, [setScenes]);
-
-  const handleResetDraft = useCallback(() => {
-    if (confirm("Reset entire draft?")) {
-      store.resetPlan();
-      store.resetScenes();
-      store.resetOutput();
-      store.resetMeta();
-    }
-  }, [store]);
-
   return (
     <div className="space-y-6">
       {/* Sub Tabs */}
@@ -260,8 +244,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
             setTopic={(v: string) => setPlan({ topic: v })}
             duration={duration}
             setDuration={(v: number) => setPlan({ duration: v })}
-            style={style}
-            setStyle={(v: string) => setPlan({ style: v })}
             language={language}
             setLanguage={(v: string) => setPlan({ language: v })}
             structure={structure}
@@ -270,8 +252,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
 
           {/* Actions Bar */}
           <StoryboardActionsBar
-            onResetScenes={handleResetScenes}
-            onResetDraft={handleResetDraft}
             onGenerate={handleGenerateStoryboard}
             onAutoRun={() => runAutoRunFromStep("storyboard", autopilot)}
             isGenerating={isGenerating}
@@ -308,8 +288,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
             onSelect={handleInlineStyleProfileSelect}
           />
           <PromptSetupPanel
-          baseTab={baseTab}
-          setBaseTab={setBaseTab}
           autoComposePrompt={autoComposePrompt}
           setAutoComposePrompt={(v: boolean) => setPlan({ autoComposePrompt: v })}
           autoRewritePrompt={autoRewritePrompt}
@@ -326,16 +304,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
           setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
           baseNegativePromptA={baseNegativePromptA}
           setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
-          baseStepsA={baseStepsA}
-          setBaseStepsA={(v: number) => setPlan({ baseStepsA: v })}
-          baseCfgScaleA={baseCfgScaleA}
-          setBaseCfgScaleA={(v: number) => setPlan({ baseCfgScaleA: v })}
-          baseSamplerA={baseSamplerA}
-          setBaseSamplerA={(v: string) => setPlan({ baseSamplerA: v })}
-          baseSeedA={baseSeedA}
-          setBaseSeedA={(v: number) => setPlan({ baseSeedA: v })}
-          baseClipSkipA={baseClipSkipA}
-          setBaseClipSkipA={(v: number) => setPlan({ baseClipSkipA: v })}
           onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
           characters={characters}
           selectedCharacterId={selectedCharacterId}

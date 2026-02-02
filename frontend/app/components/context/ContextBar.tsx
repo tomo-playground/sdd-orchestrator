@@ -13,6 +13,14 @@ import { createProject, updateProject } from "../../store/actions/projectActions
 import { createGroup, updateGroup } from "../../store/actions/groupActions";
 import type { GroupItem, ProjectItem } from "../../types";
 
+function Chevron() {
+  return (
+    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-300" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+    </svg>
+  );
+}
+
 type Props = {
   title?: string;
 };
@@ -44,7 +52,7 @@ export default function ContextBar({ title }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-1 min-w-0">
+      <div className="flex items-center gap-0.5 min-w-0">
         <ProjectDropdown
           projects={projects}
           currentId={projectId}
@@ -52,7 +60,7 @@ export default function ContextBar({ title }: Props) {
           onNew={() => setShowProjectModal(true)}
           onEdit={(p) => setEditingProject(p)}
         />
-        <span className="text-zinc-300 text-xs">/</span>
+        <Chevron />
         <GroupDropdown
           groups={groups}
           currentId={groupId}
@@ -63,8 +71,8 @@ export default function ContextBar({ title }: Props) {
         />
         {title && (
           <>
-            <span className="text-zinc-300 text-xs">/</span>
-            <span className="text-sm font-bold text-zinc-900 truncate max-w-[200px] md:max-w-md">
+            <Chevron />
+            <span className="text-sm font-bold text-zinc-900 truncate max-w-[160px] md:max-w-xs">
               {title}
             </span>
           </>
