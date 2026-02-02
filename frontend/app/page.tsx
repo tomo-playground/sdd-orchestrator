@@ -16,6 +16,8 @@ import LoadingSpinner from "./components/ui/LoadingSpinner";
 import Toast from "./components/ui/Toast";
 import Footer from "./components/ui/Footer";
 import ImagePreviewModal from "./components/ui/ImagePreviewModal";
+import Modal from "./components/ui/Modal";
+import Button from "./components/ui/Button";
 import CommandPalette from "./components/ui/CommandPalette";
 
 const GROUP_COLORS = [
@@ -50,6 +52,10 @@ export default function Home() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<(typeof groups)[number] | null>(null);
+  const [showNewSbModal, setShowNewSbModal] = useState(false);
+  const [newSbTitle, setNewSbTitle] = useState("");
+  const [pendingGroupId, setPendingGroupId] = useState<number | null>(null);
+
   // Storyboard list
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
   const [sbLoading, setSbLoading] = useState(true);
@@ -62,6 +68,20 @@ export default function Home() {
   const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [characterImagePreview, setCharacterImagePreview] = useState<string | null>(null);
+
+  const openNewStoryboard = useCallback((gid: number) => {
+    setPendingGroupId(gid);
+    setNewSbTitle("");
+    setShowNewSbModal(true);
+  }, []);
+
+  const confirmNewStoryboard = useCallback(() => {
+    if (!pendingGroupId) return;
+    selectGroup(pendingGroupId);
+    const params = new URLSearchParams({ new: "true" });
+    if (newSbTitle.trim()) params.set("title", newSbTitle.trim());
+    router.push(`/studio?${params.toString()}`);
+  }, [pendingGroupId, newSbTitle, selectGroup, router]);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -230,10 +250,7 @@ export default function Home() {
               </button>
               {groups.length > 0 && (
                 <button
-                  onClick={() => {
-                    selectGroup(filterGroupId ?? groups[0].id);
-                    router.push("/studio?new=true");
-                  }}
+                  onClick={() => openNewStoryboard(filterGroupId ?? groups[0].id)}
                   className="shrink-0 rounded-full bg-zinc-900 px-3 py-1 text-xs font-semibold text-white hover:bg-zinc-800 transition"
                 >
                   + New Storyboard
@@ -265,8 +282,7 @@ export default function Home() {
                     if (groups.length === 0) {
                       setShowGroupModal(true);
                     } else {
-                      selectGroup(filterGroupId ?? groups[0].id);
-                      router.push("/studio?new=true");
+                      openNewStoryboard(filterGroupId ?? groups[0].id);
                     }
                   }}
                   className="rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 transition"
@@ -441,9 +457,9 @@ export default function Home() {
             const g = await createGroup(data as Parameters<typeof createGroup>[0]);
             if (g) {
               selectGroup(g.id);
-              // 그룹 없어서 모달 띄운 경우 → 생성 후 studio로 이동
+              // 그룹 없어서 모달 띄운 경우 → 생성 후 제목 입력
               if (groups.length === 0) {
-                router.push("/studio?new=true");
+                openNewStoryboard(g.id);
               }
             }
           }}
@@ -461,6 +477,33 @@ export default function Home() {
           }}
           onClose={() => setEditingGroup(null)}
         />
+      )}
+
+      {/* New Storyboard Title Modal */}
+      {showNewSbModal && (
+        <Modal open onClose={() => setShowNewSbModal(false)} size="sm">
+          <Modal.Header>
+            <h2 className="text-sm font-bold text-zinc-900">New Storyboard</h2>
+            <button onClick={() => setShowNewSbModal(false)} className="text-zinc-400 hover:text-zinc-600 text-xs">x</button>
+          </Modal.Header>
+          <div className="px-5 py-4">
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+              Title *
+            </label>
+            <input
+              value={newSbTitle}
+              onChange={(e) => setNewSbTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && newSbTitle.trim()) confirmNewStoryboard(); }}
+              placeholder="e.g. 에어컨 소리 30초 쇼츠"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+              autoFocus
+            />
+          </div>
+          <Modal.Footer>
+            <Button variant="ghost" size="sm" onClick={() => setShowNewSbModal(false)}>Cancel</Button>
+            <Button size="sm" disabled={!newSbTitle.trim()} onClick={confirmNewStoryboard}>Create</Button>
+          </Modal.Footer>
+        </Modal>
       )}
 
       <CommandPalette />

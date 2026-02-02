@@ -8,7 +8,7 @@ import { API_BASE } from "../../constants";
  *
  * @returns storyboard_id if created successfully, undefined otherwise
  */
-export async function createDraftStoryboard(): Promise<number | undefined> {
+export async function createDraftStoryboard(title?: string): Promise<number | undefined> {
   const { storyboardId, groupId, setMeta, showToast } =
     useStudioStore.getState();
 
@@ -17,14 +17,19 @@ export async function createDraftStoryboard(): Promise<number | undefined> {
 
   if (!groupId) return undefined;
 
+  const storyTitle = title || "Draft Storyboard";
+
   try {
     const res = await axios.post(`${API_BASE}/storyboards`, {
-      title: "Draft Storyboard",
+      title: storyTitle,
       group_id: groupId,
       scenes: [],
     });
     const newId = res.data.storyboard_id;
-    setMeta({ storyboardId: newId, storyboardTitle: "Draft Storyboard" });
+    setMeta({ storyboardId: newId, storyboardTitle: storyTitle });
+    if (title) {
+      useStudioStore.getState().setPlan({ topic: title });
+    }
     return newId;
   } catch (error) {
     console.error("[createDraftStoryboard] Failed:", error);

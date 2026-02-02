@@ -43,15 +43,19 @@ export function useStudioInitialization() {
       setPlan({ selectedCharacterId: effectiveCharacterId });
     }
 
+    // Read title from URL before clearing params
+    const storyTitle = searchParams.get("title") || undefined;
+
     // Clear URL params first (prevents searchParams re-trigger)
     const url = new URL(window.location.href);
     url.searchParams.delete("new");
+    url.searchParams.delete("title");
     url.searchParams.delete("id");
     window.history.replaceState({}, "", url.toString());
 
     // Create draft storyboard in DB (async IIFE)
     (async () => {
-      const newId = await createDraftStoryboard();
+      const newId = await createDraftStoryboard(storyTitle);
       if (newId) {
         const u = new URL(window.location.href);
         u.searchParams.set("id", String(newId));

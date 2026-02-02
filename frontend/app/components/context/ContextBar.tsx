@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProjectDropdown from "./ProjectDropdown";
 import GroupDropdown from "./GroupDropdown";
 import ProjectFormModal from "./ProjectFormModal";
 import GroupFormModal from "./GroupFormModal";
+import Modal from "../ui/Modal";
+import Button from "../ui/Button";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { createProject } from "../../store/actions/projectActions";
 import { createGroup, updateGroup } from "../../store/actions/groupActions";
@@ -21,6 +23,23 @@ export default function ContextBar({ title }: Props) {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupItem | null>(null);
+  const [showNewSbModal, setShowNewSbModal] = useState(false);
+  const [newSbTitle, setNewSbTitle] = useState("");
+  const [pendingGroupId, setPendingGroupId] = useState<number | null>(null);
+
+  const openNewStoryboard = useCallback((gid: number) => {
+    setPendingGroupId(gid);
+    setNewSbTitle("");
+    setShowNewSbModal(true);
+  }, []);
+
+  const confirmNewStoryboard = useCallback(() => {
+    if (!pendingGroupId) return;
+    selectGroup(pendingGroupId);
+    const params = new URLSearchParams({ new: "true" });
+    if (newSbTitle.trim()) params.set("title", newSbTitle.trim());
+    router.push(`/studio?${params.toString()}`);
+  }, [pendingGroupId, newSbTitle, selectGroup, router]);
 
   return (
     <>
@@ -38,10 +57,7 @@ export default function ContextBar({ title }: Props) {
           onSelect={selectGroup}
           onNew={() => setShowGroupModal(true)}
           onEdit={(g) => setEditingGroup(g)}
-          onNewStoryboard={(gid) => {
-            selectGroup(gid);
-            router.push("/studio?new=true");
-          }}
+          onNewStoryboard={openNewStoryboard}
         />
         {title && (
           <>
@@ -83,6 +99,33 @@ export default function ContextBar({ title }: Props) {
           }}
           onClose={() => setEditingGroup(null)}
         />
+      )}
+
+      {/* New Storyboard Title Modal */}
+      {showNewSbModal && (
+        <Modal open onClose={() => setShowNewSbModal(false)} size="sm">
+          <Modal.Header>
+            <h2 className="text-sm font-bold text-zinc-900">New Storyboard</h2>
+            <button onClick={() => setShowNewSbModal(false)} className="text-zinc-400 hover:text-zinc-600 text-xs">x</button>
+          </Modal.Header>
+          <div className="px-5 py-4">
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+              Title *
+            </label>
+            <input
+              value={newSbTitle}
+              onChange={(e) => setNewSbTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && newSbTitle.trim()) confirmNewStoryboard(); }}
+              placeholder="e.g. 에어컨 소리 30초 쇼츠"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+              autoFocus
+            />
+          </div>
+          <Modal.Footer>
+            <Button variant="ghost" size="sm" onClick={() => setShowNewSbModal(false)}>Cancel</Button>
+            <Button size="sm" disabled={!newSbTitle.trim()} onClick={confirmNewStoryboard}>Create</Button>
+          </Modal.Footer>
+        </Modal>
       )}
     </>
   );
