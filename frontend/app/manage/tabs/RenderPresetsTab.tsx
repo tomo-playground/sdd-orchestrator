@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE, VOICES } from "../../constants";
 import type { RenderPreset } from "../../types";
 
 type EditingPreset = Partial<RenderPreset> & { name: string };
@@ -29,6 +29,11 @@ export default function RenderPresetsTab() {
   const [editId, setEditId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Dynamic options from API
+  const [bgmFiles, setBgmFiles] = useState<string[]>([]);
+  const [fonts, setFonts] = useState<string[]>([]);
+  const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
+
   const fetchPresets = useCallback(async () => {
     try {
       const res = await axios.get<RenderPreset[]>(`${API_BASE}/render-presets`);
@@ -40,6 +45,16 @@ export default function RenderPresetsTab() {
 
   useEffect(() => {
     void fetchPresets();
+    // Fetch dynamic options
+    void axios.get<{ audios: { name: string }[] }>(`${API_BASE}/audio/list`).then(
+      (r) => setBgmFiles(r.data.audios.map((a) => a.name)),
+    ).catch(() => {});
+    void axios.get<{ fonts: { name: string }[] }>(`${API_BASE}/fonts/list`).then(
+      (r) => setFonts(r.data.fonts.map((f) => f.name)),
+    ).catch(() => {});
+    void axios.get<{ overlays: { id: string; name: string }[] }>(`${API_BASE}/overlay/list`).then(
+      (r) => setOverlays(r.data.overlays),
+    ).catch(() => {});
   }, [fetchPresets]);
 
   const handleCreate = () => {
@@ -221,21 +236,30 @@ export default function RenderPresetsTab() {
             </div>
             <div>
               <label className={labelCls}>Narrator Voice</label>
-              <input
+              <select
                 value={editing.narrator_voice ?? ""}
                 onChange={(e) => set("narrator_voice", e.target.value)}
                 className={inputCls}
-                placeholder="ko-KR-SunHiNeural"
-              />
+              >
+                <option value="">-- None --</option>
+                {VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>{v.label}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>BGM File</label>
-              <input
+              <select
                 value={editing.bgm_file ?? ""}
-                onChange={(e) => set("bgm_file", e.target.value)}
+                onChange={(e) => set("bgm_file", e.target.value || null)}
                 className={inputCls}
-                placeholder="random"
-              />
+              >
+                <option value="">-- None --</option>
+                <option value="random">Random</option>
+                {bgmFiles.map((name) => (
+                  <option key={name} value={name}>{name.replace(/\.[^.]+$/, "")}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>BGM Volume</label>
@@ -262,21 +286,29 @@ export default function RenderPresetsTab() {
             </div>
             <div>
               <label className={labelCls}>Scene Text Font</label>
-              <input
+              <select
                 value={editing.scene_text_font ?? ""}
                 onChange={(e) => set("scene_text_font", e.target.value)}
                 className={inputCls}
-                placeholder="font.ttf"
-              />
+              >
+                <option value="">-- Default --</option>
+                {fonts.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>Frame Style</label>
-              <input
+              <select
                 value={editing.frame_style ?? ""}
                 onChange={(e) => set("frame_style", e.target.value)}
                 className={inputCls}
-                placeholder="overlay_minimal.png"
-              />
+              >
+                <option value="">-- None --</option>
+                {overlays.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>Transition</label>
