@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStudioStore } from "../store/useStudioStore";
 import type { AutoRunStepId } from "../types";
@@ -17,9 +17,12 @@ import AutoRunStatus from "../components/storyboard/AutoRunStatus";
 import ChannelProfileModal from "../components/setup/ChannelProfileModal";
 import StyleProfileModal from "../components/setup/StyleProfileModal";
 import PromptHelperSidebar from "../components/prompt/PromptHelperSidebar";
+import { ContextBar, GroupFormModal } from "../components/context";
 import { useAutopilot } from "../hooks/useAutopilot";
 import { useStudioInitialization } from "../hooks/useStudioInitialization";
 import { useStudioOnboarding } from "../hooks/useStudioOnboarding";
+import { createGroup } from "../store/actions/groupActions";
+import CommandPalette from "../components/ui/CommandPalette";
 import { runAutoRunFromStep } from "../store/actions/autopilotActions";
 import { handleStyleProfileComplete } from "../store/actions/styleProfileActions";
 import { suggestPromptSplit, copyPromptHelperText } from "../store/actions/promptHelperActions";
@@ -50,6 +53,12 @@ function StudioContent() {
   const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
   const showToast = useStudioStore((s) => s.showToast);
 
+  // Group empty-state
+  const groups = useStudioStore((s) => s.groups);
+  const projectId = useStudioStore((s) => s.projectId);
+  const groupId = useStudioStore((s) => s.groupId);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+
   // Prompt Helper state
   const isHelperOpen = useStudioStore((s) => s.isHelperOpen);
   const examplePrompt = useStudioStore((s) => s.examplePrompt);
@@ -74,7 +83,7 @@ function StudioContent() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md transition-all duration-300">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               data-testid="studio-home-btn"
               onClick={() => router.push("/")}
@@ -82,10 +91,8 @@ function StudioContent() {
             >
               Home
             </button>
-            <span className="text-zinc-300">/</span>
-            <h1 data-testid="storyboard-title" className="text-sm font-bold text-zinc-900 truncate max-w-[200px] md:max-w-md">
-              {storyboardTitle || "New Storyboard"}
-            </h1>
+            <span className="text-zinc-300 text-xs">/</span>
+            <ContextBar title={storyboardTitle || "New Storyboard"} />
           </div>
           <div className="flex items-center gap-2 text-[10px] text-zinc-400">
             {scenes.length > 0 && <span>{scenes.length} scenes</span>}
@@ -104,6 +111,23 @@ function StudioContent() {
         onTabChange={setActiveTab}
         onOpenChannelProfile={() => setShowChannelProfileModal(true)}
       />
+
+      {/* No-group banner */}
+      {groups.length === 0 && (
+        <div className="mx-auto max-w-5xl px-6 pt-3">
+          <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs text-amber-800">
+              Create a group to start saving storyboards.
+            </p>
+            <button
+              onClick={() => setShowGroupModal(true)}
+              className="shrink-0 rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700 transition"
+            >
+              + Create Group
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tab Content */}
       <main className="mx-auto max-w-5xl px-6 py-8 pb-32">
@@ -161,13 +185,24 @@ function StudioContent() {
             setChannelProfile(profile);
             setShowChannelProfileModal(false);
             showToast("Channel profile saved", "success");
-            if (!currentStyleProfile) {
-              setShowStyleProfileModal(true);
-            }
           }}
           onCancel={() => setShowChannelProfileModal(false)}
         />
       )}
+
+      {/* Group Create Modal (empty-state) */}
+      {showGroupModal && projectId && (
+        <GroupFormModal
+          projectId={projectId}
+          onSave={async (data) => {
+            const g = await createGroup(data as Parameters<typeof createGroup>[0]);
+            if (g) setMeta({ groupId: g.id });
+          }}
+          onClose={() => setShowGroupModal(false)}
+        />
+      )}
+
+      <CommandPalette />
 
       {/* Style Profile Modal */}
       {showStyleProfileModal && (

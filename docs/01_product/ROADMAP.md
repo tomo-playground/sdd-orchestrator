@@ -181,24 +181,25 @@
 **목표**: 사용자 경험 개선 및 핵심 신규 기능 추가.
 **선행**: Phase 6-7 완료 (CI, Soft Delete, UI Toolkit).
 
-| # | 작업 | 분류 | 참조 |
-|---|------|------|------|
-| 1 | Quick Start Flow (6단계 → 3단계 진입) | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) |
-| 2 | Setup Wizard (첫 실행 가이드) | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) |
-| 3 | 접근성 기본 (ARIA, focus trap, keyboard) | UX | - |
-| 4 | WebSocket Progress (생성/렌더링 진행률) | 기능 | - |
-| 5 | Multi-Character UI (DB 스키마 완료) | 기능 | [명세](FEATURES/MULTI_CHARACTER.md) |
-| 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) |
-| 7 | Structure별 전용 Gemini 템플릿 (5종) | 기능 | - |
-| 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) |
-| 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) |
-| 10 | Automated Evaluation Runner | 품질 | - |
+| # | 작업 | 분류 | 참조 | 상태 |
+|---|------|------|------|------|
+| 1 | Quick Start Flow: +New Story 즉시 DB 저장, PlanTab 설정/스토리 재설계, 인라인 StyleProfile 셀렉터 | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [x] |
+| 2 | Setup Wizard (첫 실행 가이드) | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [ ] |
+| 3 | 접근성 기본 (ARIA, focus trap, keyboard) | UX | - | [ ] |
+| 4 | WebSocket Progress (생성/렌더링 진행률) | 기능 | - | [ ] |
+| 5 | Multi-Character UI (DB 스키마 완료) | 기능 | [명세](FEATURES/MULTI_CHARACTER.md) | [ ] |
+| 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
+| 7 | Structure별 전용 Gemini 템플릿 (5종) | 기능 | - | [ ] |
+| 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
+| 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [ ] |
+| 10 | Automated Evaluation Runner | 품질 | - | [ ] |
 
 ---
 
 ## Phase 7-0: ControlNet & Pose Control - ARCHIVED
 
 완료. ControlNet 포즈 제어, IP-Adapter 캐릭터 일관성 시스템 구축.
+- 2026-02-02: thumbs_up 포즈 추가 (28번째 포즈, 포즈 에셋 + synonyms)
 
 ---
 
