@@ -36,6 +36,7 @@ POSE_MAPPING: dict[str, str] = {
     "waving": "standing_waving.png",
     "arms up": "standing_arms_up.png",
     "arms crossed": "standing_arms_crossed.png",
+    "thumbs up": "standing_thumbs_up.png",
     "hands on hips": "standing_hands_on_hips.png",
     "looking at viewer": "looking_at_viewer_neutral.png",
     "from behind": "standing_from_behind.png",
@@ -144,7 +145,7 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
     # Priority order for pose detection (specific actions before generic)
     pose_priority = [
         "eating", "cooking", "writing", "holding umbrella", "holding object",
-        "waving", "arms up", "arms crossed", "hands on hips",
+        "waving", "arms up", "thumbs up", "arms crossed", "hands on hips",
         "jumping", "running", "walking",
         "sitting eating", "leaning wall", "standing looking up", "profile standing",
         "chin rest", "leaning",
@@ -157,6 +158,7 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
     # Synonyms mapping for more robust detection
     pose_synonyms = {
         "waving": ["wave", "greeting", "signaling"],
+        "thumbs up": ["thumbs_up", "thumb_up", "good_sign", "approval", "like"],
         "arms up": ["hands up", "raising hands", "stretching", "cheering"],
         "arms crossed": ["folding arms", "crossed arms"],
         "hands on hips": ["akimbo", "power pose"],

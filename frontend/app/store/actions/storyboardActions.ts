@@ -3,6 +3,37 @@ import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 
 /**
+ * Create a draft storyboard in DB immediately (empty scenes).
+ * Called when user clicks "+New Story".
+ *
+ * @returns storyboard_id if created successfully, undefined otherwise
+ */
+export async function createDraftStoryboard(): Promise<number | undefined> {
+  const { storyboardId, groupId, setMeta, showToast } =
+    useStudioStore.getState();
+
+  // Already exists
+  if (storyboardId) return storyboardId;
+
+  if (!groupId) return undefined;
+
+  try {
+    const res = await axios.post(`${API_BASE}/storyboards`, {
+      title: "Draft Storyboard",
+      group_id: groupId,
+      scenes: [],
+    });
+    const newId = res.data.storyboard_id;
+    setMeta({ storyboardId: newId, storyboardTitle: "Draft Storyboard" });
+    return newId;
+  } catch (error) {
+    console.error("[createDraftStoryboard] Failed:", error);
+    showToast("Failed to create storyboard", "error");
+    return undefined;
+  }
+}
+
+/**
  * Auto-save storyboard before image generation
  * Ensures all activity logs have proper storyboard_id
  *
@@ -11,6 +42,7 @@ import { API_BASE } from "../../constants";
 export async function autoSaveStoryboard(): Promise<number | undefined> {
   const {
     storyboardId,
+    groupId,
     scenes,
     topic,
     selectedCharacterId,
@@ -29,10 +61,16 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
     return undefined;
   }
 
+  if (!groupId) {
+    showToast("Create a group to save your storyboard", "error");
+    return undefined;
+  }
+
   try {
     const payload = {
       title: topic || "Draft Storyboard",
       description: topic || "Auto-saved before image generation",
+      group_id: groupId,
       default_character_id: selectedCharacterId,
       default_style_profile_id: currentStyleProfile?.id || null,
       scenes: scenes.map((s, i) => ({
@@ -92,6 +130,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
 export async function saveStoryboard(): Promise<boolean> {
   const {
     storyboardId,
+    groupId,
     scenes,
     topic,
     selectedCharacterId,
@@ -106,6 +145,11 @@ export async function saveStoryboard(): Promise<boolean> {
     return false;
   }
 
+  if (!groupId) {
+    showToast("Create a group to save your storyboard", "error");
+    return false;
+  }
+
   try {
     console.log("[saveStoryboard] currentStyleProfile:", currentStyleProfile);
     console.log("[saveStoryboard] default_style_profile_id:", currentStyleProfile?.id || null);
@@ -113,6 +157,7 @@ export async function saveStoryboard(): Promise<boolean> {
     const payload = {
       title: topic || "Untitled",
       description: topic,
+      group_id: groupId,
       default_character_id: selectedCharacterId,
       default_style_profile_id: currentStyleProfile?.id || null,
       default_caption: videoCaption || null,

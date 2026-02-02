@@ -9,9 +9,11 @@ import { API_BASE } from "../../constants";
 import type { Scene, AutoRunStepId } from "../../types";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
+import StyleProfileSelector from "../setup/StyleProfileSelector";
 import StoryboardActionsBar from "../storyboard/StoryboardActionsBar";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { saveStoryboard } from "../../store/actions/storyboardActions";
+import { handleInlineStyleProfileSelect } from "../../store/actions/styleProfileActions";
 
 type PlanTabProps = {
   autopilot: UseAutopilotReturn;
@@ -36,12 +38,13 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
   const storyboardId = useStudioStore((s) => s.storyboardId);
   const isRendering = useStudioStore((s) => s.isRendering);
   const referenceImages = useStudioStore((s) => s.referenceImages);
+  const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
 
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [baseTab, setBaseTab] = useState<"global" | "A">("A");
-  const [planSubTab, setPlanSubTab] = useState<"generator" | "prompt">("prompt");
+  const [planSubTab, setPlanSubTab] = useState<"generator" | "setup">("setup");
 
   // Load IP-Adapter reference images on mount
   useEffect(() => {
@@ -179,6 +182,8 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
         setScenes(mapped);
         setActiveTab("scenes");
         showToast(`Generated ${mapped.length} scenes`, "success");
+        // DB sync — save generated scenes to draft storyboard
+        saveStoryboard();
       }
     } catch {
       showToast("Failed to generate storyboard", "error");
@@ -216,17 +221,17 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
       {/* Sub Tabs */}
       <div className="flex items-center gap-1 border-b border-zinc-200/60">
         <button
-          onClick={() => setPlanSubTab("prompt")}
-          className={`px-4 py-2 text-sm font-medium transition-colors relative ${planSubTab === "prompt"
+          onClick={() => setPlanSubTab("setup")}
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${planSubTab === "setup"
               ? "text-zinc-900"
               : "text-zinc-500 hover:text-zinc-700"
             }`}
         >
           <span className="flex items-center gap-2">
-            <span>🎨</span>
-            <span>캐릭터</span>
+            <span>🔧</span>
+            <span>설정</span>
           </span>
-          {planSubTab === "prompt" && (
+          {planSubTab === "setup" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900" />
           )}
         </button>
@@ -294,9 +299,15 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
         </>
       )}
 
-      {/* Prompt Tab Content */}
-      {planSubTab === "prompt" && (
-        <PromptSetupPanel
+      {/* Setup Tab Content */}
+      {planSubTab === "setup" && (
+        <div className="space-y-6">
+          <StyleProfileSelector
+            currentProfileId={currentStyleProfile?.id ?? null}
+            currentProfileName={currentStyleProfile?.display_name ?? currentStyleProfile?.name ?? null}
+            onSelect={handleInlineStyleProfileSelect}
+          />
+          <PromptSetupPanel
           baseTab={baseTab}
           setBaseTab={setBaseTab}
           autoComposePrompt={autoComposePrompt}
@@ -330,6 +341,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
           selectedCharacterId={selectedCharacterId}
           onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
         />
+        </div>
       )}
     </div>
   );

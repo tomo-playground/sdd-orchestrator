@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
+import { saveStoryboard } from "./storyboardActions";
 
 /** The subset of style profile fields used in the output slice. */
 interface StyleProfileSelection {
@@ -178,6 +179,50 @@ async function createNewStoryboard(
       "error"
     );
   }
+}
+
+/**
+ * Load a style profile by ID and apply it to the store.
+ * Shared by useStudioInitialization (DB load) and useStudioOnboarding (cascade default).
+ */
+export async function loadStyleProfileFromId(profileId: number): Promise<void> {
+  const { setOutput, showToast } = useStudioStore.getState();
+  const res = await axios.get(`${API_BASE}/style-profiles/${profileId}`);
+  const profile = res.data;
+
+  setOutput({
+    currentStyleProfile: {
+      id: profile.id,
+      name: profile.name,
+      display_name: profile.display_name,
+      sd_model_name:
+        profile.sd_model?.name || profile.sd_model?.display_name || null,
+      loras: profile.loras || [],
+      negative_embeddings: profile.negative_embeddings || [],
+      positive_embeddings: profile.positive_embeddings || [],
+      default_positive: profile.default_positive,
+      default_negative: profile.default_negative,
+    },
+  });
+
+  await changeSdModel(
+    {
+      ...profile,
+      sd_model_name: profile.sd_model?.name || null,
+    },
+    showToast,
+  );
+}
+
+/**
+ * Handle inline style profile selection from StyleProfileSelector.
+ * Loads the profile into store and saves the storyboard.
+ */
+export async function handleInlineStyleProfileSelect(
+  profileId: number
+): Promise<void> {
+  await loadStyleProfileFromId(profileId);
+  await saveStoryboard();
 }
 
 // --- Helper: Change SD model in background ---

@@ -16,8 +16,8 @@ class TestPoseMapping:
     """Verify POSE_MAPPING integrity."""
 
     def test_pose_count(self):
-        """27 poses: 18 original + 9 new."""
-        assert len(POSE_MAPPING) == 27
+        """28 poses: 18 original + 9 daily-life + 1 thumbs_up."""
+        assert len(POSE_MAPPING) == 28
 
     def test_all_filenames_are_png(self):
         """Every mapped filename ends with .png."""
@@ -42,7 +42,7 @@ class TestPoseMapping:
             assert pose in POSE_MAPPING, f"Original pose missing: {pose}"
 
     def test_new_9_poses_present(self):
-        """All 9 new poses exist."""
+        """All 9 daily-life poses exist."""
         new_poses = [
             "holding object", "eating", "cooking",
             "holding umbrella", "writing", "profile standing",
@@ -50,6 +50,11 @@ class TestPoseMapping:
         ]
         for pose in new_poses:
             assert pose in POSE_MAPPING, f"New pose missing: {pose}"
+
+    def test_thumbs_up_pose_present(self):
+        """thumbs_up pose exists."""
+        assert "thumbs up" in POSE_MAPPING
+        assert POSE_MAPPING["thumbs up"] == "standing_thumbs_up.png"
 
 
 class TestPoseDetection:
@@ -123,6 +128,14 @@ class TestPoseDetection:
     def test_synonym_holding_to_holding_object(self):
         tags = ["holding", "bag"]
         assert detect_pose_from_prompt(tags) == "holding object"
+
+    def test_thumbs_up_exact(self):
+        tags = ["thumbs_up", "1girl"]
+        assert detect_pose_from_prompt(tags) == "thumbs up"
+
+    def test_thumbs_up_synonym_approval(self):
+        tags = ["approval", "smiling"]
+        assert detect_pose_from_prompt(tags) == "thumbs up"
 
     # --- Priority tests ---
     def test_eating_before_sitting(self):

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
+import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
+import { createDraftStoryboard } from "../store/actions/storyboardActions";
 import type { Scene } from "../types";
 import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
 
@@ -25,81 +27,39 @@ export function useStudioInitialization() {
   const setMeta = useStudioStore((s) => s.setMeta);
   const setScenes = useStudioStore((s) => s.setScenes);
   const setPlan = useStudioStore((s) => s.setPlan);
-  const setOutput = useStudioStore((s) => s.setOutput);
-  const showToast = useStudioStore((s) => s.showToast);
   const channelProfile = useStudioStore((s) => s.channelProfile);
   const setChannelAvatarUrl = useStudioStore((s) => s.setChannelAvatarUrl);
 
-  // Load Style Profile function
-  const loadStyleProfile = useCallback(
-    async (profileId: number) => {
-      try {
-        const res = await axios.get(`${API_BASE}/style-profiles/${profileId}`);
-        const profile = res.data;
+  // Reset store and create draft DB storyboard for ?new=true
+  const draftCreatedRef = useRef(false);
 
-        setOutput({
-          currentStyleProfile: {
-            id: profile.id,
-            name: profile.name,
-            display_name: profile.display_name,
-            sd_model_name:
-              profile.sd_model?.name ||
-              profile.sd_model?.display_name ||
-              null,
-            loras: profile.loras || [],
-            negative_embeddings: profile.negative_embeddings || [],
-            positive_embeddings: profile.positive_embeddings || [],
-            default_positive: profile.default_positive,
-            default_negative: profile.default_negative,
-          },
-        });
-
-        if (profile.sd_model?.name) {
-          axios
-            .post(`${API_BASE}/sd/options`, {
-              sd_model_checkpoint: profile.sd_model.name,
-            })
-            .then(() => {
-              showToast(
-                `Style profile "${profile.display_name || profile.name}" loaded\n` +
-                  `Model: ${profile.sd_model.name}\n` +
-                  `LoRAs: ${profile.loras?.length || 0}\n` +
-                  `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
-                "success"
-              );
-            })
-            .catch((err) => {
-              console.error("Failed to change SD model:", err);
-              showToast(
-                `Profile loaded but model change failed: ${profile.sd_model.name}`,
-                "error"
-              );
-            });
-        } else {
-          showToast(
-            `Style profile "${profile.display_name || profile.name}" loaded.`,
-            "success"
-          );
-        }
-      } catch (error) {
-        console.error("Failed to load style profile:", error);
-        showToast("Failed to load style profile", "error");
-      }
-    },
-    [setOutput, showToast]
-  );
-
-  // Reset store when explicitly creating a new storyboard
   useEffect(() => {
     const isNewStoryboard = searchParams.get("new") === "true";
-    if (isNewStoryboard) {
-      resetStudioStore();
-      const url = new URL(window.location.href);
-      url.searchParams.delete("new");
-      url.searchParams.delete("id");
-      window.history.replaceState({}, "", url.toString());
+    if (!isNewStoryboard || draftCreatedRef.current) return;
+    draftCreatedRef.current = true;
+
+    resetStudioStore();
+    const { effectiveCharacterId } = useStudioStore.getState();
+    if (effectiveCharacterId) {
+      setPlan({ selectedCharacterId: effectiveCharacterId });
     }
-  }, [searchParams]);
+
+    // Clear URL params first (prevents searchParams re-trigger)
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    url.searchParams.delete("id");
+    window.history.replaceState({}, "", url.toString());
+
+    // Create draft storyboard in DB (async IIFE)
+    (async () => {
+      const newId = await createDraftStoryboard();
+      if (newId) {
+        const u = new URL(window.location.href);
+        u.searchParams.set("id", String(newId));
+        window.history.replaceState({}, "", u.toString());
+      }
+    })();
+  }, [searchParams, setPlan]);
 
   // Clear transient data when storyboard ID changes
   useEffect(() => {
@@ -198,7 +158,7 @@ export function useStudioInitialization() {
 
         if (data.default_style_profile_id) {
           setLoadedProfileId(data.default_style_profile_id);
-          loadStyleProfile(data.default_style_profile_id);
+          loadStyleProfileFromId(data.default_style_profile_id);
         } else {
           setLoadedProfileId(null);
           setNeedsStyleProfile(true);
@@ -213,12 +173,12 @@ export function useStudioInitialization() {
         setMeta({ storyboardId: null });
       })
       .finally(() => setIsLoadingDb(false));
-  }, [storyboardId, setMeta, setPlan, setScenes, loadStyleProfile]);
+  }, [storyboardId, setMeta, setPlan, setScenes]);
 
   return {
     isLoadingDb,
     loadedProfileId,
-    loadStyleProfile,
+    loadStyleProfileFromId,
     storyboardId,
     needsStyleProfile,
   };
