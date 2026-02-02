@@ -22,7 +22,7 @@ type PlanTabProps = {
 export default function PlanTab({ autopilot }: PlanTabProps) {
   const store = useStudioStore();
   const {
-    topic, duration, style, language, structure, actorAGender,
+    topic, description, duration, style, language, structure, actorAGender,
     selectedCharacterId, basePromptA, baseNegativePromptA,
     autoComposePrompt, autoRewritePrompt, autoReplaceRiskyTags,
     baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA,
@@ -131,6 +131,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
     try {
       const res = await axios.post(`${API_BASE}/storyboards/create`, {
         topic,
+        description: description || undefined,
         duration,
         style,
         language,
@@ -189,7 +190,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [topic, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, baseNegativePromptA, setScenes, setActiveTab, showToast]);
+  }, [topic, description, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, baseNegativePromptA, setScenes, setActiveTab, showToast]);
 
   const handleSaveStoryboard = useCallback(async () => {
     setIsSaving(true);
@@ -242,12 +243,17 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
           <StoryboardGeneratorPanel
             topic={topic}
             setTopic={(v: string) => setPlan({ topic: v })}
+            description={description}
+            setDescription={(v: string) => setPlan({ description: v })}
             duration={duration}
             setDuration={(v: number) => setPlan({ duration: v })}
             language={language}
             setLanguage={(v: string) => setPlan({ language: v })}
             structure={structure}
             setStructure={(v: string) => setPlan({ structure: v })}
+            selectedCharacterName={characters.find((c) => c.id === selectedCharacterId)?.name ?? null}
+            selectedCharacterAvatar={characters.find((c) => c.id === selectedCharacterId)?.preview_image_url ?? null}
+            onGoToSetup={() => setPlanSubTab("setup")}
           />
 
           {/* Actions Bar */}

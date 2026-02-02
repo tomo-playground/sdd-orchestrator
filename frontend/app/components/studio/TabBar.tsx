@@ -6,6 +6,7 @@ import { useStudioStore } from "../../store/useStudioStore";
 const TABS: { id: StudioTab; label: string }[] = [
   { id: "plan", label: "Plan" },
   { id: "scenes", label: "Scenes" },
+  { id: "render", label: "Render" },
   { id: "output", label: "Output" },
   { id: "insights", label: "Insights" },
 ];
@@ -21,7 +22,7 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
 
   const getBadge = (tab: StudioTab): string | null => {
     if (tab === "scenes" && scenes.length > 0) return String(scenes.length);
-    if (tab === "output" && videoUrl) return "1";
+    if (tab === "render" && videoUrl) return "1";
     return null;
   };
 

@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { Toast, AutopilotCheckpoint } from "../../types";
 
-export type StudioTab = "plan" | "scenes" | "output" | "insights";
+export type StudioTab = "plan" | "scenes" | "render" | "output" | "insights";
 
 export interface MetaSlice {
   // Storyboard identity

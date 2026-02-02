@@ -28,7 +28,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
@@ -56,7 +56,7 @@ export default function Home() {
       </header>
 
       {/* Tab Bar */}
-      <div className="mx-auto max-w-5xl px-6 pt-4">
+      <div className="mx-auto w-full max-w-5xl px-6 pt-4">
         <div className="flex gap-1 rounded-xl bg-zinc-100/60 p-1">
           {(["storyboards", "characters"] as HomeTab[]).map((t) => (
             <button
@@ -76,7 +76,7 @@ export default function Home() {
       </div>
 
       {/* Content */}
-      <main className="mx-auto max-w-5xl px-6 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-6">
         {tab === "storyboards" && (
           <StoryboardsSection
             projectId={projectId}

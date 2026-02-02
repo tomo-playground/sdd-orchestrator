@@ -63,6 +63,7 @@ export async function runAutoRunFromStep(
         const res = await axios.post(`${API_BASE}/storyboards/create`, {
           topic, duration, style, language, structure,
           actor_a_gender: actorAGender,
+          description: useStudioStore.getState().description || undefined,
         });
         const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
         workingScenes = incoming.map((s: Record<string, unknown>, i: number) => ({
@@ -149,7 +150,7 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "render") {
         setAutoRunStep("render", `Rendering ${layoutStyle} video...`);
-        setActiveTab("output");
+        setActiveTab("render");
         const { setOutput } = useStudioStore.getState();
         const renderProjectId = useStudioStore.getState().projectId;
         const renderGroupId = useStudioStore.getState().groupId;

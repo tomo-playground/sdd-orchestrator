@@ -7,6 +7,7 @@ import type { AutoRunStepId } from "../types";
 import TabBar from "../components/studio/TabBar";
 import PlanTab from "../components/studio/PlanTab";
 import ScenesTab from "../components/studio/ScenesTab";
+import RenderTab from "../components/studio/RenderTab";
 import OutputTab from "../components/studio/OutputTab";
 import InsightsTab from "../components/studio/InsightsTab";
 import Toast from "../components/ui/Toast";
@@ -146,6 +147,7 @@ function StudioContent() {
         </div>
 
         {activeTab === "plan" && <div data-testid="tab-content-plan"><PlanTab autopilot={autopilot} /></div>}
+        {activeTab === "render" && <div data-testid="tab-content-render"><RenderTab /></div>}
         {activeTab === "output" && <div data-testid="tab-content-output"><OutputTab /></div>}
         {activeTab === "insights" && <div data-testid="tab-content-insights"><InsightsTab /></div>}
       </main>

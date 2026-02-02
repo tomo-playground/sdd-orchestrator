@@ -47,8 +47,6 @@ function VoiceStyleSection({
   setVoicePresetId,
   voiceDesignPrompt,
   setVoiceDesignPrompt,
-  voiceRefAudioUrl,
-  setVoiceRefAudioUrl,
   speedMultiplier,
   setSpeedMultiplier,
 }: {
@@ -56,8 +54,6 @@ function VoiceStyleSection({
   setVoicePresetId?: (v: number | null) => void;
   voiceDesignPrompt: string;
   setVoiceDesignPrompt: (v: string) => void;
-  voiceRefAudioUrl: string;
-  setVoiceRefAudioUrl: (v: string) => void;
   speedMultiplier: number;
   setSpeedMultiplier: (v: number) => void;
 }) {
@@ -100,15 +96,8 @@ function VoiceStyleSection({
               placeholder="Voice style (e.g. calm 40s female)"
               className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
             />
-            <input
-              type="text"
-              value={voiceRefAudioUrl}
-              onChange={(e) => setVoiceRefAudioUrl(e.target.value)}
-              placeholder="Reference audio URL (cloning priority)"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-            />
             <p className="text-[9px] text-zinc-400">
-              Generate voice from style text or clone from reference audio.
+              프리셋 미선택 시, 스타일 텍스트로 음성을 생성합니다.
             </p>
           </div>
         )}
@@ -179,8 +168,6 @@ type RenderSettingsPanelProps = {
   // TTS Settings
   voiceDesignPrompt: string;
   setVoiceDesignPrompt: (value: string) => void;
-  voiceRefAudioUrl: string;
-  setVoiceRefAudioUrl: (value: string) => void;
   voicePresetId?: number | null;
   setVoicePresetId?: (value: number | null) => void;
 };
@@ -222,8 +209,6 @@ export default function RenderSettingsPanel({
   setBgmVolume,
   voiceDesignPrompt,
   setVoiceDesignPrompt,
-  voiceRefAudioUrl,
-  setVoiceRefAudioUrl,
   voicePresetId,
   setVoicePresetId,
 }: RenderSettingsPanelProps) {
@@ -303,7 +288,7 @@ export default function RenderSettingsPanel({
       </div>
 
       {/* 2. MEDIA SETTINGS (Video + Audio Combined, Collapsed by default) */}
-      <details className="group rounded-2xl border border-zinc-200 bg-white/80">
+      <details open className="group rounded-2xl border border-zinc-200 bg-white/80">
         <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
           Media Settings
           <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
@@ -391,8 +376,6 @@ export default function RenderSettingsPanel({
             setVoicePresetId={setVoicePresetId}
             voiceDesignPrompt={voiceDesignPrompt}
             setVoiceDesignPrompt={setVoiceDesignPrompt}
-            voiceRefAudioUrl={voiceRefAudioUrl}
-            setVoiceRefAudioUrl={setVoiceRefAudioUrl}
             speedMultiplier={speedMultiplier}
             setSpeedMultiplier={setSpeedMultiplier}
           />

@@ -16,23 +16,33 @@ type Preset = {
 type StoryboardGeneratorPanelProps = {
   topic: string;
   setTopic: (value: string) => void;
+  description: string;
+  setDescription: (value: string) => void;
   duration: number;
   setDuration: (value: number) => void;
   language: string;
   setLanguage: (value: string) => void;
   structure: string;
   setStructure: (value: string) => void;
+  selectedCharacterName?: string | null;
+  selectedCharacterAvatar?: string | null;
+  onGoToSetup?: () => void;
 };
 
 export default function StoryboardGeneratorPanel({
   topic,
   setTopic,
+  description,
+  setDescription,
   duration,
   setDuration,
   language,
   setLanguage,
   structure,
   setStructure,
+  selectedCharacterName,
+  selectedCharacterAvatar,
+  onGoToSetup,
 }: StoryboardGeneratorPanelProps) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [sampleTopics, setSampleTopics] = useState<string[]>([]);
@@ -72,6 +82,32 @@ export default function StoryboardGeneratorPanel({
           </p>
         </div>
       </div>
+      {/* Character Badge (read-only) */}
+      {selectedCharacterName && (
+        <button
+          type="button"
+          onClick={onGoToSetup}
+          className="flex items-center gap-2 self-start rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-100 transition-colors"
+          title="Setup에서 캐릭터 변경"
+        >
+          {selectedCharacterAvatar ? (
+            <img
+              src={selectedCharacterAvatar}
+              alt={selectedCharacterName}
+              className="h-5 w-5 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-500">
+              {selectedCharacterName.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <span className="font-medium">{selectedCharacterName}</span>
+          <svg className="h-3 w-3 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </button>
+      )}
+
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -87,7 +123,7 @@ export default function StoryboardGeneratorPanel({
             data-testid="topic-input"
             value={topic}
             onChange={(e) => setTopic(e.target.value.slice(0, 200))}
-            rows={12}
+            rows={4}
             maxLength={200}
             className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
             placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
@@ -106,6 +142,24 @@ export default function StoryboardGeneratorPanel({
               ))}
             </div>
           )}
+          <div className="flex items-center justify-between mt-3">
+            <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              Description <span className="text-zinc-400 normal-case tracking-normal">(optional)</span>
+            </label>
+            <span className={`text-[10px] font-semibold tracking-[0.1em] ${description.length >= 500 ? "text-rose-500" : "text-zinc-400"
+              }`}>
+              {description.length}/500
+            </span>
+          </div>
+          <textarea
+            data-testid="description-input"
+            value={description}
+            onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+            rows={3}
+            maxLength={500}
+            className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
+            placeholder="톤, 대상 독자, 강조 포인트 등을 적어주세요"
+          />
         </div>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
