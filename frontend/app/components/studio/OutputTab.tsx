@@ -14,6 +14,7 @@ import {
   applyHeartPrefix,
   generateChannelName,
 } from "../../utils";
+import { getCurrentProject, hasValidProfile, getChannelAvatarUrl } from "../../store/selectors/projectSelectors";
 
 export default function OutputTab() {
   const store = useStudioStore();
@@ -37,6 +38,9 @@ export default function OutputTab() {
     bgmVolume,
     overlaySettings,
     postCardSettings,
+    ttsEngine,
+    voiceDesignPrompt,
+    voiceRefAudioUrl,
     currentStyleProfile,
     videoUrl,
     videoUrlFull,
@@ -45,9 +49,6 @@ export default function OutputTab() {
     setOutput,
     showToast,
     setMeta,
-    channelProfile,
-    channelAvatarUrl,
-    hasValidProfile,
   } = store;
 
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -144,32 +145,38 @@ export default function OutputTab() {
 
   const handleRender = useCallback(
     async (mode: "full" | "post") => {
-      // Check if profile is set
+      // Check if project is selected
       if (!hasValidProfile()) {
-        showToast("채널 프로필을 먼저 설정해주세요 (상단 버튼 클릭)", "error");
+        showToast("프로젝트를 먼저 선택해주세요", "error");
         return;
       }
 
       setOutput({ isRendering: true });
       try {
-        // Build settings with profile + video metadata
-        const finalOverlaySettings = mode === "full" && channelProfile ? {
-          channel_name: channelProfile.channel_name,
-          avatar_key: channelProfile.avatar_key,
+        // Build settings with project-based channel info
+        const project = getCurrentProject();
+        const finalOverlaySettings = mode === "full" && project ? {
+          channel_name: project.name,
+          avatar_key: project.avatar_key || project.handle || project.name,
           frame_style: frameStyle,
           caption: videoCaption || store.topic || "AI 영상",
           likes_count: videoLikesCount || `${Math.floor(Math.random() * 50 + 10)}K`,
         } : null;
 
-        const finalPostCardSettings = mode === "post" && channelProfile ? {
-          channel_name: channelProfile.channel_name,
-          avatar_key: channelProfile.avatar_key,
+        const finalPostCardSettings = mode === "post" && project ? {
+          channel_name: project.name,
+          avatar_key: project.avatar_key || project.handle || project.name,
           caption: videoCaption || store.topic || "AI 영상",
         } : null;
 
+        if (!store.projectId || !store.groupId) {
+          showToast("프로젝트/그룹을 먼저 선택해주세요", "error");
+          return;
+        }
+
         const payload = {
-          project_id: 1, // Default project for now (Phase 6-4.31 storage hierarchy)
-          group_id: 1,   // Default group for now
+          project_id: store.projectId,
+          group_id: store.groupId,
           storyboard_id: store.storyboardId,
           scenes: scenes
             .filter((s) => s.image_url)
@@ -187,6 +194,9 @@ export default function OutputTab() {
           include_scene_text: includeSceneText,
           scene_text_font: sceneTextFont,
           narrator_voice: narratorVoice,
+          tts_engine: ttsEngine,
+          voice_design_prompt: voiceDesignPrompt,
+          voice_ref_audio_url: voiceRefAudioUrl,
           speed_multiplier: speedMultiplier,
           bgm_file: bgmFile,
           audio_ducking: audioDucking,
@@ -215,7 +225,7 @@ export default function OutputTab() {
         setOutput({ isRendering: false });
       }
     },
-    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, channelProfile, hasValidProfile, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
+    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, narratorVoice, speedMultiplier, bgmFile, audioDucking, bgmVolume, videoCaption, videoLikesCount, recentVideos, setOutput, showToast]
   );
 
   const handleDeleteRecentVideo = useCallback(
@@ -311,30 +321,33 @@ export default function OutputTab() {
     });
   }
 
+  const currentProject = getCurrentProject();
+  const channelAvatarUrl = getChannelAvatarUrl();
+
   return (
     <div className="space-y-6">
-      {/* Channel Profile Section */}
-      {channelProfile ? (
+      {/* Channel Profile Section (from Project) */}
+      {currentProject ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-zinc-800">채널 프로필</h3>
-            <p className="text-xs text-zinc-400">상단 버튼으로 변경 가능</p>
+            <p className="text-xs text-zinc-400">프로젝트 설정에서 변경 가능</p>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-sm bg-zinc-100 text-sm font-semibold text-zinc-600">
               {channelAvatarUrl ? (
                 <img
                   src={channelAvatarUrl}
-                  alt={channelProfile.channel_name}
+                  alt={currentProject.name}
                   className="h-full w-full object-cover"
                 />
               ) : (
-                getAvatarInitial(channelProfile.channel_name)
+                getAvatarInitial(currentProject.name)
               )}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-sm text-zinc-800">{channelProfile.channel_name}</p>
-              <p className="text-xs text-zinc-500">@{channelProfile.avatar_key}</p>
+              <p className="font-semibold text-sm text-zinc-800">{currentProject.name}</p>
+              <p className="text-xs text-zinc-500">@{currentProject.handle || currentProject.name}</p>
             </div>
           </div>
 
@@ -417,12 +430,14 @@ export default function OutputTab() {
           </div>
           <h3 className="text-sm font-bold text-amber-800 mb-2">채널 프로필 설정 필요</h3>
           <p className="text-xs text-amber-600">
-            상단 TabBar의 "⚠️ 채널 설정" 버튼을 클릭하세요
+            프로젝트를 먼저 선택하세요
           </p>
         </div>
       )}
 
       <RenderSettingsPanel
+        renderPresetName={store.effectivePresetName}
+        renderPresetSource={store.effectivePresetSource}
         layoutStyle={layoutStyle}
         setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
         frameStyle={frameStyle}
@@ -457,6 +472,12 @@ export default function OutputTab() {
         setAudioDucking={(v) => setOutput({ audioDucking: v })}
         bgmVolume={bgmVolume}
         setBgmVolume={(v) => setOutput({ bgmVolume: v })}
+        ttsEngine={ttsEngine}
+        setTtsEngine={(v) => setOutput({ ttsEngine: v })}
+        voiceDesignPrompt={voiceDesignPrompt}
+        setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
+        voiceRefAudioUrl={voiceRefAudioUrl}
+        setVoiceRefAudioUrl={(v) => setOutput({ voiceRefAudioUrl: v })}
         currentStyleProfile={currentStyleProfile}
       />
 

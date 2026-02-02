@@ -32,7 +32,8 @@ class TestCharactersRouter:
     def test_create_character_minimal(self, client: TestClient, db_session):
         """Create character with minimal required fields."""
         request_data = {
-            "name": "test_character"
+            "name": "test_character",
+            "project_id": 1,
         }
 
         response = client.post("/characters", json=request_data)
@@ -40,6 +41,7 @@ class TestCharactersRouter:
         data = response.json()
 
         assert data["name"] == "test_character"
+        assert data["project_id"] == 1
         assert "id" in data
         assert "tags" in data
         # Verify default prompts were set
@@ -47,23 +49,25 @@ class TestCharactersRouter:
         assert data["reference_negative_prompt"] is not None
 
     def test_create_character_duplicate_name(self, client: TestClient, db_session):
-        """Creating character with duplicate name fails."""
+        """Creating character with duplicate name in same project fails."""
         # Create first character
         request_data = {
-            "name": "duplicate_test"
+            "name": "duplicate_test",
+            "project_id": 1,
         }
         response = client.post("/characters", json=request_data)
         assert response.status_code == 201
 
-        # Try to create duplicate
+        # Try to create duplicate in same project
         response = client.post("/characters", json=request_data)
-        assert response.status_code == 400
+        assert response.status_code == 409
         assert "already exists" in response.json()["detail"].lower()
 
     def test_create_character_with_tags(self, client: TestClient, db_session, sample_tag):
         """Create character with tags (limited assertion due to async router behavior)."""
         request_data = {
             "name": "tagged_character",
+            "project_id": 1,
             "tags": [
                 {
                     "tag_id": sample_tag.id,
@@ -94,7 +98,8 @@ class TestCharactersRouter:
         """Get existing character."""
         # Create test character
         character = Character(
-            name="get_test"
+            name="get_test",
+            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -111,7 +116,8 @@ class TestCharactersRouter:
         """Update existing character."""
         # Create test character
         character = Character(
-            name="update_test"
+            name="update_test",
+            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -143,7 +149,8 @@ class TestCharactersRouter:
         """Delete existing character."""
         # Create test character
         character = Character(
-            name="delete_test"
+            name="delete_test",
+            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -169,8 +176,8 @@ class TestCharactersRouter:
     def test_list_characters_with_data(self, client: TestClient, db_session):
         """List characters returns all characters."""
         # Create test characters
-        char1 = Character(name="char1")
-        char2 = Character(name="char2")
+        char1 = Character(name="char1", project_id=1)
+        char2 = Character(name="char2", project_id=1)
         db_session.add_all([char1, char2])
         db_session.commit()
 
@@ -187,7 +194,8 @@ class TestCharactersRouter:
         """Test /full endpoint (alias for get_character)."""
         # Create test character
         character = Character(
-            name="full_test"
+            name="full_test",
+            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -203,6 +211,7 @@ class TestCharactersRouter:
         """Create character with LoRA configuration."""
         request_data = {
             "name": "lora_character",
+            "project_id": 1,
             "loras": [
                 {
                     "lora_id": 1,
@@ -218,11 +227,29 @@ class TestCharactersRouter:
         # LoRAs should be included even if not enriched (no LoRA in DB)
         assert "loras" in data
 
+    def test_duplicate_name_global(self, client: TestClient, db_session):
+        """Same character name is rejected globally (not per-project)."""
+        from models.project import Project
+
+        # Create a second project
+        project2 = Project(name="Second Project")
+        db_session.add(project2)
+        db_session.commit()
+
+        # Create character (no project_id)
+        res1 = client.post("/characters", json={"name": "global_char"})
+        assert res1.status_code == 201
+
+        # Same name should fail even with different project_id
+        res2 = client.post("/characters", json={"name": "global_char", "project_id": project2.id})
+        assert res2.status_code == 409
+
     def test_update_character_tags(self, client: TestClient, db_session, sample_tag):
         """Update character tags (limited assertion due to async router behavior)."""
         # Create test character
         character = Character(
-            name="tag_update_test"
+            name="tag_update_test",
+            project_id=1,
         )
         db_session.add(character)
         db_session.commit()

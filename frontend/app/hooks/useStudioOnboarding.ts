@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useStudioStore } from "../store/useStudioStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
+import { hasValidProfile } from "../store/selectors/projectSelectors";
 
 interface UseStudioOnboardingOptions {
   isLoadingDb: boolean;
@@ -12,7 +13,6 @@ interface UseStudioOnboardingOptions {
 
 /**
  * Handles studio onboarding logic:
- * - Channel profile modal on first visit
  * - Style profile modal for new storyboards
  * - Keyboard shortcuts (ArrowLeft/Right, Escape)
  */
@@ -21,31 +21,18 @@ export function useStudioOnboarding({
   storyboardId,
   needsStyleProfile,
 }: UseStudioOnboardingOptions) {
-  const [showChannelProfileModal, setShowChannelProfileModal] = useState(false);
   const [showStyleProfileModal, setShowStyleProfileModal] = useState(false);
 
-  const hasValidProfile = useStudioStore((s) => s.hasValidProfile);
   const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
   const effectiveConfigLoaded = useStudioStore((s) => s.effectiveConfigLoaded);
   const effectiveStyleProfileId = useStudioStore((s) => s.effectiveStyleProfileId);
-
-  // Channel Profile Onboarding (first visit auto-show)
-  useEffect(() => {
-    const hasProfile = hasValidProfile();
-    const hasSeenOnboarding = localStorage.getItem("channel_onboarding_done");
-
-    if (!hasProfile && !hasSeenOnboarding) {
-      setShowChannelProfileModal(true);
-      localStorage.setItem("channel_onboarding_done", "true");
-    }
-  }, [hasValidProfile]);
 
   // Style Profile Selection (DB-loaded storyboards only — new ones use inline selector)
   useEffect(() => {
     const hasProfile = hasValidProfile();
 
     // Wait for effective config to load (race condition prevention)
-    if (isLoadingDb || showChannelProfileModal || !effectiveConfigLoaded) {
+    if (isLoadingDb || !effectiveConfigLoaded) {
       return;
     }
 
@@ -73,9 +60,7 @@ export function useStudioOnboarding({
       }
     }
   }, [
-    hasValidProfile,
     currentStyleProfile,
-    showChannelProfileModal,
     isLoadingDb,
     storyboardId,
     effectiveConfigLoaded,
@@ -133,8 +118,6 @@ export function useStudioOnboarding({
   }, []);
 
   return {
-    showChannelProfileModal,
-    setShowChannelProfileModal,
     showStyleProfileModal,
     setShowStyleProfileModal,
   };

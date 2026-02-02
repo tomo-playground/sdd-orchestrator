@@ -216,7 +216,7 @@ export type CharacterTagLink = {
 
 export type Character = {
   id: number;
-  project_id: number;
+  project_id: number | null;
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -290,7 +290,7 @@ export type EffectiveMode = "standard" | "lora";
 
 export type CharacterFull = {
   id: number;
-  project_id: number;
+  project_id: number | null;
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -453,6 +453,7 @@ export type ProjectItem = {
   description: string | null;
   handle: string | null;
   avatar_url: string | null;
+  avatar_key: string | null;
   render_preset_id: number | null;
   default_character_id: number | null;
   default_style_profile_id: number | null;

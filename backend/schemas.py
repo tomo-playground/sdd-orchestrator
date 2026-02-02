@@ -26,6 +26,7 @@ class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
     handle: str | None = None
+    avatar_key: str | None = None
     render_preset_id: int | None = None
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
@@ -35,6 +36,7 @@ class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     handle: str | None = None
+    avatar_key: str | None = None
     render_preset_id: int | None = None
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
@@ -46,6 +48,7 @@ class ProjectResponse(BaseModel):
     description: str | None = None
     handle: str | None = None
     avatar_url: str | None = None
+    avatar_key: str | None = None
     render_preset_id: int | None = None
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
@@ -530,7 +533,7 @@ class CharacterBase(BaseModel):
     preview_locked: bool = False
 
 class CharacterCreate(CharacterBase):
-    project_id: int
+    project_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
@@ -558,7 +561,7 @@ class CharacterUpdate(BaseModel):
 
 class CharacterResponse(CharacterBase):
     id: int
-    project_id: int
+    project_id: int | None
     tags: list[CharacterTagLink] = []
     preview_image_url: str | None = None  # Read-only from @property
     preview_locked: bool = False

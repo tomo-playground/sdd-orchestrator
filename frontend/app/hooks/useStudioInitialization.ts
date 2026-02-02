@@ -27,8 +27,6 @@ export function useStudioInitialization() {
   const setMeta = useStudioStore((s) => s.setMeta);
   const setScenes = useStudioStore((s) => s.setScenes);
   const setPlan = useStudioStore((s) => s.setPlan);
-  const channelProfile = useStudioStore((s) => s.channelProfile);
-  const setChannelAvatarUrl = useStudioStore((s) => s.setChannelAvatarUrl);
 
   // Reset store and create draft DB storyboard for ?new=true
   const draftCreatedRef = useRef(false);
@@ -114,16 +112,6 @@ export function useStudioInitialization() {
       window.localStorage.removeItem(PROMPT_APPLY_KEY);
     }
   }, [setPlan]);
-
-  // Load channel avatar URL when profile changes
-  useEffect(() => {
-    if (!channelProfile?.avatar_key) {
-      setChannelAvatarUrl(null);
-      return;
-    }
-    const url = `${API_BASE}/controlnet/ip-adapter/reference/${channelProfile.avatar_key}/image?t=${Date.now()}`;
-    setChannelAvatarUrl(url);
-  }, [channelProfile?.avatar_key, setChannelAvatarUrl]);
 
   // Load storyboard from DB if ?id=X
   useEffect(() => {

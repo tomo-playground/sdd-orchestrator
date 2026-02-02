@@ -14,7 +14,6 @@ import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../components/ui/ImagePreviewModal";
 import VideoPreviewModal from "../components/ui/VideoPreviewModal";
 import AutoRunStatus from "../components/storyboard/AutoRunStatus";
-import ChannelProfileModal from "../components/setup/ChannelProfileModal";
 import StyleProfileModal from "../components/setup/StyleProfileModal";
 import PromptHelperSidebar from "../components/prompt/PromptHelperSidebar";
 import { ContextBar, GroupFormModal } from "../components/context";
@@ -32,8 +31,6 @@ function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
     useStudioInitialization();
   const {
-    showChannelProfileModal,
-    setShowChannelProfileModal,
     showStyleProfileModal,
     setShowStyleProfileModal,
   } = useStudioOnboarding({ isLoadingDb, storyboardId, needsStyleProfile });
@@ -48,8 +45,6 @@ function StudioContent() {
   const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
   const imagePreviewCandidates = useStudioStore((s) => s.imagePreviewCandidates);
   const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
-  const channelProfile = useStudioStore((s) => s.channelProfile);
-  const setChannelProfile = useStudioStore((s) => s.setChannelProfile);
   const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
   const showToast = useStudioStore((s) => s.showToast);
 
@@ -109,7 +104,6 @@ function StudioContent() {
       <TabBar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onOpenChannelProfile={() => setShowChannelProfileModal(true)}
       />
 
       {/* No-group banner */}
@@ -176,19 +170,6 @@ function StudioContent() {
         src={videoPreviewSrc}
         onClose={() => setMeta({ videoPreviewSrc: null })}
       />
-
-      {/* Channel Profile Modal */}
-      {showChannelProfileModal && (
-        <ChannelProfileModal
-          initialProfile={channelProfile}
-          onComplete={(profile) => {
-            setChannelProfile(profile);
-            setShowChannelProfileModal(false);
-            showToast("Channel profile saved", "success");
-          }}
-          onCancel={() => setShowChannelProfileModal(false)}
-        />
-      )}
 
       {/* Group Create Modal (empty-state) */}
       {showGroupModal && projectId && (

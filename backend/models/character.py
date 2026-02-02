@@ -2,13 +2,14 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from models.associations import CharacterTag
     from models.media_asset import MediaAsset
+    from models.project import Project
 
 from models.base import Base, TimestampMixin
 
@@ -17,9 +18,13 @@ class Character(Base, TimestampMixin):
     """Character preset with identity tags, clothing tags, and multiple LoRAs."""
 
     __tablename__ = "characters"
+    __table_args__ = (
+        UniqueConstraint("name", name="uq_characters_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    project_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
     gender: Mapped[str | None] = mapped_column(String(10))  # female, male
     description: Mapped[str | None] = mapped_column(String(500))
 
@@ -34,6 +39,9 @@ class Character(Base, TimestampMixin):
     # Reference image generation prompts (for IP-Adapter reference creation)
     reference_base_prompt: Mapped[str | None] = mapped_column(Text)
     reference_negative_prompt: Mapped[str | None] = mapped_column(Text)
+
+    # Relationships
+    project: Mapped["Project | None"] = relationship("Project", foreign_keys=[project_id])
 
     # V3: Relational Tags
     tags: Mapped[list["CharacterTag"]] = relationship("CharacterTag", backref="character", cascade="all, delete-orphan")

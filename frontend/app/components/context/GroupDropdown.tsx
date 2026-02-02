@@ -10,9 +10,10 @@ type Props = {
   onSelect: (id: number) => void;
   onNew: () => void;
   onEdit?: (group: GroupItem) => void;
+  onNewStoryboard?: (groupId: number) => void;
 };
 
-export default function GroupDropdown({ groups, currentId, onSelect, onNew, onEdit }: Props) {
+export default function GroupDropdown({ groups, currentId, onSelect, onNew, onEdit, onNewStoryboard }: Props) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const current = groups.find((g) => g.id === currentId);
@@ -64,6 +65,17 @@ export default function GroupDropdown({ groups, currentId, onSelect, onNew, onEd
                   </svg>
                 </button>
               )}
+              {onNewStoryboard && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onNewStoryboard(g.id); setOpen(false); }}
+                  className="hidden shrink-0 rounded p-0.5 text-zinc-400 hover:bg-emerald-100 hover:text-emerald-600 group-hover/item:block"
+                  title="New storyboard in this group"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </button>
+              )}
               {g.id === currentId && !onEdit && (
                 <svg className="ml-auto h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
@@ -73,6 +85,14 @@ export default function GroupDropdown({ groups, currentId, onSelect, onNew, onEd
           ))}
         </div>
         <div className="border-t border-zinc-100">
+          {onNewStoryboard && currentId && (
+            <button
+              onClick={() => { onNewStoryboard(currentId); setOpen(false); }}
+              className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition"
+            >
+              + New Storyboard
+            </button>
+          )}
           <button
             onClick={() => { onNew(); setOpen(false); }}
             className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition"

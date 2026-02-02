@@ -38,6 +38,7 @@ class Project(Base, TimestampMixin):
 
     # Metadata for the channel/project
     handle: Mapped[str | None] = mapped_column(String(100)) # e.g. @MyChannel
+    avatar_key: Mapped[str | None] = mapped_column(String(100))
 
     # Cascading config defaults
     render_preset_id: Mapped[int | None] = mapped_column(

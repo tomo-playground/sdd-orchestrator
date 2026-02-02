@@ -15,11 +15,14 @@ from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 router = APIRouter(prefix="/characters", tags=["characters"])
 
 @router.get("", response_model=list[CharacterResponse])
-async def list_characters(db: Session = Depends(get_db)):
+async def list_characters(project_id: int | None = None, db: Session = Depends(get_db)):
     """List all characters with their tags and tag metadata."""
-    characters = db.query(Character).options(
+    query = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
-    ).order_by(Character.name).all()
+    )
+    if project_id is not None:
+        query = query.filter(Character.project_id == project_id)
+    characters = query.order_by(Character.name).all()
 
     # Pre-fetch all LoRAs to avoid N+1
     all_loras = db.query(LoRA).all()
@@ -86,9 +89,11 @@ async def get_character(character_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character(data: CharacterCreate, db: Session = Depends(get_db)):
     """Create a new character and link tags."""
-    existing = db.query(Character).filter(Character.name == data.name).first()
+    existing = db.query(Character).filter(
+        Character.name == data.name,
+    ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Character already exists")
+        raise HTTPException(status_code=409, detail="Character name already exists")
 
     char_data = data.model_dump(exclude={"tags", "identity_tags", "clothing_tags"})
 

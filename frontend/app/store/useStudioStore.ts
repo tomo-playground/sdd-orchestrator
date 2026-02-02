@@ -4,10 +4,10 @@ import { createPlanSlice, type PlanSlice } from "./slices/planSlice";
 import { createScenesSlice, type ScenesSlice } from "./slices/scenesSlice";
 import { createOutputSlice, type OutputSlice } from "./slices/outputSlice";
 import { createMetaSlice, type MetaSlice } from "./slices/metaSlice";
-import { createProfileSlice, type ProfileSlice } from "./slices/profileSlice";
+import { createContextSlice, type ContextSlice } from "./slices/contextSlice";
 import { migrateDraft } from "./migrations/draftMigration";
 
-export type StudioState = PlanSlice & ScenesSlice & OutputSlice & MetaSlice & ProfileSlice;
+export type StudioState = PlanSlice & ScenesSlice & OutputSlice & MetaSlice & ContextSlice;
 
 const STORE_KEY = "shorts-producer:studio:v1";
 
@@ -48,6 +48,14 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "loraTriggerWords",
   "characterLoras",
   "characterPromptMode",
+  // ContextSlice transient
+  "projects",
+  "groups",
+  "isLoadingProjects",
+  "isLoadingGroups",
+  "effectiveStyleProfileId",
+  "effectiveCharacterId",
+  "effectiveConfigLoaded",
 ];
 
 // Pre-hydration cleanup: clear localStorage before Zustand hydrates old data
@@ -65,7 +73,7 @@ export const useStudioStore = create<StudioState>()(
       ...createScenesSlice(...a),
       ...createOutputSlice(...a),
       ...createMetaSlice(...a),
-      ...createProfileSlice(...a),
+      ...createContextSlice(...a),
     }),
     {
       name: STORE_KEY,
@@ -94,15 +102,15 @@ export const useStudioStore = create<StudioState>()(
 /**
  * Reset all store slices to initial state.
  * Call this when creating a new storyboard to clear previous data.
- * Note: Profile is NOT reset as it's user-level persistent data.
+ * Channel info is now derived from the selected Project (no profileSlice).
  */
 export const resetStudioStore = () => {
   const state = useStudioStore.getState();
 
-  // Preserve profile data before reset
-  const profileData = {
-    channelProfile: state.channelProfile,
-    channelAvatarUrl: state.channelAvatarUrl,
+  // Preserve context data before reset
+  const preserved = {
+    projectId: state.projectId,
+    groupId: state.groupId,
   };
 
   // Clear localStorage to prevent rehydration of old data
@@ -116,11 +124,9 @@ export const resetStudioStore = () => {
   state.resetScenes();
   state.resetOutput();
 
-  // Restore profile data (intentionally persists across storyboards)
-  if (profileData.channelProfile) {
-    state.setChannelProfile(profileData.channelProfile);
-  }
-  if (profileData.channelAvatarUrl) {
-    state.setChannelAvatarUrl(profileData.channelAvatarUrl);
-  }
+  // Restore preserved data (intentionally persists across storyboards)
+  state.setMeta({
+    projectId: preserved.projectId,
+    groupId: preserved.groupId,
+  });
 };

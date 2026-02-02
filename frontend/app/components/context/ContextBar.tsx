@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import ProjectDropdown from "./ProjectDropdown";
 import GroupDropdown from "./GroupDropdown";
 import ProjectFormModal from "./ProjectFormModal";
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function ContextBar({ title }: Props) {
+  const router = useRouter();
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -36,6 +38,10 @@ export default function ContextBar({ title }: Props) {
           onSelect={selectGroup}
           onNew={() => setShowGroupModal(true)}
           onEdit={(g) => setEditingGroup(g)}
+          onNewStoryboard={(gid) => {
+            selectGroup(gid);
+            router.push("/studio?new=true");
+          }}
         />
         {title && (
           <>
