@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,9 +17,123 @@ class CharacterLoRA(BaseModel):
     trigger_words: list[str] | None = None
     lora_type: str | None = None
 
+# ============================================================
+# Project / Group Schemas
+# ============================================================
+
+
+class ProjectCreate(BaseModel):
+    name: str
+    description: str | None = None
+    handle: str | None = None
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    handle: str | None = None
+
+
+class ProjectResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    handle: str | None = None
+    avatar_url: str | None = None
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RenderPresetCreate(BaseModel):
+    name: str
+    description: str | None = None
+    project_id: int | None = None
+    narrator_voice: str | None = None
+    bgm_file: str | None = None
+    bgm_volume: float | None = None
+    audio_ducking: bool | None = None
+    scene_text_font: str | None = None
+    layout_style: str | None = None
+    frame_style: str | None = None
+    transition_type: str | None = None
+    ken_burns_preset: str | None = None
+    ken_burns_intensity: float | None = None
+    speed_multiplier: float | None = None
+
+
+class RenderPresetUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    narrator_voice: str | None = None
+    bgm_file: str | None = None
+    bgm_volume: float | None = None
+    audio_ducking: bool | None = None
+    scene_text_font: str | None = None
+    layout_style: str | None = None
+    frame_style: str | None = None
+    transition_type: str | None = None
+    ken_burns_preset: str | None = None
+    ken_burns_intensity: float | None = None
+    speed_multiplier: float | None = None
+
+
+class RenderPresetResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    is_system: bool = True
+    project_id: int | None = None
+    narrator_voice: str | None = None
+    bgm_file: str | None = None
+    bgm_volume: float | None = None
+    audio_ducking: bool | None = None
+    scene_text_font: str | None = None
+    layout_style: str | None = None
+    frame_style: str | None = None
+    transition_type: str | None = None
+    ken_burns_preset: str | None = None
+    ken_burns_intensity: float | None = None
+    speed_multiplier: float | None = None
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GroupCreate(BaseModel):
+    project_id: int
+    name: str
+    description: str | None = None
+    render_preset_id: int | None = None
+
+
+class GroupUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    render_preset_id: int | None = None
+
+
+class GroupResponse(BaseModel):
+    id: int
+    project_id: int
+    name: str
+    description: str | None = None
+    render_preset_id: int | None = None
+    render_preset: RenderPresetResponse | None = None
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Storyboard Schemas
+# ============================================================
+
+
 class StoryboardBase(BaseModel):
     title: str
     description: str | None = None
+    group_id: int | None = None
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
     default_caption: str | None = None
@@ -88,11 +203,23 @@ class SceneActionSave(BaseModel):
     weight: float = 1.0
 
 
+    model_config = ConfigDict(extra="allow")
+
+
+class TTSEngine(str, Enum):
+    EDGE = "edge"
+    QWEN = "qwen"
+
+
 class VideoScene(BaseModel):
     image_url: str
     script: str = ""
     speaker: str = "Narrator"
     duration: float = 3
+    # Per-scene voice override
+    narrator_voice: str | None = None
+    voice_design_prompt: str | None = None
+    voice_ref_audio_url: str | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -137,6 +264,9 @@ class VideoRequest(BaseModel):
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
     transition_type: str = "fade"  # Scene transition effect
     narrator_voice: str = "ko-KR-SunHiNeural"
+    tts_engine: TTSEngine = TTSEngine.QWEN
+    voice_design_prompt: str | None = None  # For Qwen-TTS VD
+    voice_ref_audio_url: str | None = None  # For Qwen-TTS Cloning
     speed_multiplier: float = 1.0
     # Scene text (formerly "subtitles") - shows scene script on video
     include_scene_text: bool = Field(default=True, alias="include_subtitles")
@@ -376,6 +506,7 @@ class CharacterBase(BaseModel):
     preview_locked: bool = False
 
 class CharacterCreate(CharacterBase):
+    project_id: int
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
@@ -403,6 +534,7 @@ class CharacterUpdate(BaseModel):
 
 class CharacterResponse(CharacterBase):
     id: int
+    project_id: int
     tags: list[CharacterTagLink] = []
     preview_image_url: str | None = None  # Read-only from @property
     preview_locked: bool = False

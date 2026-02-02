@@ -16,9 +16,12 @@ from routers import (
     cleanup_router,
     controlnet_router,
     evaluation_router,
+    groups_router,
     keywords_router,
     loras_router,
     presets_router,
+    projects_router,
+    render_presets_router,
     prompt_histories_router,
     prompt_router,
     quality_router,
@@ -105,6 +108,8 @@ app.include_router(characters_router)
 app.include_router(cleanup_router)
 app.include_router(controlnet_router)
 app.include_router(evaluation_router)
+app.include_router(groups_router)
+app.include_router(projects_router)
 app.include_router(activity_logs_router)
 app.include_router(keywords_router)
 app.include_router(loras_router)
@@ -112,6 +117,7 @@ app.include_router(presets_router)
 app.include_router(prompt_router)
 app.include_router(prompt_histories_router)
 app.include_router(quality_router)
+app.include_router(render_presets_router)
 app.include_router(scene_router)
 app.include_router(sd_models_router)
 app.include_router(sd_router)

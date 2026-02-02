@@ -9,6 +9,8 @@ from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from models.project import Project
+    from models.render_preset import RenderPreset
+    from models.storyboard import Storyboard
 
 
 class Group(Base, TimestampMixin):
@@ -17,13 +19,16 @@ class Group(Base, TimestampMixin):
     __tablename__ = "groups"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"), nullable=False)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="RESTRICT"), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
 
-    # Default settings for this series/group
-    default_bgm_file: Mapped[str | None] = mapped_column(String(255))
-    default_narrator_voice: Mapped[str | None] = mapped_column(String(100))
+    # Render preset reference (A안: 참조만)
+    render_preset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("render_presets.id", ondelete="SET NULL"), nullable=True
+    )
 
     # Relationships
     project: Mapped[Project] = relationship("Project", back_populates="groups")
+    render_preset: Mapped[RenderPreset | None] = relationship("RenderPreset", lazy="joined")
+    storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")

@@ -9,9 +9,12 @@ from .characters import router as characters_router
 from .cleanup import router as cleanup_router
 from .controlnet import router as controlnet_router
 from .evaluation import router as evaluation_router
+from .groups import router as groups_router
 from .keywords import router as keywords_router
 from .loras import router as loras_router
 from .presets import router as presets_router
+from .projects import router as projects_router
+from .render_presets import router as render_presets_router
 from .prompt import router as prompt_router
 from .prompt_histories import router as prompt_histories_router
 from .quality import router as quality_router
@@ -48,4 +51,7 @@ __all__ = [
     "video_router",
     "evaluation_router",
     "activity_logs_router",
+    "groups_router",
+    "projects_router",
+    "render_presets_router",
 ]

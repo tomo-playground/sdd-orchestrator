@@ -163,6 +163,19 @@
 
 ---
 
+### 6-8. Local AI Engine & Performance
+
+**목표**: M4 Pro 하드웨어를 활용한 로컬 엔진 전환 및 성능 최적화.
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| 1 | Qwen3-TTS 로컬 엔진 설치 및 기본 통합 (MPS 가속) | 인프라 | [x] |
+| 2 | TTS 전용 스키마 확장 (Voice Design, Cloning 지원) | API | [x] |
+| 3 | M4 Pro 최적화 (Flash Attention / MLX 연동) | 인프라 | [x] |
+| 4 | 로컬 엔진 UI 연동 (목소리 설계 프롬프트 입력) | UX | [x] |
+
+---
+
 ## Phase 7-1: UX & Feature Expansion
 
 **목표**: 사용자 경험 개선 및 핵심 신규 기능 추가.
@@ -186,6 +199,22 @@
 ## Phase 7-0: ControlNet & Pose Control - ARCHIVED
 
 완료. ControlNet 포즈 제어, IP-Adapter 캐릭터 일관성 시스템 구축.
+
+---
+
+## Phase 7-2: Project/Group System
+
+**목표**: 채널(Project) + 시리즈(Group) 계층 구조 구현. 설정 상속, 서사 톤 자동 주입, 데이터 기반 태그 추천.
+**선행**: Phase 6-7 일부 (DB 마이그레이션 인프라). Phase 0은 6-7과 병렬 가능.
+
+| Phase | 핵심 | 상태 |
+|-------|------|------|
+| Phase 0: Foundation | DB 마이그레이션, CRUD API, FK 연결 | [x] |
+| Phase 1: Core | FK 강화, 캐릭터 프로젝트 스코핑, 렌더 프리셋 분리 완료. 설정 상속/Quick Switcher/프리셋 관리 UI 미착수 | 진행중 |
+| Phase 2: Differentiation | Channel DNA (톤/세계관 주입), Tag Intelligence, Series Intelligence | [ ] |
+| Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
+
+상세: [기능 명세](FEATURES/PROJECT_GROUP.md)
 
 ---
 

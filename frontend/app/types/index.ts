@@ -216,6 +216,7 @@ export type CharacterTagLink = {
 
 export type Character = {
   id: number;
+  project_id: number;
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -289,6 +290,7 @@ export type EffectiveMode = "standard" | "lora";
 
 export type CharacterFull = {
   id: number;
+  project_id: number;
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -343,6 +345,9 @@ export type DraftData = {
   bgmVolume?: number;
   subtitleFont?: string;
   speedMultiplier?: number;
+  ttsEngine?: "edge" | "qwen";
+  voiceDesignPrompt?: string;
+  voiceRefAudioUrl?: string;
   overlaySettings?: OverlaySettings;
   postCardSettings?: PostCardSettings;
   layoutStyle?: "full" | "post";
@@ -436,4 +441,45 @@ export type EvaluationSummary = {
     diff: number;
     winner: "standard" | "lora" | "tie";
   };
+};
+
+// ============================================================
+// Project & Group Types
+// ============================================================
+
+export type ProjectItem = {
+  id: number;
+  name: string;
+  description: string | null;
+  handle: string | null;
+  avatar_url: string | null;
+  created_at: string | null;
+};
+
+export type RenderPreset = {
+  id: number;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  project_id: number | null;
+  narrator_voice: string | null;
+  bgm_file: string | null;
+  bgm_volume: number | null;
+  audio_ducking: boolean | null;
+  scene_text_font: string | null;
+  layout_style: string | null;
+  frame_style: string | null;
+  transition_type: string | null;
+  ken_burns_preset: string | null;
+  ken_burns_intensity: number | null;
+  speed_multiplier: number | null;
+};
+
+export type GroupItem = {
+  id: number;
+  project_id: number;
+  name: string;
+  description: string | null;
+  render_preset_id: number | null;
+  render_preset: RenderPreset | null;
 };
