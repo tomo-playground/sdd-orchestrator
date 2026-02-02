@@ -15,5 +15,12 @@ export function hasValidProfile(): boolean {
 export function getChannelAvatarUrl(): string | null {
   const project = getCurrentProject();
   if (!project?.avatar_key) return null;
-  return `${API_BASE}/controlnet/ip-adapter/reference/${project.avatar_key}/image`;
+  return resolveAvatarUrl(project.avatar_key);
+}
+
+/** Resolve avatar_key to full URL. Handles both character preview paths and legacy IP-Adapter keys. */
+export function resolveAvatarUrl(avatarKey: string): string {
+  if (avatarKey.startsWith("/")) return `${API_BASE}${avatarKey}`;
+  if (avatarKey.startsWith("http")) return avatarKey;
+  return `${API_BASE}/controlnet/ip-adapter/reference/${avatarKey}/image`;
 }

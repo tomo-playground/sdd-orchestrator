@@ -9,9 +9,9 @@ import GroupFormModal from "./GroupFormModal";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
-import { createProject } from "../../store/actions/projectActions";
+import { createProject, updateProject } from "../../store/actions/projectActions";
 import { createGroup, updateGroup } from "../../store/actions/groupActions";
-import type { GroupItem } from "../../types";
+import type { GroupItem, ProjectItem } from "../../types";
 
 type Props = {
   title?: string;
@@ -21,6 +21,7 @@ export default function ContextBar({ title }: Props) {
   const router = useRouter();
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupItem | null>(null);
   const [showNewSbModal, setShowNewSbModal] = useState(false);
@@ -49,6 +50,7 @@ export default function ContextBar({ title }: Props) {
           currentId={projectId}
           onSelect={selectProject}
           onNew={() => setShowProjectModal(true)}
+          onEdit={(p) => setEditingProject(p)}
         />
         <span className="text-zinc-300 text-xs">/</span>
         <GroupDropdown
@@ -76,6 +78,16 @@ export default function ContextBar({ title }: Props) {
             if (p) selectProject(p.id);
           }}
           onClose={() => setShowProjectModal(false)}
+        />
+      )}
+
+      {editingProject && (
+        <ProjectFormModal
+          project={editingProject}
+          onSave={async (data) => {
+            await updateProject(editingProject.id, data);
+          }}
+          onClose={() => setEditingProject(null)}
         />
       )}
 

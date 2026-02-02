@@ -1,0 +1,110 @@
+"use client";
+
+import { useRef, useState } from "react";
+import Popover from "../ui/Popover";
+import { resolveAvatarUrl } from "../../store/selectors/projectSelectors";
+import type { ProjectItem } from "../../types";
+
+type Props = {
+  projects: ProjectItem[];
+  currentId: number | null;
+  onSelect: (id: number) => void;
+  onNew: () => void;
+  onEdit?: (project: ProjectItem) => void;
+};
+
+function avatarUrl(p: ProjectItem): string | null {
+  if (!p.avatar_key) return null;
+  return resolveAvatarUrl(p.avatar_key);
+}
+
+function ProjectAvatar({ project, size = "sm" }: { project: ProjectItem; size?: "sm" | "md" }) {
+  const dim = size === "sm" ? "h-5 w-5" : "h-7 w-7";
+  const textSize = size === "sm" ? "text-[8px]" : "text-[10px]";
+  const url = avatarUrl(project);
+
+  return (
+    <div className={`${dim} shrink-0 overflow-hidden rounded-full bg-zinc-100 flex items-center justify-center`}>
+      {url ? (
+        <img src={url} alt={project.name} className="h-full w-full object-cover" />
+      ) : (
+        <span className={`${textSize} font-bold text-zinc-400`}>{project.name.charAt(0)}</span>
+      )}
+    </div>
+  );
+}
+
+export default function ProjectDropdown({ projects, currentId, onSelect, onNew, onEdit }: Props) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const current = projects.find((p) => p.id === currentId);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 transition max-w-[200px]"
+      >
+        {current && <ProjectAvatar project={current} />}
+        <div className="flex flex-col items-start min-w-0">
+          <span className="truncate text-xs font-semibold leading-tight">{current?.name ?? "Project"}</span>
+          {current?.handle && (
+            <span className="truncate text-[9px] text-zinc-400 leading-tight">@{current.handle}</span>
+          )}
+        </div>
+        <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+
+      <Popover anchorRef={btnRef} open={open} onClose={() => setOpen(false)}>
+        <div className="max-h-60 overflow-y-auto">
+          {projects.map((p) => (
+            <div
+              key={p.id}
+              className={`group flex w-full items-center gap-2 px-3 py-2 text-xs transition hover:bg-zinc-50 ${
+                p.id === currentId ? "bg-zinc-50 font-semibold text-zinc-900" : "text-zinc-600"
+              }`}
+            >
+              <button
+                onClick={() => { onSelect(p.id); setOpen(false); }}
+                className="flex flex-1 items-center gap-2 min-w-0 text-left"
+              >
+                <ProjectAvatar project={p} />
+                <div className="flex flex-col min-w-0">
+                  <span className="truncate">{p.name}</span>
+                  {p.handle && <span className="truncate text-[9px] text-zinc-400">@{p.handle}</span>}
+                </div>
+                {p.id === currentId && (
+                  <svg className="ml-auto h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+              {onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit(p); setOpen(false); }}
+                  className="hidden group-hover:flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                  title="Edit project"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-zinc-100">
+          <button
+            onClick={() => { onNew(); setOpen(false); }}
+            className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition"
+          >
+            + New Project
+          </button>
+        </div>
+      </Popover>
+    </>
+  );
+}

@@ -199,39 +199,27 @@ export default function PromptSetupPanel({
                 }}
               />
             </div>
-            {/* Character Preview Row - only show when character selected */}
+            {/* Character Preview Image - click to expand */}
             {selectedCharacterId && (() => {
               const selectedChar = characters.find((c) => c.id === selectedCharacterId);
-              if (!selectedChar) return null;
+              if (!selectedChar?.preview_image_url) return null;
               return (
-                <div className="flex items-center gap-4">
-                  {selectedChar.preview_image_url ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewModalOpen(true)}
-                      className="group relative"
-                    >
-                      <img
-                        src={selectedChar.preview_image_url.startsWith('http') ? selectedChar.preview_image_url : `${API_BASE}${selectedChar.preview_image_url}`}
-                        alt={selectedChar.name}
-                        className="h-20 w-20 shrink-0 rounded-2xl border border-zinc-200 object-cover object-top transition group-hover:border-zinc-400"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/0 transition group-hover:bg-black/20">
-                        <span className="text-white opacity-0 transition group-hover:opacity-100">🔍</span>
-                      </div>
-                    </button>
-                  ) : (
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 text-zinc-400">
-                      <span className="text-2xl">?</span>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-sm font-medium text-zinc-700">{selectedChar.name}</p>
-                    {selectedChar.description && (
-                      <p className="text-xs text-zinc-500">{selectedChar.description}</p>
-                    )}
+                <button
+                  type="button"
+                  onClick={() => setPreviewModalOpen(true)}
+                  className="group relative"
+                >
+                  <img
+                    src={selectedChar.preview_image_url.startsWith('http') ? selectedChar.preview_image_url : `${API_BASE}${selectedChar.preview_image_url}`}
+                    alt={selectedChar.name}
+                    className="h-16 w-16 shrink-0 rounded-xl border border-zinc-200 object-cover object-top transition group-hover:border-zinc-400"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition group-hover:bg-black/20">
+                    <svg className="h-4 w-4 text-white opacity-0 transition group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
                   </div>
-                </div>
+                </button>
               );
             })()}
             <div className="flex flex-col gap-2">

@@ -9,12 +9,11 @@ import type { AudioItem, FontItem, OverlaySettings, PostCardSettings, SdModel } 
 import RenderSettingsPanel from "../video/RenderSettingsPanel";
 import RenderedVideosSection from "../video/RenderedVideosSection";
 import {
-  getAvatarInitial,
   slugifyAvatarKey,
   applyHeartPrefix,
   generateChannelName,
 } from "../../utils";
-import { getCurrentProject, hasValidProfile, getChannelAvatarUrl } from "../../store/selectors/projectSelectors";
+import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
 
 export default function OutputTab() {
   const store = useStudioStore();
@@ -321,119 +320,80 @@ export default function OutputTab() {
     });
   }
 
-  const currentProject = getCurrentProject();
-  const channelAvatarUrl = getChannelAvatarUrl();
-
   return (
     <div className="space-y-6">
-      {/* Channel Profile Section (from Project) */}
-      {currentProject ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-zinc-800">채널 프로필</h3>
-            <p className="text-xs text-zinc-400">프로젝트 설정에서 변경 가능</p>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-sm bg-zinc-100 text-sm font-semibold text-zinc-600">
-              {channelAvatarUrl ? (
-                <img
-                  src={channelAvatarUrl}
-                  alt={currentProject.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                getAvatarInitial(currentProject.name)
+      {/* Video Metadata */}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3">
+        <h3 className="text-sm font-bold text-zinc-800">영상 메타데이터</h3>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-zinc-600">
+              캡션 (이 영상) <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {videoCaption.length > 60 && (
+                <button
+                  onClick={handleExtractCaption}
+                  disabled={isExtractingCaption}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 hover:bg-indigo-200 disabled:opacity-50 transition-colors"
+                  title="LLM으로 캡션 요약"
+                >
+                  {isExtractingCaption ? "..." : "요약"}
+                </button>
               )}
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm text-zinc-800">{currentProject.name}</p>
-              <p className="text-xs text-zinc-500">@{currentProject.handle || currentProject.name}</p>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${videoCaption.length >= 60 ? 'bg-red-100 text-red-600' :
+                videoCaption.length >= 50 ? 'bg-amber-100 text-amber-600' :
+                  'text-zinc-400'
+                }`}>
+                {videoCaption.length}/60
+              </span>
             </div>
           </div>
-
-          {/* Video-specific Metadata */}
-          <div className="mt-4 space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-zinc-600">
-                  캡션 (이 영상) <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  {videoCaption.length > 60 && (
-                    <button
-                      onClick={handleExtractCaption}
-                      disabled={isExtractingCaption}
-                      className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 hover:bg-indigo-200 disabled:opacity-50 transition-colors"
-                      title="LLM으로 캡션 요약"
-                    >
-                      {isExtractingCaption ? "⏳" : "✨ 요약"}
-                    </button>
-                  )}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${videoCaption.length >= 60 ? 'bg-red-100 text-red-600' :
-                    videoCaption.length >= 50 ? 'bg-amber-100 text-amber-600' :
-                      'text-zinc-400'
-                    }`}>
-                    {videoCaption.length}/60
-                  </span>
-                </div>
-              </div>
-              <input
-                type="text"
-                value={videoCaption}
-                onChange={(e) => setOutput({ videoCaption: e.target.value })}
-                placeholder={`예: ${store.topic || "AI 생성 영상"}`}
-                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 transition-colors ${videoCaption.length >= 60
-                  ? 'border-red-300 focus:border-red-400 focus:ring-red-50 bg-red-50/30'
-                  : videoCaption.length >= 50
-                    ? 'border-amber-300 focus:border-amber-400 focus:ring-amber-50 bg-amber-50/30'
-                    : 'border-zinc-200 focus:border-indigo-400 focus:ring-indigo-50'
-                  }`}
-              />
-              <div className="flex items-start gap-1 mt-1">
-                {videoCaption.length >= 60 ? (
-                  <p className="text-[10px] text-red-600 font-medium">
-                    ⚠️ 최대 60자 제한 (가로폭 초과 시 잘림)
-                  </p>
-                ) : videoCaption.length >= 50 ? (
-                  <p className="text-[10px] text-amber-600 font-medium">
-                    ⚡ 50자 초과 - 간결하게 작성 권장
-                  </p>
-                ) : videoCaption ? (
-                  <p className="text-[10px] text-zinc-400">
-                    ✓ 가로폭 고려하여 60자 이내 권장
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-zinc-400">
-                    비워두면 스토리보드 주제가 사용됩니다
-                  </p>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                좋아요 수 (선택)
-              </label>
-              <input
-                type="text"
-                value={videoLikesCount}
-                onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
-                placeholder="예: 1.2K (비워두면 랜덤)"
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
-              />
-            </div>
+          <input
+            type="text"
+            value={videoCaption}
+            onChange={(e) => setOutput({ videoCaption: e.target.value })}
+            placeholder={`예: ${store.topic || "AI 생성 영상"}`}
+            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 transition-colors ${videoCaption.length >= 60
+              ? 'border-red-300 focus:border-red-400 focus:ring-red-50 bg-red-50/30'
+              : videoCaption.length >= 50
+                ? 'border-amber-300 focus:border-amber-400 focus:ring-amber-50 bg-amber-50/30'
+                : 'border-zinc-200 focus:border-indigo-400 focus:ring-indigo-50'
+              }`}
+          />
+          <div className="flex items-start gap-1 mt-1">
+            {videoCaption.length >= 60 ? (
+              <p className="text-[10px] text-red-600 font-medium">
+                최대 60자 제한 (가로폭 초과 시 잘림)
+              </p>
+            ) : videoCaption.length >= 50 ? (
+              <p className="text-[10px] text-amber-600 font-medium">
+                50자 초과 - 간결하게 작성 권장
+              </p>
+            ) : videoCaption ? (
+              <p className="text-[10px] text-zinc-400">
+                가로폭 고려하여 60자 이내 권장
+              </p>
+            ) : (
+              <p className="text-[10px] text-zinc-400">
+                비워두면 스토리보드 주제가 사용됩니다
+              </p>
+            )}
           </div>
         </div>
-      ) : (
-        <div className="rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 p-6 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 mb-3">
-            <span className="text-2xl">⚠️</span>
-          </div>
-          <h3 className="text-sm font-bold text-amber-800 mb-2">채널 프로필 설정 필요</h3>
-          <p className="text-xs text-amber-600">
-            프로젝트를 먼저 선택하세요
-          </p>
+        <div>
+          <label className="block text-xs font-semibold text-zinc-600 mb-1">
+            좋아요 수 (선택)
+          </label>
+          <input
+            type="text"
+            value={videoLikesCount}
+            onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
+            placeholder="예: 1.2K (비워두면 랜덤)"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
+          />
         </div>
-      )}
+      </div>
 
       <RenderSettingsPanel
         renderPresetName={store.effectivePresetName}

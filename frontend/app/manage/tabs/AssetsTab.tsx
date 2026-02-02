@@ -8,6 +8,15 @@ type AudioItem = { name: string; url: string };
 type FontItem = { name: string };
 type LoraItem = { name: string; alias?: string };
 
+/** Strip file extension and clean up display name */
+function displayName(filename: string): string {
+    return filename
+        .replace(/\.[^.]+$/, "")          // remove extension
+        .replace(/[-_]/g, " ")            // hyphens/underscores → spaces
+        .replace(/\s+\d{4,}$/, "")        // trailing numeric IDs (e.g. " 195450")
+        .trim();
+}
+
 export default function AssetsTab() {
     const [bgmList, setBgmList] = useState<AudioItem[]>([]);
     const [fontList, setFontList] = useState<FontItem[]>([]);
@@ -83,11 +92,11 @@ export default function AssetsTab() {
                         {OVERLAY_STYLES.length} Styles
                     </span>
                 </div>
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
+                <div className="flex flex-wrap gap-4">
                     {OVERLAY_STYLES.map((style) => (
                         <div
                             key={style.id}
-                            className="group relative flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-2 transition-all duration-300 hover:border-indigo-300 hover:shadow-lg"
+                            className="group relative flex w-28 flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-2 transition-all duration-300 hover:border-indigo-300 hover:shadow-lg"
                         >
                             <div className="aspect-[9/16] overflow-hidden rounded-xl bg-zinc-50 border border-zinc-100">
                                 <img
@@ -121,12 +130,12 @@ export default function AssetsTab() {
                             {fontList.map((font) => (
                                 <div
                                     key={font.name}
-                                    className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 transition-all duration-300 hover:border-indigo-200 hover:bg-indigo-50/10"
+                                    className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 transition-all duration-300 hover:border-indigo-200 hover:bg-indigo-50/10 min-w-0"
                                 >
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-50 text-zinc-400 font-bold">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-zinc-50 text-zinc-400 font-bold">
                                         Ag
                                     </div>
-                                    <span className="text-xs font-bold text-zinc-700">{font.name}</span>
+                                    <span className="truncate text-xs font-bold text-zinc-700">{displayName(font.name)}</span>
                                 </div>
                             ))}
                         </div>
@@ -157,7 +166,7 @@ export default function AssetsTab() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                                             </svg>
                                         </div>
-                                        <span className="truncate text-xs font-bold text-zinc-700">{bgm.name}</span>
+                                        <span className="truncate text-xs font-bold text-zinc-700">{displayName(bgm.name)}</span>
                                     </div>
                                     <button
                                         type="button"
