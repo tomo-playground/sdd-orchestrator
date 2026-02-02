@@ -10,8 +10,6 @@ import type {
 import {
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
-  DEFAULT_SCENE_TEXT_FONT,
-  VOICES,
 } from "../../constants";
 
 export interface OutputSlice {
@@ -47,6 +45,9 @@ export interface OutputSlice {
   fontList: FontItem[];
   sceneTextFont: string;
   loadedFonts: Set<string>;
+  ttsEngine: "edge" | "qwen";
+  voiceDesignPrompt: string;
+  voiceRefAudioUrl: string;
 
   // Video metadata
   videoCaption: string;
@@ -82,21 +83,24 @@ const initialOutputState = {
     default_negative: string | null;
   } | null,
   layoutStyle: "post" as const,
-  frameStyle: "overlay_minimal.png",
+  frameStyle: "",
   kenBurnsPreset: "random" as KenBurnsPreset,
   kenBurnsIntensity: 1.0,
   transitionType: "random",
   isRendering: false,
   includeSceneText: true,
-  narratorVoice: VOICES[0].id,
+  narratorVoice: "",
   bgmList: [] as AudioItem[],
-  bgmFile: "random" as string | null,
+  bgmFile: null as string | null,
   audioDucking: true,
   bgmVolume: 0.25,
-  speedMultiplier: 1.3,
+  speedMultiplier: 1.0,
   fontList: [] as FontItem[],
-  sceneTextFont: DEFAULT_SCENE_TEXT_FONT,
+  sceneTextFont: "",
   loadedFonts: new Set<string>(),
+  ttsEngine: "qwen" as "edge" | "qwen",
+  voiceDesignPrompt: "",
+  voiceRefAudioUrl: "",
   videoCaption: "",
   videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,
