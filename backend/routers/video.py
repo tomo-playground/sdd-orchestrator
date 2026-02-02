@@ -21,6 +21,7 @@ router = APIRouter(prefix="/video", tags=["video"])
 async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
     logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
     logger.info(f"🔍 [DEBUG] include_scene_text={request.include_scene_text}, scene_text_font={request.scene_text_font}")
+    logger.info(f"🎤 [DEBUG] voice_preset_id={request.voice_preset_id}, voice_design_prompt={request.voice_design_prompt}, tts_engine={request.tts_engine}")
     res = await create_video_task(request)
     video_url = res.get("video_url")
 
@@ -219,3 +220,60 @@ async def extract_caption(request: dict):
         # Fallback: simple truncation
         fallback = text[:60].rstrip()
         return {"caption": fallback, "fallback": True}
+
+
+@router.post("/extract-hashtags")
+async def extract_hashtags(request: dict):
+    """Extract 3 hashtag keywords from topic text using LLM.
+
+    Accepts:
+        - text: str (topic text to extract keywords from)
+
+    Returns:
+        - caption: str (e.g. "#키워드1 #키워드2 #키워드3")
+    """
+    from config import GEMINI_TEXT_MODEL, gemini_client
+
+    text = request.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini API not configured")
+
+    try:
+        prompt = f"""다음 주제에서 핵심 키워드 3개를 해시태그로 추출하세요.
+
+규칙:
+- 정확히 3개의 해시태그
+- 각 키워드는 한글 기준 5자 이내 (# 제외)
+- 형식: #키워드1 #키워드2 #키워드3
+- 해시태그만 출력 (설명이나 따옴표 없이)
+
+주제:
+{text}
+
+해시태그:"""
+
+        response = gemini_client.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=prompt,
+        )
+
+        hashtags = response.text.strip()
+
+        # Remove surrounding quotes
+        for q in ('"', "'", "`"):
+            if hashtags.startswith(q) and hashtags.endswith(q):
+                hashtags = hashtags[1:-1]
+
+        # Ensure within 60 chars
+        if len(hashtags) > 60:
+            hashtags = hashtags[:60].rstrip()
+
+        logger.info(f"Hashtags extracted from topic: {hashtags}")
+        return {"caption": hashtags, "original_topic": text}
+
+    except Exception as exc:
+        logger.exception("Hashtag extraction failed")
+        return {"caption": text[:57] + "...", "fallback": True}

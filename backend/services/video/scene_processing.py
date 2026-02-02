@@ -316,8 +316,27 @@ def process_post_layout_image(
         img_path.write_bytes(image_bytes)
 
 
-def _get_preset_audio_path(voice_preset_id: int) -> Path | None:
-    """Fetch voice preset audio file path from DB, with S3 download if needed."""
+def _get_preset_voice_design(voice_preset_id: int) -> str | None:
+    """Fetch voice_design_prompt from a voice preset for VoiceDesign fallback."""
+    from database import get_db
+    from models.voice_preset import VoicePreset
+
+    db = next(get_db())
+    try:
+        preset = db.get(VoicePreset, voice_preset_id)
+        if preset and preset.voice_design_prompt:
+            logger.info(f"[TTS] Preset {voice_preset_id} voice_design_prompt: {preset.voice_design_prompt[:40]}")
+            return preset.voice_design_prompt
+        return None
+    except Exception as e:
+        logger.error(f"[TTS] Failed to get preset voice design: {e}")
+        return None
+    finally:
+        db.close()
+
+
+def _get_preset_audio_info(voice_preset_id: int) -> tuple[Path | None, str | None]:
+    """Fetch voice preset audio path and sample_text (ref_text) from DB."""
     from database import get_db
     from models.media_asset import MediaAsset
     from models.voice_preset import VoicePreset
@@ -326,17 +345,17 @@ def _get_preset_audio_path(voice_preset_id: int) -> Path | None:
     try:
         preset = db.get(VoicePreset, voice_preset_id)
         if not preset or not preset.audio_asset_id:
-            return None
+            return None, None
         asset = db.get(MediaAsset, preset.audio_asset_id)
         if not asset:
-            return None
+            return None, None
         local = Path(asset.local_path)
         if local.exists():
-            return local
-        return None
+            return local, preset.sample_text
+        return None, None
     except Exception as e:
         logger.error(f"[TTS] Failed to get preset audio path: {e}")
-        return None
+        return None, None
     finally:
         db.close()
 
@@ -345,7 +364,7 @@ async def _generate_tts_with_preset(
     raw_script: str, voice_preset_id: int, tts_path: Path, language: str,
 ) -> bool:
     """Generate TTS using Base model + voice preset audio for cloning."""
-    ref_path = _get_preset_audio_path(voice_preset_id)
+    ref_path, ref_text = _get_preset_audio_info(voice_preset_id)
     if not ref_path:
         logger.warning(f"[TTS] Preset {voice_preset_id} audio not found, falling back to VoiceDesign")
         return False
@@ -361,6 +380,7 @@ async def _generate_tts_with_preset(
                 wavs, sr = model.generate_voice_clone(
                     text=raw_script,
                     ref_audio=str(ref_path),
+                    ref_text=ref_text or "",
                     language=language,
                 )
                 sf.write(str(tts_path), wavs[0], sr)
@@ -390,11 +410,14 @@ async def generate_tts(
         return False, 0.0
 
     scene_req = builder.request.scenes[i]
+    preset_voice_design: str | None = None
 
     try:
         # Voice Preset mode: Base model + cloning
         if builder.request.voice_preset_id:
             logger.info(f"TTS generation (Clone): preset={builder.request.voice_preset_id}, script={raw_script[:50]}...")
+            # Fetch preset's voice_design_prompt for fallback
+            preset_voice_design = _get_preset_voice_design(builder.request.voice_preset_id)
             success = await _generate_tts_with_preset(
                 raw_script, builder.request.voice_preset_id, tts_path, TTS_DEFAULT_LANGUAGE,
             )
@@ -405,11 +428,15 @@ async def generate_tts(
             # Fallback to VoiceDesign
             logger.warning("[TTS] Clone failed, falling back to VoiceDesign")
 
-        # VoiceDesign mode (default)
+        # VoiceDesign mode (default or fallback from preset)
         logger.info(f"TTS generation (VoiceDesign): script={raw_script[:50]}...")
         model = await get_qwen_model_async("voice_design")
 
-        voice_design = scene_req.voice_design_prompt or builder.request.voice_design_prompt
+        voice_design = (
+            scene_req.voice_design_prompt
+            or preset_voice_design
+            or builder.request.voice_design_prompt
+        )
         voice_design = _translate_voice_prompt(voice_design or "")
 
         import soundfile as sf

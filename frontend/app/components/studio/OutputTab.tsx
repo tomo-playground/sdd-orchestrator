@@ -64,8 +64,20 @@ export default function OutputTab() {
   // Auto-populate video metadata with smart defaults (only once)
   useEffect(() => {
     if (!captionInitialized.current && !videoCaption && store.topic) {
-      setOutput({ videoCaption: store.topic });
       captionInitialized.current = true;
+      // Use LLM to extract hashtag keywords from topic
+      axios
+        .post(`${API_BASE}/video/extract-hashtags`, { text: store.topic })
+        .then((res) => {
+          if (res.data.caption) {
+            setOutput({ videoCaption: res.data.caption });
+            updateStoryboardMetadata({ default_caption: res.data.caption });
+          }
+        })
+        .catch(() => {
+          // Fallback: use topic as-is if LLM fails
+          setOutput({ videoCaption: store.topic });
+        });
     }
     if (!likesInitialized.current && !videoLikesCount) {
       setOutput({ videoLikesCount: `${Math.floor(Math.random() * 50 + 10)}K` });
