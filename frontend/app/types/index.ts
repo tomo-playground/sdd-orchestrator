@@ -453,6 +453,9 @@ export type ProjectItem = {
   description: string | null;
   handle: string | null;
   avatar_url: string | null;
+  render_preset_id: number | null;
+  default_character_id: number | null;
+  default_style_profile_id: number | null;
   created_at: string | null;
 };
 
@@ -481,5 +484,15 @@ export type GroupItem = {
   name: string;
   description: string | null;
   render_preset_id: number | null;
+  default_character_id: number | null;
+  default_style_profile_id: number | null;
   render_preset: RenderPreset | null;
+};
+
+export type EffectiveConfig = {
+  render_preset_id: number | null;
+  default_character_id: number | null;
+  default_style_profile_id: number | null;
+  render_preset: RenderPreset | null;
+  sources: Record<string, string>;
 };

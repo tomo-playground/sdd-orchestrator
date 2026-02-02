@@ -26,12 +26,18 @@ class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
     handle: str | None = None
+    render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     handle: str | None = None
+    render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -40,6 +46,9 @@ class ProjectResponse(BaseModel):
     description: str | None = None
     handle: str | None = None
     avatar_url: str | None = None
+    render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -105,12 +114,16 @@ class GroupCreate(BaseModel):
     name: str
     description: str | None = None
     render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
 
 
 class GroupUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
 
 
 class GroupResponse(BaseModel):
@@ -119,10 +132,21 @@ class GroupResponse(BaseModel):
     name: str
     description: str | None = None
     render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
     render_preset: RenderPresetResponse | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EffectiveConfigResponse(BaseModel):
+    """Resolved cascading config: Project < Group < Storyboard."""
+    render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
+    render_preset: RenderPresetResponse | None = None
+    sources: dict[str, str] = {}  # field -> "project" | "group" | "storyboard"
 
 
 # ============================================================

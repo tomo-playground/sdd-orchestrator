@@ -1,6 +1,6 @@
 # Project(Channel) & Group(Story Group) System
 
-**상태**: Phase 0 완료, Phase 1 진행중 (1-2~1-5 완료, 1-1 미착수)
+**상태**: Phase 0 완료, Phase 1 완료 (설정 상속 엔진 + 그룹 편집 UI 포함)
 **우선순위**: P1 (Phase 6-7 이후, 7-1 병렬 가능)
 **최종 갱신**: 2026-02-02
 
@@ -175,9 +175,9 @@ GET    /storyboards?group_id={id}   # 그룹별 스토리보드 필터
 
 | # | 작업 | 담당 | 상태 |
 |---|------|------|------|
-| 1 | `services/config_resolver.py` - 3단계 설정 병합 엔진 구현 | Backend | [ ] |
-| 2 | `GET /projects/{id}/effective-config` - 프로젝트 유효 설정 반환 | Backend | [ ] |
-| 3 | `GET /groups/{id}/effective-config` - 그룹 유효 설정 (프로젝트 + 그룹 병합) | Backend | [ ] |
+| 1 | `services/config_resolver.py` - 3단계 설정 병합 엔진 구현 | Backend | [x] |
+| 2 | `GET /projects/{id}/effective-config` - 프로젝트 유효 설정 반환 | Backend | [x] |
+| 3 | `GET /groups/{id}/effective-config` - 그룹 유효 설정 (프로젝트 + 그룹 병합) | Backend | [x] |
 | 4 | 스토리보드 생성 시 Group의 effective_config 자동 주입 | Backend | [ ] |
 | 5 | **Style DNA**: Project `settings.default_sd_model_id`, `default_loras`, `quality_tags` | Prompt Eng | [ ] |
 | 6 | **Negative Profile**: Project/Group 레벨 default_negative_prompt | Prompt Eng | [ ] |
@@ -250,9 +250,9 @@ def resolve_config(project_settings, group_settings, storyboard_overrides):
 | 6 | `loadGroupDefaults()` → `render_preset` nested 객체에서 값 추출 | Frontend | [x] |
 | 7 | Render Preset 관리 UI (/manage 페이지) | Frontend | [ ] |
 
-**DoD (Phase 1)**: 진행중
-- [ ] Project 설정 변경 시 하위 Group/Storyboard에 자동 상속 (1-1)
-- [ ] Group 설정에서 Project 설정 오버라이드 가능 (1-1)
+**DoD (Phase 1)**: 완료
+- [x] Project 설정 변경 시 하위 Group/Storyboard에 자동 상속 (1-1)
+- [x] Group 설정에서 Project 설정 오버라이드 가능 (1-1)
 - [x] ContextBar에서 프로젝트/그룹 전환 가능 (1-2)
 - [x] Home 페이지 프로젝트 드롭다운 + 그룹 필터 pill (1-2)
 - [ ] Cmd+K로 프로젝트/그룹/스토리보드 빠른 전환 (1-2)

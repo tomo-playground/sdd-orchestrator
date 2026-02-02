@@ -1,16 +1,19 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
-import type { GroupItem } from "../../types";
+import type { EffectiveConfig, GroupItem } from "../../types";
 
 /**
- * Load group render defaults from nested render_preset and apply to output slice.
+ * Load effective config (cascading: Project < Group) and apply to output slice.
  * Called on initial load or when the active group changes.
  */
 export async function loadGroupDefaults(groupId: number): Promise<void> {
   try {
-    const res = await axios.get(`${API_BASE}/groups/${groupId}`);
-    const p = res.data.render_preset;
+    const res = await axios.get<EffectiveConfig>(
+      `${API_BASE}/groups/${groupId}/effective-config`,
+    );
+    const cfg = res.data;
+    const p = cfg.render_preset;
     if (!p) return;
 
     const updates: Record<string, unknown> = {};
@@ -30,7 +33,7 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
       useStudioStore.getState().setOutput(updates);
     }
   } catch {
-    // Group defaults are optional; silently ignore failures
+    // Effective config is optional; silently ignore failures
   }
 }
 

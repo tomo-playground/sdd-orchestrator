@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.group import Group
-from schemas import GroupCreate, GroupResponse, GroupUpdate
+from schemas import EffectiveConfigResponse, GroupCreate, GroupResponse, GroupUpdate
+from services.config_resolver import resolve_effective_config
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -48,6 +49,28 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(group)
     return group
+
+
+@router.get("/{group_id}/effective-config", response_model=EffectiveConfigResponse)
+def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
+    group = (
+        db.query(Group)
+        .options(joinedload(Group.render_preset), joinedload(Group.project))
+        .filter(Group.id == group_id)
+        .first()
+    )
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    result = resolve_effective_config(group.project, group)
+    # Resolve the actual render_preset object from whichever level provided the id
+    preset = group.render_preset or getattr(group.project, "render_preset", None)
+    return EffectiveConfigResponse(
+        render_preset_id=result["values"].get("render_preset_id"),
+        default_character_id=result["values"].get("default_character_id"),
+        default_style_profile_id=result["values"].get("default_style_profile_id"),
+        render_preset=preset,
+        sources=result["sources"],
+    )
 
 
 @router.delete("/{group_id}")

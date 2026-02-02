@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
 import { API_BASE } from "./constants";
 import type { Character, Tag, LoRA } from "./types";
 import { useCharacters } from "./hooks/useCharacters";
+import { useProjectGroups } from "./hooks/useProjectGroups";
+import { ProjectDropdown, ProjectFormModal, GroupFormModal } from "./components/context";
+import { createProject } from "./store/actions/projectActions";
+import { createGroup, updateGroup } from "./store/actions/groupActions";
 import CharacterEditModal from "./components/shared/CharacterEditModal";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 import Toast from "./components/ui/Toast";
 import Footer from "./components/ui/Footer";
 import ImagePreviewModal from "./components/ui/ImagePreviewModal";
+import Popover from "./components/ui/Popover";
 
 type HomeTab = "storyboards" | "characters";
 
@@ -29,13 +34,22 @@ export default function Home() {
   const router = useRouter();
   const [tab, setTab] = useState<HomeTab>("storyboards");
 
+  // Project & Group context
+  const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
+  const [filterGroupId, setFilterGroupId] = useState<number | null>(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<(typeof groups)[number] | null>(null);
+  const [showGroupPicker, setShowGroupPicker] = useState(false);
+  const newSbBtnRef = useRef<HTMLButtonElement>(null);
+
   // Storyboard list
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
   const [sbLoading, setSbLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Characters
-  const { characters, reload: refreshCharacters } = useCharacters();
+  // Characters (scoped to current project)
+  const { characters, reload: refreshCharacters } = useCharacters(projectId);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [allLoras, setAllLoras] = useState<LoRA[]>([]);
   const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
@@ -47,11 +61,20 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Fetch storyboards
+  // Reset group filter when project changes
   useEffect(() => {
+    setFilterGroupId(null);
+  }, [projectId]);
+
+  // Fetch storyboards (filtered by project + optional group)
+  useEffect(() => {
+    if (projectId === null) return;
     async function load() {
+      setSbLoading(true);
       try {
-        const res = await axios.get(`${API_BASE}/storyboards`);
+        const params: Record<string, unknown> = { project_id: projectId };
+        if (filterGroupId) params.group_id = filterGroupId;
+        const res = await axios.get(`${API_BASE}/storyboards`, { params });
         setStoryboards(res.data);
       } catch {
         showToast("Failed to load storyboards", "error");
@@ -60,7 +83,7 @@ export default function Home() {
       }
     }
     load();
-  }, [showToast]);
+  }, [showToast, projectId, filterGroupId]);
 
   // Fetch tags & loras for character modal
   useEffect(() => {
@@ -86,7 +109,7 @@ export default function Home() {
     if (id) {
       await axios.put(`${API_BASE}/characters/${id}`, data);
     } else {
-      await axios.post(`${API_BASE}/characters`, data);
+      await axios.post(`${API_BASE}/characters`, { ...data, project_id: projectId });
     }
     refreshCharacters();
   };
@@ -107,17 +130,52 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <h1 className="text-lg font-bold tracking-tight text-zinc-900">
-            Shorts Producer
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold tracking-tight text-zinc-900">
+              Shorts Producer
+            </h1>
+            <span className="text-zinc-300">/</span>
+            <ProjectDropdown
+              projects={projects}
+              currentId={projectId}
+              onSelect={selectProject}
+              onNew={() => setShowProjectModal(true)}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <button
+              ref={newSbBtnRef}
               data-testid="new-storyboard-btn"
-              onClick={() => router.push("/studio?new=true")}
+              onClick={() => {
+                if (groups.length === 0) {
+                  setShowGroupModal(true);
+                } else if (filterGroupId || groups.length === 1) {
+                  selectGroup(filterGroupId ?? groups[0].id);
+                  router.push("/studio?new=true");
+                } else {
+                  setShowGroupPicker(true);
+                }
+              }}
               className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition"
             >
               + New Storyboard
             </button>
+            <Popover anchorRef={newSbBtnRef} open={showGroupPicker} onClose={() => setShowGroupPicker(false)}>
+              <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Select Group</p>
+              {groups.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => {
+                    selectGroup(g.id);
+                    setShowGroupPicker(false);
+                    router.push("/studio?new=true");
+                  }}
+                  className="flex w-full items-center px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50 transition"
+                >
+                  {g.name}
+                </button>
+              ))}
+            </Popover>
             <button
               data-testid="manage-link"
               onClick={() => router.push("/manage")}
@@ -152,6 +210,51 @@ export default function Home() {
       <main className="mx-auto max-w-5xl px-6 py-6">
         {tab === "storyboards" && (
           <section>
+            {/* Group filter pills */}
+            <div className="mb-4 flex items-center gap-1.5 overflow-x-auto">
+              {groups.length > 0 && (
+                <button
+                  onClick={() => setFilterGroupId(null)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition ${
+                    filterGroupId === null
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  }`}
+                >
+                  All
+                </button>
+              )}
+              {groups.map((g) => (
+                <span key={g.id} className="group/pill relative shrink-0">
+                  <button
+                    onClick={() => { setFilterGroupId(g.id); selectGroup(g.id); }}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                      filterGroupId === g.id
+                        ? "bg-zinc-900 text-white"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
+                  >
+                    {g.name}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingGroup(g); }}
+                    className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[8px] text-zinc-500 hover:bg-zinc-300 hover:text-zinc-700 group-hover/pill:flex"
+                    title="Edit group"
+                  >
+                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+              <button
+                onClick={() => setShowGroupModal(true)}
+                className="shrink-0 rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition"
+              >
+                + New Group
+              </button>
+            </div>
+
             {sbLoading ? (
               <div className="flex justify-center py-12">
                 <LoadingSpinner size="md" />
@@ -289,6 +392,47 @@ export default function Home() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
+
+      {/* Project Create Modal */}
+      {showProjectModal && (
+        <ProjectFormModal
+          onSave={async (data) => {
+            const p = await createProject(data);
+            if (p) selectProject(p.id);
+          }}
+          onClose={() => setShowProjectModal(false)}
+        />
+      )}
+
+      {/* Group Create Modal */}
+      {showGroupModal && projectId && (
+        <GroupFormModal
+          projectId={projectId}
+          onSave={async (data) => {
+            const g = await createGroup(data as Parameters<typeof createGroup>[0]);
+            if (g) {
+              selectGroup(g.id);
+              // 그룹 없어서 모달 띄운 경우 → 생성 후 studio로 이동
+              if (groups.length === 0) {
+                router.push("/studio?new=true");
+              }
+            }
+          }}
+          onClose={() => setShowGroupModal(false)}
+        />
+      )}
+
+      {/* Group Edit Modal */}
+      {editingGroup && projectId && (
+        <GroupFormModal
+          group={editingGroup}
+          projectId={projectId}
+          onSave={async (data) => {
+            await updateGroup(editingGroup.id, data);
+          }}
+          onClose={() => setEditingGroup(null)}
+        />
+      )}
     </div>
   );
 }

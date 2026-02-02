@@ -10,6 +10,8 @@ from models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from models.group import Group
     from models.media_asset import MediaAsset
+    from models.render_preset import RenderPreset
+    from models.sd_model import StyleProfile
 
 
 class Project(Base, TimestampMixin):
@@ -37,6 +39,19 @@ class Project(Base, TimestampMixin):
     # Metadata for the channel/project
     handle: Mapped[str | None] = mapped_column(String(100)) # e.g. @MyChannel
 
+    # Cascading config defaults
+    render_preset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("render_presets.id", ondelete="SET NULL"),
+    )
+    default_character_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("characters.id", ondelete="SET NULL"),
+    )
+    default_style_profile_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("style_profiles.id", ondelete="SET NULL"),
+    )
+
     # Relationships
     groups: Mapped[list[Group]] = relationship("Group", back_populates="project", cascade="all, delete-orphan")
-    # media_assets relationship removed (Generic Relationship now)
+    render_preset: Mapped[RenderPreset | None] = relationship("RenderPreset", foreign_keys=[render_preset_id], lazy="joined")
+    default_character: Mapped[object | None] = relationship("Character", foreign_keys=[default_character_id])
+    default_style_profile: Mapped[StyleProfile | None] = relationship("StyleProfile", foreign_keys=[default_style_profile_id])

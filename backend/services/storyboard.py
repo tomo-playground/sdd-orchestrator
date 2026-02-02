@@ -344,11 +344,31 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     safe_title = truncate_title(request.title)
     logger.info("\U0001f4be [Storyboard Save] %s (truncated from %d chars)", safe_title, len(request.title))
 
+    if not request.group_id:
+        raise HTTPException(status_code=400, detail="group_id is required")
+
+    # Auto-inject defaults from cascading config if not explicitly set
+    char_id = request.default_character_id
+    style_id = request.default_style_profile_id
+    if char_id is None or style_id is None:
+        from models.group import Group
+        from services.config_resolver import resolve_effective_config
+        group = db.query(Group).options(
+            joinedload(Group.project),
+        ).filter(Group.id == request.group_id).first()
+        if group:
+            cfg = resolve_effective_config(group.project, group)
+            if char_id is None:
+                char_id = cfg["values"].get("default_character_id")
+            if style_id is None:
+                style_id = cfg["values"].get("default_style_profile_id")
+
     db_storyboard = Storyboard(
         title=safe_title,
         description=request.description,
-        default_character_id=request.default_character_id,
-        default_style_profile_id=request.default_style_profile_id,
+        group_id=request.group_id,
+        default_character_id=char_id,
+        default_style_profile_id=style_id,
         default_caption=request.default_caption,
     )
     db.add(db_storyboard)
@@ -368,11 +388,24 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     }
 
 
-def list_storyboards_from_db(db: Session) -> list[dict]:
+def list_storyboards_from_db(
+    db: Session, group_id: int | None = None, project_id: int | None = None,
+) -> list[dict]:
     """List all storyboards with scene/image counts."""
-    storyboards = db.query(Storyboard).options(
+    from models.group import Group
+
+    query = db.query(Storyboard).options(
         joinedload(Storyboard.scenes).joinedload(Scene.image_asset)
-    ).all()
+    )
+    if group_id is not None:
+        query = query.filter(Storyboard.group_id == group_id)
+    elif project_id is not None:
+        group_ids = [g.id for g in db.query(Group.id).filter(Group.project_id == project_id).all()]
+        if group_ids:
+            query = query.filter(Storyboard.group_id.in_(group_ids))
+        else:
+            return []
+    storyboards = query.all()
 
     result = []
     for s in storyboards:
@@ -441,6 +474,8 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
     storyboard.title = safe_title
     storyboard.description = request.description
+    if request.group_id is not None:
+        storyboard.group_id = request.group_id
     storyboard.default_character_id = request.default_character_id
     storyboard.default_style_profile_id = request.default_style_profile_id
     storyboard.default_caption = request.default_caption

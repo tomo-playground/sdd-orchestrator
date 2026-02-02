@@ -22,6 +22,7 @@ class TestStoryboardRouter:
         request_data = {
             "title": "Test Storyboard",
             "description": "Test description",
+            "group_id": 1,
             "scenes": []
         }
 
@@ -47,6 +48,7 @@ class TestStoryboardRouter:
         request_data = {
             "title": "Storyboard with Scenes",
             "description": "Test",
+            "group_id": 1,
             "scenes": [
                 {
                     "scene_id": 0,
@@ -92,7 +94,8 @@ class TestStoryboardRouter:
         # Create test storyboard
         storyboard = Storyboard(
             title="Get Test",
-            description="Test description"
+            description="Test description",
+            group_id=1,
         )
         db_session.add(storyboard)
         db_session.commit()
@@ -112,7 +115,8 @@ class TestStoryboardRouter:
         # Create test storyboard
         storyboard = Storyboard(
             title="Original Title",
-            description="Original description"
+            description="Original description",
+            group_id=1,
         )
         db_session.add(storyboard)
         db_session.commit()
@@ -153,7 +157,8 @@ class TestStoryboardRouter:
         # Create test storyboard
         storyboard = Storyboard(
             title="To Delete",
-            description="Test"
+            description="Test",
+            group_id=1,
         )
         db_session.add(storyboard)
         db_session.commit()
@@ -178,8 +183,8 @@ class TestStoryboardRouter:
     def test_list_storyboards_with_data(self, client: TestClient, db_session):
         """List storyboards shows correct counts."""
         # Create test storyboards
-        sb1 = Storyboard(title="Storyboard 1", description="Test 1")
-        sb2 = Storyboard(title="Storyboard 2", description="Test 2")
+        sb1 = Storyboard(title="Storyboard 1", description="Test 1", group_id=1)
+        sb2 = Storyboard(title="Storyboard 2", description="Test 2", group_id=1)
         db_session.add_all([sb1, sb2])
         db_session.commit()
 
@@ -208,6 +213,7 @@ class TestStoryboardRouter:
         request_data = {
             "title": long_title,
             "description": "Test",
+            "group_id": 1,
             "scenes": []
         }
 
