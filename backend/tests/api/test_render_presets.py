@@ -89,16 +89,17 @@ def test_update_render_preset_not_found(client: TestClient):
     assert res.status_code == 404
 
 
-def test_update_system_preset_blocked(client: TestClient, db_session):
-    """System presets (is_system=True) cannot be modified via API."""
+def test_update_system_preset_allowed(client: TestClient, db_session):
+    """System presets (is_system=True) can be modified via API."""
     from models.render_preset import RenderPreset
     preset = RenderPreset(name="System One", is_system=True, layout_style="post")
     db_session.add(preset)
     db_session.commit()
     db_session.refresh(preset)
 
-    res = client.put(f"/render-presets/{preset.id}", json={"name": "Hacked"})
-    assert res.status_code == 403
+    res = client.put(f"/render-presets/{preset.id}", json={"name": "Updated System"})
+    assert res.status_code == 200
+    assert res.json()["name"] == "Updated System"
 
 
 # --- Delete ---
@@ -119,16 +120,17 @@ def test_delete_render_preset_not_found(client: TestClient):
     assert res.status_code == 404
 
 
-def test_delete_system_preset_blocked(client: TestClient, db_session):
-    """System presets cannot be deleted."""
+def test_delete_system_preset_allowed(client: TestClient, db_session):
+    """System presets can be deleted."""
     from models.render_preset import RenderPreset
-    preset = RenderPreset(name="Protected", is_system=True)
+    preset = RenderPreset(name="Deletable System", is_system=True)
     db_session.add(preset)
     db_session.commit()
     db_session.refresh(preset)
 
     res = client.delete(f"/render-presets/{preset.id}")
-    assert res.status_code == 403
+    assert res.status_code == 200
+    assert res.json()["status"] == "deleted"
 
 
 # --- Group + Preset Integration ---

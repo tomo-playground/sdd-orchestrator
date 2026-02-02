@@ -51,8 +51,6 @@ def update_render_preset(
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Render preset not found")
-    if preset.is_system:
-        raise HTTPException(status_code=403, detail="Cannot modify system preset")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(preset, key, value)
     db.commit()
@@ -65,8 +63,6 @@ def delete_render_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Render preset not found")
-    if preset.is_system:
-        raise HTTPException(status_code=403, detail="Cannot delete system preset")
     db.delete(preset)
     db.commit()
     return {"status": "deleted", "id": preset_id}

@@ -150,22 +150,20 @@ export default function RenderPresetsTab() {
                   .join(" / ")}
               </div>
             </div>
-            {!p.is_system && (
-              <div className="flex items-center gap-2 ml-3">
-                <button
-                  onClick={() => handleEdit(p)}
-                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 transition"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(p)}
-                  className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 hover:bg-red-50 transition"
-                >
-                  Del
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 ml-3">
+              <button
+                onClick={() => handleEdit(p)}
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 transition"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(p)}
+                className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 hover:bg-red-50 transition"
+              >
+                Del
+              </button>
+            </div>
           </div>
         ))}
         {presets.length === 0 && (
