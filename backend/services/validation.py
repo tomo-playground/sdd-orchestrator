@@ -13,7 +13,7 @@ from fastapi import HTTPException
 from PIL import Image
 from sqlalchemy.orm import Session
 
-from config import WD14_MODEL_DIR, WD14_THRESHOLD, logger
+from config import WD14_MODEL_DIR, WD14_THRESHOLD, WD14_UNMATCHABLE_TAGS, logger
 from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 from services.keywords import normalize_prompt_token
@@ -125,46 +125,103 @@ def cache_key_for_validation(image_bytes: bytes, prompt: str) -> str:
     digest.update(prompt.encode("utf-8"))
     return digest.hexdigest()
 
+def _is_composite_match(prompt_token: str, tag_set: set[str]) -> bool:
+    """Check if a compound prompt token partially matches any detected tag.
+
+    Example: prompt has ``blue_shirt`` but WD14 only detected ``shirt``
+    → suffix ``shirt`` is in tag_set → partial match.
+    """
+    parts = prompt_token.split("_")
+    if len(parts) < 2:
+        return False
+    for i in range(1, len(parts)):
+        suffix = "_".join(parts[i:])
+        if suffix in tag_set:
+            return True
+    return False
+
+
+def _build_synonym_set(token: str) -> set[str]:
+    """Return the set of synonyms for *token* using TagAliasCache."""
+    from services.keywords.db_cache import TagAliasCache
+
+    synonyms = {token}
+    replacement = TagAliasCache.get_replacement(token)
+    if replacement is not ... and replacement is not None:
+        synonyms.add(replacement)
+    # Reverse lookup: find source tags that map to this token
+    for source, target in TagAliasCache._cache.items():
+        if target == token:
+            synonyms.add(source)
+    return synonyms
+
+
 def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compare prompt tokens against WD14-detected tags.
+
+    Returns dict with matched, partial_matched, missing, extra, skipped lists.
+    """
     from services.prompt import split_prompt_tokens
 
-    # Tokens to skip during comparison (abstract, quality, or lighting tags)
-    SKIP_KEYWORDS = {
-        "masterpiece", "best_quality", "high_quality", "normal_quality", "worst_quality",
-        "absurdres", "incredibly_absurdres", "soft_lighting", "natural_light", "natural_lighting",
-        "dramatic_lighting", "volumetric_lighting", "beautiful_lighting", "peaceful",
-        "romantic", "mysterious", "morning", "night", "dawn", "dusk", "evening"
-    }
-
     tokens = [normalize_prompt_token(t) for t in split_prompt_tokens(prompt)]
-    # Filter out empty tokens and skip keywords
-    tokens = [t for t in tokens if t and t not in SKIP_KEYWORDS]
+    tokens = [t for t in tokens if t]
 
     if not tokens:
-        return {"matched": [], "missing": [], "extra": []}
+        return {
+            "matched": [], "missing": [], "extra": [],
+            "skipped": [], "partial_matched": [],
+        }
 
-    # Normalize prediction tags for comparison
     tag_set = {normalize_prompt_token(item["tag"]) for item in tags}
 
-    matched = []
-    missing = []
+    matched: list[str] = []
+    partial_matched: list[str] = []
+    missing: list[str] = []
+    skipped: list[str] = []
 
     for t in tokens:
-        # Exact match or substring match (e.g. "hair" matches "blue_hair")
-        if t in tag_set or any(t in tag for tag in tag_set):
+        # 0) WD14 unmatchable → skip (not counted in match_rate)
+        if t in WD14_UNMATCHABLE_TAGS:
+            skipped.append(t)
+            continue
+
+        # 1) Exact match
+        if t in tag_set:
             matched.append(t)
-        else:
-            missing.append(t)
+            continue
 
-    extra = []
-    for item in tags[:20]:
+        # 2) Synonym match (via TagAliasCache)
+        synonyms = _build_synonym_set(t)
+        if synonyms & tag_set:
+            matched.append(t)
+            continue
+
+        # 3) Composite / suffix match
+        if _is_composite_match(t, tag_set):
+            partial_matched.append(t)
+            continue
+
+        # 4) Not found
+        missing.append(t)
+
+    # EXTRA: high-confidence WD14 tags not accounted for by prompt
+    matched_set = set(matched) | set(partial_matched)
+    extra: list[str] = []
+    for item in tags:
+        if item["score"] < 0.5:
+            continue
         name = normalize_prompt_token(item["tag"])
-        if name and name not in SKIP_KEYWORDS and name not in matched:
-            # Check if it was part of a matched token (reverse substring)
-            if not any(name in m for m in matched):
-                extra.append(item["tag"])
+        if not name or name in WD14_UNMATCHABLE_TAGS or name in matched_set:
+            continue
+        extra.append(item["tag"])
 
-    return {"matched": matched, "missing": missing, "extra": extra}
+    return {
+        "matched": matched,
+        "missing": missing,
+        "extra": extra,
+        "skipped": skipped,
+        "partial_matched": partial_matched,
+    }
 
 def validate_scene_image(request: SceneValidateRequest, db: Session | None = None) -> dict:
     """Validate scene image using WD14 tagger.
@@ -181,8 +238,9 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
         image = Image.open(io.BytesIO(image_bytes))
         tags = wd14_predict_tags(image, WD14_THRESHOLD)
         comparison = compare_prompt_to_tags(request.prompt or "", tags)
-        total = len(comparison["matched"]) + len(comparison["missing"])
-        match_rate = (len(comparison["matched"]) / total) if total else 0.0
+        n_matched = len(comparison["matched"]) + len(comparison["partial_matched"])
+        total = n_matched + len(comparison["missing"])
+        match_rate = (n_matched / total) if total else 0.0
 
         # Create/Update validation score in DB (if db session provided)
         if db is not None:
@@ -229,6 +287,8 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
             "matched": comparison["matched"],
             "missing": comparison["missing"],
             "extra": comparison["extra"],
+            "skipped": comparison["skipped"],
+            "partial_matched": comparison["partial_matched"],
             "tags": tags[:20],
         }
     except Exception as exc:
