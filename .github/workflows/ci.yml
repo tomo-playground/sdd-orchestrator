@@ -37,7 +37,7 @@ jobs:
       run:
         working-directory: backend
     env:
-      DATABASE_URL: "sqlite+aiosqlite:///file::memory:?cache=shared"
+      DATABASE_URL: "sqlite:///file::memory:?cache=shared"
       GEMINI_API_KEY: "test-key"
       SD_WEBUI_URL: "http://localhost:7860"
       ENVIRONMENT: "test"

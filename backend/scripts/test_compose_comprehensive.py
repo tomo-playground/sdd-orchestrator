@@ -13,13 +13,14 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import SessionLocal
-from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
 from services.prompt.prompt_composition import (
     compose_prompt_tokens,
     filter_conflicting_tokens,
     get_token_category,
 )
+
+from database import SessionLocal
+from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
 
 
 def test_category_mapping():

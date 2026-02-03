@@ -3,9 +3,10 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from services.prompt.prompt_composition import get_token_category
+
 from database import SessionLocal
 from services.keywords.db_cache import TagCategoryCache, TagRuleCache
-from services.prompt.prompt_composition import get_token_category
 
 
 def debug_filter():

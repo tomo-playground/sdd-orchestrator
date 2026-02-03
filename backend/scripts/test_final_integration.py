@@ -4,10 +4,11 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from services.prompt.prompt_validation import auto_replace_risky_tags
+
 from database import SessionLocal
 from services.keywords.core import TagFilterCache
 from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
-from services.prompt.prompt_validation import auto_replace_risky_tags
 
 
 def test_final_integration():

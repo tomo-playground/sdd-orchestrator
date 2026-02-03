@@ -1,7 +1,8 @@
 
+from services.prompt.prompt_composition import compose_prompt_string, get_token_category
+
 from database import SessionLocal
 from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache
-from services.prompt.prompt_composition import compose_prompt_string, get_token_category
 
 
 def test_composition():
