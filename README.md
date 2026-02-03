@@ -11,16 +11,16 @@ graph TD
     %% Nodes
     User([User])
     
-    subgraph Frontend [Frontend (Next.js)]
-        UI[Web UI (React)]
-        Studio[Studio /studio]
-        Manage[Management /manage]
+    subgraph Frontend ["Frontend (Next.js)"]
+        UI["Web UI (React)"]
+        Studio["Studio /studio"]
+        Manage["Management /manage"]
     end
     
-    subgraph Backend [Backend (FastAPI)]
-        API[Main API Router]
+    subgraph Backend ["Backend (FastAPI)"]
+        API["Main API Router"]
         
-        subgraph Logic [Core Logic]
+        subgraph Logic ["Core Logic"]
             Planner[Storyboard Planner (Gemini)]
             PromptEng[12-Layer Prompt Engine]
             GenImg[Image Generator (Stable Diffusion)]
