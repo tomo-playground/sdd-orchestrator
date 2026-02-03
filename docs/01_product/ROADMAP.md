@@ -149,7 +149,7 @@
 |---|------|------|------|
 | 1 | CI 파이프라인 (GitHub Actions: lint + test) | 인프라 | [ ] |
 | 2 | VRT Baseline System | 인프라 | [ ] |
-| 3 | 고아 media_assets GC 시스템 | 인프라 | [ ] |
+| 3 | 고아 media_assets GC 시스템 | 인프라 | [x] |
 | 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [ ] |
 | 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [ ] |
 | 6 | Frontend Trash 탭 (Manage) | Soft Delete | [ ] |
@@ -178,10 +178,10 @@
 | 6 | Render Preset에 `voice_preset_id` FK 연동 | DB | [x] |
 
 **6-8 세부 완료 항목**:
-- `voice_presets` 테이블: 생성/업로드 음성 프리셋 관리 (source_type: generated/uploaded)
-- `render_presets`에 TTS 설정 통합: `tts_engine`, `voice_design_prompt`, `voice_ref_audio_url`, `voice_preset_id`
-- Voice Preview API (`POST /voice-presets/preview`): VoiceDesign 모델 실시간 미리듣기
-- Voice Upload API (`POST /voice-presets/upload`): 커스텀 음성 파일 업로드 + MediaAsset 연동
+- `voice_presets` 테이블: VoiceDesign 전용 (Clone/Upload 제거, `voice_seed` 추가)
+- `render_presets`에 TTS 설정 통합: `tts_engine`, `voice_design_prompt`, `voice_preset_id`
+- Voice Preview API (`POST /voice-presets/preview`): seed 기반 재현성 보장
+- TTS 캐시 시스템 (`TTS_CACHE_DIR`) + timeout 설정
 - Caption 해시태그 추출 기능 추가
 
 ---
@@ -203,6 +203,9 @@
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
 | 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [x] |
 | 10 | Automated Evaluation Runner | 품질 | - | [ ] |
+| 11 | Studio UI Polish (Video탭 통합, Global 접기, Save 이동, 캐릭터 프리뷰 확대) | UX | - | [x] |
+| 12 | 씬 텍스트 하단 배치 + 드롭섀도우 + Color Grade | 영상 품질 | - | [x] |
+| 13 | Gemini 스크립트 길이 제한 강화 (30자/Korean) | 품질 | - | [x] |
 
 ---
 
@@ -283,4 +286,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7 #12: WD14 Validate 매칭 정확도 개선 **완료**
 - Phase 7-2: Phase 1.5 **완료**, Phase 2 대기
-- Phase 7-1: 일부 완료 (#1 Quick Start, #9 OutputTab), 나머지 대기
+- Phase 7-1: 5/13 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이)
