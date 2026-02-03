@@ -45,7 +45,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
     setError("");
 
     try {
-      const params: any = {
+      const params: Record<string, unknown> = {
         match_rate_threshold: 0.7,
         min_occurrences: 2,
         top_n_per_category: 10,
@@ -60,9 +60,10 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
         { params }
       );
       setData(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load analytics:", err);
-      setError(err.response?.data?.detail || err.message || "Failed to load analytics data");
+      const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(axiosErr.response?.data?.detail || axiosErr.message || "Failed to load analytics data");
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +74,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
     if (storyboardId) {
       loadAnalytics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyboardId]);
 
   const categoryColors: Record<string, string> = {

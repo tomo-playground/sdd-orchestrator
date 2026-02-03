@@ -9,7 +9,6 @@ Ensures that style_loras parameter is properly handled through the full pipeline
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from main import app

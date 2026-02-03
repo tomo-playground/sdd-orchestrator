@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from models.activity_log import ActivityLog
@@ -11,12 +10,12 @@ from models.tag import Tag, TagRule
 
 def _create_log(db_session, **kwargs):
     """Helper to insert an activity log."""
-    defaults = dict(
-        storyboard_id=1,
-        scene_id=0,
-        prompt="1girl, smile",
-        status="success",
-    )
+    defaults = {
+        "storyboard_id": 1,
+        "scene_id": 0,
+        "prompt": "1girl, smile",
+        "status": "success",
+    }
     defaults.update(kwargs)
     log = ActivityLog(**defaults)
     db_session.add(log)
@@ -27,7 +26,7 @@ def _create_log(db_session, **kwargs):
 
 def _create_tag(db_session, name, **kwargs):
     """Helper to insert a tag."""
-    defaults = dict(name=name, category="general", priority=100, default_layer=0, usage_scope="ANY")
+    defaults = {"name": name, "category": "general", "priority": 100, "default_layer": 0, "usage_scope": "ANY"}
     defaults.update(kwargs)
     tag = Tag(**defaults)
     db_session.add(tag)
@@ -239,8 +238,8 @@ class TestApplyConflictRules:
 
     def test_apply_conflict_rules(self, client: TestClient, db_session):
         """Apply conflict rules from tag pairs."""
-        tag1 = _create_tag(db_session, "upper_body")
-        tag2 = _create_tag(db_session, "full_body")
+        _create_tag(db_session, "upper_body")
+        _create_tag(db_session, "full_body")
 
         resp = client.post("/activity-logs/apply-conflict-rules", json={
             "rules": [{"tag1": "upper_body", "tag2": "full_body"}],

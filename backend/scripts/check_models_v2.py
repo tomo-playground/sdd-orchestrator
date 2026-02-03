@@ -6,7 +6,7 @@ from pathlib import Path
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(backend_dir))
 
-from config import gemini_client
+from config import gemini_client  # noqa: E402
 
 
 async def check_available_models():

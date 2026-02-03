@@ -14,7 +14,8 @@ type TagAutocompleteProps = {
   disabled?: boolean;
 };
 
-type TagCategory = "character" | "copyright" | "artist" | "meta" | "scene" | "general";
+// TagCategory kept for documentation / future use
+// type TagCategory = "character" | "copyright" | "artist" | "meta" | "scene" | "general";
 
 const getTagColor = (category: string) => {
   switch (category) {

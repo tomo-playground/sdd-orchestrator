@@ -41,6 +41,7 @@ export default function SceneFilmstrip({
             style={{ width: 64, height: 64 }}
           >
             {s.image_url ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={s.image_url}
                 alt={`Scene ${idx + 1}`}

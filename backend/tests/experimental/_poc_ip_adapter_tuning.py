@@ -294,7 +294,7 @@ def main():
         size_kb = f.stat().st_size / 1024
         print(f"  {f.name:45s} {size_kb:6.0f} KB")
 
-    print(f"\n비교 포인트:")
+    print("\n비교 포인트:")
     print("  0 (baseline) vs 나머지: 배경(kitchen)이 보이는가?")
     print("  0 vs 1: IP-Adapter 없으면 어떤가?")
     print("  0 vs 2: clip → clip_face 모델 변경 효과")

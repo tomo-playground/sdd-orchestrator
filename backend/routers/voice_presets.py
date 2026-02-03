@@ -168,7 +168,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
         }
     except Exception as e:
         logger.error(f"[VoicePreset] Preview generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Preview generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Preview generation failed: {e}") from e
 
 
 @router.post("/{preset_id}/attach-preview")

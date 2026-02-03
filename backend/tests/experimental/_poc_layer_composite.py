@@ -241,8 +241,8 @@ def check_sd_connection() -> bool:
 def main():
     print("=" * 60)
     print("PoC: Layer Composite Image Generation")
-    print(f"Character: Flat Color Girl (id=8)")
-    print(f"Scene: Kitchen + surprised + holding knife")
+    print("Character: Flat Color Girl (id=8)")
+    print("Scene: Kitchen + surprised + holding knife")
     print(f"Output: {OUTPUT_DIR}/")
     print("=" * 60)
 
@@ -250,7 +250,7 @@ def main():
         sys.exit(1)
 
     # Test 1: Current single-pass approach
-    single = test_1_single_pass()
+    test_1_single_pass()
 
     # Test 2: Character layer (white background)
     char_raw = test_2_character_layer()
@@ -271,7 +271,7 @@ def main():
         sys.exit(1)
 
     # Test 5: Composite
-    composite = test_5_composite(char_nobg, bg)
+    test_5_composite(char_nobg, bg)
 
     # Test 6: Camera variants
     test_6_composite_variants(char_nobg, bg)
@@ -286,9 +286,9 @@ def main():
         print(f"  {f.name:40s} {size_kb:6.0f} KB")
     print(f"\nTotal: {len(files)} images in {OUTPUT_DIR}/")
     print("\nCompare:")
-    print(f"  1_single_pass.png     = Current method (all in one)")
-    print(f"  5_composite.png       = Layer composite (char + bg)")
-    print(f"  6_variant_*.png       = Different camera framings")
+    print("  1_single_pass.png     = Current method (all in one)")
+    print("  5_composite.png       = Layer composite (char + bg)")
+    print("  6_variant_*.png       = Different camera framings")
 
 
 if __name__ == "__main__":

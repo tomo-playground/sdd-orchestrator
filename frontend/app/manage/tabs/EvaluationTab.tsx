@@ -64,11 +64,11 @@ export default function EvaluationTab() {
     const [isEvalRunning, setIsEvalRunning] = useState(false);
     const [isEvalLoading, setIsEvalLoading] = useState(false);
     const [evalSummary, setEvalSummary] = useState<EvaluationSummary | null>(null);
-    const [evalLastBatchId, setEvalLastBatchId] = useState<string | null>(null);
+    const [evalLastBatchId] = useState<string | null>(null);
 
     useEffect(() => {
         void fetchEvalData();
-    }, []);
+    }, []);  
 
     const fetchEvalData = async () => {
         setIsEvalLoading(true);

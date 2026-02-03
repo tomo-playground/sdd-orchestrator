@@ -36,6 +36,7 @@ export default function PreviewImageSection({
       {/* Image */}
       {previewImageUrl ? (
         <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewImageUrl}
             alt="Character Preview"

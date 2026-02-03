@@ -1,8 +1,7 @@
 """Tests for storyboard management API endpoints."""
 
-from fastapi.testclient import TestClient
-
 from conftest import create_test_storyboard
+from fastapi.testclient import TestClient
 
 
 def _make_scene(scene_id: int = 0, **overrides) -> dict:

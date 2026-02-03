@@ -8,9 +8,9 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-import json
+import json  # noqa: E402
 
-import httpx
+import httpx  # noqa: E402
 
 API_BASE = "http://localhost:8000"
 

@@ -14,13 +14,13 @@ import PromptsTab from "./tabs/PromptsTab";
 import EvaluationTab from "./tabs/EvaluationTab";
 import RenderPresetsTab from "./tabs/RenderPresetsTab";
 import VoicePresetsTab from "./tabs/VoicePresetsTab";
-import type { Character, Tag, LoRA } from "../types";
+import type { Character, LoRA } from "../types";
 
 // Manage Tab keys
 type ManageTab = "assets" | "style" | "tags" | "prompts" | "evaluation" | "presets" | "voice" | "settings";
 
 export default function ManagePage() {
-  const { tags: allTags, reload: fetchTagsData } = useTags(null);
+  const { tags: allTags } = useTags(null);
 
   const [manageTab, setManageTab] = useState<ManageTab>("tags");
 
@@ -48,7 +48,7 @@ export default function ManagePage() {
     // We only need to fetch these if the modal is likely to be used, 
     // or if we want to keep ManagePage state ready.
     // For now, we fetch once on mount to ensure data availability if the modal opens.
-    void fetchLoras();
+    void fetchLoras(); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   // Handle saving a character from the modal
@@ -155,6 +155,7 @@ export default function ManagePage() {
               >
                 ✕
               </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={enlargedImage.url}
                 alt={enlargedImage.title}

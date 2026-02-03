@@ -8,8 +8,8 @@ import requests
 backend_dir = Path("/Users/tomo-mini/Workspace/shorts-producer/backend")
 sys.path.insert(0, str(backend_dir))
 
-from database import SessionLocal
-from models import Character, Tag
+from database import SessionLocal  # noqa: E402
+from models import Character, Tag  # noqa: E402
 
 
 def main():

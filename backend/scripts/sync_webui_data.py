@@ -58,9 +58,9 @@ async def fetch_loras(client, db):
         loras = response.json()
 
         count = 0
-        for l in loras:
-            name = l.get("name")
-            alias = l.get("alias")
+        for lora in loras:
+            name = lora.get("name")
+            alias = lora.get("alias")
 
             # Check if exists
             existing = db.query(LoRA).filter(LoRA.name == name).first()

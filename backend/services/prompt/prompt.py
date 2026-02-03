@@ -12,7 +12,7 @@ from fastapi import HTTPException
 
 from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, gemini_client, logger
 from schemas import PromptRewriteRequest, PromptSplitRequest
-from services.keywords import CATEGORY_PATTERNS, CATEGORY_PRIORITY
+from services.keywords import CATEGORY_PATTERNS
 from services.keywords.db_cache import TagCategoryCache
 
 

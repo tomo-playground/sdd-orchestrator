@@ -1,6 +1,6 @@
 
-import pytest
 from fastapi.testclient import TestClient
+
 from main import app
 
 client = TestClient(app)
@@ -15,14 +15,14 @@ def test_prompt_compose_repro():
         "character_id": 1,
         "loras": []
     }
-    
+
     print("\n[Test] Sending request to /prompt/compose...")
     response = client.post("/prompt/compose", json=payload)
-    
+
     if response.status_code != 200:
         print(f"\n[Test] Error Response ({response.status_code}):")
         print(response.text)
-        
+
     assert response.status_code == 200
     data = response.json()
     assert "prompt" in data

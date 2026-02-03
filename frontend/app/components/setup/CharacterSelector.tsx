@@ -27,6 +27,7 @@ function CharacterThumbnail({ src, name, size = 28 }: { src: string | null; name
     );
   }
   return (
+    /* eslint-disable-next-line @next/next/no-img-element */
     <img
       src={src}
       alt={name}

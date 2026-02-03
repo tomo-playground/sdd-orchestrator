@@ -44,8 +44,8 @@ export default function CommandPalette() {
   // Fetch storyboards when opened
   useEffect(() => {
     if (open) {
-      setQuery("");
-      setSelectedIdx(0);
+      setQuery(""); // eslint-disable-line react-hooks/set-state-in-effect
+      setSelectedIdx(0);  
       axios
         .get(`${API_BASE}/storyboards`)
         .then((r) => setStoryboards(r.data))
@@ -110,8 +110,8 @@ export default function CommandPalette() {
   );
 
   useEffect(() => {
-    setResults(buildResults(query));
-    setSelectedIdx(0);
+    setResults(buildResults(query)); // eslint-disable-line react-hooks/set-state-in-effect
+    setSelectedIdx(0);  
   }, [query, buildResults]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

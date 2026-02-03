@@ -31,6 +31,7 @@ export default function PreviewModal({ type, src, onClose }: PreviewModalProps) 
           </div>
           <div className={`mt-3 flex max-h-[80vh] w-full items-center justify-center overflow-hidden rounded-2xl ${type === "image" ? "bg-zinc-100 p-3" : "bg-black"}`}>
             {type === "image" ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={src}
                 alt="Generated scene"

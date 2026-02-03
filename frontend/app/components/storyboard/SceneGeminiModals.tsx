@@ -2,6 +2,14 @@
 
 import type { Scene } from "../../types";
 
+type GeminiSuggestion = {
+  edit_type: string;
+  issue: string;
+  description: string;
+  confidence: number;
+  target_change: string;
+};
+
 type SceneGeminiModalsProps = {
   scene: Scene;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
@@ -15,9 +23,9 @@ type SceneGeminiModalsProps = {
   // Gemini Suggestions state
   geminiSuggestionsOpen: boolean;
   setGeminiSuggestionsOpen: (open: boolean) => void;
-  geminiSuggestions: any[];
-  setGeminiSuggestions: (suggestions: any[]) => void;
-  onApproveSuggestion: (suggestion: any) => void;
+  geminiSuggestions: GeminiSuggestion[];
+  setGeminiSuggestions: (suggestions: GeminiSuggestion[]) => void;
+  onApproveSuggestion: (suggestion: GeminiSuggestion) => void;
 };
 
 export default function SceneGeminiModals({
@@ -180,9 +188,9 @@ function GeminiEditModal({
 /* ---- Gemini Suggest Modal ---- */
 
 type GeminiSuggestModalProps = {
-  geminiSuggestions: any[];
+  geminiSuggestions: GeminiSuggestion[];
   onClose: () => void;
-  onApproveSuggestion: (suggestion: any) => void;
+  onApproveSuggestion: (suggestion: GeminiSuggestion) => void;
 };
 
 function GeminiSuggestModal({
@@ -254,7 +262,7 @@ function SuggestionCard({
   suggestion,
   onApprove,
 }: {
-  suggestion: any;
+  suggestion: GeminiSuggestion;
   onApprove: () => void;
 }) {
   return (

@@ -1,5 +1,4 @@
 """Test image storage key extraction and normalization."""
-import pytest
 
 from services.validation import _extract_storage_key
 

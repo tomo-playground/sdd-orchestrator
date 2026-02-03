@@ -58,6 +58,7 @@ export default function GeminiPreviewEditModal({
           {/* Current preview */}
           {previewImageUrl && (
             <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewImageUrl} alt="Current Preview" className="h-40 w-auto rounded-xl border border-zinc-200 object-cover" />
             </div>
           )}

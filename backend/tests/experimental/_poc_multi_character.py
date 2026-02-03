@@ -319,7 +319,7 @@ def main():
         size_kb = f.stat().st_size / 1024
         print(f"  {f.name:45s} {size_kb:6.0f} KB")
 
-    print(f"\n평가 기준:")
+    print("\n평가 기준:")
     print("  1. 두 캐릭터가 모두 등장하는가?")
     print("  2. 캐릭터 간 외모 구분이 가능한가?")
     print("  3. 배경(classroom)이 보이는가?")

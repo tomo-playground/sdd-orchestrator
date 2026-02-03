@@ -8,7 +8,6 @@ from services.prompt.prompt import (
     extract_lora_names,
 )
 
-
 # ────────────────────────────────────────────
 # IP-Adapter auto-activation tests
 # ────────────────────────────────────────────
@@ -243,7 +242,6 @@ class TestComplexityAdjustment:
     def test_no_boost_simple(self):
         """Simple scene → no adjustment."""
         base_steps, base_cfg = 24, 7.0
-        complexity = "simple"
 
         final_steps, final_cfg = base_steps, base_cfg
 
@@ -253,7 +251,6 @@ class TestComplexityAdjustment:
     def test_high_base_preserved(self):
         """User-set high values are preserved (max, not override)."""
         base_steps, base_cfg = 35, 10.0
-        complexity = "complex"
 
         final_steps = max(base_steps, 28)
         final_cfg = max(base_cfg, 8.0)

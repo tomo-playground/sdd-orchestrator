@@ -19,8 +19,8 @@ def list_candidates():
 
         print("\n--- LoRAs ---")
         loras = db.query(LoRA).all()
-        for l in loras:
-            print(f"[{l.id}] {l.name} (type: {l.lora_type})")
+        for lora in loras:
+            print(f"[{lora.id}] {lora.name} (type: {lora.lora_type})")
 
     finally:
         db.close()

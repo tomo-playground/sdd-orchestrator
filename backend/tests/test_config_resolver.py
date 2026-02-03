@@ -1,6 +1,5 @@
 """Tests for cascading config resolver."""
 
-import pytest
 
 from services.config_resolver import resolve_effective_config
 
@@ -112,8 +111,8 @@ class TestEffectiveConfigAPI:
         assert data["sources"]["render_preset_id"] == "project"
 
     def test_group_overrides_project_preset(self, client, db_session):
-        from models.project import Project
         from models.group import Group
+        from models.project import Project
         from models.render_preset import RenderPreset
 
         preset_a = RenderPreset(name="Preset A", is_system=False, layout_style="post")

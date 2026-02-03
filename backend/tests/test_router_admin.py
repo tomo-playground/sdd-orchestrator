@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from models import Tag, TagRule
+from models import Tag
 
 
 class TestMigrateTagRules:

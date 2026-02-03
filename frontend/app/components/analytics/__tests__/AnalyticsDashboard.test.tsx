@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import AnalyticsDashboard from "../AnalyticsDashboard";
 import axios from "axios";
 
@@ -10,7 +10,7 @@ vi.mock("axios", () => ({
   },
 }));
 
-const mockedAxios = axios as any;
+const mockedAxios = axios as unknown as { get: ReturnType<typeof vi.fn> };
 
 describe("AnalyticsDashboard", () => {
   beforeEach(() => {

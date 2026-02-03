@@ -14,7 +14,7 @@ from models.associations import SceneCharacterAction, SceneTag
 from models.media_asset import MediaAsset
 from models.scene import Scene
 from models.storyboard import Storyboard
-from schemas import StoryboardRequest, StoryboardSave
+from schemas import StoryboardRequest, StoryboardSave, StoryboardUpdate
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure
 
@@ -594,4 +594,4 @@ def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
         traceback.print_exc(file=sys.stderr)
         logger.exception("Failed to delete storyboard %d", storyboard_id)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}") from e

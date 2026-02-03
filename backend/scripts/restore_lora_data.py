@@ -19,7 +19,7 @@ def restore_and_fix():
         if midoriya:
             # Check if LoRA exists in list
             current_loras = midoriya.loras or []
-            if not any(l.get('name') == 'mha_midoriya-10' for l in current_loras):
+            if not any(entry.get('name') == 'mha_midoriya-10' for entry in current_loras):
                 print("fixing Midoriya: adding mha_midoriya-10")
                 current_loras.append({
                     "lora_id": 9, # from list_candidates
@@ -35,7 +35,7 @@ def restore_and_fix():
         doremi = db.query(Character).filter(Character.name == "Harukaze Doremi").first()
         if doremi:
              current_loras = doremi.loras or []
-             if not any(l.get('name') == 'harukaze-doremi-casual' for l in current_loras):
+             if not any(entry.get('name') == 'harukaze-doremi-casual' for entry in current_loras):
                 print("fixing Doremi: adding harukaze-doremi-casual")
                 current_loras.append({
                     "lora_id": 7, # from list_candidates

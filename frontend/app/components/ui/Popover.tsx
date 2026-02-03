@@ -51,9 +51,11 @@ export default function Popover({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
+  /* eslint-disable react-hooks/refs -- Popover intentionally reads anchorRef position during render */
   if (!open || !anchorRef.current) return null;
 
   const rect = anchorRef.current.getBoundingClientRect();
+  /* eslint-enable react-hooks/refs */
   const style: React.CSSProperties = {
     position: "fixed",
     top: rect.bottom + 4,

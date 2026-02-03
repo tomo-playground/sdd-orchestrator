@@ -66,13 +66,13 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
 
   // Reset group filter when project changes
   useEffect(() => {
-    setFilterGroupId(null);
+    setFilterGroupId(null); // eslint-disable-line react-hooks/set-state-in-effect
   }, [projectId]);
 
   // Fetch storyboards
   useEffect(() => {
     if (projectId === null) return;
-    setSbLoading(true);
+    setSbLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
     const params: Record<string, unknown> = { project_id: projectId };
     if (filterGroupId) params.group_id = filterGroupId;
     axios
@@ -336,7 +336,7 @@ function DraftCard({ onClick }: { onClick: () => void }) {
         const data = JSON.parse(stored);
         const state = data?.state || data;
         if (state?.topic || (state?.scenes && state.scenes.length > 0)) {
-          setHasDraft(true);
+          setHasDraft(true); // eslint-disable-line react-hooks/set-state-in-effect
         }
       }
     } catch { }

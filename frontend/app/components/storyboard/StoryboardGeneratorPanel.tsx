@@ -66,9 +66,9 @@ export default function StoryboardGeneratorPanel({
       (p) => p.structure.toLowerCase() === structure.toLowerCase()
     );
     if (preset) {
-      setSampleTopics(preset.sample_topics);
+      setSampleTopics(preset.sample_topics); // eslint-disable-line react-hooks/set-state-in-effect
     } else {
-      setSampleTopics([]);
+      setSampleTopics([]);  
     }
   }, [structure, presets]);
 
@@ -91,6 +91,7 @@ export default function StoryboardGeneratorPanel({
           title="Setup에서 캐릭터 변경"
         >
           {selectedCharacterAvatar ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={selectedCharacterAvatar}
               alt={selectedCharacterName}

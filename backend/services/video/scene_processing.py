@@ -417,7 +417,7 @@ async def generate_tts(
             return True, tts_duration
 
         logger.warning("Qwen-TTS generation failed (empty file)")
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(f"[TTS] Generation timed out ({TTS_TIMEOUT_SECONDS}s) for scene {i}")
     except Exception as e:
         logger.error(f"TTS generation error (Qwen): {e}")

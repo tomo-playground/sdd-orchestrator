@@ -42,7 +42,7 @@ export default function PromptSetupPanel({
   setHiResEnabled,
   veoEnabled,
   setVeoEnabled,
-  actorAGender,
+  actorAGender: _actorAGender, // eslint-disable-line @typescript-eslint/no-unused-vars
   setActorAGender,
   basePromptA,
   setBasePromptA,

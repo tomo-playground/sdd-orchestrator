@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from models.tag import Tag
@@ -13,14 +12,14 @@ class TestTagsCRUD:
 
     def _create_tag(self, db_session, name="brown_hair", **kwargs):
         """Helper to insert a tag into the test DB."""
-        defaults = dict(
-            name=name,
-            category="appearance",
-            group_name="hair_color",
-            priority=100,
-            default_layer=2,
-            usage_scope="PERMANENT",
-        )
+        defaults = {
+            "name": name,
+            "category": "appearance",
+            "group_name": "hair_color",
+            "priority": 100,
+            "default_layer": 2,
+            "usage_scope": "PERMANENT",
+        }
         defaults.update(kwargs)
         tag = Tag(**defaults)
         db_session.add(tag)
@@ -188,7 +187,7 @@ class TestTagsClassification:
     """Test tag classification endpoints."""
 
     def _create_tag(self, db_session, name="test_tag", **kwargs):
-        defaults = dict(name=name, category="general", priority=100, default_layer=0, usage_scope="ANY")
+        defaults = {"name": name, "category": "general", "priority": 100, "default_layer": 0, "usage_scope": "ANY"}
         defaults.update(kwargs)
         tag = Tag(**defaults)
         db_session.add(tag)

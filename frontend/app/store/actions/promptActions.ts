@@ -7,6 +7,7 @@ import {
 } from "../../utils";
 import { API_BASE } from "../../constants";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function getBaseSettingsForSpeaker(_speaker: Scene["speaker"]) {
   const { baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA } =
     useStudioStore.getState();

@@ -38,9 +38,10 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
 
       const res = await axios.get<QualitySummary>(url);
       setSummary(res.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load quality summary:", err);
-      setError(err.response?.data?.detail || err.message || "Failed to load quality data");
+      const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(axiosErr.response?.data?.detail || axiosErr.message || "Failed to load quality data");
     } finally {
       setLoading(false);
     }
@@ -51,6 +52,7 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
     if (storyboardId) {
       loadSummary();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyboardId]);
 
   const getScoreBadge = (rate: number) => {

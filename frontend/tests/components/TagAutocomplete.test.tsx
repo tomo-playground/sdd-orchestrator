@@ -27,7 +27,7 @@ describe("TagAutocomplete", () => {
   });
 
   it("fetches suggestions when typing a word >= 2 chars", async () => {
-    (axios.get as any).mockResolvedValue({
+    (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: [
         { id: 1, name: "girl", category: "character", priority: 1 },
         { id: 2, name: "1girl", category: "scene", priority: 2 },
@@ -50,17 +50,10 @@ describe("TagAutocomplete", () => {
   });
 
   it("inserts selected tag into text", async () => {
-    (axios.get as any).mockResolvedValue({
+    (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: [{ id: 1, name: "smile", category: "expression" }],
     });
 
-    // Component is controlled, so we need a wrapper or mock behavior
-    // For this test, we assume standard behavior
-    const Wrapper = () => {
-      const [val, setVal] = React.useState("look at that smi");
-      return <TagAutocomplete value={val} onChange={setVal} />;
-    };
-    
     // Simple render for unit test without wrapper logic complexity
     // Start with "look at that " and type "smi" to ensure change event fires
     render(<TagAutocomplete value="look at that " onChange={mockOnChange} />);
@@ -79,4 +72,3 @@ describe("TagAutocomplete", () => {
     expect(mockOnChange).toHaveBeenCalledWith("look at that smile");
   });
 });
-import React from "react";

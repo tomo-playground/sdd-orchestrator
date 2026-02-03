@@ -245,7 +245,6 @@ function SettingRow({
 }
 
 function StepRow({
-  stepId,
   label,
   check,
   enabled,

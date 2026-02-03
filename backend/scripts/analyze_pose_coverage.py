@@ -36,11 +36,11 @@ def analyze_pose_coverage():
     # 3. Get all tags from ActivityLogs
     log_tags = []
     logs = db.query(ActivityLog).all()
-    for l in logs:
-        if l.tags_used:
-            log_tags.extend([t.lower() for t in l.tags_used])
-        if l.prompt:
-            log_tags.extend([t.strip().lower() for t in l.prompt.split(",")])
+    for log_entry in logs:
+        if log_entry.tags_used:
+            log_tags.extend([t.lower() for t in log_entry.tags_used])
+        if log_entry.prompt:
+            log_tags.extend([t.strip().lower() for t in log_entry.prompt.split(",")])
 
     all_found_tags = Counter(char_tags + scene_tags + log_tags)
 

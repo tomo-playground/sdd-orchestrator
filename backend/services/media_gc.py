@@ -9,7 +9,7 @@ Detects and cleans up orphaned MediaAsset records:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -247,7 +247,7 @@ class MediaGCService:
 
     def _detect_expired_temp(self) -> list[OrphanInfo]:
         """Find temporary assets older than TTL."""
-        cutoff = datetime.now(timezone.utc) - timedelta(
+        cutoff = datetime.now(UTC) - timedelta(
             seconds=MEDIA_ASSET_TEMP_TTL_SECONDS,
         )
 

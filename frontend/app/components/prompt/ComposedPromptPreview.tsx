@@ -131,6 +131,7 @@ export default function ComposedPromptPreview({
   const [showGrouped, setShowGrouped] = useState(true);
 
   // API-based tag classification (15.7)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { classifyTags, getCachedCategory, isLoading: isClassifying } = useTagClassifier();
   const [apiCategories, setApiCategories] = useState<Record<string, string | null>>({});
   const classifiedTokensRef = useRef<string>("");
@@ -201,7 +202,8 @@ export default function ComposedPromptPreview({
     } finally {
       setIsLoading(false);
     }
-  }, [tokens, characterId, basePrompt, contextTags, loras, mode, useBreak, onComposed]);
+     
+  }, [tokens, characterId, contextTags, useBreak, onComposed]);
 
   // Auto-compose when tokens change (debounced)
   const prevTokensRef = useRef<string>("");
@@ -221,7 +223,8 @@ export default function ComposedPromptPreview({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [tokens, loras, mode, composePrompt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens, composePrompt]);
 
   // Group tokens by category for grouped view (uses API categories when available)
   const groupedTokens = (result?.tokens || tokens).reduce(

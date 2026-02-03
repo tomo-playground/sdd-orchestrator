@@ -270,7 +270,7 @@ class VideoBuilder:
             )
             raise Exception(
                 f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds"
-            )
+            ) from None
         if result.returncode != 0:
             logger.error("FFmpeg failed: %s", result.stderr)
             raise Exception(result.stderr)
@@ -322,7 +322,7 @@ class VideoBuilder:
             shutil.rmtree(self.temp_dir)
 
 
-async def create_video_task(request: "VideoRequest") -> dict:
+async def create_video_task(request: VideoRequest) -> dict:
     """Create a video from scenes using VideoBuilder."""
     try:
         builder = VideoBuilder(request)

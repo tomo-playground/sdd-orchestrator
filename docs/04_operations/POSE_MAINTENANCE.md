@@ -46,3 +46,8 @@ python scripts/sync_poses.py
 ## 3. 유의 사항
 - **해부학적 정확도**: 레퍼런스 이미지의 관절 위치가 명확해야 ControlNet(OpenPose/Depth)이 정확하게 인식합니다.
 - **가중치 처리**: 시스템은 `(standing:1.2)`와 같은 가중치 태그를 자동으로 정규화하여 처리하므로, 매핑 키에는 가중치를 포함할 필요가 없습니다.
+
+---
+
+## 관련 가이드
+- **캐릭터 제어 전략**: 포즈 정보가 부족할 때의 IP-Adapter 활용법 등은 [Character Control Guide](CHARACTER_CONTROL_GUIDE.md)를 참조하세요.

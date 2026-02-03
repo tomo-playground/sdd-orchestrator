@@ -3,6 +3,9 @@
 ## Abstract
 Shorts Producer 시스템의 고수준 아키텍처 다이어그램 및 컴포넌트 간 상호작용 흐름을 다룹니다.
 
+- **API 명세**: [REST API Specification](../api/REST_API.md)
+- **개발 로드맵**: [Project Roadmap](../../01_product/ROADMAP.md)
+
 ## 1. Architectural Diagram
 
 시스템은 프론트엔드, 백엔드, 그리고 수동 구축되는 로컬 AI(SD WebUI)와 클라우드 AI(Gemini) 계층으로 세분화됩니다.

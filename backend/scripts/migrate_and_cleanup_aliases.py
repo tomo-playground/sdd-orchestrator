@@ -56,7 +56,7 @@ def migrate_and_cleanup():
 
                     if lora_obj:
                         # Check duplication
-                        exists = any(l.get('lora_id') == lora_obj.id for l in current_loras)
+                        exists = any(entry.get('lora_id') == lora_obj.id for entry in current_loras)
                         if not exists:
                             print(f"    -> Migrating LoRA '{lora_obj.name}' (w={weight}) to character")
                             current_loras.append({

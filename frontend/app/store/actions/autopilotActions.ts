@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Scene, AutoRunStepId } from "../../types";
+import type { AutoRunStepId } from "../../types";
 import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE, AUTO_RUN_STEPS } from "../../constants";

@@ -91,6 +91,7 @@ export default function CharactersSection({ showToast }: Props) {
                 className="group relative flex items-start gap-3 rounded-2xl border border-zinc-200/60 bg-white p-4 shadow-sm hover:shadow-md transition"
               >
                 {ch.preview_image_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={ch.preview_image_url.startsWith("http") ? ch.preview_image_url : `${API_BASE}${ch.preview_image_url}`}
                     alt={ch.name}

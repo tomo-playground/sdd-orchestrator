@@ -36,7 +36,7 @@ export function useTags(category: string | null = "scene"): UseTagsResult {
     setIsLoading(true);
     setError(null);
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (category) {
         params.category = category;
       }

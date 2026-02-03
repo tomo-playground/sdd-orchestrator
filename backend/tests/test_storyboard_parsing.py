@@ -7,10 +7,7 @@ Covers:
 
 import json
 
-import pytest
-
 from services.storyboard import normalize_scene_tags_key, strip_markdown_codeblock
-
 
 # ---------------------------------------------------------------------------
 # strip_markdown_codeblock

@@ -140,7 +140,10 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
     """
     from services.keywords.core import TagFilterCache
     from services.keywords.db_cache import (
-        LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache,
+        LoRATriggerCache,
+        TagAliasCache,
+        TagCategoryCache,
+        TagRuleCache,
     )
 
     try:

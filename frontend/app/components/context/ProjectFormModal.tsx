@@ -132,6 +132,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                         : "border-zinc-200 hover:border-zinc-400"
                     }`}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={imgUrl} alt={ch.name} className="h-full w-full object-cover object-top" />
                   </button>
                 );

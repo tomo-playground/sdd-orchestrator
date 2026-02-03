@@ -1,8 +1,8 @@
 """Tests for loras router endpoints."""
 
-import pytest
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
 
 from models import LoRA
 
@@ -180,7 +180,7 @@ class TestLoRAsRouter:
         db_session.commit()
 
         # Try to import same civitai_id
-        with patch("httpx.AsyncClient.get") as mock_get:
+        with patch("httpx.AsyncClient.get"):
             response = client.post("/loras/import-civitai/12345")
             assert response.status_code == 400
             assert "already imported" in response.json()["detail"].lower()

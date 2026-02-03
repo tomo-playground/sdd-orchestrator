@@ -79,6 +79,6 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
         db.flush()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Cannot delete project with existing groups")
+        raise HTTPException(status_code=409, detail="Cannot delete project with existing groups") from None
     db.commit()
     return {"status": "deleted", "id": project_id}

@@ -26,6 +26,7 @@ function ProjectAvatar({ project, size = "sm" }: { project: ProjectItem; size?: 
   return (
     <div className={`${dim} shrink-0 overflow-hidden rounded-full bg-zinc-100 flex items-center justify-center`}>
       {url ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img src={url} alt={project.name} className="h-full w-full object-cover" />
       ) : (
         <span className={`${textSize} font-bold text-zinc-400`}>{project.name.charAt(0)}</span>

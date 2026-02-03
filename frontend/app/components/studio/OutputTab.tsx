@@ -83,9 +83,10 @@ export default function OutputTab() {
           "success"
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Caption extraction failed:", err);
-      showToast(err.response?.data?.detail || "캡션 요약 실패", "error");
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      showToast(axiosErr.response?.data?.detail || "캡션 요약 실패", "error");
     } finally {
       setIsExtractingCaption(false);
     }

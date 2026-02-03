@@ -6,7 +6,7 @@ import { useStudioStore } from "../../store/useStudioStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import { API_BASE } from "../../constants";
-import type { Scene, AutoRunStepId } from "../../types";
+import type { Scene } from "../../types";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StyleProfileSelector from "../setup/StyleProfileSelector";
@@ -35,7 +35,6 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
   const setActiveTab = useStudioStore((s) => s.setActiveTab);
   const showToast = useStudioStore((s) => s.showToast);
   const setMeta = useStudioStore((s) => s.setMeta);
-  const storyboardId = useStudioStore((s) => s.storyboardId);
   const isRendering = useStudioStore((s) => s.isRendering);
   const referenceImages = useStudioStore((s) => s.referenceImages);
   const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);

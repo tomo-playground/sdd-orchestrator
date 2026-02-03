@@ -26,6 +26,7 @@ export default function SceneImagePanel({
           </div>
         )}
         {scene.image_url ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={scene.image_url}
             alt={`Scene ${scene.id}`}
@@ -52,6 +53,7 @@ export default function SceneImagePanel({
                   isSelected ? "border-zinc-900" : "border-zinc-200"
                 }`}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={candidate.image_url}
                   alt={`Candidate ${idx + 1}`}

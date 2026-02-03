@@ -4,10 +4,11 @@ import sys
 # Add backend to path
 sys.path.append(os.getcwd())
 
+from services.prompt.prompt_composition import filter_conflicting_tokens
+
 from database import SessionLocal
 from models.tag import Tag
 from services.prompt.prompt import normalize_tag_spaces
-from services.prompt.prompt_composition import filter_conflicting_tokens
 from services.tag_classifier import TagClassifier
 
 

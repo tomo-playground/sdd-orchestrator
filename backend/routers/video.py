@@ -61,14 +61,12 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
     """
     from models.media_asset import MediaAsset
     from models.storyboard import Storyboard
-    from services.asset_service import AssetService
     from services.storage import get_storage
 
     filename = os.path.basename(request.filename or "")
     if not filename.endswith(".mp4"):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
-    asset_service = AssetService(db)
     storage = get_storage()
 
     try:
@@ -215,7 +213,7 @@ async def extract_caption(request: dict):
         logger.info(f"📝 Caption extracted: {len(text)} chars → {len(caption)} chars")
         return {"caption": caption, "original_length": len(text)}
 
-    except Exception as exc:
+    except Exception:
         logger.exception("Caption extraction failed")
         # Fallback: simple truncation
         fallback = text[:60].rstrip()
@@ -274,6 +272,6 @@ async def extract_hashtags(request: dict):
         logger.info(f"Hashtags extracted from topic: {hashtags}")
         return {"caption": hashtags, "original_topic": text}
 
-    except Exception as exc:
+    except Exception:
         logger.exception("Hashtag extraction failed")
         return {"caption": text[:57] + "...", "fallback": True}

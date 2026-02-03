@@ -1,6 +1,6 @@
 # Shorts Factory - Actionable PRD (v3.1)
 
-이 문서는 추상적인 전략이 아닌, **현재 개발 단계에서 구현 및 검증해야 할 실질적인 요구사항**을 정의합니다.
+이 문서는 추상적인 전략이 아닌, **현재 개발 단계에서 구현 및 검증해야 할 실질적인 요구사항**을 정의합니다. 상세 아키텍처는 [System Overview](../03_engineering/architecture/SYSTEM_OVERVIEW.md)를 참조하세요.
 
 ## 1. 비즈니스 프로세스 맵 (Business Process Map)
 

@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
 from conftest import create_test_storyboard
+from fastapi.testclient import TestClient
 
 
 def test_candidates_persistence(client: TestClient):
@@ -12,7 +11,7 @@ def test_candidates_persistence(client: TestClient):
     3. Retrieve the storyboard via API.
     4. Assert that 'candidates' field in the response matches the input.
     """
-    
+
     # 1. Prepare Mock Data
     candidates_data = [
         {"image_url": "http://example.com/img1.png", "match_rate": 0.95},
@@ -45,10 +44,10 @@ def test_candidates_persistence(client: TestClient):
     scenes = get_data["scenes"]
     assert len(scenes) == 1
     retrieved_candidates = scenes[0]["candidates"]
-    
+
     assert retrieved_candidates is not None, "candidates field should not be None"
     assert len(retrieved_candidates) == 3
-    
+
     # Check content matches (ignoring order if needed, but list usually preserves order)
     # The JSONB field might return data slightly differently if not careful, but exact match expectation is fine here.
     assert retrieved_candidates == candidates_data

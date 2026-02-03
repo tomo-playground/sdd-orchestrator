@@ -11,8 +11,8 @@ from database import SessionLocal
 
 API_URL = "http://localhost:8000/scene/generate"
 
-from models.character import Character
-from services.prompt.v3_composition import V3PromptBuilder
+from models.character import Character  # noqa: E402
+from services.prompt.v3_composition import V3PromptBuilder  # noqa: E402
 
 
 def generate_with_v3_builder():

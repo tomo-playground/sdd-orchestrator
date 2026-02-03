@@ -6,7 +6,8 @@ Ensures new naming convention is used throughout:
 """
 
 import pytest
-from schemas import VideoRequest, VideoScene
+
+from schemas import VideoRequest
 
 
 class TestSceneTextNaming:

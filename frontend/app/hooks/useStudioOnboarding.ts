@@ -55,7 +55,7 @@ export function useStudioOnboarding({
         "style_onboarding_done"
       );
       if (!styleOnboardingDone) {
-        setShowStyleProfileModal(true);
+        setShowStyleProfileModal(true); // eslint-disable-line react-hooks/set-state-in-effect
         sessionStorage.setItem("style_onboarding_done", "true");
       }
     }
@@ -80,7 +80,7 @@ export function useStudioOnboarding({
     }
 
     // No cascade default — show modal
-    setShowStyleProfileModal(true);
+    setShowStyleProfileModal(true); // eslint-disable-line react-hooks/set-state-in-effect
   }, [needsStyleProfile, isLoadingDb, effectiveConfigLoaded, effectiveStyleProfileId]);
 
   // Keyboard shortcuts

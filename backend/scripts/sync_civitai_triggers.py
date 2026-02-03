@@ -1,3 +1,4 @@
+import argparse
 import time
 
 import requests
@@ -40,8 +41,6 @@ def search_civitai_model(query: str):
     except Exception as e:
         print(f"❌ Error searching Civitai for '{query}': {e}")
         return None
-
-import argparse
 
 
 def sync_triggers(dry_run: bool = False):

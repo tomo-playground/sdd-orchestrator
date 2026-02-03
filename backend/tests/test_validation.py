@@ -133,7 +133,10 @@ class TestComparePromptToTags:
         assert "red_eyes" in result["matched"]
 
     def test_substring_matching(self):
-        """Should match partial strings (e.g., 'hair' in 'blue hair')."""
+        """Composite match only works for compound prompt tokens (e.g., 'blue_shirt' -> 'shirt').
+
+        Simple tokens like 'hair' do NOT reverse-match compound tags like 'blue_hair'.
+        """
         prompt = "1girl, hair, eyes"
         tags = [
             {"tag": "1girl", "score": 0.95, "category": "0"},
@@ -143,9 +146,10 @@ class TestComparePromptToTags:
 
         result = compare_prompt_to_tags(prompt, tags)
 
-        # "hair" should match "blue_hair"
-        assert "hair" in result["matched"]
-        assert "eyes" in result["matched"]
+        # "hair" and "eyes" are simple tokens; they don't match compound tags
+        assert "1girl" in result["matched"]
+        assert "hair" in result["missing"]
+        assert "eyes" in result["missing"]
 
     def test_empty_prompt(self):
         """Should handle empty prompt gracefully."""
@@ -205,8 +209,8 @@ class TestComparePromptToTags:
         assert "1girl" in result["matched"]
         assert "blue_hair" in result["matched"]
 
-    def test_extra_tags_limit(self):
-        """Should limit extra tags to top 20."""
+    def test_extra_tags_all_returned(self):
+        """Extra tags include all unmatched tags with score >= 0.5."""
         prompt = "1girl"
         tags = [
             {"tag": "1girl", "score": 0.95, "category": "0"},
@@ -215,8 +219,8 @@ class TestComparePromptToTags:
 
         result = compare_prompt_to_tags(prompt, tags)
 
-        # Should only include top 20 extra tags
-        assert len(result["extra"]) <= 20
+        # All 30 extra tags have score >= 0.5, so all are returned
+        assert len(result["extra"]) == 30
 
     def test_complex_scenario(self):
         """Should handle complex real-world scenario."""

@@ -22,12 +22,13 @@ export default function PromptsTab() {
 
     useEffect(() => {
         void fetchPromptHistories();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [promptsFilter, promptsSort, promptsCharacterFilter]);
 
     const fetchPromptHistories = async () => {
         setIsPromptsLoading(true);
         try {
-            const params: Record<string, any> = {
+            const params: Record<string, unknown> = {
                 sort_by: promptsSort,
                 favorites_only: promptsFilter === "favorites",
                 query: promptsSearch,

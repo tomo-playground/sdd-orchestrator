@@ -1,6 +1,5 @@
 """Tests for style_profiles router endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from models import StyleProfile

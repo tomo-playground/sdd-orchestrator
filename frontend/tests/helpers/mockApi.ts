@@ -54,6 +54,7 @@ export async function mockStudioApis(page: Page) {
   // Storyboard list
   await page.route("**/storyboards", (route) => {
     if (route.request().method() === "GET") {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       return route.fulfill({ json: MOCK_STORYBOARDS.map(({ scenes: _s, ...rest }) => rest) });
     }
     return route.continue();

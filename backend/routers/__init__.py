@@ -14,10 +14,10 @@ from .keywords import router as keywords_router
 from .loras import router as loras_router
 from .presets import router as presets_router
 from .projects import router as projects_router
-from .render_presets import router as render_presets_router
 from .prompt import router as prompt_router
 from .prompt_histories import router as prompt_histories_router
 from .quality import router as quality_router
+from .render_presets import router as render_presets_router
 from .scene import router as scene_router
 from .sd import router as sd_router
 from .sd_models import router as sd_models_router

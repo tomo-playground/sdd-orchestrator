@@ -48,7 +48,7 @@ type SceneCardProps = {
   onImageUpload: (file: File | undefined) => void;
   onGenerateImage: () => void;
   onEditWithGemini: (targetChange: string) => void;
-  onSuggestEditWithGemini: () => Promise<any[]>;
+  onSuggestEditWithGemini: () => Promise<unknown[]>;
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
@@ -117,7 +117,7 @@ export default function SceneCard({
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
-  const [geminiSuggestions, setGeminiSuggestions] = useState<any[]>([]);
+  const [geminiSuggestions, setGeminiSuggestions] = useState<unknown[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
@@ -146,7 +146,7 @@ export default function SceneCard({
   };
 
   // Handle suggestion approval
-  const handleApproveSuggestion = (suggestion: any) => {
+  const handleApproveSuggestion = (suggestion: { target_change: string }) => {
     setGeminiSuggestionsOpen(false);
     onEditWithGemini(suggestion.target_change);
   };

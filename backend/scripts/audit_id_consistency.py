@@ -15,10 +15,10 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-import os
+import os  # noqa: E402
 
-import psycopg2
-from dotenv import load_dotenv
+import psycopg2  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(backend_dir / ".env")
 

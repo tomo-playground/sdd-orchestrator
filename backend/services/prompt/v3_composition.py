@@ -6,7 +6,7 @@ from database import SessionLocal
 from models.character import Character
 from models.lora import LoRA
 from models.tag import Tag
-from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagRuleCache, TagFilterCache
+from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagFilterCache, TagRuleCache
 
 # Defined Layers (from PROMPT_LAYERS.md)
 LAYER_QUALITY = 0

@@ -146,7 +146,7 @@ export function useStudioInitialization() {
     const id = parseInt(storyboardId, 10);
     if (isNaN(id)) return;
 
-    setIsLoadingDb(true);
+    setIsLoadingDb(true); // eslint-disable-line react-hooks/set-state-in-effect
     axios
       .get(`${API_BASE}/storyboards/${id}`)
       .then((res) => {

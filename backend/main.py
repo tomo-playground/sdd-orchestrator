@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -21,10 +22,10 @@ from routers import (
     loras_router,
     presets_router,
     projects_router,
-    render_presets_router,
     prompt_histories_router,
     prompt_router,
     quality_router,
+    render_presets_router,
     scene_router,
     sd_models_router,
     sd_router,
@@ -104,8 +105,6 @@ app.add_middleware(
 
 
 # --- Static Files ---
-import os
-
 os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 

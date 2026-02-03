@@ -12,7 +12,6 @@ import pytest
 
 from models.media_asset import MediaAsset
 
-
 # ============================================================
 # Fix 1: DB Session Leak - get_db_session context manager
 # ============================================================

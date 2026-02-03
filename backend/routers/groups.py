@@ -84,6 +84,6 @@ def delete_group(group_id: int, db: Session = Depends(get_db)):
         db.flush()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Cannot delete group with existing storyboards")
+        raise HTTPException(status_code=409, detail="Cannot delete group with existing storyboards") from None
     db.commit()
     return {"status": "deleted", "id": group_id}

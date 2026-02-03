@@ -85,8 +85,6 @@ export default function ScenesTab() {
 
   const currentScene = scenes[currentSceneIndex];
 
-  const storyboardId = useStudioStore((s) => s.storyboardId);
-
   const handleUpdateScene = useCallback(
     (updates: Partial<(typeof scenes)[0]>) => {
       if (currentScene) updateScene(currentScene.id, updates);

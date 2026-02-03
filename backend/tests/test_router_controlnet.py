@@ -1,10 +1,8 @@
 """Tests for controlnet router endpoints."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
-
 
 # Patch targets are in routers.controlnet (imported from services.controlnet)
 PATCH_PREFIX = "routers.controlnet"

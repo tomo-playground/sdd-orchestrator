@@ -50,11 +50,11 @@ def _convert_loras(loras: list | None) -> list[dict] | None:
         return None
     return [
         {
-            "name": l.name,
-            "weight": l.weight,
-            "trigger_words": l.trigger_words or [],
+            "name": lora.name,
+            "weight": lora.weight,
+            "trigger_words": lora.trigger_words or [],
         }
-        for l in loras
+        for lora in loras
     ]
 
 
@@ -228,7 +228,7 @@ async def compose_prompt(
 
     except Exception as e:
         logger.exception("❌ [Prompt Compose Error]")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 class ValidateTagsRequest(BaseModel):

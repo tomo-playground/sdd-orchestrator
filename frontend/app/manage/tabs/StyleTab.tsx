@@ -217,6 +217,7 @@ export default function StyleTab() {
                                 <div key={item.civitai_id} className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm hover:shadow-md">
                                     <div className="aspect-video bg-zinc-100 w-full relative">
                                         {item.preview_image && (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
                                             <img src={item.preview_image} alt={item.name} className="h-full w-full object-cover" />
                                         )}
                                         <div className="absolute top-2 right-2 rounded bg-black/50 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-md">
@@ -283,6 +284,7 @@ export default function StyleTab() {
                                 </div>
                                 {lora.preview_image_url && (
                                     <div className="mt-3 aspect-[3/2] w-full overflow-hidden rounded-lg bg-zinc-100">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={lora.preview_image_url} alt="" className="h-full w-full object-cover opacity-80" />
                                     </div>
                                 )}

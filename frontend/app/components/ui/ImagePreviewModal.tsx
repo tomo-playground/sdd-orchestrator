@@ -43,7 +43,8 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, currentIndex, candidates]); // Re-bind when index changes to capture correct state
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, currentIndex, candidates]);
 
   if (!currentSrc) return null;
 
@@ -71,6 +72,7 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
           </button>
         )}
 
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={currentSrc}
           alt={`Preview ${showNavigation ? `${currentIndex + 1}/${candidates?.length}` : ""}`}

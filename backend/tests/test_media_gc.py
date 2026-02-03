@@ -1,11 +1,10 @@
 """Tests for Media Asset Garbage Collection service and admin endpoints."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from models import Character, MediaAsset, Project
 from services.media_gc import MediaGCService
-
 
 # ============================================================
 # Fixtures
@@ -140,7 +139,7 @@ class TestDetectExpiredTemp:
     """Test detection of expired temporary assets."""
 
     def test_detects_expired_temp(self, db_session):
-        old_time = datetime.now(tz=timezone.utc) - timedelta(days=2)
+        old_time = datetime.now(tz=UTC) - timedelta(days=2)
         _make_asset(
             db_session, is_temp=True, created_at=old_time,
             storage_key="temp/old.png",
@@ -161,7 +160,7 @@ class TestDetectExpiredTemp:
         assert len(report.expired_temp) == 0
 
     def test_non_temp_old_asset_not_detected(self, db_session):
-        old_time = datetime.now(tz=timezone.utc) - timedelta(days=2)
+        old_time = datetime.now(tz=UTC) - timedelta(days=2)
         _make_asset(
             db_session, is_temp=False, created_at=old_time,
             storage_key="perm/old.png",
@@ -233,7 +232,7 @@ class TestCleanupExpiredTemp:
         mock_storage = MagicMock()
         mock_get_storage.return_value = mock_storage
 
-        old_time = datetime.now(tz=timezone.utc) - timedelta(days=2)
+        old_time = datetime.now(tz=UTC) - timedelta(days=2)
         _make_asset(
             db_session, is_temp=True, created_at=old_time,
             storage_key="temp/expired.png",

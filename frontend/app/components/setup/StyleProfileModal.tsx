@@ -38,6 +38,7 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
 
   useEffect(() => {
     fetchProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfiles = async () => {
@@ -108,8 +109,6 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
       onSkip();
     }
   };
-
-  const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50 backdrop-blur-sm">

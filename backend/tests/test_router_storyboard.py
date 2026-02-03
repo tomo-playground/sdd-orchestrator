@@ -1,6 +1,5 @@
 """Tests for storyboard router endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from models import Storyboard

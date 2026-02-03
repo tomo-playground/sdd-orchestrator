@@ -1,7 +1,6 @@
 import pytest
-from fastapi.testclient import TestClient
-
 from conftest import create_test_storyboard
+from fastapi.testclient import TestClient
 
 
 def _create_storyboard(client: TestClient) -> int:

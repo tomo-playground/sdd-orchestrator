@@ -26,6 +26,18 @@ export default function AssetsTab() {
     const previewAudioRef = useRef<HTMLAudioElement | null>(null);
     const previewTimeoutRef = useRef<number | null>(null);
 
+    const stopBgmPreview = () => {
+        if (previewTimeoutRef.current) {
+            window.clearTimeout(previewTimeoutRef.current);
+            previewTimeoutRef.current = null;
+        }
+        if (previewAudioRef.current) {
+            previewAudioRef.current.pause();
+            previewAudioRef.current.currentTime = 0;
+        }
+        setIsPreviewingBgm(false);
+    };
+
     useEffect(() => {
         axios
             .get(`${API_BASE}/audio/list`)
@@ -47,19 +59,8 @@ export default function AssetsTab() {
         return () => {
             stopBgmPreview();
         };
+         
     }, []);
-
-    const stopBgmPreview = () => {
-        if (previewTimeoutRef.current) {
-            window.clearTimeout(previewTimeoutRef.current);
-            previewTimeoutRef.current = null;
-        }
-        if (previewAudioRef.current) {
-            previewAudioRef.current.pause();
-            previewAudioRef.current.currentTime = 0;
-        }
-        setIsPreviewingBgm(false);
-    };
 
     const handlePreviewBgm = (url: string) => {
         if (!url) return;
@@ -99,6 +100,7 @@ export default function AssetsTab() {
                             className="group relative flex w-28 flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-2 transition-all duration-300 hover:border-indigo-300 hover:shadow-lg"
                         >
                             <div className="aspect-[9/16] overflow-hidden rounded-xl bg-zinc-50 border border-zinc-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={`${API_BASE}/assets/overlay/${style.id}`}
                                     alt={style.label}

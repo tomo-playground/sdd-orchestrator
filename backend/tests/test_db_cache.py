@@ -1,9 +1,7 @@
 """Tests for DB cache modules: TagCategoryCache, TagAliasCache, TagRuleCache, TagFilterCache."""
 
-import pytest
 
 from services.keywords.db_cache import TagCategoryCache
-
 
 # ────────────────────────────────────────────
 # D-6: Gemini Category Mapping Tests

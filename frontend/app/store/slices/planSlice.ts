@@ -1,10 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { ActorGender, KenBurnsPreset, OverlaySettings, PostCardSettings } from "../../types";
-import {
-  DEFAULT_OVERLAY_SETTINGS,
-  DEFAULT_POST_CARD_SETTINGS,
-  DEFAULT_SCENE_TEXT_FONT,
-} from "../../constants";
+import type { ActorGender } from "../../types";
 
 export interface PlanSlice {
   // Content
@@ -95,6 +90,7 @@ export const createPlanSlice: StateCreator<PlanSlice, [], [], PlanSlice> = (set)
 export type PlanPersistState = Omit<PlanSlice, "setPlan" | "resetPlan" | "loraTriggerWords" | "characterLoras" | "characterPromptMode">;
 
 export function extractPlanPersist(state: PlanSlice): Partial<PlanPersistState> {
-  const { setPlan, resetPlan, loraTriggerWords, characterLoras, characterPromptMode, ...rest } = state;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { setPlan: _setPlan, resetPlan: _resetPlan, loraTriggerWords: _loraTriggerWords, characterLoras: _characterLoras, characterPromptMode: _characterPromptMode, ...rest } = state;
   return rest;
 }

@@ -1,6 +1,5 @@
 """Tests for analytics router endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from models.activity_log import ActivityLog
@@ -8,12 +7,12 @@ from models.activity_log import ActivityLog
 
 def _create_activity_log(db_session, **kwargs):
     """Helper to insert an activity log."""
-    defaults = dict(
-        storyboard_id=1,
-        scene_id=0,
-        prompt="1girl, smile",
-        status="success",
-    )
+    defaults = {
+        "storyboard_id": 1,
+        "scene_id": 0,
+        "prompt": "1girl, smile",
+        "status": "success",
+    }
     defaults.update(kwargs)
     log = ActivityLog(**defaults)
     db_session.add(log)

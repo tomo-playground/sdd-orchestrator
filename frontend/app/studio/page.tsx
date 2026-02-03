@@ -46,13 +46,11 @@ function StudioContent() {
   const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
   const imagePreviewCandidates = useStudioStore((s) => s.imagePreviewCandidates);
   const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
-  const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
   const showToast = useStudioStore((s) => s.showToast);
 
   // Group empty-state
   const groups = useStudioStore((s) => s.groups);
   const projectId = useStudioStore((s) => s.projectId);
-  const groupId = useStudioStore((s) => s.groupId);
   const [showGroupModal, setShowGroupModal] = useState(false);
 
   // Prompt Helper state
