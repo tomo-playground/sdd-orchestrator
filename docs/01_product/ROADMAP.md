@@ -158,6 +158,7 @@
 | 9 | Hook Extraction (`useManageState` 등) | Frontend | [ ] |
 | 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] |
 | 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [ ] |
+| 12 | WD14 Validate 매칭 정확도 개선 (부분문자열 오탐 제거, 복합태그 분해, 동의어, skipped/partial 응답) | 프롬프트 | [x] |
 
 **DoD**: PR마다 CI 자동 테스트, Soft Delete 3개 모델 적용, 공통 컴포넌트 4개+.
 
@@ -277,8 +278,9 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-02):
+**현재 진행 상태** (2026-02-03):
 - Phase 6-5 ~ 6-8: **완료**
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
+- Phase 6-7 #12: WD14 Validate 매칭 정확도 개선 **완료**
 - Phase 7-2: Phase 1.5 **완료**, Phase 2 대기
 - Phase 7-1: 일부 완료 (#1 Quick Start, #9 OutputTab), 나머지 대기

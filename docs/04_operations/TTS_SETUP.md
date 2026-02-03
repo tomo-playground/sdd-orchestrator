@@ -18,7 +18,6 @@ VideoBuilder.build()
   └─ process_scenes()
        └─ generate_tts(scene_i)
             ├─ get_qwen_model()        # 글로벌 싱글톤
-            ├─ voice cloning           # ref audio 있을 때
             └─ voice design            # 텍스트 프롬프트로 음성 생성
 ```
 
@@ -94,78 +93,25 @@ if device == "auto":
 
 ---
 
-## 4. Voice Cloning 모드
-
-참조 음성을 지정하여 동일한 음색으로 TTS를 생성합니다. Qwen3-TTS의 `generate_voice_clone` API를 사용합니다.
-
-### 사용법
-
-`voice_ref_audio_url` 필드에 참조 음성을 지정합니다.
-
-```json
-{
-  "voice_ref_audio_url": "https://example.com/reference_voice.mp3"
-}
-```
-
-### 참조 음성 요구사항
-
-| 항목 | 값 |
-|------|-----|
-| 최소 길이 | 3초 |
-| 권장 길이 | 10~20초 |
-| 지원 형식 | URL, 로컬 파일 경로 |
-| 저장 타입 | Text (DB 컬럼, presigned URL 길이 대응) |
-
 ---
 
-## 5. 씬 간 목소리 고정 (자동 클로닝)
+## 4. 음성 일관성 유지
 
-스토리보드의 여러 씬에서 일관된 목소리를 유지하는 자동 메커니즘입니다.
+현재 시스템은 **Voice Design** 프롬프트를 기반으로 일관된 목소리를 생성합니다.
 
 ### 동작 원리
 
-```
-씬 0: voice_design_prompt로 새 목소리 생성 -> tts_0.mp3 저장
-씬 1: tts_0.mp3를 reference로 voice cloning
-씬 2: tts_0.mp3를 reference로 voice cloning
-  ...
-씬 N: tts_0.mp3를 reference로 voice cloning
-```
+`voice_design_prompt`와 `voice_seed`(프리셋 지정 또는 해시 기반)를 사용하여 모든 씬에서 동일한 음성 특성을 유지합니다. 사양 문제로 인해 참조 음성 기반의 Cloning 기능은 지원하지 않습니다.
 
 ### 우선순위
 
-음성 소스는 다음 순서로 결정됩니다 (높은 것이 우선):
+음성 설정은 다음 순서로 결정됩니다 (높은 것이 우선):
 
 | 순위 | 소스 | 설명 |
 |------|------|------|
-| 1 | Per-scene `voice_ref_audio_url` | 개별 씬에 직접 지정된 참조 음성 |
-| 2 | Auto-clone from scene 0 | 씬 0의 TTS 결과를 자동 클로닝 |
-| 3 | Global `voice_ref_audio_url` | VideoRequest 레벨 참조 음성 |
-| 4 | `voice_design_prompt` | 텍스트 기반 음성 디자인 |
-
-### 코드 흐름 (`scene_processing.py`)
-
-```python
-# process_scenes() 내부
-voice_ref_path: Path | None = None  # 씬 0의 TTS 출력 경로
-
-for i, scene in enumerate(scenes):
-    has_valid_tts, tts_duration = await generate_tts(
-        builder, i, clean_script, tts_path, voice_ref_path
-    )
-    if has_valid_tts and voice_ref_path is None:
-        voice_ref_path = tts_path  # 씬 0 성공 시 참조 경로 저장
-```
-
-```python
-# generate_tts() 내부 우선순위 결정
-clone_source = voice_ref or (str(voice_ref_path) if voice_ref_path else None)
-if clone_source:
-    # voice cloning 수행
-else:
-    # voice design 수행
-```
+| 1 | Per-scene `voice_design_prompt` | 개별 씬에 직접 지정된 음성 디자인 |
+| 2 | Global `voice_design_prompt` | VideoRequest 레벨 음성 디자인 |
+| 3 | System Default | 기본 설정값 |
 
 ---
 
@@ -179,7 +125,7 @@ else:
 |------|------|----------|------|
 | `tts_engine` | `String(20)` | CHECK: `'qwen'` 또는 NULL | TTS 엔진 (현재 qwen만 허용) |
 | `voice_design_prompt` | `Text` | nullable | 음성 스타일 설명 텍스트 |
-| `voice_ref_audio_url` | `Text` | nullable | 참조 음성 URL |
+| `voice_ref_audio_url` | `Text` | nullable | (Deprecated) 참조 음성 URL |
 
 ### 마이그레이션
 
@@ -194,7 +140,6 @@ else:
 ```python
 tts_engine: str | None = None
 voice_design_prompt: str | None = None
-voice_ref_audio_url: str | None = None
 ```
 
 ---
@@ -208,7 +153,6 @@ voice_ref_audio_url: str | None = None
 | UI 요소 | 필드 | 설명 |
 |---------|------|------|
 | 목소리 스타일 입력 | `voiceDesignPrompt` | 텍스트로 음성 스타일 설명 |
-| 참조 음성 URL 입력 | `voiceRefAudioUrl` | 클로닝용 참조 음성 URL |
 | 배속 슬라이더 | `speedMultiplier` | TTS 포함 전체 배속 조절 |
 
 ### RenderPresetsTab
