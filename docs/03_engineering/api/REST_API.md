@@ -315,7 +315,16 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 
 ---
 
-## Storage (저장소 관리)
+## Storage (저장소 및 에셋 관리)
+
+에셋 파일의 물리적 저장 및 DB 메타데이터 관리를 담당합니다.
+
+### `GET /storage/assets`
+등록된 미디어 에셋 목록을 조회합니다 (owner_type: scene, character 등).
+
+### `DELETE /storage/assets/{asset_id}`
+에셋과 물리적 파일을 삭제합니다.
+
 
 ### `GET /storage/stats`
 저장소 사용량 통계를 조회합니다.

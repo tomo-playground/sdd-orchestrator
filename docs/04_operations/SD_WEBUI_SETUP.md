@@ -49,7 +49,8 @@ cd stable-diffusion-webui
 | `control_v11p_sd15_openpose` | 포즈 제어 |
 | `control_v11f1p_sd15_depth` | 깊이 제어 |
 
-**설치 경로:** `extensions/sd-webui-controlnet/models/`
+**설치 경로:** `extensions/sd-webui-controlnet/models/` (A1111 루트 기준)
+
 
 ---
 
