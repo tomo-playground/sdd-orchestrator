@@ -165,9 +165,61 @@ def clean_script_for_tts(raw_script: str) -> str:
         text,
     )
 
-    # Normalize multiple spaces for natural pauses
-    text = re.sub(r"!{2,}", "!", text)      # !!! -> !
-    text = re.sub(r"\?{2,}", "?", text)     # ??? -> ?
-    text = re.sub(r"\s+", " ", text)        # Multiple spaces -> single
+    # Normalize repeated punctuation
+    text = re.sub(r"\.{2,}", ".", text)      # ... -> .
+    text = re.sub(r"!{2,}", "!", text)       # !!! -> !
+    text = re.sub(r"\?{2,}", "?", text)      # ??? -> ?
+    text = re.sub(r"\s+", " ", text)         # Multiple spaces -> single
+
+    # Convert number+Korean unit to spoken Korean (prevents TTS hang)
+    text = _expand_korean_numbers(text)
 
     return text.strip()
+
+
+def _expand_korean_numbers(text: str) -> str:
+    """Expand number+unit patterns to spoken Korean for TTS.
+
+    e.g. '3만원' -> '삼만원', '100개' -> '백개', '25일' -> '이십오일'
+    """
+    sino_digits = {
+        "0": "영", "1": "일", "2": "이", "3": "삼", "4": "사",
+        "5": "오", "6": "육", "7": "칠", "8": "팔", "9": "구",
+    }
+    sino_units = ["", "십", "백", "천"]
+    large_units = ["", "만", "억", "조"]
+
+    korean_counters = (
+        "천만원|백만원|만원|천원|백원|"
+        "원|개|명|번|살|층|년|월|일|시|분|초|권|장|편|곡|병|잔|통|벌|"
+        "만|억|조|kg|km|cm|mm|ml|g|%"
+    )
+
+    def _num_to_sino(n: int) -> str:
+        if n == 0:
+            return "영"
+        result = ""
+        s = str(n)
+        length = len(s)
+        for i, ch in enumerate(s):
+            d = int(ch)
+            if d == 0:
+                continue
+            pos = length - 1 - i
+            large_idx = pos // 4
+            small_idx = pos % 4
+            digit_str = sino_digits[ch] if d != 1 or small_idx == 0 else ""
+            result += digit_str + sino_units[small_idx]
+            if small_idx == 0 and large_idx > 0:
+                result += large_units[large_idx]
+        return result or "영"
+
+    def _replace(m: re.Match) -> str:
+        num_str = m.group(1)
+        unit = m.group(2)
+        try:
+            return _num_to_sino(int(num_str)) + unit
+        except (ValueError, OverflowError):
+            return m.group(0)
+
+    return re.sub(rf"(\d+)({korean_counters})", _replace, text)
