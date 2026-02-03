@@ -47,30 +47,34 @@ export default function CharacterEditModal({
 
         {/* Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {/* Basic Info */}
-          <BasicInfoSection
-            name={form.name}
-            setName={form.setName}
-            gender={form.gender}
-            setGender={form.setGender}
-            description={form.description}
-            setDescription={form.setDescription}
-          />
-
-          {/* Preview Image */}
-          <PreviewImageSection
-            isCreateMode={form.isCreateMode}
-            previewImageUrl={form.previewImageUrl}
-            previewLocked={form.previewLocked}
-            setPreviewLocked={form.setPreviewLocked}
-            isGenerating={form.isGenerating}
-            isEnhancing={form.isEnhancing}
-            isEditing={form.isEditing}
-            onGenerate={form.handleGenerateReference}
-            onEnhance={form.handleEnhancePreview}
-            onOpenGeminiEdit={() => form.setGeminiEditOpen(true)}
-            onOpenPreview={() => form.setPreviewImageOpen(true)}
-          />
+          {/* Basic Info + Preview Image side by side */}
+          <div className="flex gap-5">
+            <div className="flex-1 min-w-0 space-y-4">
+              <BasicInfoSection
+                name={form.name}
+                setName={form.setName}
+                gender={form.gender}
+                setGender={form.setGender}
+                description={form.description}
+                setDescription={form.setDescription}
+              />
+            </div>
+            <div className="shrink-0">
+              <PreviewImageSection
+                isCreateMode={form.isCreateMode}
+                previewImageUrl={form.previewImageUrl}
+                previewLocked={form.previewLocked}
+                setPreviewLocked={form.setPreviewLocked}
+                isGenerating={form.isGenerating}
+                isEnhancing={form.isEnhancing}
+                isEditing={form.isEditing}
+                onGenerate={form.handleGenerateReference}
+                onEnhance={form.handleEnhancePreview}
+                onOpenGeminiEdit={() => form.setGeminiEditOpen(true)}
+                onOpenPreview={() => form.setPreviewImageOpen(true)}
+              />
+            </div>
+          </div>
 
           {/* Prompt Mode */}
           <PromptModeSection
