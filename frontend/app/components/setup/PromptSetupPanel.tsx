@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ActorGender, Character } from "../../types";
 import CharacterSelector from "./CharacterSelector";
 
@@ -52,67 +53,80 @@ export default function PromptSetupPanel({
   selectedCharacterId,
   onSelectCharacter,
 }: PromptSetupPanelProps) {
+  const [isGlobalOpen, setIsGlobalOpen] = useState(false);
+
   return (
     <>
-      {/* Global Settings */}
-      <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
-        <div>
+      {/* Global Settings (Collapsible) */}
+      <section className="rounded-3xl border border-white/60 bg-white/70 shadow-xl shadow-slate-200/40 backdrop-blur overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsGlobalOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-6 py-4"
+        >
           <h2 className="text-lg font-semibold text-zinc-900">Global</h2>
-          <p className="text-[10px] text-zinc-400">Prompt automation and image generation options.</p>
-        </div>
-        <div className="grid gap-3">
-          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-            Auto Compose Prompt
-            <input
-              type="checkbox"
-              checked={autoComposePrompt}
-              onChange={(e) => setAutoComposePrompt(e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-            Auto Rewrite Prompt (Gemini)
-            <input
-              type="checkbox"
-              checked={autoRewritePrompt}
-              onChange={(e) => setAutoRewritePrompt(e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-            <div>
-              <div>Auto Replace Risky Tags</div>
-              <div className="text-[10px] font-normal normal-case tracking-normal text-zinc-500 mt-1">
-                Automatically replace non-Danbooru tags (e.g., &quot;medium shot&quot; → &quot;cowboy shot&quot;)
+          <svg
+            className={`h-4 w-4 text-zinc-400 transition-transform ${isGlobalOpen ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {isGlobalOpen && (
+          <div className="grid gap-2 px-6 pb-5">
+            <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+              Auto Compose Prompt
+              <input
+                type="checkbox"
+                checked={autoComposePrompt}
+                onChange={(e) => setAutoComposePrompt(e.target.checked)}
+                className="h-4 w-4 accent-zinc-900"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+              Auto Rewrite Prompt (Gemini)
+              <input
+                type="checkbox"
+                checked={autoRewritePrompt}
+                onChange={(e) => setAutoRewritePrompt(e.target.checked)}
+                className="h-4 w-4 accent-zinc-900"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+              <div>
+                <div>Auto Replace Risky Tags</div>
+                <div className="text-[10px] font-normal normal-case tracking-normal text-zinc-500 mt-1">
+                  Automatically replace non-Danbooru tags (e.g., &quot;medium shot&quot; → &quot;cowboy shot&quot;)
+                </div>
               </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={autoReplaceRiskyTags}
-              onChange={(e) => setAutoReplaceRiskyTags(e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-            Hi-Res Fix (1.5x)
-            <input
-              type="checkbox"
-              checked={hiResEnabled}
-              onChange={(e) => setHiResEnabled(e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-100/50 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase cursor-not-allowed">
-            <span>VEO Clip <span className="text-[9px] text-zinc-400 normal-case">(Coming Soon)</span></span>
-            <input
-              type="checkbox"
-              checked={veoEnabled}
-              onChange={(e) => setVeoEnabled(e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-              disabled
-            />
-          </label>
-        </div>
+              <input
+                type="checkbox"
+                checked={autoReplaceRiskyTags}
+                onChange={(e) => setAutoReplaceRiskyTags(e.target.checked)}
+                className="h-4 w-4 accent-zinc-900"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+              Hi-Res Fix (1.5x)
+              <input
+                type="checkbox"
+                checked={hiResEnabled}
+                onChange={(e) => setHiResEnabled(e.target.checked)}
+                className="h-4 w-4 accent-zinc-900"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-100/50 px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase cursor-not-allowed">
+              <span>VEO Clip <span className="text-[9px] text-zinc-400 normal-case">(Coming Soon)</span></span>
+              <input
+                type="checkbox"
+                checked={veoEnabled}
+                onChange={(e) => setVeoEnabled(e.target.checked)}
+                className="h-4 w-4 accent-zinc-900"
+                disabled
+              />
+            </label>
+          </div>
+        )}
       </section>
 
       {/* Actor A Settings */}

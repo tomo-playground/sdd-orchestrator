@@ -1,20 +1,42 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
+import RenderedVideosSection from "../video/RenderedVideosSection";
 
 export default function OutputTab() {
   const store = useStudioStore();
-  const { setOutput, showToast } = store;
+  const { setOutput, showToast, setMeta } = store;
 
+  const videoUrl = useStudioStore((s) => s.videoUrl);
+  const videoUrlFull = useStudioStore((s) => s.videoUrlFull);
+  const videoUrlPost = useStudioStore((s) => s.videoUrlPost);
+  const recentVideos = useStudioStore((s) => s.recentVideos);
   const videoCaption = useStudioStore((s) => s.videoCaption);
   const videoLikesCount = useStudioStore((s) => s.videoLikesCount);
   const captionInitialized = useRef(false);
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const likesInitialized = useRef(false);
+
+  const handleDeleteRecentVideo = useCallback(
+    async (url: string) => {
+      try {
+        const filename = url.split("/").pop();
+        if (!filename) return;
+        await axios.post(`${API_BASE}/video/delete`, { filename });
+        setOutput({
+          recentVideos: recentVideos.filter((v) => v.url.split("/").pop() !== filename),
+        });
+        showToast("삭제 완료", "success");
+      } catch {
+        showToast("삭제 실패", "error");
+      }
+    },
+    [recentVideos, setOutput, showToast],
+  );
 
   // Auto-populate video metadata with smart defaults (only once)
   useEffect(() => {
@@ -71,6 +93,16 @@ export default function OutputTab() {
 
   return (
     <div className="space-y-6">
+      {/* Rendered Videos */}
+      <RenderedVideosSection
+        videoUrl={videoUrl}
+        videoUrlFull={videoUrlFull}
+        videoUrlPost={videoUrlPost}
+        recentVideos={recentVideos}
+        onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
+        onDeleteRecentVideo={handleDeleteRecentVideo}
+      />
+
       {/* Video Metadata */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3">
         <h3 className="text-sm font-bold text-zinc-800">영상 메타데이터</h3>

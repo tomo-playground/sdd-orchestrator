@@ -74,7 +74,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   try {
     const payload = {
       title: topic || "Draft Storyboard",
-      description: topic || "Auto-saved before image generation",
+      description: useStudioStore.getState().description || null,
       group_id: groupId,
       default_character_id: selectedCharacterId,
       default_style_profile_id: currentStyleProfile?.id || null,
@@ -161,7 +161,7 @@ export async function saveStoryboard(): Promise<boolean> {
 
     const payload = {
       title: topic || "Untitled",
-      description: topic,
+      description: useStudioStore.getState().description || null,
       group_id: groupId,
       default_character_id: selectedCharacterId,
       default_style_profile_id: currentStyleProfile?.id || null,

@@ -260,28 +260,15 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
           <StoryboardActionsBar
             onGenerate={handleGenerateStoryboard}
             onAutoRun={() => runAutoRunFromStep("storyboard", autopilot)}
+            onSave={handleSaveStoryboard}
             isGenerating={isGenerating}
             isRendering={isRendering}
             isAutoRunning={autopilot.isAutoRunning}
+            isSaving={isSaving}
             topicEmpty={!topic.trim()}
             autoRunStep={autopilot.autoRunState.step}
+            showSave={scenes.length > 0}
           />
-
-          {/* Save Button */}
-          {scenes.length > 0 && (
-            <div className="mt-8 flex justify-end">
-              <button
-                onClick={handleSaveStoryboard}
-                disabled={isSaving}
-                className={`rounded-lg px-8 py-3 font-medium text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 ${isSaving
-                  ? "cursor-not-allowed bg-zinc-400"
-                  : "bg-zinc-900 hover:bg-zinc-800"
-                  }`}
-              >
-                {isSaving ? "Saving..." : "Validate & Save Plan"}
-              </button>
-            </div>
-          )}
         </>
       )}
 

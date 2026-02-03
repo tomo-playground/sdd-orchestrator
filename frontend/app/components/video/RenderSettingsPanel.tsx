@@ -80,7 +80,7 @@ function VoiceStyleSection({
             <option value="">-- Voice Preset (auto) --</option>
             {voicePresets.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} {p.source_type === "uploaded" ? "(custom)" : ""}
+                {p.name}
               </option>
             ))}
           </select>

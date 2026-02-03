@@ -5,7 +5,6 @@ import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE } from "../../constants";
 import RenderSettingsPanel from "../video/RenderSettingsPanel";
-import RenderedVideosSection from "../video/RenderedVideosSection";
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
 
 export default function RenderTab() {
@@ -35,7 +34,6 @@ export default function RenderTab() {
     recentVideos,
     setOutput,
     showToast,
-    setMeta,
   } = store;
 
   const videoCaption = useStudioStore((s) => s.videoCaption);
@@ -166,33 +164,6 @@ export default function RenderTab() {
     [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, speedMultiplier, bgmFile, audioDucking, bgmVolume, voiceDesignPrompt, voicePresetId, videoCaption, videoLikesCount, recentVideos, setOutput, showToast, frameStyle, store.projectId, store.groupId, store.storyboardId]
   );
 
-  const handleDeleteRecentVideo = useCallback(
-    async (url: string) => {
-      try {
-        const filename = url.split("/").pop();
-        if (!filename) {
-          showToast("Invalid video URL", "error");
-          return;
-        }
-
-        await axios.post(`${API_BASE}/video/delete`, { filename });
-
-        setOutput({
-          recentVideos: recentVideos.filter((v) => {
-            const vFilename = v.url.split("/").pop();
-            return vFilename !== filename;
-          })
-        });
-
-        showToast("Video deleted successfully", "success");
-      } catch (error) {
-        console.error("Delete failed:", error);
-        showToast("Failed to delete video", "error");
-      }
-    },
-    [recentVideos, setOutput, showToast]
-  );
-
   // ---------- BGM Preview ----------
 
   function stopBgmPreview() {
@@ -260,15 +231,6 @@ export default function RenderTab() {
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voicePresetId={voicePresetId}
         setVoicePresetId={(v) => setOutput({ voicePresetId: v })}
-      />
-
-      <RenderedVideosSection
-        videoUrl={videoUrl}
-        videoUrlFull={videoUrlFull}
-        videoUrlPost={videoUrlPost}
-        recentVideos={recentVideos}
-        onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
-        onDeleteRecentVideo={handleDeleteRecentVideo}
       />
     </div>
   );

@@ -179,7 +179,6 @@ export async function runAutoRunFromStep(
           scene_text_font: useStudioStore.getState().sceneTextFont,
           tts_engine: "qwen",
           voice_design_prompt: useStudioStore.getState().voiceDesignPrompt || null,
-          voice_ref_audio_url: useStudioStore.getState().voiceRefAudioUrl || null,
           voice_preset_id: useStudioStore.getState().voicePresetId || null,
         };
         const res = await axios.post(`${API_BASE}/video/create`, payload);

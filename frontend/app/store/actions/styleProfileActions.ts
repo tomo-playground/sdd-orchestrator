@@ -132,7 +132,7 @@ async function updateExistingStoryboard(
   try {
     await axios.put(`${API_BASE}/storyboards/${storyboardId}`, {
       title: topic || "Untitled",
-      description: topic,
+      description: useStudioStore.getState().description || null,
       default_character_id: selectedCharacterId,
       default_style_profile_id: profile.id,
       scenes: scenesPayload,
@@ -159,7 +159,7 @@ async function createNewStoryboard(
   try {
     const res = await axios.post(`${API_BASE}/storyboards`, {
       title: topic || "Draft Storyboard",
-      description: topic || "Style profile selected",
+      description: useStudioStore.getState().description || null,
       default_character_id: selectedCharacterId,
       default_style_profile_id: profile.id,
       scenes: scenesPayload,

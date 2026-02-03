@@ -164,7 +164,8 @@ export function useStudioInitialization() {
         });
         setPlan({
           selectedCharacterId: data.default_character_id || null,
-          topic: data.description || "",
+          topic: data.title || "",
+          description: data.description || "",
         });
 
         if (data.default_character_id) {

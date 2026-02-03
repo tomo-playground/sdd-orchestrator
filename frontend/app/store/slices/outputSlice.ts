@@ -46,7 +46,6 @@ export interface OutputSlice {
   loadedFonts: Set<string>;
   ttsEngine: "qwen";
   voiceDesignPrompt: string;
-  voiceRefAudioUrl: string;
   voicePresetId: number | null;
 
   // Video metadata
@@ -99,7 +98,6 @@ const initialOutputState = {
   loadedFonts: new Set<string>(),
   ttsEngine: "qwen" as const,
   voiceDesignPrompt: "",
-  voiceRefAudioUrl: "",
   voicePresetId: null as number | null,
   videoCaption: "",
   videoLikesCount: "",

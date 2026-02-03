@@ -9,6 +9,7 @@ import {
 export interface PlanSlice {
   // Content
   topic: string;
+  description: string;
   duration: number;
   style: string;
   language: string;
@@ -56,6 +57,7 @@ export interface PlanSlice {
 
 const initialPlanState = {
   topic: "",
+  description: "",
   duration: 10,
   style: "Anime",
   language: "Korean",

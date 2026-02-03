@@ -31,6 +31,7 @@ export function migrateDraft(): void {
       state: {
         // Plan fields
         topic: draft.topic ?? "",
+        description: draft.description ?? "",
         duration: draft.duration ?? 10,
         style: draft.style ?? "Anime",
         language: draft.language ?? "Korean",
@@ -72,7 +73,6 @@ export function migrateDraft(): void {
         sceneTextFont: draft.sceneTextFont ?? draft.subtitleFont ?? "",
         ttsEngine: "qwen",
         voiceDesignPrompt: draft.voiceDesignPrompt ?? "",
-        voiceRefAudioUrl: draft.voiceRefAudioUrl ?? "",
         voicePresetId: null,
         videoUrl: draft.videoUrl ?? null,
         videoUrlFull: draft.videoUrlFull ?? null,

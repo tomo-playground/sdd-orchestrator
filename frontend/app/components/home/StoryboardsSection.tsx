@@ -216,7 +216,7 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
           </Modal.Header>
           <div className="px-5 py-4">
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-              Title *
+              Topic *
             </label>
             <input
               value={newSbTitle}

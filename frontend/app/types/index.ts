@@ -325,6 +325,7 @@ export type StyleProfileFull = {
 
 export type DraftData = {
   topic?: string;
+  description?: string;
   duration?: number;
   style?: string;
   language?: string;
@@ -346,7 +347,6 @@ export type DraftData = {
   speedMultiplier?: number;
   ttsEngine?: "qwen";
   voiceDesignPrompt?: string;
-  voiceRefAudioUrl?: string;
   overlaySettings?: OverlaySettings;
   postCardSettings?: PostCardSettings;
   layoutStyle?: "full" | "post";
@@ -478,7 +478,6 @@ export type RenderPreset = {
   speed_multiplier: number | null;
   tts_engine: string | null;
   voice_design_prompt: string | null;
-  voice_ref_audio_url: string | null;
   voice_preset_id: number | null;
 };
 
@@ -486,10 +485,10 @@ export type VoicePreset = {
   id: number;
   name: string;
   description: string | null;
-  project_id: number | null;
-  source_type: "generated" | "uploaded";
+  source_type: "generated";
   audio_url: string | null;
   voice_design_prompt: string | null;
+  voice_seed: number | null;
   language: string;
   sample_text: string | null;
   is_system: boolean;

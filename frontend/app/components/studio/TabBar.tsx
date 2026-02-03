@@ -7,7 +7,7 @@ const TABS: { id: StudioTab; label: string }[] = [
   { id: "plan", label: "Plan" },
   { id: "scenes", label: "Scenes" },
   { id: "render", label: "Render" },
-  { id: "output", label: "Output" },
+  { id: "output", label: "Video" },
   { id: "insights", label: "Insights" },
 ];
 
@@ -18,11 +18,11 @@ interface TabBarProps {
 
 export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
   const scenes = useStudioStore((s) => s.scenes);
-  const videoUrl = useStudioStore((s) => s.videoUrl);
+  const recentVideos = useStudioStore((s) => s.recentVideos);
 
   const getBadge = (tab: StudioTab): string | null => {
     if (tab === "scenes" && scenes.length > 0) return String(scenes.length);
-    if (tab === "render" && videoUrl) return "1";
+    if (tab === "output" && recentVideos.length > 0) return String(recentVideos.length);
     return null;
   };
 

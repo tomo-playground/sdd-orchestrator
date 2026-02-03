@@ -8,22 +8,28 @@ type StoryboardActionsBarProps = {
   // Primary actions
   onGenerate: () => void;
   onAutoRun: () => void;
+  onSave?: () => void;
   // State
   isGenerating: boolean;
   isRendering: boolean;
   isAutoRunning: boolean;
+  isSaving?: boolean;
   topicEmpty: boolean;
   autoRunStep: AutoRunStepId | "idle";
+  showSave?: boolean;
 };
 
 export default function StoryboardActionsBar({
   onGenerate,
   onAutoRun,
+  onSave,
   isGenerating,
   isRendering,
   isAutoRunning,
+  isSaving,
   topicEmpty,
   autoRunStep,
+  showSave,
 }: StoryboardActionsBarProps) {
   const currentStepLabel = AUTO_RUN_STEPS.find((s) => s.id === autoRunStep)?.label || "Running";
 
@@ -58,6 +64,15 @@ export default function StoryboardActionsBar({
           "Auto Run"
         )}
       </button>
+      {showSave && onSave && (
+        <button
+          onClick={onSave}
+          disabled={isSaving}
+          className="min-w-[120px] rounded-full border-2 border-emerald-500 bg-emerald-50 px-5 py-2 text-xs font-semibold tracking-[0.2em] text-emerald-700 uppercase shadow-sm transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
+      )}
     </div>
   );
 }

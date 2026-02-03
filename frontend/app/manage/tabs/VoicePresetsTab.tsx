@@ -11,6 +11,7 @@ type EditingPreset = {
   voice_design_prompt: string;
   sample_text: string;
   language: string;
+  voice_seed: number | null;
 };
 
 const EMPTY_PRESET: EditingPreset = {
@@ -19,6 +20,7 @@ const EMPTY_PRESET: EditingPreset = {
   voice_design_prompt: "",
   sample_text: "Hello, this is a test voice.",
   language: "korean",
+  voice_seed: null,
 };
 
 export default function VoicePresetsTab() {
@@ -29,8 +31,7 @@ export default function VoicePresetsTab() {
   const [previewing, setPreviewing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewAssetId, setPreviewAssetId] = useState<number | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewSeed, setPreviewSeed] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchPresets = useCallback(async () => {
@@ -51,6 +52,7 @@ export default function VoicePresetsTab() {
     setEditing({ ...EMPTY_PRESET });
     setPreviewUrl(null);
     setPreviewAssetId(null);
+    setPreviewSeed(null);
   };
 
   const handleEdit = (p: VoicePreset) => {
@@ -61,6 +63,7 @@ export default function VoicePresetsTab() {
       voice_design_prompt: p.voice_design_prompt ?? "",
       sample_text: p.sample_text ?? "",
       language: p.language,
+      voice_seed: p.voice_seed ?? null,
     });
     setPreviewUrl(p.audio_url);
     setPreviewAssetId(null);
@@ -87,6 +90,7 @@ export default function VoicePresetsTab() {
       });
       setPreviewUrl(res.data.audio_url);
       setPreviewAssetId(res.data.temp_asset_id);
+      setPreviewSeed(res.data.voice_seed ?? null);
     } catch {
       alert("Preview generation failed");
     } finally {
@@ -109,6 +113,7 @@ export default function VoicePresetsTab() {
           description: editing.description,
           source_type: "generated",
           voice_design_prompt: editing.voice_design_prompt,
+          voice_seed: previewSeed,
           language: editing.language,
           sample_text: editing.sample_text,
         });
@@ -125,32 +130,12 @@ export default function VoicePresetsTab() {
       setEditId(null);
       setPreviewUrl(null);
       setPreviewAssetId(null);
+      setPreviewSeed(null);
       await fetchPresets();
     } catch {
       alert("Save failed");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("name", file.name.replace(/\.[^.]+$/, ""));
-      await axios.post(`${API_BASE}/voice-presets/upload`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      await fetchPresets();
-    } catch (err: unknown) {
-      const msg = axios.isAxiosError(err) ? err.response?.data?.detail : "Upload failed";
-      alert(msg || "Upload failed");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -177,25 +162,12 @@ export default function VoicePresetsTab() {
         <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400">
           Voice Presets ({presets.length})
         </span>
-        <div className="flex items-center gap-2">
-          <label className="cursor-pointer rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow hover:bg-zinc-50 transition">
-            {uploading ? "Uploading..." : "Upload Audio"}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".wav,.mp3,.flac,.ogg"
-              onChange={handleUpload}
-              disabled={uploading}
-              className="hidden"
-            />
-          </label>
-          <button
-            onClick={handleCreate}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow hover:bg-zinc-700 transition"
-          >
-            + Generate
-          </button>
-        </div>
+        <button
+          onClick={handleCreate}
+          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow hover:bg-zinc-700 transition"
+        >
+          + Generate
+        </button>
       </div>
 
       {/* List */}
@@ -246,7 +218,7 @@ export default function VoicePresetsTab() {
           </div>
         ))}
         {presets.length === 0 && (
-          <p className="py-8 text-center text-zinc-400">No voice presets. Generate or upload one.</p>
+          <p className="py-8 text-center text-zinc-400">No voice presets. Generate one.</p>
         )}
       </div>
 
@@ -263,6 +235,7 @@ export default function VoicePresetsTab() {
                 setEditId(null);
                 setPreviewUrl(null);
                 setPreviewAssetId(null);
+                setPreviewSeed(null);
               }}
               className="text-[10px] text-zinc-400 hover:text-zinc-600"
             >
