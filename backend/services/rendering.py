@@ -320,7 +320,7 @@ def render_scene_text_image(
         text_area_width = card_width - (card_padding * 2)
         text_start_y = scene_text_y + int(scene_text_area_height * 0.1)
 
-        for idx, line in enumerate(lines[:3]):
+        for idx, line in enumerate(lines[:2]):
             line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
             text_x = card_x + card_padding + (text_area_width - line_w) // 2
             text_y = text_start_y + idx * line_height
@@ -336,7 +336,7 @@ def render_scene_text_image(
             )
         return canvas
 
-    # Full layout - 하단에서 상단으로 위치 변경 (사용자 피드백 반영)
+    # Full layout - 상단 배치 (사용자 피드백 반영)
     subtitle_size = font_size_override if font_size_override else int(height * 0.042)
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
@@ -347,15 +347,30 @@ def render_scene_text_image(
     if scene_text_y_ratio is not None:
         text_y_pos = int(height * scene_text_y_ratio)
     else:
-        # 기본 위치를 상단 12-15% 영역으로 설정
-        text_y_pos = int(height * 0.12) if line_count > 1 else int(height * 0.15)
+        text_y_pos = int(height * 0.68) if line_count > 1 else int(height * 0.70)
+
+    # Drop shadow offset (3px down-right)
+    shadow_offset = max(2, subtitle_size // 20)
 
     for idx, line in enumerate(lines[:2]):
         line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
         text_x = max(0, int((width - line_w) / 2))
+        y = text_y_pos + idx * line_height
+        # Shadow layer (semi-transparent black, offset)
         _draw_text_with_fallback(
             draw,
-            (text_x, text_y_pos + idx * line_height),
+            (text_x + shadow_offset, y + shadow_offset),
+            line,
+            font,
+            emoji_font,
+            (0, 0, 0, 120),
+            stroke_width=3,
+            stroke_fill=(0, 0, 0, 80),
+        )
+        # Main text (white + black stroke)
+        _draw_text_with_fallback(
+            draw,
+            (text_x, y),
             line,
             font,
             emoji_font,
@@ -899,7 +914,7 @@ def compose_post_frame(
         line_height = int(subtitle_font_size * 1.4)
         text_area_width = card_width - (card_padding * 2)
         text_start_y = scene_text_y + int(scene_text_area_height * 0.1)
-        lines = subtitle_text.split("\n")[:3]
+        lines = subtitle_text.split("\n")[:2]
         for idx, line in enumerate(lines):
             line_w, _ = _measure_text_with_fallback(draw, line, subtitle_font, emoji_font)
             text_x = card_x + card_padding + (text_area_width - line_w) // 2

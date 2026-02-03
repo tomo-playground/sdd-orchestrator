@@ -165,8 +165,7 @@ def clean_script_for_tts(raw_script: str) -> str:
         text,
     )
 
-    # Normalize multiple punctuation for natural pauses
-    text = re.sub(r"\.{2,}", ".", text)     # ... -> .
+    # Normalize multiple spaces for natural pauses
     text = re.sub(r"!{2,}", "!", text)      # !!! -> !
     text = re.sub(r"\?{2,}", "?", text)     # ??? -> ?
     text = re.sub(r"\s+", " ", text)        # Multiple spaces -> single

@@ -32,8 +32,8 @@ class FullLayout:
     SCENE_TEXT_FONT_RATIO: float = 0.042  # height * ratio = font size (81px for 1920h, YouTube Shorts standard)
     SCENE_TEXT_MIN_FONT_RATIO: float = 0.032  # minimum font size ratio (61px for 1920h)
     SCENE_TEXT_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
-    SCENE_TEXT_Y_SINGLE_LINE_RATIO: float = 0.15  # Y position for 1 line (top 15%)
-    SCENE_TEXT_Y_MULTI_LINE_RATIO: float = 0.12  # Y position for 2+ lines (top 12%)
+    SCENE_TEXT_Y_SINGLE_LINE_RATIO: float = 0.70  # Y position for 1 line (70%)
+    SCENE_TEXT_Y_MULTI_LINE_RATIO: float = 0.68  # Y position for 2+ lines (68%)
     SCENE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
     SCENE_TEXT_STROKE_WIDTH: int = 5
     SCENE_TEXT_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
@@ -105,7 +105,7 @@ class PostLayout:
 
     # === Section Heights (relative to card_height) ===
     HEADER_HEIGHT_RATIO: float = 0.055
-    SCENE_TEXT_AREA_HEIGHT_RATIO: float = 0.18  # Scene text area (above image)
+    SCENE_TEXT_AREA_HEIGHT_RATIO: float = 0.23  # Scene text area (above image, 3 lines)
     SUBTITLE_AREA_HEIGHT_RATIO = SCENE_TEXT_AREA_HEIGHT_RATIO  # Deprecated alias
     ACTION_BAR_HEIGHT_RATIO: float = 0.045
     CAPTION_HEIGHT_RATIO: float = 0.13  # Post metadata (likes, time, etc.)
@@ -140,10 +140,10 @@ class PostLayout:
     IMAGE_AREA_SCALE: float = 0.98
 
     # === Subtitle in Post Layout ===
-    SUBTITLE_FONT_RATIO: float = 0.04  # height * ratio
-    SUBTITLE_MIN_FONT_RATIO: float = 0.028  # minimum font size ratio (약 30px for 1080h)
-    SUBTITLE_LINE_HEIGHT_RATIO: float = 1.4  # font_size * ratio
-    SUBTITLE_TEXT_START_Y_RATIO: float = 0.1  # subtitle_area_height * ratio
+    SUBTITLE_FONT_RATIO: float = 0.034  # height * ratio (약 37px for 1080h)
+    SUBTITLE_MIN_FONT_RATIO: float = 0.024  # minimum font size ratio (약 26px for 1080h)
+    SUBTITLE_LINE_HEIGHT_RATIO: float = 1.35  # font_size * ratio
+    SUBTITLE_TEXT_START_Y_RATIO: float = 0.06  # subtitle_area_height * ratio
     SUBTITLE_TEXT_COLOR: RGBA = (40, 40, 40, 255)  # Dark gray
     SUBTITLE_MAX_LINES: int = 2
     SUBTITLE_MAX_WIDTH_RATIO: float = 0.92  # text_area_width * ratio

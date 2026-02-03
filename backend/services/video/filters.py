@@ -126,9 +126,19 @@ def build_video_filters(builder: VideoBuilder) -> None:
         # Step 3: Apply subtitles AFTER Ken Burns (Full layout only)
         _apply_subtitle_overlay(builder, i, subtitle_base_idx, clip_dur)
 
-        # Step 4: Trim to duration
+        # Step 4: Color grade + vignette (Full layout only)
+        if not builder.use_post_layout:
+            builder.filters.append(
+                f"[v{i}_base]eq=saturation=1.15:contrast=1.05,"
+                f"vignette=PI/5[v{i}_graded]"
+            )
+            graded = f"[v{i}_graded]"
+        else:
+            graded = f"[v{i}_base]"
+
+        # Step 5: Trim to duration
         builder.filters.append(
-            f"[v{i}_base]trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]"
+            f"{graded}trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]"
         )
 
 
