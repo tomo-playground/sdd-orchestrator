@@ -7,6 +7,7 @@ import { computeValidationResults } from "../../utils";
 import { applyAutoFixForScenes } from "./sceneActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { getCurrentProject } from "../selectors/projectSelectors";
+import { initializeVideoMetadata } from "./outputActions";
 
 /**
  * Run the autopilot pipeline from a given step.
@@ -18,11 +19,24 @@ export async function runAutoRunFromStep(
   stepsToRun?: AutoRunStepId[]
 ) {
   const {
-    topic, duration, style, language, structure, actorAGender,
-    baseNegativePromptA, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA,
-    layoutStyle, multiGenEnabled,
+    topic,
+    duration,
+    style,
+    language,
+    structure,
+    actorAGender,
+    baseNegativePromptA,
+    baseStepsA,
+    baseCfgScaleA,
+    baseSamplerA,
+    baseSeedA,
+    baseClipSkipA,
+    layoutStyle,
+    multiGenEnabled,
     scenes: initialScenes,
-    showToast, setScenes, setActiveTab,
+    showToast,
+    setScenes,
+    setActiveTab,
   } = useStudioStore.getState();
 
   const {
@@ -62,7 +76,11 @@ export async function runAutoRunFromStep(
         setAutoRunStep("storyboard", "Generating storyboard...");
         pushAutoRunLog("Storyboard started");
         const res = await axios.post(`${API_BASE}/storyboards/create`, {
-          topic, duration, style, language, structure,
+          topic,
+          duration,
+          style,
+          language,
+          structure,
           actor_a_gender: actorAGender,
           description: useStudioStore.getState().description || undefined,
           character_id: useStudioStore.getState().selectedCharacterId || undefined,
@@ -87,6 +105,7 @@ export async function runAutoRunFromStep(
         }));
         if (!workingScenes.length) throw new Error("Storyboard is empty");
         setScenes(workingScenes);
+        await initializeVideoMetadata(topic);
         pushAutoRunLog(`Storyboard created (${workingScenes.length} scenes)`);
       }
 
@@ -117,9 +136,7 @@ export async function runAutoRunFromStep(
           updateScene(scene.id, { isGenerating: false });
           if (!result?.image_url) throw new Error(`Image failed for Scene ${scene.id}`);
           updateScene(scene.id, result);
-          workingScenes = workingScenes.map((s) =>
-            s.id === scene.id ? { ...s, ...result } : s
-          );
+          workingScenes = workingScenes.map((s) => (s.id === scene.id ? { ...s, ...result } : s));
         }
         pushAutoRunLog("Images generated");
       }
@@ -161,29 +178,37 @@ export async function runAutoRunFromStep(
         }
         const project = getCurrentProject();
         const store = useStudioStore.getState();
-        const overlaySettings = layoutStyle === "full" && project ? {
-          channel_name: project.name,
-          avatar_key: project.avatar_key || project.handle || project.name,
-          frame_style: store.frameStyle,
-          caption: store.videoCaption || store.topic || "AI 영상",
-          likes_count: store.videoLikesCount || `${Math.floor(Math.random() * 50 + 10)}K`,
-        } : null;
-        const postCardSettings = layoutStyle === "post" && project ? {
-          channel_name: project.name,
-          avatar_key: project.avatar_key || project.handle || project.name,
-          caption: store.videoCaption || store.topic || "AI 영상",
-        } : null;
+        const overlaySettings =
+          layoutStyle === "full" && project
+            ? {
+                channel_name: project.name,
+                avatar_key: project.avatar_key || project.handle || project.name,
+                frame_style: store.frameStyle,
+                caption: store.videoCaption,
+                likes_count: store.videoLikesCount,
+              }
+            : null;
+        const postCardSettings =
+          layoutStyle === "post" && project
+            ? {
+                channel_name: project.name,
+                avatar_key: project.avatar_key || project.handle || project.name,
+                caption: store.videoCaption,
+              }
+            : null;
 
         const payload = {
           project_id: renderProjectId,
           group_id: renderGroupId,
           storyboard_id: store.storyboardId,
-          scenes: workingScenes.filter((s) => s.image_url).map((s) => ({
-            image_url: s.image_url,
-            script: s.script,
-            speaker: s.speaker,
-            duration: s.duration,
-          })),
+          scenes: workingScenes
+            .filter((s) => s.image_url)
+            .map((s) => ({
+              image_url: s.image_url,
+              script: s.script,
+              speaker: s.speaker,
+              duration: s.duration,
+            })),
           layout_style: layoutStyle,
           ken_burns_preset: store.kenBurnsPreset,
           ken_burns_intensity: store.kenBurnsIntensity,
@@ -206,9 +231,7 @@ export async function runAutoRunFromStep(
         const withTs = `${videoUrl}?t=${Date.now()}`;
         setOutput({
           videoUrl: withTs,
-          ...(layoutStyle === "full"
-            ? { videoUrlFull: withTs }
-            : { videoUrlPost: withTs }),
+          ...(layoutStyle === "full" ? { videoUrlFull: withTs } : { videoUrlPost: withTs }),
           recentVideos: [
             { url: withTs, label: layoutStyle, createdAt: Date.now() },
             ...useStudioStore.getState().recentVideos.slice(0, 9),

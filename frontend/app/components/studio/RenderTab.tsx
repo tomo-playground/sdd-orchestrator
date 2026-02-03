@@ -97,19 +97,25 @@ export default function RenderTab() {
       setOutput({ isRendering: true });
       try {
         const project = getCurrentProject();
-        const finalOverlaySettings = mode === "full" && project ? {
-          channel_name: project.name,
-          avatar_key: project.avatar_key || project.handle || project.name,
-          frame_style: frameStyle,
-          caption: videoCaption || store.topic || "AI 영상",
-          likes_count: videoLikesCount || `${Math.floor(Math.random() * 50 + 10)}K`,
-        } : null;
+        const finalOverlaySettings =
+          mode === "full" && project
+            ? {
+                channel_name: project.name,
+                avatar_key: project.avatar_key || project.handle || project.name,
+                frame_style: frameStyle,
+                caption: videoCaption,
+                likes_count: videoLikesCount,
+              }
+            : null;
 
-        const finalPostCardSettings = mode === "post" && project ? {
-          channel_name: project.name,
-          avatar_key: project.avatar_key || project.handle || project.name,
-          caption: videoCaption || store.topic || "AI 영상",
-        } : null;
+        const finalPostCardSettings =
+          mode === "post" && project
+            ? {
+                channel_name: project.name,
+                avatar_key: project.avatar_key || project.handle || project.name,
+                caption: videoCaption,
+              }
+            : null;
 
         if (!store.projectId || !store.groupId) {
           showToast("프로젝트/그룹을 먼저 선택해주세요", "error");
@@ -154,10 +160,7 @@ export default function RenderTab() {
           setOutput({ videoUrlPost: url, videoUrl: url });
         }
         setOutput({
-          recentVideos: [
-            { url, label: mode, createdAt: Date.now() },
-            ...recentVideos.slice(0, 9),
-          ],
+          recentVideos: [{ url, label: mode, createdAt: Date.now() }, ...recentVideos.slice(0, 9)],
         });
         showToast("Video rendered", "success");
       } catch {
@@ -166,7 +169,30 @@ export default function RenderTab() {
         setOutput({ isRendering: false });
       }
     },
-    [scenes, store.topic, kenBurnsPreset, kenBurnsIntensity, transitionType, includeSceneText, sceneTextFont, speedMultiplier, bgmFile, audioDucking, bgmVolume, voiceDesignPrompt, voicePresetId, videoCaption, videoLikesCount, recentVideos, setOutput, showToast, frameStyle, store.projectId, store.groupId, store.storyboardId]
+    [
+      scenes,
+      store.topic,
+      kenBurnsPreset,
+      kenBurnsIntensity,
+      transitionType,
+      includeSceneText,
+      sceneTextFont,
+      speedMultiplier,
+      bgmFile,
+      audioDucking,
+      bgmVolume,
+      voiceDesignPrompt,
+      voicePresetId,
+      videoCaption,
+      videoLikesCount,
+      recentVideos,
+      setOutput,
+      showToast,
+      frameStyle,
+      store.projectId,
+      store.groupId,
+      store.storyboardId,
+    ]
   );
 
   // ---------- BGM Preview ----------

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE } from "../../constants";
@@ -17,10 +17,8 @@ export default function OutputTab() {
   const recentVideos = useStudioStore((s) => s.recentVideos);
   const videoCaption = useStudioStore((s) => s.videoCaption);
   const videoLikesCount = useStudioStore((s) => s.videoLikesCount);
-  const captionInitialized = useRef(false);
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const [savedField, setSavedField] = useState<string | null>(null);
-  const likesInitialized = useRef(false);
 
   const handleDeleteRecentVideo = useCallback(
     async (url: string) => {
@@ -36,30 +34,8 @@ export default function OutputTab() {
         showToast("삭제 실패", "error");
       }
     },
-    [recentVideos, setOutput, showToast],
+    [recentVideos, setOutput, showToast]
   );
-
-  // Auto-populate video metadata with smart defaults (only once)
-  useEffect(() => {
-    if (!captionInitialized.current && !videoCaption && store.topic) {
-      captionInitialized.current = true;
-      axios
-        .post(`${API_BASE}/video/extract-hashtags`, { text: store.topic })
-        .then((res) => {
-          if (res.data.caption) {
-            setOutput({ videoCaption: res.data.caption });
-            updateStoryboardMetadata({ default_caption: res.data.caption });
-          }
-        })
-        .catch(() => {
-          setOutput({ videoCaption: store.topic });
-        });
-    }
-    if (!likesInitialized.current && !videoLikesCount) {
-      setOutput({ videoLikesCount: `${Math.floor(Math.random() * 50 + 10)}K` });
-      likesInitialized.current = true;
-    }
-  }, [store.topic, videoCaption, videoLikesCount, setOutput]);
 
   // Extract caption using LLM
   const handleExtractCaption = async () => {
@@ -71,7 +47,7 @@ export default function OutputTab() {
     setIsExtractingCaption(true);
     try {
       const res = await axios.post(`${API_BASE}/video/extract-caption`, {
-        text: videoCaption
+        text: videoCaption,
       });
 
       if (res.data.caption) {
@@ -98,15 +74,20 @@ export default function OutputTab() {
     setTimeout(() => setSavedField(null), 1500);
   }, []);
 
-  const handleCaptionBlur = useCallback(async (value: string) => {
-    await updateStoryboardMetadata({ default_caption: value });
-    flashSaved("caption");
-  }, [flashSaved]);
+  const handleCaptionBlur = useCallback(
+    async (value: string) => {
+      await updateStoryboardMetadata({ default_caption: value });
+      flashSaved("caption");
+    },
+    [flashSaved]
+  );
 
   const handleLikesBlur = useCallback(() => flashSaved("likes"), [flashSaved]);
 
   const savedBadge = (
-    <span className="text-[10px] font-medium text-emerald-500 transition-opacity duration-300">Saved</span>
+    <span className="text-[10px] font-medium text-emerald-500 transition-opacity duration-300">
+      Saved
+    </span>
   );
 
   return (
@@ -122,10 +103,10 @@ export default function OutputTab() {
       />
 
       {/* Video Metadata */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
         <h3 className="text-sm font-bold text-zinc-800">영상 메타데이터</h3>
         <div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="mb-1 flex items-center justify-between">
             <label className="block text-xs font-semibold text-zinc-600">
               캡션 (이 영상) <span className="text-red-500">*</span>
             </label>
@@ -135,16 +116,21 @@ export default function OutputTab() {
                 <button
                   onClick={handleExtractCaption}
                   disabled={isExtractingCaption}
-                  className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 hover:bg-indigo-200 disabled:opacity-50 transition-colors"
+                  className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600 transition-colors hover:bg-indigo-200 disabled:opacity-50"
                   title="LLM으로 캡션 요약"
                 >
                   {isExtractingCaption ? "..." : "요약"}
                 </button>
               )}
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${videoCaption.length >= 60 ? 'bg-red-100 text-red-600' :
-                videoCaption.length >= 50 ? 'bg-amber-100 text-amber-600' :
-                  'text-zinc-400'
-                }`}>
+              <span
+                className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                  videoCaption.length >= 60
+                    ? "bg-red-100 text-red-600"
+                    : videoCaption.length >= 50
+                      ? "bg-amber-100 text-amber-600"
+                      : "text-zinc-400"
+                }`}
+              >
                 {videoCaption.length}/60
               </span>
             </div>
@@ -155,29 +141,35 @@ export default function OutputTab() {
             onChange={(e) => setOutput({ videoCaption: e.target.value })}
             onBlur={(e) => handleCaptionBlur(e.target.value)}
             placeholder={`예: ${store.topic || "AI 생성 영상"}`}
-            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 transition-colors ${videoCaption.length >= 60
-              ? 'border-red-300 focus:border-red-400 focus:ring-red-50 bg-red-50/30'
-              : videoCaption.length >= 50
-                ? 'border-amber-300 focus:border-amber-400 focus:ring-amber-50 bg-amber-50/30'
-                : 'border-zinc-200 focus:border-indigo-400 focus:ring-indigo-50'
-              }`}
+            className={`w-full rounded-xl border px-3 py-2 text-sm transition-colors outline-none focus:ring-2 ${
+              videoCaption.length >= 60
+                ? "border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-50"
+                : videoCaption.length >= 50
+                  ? "border-amber-300 bg-amber-50/30 focus:border-amber-400 focus:ring-amber-50"
+                  : "border-zinc-200 focus:border-indigo-400 focus:ring-indigo-50"
+            }`}
           />
-          <p className={`text-[10px] mt-1 ${
-            videoCaption.length >= 60 ? 'text-red-600 font-medium'
-              : videoCaption.length >= 50 ? 'text-amber-600 font-medium'
-              : 'text-zinc-400'
-          }`}>
-            {videoCaption.length >= 60 ? '최대 60자 제한 (가로폭 초과 시 잘림)'
-              : videoCaption.length >= 50 ? '50자 초과 - 간결하게 작성 권장'
-              : videoCaption ? '가로폭 고려하여 60자 이내 권장'
-              : '비워두면 스토리보드 주제가 사용됩니다'}
+          <p
+            className={`mt-1 text-[10px] ${
+              videoCaption.length >= 60
+                ? "font-medium text-red-600"
+                : videoCaption.length >= 50
+                  ? "font-medium text-amber-600"
+                  : "text-zinc-400"
+            }`}
+          >
+            {videoCaption.length >= 60
+              ? "최대 60자 제한 (가로폭 초과 시 잘림)"
+              : videoCaption.length >= 50
+                ? "50자 초과 - 간결하게 작성 권장"
+                : videoCaption
+                  ? "가로폭 고려하여 60자 이내 권장"
+                  : "비워두면 스토리보드 주제가 사용됩니다"}
           </p>
         </div>
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-semibold text-zinc-600">
-              좋아요 수 (선택)
-            </label>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-xs font-semibold text-zinc-600">좋아요 수 (선택)</label>
             {savedField === "likes" && savedBadge}
           </div>
           <input

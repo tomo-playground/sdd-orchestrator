@@ -6,6 +6,7 @@ import axios from "axios";
 import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { createDraftStoryboard } from "../store/actions/storyboardActions";
+import { initializeVideoMetadata } from "../store/actions/outputActions";
 import type { Scene } from "../types";
 import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
 import { updateProject } from "../store/actions/projectActions";
@@ -92,11 +93,7 @@ export function useStudioInitialization() {
       if (data.clip_skip) plan.baseClipSkipA = data.clip_skip;
       setPlan(plan);
 
-      const {
-        scenes: sc,
-        currentSceneIndex: idx,
-        updateScene,
-      } = useStudioStore.getState();
+      const { scenes: sc, currentSceneIndex: idx, updateScene } = useStudioStore.getState();
       if (sc.length > 0 && sc[idx]) {
         const updates: Partial<Scene> = {};
         if (data.positive_prompt) updates.image_prompt = data.positive_prompt as string;
@@ -106,8 +103,7 @@ export function useStudioInitialization() {
         if (data.sampler_name) updates.sampler_name = data.sampler_name as string;
         if (data.seed) updates.seed = data.seed as number;
         if (data.clip_skip) updates.clip_skip = data.clip_skip as number;
-        if (data.context_tags)
-          updates.context_tags = data.context_tags as Record<string, string[]>;
+        if (data.context_tags) updates.context_tags = data.context_tags as Record<string, string[]>;
         if (data.id) updates.prompt_history_id = data.id as number;
         updateScene(sc[idx].id, updates);
       }
@@ -184,6 +180,9 @@ export function useStudioInitialization() {
           const mapped = mapDbScenes(data.scenes);
           setScenes(mapped);
         }
+
+        // Initialize video metadata (caption/likes) once topic is set
+        initializeVideoMetadata(data.title || "");
       })
       .catch(() => {
         setMeta({ storyboardId: null });
@@ -245,8 +244,7 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     debug_payload: "",
     context_tags: (s.context_tags as Record<string, string[]>) || undefined,
     environment_reference_id: (s.environment_reference_id as number) || null,
-    environment_reference_weight:
-      (s.environment_reference_weight as number) || undefined,
+    environment_reference_weight: (s.environment_reference_weight as number) || undefined,
     use_reference_only: (s.use_reference_only as boolean) || undefined,
     reference_only_weight: (s.reference_only_weight as number) || undefined,
   }));
