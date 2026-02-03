@@ -21,23 +21,23 @@ graph TD
         API["Main API Router"]
         
         subgraph Logic ["Core Logic"]
-            Planner[Storyboard Planner (Gemini)]
-            PromptEng[12-Layer Prompt Engine]
-            GenImg[Image Generator (Stable Diffusion)]
-            TTS[TTS Engine (Qwen-Audio)]
-            Renderer[Video Renderer (FFmpeg)]
+            Planner["Storyboard Planner (Gemini)"]
+            PromptEng["12-Layer Prompt Engine"]
+            GenImg["Image Generator (Stable Diffusion)"]
+            TTS["TTS Engine (Qwen-Audio)"]
+            Renderer["Video Renderer (FFmpeg)"]
         end
         
-        subgraph Data [Data & Assets]
-            DB[(PostgreSQL - V3 Schema)]
-            Storage[Shared Storage (MinIO/S3)]
-            AssetsDir[./assets (Fonts, Overlays, BGM)]
+        subgraph Data ["Data & Assets"]
+            DB[("PostgreSQL - V3 Schema")]
+            Storage[("Shared Storage (MinIO/S3)")]
+            AssetsDir["./assets (Fonts, Overlays, BGM)"]
         end
     end
 
-    subgraph External [External Services]
-        SD_API[Stable Diffusion WebUI API]
-        Gemini_API[Google Gemini API]
+    subgraph External ["External Services"]
+        SD_API["Stable Diffusion WebUI API"]
+        Gemini_API["Google Gemini API"]
     end
 
     %% Connections
