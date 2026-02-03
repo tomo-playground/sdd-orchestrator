@@ -147,7 +147,7 @@
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
-| 1 | CI 파이프라인 (GitHub Actions: lint + test) | 인프라 | [ ] |
+| 1 | CI 파이프라인 (GitHub Actions: lint + test) | 인프라 | [x] |
 | 2 | VRT Baseline System | 인프라 | [ ] |
 | 3 | 고아 media_assets GC 시스템 | 인프라 | [x] |
 | 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [ ] |
@@ -206,6 +206,7 @@
 | 11 | Studio UI Polish (Video탭 통합, Global 접기, Save 이동, 캐릭터 프리뷰 확대) | UX | - | [x] |
 | 12 | 씬 텍스트 하단 배치 + 드롭섀도우 + Color Grade | 영상 품질 | - | [x] |
 | 13 | Gemini 스크립트 길이 제한 강화 (30자/Korean) | 품질 | - | [x] |
+| 14 | Character Identity Injection (Gemini 스토리보드에 캐릭터 태그/LoRA 주입 + 오토파일럿 overlay 수정) | 품질 | - | [x] |
 
 ---
 
@@ -284,6 +285,6 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 **현재 진행 상태** (2026-02-03):
 - Phase 6-5 ~ 6-8: **완료**
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
-- Phase 6-7 #12: WD14 Validate 매칭 정확도 개선 **완료**
+- Phase 6-7: 5/12 완료 (#1 CI, #3 GC, #7 UI Toolkit, #12 WD14 매칭)
 - Phase 7-2: Phase 1.5 **완료**, Phase 2 대기
-- Phase 7-1: 5/13 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이)
+- Phase 7-1: 6/14 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity)
