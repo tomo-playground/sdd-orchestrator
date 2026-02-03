@@ -98,7 +98,7 @@ export async function generateSceneImageFor(
       return null;
     }
     if (validation.warnings?.length > 0 && !silent) {
-      showToast(validation.warnings.join("; "), "warning");
+      showToast(validation.warnings.join("; "), "error");
     }
   } catch {
     // continue

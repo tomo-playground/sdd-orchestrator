@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useSettingsTab } from "../hooks/useSettingsTab";
+import AnalyticsSection from "./AnalyticsSection";
+import CacheRefreshSection from "./CacheRefreshSection";
+import MediaAssetsSection from "./MediaAssetsSection";
 
 export default function SettingsTab() {
     const {
@@ -21,6 +24,18 @@ export default function SettingsTab() {
         isLoadingAnalytics,
         analyticsStoryboardFilter,
         fetchAnalytics,
+        mediaStats,
+        isLoadingMediaStats,
+        fetchMediaStats,
+        orphanReport,
+        isScanning,
+        handleOrphanScan,
+        mediaCleanupResult,
+        isMediaCleaning,
+        handleMediaCleanup,
+        isRefreshingCaches,
+        cacheRefreshResult,
+        handleRefreshCaches,
     } = useSettingsTab();
 
     return (
@@ -200,7 +215,6 @@ export default function SettingsTab() {
                                     </div>
                                 ) : (
                                     <div className="flex h-full flex-col items-center justify-center py-12 text-center">
-                                        <div className="mb-3 text-2xl opacity-20">🍃</div>
                                         <p className="text-[11px] font-medium text-zinc-400">Ready for maintenance cycle</p>
                                     </div>
                                 )}
@@ -210,7 +224,7 @@ export default function SettingsTab() {
                 )}
             </div>
 
-            {/* Gemini Auto Edit Configuration (Phase 6-4.22) */}
+            {/* Gemini Auto Edit Configuration */}
             <div className="grid gap-6">
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                     <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
@@ -261,7 +275,6 @@ export default function SettingsTab() {
                         {/* Settings Controls */}
                         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
                             <div className="grid gap-6">
-                                {/* Master Switch - Read Only */}
                                 <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50/50 border border-zinc-50">
                                     <div>
                                         <p className="text-sm font-bold text-zinc-700">Auto Edit Enabled</p>
@@ -280,7 +293,6 @@ export default function SettingsTab() {
                                     </label>
                                 </div>
 
-                                {/* Threshold Slider - Read Only */}
                                 <div className="grid gap-3 opacity-75">
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs font-bold text-zinc-700">Match Rate Threshold</label>
@@ -302,7 +314,6 @@ export default function SettingsTab() {
                                     </p>
                                 </div>
 
-                                {/* Max Cost Input - Read Only */}
                                 <div className="grid gap-3 opacity-75">
                                     <label className="text-xs font-bold text-zinc-700">Max Cost per Storyboard</label>
                                     <div className="flex items-center gap-2">
@@ -322,7 +333,6 @@ export default function SettingsTab() {
                                     </p>
                                 </div>
 
-                                {/* Max Retries Input - Read Only */}
                                 <div className="grid gap-3 opacity-75">
                                     <label className="text-xs font-bold text-zinc-700">Max Retries per Scene</label>
                                     <input
@@ -339,10 +349,9 @@ export default function SettingsTab() {
                                     </p>
                                 </div>
 
-                                {/* .env Configuration Notice */}
                                 <div className="rounded-xl bg-indigo-50 border border-indigo-200 p-4 text-center">
                                     <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">
-                                        📄 Configuration Source
+                                        Configuration Source
                                     </p>
                                     <p className="text-[11px] text-indigo-700">
                                         These settings are managed in <code className="bg-indigo-100 px-1 py-0.5 rounded font-mono">.env</code> file
@@ -357,165 +366,33 @@ export default function SettingsTab() {
                 )}
             </div>
 
-            {/* Gemini Analytics Dashboard (Phase 6-4.22) */}
-            <div className="grid gap-6">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                    <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
-                        Performance Analytics
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => fetchAnalytics(analyticsStoryboardFilter)}
-                        disabled={isLoadingAnalytics}
-                        className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
-                    >
-                        {isLoadingAnalytics ? "Loading..." : "Refresh Analytics"}
-                    </button>
-                </div>
+            {/* System Caches */}
+            <CacheRefreshSection
+                isRefreshingCaches={isRefreshingCaches}
+                cacheRefreshResult={cacheRefreshResult}
+                handleRefreshCaches={handleRefreshCaches}
+            />
 
-                {analytics && (
-                    <div className="grid gap-6">
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-                                <div className="flex items-end justify-between mb-2">
-                                    <div className="text-3xl font-black text-zinc-900">{analytics.total_edits}</div>
-                                    <div className="text-xs font-bold text-zinc-400">EDITS</div>
-                                </div>
-                                <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">Total Auto-Edits</p>
-                            </div>
+            {/* Media Assets GC */}
+            <MediaAssetsSection
+                mediaStats={mediaStats}
+                isLoadingMediaStats={isLoadingMediaStats}
+                fetchMediaStats={fetchMediaStats}
+                orphanReport={orphanReport}
+                isScanning={isScanning}
+                handleOrphanScan={handleOrphanScan}
+                mediaCleanupResult={mediaCleanupResult}
+                isMediaCleaning={isMediaCleaning}
+                handleMediaCleanup={handleMediaCleanup}
+            />
 
-                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-                                <div className="flex items-end justify-between mb-2">
-                                    <div className="text-3xl font-black text-emerald-600">
-                                        +{(analytics.avg_improvement * 100).toFixed(1)}%
-                                    </div>
-                                    <div className="text-xs font-bold text-emerald-400">AVG</div>
-                                </div>
-                                <p className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest">Match Rate Boost</p>
-                            </div>
-
-                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-                                <div className="flex items-end justify-between mb-2">
-                                    <div className="text-3xl font-black text-amber-600">
-                                        ${analytics.total_cost_usd.toFixed(2)}
-                                    </div>
-                                    <div className="text-xs font-bold text-amber-400">USD</div>
-                                </div>
-                                <p className="text-[10px] font-medium text-amber-500 uppercase tracking-widest">Total Investment</p>
-                            </div>
-                        </div>
-
-                        {/* Improvement Range Distribution */}
-                        {analytics.by_improvement_range && Object.keys(analytics.by_improvement_range).length > 0 && (
-                            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-                                <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
-                                    Improvement Distribution
-                                </h4>
-                                <div className="grid gap-3">
-                                    {Object.entries(analytics.by_improvement_range)
-                                        .sort(([a], [b]) => a.localeCompare(b))
-                                        .map(([range, count]) => {
-                                            const maxCount = Math.max(...Object.values(analytics.by_improvement_range));
-                                            const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
-
-                                            let colorClass = "bg-zinc-400";
-                                            if (range.includes("20-30") || range.includes("30+")) {
-                                                colorClass = "bg-emerald-500";
-                                            } else if (range.includes("10-20")) {
-                                                colorClass = "bg-indigo-500";
-                                            } else if (range.includes("0-10")) {
-                                                colorClass = "bg-amber-500";
-                                            }
-
-                                            return (
-                                                <div key={range} className="grid grid-cols-[120px_1fr_60px] items-center gap-3">
-                                                    <span className="text-[10px] font-bold text-zinc-600 uppercase">{range}</span>
-                                                    <div className="h-6 w-full rounded-full bg-zinc-100 overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${colorClass} transition-all duration-500`}
-                                                            style={{ width: `${percentage}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-sm font-black text-zinc-700 text-right">{count}</span>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Recent Edits Table */}
-                        {analytics.edits && analytics.edits.length > 0 && (
-                            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-                                <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
-                                    Recent Auto-Edits ({analytics.edits.length})
-                                </h4>
-                                <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                                    <table className="w-full text-xs">
-                                        <thead className="sticky top-0 bg-white border-b border-zinc-200">
-                                            <tr className="text-[10px] font-bold text-zinc-400 uppercase">
-                                                <th className="pb-2 text-left">Storyboard</th>
-                                                <th className="pb-2 text-left">Scene</th>
-                                                <th className="pb-2 text-right">Before</th>
-                                                <th className="pb-2 text-right">After</th>
-                                                <th className="pb-2 text-right">Boost</th>
-                                                <th className="pb-2 text-right">Cost</th>
-                                                <th className="pb-2 text-left">Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="text-zinc-600">
-                                            {analytics.edits.slice(0, 20).map((edit) => {
-                                                const improvement = edit.improvement * 100;
-                                                let improvementColor = "text-zinc-600";
-                                                if (improvement >= 20) {
-                                                    improvementColor = "text-emerald-600 font-bold";
-                                                } else if (improvement >= 10) {
-                                                    improvementColor = "text-indigo-600 font-semibold";
-                                                } else if (improvement >= 5) {
-                                                    improvementColor = "text-amber-600";
-                                                }
-
-                                                return (
-                                                    <tr key={edit.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                                                        <td className="py-2 font-semibold">#{edit.storyboard_id}</td>
-                                                        <td className="py-2">Scene {edit.scene_id}</td>
-                                                        <td className="py-2 text-right text-rose-600 font-mono">
-                                                            {(edit.original_match_rate * 100).toFixed(0)}%
-                                                        </td>
-                                                        <td className="py-2 text-right text-emerald-600 font-mono font-bold">
-                                                            {(edit.final_match_rate * 100).toFixed(0)}%
-                                                        </td>
-                                                        <td className={`py-2 text-right font-mono ${improvementColor}`}>
-                                                            +{improvement.toFixed(1)}%
-                                                        </td>
-                                                        <td className="py-2 text-right text-amber-600 font-mono">
-                                                            ${edit.cost_usd.toFixed(4)}
-                                                        </td>
-                                                        <td className="py-2 text-[10px] text-zinc-400">
-                                                            {new Date(edit.created_at).toLocaleDateString()}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {analytics.total_edits === 0 && (
-                            <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-zinc-200 bg-zinc-50/50">
-                                <div className="mb-3 text-4xl opacity-20">📊</div>
-                                <p className="text-sm font-bold text-zinc-500">No auto-edits yet</p>
-                                <p className="text-[10px] text-zinc-400 mt-1">
-                                    Enable Auto Edit and start generating scenes to see analytics
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+            {/* Performance Analytics */}
+            <AnalyticsSection
+                analytics={analytics}
+                isLoadingAnalytics={isLoadingAnalytics}
+                analyticsStoryboardFilter={analyticsStoryboardFilter}
+                fetchAnalytics={fetchAnalytics}
+            />
 
             {/* Render Settings Link */}
             <div className="grid gap-3 pt-4 border-t border-zinc-100">

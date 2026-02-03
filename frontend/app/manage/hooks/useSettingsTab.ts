@@ -33,7 +33,7 @@ type CostSummary = {
     edit_count_month: number;
 };
 
-type EditAnalytics = {
+export type EditAnalytics = {
     total_edits: number;
     total_cost_usd: number;
     avg_improvement: number;
@@ -56,6 +56,40 @@ type CleanupOptions = {
     cleanup_cache: boolean;
     cleanup_test_folders: boolean;
     cleanup_candidates: boolean;
+};
+
+export type MediaStats = {
+    total_assets: number;
+    temp_assets: number;
+    null_owner_assets: number;
+    orphan_count: number;
+    by_owner_type: Record<string, number>;
+};
+
+export type OrphanInfo = {
+    id: number;
+    storage_key: string;
+    owner_type: string | null;
+    reason: string;
+};
+
+export type OrphanReport = {
+    null_owner: OrphanInfo[];
+    broken_fk: OrphanInfo[];
+    expired_temp: OrphanInfo[];
+    total: number;
+};
+
+export type MediaCleanupResult = {
+    orphans: { deleted: number; storage_errors: string[]; dry_run: boolean };
+    expired_temp: { deleted: number; storage_errors: string[]; dry_run: boolean };
+    total_deleted: number;
+};
+
+export type CacheRefreshResult = {
+    success: boolean;
+    message?: string;
+    error?: string;
 };
 
 // ── Hook ───────────────────────────────────────────────
@@ -83,6 +117,18 @@ export function useSettingsTab() {
     const [analytics, setAnalytics] = useState<EditAnalytics | null>(null);
     const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
     const [analyticsStoryboardFilter, setAnalyticsStoryboardFilter] = useState<number | null>(null);
+
+    // Media Assets GC state
+    const [mediaStats, setMediaStats] = useState<MediaStats | null>(null);
+    const [isLoadingMediaStats, setIsLoadingMediaStats] = useState(false);
+    const [orphanReport, setOrphanReport] = useState<OrphanReport | null>(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const [mediaCleanupResult, setMediaCleanupResult] = useState<MediaCleanupResult | null>(null);
+    const [isMediaCleaning, setIsMediaCleaning] = useState(false);
+
+    // Cache Refresh state
+    const [isRefreshingCaches, setIsRefreshingCaches] = useState(false);
+    const [cacheRefreshResult, setCacheRefreshResult] = useState<CacheRefreshResult | null>(null);
 
     // ── Fetchers ───────────────────────────────────────
 
@@ -148,12 +194,72 @@ export function useSettingsTab() {
         }
     }, []);
 
+    // ── Media Assets GC ────────────────────────────────
+
+    const fetchMediaStats = useCallback(async () => {
+        setIsLoadingMediaStats(true);
+        try {
+            const res = await axios.get(`${API_BASE}/admin/media-assets/stats`);
+            setMediaStats(res.data);
+        } catch {
+            setMediaStats(null);
+        } finally {
+            setIsLoadingMediaStats(false);
+        }
+    }, []);
+
+    const handleOrphanScan = useCallback(async () => {
+        setIsScanning(true);
+        setOrphanReport(null);
+        try {
+            const res = await axios.get(`${API_BASE}/admin/media-assets/orphans`);
+            setOrphanReport(res.data);
+        } catch {
+            setOrphanReport(null);
+        } finally {
+            setIsScanning(false);
+        }
+    }, []);
+
+    const handleMediaCleanup = useCallback(async (dryRun: boolean) => {
+        setIsMediaCleaning(true);
+        setMediaCleanupResult(null);
+        try {
+            const res = await axios.post(`${API_BASE}/admin/media-assets/cleanup`, null, {
+                params: { dry_run: dryRun },
+            });
+            setMediaCleanupResult(res.data);
+            if (!dryRun) void fetchMediaStats();
+        } catch {
+            alert("Media cleanup failed.");
+        } finally {
+            setIsMediaCleaning(false);
+        }
+    }, [fetchMediaStats]);
+
+    // ── Cache Refresh ────────────────────────────────
+
+    const handleRefreshCaches = useCallback(async () => {
+        setIsRefreshingCaches(true);
+        setCacheRefreshResult(null);
+        try {
+            const res = await axios.post(`${API_BASE}/admin/refresh-caches`);
+            setCacheRefreshResult(res.data);
+        } catch {
+            setCacheRefreshResult({ success: false, error: "Request failed" });
+        } finally {
+            setIsRefreshingCaches(false);
+            setTimeout(() => setCacheRefreshResult(null), 5000);
+        }
+    }, []);
+
     // ── Effects ────────────────────────────────────────
 
     useEffect(() => {
         void fetchStorageStats();
         void fetchAutoEditSettings();
         void fetchAnalytics(analyticsStoryboardFilter);
+        void fetchMediaStats();
     }, [analyticsStoryboardFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return {
@@ -177,5 +283,19 @@ export function useSettingsTab() {
         analyticsStoryboardFilter,
         setAnalyticsStoryboardFilter,
         fetchAnalytics,
+        // Media Assets GC
+        mediaStats,
+        isLoadingMediaStats,
+        fetchMediaStats,
+        orphanReport,
+        isScanning,
+        handleOrphanScan,
+        mediaCleanupResult,
+        isMediaCleaning,
+        handleMediaCleanup,
+        // Cache Refresh
+        isRefreshingCaches,
+        cacheRefreshResult,
+        handleRefreshCaches,
     };
 }
