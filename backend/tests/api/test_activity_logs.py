@@ -1,22 +1,13 @@
 """Tests for activity logs API endpoints."""
 
-import uuid
-
 from fastapi.testclient import TestClient
+
+from conftest import create_test_storyboard
 
 
 def _create_storyboard(client: TestClient) -> int:
     """Create a test storyboard and return its ID."""
-    response = client.post(
-        "/storyboards",
-        json={
-            "title": f"Test Storyboard {uuid.uuid4().hex[:4]}",
-            "description": "testing",
-            "scenes": [],
-        },
-    )
-    assert response.status_code == 200
-    return response.json()["storyboard_id"]
+    return create_test_storyboard(client)["storyboard_id"]
 
 
 def test_create_activity_log_minimal(client: TestClient):

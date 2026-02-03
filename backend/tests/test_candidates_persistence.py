@@ -1,9 +1,9 @@
-
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from main import app  # Assuming main.py exports 'app'
 
-def test_candidates_persistence(client: TestClient, db_session: Session):
+from conftest import create_test_storyboard
+
+
+def test_candidates_persistence(client: TestClient):
     """
     Regression test for verifying that image candidates are correctly persisted and retrieved.
     Steps:
@@ -20,25 +20,19 @@ def test_candidates_persistence(client: TestClient, db_session: Session):
         {"image_url": "http://example.com/img3.png", "match_rate": 0.82},
     ]
 
-    storyboard_payload = {
-        "title": "Candidates Test Storyboard",
-        "description": "Testing persistence of candidates field",
-        "scenes": [
-            {
-                "scene_id": 0,
-                "script": "A test scene",
-                "speaker": "Narrator",
-                "duration": 5.0,
-                "image_prompt": "A beautiful landscape",
-                "candidates": candidates_data
-            }
-        ]
-    }
+    scenes = [
+        {
+            "scene_id": 0,
+            "script": "A test scene",
+            "speaker": "Narrator",
+            "duration": 5.0,
+            "image_prompt": "A beautiful landscape",
+            "candidates": candidates_data,
+        }
+    ]
 
     # 2. Create Storyboard
-    response = client.post("/storyboards", json=storyboard_payload)
-    assert response.status_code == 200, f"Failed to create storyboard: {response.text}"
-    data = response.json()
+    data = create_test_storyboard(client, title="Candidates Test", scenes=scenes)
     storyboard_id = data["storyboard_id"]
     assert storyboard_id is not None
 

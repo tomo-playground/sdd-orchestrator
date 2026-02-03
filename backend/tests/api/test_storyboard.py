@@ -1,21 +1,8 @@
 """Tests for storyboard management API endpoints."""
 
-import uuid
-
 from fastapi.testclient import TestClient
 
-
-def _create_storyboard(client: TestClient, title: str | None = None, scenes: list | None = None):
-    """Helper to create a storyboard and return the response data."""
-    title = title or f"Story {uuid.uuid4().hex[:4]}"
-    payload = {
-        "title": title,
-        "description": "test description",
-        "scenes": scenes or [],
-    }
-    resp = client.post("/storyboards", json=payload)
-    assert resp.status_code == 200
-    return resp.json()
+from conftest import create_test_storyboard
 
 
 def _make_scene(scene_id: int = 0, **overrides) -> dict:
@@ -34,9 +21,9 @@ def _make_scene(scene_id: int = 0, **overrides) -> dict:
     return base
 
 
-def test_create_storyboard(client: TestClient):
+def testcreate_test_storyboard(client: TestClient):
     """Test creating a storyboard."""
-    data = _create_storyboard(client)
+    data = create_test_storyboard(client)
     assert data["status"] == "success"
     assert "storyboard_id" in data
 
@@ -51,7 +38,7 @@ def test_list_storyboards(client: TestClient):
 def test_list_with_scene_count(client: TestClient):
     """Test that list includes scene_count and image_count."""
     scenes = [_make_scene(0), _make_scene(1, image_url="/img/test.png")]
-    _create_storyboard(client, scenes=scenes)
+    create_test_storyboard(client, scenes=scenes)
 
     resp = client.get("/storyboards")
     items = resp.json()
@@ -67,7 +54,7 @@ def test_get_storyboard_with_scenes(client: TestClient):
         _make_scene(0, speaker="Narrator", duration=2.5),
         _make_scene(1, speaker="Character", duration=4.0, image_url="/img/s1.png"),
     ]
-    data = _create_storyboard(client, title="Full Test", scenes=scenes)
+    data = create_test_storyboard(client, title="Full Test", scenes=scenes)
     sb_id = data["storyboard_id"]
 
     resp = client.get(f"/storyboards/{sb_id}")
@@ -99,7 +86,7 @@ def test_save_with_extended_fields(client: TestClient):
         clip_skip=2,
         context_tags={"expression": ["smile"], "camera": "close-up"},
     )]
-    data = _create_storyboard(client, title="Extended", scenes=scenes)
+    data = create_test_storyboard(client, title="Extended", scenes=scenes)
     sb_id = data["storyboard_id"]
 
     resp = client.get(f"/storyboards/{sb_id}")
@@ -117,7 +104,7 @@ def test_save_with_extended_fields(client: TestClient):
 
 def test_update_storyboard(client: TestClient):
     """Test PUT /storyboards/{id} replaces scenes."""
-    data = _create_storyboard(client, title="Original", scenes=[_make_scene(0)])
+    data = create_test_storyboard(client, title="Original", scenes=[_make_scene(0)])
     sb_id = data["storyboard_id"]
 
     # Update with new scenes
@@ -139,7 +126,7 @@ def test_update_storyboard(client: TestClient):
 
 def test_delete_storyboard(client: TestClient):
     """Test DELETE /storyboards/{id}."""
-    data = _create_storyboard(client, title="ToDelete", scenes=[_make_scene(0)])
+    data = create_test_storyboard(client, title="ToDelete", scenes=[_make_scene(0)])
     sb_id = data["storyboard_id"]
 
     del_resp = client.delete(f"/storyboards/{sb_id}")

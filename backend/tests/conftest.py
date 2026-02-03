@@ -296,3 +296,27 @@ def init_tag_caches():
     TagCategoryCache._cache = {}
     get_token_category.cache_clear()
 
+
+def create_test_storyboard(
+    client,
+    title: str | None = None,
+    scenes: list | None = None,
+) -> dict:
+    """Create a test storyboard via API. Returns full response data.
+
+    Usage:
+        data = create_test_storyboard(client)
+        sb_id = data["storyboard_id"]
+    """
+    import uuid
+
+    payload = {
+        "title": title or f"Test {uuid.uuid4().hex[:4]}",
+        "description": "test",
+        "group_id": 1,
+        "scenes": scenes or [],
+    }
+    resp = client.post("/storyboards", json=payload)
+    assert resp.status_code == 200, f"Storyboard creation failed: {resp.text}"
+    return resp.json()
+
