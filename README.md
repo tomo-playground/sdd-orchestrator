@@ -109,6 +109,7 @@ npm run dev
 
 전체 문서는 `/docs` 디렉토리에서 확인할 수 있습니다.
 
+### 📂 Directory Structure
 ```
 docs/
 ├── 00_meta/          # 문서 구조 및 정책
@@ -120,8 +121,21 @@ docs/
 └── 99_archive/       # 아카이브
 ```
 
-주요 문서:
-- [Roadmap](docs/01_product/ROADMAP.md)
-- [V3 DB Schema](docs/03_engineering/architecture/DB_SCHEMA.md)
-- [TTS Setup](docs/04_operations/TTS_SETUP.md)
-- [Contributing](guides/CONTRIBUTING.md)
+### 🔗 Key Documents
+
+#### 🚀 Product & Planning
+- [Roadmap](docs/01_product/ROADMAP.md) - 개발 진행 현황 및 예정 작업
+- [PRD](docs/01_product/PRD.md) - 제품 요구사항 정의서
+- [Feature Specs](docs/01_product/FEATURES/) - 개별 기능 요구사항 명세
+
+#### 🏗 Engineering
+- [System Overview](docs/03_engineering/architecture/SYSTEM_OVERVIEW.md) - 전체 시스템 구조 및 컴포넌트 설명
+- [V3 DB Schema](docs/03_engineering/architecture/DB_SCHEMA.md) - 데이터베이스 구조 및 관계도
+- [API Reference](docs/03_engineering/api/REST_API.md) - REST API 엔드포인트 명세
+- [Render Pipeline](docs/03_engineering/backend/RENDER_PIPELINE.md) - 영상 렌더링 파이프라인 기술 상세
+- [Test Strategy](docs/03_engineering/testing/TEST_STRATEGY.md) - 테스트 전략 및 시나리오
+
+#### 🛠 Operations & Guides
+- [TTS Setup](docs/04_operations/TTS_SETUP.md) - Qwen-Audio TTS 설정 가이드
+- [Deployment Guide](docs/04_operations/DEPLOYMENT.md) - 서버 배포 및 운영 가이드
+- [Contributing](guides/CONTRIBUTING.md) - 개발 기여 및 스타일 가이드
