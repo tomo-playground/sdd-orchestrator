@@ -10,7 +10,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import DEFAULT_SCENE_NEGATIVE_PROMPT, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
-from models.associations import SceneCharacterAction, SceneTag
+from models.associations import CharacterTag, SceneCharacterAction, SceneTag
+from models.character import Character
 from models.media_asset import MediaAsset
 from models.scene import Scene
 from models.storyboard import Storyboard
@@ -192,11 +193,64 @@ async def _call_gemini_with_retry(contents: str, config) -> object:
     raise last_exc  # type: ignore[misc]
 
 
-async def create_storyboard(request: StoryboardRequest) -> dict:
+def _load_character_context(character_id: int, db: Session) -> dict | None:
+    """Load character data and classify tags for Gemini template injection."""
+    char = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == character_id)
+        .first()
+    )
+    if not char:
+        logger.warning("Character %d not found, skipping character context", character_id)
+        return None
+
+    identity_tags: list[str] = []
+    costume_tags: list[str] = []
+    for ct in char.tags:
+        tag = ct.tag
+        if not tag:
+            continue
+        layer = tag.default_layer
+        if layer is not None and layer <= 3:
+            identity_tags.append(tag.name)
+        elif layer is not None and 4 <= layer <= 6:
+            costume_tags.append(tag.name)
+
+    lora_triggers: list[str] = []
+    if char.loras:
+        from models.lora import LoRA
+        for lora_entry in char.loras:
+            lora_id = lora_entry.get("lora_id")
+            if not lora_id:
+                continue
+            lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
+            if lora and lora.trigger_words:
+                lora_triggers.extend(lora.trigger_words)
+
+    ctx = {
+        "name": char.name,
+        "gender": char.gender or "female",
+        "identity_tags": identity_tags,
+        "costume_tags": costume_tags,
+        "lora_triggers": lora_triggers,
+        "custom_base_prompt": char.custom_base_prompt or "",
+    }
+    logger.info("[Character Context] %s: identity=%s, costume=%s, lora_triggers=%s",
+                char.name, identity_tags, costume_tags, lora_triggers)
+    return ctx
+
+
+async def create_storyboard(request: StoryboardRequest, db: Session | None = None) -> dict:
     """Generate a storyboard from a topic using Gemini (async)."""
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
+        # Load character context if character_id provided
+        character_context = None
+        if request.character_id and db:
+            character_context = _load_character_context(request.character_id, db)
+
         preset = get_preset_by_structure(request.structure)
         template_name = preset.template if preset else "create_storyboard.j2"
         extra_fields = preset.extra_fields if preset else {}
@@ -219,6 +273,7 @@ async def create_storyboard(request: StoryboardRequest) -> dict:
             language=request.language,
             actor_a_gender=request.actor_a_gender,
             keyword_context=format_keyword_context(),
+            character_context=character_context,
             **extra_fields,
         )
         from google.genai import types
@@ -338,7 +393,10 @@ async def create_storyboard(request: StoryboardRequest) -> dict:
         logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
         for i, s in enumerate(scenes):
             logger.info(f"  Scene {i+1} negative: {s.get('negative_prompt', 'NONE')[:80]}")
-        return {"scenes": scenes}
+        result = {"scenes": scenes}
+        if request.character_id:
+            result["character_id"] = request.character_id
+        return result
     except Exception as exc:
         # Check if it's a Gemini API quota error
         error_msg = str(exc)

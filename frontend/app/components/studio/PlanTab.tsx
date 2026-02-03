@@ -136,6 +136,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
         language,
         structure,
         actor_a_gender: actorAGender,
+        character_id: selectedCharacterId || undefined,
       });
       const data = res.data;
       if (data.scenes) {
@@ -189,7 +190,7 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [topic, description, duration, style, language, structure, actorAGender, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, baseNegativePromptA, setScenes, setActiveTab, showToast]);
+  }, [topic, description, duration, style, language, structure, actorAGender, selectedCharacterId, baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA, baseNegativePromptA, setScenes, setActiveTab, showToast]);
 
   const handleSaveStoryboard = useCallback(async () => {
     setIsSaving(true);

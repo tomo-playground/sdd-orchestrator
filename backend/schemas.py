@@ -201,6 +201,7 @@ class StoryboardRequest(BaseModel):
     language: str = "Korean"
     structure: str = "Monologue"
     actor_a_gender: str = "female"
+    character_id: int | None = None
 
 
 class StoryboardScene(BaseModel):

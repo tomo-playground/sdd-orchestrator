@@ -9,6 +9,31 @@ Visual Style: {{ style }}
 Narrative Structure: {{ structure }}
 Language: {{ language }}
 Actor A Gender: {{ actor_a_gender }}
+{% if character_context %}
+
+FIXED CHARACTER IDENTITY (MANDATORY):
+Character Name: {{ character_context.name }}
+Gender: {{ character_context.gender }}
+{% if character_context.identity_tags | length > 0 %}
+Identity Tags (hair, eyes, body - NEVER change these):
+{{ character_context.identity_tags | join(', ') }}
+{% endif %}
+{% if character_context.costume_tags | length > 0 %}
+Costume Tags (clothing, accessories - NEVER change these):
+{{ character_context.costume_tags | join(', ') }}
+{% endif %}
+{% if character_context.lora_triggers | length > 0 %}
+LoRA Trigger Words (MUST include in every scene's image_prompt):
+{{ character_context.lora_triggers | join(', ') }}
+{% endif %}
+
+⚠️ CHARACTER CONSISTENCY RULES:
+- You MUST include ALL Identity Tags and Costume Tags in EVERY scene's image_prompt
+- Do NOT invent, modify, or omit any character appearance tags
+- Do NOT add alternative hair colors, eye colors, or outfits
+- Place character tags BEFORE expression/pose/environment tags in image_prompt
+- These tags are FIXED across all scenes for visual consistency
+{% endif %}
 
 CRITICAL LANGUAGE RULE:
 - Script must be written ONLY in {{ language }}.

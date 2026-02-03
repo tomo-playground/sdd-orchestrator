@@ -260,7 +260,7 @@ export async function generateSceneImageFor(
 async function validateImageCandidate(imageUrl: string, prompt: string, sceneId?: number) {
   try {
     const { storyboardId } = useStudioStore.getState();
-    const res = await axios.post(`${API_BASE}/scene/validate_image`, {
+    const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, {
       image_b64: imageUrl,
       prompt,
       storyboard_id: storyboardId,

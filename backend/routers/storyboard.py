@@ -22,9 +22,9 @@ router = APIRouter(prefix="/storyboards", tags=["storyboard"])
 
 
 @router.post("/create")
-async def create_storyboard_endpoint(request: StoryboardRequest):
+async def create_storyboard_endpoint(request: StoryboardRequest, db: Session = Depends(get_db)):
     logger.info("\U0001f4e5 [Storyboard Req] %s", request.model_dump())
-    return await create_storyboard(request)
+    return await create_storyboard(request, db)
 
 
 @router.post("")

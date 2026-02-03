@@ -6,6 +6,7 @@ import { API_BASE, AUTO_RUN_STEPS } from "../../constants";
 import { computeValidationResults } from "../../utils";
 import { applyAutoFixForScenes } from "./sceneActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
+import { getCurrentProject } from "../selectors/projectSelectors";
 
 /**
  * Run the autopilot pipeline from a given step.
@@ -64,6 +65,7 @@ export async function runAutoRunFromStep(
           topic, duration, style, language, structure,
           actor_a_gender: actorAGender,
           description: useStudioStore.getState().description || undefined,
+          character_id: useStudioStore.getState().selectedCharacterId || undefined,
         });
         const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
         workingScenes = incoming.map((s: Record<string, unknown>, i: number) => ({
@@ -129,7 +131,7 @@ export async function runAutoRunFromStep(
           assertNotCancelled();
           if (!scene.image_url) continue;
           try {
-            await axios.post(`${API_BASE}/scene/validate_image`, {
+            await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, {
               image_b64: scene.image_url,
               prompt: scene.debug_prompt || scene.image_prompt,
               storyboard_id: storyboardId,
@@ -157,10 +159,25 @@ export async function runAutoRunFromStep(
         if (!renderProjectId || !renderGroupId) {
           throw new Error("Project/Group context required for render");
         }
+        const project = getCurrentProject();
+        const store = useStudioStore.getState();
+        const overlaySettings = layoutStyle === "full" && project ? {
+          channel_name: project.name,
+          avatar_key: project.avatar_key || project.handle || project.name,
+          frame_style: store.frameStyle,
+          caption: store.videoCaption || store.topic || "AI 영상",
+          likes_count: store.videoLikesCount || `${Math.floor(Math.random() * 50 + 10)}K`,
+        } : null;
+        const postCardSettings = layoutStyle === "post" && project ? {
+          channel_name: project.name,
+          avatar_key: project.avatar_key || project.handle || project.name,
+          caption: store.videoCaption || store.topic || "AI 영상",
+        } : null;
+
         const payload = {
           project_id: renderProjectId,
           group_id: renderGroupId,
-          storyboard_id: useStudioStore.getState().storyboardId,
+          storyboard_id: store.storyboardId,
           scenes: workingScenes.filter((s) => s.image_url).map((s) => ({
             image_url: s.image_url,
             script: s.script,
@@ -168,18 +185,20 @@ export async function runAutoRunFromStep(
             duration: s.duration,
           })),
           layout_style: layoutStyle,
-          ken_burns_preset: useStudioStore.getState().kenBurnsPreset,
-          ken_burns_intensity: useStudioStore.getState().kenBurnsIntensity,
-          transition_type: useStudioStore.getState().transitionType,
-          speed_multiplier: useStudioStore.getState().speedMultiplier,
-          bgm_file: useStudioStore.getState().bgmFile,
-          audio_ducking: useStudioStore.getState().audioDucking,
-          bgm_volume: useStudioStore.getState().bgmVolume,
-          include_scene_text: useStudioStore.getState().includeSceneText,
-          scene_text_font: useStudioStore.getState().sceneTextFont,
+          ken_burns_preset: store.kenBurnsPreset,
+          ken_burns_intensity: store.kenBurnsIntensity,
+          transition_type: store.transitionType,
+          speed_multiplier: store.speedMultiplier,
+          bgm_file: store.bgmFile,
+          audio_ducking: store.audioDucking,
+          bgm_volume: store.bgmVolume,
+          include_scene_text: store.includeSceneText,
+          scene_text_font: store.sceneTextFont,
           tts_engine: "qwen",
-          voice_design_prompt: useStudioStore.getState().voiceDesignPrompt || null,
-          voice_preset_id: useStudioStore.getState().voicePresetId || null,
+          voice_design_prompt: store.voiceDesignPrompt || null,
+          voice_preset_id: store.voicePresetId || null,
+          overlay_settings: overlaySettings,
+          post_card_settings: postCardSettings,
         };
         const res = await axios.post(`${API_BASE}/video/create`, payload);
         const videoUrl = res.data?.video_url;
