@@ -11,7 +11,7 @@ Quality, Activity Logs, Evaluation, Admin 관련 API 명세입니다.
 1. [Quality](#-quality-품질-검증-자동화) - 품질 검증
 2. [Activity Logs](#-activity-logs-활동-로그-분석) - 활동 로그 분석
 3. [Evaluation](#-evaluation-프롬프트-모드-비교) - 프롬프트 모드 비교
-4. [Admin](#-admin-관리) - DB 관리 및 캐시
+4. [Admin](#-admin-관리) - 마이그레이션, 캐시, 태그 관리, Media GC
 
 ---
 
@@ -249,9 +249,27 @@ Mode A/B 비교 평가를 실행합니다.
 
 ## Admin (관리)
 
-> v3.0: DB 마이그레이션 및 캐시 관리 엔드포인트
+> v3.0+: DB 마이그레이션, 캐시, 태그 관리, 미디어 GC 엔드포인트
 
-### `POST /admin/migrate-tag-rules`
+### 엔드포인트 분류
+
+| 분류 | 엔드포인트 | Method | Manage UI |
+|------|-----------|--------|-----------|
+| **마이그레이션** | `/admin/migrate-tag-rules` | POST | ❌ CLI 전용 |
+| | `/admin/migrate-category-rules` | POST | ❌ DEPRECATED |
+| **캐시** | `/admin/refresh-caches` | POST | ❌ CLI 전용 |
+| **태그 관리** | `/admin/tags/deprecated` | GET | ✅ TagsTab |
+| | `/admin/tags/{tag_id}/deprecate` | PUT | ❌ CLI 전용 |
+| | `/admin/tags/{tag_id}/activate` | PUT | ✅ TagsTab |
+| **Media GC** | `/admin/media-assets/orphans` | GET | ❌ CLI 전용 |
+| | `/admin/media-assets/cleanup` | POST | ❌ CLI 전용 |
+| | `/admin/media-assets/stats` | GET | ❌ CLI 전용 |
+
+---
+
+### 마이그레이션
+
+#### `POST /admin/migrate-tag-rules`
 하드코딩된 태그 충돌 규칙을 DB `tag_rules` 테이블로 마이그레이션합니다.
 
 **Response:**
@@ -267,12 +285,14 @@ Mode A/B 비교 평가를 실행합니다.
 }
 ```
 
-### `POST /admin/migrate-category-rules`
-카테고리 기반 충돌 규칙을 DB로 마이그레이션합니다 (hair_length, camera 등).
+#### `POST /admin/migrate-category-rules`
+**DEPRECATED** (Phase 6-4.26): 카테고리 레벨 충돌 규칙 삭제됨. 태그 레벨 충돌(`/activity-logs/apply-conflict-rules`)을 사용.
 
-**Response:** `/admin/migrate-tag-rules`와 동일 형식
+---
 
-### `POST /admin/refresh-caches`
+### 캐시
+
+#### `POST /admin/refresh-caches`
 모든 인메모리 캐시를 DB에서 리프레시합니다.
 
 **Response:**
@@ -283,9 +303,13 @@ Mode A/B 비교 평가를 실행합니다.
 }
 ```
 
-대상 캐시: `TagCategoryCache`, `TagFilterCache`, `TagAliasCache`, `TagRuleCache`
+대상 캐시: `TagCategoryCache`, `TagFilterCache`, `TagAliasCache`, `TagRuleCache`, `LoRATriggerCache`
 
-### `GET /admin/tags/deprecated`
+---
+
+### 태그 관리
+
+#### `GET /admin/tags/deprecated`
 비활성화된 태그 목록을 조회합니다.
 
 **Response:**
@@ -310,7 +334,7 @@ Mode A/B 비교 평가를 실행합니다.
 }
 ```
 
-### `PUT /admin/tags/{tag_id}/deprecate`
+#### `PUT /admin/tags/{tag_id}/deprecate`
 태그를 비활성화하고 대체 태그를 지정합니다.
 
 **Request Body:**
@@ -335,7 +359,7 @@ Mode A/B 비교 평가를 실행합니다.
 }
 ```
 
-### `PUT /admin/tags/{tag_id}/activate`
+#### `PUT /admin/tags/{tag_id}/activate`
 비활성화된 태그를 재활성화합니다.
 
 **Response:**
@@ -346,6 +370,80 @@ Mode A/B 비교 평가를 실행합니다.
     "id": 9118,
     "name": "room",
     "is_active": true
+  }
+}
+```
+
+---
+
+### Media Asset GC
+
+> Phase 6-7: 고아 media_assets 감지 및 정리. 서비스: `backend/services/media_gc.py`
+
+**감지 카테고리:**
+- **Null Owner**: `owner_type IS NULL` + FK 미참조
+- **Broken FK**: `owner_type` 존재하지만 owner 레코드 없음
+- **Expired Temp**: `is_temp=True` + TTL 초과 (기본 24h, `MEDIA_ASSET_TEMP_TTL_SECONDS`)
+
+#### `GET /admin/media-assets/orphans`
+고아 미디어 에셋을 스캔합니다 (감지만, 삭제 없음).
+
+**Response:**
+```json
+{
+  "success": true,
+  "null_owner": [
+    {"id": 42, "storage_key": "voice-presets/previews/voice_abc.wav",
+     "owner_type": null, "owner_id": null, "reason": "No owner reference"}
+  ],
+  "broken_fk": [],
+  "expired_temp": [
+    {"id": 55, "storage_key": "voice-presets/previews/voice_xyz.wav",
+     "owner_type": "voice_preset_preview", "owner_id": null, "reason": "Temp asset expired (>24h)"}
+  ],
+  "total": 2
+}
+```
+
+#### `POST /admin/media-assets/cleanup`
+고아 및 만료 임시 에셋을 정리합니다.
+
+**Query Parameters:**
+- `dry_run`: bool (default: `true`) — `true`면 삭제 없이 리포트만 반환
+
+**Response:**
+```json
+{
+  "success": true,
+  "orphans": {
+    "deleted": 2,
+    "storage_errors": [],
+    "dry_run": false
+  },
+  "expired_temp": {
+    "deleted": 1,
+    "storage_errors": [],
+    "dry_run": false
+  },
+  "total_deleted": 3
+}
+```
+
+#### `GET /admin/media-assets/stats`
+미디어 에셋 전체 통계를 조회합니다.
+
+**Response:**
+```json
+{
+  "success": true,
+  "total_assets": 150,
+  "temp_assets": 5,
+  "null_owner_assets": 2,
+  "orphan_count": 3,
+  "by_owner_type": {
+    "scene": 120,
+    "voice_preset": 15,
+    "voice_preset_preview": 10
   }
 }
 ```
@@ -363,5 +461,5 @@ Mode A/B 비교 평가를 실행합니다.
 
 ---
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-03
 **API Version:** v3.1
