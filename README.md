@@ -137,7 +137,8 @@ docs/
 - [Render Pipeline](docs/03_engineering/backend/RENDER_PIPELINE.md) - 영상 렌더링 파이프라인 기술 상세
 - [Test Strategy](docs/03_engineering/testing/TEST_STRATEGY.md) - 테스트 전략 및 시나리오
 
-#### 🛠 Operations & Guides
+- [Design Guide](docs/02_design/STUDIO_DESIGN_GUIDE.md) - 스튜디오 UI/UX 가이드라인
+- [Storage Policy](docs/04_operations/STORAGE_POLICY.md) - 에셋 정책 및 수명 주기 가이드
 - [TTS Setup](docs/04_operations/TTS_SETUP.md) - Qwen-Audio TTS 설정 가이드
 - [Deployment Guide](docs/04_operations/DEPLOYMENT.md) - 서버 배포 및 운영 가이드
 - [Contributing](guides/CONTRIBUTING.md) - 개발 기여 및 스타일 가이드

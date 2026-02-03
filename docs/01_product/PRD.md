@@ -9,24 +9,24 @@
 ```mermaid
 graph TD
     subgraph Planning ["1. 기획 단계"]
-        Topic[주제/캐릭터 설정] --> Gemini[Gemini Storyboard 생성]
-        Gemini --> Validation[Danbooru 태그 검증]
-        Validation --> DB_Store[<b>DB 저장</b><br/>Storyboards, Scenes]
+        Topic[주제/캐릭터 설정] --> Gemini[<b>Gemini API</b><br/>스토리보드 기획]
+        Gemini --> Validation[<b>WD14 Tagger</b><br/>태그 정합성 검증]
+        Validation --> DB_Store[<b>PostgreSQL</b><br/>데이터 저장]
     end
 
     subgraph Production ["2. 생산 단계"]
         DB_Store --> Prompt[V3 Prompt Engine]
-        Prompt --> SD[Stable Diffusion 생성]
-        SD --> Quality[WD14/Vision 품질 검수]
-        Quality -- "낮음" --> AutoEdit[Gemini Auto-Correction]
+        Prompt --> SD[<b>SD WebUI API</b><br/>이미지 생성]
+        SD --> Quality[<b>Gemini Vision</b><br/>품질 및 일관성 검수]
+        Quality -- "낮음 (Fail)" --> AutoEdit[Gemini Auto-Correction]
         AutoEdit --> SD
-        Quality -- "높음" --> Audio[Qwen3 TTS 생성]
+        Quality -- "높음 (Pass)" --> Audio[<b>Qwen3 TTS</b><br/>로컬 음성 생성]
     end
 
     subgraph Finalization ["3. 완성 단계"]
-        Audio --> FFmpeg[Render Pipeline 렌더링]
-        FFmpeg --> Asset[<b>최종 결과물</b><br/>MP4, Thumbnail]
-        Asset --> History[히스토리 및 로그 기록]
+        Audio --> FFmpeg[<b>FFmpeg Pipeline</b><br/>영상 합성]
+        FFmpeg --> MinIO[<b>MinIO Storage</b><br/>객체 저장]
+        MinIO --> History[활동 로그 및 대시보드 기록]
     end
 
     %% Data Connections
@@ -34,25 +34,28 @@ graph TD
     SD -.-> Quality
 ```
 
-## 2. 데이터 영속화 구조 (Persistence Hierarchy)
+---
 
-V3 아키텍처의 핵심 계층 구조입니다.
+## 2. 에셋 관리 및 데이터 영속화 (Assets & Persistence)
+
+V3에서는 모든 에셋(이미지, 영상, 음성)이 고유 ID를 가지며 채택/기각 여부에 따라 생명 주기가 관리됩니다.
 
 ```mermaid
 mindmap
-    root((Shorts Producer))
-        Project[Project : 채널 단위]
-            Group[Group : 시리즈/주제 단위]
-                Storyboard[Storyboard : 영상 단위]
-                    Scene[Scene : 장면 단위]
-                        CharacterAction[Character Action]
-                        SceneTag[Scene Tags]
-                    Asset[Media Asset : 이미지/영상]
-                    History[Activity Log]
+    root((Asset Hub))
+        Storage[Storage Mode]
+            Local[Local: backend/outputs]
+            S3[Cloud: MinIO/S3]
+        Lifecycle[Lifecycle]
+            Temporary[_build/*.tmp - 즉시 삭제]
+            Cache[_prompt_cache - TTL 24h]
+            Persistent[images/videos - 영구 보관]
+        Metadata[Metadata DB]
+            Project[Channel / Project]
+            Activity[Action History]
+            Evaluation[Quality Scores]
 ```
 
----
-
-## 3. 프로젝트 범위 (Scope & Priorities)
+## 3. 제품 요구사항 및 우선순위
 *(기존 상세 내용 유지)*
 ...
