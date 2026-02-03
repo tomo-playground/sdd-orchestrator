@@ -1,15 +1,23 @@
 """Tests for prompt router endpoints."""
 
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from models import Tag
+
+requires_gemini = pytest.mark.skipif(
+    os.getenv("GEMINI_API_KEY", "") in ("", "test-key"),
+    reason="Requires real GEMINI_API_KEY",
+)
 
 
 class TestPromptRewrite:
     """Test POST /prompt/rewrite endpoint."""
 
+    @requires_gemini
     def test_rewrite_prompt_compose_mode(self, client: TestClient):
         """Rewrite prompt in compose mode returns merged result."""
         request_data = {
@@ -23,6 +31,7 @@ class TestPromptRewrite:
         data = response.json()
         assert "prompt" in data
 
+    @requires_gemini
     def test_rewrite_prompt_default_mode(self, client: TestClient):
         """Rewrite prompt with default mode."""
         request_data = {
@@ -45,6 +54,7 @@ class TestPromptRewrite:
 class TestPromptSplit:
     """Test POST /prompt/split endpoint."""
 
+    @requires_gemini
     def test_split_prompt_basic(self, client: TestClient):
         """Split prompt into base and scene components."""
         request_data = {
