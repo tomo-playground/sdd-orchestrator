@@ -8,7 +8,9 @@ instance as its first argument.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import re
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,10 +21,11 @@ from config import (
     GEMINI_TEXT_MODEL,
     STORAGE_MODE,
     TTS_ATTN_IMPLEMENTATION,
-    TTS_BASE_MODEL_NAME,
+    TTS_CACHE_DIR,
     TTS_DEFAULT_LANGUAGE,
     TTS_DEVICE,
     TTS_MODEL_NAME,
+    TTS_TIMEOUT_SECONDS,
     gemini_client,
     logger,
 )
@@ -37,6 +40,13 @@ _model_lock = asyncio.Lock()
 # Simple cache: Korean prompt → English translation
 _VOICE_PROMPT_CACHE: dict[str, str] = {}
 _HANGUL_RE = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
+
+
+def _tts_cache_key(text: str, voice_preset_id: int | None,
+                    voice_design_prompt: str | None, language: str) -> str:
+    """Deterministic hash for TTS caching based on text + voice config."""
+    parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}"
+    return hashlib.sha256(parts.encode()).hexdigest()[:16]
 
 
 def _resolve_device() -> str:
@@ -61,7 +71,7 @@ def _load_model(model_name: str):
 
 
 def get_qwen_model():
-    """Synchronous model getter (for lifespan preload). Loads VoiceDesign model."""
+    """Synchronous model getter (for lifespan preload). Always loads VoiceDesign model."""
     global _current_model, _current_model_type
     if _current_model is None:
         _current_model = _load_model(TTS_MODEL_NAME)
@@ -69,31 +79,15 @@ def get_qwen_model():
     return _current_model
 
 
-async def get_qwen_model_async(model_type: str = "voice_design"):
-    """Async model getter with single-model swap.
-
-    Only one model is loaded at a time. If a different model type is requested,
-    the current model is unloaded first to conserve memory.
-    """
+async def get_qwen_model_async():
+    """Async model getter. Loads VoiceDesign model if not already loaded."""
     global _current_model, _current_model_type
     async with _model_lock:
-        if _current_model_type == model_type and _current_model is not None:
-            return _current_model
-        # Unload previous model
         if _current_model is not None:
-            logger.info(f"[TTS] Swapping model: {_current_model_type} → {model_type}")
-            del _current_model
-            _current_model = None
-            _current_model_type = None
-            if torch.backends.mps.is_available():
-                torch.mps.empty_cache()
-            elif torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        # Load new model in executor to avoid blocking
-        model_name = TTS_MODEL_NAME if model_type == "voice_design" else TTS_BASE_MODEL_NAME
+            return _current_model
         loop = asyncio.get_event_loop()
-        _current_model = await loop.run_in_executor(None, _load_model, model_name)
-        _current_model_type = model_type
+        _current_model = await loop.run_in_executor(None, _load_model, TTS_MODEL_NAME)
+        _current_model_type = "voice_design"
         return _current_model
 
 def _translate_voice_prompt(prompt: str) -> str:
@@ -157,7 +151,7 @@ async def process_scenes(builder: VideoBuilder) -> None:
 
         # Generate TTS (use cleaned script for better pronunciation)
         has_valid_tts, tts_duration = await generate_tts(
-            builder, i, clean_script, tts_path
+            builder, i, clean_script, tts_path,
         )
 
         # Add to input args
@@ -316,121 +310,69 @@ def process_post_layout_image(
         img_path.write_bytes(image_bytes)
 
 
-def _get_preset_voice_design(voice_preset_id: int) -> str | None:
-    """Fetch voice_design_prompt from a voice preset for VoiceDesign fallback."""
+def _get_preset_voice_info(voice_preset_id: int) -> tuple[str | None, int | None]:
+    """Fetch voice_design_prompt and voice_seed from a voice preset."""
     from database import get_db
     from models.voice_preset import VoicePreset
 
     db = next(get_db())
     try:
         preset = db.get(VoicePreset, voice_preset_id)
-        if preset and preset.voice_design_prompt:
-            logger.info(f"[TTS] Preset {voice_preset_id} voice_design_prompt: {preset.voice_design_prompt[:40]}")
-            return preset.voice_design_prompt
-        return None
-    except Exception as e:
-        logger.error(f"[TTS] Failed to get preset voice design: {e}")
-        return None
-    finally:
-        db.close()
-
-
-def _get_preset_audio_info(voice_preset_id: int) -> tuple[Path | None, str | None]:
-    """Fetch voice preset audio path and sample_text (ref_text) from DB."""
-    from database import get_db
-    from models.media_asset import MediaAsset
-    from models.voice_preset import VoicePreset
-
-    db = next(get_db())
-    try:
-        preset = db.get(VoicePreset, voice_preset_id)
-        if not preset or not preset.audio_asset_id:
+        if not preset:
             return None, None
-        asset = db.get(MediaAsset, preset.audio_asset_id)
-        if not asset:
-            return None, None
-        local = Path(asset.local_path)
-        if local.exists():
-            return local, preset.sample_text
-        return None, None
+        prompt = preset.voice_design_prompt
+        seed = preset.voice_seed
+        if prompt:
+            logger.info(f"[TTS] Preset {voice_preset_id}: prompt='{prompt[:40]}', seed={seed}")
+        return prompt, seed
     except Exception as e:
-        logger.error(f"[TTS] Failed to get preset audio path: {e}")
+        logger.error(f"[TTS] Failed to get preset voice info: {e}")
         return None, None
     finally:
         db.close()
-
-
-async def _generate_tts_with_preset(
-    raw_script: str, voice_preset_id: int, tts_path: Path, language: str,
-) -> bool:
-    """Generate TTS using Base model + voice preset audio for cloning."""
-    ref_path, ref_text = _get_preset_audio_info(voice_preset_id)
-    if not ref_path:
-        logger.warning(f"[TTS] Preset {voice_preset_id} audio not found, falling back to VoiceDesign")
-        return False
-
-    max_retries = 2
-    for attempt in range(max_retries + 1):
-        try:
-            model = await get_qwen_model_async("base")
-            loop = asyncio.get_event_loop()
-
-            def _clone():
-                import soundfile as sf
-                wavs, sr = model.generate_voice_clone(
-                    text=raw_script,
-                    ref_audio=str(ref_path),
-                    ref_text=ref_text or "",
-                    language=language,
-                )
-                sf.write(str(tts_path), wavs[0], sr)
-
-            await loop.run_in_executor(None, _clone)
-
-            if tts_path.exists() and tts_path.stat().st_size > 0:
-                return True
-        except Exception as e:
-            if attempt < max_retries:
-                logger.warning(f"[TTS] Clone attempt {attempt + 1} failed, retrying: {e}")
-            else:
-                logger.error(f"[TTS] Clone failed after {max_retries + 1} attempts: {e}")
-    return False
 
 
 async def generate_tts(
-    builder: VideoBuilder, i: int, raw_script: str, tts_path: Path
+    builder: VideoBuilder, i: int, clean_script: str, tts_path: Path,
 ) -> tuple[bool, float]:
-    """Generate TTS audio for a scene (Qwen-TTS only).
+    """Generate TTS audio for a scene using VoiceDesign model.
 
-    If voice_preset_id is set, uses Base model + cloning.
-    Otherwise, uses VoiceDesign model (existing behavior).
+    Uses voice_design_prompt + seed for consistent voice generation.
+    If voice_preset_id is set, loads prompt/seed from DB.
+    Results are cached by hash(clean_script + voice_config) to skip regeneration.
     """
-    if not raw_script.strip():
+    if not clean_script.strip():
         logger.warning(f"Scene {i}: empty script, skipping TTS")
         return False, 0.0
 
     scene_req = builder.request.scenes[i]
-    preset_voice_design: str | None = None
+
+    # --- TTS result cache lookup ---
+    voice_design_for_cache = (
+        scene_req.voice_design_prompt
+        or builder.request.voice_design_prompt
+        or ""
+    )
+    cache_key = _tts_cache_key(
+        clean_script, builder.request.voice_preset_id,
+        voice_design_for_cache, TTS_DEFAULT_LANGUAGE,
+    )
+    cached = TTS_CACHE_DIR / f"{cache_key}.mp3"
+    if cached.exists() and cached.stat().st_size > 0:
+        shutil.copy2(cached, tts_path)
+        tts_duration = builder._get_audio_duration(tts_path)
+        logger.info(f"Scene {i}: TTS cache hit ({cache_key}), duration={tts_duration}s")
+        return True, tts_duration
 
     try:
-        # Voice Preset mode: Base model + cloning
-        if builder.request.voice_preset_id:
-            logger.info(f"TTS generation (Clone): preset={builder.request.voice_preset_id}, script={raw_script[:50]}...")
-            # Fetch preset's voice_design_prompt for fallback
-            preset_voice_design = _get_preset_voice_design(builder.request.voice_preset_id)
-            success = await _generate_tts_with_preset(
-                raw_script, builder.request.voice_preset_id, tts_path, TTS_DEFAULT_LANGUAGE,
-            )
-            if success:
-                tts_duration = builder._get_audio_duration(tts_path)
-                logger.info(f"TTS success (Clone): duration={tts_duration}s")
-                return True, tts_duration
-            # Fallback to VoiceDesign
-            logger.warning("[TTS] Clone failed, falling back to VoiceDesign")
+        # Resolve voice_design_prompt and seed
+        preset_voice_design: str | None = None
+        preset_seed: int | None = None
 
-        # VoiceDesign mode (default or fallback from preset)
-        logger.info(f"TTS generation (VoiceDesign): script={raw_script[:50]}...")
-        model = await get_qwen_model_async("voice_design")
+        if builder.request.voice_preset_id:
+            preset_voice_design, preset_seed = _get_preset_voice_info(
+                builder.request.voice_preset_id,
+            )
 
         voice_design = (
             scene_req.voice_design_prompt
@@ -439,28 +381,44 @@ async def generate_tts(
         )
         voice_design = _translate_voice_prompt(voice_design or "")
 
+        # Seed: preset seed > hash-based fallback
+        voice_seed = preset_seed or (hash(voice_design or "") % (2**31))
+
+        logger.info(
+            f"TTS generation (VoiceDesign): script={clean_script[:50]}..., "
+            f"voice_seed={voice_seed}"
+        )
+        model = await get_qwen_model_async()
+
         import soundfile as sf
 
         loop = asyncio.get_event_loop()
 
         def _voice_design():
+            torch.manual_seed(voice_seed)
             return model.generate_voice_design(
-                text=raw_script,
+                text=clean_script,
                 instruct=voice_design or "",
                 language=TTS_DEFAULT_LANGUAGE,
             )
 
         logger.info(f"Scene {i}: voice design — '{(voice_design or '')[:40]}'")
-        wavs, sr = await loop.run_in_executor(None, _voice_design)
+        wavs, sr = await asyncio.wait_for(
+            loop.run_in_executor(None, _voice_design),
+            timeout=TTS_TIMEOUT_SECONDS,
+        )
 
         sf.write(str(tts_path), wavs[0], sr)
 
         if tts_path.exists() and tts_path.stat().st_size > 0:
+            shutil.copy2(tts_path, cached)
             tts_duration = builder._get_audio_duration(tts_path)
-            logger.info(f"TTS success (VoiceDesign): duration={tts_duration}s")
+            logger.info(f"TTS success (VoiceDesign): duration={tts_duration}s, seed={voice_seed}")
             return True, tts_duration
 
         logger.warning("Qwen-TTS generation failed (empty file)")
+    except asyncio.TimeoutError:
+        logger.error(f"[TTS] Generation timed out ({TTS_TIMEOUT_SECONDS}s) for scene {i}")
     except Exception as e:
         logger.error(f"TTS generation error (Qwen): {e}")
 

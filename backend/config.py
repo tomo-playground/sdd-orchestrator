@@ -127,6 +127,25 @@ if API_PUBLIC_URL == "http://localhost:8000":
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
 WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 
+# Tags that WD14 cannot detect (style, quality, lighting, mood, abstract composition)
+# These are excluded from match_rate calculation and reported as "skipped"
+WD14_UNMATCHABLE_TAGS: set[str] = {
+    # Style / rendering
+    "flat_color", "cel_shading", "watercolor", "oil_painting",
+    "sketch", "lineart", "monochrome", "greyscale",
+    # Quality
+    "masterpiece", "best_quality", "high_quality", "normal_quality",
+    "worst_quality", "absurdres", "incredibly_absurdres", "highres",
+    # Lighting
+    "soft_lighting", "natural_light", "natural_lighting",
+    "dramatic_lighting", "volumetric_lighting", "beautiful_lighting",
+    # Mood / time of day
+    "peaceful", "romantic", "mysterious",
+    "morning", "night", "dawn", "dusk", "evening",
+    # Abstract composition
+    "dynamic_angle", "cinematic_composition",
+}
+
 # --- Tag Effectiveness Configuration ---
 # Threshold for filtering low-effectiveness tags in Gemini prompts
 # Tags with effectiveness < threshold are excluded from recommendations
@@ -214,8 +233,7 @@ DEFAULT_CHARACTER_PRESET = {
 
 # --- TTS Configuration ---
 TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
-TTS_BASE_MODEL_NAME = os.getenv("TTS_BASE_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
-TTS_PRELOAD_MODEL = os.getenv("TTS_PRELOAD_MODEL", "base")  # "base" | "voice_design"
+TTS_PRELOAD_MODEL = os.getenv("TTS_PRELOAD_MODEL", "voice_design")  # "voice_design" (Clone removed)
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
 TTS_DEVICE = os.getenv("TTS_DEVICE", "auto")  # "auto" | "mps" | "cpu"
 TTS_ATTN_IMPLEMENTATION = os.getenv("TTS_ATTN_IMPLEMENTATION", "sdpa")
@@ -225,3 +243,8 @@ VOICE_PRESET_MAX_FILE_SIZE = int(os.getenv("VOICE_PRESET_MAX_FILE_SIZE", str(10 
 VOICE_PRESET_MIN_DURATION = float(os.getenv("VOICE_PRESET_MIN_DURATION", "3.0"))
 VOICE_PRESET_MAX_DURATION = float(os.getenv("VOICE_PRESET_MAX_DURATION", "60.0"))
 VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
+
+# --- TTS Performance ---
+TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
+TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
+TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)

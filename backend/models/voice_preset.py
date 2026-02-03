@@ -14,10 +14,7 @@ class VoicePreset(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    project_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
-    )
-    source_type: Mapped[str] = mapped_column(String(20), nullable=False)  # "generated" | "uploaded"
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False)  # "generated"
     tts_engine: Mapped[str | None] = mapped_column(String(20))
     audio_asset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True
@@ -25,6 +22,7 @@ class VoicePreset(Base, TimestampMixin):
     voice_design_prompt: Mapped[str | None] = mapped_column(Text)
     language: Mapped[str] = mapped_column(String(20), default="korean")
     sample_text: Mapped[str | None] = mapped_column(Text)
+    voice_seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
 
     @property

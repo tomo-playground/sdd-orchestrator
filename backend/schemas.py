@@ -78,7 +78,6 @@ class RenderPresetCreate(BaseModel):
     speed_multiplier: float | None = None
     tts_engine: str | None = None
     voice_design_prompt: str | None = None
-    voice_ref_audio_url: str | None = None
     voice_preset_id: int | None = None
 
 
@@ -98,7 +97,6 @@ class RenderPresetUpdate(BaseModel):
     speed_multiplier: float | None = None
     tts_engine: str | None = None
     voice_design_prompt: str | None = None
-    voice_ref_audio_url: str | None = None
     voice_preset_id: int | None = None
 
 
@@ -121,7 +119,6 @@ class RenderPresetResponse(BaseModel):
     speed_multiplier: float | None = None
     tts_engine: str | None = None
     voice_design_prompt: str | None = None
-    voice_ref_audio_url: str | None = None
     voice_preset_id: int | None = None
     created_at: datetime | None = None
 
@@ -199,6 +196,7 @@ class StoryboardResponse(StoryboardBase):
 
 class StoryboardRequest(BaseModel):
     topic: str
+    description: str | None = None
     duration: int = 10
     style: str = "Anime"
     language: str = "Korean"
@@ -257,7 +255,6 @@ class SceneActionSave(BaseModel):
 
 
 class TTSEngine(str, Enum):
-    EDGE = "edge"
     QWEN = "qwen"
 
 
@@ -269,7 +266,6 @@ class VideoScene(BaseModel):
     # Per-scene voice override
     narrator_voice: str | None = None
     voice_design_prompt: str | None = None
-    voice_ref_audio_url: str | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -320,12 +316,11 @@ class VideoRequest(BaseModel):
     layout_style: str = "post"
     ken_burns_preset: str = "none"  # Ken Burns preset (10 options)
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
-    transition_type: str = "fade"  # Scene transition effect
+    transition_type: str = "random"  # Scene transition effect (random for variety)
     narrator_voice: str = ""
     tts_engine: TTSEngine = TTSEngine.QWEN
-    voice_design_prompt: str | None = None  # For Qwen-TTS VD
-    voice_ref_audio_url: str | None = None  # For Qwen-TTS Cloning
-    voice_preset_id: int | None = None  # Voice preset for TTS cloning
+    voice_design_prompt: str | None = None  # For Qwen-TTS VoiceDesign
+    voice_preset_id: int | None = None  # Voice preset for TTS
     speed_multiplier: float = 1.0
     # Scene text (formerly "subtitles") - shows scene script on video
     include_scene_text: bool = Field(default=True, alias="include_subtitles")
@@ -853,9 +848,9 @@ class PromptHistoryApplyResponse(BaseModel):
 class VoicePresetCreate(BaseModel):
     name: str
     description: str | None = None
-    project_id: int | None = None
     source_type: str = "generated"
     voice_design_prompt: str | None = None
+    voice_seed: int | None = None
     language: str = "korean"
     sample_text: str | None = None
 
@@ -875,10 +870,10 @@ class VoicePresetResponse(BaseModel):
     id: int
     name: str
     description: str | None = None
-    project_id: int | None = None
     source_type: str
     audio_url: str | None = None
     voice_design_prompt: str | None = None
+    voice_seed: int | None = None
     language: str
     sample_text: str | None = None
     is_system: bool

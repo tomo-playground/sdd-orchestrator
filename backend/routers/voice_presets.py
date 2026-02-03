@@ -1,4 +1,4 @@
-"""VoicePreset CRUD, preview, and upload endpoints."""
+"""VoicePreset CRUD and preview endpoints."""
 
 from __future__ import annotations
 
@@ -6,16 +6,11 @@ import asyncio
 import hashlib
 import io
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+import torch
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import (
-    VOICE_PRESET_ALLOWED_FORMATS,
-    VOICE_PRESET_MAX_DURATION,
-    VOICE_PRESET_MAX_FILE_SIZE,
-    VOICE_PRESET_MIN_DURATION,
-    logger,
-)
+from config import logger
 from database import get_db
 from models.media_asset import MediaAsset
 from models.voice_preset import VoicePreset
@@ -42,10 +37,10 @@ def _preset_to_response(preset: VoicePreset, db: Session) -> dict:
         "id": preset.id,
         "name": preset.name,
         "description": preset.description,
-        "project_id": preset.project_id,
         "source_type": preset.source_type,
         "audio_url": audio_url,
         "voice_design_prompt": preset.voice_design_prompt,
+        "voice_seed": preset.voice_seed,
         "language": preset.language,
         "sample_text": preset.sample_text,
         "is_system": preset.is_system,
@@ -54,18 +49,8 @@ def _preset_to_response(preset: VoicePreset, db: Session) -> dict:
 
 
 @router.get("", response_model=list[VoicePresetResponse])
-def list_voice_presets(
-    project_id: int | None = None,
-    db: Session = Depends(get_db),
-):
-    query = db.query(VoicePreset)
-    if project_id is not None:
-        query = query.filter(
-            (VoicePreset.project_id == project_id) | (VoicePreset.project_id.is_(None))
-        )
-    else:
-        query = query.filter(VoicePreset.project_id.is_(None))
-    presets = query.order_by(VoicePreset.id).all()
+def list_voice_presets(db: Session = Depends(get_db)):
+    presets = db.query(VoicePreset).order_by(VoicePreset.id).all()
     return [_preset_to_response(p, db) for p in presets]
 
 
@@ -81,6 +66,7 @@ def get_voice_preset(preset_id: int, db: Session = Depends(get_db)):
 def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
     preset = VoicePreset(
         **body.model_dump(exclude_unset=True),
+        source_type="generated",
         tts_engine="qwen",
         is_system=False,
     )
@@ -126,7 +112,7 @@ def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
 
 @router.post("/preview")
 async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db)):
-    """Generate a preview audio using VoiceDesign model."""
+    """Generate a preview audio using VoiceDesign model with seed."""
     from services.video.scene_processing import (
         TTS_DEFAULT_LANGUAGE,
         _translate_voice_prompt,
@@ -135,12 +121,16 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
 
     try:
         voice_design = _translate_voice_prompt(req.voice_design_prompt)
-        model = await get_qwen_model_async("voice_design")
+        model = await get_qwen_model_async()
+
+        # Deterministic seed from prompt
+        voice_seed = hash(voice_design) % (2**31)
 
         loop = asyncio.get_event_loop()
 
         def _generate():
             import soundfile as sf
+            torch.manual_seed(voice_seed)
             wavs, sr = model.generate_voice_design(
                 text=req.sample_text,
                 instruct=voice_design,
@@ -171,96 +161,14 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
             mime_type="audio/wav",
         )
 
-        return {"audio_url": asset.url, "temp_asset_id": asset.id}
+        return {
+            "audio_url": asset.url,
+            "temp_asset_id": asset.id,
+            "voice_seed": voice_seed,
+        }
     except Exception as e:
         logger.error(f"[VoicePreset] Preview generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Preview generation failed: {e}")
-
-
-@router.post("/upload", response_model=VoicePresetResponse, status_code=201)
-async def upload_voice_preset(
-    name: str = Form(...),
-    file: UploadFile = File(...),
-    project_id: int | None = Form(None),
-    description: str | None = Form(None),
-    language: str = Form("korean"),
-    db: Session = Depends(get_db),
-):
-    """Upload a custom voice audio file as a preset."""
-    # Validate file extension
-    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if file.filename else ""
-    if ext not in VOICE_PRESET_ALLOWED_FORMATS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported format: {ext}. Allowed: {', '.join(VOICE_PRESET_ALLOWED_FORMATS)}",
-        )
-
-    # Read and validate file size
-    audio_bytes = await file.read()
-    if len(audio_bytes) > VOICE_PRESET_MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File too large: {len(audio_bytes)} bytes (max {VOICE_PRESET_MAX_FILE_SIZE})",
-        )
-
-    # Validate audio duration
-    try:
-        import soundfile as sf
-        buf = io.BytesIO(audio_bytes)
-        info = sf.info(buf)
-        duration = info.duration
-        if duration < VOICE_PRESET_MIN_DURATION:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Audio too short: {duration:.1f}s (min {VOICE_PRESET_MIN_DURATION}s)",
-            )
-        if duration > VOICE_PRESET_MAX_DURATION:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Audio too long: {duration:.1f}s (max {VOICE_PRESET_MAX_DURATION}s)",
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.warning(f"[VoicePreset] Duration check failed (allowing): {e}")
-
-    # Create preset first to get ID
-    preset = VoicePreset(
-        name=name,
-        description=description,
-        project_id=project_id,
-        source_type="uploaded",
-        tts_engine="qwen",
-        language=language,
-        is_system=False,
-    )
-    db.add(preset)
-    db.flush()
-
-    # Upload to storage
-    digest = hashlib.sha1(audio_bytes).hexdigest()[:16]
-    file_name = f"voice_{preset.id}_{digest}.{ext}"
-    storage_key = f"voice-presets/{preset.id}/{file_name}"
-
-    storage = get_storage()
-    storage.save(storage_key, audio_bytes, content_type=file.content_type or f"audio/{ext}")
-
-    # Register MediaAsset
-    asset_svc = AssetService(db)
-    asset = asset_svc.register_asset(
-        file_name=file_name,
-        file_type="audio",
-        storage_key=storage_key,
-        owner_type="voice_preset",
-        owner_id=preset.id,
-        file_size=len(audio_bytes),
-        mime_type=file.content_type or f"audio/{ext}",
-    )
-
-    preset.audio_asset_id = asset.id
-    db.commit()
-    db.refresh(preset)
-    return _preset_to_response(preset, db)
 
 
 @router.post("/{preset_id}/attach-preview")
