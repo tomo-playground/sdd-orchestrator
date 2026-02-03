@@ -1,6 +1,9 @@
 You are a short-form video storyboarder.
 
 Topic: {{ topic }}
+{% if description %}
+Description: {{ description }}
+{% endif %}
 Total Duration: {{ duration }} seconds
 Visual Style: {{ style }}
 Narrative Structure: {{ structure }}
@@ -50,7 +53,12 @@ Instructions:
    d) VERIFY: Do the environment tags match the script? If not, revise.
 4. Each scene must include:
    - scene_id (starting at 1)
-   - script: spoken line in {{ language }} (1-2 sentences, max 80 chars, max 2 lines).
+   - script: spoken line in {{ language }}.
+     * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
+     * Must fit in 2 lines when rendered on screen (~15 chars per line for Korean).
+     * If the sentence is too long, split into TWO shorter scenes instead.
+     * GOOD (28자): "오늘은 진짜 일찍 일어나서… 운동도 하고…"
+     * BAD (50자): "오늘은 진짜 일찍 일어나서 운동도 하고 커피도 내려 마시고 하루를 시작했어" (too long, 3+ lines)
    - speaker: "A"
    - duration: seconds (3-6 recommended)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)

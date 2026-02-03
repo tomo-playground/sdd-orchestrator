@@ -204,12 +204,15 @@ async def create_storyboard(request: StoryboardRequest) -> dict:
         template = template_env.get_template(template_name)
         system_instruction = (
             "SYSTEM: You are a professional storyboarder and scriptwriter. "
-            "Write clear, engaging scripts in the requested language (max 80 chars, max 2 lines). "
+            "Write clear, engaging scripts in the requested language. "
+            "STRICT: Each script must be max 30 chars (Korean) / 60 chars (English) to fit 2 lines on screen. "
+            "If a sentence is too long, split it into two scenes. "
             "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
             "Do not invent new tags. Return raw JSON only."
         )
         rendered = template.render(
             topic=request.topic,
+            description=request.description or "",
             duration=request.duration,
             style=request.style,
             structure=request.structure,
@@ -257,6 +260,17 @@ async def create_storyboard(request: StoryboardRequest) -> dict:
         cleaned = strip_markdown_codeblock(res.text)
         scenes = json.loads(cleaned)
         scenes = normalize_scene_tags_key(scenes)
+
+        # Warn if scripts exceed 2-line rendering limit
+        MAX_SCRIPT_CHARS = 35
+        for s in scenes:
+            script = s.get("script", "")
+            if len(script) > MAX_SCRIPT_CHARS:
+                logger.warning(
+                    f"[Scene {s.get('scene_id', '?')}] Script too long for 2 lines: "
+                    f"{len(script)} chars (max {MAX_SCRIPT_CHARS}): '{script[:40]}...'"
+                )
+
         for scene in scenes:
             from config import ENABLE_DANBOORU_VALIDATION
             from services.keywords import filter_prompt_tokens
