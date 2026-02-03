@@ -102,11 +102,129 @@ sequenceDiagram
     B-->>F: Video URL 반환
 ```
 
-## 3. 기술 스택 (Tech Stack)
+## 3. 아키텍처 패턴 (Architecture Patterns)
+
+### 3.1 Backend: Layered Architecture + SSOT
+
+Python/FastAPI 생태계의 표준 패턴인 **Layered Architecture**를 채택합니다.
+
+```
+Router (API 엔드포인트)
+  → Service (비즈니스 로직)
+    → Repository/ORM (데이터 접근)
+```
+
+**선택 근거**: 현재 서비스 규모(라우터 24개, 서비스 10여개)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
+
+**계층별 역할**:
+
+| 계층 | 디렉토리 | 책임 | 금지 사항 |
+|------|----------|------|-----------|
+| Router | `routers/` | 요청 검증, 라우팅, 응답 포맷 | 비즈니스 로직 포함 |
+| Service | `services/` | 핵심 비즈니스 로직, 외부 API 호출 | 직접 HTTP 응답 생성 |
+| Model | `models/` | ORM 정의, 관계 매핑 | 로직 포함 |
+| Schema | `schemas.py` | 요청/응답 DTO (Pydantic) | DB 모델 직접 참조 |
+| Config | `config.py` | 모든 상수/환경변수 (SSOT) | 개별 파일 하드코딩 |
+
+**SSOT (Single Source of Truth) 원칙**:
+- 설정값: `config.py` 단일 관리
+- 태그 비즈니스 로직: `services/keywords/` 패키지
+- 태그 규칙/별칭/필터: DB 테이블 (`tag_rules`, `tag_aliases`, `tag_filters`)
+- 런타임 캐시: startup 시 DB 로드, `/admin/refresh-caches`로 갱신
+
+```
+backend/
+├── routers/              # API 엔드포인트 (24개)
+├── services/
+│   ├── keywords/         # 태그 시스템 (core, db, cache, validation)
+│   ├── prompt/           # V3 12-Layer Prompt Builder
+│   ├── storyboard.py     # Gemini 연동 스토리보드 생성
+│   ├── image_gen.py      # SD WebUI 이미지 생성
+│   └── video.py          # FFmpeg 렌더링 파이프라인
+├── models/               # SQLAlchemy ORM
+├── schemas.py            # Pydantic DTO
+├── config.py             # SSOT 설정
+└── templates/            # Jinja2 (Gemini 프롬프트)
+```
+
+**향후 전환 시점**: 멀티 테넌트, 마이크로서비스 분리, 외부 API 어댑터 교체(Gemini→GPT 등)가 빈번해지면 Hexagonal 부분 도입 고려.
+
+### 3.2 Frontend: Component-Based + Zustand Flux
+
+React/Next.js 생태계의 표준 패턴인 **Component-Based Architecture**에 **Zustand Flux 패턴**을 결합합니다.
+
+```
+User Action → Action (API 호출) → Store 업데이트 → Component 리렌더
+```
+
+**선택 근거**: 페이지 3개(Home, Studio, Manage), 스토어 슬라이스 5개 규모에서 FSD(Feature-Sliced Design)나 Clean Architecture는 과도. Zustand는 보일러플레이트가 적고, Redux DevTools 호환.
+
+**상태 관리 구조**:
+
+| 레이어 | 디렉토리 | 책임 |
+|--------|----------|------|
+| Store Slices | `store/slices/` | 상태 정의 (plan, scenes, meta, output, context) |
+| Actions | `store/actions/` | 비동기 워크플로우, API 호출 |
+| Selectors | `store/selectors/` | 파생 상태 계산 |
+| Hooks | `hooks/` | 서버 데이터 동기화 (React Query 미사용) |
+| Components | `components/` | 프레젠테이션 (UI 렌더링) |
+
+**데이터 흐름 (단방향)**:
+```
+components/studio/PlanTab.tsx     ← UI 이벤트 발생
+  → store/actions/autopilotActions.ts  ← API 호출 + 비즈니스 로직
+    → store/slices/planSlice.ts        ← 상태 변경
+      → components/ 리렌더             ← 구독한 컴포넌트만 업데이트
+```
+
+**서버 동기화 패턴** (Custom Hooks, TanStack Query 미사용):
+```
+hooks/useCharacters.ts  → axios GET → 로컬 state + Store 업데이트
+hooks/useTags.ts        → axios GET → 캐싱 + 필터링
+hooks/useAutopilot.ts   → 단계별 API 호출 조율
+```
+
+```
+frontend/app/
+├── store/
+│   ├── slices/           # 5개 상태 슬라이스
+│   ├── actions/          # 비동기 액션 (autopilot, image, scene 등)
+│   ├── selectors/        # 파생 상태
+│   └── useStudioStore.ts # 통합 Zustand 스토어
+├── components/
+│   ├── studio/           # 탭별 컨테이너 (PlanTab, ScenesTab 등)
+│   ├── storyboard/       # 씬 편집 UI
+│   ├── video/            # 렌더링 설정
+│   ├── setup/            # 캐릭터/스타일 설정
+│   └── ui/               # 공통 컴포넌트 (Toast, Modal 등)
+├── hooks/                # 서버 동기화 훅
+├── constants/            # 상수 정의
+├── types/                # TypeScript 타입
+└── utils/                # 유틸리티 함수
+```
+
+**향후 전환 시점**: 페이지/기능이 크게 증가하면 Module-Based(`(studio)/`, `(manage)/` 도메인 분리) 또는 FSD 고려.
+
+### 3.3 공통 설계 원칙
+
+| 원칙 | 기준 |
+|------|------|
+| 함수/메서드 | 30줄 권장, 50줄 최대 |
+| 클래스/컴포넌트 | 150줄 권장, 200줄 최대 |
+| 코드 파일 | 300줄 권장, 400줄 최대 |
+| 중첩 깊이 | 3단계 이하 |
+| 매개변수 | 4개 이하 |
+| 테스트 커버리지 | Backend 80%, Frontend 70% |
+
+**TDD**: 서비스/코어 로직은 테스트 먼저 작성 (Red → Green → Refactor)
+**API 스펙 = 진실**: API/스키마 변경 시 문서 즉시 업데이트 (drift = 버그 취급)
+**Main 브랜치 항상 배포 가능**: 실험적 코드는 feature 브랜치에서 진행
+
+## 4. 기술 스택 (Tech Stack)
 
 ### Core
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Zustand
-- **Backend**: FastAPI, Python 3.12, SQLModel (SQLAlchemy)
+- **Frontend**: Next.js 15 (Turbopack), React 19, TypeScript, Tailwind CSS, Zustand 5
+- **Backend**: FastAPI, Python 3.12, SQLAlchemy (ORM)
 
 ### AI & Media
 - **LLM/LVM**: Google Gemini 2.0 Flash (Storyboard, Prompt, Vision)
@@ -117,5 +235,5 @@ sequenceDiagram
 
 ### Infrastructure
 - **Database**: PostgreSQL (Relational Data)
-- **Storage**: MinIO (S3 Compatible Object Storage)
+- **Storage**: MinIO (S3 Compatible Object Storage) / Local (개발 모드)
 - **Environment**: Docker, uv (Python Package Manager)

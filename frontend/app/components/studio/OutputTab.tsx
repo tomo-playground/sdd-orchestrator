@@ -19,6 +19,7 @@ export default function OutputTab() {
   const videoLikesCount = useStudioStore((s) => s.videoLikesCount);
   const captionInitialized = useRef(false);
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
+  const [savedField, setSavedField] = useState<string | null>(null);
   const likesInitialized = useRef(false);
 
   const handleDeleteRecentVideo = useCallback(
@@ -92,6 +93,22 @@ export default function OutputTab() {
     }
   };
 
+  const flashSaved = useCallback((field: string) => {
+    setSavedField(field);
+    setTimeout(() => setSavedField(null), 1500);
+  }, []);
+
+  const handleCaptionBlur = useCallback(async (value: string) => {
+    await updateStoryboardMetadata({ default_caption: value });
+    flashSaved("caption");
+  }, [flashSaved]);
+
+  const handleLikesBlur = useCallback(() => flashSaved("likes"), [flashSaved]);
+
+  const savedBadge = (
+    <span className="text-[10px] font-medium text-emerald-500 transition-opacity duration-300">Saved</span>
+  );
+
   return (
     <div className="space-y-6">
       {/* Rendered Videos */}
@@ -113,6 +130,7 @@ export default function OutputTab() {
               캡션 (이 영상) <span className="text-red-500">*</span>
             </label>
             <div className="flex items-center gap-2">
+              {savedField === "caption" && savedBadge}
               {videoCaption.length > 60 && (
                 <button
                   onClick={handleExtractCaption}
@@ -135,7 +153,7 @@ export default function OutputTab() {
             type="text"
             value={videoCaption}
             onChange={(e) => setOutput({ videoCaption: e.target.value })}
-            onBlur={(e) => updateStoryboardMetadata({ default_caption: e.target.value })}
+            onBlur={(e) => handleCaptionBlur(e.target.value)}
             placeholder={`예: ${store.topic || "AI 생성 영상"}`}
             className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 transition-colors ${videoCaption.length >= 60
               ? 'border-red-300 focus:border-red-400 focus:ring-red-50 bg-red-50/30'
@@ -144,34 +162,29 @@ export default function OutputTab() {
                 : 'border-zinc-200 focus:border-indigo-400 focus:ring-indigo-50'
               }`}
           />
-          <div className="flex items-start gap-1 mt-1">
-            {videoCaption.length >= 60 ? (
-              <p className="text-[10px] text-red-600 font-medium">
-                최대 60자 제한 (가로폭 초과 시 잘림)
-              </p>
-            ) : videoCaption.length >= 50 ? (
-              <p className="text-[10px] text-amber-600 font-medium">
-                50자 초과 - 간결하게 작성 권장
-              </p>
-            ) : videoCaption ? (
-              <p className="text-[10px] text-zinc-400">
-                가로폭 고려하여 60자 이내 권장
-              </p>
-            ) : (
-              <p className="text-[10px] text-zinc-400">
-                비워두면 스토리보드 주제가 사용됩니다
-              </p>
-            )}
-          </div>
+          <p className={`text-[10px] mt-1 ${
+            videoCaption.length >= 60 ? 'text-red-600 font-medium'
+              : videoCaption.length >= 50 ? 'text-amber-600 font-medium'
+              : 'text-zinc-400'
+          }`}>
+            {videoCaption.length >= 60 ? '최대 60자 제한 (가로폭 초과 시 잘림)'
+              : videoCaption.length >= 50 ? '50자 초과 - 간결하게 작성 권장'
+              : videoCaption ? '가로폭 고려하여 60자 이내 권장'
+              : '비워두면 스토리보드 주제가 사용됩니다'}
+          </p>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-zinc-600 mb-1">
-            좋아요 수 (선택)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-semibold text-zinc-600">
+              좋아요 수 (선택)
+            </label>
+            {savedField === "likes" && savedBadge}
+          </div>
           <input
             type="text"
             value={videoLikesCount}
             onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
+            onBlur={handleLikesBlur}
             placeholder="예: 1.2K (비워두면 랜덤)"
             className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
           />

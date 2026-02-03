@@ -170,6 +170,8 @@ type RenderSettingsPanelProps = {
   setVoiceDesignPrompt: (value: string) => void;
   voicePresetId?: number | null;
   setVoicePresetId?: (value: number | null) => void;
+  // Disabled reason
+  disabledReason?: string | null;
 };
 
 export default function RenderSettingsPanel({
@@ -211,6 +213,7 @@ export default function RenderSettingsPanel({
   setVoiceDesignPrompt,
   voicePresetId,
   setVoicePresetId,
+  disabledReason,
 }: RenderSettingsPanelProps) {
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
@@ -275,6 +278,7 @@ export default function RenderSettingsPanel({
         <button
           onClick={onRender}
           disabled={!canRender || isRendering}
+          title={disabledReason || undefined}
           className="rounded-full bg-zinc-900 px-10 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isRendering ? "Rendering..." : "Render"}
@@ -282,8 +286,10 @@ export default function RenderSettingsPanel({
         <span className="text-[10px] text-zinc-400">
           Images: {scenesWithImages}/{totalScenes}
         </span>
-        {!canRender && totalScenes > 0 && (
-          <p className="text-xs text-rose-500">Upload images for every scene to enable rendering.</p>
+        {disabledReason && (
+          <p className="text-[11px] font-medium text-amber-600 bg-amber-50 rounded-full px-3 py-1">
+            {disabledReason}
+          </p>
         )}
       </div>
 

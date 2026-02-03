@@ -11,6 +11,13 @@ const TABS: { id: StudioTab; label: string }[] = [
   { id: "insights", label: "Insights" },
 ];
 
+const STEPS: { label: string; tab: StudioTab }[] = [
+  { label: "Plan", tab: "plan" },
+  { label: "Scenes", tab: "scenes" },
+  { label: "Render", tab: "render" },
+  { label: "Video", tab: "output" },
+];
+
 interface TabBarProps {
   activeTab: StudioTab;
   onTabChange: (tab: StudioTab) => void;
@@ -25,6 +32,11 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
     if (tab === "output" && recentVideos.length > 0) return String(recentVideos.length);
     return null;
   };
+
+  const hasImages = scenes.some((s) => s.image_url);
+  const hasVideos = recentVideos.length > 0;
+  const done = [scenes.length > 0, hasImages, hasVideos, hasVideos];
+  const activeIdx = STEPS.findIndex((s) => s.tab === activeTab);
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-3">
@@ -52,6 +64,31 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
           );
         })}
       </div>
+      {activeTab !== "insights" && (
+        <div className="flex items-center justify-center gap-0 px-12 pt-1.5 pb-0.5">
+          {STEPS.map((step, i) => {
+            const isCurrent = i === activeIdx;
+            const filled = done[i];
+            return (
+              <div key={step.tab} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`h-2 w-2 rounded-full border transition-colors ${
+                      isCurrent ? "border-zinc-900 bg-zinc-900 animate-pulse"
+                      : filled ? "border-zinc-900 bg-zinc-900"
+                      : "border-zinc-300 bg-transparent"
+                    }`}
+                  />
+                  <span className="mt-0.5 text-[9px] leading-none text-zinc-400">{step.label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "bg-zinc-300 border-t border-dashed border-zinc-300 bg-transparent"}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

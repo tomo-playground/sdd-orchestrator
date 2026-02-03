@@ -13,6 +13,12 @@ type Preset = {
   default_language: string;
 };
 
+type CharacterOption = {
+  id: number;
+  name: string;
+  preview_image_url?: string | null;
+};
+
 type StoryboardGeneratorPanelProps = {
   topic: string;
   setTopic: (value: string) => void;
@@ -24,8 +30,14 @@ type StoryboardGeneratorPanelProps = {
   setLanguage: (value: string) => void;
   structure: string;
   setStructure: (value: string) => void;
+  characters?: CharacterOption[];
+  selectedCharacterId?: number | null;
+  onSelectCharacter?: (id: number | null) => void;
+  /** @deprecated Use characters + selectedCharacterId instead */
   selectedCharacterName?: string | null;
+  /** @deprecated Use characters + selectedCharacterId instead */
   selectedCharacterAvatar?: string | null;
+  /** @deprecated Use onSelectCharacter instead */
   onGoToSetup?: () => void;
 };
 
@@ -40,9 +52,9 @@ export default function StoryboardGeneratorPanel({
   setLanguage,
   structure,
   setStructure,
-  selectedCharacterName,
-  selectedCharacterAvatar,
-  onGoToSetup,
+  characters,
+  selectedCharacterId,
+  onSelectCharacter,
 }: StoryboardGeneratorPanelProps) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [sampleTopics, setSampleTopics] = useState<string[]>([]);
@@ -82,31 +94,58 @@ export default function StoryboardGeneratorPanel({
           </p>
         </div>
       </div>
-      {/* Character Badge (read-only) */}
-      {selectedCharacterName && (
-        <button
-          type="button"
-          onClick={onGoToSetup}
-          className="flex items-center gap-2 self-start rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-100 transition-colors"
-          title="Setup에서 캐릭터 변경"
-        >
-          {selectedCharacterAvatar ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={selectedCharacterAvatar}
-              alt={selectedCharacterName}
-              className="h-5 w-5 rounded-full object-cover"
-            />
-          ) : (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-500">
-              {selectedCharacterName.charAt(0).toUpperCase()}
-            </span>
-          )}
-          <span className="font-medium">{selectedCharacterName}</span>
-          <svg className="h-3 w-3 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-          </svg>
-        </button>
+      {/* Inline Character Picker */}
+      {characters && characters.length > 0 && onSelectCharacter && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            Character
+          </label>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {/* None option */}
+            <button
+              type="button"
+              onClick={() => onSelectCharacter(null)}
+              className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${
+                selectedCharacterId == null
+                  ? "border-zinc-900 ring-2 ring-zinc-900/20 opacity-100"
+                  : "border-zinc-200 opacity-60 hover:opacity-80"
+              }`}
+              title="No character"
+            >
+              <span className="text-xs text-zinc-400">--</span>
+            </button>
+            {/* Character avatars */}
+            {characters.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelectCharacter(c.id)}
+                className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${
+                  selectedCharacterId === c.id
+                    ? "border-zinc-900 ring-2 ring-zinc-900/20 opacity-100"
+                    : "border-zinc-200 opacity-60 hover:opacity-80"
+                }`}
+                title={c.name}
+              >
+                {c.preview_image_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={c.preview_image_url}
+                    alt={c.name}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-500">
+                    {c.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] text-zinc-500 h-3">
+            {characters.find((c) => c.id === selectedCharacterId)?.name ?? "None"}
+          </span>
+        </div>
       )}
 
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">

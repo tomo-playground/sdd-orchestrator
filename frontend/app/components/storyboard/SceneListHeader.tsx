@@ -12,6 +12,11 @@ type ReferenceImage = {
   preset?: { weight: number; model: string; description?: string };
 };
 
+type SceneMatchRate = {
+  match_rate?: number;
+  missing?: string[];
+};
+
 type SceneListHeaderProps = {
   // Actions
   onValidate: () => void;
@@ -36,6 +41,10 @@ type SceneListHeaderProps = {
   validationSummary: ValidationSummary;
   // Disable state
   scenesCount: number;
+  // Per-scene match rate grid
+  imageValidationResults?: Record<number, SceneMatchRate>;
+  scenes?: { id: number; order?: number }[];
+  onSceneSelect?: (index: number) => void;
 };
 
 export default function SceneListHeader({
@@ -57,8 +66,13 @@ export default function SceneListHeader({
   referenceImages,
   validationSummary,
   scenesCount,
+  imageValidationResults,
+  scenes: scenesInfo,
+  onSceneSelect,
 }: SceneListHeaderProps) {
   const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
+  const hasMatchRateGrid =
+    scenesInfo && scenesInfo.length > 0 && imageValidationResults && Object.keys(imageValidationResults).length > 0;
 
   return (
     <div className="grid gap-4">
@@ -189,6 +203,46 @@ export default function SceneListHeader({
           <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-rose-600 uppercase">
             Error {validationSummary.error}
           </span>
+        </div>
+      )}
+
+      {/* Per-Scene Match Rate Grid */}
+      {hasMatchRateGrid && (
+        <div className="grid gap-1.5">
+          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+            Scene Match Rates
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {scenesInfo!.map((scene, index) => {
+              const result = imageValidationResults![scene.id];
+              const rate = result?.match_rate;
+              const hasRate = rate !== undefined && rate !== null;
+              const colorClass = !hasRate
+                ? "border-zinc-200 bg-zinc-50 text-zinc-400"
+                : rate >= 80
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : rate >= 60
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : "border-rose-200 bg-rose-50 text-rose-700";
+
+              return (
+                <button
+                  key={scene.id}
+                  type="button"
+                  onClick={() => onSceneSelect?.(index)}
+                  title={
+                    hasRate
+                      ? `Scene ${index + 1}: ${Math.round(rate)}% match`
+                      : `Scene ${index + 1}: not validated`
+                  }
+                  className={`inline-flex w-12 flex-col items-center justify-center rounded-md border px-1 py-1 text-[9px] font-semibold leading-tight transition-all hover:scale-105 hover:shadow-sm cursor-pointer ${colorClass}`}
+                >
+                  <span>S{index + 1}</span>
+                  <span>{hasRate ? `${Math.round(rate)}%` : "--"}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

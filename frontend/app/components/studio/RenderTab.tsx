@@ -77,6 +77,14 @@ export default function RenderTab() {
 
   const canRender = scenes.filter((s) => !!s.image_url).length > 0;
 
+  const getDisabledReason = (): string | null => {
+    if (scenes.length === 0) return "스토리보드를 먼저 생성하세요";
+    if (!hasValidProfile()) return "프로젝트를 먼저 선택하세요";
+    if (scenes.filter((s) => !!s.image_url).length === 0) return "이미지가 있는 씬이 필요합니다";
+    return null;
+  };
+  const disabledReason = getDisabledReason();
+
   // ---------- Render ----------
 
   const handleRender = useCallback(
@@ -228,6 +236,7 @@ export default function RenderTab() {
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voicePresetId={voicePresetId}
         setVoicePresetId={(v) => setOutput({ voicePresetId: v })}
+        disabledReason={disabledReason}
       />
     </div>
   );

@@ -251,9 +251,9 @@ export default function PlanTab({ autopilot }: PlanTabProps) {
             setLanguage={(v: string) => setPlan({ language: v })}
             structure={structure}
             setStructure={(v: string) => setPlan({ structure: v })}
-            selectedCharacterName={characters.find((c) => c.id === selectedCharacterId)?.name ?? null}
-            selectedCharacterAvatar={characters.find((c) => c.id === selectedCharacterId)?.preview_image_url ?? null}
-            onGoToSetup={() => setPlanSubTab("setup")}
+            characters={characters}
+            selectedCharacterId={selectedCharacterId}
+            onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
           />
 
           {/* Actions Bar */}

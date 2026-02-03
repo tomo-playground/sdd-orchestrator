@@ -195,6 +195,9 @@ export default function ScenesTab() {
         referenceImages={referenceImages}
         validationSummary={validationSummary}
         scenesCount={scenes.length}
+        imageValidationResults={imageValidationResults}
+        scenes={scenes.map((s, i) => ({ id: s.id, order: i }))}
+        onSceneSelect={setCurrentSceneIndex}
       />
 
       <SceneFilmstrip
