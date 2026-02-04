@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Settings } from "lucide-react";
+import { Home, Settings, FlaskConical } from "lucide-react";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import Sidebar from "./Sidebar";
@@ -10,12 +10,13 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home, exact: true },
+  { href: "/quality", label: "Quality", icon: FlaskConical, exact: false },
   { href: "/manage", label: "Manage", icon: Settings, exact: false },
 ] as const;
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const showSidebar = !pathname.startsWith("/manage");
+  const showSidebar = !pathname.startsWith("/manage") && !pathname.startsWith("/quality");
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">

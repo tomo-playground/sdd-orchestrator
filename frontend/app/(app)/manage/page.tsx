@@ -12,19 +12,15 @@ import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
 import PromptsTab from "./tabs/PromptsTab";
-import EvaluationTab from "./tabs/EvaluationTab";
 import RenderPresetsTab from "./tabs/RenderPresetsTab";
 import VoicePresetsTab from "./tabs/VoicePresetsTab";
 import TrashTab from "./tabs/TrashTab";
-import InsightsTab from "./tabs/InsightsTab";
 import type { Character, LoRA } from "../../types";
 
 const VALID_TABS: ManageTab[] = [
   "tags",
   "style",
   "prompts",
-  "evaluation",
-  "insights",
   "assets",
   "presets",
   "voice",
@@ -112,8 +108,6 @@ function ManageContent() {
           {manageTab === "tags" && <TagsTab />}
           {manageTab === "style" && <StyleTab />}
           {manageTab === "prompts" && <PromptsTab />}
-          {manageTab === "evaluation" && <EvaluationTab />}
-          {manageTab === "insights" && <InsightsTab />}
           {manageTab === "assets" && <AssetsTab />}
           {manageTab === "presets" && <RenderPresetsTab />}
           {manageTab === "voice" && <VoicePresetsTab />}
@@ -179,8 +173,6 @@ const MOBILE_TABS: { id: ManageTab; label: string }[] = [
   { id: "tags", label: "Tags" },
   { id: "style", label: "Style" },
   { id: "prompts", label: "Prompts" },
-  { id: "evaluation", label: "Eval" },
-  { id: "insights", label: "Insights" },
   { id: "assets", label: "Assets" },
   { id: "presets", label: "Presets" },
   { id: "voice", label: "Voice" },

@@ -5,8 +5,6 @@ import {
   Tag,
   Palette,
   FileText,
-  FlaskConical,
-  BarChart3,
   SlidersHorizontal,
   Mic,
   FolderOpen,
@@ -25,8 +23,6 @@ export type ManageTab =
   | "tags"
   | "style"
   | "prompts"
-  | "evaluation"
-  | "insights"
   | "assets"
   | "presets"
   | "voice"
@@ -55,14 +51,6 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "tags", label: "Tags", icon: Tag },
       { id: "style", label: "Style", icon: Palette },
       { id: "prompts", label: "Prompts", icon: FileText },
-    ],
-  },
-  {
-    key: "quality",
-    label: "Quality",
-    items: [
-      { id: "evaluation", label: "Eval", icon: FlaskConical },
-      { id: "insights", label: "Insights", icon: BarChart3 },
     ],
   },
   {
