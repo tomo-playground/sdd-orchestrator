@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { useCharacters } from "../../hooks/useCharacters";
@@ -9,6 +9,7 @@ import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StyleProfileSelector from "../setup/StyleProfileSelector";
 import { handleInlineStyleProfileSelect } from "../../store/actions/styleProfileActions";
+import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 
 export default function PlanTab() {
   const store = useStudioStore();
@@ -36,8 +37,6 @@ export default function PlanTab() {
 
   const { characters, getCharacterFull, buildCharacterPrompt, buildCharacterNegative } =
     useCharacters();
-  const [planSubTab, setPlanSubTab] = useState<"actor" | "story">("actor");
-
   // Load IP-Adapter reference images on mount
   useEffect(() => {
     axios
@@ -132,61 +131,54 @@ export default function PlanTab() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Sub Tabs */}
-      <div className="flex items-center gap-1 border-b border-zinc-200/60">
-        {(["actor", "story"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setPlanSubTab(tab)}
-            className={`relative px-4 py-2 text-sm font-medium transition-colors ${
-              planSubTab === tab ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <span>{tab === "actor" ? "🎭" : "🎬"}</span>
-              <span>{tab === "actor" ? "액터 설정" : "스토리 설정"}</span>
-            </span>
-            {planSubTab === tab && (
-              <div className="absolute right-0 bottom-0 left-0 h-0.5 bg-zinc-900" />
-            )}
-          </button>
-        ))}
+    <div className={SIDE_PANEL_LAYOUT}>
+      {/* Left: Main Form */}
+      <div className="space-y-6">
+        <PromptSetupPanel
+          actorAGender={actorAGender}
+          setActorAGender={(v) => setPlan({ actorAGender: v })}
+          basePromptA={basePromptA}
+          setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
+          baseNegativePromptA={baseNegativePromptA}
+          setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
+          onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
+          characters={characters}
+          selectedCharacterId={selectedCharacterId}
+          onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
+        />
+        <StoryboardGeneratorPanel
+          topic={topic}
+          setTopic={(v: string) => setPlan({ topic: v })}
+          description={description}
+          setDescription={(v: string) => setPlan({ description: v })}
+          duration={duration}
+          setDuration={(v: number) => setPlan({ duration: v })}
+          language={language}
+          setLanguage={(v: string) => setPlan({ language: v })}
+          structure={structure}
+          setStructure={(v: string) => setPlan({ structure: v })}
+        />
       </div>
 
-      {/* Actor Settings */}
-      {planSubTab === "actor" && (
-        <div className="space-y-6">
-          <PromptSetupPanel
-            actorAGender={actorAGender}
-            setActorAGender={(v) => setPlan({ actorAGender: v })}
-            basePromptA={basePromptA}
-            setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
-            baseNegativePromptA={baseNegativePromptA}
-            setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
-            onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
-            characters={characters}
-            selectedCharacterId={selectedCharacterId}
-            onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
-          />
-        </div>
-      )}
+      {/* Right: Settings Panel (sticky) */}
+      <div className={SIDE_PANEL_CLASSES}>
+        <StyleProfileSelector
+          currentProfileId={currentStyleProfile?.id ?? null}
+          currentProfileName={
+            currentStyleProfile?.display_name ?? currentStyleProfile?.name ?? null
+          }
+          onSelect={handleInlineStyleProfileSelect}
+        />
 
-      {/* Story Settings */}
-      {planSubTab === "story" && (
-        <div className="space-y-6">
-          <StyleProfileSelector
-            currentProfileId={currentStyleProfile?.id ?? null}
-            currentProfileName={
-              currentStyleProfile?.display_name ?? currentStyleProfile?.name ?? null
-            }
-            onSelect={handleInlineStyleProfileSelect}
-          />
-          <div className="flex flex-wrap gap-2">
+        <div>
+          <label className="mb-1.5 block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+            Options
+          </label>
+          <div className="flex flex-wrap gap-1.5">
             {TOGGLES.map((t) => (
               <label
                 key={t.key}
-                className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                className={`flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
                   t.value
                     ? "border-zinc-900 bg-zinc-900 text-white"
                     : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
@@ -202,23 +194,8 @@ export default function PlanTab() {
               </label>
             ))}
           </div>
-          <StoryboardGeneratorPanel
-            topic={topic}
-            setTopic={(v: string) => setPlan({ topic: v })}
-            description={description}
-            setDescription={(v: string) => setPlan({ description: v })}
-            duration={duration}
-            setDuration={(v: number) => setPlan({ duration: v })}
-            language={language}
-            setLanguage={(v: string) => setPlan({ language: v })}
-            structure={structure}
-            setStructure={(v: string) => setPlan({ structure: v })}
-            characters={characters}
-            selectedCharacterId={selectedCharacterId}
-            onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
-          />
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE } from "../../constants";
-import RenderSettingsPanel from "../video/RenderSettingsPanel";
+import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
+import { SIDE_PANEL_LAYOUT } from "../ui/variants";
 
 export default function RenderTab() {
   const store = useStudioStore();
@@ -222,19 +223,9 @@ export default function RenderTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <RenderSettingsPanel
-        renderPresetName={store.effectivePresetName}
-        renderPresetSource={store.effectivePresetSource}
-        layoutStyle={layoutStyle}
-        setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
-        frameStyle={frameStyle}
-        setFrameStyle={(v) => setOutput({ frameStyle: v })}
-        canRender={canRender}
-        isRendering={isRendering}
-        scenesWithImages={scenes.filter((s) => !!s.image_url).length}
-        totalScenes={scenes.length}
-        onRender={() => handleRender(layoutStyle)}
+    <div className={SIDE_PANEL_LAYOUT}>
+      {/* Left: Media Settings */}
+      <RenderMediaPanel
         includeSceneText={includeSceneText}
         setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
         sceneTextFont={sceneTextFont}
@@ -262,7 +253,22 @@ export default function RenderTab() {
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voicePresetId={voicePresetId}
         setVoicePresetId={(v) => setOutput({ voicePresetId: v })}
+      />
+
+      {/* Right: Layout + Render Action (sticky) */}
+      <RenderSidePanel
+        layoutStyle={layoutStyle}
+        setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
+        frameStyle={frameStyle}
+        setFrameStyle={(v) => setOutput({ frameStyle: v })}
+        canRender={canRender}
+        isRendering={isRendering}
+        scenesWithImages={scenes.filter((s) => !!s.image_url).length}
+        totalScenes={scenes.length}
+        onRender={() => handleRender(layoutStyle)}
         disabledReason={disabledReason}
+        renderPresetName={store.effectivePresetName}
+        renderPresetSource={store.effectivePresetSource}
       />
     </div>
   );

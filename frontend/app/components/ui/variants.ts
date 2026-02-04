@@ -36,9 +36,22 @@ export const DISABLED_CLASSES = "disabled:opacity-50 disabled:cursor-not-allowed
 export const NAV_CLASSES =
   "sticky top-0 z-40 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg";
 
-/** Page-level sub-navigation (sticky below nav). */
+/** Page-level sub-navigation (sticky at top of scroll area). */
 export const SUB_NAV_CLASSES =
-  "sticky top-[var(--nav-height)] z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md";
+  "sticky top-0 z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md";
 
-/** Max-width content container. w-full prevents shrink-wrap in flex parents. */
-export const CONTAINER_CLASSES = "mx-auto w-full max-w-5xl px-6";
+/** Max-width content container, left-aligned within sidebar layout. */
+export const CONTAINER_CLASSES = "w-full max-w-5xl px-6";
+
+// ── Side-panel tokens ──────────────────────────────────────
+
+/** Two-column grid: main content + 220px side panel. */
+export const SIDE_PANEL_LAYOUT = "grid gap-6 md:grid-cols-[1fr_220px]";
+
+/** Sticky floating card for the right-side panel. */
+export const SIDE_PANEL_CLASSES =
+  "sticky top-4 self-start space-y-4 rounded-2xl border border-zinc-200 bg-white p-4";
+
+/** Section label inside a side panel. */
+export const SIDE_PANEL_LABEL =
+  "mb-2 block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase";

@@ -126,7 +126,7 @@ function StudioContent() {
 
       {/* No-group banner */}
       {groups.length === 0 && (
-        <div className="mx-auto w-full max-w-5xl px-6 pt-3">
+        <div className="w-full max-w-5xl px-6 pt-3">
           <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-xs text-amber-800">Create a group to start saving storyboards.</p>
             <button
@@ -140,7 +140,7 @@ function StudioContent() {
       )}
 
       {/* Tab Content */}
-      <main className="mx-auto w-full max-w-5xl px-6 py-8 pb-32">
+      <main className="w-full max-w-7xl px-6 py-8 pb-32">
         {autopilot.autoRunState.status !== "idle" && (
           <div className="mb-4">
             <AutoRunStatus

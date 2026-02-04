@@ -7,7 +7,9 @@ import { useTags } from "../../hooks";
 import { API_BASE } from "../../constants";
 import SceneFilmstrip from "../storyboard/SceneFilmstrip";
 import SceneListHeader from "../storyboard/SceneListHeader";
+import SceneSidePanel from "../storyboard/SceneSidePanel";
 import SceneCard from "../storyboard/SceneCard";
+import { SIDE_PANEL_LAYOUT } from "../ui/variants";
 import {
   buildNegativePrompt,
   buildScenePrompt,
@@ -95,17 +97,15 @@ export default function ScenesTab() {
   const handlePinToggle = useCallback(async () => {
     if (!currentScene) return;
 
-    // Already pinned → unpin
     if (currentScene.environment_reference_id) {
       updateScene(currentScene.id, { environment_reference_id: null });
       return;
     }
 
-    // Find previous scene with an image (cannot pin to self)
-    const currentIndex = scenes.findIndex(s => s.id === currentScene.id);
+    const currentIdx = scenes.findIndex(s => s.id === currentScene.id);
     let referenceScene = null;
 
-    for (let i = currentIndex - 1; i >= 0; i--) {
+    for (let i = currentIdx - 1; i >= 0; i--) {
       if (scenes[i].image_asset_id) {
         referenceScene = scenes[i];
         break;
@@ -117,7 +117,6 @@ export default function ScenesTab() {
       return;
     }
 
-    // Pin to previous scene's background
     updateScene(currentScene.id, {
       environment_reference_id: referenceScene.image_asset_id,
       environment_reference_weight: 0.3,
@@ -175,11 +174,103 @@ export default function ScenesTab() {
   }
 
   return (
-    <section className="space-y-4">
-      <SceneListHeader
-        onValidate={runValidation}
-        onAutoFixAll={handleAutoFixAll}
-        onAddScene={handleAddScene}
+    <div className={SIDE_PANEL_LAYOUT}>
+      {/* Left: Scene Editor */}
+      <section className="space-y-4">
+        <SceneListHeader
+          onValidate={runValidation}
+          onAutoFixAll={handleAutoFixAll}
+          onAddScene={handleAddScene}
+          scenesCount={scenes.length}
+        />
+
+        <SceneFilmstrip
+          scenes={scenes}
+          currentSceneIndex={currentSceneIndex}
+          onSceneSelect={setCurrentSceneIndex}
+        />
+
+        {currentScene && (
+          <SceneCard
+            key={currentScene.id}
+            scene={currentScene}
+            sceneIndex={currentSceneIndex}
+            validationResult={validationResults[currentScene.id]}
+            imageValidationResult={imageValidationResults[currentScene.id]}
+            qualityScore={
+              imageValidationResults[currentScene.id]
+                ? {
+                  match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
+                  missing_tags: imageValidationResults[currentScene.id].missing ?? [],
+                }
+                : null
+            }
+            sceneTab={sceneTab[currentScene.id] ?? null}
+            onSceneTabChange={(tab) =>
+              setScenesState({
+                sceneTab: { ...sceneTab, [currentScene.id]: tab },
+              })
+            }
+            sceneMenuOpen={sceneMenuOpen === currentScene.id}
+            onSceneMenuToggle={() =>
+              setScenesState({
+                sceneMenuOpen: sceneMenuOpen === currentScene.id ? null : currentScene.id,
+              })
+            }
+            onSceneMenuClose={() => setScenesState({ sceneMenuOpen: null })}
+            suggestionExpanded={suggestionExpanded[currentScene.id] ?? false}
+            onSuggestionToggle={() =>
+              setScenesState({
+                suggestionExpanded: {
+                  ...suggestionExpanded,
+                  [currentScene.id]: !suggestionExpanded[currentScene.id],
+                },
+              })
+            }
+            validatingSceneId={validatingSceneId}
+            autoComposePrompt={autoComposePrompt}
+            loraTriggerWords={loraTriggerWords}
+            characterLoras={characterLoras}
+            promptMode={characterPromptMode}
+            tagsByGroup={tagsByGroup}
+            sceneTagGroups={sceneTagGroups}
+            isExclusiveGroup={isExclusiveGroup}
+            onUpdateScene={handleUpdateScene}
+            onPinToggle={handlePinToggle}
+            onRemoveScene={() => handleRemoveScene(currentScene.id)}
+            onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
+            onImageUpload={(file) => handleImageUpload(currentScene.id, file)}
+            onGenerateImage={() => handleGenerateImage(currentScene)}
+            onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
+            onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
+            onValidateImage={() => handleValidateImage(currentScene)}
+            onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
+            onImagePreview={(src, candidates) =>
+              useStudioStore.getState().setMeta({
+                imagePreviewSrc: src,
+                imagePreviewCandidates: candidates || null,
+              })
+            }
+            onSavePrompt={() => handleSavePrompt(currentScene)}
+            onMarkSuccess={() => handleMarkSuccess(currentScene)}
+            onMarkFail={() => handleMarkFail(currentScene)}
+            isMarkingStatus={markingStatusSceneId === currentScene.id}
+            getSceneStatus={getSceneStatus}
+            getFixSuggestions={(scene, validation) =>
+              getFixSuggestions(scene, validation, useStudioStore.getState().topic)
+            }
+            applySuggestion={applySuggestion}
+            selectedCharacterId={selectedCharacterId}
+            basePromptA={basePromptA}
+            buildNegativePrompt={buildNegativePrompt}
+            buildScenePrompt={buildScenePrompt}
+            showToast={showToast}
+          />
+        )}
+      </section>
+
+      {/* Right: Settings & Status (sticky) */}
+      <SceneSidePanel
         multiGenEnabled={multiGenEnabled}
         onMultiGenEnabledChange={(v) => setScenesState({ multiGenEnabled: v })}
         useControlnet={useControlnet}
@@ -194,95 +285,10 @@ export default function ScenesTab() {
         onIpAdapterWeightChange={(v) => setPlan({ ipAdapterWeight: v })}
         referenceImages={referenceImages}
         validationSummary={validationSummary}
-        scenesCount={scenes.length}
         imageValidationResults={imageValidationResults}
         scenes={scenes.map((s, i) => ({ id: s.id, order: i }))}
         onSceneSelect={setCurrentSceneIndex}
       />
-
-      <SceneFilmstrip
-        scenes={scenes}
-        currentSceneIndex={currentSceneIndex}
-        onSceneSelect={setCurrentSceneIndex}
-      />
-
-      {currentScene && (
-        <SceneCard
-          key={currentScene.id}
-          scene={currentScene}
-          sceneIndex={currentSceneIndex}
-          validationResult={validationResults[currentScene.id]}
-          imageValidationResult={imageValidationResults[currentScene.id]}
-          qualityScore={
-            imageValidationResults[currentScene.id]
-              ? {
-                match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
-                missing_tags: imageValidationResults[currentScene.id].missing ?? [],
-              }
-              : null
-          }
-          sceneTab={sceneTab[currentScene.id] ?? null}
-          onSceneTabChange={(tab) =>
-            setScenesState({
-              sceneTab: { ...sceneTab, [currentScene.id]: tab },
-            })
-          }
-          sceneMenuOpen={sceneMenuOpen === currentScene.id}
-          onSceneMenuToggle={() =>
-            setScenesState({
-              sceneMenuOpen: sceneMenuOpen === currentScene.id ? null : currentScene.id,
-            })
-          }
-          onSceneMenuClose={() => setScenesState({ sceneMenuOpen: null })}
-          suggestionExpanded={suggestionExpanded[currentScene.id] ?? false}
-          onSuggestionToggle={() =>
-            setScenesState({
-              suggestionExpanded: {
-                ...suggestionExpanded,
-                [currentScene.id]: !suggestionExpanded[currentScene.id],
-              },
-            })
-          }
-          validatingSceneId={validatingSceneId}
-          autoComposePrompt={autoComposePrompt}
-          loraTriggerWords={loraTriggerWords}
-          characterLoras={characterLoras}
-          promptMode={characterPromptMode}
-          tagsByGroup={tagsByGroup}
-          sceneTagGroups={sceneTagGroups}
-          isExclusiveGroup={isExclusiveGroup}
-          onUpdateScene={handleUpdateScene}
-          onPinToggle={handlePinToggle}
-          onRemoveScene={() => handleRemoveScene(currentScene.id)}
-          onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
-          onImageUpload={(file) => handleImageUpload(currentScene.id, file)}
-          onGenerateImage={() => handleGenerateImage(currentScene)}
-          onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
-          onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
-          onValidateImage={() => handleValidateImage(currentScene)}
-          onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
-          onImagePreview={(src, candidates) =>
-            useStudioStore.getState().setMeta({
-              imagePreviewSrc: src,
-              imagePreviewCandidates: candidates || null,
-            })
-          }
-          onSavePrompt={() => handleSavePrompt(currentScene)}
-          onMarkSuccess={() => handleMarkSuccess(currentScene)}
-          onMarkFail={() => handleMarkFail(currentScene)}
-          isMarkingStatus={markingStatusSceneId === currentScene.id}
-          getSceneStatus={getSceneStatus}
-          getFixSuggestions={(scene, validation) =>
-            getFixSuggestions(scene, validation, useStudioStore.getState().topic)
-          }
-          applySuggestion={applySuggestion}
-          selectedCharacterId={selectedCharacterId}
-          basePromptA={basePromptA}
-          buildNegativePrompt={buildNegativePrompt}
-          buildScenePrompt={buildScenePrompt}
-          showToast={showToast}
-        />
-      )}
-    </section>
+    </div>
   );
 }

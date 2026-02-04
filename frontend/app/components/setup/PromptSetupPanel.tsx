@@ -31,9 +31,9 @@ export default function PromptSetupPanel({
     <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Actor A</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Character</h2>
           <p className="text-[10px] text-zinc-400">
-            Base Prompt is identity/style. Scene prompts handle action, camera, and background.
+            Identity and style prompts. Scene prompts handle action, camera, and background.
           </p>
         </div>
         <button
@@ -59,7 +59,7 @@ export default function PromptSetupPanel({
       </div>
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Base Prompt (Actor A)
+          Base Prompt
         </label>
         <textarea
           value={basePromptA}
@@ -75,7 +75,7 @@ export default function PromptSetupPanel({
       </div>
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Base Negative (Actor A)
+          Negative Prompt
         </label>
         <textarea
           value={baseNegativePromptA}

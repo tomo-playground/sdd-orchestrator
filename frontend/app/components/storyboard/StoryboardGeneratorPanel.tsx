@@ -13,12 +13,6 @@ type Preset = {
   default_language: string;
 };
 
-type CharacterOption = {
-  id: number;
-  name: string;
-  preview_image_url?: string | null;
-};
-
 type StoryboardGeneratorPanelProps = {
   topic: string;
   setTopic: (value: string) => void;
@@ -30,15 +24,6 @@ type StoryboardGeneratorPanelProps = {
   setLanguage: (value: string) => void;
   structure: string;
   setStructure: (value: string) => void;
-  characters?: CharacterOption[];
-  selectedCharacterId?: number | null;
-  onSelectCharacter?: (id: number | null) => void;
-  /** @deprecated Use characters + selectedCharacterId instead */
-  selectedCharacterName?: string | null;
-  /** @deprecated Use characters + selectedCharacterId instead */
-  selectedCharacterAvatar?: string | null;
-  /** @deprecated Use onSelectCharacter instead */
-  onGoToSetup?: () => void;
 };
 
 export default function StoryboardGeneratorPanel({
@@ -52,9 +37,6 @@ export default function StoryboardGeneratorPanel({
   setLanguage,
   structure,
   setStructure,
-  characters,
-  selectedCharacterId,
-  onSelectCharacter,
 }: StoryboardGeneratorPanelProps) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [sampleTopics, setSampleTopics] = useState<string[]>([]);
@@ -88,66 +70,12 @@ export default function StoryboardGeneratorPanel({
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Storyboard Generator</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Story</h2>
           <p className="text-xs text-zinc-500">
-            Generate scene scripts and visual descriptions.
+            Topic, structure, and generation settings.
           </p>
         </div>
       </div>
-      {/* Inline Character Picker */}
-      {characters && characters.length > 0 && onSelectCharacter && (
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Character
-          </label>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {/* None option */}
-            <button
-              type="button"
-              onClick={() => onSelectCharacter(null)}
-              className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${
-                selectedCharacterId == null
-                  ? "border-zinc-900 ring-2 ring-zinc-900/20 opacity-100"
-                  : "border-zinc-200 opacity-60 hover:opacity-80"
-              }`}
-              title="No character"
-            >
-              <span className="text-xs text-zinc-400">--</span>
-            </button>
-            {/* Character avatars */}
-            {characters.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onSelectCharacter(c.id)}
-                className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${
-                  selectedCharacterId === c.id
-                    ? "border-zinc-900 ring-2 ring-zinc-900/20 opacity-100"
-                    : "border-zinc-200 opacity-60 hover:opacity-80"
-                }`}
-                title={c.name}
-              >
-                {c.preview_image_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={c.preview_image_url}
-                    alt={c.name}
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-500">
-                    {c.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          <span className="text-[10px] text-zinc-500 h-3">
-            {characters.find((c) => c.id === selectedCharacterId)?.name ?? "None"}
-          </span>
-        </div>
-      )}
-
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">

@@ -6,6 +6,7 @@ import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
 import RenderedVideosSection from "../video/RenderedVideosSection";
+import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 
 export default function OutputTab() {
   const store = useStudioStore();
@@ -90,12 +91,32 @@ export default function OutputTab() {
     </span>
   );
 
+  const hasVideos = !!(videoUrl || videoUrlFull || videoUrlPost || recentVideos.length > 0);
+
   return (
-    <div className="space-y-6">
-      {/* Video Metadata — compact top bar */}
-      <div className="flex items-end gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
+    <div className={SIDE_PANEL_LAYOUT}>
+      {/* Left: Rendered Videos or Empty State */}
+      {hasVideos ? (
+        <RenderedVideosSection
+          videoUrl={videoUrl}
+          videoUrlFull={videoUrlFull}
+          videoUrlPost={videoUrlPost}
+          recentVideos={recentVideos}
+          onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
+          onDeleteRecentVideo={handleDeleteRecentVideo}
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-zinc-200 bg-white/50 p-12 text-center">
+          <p className="text-sm font-medium text-zinc-400">No rendered videos yet</p>
+          <p className="text-xs text-zinc-300">Run a render to see results here</p>
+        </div>
+      )}
+
+      {/* Right: Caption & Likes (floating panel) */}
+      <div className={SIDE_PANEL_CLASSES}>
+        {/* Caption */}
+        <div>
+          <div className="mb-1.5 flex items-center gap-2">
             <label className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
               캡션
             </label>
@@ -110,32 +131,34 @@ export default function OutputTab() {
             >
               {videoCaption.length}/60
             </span>
-            {videoCaption.length > 60 && (
-              <button
-                onClick={handleExtractCaption}
-                disabled={isExtractingCaption}
-                className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 hover:bg-indigo-200 disabled:opacity-50"
-              >
-                {isExtractingCaption ? "..." : "요약"}
-              </button>
-            )}
             {savedField === "caption" && savedBadge}
           </div>
-          <input
-            type="text"
+          <textarea
             value={videoCaption}
             onChange={(e) => setOutput({ videoCaption: e.target.value })}
             onBlur={(e) => handleCaptionBlur(e.target.value)}
             placeholder={store.topic || "AI 생성 영상"}
-            className={`w-full rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:ring-1 ${
+            rows={3}
+            className={`w-full rounded-lg border px-3 py-2 text-xs outline-none transition-colors focus:ring-1 ${
               videoCaption.length >= 60
                 ? "border-red-300 bg-red-50/30 focus:ring-red-100"
                 : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"
             }`}
           />
+          {videoCaption.length > 60 && (
+            <button
+              onClick={handleExtractCaption}
+              disabled={isExtractingCaption}
+              className="mt-1 w-full rounded-lg bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-600 transition hover:bg-indigo-100 disabled:opacity-50"
+            >
+              {isExtractingCaption ? "요약 중..." : "AI 요약"}
+            </button>
+          )}
         </div>
-        <div className="w-28 shrink-0">
-          <div className="mb-1 flex items-center gap-2">
+
+        {/* Likes */}
+        <div>
+          <div className="mb-1.5 flex items-center gap-2">
             <label className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
               좋아요
             </label>
@@ -147,20 +170,10 @@ export default function OutputTab() {
             onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
             onBlur={handleLikesBlur}
             placeholder="1.2K"
-            className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-100"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-100"
           />
         </div>
       </div>
-
-      {/* Rendered Videos */}
-      <RenderedVideosSection
-        videoUrl={videoUrl}
-        videoUrlFull={videoUrlFull}
-        videoUrlPost={videoUrlPost}
-        recentVideos={recentVideos}
-        onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
-        onDeleteRecentVideo={handleDeleteRecentVideo}
-      />
     </div>
   );
 }

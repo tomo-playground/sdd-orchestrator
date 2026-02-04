@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import type { AudioItem, FontItem, KenBurnsPreset, VoicePreset } from "../../types";
+import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../ui/variants";
 
 // Ken Burns preset options for dropdown
 const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
@@ -16,12 +17,12 @@ const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
   { value: "pan_down", label: "Pan Down" },
   { value: "zoom_pan_left", label: "Zoom + Pan Left" },
   { value: "zoom_pan_right", label: "Zoom + Pan Right" },
-  { value: "pan_up_vertical", label: "Pan Up (Vertical) ⬆️" },
-  { value: "pan_down_vertical", label: "Pan Down (Vertical) ⬇️" },
-  { value: "zoom_in_bottom", label: "Zoom In (Bottom) 🔍" },
-  { value: "zoom_in_top", label: "Zoom In (Top) 🔍" },
-  { value: "pan_zoom_up", label: "Pan + Zoom Up ⬆️🔍" },
-  { value: "pan_zoom_down", label: "Pan + Zoom Down ⬇️🔍" },
+  { value: "pan_up_vertical", label: "Pan Up (Vertical)" },
+  { value: "pan_down_vertical", label: "Pan Down (Vertical)" },
+  { value: "zoom_in_bottom", label: "Zoom In (Bottom)" },
+  { value: "zoom_in_top", label: "Zoom In (Top)" },
+  { value: "pan_zoom_up", label: "Pan + Zoom Up" },
+  { value: "pan_zoom_down", label: "Pan + Zoom Down" },
   { value: "random", label: "Random (per scene)" },
 ];
 
@@ -68,9 +69,8 @@ function VoiceStyleSection({
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
-      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">AI Voice Style</span>
+      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Voice</span>
       <div className="grid gap-2">
-        {/* Voice Preset Selector */}
         {setVoicePresetId && (
           <select
             value={voicePresetId ?? ""}
@@ -86,7 +86,6 @@ function VoiceStyleSection({
           </select>
         )}
 
-        {/* Show VoiceDesign controls only when no preset is selected */}
         {!voicePresetId && (
           <div className="space-y-2">
             <input
@@ -125,22 +124,9 @@ function VoiceStyleSection({
   );
 }
 
-type RenderSettingsPanelProps = {
-  // Effective preset info
-  renderPresetName?: string | null;
-  renderPresetSource?: string | null;
-  // Layout
-  layoutStyle: "full" | "post";
-  setLayoutStyle: (value: "full" | "post") => void;
-  frameStyle: string;
-  setFrameStyle: (value: string) => void;
-  // Render Actions
-  canRender: boolean;
-  isRendering: boolean;
-  scenesWithImages: number;
-  totalScenes: number;
-  onRender: () => void;
-  // Video Settings
+/* ======== Media Settings Panel (left column) ======== */
+
+export type RenderMediaPanelProps = {
   includeSceneText: boolean;
   setIncludeSceneText: (value: boolean) => void;
   sceneTextFont: string;
@@ -153,7 +139,6 @@ type RenderSettingsPanelProps = {
   setKenBurnsIntensity: (value: number) => void;
   transitionType: string;
   setTransitionType: (value: string) => void;
-  // Audio Settings
   speedMultiplier: number;
   setSpeedMultiplier: (value: number) => void;
   bgmFile: string | null;
@@ -165,27 +150,13 @@ type RenderSettingsPanelProps = {
   setAudioDucking: (value: boolean) => void;
   bgmVolume: number;
   setBgmVolume: (value: number) => void;
-  // TTS Settings
   voiceDesignPrompt: string;
   setVoiceDesignPrompt: (value: string) => void;
   voicePresetId?: number | null;
   setVoicePresetId?: (value: number | null) => void;
-  // Disabled reason
-  disabledReason?: string | null;
 };
 
-export default function RenderSettingsPanel({
-  renderPresetName,
-  renderPresetSource,
-  layoutStyle,
-  setLayoutStyle,
-  frameStyle,
-  setFrameStyle,
-  canRender,
-  isRendering,
-  scenesWithImages,
-  totalScenes,
-  onRender,
+export function RenderMediaPanel({
   includeSceneText,
   setIncludeSceneText,
   sceneTextFont,
@@ -213,90 +184,17 @@ export default function RenderSettingsPanel({
   setVoiceDesignPrompt,
   voicePresetId,
   setVoicePresetId,
-  disabledReason,
-}: RenderSettingsPanelProps) {
+}: RenderMediaPanelProps) {
   return (
     <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Render Settings</h2>
-          <p className="text-xs text-zinc-500">Configure layout, audio, and rendering.</p>
-        </div>
-        {renderPresetName && (
-          <span className="rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-medium text-indigo-600">
-            Preset: {renderPresetName}
-            {renderPresetSource && (
-              <span className="ml-1 text-indigo-400">
-                (from {renderPresetSource})
-              </span>
-            )}
-          </span>
-        )}
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-900">Render</h2>
+        <p className="text-xs text-zinc-500">Layout, audio, and output settings.</p>
       </div>
 
-      {/* 1. LAYOUT + RENDER (Compact) */}
-      <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-full border border-zinc-200 bg-white p-1">
-            <button
-              type="button"
-              onClick={() => setLayoutStyle("full")}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${layoutStyle === "full"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-500 hover:text-zinc-700"
-                }`}
-            >
-              Full 9:16
-            </button>
-            <button
-              type="button"
-              onClick={() => setLayoutStyle("post")}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${layoutStyle === "post"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-500 hover:text-zinc-700"
-                }`}
-            >
-              Post 1:1
-            </button>
-          </div>
-          {layoutStyle === "full" && (
-            <>
-              <span className="text-zinc-300">|</span>
-              <select
-                value={frameStyle}
-                onChange={(e) => setFrameStyle(e.target.value)}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-              >
-                <option value="overlay_minimal.png">Minimal</option>
-                <option value="overlay_modern.png">Modern</option>
-                <option value="overlay_classic.png">Classic</option>
-              </select>
-            </>
-          )}
-        </div>
-        <button
-          onClick={onRender}
-          disabled={!canRender || isRendering}
-          title={disabledReason || undefined}
-          className="rounded-full bg-zinc-900 px-10 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {isRendering ? "Rendering..." : "Render"}
-        </button>
-        <span className="text-[10px] text-zinc-400">
-          Images: {scenesWithImages}/{totalScenes}
-        </span>
-        {disabledReason && (
-          <p className="text-[11px] font-medium text-amber-600 bg-amber-50 rounded-full px-3 py-1">
-            {disabledReason}
-          </p>
-        )}
-      </div>
-
-      {/* 2. MEDIA SETTINGS (Video + Audio Combined, Collapsed by default) */}
       <details open className="group rounded-2xl border border-zinc-200 bg-white/80">
         <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
-          Media Settings
+          Media
           <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
         </summary>
         <div className="grid gap-4 border-t border-zinc-100 p-4">
@@ -375,8 +273,7 @@ export default function RenderSettingsPanel({
               ))}
             </select>
           </div>
-          {/* Audio Row */}
-          {/* AI Voice Style */}
+          {/* Voice */}
           <VoiceStyleSection
             voicePresetId={voicePresetId}
             setVoicePresetId={setVoicePresetId}
@@ -385,6 +282,7 @@ export default function RenderSettingsPanel({
             speedMultiplier={speedMultiplier}
             setSpeedMultiplier={setSpeedMultiplier}
           />
+          {/* BGM */}
           <div className="grid gap-3 md:grid-cols-2">
             <div className="flex items-center gap-1">
               <select
@@ -438,3 +336,119 @@ export default function RenderSettingsPanel({
     </section>
   );
 }
+
+/* ======== Render Side Panel (right column) ======== */
+
+export type RenderSidePanelProps = {
+  layoutStyle: "full" | "post";
+  setLayoutStyle: (value: "full" | "post") => void;
+  frameStyle: string;
+  setFrameStyle: (value: string) => void;
+  canRender: boolean;
+  isRendering: boolean;
+  scenesWithImages: number;
+  totalScenes: number;
+  onRender: () => void;
+  disabledReason?: string | null;
+  renderPresetName?: string | null;
+  renderPresetSource?: string | null;
+};
+
+export function RenderSidePanel({
+  layoutStyle,
+  setLayoutStyle,
+  frameStyle,
+  setFrameStyle,
+  canRender,
+  isRendering,
+  scenesWithImages,
+  totalScenes,
+  onRender,
+  disabledReason,
+  renderPresetName,
+  renderPresetSource,
+}: RenderSidePanelProps) {
+  return (
+    <div className={SIDE_PANEL_CLASSES}>
+      {/* Layout */}
+      <div>
+        <label className={SIDE_PANEL_LABEL}>
+          Layout
+        </label>
+        <div className="flex rounded-full border border-zinc-200 bg-zinc-50 p-0.5">
+          <button
+            type="button"
+            onClick={() => setLayoutStyle("full")}
+            className={`flex-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${
+              layoutStyle === "full"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Full 9:16
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutStyle("post")}
+            className={`flex-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${
+              layoutStyle === "post"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Post 1:1
+          </button>
+        </div>
+        {layoutStyle === "full" && (
+          <select
+            value={frameStyle}
+            onChange={(e) => setFrameStyle(e.target.value)}
+            className="mt-2 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[10px] outline-none focus:border-zinc-400"
+          >
+            <option value="overlay_minimal.png">Minimal</option>
+            <option value="overlay_modern.png">Modern</option>
+            <option value="overlay_classic.png">Classic</option>
+          </select>
+        )}
+      </div>
+
+      {/* Render Action */}
+      <div className="flex flex-col items-center gap-2">
+        <button
+          onClick={onRender}
+          disabled={!canRender || isRendering}
+          title={disabledReason || undefined}
+          className="w-full rounded-full bg-zinc-900 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {isRendering ? "Rendering..." : "Render"}
+        </button>
+        <span className="text-[10px] text-zinc-400">
+          Images: {scenesWithImages}/{totalScenes}
+        </span>
+        {disabledReason && (
+          <p className="text-[10px] font-medium text-amber-600 bg-amber-50 rounded-full px-2.5 py-1 text-center">
+            {disabledReason}
+          </p>
+        )}
+      </div>
+
+      {/* Preset */}
+      {renderPresetName && (
+        <div>
+          <label className={SIDE_PANEL_LABEL}>
+            Preset
+          </label>
+          <p className="text-xs font-medium text-indigo-600">
+            {renderPresetName}
+          </p>
+          {renderPresetSource && (
+            <p className="text-[9px] text-indigo-400">from {renderPresetSource}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ======== Legacy default export (kept for backwards compat if needed) ======== */
+export default RenderMediaPanel;

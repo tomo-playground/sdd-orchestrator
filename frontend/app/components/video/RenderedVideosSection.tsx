@@ -30,19 +30,17 @@ export default function RenderedVideosSection({
   return (
     <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-900">
-          {videoUrlFull || videoUrlPost ? "Rendered Videos" : "Rendered Video"}
-        </h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Preview</h2>
         <p className="text-xs text-zinc-500">
           {videoUrlFull || videoUrlPost
             ? "Compare full and post renders."
-            : "Preview the latest render."}
+            : "Latest render."}
         </p>
       </div>
       {recentVideos.length > 0 && (
         <div className="grid gap-3">
           <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Recent Rendered Videos (8)
+            Recent (8)
           </span>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {recentVideos.map((item, idx) => (
