@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { API_BASE } from "../../constants";
 import { useTagClassifier } from "../../hooks";
+import CopyButton from "../ui/CopyButton";
 
 type LoRAInfo = {
   name: string;
@@ -293,6 +294,9 @@ export default function ComposedPromptPreview({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {result?.prompt && (
+            <CopyButton text={result.prompt} variant="label" />
+          )}
           <button
             type="button"
             onClick={() => setShowGrouped(!showGrouped)}

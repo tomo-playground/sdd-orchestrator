@@ -63,12 +63,12 @@ export default function ValidationTabContent({
     }
 
     const matchedSet = new Set(
-      validationResult.matched
+      (validationResult.matched ?? [])
         .map(normalizeTag)
         .filter((tag) => tag.length > 0)
     );
     const extraSet = new Set(
-      validationResult.extra
+      (validationResult.extra ?? [])
         .map(normalizeTag)
         .filter((tag) => tag.length > 0)
     );
@@ -184,42 +184,42 @@ export default function ValidationTabContent({
           )}
 
           {/* Missing */}
-          {validationResult.missing.length > 0 && (
+          {(validationResult.missing?.length ?? 0) > 0 && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[10px] font-semibold text-red-600 uppercase">
-                  Missing ({validationResult.missing.length})
+                  Missing ({validationResult.missing!.length})
                 </span>
                 <button
                   type="button"
-                  onClick={() => onApplyMissingTags(validationResult.missing)}
+                  onClick={() => onApplyMissingTags(validationResult.missing!)}
                   className="rounded-full bg-red-500 px-2.5 py-1 text-[9px] font-semibold text-white hover:bg-red-600"
                 >
                   + Add
                 </button>
               </div>
               <p className="text-xs text-red-700">
-                {validationResult.missing.slice(0, 6).join(", ")}
-                {validationResult.missing.length > 6 && " ..."}
+                {validationResult.missing!.slice(0, 6).join(", ")}
+                {validationResult.missing!.length > 6 && " ..."}
               </p>
             </div>
           )}
 
           {/* Extra */}
-          {validationResult.extra.length > 0 && (
+          {(validationResult.extra?.length ?? 0) > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <span className="text-[10px] font-semibold text-amber-600 uppercase">
-                Extra ({validationResult.extra.length})
+                Extra ({validationResult.extra!.length})
               </span>
               <p className="mt-1 text-xs text-amber-700">
-                {validationResult.extra.slice(0, 6).join(", ")}
+                {validationResult.extra!.slice(0, 6).join(", ")}
               </p>
             </div>
           )}
 
           {/* Success */}
-          {validationResult.missing.length === 0 &&
-            validationResult.extra.length === 0 && (
+          {(validationResult.missing?.length ?? 0) === 0 &&
+            (validationResult.extra?.length ?? 0) === 0 && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
                 <span className="text-sm font-medium text-emerald-700">Perfect Match</span>
               </div>

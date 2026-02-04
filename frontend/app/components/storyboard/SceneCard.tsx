@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag } from "../../types";
-import ValidationTabContent from "../quality/ValidationTabContent";
 import DebugTabContent from "../quality/DebugTabContent";
 import SceneImagePanel from "../quality/SceneImagePanel";
+import Button from "../ui/Button";
 import FixSuggestionsPanel from "./FixSuggestionsPanel";
 import GenerationSettings from "./GenerationSettings";
 import SceneActionBar from "./SceneActionBar";
@@ -13,12 +14,12 @@ import SceneGeminiModals from "./SceneGeminiModals";
 
 type SceneCardProps = {
   scene: Scene;
-  sceneIndex: number;  // 씬 순서 (0-based, 표시는 +1)
+  sceneIndex: number; // 씬 순서 (0-based, 표시는 +1)
   validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
-  sceneTab: "validate" | "debug" | null;
-  onSceneTabChange: (tab: "validate" | "debug" | null) => void;
+  sceneTab?: "validate" | "debug" | null;
+  onSceneTabChange?: (tab: "validate" | "debug" | null) => void;
   sceneMenuOpen: boolean;
   onSceneMenuToggle: () => void;
   onSceneMenuClose: () => void;
@@ -119,15 +120,9 @@ export default function SceneCard({
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
   const [geminiSuggestions, setGeminiSuggestions] = useState<unknown[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
-
-  // Quality badge helper
-  const getQualityBadge = (rate: number) => {
-    if (rate >= 0.8) return { emoji: "✅", label: "Excellent", color: "bg-emerald-100 text-emerald-700" };
-    if (rate >= 0.7) return { emoji: "⚠️", label: "Good", color: "bg-amber-100 text-amber-700" };
-    return { emoji: "🔴", label: "Poor", color: "bg-rose-100 text-rose-700" };
-  };
 
   // Gemini auto-suggest handler
   const handleAutoSuggest = async () => {
@@ -155,87 +150,29 @@ export default function SceneCard({
     <div className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-zinc-800">Scene {sceneIndex + 1}</h3>
         <div className="flex items-center gap-2">
-          {qualityScore && (
-            <span
-              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${getQualityBadge(qualityScore.match_rate).color
-                }`}
-              title={`Match Rate: ${(qualityScore.match_rate * 100).toFixed(0)}%${qualityScore.missing_tags.length > 0
-                ? `\nMissing: ${qualityScore.missing_tags.slice(0, 3).join(", ")}`
-                : ""
-                }`}
-            >
-              {getQualityBadge(qualityScore.match_rate).emoji} {(qualityScore.match_rate * 100).toFixed(0)}%
-            </span>
-          )}
-          {validationResult && (
-            <button
-              type="button"
-              onClick={() => {
-                if (validationResult.status === "ok") return;
-                onSuggestionToggle();
-              }}
-              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${validationResult.status === "ok"
-                ? "bg-emerald-100 text-emerald-700"
-                : validationResult.status === "warn"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-rose-100 text-rose-700"
-                }`}
-            >
-              {validationResult.status}
-            </button>
-          )}
-          <button
-            onClick={() => {
-              if (window.confirm(`Scene ${sceneIndex + 1}을(를) 삭제하시겠습니까?`)) {
-                onRemoveScene();
-              }
-            }}
-            className="text-[10px] font-semibold tracking-[0.2em] text-rose-500 uppercase hover:text-rose-600"
-          >
-            Remove
-          </button>
+          <h3 className="text-sm font-semibold text-zinc-800">Scene {sceneIndex + 1}</h3>
+          <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
+            {getSceneStatus(scene)}
+          </span>
         </div>
-      </div>
-
-      {/* Status */}
-      <p className="text-[11px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
-        {getSceneStatus(scene)}
-      </p>
-
-      {/* Validation Issues */}
-      {validationResult && (
-        <p className="text-[11px] text-zinc-500">
-          {validationResult.issues.length > 0
-            ? validationResult.issues[0].message
-            : "No issues found."}
-        </p>
-      )}
-
-      {/* Fix Suggestions Toggle */}
-      {validationResult && validationResult.status !== "ok" && (
-        <button
-          type="button"
-          onClick={onSuggestionToggle}
-          className="w-fit rounded-full border border-zinc-300 bg-white/80 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (window.confirm(`Scene ${sceneIndex + 1}을(를) 삭제하시겠습니까?`)) {
+              onRemoveScene();
+            }
+          }}
+          className="text-rose-500 hover:bg-rose-50 hover:text-rose-600"
         >
-          Fix Suggestions
-        </button>
-      )}
-
-      {/* Fix Suggestions Panel */}
-      {validationResult && suggestionExpanded && (
-        <FixSuggestionsPanel
-          scene={scene}
-          suggestions={suggestions}
-          applySuggestion={applySuggestion}
-        />
-      )}
+          Remove
+        </Button>
+      </div>
 
       {/* Main Content Grid */}
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-        {/* Left Column: Form Fields */}
+        {/* Left: ① Content + ② Prompt + ③ Actions + ④ Details */}
         <div className="grid gap-3">
           <SceneFormFields
             scene={scene}
@@ -252,27 +189,17 @@ export default function SceneCard({
             onImageUpload={onImageUpload}
           />
 
-          {/* Generation Settings */}
-          <GenerationSettings
-            scene={scene}
-            autoComposePrompt={autoComposePrompt}
-            onUpdateScene={onUpdateScene}
-          />
-
-          {/* Primary Action + More Menu */}
+          {/* ③ Actions */}
           <SceneActionBar
             scene={scene}
             sceneIndex={sceneIndex}
             qualityScore={qualityScore}
             sceneMenuOpen={sceneMenuOpen}
             isLoadingSuggestions={isLoadingSuggestions}
-            isMarkingStatus={isMarkingStatus}
             onGenerateImage={onGenerateImage}
             onGeminiEditOpen={() => setGeminiEditOpen(true)}
             onAutoSuggest={handleAutoSuggest}
             onPinToggle={onPinToggle}
-            onMarkSuccess={onMarkSuccess}
-            onMarkFail={onMarkFail}
             onSceneMenuToggle={onSceneMenuToggle}
             onSceneMenuClose={onSceneMenuClose}
             onUpdateScene={onUpdateScene}
@@ -281,85 +208,131 @@ export default function SceneCard({
             showToast={showToast}
           />
 
-          {/* Tab Navigation */}
-          <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1">
-            {(["validate", "debug"] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => onSceneTabChange(sceneTab === tab ? null : tab)}
-                className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase transition ${sceneTab === tab
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-                  }`}
-              >
-                {tab === "validate" && (
-                  <span className="flex items-center justify-center gap-1">
-                    Validate
-                    {imageValidationResult && (
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${imageValidationResult.match_rate >= 0.8
-                          ? "bg-emerald-500"
-                          : imageValidationResult.match_rate >= 0.5
-                            ? "bg-amber-500"
-                            : "bg-red-500"
-                          }`}
-                      />
-                    )}
-                  </span>
-                )}
-                {tab === "debug" && "Debug"}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content: Validate */}
-          {sceneTab === "validate" && (
-            <ValidationTabContent
-              scene={scene}
-              validationResult={imageValidationResult}
-              isValidating={validatingSceneId === scene.id}
-              onValidate={onValidateImage}
-              onApplyMissingTags={onApplyMissingTags}
+          {/* ④ Details Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowSettings((v) => !v)}
+            className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
+          >
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${showSettings ? "rotate-180" : ""}`}
             />
-          )}
+            Details
+          </button>
 
-          {/* Tab Content: Debug */}
-          {sceneTab === "debug" && (
-            <DebugTabContent
-              scene={scene}
-              onGenerateDebug={async () => {
-                const prompt = await buildScenePrompt(scene);
-                if (!prompt) {
-                  showToast("프롬프트 생성 실패", "error");
-                  return;
-                }
-                const payload = {
-                  prompt,
-                  negative_prompt: buildNegativePrompt(scene),
-                  steps: scene.steps,
-                  cfg_scale: scene.cfg_scale,
-                  sampler_name: scene.sampler_name,
-                  seed: scene.seed,
-                  clip_skip: scene.clip_skip,
-                  width: 512,
-                  height: 768,
-                };
-                onUpdateScene({
-                  debug_payload: JSON.stringify(payload, null, 2),
-                  debug_prompt: payload.prompt,
-                });
-              }}
-            />
+          {showSettings && (
+            <>
+              <GenerationSettings
+                scene={scene}
+                autoComposePrompt={autoComposePrompt}
+                onUpdateScene={onUpdateScene}
+              />
+              <DebugTabContent
+                scene={scene}
+                onGenerateDebug={async () => {
+                  const prompt = await buildScenePrompt(scene);
+                  if (!prompt) {
+                    showToast("프롬프트 생성 실패", "error");
+                    return;
+                  }
+                  const payload = {
+                    prompt,
+                    negative_prompt: buildNegativePrompt(scene),
+                    steps: scene.steps,
+                    cfg_scale: scene.cfg_scale,
+                    sampler_name: scene.sampler_name,
+                    seed: scene.seed,
+                    clip_skip: scene.clip_skip,
+                    width: 512,
+                    height: 768,
+                  };
+                  onUpdateScene({
+                    debug_payload: JSON.stringify(payload, null, 2),
+                    debug_prompt: payload.prompt,
+                  });
+                }}
+              />
+            </>
           )}
         </div>
 
-        {/* Right Column: Image Panel */}
-        <SceneImagePanel
-          scene={scene}
-          onImageClick={(url) => onImagePreview(url, scene.candidates?.map((c) => c.image_url))}
-          onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}
-        />
+        {/* Right: ⑤ Result + QA */}
+        <div className="sticky top-4 space-y-3 self-start">
+          <SceneImagePanel
+            scene={scene}
+            onImageClick={(url) =>
+              onImagePreview(
+                url,
+                scene.candidates?.map((c) => c.image_url)
+              )
+            }
+            onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}
+            validationResult={imageValidationResult}
+            isValidating={validatingSceneId === scene.id}
+            onValidate={onValidateImage}
+            onApplyMissingTags={onApplyMissingTags}
+          />
+
+          {/* Mark Success / Fail */}
+          {scene.activity_log_id && onMarkSuccess && onMarkFail && (
+            <div className="flex gap-2">
+              <Button
+                variant="success"
+                size="sm"
+                onClick={onMarkSuccess}
+                disabled={isMarkingStatus}
+                className="flex-1"
+              >
+                👍 Success
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onMarkFail}
+                disabled={isMarkingStatus}
+                className="flex-1"
+              >
+                👎 Fail
+              </Button>
+            </div>
+          )}
+
+          {/* Script Validation + Fix Suggestions */}
+          {validationResult && validationResult.status !== "ok" && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
+                    validationResult.status === "warn"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-rose-100 text-rose-700"
+                  }`}
+                >
+                  {validationResult.status}
+                </span>
+                <button
+                  type="button"
+                  onClick={onSuggestionToggle}
+                  className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-700"
+                >
+                  {suggestionExpanded ? "Hide" : "Fix"}
+                </button>
+              </div>
+              <p className="text-[11px] text-zinc-500">
+                {validationResult.issues[0]?.message ?? ""}
+              </p>
+              {suggestionExpanded && (
+                <div className="mt-2 border-t border-zinc-100 pt-2">
+                  <FixSuggestionsPanel
+                    scene={scene}
+                    suggestions={suggestions}
+                    applySuggestion={applySuggestion}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Gemini Modals */}

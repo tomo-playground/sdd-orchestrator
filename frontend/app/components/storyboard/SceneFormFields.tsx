@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { Scene, Tag } from "../../types";
+import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
@@ -41,6 +44,8 @@ export default function SceneFormFields({
   onSpeakerChange,
   onImageUpload,
 }: SceneFormFieldsProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   return (
     <>
       {/* Script */}
@@ -99,11 +104,25 @@ export default function SceneFormFields({
         </div>
       </div>
 
+      {/* Scene Context Tags */}
+      <SceneContextTags
+        contextTags={scene.context_tags}
+        tagsByGroup={tagsByGroup}
+        sceneTagGroups={sceneTagGroups}
+        isExclusiveGroup={isExclusiveGroup}
+        onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
+      />
+
       {/* Positive Prompt */}
       <div className="grid gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Positive Prompt
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            Positive Prompt
+          </label>
+          {scene.image_prompt && (
+            <CopyButton text={scene.image_prompt} />
+          )}
+        </div>
         <TagAutocomplete
           value={scene.image_prompt}
           onChange={(value) => onUpdateScene({ image_prompt: value })}
@@ -112,12 +131,12 @@ export default function SceneFormFields({
         />
         {scene.image_prompt && (
           <>
-            <PromptTokenPreview
-              prompt={scene.image_prompt}
-              triggerWords={loraTriggerWords}
-            />
+            <PromptTokenPreview prompt={scene.image_prompt} triggerWords={loraTriggerWords} />
             <ComposedPromptPreview
-              tokens={scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean)}
+              tokens={scene.image_prompt
+                .split(",")
+                .map((t) => t.trim())
+                .filter(Boolean)}
               characterId={selectedCharacterId}
               basePrompt={basePromptA}
               contextTags={scene.context_tags || undefined}
@@ -130,40 +149,49 @@ export default function SceneFormFields({
         )}
       </div>
 
-      {/* Negative Prompt */}
-      <div className="grid gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Negative Prompt
-        </label>
-        <textarea
-          value={scene.negative_prompt}
-          onChange={(e) => onUpdateScene({ negative_prompt: e.target.value })}
-          rows={2}
-          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+      {/* Advanced Toggle (Negative Prompt + KO Prompt) */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
+      >
+        <ChevronDown
+          className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
         />
-      </div>
+        Negative / KO
+        {!showAdvanced && scene.negative_prompt && (
+          <span className="ml-1 max-w-[200px] truncate text-[9px] font-normal normal-case tracking-normal text-zinc-300">
+            {scene.negative_prompt.slice(0, 40)}
+          </span>
+        )}
+      </button>
 
-      {/* Prompt (KO) */}
-      <div className="grid gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Prompt (KO)
-        </label>
-        <TagAutocomplete
-          value={scene.image_prompt_ko}
-          onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
-          rows={2}
-          className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-        />
-      </div>
-
-      {/* Scene Context Tags */}
-      <SceneContextTags
-        contextTags={scene.context_tags}
-        tagsByGroup={tagsByGroup}
-        sceneTagGroups={sceneTagGroups}
-        isExclusiveGroup={isExclusiveGroup}
-        onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
-      />
+      {showAdvanced && (
+        <>
+          <div className="grid gap-2">
+            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              Negative Prompt
+            </label>
+            <textarea
+              value={scene.negative_prompt}
+              onChange={(e) => onUpdateScene({ negative_prompt: e.target.value })}
+              rows={2}
+              className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              Prompt (KO)
+            </label>
+            <TagAutocomplete
+              value={scene.image_prompt_ko}
+              onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
+              rows={2}
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+            />
+          </div>
+        </>
+      )}
     </>
   );
 }

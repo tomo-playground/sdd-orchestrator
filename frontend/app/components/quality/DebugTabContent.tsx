@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Scene } from "../../types";
+import CopyButton from "../ui/CopyButton";
 
 type DebugTabContentProps = {
   scene: Scene;
@@ -34,12 +35,17 @@ export default function DebugTabContent({
         {isGenerating ? "Generating..." : "Generate Debug Info"}
       </button>
       {scene.debug_payload && (
-        <textarea
-          value={scene.debug_payload}
-          readOnly
-          rows={8}
-          className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-[10px] text-zinc-600"
-        />
+        <div className="relative">
+          <textarea
+            value={scene.debug_payload}
+            readOnly
+            rows={8}
+            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-3 pr-16 font-mono text-[10px] text-zinc-600"
+          />
+          <div className="absolute right-2 top-2">
+            <CopyButton text={scene.debug_payload!} variant="label" />
+          </div>
+        </div>
       )}
       {!scene.debug_payload && !isGenerating && (
         <p className="text-center text-xs text-zinc-400">Generate Debug Info를 클릭하세요</p>
