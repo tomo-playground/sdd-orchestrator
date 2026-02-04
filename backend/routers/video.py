@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -19,38 +18,40 @@ router = APIRouter(prefix="/video", tags=["video"])
 
 @router.post("/create")
 async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
+    from models.render_history import RenderHistory
+
     logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
-    logger.info(f"🔍 [DEBUG] include_scene_text={request.include_scene_text}, scene_text_font={request.scene_text_font}")
-    logger.info(f"🎤 [DEBUG] voice_preset_id={request.voice_preset_id}, voice_design_prompt={request.voice_design_prompt}, tts_engine={request.tts_engine}")
+    logger.info(
+        f"🔍 [DEBUG] include_scene_text={request.include_scene_text}, scene_text_font={request.scene_text_font}"
+    )
+    logger.info(
+        f"🎤 [DEBUG] voice_preset_id={request.voice_preset_id}, voice_design_prompt={request.voice_design_prompt}, tts_engine={request.tts_engine}"
+    )
     res = await create_video_task(request)
     video_url = res.get("video_url")
 
-    if video_url and request.storyboard_id:
-        from models.storyboard import Storyboard
-
-        storyboard = db.query(Storyboard).filter(Storyboard.id == request.storyboard_id).first()
-        if storyboard:
-            recent = storyboard.recent_videos or []
-
-            # Add new video to the beginning
-            new_entry = {"url": video_url, "label": request.layout_style, "createdAt": int(time.time() * 1000)}
-            recent = [new_entry] + recent[:9]  # Keep last 10
-            storyboard.recent_videos = recent
-
-            db.commit()
-            logger.info("✅ Video associated with storyboard id=%d", request.storyboard_id)
+    media_asset_id = res.get("media_asset_id")
+    if video_url and request.storyboard_id and media_asset_id:
+        rh = RenderHistory(
+            storyboard_id=request.storyboard_id,
+            media_asset_id=media_asset_id,
+            label=request.layout_style or "full",
+        )
+        db.add(rh)
+        db.commit()
+        logger.info("✅ RenderHistory created for storyboard id=%d", request.storyboard_id)
 
     return res
 
 
 @router.post("/delete")
 async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db)):
-    """Delete video from storage, database, and storyboard references.
+    """Delete video from storage, database, and render_history references.
 
     Handles both legacy local files and S3-based media assets.
     """
     from models.media_asset import MediaAsset
-    from models.storyboard import Storyboard
+    from models.render_history import RenderHistory
     from services.storage import get_storage
 
     filename = os.path.basename(request.filename or "")
@@ -60,11 +61,7 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
     storage = get_storage()
 
     try:
-        # Try to find MediaAsset by filename
-        asset = db.query(MediaAsset).filter(
-            MediaAsset.file_name == filename,
-            MediaAsset.file_type == "video"
-        ).first()
+        asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
 
         if asset:
             logger.info(f"🗑️ Deleting video asset: {asset.storage_key} (ID: {asset.id})")
@@ -74,31 +71,13 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
                 storage.delete(asset.storage_key)
                 logger.info(f"✅ Deleted from storage: {asset.storage_key}")
 
-            # 2. Clear Storyboard references
-            storyboards = db.query(Storyboard).filter(
-                Storyboard.video_asset_id == asset.id
-            ).all()
-            for sb in storyboards:
-                sb.video_asset_id = None
-                logger.info(f"🔗 Cleared video_asset_id from Storyboard {sb.id}")
-
-            # 3. Remove from recent_videos in all Storyboards
-            all_storyboards = db.query(Storyboard).filter(
-                Storyboard.recent_videos.isnot(None)
-            ).all()
-
-            for sb in all_storyboards:
-                recent = sb.recent_videos
-                if not isinstance(recent, list):
-                    continue
-
-                # Filter out videos matching the deleted filename
-                original_count = len(recent)
-                recent = [v for v in recent if filename not in v.get("url", "")]
-
-                if len(recent) < original_count:
-                    sb.recent_videos = recent if recent else None
-                    logger.info(f"🗑️ Removed from recent_videos in Storyboard {sb.id} ({original_count} → {len(recent)})")
+            # 2. Remove render_history rows referencing this asset (CASCADE handles this too)
+            deleted_count = (
+                db.query(RenderHistory)
+                .filter(RenderHistory.media_asset_id == asset.id)
+                .delete(synchronize_session=False)
+            )
+            logger.info(f"🗑️ Deleted {deleted_count} render_history rows by asset_id")
 
             # 3. Delete MediaAsset record
             db.delete(asset)
@@ -177,10 +156,7 @@ async def extract_caption(request: dict):
 
 캡션만 출력하세요 (설명이나 따옴표 없이):"""
 
-        response = gemini_client.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=prompt
-        )
+        response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
 
         caption = response.text.strip()
 

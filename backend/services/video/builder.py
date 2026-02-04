@@ -148,7 +148,7 @@ class VideoBuilder:
     # Pipeline
     # ------------------------------------------------------------------
 
-    async def build(self) -> dict[str, str]:
+    async def build(self) -> dict:
         """Execute the video build pipeline."""
         logger.info("Video build started: %s", self.request.storyboard_title)
         if self.num_scenes == 0:
@@ -280,7 +280,7 @@ class VideoBuilder:
             logger.error("FFmpeg failed: %s", result.stderr)
             raise Exception(result.stderr)
 
-    def _upload_result(self) -> dict[str, str]:
+    def _upload_result(self) -> dict:
         """Upload and register the final video, return URL dict."""
         if self.project_id_int and self.group_id_int and self.request.storyboard_id:
             db = SessionLocal()
@@ -293,21 +293,14 @@ class VideoBuilder:
                     storyboard_id=self.request.storyboard_id,
                     file_name=self.video_filename,
                 )
-
-                from models.storyboard import Storyboard
-
-                sb = db.query(Storyboard).filter(Storyboard.id == self.request.storyboard_id).first()
-                if sb:
-                    sb.video_asset_id = asset.id
-                    db.add(sb)
-                    db.commit()
+                db.commit()
 
                 url = asset_service.get_asset_url(asset.storage_key)
                 logger.info(
                     "[Video Build] Video uploaded and registered: %s",
                     asset.storage_key,
                 )
-                return {"video_url": url}
+                return {"video_url": url, "media_asset_id": asset.id}
             finally:
                 db.close()
 

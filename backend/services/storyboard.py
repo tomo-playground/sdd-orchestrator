@@ -482,12 +482,15 @@ def list_storyboards_from_db(
 
 def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     """Get a storyboard with all scenes, tags, and character actions."""
+    from models.render_history import RenderHistory
+
     storyboard = (
         db.query(Storyboard)
         .options(
             joinedload(Storyboard.scenes).joinedload(Scene.tags).joinedload(SceneTag.tag),
             joinedload(Storyboard.scenes).joinedload(Scene.character_actions).joinedload(SceneCharacterAction.tag),
             joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
+            joinedload(Storyboard.render_history).joinedload(RenderHistory.media_asset),
         )
         .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
         .first()
@@ -510,7 +513,11 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
 
     scenes = sorted(storyboard.scenes, key=lambda s: s.order)
 
-    recent_videos = storyboard.recent_videos or []
+    recent_videos = [
+        {"url": rh.media_asset.url, "label": rh.label, "createdAt": int(rh.created_at.timestamp() * 1000)}
+        for rh in storyboard.render_history[:10]
+        if rh.created_at
+    ]
 
     return {
         "id": storyboard.id,
@@ -642,9 +649,8 @@ def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
             synchronize_session=False,
         )
 
-        if storyboard.video_asset_id:
-            db.query(MediaAsset).filter(MediaAsset.id == storyboard.video_asset_id).delete(synchronize_session=False)
-
+        # render_history rows are CASCADE-deleted by DB FK
+        # Clean up owned media assets
         db.query(MediaAsset).filter(
             MediaAsset.owner_type == "storyboard",
             MediaAsset.owner_id == storyboard_id,

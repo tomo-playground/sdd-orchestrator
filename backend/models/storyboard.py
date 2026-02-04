@@ -5,14 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.group import Group
-    from models.media_asset import MediaAsset
+    from models.render_history import RenderHistory
     from models.scene import Scene
 
 
@@ -27,23 +26,18 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text)
     caption: Mapped[str | None] = mapped_column(Text)
 
-    # Results
-    # video_url column removed
-    video_asset_id: Mapped[int | None] = mapped_column(
-        ForeignKey("media_assets.id", ondelete="SET NULL"),
-    )
-    video_asset: Mapped[MediaAsset | None] = relationship(
-        foreign_keys=[video_asset_id],
-    )
-
     @property
     def video_url(self) -> str | None:
-        if self.video_asset:
-            return self.video_asset.url
+        if self.render_history:
+            return self.render_history[0].media_asset.url
         return None
-
-    recent_videos: Mapped[list | None] = mapped_column(JSONB)
 
     # Relationships
     group: Mapped[Group] = relationship("Group", back_populates="storyboards")
     scenes: Mapped[list[Scene]] = relationship("Scene", back_populates="storyboard", cascade="all, delete-orphan")
+    render_history: Mapped[list[RenderHistory]] = relationship(
+        "RenderHistory",
+        back_populates="storyboard",
+        cascade="all, delete-orphan",
+        order_by="desc(RenderHistory.created_at)",
+    )

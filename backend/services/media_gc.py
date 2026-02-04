@@ -19,6 +19,7 @@ from models.character import Character
 from models.lora import LoRA
 from models.media_asset import MediaAsset
 from models.project import Project
+from models.render_history import RenderHistory
 from models.scene import Scene
 from models.sd_model import SDModel
 from models.storyboard import Storyboard
@@ -40,7 +41,7 @@ FK_REFERENCES: list[tuple[type, str]] = [
     (Character, "preview_image_asset_id"),
     (LoRA, "preview_image_asset_id"),
     (SDModel, "preview_image_asset_id"),
-    (Storyboard, "video_asset_id"),
+    (RenderHistory, "media_asset_id"),
     (Scene, "image_asset_id"),
 ]
 
@@ -48,6 +49,7 @@ FK_REFERENCES: list[tuple[type, str]] = [
 @dataclass
 class OrphanInfo:
     """Info about a single orphan asset."""
+
     id: int
     storage_key: str
     owner_type: str | None
@@ -58,6 +60,7 @@ class OrphanInfo:
 @dataclass
 class OrphanReport:
     """Result of orphan detection scan."""
+
     null_owner: list[OrphanInfo] = field(default_factory=list)
     broken_fk: list[OrphanInfo] = field(default_factory=list)
     expired_temp: list[OrphanInfo] = field(default_factory=list)
@@ -69,11 +72,16 @@ class OrphanReport:
     def to_dict(self) -> dict:
         def _serialize(items: list[OrphanInfo]) -> list[dict]:
             return [
-                {"id": i.id, "storage_key": i.storage_key,
-                 "owner_type": i.owner_type, "owner_id": i.owner_id,
-                 "reason": i.reason}
+                {
+                    "id": i.id,
+                    "storage_key": i.storage_key,
+                    "owner_type": i.owner_type,
+                    "owner_id": i.owner_id,
+                    "reason": i.reason,
+                }
                 for i in items
             ]
+
         return {
             "null_owner": _serialize(self.null_owner),
             "broken_fk": _serialize(self.broken_fk),
@@ -85,6 +93,7 @@ class OrphanReport:
 @dataclass
 class CleanupResult:
     """Result of a cleanup operation."""
+
     deleted: int = 0
     storage_errors: list[str] = field(default_factory=list)
     dry_run: bool = True
@@ -100,6 +109,7 @@ class CleanupResult:
 @dataclass
 class GCStats:
     """Overall media asset statistics."""
+
     total_assets: int = 0
     temp_assets: int = 0
     null_owner_assets: int = 0
@@ -160,23 +170,26 @@ class MediaGCService:
         """Get overall media asset statistics."""
         stats = GCStats()
         stats.total_assets = self.db.query(MediaAsset).count()
-        stats.temp_assets = self.db.query(MediaAsset).filter(
-            MediaAsset.is_temp.is_(True),
-        ).count()
-        stats.null_owner_assets = self.db.query(MediaAsset).filter(
-            MediaAsset.owner_type.is_(None),
-        ).count()
+        stats.temp_assets = (
+            self.db.query(MediaAsset)
+            .filter(
+                MediaAsset.is_temp.is_(True),
+            )
+            .count()
+        )
+        stats.null_owner_assets = (
+            self.db.query(MediaAsset)
+            .filter(
+                MediaAsset.owner_type.is_(None),
+            )
+            .count()
+        )
 
         # Count by owner_type
         from sqlalchemy import func
-        rows = (
-            self.db.query(MediaAsset.owner_type, func.count(MediaAsset.id))
-            .group_by(MediaAsset.owner_type)
-            .all()
-        )
-        stats.by_owner_type = {
-            (ot or "null"): cnt for ot, cnt in rows
-        }
+
+        rows = self.db.query(MediaAsset.owner_type, func.count(MediaAsset.id)).group_by(MediaAsset.owner_type).all()
+        stats.by_owner_type = {(ot or "null"): cnt for ot, cnt in rows}
 
         # Orphan count (quick scan)
         report = self.detect_orphans()
@@ -192,9 +205,7 @@ class MediaGCService:
         referenced: set[int] = set()
         for model_cls, col_name in FK_REFERENCES:
             col = getattr(model_cls, col_name)
-            rows = self.db.execute(
-                select(col).where(col.isnot(None))
-            ).scalars().all()
+            rows = self.db.execute(select(col).where(col.isnot(None))).scalars().all()
             referenced.update(rows)
         return referenced
 
@@ -202,14 +213,20 @@ class MediaGCService:
         """Find assets with owner_type IS NULL that aren't referenced by any FK."""
         protected_ids = self._get_fk_referenced_ids()
 
-        assets = self.db.query(MediaAsset).filter(
-            MediaAsset.owner_type.is_(None),
-        ).all()
+        assets = (
+            self.db.query(MediaAsset)
+            .filter(
+                MediaAsset.owner_type.is_(None),
+            )
+            .all()
+        )
 
         return [
             OrphanInfo(
-                id=a.id, storage_key=a.storage_key,
-                owner_type=None, owner_id=None,
+                id=a.id,
+                storage_key=a.storage_key,
+                owner_type=None,
+                owner_id=None,
                 reason="null_owner",
             )
             for a in assets
@@ -222,26 +239,32 @@ class MediaGCService:
 
         for owner_type, model_cls in OWNER_TYPE_MAP.items():
             # Get all asset IDs with this owner_type
-            assets = self.db.query(MediaAsset).filter(
-                MediaAsset.owner_type == owner_type,
-                MediaAsset.owner_id.isnot(None),
-            ).all()
+            assets = (
+                self.db.query(MediaAsset)
+                .filter(
+                    MediaAsset.owner_type == owner_type,
+                    MediaAsset.owner_id.isnot(None),
+                )
+                .all()
+            )
 
             if not assets:
                 continue
 
             # Get all valid owner IDs from master table
-            valid_ids = set(
-                self.db.execute(select(model_cls.id)).scalars().all()
-            )
+            valid_ids = set(self.db.execute(select(model_cls.id)).scalars().all())
 
             for a in assets:
                 if a.owner_id not in valid_ids:
-                    orphans.append(OrphanInfo(
-                        id=a.id, storage_key=a.storage_key,
-                        owner_type=a.owner_type, owner_id=a.owner_id,
-                        reason=f"broken_fk:{owner_type}",
-                    ))
+                    orphans.append(
+                        OrphanInfo(
+                            id=a.id,
+                            storage_key=a.storage_key,
+                            owner_type=a.owner_type,
+                            owner_id=a.owner_id,
+                            reason=f"broken_fk:{owner_type}",
+                        )
+                    )
 
         return orphans
 
@@ -251,15 +274,21 @@ class MediaGCService:
             seconds=MEDIA_ASSET_TEMP_TTL_SECONDS,
         )
 
-        assets = self.db.query(MediaAsset).filter(
-            MediaAsset.is_temp.is_(True),
-            MediaAsset.created_at < cutoff,
-        ).all()
+        assets = (
+            self.db.query(MediaAsset)
+            .filter(
+                MediaAsset.is_temp.is_(True),
+                MediaAsset.created_at < cutoff,
+            )
+            .all()
+        )
 
         return [
             OrphanInfo(
-                id=a.id, storage_key=a.storage_key,
-                owner_type=a.owner_type, owner_id=a.owner_id,
+                id=a.id,
+                storage_key=a.storage_key,
+                owner_type=a.owner_type,
+                owner_id=a.owner_id,
                 reason="expired_temp",
             )
             for a in assets
@@ -279,7 +308,10 @@ class MediaGCService:
             return f"storage_delete_failed:{asset.storage_key}:{e}"
 
     def _delete_assets(
-        self, orphans: list[OrphanInfo], *, dry_run: bool = True,
+        self,
+        orphans: list[OrphanInfo],
+        *,
+        dry_run: bool = True,
     ) -> CleanupResult:
         """Delete a list of orphan assets from DB and storage."""
         result = CleanupResult(dry_run=dry_run)

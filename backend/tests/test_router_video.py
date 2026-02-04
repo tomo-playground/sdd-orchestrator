@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from models import Storyboard
+from models import MediaAsset, RenderHistory, Storyboard
 
 
 class TestCreateVideo:
@@ -27,14 +27,15 @@ class TestCreateVideo:
         assert data["video_url"] == "/videos/test.mp4"
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
-    def test_create_video_updates_storyboard(self, mock_task, client: TestClient, db_session):
-        """Video creation updates storyboard recent_videos."""
+    def test_create_video_creates_render_history(self, mock_task, client: TestClient, db_session):
+        """Video creation creates a RenderHistory row."""
         sb = Storyboard(title="Video Test", description="Test", group_id=1)
-        db_session.add(sb)
+        asset = MediaAsset(file_type="video", storage_key="videos/result.mp4", file_name="result.mp4")
+        db_session.add_all([sb, asset])
         db_session.commit()
         sb_id = sb.id
 
-        mock_task.return_value = {"video_url": "/videos/result.mp4", "ok": True}
+        mock_task.return_value = {"video_url": "/videos/result.mp4", "media_asset_id": asset.id, "ok": True}
 
         request_data = {
             "scenes": [
@@ -46,29 +47,32 @@ class TestCreateVideo:
         response = client.post("/video/create", json=request_data)
         assert response.status_code == 200
 
-        # Verify storyboard was updated
-        db_session.refresh(sb)
-        assert sb.recent_videos is not None
-        recent = sb.recent_videos
-        assert len(recent) == 1
-        assert "/videos/result.mp4" in recent[0]["url"]
+        # Verify render_history row was created
+        rows = db_session.query(RenderHistory).filter(RenderHistory.storyboard_id == sb_id).all()
+        assert len(rows) == 1
+        assert rows[0].label == "post"
+        assert rows[0].media_asset_id == asset.id
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
-    def test_create_video_appends_recent_videos(self, mock_task, client: TestClient, db_session):
-        """New video is prepended to existing recent_videos."""
-        sb = Storyboard(
-            title="Append Test",
-            description="Test",
-            group_id=1,
-            recent_videos=[
-                {"url": "/videos/old.mp4", "label": "post", "createdAt": 1000},
-            ],
-        )
-        db_session.add(sb)
+    def test_create_video_appends_render_history(self, mock_task, client: TestClient, db_session):
+        """New video adds a second RenderHistory row."""
+        sb = Storyboard(title="Append Test", description="Test", group_id=1)
+        old_asset = MediaAsset(file_type="video", storage_key="videos/old.mp4", file_name="old.mp4")
+        new_asset = MediaAsset(file_type="video", storage_key="videos/new.mp4", file_name="new.mp4")
+        db_session.add_all([sb, old_asset, new_asset])
         db_session.commit()
         sb_id = sb.id
 
-        mock_task.return_value = {"video_url": "/videos/new.mp4", "ok": True}
+        # Pre-insert an existing render_history row
+        old_rh = RenderHistory(
+            storyboard_id=sb_id,
+            media_asset_id=old_asset.id,
+            label="post",
+        )
+        db_session.add(old_rh)
+        db_session.commit()
+
+        mock_task.return_value = {"video_url": "/videos/new.mp4", "media_asset_id": new_asset.id, "ok": True}
 
         request_data = {
             "scenes": [
@@ -80,11 +84,11 @@ class TestCreateVideo:
         response = client.post("/video/create", json=request_data)
         assert response.status_code == 200
 
-        db_session.refresh(sb)
-        recent = sb.recent_videos
-        assert len(recent) == 2
-        assert recent[0]["url"] == "/videos/new.mp4"
-        assert recent[1]["url"] == "/videos/old.mp4"
+        rows = db_session.query(RenderHistory).filter(RenderHistory.storyboard_id == sb_id).all()
+        assert len(rows) == 2
+        asset_ids = {r.media_asset_id for r in rows}
+        assert old_asset.id in asset_ids
+        assert new_asset.id in asset_ids
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
     def test_create_video_with_all_options(self, mock_task, client: TestClient, db_session):
@@ -113,6 +117,7 @@ class TestCreateVideo:
     def test_create_video_service_error(self, mock_task, client: TestClient, db_session):
         """Service error propagates as 500."""
         from fastapi import HTTPException
+
         mock_task.side_effect = HTTPException(status_code=500, detail="Render failed")
 
         request_data = {
