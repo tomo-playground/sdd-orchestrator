@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Clapperboard, Settings } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import Sidebar from "./Sidebar";
@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home, exact: true },
-  { href: "/studio", label: "Studio", icon: Clapperboard, exact: false },
   { href: "/manage", label: "Manage", icon: Settings, exact: false },
 ] as const;
 
@@ -33,7 +32,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
                   active
                     ? "bg-zinc-900 text-white"
-                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700",
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />

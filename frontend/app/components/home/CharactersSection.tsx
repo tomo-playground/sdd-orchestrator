@@ -5,7 +5,9 @@ import axios from "axios";
 import { API_BASE } from "../../constants";
 import { useCharacters } from "../../hooks/useCharacters";
 import CharacterEditModal from "../shared/CharacterEditModal";
+import Button from "../ui/Button";
 import ImagePreviewModal from "../ui/ImagePreviewModal";
+import { LABEL_CLASSES } from "../ui/variants";
 import type { Character, Tag, LoRA } from "../../types";
 
 type Props = {
@@ -56,15 +58,16 @@ export default function CharactersSection({ showToast }: Props) {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-zinc-700">Characters ({characters.length})</h2>
+            <h2 className={LABEL_CLASSES}>
+              Characters{characters.length > 0 ? ` (${characters.length})` : ""}
+            </h2>
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-medium text-zinc-400">Global</span>
           </div>
-          <button
-            onClick={openCreate}
-            className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
-          >
-            + New Character
-          </button>
+          {characters.length > 0 && (
+            <Button size="sm" onClick={openCreate} className="shrink-0 rounded-full">
+              + New Character
+            </Button>
+          )}
         </div>
 
         {characters.length === 0 ? (
@@ -76,12 +79,9 @@ export default function CharactersSection({ showToast }: Props) {
               <p className="text-sm font-medium text-zinc-500">No characters yet</p>
               <p className="mt-1 text-xs text-zinc-400">Characters maintain visual consistency across scenes</p>
             </div>
-            <button
-              onClick={openCreate}
-              className="rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 transition"
-            >
+            <Button size="md" onClick={openCreate}>
               + New Character
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

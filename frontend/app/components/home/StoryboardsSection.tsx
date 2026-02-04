@@ -8,6 +8,7 @@ import { API_BASE } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import { LABEL_CLASSES } from "../ui/variants";
 import type { GroupItem } from "../../types";
 
 interface StoryboardItem {
@@ -82,16 +83,21 @@ export default function StoryboardsSection({
   return (
     <>
       <section>
-        {/* Header: New Storyboard CTA */}
+        {/* Header */}
         {groups.length > 0 && (
-          <div className="mb-4 flex items-center justify-end">
-            <Button
-              size="sm"
-              onClick={openNewStoryboard}
-              className="shrink-0 rounded-full"
-            >
-              + New Storyboard
-            </Button>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className={LABEL_CLASSES}>
+              Storyboards{!sbLoading && storyboards.length > 0 ? ` (${storyboards.length})` : ""}
+            </h2>
+            {!sbLoading && storyboards.length > 0 && (
+              <Button
+                size="sm"
+                onClick={openNewStoryboard}
+                className="shrink-0 rounded-full"
+              >
+                + New Storyboard
+              </Button>
+            )}
           </div>
         )}
 

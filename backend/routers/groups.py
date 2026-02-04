@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models.group import Group
 from models.group_config import GroupConfig
+from models.project import Project
 from schemas import (
     EffectiveConfigResponse,
     GroupConfigResponse,
@@ -17,7 +18,11 @@ from schemas import (
     GroupResponse,
     GroupUpdate,
 )
-from services.config_resolver import apply_system_defaults, resolve_effective_config
+from services.config_resolver import (
+    SD_SYSTEM_DEFAULTS,
+    apply_system_defaults,
+    resolve_effective_config,
+)
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -40,12 +45,9 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=GroupResponse, status_code=201)
 def create_group(body: GroupCreate, db: Session = Depends(get_db)):
-    # Extract config fields that belong to GroupConfig, not Group
-    config_fields = {}
-    for field in ("render_preset_id", "style_profile_id", "character_id"):
-        val = getattr(body, field, None)
-        if val is not None:
-            config_fields[field] = val
+    project = db.query(Project).filter(Project.id == body.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
 
     group = Group(
         project_id=body.project_id,
@@ -55,7 +57,27 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
     db.add(group)
     db.flush()
 
-    # Auto-create GroupConfig with initial values
+    # Pre-fill GroupConfig with project defaults + system defaults
+    config_fields: dict = {}
+    for field in ("render_preset_id", "style_profile_id", "character_id"):
+        val = getattr(body, field, None) or getattr(project, field, None)
+        if val is not None:
+            config_fields[field] = val
+
+    # System default: style_profile with is_default=true
+    if "style_profile_id" not in config_fields:
+        from models import StyleProfile
+
+        default_profile = db.query(StyleProfile.id).filter(
+            StyleProfile.is_default.is_(True)
+        ).first()
+        if default_profile:
+            config_fields["style_profile_id"] = default_profile.id
+
+    # System defaults: SD generation settings
+    for field, default_val in SD_SYSTEM_DEFAULTS.items():
+        config_fields.setdefault(field, default_val)
+
     config = GroupConfig(group_id=group.id, **config_fields)
     db.add(config)
     db.commit()
