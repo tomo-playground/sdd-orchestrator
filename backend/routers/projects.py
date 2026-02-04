@@ -64,7 +64,6 @@ def get_project_effective_config(project_id: int, db: Session = Depends(get_db))
         render_preset_id=result["values"].get("render_preset_id"),
         character_id=result["values"].get("character_id"),
         style_profile_id=result["values"].get("style_profile_id"),
-        render_preset=project.render_preset,
         sources=result["sources"],
     )
 

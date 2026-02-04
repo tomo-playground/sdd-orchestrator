@@ -36,7 +36,6 @@ def cleanup_garbage():
 
         # Queries to get used asset IDs
         queries = [
-            "SELECT avatar_asset_id FROM projects WHERE avatar_asset_id IS NOT NULL",
             "SELECT preview_image_asset_id FROM characters WHERE preview_image_asset_id IS NOT NULL",
             "SELECT preview_image_asset_id FROM loras WHERE preview_image_asset_id IS NOT NULL",
             "SELECT preview_image_asset_id FROM sd_models WHERE preview_image_asset_id IS NOT NULL",

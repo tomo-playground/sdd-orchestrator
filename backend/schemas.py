@@ -31,9 +31,6 @@ class ProjectCreate(BaseModel):
     description: str | None = None
     handle: str | None = None
     avatar_key: str | None = None
-    render_preset_id: int | None = None
-    character_id: int | None = None
-    style_profile_id: int | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -41,9 +38,6 @@ class ProjectUpdate(BaseModel):
     description: str | None = None
     handle: str | None = None
     avatar_key: str | None = None
-    render_preset_id: int | None = None
-    character_id: int | None = None
-    style_profile_id: int | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -51,11 +45,7 @@ class ProjectResponse(BaseModel):
     name: str
     description: str | None = None
     handle: str | None = None
-    avatar_url: str | None = None
     avatar_key: str | None = None
-    render_preset_id: int | None = None
-    character_id: int | None = None
-    style_profile_id: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -187,7 +177,6 @@ class EffectiveConfigResponse(BaseModel):
     sd_cfg_scale: float | None = None
     sd_sampler_name: str | None = None
     sd_clip_skip: int | None = None
-    render_preset: RenderPresetResponse | None = None
     sources: dict[str, str] = {}  # field -> "project" | "group" | "storyboard"
 
 

@@ -37,7 +37,6 @@ OWNER_TYPE_MAP: dict[str, type] = {
 # Direct FK references: (model, column_name) that point to media_assets.id
 # Assets referenced here must never be treated as orphans
 FK_REFERENCES: list[tuple[type, str]] = [
-    (Project, "avatar_asset_id"),
     (Character, "preview_image_asset_id"),
     (LoRA, "preview_image_asset_id"),
     (SDModel, "preview_image_asset_id"),

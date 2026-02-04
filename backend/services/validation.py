@@ -59,9 +59,11 @@ def _extract_storage_key(image_url: str | None) -> str | None:
     logger.warning("⚠️ Unknown image_url format: %s", image_url)
     return None
 
+
 _WD14_SESSION: ort.InferenceSession | None = None
 _WD14_TAGS: list[str] | None = None
 _WD14_TAG_CATEGORIES: list[str] | None = None
+
 
 def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
     global _WD14_SESSION, _WD14_TAGS, _WD14_TAG_CATEGORIES
@@ -88,6 +90,7 @@ def load_wd14_model() -> tuple[ort.InferenceSession, list[str], list[str]]:
     _WD14_SESSION, _WD14_TAGS, _WD14_TAG_CATEGORIES = session, tags, categories
     return session, tags, categories
 
+
 def wd14_predict_tags(image: Image.Image, threshold: float | None = None) -> list[dict[str, Any]]:
     if threshold is None:
         threshold = WD14_THRESHOLD
@@ -109,6 +112,7 @@ def wd14_predict_tags(image: Image.Image, threshold: float | None = None) -> lis
     results.sort(key=lambda item: item["score"], reverse=True)
     return results
 
+
 def resolve_image_mime(image: Image.Image) -> str:
     """Resolve MIME type for an image."""
     fmt = (image.format or "PNG").upper()
@@ -118,12 +122,14 @@ def resolve_image_mime(image: Image.Image) -> str:
         return "image/webp"
     return "image/png"
 
+
 def cache_key_for_validation(image_bytes: bytes, prompt: str) -> str:
     """Generate a cache key for validation results."""
     digest = hashlib.sha256()
     digest.update(image_bytes)
     digest.update(prompt.encode("utf-8"))
     return digest.hexdigest()
+
 
 def _is_composite_match(prompt_token: str, tag_set: set[str]) -> bool:
     """Check if a compound prompt token partially matches any detected tag.
@@ -168,8 +174,11 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
 
     if not tokens:
         return {
-            "matched": [], "missing": [], "extra": [],
-            "skipped": [], "partial_matched": [],
+            "matched": [],
+            "missing": [],
+            "extra": [],
+            "skipped": [],
+            "partial_matched": [],
         }
 
     tag_set = {normalize_prompt_token(item["tag"]) for item in tags}
@@ -223,6 +232,7 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         "partial_matched": partial_matched,
     }
 
+
 def validate_scene_image(request: SceneValidateRequest, db: Session | None = None) -> dict:
     """Validate scene image using WD14 tagger.
 
@@ -247,39 +257,23 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
             # Use scene_id (DB PK) if provided, fallback to scene_index
             actual_scene_id = request.scene_id or request.scene_index or 0
 
-            # Resolve storage key from Scene's image_asset in DB
-            image_url = None
-            if request.scene_id:
-                from models.scene import Scene
-                scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
-                if scene and scene.image_asset:
-                    image_url = scene.image_asset.storage_key
+            _save_scene_quality_score(
+                db=db,
+                storyboard_id=request.storyboard_id,
+                scene_id=actual_scene_id,
+                prompt=request.prompt,
+                match_rate=match_rate,
+                matched=comparison["matched"],
+                missing=comparison["missing"],
+                extra=comparison["extra"],
+            )
 
-            if image_url:
-                _save_scene_quality_score(
-                    db=db,
-                    storyboard_id=request.storyboard_id,
-                    scene_id=actual_scene_id,
-                    image_url=image_url,
-                    prompt=request.prompt,
-                    match_rate=match_rate,
-                    matched=comparison["matched"],
-                    missing=comparison["missing"],
-                    extra=comparison["extra"]
-                )
-
-                _update_activity_log_match_rate(
-                    db=db,
-                    storyboard_id=request.storyboard_id,
-                    scene_id=actual_scene_id,
-                    match_rate=match_rate,
-                    image_url=image_url
-                )
-            else:
-                logger.debug(
-                    "Skipping quality score save: no image_asset for scene_id=%s",
-                    request.scene_id,
-                )
+            _update_activity_log_match_rate(
+                db=db,
+                storyboard_id=request.storyboard_id,
+                scene_id=actual_scene_id,
+                match_rate=match_rate,
+            )
 
         return {
             "mode": "wd14",
@@ -295,51 +289,32 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
         logger.exception("Validation failed")
         raise HTTPException(status_code=500, detail="Validation failed") from exc
 
+
 def _save_scene_quality_score(
     db: Session,
     storyboard_id: int | None,
     scene_id: int,
-    image_url: str,
     prompt: str,
     match_rate: float,
     matched: list,
     missing: list,
-    extra: list
+    extra: list,
 ):
-    """Save scene quality score to database.
-
-    Args:
-        db: Database session
-        storyboard_id: Storyboard ID
-        scene_id: Scene ID
-        image_url: Image URL (will be converted to storage key)
-        prompt: Prompt text
-        match_rate: Match rate (0.0-1.0)
-        matched: List of matched tags
-        missing: List of missing tags
-        extra: List of extra tags
-    """
+    """Save scene quality score to database."""
     from datetime import datetime
 
     from models.scene_quality import SceneQualityScore
-
-    # Convert image_url to storage_key
-    storage_key = _extract_storage_key(image_url)
-    if not storage_key:
-        logger.warning("⚠️ Cannot save quality score: invalid image_url format: %s", image_url)
-        return
 
     try:
         score = SceneQualityScore(
             storyboard_id=storyboard_id,
             scene_id=scene_id,
-            image_storage_key=storage_key,
             prompt=prompt,
             match_rate=match_rate,
             matched_tags=matched,
             missing_tags=missing,
             extra_tags=extra,
-            validated_at=datetime.utcnow()
+            validated_at=datetime.utcnow(),
         )
         db.add(score)
         db.commit()
@@ -347,40 +322,29 @@ def _save_scene_quality_score(
         logger.error(f"Failed to save quality score: {e}")
         db.rollback()
 
+
 def _update_activity_log_match_rate(
     db: Session,
     storyboard_id: int | None,
     scene_id: int | None,
     match_rate: float,
-    image_url: str | None = None
 ):
-    """Update activity log with match rate.
-
-    Args:
-        db: Database session
-        storyboard_id: Storyboard ID
-        scene_id: Scene ID
-        match_rate: Match rate (0.0-1.0)
-        image_url: Image URL (optional, will be converted to storage key)
-    """
+    """Update activity log with match rate."""
     if not storyboard_id or scene_id is None:
         return
 
     from models.activity_log import ActivityLog
 
     try:
-        log = db.query(ActivityLog).filter(
-            ActivityLog.storyboard_id == storyboard_id,
-            ActivityLog.scene_id == scene_id
-        ).order_by(ActivityLog.created_at.desc()).first()
+        log = (
+            db.query(ActivityLog)
+            .filter(ActivityLog.storyboard_id == storyboard_id, ActivityLog.scene_id == scene_id)
+            .order_by(ActivityLog.created_at.desc())
+            .first()
+        )
         if log:
             log.match_rate = match_rate
             log.status = "success" if match_rate >= 0.7 else "fail"
-            # Convert image_url to storage_key if provided
-            if image_url:
-                storage_key = _extract_storage_key(image_url)
-                if storage_key:
-                    log.image_storage_key = storage_key
             db.commit()
     except Exception:
         db.rollback()

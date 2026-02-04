@@ -73,9 +73,11 @@ class TestDetectNullOwner:
 
     def test_skips_fk_referenced_null_owner(self, db_session):
         """Assets with NULL owner_type but referenced by FK should be protected."""
-        proj = _make_project(db_session)
-        asset = _make_asset(db_session, storage_key="protected/avatar.png")
-        proj.avatar_asset_id = asset.id
+        char = Character(name="Test Char", project_id=_make_project(db_session).id)
+        db_session.add(char)
+        db_session.flush()
+        asset = _make_asset(db_session, storage_key="protected/preview.png")
+        char.preview_image_asset_id = asset.id
         db_session.commit()
 
         gc = MediaGCService(db_session)

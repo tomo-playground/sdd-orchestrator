@@ -73,7 +73,6 @@ def batch_validate_scenes(
             score = SceneQualityScore(
                 storyboard_id=storyboard_id,
                 scene_id=scene_id,
-                image_url=image_url,
                 prompt=prompt,
                 match_rate=match_rate,
                 matched_tags=comparison["matched"],
@@ -84,12 +83,14 @@ def batch_validate_scenes(
             db.add(score)
             validated_count += 1
 
-            results.append({
-                "scene_id": scene_id,
-                "match_rate": round(match_rate, 3),
-                "matched_count": len(comparison["matched"]),
-                "missing_count": len(comparison["missing"]),
-            })
+            results.append(
+                {
+                    "scene_id": scene_id,
+                    "match_rate": round(match_rate, 3),
+                    "matched_count": len(comparison["matched"]),
+                    "missing_count": len(comparison["missing"]),
+                }
+            )
 
         except Exception as exc:
             logger.exception(f"Failed to validate scene {scene_id}: {exc}")
@@ -98,10 +99,7 @@ def batch_validate_scenes(
     db.commit()
 
     # Calculate average
-    avg_match_rate = (
-        sum(r["match_rate"] for r in results) / len(results)
-        if results else 0.0
-    )
+    avg_match_rate = sum(r["match_rate"] for r in results) / len(results) if results else 0.0
 
     return {
         "total": len(scenes),
@@ -111,9 +109,7 @@ def batch_validate_scenes(
     }
 
 
-def get_quality_summary(
-    db: Session, storyboard_id: int
-) -> dict[str, Any]:
+def get_quality_summary(db: Session, storyboard_id: int) -> dict[str, Any]:
     """Get quality summary for a project or storyboard.
 
     Args:
@@ -196,10 +192,13 @@ def get_quality_alerts(threshold: float, db: Session, storyboard_id: int) -> lis
     Returns:
         [{"scene_id": int, "match_rate": float, "missing_tags": [...], ...}, ...]
     """
+    from sqlalchemy.orm import joinedload
+
     from models.scene_quality import SceneQualityScore
 
     poor_scores = (
         db.query(SceneQualityScore)
+        .options(joinedload(SceneQualityScore.scene))
         .filter(
             SceneQualityScore.storyboard_id == storyboard_id,
             SceneQualityScore.match_rate < threshold,
@@ -231,9 +230,9 @@ def _resolve_image_path(image_url: str) -> Path | None:
     """
     # Remove leading /outputs if present
     if image_url.startswith("/outputs/"):
-        relative = image_url[len("/outputs/"):]
+        relative = image_url[len("/outputs/") :]
     elif image_url.startswith("outputs/"):
-        relative = image_url[len("outputs/"):]
+        relative = image_url[len("outputs/") :]
     else:
         relative = image_url
 

@@ -154,12 +154,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Group not found")
     result = resolve_effective_config(group.project, group)
     apply_system_defaults(result, db)
-    # Resolve render_preset from group_config or project
-    preset = None
-    if group.config and group.config.render_preset:
-        preset = group.config.render_preset
-    if preset is None:
-        preset = getattr(group.project, "render_preset", None)
     return EffectiveConfigResponse(
         render_preset_id=result["values"].get("render_preset_id"),
         character_id=result["values"].get("character_id"),
@@ -172,7 +166,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         sd_cfg_scale=result["values"].get("sd_cfg_scale"),
         sd_sampler_name=result["values"].get("sd_sampler_name"),
         sd_clip_skip=result["values"].get("sd_clip_skip"),
-        render_preset=preset,
         sources=result["sources"],
     )
 

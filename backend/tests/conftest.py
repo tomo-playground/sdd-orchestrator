@@ -184,7 +184,7 @@ def seed_default_project_group(db_session):
     db_session.add(profile)
     db_session.flush()
 
-    project = Project(name="Default Project", style_profile_id=profile.id)
+    project = Project(name="Default Project")
     db_session.add(project)
     db_session.flush()
 

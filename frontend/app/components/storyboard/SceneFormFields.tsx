@@ -104,6 +104,19 @@ export default function SceneFormFields({
         </div>
       </div>
 
+      {/* Prompt (KO) — always visible */}
+      <div className="grid gap-2">
+        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          Prompt (KO)
+        </label>
+        <TagAutocomplete
+          value={scene.image_prompt_ko}
+          onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
+          rows={2}
+          className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+        />
+      </div>
+
       {/* Scene Context Tags */}
       <SceneContextTags
         contextTags={scene.context_tags}
@@ -119,9 +132,7 @@ export default function SceneFormFields({
           <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Positive Prompt
           </label>
-          {scene.image_prompt && (
-            <CopyButton text={scene.image_prompt} />
-          )}
+          {scene.image_prompt && <CopyButton text={scene.image_prompt} />}
         </div>
         <TagAutocomplete
           value={scene.image_prompt}
@@ -149,19 +160,6 @@ export default function SceneFormFields({
         )}
       </div>
 
-      {/* Prompt (KO) — always visible */}
-      <div className="grid gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Prompt (KO)
-        </label>
-        <TagAutocomplete
-          value={scene.image_prompt_ko}
-          onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
-          rows={2}
-          className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-        />
-      </div>
-
       {/* Advanced Toggle (Negative Prompt) */}
       <button
         type="button"
@@ -173,7 +171,7 @@ export default function SceneFormFields({
         />
         Negative
         {!showAdvanced && scene.negative_prompt && (
-          <span className="ml-1 max-w-[200px] truncate text-[9px] font-normal normal-case tracking-normal text-zinc-300">
+          <span className="ml-1 max-w-[200px] truncate text-[9px] font-normal tracking-normal text-zinc-300 normal-case">
             {scene.negative_prompt.slice(0, 40)}
           </span>
         )}

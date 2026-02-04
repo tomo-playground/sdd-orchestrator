@@ -45,6 +45,12 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         height: s.height || 768,
         negative_prompt: s.negative_prompt,
         context_tags: s.context_tags,
+        image_asset_id: s.image_asset_id ?? null,
+        environment_reference_id: s.environment_reference_id ?? null,
+        environment_reference_weight: s.environment_reference_weight ?? 0.3,
+        use_reference_only: s.use_reference_only ?? true,
+        reference_only_weight: s.reference_only_weight ?? 0.5,
+        candidates: s.candidates ?? null,
       })),
     };
 
@@ -134,6 +140,7 @@ export function mapGeminiScenes(
       width: 512,
       height: 768,
       negative_prompt: combined,
+      context_tags: (s.context_tags as Scene["context_tags"]) || undefined,
       isGenerating: false,
       debug_payload: "",
     };
@@ -170,6 +177,12 @@ export async function persistStoryboard(): Promise<boolean> {
         height: s.height || 768,
         negative_prompt: s.negative_prompt,
         context_tags: s.context_tags,
+        image_asset_id: s.image_asset_id ?? null,
+        environment_reference_id: s.environment_reference_id ?? null,
+        environment_reference_weight: s.environment_reference_weight ?? 0.3,
+        use_reference_only: s.use_reference_only ?? true,
+        reference_only_weight: s.reference_only_weight ?? 0.5,
+        candidates: s.candidates ?? null,
       })),
     };
 

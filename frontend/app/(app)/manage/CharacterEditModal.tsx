@@ -53,10 +53,10 @@ export default function CharacterEditModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {/* Basic Info + Preview Image side by side */}
-          <div className="flex gap-5">
-            <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex gap-4">
+            <div className="min-w-0 flex-1 space-y-3">
               <BasicInfoSection
                 name={form.name}
                 setName={form.setName}

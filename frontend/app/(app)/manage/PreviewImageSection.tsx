@@ -41,7 +41,7 @@ export default function PreviewImageSection({
             src={previewImageUrl}
             alt="Character Preview"
             onClick={onOpenPreview}
-            className={`h-52 w-auto cursor-pointer rounded-xl border-2 object-cover object-top transition-all hover:shadow-lg ${
+            className={`h-40 w-auto cursor-pointer rounded-xl border-2 object-cover object-top transition-all hover:shadow-lg ${
               previewLocked ? "border-amber-300" : "border-zinc-200 hover:border-zinc-400"
             }`}
           />
@@ -65,7 +65,7 @@ export default function PreviewImageSection({
           )}
         </div>
       ) : (
-        <div className="flex h-52 w-36 items-center justify-center rounded-xl border-2 border-dashed border-zinc-200">
+        <div className="flex h-40 w-36 items-center justify-center rounded-xl border-2 border-dashed border-zinc-200">
           <span className="text-xs text-zinc-300">No image</span>
         </div>
       )}
