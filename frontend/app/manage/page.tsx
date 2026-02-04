@@ -14,6 +14,7 @@ import EvaluationTab from "./tabs/EvaluationTab";
 import RenderPresetsTab from "./tabs/RenderPresetsTab";
 import VoicePresetsTab from "./tabs/VoicePresetsTab";
 import TrashTab from "./tabs/TrashTab";
+import InsightsTab from "./tabs/InsightsTab";
 import type { Character, LoRA } from "../types";
 
 // Manage Tab keys
@@ -23,6 +24,7 @@ type ManageTab =
   | "tags"
   | "prompts"
   | "evaluation"
+  | "insights"
   | "presets"
   | "voice"
   | "settings"
@@ -90,6 +92,7 @@ export default function ManagePage() {
           { id: "style", label: "Style" },
           { id: "prompts", label: "Prompts" },
           { id: "evaluation", label: "Eval" },
+          { id: "insights", label: "Insights" },
           { id: "assets", label: "Assets" },
           { id: "presets", label: "Presets" },
           { id: "voice", label: "Voice" },
@@ -103,9 +106,7 @@ export default function ManagePage() {
               type="button"
               onClick={() => setManageTab(tab.id as ManageTab)}
               className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                active
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
+                active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
               }`}
             >
               {tab.label}
@@ -123,6 +124,8 @@ export default function ManagePage() {
       {manageTab === "prompts" && <PromptsTab />}
 
       {manageTab === "evaluation" && <EvaluationTab />}
+
+      {manageTab === "insights" && <InsightsTab />}
 
       {manageTab === "assets" && <AssetsTab />}
 

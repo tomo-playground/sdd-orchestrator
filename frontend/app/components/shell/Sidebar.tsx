@@ -13,7 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useStudioStore, resetStudioStore } from "../../store/useStudioStore";
 import { updateProject } from "../../store/actions/projectActions";
 import { API_BASE } from "../../constants";
 import { cx, LABEL_CLASSES } from "../ui/variants";
@@ -269,7 +269,7 @@ export default function Sidebar() {
         await axios.delete(`${API_BASE}/storyboards/${id}`);
         setStoryboards((prev) => prev.filter((s) => s.id !== id));
         if (storyboardId === id) {
-          setMeta({ storyboardId: null, storyboardTitle: "" });
+          resetStudioStore();
           router.push("/studio?new=true");
         }
         showToast("Storyboard deleted", "success");

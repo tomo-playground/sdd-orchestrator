@@ -6,7 +6,6 @@ import asyncio
 import hashlib
 import io
 
-import torch
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -130,6 +129,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
 
         def _generate():
             import soundfile as sf
+            import torch
             torch.manual_seed(voice_seed)
             wavs, sr = model.generate_voice_design(
                 text=req.sample_text,

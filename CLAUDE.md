@@ -96,6 +96,12 @@ docs/
   3. Frontend 타입(interface)을 Backend 스키마와 일치시킴
   4. REST API 명세 (`docs/03_engineering/api/REST_API.md`) 업데이트
 
+## Frontend State Sync Principles (Active Entity Deletion)
+- **삭제 = 즉시 정리**: 현재 활성 엔티티(스토리보드, 씬 등)를 삭제하면 **스토어 전체 리셋** + 안전한 화면으로 리다이렉트. `storyboardId: null`만 설정하고 나머지 데이터를 방치하지 않는다.
+- **404 = 삭제된 것으로 간주**: API에서 404 반환 시 에러를 무시하지 않는다. 토스트 메시지 표시 + 스토어 리셋 + URL 정리.
+- **useRef 가드 리셋**: `useRef`로 중복 실행을 방지할 때, 조건이 해제되면 **반드시 ref를 리셋**한다. (예: `?new=true` → `?id=X` 이동 시 ref 초기화)
+- **Soft Delete 일관성**: Backend의 모든 GET/PUT/PATCH 쿼리에 `deleted_at.is_(None)` 필터 적용. DELETE만 soft delete 필터하고 UPDATE에서 빠뜨리지 않는다.
+
 ## Tag Format Standard (Danbooru 표준)
 **원칙**: 모든 태그는 **언더바(_) 형식**을 사용합니다. 공백 형식 절대 금지.
 

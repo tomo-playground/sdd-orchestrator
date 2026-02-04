@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
-import { createDraftStoryboard } from "../store/actions/storyboardActions";
 import { initializeVideoMetadata } from "../store/actions/outputActions";
 import type { Scene } from "../types";
 import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
@@ -30,13 +29,17 @@ export function useStudioInitialization() {
   const setScenes = useStudioStore((s) => s.setScenes);
   const setPlan = useStudioStore((s) => s.setPlan);
 
-  // Reset store and create draft DB storyboard for ?new=true
-  const draftCreatedRef = useRef(false);
+  // Reset store for ?new=true (DB creation deferred to first save/generate)
+  const newHandledRef = useRef(false);
 
   useEffect(() => {
     const isNewStoryboard = searchParams.get("new") === "true";
-    if (!isNewStoryboard || draftCreatedRef.current) return;
-    draftCreatedRef.current = true;
+    if (!isNewStoryboard) {
+      newHandledRef.current = false;
+      return;
+    }
+    if (newHandledRef.current) return;
+    newHandledRef.current = true;
 
     resetStudioStore();
     const { effectiveCharacterId } = useStudioStore.getState();
@@ -44,25 +47,17 @@ export function useStudioInitialization() {
       setPlan({ selectedCharacterId: effectiveCharacterId });
     }
 
-    // Read title from URL before clearing params
     const storyTitle = searchParams.get("title") || undefined;
+    if (storyTitle) {
+      setPlan({ topic: storyTitle });
+    }
 
-    // Clear URL params first (prevents searchParams re-trigger)
+    // Clear URL params (prevents searchParams re-trigger)
     const url = new URL(window.location.href);
     url.searchParams.delete("new");
     url.searchParams.delete("title");
     url.searchParams.delete("id");
     window.history.replaceState({}, "", url.toString());
-
-    // Create draft storyboard in DB (async IIFE)
-    (async () => {
-      const newId = await createDraftStoryboard(storyTitle);
-      if (newId) {
-        const u = new URL(window.location.href);
-        u.searchParams.set("id", String(newId));
-        window.history.replaceState({}, "", u.toString());
-      }
-    })();
   }, [searchParams, setPlan]);
 
   // Clear transient data when storyboard ID changes
@@ -184,8 +179,18 @@ export function useStudioInitialization() {
         // Initialize video metadata (caption/likes) once topic is set
         initializeVideoMetadata(data.title || "");
       })
-      .catch(() => {
-        setMeta({ storyboardId: null });
+      .catch((err) => {
+        if (err?.response?.status === 404) {
+          resetStudioStore();
+          useStudioStore
+            .getState()
+            .showToast("삭제되었거나 존재하지 않는 스토리보드입니다.", "error");
+          const url = new URL(window.location.href);
+          url.searchParams.delete("id");
+          window.history.replaceState({}, "", url.toString());
+        } else {
+          setMeta({ storyboardId: null });
+        }
       })
       .finally(() => setIsLoadingDb(false));
   }, [storyboardId, setMeta, setPlan, setScenes]);

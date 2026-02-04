@@ -30,12 +30,7 @@ test.describe("Studio Page", () => {
     await expect(page.getByTestId("tab-output")).toHaveClass(/bg-white/);
     await expect(page.getByTestId("tab-content-output")).toBeVisible();
 
-    // Output → Insights
-    await page.getByTestId("tab-insights").click();
-    await expect(page.getByTestId("tab-insights")).toHaveClass(/bg-white/);
-    await expect(page.getByTestId("tab-content-insights")).toBeVisible();
-
-    // Insights → Plan
+    // Output → Plan
     await page.getByTestId("tab-plan").click();
     await expect(page.getByTestId("tab-plan")).toHaveClass(/bg-white/);
     await expect(page.getByTestId("tab-content-plan")).toBeVisible();
@@ -138,17 +133,7 @@ test.describe("Studio Page", () => {
     expect(apiCalls.some((u) => u.includes("/sd/models"))).toBe(true);
   });
 
-  // ── 8. Insights tab ─────────────────────────────────────────
-
-  test("Insights tab shows dashboard headings", async ({ page }) => {
-    await page.goto("/studio");
-    await page.getByTestId("tab-insights").click();
-    await expect(page.getByTestId("tab-content-insights")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Quality Dashboard" }).first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Analytics" }).first()).toBeVisible();
-  });
-
-  // ── 9. DB load via ?id=X ─────────────────────────────────────
+  // ── 8. DB load via ?id=X ──────────────────────────────────────
 
   test("loads storyboard from DB when ?id is set", async ({ page }) => {
     await page.goto("/studio?id=1");
@@ -164,7 +149,7 @@ test.describe("Studio Page", () => {
     await expect(page.getByText(`${sb.scenes.length} scenes`)).toBeVisible();
   });
 
-  // ── 10. Escape key clears preview ────────────────────────────
+  // ── 9. Escape key clears preview ─────────────────────────────
 
   test("Escape key clears image preview", async ({ page }) => {
     await page.goto("/studio");

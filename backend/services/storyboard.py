@@ -536,7 +536,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         .options(
             selectinload(Storyboard.scenes),
         )
-        .filter(Storyboard.id == storyboard_id)
+        .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
         .first()
     )
     if not storyboard:
@@ -583,7 +583,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
 def update_storyboard_metadata(db: Session, storyboard_id: int, request: StoryboardUpdate) -> dict:
     """Update only storyboard metadata (title, caption, etc) without touching scenes."""
-    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 

@@ -8,7 +8,6 @@ const TABS: { id: StudioTab; label: string }[] = [
   { id: "scenes", label: "Scenes" },
   { id: "render", label: "Render" },
   { id: "output", label: "Video" },
-  { id: "insights", label: "Insights" },
 ];
 
 const STEPS: { label: string; tab: StudioTab }[] = [
@@ -64,35 +63,33 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
           );
         })}
       </div>
-      {activeTab !== "insights" && (
-        <div className="flex items-center justify-center gap-0 px-12 pt-1.5 pb-0.5">
-          {STEPS.map((step, i) => {
-            const isCurrent = i === activeIdx;
-            const filled = done[i];
-            return (
-              <div key={step.tab} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`h-2 w-2 rounded-full border transition-colors ${
-                      isCurrent
-                        ? "animate-pulse border-zinc-900 bg-zinc-900"
-                        : filled
-                          ? "border-zinc-900 bg-zinc-900"
-                          : "border-zinc-300 bg-transparent"
-                    }`}
-                  />
-                  <span className="mt-0.5 text-[9px] leading-none text-zinc-400">{step.label}</span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "border-t border-dashed border-zinc-300"}`}
-                  />
-                )}
+      <div className="flex items-center justify-center gap-0 px-12 pt-1.5 pb-0.5">
+        {STEPS.map((step, i) => {
+          const isCurrent = i === activeIdx;
+          const filled = done[i];
+          return (
+            <div key={step.tab} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`h-2 w-2 rounded-full border transition-colors ${
+                    isCurrent
+                      ? "animate-pulse border-zinc-900 bg-zinc-900"
+                      : filled
+                        ? "border-zinc-900 bg-zinc-900"
+                        : "border-zinc-300 bg-transparent"
+                  }`}
+                />
+                <span className="mt-0.5 text-[9px] leading-none text-zinc-400">{step.label}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "border-t border-dashed border-zinc-300"}`}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

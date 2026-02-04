@@ -4,41 +4,6 @@ import { API_BASE } from "../../constants";
 import type { Scene } from "../../types";
 
 /**
- * Create a draft storyboard in DB immediately (empty scenes).
- * Called when user clicks "+New Story".
- *
- * @returns storyboard_id if created successfully, undefined otherwise
- */
-export async function createDraftStoryboard(title?: string): Promise<number | undefined> {
-  const { storyboardId, groupId, setMeta, showToast } = useStudioStore.getState();
-
-  // Already exists
-  if (storyboardId) return storyboardId;
-
-  if (!groupId) return undefined;
-
-  const storyTitle = title || "Draft Storyboard";
-
-  try {
-    const res = await axios.post(`${API_BASE}/storyboards`, {
-      title: storyTitle,
-      group_id: groupId,
-      scenes: [],
-    });
-    const newId = res.data.storyboard_id;
-    setMeta({ storyboardId: newId, storyboardTitle: storyTitle });
-    if (title) {
-      useStudioStore.getState().setPlan({ topic: title });
-    }
-    return newId;
-  } catch (error) {
-    console.error("[createDraftStoryboard] Failed:", error);
-    showToast("Failed to create storyboard", "error");
-    return undefined;
-  }
-}
-
-/**
  * Auto-save storyboard before image generation
  * Ensures all activity logs have proper storyboard_id
  *
@@ -100,6 +65,13 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         id: sceneIds[idx] || scene.id,
       }));
       setScenes(updatedScenes);
+    }
+
+    // Sync URL with newly created storyboard ID
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("id", String(newStoryboardId));
+      window.history.replaceState({}, "", url.toString());
     }
 
     showToast("Storyboard auto-saved", "success");
@@ -211,6 +183,12 @@ export async function persistStoryboard(): Promise<boolean> {
       if (sceneIds.length > 0) {
         const current = useStudioStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
+      }
+      // Sync URL with newly created storyboard ID
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.set("id", String(newId));
+        window.history.replaceState({}, "", url.toString());
       }
     }
     return true;
