@@ -160,10 +160,10 @@
 | 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [ ] |
 | 12 | WD14 Validate 매칭 정확도 개선 (부분문자열 오탐 제거, 복합태그 분해, 동의어, skipped/partial 응답) | 프롬프트 | [x] |
 
-| 13 | Character Voice Preset (캐릭터 대표 목소리) | Voice | [ ] |
-| 14 | Storyboard Narrator Voice (스토리보드 나레이터 목소리) | Voice | [ ] |
-| 15 | TTS 파이프라인 speaker→voice 자동 resolve | Voice | [ ] |
-| 16 | DB Schema Cleanup: 네이밍(`default_` 제거) + 타입(`Integer→Boolean`, `Text→JSONB`). [명세](FEATURES/SCHEMA_CLEANUP.md) | DB | [ ] |
+| 13 | Character Voice Preset (캐릭터 대표 목소리) | Voice | [x] |
+| 14 | Storyboard Narrator Voice (스토리보드 나레이터 목소리) | Voice | [x] |
+| 15 | TTS 파이프라인 speaker→voice 자동 resolve | Voice | [x] |
+| 16 | DB Schema Cleanup: 네이밍(`default_` 제거) + 타입(`Integer→Boolean`, `Text→JSONB`). [명세](FEATURES/SCHEMA_CLEANUP.md) | DB | [x] |
 
 **DoD**: PR마다 CI 자동 테스트, Soft Delete 3개 모델 적용, 공통 컴포넌트 4개+.
 
@@ -292,6 +292,6 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 **현재 진행 상태** (2026-02-04):
 - Phase 6-5 ~ 6-8: **완료**
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
-- Phase 6-7: 8/15 완료 (#1 CI, #3 GC, #4-6 Soft Delete, #7 UI Toolkit, #12 WD14 매칭)
+- Phase 6-7: 12/16 완료 (#1 CI, #3 GC, #4-6 Soft Delete, #7 UI Toolkit, #12 WD14 매칭, #13-15 Voice, #16 Schema Cleanup)
 - Phase 7-2: Phase 1.5 **완료**, Phase 2 대기
 - Phase 7-1: 6/14 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity)
