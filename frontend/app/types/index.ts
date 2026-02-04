@@ -491,9 +491,6 @@ export type GroupItem = {
   project_id: number;
   name: string;
   description: string | null;
-  render_preset_id: number | null;
-  style_profile_id: number | null;
-  render_preset: RenderPreset | null;
 };
 
 export type EffectiveConfig = {

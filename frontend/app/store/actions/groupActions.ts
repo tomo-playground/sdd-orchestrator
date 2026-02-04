@@ -16,11 +16,7 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
     const cfg = res.data;
 
     // Store effective IDs (contextSlice — survives resetStudioStore)
-    setEffectiveDefaults(
-      cfg.style_profile_id ?? null,
-      cfg.character_id ?? null,
-      true
-    );
+    setEffectiveDefaults(cfg.style_profile_id ?? null, cfg.character_id ?? null, true);
 
     const p = cfg.render_preset;
     if (!p) {
@@ -79,6 +75,8 @@ export async function createGroup(data: {
   name: string;
   description?: string;
   render_preset_id?: number;
+  style_profile_id?: number;
+  character_id?: number;
 }): Promise<GroupItem | undefined> {
   const { showToast, projectId } = useStudioStore.getState();
   try {

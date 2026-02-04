@@ -325,7 +325,9 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
 
     from database import get_db
     from models.character import Character
+    from models.group import Group
     from models.storyboard import Storyboard
+    from services.config_resolver import resolve_effective_config
 
     db = next(get_db())
     try:
@@ -333,35 +335,25 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
         if not storyboard:
             return None
 
+        # Resolve effective config via cascade
+        group = db.get(Group, storyboard.group_id) if storyboard.group_id else None
+        effective = resolve_effective_config(group.project, group) if group else {"values": {}}
+
         if speaker == "Narrator":
-            # Priority: storyboard -> group_config -> None
-            preset_id = storyboard.narrator_voice_preset_id
+            preset_id = effective["values"].get("narrator_voice_preset_id")
             if preset_id:
-                logger.info(f"[TTS] Narrator voice preset from storyboard {storyboard_id}: {preset_id}")
+                logger.info(f"[TTS] Narrator voice preset from cascade: {preset_id}")
                 return preset_id
-
-            # Fallback to group_config
-            if storyboard.group_id:
-                from models.group import Group
-
-                group = db.get(Group, storyboard.group_id)
-                if group and group.config and group.config.narrator_voice_preset_id:
-                    preset_id = group.config.narrator_voice_preset_id
-                    logger.info(
-                        f"[TTS] Narrator voice preset from group_config (group {storyboard.group_id}): {preset_id}"
-                    )
-                    return preset_id
             return None
 
-        # Non-narrator speaker -> look up character voice
-        char_id = storyboard.character_id
+        # Non-narrator speaker -> look up character voice via cascade
+        char_id = effective["values"].get("character_id")
         if not char_id:
             return None
         char = db.get(Character, char_id)
         if char and char.voice_preset_id:
             logger.info(
-                f"[TTS] Speaker '{speaker}' voice preset from character "
-                f"{char.name}({char_id}): {char.voice_preset_id}"
+                f"[TTS] Speaker '{speaker}' voice preset from character {char.name}({char_id}): {char.voice_preset_id}"
             )
             return char.voice_preset_id
         return None

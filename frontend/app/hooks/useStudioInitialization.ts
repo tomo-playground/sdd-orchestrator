@@ -137,11 +137,20 @@ export function useStudioInitialization() {
       .get(`${API_BASE}/storyboards/${id}`)
       .then((res) => {
         const data = res.data;
+        // Sync groupId and projectId from storyboard's group
+        const groupId = data.group_id ?? null;
+        let projectId: number | null = null;
+        if (groupId) {
+          const { groups } = useStudioStore.getState();
+          const group = groups.find((g) => g.id === groupId);
+          if (group) projectId = group.project_id;
+        }
         setMeta({
           storyboardId: data.id,
           storyboardTitle: data.title,
           activeTab: data.scenes?.length > 0 ? "scenes" : "plan",
-          ...(data.group_id ? { groupId: data.group_id } : {}),
+          ...(groupId ? { groupId } : {}),
+          ...(projectId ? { projectId } : {}),
         });
         useStudioStore.getState().setOutput({
           videoUrl: data.video_url || null,

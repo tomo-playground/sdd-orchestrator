@@ -45,16 +45,7 @@ export async function createDraftStoryboard(title?: string): Promise<number | un
  * @returns storyboard_id if saved successfully, undefined otherwise
  */
 export async function autoSaveStoryboard(): Promise<number | undefined> {
-  const {
-    storyboardId,
-    groupId,
-    scenes,
-    topic,
-    selectedCharacterId,
-    currentStyleProfile,
-    setMeta,
-    showToast,
-  } = useStudioStore.getState();
+  const { storyboardId, groupId, scenes, topic, setMeta, showToast } = useStudioStore.getState();
 
   // Already saved
   if (storyboardId) {
@@ -76,8 +67,6 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
-      character_id: selectedCharacterId,
-      style_profile_id: currentStyleProfile?.id || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
@@ -128,17 +117,8 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
  * Used by PlanTab save button
  */
 export async function saveStoryboard(): Promise<boolean> {
-  const {
-    storyboardId,
-    groupId,
-    scenes,
-    topic,
-    selectedCharacterId,
-    currentStyleProfile,
-    videoCaption,
-    setMeta,
-    showToast,
-  } = useStudioStore.getState();
+  const { storyboardId, groupId, scenes, topic, videoCaption, setMeta, showToast } =
+    useStudioStore.getState();
 
   if (scenes.length === 0) {
     showToast("No scenes to save", "error");
@@ -151,15 +131,10 @@ export async function saveStoryboard(): Promise<boolean> {
   }
 
   try {
-    console.log("[saveStoryboard] currentStyleProfile:", currentStyleProfile);
-    console.log("[saveStoryboard] style_profile_id:", currentStyleProfile?.id || null);
-
     const payload = {
       title: topic || "Untitled",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
-      character_id: selectedCharacterId,
-      style_profile_id: currentStyleProfile?.id || null,
       caption: videoCaption || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
@@ -200,8 +175,6 @@ export async function saveStoryboard(): Promise<boolean> {
 export async function updateStoryboardMetadata(updates: {
   title?: string;
   description?: string;
-  character_id?: number | null;
-  style_profile_id?: number | null;
   caption?: string | null;
 }): Promise<boolean> {
   const { storyboardId, showToast } = useStudioStore.getState();

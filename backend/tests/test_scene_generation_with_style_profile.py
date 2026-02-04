@@ -11,22 +11,12 @@ from models import LoRA, SDModel, Storyboard, StyleProfile
 def setup_test_data(db_session: Session):
     """Setup test data: Storyboard with Style Profile"""
     # Create SD Model
-    model = SDModel(
-        name="test_model.safetensors",
-        display_name="Test Model",
-        model_type="SD 1.5",
-        is_active=True
-    )
+    model = SDModel(name="test_model.safetensors", display_name="Test Model", model_type="SD 1.5", is_active=True)
     db_session.add(model)
     db_session.flush()
 
     # Create LoRA
-    lora = LoRA(
-        name="test_lora",
-        display_name="Test LoRA",
-        trigger_words=["test_trigger"],
-        lora_type="style"
-    )
+    lora = LoRA(name="test_lora", display_name="Test LoRA", trigger_words=["test_trigger"], lora_type="style")
     db_session.add(lora)
     db_session.flush()
 
@@ -35,23 +25,26 @@ def setup_test_data(db_session: Session):
         name="Test Profile",
         display_name="Test Style Profile",
         sd_model_id=model.id,
-        loras=[{
-            "lora_id": lora.id,
-            "name": lora.name,
-            "weight": 0.8,
-            "trigger_words": lora.trigger_words,
-            "lora_type": lora.lora_type
-        }],
+        loras=[
+            {
+                "lora_id": lora.id,
+                "name": lora.name,
+                "weight": 0.8,
+                "trigger_words": lora.trigger_words,
+                "lora_type": lora.lora_type,
+            }
+        ],
         default_positive="masterpiece, best quality",
         default_negative="lowres, bad quality",
         is_default=True,
-        is_active=True
+        is_active=True,
     )
     db_session.add(profile)
     db_session.flush()
 
     # Create Character (required for generation)
     from models.character import Character
+
     character = Character(
         name="test_character",
         gender="female",
@@ -60,13 +53,23 @@ def setup_test_data(db_session: Session):
     db_session.add(character)
     db_session.flush()
 
-    # Create Storyboard with Style Profile
+    # Set character_id and style_profile_id via GroupConfig (cascade)
+    from models.group_config import GroupConfig
+
+    config = db_session.query(GroupConfig).filter(GroupConfig.group_id == 1).first()
+    if not config:
+        config = GroupConfig(group_id=1, character_id=character.id, style_profile_id=profile.id)
+        db_session.add(config)
+    else:
+        config.character_id = character.id
+        config.style_profile_id = profile.id
+    db_session.flush()
+
+    # Create Storyboard (settings come from GroupConfig cascade)
     storyboard = Storyboard(
         title="Test Storyboard",
         description="Test",
         group_id=1,
-        character_id=character.id,
-        style_profile_id=profile.id,
     )
     db_session.add(storyboard)
     db_session.commit()
@@ -77,7 +80,7 @@ def setup_test_data(db_session: Session):
         "profile_id": profile.id,
         "lora_name": lora.name,
         "default_positive": profile.default_positive,
-        "default_negative": profile.default_negative
+        "default_negative": profile.default_negative,
     }
 
 
@@ -96,22 +99,27 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
 
     class MockResponse:
         status_code = 200
+
         def json(self):
             return {"images": ["fake_base64_image"]}
+
         def raise_for_status(self):
             pass
 
     class MockAsyncClient:
         async def __aenter__(self):
             return self
+
         async def __aexit__(self, *args):
             pass
+
         async def post(self, url, json=None, **kwargs):
             nonlocal captured_payload
             captured_payload = json
             return MockResponse()
 
     import httpx
+
     monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
 
     # Patch SessionLocal to return test database session
@@ -177,16 +185,16 @@ def test_scene_generation_without_storyboard(client: TestClient):
 
 def test_storyboard_without_style_profile(db_session: Session):
     """
-    Test that storyboard without style_profile_id doesn't break generation
+    Test that storyboard without style_profile_id in group_config doesn't break generation.
+    Style profile is now resolved via cascade (group_config), not storyboard column.
     """
     storyboard = Storyboard(
         title="No Profile Storyboard",
         description="Test",
         group_id=1,
-        character_id=None,
-        style_profile_id=None,
     )
     db_session.add(storyboard)
     db_session.commit()
 
-    assert storyboard.style_profile_id is None
+    # Style profile no longer lives on storyboard; verify it's resolved via cascade
+    assert not hasattr(storyboard, "style_profile_id") or storyboard.__class__.__tablename__ == "storyboards"

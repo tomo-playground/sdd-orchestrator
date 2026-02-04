@@ -86,8 +86,12 @@ export default function CommandPalette() {
             sublabel: proj?.name,
             type: "group",
             action: () => {
-              if (proj) setMeta({ projectId: proj.id });
-              setMeta({ groupId: g.id });
+              setMeta({
+                ...(proj ? { projectId: proj.id } : {}),
+                groupId: g.id,
+                storyboardId: null,
+                storyboardTitle: "",
+              });
               router.push("/");
             },
           });
@@ -105,8 +109,12 @@ export default function CommandPalette() {
               const group = groups.find((g) => g.id === sb.group_id);
               if (group) {
                 const proj = projects.find((p) => p.id === group.project_id);
-                if (proj) setMeta({ projectId: proj.id });
-                setMeta({ groupId: group.id });
+                setMeta({
+                  ...(proj ? { projectId: proj.id } : {}),
+                  groupId: group.id,
+                  storyboardId: null,
+                  storyboardTitle: "",
+                });
               }
               router.push(`/studio?id=${sb.id}`);
             },

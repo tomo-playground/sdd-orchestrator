@@ -120,15 +120,15 @@ class GroupCreate(BaseModel):
     project_id: int
     name: str
     description: str | None = None
+    # Config fields applied to auto-created GroupConfig
     render_preset_id: int | None = None
-    style_profile_id: int
+    style_profile_id: int | None = None
+    character_id: int | None = None
 
 
 class GroupUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    render_preset_id: int | None = None
-    style_profile_id: int | None = None
 
 
 class GroupResponse(BaseModel):
@@ -136,9 +136,6 @@ class GroupResponse(BaseModel):
     project_id: int
     name: str
     description: str | None = None
-    render_preset_id: int | None = None
-    style_profile_id: int | None = None
-    render_preset: RenderPresetResponse | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -148,6 +145,7 @@ class GroupConfigUpdate(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
+    character_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
@@ -163,6 +161,7 @@ class GroupConfigResponse(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
+    character_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
@@ -201,10 +200,7 @@ class StoryboardBase(BaseModel):
     title: str
     description: str | None = None
     group_id: int | None = None
-    character_id: int | None = None
-    style_profile_id: int | None = None
     caption: str | None = None
-    narrator_voice_preset_id: int | None = None
 
 
 class StoryboardSave(StoryboardBase):
@@ -214,10 +210,7 @@ class StoryboardSave(StoryboardBase):
 class StoryboardUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    character_id: int | None = None
-    style_profile_id: int | None = None
     caption: str | None = None
-    narrator_voice_preset_id: int | None = None
 
 
 class StoryboardResponse(StoryboardBase):

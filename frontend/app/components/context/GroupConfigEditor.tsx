@@ -16,6 +16,7 @@ type GroupConfig = {
   render_preset_id: number | null;
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
+  character_id: number | null;
   language: string | null;
   structure: string | null;
   duration: number | null;
@@ -88,14 +89,16 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
 
   const [presets, setPresets] = useState<OptionItem[]>([]);
   const [profiles, setProfiles] = useState<OptionItem[]>([]);
+  const [characters, setCharacters] = useState<OptionItem[]>([]);
 
   useEffect(() => {
     Promise.all([
       axios.get<GroupConfig>(`${API_BASE}/groups/${groupId}/config`),
       axios.get(`${API_BASE}/render-presets`),
       axios.get(`${API_BASE}/style-profiles`),
+      axios.get(`${API_BASE}/characters`),
     ])
-      .then(([cfgRes, presetsRes, profilesRes]) => {
+      .then(([cfgRes, presetsRes, profilesRes, charsRes]) => {
         setConfig(cfgRes.data);
         setPresets(
           presetsRes.data.map((p: Record<string, unknown>) => ({
@@ -107,6 +110,12 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           profilesRes.data.map((s: Record<string, unknown>) => ({
             id: s.id as number,
             name: (s.name || s.display_name) as string,
+          }))
+        );
+        setCharacters(
+          charsRes.data.map((c: Record<string, unknown>) => ({
+            id: c.id as number,
+            name: c.name as string,
           }))
         );
       })
@@ -126,6 +135,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         render_preset_id: config.render_preset_id,
         style_profile_id: config.style_profile_id,
         narrator_voice_preset_id: config.narrator_voice_preset_id,
+        character_id: config.character_id,
         language: config.language,
         structure: config.structure,
         duration: config.duration,
@@ -213,6 +223,13 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               value={config.style_profile_id}
               options={profiles.map((p) => ({ value: p.id, label: p.name }))}
               onChange={(v) => updateField("style_profile_id", toIdOrNull(v))}
+              placeholder="-- None --"
+            />
+            <SelectField
+              label="Character"
+              value={config.character_id}
+              options={characters.map((c) => ({ value: c.id, label: c.name }))}
+              onChange={(v) => updateField("character_id", toIdOrNull(v))}
               placeholder="-- None --"
             />
             <VoicePresetSelector

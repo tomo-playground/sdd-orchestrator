@@ -24,7 +24,7 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 @router.get("", response_model=list[GroupResponse])
 def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
-    query = db.query(Group).options(joinedload(Group.render_preset))
+    query = db.query(Group)
     if project_id is not None:
         query = query.filter(Group.project_id == project_id)
     return query.all()
@@ -32,7 +32,7 @@ def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
 
 @router.get("/{group_id}", response_model=GroupResponse)
 def get_group(group_id: int, db: Session = Depends(get_db)):
-    group = db.query(Group).options(joinedload(Group.render_preset)).filter(Group.id == group_id).first()
+    group = db.query(Group).filter(Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     return group
@@ -40,8 +40,24 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=GroupResponse, status_code=201)
 def create_group(body: GroupCreate, db: Session = Depends(get_db)):
-    group = Group(**body.model_dump(exclude_unset=True))
+    # Extract config fields that belong to GroupConfig, not Group
+    config_fields = {}
+    for field in ("render_preset_id", "style_profile_id", "character_id"):
+        val = getattr(body, field, None)
+        if val is not None:
+            config_fields[field] = val
+
+    group = Group(
+        project_id=body.project_id,
+        name=body.name,
+        description=body.description,
+    )
     db.add(group)
+    db.flush()
+
+    # Auto-create GroupConfig with initial values
+    config = GroupConfig(group_id=group.id, **config_fields)
+    db.add(config)
     db.commit()
     db.refresh(group)
     return group
@@ -108,7 +124,7 @@ def _get_or_create_config(group: Group, db: Session) -> GroupConfig:
 def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     group = (
         db.query(Group)
-        .options(joinedload(Group.config), joinedload(Group.render_preset), joinedload(Group.project))
+        .options(joinedload(Group.config), joinedload(Group.project))
         .filter(Group.id == group_id)
         .first()
     )
@@ -121,7 +137,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     if group.config and group.config.render_preset:
         preset = group.config.render_preset
     if preset is None:
-        preset = group.render_preset or getattr(group.project, "render_preset", None)
+        preset = getattr(group.project, "render_preset", None)
     return EffectiveConfigResponse(
         render_preset_id=result["values"].get("render_preset_id"),
         character_id=result["values"].get("character_id"),

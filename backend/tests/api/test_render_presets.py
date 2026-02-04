@@ -149,13 +149,14 @@ def test_create_group_with_preset(client: TestClient):
         "style_profile_id": 1,
     })
     assert group.status_code == 201
-    data = group.json()
-    assert data["render_preset_id"] == preset["id"]
-    assert data["render_preset"]["name"] == "For Group"
-    assert data["render_preset"]["layout_style"] == "post"
+
+    # Verify render_preset_id is stored in group_config
+    gid = group.json()["id"]
+    config = client.get(f"/groups/{gid}/config").json()
+    assert config["render_preset_id"] == preset["id"]
 
 
-def test_get_group_includes_nested_preset(client: TestClient):
+def test_get_group_config_includes_preset(client: TestClient):
     preset = client.post("/render-presets", json={
         "name": "Nested Test",
         "transition_type": "fade",
@@ -168,10 +169,9 @@ def test_get_group_includes_nested_preset(client: TestClient):
         "style_profile_id": 1,
     }).json()
 
-    res = client.get(f"/groups/{created['id']}")
-    assert res.status_code == 200
-    assert res.json()["render_preset"]["name"] == "Nested Test"
-    assert res.json()["render_preset"]["transition_type"] == "fade"
+    config = client.get(f"/groups/{created['id']}/config")
+    assert config.status_code == 200
+    assert config.json()["render_preset_id"] == preset["id"]
 
 
 def test_group_without_preset(client: TestClient):
@@ -181,5 +181,8 @@ def test_group_without_preset(client: TestClient):
         "style_profile_id": 1,
     })
     assert group.status_code == 201
-    assert group.json()["render_preset_id"] is None
-    assert group.json()["render_preset"] is None
+
+    # Verify config has no preset
+    gid = group.json()["id"]
+    config = client.get(f"/groups/{gid}/config").json()
+    assert config["render_preset_id"] is None

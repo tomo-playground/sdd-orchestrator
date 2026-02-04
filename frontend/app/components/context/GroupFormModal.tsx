@@ -21,37 +21,47 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
   const [saving, setSaving] = useState(false);
 
   const [presets, setPresets] = useState<RenderPreset[]>([]);
-  const [selectedPresetId, setSelectedPresetId] = useState<number | null>(
-    group?.render_preset_id ?? null,
-  );
+  const [selectedPresetId, setSelectedPresetId] = useState<number | null>(null);
 
   type OptionItem = { id: number; name: string };
   const [styleProfiles, setStyleProfiles] = useState<OptionItem[]>([]);
-  const [selectedStyleProfileId, setSelectedStyleProfileId] = useState<number | null>(
-    group?.style_profile_id ?? null,
-  );
+  const [selectedStyleProfileId, setSelectedStyleProfileId] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([
+    const fetches: Promise<unknown>[] = [
       axios.get<RenderPreset[]>(`${API_BASE}/render-presets`, {
         params: { project_id: projectId },
       }),
       axios.get(`${API_BASE}/style-profiles`),
-    ])
-      .then(([presetsRes, profilesRes]) => {
-        setPresets(presetsRes.data);
-        if (!selectedPresetId && presetsRes.data.length > 0) {
-          setSelectedPresetId(presetsRes.data[0].id);
-        }
+    ];
+    // Load existing config when editing
+    if (group) {
+      fetches.push(axios.get(`${API_BASE}/groups/${group.id}/config`));
+    }
+
+    Promise.all(fetches)
+      .then(([presetsRes, profilesRes, configRes]) => {
+        const presetsData = (presetsRes as { data: RenderPreset[] }).data;
+        setPresets(presetsData);
+
+        const profilesData = (profilesRes as { data: Record<string, unknown>[] }).data;
         setStyleProfiles(
-          profilesRes.data.map((p: Record<string, unknown>) => ({
+          profilesData.map((p) => ({
             id: p.id as number,
             name: (p.display_name || p.name) as string,
-          })),
+          }))
         );
+
+        if (configRes) {
+          const cfg = (configRes as { data: Record<string, unknown> }).data;
+          setSelectedPresetId((cfg.render_preset_id as number) ?? null);
+          setSelectedStyleProfileId((cfg.style_profile_id as number) ?? null);
+        } else if (presetsData.length > 0) {
+          setSelectedPresetId(presetsData[0].id);
+        }
       })
       .catch(() => {});
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectId, group]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
@@ -82,22 +92,21 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
     if (p.transition_type) parts.push(p.transition_type);
     if (p.speed_multiplier != null && p.speed_multiplier !== 1.0)
       parts.push(`${p.speed_multiplier}x`);
-    if (p.ken_burns_preset && p.ken_burns_preset !== "none") parts.push(`KB: ${p.ken_burns_preset}`);
+    if (p.ken_burns_preset && p.ken_burns_preset !== "none")
+      parts.push(`KB: ${p.ken_burns_preset}`);
     return parts.join(", ");
   };
 
   return (
     <Modal open onClose={onClose} size="lg">
       <Modal.Header>
-        <h2 className="text-sm font-bold text-zinc-900">
-          {isEdit ? "Edit Group" : "New Group"}
-        </h2>
-        <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-xs">
+        <h2 className="text-sm font-bold text-zinc-900">{isEdit ? "Edit Group" : "New Group"}</h2>
+        <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-600">
           x
         </button>
       </Modal.Header>
 
-      <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-4">
+      <div className="max-h-[60vh] space-y-4 overflow-y-auto px-5 py-4">
         {/* Basic */}
         <div className="space-y-3">
           <div>
@@ -146,7 +155,7 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
                   />
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-zinc-800">{p.name}</div>
-                    <div className="text-[10px] text-zinc-400 truncate">{summarize(p)}</div>
+                    <div className="truncate text-[10px] text-zinc-400">{summarize(p)}</div>
                   </div>
                 </label>
               ))}
@@ -182,7 +191,12 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
         <Button variant="ghost" size="sm" onClick={onClose}>
           Cancel
         </Button>
-        <Button size="sm" loading={saving} disabled={!name.trim() || (!isEdit && !selectedStyleProfileId)} onClick={handleSubmit}>
+        <Button
+          size="sm"
+          loading={saving}
+          disabled={!name.trim() || (!isEdit && !selectedStyleProfileId)}
+          onClick={handleSubmit}
+        >
           {isEdit ? "Save" : "Create"}
         </Button>
       </Modal.Footer>

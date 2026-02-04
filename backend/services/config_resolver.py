@@ -1,7 +1,7 @@
-"""Cascading config resolver: Project < GroupConfig < Storyboard.
+"""Cascading config resolver: Project < GroupConfig.
 
 For each CASCADING_FIELDS entry, the most specific non-None value wins:
-  Storyboard (if given) > GroupConfig (if given) > Project.
+  GroupConfig (if given) > Project.
 """
 
 from __future__ import annotations
@@ -26,7 +26,6 @@ CASCADING_FIELDS = [
 def resolve_effective_config(
     project: Any,
     group: Any | None = None,
-    storyboard: Any | None = None,
 ) -> dict:
     """Return resolved config dict with ``values`` and ``sources``.
 
@@ -36,12 +35,11 @@ def resolve_effective_config(
     values: dict[str, Any] = {}
     sources: dict[str, str] = {}
 
-    # Build layers: project -> group_config -> storyboard
+    # Build layers: project -> group_config
     group_config = _get_group_config(group)
     layers = [
         ("project", project),
         ("group", group_config),
-        ("storyboard", storyboard),
     ]
 
     for field in CASCADING_FIELDS:
@@ -57,14 +55,10 @@ def resolve_effective_config(
 
 
 def _get_group_config(group: Any | None) -> Any | None:
-    """Extract GroupConfig from a Group object, falling back to group itself."""
+    """Extract GroupConfig from a Group object."""
     if group is None:
         return None
-    config = getattr(group, "config", None)
-    if config is not None:
-        return config
-    # Fallback: group still has config columns during migration period
-    return group
+    return getattr(group, "config", None)
 
 
 SD_SYSTEM_DEFAULTS = {

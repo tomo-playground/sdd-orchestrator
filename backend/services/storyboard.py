@@ -421,36 +421,11 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     if not request.group_id:
         raise HTTPException(status_code=400, detail="group_id is required")
 
-    # Auto-inject defaults from cascading config if not explicitly set
-    char_id = request.character_id
-    style_id = request.style_profile_id
-    if char_id is None or style_id is None:
-        from models.group import Group
-        from services.config_resolver import resolve_effective_config
-
-        group = (
-            db.query(Group)
-            .options(
-                joinedload(Group.project),
-            )
-            .filter(Group.id == request.group_id)
-            .first()
-        )
-        if group:
-            cfg = resolve_effective_config(group.project, group)
-            if char_id is None:
-                char_id = cfg["values"].get("character_id")
-            if style_id is None:
-                style_id = cfg["values"].get("style_profile_id")
-
     db_storyboard = Storyboard(
         title=safe_title,
         description=request.description,
         group_id=request.group_id,
-        character_id=char_id,
-        style_profile_id=style_id,
         caption=request.caption,
-        narrator_voice_preset_id=request.narrator_voice_preset_id,
     )
     db.add(db_storyboard)
     db.flush()
@@ -521,6 +496,18 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
+    # Resolve settings from cascade (group_config → project)
+    from models.group import Group
+    from services.config_resolver import resolve_effective_config
+
+    group = (
+        db.query(Group)
+        .options(joinedload(Group.config), joinedload(Group.project))
+        .filter(Group.id == storyboard.group_id)
+        .first()
+    )
+    effective = resolve_effective_config(group.project, group) if group else {"values": {}}
+
     scenes = sorted(storyboard.scenes, key=lambda s: s.order)
 
     recent_videos = storyboard.recent_videos or []
@@ -529,9 +516,10 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "id": storyboard.id,
         "title": storyboard.title,
         "description": storyboard.description,
-        "character_id": storyboard.character_id,
-        "style_profile_id": storyboard.style_profile_id,
-        "narrator_voice_preset_id": storyboard.narrator_voice_preset_id,
+        "group_id": storyboard.group_id,
+        "character_id": effective["values"].get("character_id"),
+        "style_profile_id": effective["values"].get("style_profile_id"),
+        "narrator_voice_preset_id": effective["values"].get("narrator_voice_preset_id"),
         "video_url": storyboard.video_url,
         "recent_videos": recent_videos,
         "caption": storyboard.caption,
@@ -561,10 +549,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.description = request.description
     if request.group_id is not None:
         storyboard.group_id = request.group_id
-    storyboard.character_id = request.character_id
-    storyboard.style_profile_id = request.style_profile_id
     storyboard.caption = request.caption
-    storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 
     # Nullify asset FK references on scenes first
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
@@ -608,14 +593,8 @@ def update_storyboard_metadata(db: Session, storyboard_id: int, request: Storybo
         storyboard.title = truncate_title(request.title)
     if request.description is not None:
         storyboard.description = request.description
-    if request.character_id is not None:
-        storyboard.character_id = request.character_id
-    if request.style_profile_id is not None:
-        storyboard.style_profile_id = request.style_profile_id
     if request.caption is not None:
         storyboard.caption = request.caption
-    if request.narrator_voice_preset_id is not None:
-        storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 
     db.commit()
     return {"status": "success", "storyboard_id": storyboard.id}

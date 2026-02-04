@@ -25,16 +25,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     group_id: Mapped[int] = mapped_column(Integer, ForeignKey("groups.id", ondelete="RESTRICT"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-
-    # Project-level defaults
-    character_id: Mapped[int | None] = mapped_column(Integer)
-    style_profile_id: Mapped[int | None] = mapped_column(Integer)
     caption: Mapped[str | None] = mapped_column(Text)
-
-    # Narrator voice
-    narrator_voice_preset_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True,
-    )
 
     # Results
     # video_url column removed
