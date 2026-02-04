@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { API_BASE, STRUCTURES } from "../../constants";
+import { cx, SECTION_CLASSES } from "../ui/variants";
 
 type Preset = {
   id: string;
@@ -67,7 +68,7 @@ export default function StoryboardGeneratorPanel({
   }, [structure, presets]);
 
   return (
-    <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+    <section className={cx(SECTION_CLASSES, "grid gap-6")}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Story</h2>

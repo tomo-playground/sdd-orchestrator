@@ -6,9 +6,10 @@ import axios from "axios";
 import { Clapperboard, ChevronLeft, ChevronRight, Plus, FolderOpen, Settings } from "lucide-react";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { useStudioStore } from "../../store/useStudioStore";
+import { updateProject } from "../../store/actions/projectActions";
 import { API_BASE } from "../../constants";
 import { cx, LABEL_CLASSES } from "../ui/variants";
-import { GroupConfigEditor } from "../context";
+import { GroupConfigEditor, ProjectFormModal } from "../context";
 
 type StoryboardItem = { id: number; title: string; group_id: number };
 
@@ -131,6 +132,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
   const [configGroupId, setConfigGroupId] = useState<number | null>(null);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
 
   // Hydrate collapse state from localStorage (client only)
   useEffect(() => {
@@ -179,17 +181,26 @@ export default function Sidebar() {
       {/* Project Selector */}
       {!collapsed && (
         <div className="border-b border-zinc-100 px-3 py-3">
-          <select
-            value={projectId ?? ""}
-            onChange={(e) => selectProject(Number(e.target.value))}
-            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1">
+            <select
+              value={projectId ?? ""}
+              onChange={(e) => selectProject(Number(e.target.value))}
+              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setShowProjectSettings(true)}
+              title="Project settings"
+              className="shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -237,6 +248,14 @@ export default function Sidebar() {
       <GroupConfigEditor
         groupId={configGroupId}
         onClose={() => setConfigGroupId(null)}
+      />
+    )}
+
+    {showProjectSettings && projectId && (
+      <ProjectFormModal
+        project={projects.find((p) => p.id === projectId)}
+        onSave={async (data) => { await updateProject(projectId, data); }}
+        onClose={() => setShowProjectSettings(false)}
       />
     )}
     </>

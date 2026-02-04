@@ -40,7 +40,7 @@ const TRANSITION_OPTIONS: { value: string; label: string; visual: string }[] = [
 
 /** Truncate string with ellipsis if too long */
 const truncate = (str: string | undefined, maxLen: number) =>
-  str && str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : (str || "");
+  str && str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : str || "";
 
 /** Voice Style sub-section with preset selector */
 function VoiceStyleSection({
@@ -69,7 +69,7 @@ function VoiceStyleSection({
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
-      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Voice</span>
+      <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">Voice</span>
       <div className="grid gap-2">
         {setVoicePresetId && (
           <select
@@ -108,7 +108,9 @@ function VoiceStyleSection({
         )}
 
         <div className="flex items-center gap-2">
-          <span className="text-[9px] text-zinc-500 whitespace-nowrap">Speed x{speedMultiplier.toFixed(2)}</span>
+          <span className="text-[9px] whitespace-nowrap text-zinc-500">
+            Speed x{speedMultiplier.toFixed(2)}
+          </span>
           <input
             type="range"
             min={0.8}
@@ -116,7 +118,7 @@ function VoiceStyleSection({
             step={0.05}
             value={speedMultiplier}
             onChange={(e) => setSpeedMultiplier(Number(e.target.value))}
-            className="flex-1 accent-zinc-900 h-1.5"
+            className="h-1.5 flex-1 accent-zinc-900"
           />
         </div>
       </div>
@@ -186,13 +188,13 @@ export function RenderMediaPanel({
   setVoicePresetId,
 }: RenderMediaPanelProps) {
   return (
-    <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+    <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-zinc-900">Render</h2>
         <p className="text-xs text-zinc-500">Layout, audio, and output settings.</p>
       </div>
 
-      <details open className="group rounded-2xl border border-zinc-200 bg-white/80">
+      <details open className="group rounded-2xl border border-zinc-200 bg-white">
         <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
           Media
           <span className="text-zinc-400 transition group-open:rotate-180">▼</span>
@@ -217,11 +219,13 @@ export function RenderMediaPanel({
             >
               {fontList.length === 0 && <option value="">Default</option>}
               {fontList.map((font, idx) => (
-                <option key={`${font.name}-${idx}`} value={font.name}>{truncate(font.name, 20)}</option>
+                <option key={`${font.name}-${idx}`} value={font.name}>
+                  {truncate(font.name, 20)}
+                </option>
               ))}
             </select>
             <div
-              className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-center text-white text-sm"
+              className="rounded-xl border border-zinc-200 bg-zinc-900 px-3 py-2 text-center text-sm text-white"
               style={{
                 fontFamily: loadedFonts.has(sceneTextFont)
                   ? `"${sceneTextFont}", sans-serif`
@@ -241,12 +245,14 @@ export function RenderMediaPanel({
                 className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
               >
                 {KEN_BURNS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
               {kenBurnsPreset !== "none" && (
                 <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-                  <span className="text-xs text-zinc-500 whitespace-nowrap">Intensity</span>
+                  <span className="text-xs whitespace-nowrap text-zinc-500">Intensity</span>
                   <span className="text-[10px] text-zinc-400">{kenBurnsIntensity.toFixed(1)}x</span>
                   <input
                     type="range"
@@ -294,7 +300,9 @@ export function RenderMediaPanel({
                 <option value="">BGM: None</option>
                 <option value="random">Random</option>
                 {bgmList.map((bgm) => (
-                  <option key={bgm.name} value={bgm.name}>{truncate(bgm.name, 28)}</option>
+                  <option key={bgm.name} value={bgm.name}>
+                    {truncate(bgm.name, 28)}
+                  </option>
                 ))}
               </select>
               <button
@@ -309,7 +317,9 @@ export function RenderMediaPanel({
             </div>
             {bgmFile && (
               <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-                <span className="text-[10px] text-zinc-500 whitespace-nowrap">{Math.round(bgmVolume * 100)}%</span>
+                <span className="text-[10px] whitespace-nowrap text-zinc-500">
+                  {Math.round(bgmVolume * 100)}%
+                </span>
                 <input
                   type="range"
                   min={0.05}
@@ -319,7 +329,7 @@ export function RenderMediaPanel({
                   onChange={(e) => setBgmVolume(Number(e.target.value))}
                   className="flex-1 accent-zinc-900"
                 />
-                <label className="flex items-center gap-1 text-[10px] text-zinc-500 whitespace-nowrap">
+                <label className="flex items-center gap-1 text-[10px] whitespace-nowrap text-zinc-500">
                   <input
                     type="checkbox"
                     checked={audioDucking}
@@ -333,7 +343,7 @@ export function RenderMediaPanel({
           </div>
         </div>
       </details>
-    </section>
+    </div>
   );
 }
 
@@ -372,9 +382,7 @@ export function RenderSidePanel({
     <div className={SIDE_PANEL_CLASSES}>
       {/* Layout */}
       <div>
-        <label className={SIDE_PANEL_LABEL}>
-          Layout
-        </label>
+        <label className={SIDE_PANEL_LABEL}>Layout</label>
         <div className="flex rounded-full border border-zinc-200 bg-zinc-50 p-0.5">
           <button
             type="button"
@@ -426,7 +434,7 @@ export function RenderSidePanel({
           Images: {scenesWithImages}/{totalScenes}
         </span>
         {disabledReason && (
-          <p className="text-[10px] font-medium text-amber-600 bg-amber-50 rounded-full px-2.5 py-1 text-center">
+          <p className="rounded-full bg-amber-50 px-2.5 py-1 text-center text-[10px] font-medium text-amber-600">
             {disabledReason}
           </p>
         )}
@@ -435,12 +443,8 @@ export function RenderSidePanel({
       {/* Preset */}
       {renderPresetName && (
         <div>
-          <label className={SIDE_PANEL_LABEL}>
-            Preset
-          </label>
-          <p className="text-xs font-medium text-indigo-600">
-            {renderPresetName}
-          </p>
+          <label className={SIDE_PANEL_LABEL}>Preset</label>
+          <p className="text-xs font-medium text-indigo-600">{renderPresetName}</p>
           {renderPresetSource && (
             <p className="text-[9px] text-indigo-400">from {renderPresetSource}</p>
           )}

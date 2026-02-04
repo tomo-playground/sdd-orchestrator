@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { AudioItem } from "../../types";
 import LayoutSelector from "../video/LayoutSelector";
+import { cx, SECTION_CLASSES } from "../ui/variants";
 
 type SetupPanelProps = {
   topic: string;
@@ -44,7 +45,7 @@ export default function SetupPanel({
         </h1>
       </header>
 
-      <section className="grid gap-6 rounded-3xl border border-white/60 bg-white/80 p-8 shadow-xl shadow-slate-200/40 backdrop-blur">
+      <section className={cx(SECTION_CLASSES, "grid gap-6")}>
         {/* Topic */}
         <div className="flex flex-col gap-2">
           <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">

@@ -1,5 +1,7 @@
 "use client";
 
+import { cx, SECTION_CLASSES } from "../ui/variants";
+
 type RecentVideo = {
   url: string;
   label: "full" | "post" | "single";
@@ -28,7 +30,7 @@ export default function RenderedVideosSection({
   }
 
   return (
-    <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/40">
+    <section className={cx(SECTION_CLASSES, "grid gap-4")}>
       <div>
         <h2 className="text-lg font-semibold text-zinc-900">Preview</h2>
         <p className="text-xs text-zinc-500">

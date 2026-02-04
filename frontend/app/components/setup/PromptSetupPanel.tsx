@@ -2,6 +2,7 @@
 
 import type { ActorGender, Character } from "../../types";
 import CharacterSelector from "./CharacterSelector";
+import { cx, SECTION_CLASSES } from "../ui/variants";
 
 type PromptSetupPanelProps = {
   actorAGender?: ActorGender;
@@ -28,7 +29,7 @@ export default function PromptSetupPanel({
   onSelectCharacter,
 }: PromptSetupPanelProps) {
   return (
-    <section className="grid gap-4 rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur">
+    <section className={cx(SECTION_CLASSES, "grid gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Character</h2>

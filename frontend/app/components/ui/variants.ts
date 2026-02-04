@@ -55,3 +55,9 @@ export const SIDE_PANEL_CLASSES =
 /** Section label inside a side panel. */
 export const SIDE_PANEL_LABEL =
   "mb-2 block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase";
+
+// ── Content section tokens ─────────────────────────────────
+
+/** Glassmorphism card for content sections within the left column. */
+export const SECTION_CLASSES =
+  "rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur";
