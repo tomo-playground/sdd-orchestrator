@@ -254,6 +254,7 @@ export default function SceneCard({
               )
             }
             onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}
+            onGenerateImage={onGenerateImage}
             validationResult={imageValidationResult}
             isValidating={validatingSceneId === scene.id}
             onValidate={onValidateImage}

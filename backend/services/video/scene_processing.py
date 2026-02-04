@@ -14,9 +14,6 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import torch
-from qwen_tts import Qwen3TTSModel
-
 from config import (
     GEMINI_TEXT_MODEL,
     STORAGE_MODE,
@@ -31,6 +28,31 @@ from config import (
 )
 from services.storage import get_storage
 from services.video.utils import clean_script_for_tts
+
+# Lazy-loaded TTS dependencies (torch + qwen_tts)
+# These are optional: video rendering works without TTS (silent audio fallback).
+_torch = None
+_Qwen3TTSModel = None
+_TTS_AVAILABLE: bool | None = None  # None = not yet checked
+
+
+def _ensure_tts_deps() -> bool:
+    """Lazy-load torch and qwen_tts. Returns True if available."""
+    global _torch, _Qwen3TTSModel, _TTS_AVAILABLE
+    if _TTS_AVAILABLE is not None:
+        return _TTS_AVAILABLE
+    try:
+        import torch as _t
+        from qwen_tts import Qwen3TTSModel as _Q
+
+        _torch = _t
+        _Qwen3TTSModel = _Q
+        _TTS_AVAILABLE = True
+    except Exception as e:
+        logger.warning(f"[TTS] torch/qwen_tts unavailable, TTS disabled: {e}")
+        _TTS_AVAILABLE = False
+    return _TTS_AVAILABLE
+
 
 # Global model cache for Qwen-TTS (single model swap)
 _current_model = None
@@ -51,27 +73,29 @@ def _tts_cache_key(text: str, voice_preset_id: int | None, voice_design_prompt: 
 def _resolve_device() -> str:
     device = TTS_DEVICE
     if device == "auto":
-        device = "mps" if torch.backends.mps.is_available() else "cpu"
+        device = "mps" if _torch.backends.mps.is_available() else "cpu"
     return device
 
 
 def _load_model(model_name: str):
-    """Load a Qwen-TTS model (blocking)."""
+    """Load a Qwen-TTS model (blocking). Requires _ensure_tts_deps() first."""
     device = _resolve_device()
     logger.info(f"Loading Qwen-TTS model ({model_name}) on {device}...")
-    model = Qwen3TTSModel.from_pretrained(
+    model = _Qwen3TTSModel.from_pretrained(
         model_name,
-        dtype=torch.bfloat16 if device == "mps" else torch.float32,
+        dtype=_torch.bfloat16 if device == "mps" else _torch.float32,
         attn_implementation=TTS_ATTN_IMPLEMENTATION,
     )
     model.model.to(device)
-    model.device = torch.device(device)
+    model.device = _torch.device(device)
     return model
 
 
 def get_qwen_model():
     """Synchronous model getter (for lifespan preload). Always loads VoiceDesign model."""
     global _current_model, _current_model_type
+    if not _ensure_tts_deps():
+        raise RuntimeError("TTS dependencies unavailable (torch/qwen_tts)")
     if _current_model is None:
         _current_model = _load_model(TTS_MODEL_NAME)
         _current_model_type = "voice_design"
@@ -81,6 +105,8 @@ def get_qwen_model():
 async def get_qwen_model_async():
     """Async model getter. Loads VoiceDesign model if not already loaded."""
     global _current_model, _current_model_type
+    if not _ensure_tts_deps():
+        raise RuntimeError("TTS dependencies unavailable (torch/qwen_tts)")
     async with _model_lock:
         if _current_model is not None:
             return _current_model
@@ -453,7 +479,7 @@ async def generate_tts(
         loop = asyncio.get_event_loop()
 
         def _voice_design():
-            torch.manual_seed(voice_seed)
+            _torch.manual_seed(voice_seed)
             return model.generate_voice_design(
                 text=clean_script,
                 instruct=voice_design or "",

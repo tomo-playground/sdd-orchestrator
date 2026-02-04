@@ -7,6 +7,8 @@ type SceneImagePanelProps = {
   scene: Scene;
   onImageClick: (imageUrl: string | null) => void;
   onCandidateSelect: (imageUrl: string) => void;
+  // Generate image callback for empty state CTA
+  onGenerateImage?: () => void;
   // Validation overlay
   validationResult?: ImageValidation;
   isValidating?: boolean;
@@ -48,8 +50,7 @@ function ValidationOverlay({
   const extraCount = result.extra?.length ?? 0;
   const rateColor =
     rate >= 80 ? "text-emerald-400" : rate >= 50 ? "text-amber-400" : "text-red-400";
-  const barColor =
-    rate >= 80 ? "bg-emerald-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400";
+  const barColor = rate >= 80 ? "bg-emerald-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400";
 
   return (
     <div className="flex w-full flex-col gap-2 px-4">
@@ -63,12 +64,8 @@ function ValidationOverlay({
 
       {/* Missing / Extra counts */}
       <div className="flex gap-3 text-[10px] font-semibold tracking-wider">
-        {missingCount > 0 && (
-          <span className="text-red-300">MISSING {missingCount}</span>
-        )}
-        {extraCount > 0 && (
-          <span className="text-amber-300">EXTRA {extraCount}</span>
-        )}
+        {missingCount > 0 && <span className="text-red-300">MISSING {missingCount}</span>}
+        {extraCount > 0 && <span className="text-amber-300">EXTRA {extraCount}</span>}
         {missingCount === 0 && extraCount === 0 && (
           <span className="text-emerald-300">PERFECT MATCH</span>
         )}
@@ -116,6 +113,7 @@ export default function SceneImagePanel({
   scene,
   onImageClick,
   onCandidateSelect,
+  onGenerateImage,
   validationResult,
   isValidating = false,
   onValidate,
@@ -155,9 +153,19 @@ export default function SceneImagePanel({
             className="h-full w-full cursor-pointer object-cover object-top"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2">
+          <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-xs text-zinc-400">No image</p>
-            <p className="text-[10px] text-zinc-300">Click Generate or Upload</p>
+            {onGenerateImage && !scene.isGenerating ? (
+              <button
+                type="button"
+                onClick={onGenerateImage}
+                className="rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+              >
+                Generate Image
+              </button>
+            ) : (
+              <p className="text-[10px] text-zinc-300">Click Generate or Upload</p>
+            )}
           </div>
         )}
 
@@ -175,7 +183,7 @@ export default function SceneImagePanel({
 
         {/* Small badge when not hovered (if validated) */}
         {!showOverlay && validationResult && scene.image_url && (
-          <div className="absolute right-2 top-2">
+          <div className="absolute top-2 right-2">
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm ${
                 validationResult.match_rate >= 0.8

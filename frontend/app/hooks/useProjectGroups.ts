@@ -30,12 +30,13 @@ export function useProjectGroups() {
     }
   }, [projects, projectId, setMeta]);
 
-  // Fetch groups when projectId changes
+  // Fetch groups when projectId changes or groups lost (transient reset)
+  const needsGroups = projectId !== null && groups.length === 0;
   useEffect(() => {
     if (projectId !== null) {
       fetchGroups(projectId);
     }
-  }, [projectId]);
+  }, [projectId, needsGroups]);
 
   // Auto-select first group when groups load and no groupId set
   useEffect(() => {

@@ -9,6 +9,7 @@ import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { getCurrentProject } from "../selectors/projectSelectors";
 import { initializeVideoMetadata } from "./outputActions";
+import { mapGeminiScenes, persistStoryboard } from "./storyboardActions";
 
 /**
  * Run the autopilot pipeline from a given step.
@@ -52,6 +53,7 @@ export async function runAutoRunFromStep(
   }
 
   startRun();
+  useStudioStore.getState().setMeta({ isAutoRunning: true });
   let workingScenes = initialScenes;
   let currentStep: AutoRunStepId = startStep;
 
@@ -82,21 +84,12 @@ export async function runAutoRunFromStep(
           character_id: useStudioStore.getState().selectedCharacterId || undefined,
         });
         const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
-        workingScenes = incoming.map((s: Record<string, unknown>, i: number) => ({
-          id: i,
-          script: (s.script as string) || "",
-          speaker: (s.speaker as string) || "Narrator",
-          duration: (s.duration as number) || 3,
-          image_prompt: (s.image_prompt as string) || "",
-          image_prompt_ko: (s.image_prompt_ko as string) || "",
-          image_url: null,
-          negative_prompt: baseNegativePromptA,
-          isGenerating: false,
-          debug_payload: "",
-        }));
+        workingScenes = mapGeminiScenes(incoming, baseNegativePromptA);
         if (!workingScenes.length) throw new Error("Storyboard is empty");
         setScenes(workingScenes);
         await initializeVideoMetadata(topic);
+        await persistStoryboard();
+        workingScenes = useStudioStore.getState().scenes;
         pushAutoRunLog(`Storyboard created (${workingScenes.length} scenes)`);
       }
 
@@ -156,6 +149,7 @@ export async function runAutoRunFromStep(
             workingScenes = useStudioStore.getState().scenes;
           }
         }
+        await persistStoryboard();
         pushAutoRunLog("Images generated");
       }
 
@@ -268,5 +262,7 @@ export async function runAutoRunFromStep(
     if (message !== "Autopilot cancelled") {
       showToast(`Autopilot stopped: ${message}`, "error");
     }
+  } finally {
+    useStudioStore.getState().setMeta({ isAutoRunning: false });
   }
 }

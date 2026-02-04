@@ -130,7 +130,7 @@ export type RecentVideo = {
 
 export type Toast = {
   message: string;
-  type: "success" | "error";
+  type: "success" | "error" | "warning";
 } | null;
 
 export type DraftScene = {

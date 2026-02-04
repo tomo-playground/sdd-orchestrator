@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { type ReactNode, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Clapperboard, ChevronLeft, ChevronRight, Plus, FolderOpen, Settings } from "lucide-react";
@@ -17,9 +17,22 @@ const STORAGE_KEY = "sidebarCollapsed";
 
 // -- Sub-components ----------------------------------------------------------
 
-function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean }) {
+function SectionHeader({
+  label,
+  collapsed,
+  badge,
+}: {
+  label: string;
+  collapsed: boolean;
+  badge?: ReactNode;
+}) {
   if (collapsed) return null;
-  return <h3 className={cx(LABEL_CLASSES, "px-3 pt-4 pb-1")}>{label}</h3>;
+  return (
+    <h3 className={cx(LABEL_CLASSES, "flex items-center gap-2 px-3 pt-4 pb-1")}>
+      {label}
+      {badge}
+    </h3>
+  );
 }
 
 function GroupList({
@@ -78,11 +91,13 @@ function StoryList({
   storyboards,
   activeId,
   collapsed,
+  locked,
   onSelect,
 }: {
   storyboards: StoryboardItem[];
   activeId: number | null;
   collapsed: boolean;
+  locked: boolean;
   onSelect: (sb: StoryboardItem) => void;
 }) {
   if (storyboards.length === 0 && !collapsed) {
@@ -90,23 +105,36 @@ function StoryList({
   }
   return (
     <ul className="space-y-0.5 px-1">
-      {storyboards.map((sb) => (
-        <li key={sb.id}>
-          <button
-            onClick={() => onSelect(sb)}
-            title={collapsed ? sb.title : undefined}
-            className={cx(
-              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition",
-              sb.id === activeId
-                ? "bg-zinc-100 font-medium text-zinc-900"
-                : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
-            )}
-          >
-            <Clapperboard className="h-3.5 w-3.5 shrink-0" />
-            {!collapsed && <span className="truncate">{sb.title || `Story #${sb.id}`}</span>}
-          </button>
-        </li>
-      ))}
+      {storyboards.map((sb) => {
+        const isActive = sb.id === activeId;
+        const isDisabled = locked && !isActive;
+        return (
+          <li key={sb.id}>
+            <button
+              onClick={() => onSelect(sb)}
+              disabled={isDisabled}
+              title={
+                isDisabled
+                  ? "Autopilot running — wait for completion"
+                  : collapsed
+                    ? sb.title
+                    : undefined
+              }
+              className={cx(
+                "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition",
+                isActive
+                  ? "bg-zinc-100 font-medium text-zinc-900"
+                  : isDisabled
+                    ? "cursor-not-allowed text-zinc-300"
+                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
+              )}
+            >
+              <Clapperboard className={cx("h-3.5 w-3.5 shrink-0", isDisabled && "opacity-40")} />
+              {!collapsed && <span className="truncate">{sb.title || `Story #${sb.id}`}</span>}
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -139,6 +167,8 @@ export default function Sidebar() {
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
   const storyboardId = useStudioStore((s) => s.storyboardId);
   const setMeta = useStudioStore((s) => s.setMeta);
+  const isAutoRunning = useStudioStore((s) => s.isAutoRunning);
+  const showToast = useStudioStore((s) => s.showToast);
 
   const [collapsed, setCollapsed] = useState(false);
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
@@ -171,13 +201,40 @@ export default function Sidebar() {
       .catch(() => setStoryboards([]));
   }, [groupId]);
 
+  const warnAutoRunning = useCallback(() => {
+    showToast("Autopilot running — wait for completion", "warning");
+  }, [showToast]);
+
   const handleStorySelect = useCallback(
     (sb: StoryboardItem) => {
+      if (isAutoRunning && sb.id !== storyboardId) {
+        warnAutoRunning();
+        return;
+      }
       setMeta({ storyboardId: sb.id, storyboardTitle: sb.title });
       router.push(`/studio?id=${sb.id}`);
     },
-    [setMeta, router]
+    [setMeta, router, isAutoRunning, storyboardId, warnAutoRunning]
   );
+
+  const handleGroupSelect = useCallback(
+    (id: number) => {
+      if (isAutoRunning) {
+        warnAutoRunning();
+        return;
+      }
+      selectGroup(id);
+    },
+    [selectGroup, isAutoRunning, warnAutoRunning]
+  );
+
+  const handleNewStory = useCallback(() => {
+    if (isAutoRunning) {
+      warnAutoRunning();
+      return;
+    }
+    router.push("/studio?new=true");
+  }, [router, isAutoRunning, warnAutoRunning]);
 
   const sidebarWidth = collapsed ? "w-16" : "w-64";
 
@@ -218,7 +275,7 @@ export default function Sidebar() {
             groups={groups}
             activeId={groupId}
             collapsed={collapsed}
-            onSelect={selectGroup}
+            onSelect={handleGroupSelect}
             onConfig={setConfigGroupId}
           />
           <AddButton
@@ -231,17 +288,29 @@ export default function Sidebar() {
           <div className="mx-3 my-2 border-t border-zinc-100" />
 
           {/* Stories */}
-          <SectionHeader label="Stories" collapsed={collapsed} />
+          <SectionHeader
+            label="Stories"
+            collapsed={collapsed}
+            badge={
+              isAutoRunning ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-white uppercase">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                  Running
+                </span>
+              ) : null
+            }
+          />
           <StoryList
             storyboards={storyboards}
             activeId={storyboardId}
             collapsed={collapsed}
+            locked={isAutoRunning}
             onSelect={handleStorySelect}
           />
           <AddButton
             label="New Story"
             collapsed={collapsed}
-            onClick={() => router.push("/studio?new=true")}
+            onClick={handleNewStory}
           />
         </div>
 

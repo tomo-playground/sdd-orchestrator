@@ -8,7 +8,7 @@ import PlanTab from "../components/studio/PlanTab";
 import ScenesTab from "../components/studio/ScenesTab";
 import RenderTab from "../components/studio/RenderTab";
 import OutputTab from "../components/studio/OutputTab";
-import InsightsTab from "../components/studio/InsightsTab";
+
 import Toast from "../components/ui/Toast";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../components/ui/ImagePreviewModal";
@@ -146,9 +146,8 @@ function StudioContent() {
             <AutoRunStatus
               autoRunState={autopilot.autoRunState}
               autoRunLog={autopilot.autoRunLog}
-              onResume={() =>
-                runAutoRunFromStep(autopilot.autoRunState.step as AutoRunStepId, autopilot)
-              }
+              storyboardTitle={storyboardTitle || undefined}
+              onResume={(step) => runAutoRunFromStep(step, autopilot)}
               onRestart={() => runAutoRunFromStep("storyboard", autopilot)}
             />
           </div>
@@ -174,11 +173,6 @@ function StudioContent() {
         {activeTab === "output" && (
           <div data-testid="tab-content-output">
             <OutputTab />
-          </div>
-        )}
-        {activeTab === "insights" && (
-          <div data-testid="tab-content-insights">
-            <InsightsTab />
           </div>
         )}
       </main>

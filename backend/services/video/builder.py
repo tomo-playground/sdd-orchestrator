@@ -104,18 +104,14 @@ class VideoBuilder:
         self.project_id = f"build_{int(time.time())}"
         self.temp_dir = BUILD_DIR / self.project_id
         self.safe_title = sanitize_filename(request.storyboard_title)
-        self.video_filename = generate_video_filename(
-            self.safe_title, request.layout_style
-        )
+        self.video_filename = generate_video_filename(self.safe_title, request.layout_style)
         self.video_path = VIDEO_DIR / self.video_filename
-        self.font_path = self._resolve_scene_text_font_path(
-            request.scene_text_font
-        )
+        self.font_path = self._resolve_scene_text_font_path(request.scene_text_font)
 
         # Calculated values
         self.num_scenes = len(request.scenes)
-        self.transition_dur, self.tts_padding, self.speed_multiplier = (
-            calculate_speed_params(request.speed_multiplier or 1.0)
+        self.transition_dur, self.tts_padding, self.speed_multiplier = calculate_speed_params(
+            request.speed_multiplier or 1.0
         )
         self.use_post_layout = request.layout_style == "post"
         self.out_w = request.width
@@ -125,9 +121,7 @@ class VideoBuilder:
 
         # Ken Burns settings
         self.ken_burns_preset = resolve_preset_name(request.ken_burns_preset)
-        self.ken_burns_intensity = max(
-            0.5, min(request.ken_burns_intensity or 1.0, 2.0)
-        )
+        self.ken_burns_intensity = max(0.5, min(request.ken_burns_intensity or 1.0, 2.0))
 
         # Transition settings
         self.transition_type = request.transition_type or "fade"
@@ -157,6 +151,8 @@ class VideoBuilder:
     async def build(self) -> dict[str, str]:
         """Execute the video build pipeline."""
         logger.info("Video build started: %s", self.request.storyboard_title)
+        if self.num_scenes == 0:
+            raise ValueError("Cannot render video: no scenes provided")
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -190,19 +186,16 @@ class VideoBuilder:
         if self.request.overlay_settings:
             self.request.overlay_settings.likes_count = full_views
             self.request.overlay_settings.posted_time = full_time
-            self.avatar_file = await self._ensure_avatar_file(
-                self.request.overlay_settings.avatar_key
-            )
+            self.avatar_file = await self._ensure_avatar_file(self.request.overlay_settings.avatar_key)
             if self.avatar_file:
                 self.request.overlay_settings.avatar_file = self.avatar_file
 
         if self.request.post_card_settings:
-            self.post_avatar_file = await self._ensure_avatar_file(
-                self.request.post_card_settings.avatar_key
-            )
+            self.post_avatar_file = await self._ensure_avatar_file(self.request.post_card_settings.avatar_key)
 
     async def _process_scenes(self) -> None:
         from services.video.scene_processing import process_scenes
+
         await process_scenes(self)
 
     def _calculate_durations(self) -> None:
@@ -242,46 +235,54 @@ class VideoBuilder:
         logger.info("=" * 80)
 
         cmd = [
-            "ffmpeg", "-y", *self.input_args,
-            "-filter_complex", filter_complex_str,
-            "-map", self._map_v,
-            "-map", self._map_a,
-            "-s", f"{self.out_w}x{self.out_h}",
-            "-r", str(VIDEO_FPS),
-            "-c:v", VIDEO_CODEC,
-            "-pix_fmt", VIDEO_PIX_FMT,
-            "-preset", VIDEO_PRESET,
-            "-crf", str(VIDEO_CRF),
-            "-movflags", "+faststart",
-            "-c:a", AUDIO_CODEC,
-            "-b:a", AUDIO_BITRATE,
+            "ffmpeg",
+            "-y",
+            *self.input_args,
+            "-filter_complex",
+            filter_complex_str,
+            "-map",
+            self._map_v,
+            "-map",
+            self._map_a,
+            "-s",
+            f"{self.out_w}x{self.out_h}",
+            "-r",
+            str(VIDEO_FPS),
+            "-c:v",
+            VIDEO_CODEC,
+            "-pix_fmt",
+            VIDEO_PIX_FMT,
+            "-preset",
+            VIDEO_PRESET,
+            "-crf",
+            str(VIDEO_CRF),
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            AUDIO_CODEC,
+            "-b:a",
+            AUDIO_BITRATE,
             str(self.video_path),
         ]
 
         logger.info("Running FFmpeg (timeout=%ds)", FFMPEG_TIMEOUT_SECONDS)
         try:
             result = subprocess.run(
-                cmd, capture_output=True, text=True,
+                cmd,
+                capture_output=True,
+                text=True,
                 timeout=FFMPEG_TIMEOUT_SECONDS,
             )
         except subprocess.TimeoutExpired:
-            logger.error(
-                "FFmpeg timed out after %d seconds", FFMPEG_TIMEOUT_SECONDS
-            )
-            raise Exception(
-                f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds"
-            ) from None
+            logger.error("FFmpeg timed out after %d seconds", FFMPEG_TIMEOUT_SECONDS)
+            raise Exception(f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds") from None
         if result.returncode != 0:
             logger.error("FFmpeg failed: %s", result.stderr)
             raise Exception(result.stderr)
 
     def _upload_result(self) -> dict[str, str]:
         """Upload and register the final video, return URL dict."""
-        if (
-            self.project_id_int
-            and self.group_id_int
-            and self.request.storyboard_id
-        ):
+        if self.project_id_int and self.group_id_int and self.request.storyboard_id:
             db = SessionLocal()
             try:
                 asset_service = AssetService(db)
@@ -295,11 +296,7 @@ class VideoBuilder:
 
                 from models.storyboard import Storyboard
 
-                sb = (
-                    db.query(Storyboard)
-                    .filter(Storyboard.id == self.request.storyboard_id)
-                    .first()
-                )
+                sb = db.query(Storyboard).filter(Storyboard.id == self.request.storyboard_id).first()
                 if sb:
                     sb.video_asset_id = asset.id
                     db.add(sb)

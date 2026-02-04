@@ -454,10 +454,14 @@ async def _call_sd_api(payload: dict, controlnet_used, ip_adapter_used, final_wa
             res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=SD_TIMEOUT_SECONDS)
             res.raise_for_status()
             data = res.json()
-            images = data.get("images", [])
-            if not images:
+            raw_images = data.get("images", [])
+            if not raw_images:
                 raise HTTPException(status_code=500, detail="No images returned")
 
+            # SD WebUI appends ControlNet preprocessor outputs after generated images.
+            # With batch_size=1, only images[0] is the actual generation.
+            batch_size = payload.get("batch_size", 1)
+            images = raw_images[:batch_size]
             img = images[0]
 
             if request_seed_is_random(data):

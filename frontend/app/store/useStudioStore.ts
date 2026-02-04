@@ -44,6 +44,7 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "copyStatus",
   "suggestedBase",
   "suggestedScene",
+  "isAutoRunning",
   // PlanSlice transient (runtime-derived)
   "loraTriggerWords",
   "characterLoras",

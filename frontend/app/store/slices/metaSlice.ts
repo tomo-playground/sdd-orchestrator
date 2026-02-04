@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { Toast, AutopilotCheckpoint } from "../../types";
 
-export type StudioTab = "plan" | "scenes" | "render" | "output" | "insights";
+export type StudioTab = "plan" | "scenes" | "render" | "output";
 
 export interface MetaSlice {
   // Storyboard identity
@@ -30,9 +30,12 @@ export interface MetaSlice {
   isSuggesting: boolean;
   copyStatus: string;
 
+  // Autopilot lock
+  isAutoRunning: boolean;
+
   // Setters
   setMeta: (updates: Partial<MetaSlice>) => void;
-  showToast: (message: string, type: "success" | "error") => void;
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
   setActiveTab: (tab: StudioTab) => void;
   resetMeta: () => void;
 }
@@ -56,6 +59,7 @@ const initialMetaState = {
   suggestedScene: "",
   isSuggesting: false,
   copyStatus: "",
+  isAutoRunning: false,
 };
 
 export const createMetaSlice: StateCreator<MetaSlice, [], [], MetaSlice> = (set) => ({

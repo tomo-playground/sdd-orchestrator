@@ -1,18 +1,20 @@
 "use client";
 
-import type { AutoRunState } from "../../types";
+import type { AutoRunState, AutoRunStepId } from "../../types";
 import { AUTO_RUN_STEPS } from "../../constants";
 
 type AutoRunStatusProps = {
   autoRunState: AutoRunState;
   autoRunLog: string[];
-  onResume: () => void;
+  storyboardTitle?: string;
+  onResume: (step: AutoRunStepId) => void;
   onRestart: () => void;
 };
 
 export default function AutoRunStatus({
   autoRunState,
   autoRunLog,
+  storyboardTitle,
   onResume,
   onRestart,
 }: AutoRunStatusProps) {
@@ -23,9 +25,16 @@ export default function AutoRunStatus({
   return (
     <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-xs text-zinc-600">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Autopilot Status
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            Autopilot
+          </span>
+          {storyboardTitle && (
+            <span className="max-w-[200px] truncate rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+              {storyboardTitle}
+            </span>
+          )}
+        </div>
         <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           {autoRunState.status}
         </span>
@@ -37,17 +46,28 @@ export default function AutoRunStatus({
             autoRunState.status !== "idle" &&
             AUTO_RUN_STEPS.findIndex((item) => item.id === step.id) <
               AUTO_RUN_STEPS.findIndex((item) => item.id === autoRunState.step);
+          const isError = autoRunState.status === "error";
+          const baseClass = `rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
+            isActive
+              ? "bg-zinc-900 text-white"
+              : isDone
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-zinc-100 text-zinc-500"
+          }`;
+          if (isError) {
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => onResume(step.id as AutoRunStepId)}
+                className={`${baseClass} cursor-pointer transition hover:ring-2 hover:ring-zinc-400`}
+              >
+                {step.label}
+              </button>
+            );
+          }
           return (
-            <span
-              key={step.id}
-              className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase ${
-                isActive
-                  ? "bg-zinc-900 text-white"
-                  : isDone
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-zinc-100 text-zinc-500"
-              }`}
-            >
+            <span key={step.id} className={baseClass}>
               {step.label}
             </span>
           );
@@ -57,13 +77,7 @@ export default function AutoRunStatus({
       {autoRunState.error && <p className="text-red-500">{autoRunState.error}</p>}
       {autoRunState.status === "error" && autoRunState.step !== "idle" && (
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onResume}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-sm transition hover:bg-zinc-800"
-          >
-            Resume from Step
-          </button>
+          <span className="text-[10px] text-zinc-400">Click a step to resume from</span>
           <button
             type="button"
             onClick={onRestart}

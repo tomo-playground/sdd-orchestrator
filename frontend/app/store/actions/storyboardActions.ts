@@ -113,22 +113,71 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
 }
 
 /**
- * Manually save or update storyboard
- * Used by PlanTab save button
+ * Manually save or update storyboard (with toast feedback).
+ * Used by PlanTab save button.
  */
 export async function saveStoryboard(): Promise<boolean> {
-  const { storyboardId, groupId, scenes, topic, videoCaption, setMeta, showToast } =
-    useStudioStore.getState();
+  const { scenes, groupId, storyboardId, showToast } = useStudioStore.getState();
 
   if (scenes.length === 0) {
     showToast("No scenes to save", "error");
     return false;
   }
-
   if (!groupId) {
     showToast("Create a group to save your storyboard", "error");
     return false;
   }
+
+  const ok = await persistStoryboard();
+  if (ok) {
+    showToast(storyboardId ? "Storyboard updated" : "Storyboard saved", "success");
+  } else {
+    showToast("Failed to save storyboard", "error");
+  }
+  return ok;
+}
+
+/**
+ * Map raw Gemini API scene response to typed Scene array.
+ * Single source of truth for Gemini → Scene mapping.
+ */
+export function mapGeminiScenes(
+  rawScenes: Record<string, unknown>[],
+  baseNegative: string
+): Scene[] {
+  return rawScenes.map((s, i) => {
+    const sceneNegative = (s.negative_prompt as string) || "";
+    const combined = [baseNegative, sceneNegative].filter(Boolean).join(", ").trim();
+
+    return {
+      id: i,
+      order: i + 1,
+      script: (s.script as string) || "",
+      speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
+      duration: (s.duration as number) || 3,
+      image_prompt: (s.image_prompt as string) || "",
+      image_prompt_ko: (s.image_prompt_ko as string) || "",
+      image_url: null,
+      description: (s.description as string) || "",
+      width: 512,
+      height: 768,
+      negative_prompt: combined,
+      isGenerating: false,
+      debug_payload: "",
+    };
+  });
+}
+
+/**
+ * Silently persist storyboard to DB (no toast).
+ * Used by autopilot and internal flows.
+ * PUT if storyboardId exists, POST otherwise (with scene ID reassignment).
+ */
+export async function persistStoryboard(): Promise<boolean> {
+  const { storyboardId, groupId, scenes, topic, videoCaption, setMeta, setScenes } =
+    useStudioStore.getState();
+
+  if (scenes.length === 0 || !groupId) return false;
 
   try {
     const payload = {
@@ -154,17 +203,19 @@ export async function saveStoryboard(): Promise<boolean> {
 
     if (storyboardId) {
       await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload);
-      showToast("Storyboard updated", "success");
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload);
-      setMeta({ storyboardId: res.data.storyboard_id, storyboardTitle: topic });
-      showToast("Storyboard saved", "success");
+      const newId = res.data.storyboard_id;
+      const sceneIds: number[] = res.data.scene_ids || [];
+      setMeta({ storyboardId: newId, storyboardTitle: topic });
+      if (sceneIds.length > 0) {
+        const current = useStudioStore.getState().scenes;
+        setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
+      }
     }
-
     return true;
   } catch (error) {
-    console.error("[saveStoryboard] Failed:", error);
-    showToast("Failed to save storyboard", "error");
+    console.error("[persistStoryboard] Failed:", error);
     return false;
   }
 }
@@ -232,26 +283,7 @@ export async function generateStoryboard(): Promise<boolean> {
     const data = res.data;
     if (!data.scenes) return false;
 
-    const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => {
-      const sceneNegative = (s.negative_prompt as string) || "";
-      const combined = [baseNegativePromptA, sceneNegative].filter(Boolean).join(", ").trim();
-
-      return {
-        id: i,
-        script: (s.script as string) || "",
-        speaker: (s.speaker as string) || "Narrator",
-        duration: (s.duration as number) || 3,
-        image_prompt: (s.image_prompt as string) || "",
-        image_prompt_ko: (s.image_prompt_ko as string) || "",
-        image_url: null,
-        description: (s.description as string) || "",
-        width: 512,
-        height: 768,
-        negative_prompt: combined,
-        isGenerating: false,
-        debug_payload: "",
-      };
-    });
+    const mapped = mapGeminiScenes(data.scenes, baseNegativePromptA);
 
     setScenes(mapped);
     setActiveTab("scenes");
