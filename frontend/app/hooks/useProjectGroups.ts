@@ -30,13 +30,19 @@ export function useProjectGroups() {
     }
   }, [projects, projectId, setMeta]);
 
-  // Fetch groups when projectId changes or groups lost (transient reset)
-  const needsGroups = projectId !== null && groups.length === 0;
+  // Fetch groups when projectId changes
   useEffect(() => {
     if (projectId !== null) {
       fetchGroups(projectId);
     }
-  }, [projectId, needsGroups]);
+  }, [projectId]);
+
+  // Recovery: re-fetch groups if lost after transient state reset
+  useEffect(() => {
+    if (projectId !== null && groups.length === 0) {
+      fetchGroups(projectId);
+    }
+  }, [projectId, groups.length]);
 
   // Auto-select first group when groups load and no groupId set
   useEffect(() => {
