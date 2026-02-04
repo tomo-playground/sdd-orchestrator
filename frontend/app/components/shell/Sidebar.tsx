@@ -3,7 +3,15 @@
 import { type ReactNode, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Clapperboard, ChevronLeft, ChevronRight, Plus, FolderOpen, Settings } from "lucide-react";
+import {
+  Clapperboard,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  FolderOpen,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { useStudioStore } from "../../store/useStudioStore";
 import { updateProject } from "../../store/actions/projectActions";
@@ -93,12 +101,14 @@ function StoryList({
   collapsed,
   locked,
   onSelect,
+  onDelete,
 }: {
   storyboards: StoryboardItem[];
   activeId: number | null;
   collapsed: boolean;
   locked: boolean;
   onSelect: (sb: StoryboardItem) => void;
+  onDelete: (id: number) => void;
 }) {
   if (storyboards.length === 0 && !collapsed) {
     return <p className="px-3 py-1 text-[11px] text-zinc-300">No stories yet</p>;
@@ -109,17 +119,8 @@ function StoryList({
         const isActive = sb.id === activeId;
         const isDisabled = locked && !isActive;
         return (
-          <li key={sb.id}>
-            <button
-              onClick={() => onSelect(sb)}
-              disabled={isDisabled}
-              title={
-                isDisabled
-                  ? "Autopilot running — wait for completion"
-                  : collapsed
-                    ? sb.title
-                    : undefined
-              }
+          <li key={sb.id} className="group/story">
+            <div
               className={cx(
                 "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition",
                 isActive
@@ -129,9 +130,34 @@ function StoryList({
                     : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
               )}
             >
-              <Clapperboard className={cx("h-3.5 w-3.5 shrink-0", isDisabled && "opacity-40")} />
-              {!collapsed && <span className="truncate">{sb.title || `Story #${sb.id}`}</span>}
-            </button>
+              <button
+                onClick={() => onSelect(sb)}
+                disabled={isDisabled}
+                title={
+                  isDisabled
+                    ? "Autopilot running — wait for completion"
+                    : collapsed
+                      ? sb.title
+                      : undefined
+                }
+                className="flex min-w-0 flex-1 items-center gap-2"
+              >
+                <Clapperboard className={cx("h-3.5 w-3.5 shrink-0", isDisabled && "opacity-40")} />
+                {!collapsed && <span className="truncate">{sb.title || `Story #${sb.id}`}</span>}
+              </button>
+              {!collapsed && !locked && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(sb.id);
+                  }}
+                  title="Delete storyboard"
+                  className="hidden shrink-0 rounded p-0.5 text-zinc-300 transition group-hover/story:block hover:text-rose-500"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </li>
         );
       })}
@@ -236,6 +262,24 @@ export default function Sidebar() {
     router.push("/studio?new=true");
   }, [router, isAutoRunning, warnAutoRunning]);
 
+  const handleStoryDelete = useCallback(
+    async (id: number) => {
+      if (!confirm("Delete this storyboard?")) return;
+      try {
+        await axios.delete(`${API_BASE}/storyboards/${id}`);
+        setStoryboards((prev) => prev.filter((s) => s.id !== id));
+        if (storyboardId === id) {
+          setMeta({ storyboardId: null, storyboardTitle: "" });
+          router.push("/studio?new=true");
+        }
+        showToast("Storyboard deleted", "success");
+      } catch {
+        showToast("Failed to delete", "error");
+      }
+    },
+    [storyboardId, setMeta, router, showToast]
+  );
+
   const sidebarWidth = collapsed ? "w-16" : "w-64";
 
   return (
@@ -306,12 +350,9 @@ export default function Sidebar() {
             collapsed={collapsed}
             locked={isAutoRunning}
             onSelect={handleStorySelect}
+            onDelete={handleStoryDelete}
           />
-          <AddButton
-            label="New Story"
-            collapsed={collapsed}
-            onClick={handleNewStory}
-          />
+          <AddButton label="New Story" collapsed={collapsed} onClick={handleNewStory} />
         </div>
 
         {/* Collapse Toggle */}
