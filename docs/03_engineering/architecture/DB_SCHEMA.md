@@ -1,4 +1,4 @@
-# Database Schema (v3.5)
+# Database Schema (v3.6)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,8 +7,10 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.7 | 2026-02-04 | `storyboards.default_caption` → `caption`, `characters.default_voice_preset_id` → `voice_preset_id` 리네이밍. FK/인덱스 리네이밍 포함 |
+| v3.6 | 2026-02-04 | `default_` prefix 제거: `projects`/`storyboards`에서 `default_character_id` → `character_id`, `default_style_profile_id` → `style_profile_id` 리네이밍. `groups`/`group_config`에서 `default_character_id` DROP, `default_style_profile_id` → `style_profile_id` 리네이밍. `group_config` 테이블 추가 (1:1 분리 설정). style_profile_id backfill (project → group → group_config) |
 | v3.5 | 2026-02-04 | `characters.default_voice_preset_id`, `storyboards.narrator_voice_preset_id` FK 추가. `render_presets`에서 `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 (voice_preset_id로 대체). Soft Delete (`deleted_at`) 추가 |
-| v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`에 Cascading Config FK 추가 (`render_preset_id`, `character_id`, `style_profile_id`). `groups`에서 `default_bgm_file`/`default_narrator_voice`/`character_id` 제거, `style_profile_id` 추가 |
+| v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`에 Cascading Config FK 추가. `groups`에서 `default_bgm_file`/`default_narrator_voice` 제거 |
 | v3.3 | 2026-02-02 | `projects`, `groups`, `scene_quality_scores` 테이블 추가, `activity_logs`에 Gemini 트래킹 컬럼 추가, `media_assets`에 `is_temp`/`checksum` 추가, `storyboards`에 `default_caption` 반영 |
 | v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
 | v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
@@ -95,7 +97,7 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 > v3.4 변경: `default_bgm_file`, `default_narrator_voice` 제거 → `render_presets` 테이블로 이관
-> v3.6 변경: `default_character_id` 삭제 (DROP), `default_style_profile_id` → `style_profile_id` 리네이밍
+> v3.6 변경: `character_id` 삭제 (DROP, storyboard 레벨에서만 설정), `style_profile_id` 리네이밍 (旧 `default_style_profile_id`)
 
 ### `storyboards`
 YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
@@ -108,7 +110,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `description` | Text | 설명 |
 | `character_id` | Integer | 기본 캐릭터 |
 | `style_profile_id` | Integer | 기본 스타일 프로파일 |
-| `default_caption` | Text | 기본 캡션 텍스트 (Post Layout용) |
+| `caption` | Text | 캡션 텍스트 (Post Layout용) |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 프리셋 |
 | `video_asset_id` | Integer (FK → media_assets, SET NULL) | 최신 렌더링 영상 |
 | `recent_videos_json` | Text | 최근 렌더링 이력 (JSON 스트링) |
@@ -385,7 +387,7 @@ WD14 피드백 루프 데이터.
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
 | **Voice** | | |
-| `default_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
+| `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
 | **Display** | | |
 | `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
 | `preview_locked` | Boolean | 미리보기 자동 갱신 잠금 (default: false) |
@@ -395,7 +397,7 @@ WD14 피드백 루프 데이터.
 **Read-only 속성**:
 - `preview_image_url` (`@property`): `preview_image_asset.url` 반환
 
-> v3.5 변경: `default_voice_preset_id` FK 추가, `deleted_at` Soft Delete 추가
+> v3.5 변경: `voice_preset_id` FK 추가 (旧 `default_voice_preset_id`, v3.7 리네이밍), `deleted_at` Soft Delete 추가
 
 **V3 Prompt Pipeline에서의 사용** (→ `PROMPT_PIPELINE_SPEC.md` 참조):
 | 필드 | V3 compose 사용 | 용도 |
@@ -702,6 +704,6 @@ Textual Inversion 임베딩.
 ---
 
 **Last Updated:** 2026-02-04
-**Schema Version:** v3.5
+**Schema Version:** v3.7
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK)
+**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup)

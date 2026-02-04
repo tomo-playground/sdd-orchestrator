@@ -53,7 +53,7 @@ export default function OutputTab() {
 
       if (res.data.caption) {
         setOutput({ videoCaption: res.data.caption });
-        updateStoryboardMetadata({ default_caption: res.data.caption });
+        updateStoryboardMetadata({ caption: res.data.caption });
         showToast(
           res.data.fallback
             ? "캡션을 잘라냈습니다"
@@ -77,7 +77,7 @@ export default function OutputTab() {
 
   const handleCaptionBlur = useCallback(
     async (value: string) => {
-      await updateStoryboardMetadata({ default_caption: value });
+      await updateStoryboardMetadata({ caption: value });
       flashSaved("caption");
     },
     [flashSaved]

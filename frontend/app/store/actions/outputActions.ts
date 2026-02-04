@@ -20,7 +20,7 @@ export async function initializeVideoMetadata(topic: string): Promise<void> {
       });
       if (res.data.caption) {
         useStudioStore.getState().setOutput({ videoCaption: res.data.caption });
-        updateStoryboardMetadata({ default_caption: res.data.caption });
+        updateStoryboardMetadata({ caption: res.data.caption });
       }
     } catch {
       useStudioStore.getState().setOutput({ videoCaption: topic });

@@ -160,7 +160,7 @@ export async function saveStoryboard(): Promise<boolean> {
       group_id: groupId,
       character_id: selectedCharacterId,
       style_profile_id: currentStyleProfile?.id || null,
-      default_caption: videoCaption || null,
+      caption: videoCaption || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
@@ -202,7 +202,7 @@ export async function updateStoryboardMetadata(updates: {
   description?: string;
   character_id?: number | null;
   style_profile_id?: number | null;
-  default_caption?: string | null;
+  caption?: string | null;
 }): Promise<boolean> {
   const { storyboardId, showToast } = useStudioStore.getState();
 

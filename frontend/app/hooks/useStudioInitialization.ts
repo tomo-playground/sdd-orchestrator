@@ -147,7 +147,7 @@ export function useStudioInitialization() {
           videoUrl: data.video_url || null,
           videoUrlFull: data.video_url || null,
           recentVideos: data.recent_videos || [],
-          videoCaption: data.default_caption || "",
+          videoCaption: data.caption || "",
         });
         setPlan({
           selectedCharacterId: data.character_id || null,

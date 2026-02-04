@@ -224,7 +224,7 @@ export type Character = {
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
-  default_voice_preset_id: number | null;
+  voice_preset_id: number | null;
   deleted_at?: string | null;
 };
 

@@ -29,7 +29,7 @@ def create_dummy_storyboard():
         "description": "To be deleted",
         "character_id": None,
         "style_profile_id": None,
-        "default_caption": None,
+        "caption": None,
         "scenes": scenes
     }
     print("Saving storyboard...")

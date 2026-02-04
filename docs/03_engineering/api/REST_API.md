@@ -87,7 +87,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
   "description": "카페에서의 하루",
   "character_id": 1,
   "style_profile_id": 1,
-  "default_caption": "좋아요 6만개\n15분 전",
+  "caption": "좋아요 6만개\n15분 전",
   "scenes": [
     {
       "scene_id": 1,

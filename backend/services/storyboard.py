@@ -449,7 +449,7 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         group_id=request.group_id,
         character_id=char_id,
         style_profile_id=style_id,
-        default_caption=request.default_caption,
+        caption=request.caption,
         narrator_voice_preset_id=request.narrator_voice_preset_id,
     )
     db.add(db_storyboard)
@@ -539,7 +539,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "narrator_voice_preset_id": storyboard.narrator_voice_preset_id,
         "video_url": storyboard.video_url,
         "recent_videos": recent_videos,
-        "default_caption": storyboard.default_caption,
+        "caption": storyboard.caption,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "scenes": [serialize_scene(sc) for sc in scenes],
@@ -568,7 +568,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         storyboard.group_id = request.group_id
     storyboard.character_id = request.character_id
     storyboard.style_profile_id = request.style_profile_id
-    storyboard.default_caption = request.default_caption
+    storyboard.caption = request.caption
     storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 
     # Nullify asset FK references on scenes first
@@ -617,8 +617,8 @@ def update_storyboard_metadata(db: Session, storyboard_id: int, request: Storybo
         storyboard.character_id = request.character_id
     if request.style_profile_id is not None:
         storyboard.style_profile_id = request.style_profile_id
-    if request.default_caption is not None:
-        storyboard.default_caption = request.default_caption
+    if request.caption is not None:
+        storyboard.caption = request.caption
     if request.narrator_voice_preset_id is not None:
         storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 

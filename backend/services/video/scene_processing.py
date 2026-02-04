@@ -317,7 +317,7 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
     """Resolve speaker to a voice_preset_id from Storyboard/Character.
 
     - "Narrator" -> Storyboard.narrator_voice_preset_id
-    - Character name (e.g. "A") -> Character.default_voice_preset_id
+    - Character name (e.g. "A") -> Character.voice_preset_id
       looked up via character_id on the storyboard.
     """
     if not storyboard_id:
@@ -358,12 +358,12 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
         if not char_id:
             return None
         char = db.get(Character, char_id)
-        if char and char.default_voice_preset_id:
+        if char and char.voice_preset_id:
             logger.info(
                 f"[TTS] Speaker '{speaker}' voice preset from character "
-                f"{char.name}({char_id}): {char.default_voice_preset_id}"
+                f"{char.name}({char_id}): {char.voice_preset_id}"
             )
-            return char.default_voice_preset_id
+            return char.voice_preset_id
         return None
     except Exception as e:
         logger.error(f"[TTS] Failed to resolve speaker voice preset: {e}")

@@ -56,7 +56,7 @@ export function useCharacterForm(
 
   // --- Voice Preset ---
   const [defaultVoicePresetId, setDefaultVoicePresetId] = useState<number | null>(
-    character?.default_voice_preset_id ?? null,
+    character?.voice_preset_id ?? null,
   );
   const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
   useEffect(() => {
@@ -279,7 +279,7 @@ export function useCharacterForm(
       ip_adapter_weight: ipAdapterWeight,
       ip_adapter_model: ipAdapterModel,
       preview_locked: previewLocked,
-      default_voice_preset_id: defaultVoicePresetId,
+      voice_preset_id: defaultVoicePresetId,
     };
 
     console.log("[CharacterEditModal] Saving character:", payload);

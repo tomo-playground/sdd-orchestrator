@@ -63,7 +63,7 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
         return None
 
     # Voice
-    default_voice_preset_id: Mapped[int | None] = mapped_column(
+    voice_preset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True,
     )
 

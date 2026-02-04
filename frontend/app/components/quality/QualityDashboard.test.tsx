@@ -21,7 +21,7 @@ describe("QualityDashboard", () => {
 
   it("renders dashboard title", () => {
     render(<QualityDashboard storyboardId={1} />);
-    expect(screen.getByText("Quality Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Quality")).toBeInTheDocument();
   });
 
   it("renders refresh button when storyboardId provided", async () => {
@@ -34,7 +34,7 @@ describe("QualityDashboard", () => {
   it("shows description text", () => {
     render(<QualityDashboard storyboardId={1} />);
     expect(
-      screen.getByText("Automatic Match Rate tracking for scene validation")
+      screen.getByText("Match rate tracking per scene.")
     ).toBeInTheDocument();
   });
 

@@ -32,7 +32,7 @@ An individual video episode.
 - `description`: Text
 - `character_id`: Integer
 - `style_profile_id`: Integer
-- `default_caption`: Text
+- `caption`: Text
 - `video_asset_id`: Integer (FK -> media_assets.id)
 - `recent_videos_json`: Text
 - `created_at`, `updated_at`: DateTime

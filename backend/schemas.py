@@ -203,7 +203,7 @@ class StoryboardBase(BaseModel):
     group_id: int | None = None
     character_id: int | None = None
     style_profile_id: int | None = None
-    default_caption: str | None = None
+    caption: str | None = None
     narrator_voice_preset_id: int | None = None
 
 
@@ -216,7 +216,7 @@ class StoryboardUpdate(BaseModel):
     description: str | None = None
     character_id: int | None = None
     style_profile_id: int | None = None
-    default_caption: str | None = None
+    caption: str | None = None
     narrator_voice_preset_id: int | None = None
 
 
@@ -611,7 +611,7 @@ class CharacterBase(BaseModel):
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     preview_locked: bool = False
-    default_voice_preset_id: int | None = None
+    voice_preset_id: int | None = None
 
 
 class CharacterCreate(CharacterBase):
@@ -637,7 +637,7 @@ class CharacterUpdate(BaseModel):
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     preview_locked: bool | None = None
-    default_voice_preset_id: int | None = None
+    voice_preset_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
