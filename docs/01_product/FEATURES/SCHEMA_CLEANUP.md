@@ -1,7 +1,7 @@
 # DB Schema Cleanup
 
 **Phase**: 6-7 (Infrastructure)
-**상태**: 부분 완료
+**상태**: ✅ 완료
 **우선순위**: P1
 **선행**: 없음 (독립 실행 가능)
 
@@ -30,25 +30,14 @@
 > 커밋: `62087af refactor: rename default_ prefix columns + drop character_id from groups`
 > Migration 2: `o9p0q1r2s3t4_rename_caption_and_voice_preset.py`
 
-## Batch B: 타입 수정
+## Batch B: 타입 수정 ✅
 
-| 테이블 | 컬럼 | 현재 | 변경 | 이유 |
+| 테이블 | 컬럼 | 현재 | 변경 | 상태 |
 |--------|------|------|------|------|
-| `scenes` | `use_reference_only` | `Integer` (1=True) | `Boolean` | Boolean은 Boolean 타입 사용 원칙 |
-| `storyboards` | `recent_videos_json` | `Text` (JSON 문자열) | `JSONB` | JSON은 JSONB 원칙 |
+| `scenes` | `use_reference_only` | `Integer` (1=True) | `Boolean` (default=true) | ✅ 완료 (v3.8) |
+| `storyboards` | `recent_videos_json` | `Text` (JSON 문자열) | `JSONB` + rename → `recent_videos` | ✅ 완료 (v3.8) |
 
-### 마이그레이션
-
-```sql
--- scenes: Integer → Boolean 변환
-ALTER TABLE scenes ALTER COLUMN use_reference_only TYPE BOOLEAN
-  USING CASE WHEN use_reference_only = 1 THEN TRUE ELSE FALSE END;
-
--- storyboards: Text → JSONB 변환
-ALTER TABLE storyboards ALTER COLUMN recent_videos_json TYPE JSONB
-  USING recent_videos_json::jsonb;
-ALTER TABLE storyboards RENAME COLUMN recent_videos_json TO recent_videos;
-```
+> Migration: `q1r2s3t4u5v6_schema_cleanup_batch_b_types.py`
 
 ## Batch C: FK 누락 (Phase 1.7에서 해결)
 
@@ -66,7 +55,7 @@ Batch A (네이밍) ✅ → Batch B (타입) → Phase 1.7 (group_config 분리)
 ```
 
 - Batch A: 완료 (v3.6 + v3.7, 2026-02-04)
-- Batch B: 미착수
+- Batch B: 완료 (v3.8, 2026-02-04)
 - Phase 1.7: group_config 테이블 분리 완료 (v3.6)
 
 ## 검증

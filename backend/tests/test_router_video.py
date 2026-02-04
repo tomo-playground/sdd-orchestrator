@@ -48,24 +48,21 @@ class TestCreateVideo:
 
         # Verify storyboard was updated
         db_session.refresh(sb)
-        assert sb.recent_videos_json is not None
-        import json
-        recent = json.loads(sb.recent_videos_json or "[]")
+        assert sb.recent_videos is not None
+        recent = sb.recent_videos
         assert len(recent) == 1
         assert "/videos/result.mp4" in recent[0]["url"]
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
     def test_create_video_appends_recent_videos(self, mock_task, client: TestClient, db_session):
         """New video is prepended to existing recent_videos."""
-        import json
-
         sb = Storyboard(
             title="Append Test",
             description="Test",
             group_id=1,
-            recent_videos_json=json.dumps([
+            recent_videos=[
                 {"url": "/videos/old.mp4", "label": "post", "createdAt": 1000},
-            ]),
+            ],
         )
         db_session.add(sb)
         db_session.commit()
@@ -84,7 +81,7 @@ class TestCreateVideo:
         assert response.status_code == 200
 
         db_session.refresh(sb)
-        recent = json.loads(sb.recent_videos_json or "[]")
+        recent = sb.recent_videos
         assert len(recent) == 2
         assert recent[0]["url"] == "/videos/new.mp4"
         assert recent[1]["url"] == "/videos/old.mp4"

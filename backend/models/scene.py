@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -43,7 +43,7 @@ class Scene(Base, TimestampMixin):
     context_tags: Mapped[dict | None] = mapped_column(JSONB)
 
     # Consistency Enhancements
-    use_reference_only: Mapped[bool] = mapped_column(Integer, default=1)  # 1 for True
+    use_reference_only: Mapped[bool] = mapped_column(Boolean, default=True)
     reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)
     environment_reference_id: Mapped[int | None] = mapped_column()
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)

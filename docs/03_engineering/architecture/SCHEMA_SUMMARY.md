@@ -34,7 +34,7 @@ An individual video episode.
 - `style_profile_id`: Integer
 - `caption`: Text
 - `video_asset_id`: Integer (FK -> media_assets.id)
-- `recent_videos_json`: Text
+- `recent_videos`: JSONB
 - `created_at`, `updated_at`: DateTime
 
 ### Scenes (`scenes`)

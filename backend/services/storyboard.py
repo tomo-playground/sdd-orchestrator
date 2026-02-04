@@ -102,7 +102,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             width=s_data.width,
             height=s_data.height,
             context_tags=s_data.context_tags,
-            use_reference_only=int(s_data.use_reference_only) if s_data.use_reference_only is not None else 1,
+            use_reference_only=s_data.use_reference_only if s_data.use_reference_only is not None else True,
             reference_only_weight=s_data.reference_only_weight or 0.5,
             environment_reference_id=s_data.environment_reference_id,
             environment_reference_weight=s_data.environment_reference_weight or 0.3,
@@ -523,12 +523,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
 
     scenes = sorted(storyboard.scenes, key=lambda s: s.order)
 
-    recent_videos = []
-    if storyboard.recent_videos_json:
-        try:
-            recent_videos = json.loads(storyboard.recent_videos_json)
-        except Exception:
-            recent_videos = []
+    recent_videos = storyboard.recent_videos or []
 
     return {
         "id": storyboard.id,

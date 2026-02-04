@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, SoftDeleteMixin, TimestampMixin
@@ -50,7 +51,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
             return self.video_asset.url
         return None
 
-    recent_videos_json: Mapped[str | None] = mapped_column(Text)  # JSON string of recent videos
+    recent_videos: Mapped[list | None] = mapped_column(JSONB)
 
     # Relationships
     group: Mapped[Group] = relationship("Group", back_populates="storyboards")

@@ -1,4 +1,4 @@
-# Database Schema (v3.6)
+# Database Schema (v3.8)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.8 | 2026-02-04 | Schema Cleanup Batch B: `scenes.use_reference_only` Integer→Boolean, `storyboards.recent_videos_json` Text→JSONB + rename→`recent_videos` |
 | v3.7 | 2026-02-04 | `storyboards.default_caption` → `caption`, `characters.default_voice_preset_id` → `voice_preset_id` 리네이밍. FK/인덱스 리네이밍 포함 |
 | v3.6 | 2026-02-04 | `default_` prefix 제거: `projects`/`storyboards`에서 `default_character_id` → `character_id`, `default_style_profile_id` → `style_profile_id` 리네이밍. `groups`/`group_config`에서 `default_character_id` DROP, `default_style_profile_id` → `style_profile_id` 리네이밍. `group_config` 테이블 추가 (1:1 분리 설정). style_profile_id backfill (project → group → group_config) |
 | v3.5 | 2026-02-04 | `characters.default_voice_preset_id`, `storyboards.narrator_voice_preset_id` FK 추가. `render_presets`에서 `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 (voice_preset_id로 대체). Soft Delete (`deleted_at`) 추가 |
@@ -113,7 +114,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `caption` | Text | 캡션 텍스트 (Post Layout용) |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 프리셋 |
 | `video_asset_id` | Integer (FK → media_assets, SET NULL) | 최신 렌더링 영상 |
-| `recent_videos_json` | Text | 최근 렌더링 이력 (JSON 스트링) |
+| `recent_videos` | JSONB | 최근 렌더링 이력 |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -148,7 +149,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `width` | Integer | 이미지 너비 (default: 512) |
 | `height` | Integer | 이미지 높이 (default: 768) |
 | **IP-Adapter** | | |
-| `use_reference_only` | Integer (bool) | IP-Adapter 사용 여부 (default: 1) |
+| `use_reference_only` | Boolean | IP-Adapter 사용 여부 (default: true) |
 | `reference_only_weight` | Float | IP-Adapter 가중치 (default: 0.5) |
 | `environment_reference_id` | Integer | 환경 참조 이미지 ID |
 | `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
@@ -704,6 +705,6 @@ Textual Inversion 임베딩.
 ---
 
 **Last Updated:** 2026-02-04
-**Schema Version:** v3.7
+**Schema Version:** v3.8
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup)

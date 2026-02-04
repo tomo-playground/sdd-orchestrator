@@ -26,26 +26,16 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
     video_url = res.get("video_url")
 
     if video_url and request.storyboard_id:
-        import json
-
         from models.storyboard import Storyboard
 
         storyboard = db.query(Storyboard).filter(Storyboard.id == request.storyboard_id).first()
         if storyboard:
-
-
-            # Update recent_videos
-            recent = []
-            if storyboard.recent_videos_json:
-                try:
-                    recent = json.loads(storyboard.recent_videos_json)
-                except Exception:
-                    recent = []
+            recent = storyboard.recent_videos or []
 
             # Add new video to the beginning
             new_entry = {"url": video_url, "label": request.layout_style, "createdAt": int(time.time() * 1000)}
-            recent = [new_entry] + recent[:9] # Keep last 10
-            storyboard.recent_videos_json = json.dumps(recent)
+            recent = [new_entry] + recent[:9]  # Keep last 10
+            storyboard.recent_videos = recent
 
             db.commit()
             logger.info("✅ Video associated with storyboard id=%d", request.storyboard_id)
@@ -92,29 +82,23 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
                 sb.video_asset_id = None
                 logger.info(f"🔗 Cleared video_asset_id from Storyboard {sb.id}")
 
-            # 3. Remove from recent_videos_json in all Storyboards
-            import json
+            # 3. Remove from recent_videos in all Storyboards
             all_storyboards = db.query(Storyboard).filter(
-                Storyboard.recent_videos_json.isnot(None)
+                Storyboard.recent_videos.isnot(None)
             ).all()
 
             for sb in all_storyboards:
-                if not sb.recent_videos_json:  # Type guard
+                recent = sb.recent_videos
+                if not isinstance(recent, list):
                     continue
-                try:
-                    recent = json.loads(sb.recent_videos_json)
-                    if not isinstance(recent, list):
-                        continue
 
-                    # Filter out videos matching the deleted filename
-                    original_count = len(recent)
-                    recent = [v for v in recent if filename not in v.get("url", "")]
+                # Filter out videos matching the deleted filename
+                original_count = len(recent)
+                recent = [v for v in recent if filename not in v.get("url", "")]
 
-                    if len(recent) < original_count:
-                        sb.recent_videos_json = json.dumps(recent) if recent else None
-                        logger.info(f"🗑️ Removed from recent_videos in Storyboard {sb.id} ({original_count} → {len(recent)})")
-                except Exception as e:
-                    logger.warning(f"Failed to update recent_videos for Storyboard {sb.id}: {e}")
+                if len(recent) < original_count:
+                    sb.recent_videos = recent if recent else None
+                    logger.info(f"🗑️ Removed from recent_videos in Storyboard {sb.id} ({original_count} → {len(recent)})")
 
             # 3. Delete MediaAsset record
             db.delete(asset)
