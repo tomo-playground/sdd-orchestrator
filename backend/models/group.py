@@ -30,5 +30,6 @@ class Group(Base, TimestampMixin):
         uselist=False,
         back_populates="group",
         lazy="joined",
+        cascade="all, delete-orphan",
     )
     storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")

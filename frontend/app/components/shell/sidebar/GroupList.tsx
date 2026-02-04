@@ -1,4 +1,4 @@
-import { FolderOpen, Settings } from "lucide-react";
+import { FolderOpen, Settings, Trash2 } from "lucide-react";
 import { cx } from "../../ui/variants";
 
 type Props = {
@@ -7,9 +7,17 @@ type Props = {
   collapsed: boolean;
   onSelect: (id: number) => void;
   onConfig: (id: number) => void;
+  onDelete?: (id: number) => void;
 };
 
-export default function GroupList({ groups, activeId, collapsed, onSelect, onConfig }: Props) {
+export default function GroupList({
+  groups,
+  activeId,
+  collapsed,
+  onSelect,
+  onConfig,
+  onDelete,
+}: Props) {
   return (
     <ul className="space-y-0.5 px-1">
       {groups.map((g) => (
@@ -31,16 +39,30 @@ export default function GroupList({ groups, activeId, collapsed, onSelect, onCon
               {!collapsed && <span className="truncate">{g.name}</span>}
             </button>
             {!collapsed && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onConfig(g.id);
-                }}
-                title="Group settings"
-                className="hidden shrink-0 rounded p-0.5 text-zinc-300 transition group-hover/item:block hover:text-zinc-600"
-              >
-                <Settings className="h-3 w-3" />
-              </button>
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConfig(g.id);
+                  }}
+                  title="Group settings"
+                  className="hidden shrink-0 rounded p-0.5 text-zinc-300 transition group-hover/item:block hover:text-zinc-600"
+                >
+                  <Settings className="h-3 w-3" />
+                </button>
+                {onDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(g.id);
+                    }}
+                    title="Delete group"
+                    className="hidden shrink-0 rounded p-0.5 text-zinc-300 transition group-hover/item:block hover:text-red-500"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </>
             )}
           </div>
         </li>

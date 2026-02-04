@@ -37,7 +37,7 @@ export async function createProject(data: {
 
 export async function updateProject(
   projectId: number,
-  data: { name?: string; description?: string; handle?: string; avatar_key?: string },
+  data: { name?: string; description?: string; handle?: string; avatar_key?: string }
 ): Promise<ProjectItem | undefined> {
   const { showToast } = useStudioStore.getState();
   try {
@@ -60,8 +60,12 @@ export async function deleteProject(projectId: number): Promise<boolean> {
     showToast("Project deleted", "success");
     return true;
   } catch (error) {
-    console.error("[deleteProject] Failed:", error);
-    showToast("Failed to delete project", "error");
+    if (axios.isAxiosError(error) && error.response?.status === 409) {
+      showToast("Cannot delete: project has groups", "error");
+    } else {
+      console.error("[deleteProject] Failed:", error);
+      showToast("Failed to delete project", "error");
+    }
     return false;
   }
 }

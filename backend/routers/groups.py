@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.group import Group
+from models.storyboard import Storyboard
 from models.group_config import GroupConfig
 from models.project import Project
 from schemas import (
@@ -175,11 +175,25 @@ def delete_group(group_id: int, db: Session = Depends(get_db)):
     group = db.query(Group).filter(Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    try:
-        db.delete(group)
-        db.flush()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Cannot delete group with existing storyboards") from None
+
+    # Block if active (non-soft-deleted) storyboards exist
+    active_count = (
+        db.query(Storyboard)
+        .filter(Storyboard.group_id == group_id, Storyboard.deleted_at.is_(None))
+        .count()
+    )
+    if active_count > 0:
+        raise HTTPException(status_code=409, detail="Cannot delete group with existing storyboards")
+
+    # Hard-delete any soft-deleted storyboards (use ORM delete for cascade)
+    soft_deleted = (
+        db.query(Storyboard)
+        .filter(Storyboard.group_id == group_id, Storyboard.deleted_at.isnot(None))
+        .all()
+    )
+    for sb in soft_deleted:
+        db.delete(sb)
+
+    db.delete(group)
     db.commit()
     return {"status": "deleted", "id": group_id}

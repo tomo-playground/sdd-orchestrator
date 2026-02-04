@@ -116,8 +116,12 @@ export async function deleteGroup(groupId: number): Promise<boolean> {
     showToast("Group deleted", "success");
     return true;
   } catch (error) {
-    console.error("[deleteGroup] Failed:", error);
-    showToast("Failed to delete group", "error");
+    if (axios.isAxiosError(error) && error.response?.status === 409) {
+      showToast("Cannot delete: group has storyboards", "error");
+    } else {
+      console.error("[deleteGroup] Failed:", error);
+      showToast("Failed to delete group", "error");
+    }
     return false;
   }
 }

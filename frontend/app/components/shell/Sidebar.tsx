@@ -5,10 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { useStudioStore } from "../../store/useStudioStore";
-import { createGroup } from "../../store/actions/groupActions";
-import { updateProject } from "../../store/actions/projectActions";
+import { createGroup, deleteGroup } from "../../store/actions/groupActions";
+import { deleteProject, updateProject } from "../../store/actions/projectActions";
 import { cx } from "../ui/variants";
 import { GroupConfigEditor, GroupFormModal, ProjectDropdown, ProjectFormModal } from "../context";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import SectionHeader from "./sidebar/SectionHeader";
 import GroupList from "./sidebar/GroupList";
 import AddButton from "./sidebar/AddButton";
@@ -24,6 +25,9 @@ export default function Sidebar() {
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
   const isAutoRunning = useStudioStore((s) => s.isAutoRunning);
   const showToast = useStudioStore((s) => s.showToast);
+  const setMeta = useStudioStore((s) => s.setMeta);
+  const resetScenes = useStudioStore((s) => s.resetScenes);
+  const { confirm, dialogProps } = useConfirm();
 
   const [collapsed, setCollapsed] = useState(false);
   const [configGroupId, setConfigGroupId] = useState<number | null>(null);
@@ -46,6 +50,43 @@ export default function Sidebar() {
   const warnAutoRunning = useCallback(() => {
     showToast("Autopilot running — wait for completion", "warning");
   }, [showToast]);
+
+  const handleDeleteProject = useCallback(
+    async (project: { id: number; name: string }) => {
+      const ok = await confirm({
+        title: "Delete Project",
+        message: `Delete "${project.name}"? This cannot be undone.`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
+      const deleted = await deleteProject(project.id);
+      if (deleted && project.id === projectId) {
+        setMeta({ projectId: null, groupId: null, storyboardId: null, storyboardTitle: "" });
+        resetScenes();
+      }
+    },
+    [confirm, projectId, setMeta, resetScenes]
+  );
+
+  const handleDeleteGroup = useCallback(
+    async (id: number) => {
+      const group = groups.find((g) => g.id === id);
+      const ok = await confirm({
+        title: "Delete Group",
+        message: `Delete "${group?.name ?? "this group"}"? This cannot be undone.`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
+      const deleted = await deleteGroup(id);
+      if (deleted && id === groupId) {
+        setMeta({ groupId: null, storyboardId: null, storyboardTitle: "" });
+        resetScenes();
+      }
+    },
+    [confirm, groups, groupId, setMeta, resetScenes]
+  );
 
   const handleGroupSelect = useCallback(
     (id: number) => {
@@ -81,6 +122,7 @@ export default function Sidebar() {
                   if (isStudio) router.push("/");
                 }}
                 onNew={() => setShowProjectSettings(true)}
+                onDelete={handleDeleteProject}
               />
               <button
                 onClick={() => setShowProjectSettings(true)}
@@ -103,6 +145,7 @@ export default function Sidebar() {
             collapsed={collapsed}
             onSelect={handleGroupSelect}
             onConfig={setConfigGroupId}
+            onDelete={handleDeleteGroup}
           />
           <AddButton
             label="New Group"
@@ -153,6 +196,8 @@ export default function Sidebar() {
           onClose={() => setShowProjectSettings(false)}
         />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </>
   );
 }
