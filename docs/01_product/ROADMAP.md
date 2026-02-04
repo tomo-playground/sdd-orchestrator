@@ -278,6 +278,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | Real-time Prompt Preview (12-Layer) | - |
 | 씬 순서 드래그 앤 드롭 | - |
 | Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화) | - |
+| Backend response_model 전면 적용 (125개 엔드포인트 중 핵심 경로 우선, dict 타입 구체화) | - |
 
 ---
 
