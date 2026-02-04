@@ -198,7 +198,7 @@
 
 | # | 작업 | 분류 | 참조 | 상태 |
 |---|------|------|------|------|
-| 1 | Quick Start Flow: +New Story 즉시 DB 저장, PlanTab 설정/스토리 재설계, 인라인 StyleProfile 셀렉터 | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [x] |
+| 1 | Quick Start Flow: +New Story Lazy Creation (첫 Save/Generate 시 DB 저장), PlanTab 설정/스토리 재설계, 인라인 StyleProfile 셀렉터 | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [x] |
 | 2 | Setup Wizard (첫 실행 가이드) | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [ ] |
 | 3 | 접근성 기본 (ARIA, focus trap, keyboard) | UX | - | [ ] |
 | 4 | WebSocket Progress (생성/렌더링 진행률) | 기능 | - | [ ] |
@@ -298,3 +298,10 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-7: 12/16 완료 (#1 CI, #3 GC, #4-6 Soft Delete, #7 UI Toolkit, #12 WD14 매칭, #13-15 Voice, #16 Schema Cleanup)
 - Phase 7-2: Phase 1.7 **완료** (Group Defaults cascade + loadGroupDefaults 연동), Phase 2 대기
 - Phase 7-1: 8/16 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity, #15 사이드바+버그, #16 Insights→Manage)
+
+**Hotfix (2026-02-04)**:
+- Batch image field mismatch 수정 (`image_url` → `image`) + `response_model` 적용
+- Autopilot 에러 상태 스토리보드 스코핑 (다른 스토리보드로 누출 방지)
+- 삭제된 스토리보드 재생성 방지 (404 처리 + soft delete 필터 통일)
+- Lazy Creation 전환 (+New Story 클릭 시 빈 Draft DB 저장 제거)
+- Frontend State Sync Principles + API Contract Principles 규칙 추가
