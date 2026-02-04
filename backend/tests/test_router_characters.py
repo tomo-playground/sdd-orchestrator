@@ -162,11 +162,13 @@ class TestCharactersRouter:
         assert data["ok"] is True
         assert data["deleted"] == "delete_test"
 
-        # Verify deleted
+        # Verify soft-deleted (deleted_at set, still in DB)
+        db_session.expire_all()
         deleted = db_session.query(Character).filter(
             Character.id == character_id
         ).first()
-        assert deleted is None
+        assert deleted is not None
+        assert deleted.deleted_at is not None
 
     def test_delete_character_not_found(self, client: TestClient):
         """Delete non-existent character returns 404."""

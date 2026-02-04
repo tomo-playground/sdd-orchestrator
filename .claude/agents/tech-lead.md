@@ -92,6 +92,7 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*"]
 |---------|------|-------------|
 | `/roadmap` | 로드맵 확인 | PM과 협업하여 기술 타당성 검토, 작업 순서 조율 |
 | `/test` | 테스트 실행 | 크로스커팅 변경 후 전체 테스트 (`all` 스코프) |
+| `/review` | 코드 리뷰 | 커밋 전 종합 리뷰 (lint, 품질, 아키텍처, 테스트 커버리지) |
 | `/db` | DB 상태 확인 | 마이그레이션 이슈, 스키마 현황 파악 |
 | `/docs` | 문서 정합성 | 기술 문서 최신성 점검 |
 
@@ -104,7 +105,7 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*"]
 | PM | 제품/로드맵/문서 | memory, context7 | /roadmap, /docs |
 | Prompt Engineer | 프롬프트/태그/데이터 분석 | danbooru, huggingface, postgres, memory | /prompt-validate, /sd-status |
 | Storyboard Writer | 템플릿/스크립트/Gemini | context7, memory | /roadmap |
-| QA Validator | 테스트/검증/품질 | playwright, memory | /test, /vrt |
+| QA Validator | 테스트/검증/품질 | playwright, memory | /test, /review, /vrt |
 | FFmpeg Expert | 렌더링/비디오/오디오 | ffmpeg | /vrt |
 | UI/UX Engineer | UI 설계/접근성 | playwright, memory | /vrt, /test |
 | Frontend Dev | Next.js/React/Zustand | playwright, context7, memory | /test frontend, /vrt |

@@ -114,6 +114,7 @@ browser_navigate → browser_snapshot → browser_click → browser_wait_for →
 | Command | 용도 | 주요 시나리오 |
 |---------|------|-------------|
 | `/test` | 테스트 실행 | `all`/`backend`/`frontend`/`vrt`/`e2e` 스코프 선택 |
+| `/review` | 코드 리뷰 | 변경사항 종합 검증 (lint, 품질 가이드라인, 테스트 커버리지) |
 | `/vrt` | VRT 실행 | UI 변경 후 시각적 회귀 검증, `--update`로 기준 갱신 |
 | `/sd-status` | SD WebUI 상태 | 이미지 생성 실패 시 연결/모델 상태 진단 |
 | `/prompt-validate` | 프롬프트 검증 | 검증 실패 프롬프트의 문법/충돌 원인 분석 |

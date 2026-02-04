@@ -20,7 +20,6 @@ const EMPTY_PRESET: EditingPreset = {
   ken_burns_preset: "random",
   ken_burns_intensity: 1.0,
   speed_multiplier: 1.3,
-  voice_design_prompt: "",
   voice_preset_id: null,
 };
 
@@ -82,7 +81,6 @@ export default function RenderPresetsTab() {
       ken_burns_preset: p.ken_burns_preset ?? "random",
       ken_burns_intensity: p.ken_burns_intensity ?? 1.0,
       speed_multiplier: p.speed_multiplier ?? 1.0,
-      voice_design_prompt: p.voice_design_prompt ?? "",
       voice_preset_id: p.voice_preset_id ?? null,
     });
   };
@@ -252,15 +250,6 @@ export default function RenderPresetsTab() {
                   <option key={vp.id} value={vp.id}>{vp.name}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className={labelCls}>Voice Design Prompt</label>
-              <input
-                value={editing.voice_design_prompt ?? ""}
-                onChange={(e) => set("voice_design_prompt", e.target.value)}
-                className={inputCls}
-                placeholder="e.g. calm 40s female"
-              />
             </div>
             <div>
               <label className={labelCls}>BGM File</label>

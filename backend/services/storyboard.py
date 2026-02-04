@@ -442,6 +442,7 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         default_character_id=char_id,
         default_style_profile_id=style_id,
         default_caption=request.default_caption,
+        narrator_voice_preset_id=request.narrator_voice_preset_id,
     )
     db.add(db_storyboard)
     db.flush()
@@ -468,7 +469,7 @@ def list_storyboards_from_db(
 
     query = db.query(Storyboard).options(
         joinedload(Storyboard.scenes).joinedload(Scene.image_asset)
-    )
+    ).filter(Storyboard.deleted_at.is_(None))
     if group_id is not None:
         query = query.filter(Storyboard.group_id == group_id)
     elif project_id is not None:
@@ -503,7 +504,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
             joinedload(Storyboard.scenes).joinedload(Scene.character_actions).joinedload(SceneCharacterAction.tag),
             joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
         )
-        .filter(Storyboard.id == storyboard_id)
+        .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
         .first()
     )
 
@@ -525,6 +526,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "description": storyboard.description,
         "default_character_id": storyboard.default_character_id,
         "default_style_profile_id": storyboard.default_style_profile_id,
+        "narrator_voice_preset_id": storyboard.narrator_voice_preset_id,
         "video_url": storyboard.video_url,
         "recent_videos": recent_videos,
         "default_caption": storyboard.default_caption,
@@ -552,6 +554,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.default_character_id = request.default_character_id
     storyboard.default_style_profile_id = request.default_style_profile_id
     storyboard.default_caption = request.default_caption
+    storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 
     # Nullify asset FK references on scenes first
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
@@ -607,20 +610,39 @@ def update_storyboard_metadata(
         storyboard.default_style_profile_id = request.default_style_profile_id
     if request.default_caption is not None:
         storyboard.default_caption = request.default_caption
+    if request.narrator_voice_preset_id is not None:
+        storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 
     db.commit()
     return {"status": "success", "storyboard_id": storyboard.id}
 
 
 def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
-    """Delete a storyboard and all its scenes (CASCADE) + cleanup assets."""
+    """Soft-delete a storyboard (set deleted_at timestamp)."""
+    from datetime import datetime, timezone
+
+    storyboard = db.query(Storyboard).filter(
+        Storyboard.id == storyboard_id,
+        Storyboard.deleted_at.is_(None),
+    ).first()
+    if not storyboard:
+        raise HTTPException(status_code=404, detail="Storyboard not found")
+
+    logger.info("\U0001f5d1\ufe0f [Storyboard Soft Delete] id=%d title=%s", storyboard_id, storyboard.title)
+    storyboard.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"status": "success"}
+
+
+def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
+    """Permanently delete a storyboard and all its scenes (CASCADE) + cleanup assets."""
     storyboard = db.query(Storyboard).options(
         selectinload(Storyboard.scenes),
     ).filter(Storyboard.id == storyboard_id).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
-    logger.info("\U0001f5d1\ufe0f [Storyboard Delete] id=%d title=%s", storyboard_id, storyboard.title)
+    logger.info("\U0001f5d1\ufe0f [Storyboard Permanent Delete] id=%d title=%s", storyboard_id, storyboard.title)
 
     try:
         db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
@@ -650,6 +672,6 @@ def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
         import sys
         import traceback
         traceback.print_exc(file=sys.stderr)
-        logger.exception("Failed to delete storyboard %d", storyboard_id)
+        logger.exception("Failed to permanently delete storyboard %d", storyboard_id)
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}") from e

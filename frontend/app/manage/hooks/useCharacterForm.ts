@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
-import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode } from "../../types";
+import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode, VoicePreset } from "../../types";
 
 const RESTRICTED_KEYWORDS = [
   "background", "kitchen", "room", "outdoors", "indoors",
@@ -53,6 +53,17 @@ export function useCharacterForm(
   // --- Raw edit ---
   const [rawEditMode, setRawEditMode] = useState<"identity" | "clothing" | null>(null);
   const [rawEditText, setRawEditText] = useState("");
+
+  // --- Voice Preset ---
+  const [defaultVoicePresetId, setDefaultVoicePresetId] = useState<number | null>(
+    character?.default_voice_preset_id ?? null,
+  );
+  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
+  useEffect(() => {
+    axios.get(`${API_BASE}/voice-presets`).then((res) => {
+      setVoicePresets(res.data);
+    }).catch(() => {});
+  }, []);
 
   // --- LoRAs ---
   const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character?.loras || []);
@@ -268,6 +279,7 @@ export function useCharacterForm(
       ip_adapter_weight: ipAdapterWeight,
       ip_adapter_model: ipAdapterModel,
       preview_locked: previewLocked,
+      default_voice_preset_id: defaultVoicePresetId,
     };
 
     console.log("[CharacterEditModal] Saving character:", payload);
@@ -305,6 +317,9 @@ export function useCharacterForm(
     tagSearch, setTagSearch,
     activeTagInput, setActiveTagInput,
     rawEditMode, rawEditText, setRawEditText,
+    // Voice Preset
+    defaultVoicePresetId, setDefaultVoicePresetId,
+    voicePresets,
     // LoRAs
     selectedLoras,
     // Async flags

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import AppShell from "./components/shell/AppShell";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -30,7 +31,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

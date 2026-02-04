@@ -39,7 +39,7 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
   const activeIdx = STEPS.findIndex((s) => s.tab === activeTab);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 pt-3">
+    <div className="mx-auto w-full max-w-5xl px-6 pt-3">
       <div className="flex gap-1 rounded-xl bg-zinc-100/60 p-1">
         {TABS.map((tab) => {
           const badge = getBadge(tab.id);
@@ -74,15 +74,19 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
                 <div className="flex flex-col items-center">
                   <div
                     className={`h-2 w-2 rounded-full border transition-colors ${
-                      isCurrent ? "border-zinc-900 bg-zinc-900 animate-pulse"
-                      : filled ? "border-zinc-900 bg-zinc-900"
-                      : "border-zinc-300 bg-transparent"
+                      isCurrent
+                        ? "animate-pulse border-zinc-900 bg-zinc-900"
+                        : filled
+                          ? "border-zinc-900 bg-zinc-900"
+                          : "border-zinc-300 bg-transparent"
                     }`}
                   />
                   <span className="mt-0.5 text-[9px] leading-none text-zinc-400">{step.label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "bg-zinc-300 border-t border-dashed border-zinc-300 bg-transparent"}`} />
+                  <div
+                    className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "border-t border-dashed border-zinc-300 bg-transparent bg-zinc-300"}`}
+                  />
                 )}
               </div>
             );

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base, TimestampMixin
+from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.group import Group
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from models.scene import Scene
 
 
-class Storyboard(Base, TimestampMixin):
+class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     """An individual video content (Episode) within a series/group."""
 
     __tablename__ = "storyboards"
@@ -29,6 +29,11 @@ class Storyboard(Base, TimestampMixin):
     default_character_id: Mapped[int | None] = mapped_column(Integer)
     default_style_profile_id: Mapped[int | None] = mapped_column(Integer)
     default_caption: Mapped[str | None] = mapped_column(Text)
+
+    # Narrator voice
+    narrator_voice_preset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True,
+    )
 
     # Results
     # video_url column removed

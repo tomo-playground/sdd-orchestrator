@@ -168,11 +168,13 @@ class TestStoryboardRouter:
         data = response.json()
         assert data["status"] == "success"
 
-        # Verify deleted
+        # Verify soft-deleted (deleted_at set, still in DB)
+        db_session.expire_all()
         deleted = db_session.query(Storyboard).filter(
             Storyboard.id == storyboard_id
         ).first()
-        assert deleted is None
+        assert deleted is not None
+        assert deleted.deleted_at is not None
 
     def test_delete_storyboard_not_found(self, client: TestClient):
         """Delete non-existent storyboard returns 404."""

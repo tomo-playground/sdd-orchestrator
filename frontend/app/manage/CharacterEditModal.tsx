@@ -8,7 +8,7 @@ import ReferencePromptsPanel from "./ReferencePromptsPanel";
 import GeminiPreviewEditModal from "./GeminiPreviewEditModal";
 import ImagePreviewModal from "../components/ui/ImagePreviewModal";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
-import { Character, Tag, LoRA, ActorGender, PromptMode } from "../types";
+import { Character, Tag, LoRA, ActorGender, PromptMode, VoicePreset } from "../types";
 
 type Props = {
   character?: Character;
@@ -88,6 +88,13 @@ export default function CharacterEditModal({
             setIpAdapterWeight={form.setIpAdapterWeight}
             ipAdapterModel={form.ipAdapterModel}
             setIpAdapterModel={form.setIpAdapterModel}
+          />
+
+          {/* Voice Preset */}
+          <VoicePresetSection
+            voicePresets={form.voicePresets}
+            selectedId={form.defaultVoicePresetId}
+            onChange={form.setDefaultVoicePresetId}
           />
 
           {/* Scene Identity + Common Negative */}
@@ -399,6 +406,32 @@ function LoRAsSection({ selectedLoras, allLoras, onAddLora, onUpdateLora, onRemo
           <p className="text-xs text-zinc-400 italic">No LoRAs assigned.</p>
         )}
       </div>
+    </div>
+  );
+}
+function VoicePresetSection({ voicePresets, selectedId, onChange }: {
+  voicePresets: VoicePreset[];
+  selectedId: number | null;
+  onChange: (id: number | null) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Default Voice Preset</label>
+      <select
+        value={selectedId ?? ""}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+      >
+        <option value="">None (use render panel default)</option>
+        {voicePresets.map((vp) => (
+          <option key={vp.id} value={vp.id}>
+            {vp.name}{vp.description ? ` — ${vp.description}` : ""}
+          </option>
+        ))}
+      </select>
+      <p className="text-[10px] text-zinc-400 mt-1">
+        Assigned voice for this character. Overrides the global render preset voice during TTS.
+      </p>
     </div>
   );
 }

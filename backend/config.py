@@ -88,7 +88,20 @@ FONTS_DIR = ASSETS_DIR / "fonts"
 TEMPLATES_DIR = BASE_DIR / "templates"
 
 # Ensure directories exist
-for _d in (OUTPUT_DIR, IMAGE_DIR, VIDEO_DIR, BUILD_DIR, PROMPT_CACHE_DIR, S3_CACHE_DIR, AVATAR_DIR, ASSETS_DIR, AUDIO_DIR, OVERLAY_DIR, FONTS_DIR, TEMPLATES_DIR):
+for _d in (
+    OUTPUT_DIR,
+    IMAGE_DIR,
+    VIDEO_DIR,
+    BUILD_DIR,
+    PROMPT_CACHE_DIR,
+    S3_CACHE_DIR,
+    AVATAR_DIR,
+    ASSETS_DIR,
+    AUDIO_DIR,
+    OVERLAY_DIR,
+    FONTS_DIR,
+    TEMPLATES_DIR,
+):
     _d.mkdir(parents=True, exist_ok=True)
 
 # --- API Configuration ---
@@ -131,19 +144,42 @@ WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 # These are excluded from match_rate calculation and reported as "skipped"
 WD14_UNMATCHABLE_TAGS: set[str] = {
     # Style / rendering
-    "flat_color", "cel_shading", "watercolor", "oil_painting",
-    "sketch", "lineart", "monochrome", "greyscale",
+    "flat_color",
+    "cel_shading",
+    "watercolor",
+    "oil_painting",
+    "sketch",
+    "lineart",
+    "monochrome",
+    "greyscale",
     # Quality
-    "masterpiece", "best_quality", "high_quality", "normal_quality",
-    "worst_quality", "absurdres", "incredibly_absurdres", "highres",
+    "masterpiece",
+    "best_quality",
+    "high_quality",
+    "normal_quality",
+    "worst_quality",
+    "absurdres",
+    "incredibly_absurdres",
+    "highres",
     # Lighting
-    "soft_lighting", "natural_light", "natural_lighting",
-    "dramatic_lighting", "volumetric_lighting", "beautiful_lighting",
+    "soft_lighting",
+    "natural_light",
+    "natural_lighting",
+    "dramatic_lighting",
+    "volumetric_lighting",
+    "beautiful_lighting",
     # Mood / time of day
-    "peaceful", "romantic", "mysterious",
-    "morning", "night", "dawn", "dusk", "evening",
+    "peaceful",
+    "romantic",
+    "mysterious",
+    "morning",
+    "night",
+    "dawn",
+    "dusk",
+    "evening",
     # Abstract composition
-    "dynamic_angle", "cinematic_composition",
+    "dynamic_angle",
+    "cinematic_composition",
 }
 
 # --- Tag Effectiveness Configuration ---
@@ -157,9 +193,7 @@ TAG_MIN_USE_COUNT_FOR_FILTERING = int(os.getenv("TAG_MIN_USE_COUNT_FOR_FILTERING
 # --- Tag Recommendation Configuration (Phase 6-4-21 Task #8) ---
 # High-performance tags shown in "Recommended" section of Gemini prompts
 # Threshold for marking tags as "recommended" (0.8 = 80%+ success rate)
-RECOMMENDATION_EFFECTIVENESS_THRESHOLD = float(
-    os.getenv("RECOMMENDATION_EFFECTIVENESS_THRESHOLD", "0.8")
-)
+RECOMMENDATION_EFFECTIVENESS_THRESHOLD = float(os.getenv("RECOMMENDATION_EFFECTIVENESS_THRESHOLD", "0.8"))
 # Minimum usage count for reliable recommendation data
 RECOMMENDATION_MIN_USE_COUNT = int(os.getenv("RECOMMENDATION_MIN_USE_COUNT", "10"))
 

@@ -73,6 +73,14 @@ docs/
 - **태그 규칙**: 충돌(`tag_rules`), 별칭(`tag_aliases`), 필터(`tag_filters`) 모두 **DB 테이블**에서 관리. 코드 하드코딩 금지.
 - **런타임 캐시**: `TagCategoryCache`, `TagAliasCache`, `TagRuleCache`, `LoRATriggerCache` — startup 시 DB에서 로드, 변경 시 `/admin/refresh-caches`.
 
+## DB Schema Design Principles
+- **관심사 분리**: 콘텐츠 테이블(storyboards)과 설정 테이블(group_config)을 혼합하지 않는다.
+- **`default_` prefix 금지**: 실제 값에 `default_` 붙이지 않는다. cascade/fallback 문맥에서만 사용.
+- **Boolean은 Boolean**: `Integer`로 boolean 저장 금지. `Boolean` 타입 + `is_`/`_enabled` 네이밍.
+- **JSON은 JSONB**: `Text`에 JSON 문자열 저장 금지. 구조화 데이터는 반드시 `JSONB`.
+- **설정 소유권**: `System Default < Project Config < Group Config`. 콘텐츠 엔티티는 설정을 소유하지 않는다.
+- **상세**: `.claude/agents/dba.md` "스키마 설계 철학" 섹션 참조.
+
 ## Tag Format Standard (Danbooru 표준)
 **원칙**: 모든 태그는 **언더바(_) 형식**을 사용합니다. 공백 형식 절대 금지.
 
@@ -109,15 +117,15 @@ docs/
 
 | Agent | 역할 | Commands |
 |-------|------|----------|
-| **Tech Lead** | 개발 총괄, 코드 리뷰, 크로스 에이전트 조율 | `/roadmap`, `/test`, `/db`, `/docs` |
+| **Tech Lead** | 개발 총괄, 코드 리뷰, 크로스 에이전트 조율 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
 | **PM Agent** | 로드맵/우선순위/문서 구조 관리 | `/roadmap`, `/docs`, `/vrt`, `/test` |
 | **Prompt Engineer** | SD 프롬프트 최적화 + 데이터 기반 고도화 | `/prompt-validate`, `/sd-status` |
 | **Storyboard Writer** | 스토리보드/스크립트 작성 | `/roadmap` |
-| **QA Validator** | 품질 체크/테스트 검증/TROUBLESHOOTING | `/test`, `/vrt`, `/sd-status`, `/prompt-validate` |
+| **QA Validator** | 품질 체크/테스트 검증/TROUBLESHOOTING | `/test`, `/review`, `/vrt`, `/sd-status`, `/prompt-validate` |
 | **FFmpeg Expert** | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI 설계/와이어프레임/사용성 개선 | `/vrt`, `/test` |
-| **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/vrt` |
-| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/sd-status`, `/db` |
+| **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/review frontend`, `/vrt` |
+| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/review backend`, `/sd-status`, `/db` |
 | **DBA** | DB 설계, Alembic 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 
 ### Prompt Engineer 역할 상세
@@ -148,6 +156,7 @@ docs/
 |---------|------|
 | `/roadmap` | 로드맵 조회/업데이트/기능 목록 |
 | `/test` | 테스트 실행 (전체/backend/frontend/vrt/e2e) |
+| `/review` | 코드 리뷰 (lint, 품질, 아키텍처, 테스트 커버리지) |
 | `/vrt` | Visual Regression Test 실행 |
 | `/sd-status` | SD WebUI 상태 확인 |
 | `/prompt-validate` | 프롬프트 문법 검증 |
@@ -156,6 +165,14 @@ docs/
 | `/docs` | 문서 구조 조회/정합성 체크/크기 점검 |
 
 > Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조
+
+## Hooks (자동화)
+
+| Event | Hook | 동작 |
+|-------|------|------|
+| `PostToolUse` | `auto-lint.sh` | Edit/Write 후 자동 린트 (ruff → `.py`, prettier → `.ts/.tsx`) |
+
+설정: `.claude/settings.json` / 스크립트: `.claude/hooks/auto-lint.sh`
 
 ## 용어 정의 (Terminology)
 

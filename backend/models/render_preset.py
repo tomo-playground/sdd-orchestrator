@@ -19,8 +19,7 @@ class RenderPreset(Base, TimestampMixin):
         Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True
     )
 
-    # Render fields (11)
-    narrator_voice: Mapped[str | None] = mapped_column(String(100))
+    # Render fields
     bgm_file: Mapped[str | None] = mapped_column(String(255))
     bgm_volume: Mapped[float | None] = mapped_column(Float)
     audio_ducking: Mapped[bool | None] = mapped_column(Boolean)
@@ -32,9 +31,6 @@ class RenderPreset(Base, TimestampMixin):
     ken_burns_intensity: Mapped[float | None] = mapped_column(Float)
     speed_multiplier: Mapped[float | None] = mapped_column(Float)
 
-    # TTS settings
-    tts_engine: Mapped[str | None] = mapped_column(String(20))
-    voice_design_prompt: Mapped[str | None] = mapped_column(Text)
     # Voice Preset
     voice_preset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True

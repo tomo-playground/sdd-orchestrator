@@ -3,6 +3,7 @@
 :root {
   --background: #f9f6ef;
   --foreground: #18181b;
+  --nav-height: 45px;
 }
 
 @theme inline {
@@ -13,6 +14,10 @@
   --z-modal-close: 1010;
   --z-nested-modal: 1100;
   --z-toast: 2000;
+}
+
+html {
+  overflow-y: scroll;
 }
 
 body {

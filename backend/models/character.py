@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from models.media_asset import MediaAsset
     from models.project import Project
 
-from models.base import Base, TimestampMixin
+from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 
-class Character(Base, TimestampMixin):
+class Character(Base, TimestampMixin, SoftDeleteMixin):
     """Character preset with identity tags, clothing tags, and multiple LoRAs."""
 
     __tablename__ = "characters"
@@ -61,6 +61,11 @@ class Character(Base, TimestampMixin):
         if self.preview_image_asset:
             return self.preview_image_asset.url
         return None
+
+    # Voice
+    default_voice_preset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True,
+    )
 
     # System Settings
     prompt_mode: Mapped[str] = mapped_column(String(20), default="auto")  # auto, standard, lora

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
+import type { Scene } from "../../types";
 
 /**
  * Create a draft storyboard in DB immediately (empty scenes).
@@ -9,8 +10,7 @@ import { API_BASE } from "../../constants";
  * @returns storyboard_id if created successfully, undefined otherwise
  */
 export async function createDraftStoryboard(title?: string): Promise<number | undefined> {
-  const { storyboardId, groupId, setMeta, showToast } =
-    useStudioStore.getState();
+  const { storyboardId, groupId, setMeta, showToast } = useStudioStore.getState();
 
   // Already exists
   if (storyboardId) return storyboardId;
@@ -105,7 +105,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
 
     setMeta({
       storyboardId: newStoryboardId,
-      storyboardTitle: topic || "Draft Storyboard"
+      storyboardTitle: topic || "Draft Storyboard",
     });
 
     // Update scene IDs with DB-assigned IDs
@@ -113,7 +113,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       const { scenes: currentScenes, setScenes } = useStudioStore.getState();
       const updatedScenes = currentScenes.map((scene, idx) => ({
         ...scene,
-        id: sceneIds[idx] || scene.id
+        id: sceneIds[idx] || scene.id,
       }));
       setScenes(updatedScenes);
     }
@@ -207,15 +207,13 @@ export async function saveStoryboard(): Promise<boolean> {
 /**
  * Partially update storyboard metadata (title, caption, etc) in DB.
  */
-export async function updateStoryboardMetadata(
-  updates: {
-    title?: string;
-    description?: string;
-    default_character_id?: number | null;
-    default_style_profile_id?: number | null;
-    default_caption?: string | null;
-  }
-): Promise<boolean> {
+export async function updateStoryboardMetadata(updates: {
+  title?: string;
+  description?: string;
+  default_character_id?: number | null;
+  default_style_profile_id?: number | null;
+  default_caption?: string | null;
+}): Promise<boolean> {
   const { storyboardId, showToast } = useStudioStore.getState();
 
   if (!storyboardId) return false;
@@ -226,6 +224,89 @@ export async function updateStoryboardMetadata(
   } catch (error) {
     console.error("[updateStoryboardMetadata] Failed:", error);
     showToast("Failed to update metadata", "error");
+    return false;
+  }
+}
+
+/**
+ * Generate storyboard via Gemini API and populate scenes.
+ * Switches to Scenes tab on success and auto-saves.
+ */
+export async function generateStoryboard(): Promise<boolean> {
+  const state = useStudioStore.getState();
+  const {
+    topic,
+    description,
+    duration,
+    style,
+    language,
+    structure,
+    actorAGender,
+    selectedCharacterId,
+    baseStepsA,
+    baseCfgScaleA,
+    baseSamplerA,
+    baseSeedA,
+    baseClipSkipA,
+    baseNegativePromptA,
+    setScenes,
+    setActiveTab,
+    showToast,
+  } = state;
+
+  if (!topic.trim()) {
+    showToast("Enter a topic first", "error");
+    return false;
+  }
+
+  try {
+    const res = await axios.post(`${API_BASE}/storyboards/create`, {
+      topic,
+      description: description || undefined,
+      duration,
+      style,
+      language,
+      structure,
+      actor_a_gender: actorAGender,
+      character_id: selectedCharacterId || undefined,
+    });
+
+    const data = res.data;
+    if (!data.scenes) return false;
+
+    const mapped: Scene[] = data.scenes.map((s: Record<string, unknown>, i: number) => {
+      const sceneNegative = (s.negative_prompt as string) || "";
+      const combined = [baseNegativePromptA, sceneNegative].filter(Boolean).join(", ").trim();
+
+      return {
+        id: i,
+        script: (s.script as string) || "",
+        speaker: (s.speaker as string) || "Narrator",
+        duration: (s.duration as number) || 3,
+        image_prompt: (s.image_prompt as string) || "",
+        image_prompt_ko: (s.image_prompt_ko as string) || "",
+        image_url: null,
+        description: (s.description as string) || "",
+        width: 512,
+        height: 768,
+        negative_prompt: combined,
+        steps: baseStepsA,
+        cfg_scale: baseCfgScaleA,
+        sampler_name: baseSamplerA,
+        seed: baseSeedA,
+        clip_skip: baseClipSkipA,
+        isGenerating: false,
+        debug_payload: "",
+      };
+    });
+
+    setScenes(mapped);
+    setActiveTab("scenes");
+    showToast(`Generated ${mapped.length} scenes`, "success");
+    saveStoryboard();
+    return true;
+  } catch {
+    showToast("Failed to generate storyboard", "error");
     return false;
   }
 }

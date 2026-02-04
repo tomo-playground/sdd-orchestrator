@@ -64,7 +64,6 @@ class RenderPresetCreate(BaseModel):
     name: str
     description: str | None = None
     project_id: int | None = None
-    narrator_voice: str | None = None
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
@@ -75,15 +74,12 @@ class RenderPresetCreate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    tts_engine: str | None = None
-    voice_design_prompt: str | None = None
     voice_preset_id: int | None = None
 
 
 class RenderPresetUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    narrator_voice: str | None = None
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
@@ -94,8 +90,6 @@ class RenderPresetUpdate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    tts_engine: str | None = None
-    voice_design_prompt: str | None = None
     voice_preset_id: int | None = None
 
 
@@ -105,7 +99,6 @@ class RenderPresetResponse(BaseModel):
     description: str | None = None
     is_system: bool = True
     project_id: int | None = None
-    narrator_voice: str | None = None
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
@@ -116,8 +109,6 @@ class RenderPresetResponse(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    tts_engine: str | None = None
-    voice_design_prompt: str | None = None
     voice_preset_id: int | None = None
     created_at: datetime | None = None
 
@@ -176,6 +167,7 @@ class StoryboardBase(BaseModel):
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
     default_caption: str | None = None
+    narrator_voice_preset_id: int | None = None
 
 class StoryboardSave(StoryboardBase):
     scenes: list[StoryboardScene]
@@ -186,11 +178,13 @@ class StoryboardUpdate(BaseModel):
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
     default_caption: str | None = None
+    narrator_voice_preset_id: int | None = None
 
 class StoryboardResponse(StoryboardBase):
     id: int
     video_url: str | None = None
     recent_videos: list[dict] | None = None
+    deleted_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class StoryboardRequest(BaseModel):
@@ -558,6 +552,7 @@ class CharacterBase(BaseModel):
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     preview_locked: bool = False
+    default_voice_preset_id: int | None = None
 
 class CharacterCreate(CharacterBase):
     project_id: int | None = None
@@ -581,6 +576,7 @@ class CharacterUpdate(BaseModel):
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     preview_locked: bool | None = None
+    default_voice_preset_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
@@ -592,6 +588,7 @@ class CharacterResponse(CharacterBase):
     tags: list[CharacterTagLink] = []
     preview_image_url: str | None = None  # Read-only from @property
     preview_locked: bool = False
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -823,6 +820,7 @@ class PromptHistoryResponse(PromptHistoryBase):
     avg_match_rate: float | None = None
     validation_count: int
     created_at: datetime | None = None
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

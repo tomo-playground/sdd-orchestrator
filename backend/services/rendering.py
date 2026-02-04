@@ -336,7 +336,7 @@ def render_scene_text_image(
             )
         return canvas
 
-    # Full layout - 상단 배치 (사용자 피드백 반영)
+    # Full layout - 하단 배치 (피사체 보호 및 Safe Zone 확보)
     subtitle_size = font_size_override if font_size_override else int(height * 0.042)
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
@@ -347,7 +347,8 @@ def render_scene_text_image(
     if scene_text_y_ratio is not None:
         text_y_pos = int(height * scene_text_y_ratio)
     else:
-        text_y_pos = int(height * 0.68) if line_count > 1 else int(height * 0.70)
+        # Default to bottom region if no dynamic ratio provided
+        text_y_pos = int(height * 0.70) if line_count > 1 else int(height * 0.72)
 
     # Drop shadow offset (3px down-right)
     shadow_offset = max(2, subtitle_size // 20)

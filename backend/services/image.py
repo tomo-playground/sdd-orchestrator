@@ -146,7 +146,7 @@ def calculate_optimal_scene_text_y(
 
     Args:
         image: PIL Image to analyze
-        default_y_ratio: Default Y position ratio (0.12 = top 12%)
+        default_y_ratio: Default Y position ratio (0.68 = bottom 68%)
         layout_style: "full" or "post" layout
 
     Returns:
@@ -159,14 +159,14 @@ def calculate_optimal_scene_text_y(
     LOW_COMPLEXITY = 0.10   # Move scene text down if complexity < 0.10
 
     if layout_style == "full":
-        # Full layout: scene text is at top (12-15% from top)
-        # Dynamic adjustment within top region only
+        # Full layout: scene text is at bottom (68-72% from top)
+        # Dynamic adjustment within bottom region to avoid platform UI / image detail
         if complexity > HIGH_COMPLEXITY:
-            return 0.10  # Move slightly higher
+            return 0.65  # Move slightly higher to avoid complex bottom
         elif complexity < LOW_COMPLEXITY:
-            return 0.15  # Slightly lower in top region
+            return 0.72  # Slightly lower if bottom is simple
         else:
-            return default_y_ratio
+            return 0.68 if default_y_ratio < 0.2 else default_y_ratio
     else:
         # Post layout: scene text stays in bottom region
         if complexity > HIGH_COMPLEXITY:

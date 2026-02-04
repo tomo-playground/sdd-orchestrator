@@ -332,6 +332,78 @@ def _get_preset_voice_info(voice_preset_id: int) -> tuple[str | None, int | None
         db.close()
 
 
+def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | None:
+    """Resolve speaker to a voice_preset_id from Storyboard/Character.
+
+    - "Narrator" -> Storyboard.narrator_voice_preset_id
+    - Character name (e.g. "A") -> Character.default_voice_preset_id
+      looked up via default_character_id on the storyboard.
+    """
+    if not storyboard_id:
+        return None
+
+    from database import get_db
+    from models.character import Character
+    from models.storyboard import Storyboard
+
+    db = next(get_db())
+    try:
+        storyboard = db.get(Storyboard, storyboard_id)
+        if not storyboard:
+            return None
+
+        if speaker == "Narrator":
+            preset_id = storyboard.narrator_voice_preset_id
+            if preset_id:
+                logger.info(f"[TTS] Narrator voice preset from storyboard {storyboard_id}: {preset_id}")
+            return preset_id
+
+        # Non-narrator speaker -> look up character voice
+        char_id = storyboard.default_character_id
+        if not char_id:
+            return None
+        char = db.get(Character, char_id)
+        if char and char.default_voice_preset_id:
+            logger.info(
+                f"[TTS] Speaker '{speaker}' voice preset from character "
+                f"{char.name}({char_id}): {char.default_voice_preset_id}"
+            )
+            return char.default_voice_preset_id
+        return None
+    except Exception as e:
+        logger.error(f"[TTS] Failed to resolve speaker voice preset: {e}")
+        return None
+    finally:
+        db.close()
+
+
+def _resolve_voice_preset_id(
+    builder: VideoBuilder, scene_idx: int,
+) -> int | None:
+    """Resolve voice_preset_id for a scene following priority:
+
+    1. scene_req.voice_design_prompt  (per-scene override — skip preset lookup)
+    2. Speaker-specific preset (Narrator -> storyboard, Character -> character)
+    3. VideoRequest.voice_preset_id   (global render panel preset)
+    """
+    scene_req = builder.request.scenes[scene_idx]
+
+    # 1. Per-scene voice_design_prompt overrides everything
+    if scene_req.voice_design_prompt:
+        return None
+
+    # 2. Speaker-specific preset
+    speaker = scene_req.speaker or "Narrator"
+    speaker_preset = _get_speaker_voice_preset(
+        builder.request.storyboard_id, speaker,
+    )
+    if speaker_preset:
+        return speaker_preset
+
+    # 3. Global fallback
+    return builder.request.voice_preset_id
+
+
 async def generate_tts(
     builder: VideoBuilder, i: int, clean_script: str, tts_path: Path,
 ) -> tuple[bool, float]:
@@ -347,6 +419,9 @@ async def generate_tts(
 
     scene_req = builder.request.scenes[i]
 
+    # --- Resolve voice preset for this scene (speaker-aware) ---
+    resolved_preset_id = _resolve_voice_preset_id(builder, i)
+
     # --- TTS result cache lookup ---
     voice_design_for_cache = (
         scene_req.voice_design_prompt
@@ -354,7 +429,7 @@ async def generate_tts(
         or ""
     )
     cache_key = _tts_cache_key(
-        clean_script, builder.request.voice_preset_id,
+        clean_script, resolved_preset_id,
         voice_design_for_cache, TTS_DEFAULT_LANGUAGE,
     )
     cached = TTS_CACHE_DIR / f"{cache_key}.mp3"
@@ -365,13 +440,13 @@ async def generate_tts(
         return True, tts_duration
 
     try:
-        # Resolve voice_design_prompt and seed
+        # Resolve voice_design_prompt and seed from preset
         preset_voice_design: str | None = None
         preset_seed: int | None = None
 
-        if builder.request.voice_preset_id:
+        if resolved_preset_id:
             preset_voice_design, preset_seed = _get_preset_voice_info(
-                builder.request.voice_preset_id,
+                resolved_preset_id,
             )
 
         voice_design = (

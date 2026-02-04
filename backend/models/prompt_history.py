@@ -4,10 +4,10 @@ from sqlalchemy import Boolean, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import Base, TimestampMixin
+from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 
-class PromptHistory(Base, TimestampMixin):
+class PromptHistory(Base, TimestampMixin, SoftDeleteMixin):
     """Stores generated prompt results and their quality metrics."""
 
     __tablename__ = "prompt_histories"

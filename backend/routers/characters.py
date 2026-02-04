@@ -1,5 +1,7 @@
 """Character CRUD endpoints for Pure V3."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
@@ -14,12 +16,29 @@ from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 
 router = APIRouter(prefix="/characters", tags=["characters"])
 
+
+@router.get("/trash")
+async def list_trashed_characters(db: Session = Depends(get_db)):
+    """List soft-deleted characters."""
+    items = db.query(Character).filter(
+        Character.deleted_at.isnot(None),
+    ).order_by(Character.deleted_at.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "deleted_at": c.deleted_at.isoformat() if c.deleted_at else None,
+        }
+        for c in items
+    ]
+
+
 @router.get("", response_model=list[CharacterResponse])
 async def list_characters(project_id: int | None = None, db: Session = Depends(get_db)):
     """List all characters with their tags and tag metadata."""
     query = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
-    )
+    ).filter(Character.deleted_at.is_(None))
     if project_id is not None:
         query = query.filter(Character.project_id == project_id)
     characters = query.order_by(Character.name).all()
@@ -56,7 +75,7 @@ async def get_character(character_id: int, db: Session = Depends(get_db)):
     """Get a single character by ID with tag metadata."""
     character = db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag)
-    ).filter(Character.id == character_id).first()
+    ).filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
 
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
@@ -211,22 +230,52 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
 
 @router.delete("/{character_id}")
 async def delete_character(character_id: int, db: Session = Depends(get_db)):
-    """Delete a character."""
+    """Soft-delete a character."""
+    character = db.query(Character).filter(
+        Character.id == character_id,
+        Character.deleted_at.is_(None),
+    ).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="Character not found")
+
+    character.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+    logger.info("[Characters] Soft deleted: %s", character.name)
+    return {"ok": True, "deleted": character.name}
+
+
+@router.post("/{character_id}/restore")
+async def restore_character(character_id: int, db: Session = Depends(get_db)):
+    """Restore a soft-deleted character."""
+    character = db.query(Character).filter(
+        Character.id == character_id,
+        Character.deleted_at.isnot(None),
+    ).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="Trashed character not found")
+    character.deleted_at = None
+    db.commit()
+    logger.info("[Characters] Restored: %s", character.name)
+    return {"ok": True, "restored": character.name}
+
+
+@router.delete("/{character_id}/permanent")
+async def permanently_delete_character(character_id: int, db: Session = Depends(get_db)):
+    """Permanently delete a character and cleanup IP-Adapter references."""
     character = db.query(Character).filter(Character.id == character_id).first()
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
     name = character.name
-    # Try to delete associated IP-Adapter reference image
     try:
         from services.controlnet import delete_reference_image
         delete_reference_image(name)
     except Exception as e:
-        logger.warning("⚠️ [Characters] Failed to delete reference image for %s: %s", name, e)
+        logger.warning("[Characters] Failed to delete reference image for %s: %s", name, e)
 
     db.delete(character)
     db.commit()
-    logger.info("🗑️ [Characters] Deleted: %s", name)
+    logger.info("[Characters] Permanently deleted: %s", name)
     return {"ok": True, "deleted": name}
 
 @router.get("/{character_id}/full", response_model=CharacterResponse)

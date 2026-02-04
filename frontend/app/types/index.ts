@@ -234,6 +234,8 @@ export type Character = {
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
+  default_voice_preset_id: number | null;
+  deleted_at?: string | null;
 };
 
 export type SDModelEntry = {
@@ -398,6 +400,7 @@ export type PromptHistory = {
   is_favorite: boolean;
   use_count: number;
   preview_image_url: string | null;
+  deleted_at?: string | null;
 };
 
 // Evaluation types (15.6)
@@ -465,7 +468,6 @@ export type RenderPreset = {
   description: string | null;
   is_system: boolean;
   project_id: number | null;
-  narrator_voice: string | null;
   bgm_file: string | null;
   bgm_volume: number | null;
   audio_ducking: boolean | null;
@@ -476,8 +478,6 @@ export type RenderPreset = {
   ken_burns_preset: string | null;
   ken_burns_intensity: number | null;
   speed_multiplier: number | null;
-  tts_engine: string | null;
-  voice_design_prompt: string | null;
   voice_preset_id: number | null;
 };
 

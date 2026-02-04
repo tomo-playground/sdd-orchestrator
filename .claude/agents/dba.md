@@ -8,12 +8,66 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*"]
 
 당신은 Shorts Producer 프로젝트의 **데이터베이스 관리자(DBA)** 역할을 수행하는 에이전트입니다.
 
+## 스키마 설계 철학
+
+모든 스키마 변경은 아래 원칙을 따릅니다. 기존 컬럼도 원칙 위반 발견 시 마이그레이션으로 수정합니다.
+
+### 1. 테이블은 하나의 관심사만 갖는다
+
+| 관심사 | 예시 | 원칙 |
+|--------|------|------|
+| 콘텐츠 | `storyboards` (title, topic) | 사용자가 생성한 데이터 |
+| 설정 | `group_config` (language, style) | 동작을 제어하는 파라미터 |
+| 메타데이터 | `projects` (name, description) | 식별/분류 정보 |
+
+**금지**: 하나의 테이블에 콘텐츠와 설정을 혼합하지 않는다.
+
+### 2. 컬럼 네이밍 규칙
+
+**`default_` prefix 사용 금지** (cascade/fallback 문맥 제외):
+- 실제 값을 저장하는 컬럼에 `default_` 붙이지 않는다
+- `default_caption` → `caption` (스토리보드의 실제 캡션)
+- `default_voice_preset_id` → `voice_preset_id` (캐릭터의 실제 목소리)
+
+**Boolean 컬럼**:
+- 반드시 `Boolean` 타입 사용 (Integer 금지)
+- `is_` / `_enabled` 접미사: `is_active`, `hi_res_enabled`
+- 의미가 명확하면 접두사 생략 가능: `deleted_at` (nullable timestamp)
+
+**FK 컬럼**:
+- `{entity}_id` 형식: `character_id`, `voice_preset_id`
+- 역할 구분 필요 시 `{role}_{entity}_id`: `narrator_voice_preset_id`, `preview_image_asset_id`
+
+### 3. JSON blob vs 정규화 테이블
+
+| 기준 | JSON (JSONB) | 정규화 테이블 |
+|------|-------------|--------------|
+| 쿼리 대상? | 아니오 (통째로 읽기/쓰기) | 예 (필터/JOIN 필요) |
+| 스키마 유동적? | 예 (필드 추가/삭제 자유) | 아니오 (고정 구조) |
+| FK 참조? | 불필요 | 필요 |
+| 예시 | `sd_params`, `context_tags` | `group_config`, `scene_character_actions` |
+
+**금지**: `Text` 타입에 JSON 문자열 저장. JSON이면 반드시 `JSONB`.
+
+### 4. 설정 소유권 원칙
+
+```
+System Default < Project Config < Group Config
+```
+
+- 설정은 **가장 가까운 상위 컨테이너**가 소유한다
+- 콘텐츠 엔티티(Storyboard, Scene)는 설정을 소유하지 않는다 — 상속만 받는다
+- 설정 확장 시 콘텐츠 테이블이 아닌 config 테이블에 컬럼을 추가한다
+
+---
+
 ## 핵심 책임
 
 ### 1. 스키마 설계
 - 테이블/관계 설계 및 정규화
 - 인덱스 전략 수립
 - 제약 조건(FK, UNIQUE, CHECK) 관리
+- **네이밍 원칙 준수 검증**
 
 ### 2. Alembic 마이그레이션
 - 마이그레이션 스크립트 작성 (upgrade/downgrade)

@@ -1,4 +1,4 @@
-# Database Schema (v3.4)
+# Database Schema (v3.5)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.5 | 2026-02-04 | `characters.default_voice_preset_id`, `storyboards.narrator_voice_preset_id` FK 추가. `render_presets`에서 `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 (voice_preset_id로 대체). Soft Delete (`deleted_at`) 추가 |
 | v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`/`groups`에 Cascading Config FK 추가 (`render_preset_id`, `default_character_id`, `default_style_profile_id`). `groups`에서 `default_bgm_file`/`default_narrator_voice` 제거 |
 | v3.3 | 2026-02-02 | `projects`, `groups`, `scene_quality_scores` 테이블 추가, `activity_logs`에 Gemini 트래킹 컬럼 추가, `media_assets`에 `is_temp`/`checksum` 추가, `storyboards`에 `default_caption` 반영 |
 | v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
@@ -102,17 +103,22 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
+| `group_id` | Integer (FK → groups, RESTRICT) | 소속 그룹 |
 | `title` | String(200) | 스토리보드 제목 |
 | `description` | Text | 설명 |
 | `default_character_id` | Integer | 기본 캐릭터 |
 | `default_style_profile_id` | Integer | 기본 스타일 프로파일 |
-| `default_caption` | Text, nullable | 기본 캡션 텍스트 (Post Layout용) |
-| `video_asset_id` | Integer (FK → media_assets) | 최신 렌더링 영상 (폴리모픽 참조) |
+| `default_caption` | Text | 기본 캡션 텍스트 (Post Layout용) |
+| `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 프리셋 |
+| `video_asset_id` | Integer (FK → media_assets, SET NULL) | 최신 렌더링 영상 |
 | `recent_videos_json` | Text | 최근 렌더링 이력 (JSON 스트링) |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `video_url` (`@property`): `video_asset.url` 반환
+
+> v3.5 변경: `narrator_voice_preset_id` FK 추가, `deleted_at` Soft Delete 추가
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -378,13 +384,18 @@ WD14 피드백 루프 데이터.
 | **IP-Adapter** | | |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
+| **Voice** | | |
+| `default_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
 | **Display** | | |
 | `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
 | `preview_locked` | Boolean | 미리보기 자동 갱신 잠금 (default: false) |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `preview_image_url` (`@property`): `preview_image_asset.url` 반환
+
+> v3.5 변경: `default_voice_preset_id` FK 추가, `deleted_at` Soft Delete 추가
 
 **V3 Prompt Pipeline에서의 사용** (→ `PROMPT_PIPELINE_SPEC.md` 참조):
 | 필드 | V3 compose 사용 | 용도 |
@@ -470,24 +481,22 @@ Model + LoRAs + Embeddings 번들.
 | `description` | Text | 설명 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
 | `project_id` | Integer (FK → projects, CASCADE) | 소속 프로젝트 (NULL=글로벌) |
-| **Render Fields** | | |
-| `narrator_voice` | String(100) | 내레이터 목소리 |
-| `bgm_file` | String(255) | BGM 파일 경로 |
-| `bgm_volume` | Float | BGM 볼륨 |
+| **Audio** | | |
+| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤) |
+| `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
 | `audio_ducking` | Boolean | 오디오 더킹 여부 |
-| `scene_text_font` | String(255) | Scene Text 폰트 |
+| `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 글로벌 음성 프리셋 |
+| `speed_multiplier` | Float | 재생 속도 배율 |
+| **Visual** | | |
 | `layout_style` | String(50) | 레이아웃 (`full`, `post`) |
 | `frame_style` | String(255) | 프레임 스타일 |
+| `scene_text_font` | String(255) | Scene Text 폰트 (파일명) |
 | `transition_type` | String(50) | 전환 효과 |
 | `ken_burns_preset` | String(50) | Ken Burns 프리셋 |
 | `ken_burns_intensity` | Float | Ken Burns 강도 |
-| `speed_multiplier` | Float | 재생 속도 배율 |
-| **TTS Settings** | | |
-| `tts_engine` | String(20) | TTS 엔진 (`edge`, `qwen`) |
-| `voice_design_prompt` | Text | Qwen VoiceDesign 프롬프트 |
-| `voice_ref_audio_url` | Text | 참조 음성 URL |
-| `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 음성 프리셋 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+> v3.5 변경: `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 → `voice_preset_id` FK로 대체
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -669,7 +678,30 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-02
-**Schema Version:** v3.4
+## 📐 Column Ordering Convention
+
+모든 테이블의 ORM 모델(`models/*.py`)에서 컬럼 선언 순서를 아래 규칙으로 통일합니다.
+
+```
+1. PK          — id
+2. Parent FK   — project_id, group_id, storyboard_id 등 (소속 관계)
+3. Identity    — name, title 등 (사람이 식별하는 필드)
+4. Metadata    — description, gender, is_system 등
+5. Domain      — 도메인 고유 필드 (그룹별로 구분)
+                 예: Render → Audio 그룹, Visual 그룹
+                 예: Character → Prompt, IP-Adapter, Voice
+6. Asset FK    — preview_image_asset_id, video_asset_id 등
+7. Config FK   — voice_preset_id, render_preset_id 등
+8. Flags       — preview_locked, is_active, deleted_at 등
+9. Timestamps  — created_at, updated_at (TimestampMixin)
+```
+
+**참고**: PostgreSQL은 `ALTER TABLE DROP COLUMN` 후 ordinal_position에 구멍이 생길 수 있음.
+물리적 컬럼 순서는 성능에 영향 없으므로, ORM 모델의 선언 순서를 기준으로 합니다.
+
+---
+
+**Last Updated:** 2026-02-04
+**Schema Version:** v3.5
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets)
+**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK)

@@ -5,9 +5,7 @@
 
 // ── cx helper ────────────────────────────────────────────────
 /** Merge class strings, filtering out falsy values. */
-export function cx(
-  ...classes: (string | false | null | undefined | 0)[]
-): string {
+export function cx(...classes: (string | false | null | undefined | 0)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -18,12 +16,10 @@ export const OVERLAY_CLASSES =
   "fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/80 backdrop-blur-md";
 
 /** Standard card surface (used inside modals, panels, etc.). */
-export const CARD_CLASSES =
-  "rounded-2xl bg-white shadow-xl border border-zinc-200";
+export const CARD_CLASSES = "rounded-2xl bg-white shadow-xl border border-zinc-200";
 
 /** Small uppercase label used in section headers. */
-export const LABEL_CLASSES =
-  "text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400";
+export const LABEL_CLASSES = "text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400";
 
 // ── Size / Variant maps ──────────────────────────────────────
 
@@ -33,3 +29,16 @@ export const FOCUS_RING =
 
 /** Disabled state applied to interactive elements. */
 export const DISABLED_CLASSES = "disabled:opacity-50 disabled:cursor-not-allowed";
+
+// ── Layout tokens ───────────────────────────────────────────
+
+/** Top-level navigation bar. */
+export const NAV_CLASSES =
+  "sticky top-0 z-40 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg";
+
+/** Page-level sub-navigation (sticky below nav). */
+export const SUB_NAV_CLASSES =
+  "sticky top-[var(--nav-height)] z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md";
+
+/** Max-width content container. w-full prevents shrink-wrap in flex parents. */
+export const CONTAINER_CLASSES = "mx-auto w-full max-w-5xl px-6";

@@ -5,11 +5,9 @@ import { AUTO_RUN_STEPS } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
 
 type StoryboardActionsBarProps = {
-  // Primary actions
   onGenerate: () => void;
   onAutoRun: () => void;
   onSave?: () => void;
-  // State
   isGenerating: boolean;
   isRendering: boolean;
   isAutoRunning: boolean;
@@ -18,6 +16,9 @@ type StoryboardActionsBarProps = {
   autoRunStep: AutoRunStepId | "idle";
   showSave?: boolean;
 };
+
+const base =
+  "rounded-md px-2.5 py-1 text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed";
 
 export default function StoryboardActionsBar({
   onGenerate,
@@ -34,18 +35,18 @@ export default function StoryboardActionsBar({
   const currentStepLabel = AUTO_RUN_STEPS.find((s) => s.id === autoRunStep)?.label || "Running";
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex items-center gap-1.5">
       <button
         data-testid="generate-btn"
         onClick={onGenerate}
         disabled={isGenerating || topicEmpty || isAutoRunning}
-        className="min-w-[120px] rounded-full border border-zinc-300 bg-white px-5 py-2 text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition hover:bg-zinc-50 hover:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+        className={`${base} border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50`}
       >
         {isGenerating ? (
-          <div className="flex items-center justify-center gap-2">
+          <span className="flex items-center gap-1.5">
             <LoadingSpinner size="sm" color="text-zinc-400" />
-            <span>Wait...</span>
-          </div>
+            Wait...
+          </span>
         ) : (
           "Generate"
         )}
@@ -53,13 +54,13 @@ export default function StoryboardActionsBar({
       <button
         onClick={onAutoRun}
         disabled={isGenerating || isRendering || isAutoRunning || topicEmpty}
-        className="min-w-[140px] rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow-lg shadow-zinc-900/20 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className={`${base} bg-zinc-900 text-white hover:bg-zinc-800`}
       >
         {isAutoRunning ? (
-          <div className="flex items-center justify-center gap-2">
+          <span className="flex items-center gap-1.5">
             <LoadingSpinner size="sm" color="text-white/70" />
-            <span>{currentStepLabel}...</span>
-          </div>
+            {currentStepLabel}...
+          </span>
         ) : (
           "Auto Run"
         )}
@@ -68,7 +69,7 @@ export default function StoryboardActionsBar({
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="min-w-[120px] rounded-full border-2 border-emerald-500 bg-emerald-50 px-5 py-2 text-xs font-semibold tracking-[0.2em] text-emerald-700 uppercase shadow-sm transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`${base} bg-emerald-500 text-white hover:bg-emerald-600`}
         >
           {isSaving ? "Saving..." : "Save"}
         </button>

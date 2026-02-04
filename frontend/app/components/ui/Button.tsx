@@ -10,7 +10,9 @@ export type ButtonVariant =
   | "secondary"
   | "danger"
   | "ghost"
-  | "gradient";
+  | "gradient"
+  | "success"
+  | "outline";
 
 export type ButtonSize = "sm" | "md" | "lg";
 
@@ -24,16 +26,15 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 // ── Variant / size maps ──────────────────────────────────────
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm",
-  secondary:
-    "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200",
-  danger:
-    "bg-rose-500 text-white hover:bg-rose-600 shadow-sm",
-  ghost:
-    "bg-transparent text-zinc-600 hover:bg-zinc-100",
+  primary: "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm",
+  secondary: "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200",
+  danger: "bg-rose-500 text-white hover:bg-rose-600 shadow-sm",
+  ghost: "bg-transparent text-zinc-600 hover:bg-zinc-100",
   gradient:
     "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-sm",
+  success: "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm",
+  outline:
+    "border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 hover:border-zinc-400 shadow-sm",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -76,17 +77,13 @@ export default function Button({
         icon ? iconSizeClasses[size] : sizeClasses[size],
         FOCUS_RING,
         DISABLED_CLASSES,
-        className,
+        className
       )}
       {...rest}
     >
       {loading ? (
         <>
-          <LoadingSpinner
-            size={spinnerSize[size]}
-            color="text-current"
-            className="shrink-0"
-          />
+          <LoadingSpinner size={spinnerSize[size]} color="text-current" className="shrink-0" />
           <span>{children}</span>
         </>
       ) : (

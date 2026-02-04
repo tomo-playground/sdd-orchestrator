@@ -92,6 +92,66 @@ export default function OutputTab() {
 
   return (
     <div className="space-y-6">
+      {/* Video Metadata — compact top bar */}
+      <div className="flex items-end gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <label className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+              캡션
+            </label>
+            <span
+              className={`text-[10px] font-bold ${
+                videoCaption.length >= 60
+                  ? "text-red-500"
+                  : videoCaption.length >= 50
+                    ? "text-amber-500"
+                    : "text-zinc-400"
+              }`}
+            >
+              {videoCaption.length}/60
+            </span>
+            {videoCaption.length > 60 && (
+              <button
+                onClick={handleExtractCaption}
+                disabled={isExtractingCaption}
+                className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 hover:bg-indigo-200 disabled:opacity-50"
+              >
+                {isExtractingCaption ? "..." : "요약"}
+              </button>
+            )}
+            {savedField === "caption" && savedBadge}
+          </div>
+          <input
+            type="text"
+            value={videoCaption}
+            onChange={(e) => setOutput({ videoCaption: e.target.value })}
+            onBlur={(e) => handleCaptionBlur(e.target.value)}
+            placeholder={store.topic || "AI 생성 영상"}
+            className={`w-full rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:ring-1 ${
+              videoCaption.length >= 60
+                ? "border-red-300 bg-red-50/30 focus:ring-red-100"
+                : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"
+            }`}
+          />
+        </div>
+        <div className="w-28 shrink-0">
+          <div className="mb-1 flex items-center gap-2">
+            <label className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+              좋아요
+            </label>
+            {savedField === "likes" && savedBadge}
+          </div>
+          <input
+            type="text"
+            value={videoLikesCount}
+            onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
+            onBlur={handleLikesBlur}
+            placeholder="1.2K"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-100"
+          />
+        </div>
+      </div>
+
       {/* Rendered Videos */}
       <RenderedVideosSection
         videoUrl={videoUrl}
@@ -101,87 +161,6 @@ export default function OutputTab() {
         onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
         onDeleteRecentVideo={handleDeleteRecentVideo}
       />
-
-      {/* Video Metadata */}
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h3 className="text-sm font-bold text-zinc-800">영상 메타데이터</h3>
-        <div>
-          <div className="mb-1 flex items-center justify-between">
-            <label className="block text-xs font-semibold text-zinc-600">
-              캡션 (이 영상) <span className="text-red-500">*</span>
-            </label>
-            <div className="flex items-center gap-2">
-              {savedField === "caption" && savedBadge}
-              {videoCaption.length > 60 && (
-                <button
-                  onClick={handleExtractCaption}
-                  disabled={isExtractingCaption}
-                  className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600 transition-colors hover:bg-indigo-200 disabled:opacity-50"
-                  title="LLM으로 캡션 요약"
-                >
-                  {isExtractingCaption ? "..." : "요약"}
-                </button>
-              )}
-              <span
-                className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                  videoCaption.length >= 60
-                    ? "bg-red-100 text-red-600"
-                    : videoCaption.length >= 50
-                      ? "bg-amber-100 text-amber-600"
-                      : "text-zinc-400"
-                }`}
-              >
-                {videoCaption.length}/60
-              </span>
-            </div>
-          </div>
-          <input
-            type="text"
-            value={videoCaption}
-            onChange={(e) => setOutput({ videoCaption: e.target.value })}
-            onBlur={(e) => handleCaptionBlur(e.target.value)}
-            placeholder={`예: ${store.topic || "AI 생성 영상"}`}
-            className={`w-full rounded-xl border px-3 py-2 text-sm transition-colors outline-none focus:ring-2 ${
-              videoCaption.length >= 60
-                ? "border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-50"
-                : videoCaption.length >= 50
-                  ? "border-amber-300 bg-amber-50/30 focus:border-amber-400 focus:ring-amber-50"
-                  : "border-zinc-200 focus:border-indigo-400 focus:ring-indigo-50"
-            }`}
-          />
-          <p
-            className={`mt-1 text-[10px] ${
-              videoCaption.length >= 60
-                ? "font-medium text-red-600"
-                : videoCaption.length >= 50
-                  ? "font-medium text-amber-600"
-                  : "text-zinc-400"
-            }`}
-          >
-            {videoCaption.length >= 60
-              ? "최대 60자 제한 (가로폭 초과 시 잘림)"
-              : videoCaption.length >= 50
-                ? "50자 초과 - 간결하게 작성 권장"
-                : videoCaption
-                  ? "가로폭 고려하여 60자 이내 권장"
-                  : "비워두면 스토리보드 주제가 사용됩니다"}
-          </p>
-        </div>
-        <div>
-          <div className="mb-1 flex items-center justify-between">
-            <label className="text-xs font-semibold text-zinc-600">좋아요 수 (선택)</label>
-            {savedField === "likes" && savedBadge}
-          </div>
-          <input
-            type="text"
-            value={videoLikesCount}
-            onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
-            onBlur={handleLikesBlur}
-            placeholder="예: 1.2K (비워두면 랜덤)"
-            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
-          />
-        </div>
-      </div>
     </div>
   );
 }

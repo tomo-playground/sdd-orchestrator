@@ -150,15 +150,20 @@
 | 1 | CI 파이프라인 (GitHub Actions: lint + test) | 인프라 | [x] |
 | 2 | VRT Baseline System | 인프라 | [ ] |
 | 3 | 고아 media_assets GC 시스템 | 인프라 | [x] |
-| 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [ ] |
-| 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [ ] |
-| 6 | Frontend Trash 탭 (Manage) | Soft Delete | [ ] |
+| 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [x] |
+| 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [x] |
+| 6 | Frontend Trash 탭 (Manage) | Soft Delete | [x] |
 | 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [x] |
 | 8 | z-index 통합 관리 (Tailwind 설정) | UI | [ ] |
 | 9 | Hook Extraction (`useManageState` 등) | Frontend | [ ] |
 | 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] |
 | 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [ ] |
 | 12 | WD14 Validate 매칭 정확도 개선 (부분문자열 오탐 제거, 복합태그 분해, 동의어, skipped/partial 응답) | 프롬프트 | [x] |
+
+| 13 | Character Voice Preset (캐릭터 대표 목소리) | Voice | [ ] |
+| 14 | Storyboard Narrator Voice (스토리보드 나레이터 목소리) | Voice | [ ] |
+| 15 | TTS 파이프라인 speaker→voice 자동 resolve | Voice | [ ] |
+| 16 | DB Schema Cleanup: 네이밍(`default_` 제거) + 타입(`Integer→Boolean`, `Text→JSONB`). [명세](FEATURES/SCHEMA_CLEANUP.md) | DB | [ ] |
 
 **DoD**: PR마다 CI 자동 테스트, Soft Delete 3개 모델 적용, 공통 컴포넌트 4개+.
 
@@ -207,6 +212,7 @@
 | 12 | 씬 텍스트 하단 배치 + 드롭섀도우 + Color Grade | 영상 품질 | - | [x] |
 | 13 | Gemini 스크립트 길이 제한 강화 (30자/Korean) | 품질 | - | [x] |
 | 14 | Character Identity Injection (Gemini 스토리보드에 캐릭터 태그/LoRA 주입 + 오토파일럿 overlay 수정) | 품질 | - | [x] |
+| 15 | 좌측 사이드바 네비게이션 + 컨텍스트 전환 버그 수정 (P0: 그룹/프로젝트 전환 시 stale state 6건) | UX | [명세](FEATURES/SIDEBAR_NAVIGATION.md) | [ ] |
 
 ---
 
@@ -227,6 +233,7 @@
 | Phase 0: Foundation | DB 마이그레이션, CRUD API, FK 연결 | [x] |
 | Phase 1: Core | FK 강화, 캐릭터 프로젝트 스코핑, 렌더 프리셋 분리, 설정 상속 엔진, 그룹 편집 UI 완료 | [x] |
 | Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동, Studio UX Polish | [x] |
+| Phase 1.7: Group Defaults | 그룹 cascade 확장 (language, structure, duration, narrator_voice), Manage 그룹 기본값 편집 UI. [명세](FEATURES/GROUP_DEFAULTS.md) | [ ] |
 | Phase 2: Differentiation | Channel DNA (톤/세계관 주입), Tag Intelligence, Series Intelligence | [ ] |
 | Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
 
@@ -282,9 +289,9 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-03):
+**현재 진행 상태** (2026-02-04):
 - Phase 6-5 ~ 6-8: **완료**
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
-- Phase 6-7: 5/12 완료 (#1 CI, #3 GC, #7 UI Toolkit, #12 WD14 매칭)
+- Phase 6-7: 8/15 완료 (#1 CI, #3 GC, #4-6 Soft Delete, #7 UI Toolkit, #12 WD14 매칭)
 - Phase 7-2: Phase 1.5 **완료**, Phase 2 대기
 - Phase 7-1: 6/14 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity)

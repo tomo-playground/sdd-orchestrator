@@ -1,5 +1,7 @@
 """Prompt History CRUD endpoints."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -17,6 +19,22 @@ from schemas import (
 router = APIRouter(prefix="/prompt-histories", tags=["prompt-histories"])
 
 
+@router.get("/trash")
+async def list_trashed_prompt_histories(db: Session = Depends(get_db)):
+    """List soft-deleted prompt histories."""
+    items = db.query(PromptHistory).filter(
+        PromptHistory.deleted_at.isnot(None),
+    ).order_by(PromptHistory.deleted_at.desc()).all()
+    return [
+        {
+            "id": ph.id,
+            "name": ph.name,
+            "deleted_at": ph.deleted_at.isoformat() if ph.deleted_at else None,
+        }
+        for ph in items
+    ]
+
+
 @router.get("", response_model=list[PromptHistoryResponse])
 async def list_prompt_histories(
     favorite: bool | None = Query(None, description="Filter by favorite status"),
@@ -26,7 +44,7 @@ async def list_prompt_histories(
     db: Session = Depends(get_db),
 ):
     """List prompt histories with optional filters."""
-    query = db.query(PromptHistory)
+    query = db.query(PromptHistory).filter(PromptHistory.deleted_at.is_(None))
 
     if favorite is not None:
         query = query.filter(PromptHistory.is_favorite == favorite)
@@ -56,7 +74,10 @@ async def list_prompt_histories(
 @router.get("/{history_id}", response_model=PromptHistoryResponse)
 async def get_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Get a single prompt history by ID."""
-    history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()
+    history = db.query(PromptHistory).filter(
+        PromptHistory.id == history_id,
+        PromptHistory.deleted_at.is_(None),
+    ).first()
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
     return history
@@ -106,7 +127,38 @@ async def update_prompt_history(
 
 @router.delete("/{history_id}")
 async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
-    """Delete a prompt history."""
+    """Soft-delete a prompt history."""
+    history = db.query(PromptHistory).filter(
+        PromptHistory.id == history_id,
+        PromptHistory.deleted_at.is_(None),
+    ).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="Prompt history not found")
+
+    history.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+    logger.info("[PromptHistory] Soft deleted: %s (id=%d)", history.name, history_id)
+    return {"ok": True, "deleted": history.name}
+
+
+@router.post("/{history_id}/restore")
+async def restore_prompt_history(history_id: int, db: Session = Depends(get_db)):
+    """Restore a soft-deleted prompt history."""
+    history = db.query(PromptHistory).filter(
+        PromptHistory.id == history_id,
+        PromptHistory.deleted_at.isnot(None),
+    ).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="Trashed prompt history not found")
+    history.deleted_at = None
+    db.commit()
+    logger.info("[PromptHistory] Restored: %s (id=%d)", history.name, history_id)
+    return {"ok": True, "restored": history.name}
+
+
+@router.delete("/{history_id}/permanent")
+async def permanently_delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
+    """Permanently delete a prompt history."""
     history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
@@ -114,7 +166,7 @@ async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
     name = history.name
     db.delete(history)
     db.commit()
-    logger.info("[PromptHistory] Deleted: %s (id=%d)", name, history_id)
+    logger.info("[PromptHistory] Permanently deleted: %s (id=%d)", name, history_id)
     return {"ok": True, "deleted": name}
 
 
