@@ -50,16 +50,19 @@ function GroupList({
             <button
               onClick={() => onSelect(g.id)}
               title={collapsed ? g.name : undefined}
-              className="flex flex-1 items-center gap-2 min-w-0"
+              className="flex min-w-0 flex-1 items-center gap-2"
             >
               <FolderOpen className="h-3.5 w-3.5 shrink-0" />
               {!collapsed && <span className="truncate">{g.name}</span>}
             </button>
             {!collapsed && (
               <button
-                onClick={(e) => { e.stopPropagation(); onConfig(g.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConfig(g.id);
+                }}
                 title="Group settings"
-                className="hidden shrink-0 rounded p-0.5 text-zinc-300 transition hover:text-zinc-600 group-hover/item:block"
+                className="hidden shrink-0 rounded p-0.5 text-zinc-300 transition group-hover/item:block hover:text-zinc-600"
               >
                 <Settings className="h-3 w-3" />
               </button>
@@ -73,10 +76,12 @@ function GroupList({
 
 function StoryList({
   storyboards,
+  activeId,
   collapsed,
   onSelect,
 }: {
   storyboards: StoryboardItem[];
+  activeId: number | null;
   collapsed: boolean;
   onSelect: (sb: StoryboardItem) => void;
 }) {
@@ -90,7 +95,12 @@ function StoryList({
           <button
             onClick={() => onSelect(sb)}
             title={collapsed ? sb.title : undefined}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-700"
+            className={cx(
+              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition",
+              sb.id === activeId
+                ? "bg-zinc-100 font-medium text-zinc-900"
+                : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
+            )}
           >
             <Clapperboard className="h-3.5 w-3.5 shrink-0" />
             {!collapsed && <span className="truncate">{sb.title || `Story #${sb.id}`}</span>}
@@ -127,6 +137,7 @@ function AddButton({
 export default function Sidebar() {
   const router = useRouter();
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
+  const storyboardId = useStudioStore((s) => s.storyboardId);
   const setMeta = useStudioStore((s) => s.setMeta);
 
   const [collapsed, setCollapsed] = useState(false);
@@ -172,92 +183,96 @@ export default function Sidebar() {
 
   return (
     <>
-    <aside
-      className={cx(
-        "hidden flex-col border-r border-zinc-200 bg-white transition-[width] duration-200 lg:flex",
-        sidebarWidth
-      )}
-    >
-      {/* Project Selector */}
-      {!collapsed && (
-        <div className="border-b border-zinc-100 px-3 py-3">
-          <div className="flex items-center gap-1">
-            <select
-              value={projectId ?? ""}
-              onChange={(e) => selectProject(Number(e.target.value))}
-              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setShowProjectSettings(true)}
-              title="Project settings"
-              className="shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Groups */}
-        <SectionHeader label="Groups" collapsed={collapsed} />
-        <GroupList
-          groups={groups}
-          activeId={groupId}
-          collapsed={collapsed}
-          onSelect={selectGroup}
-          onConfig={setConfigGroupId}
-        />
-        <AddButton
-          label="New Group"
-          collapsed={collapsed}
-          onClick={() => router.push("/manage?tab=groups")}
-        />
-
-        {/* Divider */}
-        <div className="mx-3 my-2 border-t border-zinc-100" />
-
-        {/* Stories */}
-        <SectionHeader label="Stories" collapsed={collapsed} />
-        <StoryList storyboards={storyboards} collapsed={collapsed} onSelect={handleStorySelect} />
-        <AddButton
-          label="New Story"
-          collapsed={collapsed}
-          onClick={() => router.push("/studio?new=true")}
-        />
-      </div>
-
-      {/* Collapse Toggle */}
-      <button
-        onClick={toggleCollapse}
-        className="flex items-center justify-center border-t border-zinc-100 py-2 text-zinc-400 transition hover:text-zinc-600"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      <aside
+        className={cx(
+          "hidden flex-col border-r border-zinc-200 bg-white transition-[width] duration-200 lg:flex",
+          sidebarWidth
+        )}
       >
-        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </button>
-    </aside>
+        {/* Project Selector */}
+        {!collapsed && (
+          <div className="border-b border-zinc-100 px-3 py-3">
+            <div className="flex items-center gap-1">
+              <select
+                value={projectId ?? ""}
+                onChange={(e) => selectProject(Number(e.target.value))}
+                className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setShowProjectSettings(true)}
+                title="Project settings"
+                className="shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
-    {configGroupId && (
-      <GroupConfigEditor
-        groupId={configGroupId}
-        onClose={() => setConfigGroupId(null)}
-      />
-    )}
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Groups */}
+          <SectionHeader label="Groups" collapsed={collapsed} />
+          <GroupList
+            groups={groups}
+            activeId={groupId}
+            collapsed={collapsed}
+            onSelect={selectGroup}
+            onConfig={setConfigGroupId}
+          />
+          <AddButton
+            label="New Group"
+            collapsed={collapsed}
+            onClick={() => router.push("/manage?tab=groups")}
+          />
 
-    {showProjectSettings && projectId && (
-      <ProjectFormModal
-        project={projects.find((p) => p.id === projectId)}
-        onSave={async (data) => { await updateProject(projectId, data); }}
-        onClose={() => setShowProjectSettings(false)}
-      />
-    )}
+          {/* Divider */}
+          <div className="mx-3 my-2 border-t border-zinc-100" />
+
+          {/* Stories */}
+          <SectionHeader label="Stories" collapsed={collapsed} />
+          <StoryList
+            storyboards={storyboards}
+            activeId={storyboardId}
+            collapsed={collapsed}
+            onSelect={handleStorySelect}
+          />
+          <AddButton
+            label="New Story"
+            collapsed={collapsed}
+            onClick={() => router.push("/studio?new=true")}
+          />
+        </div>
+
+        {/* Collapse Toggle */}
+        <button
+          onClick={toggleCollapse}
+          className="flex items-center justify-center border-t border-zinc-100 py-2 text-zinc-400 transition hover:text-zinc-600"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+      </aside>
+
+      {configGroupId && (
+        <GroupConfigEditor groupId={configGroupId} onClose={() => setConfigGroupId(null)} />
+      )}
+
+      {showProjectSettings && projectId && (
+        <ProjectFormModal
+          project={projects.find((p) => p.id === projectId)}
+          onSave={async (data) => {
+            await updateProject(projectId, data);
+          }}
+          onClose={() => setShowProjectSettings(false)}
+        />
+      )}
     </>
   );
 }
