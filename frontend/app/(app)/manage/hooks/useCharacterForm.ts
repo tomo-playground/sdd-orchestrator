@@ -1,12 +1,30 @@
 import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
-import { Character, CharacterLoRA, Tag, LoRA, ActorGender, PromptMode, VoicePreset } from "../../types";
+import { API_BASE } from "../../../constants";
+import {
+  Character,
+  CharacterLoRA,
+  Tag,
+  LoRA,
+  ActorGender,
+  PromptMode,
+  VoicePreset,
+} from "../../../types";
 
 const RESTRICTED_KEYWORDS = [
-  "background", "kitchen", "room", "outdoors", "indoors",
-  "scenery", "nature", "mountain", "street", "office",
-  "bedroom", "bathroom", "garden",
+  "background",
+  "kitchen",
+  "room",
+  "outdoors",
+  "indoors",
+  "scenery",
+  "nature",
+  "mountain",
+  "street",
+  "office",
+  "bedroom",
+  "bathroom",
+  "garden",
 ];
 
 export function useCharacterForm(
@@ -14,7 +32,7 @@ export function useCharacterForm(
   allTags: Tag[],
   allLoras: LoRA[],
   onSave: (data: Partial<Character>, id?: number) => Promise<void>,
-  onClose: () => void,
+  onClose: () => void
 ) {
   const isCreateMode = !character;
 
@@ -23,29 +41,35 @@ export function useCharacterForm(
   const [description, setDescription] = useState(character?.description || "");
   const [gender, setGender] = useState<ActorGender>(character?.gender || "female");
   const [customBasePrompt, setCustomBasePrompt] = useState(character?.custom_base_prompt || "");
-  const [customNegativePrompt, setCustomNegativePrompt] = useState(character?.custom_negative_prompt || "");
+  const [customNegativePrompt, setCustomNegativePrompt] = useState(
+    character?.custom_negative_prompt || ""
+  );
 
   // --- Preview ---
   const [previewImageUrl, setPreviewImageUrl] = useState(character?.preview_image_url || "");
   const [previewLocked, setPreviewLocked] = useState(character?.preview_locked ?? false);
   const [promptMode, setPromptMode] = useState<PromptMode>(character?.prompt_mode || "auto");
-  const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(character?.ip_adapter_weight || 0.75);
-  const [ipAdapterModel, setIpAdapterModel] = useState<string>(character?.ip_adapter_model || "clip_face");
+  const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(
+    character?.ip_adapter_weight || 0.75
+  );
+  const [ipAdapterModel, setIpAdapterModel] = useState<string>(
+    character?.ip_adapter_model || "clip_face"
+  );
 
   // --- Reference prompts ---
   const [referenceBasePrompt, setReferenceBasePrompt] = useState(
-    isCreateMode ? customBasePrompt : character?.reference_base_prompt || "",
+    isCreateMode ? customBasePrompt : character?.reference_base_prompt || ""
   );
   const [referenceNegativePrompt, setReferenceNegativePrompt] = useState(
-    isCreateMode ? customNegativePrompt : character?.reference_negative_prompt || "",
+    isCreateMode ? customNegativePrompt : character?.reference_negative_prompt || ""
   );
 
   // --- Tags ---
   const [identityTagIds, setIdentityTagIds] = useState<number[]>(
-    character?.tags?.filter(t => t.is_permanent).map(t => t.tag_id) || [],
+    character?.tags?.filter((t) => t.is_permanent).map((t) => t.tag_id) || []
   );
   const [clothingTagIds, setClothingTagIds] = useState<number[]>(
-    character?.tags?.filter(t => !t.is_permanent).map(t => t.tag_id) || [],
+    character?.tags?.filter((t) => !t.is_permanent).map((t) => t.tag_id) || []
   );
   const [tagSearch, setTagSearch] = useState("");
   const [activeTagInput, setActiveTagInput] = useState<"identity" | "clothing" | null>(null);
@@ -56,13 +80,16 @@ export function useCharacterForm(
 
   // --- Voice Preset ---
   const [defaultVoicePresetId, setDefaultVoicePresetId] = useState<number | null>(
-    character?.voice_preset_id ?? null,
+    character?.voice_preset_id ?? null
   );
   const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
   useEffect(() => {
-    axios.get(`${API_BASE}/voice-presets`).then((res) => {
-      setVoicePresets(res.data);
-    }).catch(() => {});
+    axios
+      .get(`${API_BASE}/voice-presets`)
+      .then((res) => {
+        setVoicePresets(res.data);
+      })
+      .catch(() => {});
   }, []);
 
   // --- LoRAs ---
@@ -90,8 +117,11 @@ export function useCharacterForm(
 
   // --- Derived: warnings ---
   const sceneIdentityWarning = useMemo(() => {
-    const tokens = customBasePrompt.toLowerCase().split(/[,\s]+/).map(t => t.trim());
-    const found = tokens.filter(t => RESTRICTED_KEYWORDS.includes(t));
+    const tokens = customBasePrompt
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .map((t) => t.trim());
+    const found = tokens.filter((t) => RESTRICTED_KEYWORDS.includes(t));
     return found.length > 0
       ? `Warning: Background tags detected (${found.join(", ")}). Please remove them for better consistency.`
       : null;
@@ -99,7 +129,11 @@ export function useCharacterForm(
 
   const referenceProfileWarning = useMemo(() => {
     const lower = referenceBasePrompt.toLowerCase();
-    if (!lower.includes("white background") && !lower.includes("simple background") && !lower.includes("plain background")) {
+    if (
+      !lower.includes("white background") &&
+      !lower.includes("simple background") &&
+      !lower.includes("plain background")
+    ) {
       return "Tip: Adding 'white background' is recommended for cleaner character reference.";
     }
     return null;
@@ -107,19 +141,19 @@ export function useCharacterForm(
 
   // --- Derived: tags ---
   const identityTags = useMemo(
-    () => identityTagIds.map(id => allTags.find(t => t.id === id)).filter(Boolean) as Tag[],
-    [identityTagIds, allTags],
+    () => identityTagIds.map((id) => allTags.find((t) => t.id === id)).filter(Boolean) as Tag[],
+    [identityTagIds, allTags]
   );
 
   const clothingTags = useMemo(
-    () => clothingTagIds.map(id => allTags.find(t => t.id === id)).filter(Boolean) as Tag[],
-    [clothingTagIds, allTags],
+    () => clothingTagIds.map((id) => allTags.find((t) => t.id === id)).filter(Boolean) as Tag[],
+    [clothingTagIds, allTags]
   );
 
   const filteredTags = useMemo(() => {
     if (!tagSearch.trim()) return [];
     const search = tagSearch.toLowerCase();
-    return allTags.filter(t => t.name.toLowerCase().includes(search)).slice(0, 10);
+    return allTags.filter((t) => t.name.toLowerCase().includes(search)).slice(0, 10);
   }, [allTags, tagSearch]);
 
   // --- Handlers: preview image ---
@@ -184,21 +218,24 @@ export function useCharacterForm(
 
   const handleRemoveTag = (id: number, type: "identity" | "clothing") => {
     if (type === "identity") {
-      setIdentityTagIds(identityTagIds.filter(t => t !== id));
+      setIdentityTagIds(identityTagIds.filter((t) => t !== id));
     } else {
-      setClothingTagIds(clothingTagIds.filter(t => t !== id));
+      setClothingTagIds(clothingTagIds.filter((t) => t !== id));
     }
   };
 
   const toggleRawEdit = (type: "identity" | "clothing") => {
     if (rawEditMode === type) {
-      const parsed = rawEditText.split(",").map(t => t.trim()).filter(t => t.length > 0);
+      const parsed = rawEditText
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
       const newIds: number[] = [];
       const notFound: string[] = [];
 
-      parsed.forEach(tagName => {
-        let tag = allTags.find(t => t.name === tagName);
-        if (!tag) tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+      parsed.forEach((tagName) => {
+        let tag = allTags.find((t) => t.name === tagName);
+        if (!tag) tag = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
         if (tag) {
           if (!newIds.includes(tag.id)) newIds.push(tag.id);
         } else {
@@ -207,7 +244,9 @@ export function useCharacterForm(
       });
 
       if (notFound.length > 0) {
-        alert(`Warning: The following tags were not found and will be ignored:\n${notFound.join(", ")}\n\nPlease use the Tag Manager to add new tags first.`);
+        alert(
+          `Warning: The following tags were not found and will be ignored:\n${notFound.join(", ")}\n\nPlease use the Tag Manager to add new tags first.`
+        );
       }
 
       if (type === "identity") setIdentityTagIds(newIds);
@@ -215,7 +254,7 @@ export function useCharacterForm(
       setRawEditMode(null);
     } else {
       const tags = type === "identity" ? identityTags : clothingTags;
-      setRawEditText(tags.map(t => t.name).join(", "));
+      setRawEditText(tags.map((t) => t.name).join(", "));
       setRawEditMode(type);
     }
   };
@@ -224,7 +263,7 @@ export function useCharacterForm(
   const handleAddLora = () => {
     if (allLoras.length > 0) {
       const first = allLoras[0];
-      if (!selectedLoras.find(l => l.lora_id === first.id)) {
+      if (!selectedLoras.find((l) => l.lora_id === first.id)) {
         setSelectedLoras([...selectedLoras, { lora_id: first.id, weight: 1.0 }]);
       }
     }
@@ -246,10 +285,13 @@ export function useCharacterForm(
     let finalClothingTagIds = clothingTagIds;
 
     if (rawEditMode) {
-      const parsed = rawEditText.split(",").map(t => t.trim()).filter(t => t.length > 0);
+      const parsed = rawEditText
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
       const newIds: number[] = [];
-      parsed.forEach(tagName => {
-        const tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+      parsed.forEach((tagName) => {
+        const tag = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
         if (tag && !newIds.includes(tag.id)) newIds.push(tag.id);
       });
       if (rawEditMode === "identity") {
@@ -267,8 +309,8 @@ export function useCharacterForm(
       description,
       gender,
       tags: [
-        ...finalIdentityTagIds.map(id => ({ tag_id: id, weight: 1.0, is_permanent: true })),
-        ...finalClothingTagIds.map(id => ({ tag_id: id, weight: 1.0, is_permanent: false })),
+        ...finalIdentityTagIds.map((id) => ({ tag_id: id, weight: 1.0, is_permanent: true })),
+        ...finalClothingTagIds.map((id) => ({ tag_id: id, weight: 1.0, is_permanent: false })),
       ],
       loras: selectedLoras,
       prompt_mode: promptMode,
@@ -298,44 +340,77 @@ export function useCharacterForm(
   return {
     // Basic
     isCreateMode,
-    name, setName,
-    description, setDescription,
-    gender, setGender,
-    customBasePrompt, setCustomBasePrompt,
-    customNegativePrompt, setCustomNegativePrompt,
+    name,
+    setName,
+    description,
+    setDescription,
+    gender,
+    setGender,
+    customBasePrompt,
+    setCustomBasePrompt,
+    customNegativePrompt,
+    setCustomNegativePrompt,
     // Preview
-    previewImageUrl, setPreviewImageUrl,
-    previewLocked, setPreviewLocked,
-    promptMode, setPromptMode,
-    ipAdapterWeight, setIpAdapterWeight,
-    ipAdapterModel, setIpAdapterModel,
+    previewImageUrl,
+    setPreviewImageUrl,
+    previewLocked,
+    setPreviewLocked,
+    promptMode,
+    setPromptMode,
+    ipAdapterWeight,
+    setIpAdapterWeight,
+    ipAdapterModel,
+    setIpAdapterModel,
     // Reference
-    referenceBasePrompt, setReferenceBasePrompt,
-    referenceNegativePrompt, setReferenceNegativePrompt,
+    referenceBasePrompt,
+    setReferenceBasePrompt,
+    referenceNegativePrompt,
+    setReferenceNegativePrompt,
     // Tags
-    identityTagIds, clothingTagIds,
-    tagSearch, setTagSearch,
-    activeTagInput, setActiveTagInput,
-    rawEditMode, rawEditText, setRawEditText,
+    identityTagIds,
+    clothingTagIds,
+    tagSearch,
+    setTagSearch,
+    activeTagInput,
+    setActiveTagInput,
+    rawEditMode,
+    rawEditText,
+    setRawEditText,
     // Voice Preset
-    defaultVoicePresetId, setDefaultVoicePresetId,
+    defaultVoicePresetId,
+    setDefaultVoicePresetId,
     voicePresets,
     // LoRAs
     selectedLoras,
     // Async flags
-    isSaving, isGenerating, isEnhancing, isEditing,
+    isSaving,
+    isGenerating,
+    isEnhancing,
+    isEditing,
     // Gemini edit
-    geminiEditOpen, setGeminiEditOpen,
-    geminiTargetChange, setGeminiTargetChange,
+    geminiEditOpen,
+    setGeminiEditOpen,
+    geminiTargetChange,
+    setGeminiTargetChange,
     // Preview modal
-    previewImageOpen, setPreviewImageOpen,
+    previewImageOpen,
+    setPreviewImageOpen,
     // Derived
-    sceneIdentityWarning, referenceProfileWarning,
-    identityTags, clothingTags, filteredTags,
+    sceneIdentityWarning,
+    referenceProfileWarning,
+    identityTags,
+    clothingTags,
+    filteredTags,
     // Handlers
-    handleGenerateReference, handleEnhancePreview, handleEditPreview,
-    handleAddTag, handleRemoveTag, toggleRawEdit,
-    handleAddLora, handleUpdateLora, handleRemoveLora,
+    handleGenerateReference,
+    handleEnhancePreview,
+    handleEditPreview,
+    handleAddTag,
+    handleRemoveTag,
+    toggleRawEdit,
+    handleAddLora,
+    handleUpdateLora,
+    handleRemoveLora,
     handleSubmit,
   };
 }

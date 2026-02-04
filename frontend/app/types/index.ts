@@ -1,3 +1,11 @@
+export type GeminiSuggestion = {
+  edit_type: string;
+  issue: string;
+  description: string;
+  confidence: number;
+  target_change: string;
+};
+
 export type SceneContextTags = {
   expression?: string[];
   gaze?: string; // exclusive (single select)

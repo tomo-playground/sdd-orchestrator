@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE } from "../../../constants";
 
 type TrashItem = {
   id: number;
@@ -181,7 +181,7 @@ export default function TrashTab() {
                 key={`${item.type}-${item.id}`}
                 className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge.color}`}
                   >
@@ -193,21 +193,19 @@ export default function TrashTab() {
                   <span className="shrink-0 text-[11px] text-zinc-400">
                     {formatDate(item.deleted_at)}
                   </span>
-                  <span className="shrink-0 text-[11px] text-zinc-400">
-                    {remaining}d left
-                  </span>
+                  <span className="shrink-0 text-[11px] text-zinc-400">{remaining}d left</span>
                 </div>
 
-                <div className="flex gap-2 shrink-0 ml-3">
+                <div className="ml-3 flex shrink-0 gap-2">
                   <button
                     onClick={() => handleRestore(item)}
-                    className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition"
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
                   >
                     Restore
                   </button>
                   <button
                     onClick={() => handlePermanentDelete(item)}
-                    className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                    className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100"
                   >
                     Delete
                   </button>
@@ -221,10 +219,8 @@ export default function TrashTab() {
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition ${
-            toast.type === "success"
-              ? "bg-emerald-600 text-white"
-              : "bg-red-600 text-white"
+          className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition ${
+            toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
           }`}
         >
           {toast.message}

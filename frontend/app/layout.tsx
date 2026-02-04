@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
-import AppShell from "./components/shell/AppShell";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -16,8 +15,8 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shorts Producer MVP",
-  description: "Script-first storyboard and manual image upload workflow.",
+  title: "Shorts Producer",
+  description: "AI-powered shorts video automation workspace.",
 };
 
 export default function RootLayout({
@@ -31,7 +30,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
-        <AppShell>{children}</AppShell>
+        {children}
       </body>
     </html>
   );

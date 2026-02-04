@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
-import type { RenderPreset, VoicePreset } from "../../types";
+import { API_BASE } from "../../../constants";
+import type { RenderPreset, VoicePreset } from "../../../types";
 
 type EditingPreset = Partial<RenderPreset> & { name: string };
 
@@ -47,18 +47,22 @@ export default function RenderPresetsTab() {
   useEffect(() => {
     void fetchPresets();
     // Fetch dynamic options
-    void axios.get<{ audios: { name: string }[] }>(`${API_BASE}/audio/list`).then(
-      (r) => setBgmFiles(r.data.audios.map((a) => a.name)),
-    ).catch(() => {});
-    void axios.get<{ fonts: { name: string }[] }>(`${API_BASE}/fonts/list`).then(
-      (r) => setFonts(r.data.fonts.map((f) => f.name)),
-    ).catch(() => {});
-    void axios.get<{ overlays: { id: string; name: string }[] }>(`${API_BASE}/overlay/list`).then(
-      (r) => setOverlays(r.data.overlays),
-    ).catch(() => {});
-    void axios.get<VoicePreset[]>(`${API_BASE}/voice-presets`).then(
-      (r) => setVoicePresets(r.data),
-    ).catch(() => {});
+    void axios
+      .get<{ audios: { name: string }[] }>(`${API_BASE}/audio/list`)
+      .then((r) => setBgmFiles(r.data.audios.map((a) => a.name)))
+      .catch(() => {});
+    void axios
+      .get<{ fonts: { name: string }[] }>(`${API_BASE}/fonts/list`)
+      .then((r) => setFonts(r.data.fonts.map((f) => f.name)))
+      .catch(() => {});
+    void axios
+      .get<{ overlays: { id: string; name: string }[] }>(`${API_BASE}/overlay/list`)
+      .then((r) => setOverlays(r.data.overlays))
+      .catch(() => {});
+    void axios
+      .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
+      .then((r) => setVoicePresets(r.data))
+      .catch(() => {});
   }, [fetchPresets]);
 
   const handleCreate = () => {
@@ -125,12 +129,12 @@ export default function RenderPresetsTab() {
     <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400">
+        <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
           Render Presets ({presets.length})
         </span>
         <button
           onClick={handleCreate}
-          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow hover:bg-zinc-700 transition"
+          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-zinc-700"
         >
           + New Preset
         </button>
@@ -141,7 +145,7 @@ export default function RenderPresetsTab() {
         {presets.map((p) => (
           <div
             key={p.id}
-            className="flex items-center justify-between rounded-xl border border-zinc-100 px-4 py-3 hover:bg-zinc-50/50 transition"
+            className="flex items-center justify-between rounded-xl border border-zinc-100 px-4 py-3 transition hover:bg-zinc-50/50"
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -152,7 +156,7 @@ export default function RenderPresetsTab() {
                   </span>
                 )}
               </div>
-              <div className="mt-0.5 text-[10px] text-zinc-400 truncate">
+              <div className="mt-0.5 truncate text-[10px] text-zinc-400">
                 {[
                   p.layout_style,
                   p.bgm_file ? `BGM: ${p.bgm_file}` : null,
@@ -169,30 +173,28 @@ export default function RenderPresetsTab() {
                   .join(" / ")}
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-3">
+            <div className="ml-3 flex items-center gap-2">
               <button
                 onClick={() => handleEdit(p)}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 transition"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-100"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(p)}
-                className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 hover:bg-red-50 transition"
+                className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 transition hover:bg-red-50"
               >
                 Del
               </button>
             </div>
           </div>
         ))}
-        {presets.length === 0 && (
-          <p className="py-8 text-center text-zinc-400">No presets found</p>
-        )}
+        {presets.length === 0 && <p className="py-8 text-center text-zinc-400">No presets found</p>}
       </div>
 
       {/* Edit / Create Form */}
       {editing && (
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-5 space-y-4">
+        <div className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/50 p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-700">
               {editId ? "Edit Preset" : "New Preset"}
@@ -242,12 +244,16 @@ export default function RenderPresetsTab() {
               <label className={labelCls}>Voice Preset</label>
               <select
                 value={editing.voice_preset_id ?? ""}
-                onChange={(e) => set("voice_preset_id", e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) =>
+                  set("voice_preset_id", e.target.value ? Number(e.target.value) : null)
+                }
                 className={inputCls}
               >
                 <option value="">-- None (auto) --</option>
                 {voicePresets.map((vp) => (
-                  <option key={vp.id} value={vp.id}>{vp.name}</option>
+                  <option key={vp.id} value={vp.id}>
+                    {vp.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -261,7 +267,9 @@ export default function RenderPresetsTab() {
                 <option value="">-- None --</option>
                 <option value="random">Random</option>
                 {bgmFiles.map((name) => (
-                  <option key={name} value={name}>{name.replace(/\.[^.]+$/, "")}</option>
+                  <option key={name} value={name}>
+                    {name.replace(/\.[^.]+$/, "")}
+                  </option>
                 ))}
               </select>
             </div>
@@ -297,7 +305,9 @@ export default function RenderPresetsTab() {
               >
                 <option value="">-- Default --</option>
                 {fonts.map((name) => (
-                  <option key={name} value={name}>{name}</option>
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -310,7 +320,9 @@ export default function RenderPresetsTab() {
               >
                 <option value="">-- None --</option>
                 {overlays.map((o) => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -321,13 +333,22 @@ export default function RenderPresetsTab() {
                 onChange={(e) => set("transition_type", e.target.value)}
                 className={inputCls}
               >
-                {["fade", "dissolve", "wipeleft", "wiperight", "slideup", "slidedown", "pixelize", "radial", "none", "random"].map(
-                  (v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ),
-                )}
+                {[
+                  "fade",
+                  "dissolve",
+                  "wipeleft",
+                  "wiperight",
+                  "slideup",
+                  "slidedown",
+                  "pixelize",
+                  "radial",
+                  "none",
+                  "random",
+                ].map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -384,7 +405,7 @@ export default function RenderPresetsTab() {
             <button
               onClick={handleSave}
               disabled={saving || !editing.name.trim()}
-              className="rounded-full bg-zinc-900 px-5 py-1.5 text-[10px] font-bold text-white shadow hover:bg-zinc-700 disabled:opacity-40 transition"
+              className="rounded-full bg-zinc-900 px-5 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-zinc-700 disabled:opacity-40"
             >
               {saving ? "Saving..." : editId ? "Save" : "Create"}
             </button>

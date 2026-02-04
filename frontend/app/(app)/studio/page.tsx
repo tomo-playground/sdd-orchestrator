@@ -1,32 +1,32 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useStudioStore } from "../store/useStudioStore";
-import type { AutoRunStepId } from "../types";
-import TabBar from "../components/studio/TabBar";
-import PlanTab from "../components/studio/PlanTab";
-import ScenesTab from "../components/studio/ScenesTab";
-import RenderTab from "../components/studio/RenderTab";
-import OutputTab from "../components/studio/OutputTab";
+import { useStudioStore } from "../../store/useStudioStore";
+import type { AutoRunStepId } from "../../types";
+import TabBar from "../../components/studio/TabBar";
+import PlanTab from "../../components/studio/PlanTab";
+import ScenesTab from "../../components/studio/ScenesTab";
+import RenderTab from "../../components/studio/RenderTab";
+import OutputTab from "../../components/studio/OutputTab";
 
-import Toast from "../components/ui/Toast";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
-import ImagePreviewModal from "../components/ui/ImagePreviewModal";
-import VideoPreviewModal from "../components/ui/VideoPreviewModal";
-import AutoRunStatus from "../components/storyboard/AutoRunStatus";
-import StoryboardActionsBar from "../components/storyboard/StoryboardActionsBar";
-import StyleProfileModal from "../components/setup/StyleProfileModal";
-import PromptHelperSidebar from "../components/prompt/PromptHelperSidebar";
-import { ContextBar, GroupFormModal } from "../components/context";
-import { useAutopilot } from "../hooks/useAutopilot";
-import { useStudioInitialization } from "../hooks/useStudioInitialization";
-import { useStudioOnboarding } from "../hooks/useStudioOnboarding";
-import { createGroup } from "../store/actions/groupActions";
-import { SUB_NAV_CLASSES, CONTAINER_CLASSES, cx } from "../components/ui/variants";
-import { runAutoRunFromStep } from "../store/actions/autopilotActions";
-import { generateStoryboard, saveStoryboard } from "../store/actions/storyboardActions";
-import { handleStyleProfileComplete } from "../store/actions/styleProfileActions";
-import { suggestPromptSplit, copyPromptHelperText } from "../store/actions/promptHelperActions";
+import Toast from "../../components/ui/Toast";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
+import VideoPreviewModal from "../../components/ui/VideoPreviewModal";
+import AutoRunStatus from "../../components/storyboard/AutoRunStatus";
+import StoryboardActionsBar from "../../components/storyboard/StoryboardActionsBar";
+import StyleProfileModal from "../../components/setup/StyleProfileModal";
+import PromptHelperSidebar from "../../components/prompt/PromptHelperSidebar";
+import { ContextBar, GroupFormModal } from "../../components/context";
+import { useAutopilot } from "../../hooks/useAutopilot";
+import { useStudioInitialization } from "../../hooks/useStudioInitialization";
+import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
+import { createGroup } from "../../store/actions/groupActions";
+import { SUB_NAV_CLASSES, CONTAINER_CLASSES, cx } from "../../components/ui/variants";
+import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
+import { generateStoryboard, saveStoryboard } from "../../store/actions/storyboardActions";
+import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
+import { suggestPromptSplit, copyPromptHelperText } from "../../store/actions/promptHelperActions";
 
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =

@@ -17,7 +17,7 @@ import {
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
-import { cx, LABEL_CLASSES } from "../components/ui/variants";
+import { cx, LABEL_CLASSES } from "../../components/ui/variants";
 
 // ── Types ────────────────────────────────────────────────────
 

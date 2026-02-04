@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag } from "../../types";
+import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag, GeminiSuggestion } from "../../types";
 import DebugTabContent from "../quality/DebugTabContent";
 import SceneImagePanel from "../quality/SceneImagePanel";
 import Button from "../ui/Button";
@@ -48,7 +48,7 @@ type SceneCardProps = {
   onImageUpload: (file: File | undefined) => void;
   onGenerateImage: () => void;
   onEditWithGemini: (targetChange: string) => void;
-  onSuggestEditWithGemini: () => Promise<unknown[]>;
+  onSuggestEditWithGemini: () => Promise<GeminiSuggestion[]>;
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
@@ -117,7 +117,7 @@ export default function SceneCard({
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
-  const [geminiSuggestions, setGeminiSuggestions] = useState<unknown[]>([]);
+  const [geminiSuggestions, setGeminiSuggestions] = useState<GeminiSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 

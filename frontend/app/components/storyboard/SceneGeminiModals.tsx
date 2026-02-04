@@ -1,14 +1,6 @@
 "use client";
 
-import type { Scene } from "../../types";
-
-type GeminiSuggestion = {
-  edit_type: string;
-  issue: string;
-  description: string;
-  confidence: number;
-  target_change: string;
-};
+import type { Scene, GeminiSuggestion } from "../../types";
 
 type SceneGeminiModalsProps = {
   scene: Scene;

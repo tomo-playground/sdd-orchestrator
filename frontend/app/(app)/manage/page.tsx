@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import { API_BASE } from "../constants";
-import { useTags } from "../hooks";
+import { API_BASE } from "../../constants";
+import { useTags } from "../../hooks";
 import CharacterEditModal from "./CharacterEditModal";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
 import AssetsTab from "./tabs/AssetsTab";
@@ -17,7 +17,7 @@ import RenderPresetsTab from "./tabs/RenderPresetsTab";
 import VoicePresetsTab from "./tabs/VoicePresetsTab";
 import TrashTab from "./tabs/TrashTab";
 import InsightsTab from "./tabs/InsightsTab";
-import type { Character, LoRA } from "../types";
+import type { Character, LoRA } from "../../types";
 
 const VALID_TABS: ManageTab[] = [
   "tags",
@@ -36,7 +36,7 @@ function isValidTab(v: string | null): v is ManageTab {
   return v !== null && VALID_TABS.includes(v as ManageTab);
 }
 
-export default function ManagePage() {
+function ManageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { tags: allTags } = useTags(null);
@@ -108,7 +108,7 @@ export default function ManagePage() {
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-5xl px-6 py-6">
+        <div className="w-full max-w-5xl px-6 py-6">
           {manageTab === "tags" && <TagsTab />}
           {manageTab === "style" && <StyleTab />}
           {manageTab === "prompts" && <PromptsTab />}
@@ -162,6 +162,14 @@ export default function ManagePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ManagePage() {
+  return (
+    <Suspense>
+      <ManageContent />
+    </Suspense>
   );
 }
 

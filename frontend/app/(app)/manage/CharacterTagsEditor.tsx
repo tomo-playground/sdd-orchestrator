@@ -1,6 +1,6 @@
 "use client";
 
-import { Tag } from "../types";
+import { Tag } from "../../types";
 
 type Props = {
   identityTags: Tag[];
@@ -37,11 +37,13 @@ export default function CharacterTagsEditor({
     <>
       {/* Identity Tags */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Identity Tags</label>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            Identity Tags
+          </label>
           <button
             onClick={() => onToggleRawEdit("identity")}
-            className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-800 underline"
+            className="text-[10px] font-semibold text-zinc-500 underline hover:text-zinc-800"
           >
             {rawEditMode === "identity" ? "Done" : "Edit as Text"}
           </button>
@@ -51,7 +53,7 @@ export default function CharacterTagsEditor({
             value={rawEditText}
             onChange={(e) => setRawEditText(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400"
             placeholder="tag1, tag2, tag3..."
           />
         ) : (
@@ -62,7 +64,10 @@ export default function CharacterTagsEditor({
             hoverColor="hover:text-purple-900"
             tagSearch={activeTagInput === "identity" ? tagSearch : ""}
             filteredTags={activeTagInput === "identity" && tagSearch ? filteredTags : []}
-            onSearchChange={(v) => { setActiveTagInput("identity"); setTagSearch(v); }}
+            onSearchChange={(v) => {
+              setActiveTagInput("identity");
+              setTagSearch(v);
+            }}
             onFocus={() => setActiveTagInput("identity")}
             onAddTag={onAddTag}
             onRemoveTag={(id) => onRemoveTag(id, "identity")}
@@ -72,11 +77,13 @@ export default function CharacterTagsEditor({
 
       {/* Clothing Tags */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Clothing Tags</label>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            Clothing Tags
+          </label>
           <button
             onClick={() => onToggleRawEdit("clothing")}
-            className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-800 underline"
+            className="text-[10px] font-semibold text-zinc-500 underline hover:text-zinc-800"
           >
             {rawEditMode === "clothing" ? "Done" : "Edit as Text"}
           </button>
@@ -86,7 +93,7 @@ export default function CharacterTagsEditor({
             value={rawEditText}
             onChange={(e) => setRawEditText(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400"
             placeholder="tag1, tag2, tag3..."
           />
         ) : (
@@ -97,7 +104,10 @@ export default function CharacterTagsEditor({
             hoverColor="hover:text-amber-900"
             tagSearch={activeTagInput === "clothing" ? tagSearch : ""}
             filteredTags={activeTagInput === "clothing" && tagSearch ? filteredTags : []}
-            onSearchChange={(v) => { setActiveTagInput("clothing"); setTagSearch(v); }}
+            onSearchChange={(v) => {
+              setActiveTagInput("clothing");
+              setTagSearch(v);
+            }}
             onFocus={() => setActiveTagInput("clothing")}
             onAddTag={onAddTag}
             onRemoveTag={(id) => onRemoveTag(id, "clothing")}
@@ -135,11 +145,16 @@ function TagChipList({
   onRemoveTag,
 }: TagChipListProps) {
   return (
-    <div className="flex flex-wrap gap-2 mb-2">
-      {tags.map(tag => (
-        <span key={tag.id} className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${chipColor}`}>
+    <div className="mb-2 flex flex-wrap gap-2">
+      {tags.map((tag) => (
+        <span
+          key={tag.id}
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${chipColor}`}
+        >
           {tag.name}
-          <button onClick={() => onRemoveTag(tag.id)} className={hoverColor}>x</button>
+          <button onClick={() => onRemoveTag(tag.id)} className={hoverColor}>
+            x
+          </button>
         </span>
       ))}
       <div className="relative">
@@ -148,17 +163,17 @@ function TagChipList({
           onChange={(e) => onSearchChange(e.target.value)}
           onFocus={onFocus}
           placeholder="+ Add tag"
-          className="rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs outline-none focus:border-zinc-400 w-24 focus:w-48 transition-all"
+          className="w-24 rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs transition-all outline-none focus:w-48 focus:border-zinc-400"
         />
         {tagSearch && filteredTags.length > 0 && (
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto">
-            {filteredTags.map(tag => (
+          <div className="absolute top-full left-0 z-10 mt-1 max-h-40 w-48 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
+            {filteredTags.map((tag) => (
               <button
                 key={tag.id}
                 onClick={() => onAddTag(tag)}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-50"
+                className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-50"
               >
-                {tag.name} <span className="text-zinc-400 text-[10px]">({tag.category})</span>
+                {tag.name} <span className="text-[10px] text-zinc-400">({tag.category})</span>
               </button>
             ))}
           </div>

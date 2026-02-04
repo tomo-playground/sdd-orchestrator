@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Scene } from "../../types";
+import type { Scene, GeminiSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
@@ -447,7 +447,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
 }
 
 /** Ask Gemini for edit suggestions */
-export async function handleSuggestEditWithGemini(scene: Scene): Promise<unknown[]> {
+export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiSuggestion[]> {
   const { showToast } = useStudioStore.getState();
   if (!scene.image_url) {
     showToast("No image. Generate one first.", "error");

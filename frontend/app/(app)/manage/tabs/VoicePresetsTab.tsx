@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
-import type { VoicePreset } from "../../types";
+import { API_BASE } from "../../../constants";
+import type { VoicePreset } from "../../../types";
 
 type EditingPreset = {
   name: string;
@@ -119,11 +119,9 @@ export default function VoicePresetsTab() {
         });
         // Attach preview audio if available
         if (previewAssetId && res.data.id) {
-          await axios.post(
-            `${API_BASE}/voice-presets/${res.data.id}/attach-preview`,
-            null,
-            { params: { temp_asset_id: previewAssetId } },
-          );
+          await axios.post(`${API_BASE}/voice-presets/${res.data.id}/attach-preview`, null, {
+            params: { temp_asset_id: previewAssetId },
+          });
         }
       }
       setEditing(null);
@@ -159,12 +157,12 @@ export default function VoicePresetsTab() {
     <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400">
+        <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
           Voice Presets ({presets.length})
         </span>
         <button
           onClick={handleCreate}
-          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow hover:bg-zinc-700 transition"
+          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-zinc-700"
         >
           + Generate
         </button>
@@ -175,7 +173,7 @@ export default function VoicePresetsTab() {
         {presets.map((p) => (
           <div
             key={p.id}
-            className="flex items-center justify-between rounded-xl border border-zinc-100 px-4 py-3 hover:bg-zinc-50/50 transition"
+            className="flex items-center justify-between rounded-xl border border-zinc-100 px-4 py-3 transition hover:bg-zinc-50/50"
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -190,27 +188,27 @@ export default function VoicePresetsTab() {
                 )}
               </div>
               {p.description && (
-                <div className="mt-0.5 text-[10px] text-zinc-400 truncate">{p.description}</div>
+                <div className="mt-0.5 truncate text-[10px] text-zinc-400">{p.description}</div>
               )}
             </div>
-            <div className="flex items-center gap-2 ml-3">
+            <div className="ml-3 flex items-center gap-2">
               {p.audio_url && (
                 <button
                   onClick={() => playAudio(p.audio_url!)}
-                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 transition"
+                  className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-100"
                 >
                   Play
                 </button>
               )}
               <button
                 onClick={() => handleEdit(p)}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 transition"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-100"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(p)}
-                className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 hover:bg-red-50 transition"
+                className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 transition hover:bg-red-50"
               >
                 Del
               </button>
@@ -224,7 +222,7 @@ export default function VoicePresetsTab() {
 
       {/* Edit / Create Form */}
       {editing && (
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-5 space-y-4">
+        <div className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/50 p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-700">
               {editId ? "Edit Voice Preset" : "Generate Voice Preset"}
@@ -299,14 +297,14 @@ export default function VoicePresetsTab() {
                   <button
                     onClick={handlePreview}
                     disabled={previewing || !editing.voice_design_prompt?.trim()}
-                    className="rounded-full bg-indigo-600 px-4 py-1.5 text-[10px] font-bold text-white shadow hover:bg-indigo-500 disabled:opacity-40 transition"
+                    className="rounded-full bg-indigo-600 px-4 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-indigo-500 disabled:opacity-40"
                   >
                     {previewing ? "Generating..." : "Preview"}
                   </button>
                   {previewUrl && (
                     <button
                       onClick={() => playAudio(previewUrl)}
-                      className="rounded-full border border-indigo-200 px-3 py-1.5 text-[10px] font-medium text-indigo-600 hover:bg-indigo-50 transition"
+                      className="rounded-full border border-indigo-200 px-3 py-1.5 text-[10px] font-medium text-indigo-600 transition hover:bg-indigo-50"
                     >
                       Play Preview
                     </button>
@@ -320,7 +318,7 @@ export default function VoicePresetsTab() {
             <button
               onClick={handleSave}
               disabled={saving || !editing.name.trim()}
-              className="rounded-full bg-zinc-900 px-5 py-1.5 text-[10px] font-bold text-white shadow hover:bg-zinc-700 disabled:opacity-40 transition"
+              className="rounded-full bg-zinc-900 px-5 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-zinc-700 disabled:opacity-40"
             >
               {saving ? "Saving..." : editId ? "Save" : "Create"}
             </button>

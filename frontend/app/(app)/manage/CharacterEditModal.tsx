@@ -6,9 +6,9 @@ import PreviewImageSection from "./PreviewImageSection";
 import CharacterTagsEditor from "./CharacterTagsEditor";
 import ReferencePromptsPanel from "./ReferencePromptsPanel";
 import GeminiPreviewEditModal from "./GeminiPreviewEditModal";
-import ImagePreviewModal from "../components/ui/ImagePreviewModal";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
-import { Character, Tag, LoRA, ActorGender, PromptMode, VoicePreset } from "../types";
+import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { Character, Tag, LoRA, ActorGender, PromptMode, VoicePreset } from "../../types";
 
 type Props = {
   character?: Character;
@@ -28,28 +28,35 @@ export default function CharacterEditModal({
   const form = useCharacterForm(character, allTags, allLoras, onSave, onClose);
 
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+        <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 px-6 py-4">
           <h2 className="text-lg font-bold text-zinc-900">
             {form.isCreateMode ? "Create New Character" : `Edit Character: ${character?.name}`}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+            className="rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-5 w-5"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
           {/* Basic Info + Preview Image side by side */}
           <div className="flex gap-5">
-            <div className="flex-1 min-w-0 space-y-4">
+            <div className="min-w-0 flex-1 space-y-4">
               <BasicInfoSection
                 name={form.name}
                 setName={form.setName}
@@ -77,10 +84,7 @@ export default function CharacterEditModal({
           </div>
 
           {/* Prompt Mode */}
-          <PromptModeSection
-            promptMode={form.promptMode}
-            setPromptMode={form.setPromptMode}
-          />
+          <PromptModeSection promptMode={form.promptMode} setPromptMode={form.setPromptMode} />
 
           {/* IP-Adapter Settings */}
           <IpAdapterSection
@@ -149,7 +153,7 @@ export default function CharacterEditModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-zinc-100 flex justify-end gap-3 bg-zinc-50/50">
+        <div className="flex justify-end gap-3 border-t border-zinc-100 bg-zinc-50/50 px-6 py-4">
           <button
             onClick={onClose}
             className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
@@ -160,7 +164,7 @@ export default function CharacterEditModal({
           <button
             onClick={form.handleSubmit}
             disabled={form.isSaving}
-            className="rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-2 rounded-full bg-zinc-900 px-6 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
           >
             {form.isSaving && <LoadingSpinner size="sm" color="text-white/50" />}
             {form.isSaving ? "Saving..." : "Save Changes"}
@@ -190,16 +194,28 @@ export default function CharacterEditModal({
   );
 }
 // --- Inline sections (layout-only, not worth separate files) ---
-function BasicInfoSection({ name, setName, gender, setGender, description, setDescription }: {
-  name: string; setName: (v: string) => void;
-  gender: ActorGender; setGender: (v: ActorGender) => void;
-  description: string; setDescription: (v: string) => void;
+function BasicInfoSection({
+  name,
+  setName,
+  gender,
+  setGender,
+  description,
+  setDescription,
+}: {
+  name: string;
+  setName: (v: string) => void;
+  gender: ActorGender;
+  setGender: (v: ActorGender) => void;
+  description: string;
+  setDescription: (v: string) => void;
 }) {
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Name</label>
+          <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            Name
+          </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -207,11 +223,13 @@ function BasicInfoSection({ name, setName, gender, setGender, description, setDe
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Gender</label>
+          <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            Gender
+          </label>
           <select
             value={gender || "female"}
             onChange={(e) => setGender(e.target.value as ActorGender)}
-            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
             <option value="female">Female</option>
             <option value="male">Male</option>
@@ -219,48 +237,65 @@ function BasicInfoSection({ name, setName, gender, setGender, description, setDe
         </div>
       </div>
       <div>
-        <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Description</label>
+        <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+          Description
+        </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 resize-none"
+          className="w-full resize-none rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
         />
       </div>
     </>
   );
 }
-function PromptModeSection({ promptMode, setPromptMode }: {
-  promptMode: PromptMode; setPromptMode: (v: PromptMode) => void;
+function PromptModeSection({
+  promptMode,
+  setPromptMode,
+}: {
+  promptMode: PromptMode;
+  setPromptMode: (v: PromptMode) => void;
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Prompt Mode</label>
+      <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+        Prompt Mode
+      </label>
       <select
         value={promptMode}
         onChange={(e) => setPromptMode(e.target.value as PromptMode)}
-        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
       >
         <option value="auto">Auto (Smart Compose)</option>
         <option value="standard">Standard (No LoRA)</option>
         <option value="lora">LoRA Only</option>
       </select>
-      <p className="text-[10px] text-zinc-400 mt-1">
+      <p className="mt-1 text-[10px] text-zinc-400">
         Auto: Smart compose. Standard: No LoRA. LoRA: Forces character LoRAs.
       </p>
     </div>
   );
 }
-function IpAdapterSection({ ipAdapterWeight, setIpAdapterWeight, ipAdapterModel, setIpAdapterModel }: {
-  ipAdapterWeight: number; setIpAdapterWeight: (v: number) => void;
-  ipAdapterModel: string; setIpAdapterModel: (v: string) => void;
+function IpAdapterSection({
+  ipAdapterWeight,
+  setIpAdapterWeight,
+  ipAdapterModel,
+  setIpAdapterModel,
+}: {
+  ipAdapterWeight: number;
+  setIpAdapterWeight: (v: number) => void;
+  ipAdapterModel: string;
+  setIpAdapterModel: (v: string) => void;
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">IP-Adapter Settings</label>
+      <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+        IP-Adapter Settings
+      </label>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-[10px] text-zinc-400 mb-1">Weight ({ipAdapterWeight})</label>
+          <label className="mb-1 block text-[10px] text-zinc-400">Weight ({ipAdapterWeight})</label>
           <input
             type="range"
             min="0"
@@ -272,11 +307,11 @@ function IpAdapterSection({ ipAdapterWeight, setIpAdapterWeight, ipAdapterModel,
           />
         </div>
         <div>
-          <label className="block text-[10px] text-zinc-400 mb-1">Model</label>
+          <label className="mb-1 block text-[10px] text-zinc-400">Model</label>
           <select
             value={ipAdapterModel}
             onChange={(e) => setIpAdapterModel(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
             <option value="clip_face">clip_face (Standard)</option>
             <option value="clip">clip (Style/Chibi)</option>
@@ -287,10 +322,21 @@ function IpAdapterSection({ ipAdapterWeight, setIpAdapterWeight, ipAdapterModel,
     </div>
   );
 }
-function SceneIdentitySection({ isCreateMode, customBasePrompt, setCustomBasePrompt, customNegativePrompt, setCustomNegativePrompt, setReferenceBasePrompt, setReferenceNegativePrompt, sceneIdentityWarning }: {
+function SceneIdentitySection({
+  isCreateMode,
+  customBasePrompt,
+  setCustomBasePrompt,
+  customNegativePrompt,
+  setCustomNegativePrompt,
+  setReferenceBasePrompt,
+  setReferenceNegativePrompt,
+  sceneIdentityWarning,
+}: {
   isCreateMode: boolean;
-  customBasePrompt: string; setCustomBasePrompt: React.Dispatch<React.SetStateAction<string>>;
-  customNegativePrompt: string; setCustomNegativePrompt: (v: string) => void;
+  customBasePrompt: string;
+  setCustomBasePrompt: React.Dispatch<React.SetStateAction<string>>;
+  customNegativePrompt: string;
+  setCustomNegativePrompt: (v: string) => void;
   setReferenceBasePrompt: (v: string) => void;
   setReferenceNegativePrompt: (v: string) => void;
   sceneIdentityWarning: string | null;
@@ -298,17 +344,21 @@ function SceneIdentitySection({ isCreateMode, customBasePrompt, setCustomBasePro
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Scene Identity (Fixed Appearance)</label>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            Scene Identity (Fixed Appearance)
+          </label>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setCustomBasePrompt(prev => {
-                const base = "masterpiece, best_quality";
-                if (!prev.includes(base)) return `${base}, ${prev}`.trim().replace(/^,\s+/, "");
-                return prev;
-              })}
-              className="text-[9px] text-zinc-500 hover:text-zinc-700 font-bold bg-zinc-100 hover:bg-zinc-200 px-1.5 py-0.5 rounded transition-colors"
+              onClick={() =>
+                setCustomBasePrompt((prev) => {
+                  const base = "masterpiece, best_quality";
+                  if (!prev.includes(base)) return `${base}, ${prev}`.trim().replace(/^,\s+/, "");
+                  return prev;
+                })
+              }
+              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
             >
               + QUALITY
             </button>
@@ -328,15 +378,19 @@ function SceneIdentitySection({ isCreateMode, customBasePrompt, setCustomBasePro
           onChange={(e) => setCustomBasePrompt(e.target.value)}
           rows={3}
           placeholder="Tags that define character's core look (e.g. hair style, eye color, unique traits). NO BACKGROUND TAGS."
-          className={`w-full rounded-xl border ${sceneIdentityWarning ? "border-amber-400" : "border-zinc-200"} px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none`}
+          className={`w-full rounded-xl border ${sceneIdentityWarning ? "border-amber-400" : "border-zinc-200"} resize-none px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400`}
         />
         {sceneIdentityWarning && (
-          <p className="text-[10px] text-amber-600 mt-1 font-medium italic">{sceneIdentityWarning}</p>
+          <p className="mt-1 text-[10px] font-medium text-amber-600 italic">
+            {sceneIdentityWarning}
+          </p>
         )}
       </div>
       <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">Common Negative (Scene)</label>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            Common Negative (Scene)
+          </label>
           {!isCreateMode && (
             <button
               type="button"
@@ -352,13 +406,19 @@ function SceneIdentitySection({ isCreateMode, customBasePrompt, setCustomBasePro
           onChange={(e) => setCustomNegativePrompt(e.target.value)}
           rows={3}
           placeholder="Additional negative tags..."
-          className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 font-mono resize-none"
+          className="w-full resize-none rounded-xl border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400"
         />
       </div>
     </div>
   );
 }
-function LoRAsSection({ selectedLoras, allLoras, onAddLora, onUpdateLora, onRemoveLora }: {
+function LoRAsSection({
+  selectedLoras,
+  allLoras,
+  onAddLora,
+  onUpdateLora,
+  onRemoveLora,
+}: {
   selectedLoras: { lora_id: number; weight: number }[];
   allLoras: LoRA[];
   onAddLora: () => void;
@@ -367,25 +427,32 @@ function LoRAsSection({ selectedLoras, allLoras, onAddLora, onUpdateLora, onRemo
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">LoRAs</label>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+          LoRAs
+        </label>
         <button
           onClick={onAddLora}
-          className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-full"
+          className="rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-700"
         >
           + Add LoRA
         </button>
       </div>
       <div className="space-y-2">
         {selectedLoras.map((lora, index) => (
-          <div key={index} className="flex items-center gap-2 p-2 rounded-xl border border-zinc-100 bg-zinc-50/50">
+          <div
+            key={index}
+            className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/50 p-2"
+          >
             <select
               value={lora.lora_id}
               onChange={(e) => onUpdateLora(index, "lora_id", Number(e.target.value))}
-              className="flex-1 rounded-lg border border-zinc-200 px-2 py-1.5 text-xs outline-none focus:border-zinc-400 bg-white"
+              className="flex-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-400"
             >
-              {allLoras.map(l => (
-                <option key={l.id} value={l.id}>{l.display_name || l.name}</option>
+              {allLoras.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.display_name || l.name}
+                </option>
               ))}
             </select>
             <input
@@ -395,9 +462,12 @@ function LoRAsSection({ selectedLoras, allLoras, onAddLora, onUpdateLora, onRemo
               max="2"
               value={lora.weight}
               onChange={(e) => onUpdateLora(index, "weight", Number(e.target.value))}
-              className="w-16 rounded-lg border border-zinc-200 px-2 py-1.5 text-xs outline-none focus:border-zinc-400 text-center"
+              className="w-16 rounded-lg border border-zinc-200 px-2 py-1.5 text-center text-xs outline-none focus:border-zinc-400"
             />
-            <button onClick={() => onRemoveLora(index)} className="text-rose-400 hover:text-rose-600 px-1">
+            <button
+              onClick={() => onRemoveLora(index)}
+              className="px-1 text-rose-400 hover:text-rose-600"
+            >
               x
             </button>
           </div>
@@ -409,27 +479,34 @@ function LoRAsSection({ selectedLoras, allLoras, onAddLora, onUpdateLora, onRemo
     </div>
   );
 }
-function VoicePresetSection({ voicePresets, selectedId, onChange }: {
+function VoicePresetSection({
+  voicePresets,
+  selectedId,
+  onChange,
+}: {
   voicePresets: VoicePreset[];
   selectedId: number | null;
   onChange: (id: number | null) => void;
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Default Voice Preset</label>
+      <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+        Default Voice Preset
+      </label>
       <select
         value={selectedId ?? ""}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 bg-white"
+        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
       >
         <option value="">None (use render panel default)</option>
         {voicePresets.map((vp) => (
           <option key={vp.id} value={vp.id}>
-            {vp.name}{vp.description ? ` — ${vp.description}` : ""}
+            {vp.name}
+            {vp.description ? ` — ${vp.description}` : ""}
           </option>
         ))}
       </select>
-      <p className="text-[10px] text-zinc-400 mt-1">
+      <p className="mt-1 text-[10px] text-zinc-400">
         Assigned voice for this character. Overrides the global render preset voice during TTS.
       </p>
     </div>

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
-import { useStudioStore } from "../../store/useStudioStore";
-import QualityDashboard from "../../components/quality/QualityDashboard";
-import AnalyticsDashboard from "../../components/analytics/AnalyticsDashboard";
+import { API_BASE } from "../../../constants";
+import { useStudioStore } from "../../../store/useStudioStore";
+import QualityDashboard from "../../../components/quality/QualityDashboard";
+import AnalyticsDashboard from "../../../components/analytics/AnalyticsDashboard";
 
 type StoryboardOption = {
   id: number;
