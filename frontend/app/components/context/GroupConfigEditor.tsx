@@ -14,12 +14,15 @@ type GroupConfig = {
   id: number;
   group_id: number;
   render_preset_id: number | null;
-  default_character_id: number | null;
-  default_style_profile_id: number | null;
+  style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
   language: string | null;
   structure: string | null;
   duration: number | null;
+  sd_steps: number | null;
+  sd_cfg_scale: number | null;
+  sd_sampler_name: string | null;
+  sd_clip_skip: number | null;
 };
 
 type OptionItem = { id: number; name: string };
@@ -32,6 +35,7 @@ type Props = {
 // ── Constants ────────────────────────────────────────────────
 const LANGUAGES = ["Korean", "English", "Japanese"];
 const STRUCTURES = ["Monologue", "Dialogue", "Narration"];
+const SAMPLERS = ["DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"];
 
 const labelCls = "mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
 const inputCls =
@@ -83,28 +87,20 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const [saving, setSaving] = useState(false);
 
   const [presets, setPresets] = useState<OptionItem[]>([]);
-  const [characters, setCharacters] = useState<OptionItem[]>([]);
   const [profiles, setProfiles] = useState<OptionItem[]>([]);
 
   useEffect(() => {
     Promise.all([
       axios.get<GroupConfig>(`${API_BASE}/groups/${groupId}/config`),
       axios.get(`${API_BASE}/render-presets`),
-      axios.get(`${API_BASE}/characters`),
       axios.get(`${API_BASE}/style-profiles`),
     ])
-      .then(([cfgRes, presetsRes, charsRes, profilesRes]) => {
+      .then(([cfgRes, presetsRes, profilesRes]) => {
         setConfig(cfgRes.data);
         setPresets(
           presetsRes.data.map((p: Record<string, unknown>) => ({
             id: p.id as number,
             name: p.name as string,
-          }))
-        );
-        setCharacters(
-          charsRes.data.map((c: Record<string, unknown>) => ({
-            id: c.id as number,
-            name: c.name as string,
           }))
         );
         setProfiles(
@@ -128,12 +124,15 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
     try {
       await axios.put(`${API_BASE}/groups/${groupId}/config`, {
         render_preset_id: config.render_preset_id,
-        default_character_id: config.default_character_id,
-        default_style_profile_id: config.default_style_profile_id,
+        style_profile_id: config.style_profile_id,
         narrator_voice_preset_id: config.narrator_voice_preset_id,
         language: config.language,
         structure: config.structure,
         duration: config.duration,
+        sd_steps: config.sd_steps,
+        sd_cfg_scale: config.sd_cfg_scale,
+        sd_sampler_name: config.sd_sampler_name,
+        sd_clip_skip: config.sd_clip_skip,
       });
       showToast("Group config saved", "success");
       onClose();
@@ -210,17 +209,10 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               placeholder="-- None --"
             />
             <SelectField
-              label="Character"
-              value={config.default_character_id}
-              options={characters.map((c) => ({ value: c.id, label: c.name }))}
-              onChange={(v) => updateField("default_character_id", toIdOrNull(v))}
-              placeholder="-- None --"
-            />
-            <SelectField
               label="Style Profile"
-              value={config.default_style_profile_id}
+              value={config.style_profile_id}
               options={profiles.map((p) => ({ value: p.id, label: p.name }))}
-              onChange={(v) => updateField("default_style_profile_id", toIdOrNull(v))}
+              onChange={(v) => updateField("style_profile_id", toIdOrNull(v))}
               placeholder="-- None --"
             />
             <VoicePresetSelector
@@ -228,6 +220,63 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               onChange={(v) => updateField("narrator_voice_preset_id", v)}
               label="Narrator Voice"
             />
+          </div>
+
+          {/* SD Generation Settings */}
+          <div className="space-y-3 border-t border-zinc-100 pt-3">
+            <p className="text-[10px] font-semibold tracking-wider text-zinc-300 uppercase">
+              SD Generation
+            </p>
+            <div>
+              <label className={labelCls}>Steps</label>
+              <input
+                type="number"
+                min={1}
+                max={80}
+                value={config.sd_steps ?? ""}
+                onChange={(e) =>
+                  updateField("sd_steps", e.target.value ? Number(e.target.value) : null)
+                }
+                placeholder="27"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>CFG Scale</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                step={0.5}
+                value={config.sd_cfg_scale ?? ""}
+                onChange={(e) =>
+                  updateField("sd_cfg_scale", e.target.value ? Number(e.target.value) : null)
+                }
+                placeholder="7.0"
+                className={inputCls}
+              />
+            </div>
+            <SelectField
+              label="Sampler"
+              value={config.sd_sampler_name}
+              options={SAMPLERS.map((s) => ({ value: s, label: s }))}
+              onChange={(v) => updateField("sd_sampler_name", v || null)}
+              placeholder="-- Default (DPM++ 2M Karras) --"
+            />
+            <div>
+              <label className={labelCls}>Clip Skip</label>
+              <input
+                type="number"
+                min={1}
+                max={12}
+                value={config.sd_clip_skip ?? ""}
+                onChange={(e) =>
+                  updateField("sd_clip_skip", e.target.value ? Number(e.target.value) : null)
+                }
+                placeholder="2"
+                className={inputCls}
+              />
+            </div>
           </div>
         </div>
       )}

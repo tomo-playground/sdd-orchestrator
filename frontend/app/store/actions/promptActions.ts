@@ -1,41 +1,20 @@
 import axios from "axios";
 import type { Scene } from "../../types";
 import { useStudioStore } from "../useStudioStore";
-import {
-  splitPromptTokens,
-  deduplicatePromptTokens,
-} from "../../utils";
+import { splitPromptTokens, deduplicatePromptTokens } from "../../utils";
 import { API_BASE } from "../../constants";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function getBaseSettingsForSpeaker(_speaker: Scene["speaker"]) {
-  const { baseStepsA, baseCfgScaleA, baseSamplerA, baseSeedA, baseClipSkipA } =
-    useStudioStore.getState();
-  return {
-    steps: baseStepsA,
-    cfg: baseCfgScaleA,
-    sampler: baseSamplerA,
-    seed: baseSeedA,
-    clipSkip: baseClipSkipA,
-  };
-}
-
 export function buildNegativePrompt(scene: Scene): string {
-  const { autoComposePrompt, baseNegativePromptA } =
-    useStudioStore.getState();
+  const { autoComposePrompt, baseNegativePromptA } = useStudioStore.getState();
   const base = baseNegativePromptA.trim();
   const sceneNeg = scene.negative_prompt.trim();
   if (!autoComposePrompt) return sceneNeg;
-  const combined =
-    base && sceneNeg ? `${base}, ${sceneNeg}` : base || sceneNeg;
+  const combined = base && sceneNeg ? `${base}, ${sceneNeg}` : base || sceneNeg;
   return deduplicatePromptTokens(combined);
 }
 
-export async function buildScenePrompt(
-  scene: Scene
-): Promise<string | null> {
-  const { autoComposePrompt, selectedCharacterId } =
-    useStudioStore.getState();
+export async function buildScenePrompt(scene: Scene): Promise<string | null> {
+  const { autoComposePrompt, selectedCharacterId } = useStudioStore.getState();
 
   const scenePrompt = scene.image_prompt.trim();
   if (!autoComposePrompt) return scenePrompt || null;

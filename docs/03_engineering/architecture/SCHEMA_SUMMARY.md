@@ -12,6 +12,9 @@ A YouTube Channel project.
 - `description`: Text
 - `avatar_asset_id`: Integer (FK -> media_assets.id)
 - `handle`: String(100)
+- `render_preset_id`: Integer (FK -> render_presets.id)
+- `character_id`: Integer (FK -> characters.id)
+- `style_profile_id`: Integer (FK -> style_profiles.id)
 
 ### Groups (`groups`)
 A series/category within a project.
@@ -19,16 +22,16 @@ A series/category within a project.
 - `project_id`: Integer (FK -> projects.id)
 - `name`: String(200)
 - `description`: Text
-- `default_bgm_file`: String(255)
-- `default_narrator_voice`: String(100)
+- `render_preset_id`: Integer (FK -> render_presets.id)
+- `style_profile_id`: Integer (FK -> style_profiles.id)
 
 ### Storyboards (`storyboards`)
 An individual video episode.
 - `id`: Integer (PK)
 - `title`: String(200)
 - `description`: Text
-- `default_character_id`: Integer
-- `default_style_profile_id`: Integer
+- `character_id`: Integer
+- `style_profile_id`: Integer
 - `default_caption`: Text
 - `video_asset_id`: Integer (FK -> media_assets.id)
 - `recent_videos_json`: Text

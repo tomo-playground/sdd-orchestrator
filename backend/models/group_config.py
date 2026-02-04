@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from models.character import Character
     from models.group import Group
     from models.render_preset import RenderPreset
     from models.sd_model import StyleProfile
@@ -39,11 +38,7 @@ class GroupConfig(Base, TimestampMixin):
         Integer,
         ForeignKey("render_presets.id", ondelete="SET NULL"),
     )
-    default_character_id: Mapped[int | None] = mapped_column(
-        Integer,
-        ForeignKey("characters.id", ondelete="SET NULL"),
-    )
-    default_style_profile_id: Mapped[int | None] = mapped_column(
+    style_profile_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("style_profiles.id", ondelete="SET NULL"),
     )
@@ -55,6 +50,12 @@ class GroupConfig(Base, TimestampMixin):
     structure: Mapped[str | None] = mapped_column(String(30))
     duration: Mapped[int | None] = mapped_column(Integer)
 
+    # SD generation settings (migrated from scenes)
+    sd_steps: Mapped[int | None] = mapped_column(Integer)
+    sd_cfg_scale: Mapped[float | None] = mapped_column(Float)
+    sd_sampler_name: Mapped[str | None] = mapped_column(String(50))
+    sd_clip_skip: Mapped[int | None] = mapped_column(Integer)
+
     # Relationships
     group: Mapped[Group] = relationship(
         "Group",
@@ -64,13 +65,9 @@ class GroupConfig(Base, TimestampMixin):
         "RenderPreset",
         lazy="joined",
     )
-    default_character: Mapped[Character | None] = relationship(
-        "Character",
-        foreign_keys=[default_character_id],
-    )
-    default_style_profile: Mapped[StyleProfile | None] = relationship(
+    style_profile: Mapped[StyleProfile | None] = relationship(
         "StyleProfile",
-        foreign_keys=[default_style_profile_id],
+        foreign_keys=[style_profile_id],
     )
     narrator_voice_preset: Mapped[VoicePreset | None] = relationship(
         "VoicePreset",

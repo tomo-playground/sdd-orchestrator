@@ -65,14 +65,10 @@ async function saveStoryboardWithProfile(
   setMeta: (updates: Record<string, unknown>) => void,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
-  const { storyboardId, scenes, topic, selectedCharacterId } =
-    useStudioStore.getState();
+  const { storyboardId, scenes, topic, selectedCharacterId } = useStudioStore.getState();
 
   const validId =
-    storyboardId &&
-    typeof storyboardId === "number" &&
-    !isNaN(storyboardId) &&
-    storyboardId > 0;
+    storyboardId && typeof storyboardId === "number" && !isNaN(storyboardId) && storyboardId > 0;
 
   const scenesPayload = buildScenesPayload(scenes);
 
@@ -97,9 +93,7 @@ async function saveStoryboardWithProfile(
   }
 }
 
-function buildScenesPayload(
-  scenes: ReturnType<typeof useStudioStore.getState>["scenes"]
-) {
+function buildScenesPayload(scenes: ReturnType<typeof useStudioStore.getState>["scenes"]) {
   return scenes.map((s, i) => ({
     scene_id: i,
     script: s.script,
@@ -112,11 +106,6 @@ function buildScenesPayload(
     width: s.width || 512,
     height: s.height || 768,
     negative_prompt: s.negative_prompt,
-    steps: s.steps,
-    cfg_scale: s.cfg_scale,
-    sampler_name: s.sampler_name,
-    seed: s.seed,
-    clip_skip: s.clip_skip,
     context_tags: s.context_tags,
   }));
 }
@@ -133,14 +122,11 @@ async function updateExistingStoryboard(
     await axios.put(`${API_BASE}/storyboards/${storyboardId}`, {
       title: topic || "Untitled",
       description: useStudioStore.getState().description || null,
-      default_character_id: selectedCharacterId,
-      default_style_profile_id: profile.id,
+      character_id: selectedCharacterId,
+      style_profile_id: profile.id,
       scenes: scenesPayload,
     });
-    console.log(
-      "[StyleProfileModal] Storyboard updated with profile ID:",
-      profile.id
-    );
+    console.log("[StyleProfileModal] Storyboard updated with profile ID:", profile.id);
     showToast("Storyboard updated", "success");
   } catch (err) {
     console.error("[StyleProfileModal] Failed to update storyboard:", err);
@@ -160,8 +146,8 @@ async function createNewStoryboard(
     const res = await axios.post(`${API_BASE}/storyboards`, {
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
-      default_character_id: selectedCharacterId,
-      default_style_profile_id: profile.id,
+      character_id: selectedCharacterId,
+      style_profile_id: profile.id,
       scenes: scenesPayload,
     });
     setMeta({ storyboardId: res.data.storyboard_id });
@@ -174,10 +160,7 @@ async function createNewStoryboard(
     showToast("Storyboard created", "success");
   } catch (err) {
     console.error("[StyleProfileModal] Failed to create storyboard:", err);
-    showToast(
-      "Storyboard creation failed: " + (err as Error).message,
-      "error"
-    );
+    showToast("Storyboard creation failed: " + (err as Error).message, "error");
   }
 }
 
@@ -195,8 +178,7 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
       id: profile.id,
       name: profile.name,
       display_name: profile.display_name,
-      sd_model_name:
-        profile.sd_model?.name || profile.sd_model?.display_name || null,
+      sd_model_name: profile.sd_model?.name || profile.sd_model?.display_name || null,
       loras: profile.loras || [],
       negative_embeddings: profile.negative_embeddings || [],
       positive_embeddings: profile.positive_embeddings || [],
@@ -210,7 +192,7 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
       ...profile,
       sd_model_name: profile.sd_model?.name || null,
     },
-    showToast,
+    showToast
   );
 }
 
@@ -218,9 +200,7 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
  * Handle inline style profile selection from StyleProfileSelector.
  * Loads the profile into store and saves the storyboard.
  */
-export async function handleInlineStyleProfileSelect(
-  profileId: number
-): Promise<void> {
+export async function handleInlineStyleProfileSelect(profileId: number): Promise<void> {
   await loadStyleProfileFromId(profileId);
   await saveStoryboard();
 }
@@ -245,15 +225,9 @@ async function changeSdModel(
       );
     } catch (err) {
       console.error("Failed to change SD model:", err);
-      showToast(
-        `Profile loaded but model change failed: ${profile.sd_model_name}`,
-        "error"
-      );
+      showToast(`Profile loaded but model change failed: ${profile.sd_model_name}`, "error");
     }
   } else {
-    showToast(
-      `Style profile "${profile.display_name || profile.name}" selected`,
-      "success"
-    );
+    showToast(`Style profile "${profile.display_name || profile.name}" selected`, "success");
   }
 }

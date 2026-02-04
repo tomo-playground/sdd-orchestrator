@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,11 +38,6 @@ class Scene(Base, TimestampMixin):
     # Image Generation Params (Optional overrides)
     width: Mapped[int] = mapped_column(Integer, default=512)
     height: Mapped[int] = mapped_column(Integer, default=768)
-    steps: Mapped[int | None] = mapped_column(Integer)
-    cfg_scale: Mapped[float | None] = mapped_column(Float)
-    sampler_name: Mapped[str | None] = mapped_column(String(50))
-    seed: Mapped[int | None] = mapped_column(BigInteger)
-    clip_skip: Mapped[int | None] = mapped_column(Integer)
 
     # Context tags (JSONB for flexible tag groups)
     context_tags: Mapped[dict | None] = mapped_column(JSONB)
@@ -55,7 +50,8 @@ class Scene(Base, TimestampMixin):
 
     environment_asset: Mapped["MediaAsset | None"] = relationship(
         primaryjoin="Scene.environment_reference_id == MediaAsset.id",
-        foreign_keys=[environment_reference_id], viewonly=True,
+        foreign_keys=[environment_reference_id],
+        viewonly=True,
     )
 
     # Generated Image Path

@@ -74,15 +74,10 @@ def test_get_storyboard_not_found(client: TestClient):
 
 
 def test_save_with_extended_fields(client: TestClient):
-    """Test saving and retrieving extended scene fields."""
+    """Test saving and retrieving extended scene fields (SD settings moved to group_config)."""
     scenes = [_make_scene(
         0,
         negative_prompt="bad_hands, blurry",
-        steps=28,
-        cfg_scale=7.5,
-        sampler_name="DPM++ 2M Karras",
-        seed=12345,
-        clip_skip=2,
         context_tags={"expression": ["smile"], "camera": "close-up"},
     )]
     data = create_test_storyboard(client, title="Extended", scenes=scenes)
@@ -93,11 +88,6 @@ def test_save_with_extended_fields(client: TestClient):
     sc = body["scenes"][0]
 
     assert sc["negative_prompt"] == "bad_hands, blurry"
-    assert sc["steps"] == 28
-    assert sc["cfg_scale"] == 7.5
-    assert sc["sampler_name"] == "DPM++ 2M Karras"
-    assert sc["seed"] == 12345
-    assert sc["clip_skip"] == 2
     assert sc["context_tags"]["expression"] == ["smile"]
 
 

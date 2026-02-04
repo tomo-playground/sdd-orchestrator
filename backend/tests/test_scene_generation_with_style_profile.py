@@ -65,8 +65,8 @@ def setup_test_data(db_session: Session):
         title="Test Storyboard",
         description="Test",
         group_id=1,
-        default_character_id=character.id,
-        default_style_profile_id=profile.id,
+        character_id=character.id,
+        style_profile_id=profile.id,
     )
     db_session.add(storyboard)
     db_session.commit()
@@ -85,7 +85,7 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     """
     RED Phase: Test fails because Style Profile is not applied yet
 
-    Given: Storyboard with default_style_profile_id set
+    Given: Storyboard with style_profile_id set
     When: Generate scene with storyboard_id
     Then: Prompt should include LoRA tags and default prompts
     """
@@ -183,10 +183,10 @@ def test_storyboard_without_style_profile(db_session: Session):
         title="No Profile Storyboard",
         description="Test",
         group_id=1,
-        default_character_id=None,
-        default_style_profile_id=None,
+        character_id=None,
+        style_profile_id=None,
     )
     db_session.add(storyboard)
     db_session.commit()
 
-    assert storyboard.default_style_profile_id is None
+    assert storyboard.style_profile_id is None

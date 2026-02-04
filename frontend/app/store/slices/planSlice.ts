@@ -30,11 +30,6 @@ export interface PlanSlice {
   autoComposePrompt: boolean;
   autoRewritePrompt: boolean;
   autoReplaceRiskyTags: boolean;
-  baseStepsA: number;
-  baseCfgScaleA: number;
-  baseSamplerA: string;
-  baseSeedA: number;
-  baseClipSkipA: number;
   hiResEnabled: boolean;
   veoEnabled: boolean;
 
@@ -67,11 +62,6 @@ const initialPlanState = {
   autoComposePrompt: true,
   autoRewritePrompt: true,
   autoReplaceRiskyTags: false,
-  baseStepsA: 27,
-  baseCfgScaleA: 7,
-  baseSamplerA: "DPM++ 2M Karras",
-  baseSeedA: -1,
-  baseClipSkipA: 2,
   hiResEnabled: false,
   veoEnabled: false,
   useControlnet: true,
@@ -87,10 +77,20 @@ export const createPlanSlice: StateCreator<PlanSlice, [], [], PlanSlice> = (set)
   resetPlan: () => set(initialPlanState),
 });
 
-export type PlanPersistState = Omit<PlanSlice, "setPlan" | "resetPlan" | "loraTriggerWords" | "characterLoras" | "characterPromptMode">;
+export type PlanPersistState = Omit<
+  PlanSlice,
+  "setPlan" | "resetPlan" | "loraTriggerWords" | "characterLoras" | "characterPromptMode"
+>;
 
 export function extractPlanPersist(state: PlanSlice): Partial<PlanPersistState> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { setPlan: _setPlan, resetPlan: _resetPlan, loraTriggerWords: _loraTriggerWords, characterLoras: _characterLoras, characterPromptMode: _characterPromptMode, ...rest } = state;
+  const {
+    setPlan: _setPlan,
+    resetPlan: _resetPlan,
+    loraTriggerWords: _loraTriggerWords,
+    characterLoras: _characterLoras,
+    characterPromptMode: _characterPromptMode,
+    ...rest
+  } = state;
   return rest;
 }

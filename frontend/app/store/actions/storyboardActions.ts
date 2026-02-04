@@ -76,8 +76,8 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
-      default_character_id: selectedCharacterId,
-      default_style_profile_id: currentStyleProfile?.id || null,
+      character_id: selectedCharacterId,
+      style_profile_id: currentStyleProfile?.id || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
@@ -90,11 +90,6 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         width: s.width || 512,
         height: s.height || 768,
         negative_prompt: s.negative_prompt,
-        steps: s.steps,
-        cfg_scale: s.cfg_scale,
-        sampler_name: s.sampler_name,
-        seed: s.seed,
-        clip_skip: s.clip_skip,
         context_tags: s.context_tags,
       })),
     };
@@ -157,14 +152,14 @@ export async function saveStoryboard(): Promise<boolean> {
 
   try {
     console.log("[saveStoryboard] currentStyleProfile:", currentStyleProfile);
-    console.log("[saveStoryboard] default_style_profile_id:", currentStyleProfile?.id || null);
+    console.log("[saveStoryboard] style_profile_id:", currentStyleProfile?.id || null);
 
     const payload = {
       title: topic || "Untitled",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
-      default_character_id: selectedCharacterId,
-      default_style_profile_id: currentStyleProfile?.id || null,
+      character_id: selectedCharacterId,
+      style_profile_id: currentStyleProfile?.id || null,
       default_caption: videoCaption || null,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
@@ -178,11 +173,6 @@ export async function saveStoryboard(): Promise<boolean> {
         width: s.width || 512,
         height: s.height || 768,
         negative_prompt: s.negative_prompt,
-        steps: s.steps,
-        cfg_scale: s.cfg_scale,
-        sampler_name: s.sampler_name,
-        seed: s.seed,
-        clip_skip: s.clip_skip,
         context_tags: s.context_tags,
       })),
     };
@@ -210,8 +200,8 @@ export async function saveStoryboard(): Promise<boolean> {
 export async function updateStoryboardMetadata(updates: {
   title?: string;
   description?: string;
-  default_character_id?: number | null;
-  default_style_profile_id?: number | null;
+  character_id?: number | null;
+  style_profile_id?: number | null;
   default_caption?: string | null;
 }): Promise<boolean> {
   const { storyboardId, showToast } = useStudioStore.getState();
@@ -243,11 +233,6 @@ export async function generateStoryboard(): Promise<boolean> {
     structure,
     actorAGender,
     selectedCharacterId,
-    baseStepsA,
-    baseCfgScaleA,
-    baseSamplerA,
-    baseSeedA,
-    baseClipSkipA,
     baseNegativePromptA,
     setScenes,
     setActiveTab,
@@ -290,11 +275,6 @@ export async function generateStoryboard(): Promise<boolean> {
         width: 512,
         height: 768,
         negative_prompt: combined,
-        steps: baseStepsA,
-        cfg_scale: baseCfgScaleA,
-        sampler_name: baseSamplerA,
-        seed: baseSeedA,
-        clip_skip: baseClipSkipA,
         isGenerating: false,
         debug_payload: "",
       };

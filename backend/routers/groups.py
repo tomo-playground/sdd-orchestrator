@@ -124,12 +124,16 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         preset = group.render_preset or getattr(group.project, "render_preset", None)
     return EffectiveConfigResponse(
         render_preset_id=result["values"].get("render_preset_id"),
-        default_character_id=result["values"].get("default_character_id"),
-        default_style_profile_id=result["values"].get("default_style_profile_id"),
+        character_id=result["values"].get("character_id"),
+        style_profile_id=result["values"].get("style_profile_id"),
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
         language=result["values"].get("language"),
         structure=result["values"].get("structure"),
         duration=result["values"].get("duration"),
+        sd_steps=result["values"].get("sd_steps"),
+        sd_cfg_scale=result["values"].get("sd_cfg_scale"),
+        sd_sampler_name=result["values"].get("sd_sampler_name"),
+        sd_clip_skip=result["values"].get("sd_clip_skip"),
         render_preset=preset,
         sources=result["sources"],
     )

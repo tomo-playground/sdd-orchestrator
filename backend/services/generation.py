@@ -62,11 +62,11 @@ def apply_style_profile_to_prompt(
 
         # Get storyboard and its default style profile
         storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
-        if not storyboard or not storyboard.default_style_profile_id:
+        if not storyboard or not storyboard.style_profile_id:
             return prompt, negative_prompt
 
         # Get style profile
-        profile = db.query(StyleProfile).filter(StyleProfile.id == storyboard.default_style_profile_id).first()
+        profile = db.query(StyleProfile).filter(StyleProfile.id == storyboard.style_profile_id).first()
         if not profile:
             return prompt, negative_prompt
 

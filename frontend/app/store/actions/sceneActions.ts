@@ -3,7 +3,7 @@ import type { Scene, FixSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE, CAMERA_KEYWORDS, ACTION_KEYWORDS, BACKGROUND_KEYWORDS } from "../../constants";
 import { computeValidationResults, getFixSuggestions } from "../../utils";
-import { buildNegativePrompt, getBaseSettingsForSpeaker } from "./promptActions";
+import { buildNegativePrompt } from "./promptActions";
 
 // --------------- Validation ---------------
 
@@ -34,17 +34,11 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
       .forEach((s) => {
         if (!s.action) return;
         if (s.action.type === "set_speaker_a") {
-          const bs = getBaseSettingsForSpeaker("A");
           updated = updated.map((t) =>
             t.id === scene.id
               ? {
                   ...t,
                   speaker: "A" as const,
-                  steps: bs.steps,
-                  cfg_scale: bs.cfg,
-                  sampler_name: bs.sampler,
-                  seed: bs.seed,
-                  clip_skip: bs.clipSkip,
                   negative_prompt: baseNegativePromptA,
                 }
               : t
@@ -54,7 +48,10 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
           if (!tokens.length) return;
           updated = updated.map((t) => {
             if (t.id !== scene.id) return t;
-            const existing = t.image_prompt.split(",").map((x) => x.trim()).filter(Boolean);
+            const existing = t.image_prompt
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean);
             const existingSet = new Set(existing.map((x) => x.toLowerCase()));
             const next = [...existing];
             tokens.forEach((tok) => {
@@ -65,9 +62,7 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
         } else if (s.action.type === "fill_script" || s.action.type === "trim_script") {
           const value = s.action.value?.trim() || "";
           if (!value) return;
-          updated = updated.map((t) =>
-            t.id === scene.id ? { ...t, script: value } : t
-          );
+          updated = updated.map((t) => (t.id === scene.id ? { ...t, script: value } : t));
         } else if (s.action.type === "remove_negative_scene") {
           const kws = [...CAMERA_KEYWORDS, ...ACTION_KEYWORDS, ...BACKGROUND_KEYWORDS];
           updated = updated.map((t) => {
@@ -120,7 +115,10 @@ export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
   }
 
   const splitTokens = (text: string) =>
-    text.split(",").map((t) => t.trim()).filter(Boolean);
+    text
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
 
   if (suggestion.action.type === "add_positive") {
     const tokens = suggestion.action.tokens ?? [];
@@ -151,20 +149,17 @@ export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
 
 // --------------- Apply Missing Tags ---------------
 
-export function applyMissingImageTags(
-  scene: Scene,
-  missingOverride?: string[],
-  limit = 5
-) {
-  const { imageValidationResults, updateScene, showToast } =
-    useStudioStore.getState();
-  const missing =
-    missingOverride ?? imageValidationResults[scene.id]?.missing ?? [];
+export function applyMissingImageTags(scene: Scene, missingOverride?: string[], limit = 5) {
+  const { imageValidationResults, updateScene, showToast } = useStudioStore.getState();
+  const missing = missingOverride ?? imageValidationResults[scene.id]?.missing ?? [];
   if (!missing.length) {
     showToast("No missing tags to add", "error");
     return;
   }
-  const existing = scene.image_prompt.split(",").map((t) => t.trim()).filter(Boolean);
+  const existing = scene.image_prompt
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
   const existingSet = new Set(existing.map((t) => t.toLowerCase()));
   const next = [...existing];
   let addedCount = 0;
@@ -186,14 +181,8 @@ export function applyMissingImageTags(
 
 export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
   const { baseNegativePromptA, updateScene } = useStudioStore.getState();
-  const bs = getBaseSettingsForSpeaker(speaker);
   updateScene(scene.id, {
     speaker,
-    steps: bs.steps,
-    cfg_scale: bs.cfg,
-    sampler_name: bs.sampler,
-    seed: bs.seed,
-    clip_skip: bs.clipSkip,
     negative_prompt: baseNegativePromptA,
   });
 }
@@ -254,10 +243,9 @@ export async function handleMarkSuccess(scene: Scene) {
     markingStatusSceneId: scene.id,
   });
   try {
-    await axios.patch(
-      `${API_BASE}/activity-logs/${scene.activity_log_id}/status`,
-      { status: "success" }
-    );
+    await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
+      status: "success",
+    });
     showToast("Marked as success", "success");
   } catch {
     showToast("Failed to mark status", "error");
@@ -276,10 +264,9 @@ export async function handleMarkFail(scene: Scene) {
     markingStatusSceneId: scene.id,
   });
   try {
-    await axios.patch(
-      `${API_BASE}/activity-logs/${scene.activity_log_id}/status`,
-      { status: "fail" }
-    );
+    await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
+      status: "fail",
+    });
     showToast("Marked as fail", "error");
   } catch {
     showToast("Failed to mark status", "error");
@@ -291,8 +278,7 @@ export async function handleMarkFail(scene: Scene) {
 // --------------- Save Prompt ---------------
 
 export async function handleSavePrompt(scene: Scene) {
-  const { selectedCharacterId, characterLoras, showToast } =
-    useStudioStore.getState();
+  const { selectedCharacterId, characterLoras, showToast } = useStudioStore.getState();
   const name = window.prompt("Enter a name for this prompt:");
   if (!name?.trim()) return;
 
@@ -301,14 +287,7 @@ export async function handleSavePrompt(scene: Scene) {
       name: name.trim(),
       positive_prompt: scene.debug_prompt || scene.image_prompt,
       negative_prompt: buildNegativePrompt(scene),
-      steps: scene.steps,
-      cfg_scale: scene.cfg_scale,
-      sampler_name: scene.sampler_name,
-      seed: scene.seed,
-      clip_skip: scene.clip_skip,
-      context_tags: scene.context_tags
-        ? Object.values(scene.context_tags).flat()
-        : [],
+      context_tags: scene.context_tags ? Object.values(scene.context_tags).flat() : [],
     };
     if (selectedCharacterId) payload.character_id = selectedCharacterId;
     if (characterLoras?.length) {

@@ -79,7 +79,7 @@
 |---|------|-------------|------|
 | 1 | `f0a1b2c3d4e5` 마이그레이션 구현 (projects + groups 테이블 CREATE) | DBA-1 | [x] |
 | 2 | `storyboards` 테이블에 `group_id` FK 추가 (nullable, Phase 1-4에서 NOT NULL) | DBA-1, DBA-7 | [x] |
-| 3 | `groups` 테이블에 렌더 디폴트 컬럼 11개 추가 → `render_presets` 테이블로 분리 (1-5) | DBA-2 | [x] |
+| 3 | `groups` 테이블에 렌더 디폴트 컬럼 추가 → `render_presets` 테이블로 분리 (1-5) | DBA-2 | [x] |
 | 4 | `projects` 테이블 (name, description, handle, avatar_url) | DBA-2 | [x] |
 | 5 | Seed 데이터: Default Project(id=1) + Default Group(id=1) 삽입 | DBA-7 | [x] |
 | 6 | 기존 storyboards 전부 `group_id=1` 할당 (data migration) | DBA-7 | [x] |
@@ -91,7 +91,7 @@
 // Project.settings
 {
   "default_sd_model_id": null,
-  "default_style_profile_id": null,
+  "style_profile_id": null,
   "default_negative_prompt": null,
   "default_voice": "ko-KR-SunHiNeural",
   "default_bgm_category": null,
@@ -110,7 +110,7 @@
 // Group.settings (동일 구조, null = 프로젝트 설정 상속)
 {
   "default_sd_model_id": null,
-  "default_style_profile_id": null,
+  "style_profile_id": null,
   "default_narrative_tone": "dramatic",
   "jinja2_template_override": null
 }

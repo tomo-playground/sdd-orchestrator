@@ -318,7 +318,7 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
 
     - "Narrator" -> Storyboard.narrator_voice_preset_id
     - Character name (e.g. "A") -> Character.default_voice_preset_id
-      looked up via default_character_id on the storyboard.
+      looked up via character_id on the storyboard.
     """
     if not storyboard_id:
         return None
@@ -354,7 +354,7 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
             return None
 
         # Non-narrator speaker -> look up character voice
-        char_id = storyboard.default_character_id
+        char_id = storyboard.character_id
         if not char_id:
             return None
         char = db.get(Character, char_id)

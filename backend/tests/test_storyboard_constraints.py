@@ -13,8 +13,8 @@ def test_create_storyboard_long_title_no_error(client: TestClient):
         "title": long_title,
         "description": "Test description",
         "group_id": 1,
-        "default_character_id": None,
-        "default_style_profile_id": None,
+        "character_id": None,
+        "style_profile_id": None,
         "scenes": []
     }
 
@@ -44,8 +44,8 @@ def test_create_storyboard_update_long_title_no_error(client: TestClient):
     update_payload = {
         "title": long_title,
         "description": "Updated Desc",
-        "default_character_id": None,
-        "default_style_profile_id": None,
+        "character_id": None,
+        "style_profile_id": None,
         "scenes": []
     }
 

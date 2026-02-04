@@ -10,11 +10,7 @@ import SceneListHeader from "../storyboard/SceneListHeader";
 import SceneSidePanel from "../storyboard/SceneSidePanel";
 import SceneCard from "../storyboard/SceneCard";
 import { SIDE_PANEL_LAYOUT } from "../ui/variants";
-import {
-  buildNegativePrompt,
-  buildScenePrompt,
-  getBaseSettingsForSpeaker,
-} from "../../store/actions/promptActions";
+import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
 import {
   handleGenerateImage,
   handleImageUpload,
@@ -82,7 +78,7 @@ export default function ScenesTab() {
           referenceImages: res.data.references || [],
         });
       })
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   const currentScene = scenes[currentSceneIndex];
@@ -102,7 +98,7 @@ export default function ScenesTab() {
       return;
     }
 
-    const currentIdx = scenes.findIndex(s => s.id === currentScene.id);
+    const currentIdx = scenes.findIndex((s) => s.id === currentScene.id);
     let referenceScene = null;
 
     for (let i = currentIdx - 1; i >= 0; i--) {
@@ -132,7 +128,6 @@ export default function ScenesTab() {
   );
 
   const handleAddScene = useCallback(() => {
-    const bs = getBaseSettingsForSpeaker("Narrator");
     const newId = scenes.length > 0 ? Math.max(...scenes.map((s) => s.id)) + 1 : 0;
     const { baseNegativePromptA } = useStudioStore.getState();
     const newScene = {
@@ -147,11 +142,6 @@ export default function ScenesTab() {
       width: 512,
       height: 768,
       negative_prompt: baseNegativePromptA,
-      steps: bs.steps,
-      cfg_scale: bs.cfg,
-      sampler_name: bs.sampler,
-      seed: bs.seed,
-      clip_skip: bs.clipSkip,
       isGenerating: false,
       debug_payload: "",
     };
@@ -165,7 +155,7 @@ export default function ScenesTab() {
         <p className="text-sm text-zinc-400">No scenes yet. Generate a storyboard first.</p>
         <button
           onClick={() => useStudioStore.getState().setActiveTab("plan")}
-          className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 hover:bg-zinc-800"
+          className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-95"
         >
           Go to Plan
         </button>
@@ -200,9 +190,9 @@ export default function ScenesTab() {
             qualityScore={
               imageValidationResults[currentScene.id]
                 ? {
-                  match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
-                  missing_tags: imageValidationResults[currentScene.id].missing ?? [],
-                }
+                    match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
+                    missing_tags: imageValidationResults[currentScene.id].missing ?? [],
+                  }
                 : null
             }
             sceneTab={sceneTab[currentScene.id] ?? null}

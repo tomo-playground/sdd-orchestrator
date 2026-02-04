@@ -11,7 +11,7 @@ export const MOCK_STORYBOARDS = [
     image_count: 2,
     created_at: "2026-01-20T10:00:00Z",
     updated_at: "2026-01-25T14:30:00Z",
-    default_character_id: 1,
+    character_id: 1,
     scenes: [
       { script: "Good morning everyone!", speaker: "A", duration: 4, image_prompt: "1girl, waking_up, bedroom", image_prompt_ko: "아침에 일어나는 소녀", image_url: null, negative_prompt: "bad quality", steps: 27, cfg_scale: 7, sampler_name: "DPM++ 2M Karras", seed: -1, clip_skip: 2 },
       { script: "Time for coffee.", speaker: "Narrator", duration: 3, image_prompt: "1girl, drinking_coffee, kitchen", image_prompt_ko: "커피를 마시는 소녀", image_url: null, negative_prompt: "bad quality", steps: 27, cfg_scale: 7, sampler_name: "DPM++ 2M Karras", seed: -1, clip_skip: 2 },

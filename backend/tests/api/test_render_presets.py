@@ -146,6 +146,7 @@ def test_create_group_with_preset(client: TestClient):
         "project_id": 1,
         "name": "Test Series",
         "render_preset_id": preset["id"],
+        "style_profile_id": 1,
     })
     assert group.status_code == 201
     data = group.json()
@@ -164,6 +165,7 @@ def test_get_group_includes_nested_preset(client: TestClient):
         "project_id": 1,
         "name": "Nested Group",
         "render_preset_id": preset["id"],
+        "style_profile_id": 1,
     }).json()
 
     res = client.get(f"/groups/{created['id']}")
@@ -176,6 +178,7 @@ def test_group_without_preset(client: TestClient):
     group = client.post("/groups", json={
         "project_id": 1,
         "name": "No Preset Group",
+        "style_profile_id": 1,
     })
     assert group.status_code == 201
     assert group.json()["render_preset_id"] is None

@@ -26,8 +26,8 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text)
 
     # Project-level defaults
-    default_character_id: Mapped[int | None] = mapped_column(Integer)
-    default_style_profile_id: Mapped[int | None] = mapped_column(Integer)
+    character_id: Mapped[int | None] = mapped_column(Integer)
+    style_profile_id: Mapped[int | None] = mapped_column(Integer)
     default_caption: Mapped[str | None] = mapped_column(Text)
 
     # Narrator voice

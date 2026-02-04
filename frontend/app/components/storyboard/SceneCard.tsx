@@ -7,7 +7,6 @@ import DebugTabContent from "../quality/DebugTabContent";
 import SceneImagePanel from "../quality/SceneImagePanel";
 import Button from "../ui/Button";
 import FixSuggestionsPanel from "./FixSuggestionsPanel";
-import GenerationSettings from "./GenerationSettings";
 import SceneActionBar from "./SceneActionBar";
 import SceneFormFields from "./SceneFormFields";
 import SceneGeminiModals from "./SceneGeminiModals";
@@ -221,38 +220,26 @@ export default function SceneCard({
           </button>
 
           {showSettings && (
-            <>
-              <GenerationSettings
-                scene={scene}
-                autoComposePrompt={autoComposePrompt}
-                onUpdateScene={onUpdateScene}
-              />
-              <DebugTabContent
-                scene={scene}
-                onGenerateDebug={async () => {
-                  const prompt = await buildScenePrompt(scene);
-                  if (!prompt) {
-                    showToast("프롬프트 생성 실패", "error");
-                    return;
-                  }
-                  const payload = {
-                    prompt,
-                    negative_prompt: buildNegativePrompt(scene),
-                    steps: scene.steps,
-                    cfg_scale: scene.cfg_scale,
-                    sampler_name: scene.sampler_name,
-                    seed: scene.seed,
-                    clip_skip: scene.clip_skip,
-                    width: 512,
-                    height: 768,
-                  };
-                  onUpdateScene({
-                    debug_payload: JSON.stringify(payload, null, 2),
-                    debug_prompt: payload.prompt,
-                  });
-                }}
-              />
-            </>
+            <DebugTabContent
+              scene={scene}
+              onGenerateDebug={async () => {
+                const prompt = await buildScenePrompt(scene);
+                if (!prompt) {
+                  showToast("프롬프트 생성 실패", "error");
+                  return;
+                }
+                const payload = {
+                  prompt,
+                  negative_prompt: buildNegativePrompt(scene),
+                  width: 512,
+                  height: 768,
+                };
+                onUpdateScene({
+                  debug_payload: JSON.stringify(payload, null, 2),
+                  debug_prompt: payload.prompt,
+                });
+              }}
+            />
           )}
         </div>
 

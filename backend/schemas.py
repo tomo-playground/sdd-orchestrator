@@ -32,8 +32,8 @@ class ProjectCreate(BaseModel):
     handle: str | None = None
     avatar_key: str | None = None
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    character_id: int | None = None
+    style_profile_id: int | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -42,8 +42,8 @@ class ProjectUpdate(BaseModel):
     handle: str | None = None
     avatar_key: str | None = None
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    character_id: int | None = None
+    style_profile_id: int | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -54,8 +54,8 @@ class ProjectResponse(BaseModel):
     avatar_url: str | None = None
     avatar_key: str | None = None
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    character_id: int | None = None
+    style_profile_id: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -121,16 +121,14 @@ class GroupCreate(BaseModel):
     name: str
     description: str | None = None
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    style_profile_id: int
 
 
 class GroupUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    style_profile_id: int | None = None
 
 
 class GroupResponse(BaseModel):
@@ -139,8 +137,7 @@ class GroupResponse(BaseModel):
     name: str
     description: str | None = None
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    style_profile_id: int | None = None
     render_preset: RenderPresetResponse | None = None
     created_at: datetime | None = None
 
@@ -149,24 +146,30 @@ class GroupResponse(BaseModel):
 
 class GroupConfigUpdate(BaseModel):
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
+    sd_steps: int | None = None
+    sd_cfg_scale: float | None = None
+    sd_sampler_name: str | None = None
+    sd_clip_skip: int | None = None
 
 
 class GroupConfigResponse(BaseModel):
     id: int
     group_id: int
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
+    sd_steps: int | None = None
+    sd_cfg_scale: float | None = None
+    sd_sampler_name: str | None = None
+    sd_clip_skip: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -175,12 +178,16 @@ class EffectiveConfigResponse(BaseModel):
     """Resolved cascading config: Project < GroupConfig < Storyboard."""
 
     render_preset_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    character_id: int | None = None
+    style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
+    sd_steps: int | None = None
+    sd_cfg_scale: float | None = None
+    sd_sampler_name: str | None = None
+    sd_clip_skip: int | None = None
     render_preset: RenderPresetResponse | None = None
     sources: dict[str, str] = {}  # field -> "project" | "group" | "storyboard"
 
@@ -194,8 +201,8 @@ class StoryboardBase(BaseModel):
     title: str
     description: str | None = None
     group_id: int | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    character_id: int | None = None
+    style_profile_id: int | None = None
     default_caption: str | None = None
     narrator_voice_preset_id: int | None = None
 
@@ -207,8 +214,8 @@ class StoryboardSave(StoryboardBase):
 class StoryboardUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    default_character_id: int | None = None
-    default_style_profile_id: int | None = None
+    character_id: int | None = None
+    style_profile_id: int | None = None
     default_caption: str | None = None
     narrator_voice_preset_id: int | None = None
 
@@ -246,11 +253,6 @@ class StoryboardScene(BaseModel):
 
     # SD Generation Params
     negative_prompt: str | None = None
-    steps: int | None = None
-    cfg_scale: float | None = None
-    sampler_name: str | None = None
-    seed: int | None = None
-    clip_skip: int | None = None
     context_tags: dict | None = None
 
     # Candidate images

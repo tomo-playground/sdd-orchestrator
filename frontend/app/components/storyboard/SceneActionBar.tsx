@@ -57,7 +57,9 @@ export default function SceneActionBar({
         >
           {scene.isGenerating ? "Generating..." : "Generate"}
           {scene.environment_reference_id && !scene.isGenerating && (
-            <span className="ml-1 text-[#FFD700] animate-pulse" title="Background Pinned">📌</span>
+            <span className="ml-1 animate-pulse text-[#FFD700]" title="Background Pinned">
+              📌
+            </span>
           )}
         </Button>
 
@@ -68,8 +70,14 @@ export default function SceneActionBar({
             size="sm"
             icon
             onClick={onPinToggle}
-            className={scene.environment_reference_id ? "bg-amber-100 text-amber-600 border-amber-300 hover:bg-amber-200" : ""}
-            title={scene.environment_reference_id ? "배경 고정 해제" : "이전 장면의 배경을 참조합니다"}
+            className={
+              scene.environment_reference_id
+                ? "border-amber-300 bg-amber-100 text-amber-600 hover:bg-amber-200"
+                : ""
+            }
+            title={
+              scene.environment_reference_id ? "배경 고정 해제" : "이전 장면의 배경을 참조합니다"
+            }
           >
             📌
           </Button>
@@ -77,7 +85,7 @@ export default function SceneActionBar({
 
         {/* Auto pin indicator */}
         {scene._auto_pin_previous && !scene.environment_reference_id && !scene.image_url && (
-          <div className="flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1.5 text-[10px] text-blue-600">
+          <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] text-blue-600">
             <span>💡</span>
             <span className="font-medium">자동 핀 활성</span>
           </div>
@@ -89,9 +97,10 @@ export default function SceneActionBar({
             variant="gradient"
             size="sm"
             onClick={onGeminiEditOpen}
-            className={qualityScore && qualityScore.match_rate < 0.7
-              ? "shadow-md shadow-purple-500/20"
-              : "from-purple-400/80 to-pink-400/80 shadow-md shadow-purple-400/10 hover:from-purple-500/80 hover:to-pink-500/80"
+            className={
+              qualityScore && qualityScore.match_rate < 0.7
+                ? "shadow-md shadow-purple-500/20"
+                : "from-purple-400/80 to-pink-400/80 shadow-md shadow-purple-400/10 hover:from-purple-500/80 hover:to-pink-500/80"
             }
             title={
               qualityScore && qualityScore.match_rate < 0.7
@@ -185,12 +194,7 @@ function DropdownMenu({
 }: DropdownMenuProps) {
   return (
     <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        icon
-        onClick={onSceneMenuToggle}
-      >
+      <Button variant="outline" size="sm" icon onClick={onSceneMenuToggle}>
         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
         </svg>
@@ -207,16 +211,6 @@ function DropdownMenu({
             className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"
           >
             Copy Prompt
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onUpdateScene({ seed: Math.floor(Math.random() * 999999999) });
-              onSceneMenuClose();
-            }}
-            className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"
-          >
-            Randomize Seed
           </button>
           {onSavePrompt && scene.image_url && (
             <button

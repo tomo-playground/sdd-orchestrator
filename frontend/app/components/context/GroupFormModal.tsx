@@ -25,16 +25,30 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
     group?.render_preset_id ?? null,
   );
 
+  type OptionItem = { id: number; name: string };
+  const [styleProfiles, setStyleProfiles] = useState<OptionItem[]>([]);
+  const [selectedStyleProfileId, setSelectedStyleProfileId] = useState<number | null>(
+    group?.style_profile_id ?? null,
+  );
+
   useEffect(() => {
-    axios
-      .get<RenderPreset[]>(`${API_BASE}/render-presets`, {
+    Promise.all([
+      axios.get<RenderPreset[]>(`${API_BASE}/render-presets`, {
         params: { project_id: projectId },
-      })
-      .then((res) => {
-        setPresets(res.data);
-        if (!selectedPresetId && res.data.length > 0) {
-          setSelectedPresetId(res.data[0].id);
+      }),
+      axios.get(`${API_BASE}/style-profiles`),
+    ])
+      .then(([presetsRes, profilesRes]) => {
+        setPresets(presetsRes.data);
+        if (!selectedPresetId && presetsRes.data.length > 0) {
+          setSelectedPresetId(presetsRes.data[0].id);
         }
+        setStyleProfiles(
+          profilesRes.data.map((p: Record<string, unknown>) => ({
+            id: p.id as number,
+            name: (p.display_name || p.name) as string,
+          })),
+        );
       })
       .catch(() => {});
   }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -47,6 +61,7 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
         name: name.trim(),
         ...(description.trim() && { description: description.trim() }),
         render_preset_id: selectedPresetId,
+        style_profile_id: selectedStyleProfileId,
       };
       if (!isEdit) data.project_id = projectId;
       await onSave(data);
@@ -138,13 +153,36 @@ export default function GroupFormModal({ group, projectId, onSave, onClose }: Pr
             </div>
           )}
         </div>
+
+        {/* Style Profile */}
+        <div className="border-t border-zinc-100 pt-3">
+          <label className={labelCls}>Style Profile *</label>
+          {styleProfiles.length === 0 ? (
+            <p className="text-[10px] text-zinc-400">Loading style profiles...</p>
+          ) : (
+            <select
+              value={selectedStyleProfileId ?? ""}
+              onChange={(e) =>
+                setSelectedStyleProfileId(e.target.value ? Number(e.target.value) : null)
+              }
+              className={inputCls}
+            >
+              <option value="">-- Select Style Profile --</option>
+              {styleProfiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       <Modal.Footer>
         <Button variant="ghost" size="sm" onClick={onClose}>
           Cancel
         </Button>
-        <Button size="sm" loading={saving} disabled={!name.trim()} onClick={handleSubmit}>
+        <Button size="sm" loading={saving} disabled={!name.trim() || (!isEdit && !selectedStyleProfileId)} onClick={handleSubmit}>
           {isEdit ? "Save" : "Create"}
         </Button>
       </Modal.Footer>

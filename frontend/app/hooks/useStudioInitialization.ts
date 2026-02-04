@@ -86,11 +86,6 @@ export function useStudioInitialization() {
       const plan: Record<string, unknown> = {};
       if (data.positive_prompt) plan.basePromptA = data.positive_prompt;
       if (data.negative_prompt) plan.baseNegativePromptA = data.negative_prompt;
-      if (data.steps) plan.baseStepsA = data.steps;
-      if (data.cfg_scale) plan.baseCfgScaleA = data.cfg_scale;
-      if (data.sampler_name) plan.baseSamplerA = data.sampler_name;
-      if (data.seed) plan.baseSeedA = data.seed;
-      if (data.clip_skip) plan.baseClipSkipA = data.clip_skip;
       setPlan(plan);
 
       const { scenes: sc, currentSceneIndex: idx, updateScene } = useStudioStore.getState();
@@ -98,11 +93,6 @@ export function useStudioInitialization() {
         const updates: Partial<Scene> = {};
         if (data.positive_prompt) updates.image_prompt = data.positive_prompt as string;
         if (data.negative_prompt) updates.negative_prompt = data.negative_prompt as string;
-        if (data.steps) updates.steps = data.steps as number;
-        if (data.cfg_scale) updates.cfg_scale = data.cfg_scale as number;
-        if (data.sampler_name) updates.sampler_name = data.sampler_name as string;
-        if (data.seed) updates.seed = data.seed as number;
-        if (data.clip_skip) updates.clip_skip = data.clip_skip as number;
         if (data.context_tags) updates.context_tags = data.context_tags as Record<string, string[]>;
         if (data.id) updates.prompt_history_id = data.id as number;
         updateScene(sc[idx].id, updates);
@@ -160,18 +150,18 @@ export function useStudioInitialization() {
           videoCaption: data.default_caption || "",
         });
         setPlan({
-          selectedCharacterId: data.default_character_id || null,
+          selectedCharacterId: data.character_id || null,
           topic: data.title || "",
           description: data.description || "",
         });
 
-        if (data.default_character_id) {
-          loadCharacterData(data.default_character_id, setPlan);
+        if (data.character_id) {
+          loadCharacterData(data.character_id, setPlan);
         }
 
-        if (data.default_style_profile_id) {
-          setLoadedProfileId(data.default_style_profile_id);
-          loadStyleProfileFromId(data.default_style_profile_id);
+        if (data.style_profile_id) {
+          setLoadedProfileId(data.style_profile_id);
+          loadStyleProfileFromId(data.style_profile_id);
         } else {
           setLoadedProfileId(null);
           setNeedsStyleProfile(true);
@@ -236,11 +226,6 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     height: (s.height as number) || 768,
     candidates: (s.candidates as Scene["candidates"]) || undefined,
     negative_prompt: (s.negative_prompt as string) || "",
-    steps: (s.steps as number) || 27,
-    cfg_scale: (s.cfg_scale as number) || 7,
-    sampler_name: (s.sampler_name as string) || "DPM++ 2M Karras",
-    seed: (s.seed as number) || -1,
-    clip_skip: (s.clip_skip as number) || 2,
     isGenerating: false,
     debug_payload: "",
     context_tags: (s.context_tags as Record<string, string[]>) || undefined,

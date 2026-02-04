@@ -27,8 +27,8 @@ def create_dummy_storyboard():
     save_payload = {
         "title": "Termination Test",
         "description": "To be deleted",
-        "default_character_id": None,
-        "default_style_profile_id": None,
+        "character_id": None,
+        "style_profile_id": None,
         "default_caption": None,
         "scenes": scenes
     }

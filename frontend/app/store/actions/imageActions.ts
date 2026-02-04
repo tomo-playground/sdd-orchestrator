@@ -2,10 +2,7 @@ import axios from "axios";
 import type { Scene } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
-import {
-  buildScenePrompt,
-  buildNegativePrompt,
-} from "./promptActions";
+import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return URL + asset_id */
@@ -46,12 +43,12 @@ function buildHiResPayload() {
   const { hiResEnabled } = useStudioStore.getState();
   return hiResEnabled
     ? {
-      enable_hr: true,
-      hr_scale: 1.5,
-      hr_upscaler: "R-ESRGAN 4x+ Anime6B",
-      hr_second_pass_steps: 10,
-      denoising_strength: 0.35,
-    }
+        enable_hr: true,
+        hr_scale: 1.5,
+        hr_upscaler: "R-ESRGAN 4x+ Anime6B",
+        hr_second_pass_steps: 10,
+        denoising_strength: 0.35,
+      }
     : {};
 }
 
@@ -111,20 +108,15 @@ export async function generateSceneImageFor(
   const ipAdapterPayload =
     useIpAdapter && ipAdapterReference
       ? {
-        use_ip_adapter: true,
-        ip_adapter_reference: ipAdapterReference,
-        ip_adapter_weight: ipAdapterWeight,
-      }
+          use_ip_adapter: true,
+          ip_adapter_reference: ipAdapterReference,
+          ip_adapter_weight: ipAdapterWeight,
+        }
       : { use_ip_adapter: false };
 
   const debugPayload = {
     prompt,
     negative_prompt: negativePrompt,
-    steps: scene.steps,
-    cfg_scale: scene.cfg_scale,
-    sampler_name: scene.sampler_name,
-    seed: scene.seed,
-    clip_skip: scene.clip_skip,
     width: 512,
     height: 768,
     ...hiResPayload,
@@ -184,14 +176,12 @@ export async function generateSceneImageFor(
       );
 
       // 3. Sort by match_rate descending (Best first)
-      const sortedCandidates = validationResults.sort(
-        (a, b) => b.match_rate - a.match_rate
-      );
+      const sortedCandidates = validationResults.sort((a, b) => b.match_rate - a.match_rate);
 
       const bestCandidate = sortedCandidates[0];
       const mainImageUrl = bestCandidate.image_url;
       const bestAssetId = bestCandidate.asset_id;
-      const candidates = sortedCandidates.map(c => ({ image_url: c.image_url }));
+      const candidates = sortedCandidates.map((c) => ({ image_url: c.image_url }));
 
       // Update validation results cache in store for the best image
       if (bestCandidate.validation) {
@@ -219,13 +209,8 @@ export async function generateSceneImageFor(
             prompt,
             negative_prompt: negativePrompt,
             tags: prompt.split(",").map((t: string) => t.trim()),
-            sd_params: {
-              steps: scene.steps,
-              cfg_scale: scene.cfg_scale,
-              sampler_name: scene.sampler_name,
-              clip_skip: scene.clip_skip,
-            },
-            seed: scene.seed,
+            sd_params: {},
+            seed: -1,
             status: "pending",
             image_url: mainImageUrl, // Use the best image
             match_rate: bestCandidate.match_rate || null, // Use the best match rate
@@ -291,15 +276,12 @@ export async function generateSceneCandidates(
     const validation = await validateImageCandidate(result.image_url, prompt, scene.id);
     candidates.push({
       image_url: result.image_url,
-      match_rate:
-        typeof validation?.match_rate === "number" ? validation.match_rate : 0,
+      match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
     });
   }
   if (!candidates.length) return null;
 
-  const best = [...candidates].sort(
-    (a, b) => (b.match_rate ?? 0) - (a.match_rate ?? 0)
-  )[0];
+  const best = [...candidates].sort((a, b) => (b.match_rate ?? 0) - (a.match_rate ?? 0))[0];
 
   if (best?.image_url) {
     const validation = await validateImageCandidate(best.image_url, prompt, scene.id);
@@ -335,7 +317,9 @@ export async function handleGenerateImage(scene: Scene) {
   }
 
   // Get updated scene with DB-assigned ID
-  const updatedScene = scenes.find(s => s.id === scene.id || (s.script === scene.script && s.order === scene.order));
+  const updatedScene = scenes.find(
+    (s) => s.id === scene.id || (s.script === scene.script && s.order === scene.order)
+  );
   if (!updatedScene) {
     showToast("Scene not found after save", "error");
     return;
@@ -351,7 +335,7 @@ export async function handleGenerateImage(scene: Scene) {
       updateScene(updatedScene.id, result);
 
       // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
-      const { applyAutoPinAfterGeneration } = await import('../../utils/applyAutoPin');
+      const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
       const autoPinResult = applyAutoPinAfterGeneration(
         useStudioStore.getState().scenes,
         updatedScene.id,
@@ -407,10 +391,7 @@ export function handleImageUpload(sceneId: number, file?: File) {
 }
 
 /** Edit scene image with Gemini */
-export async function handleEditWithGemini(
-  scene: Scene,
-  targetChange: string
-) {
+export async function handleEditWithGemini(scene: Scene, targetChange: string) {
   const { updateScene, showToast } = useStudioStore.getState();
   if (!scene.image_url) {
     showToast("No image to edit. Generate one first.", "error");
@@ -445,7 +426,11 @@ export async function handleEditWithGemini(
         scene.id,
         `gemini_edit_${scene.id}_${Date.now()}.png`
       );
-      updateScene(scene.id, { image_url: stored.url, image_asset_id: stored.asset_id ?? null, isGenerating: false });
+      updateScene(scene.id, {
+        image_url: stored.url,
+        image_asset_id: stored.asset_id ?? null,
+        isGenerating: false,
+      });
       showToast(
         `Gemini edit done (${res.data.edit_type}) - $${res.data.cost_usd.toFixed(4)}`,
         "success"
@@ -462,9 +447,7 @@ export async function handleEditWithGemini(
 }
 
 /** Ask Gemini for edit suggestions */
-export async function handleSuggestEditWithGemini(
-  scene: Scene
-): Promise<unknown[]> {
+export async function handleSuggestEditWithGemini(scene: Scene): Promise<unknown[]> {
   const { showToast } = useStudioStore.getState();
   if (!scene.image_url) {
     showToast("No image. Generate one first.", "error");

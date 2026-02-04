@@ -8,7 +8,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
 | v3.5 | 2026-02-04 | `characters.default_voice_preset_id`, `storyboards.narrator_voice_preset_id` FK 추가. `render_presets`에서 `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 (voice_preset_id로 대체). Soft Delete (`deleted_at`) 추가 |
-| v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`/`groups`에 Cascading Config FK 추가 (`render_preset_id`, `default_character_id`, `default_style_profile_id`). `groups`에서 `default_bgm_file`/`default_narrator_voice` 제거 |
+| v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`에 Cascading Config FK 추가 (`render_preset_id`, `character_id`, `style_profile_id`). `groups`에서 `default_bgm_file`/`default_narrator_voice`/`character_id` 제거, `style_profile_id` 추가 |
 | v3.3 | 2026-02-02 | `projects`, `groups`, `scene_quality_scores` 테이블 추가, `activity_logs`에 Gemini 트래킹 컬럼 추가, `media_assets`에 `is_temp`/`checksum` 추가, `storyboards`에 `default_caption` 반영 |
 | v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
 | v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
@@ -72,8 +72,8 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `handle` | String(100) | 채널 핸들 (@...) |
 | `avatar_key` | String(100) | 아바타 키 (localStorage 마이그레이션용) |
 | `render_preset_id` | Integer (FK → render_presets, SET NULL) | 기본 렌더 프리셋 |
-| `default_character_id` | Integer (FK → characters, SET NULL) | 기본 캐릭터 |
-| `default_style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
+| `character_id` | Integer (FK → characters, SET NULL) | 기본 캐릭터 |
+| `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
@@ -91,11 +91,11 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `name` | String(200) | 시리즈 이름 |
 | `description` | Text | 설명 |
 | `render_preset_id` | Integer (FK → render_presets, SET NULL) | 렌더 프리셋 |
-| `default_character_id` | Integer (FK → characters, SET NULL) | 기본 캐릭터 |
-| `default_style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
+| `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 > v3.4 변경: `default_bgm_file`, `default_narrator_voice` 제거 → `render_presets` 테이블로 이관
+> v3.6 변경: `default_character_id` 삭제 (DROP), `default_style_profile_id` → `style_profile_id` 리네이밍
 
 ### `storyboards`
 YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
@@ -106,8 +106,8 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `group_id` | Integer (FK → groups, RESTRICT) | 소속 그룹 |
 | `title` | String(200) | 스토리보드 제목 |
 | `description` | Text | 설명 |
-| `default_character_id` | Integer | 기본 캐릭터 |
-| `default_style_profile_id` | Integer | 기본 스타일 프로파일 |
+| `character_id` | Integer | 기본 캐릭터 |
+| `style_profile_id` | Integer | 기본 스타일 프로파일 |
 | `default_caption` | Text | 기본 캡션 텍스트 (Post Layout용) |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 프리셋 |
 | `video_asset_id` | Integer (FK → media_assets, SET NULL) | 최신 렌더링 영상 |

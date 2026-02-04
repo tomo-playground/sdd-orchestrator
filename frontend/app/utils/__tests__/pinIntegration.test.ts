@@ -1,34 +1,29 @@
-import { describe, it, expect, vi } from 'vitest';
-import { applyAutoPinAfterGeneration } from '../applyAutoPin';
-import type { Scene } from '../../types';
+import { describe, it, expect, vi } from "vitest";
+import { applyAutoPinAfterGeneration } from "../applyAutoPin";
+import type { Scene } from "../../types";
 
 const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   id: overrides.id ?? 1,
   order: overrides.order ?? 0,
-  script: 'Test',
-  speaker: 'A',
+  script: "Test",
+  speaker: "A",
   duration: 5,
-  image_prompt: 'test',
-  image_prompt_ko: 'test',
+  image_prompt: "test",
+  image_prompt_ko: "test",
   image_url: overrides.image_url ?? null,
   image_asset_id: overrides.image_asset_id ?? undefined,
-  negative_prompt: 'bad',
-  steps: 25,
-  cfg_scale: 7,
-  sampler_name: 'DPM++ 2M Karras',
-  seed: -1,
-  clip_skip: 2,
+  negative_prompt: "bad",
   isGenerating: false,
-  debug_payload: '',
+  debug_payload: "",
   environment_reference_id: overrides.environment_reference_id ?? null,
   environment_reference_weight: 0.3,
   _auto_pin_previous: overrides._auto_pin_previous ?? false,
   ...overrides,
 });
 
-describe('Pin Integration Tests', () => {
-  describe('Auto-pin + Manual pin interaction', () => {
-    it('should not override manual pin with auto-pin', () => {
+describe("Pin Integration Tests", () => {
+  describe("Auto-pin + Manual pin interaction", () => {
+    it("should not override manual pin with auto-pin", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: 100 }),
         createScene({ id: 1, order: 1, image_asset_id: 101 }),
@@ -48,7 +43,7 @@ describe('Pin Integration Tests', () => {
       expect(updateScene).not.toHaveBeenCalled();
     });
 
-    it('should apply auto-pin when manual pin is removed', () => {
+    it("should apply auto-pin when manual pin is removed", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: 100 }),
         createScene({ id: 1, order: 1, image_asset_id: 101 }),
@@ -71,7 +66,7 @@ describe('Pin Integration Tests', () => {
       });
     });
 
-    it('should respect manual pin to earlier scene over auto-pin suggestion', () => {
+    it("should respect manual pin to earlier scene over auto-pin suggestion", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: 100 }),
         createScene({ id: 1, order: 1, image_asset_id: 101 }),
@@ -93,14 +88,12 @@ describe('Pin Integration Tests', () => {
     });
   });
 
-  describe('Sequential auto-pin chain', () => {
-    it('should create chain: 0 → 1 → 2 → 3', () => {
+  describe("Sequential auto-pin chain", () => {
+    it("should create chain: 0 → 1 → 2 → 3", () => {
       const updateScene = vi.fn();
 
       // Scene 0: no pin (first scene)
-      const scenes0 = [
-        createScene({ id: 0, order: 0, image_asset_id: 100 }),
-      ];
+      const scenes0 = [createScene({ id: 0, order: 0, image_asset_id: 100 })];
       applyAutoPinAfterGeneration(scenes0, 0, updateScene);
       expect(updateScene).not.toHaveBeenCalled(); // No previous scene
 
@@ -144,7 +137,7 @@ describe('Pin Integration Tests', () => {
       });
     });
 
-    it('should break chain when _auto_pin_previous is false', () => {
+    it("should break chain when _auto_pin_previous is false", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: 100 }),
         createScene({ id: 1, order: 1, image_asset_id: 101, environment_reference_id: 100 }),
@@ -167,11 +160,16 @@ describe('Pin Integration Tests', () => {
     });
   });
 
-  describe('Edge cases', () => {
-    it('should handle missing image_asset_id in chain', () => {
+  describe("Edge cases", () => {
+    it("should handle missing image_asset_id in chain", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: 100 }),
-        createScene({ id: 1, order: 1, image_url: 'http://test.com/1.png', image_asset_id: undefined }), // Image URL but no asset_id
+        createScene({
+          id: 1,
+          order: 1,
+          image_url: "http://test.com/1.png",
+          image_asset_id: undefined,
+        }), // Image URL but no asset_id
         createScene({ id: 2, order: 2, image_asset_id: 102, _auto_pin_previous: true }),
       ];
       const updateScene = vi.fn();
@@ -185,7 +183,7 @@ describe('Pin Integration Tests', () => {
       });
     });
 
-    it('should handle all scenes without image_asset_id', () => {
+    it("should handle all scenes without image_asset_id", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: undefined }),
         createScene({ id: 1, order: 1, image_asset_id: undefined }),
@@ -199,7 +197,7 @@ describe('Pin Integration Tests', () => {
       expect(updateScene).not.toHaveBeenCalled();
     });
 
-    it('should handle scene regeneration (same scene ID)', () => {
+    it("should handle scene regeneration (same scene ID)", () => {
       const scenes = [
         createScene({ id: 0, order: 0, image_asset_id: 100 }),
         createScene({

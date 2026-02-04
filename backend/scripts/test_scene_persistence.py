@@ -8,7 +8,7 @@ def test_scene_tag_persistence():
     payload = {
         "title": "Persistence Test Storyboard",
         "description": "Verification of scene_tags and character_actions",
-        "default_character_id": 1,
+        "character_id": 1,
         "scenes": [
             {
                 "scene_id": 1,

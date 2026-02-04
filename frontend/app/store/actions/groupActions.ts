@@ -17,8 +17,8 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
 
     // Store effective IDs (contextSlice — survives resetStudioStore)
     setEffectiveDefaults(
-      cfg.default_style_profile_id ?? null,
-      cfg.default_character_id ?? null,
+      cfg.style_profile_id ?? null,
+      cfg.character_id ?? null,
       true
     );
 

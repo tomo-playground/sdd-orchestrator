@@ -85,8 +85,8 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 {
   "title": "커피숍 일상",
   "description": "카페에서의 하루",
-  "default_character_id": 1,
-  "default_style_profile_id": 1,
+  "character_id": 1,
+  "style_profile_id": 1,
   "default_caption": "좋아요 6만개\n15분 전",
   "scenes": [
     {
@@ -395,8 +395,8 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
     "avatar_url": null,
     "avatar_key": "daily_shorts",
     "render_preset_id": 1,
-    "default_character_id": 1,
-    "default_style_profile_id": 1,
+    "character_id": 1,
+    "style_profile_id": 1,
     "created_at": "2026-02-01T12:00:00"
   }
 ]
@@ -413,8 +413,8 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "handle": "daily_shorts",
   "avatar_key": "daily_shorts",
   "render_preset_id": 1,
-  "default_character_id": 1,
-  "default_style_profile_id": 1
+  "character_id": 1,
+  "style_profile_id": 1
 }
 ```
 
@@ -455,12 +455,12 @@ Cascading Config를 조회합니다 (Project 레벨 resolve).
 ```json
 {
   "render_preset_id": 1,
-  "default_character_id": 1,
-  "default_style_profile_id": 1,
+  "character_id": 1,
+  "style_profile_id": 1,
   "render_preset": { "id": 1, "name": "기본 프리셋", "..." : "..." },
   "sources": {
     "render_preset_id": "project",
-    "default_character_id": "project"
+    "character_id": "project"
   }
 }
 ```
@@ -482,8 +482,7 @@ Cascading Config를 조회합니다 (Project 레벨 resolve).
     "name": "시즌 1",
     "description": "첫 번째 시즌",
     "render_preset_id": null,
-    "default_character_id": null,
-    "default_style_profile_id": null,
+    "style_profile_id": null,
     "render_preset": null,
     "created_at": "2026-02-01T12:00:00"
   }
@@ -500,8 +499,7 @@ Cascading Config를 조회합니다 (Project 레벨 resolve).
   "name": "시즌 1",
   "description": "첫 번째 시즌",
   "render_preset_id": null,
-  "default_character_id": null,
-  "default_style_profile_id": null
+  "style_profile_id": null
 }
 ```
 
@@ -542,12 +540,12 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 ```json
 {
   "render_preset_id": 2,
-  "default_character_id": 1,
-  "default_style_profile_id": 1,
+  "character_id": 1,
+  "style_profile_id": 1,
   "render_preset": { "id": 2, "name": "그룹 프리셋", "..." : "..." },
   "sources": {
     "render_preset_id": "group",
-    "default_character_id": "project"
+    "character_id": "project"
   }
 }
 ```

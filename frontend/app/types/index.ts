@@ -23,11 +23,6 @@ export type Scene = {
   height?: number;
   candidates?: Array<{ image_url: string; match_rate?: number }>;
   negative_prompt: string;
-  steps: number;
-  cfg_scale: number;
-  sampler_name: string;
-  seed: number;
-  clip_skip: number;
   isGenerating: boolean;
   debug_payload: string;
   debug_prompt?: string;
@@ -149,11 +144,6 @@ export type DraftScene = {
   image_asset_id?: number | null;
   candidates?: Array<{ image_url: string; match_rate?: number }>;
   negative_prompt: string;
-  steps: number;
-  cfg_scale: number;
-  sampler_name: string;
-  seed: number;
-  clip_skip: number;
   context_tags?: SceneContextTags;
   prompt_history_id?: number;
   activity_log_id?: number;
@@ -342,11 +332,6 @@ export type DraftData = {
   selectedCharacterId?: number | null;
   basePromptA?: string;
   baseNegativePromptA?: string;
-  baseStepsA?: number;
-  baseCfgScaleA?: number;
-  baseSamplerA?: string;
-  baseSeedA?: number;
-  baseClipSkipA?: number;
   includeSceneText?: boolean;
   bgmFile?: string | null;
   audioDucking?: boolean;
@@ -463,8 +448,8 @@ export type ProjectItem = {
   avatar_url: string | null;
   avatar_key: string | null;
   render_preset_id: number | null;
-  default_character_id: number | null;
-  default_style_profile_id: number | null;
+  character_id: number | null;
+  style_profile_id: number | null;
   created_at: string | null;
 };
 
@@ -507,19 +492,22 @@ export type GroupItem = {
   name: string;
   description: string | null;
   render_preset_id: number | null;
-  default_character_id: number | null;
-  default_style_profile_id: number | null;
+  style_profile_id: number | null;
   render_preset: RenderPreset | null;
 };
 
 export type EffectiveConfig = {
   render_preset_id: number | null;
-  default_character_id: number | null;
-  default_style_profile_id: number | null;
+  character_id: number | null;
+  style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
   language: string | null;
   structure: string | null;
   duration: number | null;
+  sd_steps: number | null;
+  sd_cfg_scale: number | null;
+  sd_sampler_name: string | null;
+  sd_clip_skip: number | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;
 };

@@ -44,15 +44,15 @@ class Project(Base, TimestampMixin):
     render_preset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("render_presets.id", ondelete="SET NULL"),
     )
-    default_character_id: Mapped[int | None] = mapped_column(
+    character_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("characters.id", ondelete="SET NULL"),
     )
-    default_style_profile_id: Mapped[int | None] = mapped_column(
+    style_profile_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("style_profiles.id", ondelete="SET NULL"),
     )
 
     # Relationships
     groups: Mapped[list[Group]] = relationship("Group", back_populates="project", cascade="all, delete-orphan")
     render_preset: Mapped[RenderPreset | None] = relationship("RenderPreset", foreign_keys=[render_preset_id], lazy="joined")
-    default_character: Mapped[object | None] = relationship("Character", foreign_keys=[default_character_id])
-    default_style_profile: Mapped[StyleProfile | None] = relationship("StyleProfile", foreign_keys=[default_style_profile_id])
+    character: Mapped[object | None] = relationship("Character", foreign_keys=[character_id])
+    style_profile: Mapped[StyleProfile | None] = relationship("StyleProfile", foreign_keys=[style_profile_id])

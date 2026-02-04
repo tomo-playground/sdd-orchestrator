@@ -30,12 +30,8 @@ class Group(Base, TimestampMixin):
         Integer, ForeignKey("render_presets.id", ondelete="SET NULL"), nullable=True
     )
 
-    # Cascading config defaults (kept for rollback safety)
-    default_character_id: Mapped[int | None] = mapped_column(
-        Integer,
-        ForeignKey("characters.id", ondelete="SET NULL"),
-    )
-    default_style_profile_id: Mapped[int | None] = mapped_column(
+    # Cascading config defaults
+    style_profile_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("style_profiles.id", ondelete="SET NULL"),
     )
@@ -49,8 +45,7 @@ class Group(Base, TimestampMixin):
         lazy="joined",
     )
     render_preset: Mapped[RenderPreset | None] = relationship("RenderPreset", lazy="joined")
-    default_character: Mapped[object | None] = relationship("Character", foreign_keys=[default_character_id])
-    default_style_profile: Mapped[StyleProfile | None] = relationship(
-        "StyleProfile", foreign_keys=[default_style_profile_id]
+    style_profile: Mapped[StyleProfile | None] = relationship(
+        "StyleProfile", foreign_keys=[style_profile_id]
     )
     storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")

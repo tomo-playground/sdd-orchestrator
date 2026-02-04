@@ -19,49 +19,49 @@ class _Obj:
 
 class TestResolveEffectiveConfig:
     def test_project_only(self):
-        project = _Obj(render_preset_id=10, default_character_id=1, default_style_profile_id=2)
+        project = _Obj(render_preset_id=10, character_id=1, style_profile_id=2)
         result = resolve_effective_config(project)
         assert result["values"] == {
             "render_preset_id": 10,
-            "default_character_id": 1,
-            "default_style_profile_id": 2,
+            "character_id": 1,
+            "style_profile_id": 2,
         }
         assert all(v == "project" for v in result["sources"].values())
 
     def test_group_overrides_project(self):
-        project = _Obj(render_preset_id=10, default_character_id=1, default_style_profile_id=2)
-        group = _Obj(render_preset_id=20, default_character_id=None, default_style_profile_id=3)
+        project = _Obj(render_preset_id=10, character_id=1, style_profile_id=2)
+        group = _Obj(render_preset_id=20, character_id=None, style_profile_id=3)
         result = resolve_effective_config(project, group)
         assert result["values"]["render_preset_id"] == 20
         assert result["sources"]["render_preset_id"] == "group"
         # character inherits from project
-        assert result["values"]["default_character_id"] == 1
-        assert result["sources"]["default_character_id"] == "project"
+        assert result["values"]["character_id"] == 1
+        assert result["sources"]["character_id"] == "project"
         # style overridden by group
-        assert result["values"]["default_style_profile_id"] == 3
-        assert result["sources"]["default_style_profile_id"] == "group"
+        assert result["values"]["style_profile_id"] == 3
+        assert result["sources"]["style_profile_id"] == "group"
 
     def test_storyboard_overrides_all(self):
-        project = _Obj(render_preset_id=10, default_character_id=1, default_style_profile_id=2)
-        group = _Obj(render_preset_id=20, default_character_id=None, default_style_profile_id=3)
-        storyboard = _Obj(render_preset_id=None, default_character_id=99, default_style_profile_id=None)
+        project = _Obj(render_preset_id=10, character_id=1, style_profile_id=2)
+        group = _Obj(render_preset_id=20, character_id=None, style_profile_id=3)
+        storyboard = _Obj(render_preset_id=None, character_id=99, style_profile_id=None)
         result = resolve_effective_config(project, group, storyboard)
         # render_preset: group wins (storyboard is None)
         assert result["values"]["render_preset_id"] == 20
         # character: storyboard wins
-        assert result["values"]["default_character_id"] == 99
-        assert result["sources"]["default_character_id"] == "storyboard"
+        assert result["values"]["character_id"] == 99
+        assert result["sources"]["character_id"] == "storyboard"
         # style: group wins (storyboard is None)
-        assert result["values"]["default_style_profile_id"] == 3
+        assert result["values"]["style_profile_id"] == 3
 
     def test_all_none_returns_empty(self):
-        project = _Obj(render_preset_id=None, default_character_id=None, default_style_profile_id=None)
+        project = _Obj(render_preset_id=None, character_id=None, style_profile_id=None)
         result = resolve_effective_config(project)
         assert result["values"] == {}
         assert result["sources"] == {}
 
     def test_no_group_no_storyboard(self):
-        project = _Obj(render_preset_id=5, default_character_id=None, default_style_profile_id=None)
+        project = _Obj(render_preset_id=5, character_id=None, style_profile_id=None)
         result = resolve_effective_config(project, None, None)
         assert result["values"] == {"render_preset_id": 5}
         assert result["sources"] == {"render_preset_id": "project"}

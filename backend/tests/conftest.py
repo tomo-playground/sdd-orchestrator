@@ -169,19 +169,25 @@ def client(db_session) -> TestClient:
 
 @pytest.fixture(autouse=True)
 def seed_default_project_group(db_session):
-    """Seed default Project (id=1) and Group (id=1) for every test.
+    """Seed default Project (id=1), Group (id=1), and StyleProfile (id=1) for every test.
 
     Storyboard.group_id is NOT NULL with a default fallback of 1,
     so every test DB needs these rows to exist.
+    StyleProfile is needed because GroupCreate requires style_profile_id.
     """
     from models.group import Group
     from models.project import Project
+    from models.sd_model import StyleProfile
 
-    project = Project(name="Default Project")
+    profile = StyleProfile(name="__test_infra__", is_default=False, is_active=False)
+    db_session.add(profile)
+    db_session.flush()
+
+    project = Project(name="Default Project", style_profile_id=profile.id)
     db_session.add(project)
     db_session.flush()
 
-    group = Group(project_id=project.id, name="Default Series")
+    group = Group(project_id=project.id, name="Default Series", style_profile_id=profile.id)
     db_session.add(group)
     db_session.commit()
 

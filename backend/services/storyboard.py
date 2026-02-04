@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import re
+from datetime import UTC
 from urllib.parse import urlparse
 
 from fastapi import HTTPException
@@ -67,16 +68,10 @@ def serialize_scene(scene: Scene) -> dict:
         "image_url": scene.image_asset.url if scene.image_asset else scene.image_url,
         "width": scene.width,
         "height": scene.height,
-        "steps": scene.steps,
-        "cfg_scale": scene.cfg_scale,
-        "sampler_name": scene.sampler_name,
-        "seed": scene.seed,
-        "clip_skip": scene.clip_skip,
         "context_tags": scene.context_tags,
         "tags": [{"tag_id": t.tag_id, "weight": t.weight} for t in scene.tags],
         "character_actions": [
-            {"character_id": a.character_id, "tag_id": a.tag_id, "weight": a.weight}
-            for a in scene.character_actions
+            {"character_id": a.character_id, "tag_id": a.tag_id, "weight": a.weight} for a in scene.character_actions
         ],
         "use_reference_only": scene.use_reference_only,
         "reference_only_weight": scene.reference_only_weight,
@@ -106,11 +101,6 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             negative_prompt=s_data.negative_prompt,
             width=s_data.width,
             height=s_data.height,
-            steps=s_data.steps,
-            cfg_scale=s_data.cfg_scale,
-            sampler_name=s_data.sampler_name,
-            seed=s_data.seed,
-            clip_skip=s_data.clip_skip,
             context_tags=s_data.context_tags,
             use_reference_only=int(s_data.use_reference_only) if s_data.use_reference_only is not None else 1,
             reference_only_weight=s_data.reference_only_weight or 0.5,
@@ -127,12 +117,14 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
 
         if s_data.character_actions:
             for a_data in s_data.character_actions:
-                db.add(SceneCharacterAction(
-                    scene_id=db_scene.id,
-                    character_id=a_data.character_id,
-                    tag_id=a_data.tag_id,
-                    weight=a_data.weight,
-                ))
+                db.add(
+                    SceneCharacterAction(
+                        scene_id=db_scene.id,
+                        character_id=a_data.character_id,
+                        tag_id=a_data.tag_id,
+                        weight=a_data.weight,
+                    )
+                )
 
         if image_url:
             _link_media_asset(db, db_scene, image_url)
@@ -160,7 +152,7 @@ def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:
             file_name=os.path.basename(storage_key),
             mime_type="image/png",
             owner_type="scene",
-            owner_id=db_scene.id
+            owner_id=db_scene.id,
         )
         db.add(asset)
         db.flush()
@@ -220,6 +212,7 @@ def _load_character_context(character_id: int, db: Session) -> dict | None:
     lora_triggers: list[str] = []
     if char.loras:
         from models.lora import LoRA
+
         for lora_entry in char.loras:
             lora_id = lora_entry.get("lora_id")
             if not lora_id:
@@ -236,8 +229,13 @@ def _load_character_context(character_id: int, db: Session) -> dict | None:
         "lora_triggers": lora_triggers,
         "custom_base_prompt": char.custom_base_prompt or "",
     }
-    logger.info("[Character Context] %s: identity=%s, costume=%s, lora_triggers=%s",
-                char.name, identity_tags, costume_tags, lora_triggers)
+    logger.info(
+        "[Character Context] %s: identity=%s, costume=%s, lora_triggers=%s",
+        char.name,
+        identity_tags,
+        costume_tags,
+        lora_triggers,
+    )
     return ctx
 
 
@@ -366,7 +364,9 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
                 logger.info(f"  \U0001f527 Adding default negative prompt to scene {scene_id}")
                 scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
             else:
-                logger.info(f"  \u2139\ufe0f  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}...")
+                logger.info(
+                    f"  \u2139\ufe0f  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}..."
+                )
 
         # Auto-pin background based on context_tags.environment
         logger.info("[Storyboard] Auto-pin: Analyzing environment tags for background consistency")
@@ -386,13 +386,15 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
                 logger.info(f"  Scene {i}: Same location {list(current_env_tags)} \u2192 mark for auto-pin")
             else:
                 scene["_auto_pin_previous"] = False
-                logger.info(f"  Scene {i}: Location changed {list(previous_env_tags)} \u2192 {list(current_env_tags)}, no pin")
+                logger.info(
+                    f"  Scene {i}: Location changed {list(previous_env_tags)} \u2192 {list(current_env_tags)}, no pin"
+                )
 
             previous_env_tags = current_env_tags
 
         logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
         for i, s in enumerate(scenes):
-            logger.info(f"  Scene {i+1} negative: {s.get('negative_prompt', 'NONE')[:80]}")
+            logger.info(f"  Scene {i + 1} negative: {s.get('negative_prompt', 'NONE')[:80]}")
         result = {"scenes": scenes}
         if request.character_id:
             result["character_id"] = request.character_id
@@ -404,7 +406,7 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
             logger.error("Gemini API quota exhausted")
             raise HTTPException(
                 status_code=429,
-                detail="Gemini API quota exhausted. Please try again later or check your API limits at https://aistudio.google.com/app/apikey"
+                detail="Gemini API quota exhausted. Please try again later or check your API limits at https://aistudio.google.com/app/apikey",
             ) from exc
 
         logger.exception("Storyboard generation failed")
@@ -420,27 +422,33 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         raise HTTPException(status_code=400, detail="group_id is required")
 
     # Auto-inject defaults from cascading config if not explicitly set
-    char_id = request.default_character_id
-    style_id = request.default_style_profile_id
+    char_id = request.character_id
+    style_id = request.style_profile_id
     if char_id is None or style_id is None:
         from models.group import Group
         from services.config_resolver import resolve_effective_config
-        group = db.query(Group).options(
-            joinedload(Group.project),
-        ).filter(Group.id == request.group_id).first()
+
+        group = (
+            db.query(Group)
+            .options(
+                joinedload(Group.project),
+            )
+            .filter(Group.id == request.group_id)
+            .first()
+        )
         if group:
             cfg = resolve_effective_config(group.project, group)
             if char_id is None:
-                char_id = cfg["values"].get("default_character_id")
+                char_id = cfg["values"].get("character_id")
             if style_id is None:
-                style_id = cfg["values"].get("default_style_profile_id")
+                style_id = cfg["values"].get("style_profile_id")
 
     db_storyboard = Storyboard(
         title=safe_title,
         description=request.description,
         group_id=request.group_id,
-        default_character_id=char_id,
-        default_style_profile_id=style_id,
+        character_id=char_id,
+        style_profile_id=style_id,
         default_caption=request.default_caption,
         narrator_voice_preset_id=request.narrator_voice_preset_id,
     )
@@ -454,22 +462,22 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
 
     scene_ids = [scene.id for scene in db_storyboard.scenes]
 
-    return {
-        "status": "success",
-        "storyboard_id": db_storyboard.id,
-        "scene_ids": scene_ids
-    }
+    return {"status": "success", "storyboard_id": db_storyboard.id, "scene_ids": scene_ids}
 
 
 def list_storyboards_from_db(
-    db: Session, group_id: int | None = None, project_id: int | None = None,
+    db: Session,
+    group_id: int | None = None,
+    project_id: int | None = None,
 ) -> list[dict]:
     """List all storyboards with scene/image counts."""
     from models.group import Group
 
-    query = db.query(Storyboard).options(
-        joinedload(Storyboard.scenes).joinedload(Scene.image_asset)
-    ).filter(Storyboard.deleted_at.is_(None))
+    query = (
+        db.query(Storyboard)
+        .options(joinedload(Storyboard.scenes).joinedload(Scene.image_asset))
+        .filter(Storyboard.deleted_at.is_(None))
+    )
     if group_id is not None:
         query = query.filter(Storyboard.group_id == group_id)
     elif project_id is not None:
@@ -483,15 +491,17 @@ def list_storyboards_from_db(
     result = []
     for s in storyboards:
         scenes = s.scenes or []
-        result.append({
-            "id": s.id,
-            "title": s.title,
-            "description": s.description,
-            "scene_count": len(scenes),
-            "image_count": sum(1 for sc in scenes if sc.image_url),
-            "created_at": s.created_at.isoformat() if s.created_at else None,
-            "updated_at": s.updated_at.isoformat() if s.updated_at else None,
-        })
+        result.append(
+            {
+                "id": s.id,
+                "title": s.title,
+                "description": s.description,
+                "scene_count": len(scenes),
+                "image_count": sum(1 for sc in scenes if sc.image_url),
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+            }
+        )
     return result
 
 
@@ -524,8 +534,8 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "id": storyboard.id,
         "title": storyboard.title,
         "description": storyboard.description,
-        "default_character_id": storyboard.default_character_id,
-        "default_style_profile_id": storyboard.default_style_profile_id,
+        "character_id": storyboard.character_id,
+        "style_profile_id": storyboard.style_profile_id,
         "narrator_voice_preset_id": storyboard.narrator_voice_preset_id,
         "video_url": storyboard.video_url,
         "recent_videos": recent_videos,
@@ -538,9 +548,14 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
 
 def update_storyboard_in_db(db: Session, storyboard_id: int, request: StoryboardSave) -> dict:
     """Update a storyboard by replacing all scenes."""
-    storyboard = db.query(Storyboard).options(
-        selectinload(Storyboard.scenes),
-    ).filter(Storyboard.id == storyboard_id).first()
+    storyboard = (
+        db.query(Storyboard)
+        .options(
+            selectinload(Storyboard.scenes),
+        )
+        .filter(Storyboard.id == storyboard_id)
+        .first()
+    )
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
@@ -551,8 +566,8 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.description = request.description
     if request.group_id is not None:
         storyboard.group_id = request.group_id
-    storyboard.default_character_id = request.default_character_id
-    storyboard.default_style_profile_id = request.default_style_profile_id
+    storyboard.character_id = request.character_id
+    storyboard.style_profile_id = request.style_profile_id
     storyboard.default_caption = request.default_caption
     storyboard.narrator_voice_preset_id = request.narrator_voice_preset_id
 
@@ -563,12 +578,8 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     )
     db.flush()
 
-    scene_ids = [
-        s.id for s in db.query(Scene.id).filter(Scene.storyboard_id == storyboard_id).all()
-    ]
-    db.query(Scene).filter(
-        Scene.storyboard_id == storyboard_id
-    ).delete(synchronize_session=False)
+    scene_ids = [s.id for s in db.query(Scene.id).filter(Scene.storyboard_id == storyboard_id).all()]
+    db.query(Scene).filter(Scene.storyboard_id == storyboard_id).delete(synchronize_session=False)
 
     db.query(MediaAsset).filter(
         MediaAsset.owner_type == "storyboard",
@@ -590,9 +601,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     return {"status": "success", "storyboard_id": storyboard.id}
 
 
-def update_storyboard_metadata(
-    db: Session, storyboard_id: int, request: StoryboardUpdate
-) -> dict:
+def update_storyboard_metadata(db: Session, storyboard_id: int, request: StoryboardUpdate) -> dict:
     """Update only storyboard metadata (title, caption, etc) without touching scenes."""
     storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
     if not storyboard:
@@ -604,10 +613,10 @@ def update_storyboard_metadata(
         storyboard.title = truncate_title(request.title)
     if request.description is not None:
         storyboard.description = request.description
-    if request.default_character_id is not None:
-        storyboard.default_character_id = request.default_character_id
-    if request.default_style_profile_id is not None:
-        storyboard.default_style_profile_id = request.default_style_profile_id
+    if request.character_id is not None:
+        storyboard.character_id = request.character_id
+    if request.style_profile_id is not None:
+        storyboard.style_profile_id = request.style_profile_id
     if request.default_caption is not None:
         storyboard.default_caption = request.default_caption
     if request.narrator_voice_preset_id is not None:
@@ -619,26 +628,35 @@ def update_storyboard_metadata(
 
 def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
     """Soft-delete a storyboard (set deleted_at timestamp)."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    storyboard = db.query(Storyboard).filter(
-        Storyboard.id == storyboard_id,
-        Storyboard.deleted_at.is_(None),
-    ).first()
+    storyboard = (
+        db.query(Storyboard)
+        .filter(
+            Storyboard.id == storyboard_id,
+            Storyboard.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
     logger.info("\U0001f5d1\ufe0f [Storyboard Soft Delete] id=%d title=%s", storyboard_id, storyboard.title)
-    storyboard.deleted_at = datetime.now(timezone.utc)
+    storyboard.deleted_at = datetime.now(UTC)
     db.commit()
     return {"status": "success"}
 
 
 def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
     """Permanently delete a storyboard and all its scenes (CASCADE) + cleanup assets."""
-    storyboard = db.query(Storyboard).options(
-        selectinload(Storyboard.scenes),
-    ).filter(Storyboard.id == storyboard_id).first()
+    storyboard = (
+        db.query(Storyboard)
+        .options(
+            selectinload(Storyboard.scenes),
+        )
+        .filter(Storyboard.id == storyboard_id)
+        .first()
+    )
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
@@ -671,6 +689,7 @@ def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
     except Exception as e:
         import sys
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         logger.exception("Failed to permanently delete storyboard %d", storyboard_id)
         db.rollback()
