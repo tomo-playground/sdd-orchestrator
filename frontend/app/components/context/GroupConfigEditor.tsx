@@ -34,8 +34,6 @@ type Props = {
 };
 
 // ── Constants ────────────────────────────────────────────────
-const LANGUAGES = ["Korean", "English", "Japanese"];
-const STRUCTURES = ["Monologue", "Dialogue", "Narration"];
 const SAMPLERS = ["DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"];
 
 const labelCls = "mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
@@ -90,6 +88,8 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const [presets, setPresets] = useState<OptionItem[]>([]);
   const [profiles, setProfiles] = useState<OptionItem[]>([]);
   const [characters, setCharacters] = useState<OptionItem[]>([]);
+  const [languages, setLanguages] = useState<{ value: string; label: string }[]>([]);
+  const [structures, setStructures] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -97,8 +97,9 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
       axios.get(`${API_BASE}/render-presets`),
       axios.get(`${API_BASE}/style-profiles`),
       axios.get(`${API_BASE}/characters`),
+      axios.get(`${API_BASE}/presets`),
     ])
-      .then(([cfgRes, presetsRes, profilesRes, charsRes]) => {
+      .then(([cfgRes, presetsRes, profilesRes, charsRes, sbPresetsRes]) => {
         setConfig(cfgRes.data);
         setPresets(
           presetsRes.data.map((p: Record<string, unknown>) => ({
@@ -118,6 +119,11 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
             name: c.name as string,
           }))
         );
+        const sbData = sbPresetsRes.data;
+        if (Array.isArray(sbData?.languages)) setLanguages(sbData.languages);
+        if (Array.isArray(sbData?.presets)) {
+          setStructures(sbData.presets.map((p: Record<string, unknown>) => p.structure as string));
+        }
       })
       .catch(() => showToast("Failed to load config", "error"))
       .finally(() => setLoading(false));
@@ -179,14 +185,14 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
             <SelectField
               label="Language"
               value={config.language}
-              options={LANGUAGES.map((l) => ({ value: l, label: l }))}
+              options={languages.map((l) => ({ value: l.value, label: l.label }))}
               onChange={(v) => updateField("language", v || null)}
               placeholder="-- None --"
             />
             <SelectField
               label="Structure"
               value={config.structure}
-              options={STRUCTURES.map((s) => ({ value: s, label: s }))}
+              options={structures.map((s) => ({ value: s, label: s }))}
               onChange={(v) => updateField("structure", v || null)}
               placeholder="-- None --"
             />

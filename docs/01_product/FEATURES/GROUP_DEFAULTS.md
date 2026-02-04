@@ -1,14 +1,14 @@
 # Group Defaults Cascade
 
 **Phase**: 7-2 Phase 1.7
-**상태**: 미착수
+**상태**: 완료
 **우선순위**: P1
 
 ## 문제
 
 ### 1. 설정 산재
 
-현재 cascade 설정이 groups/storyboards 테이블에 직접 컬럼으로 붙어 있음:
+기존에 cascade 설정이 groups/storyboards 테이블에 직접 컬럼으로 붙어 있었음:
 
 ```
 groups: render_preset_id, style_profile_id
@@ -23,16 +23,18 @@ storyboards: character_id, style_profile_id, narrator_voice_preset_id, recent_vi
 
 ### 2. 프론트엔드 전용 설정
 
-language, structure, duration 등은 PlanSlice에만 존재:
+language, structure, duration 등이 PlanSlice에만 존재:
 - 새로고침 시 초기화됨
 - 같은 그룹 내 스토리보드마다 반복 설정 필요
 - Manage 페이지에 그룹 기본값 편집 UI 없음
 
-## 목표
+## 해결
 
-`group_config` 테이블을 분리하여 설정을 한 곳에서 관리한다.
+`group_config` 테이블을 분리하여 설정을 한 곳에서 관리.
 
-## 설계: `group_config` 테이블
+## 구현 완료 내역
+
+### DB: `group_config` 테이블
 
 ```sql
 CREATE TABLE group_config (
@@ -44,7 +46,7 @@ CREATE TABLE group_config (
     style_profile_id INTEGER REFERENCES style_profiles(id),
     narrator_voice_preset_id INTEGER REFERENCES voice_presets(id),
 
-    -- 신규 (현재 프론트엔드 전용)
+    -- 신규 (프론트엔드 전용 → DB 영속)
     language VARCHAR(20),          -- "Korean" | "English" | "Japanese"
     structure VARCHAR(30),         -- "Monologue" | "Dialogue" | ...
     duration INTEGER,              -- 10-120
@@ -54,40 +56,25 @@ CREATE TABLE group_config (
 );
 ```
 
-### 선택적 확장 (P2)
+### Backend
 
-```sql
-    auto_compose_prompt BOOLEAN,
-    hi_res_enabled BOOLEAN,
-    veo_enabled BOOLEAN,
-```
-
-## Storyboard 테이블 정리
-
-storyboards에서 제거할 컬럼:
-
-| 컬럼 | 행선지 | 이유 |
-|------|--------|------|
-| `character_id` | `group_config` | 중복. cascade로 대체 |
-| `style_profile_id` | `group_config` | 중복. cascade로 대체 |
-| `narrator_voice_preset_id` | `group_config` | 시리즈 단위 설정 |
-
-**`recent_videos_json`**: JSON blob → 별도 정규화 검토 (이 명세 스코프 외)
-
-**원칙**: 스토리보드는 "생성된 콘텐츠". 기본값은 Group이 소유하고 스토리보드는 상속만 받는다.
-
-## Groups 테이블 정리
-
-groups에서 `group_config`로 이관할 컬럼:
-
-| 컬럼 | 이유 |
+| 항목 | 상태 |
 |------|------|
-| `render_preset_id` | 설정 관심사 분리 |
-| `style_profile_id` | 설정 관심사 분리 |
+| `group_config` 모델 (1:1 Group ↔ GroupConfig) | 완료 |
+| Alembic 마이그레이션 (groups/storyboards → group_config 이관) | 완료 |
+| `config_resolver.py` CASCADING_FIELDS에 language/structure/duration 포함 | 완료 |
+| API: `GET/PUT /groups/{id}/config`, `GET /groups/{id}/effective-config` | 완료 |
+| 스키마: GroupConfigCreate/Update, EffectiveConfigResponse | 완료 |
 
-이관 후 groups는 순수 메타데이터만 보유: `id, project_id, name, description`
+### Frontend
 
-## Cascade 규칙
+| 항목 | 상태 |
+|------|------|
+| GroupConfigEditor UI (Manage 그룹 편집에서 기본값 설정) | 완료 |
+| `loadGroupDefaults()` → PlanSlice에 language/structure/duration 적용 | 완료 |
+| `useProjectGroups` → groupId 변경 시 `loadGroupDefaults()` 호출 | 완료 |
+
+### Cascade 규칙
 
 ```
 System Default < Project Config < Group Config
@@ -95,34 +82,12 @@ System Default < Project Config < Group Config
 
 Group이 설정의 최하위 소유자. 스토리보드는 소속 그룹의 설정을 상속받는다.
 
-## 구현 범위
-
-### Backend
-
-1. **`group_config` 모델 생성**: 1:1 관계 (Group ↔ GroupConfig)
-2. **Alembic 마이그레이션**: groups/storyboards 기존 값 → group_config 이관, 원본 컬럼 제거
-3. **`config_resolver.py` 리팩터**: groups 직접 조회 → group_config 조회로 전환
-4. **스키마 업데이트**: GroupConfigCreate/Update, EffectiveConfigResponse 확장
-5. **API 엔드포인트**: `PUT /groups/{id}/config` (설정 전용)
-
-### Frontend
-
-1. **Manage 그룹 편집 UI**: 그룹별 기본값 설정 폼
-2. **Studio 초기화**: `loadGroupDefaults()` → group_config API 소비
-3. **storyboard save/load**: default 컬럼 참조 제거
-
-## 마이그레이션 전략
-
-1. `group_config` 테이블 생성
-2. 기존 groups 데이터 이관: `INSERT INTO group_config SELECT ... FROM groups`
-3. 기존 storyboards 데이터 이관: narrator_voice → 소속 group_config (null이 아닌 경우)
-4. groups에서 `render_preset_id`, `style_profile_id` 제거 (character_id는 이미 삭제됨)
-5. storyboards에서 `character_id`, `style_profile_id`, `narrator_voice_preset_id` 제거
-
 ## 관련 파일
 
 - `backend/services/config_resolver.py` — cascade 엔진
-- `backend/models/group.py` — Group 모델
+- `backend/models/group.py` — Group, GroupConfig 모델
 - `backend/schemas.py` — API 스키마
+- `backend/routers/groups.py` — API 엔드포인트
 - `frontend/app/store/actions/groupActions.ts` — `loadGroupDefaults()`
+- `frontend/app/hooks/useProjectGroups.ts` — groupId 변경 감지
 - `frontend/app/store/slices/contextSlice.ts` — effective 설정 저장

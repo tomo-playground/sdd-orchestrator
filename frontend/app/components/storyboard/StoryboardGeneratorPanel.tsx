@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE, STRUCTURES } from "../../constants";
+import { API_BASE } from "../../constants";
 import { cx, SECTION_CLASSES } from "../ui/variants";
 
 type Preset = {
@@ -13,6 +13,8 @@ type Preset = {
   default_duration: number;
   default_language: string;
 };
+
+type LangOption = { value: string; label: string };
 
 type StoryboardGeneratorPanelProps = {
   topic: string;
@@ -40,30 +42,28 @@ export default function StoryboardGeneratorPanel({
   setStructure,
 }: StoryboardGeneratorPanelProps) {
   const [presets, setPresets] = useState<Preset[]>([]);
+  const [languages, setLanguages] = useState<LangOption[]>([]);
   const [sampleTopics, setSampleTopics] = useState<string[]>([]);
 
-  // Fetch presets on mount
+  // Fetch presets + languages on mount
   useEffect(() => {
     fetch(`${API_BASE}/presets`)
       .then((res) => res.json())
       .then((data) => {
         const list = data?.presets ?? data;
-        if (Array.isArray(list)) {
-          setPresets(list);
-        }
+        if (Array.isArray(list)) setPresets(list);
+        if (Array.isArray(data?.languages)) setLanguages(data.languages);
       })
       .catch(() => setPresets([]));
   }, []);
 
   // Update sample topics when structure changes
   useEffect(() => {
-    const preset = presets.find(
-      (p) => p.structure.toLowerCase() === structure.toLowerCase()
-    );
+    const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
     if (preset) {
       setSampleTopics(preset.sample_topics); // eslint-disable-line react-hooks/set-state-in-effect
     } else {
-      setSampleTopics([]);  
+      setSampleTopics([]);
     }
   }, [structure, presets]);
 
@@ -72,9 +72,7 @@ export default function StoryboardGeneratorPanel({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Story</h2>
-          <p className="text-xs text-zinc-500">
-            Topic, structure, and generation settings.
-          </p>
+          <p className="text-xs text-zinc-500">Topic, structure, and generation settings.</p>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
@@ -83,8 +81,11 @@ export default function StoryboardGeneratorPanel({
             <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Topic
             </label>
-            <span className={`text-[10px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
-              }`}>
+            <span
+              className={`text-[10px] font-semibold tracking-[0.1em] ${
+                topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
+              }`}
+            >
               {topic.length}/200
             </span>
           </div>
@@ -98,25 +99,29 @@ export default function StoryboardGeneratorPanel({
             placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
           />
           {sampleTopics.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-1">
+            <div className="mt-1 flex flex-wrap gap-2">
               {sampleTopics.map((sample, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setTopic(sample)}
-                  className="px-3 py-1 text-xs rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-800 transition-colors border border-zinc-200"
+                  className="rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-800"
                 >
                   {sample}
                 </button>
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between mt-3">
+          <div className="mt-3 flex items-center justify-between">
             <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Description <span className="text-zinc-400 normal-case tracking-normal">(optional)</span>
+              Description{" "}
+              <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
             </label>
-            <span className={`text-[10px] font-semibold tracking-[0.1em] ${description.length >= 500 ? "text-rose-500" : "text-zinc-400"
-              }`}>
+            <span
+              className={`text-[10px] font-semibold tracking-[0.1em] ${
+                description.length >= 500 ? "text-rose-500" : "text-zinc-400"
+              }`}
+            >
               {description.length}/500
             </span>
           </div>
@@ -154,9 +159,11 @@ export default function StoryboardGeneratorPanel({
                 onChange={(e) => setLanguage(e.target.value)}
                 className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
               >
-                <option value="Korean">한국어</option>
-                <option value="English">English</option>
-                <option value="Japanese">日本語</option>
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -169,9 +176,9 @@ export default function StoryboardGeneratorPanel({
               onChange={(e) => setStructure(e.target.value)}
               className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
             >
-              {STRUCTURES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
+              {presets.map((p) => (
+                <option key={p.structure} value={p.structure}>
+                  {p.structure}
                 </option>
               ))}
             </select>

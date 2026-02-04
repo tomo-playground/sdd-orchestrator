@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
+from config import STORYBOARD_LANGUAGES
 from services.presets import get_all_presets, get_preset, get_sample_topics
 
 router = APIRouter(prefix="/presets", tags=["presets"])
@@ -13,9 +14,12 @@ router = APIRouter(prefix="/presets", tags=["presets"])
 async def list_presets():
     """Get all available storyboard presets.
 
-    Returns a list of presets with their sample topics and default settings.
+    Returns presets with sample topics, default settings, and option lists.
     """
-    return {"presets": get_all_presets()}
+    return {
+        "presets": get_all_presets(),
+        "languages": STORYBOARD_LANGUAGES,
+    }
 
 
 @router.get("/{preset_id}")

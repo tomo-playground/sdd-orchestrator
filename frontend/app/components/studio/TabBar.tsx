@@ -85,7 +85,7 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
                 </div>
                 {i < STEPS.length - 1 && (
                   <div
-                    className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "border-t border-dashed border-zinc-300 bg-transparent bg-zinc-300"}`}
+                    className={`mx-1 mb-3 h-px w-10 ${filled ? "bg-zinc-400" : "border-t border-dashed border-zinc-300"}`}
                   />
                 )}
               </div>

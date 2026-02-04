@@ -69,6 +69,9 @@ docs/
 
 ## Configuration Principles (SSOT)
 - **설정 값**: 모든 환경 변수 및 상수는 `backend/config.py`에서 관리합니다. 개별 파일 하드코딩 금지.
+- **옵션 목록**: Language, Structure 등 도메인 옵션은 **Backend가 SSOT**. Frontend는 API 응답을 소비만 한다. `frontend/constants/`에 도메인 옵션 하드코딩 금지.
+  - Language: `config.py` → `STORYBOARD_LANGUAGES` → `/presets` API 응답의 `languages` 필드
+  - Structure: `services/presets.py` → `PRESETS` dict → `/presets` API 응답의 `presets[].structure`
 - **로직 기준**: 태그 우선순위 등의 비즈니스 로직은 **Backend**(`backend/services/keywords/` 패키지)가 Single Source of Truth입니다.
 - **태그 규칙**: 충돌(`tag_rules`), 별칭(`tag_aliases`), 필터(`tag_filters`) 모두 **DB 테이블**에서 관리. 코드 하드코딩 금지.
 - **런타임 캐시**: `TagCategoryCache`, `TagAliasCache`, `TagRuleCache`, `LoRATriggerCache` — startup 시 DB에서 로드, 변경 시 `/admin/refresh-caches`.

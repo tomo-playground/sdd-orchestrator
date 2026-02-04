@@ -1,21 +1,21 @@
 # Sidebar Navigation + Context Switching Fix
 
 **Phase**: 7-1 #15
-**상태**: 미착수
+**상태**: Phase A/B 완료, Phase C 보류 (ContextBar 정리는 선택적)
 **우선순위**: P0 (데이터 오염 버그 포함)
 
 ## 문제
 
-### 컨텍스트 전환 버그 (6건)
+### 컨텍스트 전환 버그 (6건) — 전량 수정 완료
 
-| # | 버그 | 심각도 | 위치 |
-|---|------|--------|------|
-| 1 | 그룹 전환 시 씬/스토리보드 미초기화 — 이전 그룹 데이터 잔존, Generate 시 잘못된 그룹에 저장 | P0 | `useProjectGroups.ts:60-66` |
-| 2 | 프로젝트 전환 시 동일 — groupId만 null, scenes/storyboard 유지 | P0 | `useProjectGroups.ts:54-57` |
-| 3 | Cmd+K 스토리보드 선택 시 groupId/projectId 미갱신 — ContextBar 불일치 | P1 | `CommandPalette.tsx:102` |
-| 4 | 스토리보드 로드 시 컨텍스트 검증 없음 — group_id 불일치 가능 | P1 | `useStudioInitialization.ts:146-191` |
-| 5 | Home 그룹 필터가 전역 groupId와 분리 — local state로 관리 | P2 | `StoryboardsSection.tsx:54` |
-| 6 | loadGroupDefaults 이중 호출 — selectGroup 직접 + useEffect | P2 | `useProjectGroups.ts:62-63` |
+| # | 버그 | 심각도 | 상태 | 수정 내역 |
+|---|------|--------|------|-----------|
+| 1 | 그룹 전환 시 씬/스토리보드 미초기화 | P0 | [x] | `selectGroup()`에 storyboardId/scenes 초기화 추가 |
+| 2 | 프로젝트 전환 시 동일 | P0 | [x] | `selectProject()`에 groupId/storyboardId/scenes 초기화 추가 |
+| 3 | Cmd+K 스토리보드 선택 시 컨텍스트 미갱신 | P1 | [x] | `setMeta` atomic 업데이트로 race condition 해결 |
+| 4 | 스토리보드 로드 시 컨텍스트 검증 없음 | P1 | [x] | `useStudioInitialization`에 projectId 동기화 추가 |
+| 5 | Home 그룹 필터가 전역 groupId와 분리 | P2 | [x] | 전역 groupId 사용으로 전환 (local state 제거) |
+| 6 | loadGroupDefaults 이중 호출 | P2 | [x] | useEffect 단일 호출로 정리 (selectGroup 내 직접 호출 제거) |
 
 ### 근본 원인
 
@@ -82,27 +82,27 @@
 
 ## 구현 범위
 
-### Phase A: 버그 수정 (사이드바 없이 선행 가능)
+### Phase A: 버그 수정 — 완료
 
-1. `selectGroup()`: storyboardId/scenes 초기화 추가
-2. `selectProject()`: groupId/storyboardId/scenes 초기화
-3. `CommandPalette`: 스토리보드 선택 시 group/project 컨텍스트 동기화
-4. `useStudioInitialization`: 로드 시 storyboard.group_id로 컨텍스트 갱신
-5. `StoryboardsSection`: filterGroupId를 전역 groupId와 동기화
-6. `selectGroup()`: loadGroupDefaults 이중 호출 제거
+1. [x] `selectGroup()`: storyboardId/scenes 초기화 추가
+2. [x] `selectProject()`: groupId/storyboardId/scenes 초기화
+3. [x] `CommandPalette`: 스토리보드 선택 시 group/project 컨텍스트 동기화
+4. [x] `useStudioInitialization`: 로드 시 storyboard.group_id로 컨텍스트 갱신
+5. [x] `StoryboardsSection`: filterGroupId를 전역 groupId와 동기화
+6. [x] `selectGroup()`: loadGroupDefaults 이중 호출 제거
 
-### Phase B: 사이드바 구현
+### Phase B: 사이드바 구현 — 완료
 
-1. `Sidebar.tsx` 컴포넌트 생성
-2. `AppShell.tsx` 레이아웃 변경 (상단 NavBar → 사이드바 + 최소 상단바)
-3. `ContextBar` 제거 (사이드바로 대체)
-4. 스토리보드 목록 API 연동 (groupId 변경 시 fetch)
-5. 반응형: 모바일에서 아이콘 모드 또는 오버레이
+1. [x] `Sidebar.tsx` 컴포넌트 생성 (ProjectDropdown, GroupList, StoryList, 접기/펼치기)
+2. [x] `AppShell.tsx` 레이아웃 변경 (사이드바 + 상단바)
+3. [ ] `ContextBar` 제거 — Studio에서 여전히 사용 중 (Phase C로 이동)
+4. [x] 스토리보드 목록 API 연동 (groupId 변경 시 fetch)
+5. [x] 반응형: lg 브레이크포인트 이상에서만 표시
 
-### Phase C: Studio 서브헤더 정리
+### Phase C: Studio 서브헤더 정리 — 보류
 
-사이드바 도입 후 Studio 서브헤더 간소화:
-- ContextBar breadcrumb 제거 (사이드바에서 보임)
+사이드바 도입 후 Studio 서브헤더 간소화 (선택적):
+- [ ] ContextBar breadcrumb 제거 (사이드바에서 보임)
 - 스토리보드 제목 인라인 편집만 유지
 - Actions bar (Generate/AutoRun/Save) 유지
 

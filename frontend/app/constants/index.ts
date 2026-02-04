@@ -40,20 +40,10 @@ export const AUTO_RUN_STEPS = [
 
 export const SAMPLERS = ["DPM++ 2M Karras", "Euler a", "Euler", "DDIM"];
 
-export const OVERLAY_STYLES = [
-  { id: "overlay_minimal.png", label: "Minimal" },
-];
+export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
 export const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];
-
-export const STRUCTURES = [
-  "Monologue",
-  "Storytelling",
-  "Tutorial",
-  "Facts",
-  "Motivation",
-];
 
 export const CAMERA_KEYWORDS = [
   "close_up",
@@ -147,5 +137,3 @@ export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   mood: "분위기 (romantic, peaceful)",
   style: "스타일 (anime, realistic)",
 };
-
-

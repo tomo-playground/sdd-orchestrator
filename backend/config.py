@@ -283,3 +283,10 @@ VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
 TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Storyboard Options (SSOT) ---
+STORYBOARD_LANGUAGES = [
+    {"value": "Korean", "label": "한국어"},
+    {"value": "English", "label": "English"},
+    {"value": "Japanese", "label": "日本語"},
+]
