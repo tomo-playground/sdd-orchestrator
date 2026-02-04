@@ -213,6 +213,7 @@
 | 13 | Gemini 스크립트 길이 제한 강화 (30자/Korean) | 품질 | - | [x] |
 | 14 | Character Identity Injection (Gemini 스토리보드에 캐릭터 태그/LoRA 주입 + 오토파일럿 overlay 수정) | 품질 | - | [x] |
 | 15 | 좌측 사이드바 네비게이션 + 컨텍스트 전환 버그 수정 (Phase A 버그 6건 + Phase B 사이드바 완료. Phase C ContextBar 정리 보류) | UX | [명세](FEATURES/SIDEBAR_NAVIGATION.md) | [x] |
+| 16 | Insights 탭 Studio → Manage 이동 (QualityDashboard + AnalyticsDashboard, 스토리보드 셀렉터) | UX | - | [x] |
 
 ---
 
@@ -276,6 +277,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | LoRA Calibration Automation | - |
 | Real-time Prompt Preview (12-Layer) | - |
 | 씬 순서 드래그 앤 드롭 | - |
+| Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화) | - |
 
 ---
 
@@ -294,4 +296,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: 12/16 완료 (#1 CI, #3 GC, #4-6 Soft Delete, #7 UI Toolkit, #12 WD14 매칭, #13-15 Voice, #16 Schema Cleanup)
 - Phase 7-2: Phase 1.7 **완료** (Group Defaults cascade + loadGroupDefaults 연동), Phase 2 대기
-- Phase 7-1: 7/15 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity, #15 사이드바+버그)
+- Phase 7-1: 8/16 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity, #15 사이드바+버그, #16 Insights→Manage)

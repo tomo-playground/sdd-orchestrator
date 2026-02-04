@@ -404,10 +404,20 @@ class BatchSceneRequest(BaseModel):
     scenes: list[SceneGenerateRequest]
 
 
+class SceneGenerateResponse(BaseModel):
+    """Single scene generation result from SD WebUI."""
+
+    image: str  # Base64 encoded PNG
+    images: list[str] = []
+    controlnet_pose: str | None = None
+    ip_adapter_reference: str | None = None
+    warnings: list[str] = []
+
+
 class BatchSceneResult(BaseModel):
     index: int
-    status: str  # "success" | "failed"
-    data: dict | None = None
+    status: Literal["success", "failed"]
+    data: SceneGenerateResponse | None = None
     error: str | None = None
 
 

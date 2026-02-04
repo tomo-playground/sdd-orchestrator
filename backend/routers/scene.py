@@ -11,12 +11,14 @@ from config import logger
 from database import get_db
 from schemas import (
     BatchSceneRequest,
+    BatchSceneResponse,
     GeminiEditRequest,
     GeminiEditResponse,
     GeminiSuggestRequest,
     GeminiSuggestResponse,
     ImageStoreRequest,
     SceneGenerateRequest,
+    SceneGenerateResponse,
     SceneValidateRequest,
 )
 from services.asset_service import AssetService
@@ -29,7 +31,7 @@ from services.validation import validate_scene_image
 router = APIRouter(tags=["scene"])
 
 
-@router.post("/scene/generate")
+@router.post("/scene/generate", response_model=SceneGenerateResponse)
 async def generate_scene_image_endpoint(request: SceneGenerateRequest):
     # Validate resolution strategy
     if request.width != 512 or request.height != 768:
@@ -43,7 +45,7 @@ async def generate_scene_image_endpoint(request: SceneGenerateRequest):
     return await generate_scene_image(request)
 
 
-@router.post("/scene/generate-batch")
+@router.post("/scene/generate-batch", response_model=BatchSceneResponse)
 async def generate_batch_images(request: BatchSceneRequest):
     """Generate images for multiple scenes concurrently with semaphore-based throttling."""
     import asyncio
@@ -56,7 +58,7 @@ async def generate_batch_images(request: BatchSceneRequest):
         async with semaphore:
             try:
                 result = await generate_scene_image(scene_req)
-                return {"index": index, "status": "success", "data": result}
+                return {"index": index, "status": "success", "data": SceneGenerateResponse(**result)}
             except Exception as e:
                 logger.error("[Batch Gen] Scene %d failed: %s", index, e)
                 return {"index": index, "status": "failed", "error": str(e)}

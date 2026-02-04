@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useStudioStore } from "../store/useStudioStore";
 import type { AutoRunStepId } from "../types";
 import TabBar from "../components/studio/TabBar";
@@ -86,6 +86,16 @@ function StudioContent() {
 
   // Autopilot state (shared across all tabs)
   const autopilot = useAutopilot();
+
+  // Reset autopilot state when switching storyboards (prevents error/done leaking to other stories)
+  const isAutoRunningRef = useRef(false);
+  isAutoRunningRef.current = autopilot.isAutoRunning;
+  useEffect(() => {
+    if (!isAutoRunningRef.current) {
+      autopilot.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyboardId]);
 
   if (isLoadingDb) {
     return (

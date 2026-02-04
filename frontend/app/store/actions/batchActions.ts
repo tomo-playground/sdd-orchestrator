@@ -2,11 +2,12 @@ import axios from "axios";
 import { API_BASE } from "../../constants";
 import { useStudioStore } from "../useStudioStore";
 import type { Scene } from "../../types";
+import { storeSceneImage } from "./imageActions";
 
 interface BatchResult {
   index: number;
   status: "success" | "failed";
-  data?: { image_url: string; [key: string]: unknown };
+  data?: { image?: string; images?: string[]; [key: string]: unknown };
   error?: string;
 }
 
@@ -67,20 +68,36 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
 
     const { results } = res.data;
 
-    // Update each scene with its result
-    for (const result of results) {
-      const scene = targetScenes[result.index];
-      if (!scene) continue;
+    // Store images in parallel, then update scenes
+    const { projectId, groupId, storyboardId } = useStudioStore.getState();
+    const canStore = projectId && groupId && storyboardId;
 
-      if (result.status === "success" && result.data?.image_url) {
-        updateScene(scene.id, {
-          image_url: result.data.image_url,
-          isGenerating: false,
-        });
-      } else {
-        updateScene(scene.id, { isGenerating: false });
-      }
-    }
+    await Promise.all(
+      results.map(async (result) => {
+        const scene = targetScenes[result.index];
+        if (!scene) return;
+
+        const b64 = result.data?.image;
+        if (result.status === "success" && b64 && canStore) {
+          const dataUrl = `data:image/png;base64,${b64}`;
+          const stored = await storeSceneImage(
+            dataUrl,
+            projectId,
+            groupId,
+            storyboardId,
+            scene.id,
+            `scene_${scene.id}_${Date.now()}.png`
+          );
+          updateScene(scene.id, {
+            image_url: stored.url,
+            image_asset_id: stored.asset_id ?? null,
+            isGenerating: false,
+          });
+        } else {
+          updateScene(scene.id, { isGenerating: false });
+        }
+      })
+    );
 
     return res.data;
   } catch (error) {

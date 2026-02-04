@@ -84,6 +84,18 @@ docs/
 - **설정 소유권**: `System Default < Project Config < Group Config`. 콘텐츠 엔티티는 설정을 소유하지 않는다.
 - **상세**: `.claude/agents/dba.md` "스키마 설계 철학" 섹션 참조.
 
+## API Contract Principles (Backend ↔ Frontend)
+- **response_model 필수**: 모든 FastAPI 라우터 엔드포인트에 `response_model=` 지정. raw dict 반환 금지.
+- **응답 스키마 구체화**: `dict | None` 금지. 반드시 Pydantic 모델로 필드를 명시한다. (예: `data: SceneGenerateResponse | None`)
+- **Frontend 타입 동기화**: Backend 스키마의 필드명을 그대로 사용. Frontend에서 필드명을 추측하여 작성하지 않는다.
+  - Backend가 `image` (base64)를 반환하면 Frontend도 `result.data.image`로 접근.
+  - `image_url` 등 존재하지 않는 필드를 가정하지 않는다.
+- **신규 엔드포인트 체크리스트**:
+  1. `schemas.py`에 Request + Response 모델 정의
+  2. 라우터에 `response_model=` 지정
+  3. Frontend 타입(interface)을 Backend 스키마와 일치시킴
+  4. REST API 명세 (`docs/03_engineering/api/REST_API.md`) 업데이트
+
 ## Tag Format Standard (Danbooru 표준)
 **원칙**: 모든 태그는 **언더바(_) 형식**을 사용합니다. 공백 형식 절대 금지.
 
