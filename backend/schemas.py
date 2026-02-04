@@ -20,6 +20,7 @@ class CharacterLoRA(BaseModel):
     trigger_words: list[str] | None = None
     lora_type: str | None = None
 
+
 # ============================================================
 # Project / Group Schemas
 # ============================================================
@@ -146,11 +147,40 @@ class GroupResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class EffectiveConfigResponse(BaseModel):
-    """Resolved cascading config: Project < Group < Storyboard."""
+class GroupConfigUpdate(BaseModel):
     render_preset_id: int | None = None
     default_character_id: int | None = None
     default_style_profile_id: int | None = None
+    narrator_voice_preset_id: int | None = None
+    language: str | None = None
+    structure: str | None = None
+    duration: int | None = None
+
+
+class GroupConfigResponse(BaseModel):
+    id: int
+    group_id: int
+    render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
+    narrator_voice_preset_id: int | None = None
+    language: str | None = None
+    structure: str | None = None
+    duration: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EffectiveConfigResponse(BaseModel):
+    """Resolved cascading config: Project < GroupConfig < Storyboard."""
+
+    render_preset_id: int | None = None
+    default_character_id: int | None = None
+    default_style_profile_id: int | None = None
+    narrator_voice_preset_id: int | None = None
+    language: str | None = None
+    structure: str | None = None
+    duration: int | None = None
     render_preset: RenderPresetResponse | None = None
     sources: dict[str, str] = {}  # field -> "project" | "group" | "storyboard"
 
@@ -169,8 +199,10 @@ class StoryboardBase(BaseModel):
     default_caption: str | None = None
     narrator_voice_preset_id: int | None = None
 
+
 class StoryboardSave(StoryboardBase):
     scenes: list[StoryboardScene]
+
 
 class StoryboardUpdate(BaseModel):
     title: str | None = None
@@ -180,12 +212,14 @@ class StoryboardUpdate(BaseModel):
     default_caption: str | None = None
     narrator_voice_preset_id: int | None = None
 
+
 class StoryboardResponse(StoryboardBase):
     id: int
     video_url: str | None = None
     recent_videos: list[dict] | None = None
     deleted_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
+
 
 class StoryboardRequest(BaseModel):
     topic: str
@@ -235,15 +269,16 @@ class StoryboardScene(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+
 class SceneTagSave(BaseModel):
     tag_id: int
     weight: float = 1.0
+
 
 class SceneActionSave(BaseModel):
     character_id: int
     tag_id: int
     weight: float = 1.0
-
 
     model_config = ConfigDict(extra="allow")
 
@@ -370,6 +405,24 @@ class SceneGenerateRequest(BaseModel):
     warnings: list[str] | None = None
 
 
+class BatchSceneRequest(BaseModel):
+    scenes: list[SceneGenerateRequest]
+
+
+class BatchSceneResult(BaseModel):
+    index: int
+    status: str  # "success" | "failed"
+    data: dict | None = None
+    error: str | None = None
+
+
+class BatchSceneResponse(BaseModel):
+    results: list[BatchSceneResult]
+    total: int
+    succeeded: int
+    failed: int
+
+
 class SceneValidateRequest(BaseModel):
     image_b64: str
     prompt: str = ""
@@ -474,14 +527,17 @@ class TagBase(BaseModel):
     classification_source: str | None = None
     classification_confidence: float | None = None
 
+
 class TagCreate(TagBase):
     pass
+
 
 class TagUpdate(BaseModel):
     name: str | None = None
     ko_name: str | None = None
     default_layer: int | None = None
     usage_scope: str | None = None
+
 
 class TagResponse(TagBase):
     id: int
@@ -531,10 +587,11 @@ class LoRAResponse(LoRABase):
 
 class CharacterTagLink(BaseModel):
     tag_id: int
-    name: str | None = None # Tag name for display
-    layer: int | None = None # Tag default_layer
+    name: str | None = None  # Tag name for display
+    layer: int | None = None  # Tag default_layer
     weight: float = 1.0
     is_permanent: bool = True
+
 
 class CharacterBase(BaseModel):
     name: str
@@ -554,12 +611,14 @@ class CharacterBase(BaseModel):
     preview_locked: bool = False
     default_voice_preset_id: int | None = None
 
+
 class CharacterCreate(CharacterBase):
     project_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
     clothing_tags: list[int] | None = None
+
 
 class CharacterUpdate(BaseModel):
     name: str | None = None
@@ -581,6 +640,7 @@ class CharacterUpdate(BaseModel):
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
     clothing_tags: list[int] | None = None
+
 
 class CharacterResponse(CharacterBase):
     id: int
@@ -718,6 +778,7 @@ class StyleProfileResponse(StyleProfileBase):
 # Activity Log Schemas (Unified Memory)
 # ============================================================
 
+
 class ActivityLogBase(BaseModel):
     storyboard_id: int
     scene_id: int | None = None
@@ -730,11 +791,14 @@ class ActivityLogBase(BaseModel):
     match_rate: float | None = None
     tags_used: list[str] | None = None
 
+
 class ActivityLogCreate(ActivityLogBase):
     pass
 
+
 class ActivityLogUpdate(BaseModel):
     pass  # No updateable fields currently
+
 
 class ActivityLogResponse(ActivityLogBase):
     id: int
@@ -792,6 +856,7 @@ class GeminiSuggestResponse(BaseModel):
 
 # --- Prompt History ---
 
+
 class PromptHistoryBase(BaseModel):
     name: str | None = None
     positive_prompt: str
@@ -805,12 +870,15 @@ class PromptHistoryBase(BaseModel):
     context_tags: list[str] | None = None
     character_id: int | None = None
 
+
 class PromptHistoryCreate(PromptHistoryBase):
     pass
+
 
 class PromptHistoryUpdate(BaseModel):
     name: str | None = None
     is_favorite: bool | None = None
+
 
 class PromptHistoryResponse(PromptHistoryBase):
     id: int
@@ -823,6 +891,7 @@ class PromptHistoryResponse(PromptHistoryBase):
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class PromptHistoryApplyResponse(BaseModel):
     id: int
@@ -878,4 +947,3 @@ class VoicePresetResponse(BaseModel):
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
-

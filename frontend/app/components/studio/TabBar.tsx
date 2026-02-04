@@ -39,7 +39,7 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
   const activeIdx = STEPS.findIndex((s) => s.tab === activeTab);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 pt-3">
+    <div className="w-full max-w-5xl px-6 pt-3">
       <div className="flex gap-1 rounded-xl bg-zinc-100/60 p-1">
         {TABS.map((tab) => {
           const badge = getBadge(tab.id);

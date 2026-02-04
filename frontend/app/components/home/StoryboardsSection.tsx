@@ -8,26 +8,7 @@ import { API_BASE } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
-import GroupFormModal from "../context/GroupFormModal";
-import { createGroup, updateGroup } from "../../store/actions/groupActions";
 import type { GroupItem } from "../../types";
-
-const GROUP_COLORS = [
-  { pill: "bg-sky-100 text-sky-700", active: "bg-sky-600 text-white", dot: "bg-sky-400" },
-  {
-    pill: "bg-emerald-100 text-emerald-700",
-    active: "bg-emerald-600 text-white",
-    dot: "bg-emerald-400",
-  },
-  { pill: "bg-amber-100 text-amber-700", active: "bg-amber-600 text-white", dot: "bg-amber-400" },
-  { pill: "bg-rose-100 text-rose-700", active: "bg-rose-600 text-white", dot: "bg-rose-400" },
-  {
-    pill: "bg-violet-100 text-violet-700",
-    active: "bg-violet-600 text-white",
-    dot: "bg-violet-400",
-  },
-  { pill: "bg-teal-100 text-teal-700", active: "bg-teal-600 text-white", dot: "bg-teal-400" },
-];
 
 interface StoryboardItem {
   id: number;
@@ -42,53 +23,50 @@ interface StoryboardItem {
 
 type Props = {
   projectId: number | null;
+  groupId: number | null;
   groups: GroupItem[];
   selectGroup: (id: number) => void;
   showToast: (message: string, type: "success" | "error") => void;
 };
 
-export default function StoryboardsSection({ projectId, groups, selectGroup, showToast }: Props) {
+export default function StoryboardsSection({
+  projectId,
+  groupId,
+  groups,
+  selectGroup,
+  showToast,
+}: Props) {
   const router = useRouter();
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
   const [sbLoading, setSbLoading] = useState(true);
-  const [filterGroupId, setFilterGroupId] = useState<number | null>(null);
-  const [showGroupModal, setShowGroupModal] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<GroupItem | null>(null);
   const [showNewSbModal, setShowNewSbModal] = useState(false);
   const [newSbTitle, setNewSbTitle] = useState("");
-  const [pendingGroupId, setPendingGroupId] = useState<number | null>(null);
 
-  const openNewStoryboard = useCallback((gid: number) => {
-    setPendingGroupId(gid);
+  const openNewStoryboard = useCallback(() => {
     setNewSbTitle("");
     setShowNewSbModal(true);
   }, []);
 
   const confirmNewStoryboard = useCallback(() => {
-    if (!pendingGroupId) return;
-    selectGroup(pendingGroupId);
+    if (!groupId) return;
+    selectGroup(groupId);
     const params = new URLSearchParams({ new: "true" });
     if (newSbTitle.trim()) params.set("title", newSbTitle.trim());
     router.push(`/studio?${params.toString()}`);
-  }, [pendingGroupId, newSbTitle, selectGroup, router]);
+  }, [groupId, newSbTitle, selectGroup, router]);
 
-  // Reset group filter when project changes
-  useEffect(() => {
-    setFilterGroupId(null); // eslint-disable-line react-hooks/set-state-in-effect
-  }, [projectId]);
-
-  // Fetch storyboards
+  // Fetch storyboards filtered by sidebar's selected group
   useEffect(() => {
     if (projectId === null) return;
     setSbLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
     const params: Record<string, unknown> = { project_id: projectId };
-    if (filterGroupId) params.group_id = filterGroupId;
+    if (groupId) params.group_id = groupId;
     axios
       .get(`${API_BASE}/storyboards`, { params })
       .then((res) => setStoryboards(res.data))
       .catch(() => showToast("Failed to load storyboards", "error"))
       .finally(() => setSbLoading(false));
-  }, [projectId, filterGroupId, showToast]);
+  }, [projectId, groupId, showToast]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this storyboard?")) return;
@@ -104,80 +82,18 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
   return (
     <>
       <section>
-        {/* Group filter + actions */}
-        <div className="mb-4 flex items-center justify-between gap-3">
-          {/* Left: filter pills + new group */}
-          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
-            {groups.length > 0 && (
-              <button
-                onClick={() => setFilterGroupId(null)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition ${
-                  filterGroupId === null
-                    ? "bg-zinc-900 text-white"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                }`}
-              >
-                All
-              </button>
-            )}
-            {groups.map((g, idx) => {
-              const color = GROUP_COLORS[idx % GROUP_COLORS.length];
-              return (
-                <span key={g.id} className="group/pill relative shrink-0">
-                  <button
-                    onClick={() => {
-                      setFilterGroupId(g.id);
-                      selectGroup(g.id);
-                    }}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                      filterGroupId === g.id ? color.active : color.pill
-                    }`}
-                  >
-                    {g.name}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingGroup(g);
-                    }}
-                    className="absolute -top-1 -right-1 hidden h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[8px] text-zinc-500 group-hover/pill:flex hover:bg-zinc-300 hover:text-zinc-700"
-                    title="Edit group"
-                  >
-                    <svg
-                      className="h-2.5 w-2.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
-                      />
-                    </svg>
-                  </button>
-                </span>
-              );
-            })}
-            <button
-              onClick={() => setShowGroupModal(true)}
-              className="shrink-0 rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs text-zinc-400 transition hover:border-zinc-400 hover:text-zinc-600"
-            >
-              + New Group
-            </button>
-          </div>
-          {/* Right: primary CTA */}
-          {groups.length > 0 && (
+        {/* Header: New Storyboard CTA */}
+        {groups.length > 0 && (
+          <div className="mb-4 flex items-center justify-end">
             <Button
               size="sm"
-              onClick={() => openNewStoryboard(filterGroupId ?? groups[0].id)}
+              onClick={openNewStoryboard}
               className="shrink-0 rounded-full"
             >
               + New Storyboard
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         {sbLoading ? (
           <div className="flex justify-center py-12">
@@ -185,10 +101,8 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
           </div>
         ) : storyboards.length === 0 ? (
           <EmptyState
-            groups={groups}
-            filterGroupId={filterGroupId}
-            onNewGroup={() => setShowGroupModal(true)}
-            onNewStoryboard={() => openNewStoryboard(filterGroupId ?? groups[0]?.id)}
+            hasGroups={groups.length > 0}
+            onNewStoryboard={openNewStoryboard}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -197,8 +111,6 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
               <StoryboardCard
                 key={sb.id}
                 sb={sb}
-                groups={groups}
-                filterGroupId={filterGroupId}
                 onClick={() => router.push(`/studio?id=${sb.id}`)}
                 onDelete={() => handleDelete(sb.id)}
               />
@@ -206,33 +118,6 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
           </div>
         )}
       </section>
-
-      {/* Group Create Modal */}
-      {showGroupModal && projectId && (
-        <GroupFormModal
-          projectId={projectId}
-          onSave={async (data) => {
-            const g = await createGroup(data as Parameters<typeof createGroup>[0]);
-            if (g) {
-              selectGroup(g.id);
-              if (groups.length === 0) openNewStoryboard(g.id);
-            }
-          }}
-          onClose={() => setShowGroupModal(false)}
-        />
-      )}
-
-      {/* Group Edit Modal */}
-      {editingGroup && projectId && (
-        <GroupFormModal
-          group={editingGroup}
-          projectId={projectId}
-          onSave={async (data) => {
-            await updateGroup(editingGroup.id, data);
-          }}
-          onClose={() => setEditingGroup(null)}
-        />
-      )}
 
       {/* New Storyboard Title Modal */}
       {showNewSbModal && (
@@ -278,14 +163,10 @@ export default function StoryboardsSection({ projectId, groups, selectGroup, sho
 /* ---- Sub-components ---- */
 
 function EmptyState({
-  groups,
-  filterGroupId,
-  onNewGroup,
+  hasGroups,
   onNewStoryboard,
 }: {
-  groups: GroupItem[];
-  filterGroupId: number | null;
-  onNewGroup: () => void;
+  hasGroups: boolean;
   onNewStoryboard: () => void;
 }) {
   return (
@@ -304,35 +185,28 @@ function EmptyState({
         />
       </svg>
       <div>
-        <p className="text-sm font-medium text-zinc-500">
-          {filterGroupId ? "No storyboards in this group" : "No storyboards yet"}
-        </p>
+        <p className="text-sm font-medium text-zinc-500">No storyboards in this group</p>
         <p className="mt-1 text-xs text-zinc-400">
-          {groups.length === 0
-            ? "Create a group first to start organizing storyboards"
-            : "Create a storyboard to start producing shorts"}
+          {hasGroups
+            ? "Create a storyboard to start producing shorts"
+            : "Select a group from the sidebar to get started"}
         </p>
       </div>
-      <button
-        onClick={groups.length === 0 ? onNewGroup : onNewStoryboard}
-        className="rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
-      >
-        {groups.length === 0 ? "+ Create Group" : "+ New Storyboard"}
-      </button>
+      {hasGroups && (
+        <Button size="md" onClick={onNewStoryboard}>
+          + New Storyboard
+        </Button>
+      )}
     </div>
   );
 }
 
 function StoryboardCard({
   sb,
-  groups,
-  filterGroupId,
   onClick,
   onDelete,
 }: {
   sb: StoryboardItem;
-  groups: GroupItem[];
-  filterGroupId: number | null;
   onClick: () => void;
   onDelete: () => void;
 }) {
@@ -348,20 +222,6 @@ function StoryboardCard({
         <span>{sb.scene_count} scenes</span>
         <span>{sb.image_count} images</span>
         {sb.updated_at && <span>{format(new Date(sb.updated_at), "yyyy.MM.dd")}</span>}
-        {sb.group_id &&
-          !filterGroupId &&
-          (() => {
-            const gIdx = groups.findIndex((g) => g.id === sb.group_id);
-            if (gIdx === -1) return null;
-            const c = GROUP_COLORS[gIdx % GROUP_COLORS.length];
-            return (
-              <span
-                className={`ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-medium ${c.pill}`}
-              >
-                {groups[gIdx].name}
-              </span>
-            );
-          })()}
       </div>
       <button
         onClick={(e) => {

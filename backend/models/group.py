@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from models.group_config import GroupConfig
     from models.project import Project
     from models.render_preset import RenderPreset
     from models.sd_model import StyleProfile
@@ -24,22 +25,32 @@ class Group(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
 
-    # Render preset reference (A안: 참조만)
+    # Render preset reference (A안: kept for rollback safety)
     render_preset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("render_presets.id", ondelete="SET NULL"), nullable=True
     )
 
-    # Cascading config defaults (override project-level)
+    # Cascading config defaults (kept for rollback safety)
     default_character_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("characters.id", ondelete="SET NULL"),
+        Integer,
+        ForeignKey("characters.id", ondelete="SET NULL"),
     )
     default_style_profile_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("style_profiles.id", ondelete="SET NULL"),
+        Integer,
+        ForeignKey("style_profiles.id", ondelete="SET NULL"),
     )
 
     # Relationships
     project: Mapped[Project] = relationship("Project", back_populates="groups")
+    config: Mapped[GroupConfig | None] = relationship(
+        "GroupConfig",
+        uselist=False,
+        back_populates="group",
+        lazy="joined",
+    )
     render_preset: Mapped[RenderPreset | None] = relationship("RenderPreset", lazy="joined")
     default_character: Mapped[object | None] = relationship("Character", foreign_keys=[default_character_id])
-    default_style_profile: Mapped[StyleProfile | None] = relationship("StyleProfile", foreign_keys=[default_style_profile_id])
+    default_style_profile: Mapped[StyleProfile | None] = relationship(
+        "StyleProfile", foreign_keys=[default_style_profile_id]
+    )
     storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")

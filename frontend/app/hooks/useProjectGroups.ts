@@ -16,6 +16,7 @@ export function useProjectGroups() {
   const projects = useStudioStore((s) => s.projects);
   const groups = useStudioStore((s) => s.groups);
   const setMeta = useStudioStore((s) => s.setMeta);
+  const resetScenes = useStudioStore((s) => s.resetScenes);
 
   // Fetch projects on mount
   useEffect(() => {
@@ -52,17 +53,18 @@ export function useProjectGroups() {
 
   const selectProject = useCallback(
     (id: number) => {
-      setMeta({ projectId: id, groupId: null });
+      setMeta({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
+      resetScenes();
     },
-    [setMeta],
+    [setMeta, resetScenes]
   );
 
   const selectGroup = useCallback(
     (id: number) => {
-      setMeta({ groupId: id });
-      loadGroupDefaults(id);
+      setMeta({ groupId: id, storyboardId: null, storyboardTitle: "" });
+      resetScenes();
     },
-    [setMeta],
+    [setMeta, resetScenes]
   );
 
   return { projectId, groupId, projects, groups, selectProject, selectGroup };

@@ -82,9 +82,9 @@ export default function ManagePage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-6">
+    <main className="flex w-full max-w-5xl flex-col gap-8 px-6 py-6">
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex gap-1 overflow-x-auto rounded-xl bg-zinc-100/60 p-1">
         {[
           { id: "tags", label: "Tags" },
           { id: "style", label: "Style" },
@@ -102,8 +102,10 @@ export default function ManagePage() {
               key={tab.id}
               type="button"
               onClick={() => setManageTab(tab.id as ManageTab)}
-              className={`rounded-full px-4 py-2 text-[10px] font-semibold tracking-[0.2em] uppercase transition ${
-                active ? "bg-zinc-900 text-white" : "border border-zinc-200 bg-white text-zinc-600"
+              className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                active
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
               }`}
             >
               {tab.label}

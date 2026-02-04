@@ -8,7 +8,15 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.group import Group
-from schemas import EffectiveConfigResponse, GroupCreate, GroupResponse, GroupUpdate
+from models.group_config import GroupConfig
+from schemas import (
+    EffectiveConfigResponse,
+    GroupConfigResponse,
+    GroupConfigUpdate,
+    GroupCreate,
+    GroupResponse,
+    GroupUpdate,
+)
 from services.config_resolver import apply_system_defaults, resolve_effective_config
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -51,11 +59,56 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
     return group
 
 
+# ---- Group Config (1:1) ----
+
+
+@router.get("/{group_id}/config", response_model=GroupConfigResponse)
+def get_group_config(group_id: int, db: Session = Depends(get_db)):
+    """Return group config, creating one if it does not exist yet."""
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    config = _get_or_create_config(group, db)
+    return config
+
+
+@router.put("/{group_id}/config", response_model=GroupConfigResponse)
+def update_group_config(
+    group_id: int,
+    data: GroupConfigUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update group config fields (partial update via exclude_unset)."""
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    config = _get_or_create_config(group, db)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(config, key, value)
+    db.commit()
+    db.refresh(config)
+    return config
+
+
+def _get_or_create_config(group: Group, db: Session) -> GroupConfig:
+    """Return existing GroupConfig or create a new empty one."""
+    config = db.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
+    if config is None:
+        config = GroupConfig(group_id=group.id)
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+
+# ---- Effective Config ----
+
+
 @router.get("/{group_id}/effective-config", response_model=EffectiveConfigResponse)
 def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     group = (
         db.query(Group)
-        .options(joinedload(Group.render_preset), joinedload(Group.project))
+        .options(joinedload(Group.config), joinedload(Group.render_preset), joinedload(Group.project))
         .filter(Group.id == group_id)
         .first()
     )
@@ -63,12 +116,20 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Group not found")
     result = resolve_effective_config(group.project, group)
     apply_system_defaults(result, db)
-    # Resolve the actual render_preset object from whichever level provided the id
-    preset = group.render_preset or getattr(group.project, "render_preset", None)
+    # Resolve render_preset from group_config or project
+    preset = None
+    if group.config and group.config.render_preset:
+        preset = group.config.render_preset
+    if preset is None:
+        preset = group.render_preset or getattr(group.project, "render_preset", None)
     return EffectiveConfigResponse(
         render_preset_id=result["values"].get("render_preset_id"),
         default_character_id=result["values"].get("default_character_id"),
         default_style_profile_id=result["values"].get("default_style_profile_id"),
+        narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
+        language=result["values"].get("language"),
+        structure=result["values"].get("structure"),
+        duration=result["values"].get("duration"),
         render_preset=preset,
         sources=result["sources"],
     )

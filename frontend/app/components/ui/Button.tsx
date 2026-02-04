@@ -72,7 +72,7 @@ export default function Button({
     <button
       disabled={isDisabled}
       className={cx(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-colors",
+        "inline-flex items-center justify-center rounded-full font-semibold transition-colors",
         variantClasses[variant],
         icon ? iconSizeClasses[size] : sizeClasses[size],
         FOCUS_RING,

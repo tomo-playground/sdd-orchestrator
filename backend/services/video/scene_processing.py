@@ -42,8 +42,7 @@ _VOICE_PROMPT_CACHE: dict[str, str] = {}
 _HANGUL_RE = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
 
 
-def _tts_cache_key(text: str, voice_preset_id: int | None,
-                    voice_design_prompt: str | None, language: str) -> str:
+def _tts_cache_key(text: str, voice_preset_id: int | None, voice_design_prompt: str | None, language: str) -> str:
     """Deterministic hash for TTS caching based on text + voice config."""
     parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}"
     return hashlib.sha256(parts.encode()).hexdigest()[:16]
@@ -89,6 +88,7 @@ async def get_qwen_model_async():
         _current_model = await loop.run_in_executor(None, _load_model, TTS_MODEL_NAME)
         _current_model_type = "voice_design"
         return _current_model
+
 
 def _translate_voice_prompt(prompt: str) -> str:
     """Translate Korean voice design prompt to English via Gemini."""
@@ -151,7 +151,10 @@ async def process_scenes(builder: VideoBuilder) -> None:
 
         # Generate TTS (use cleaned script for better pronunciation)
         has_valid_tts, tts_duration = await generate_tts(
-            builder, i, clean_script, tts_path,
+            builder,
+            i,
+            clean_script,
+            tts_path,
         )
 
         # Add to input args
@@ -159,10 +162,14 @@ async def process_scenes(builder: VideoBuilder) -> None:
         if has_valid_tts:
             builder.input_args.extend(["-i", str(tts_path)])
         else:
-            builder.input_args.extend([
-                "-f", "lavfi", "-i",
-                "anullsrc=channel_layout=stereo:sample_rate=44100",
-            ])
+            builder.input_args.extend(
+                [
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "anullsrc=channel_layout=stereo:sample_rate=44100",
+                ]
+            )
 
         builder.tts_valid.append(has_valid_tts)
         builder.tts_durations.append(tts_duration)
@@ -170,32 +177,23 @@ async def process_scenes(builder: VideoBuilder) -> None:
 
 def _load_scene_image(builder: VideoBuilder, img_src: str | None) -> bytes:
     """Load scene image bytes from storage or URL fallback."""
-    if img_src and (
-        "/projects/" in img_src
-        or (STORAGE_MODE == "s3" and "shorts-producer" in img_src)
-    ):
+    if img_src and ("/projects/" in img_src or (STORAGE_MODE == "s3" and "shorts-producer" in img_src)):
         try:
             if "projects/" in img_src:
                 storage_key = "projects/" + img_src.split("projects/", 1)[1]
                 storage = get_storage()
                 local_path = storage.get_local_path(storage_key)
                 image_bytes = local_path.read_bytes()
-                logger.info(
-                    "[Video Build] Loaded image from storage: %s", storage_key
-                )
+                logger.info("[Video Build] Loaded image from storage: %s", storage_key)
                 return image_bytes
             return builder._load_image_bytes(img_src)
         except Exception as e:
-            logger.warning(
-                "[Video Build] Failed to load from storage, fallback to URL: %s", e
-            )
+            logger.warning("[Video Build] Failed to load from storage, fallback to URL: %s", e)
             return builder._load_image_bytes(img_src)
     return builder._load_image_bytes(img_src)
 
 
-def wrap_scene_text(
-    builder: VideoBuilder, text: str
-) -> tuple[list[str], int]:
+def wrap_scene_text(builder: VideoBuilder, text: str) -> tuple[list[str], int]:
     """Wrap subtitle text based on font pixel width with dynamic font sizing.
 
     Calculates max width and font size based on layout type,
@@ -246,16 +244,10 @@ def wrap_scene_text(
         lines = builder._wrap_text_by_font(text, font, max_width_px, max_lines)
 
         if len(lines) <= max_lines:
-            all_fit = all(
-                not (bbox := font.getbbox(line)) or (bbox[2] - bbox[0]) <= max_width_px
-                for line in lines
-            )
+            all_fit = all(not (bbox := font.getbbox(line)) or (bbox[2] - bbox[0]) <= max_width_px for line in lines)
             if all_fit:
                 if font_size < base_font_size:
-                    logger.info(
-                        f"Dynamic font: {base_font_size}px -> {font_size}px "
-                        f"for text: {text[:30]}..."
-                    )
+                    logger.info(f"Dynamic font: {base_font_size}px -> {font_size}px for text: {text[:30]}...")
                 return lines, font_size
 
         font_size -= font_step
@@ -272,27 +264,16 @@ def wrap_scene_text(
         return lines, base_font_size
 
 
-def process_post_layout_image(
-    builder: VideoBuilder, i: int, image_bytes: bytes, img_path: Path
-) -> None:
+def process_post_layout_image(builder: VideoBuilder, i: int, image_bytes: bytes, img_path: Path) -> None:
     """Process image for post layout."""
     try:
-        overlay_settings = (
-            builder.request.overlay_settings or builder._OverlaySettings()
+        overlay_settings = builder.request.overlay_settings or builder._OverlaySettings()
+        post_settings = builder.request.post_card_settings or builder._PostCardSettings(
+            channel_name=overlay_settings.channel_name,
+            avatar_key=overlay_settings.avatar_key,
+            caption=overlay_settings.caption,
         )
-        post_settings = (
-            builder.request.post_card_settings
-            or builder._PostCardSettings(
-                channel_name=overlay_settings.channel_name,
-                avatar_key=overlay_settings.avatar_key,
-                caption=overlay_settings.caption,
-            )
-        )
-        subtitle_text = (
-            "\n".join(builder.subtitle_lines[i])
-            if builder.subtitle_lines[i]
-            else ""
-        )
+        subtitle_text = "\n".join(builder.subtitle_lines[i]) if builder.subtitle_lines[i] else ""
         composed = builder._compose_post_frame(
             image_bytes,
             builder.out_w,
@@ -353,10 +334,24 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
             return None
 
         if speaker == "Narrator":
+            # Priority: storyboard -> group_config -> None
             preset_id = storyboard.narrator_voice_preset_id
             if preset_id:
                 logger.info(f"[TTS] Narrator voice preset from storyboard {storyboard_id}: {preset_id}")
-            return preset_id
+                return preset_id
+
+            # Fallback to group_config
+            if storyboard.group_id:
+                from models.group import Group
+
+                group = db.get(Group, storyboard.group_id)
+                if group and group.config and group.config.narrator_voice_preset_id:
+                    preset_id = group.config.narrator_voice_preset_id
+                    logger.info(
+                        f"[TTS] Narrator voice preset from group_config (group {storyboard.group_id}): {preset_id}"
+                    )
+                    return preset_id
+            return None
 
         # Non-narrator speaker -> look up character voice
         char_id = storyboard.default_character_id
@@ -378,7 +373,8 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
 
 
 def _resolve_voice_preset_id(
-    builder: VideoBuilder, scene_idx: int,
+    builder: VideoBuilder,
+    scene_idx: int,
 ) -> int | None:
     """Resolve voice_preset_id for a scene following priority:
 
@@ -395,7 +391,8 @@ def _resolve_voice_preset_id(
     # 2. Speaker-specific preset
     speaker = scene_req.speaker or "Narrator"
     speaker_preset = _get_speaker_voice_preset(
-        builder.request.storyboard_id, speaker,
+        builder.request.storyboard_id,
+        speaker,
     )
     if speaker_preset:
         return speaker_preset
@@ -405,7 +402,10 @@ def _resolve_voice_preset_id(
 
 
 async def generate_tts(
-    builder: VideoBuilder, i: int, clean_script: str, tts_path: Path,
+    builder: VideoBuilder,
+    i: int,
+    clean_script: str,
+    tts_path: Path,
 ) -> tuple[bool, float]:
     """Generate TTS audio for a scene using VoiceDesign model.
 
@@ -423,14 +423,12 @@ async def generate_tts(
     resolved_preset_id = _resolve_voice_preset_id(builder, i)
 
     # --- TTS result cache lookup ---
-    voice_design_for_cache = (
-        scene_req.voice_design_prompt
-        or builder.request.voice_design_prompt
-        or ""
-    )
+    voice_design_for_cache = scene_req.voice_design_prompt or builder.request.voice_design_prompt or ""
     cache_key = _tts_cache_key(
-        clean_script, resolved_preset_id,
-        voice_design_for_cache, TTS_DEFAULT_LANGUAGE,
+        clean_script,
+        resolved_preset_id,
+        voice_design_for_cache,
+        TTS_DEFAULT_LANGUAGE,
     )
     cached = TTS_CACHE_DIR / f"{cache_key}.mp3"
     if cached.exists() and cached.stat().st_size > 0:
@@ -449,20 +447,13 @@ async def generate_tts(
                 resolved_preset_id,
             )
 
-        voice_design = (
-            scene_req.voice_design_prompt
-            or preset_voice_design
-            or builder.request.voice_design_prompt
-        )
+        voice_design = scene_req.voice_design_prompt or preset_voice_design or builder.request.voice_design_prompt
         voice_design = _translate_voice_prompt(voice_design or "")
 
         # Seed: preset seed > hash-based fallback
         voice_seed = preset_seed or (hash(voice_design or "") % (2**31))
 
-        logger.info(
-            f"TTS generation (VoiceDesign): script={clean_script[:50]}..., "
-            f"voice_seed={voice_seed}"
-        )
+        logger.info(f"TTS generation (VoiceDesign): script={clean_script[:50]}..., voice_seed={voice_seed}")
         model = await get_qwen_model_async()
 
         import soundfile as sf

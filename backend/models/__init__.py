@@ -6,6 +6,7 @@ from models.base import Base
 from models.character import Character
 from models.evaluation import EvaluationRun
 from models.group import Group
+from models.group_config import GroupConfig
 from models.lora import LoRA
 from models.media_asset import MediaAsset
 from models.project import Project
@@ -35,6 +36,7 @@ __all__ = [
     "StyleProfile",
     "Project",
     "Group",
+    "GroupConfig",
     "RenderPreset",
     "Storyboard",
     "Scene",

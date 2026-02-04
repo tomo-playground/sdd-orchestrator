@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import get_db
 from schemas import (
+    BatchSceneRequest,
     GeminiEditRequest,
     GeminiEditResponse,
     GeminiSuggestRequest,
@@ -42,6 +43,38 @@ async def generate_scene_image_endpoint(request: SceneGenerateRequest):
     return await generate_scene_image(request)
 
 
+@router.post("/scene/generate-batch")
+async def generate_batch_images(request: BatchSceneRequest):
+    """Generate images for multiple scenes concurrently with semaphore-based throttling."""
+    import asyncio
+
+    from config import SD_BATCH_CONCURRENCY
+
+    semaphore = asyncio.Semaphore(SD_BATCH_CONCURRENCY)
+
+    async def _generate_one(scene_req: SceneGenerateRequest, index: int):
+        async with semaphore:
+            try:
+                result = await generate_scene_image(scene_req)
+                return {"index": index, "status": "success", "data": result}
+            except Exception as e:
+                logger.error("[Batch Gen] Scene %d failed: %s", index, e)
+                return {"index": index, "status": "failed", "error": str(e)}
+
+    tasks = [_generate_one(req, i) for i, req in enumerate(request.scenes)]
+    results = await asyncio.gather(*tasks)
+
+    succeeded = sum(1 for r in results if r["status"] == "success")
+    failed = sum(1 for r in results if r["status"] == "failed")
+
+    return {
+        "results": sorted(results, key=lambda r: r["index"]),
+        "total": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+    }
+
+
 @router.post("/image/store")
 def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db)):
     try:
@@ -60,12 +93,13 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
             group_id=request.group_id,
             storyboard_id=request.storyboard_id,
             scene_id=request.scene_id,
-            file_name=file_name
+            file_name=file_name,
         )
 
         # Update Scene record
         if request.scene_id:
             from models.scene import Scene
+
             db_scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
             if db_scene:
                 db_scene.image_asset_id = asset.id
@@ -81,19 +115,13 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
 
 
 @router.post("/scene/validate_image")
-async def validate_scene_image_endpoint(
-    request: SceneValidateRequest,
-    db: Session = Depends(get_db)
-):
+async def validate_scene_image_endpoint(request: SceneValidateRequest, db: Session = Depends(get_db)):
     logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
     return validate_scene_image(request, db=db)
 
 
 @router.post("/scene/validate-and-auto-edit")
-async def validate_and_auto_edit_scene(
-    request: SceneValidateRequest,
-    db: Session = Depends(get_db)
-):
+async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Session = Depends(get_db)):
     """WD14 검증 + Gemini 자동 편집 (조건부)
 
     이미지 검증 후 Match Rate가 임계값 미만이면 자동으로 Gemini 편집을 실행합니다.
@@ -151,16 +179,17 @@ async def validate_and_auto_edit_scene(
 
     # Check 2: 임계값 체크
     if match_rate >= GEMINI_AUTO_EDIT_THRESHOLD:
-        logger.debug(
-            f"[Auto Edit] Skipped (match_rate={match_rate:.2f} >= {GEMINI_AUTO_EDIT_THRESHOLD})"
-        )
+        logger.debug(f"[Auto Edit] Skipped (match_rate={match_rate:.2f} >= {GEMINI_AUTO_EDIT_THRESHOLD})")
         return result
 
     # Check 3: 스토리보드 비용 한도 체크
     if request.storyboard_id:
-        current_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
-            ActivityLog.storyboard_id == request.storyboard_id
-        ).scalar() or 0.0
+        current_cost = (
+            db.query(func.sum(ActivityLog.gemini_cost_usd))
+            .filter(ActivityLog.storyboard_id == request.storyboard_id)
+            .scalar()
+            or 0.0
+        )
 
         if current_cost >= GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD:
             logger.warning(
@@ -173,24 +202,24 @@ async def validate_and_auto_edit_scene(
 
         # Check 4: 씬 재시도 횟수 체크
         if request.scene_id:
-            retry_count = db.query(func.count(ActivityLog.id)).filter(
-                ActivityLog.storyboard_id == request.storyboard_id,
-                ActivityLog.scene_id == request.scene_id,
-                ActivityLog.gemini_edited == True  # noqa: E712
-            ).scalar()
+            retry_count = (
+                db.query(func.count(ActivityLog.id))
+                .filter(
+                    ActivityLog.storyboard_id == request.storyboard_id,
+                    ActivityLog.scene_id == request.scene_id,
+                    ActivityLog.gemini_edited == True,  # noqa: E712
+                )
+                .scalar()
+            )
 
             if retry_count >= GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE:
-                logger.warning(
-                    f"⚠️ [Auto Edit] Skipped (max retries reached: {retry_count})"
-                )
+                logger.warning(f"⚠️ [Auto Edit] Skipped (max retries reached: {retry_count})")
                 result["skip_reason"] = "max_retries_reached"
                 result["retry_count"] = retry_count
                 return result
 
     # === 모든 체크 통과 → 자동 편집 실행 ===
-    logger.info(
-        f"🔍 [Auto Edit] Triggered (match_rate={match_rate:.2f} < {GEMINI_AUTO_EDIT_THRESHOLD})"
-    )
+    logger.info(f"🔍 [Auto Edit] Triggered (match_rate={match_rate:.2f} < {GEMINI_AUTO_EDIT_THRESHOLD})")
 
     try:
         import base64
@@ -203,10 +232,7 @@ async def validate_and_auto_edit_scene(
 
         # Execute auto-edit
         edit_result = await auto_edit_with_gemini(
-            image_b64=image_b64,
-            original_prompt=request.prompt,
-            match_rate=match_rate,
-            missing_tags=missing_tags
+            image_b64=image_b64, original_prompt=request.prompt, match_rate=match_rate, missing_tags=missing_tags
         )
 
         result["auto_edit_triggered"] = True
@@ -215,9 +241,7 @@ async def validate_and_auto_edit_scene(
         result["original_match_rate"] = match_rate
         result["edit_type"] = edit_result.get("edit_type", "unknown")
 
-        logger.info(
-            f"✅ [Auto Edit] Success (type={result['edit_type']}, cost=${result['edit_cost']:.4f})"
-        )
+        logger.info(f"✅ [Auto Edit] Success (type={result['edit_type']}, cost=${result['edit_cost']:.4f})")
 
         # Optional: Re-validate edited image
         # (Frontend can call /scene/validate_image separately)
@@ -270,6 +294,7 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
             # Load image from URL and convert to base64
             image_bytes = load_image_bytes(request.image_url)
             import base64
+
             image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
         else:
             raise HTTPException(status_code=400, detail="Either image_url or image_b64 must be provided")
@@ -307,7 +332,6 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
     except Exception as e:
         logger.error("❌ [Gemini Edit] Failed: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e)) from e
-
 
 
 @router.post("/scene/suggest-edit", response_model=GeminiSuggestResponse)
@@ -361,6 +385,7 @@ async def suggest_edit_for_scene(request: GeminiSuggestRequest):
             # Load image from URL and convert to base64
             image_bytes = load_image_bytes(request.image_url)
             import base64
+
             image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
         else:
             raise HTTPException(status_code=400, detail="Either image_url or image_b64 must be provided")

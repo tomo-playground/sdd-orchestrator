@@ -12,16 +12,14 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
   setEffectiveDefaults(null, null, false);
 
   try {
-    const res = await axios.get<EffectiveConfig>(
-      `${API_BASE}/groups/${groupId}/effective-config`,
-    );
+    const res = await axios.get<EffectiveConfig>(`${API_BASE}/groups/${groupId}/effective-config`);
     const cfg = res.data;
 
     // Store effective IDs (contextSlice — survives resetStudioStore)
     setEffectiveDefaults(
       cfg.default_style_profile_id ?? null,
       cfg.default_character_id ?? null,
-      true,
+      true
     );
 
     const p = cfg.render_preset;
@@ -46,6 +44,15 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
 
     if (Object.keys(updates).length > 0) {
       useStudioStore.getState().setOutput(updates);
+    }
+
+    // Apply content defaults to plan slice
+    const planUpdates: Record<string, unknown> = {};
+    if (cfg.language) planUpdates.language = cfg.language;
+    if (cfg.structure) planUpdates.structure = cfg.structure;
+    if (cfg.duration) planUpdates.duration = cfg.duration;
+    if (Object.keys(planUpdates).length > 0) {
+      useStudioStore.getState().setPlan(planUpdates);
     }
   } catch {
     setEffectiveDefaults(null, null, true);
@@ -88,7 +95,7 @@ export async function createGroup(data: {
 
 export async function updateGroup(
   groupId: number,
-  data: Record<string, unknown>,
+  data: Record<string, unknown>
 ): Promise<GroupItem | undefined> {
   const { showToast, projectId } = useStudioStore.getState();
   try {

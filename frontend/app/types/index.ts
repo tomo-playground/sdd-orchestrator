@@ -1,16 +1,16 @@
 export type SceneContextTags = {
   expression?: string[];
-  gaze?: string;  // exclusive (single select)
+  gaze?: string; // exclusive (single select)
   pose?: string[];
   action?: string[];
-  camera?: string;  // exclusive (single select)
+  camera?: string; // exclusive (single select)
   environment?: string[];
   mood?: string[];
 };
 
 export type Scene = {
   id: number;
-  order: number;  // 씬 순서 (1, 2, 3...)
+  order: number; // 씬 순서 (1, 2, 3...)
   script: string;
   speaker: "Narrator" | "A";
   duration: number;
@@ -32,8 +32,8 @@ export type Scene = {
   debug_payload: string;
   debug_prompt?: string;
   context_tags?: SceneContextTags;
-  prompt_history_id?: number;  // Track which prompt history was applied
-  activity_log_id?: number;  // Track generation log for success/fail marking
+  prompt_history_id?: number; // Track which prompt history was applied
+  activity_log_id?: number; // Track generation log for success/fail marking
   // Consistency Enhancements
   use_reference_only?: boolean;
   reference_only_weight?: number;
@@ -97,11 +97,11 @@ export type FixSuggestion = {
   message: string;
   action?: {
     type:
-    | "add_positive"
-    | "remove_negative_scene"
-    | "set_speaker_a"
-    | "fill_script"
-    | "trim_script";
+      | "add_positive"
+      | "remove_negative_scene"
+      | "set_speaker_a"
+      | "fill_script"
+      | "trim_script";
     tokens?: string[];
     value?: string;
   };
@@ -178,7 +178,7 @@ export type LoRA = {
   id: number;
   name: string;
   display_name: string | null;
-  gender_locked: ActorGender | null;  // female, male, null(자유)
+  gender_locked: ActorGender | null; // female, male, null(자유)
   civitai_id: number | null;
   civitai_url: string | null;
   trigger_words: string[] | null;
@@ -316,7 +316,13 @@ export type StyleProfileFull = {
   display_name: string | null;
   description: string | null;
   sd_model: { id: number; name: string; display_name: string } | null;
-  loras: { id: number; name: string; display_name: string; trigger_words: string[]; weight: number }[];
+  loras: {
+    id: number;
+    name: string;
+    display_name: string;
+    trigger_words: string[];
+    weight: number;
+  }[];
   negative_embeddings: { id: number; name: string; trigger_word: string }[];
   positive_embeddings: { id: number; name: string; trigger_word: string }[];
   default_positive: string | null;
@@ -353,7 +359,7 @@ export type DraftData = {
   postCardSettings?: PostCardSettings;
   layoutStyle?: "full" | "post";
   kenBurnsPreset?: KenBurnsPreset;
-  kenBurnsIntensity?: number;  // 0.5 ~ 2.0
+  kenBurnsIntensity?: number; // 0.5 ~ 2.0
   hiResEnabled?: boolean;
   veoEnabled?: boolean;
   useControlnet?: boolean;
@@ -510,6 +516,10 @@ export type EffectiveConfig = {
   render_preset_id: number | null;
   default_character_id: number | null;
   default_style_profile_id: number | null;
+  narrator_voice_preset_id: number | null;
+  language: string | null;
+  structure: string | null;
+  duration: number | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;
 };

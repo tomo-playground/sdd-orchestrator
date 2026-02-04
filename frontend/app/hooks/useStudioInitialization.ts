@@ -151,6 +151,7 @@ export function useStudioInitialization() {
           storyboardId: data.id,
           storyboardTitle: data.title,
           activeTab: data.scenes?.length > 0 ? "scenes" : "plan",
+          ...(data.group_id ? { groupId: data.group_id } : {}),
         });
         useStudioStore.getState().setOutput({
           videoUrl: data.video_url || null,
