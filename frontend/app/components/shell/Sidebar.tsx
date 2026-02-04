@@ -9,7 +9,7 @@ import { useStudioStore } from "../../store/useStudioStore";
 import { updateProject } from "../../store/actions/projectActions";
 import { API_BASE } from "../../constants";
 import { cx, LABEL_CLASSES } from "../ui/variants";
-import { GroupConfigEditor, ProjectFormModal } from "../context";
+import { GroupConfigEditor, ProjectDropdown, ProjectFormModal } from "../context";
 
 type StoryboardItem = { id: number; title: string; group_id: number };
 
@@ -193,21 +193,16 @@ export default function Sidebar() {
         {!collapsed && (
           <div className="border-b border-zinc-100 px-3 py-3">
             <div className="flex items-center gap-1">
-              <select
-                value={projectId ?? ""}
-                onChange={(e) => selectProject(Number(e.target.value))}
-                className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              <ProjectDropdown
+                projects={projects}
+                currentId={projectId}
+                onSelect={selectProject}
+                onNew={() => setShowProjectSettings(true)}
+              />
               <button
                 onClick={() => setShowProjectSettings(true)}
                 title="Project settings"
-                className="shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+                className="ml-auto shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
               >
                 <Settings className="h-3.5 w-3.5" />
               </button>

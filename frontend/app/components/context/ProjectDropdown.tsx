@@ -14,6 +14,7 @@ type Props = {
 };
 
 function avatarUrl(p: ProjectItem): string | null {
+  if (p.avatar_url) return p.avatar_url;
   if (!p.avatar_key) return null;
   return resolveAvatarUrl(p.avatar_key);
 }
@@ -24,7 +25,9 @@ function ProjectAvatar({ project, size = "sm" }: { project: ProjectItem; size?: 
   const url = avatarUrl(project);
 
   return (
-    <div className={`${dim} shrink-0 overflow-hidden rounded-full bg-zinc-100 flex items-center justify-center`}>
+    <div
+      className={`${dim} flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100`}
+    >
       {url ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img src={url} alt={project.name} className="h-full w-full object-cover" />
@@ -45,12 +48,16 @@ export default function ProjectDropdown({ projects, currentId, onSelect, onNew, 
       <button
         ref={btnRef}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 transition max-w-[200px]"
+        className="flex max-w-[200px] items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-700 transition hover:bg-zinc-100"
       >
         {current && <ProjectAvatar project={current} />}
         <span className="truncate text-xs font-semibold">{current?.name ?? "Project"}</span>
         <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+            clipRule="evenodd"
+          />
         </svg>
       </button>
 
@@ -64,28 +71,55 @@ export default function ProjectDropdown({ projects, currentId, onSelect, onNew, 
               }`}
             >
               <button
-                onClick={() => { onSelect(p.id); setOpen(false); }}
-                className="flex flex-1 items-center gap-2 min-w-0 text-left"
+                onClick={() => {
+                  onSelect(p.id);
+                  setOpen(false);
+                }}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
               >
                 <ProjectAvatar project={p} />
-                <div className="flex flex-col min-w-0">
+                <div className="flex min-w-0 flex-col">
                   <span className="truncate">{p.name}</span>
-                  {p.handle && <span className="truncate text-[9px] text-zinc-400">@{p.handle}</span>}
+                  {p.handle && (
+                    <span className="truncate text-[9px] text-zinc-400">@{p.handle}</span>
+                  )}
                 </div>
                 {p.id === currentId && (
-                  <svg className="ml-auto h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  <svg
+                    className="ml-auto h-3 w-3 shrink-0 text-zinc-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 )}
               </button>
               {onEdit && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onEdit(p); setOpen(false); }}
-                  className="hidden group-hover:flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(p);
+                    setOpen(false);
+                  }}
+                  className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover:flex hover:bg-zinc-100 hover:text-zinc-700"
                   title="Edit project"
                 >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
+                    />
                   </svg>
                 </button>
               )}
@@ -94,8 +128,11 @@ export default function ProjectDropdown({ projects, currentId, onSelect, onNew, 
         </div>
         <div className="border-t border-zinc-100">
           <button
-            onClick={() => { onNew(); setOpen(false); }}
-            className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition"
+            onClick={() => {
+              onNew();
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-700"
           >
             + New Project
           </button>
