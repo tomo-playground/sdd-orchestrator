@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import { useTags } from "../../hooks";
+import { useStudioStore } from "../../store/useStudioStore";
 import CharacterEditModal from "./CharacterEditModal";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
 import AssetsTab from "./tabs/AssetsTab";
@@ -15,6 +16,7 @@ import PromptsTab from "./tabs/PromptsTab";
 import RenderPresetsTab from "./tabs/RenderPresetsTab";
 import VoicePresetsTab from "./tabs/VoicePresetsTab";
 import TrashTab from "./tabs/TrashTab";
+import YouTubeTab from "./tabs/YouTubeTab";
 import type { Character, LoRA } from "../../types";
 
 const VALID_TABS: ManageTab[] = [
@@ -24,6 +26,7 @@ const VALID_TABS: ManageTab[] = [
   "assets",
   "presets",
   "voice",
+  "youtube",
   "settings",
   "trash",
 ];
@@ -36,6 +39,7 @@ function ManageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { tags: allTags } = useTags(null);
+  const projectId = useStudioStore((s) => s.projectId);
 
   // URL-synced tab state
   const tabParam = searchParams.get("tab");
@@ -112,6 +116,7 @@ function ManageContent() {
           {manageTab === "presets" && <RenderPresetsTab />}
           {manageTab === "voice" && <VoicePresetsTab />}
           {manageTab === "trash" && <TrashTab />}
+          {manageTab === "youtube" && <YouTubeTab projectId={projectId} />}
           {manageTab === "settings" && <SettingsTab />}
         </div>
       </main>
@@ -176,6 +181,7 @@ const MOBILE_TABS: { id: ManageTab; label: string }[] = [
   { id: "assets", label: "Assets" },
   { id: "presets", label: "Presets" },
   { id: "voice", label: "Voice" },
+  { id: "youtube", label: "YouTube" },
   { id: "settings", label: "Settings" },
   { id: "trash", label: "Trash" },
 ];

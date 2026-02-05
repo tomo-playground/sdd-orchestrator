@@ -9,7 +9,15 @@ from sqlalchemy.orm import Session
 
 from config import VIDEO_DIR, logger
 from database import get_db
-from schemas import VideoDeleteRequest, VideoRequest
+from models.media_asset import MediaAsset
+from models.render_history import RenderHistory
+from schemas import (
+    RenderHistoryLookupResponse,
+    VideoDeleteRequest,
+    VideoRequest,
+    YouTubeStatusesRequest,
+    YouTubeStatusesResponse,
+)
 from services.utils import scrub_payload
 from services.video import create_video_task
 
@@ -18,8 +26,6 @@ router = APIRouter(prefix="/video", tags=["video"])
 
 @router.post("/create")
 async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
-    from models.render_history import RenderHistory
-
     logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
     logger.info(
         f"🔍 [DEBUG] include_scene_text={request.include_scene_text}, scene_text_font={request.scene_text_font}"
@@ -39,7 +45,9 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
         )
         db.add(rh)
         db.commit()
-        logger.info("✅ RenderHistory created for storyboard id=%d", request.storyboard_id)
+        db.refresh(rh)
+        res["render_history_id"] = rh.id
+        logger.info("✅ RenderHistory created id=%d for storyboard id=%d", rh.id, request.storyboard_id)
 
     return res
 
@@ -50,8 +58,6 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
 
     Handles both legacy local files and S3-based media assets.
     """
-    from models.media_asset import MediaAsset
-    from models.render_history import RenderHistory
     from services.storage import get_storage
 
     filename = os.path.basename(request.filename or "")
@@ -110,6 +116,51 @@ async def video_exists(filename: str = Query(..., min_length=1)):
         return {"exists": False}
     target = VIDEO_DIR / name
     return {"exists": target.exists()}
+
+
+@router.post("/youtube-statuses", response_model=YouTubeStatusesResponse)
+async def batch_youtube_statuses(body: YouTubeStatusesRequest, db: Session = Depends(get_db)):
+    """Get YouTube upload statuses for multiple video URLs."""
+    statuses: dict[str, dict] = {}
+
+    for url in body.video_urls[:10]:
+        filename = os.path.basename(url.split("?")[0])
+        asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+        if not asset:
+            continue
+        rh = (
+            db.query(RenderHistory)
+            .filter(RenderHistory.media_asset_id == asset.id)
+            .order_by(RenderHistory.id.desc())
+            .first()
+        )
+        if rh and rh.youtube_video_id:
+            statuses[url] = {
+                "video_id": rh.youtube_video_id,
+                "status": rh.youtube_upload_status,
+            }
+
+    return {"statuses": statuses}
+
+
+@router.get("/render-history-lookup", response_model=RenderHistoryLookupResponse)
+async def lookup_render_history(video_url: str = Query(..., min_length=1), db: Session = Depends(get_db)):
+    """Look up render_history_id by video URL (filename match)."""
+    filename = os.path.basename(video_url.split("?")[0])
+    asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Video asset not found")
+
+    rh = (
+        db.query(RenderHistory)
+        .filter(RenderHistory.media_asset_id == asset.id)
+        .order_by(RenderHistory.id.desc())
+        .first()
+    )
+    if not rh:
+        raise HTTPException(status_code=404, detail="Render history not found")
+
+    return RenderHistoryLookupResponse(render_history_id=rh.id)
 
 
 @router.get("/transitions")

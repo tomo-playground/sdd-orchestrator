@@ -941,3 +941,61 @@ class VoicePresetResponse(BaseModel):
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# YouTube Schemas
+# ============================================================
+
+
+class YouTubeAuthURLResponse(BaseModel):
+    auth_url: str
+
+
+class YouTubeCredentialResponse(BaseModel):
+    project_id: int
+    channel_id: str | None = None
+    channel_title: str | None = None
+    is_valid: bool
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class YouTubeUploadRequest(BaseModel):
+    project_id: int
+    render_history_id: int
+    title: str
+    description: str = ""
+    tags: list[str] = []
+    privacy_status: str = "private"
+
+
+class YouTubeUploadStatusResponse(BaseModel):
+    render_history_id: int
+    youtube_video_id: str | None = None
+    youtube_upload_status: str | None = None
+    youtube_uploaded_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class YouTubeStatusesRequest(BaseModel):
+    video_urls: list[str]
+
+
+class YouTubeStatusEntry(BaseModel):
+    video_id: str
+    status: str | None = None
+
+
+class YouTubeStatusesResponse(BaseModel):
+    statuses: dict[str, YouTubeStatusEntry]
+
+
+class RenderHistoryLookupResponse(BaseModel):
+    render_history_id: int
+
+
+class YouTubeRevokeResponse(BaseModel):
+    status: str

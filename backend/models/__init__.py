@@ -21,6 +21,7 @@ from models.tag import Tag, TagEffectiveness, TagRule
 from models.tag_alias import TagAlias
 from models.tag_filter import TagFilter
 from models.voice_preset import VoicePreset
+from models.youtube_credential import YouTubeCredential
 
 __all__ = [
     "Base",
@@ -50,4 +51,5 @@ __all__ = [
     "RenderHistory",
     "EvaluationRun",
     "VoicePreset",
+    "YouTubeCredential",
 ]

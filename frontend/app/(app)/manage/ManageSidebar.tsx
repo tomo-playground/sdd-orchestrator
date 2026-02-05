@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Settings,
   Trash2,
+  Upload,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -26,6 +27,7 @@ export type ManageTab =
   | "assets"
   | "presets"
   | "voice"
+  | "youtube"
   | "settings"
   | "trash";
 
@@ -60,6 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "presets", label: "Render Presets", icon: SlidersHorizontal },
       { id: "voice", label: "Voice", icon: Mic },
       { id: "assets", label: "Assets", icon: FolderOpen },
+      { id: "youtube", label: "YouTube", icon: Upload },
     ],
   },
 ];

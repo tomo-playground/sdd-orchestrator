@@ -35,6 +35,7 @@ from routers import (
     tags_router,
     video_router,
     voice_presets_router,
+    youtube_router,
 )
 
 
@@ -136,6 +137,7 @@ app.include_router(style_profiles_router)
 app.include_router(tags_router)
 app.include_router(video_router)
 app.include_router(voice_presets_router)
+app.include_router(youtube_router)
 
 
 if __name__ == "__main__":

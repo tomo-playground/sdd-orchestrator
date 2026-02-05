@@ -245,7 +245,7 @@ export async function runAutoRunFromStep(
           videoUrl: withTs,
           ...(layoutStyle === "full" ? { videoUrlFull: withTs } : { videoUrlPost: withTs }),
           recentVideos: [
-            { url: withTs, label: layoutStyle, createdAt: Date.now() },
+            { url: withTs, label: layoutStyle, createdAt: Date.now(), renderHistoryId: res.data.render_history_id },
             ...useStudioStore.getState().recentVideos.slice(0, 9),
           ],
         });

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -33,6 +34,11 @@ class RenderHistory(Base, TimestampMixin):
         nullable=False,
     )
     label: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    # YouTube upload tracking
+    youtube_video_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    youtube_upload_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    youtube_uploaded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     storyboard: Mapped[Storyboard] = relationship("Storyboard", back_populates="render_history")

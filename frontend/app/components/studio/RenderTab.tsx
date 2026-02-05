@@ -161,7 +161,7 @@ export default function RenderTab() {
           setOutput({ videoUrlPost: url, videoUrl: url });
         }
         setOutput({
-          recentVideos: [{ url, label: mode, createdAt: Date.now() }, ...recentVideos.slice(0, 9)],
+          recentVideos: [{ url, label: mode, createdAt: Date.now(), renderHistoryId: res.data.render_history_id }, ...recentVideos.slice(0, 9)],
         });
         showToast("Video rendered", "success");
       } catch {

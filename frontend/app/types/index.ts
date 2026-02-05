@@ -134,6 +134,7 @@ export type RecentVideo = {
   url: string;
   label: "full" | "post" | "single";
   createdAt: number;
+  renderHistoryId?: number;
 };
 
 export type Toast = {
@@ -499,6 +500,25 @@ export type GroupItem = {
   project_id: number;
   name: string;
   description: string | null;
+};
+
+// ============================================================
+// YouTube Types
+// ============================================================
+
+export type YouTubeCredential = {
+  project_id: number;
+  channel_id: string | null;
+  channel_title: string | null;
+  is_valid: boolean;
+  created_at: string | null;
+};
+
+export type YouTubeUploadStatus = {
+  render_history_id: number;
+  youtube_video_id: string | null;
+  youtube_upload_status: string | null;
+  youtube_uploaded_at: string | null;
 };
 
 export type EffectiveConfig = {

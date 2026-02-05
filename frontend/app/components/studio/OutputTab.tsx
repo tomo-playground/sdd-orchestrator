@@ -5,13 +5,16 @@ import axios from "axios";
 import { useStudioStore } from "../../store/useStudioStore";
 import { API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
+import { useYouTubeUpload } from "../../hooks/useYouTubeUpload";
 import RenderedVideosSection from "../video/RenderedVideosSection";
+import YouTubeUploadModal from "../youtube/YouTubeUploadModal";
 import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 
 export default function OutputTab() {
   const store = useStudioStore();
   const { setOutput, showToast, setMeta } = store;
 
+  const projectId = useStudioStore((s) => s.projectId);
   const videoUrl = useStudioStore((s) => s.videoUrl);
   const videoUrlFull = useStudioStore((s) => s.videoUrlFull);
   const videoUrlPost = useStudioStore((s) => s.videoUrlPost);
@@ -20,6 +23,14 @@ export default function OutputTab() {
   const videoLikesCount = useStudioStore((s) => s.videoLikesCount);
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const [savedField, setSavedField] = useState<string | null>(null);
+
+  const {
+    ytModalOpen,
+    ytRenderHistoryId,
+    ytUploaded,
+    handleUploadToYouTube,
+    closeModal,
+  } = useYouTubeUpload(projectId, recentVideos);
 
   const handleDeleteRecentVideo = useCallback(
     async (url: string) => {
@@ -35,7 +46,7 @@ export default function OutputTab() {
         showToast("삭제 실패", "error");
       }
     },
-    [recentVideos, setOutput, showToast]
+    [recentVideos, setOutput, showToast],
   );
 
   // Extract caption using LLM
@@ -58,7 +69,7 @@ export default function OutputTab() {
           res.data.fallback
             ? "캡션을 잘라냈습니다"
             : `캡션 요약 완료 (${res.data.original_length} → ${res.data.caption.length}자)`,
-          "success"
+          "success",
         );
       }
     } catch (err: unknown) {
@@ -80,7 +91,7 @@ export default function OutputTab() {
       await updateStoryboardMetadata({ caption: value });
       flashSaved("caption");
     },
-    [flashSaved]
+    [flashSaved],
   );
 
   const handleLikesBlur = useCallback(() => flashSaved("likes"), [flashSaved]);
@@ -102,8 +113,10 @@ export default function OutputTab() {
           videoUrlFull={videoUrlFull}
           videoUrlPost={videoUrlPost}
           recentVideos={recentVideos}
+          uploadedMap={ytUploaded}
           onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
           onDeleteRecentVideo={handleDeleteRecentVideo}
+          onUploadToYouTube={handleUploadToYouTube}
         />
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-zinc-200 bg-white/50 p-12 text-center">
@@ -174,6 +187,13 @@ export default function OutputTab() {
           />
         </div>
       </div>
+
+      <YouTubeUploadModal
+        open={ytModalOpen}
+        onClose={closeModal}
+        renderHistoryId={ytRenderHistoryId}
+        projectId={projectId}
+      />
     </div>
   );
 }
