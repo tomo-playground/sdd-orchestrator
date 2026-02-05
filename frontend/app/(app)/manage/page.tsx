@@ -2,11 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import axios from "axios";
-import { API_BASE } from "../../constants";
-import { useTags } from "../../hooks";
 import { useStudioStore } from "../../store/useStudioStore";
-import CharacterEditModal from "./CharacterEditModal";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
 import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
@@ -16,7 +12,6 @@ import RenderPresetsTab from "./tabs/RenderPresetsTab";
 import VoicePresetsTab from "./tabs/VoicePresetsTab";
 import TrashTab from "./tabs/TrashTab";
 import YouTubeTab from "./tabs/YouTubeTab";
-import type { Character, LoRA } from "../../types";
 
 const VALID_TABS: ManageTab[] = [
   "tags",
@@ -36,7 +31,6 @@ function isValidTab(v: string | null): v is ManageTab {
 function ManageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { tags: allTags } = useTags(null);
   const projectId = useStudioStore((s) => s.projectId);
 
   // URL-synced tab state
@@ -57,44 +51,6 @@ function ManageContent() {
     },
     [router]
   );
-
-  // Enlarged Image State (Global)
-  const [enlargedImage, setEnlargedImage] = useState<{ url: string; title: string } | null>(null);
-
-  // Character Editing State
-  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
-  const [isCreatingCharacter, setIsCreatingCharacter] = useState(false);
-  const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
-
-  const fetchLoras = async () => {
-    try {
-      const res = await axios.get<{ loras: LoRA[] }>(`${API_BASE}/loras/`);
-      setLoraEntries(res.data.loras || []);
-    } catch {
-      console.error("Failed to fetch LoRAs for character modal");
-    }
-  };
-
-  useEffect(() => {
-    void fetchLoras();
-  }, []);
-
-  const handleSaveCharacter = async (charData: Partial<Character>) => {
-    try {
-      if (editingCharacter) {
-        await axios.put(`${API_BASE}/characters/${editingCharacter.id}`, charData);
-        alert("Character updated!");
-      } else {
-        await axios.post(`${API_BASE}/characters/`, charData);
-        alert("Character created!");
-      }
-      setEditingCharacter(null);
-      setIsCreatingCharacter(false);
-    } catch (err) {
-      console.error("Failed to save character", err);
-      alert("Failed to save character");
-    }
-  };
 
   return (
     <div className="flex h-full">
@@ -117,46 +73,6 @@ function ManageContent() {
           {manageTab === "settings" && <SettingsTab />}
         </div>
       </main>
-
-      {/* Global Modals */}
-      {enlargedImage && (
-        <div
-          className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setEnlargedImage(null)}
-        >
-          <div
-            className="relative max-h-[90vh] max-w-[90vw] cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setEnlargedImage(null)}
-              className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-zinc-600 shadow-lg hover:bg-zinc-100"
-            >
-              &#x2715;
-            </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={enlargedImage.url}
-              alt={enlargedImage.title}
-              className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-            />
-            <p className="mt-3 text-center text-sm font-medium text-white">{enlargedImage.title}</p>
-          </div>
-        </div>
-      )}
-
-      {(editingCharacter || isCreatingCharacter) && (
-        <CharacterEditModal
-          character={editingCharacter || undefined}
-          allTags={allTags}
-          allLoras={loraEntries}
-          onClose={() => {
-            setEditingCharacter(null);
-            setIsCreatingCharacter(false);
-          }}
-          onSave={handleSaveCharacter}
-        />
-      )}
     </div>
   );
 }

@@ -1,86 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useSearchParams } from "next/navigation";
+import { useYouTubeTab } from "../hooks/useYouTubeTab";
 import type { YouTubeCredential } from "../../../types";
-import {
-  checkYouTubeConnection,
-  disconnectYouTube,
-  exchangeYouTubeCode,
-  getYouTubeAuthUrl,
-} from "../../../store/actions/youtubeActions";
 
 type Props = { projectId: number | null };
 
 export default function YouTubeTab({ projectId }: Props) {
-  const showToast = useStudioStore((s) => s.showToast);
-  const router = useRouter();
   const searchParams = useSearchParams();
-
   const oauthCode = searchParams.get("code");
   const oauthState = searchParams.get("state");
-  const [credential, setCredential] = useState<YouTubeCredential | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isConnecting, setIsConnecting] = useState(!!oauthCode);
-  const exchangeRef = useRef(false);
 
-  // Check project YouTube connection
-  useEffect(() => {
-    const fetch = projectId
-      ? () => checkYouTubeConnection(projectId)
-      : () => Promise.resolve(null);
-
-    fetch().then((cred) => {
-      setCredential(cred);
-      setIsLoading(false);
-    });
-  }, [projectId]);
-
-  // Handle OAuth callback (code + state from URL)
-  useEffect(() => {
-    if (!oauthCode || !oauthState || exchangeRef.current) return;
-    exchangeRef.current = true;
-
-    exchangeYouTubeCode(oauthCode, oauthState).then((cred) => {
-      setIsConnecting(false);
-      if (cred) {
-        setCredential(cred);
-        showToast("YouTube connected", "success");
-      } else {
-        showToast("YouTube connection failed", "error");
-      }
-      router.replace("/manage?tab=youtube", { scroll: false });
-    });
-  }, [oauthCode, oauthState, showToast, router]);
-
-  const handleConnect = async () => {
-    if (!projectId) return;
-    const url = await getYouTubeAuthUrl(projectId);
-    if (url) {
-      window.location.href = url;
-    } else {
-      showToast("Failed to get authorization URL", "error");
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!projectId) return;
-    const ok = await disconnectYouTube(projectId);
-    if (ok) {
-      setCredential(null);
-      showToast("YouTube disconnected", "success");
-    } else {
-      showToast("Failed to disconnect", "error");
-    }
-  };
+  const { credential, isLoading, isConnecting, handleConnect, handleDisconnect } = useYouTubeTab({
+    projectId,
+    oauthCode,
+    oauthState,
+  });
 
   if (!projectId) {
     return (
       <div className="grid gap-6">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">YouTube</h2>
-          <p className="text-xs text-zinc-500">Select a project first to manage YouTube connection.</p>
+          <p className="text-xs text-zinc-500">
+            Select a project first to manage YouTube connection.
+          </p>
         </div>
       </div>
     );
@@ -195,8 +139,18 @@ function ConnectedChannelCard({
               className="mt-2 inline-flex items-center gap-1 text-[11px] text-red-500 transition hover:text-red-600"
             >
               View on YouTube
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
               </svg>
             </a>
           )}

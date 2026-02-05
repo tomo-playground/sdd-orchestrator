@@ -1,86 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import { API_BASE, PROMPT_APPLY_KEY } from "../../../constants";
 import { useCharacters } from "../../../hooks";
+import { usePromptsTab } from "../hooks/usePromptsTab";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import type { PromptHistory, Character } from "../../../types";
+import type { Character } from "../../../types";
 
 export default function PromptsTab() {
-  const router = useRouter();
   const { characters } = useCharacters();
-
-  const [promptHistories, setPromptHistories] = useState<PromptHistory[]>([]);
-  const [isPromptsLoading, setIsPromptsLoading] = useState(false);
-  const [promptsFilter, setPromptsFilter] = useState<"all" | "favorites">("all");
-  const [promptsCharacterFilter, setPromptsCharacterFilter] = useState<number | null>(null);
-  const [promptsSort, setPromptsSort] = useState<"created_at" | "use_count" | "avg_match_rate">(
-    "created_at"
-  );
-  const [promptsSearch, setPromptsSearch] = useState("");
-  const [deletingPromptId, setDeletingPromptId] = useState<number | null>(null);
-
-  useEffect(() => {
-    void fetchPromptHistories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [promptsFilter, promptsSort, promptsCharacterFilter]);
-
-  const fetchPromptHistories = async () => {
-    setIsPromptsLoading(true);
-    try {
-      const params: Record<string, unknown> = {
-        sort_by: promptsSort,
-        favorites_only: promptsFilter === "favorites",
-        query: promptsSearch,
-      };
-      if (promptsCharacterFilter) {
-        params.character_id = promptsCharacterFilter;
-      }
-      const res = await axios.get<PromptHistory[]>(`${API_BASE}/prompt-histories`, { params });
-      setPromptHistories(res.data || []);
-    } catch {
-      setPromptHistories([]);
-    } finally {
-      setIsPromptsLoading(false);
-    }
-  };
-
-  const deletePromptHistory = async (id: number) => {
-    if (!confirm("Delete this prompt history?")) return;
-    setDeletingPromptId(id);
-    try {
-      await axios.delete(`${API_BASE}/prompt-histories/${id}`);
-      setPromptHistories((prev) => prev.filter((p) => p.id !== id));
-    } catch {
-      alert("Failed to delete prompt");
-    } finally {
-      setDeletingPromptId(null);
-    }
-  };
-
-  const togglePromptFavorite = async (id: number) => {
-    try {
-      const prompt = promptHistories.find((p) => p.id === id);
-      if (!prompt) return;
-      await axios.put(`${API_BASE}/prompt-histories/${id}`, { is_favorite: !prompt.is_favorite });
-      setPromptHistories((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p))
-      );
-    } catch {
-      alert("Failed to update favorite status");
-    }
-  };
-
-  const applyPromptHistory = (id: number) => {
-    const prompt = promptHistories.find((p) => p.id === id);
-    if (!prompt) return;
-
-    // Save to localStorage so Storyboard page can pick it up
-    localStorage.setItem(PROMPT_APPLY_KEY, JSON.stringify(prompt));
-    router.push("/");
-  };
+  const {
+    promptHistories,
+    isPromptsLoading,
+    promptsFilter,
+    setPromptsFilter,
+    promptsCharacterFilter,
+    setPromptsCharacterFilter,
+    promptsSort,
+    setPromptsSort,
+    promptsSearch,
+    setPromptsSearch,
+    deletingPromptId,
+    fetchPromptHistories,
+    deletePromptHistory,
+    togglePromptFavorite,
+    applyPromptHistory,
+  } = usePromptsTab();
 
   return (
     <section className="grid gap-4 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
