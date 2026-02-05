@@ -59,16 +59,18 @@ export default function Popover({
   const style: React.CSSProperties = {
     position: "fixed",
     top: rect.bottom + 4,
-    zIndex: 50,
-    ...(align === "left"
-      ? { left: rect.left }
-      : { right: window.innerWidth - rect.right }),
+    zIndex: "var(--z-popover)",
+    ...(align === "left" ? { left: rect.left } : { right: window.innerWidth - rect.right }),
   };
 
   return createPortal(
-    <div ref={popRef} style={style} className={cx(CARD_CLASSES, "py-1 shadow-lg min-w-[200px]", className)}>
+    <div
+      ref={popRef}
+      style={style}
+      className={cx(CARD_CLASSES, "min-w-[200px] py-1 shadow-lg", className)}
+    >
       {children}
     </div>,
-    document.body,
+    document.body
   );
 }

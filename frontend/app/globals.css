@@ -11,10 +11,19 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --z-preview: 100;
+  /* ── Content layers ── */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-sub-nav: 30;
+  --z-nav: 40;
+  --z-popover: 50;
+  --z-sidebar: 60;
+
+  /* ── Overlay layers ── */
   --z-modal: 1000;
   --z-modal-close: 1010;
   --z-nested-modal: 1100;
+  --z-command-palette: 1200;
   --z-toast: 2000;
 }
 

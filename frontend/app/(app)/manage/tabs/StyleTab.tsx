@@ -369,7 +369,7 @@ export default function StyleTab() {
 
       {/* Edit LoRA Modal */}
       {editingLora && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
             <h3 className="mb-4 text-center text-sm font-black text-zinc-800">Edit LoRA</h3>
             <div className="grid gap-4">

@@ -131,7 +131,7 @@ export default function SceneImagePanel({
       >
         {/* Generating spinner */}
         {scene.isGenerating && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[var(--z-dropdown)] flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-200 border-t-indigo-500" />
             <p className="text-sm font-semibold text-zinc-700">이미지 생성 중...</p>
             <div className="h-1 w-32 overflow-hidden rounded-full bg-zinc-200">

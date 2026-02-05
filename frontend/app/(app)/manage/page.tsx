@@ -109,7 +109,7 @@ function MobileTabBar({
   onTabChange: (tab: ManageTab) => void;
 }) {
   return (
-    <div className="fixed top-[var(--nav-height)] right-0 left-0 z-20 flex gap-1 overflow-x-auto border-b border-zinc-200 bg-white/90 px-4 py-1.5 backdrop-blur-md lg:hidden">
+    <div className="fixed top-[var(--nav-height)] right-0 left-0 z-[var(--z-sticky)] flex gap-1 overflow-x-auto border-b border-zinc-200 bg-white/90 px-4 py-1.5 backdrop-blur-md lg:hidden">
       {MOBILE_TABS.map((tab) => {
         const active = activeTab === tab.id;
         return (

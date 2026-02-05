@@ -166,7 +166,7 @@ function TagChipList({
           className="w-24 rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs transition-all outline-none focus:w-48 focus:border-zinc-400"
         />
         {tagSearch && filteredTags.length > 0 && (
-          <div className="absolute top-full left-0 z-10 mt-1 max-h-40 w-48 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
+          <div className="absolute top-full left-0 z-[var(--z-dropdown)] mt-1 max-h-40 w-48 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
             {filteredTags.map((tag) => (
               <button
                 key={tag.id}

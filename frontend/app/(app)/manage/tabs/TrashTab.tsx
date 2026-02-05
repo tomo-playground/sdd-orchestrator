@@ -123,7 +123,7 @@ export default function TrashTab() {
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition ${
+          className={`fixed bottom-6 left-1/2 z-[var(--z-toast)] -translate-x-1/2 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition ${
             toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
           }`}
         >

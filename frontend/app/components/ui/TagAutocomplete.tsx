@@ -46,9 +46,11 @@ export default function TagAutocomplete({
   const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const [triggerInfo, setTriggerInfo] = useState<{ start: number; end: number; word: string } | null>(
-    null
-  );
+  const [triggerInfo, setTriggerInfo] = useState<{
+    start: number;
+    end: number;
+    word: string;
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -98,7 +100,7 @@ export default function TagAutocomplete({
     onChange(newValue);
 
     const cursorPos = e.target.selectionStart;
-    
+
     // Find the word being typed
     // Search backwards from cursor for a separator (space, comma, newline)
     let start = cursorPos;
@@ -129,11 +131,11 @@ export default function TagAutocomplete({
     const after = value.slice(triggerInfo.end);
     // Add comma if not present (simple heuristic)
     const newValue = `${before}${tag.name}${after}`;
-    
+
     onChange(newValue);
     setIsOpen(false);
     setSuggestions([]);
-    
+
     // Restore focus and move cursor
     setTimeout(() => {
       if (textareaRef.current) {
@@ -173,11 +175,11 @@ export default function TagAutocomplete({
         disabled={disabled}
         className={className}
       />
-      
+
       {isOpen && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-xl"
+          className="absolute z-[var(--z-popover)] mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-xl"
         >
           <ul className="grid gap-0.5 p-1">
             {suggestions.map((tag, index) => (
@@ -185,14 +187,12 @@ export default function TagAutocomplete({
                 key={tag.id}
                 onClick={() => selectTag(tag)}
                 onMouseEnter={() => setHighlightedIndex(index)}
-                className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition ${ 
+                className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition ${
                   index === highlightedIndex ? "bg-zinc-100" : "hover:bg-zinc-50"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${getTagColor(tag.category)}`}>
-                    {tag.name}
-                  </span>
+                  <span className={`font-semibold ${getTagColor(tag.category)}`}>{tag.name}</span>
                   {tag.group_name && (
                     <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
                       {tag.group_name}
@@ -200,19 +200,20 @@ export default function TagAutocomplete({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                   <span className="text-[10px] tracking-wide text-zinc-400 uppercase">
+                  <span className="text-[10px] tracking-wide text-zinc-400 uppercase">
                     {tag.category}
                   </span>
                   {/* Priority indicator if relevant */}
                   {tag.priority && tag.priority < 5 && (
-                     <span className="text-[10px] text-amber-500">★</span>
+                    <span className="text-[10px] text-amber-500">★</span>
                   )}
                 </div>
               </li>
             ))}
           </ul>
           <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[10px] text-zinc-400">
-             Use <kbd className="font-sans">↑</kbd> <kbd className="font-sans">↓</kbd> to navigate, <kbd className="font-sans">Enter</kbd> to select
+            Use <kbd className="font-sans">↑</kbd> <kbd className="font-sans">↓</kbd> to navigate,{" "}
+            <kbd className="font-sans">Enter</kbd> to select
           </div>
         </div>
       )}

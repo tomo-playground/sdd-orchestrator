@@ -34,11 +34,11 @@ export const DISABLED_CLASSES = "disabled:opacity-50 disabled:cursor-not-allowed
 
 /** Top-level navigation bar. */
 export const NAV_CLASSES =
-  "sticky top-0 z-40 border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg";
+  "sticky top-0 z-[var(--z-nav)] border-b border-zinc-200/60 bg-white/80 backdrop-blur-lg";
 
 /** Page-level sub-navigation (sticky at top of scroll area). */
 export const SUB_NAV_CLASSES =
-  "sticky top-0 z-30 border-b border-zinc-100 bg-white/90 backdrop-blur-md";
+  "sticky top-0 z-[var(--z-sub-nav)] border-b border-zinc-100 bg-white/90 backdrop-blur-md";
 
 /** Max-width content container, left-aligned within sidebar layout. */
 export const CONTAINER_CLASSES = "w-full max-w-5xl px-6";

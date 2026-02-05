@@ -200,7 +200,7 @@ function DropdownMenu({
         </svg>
       </Button>
       {sceneMenuOpen && (
-        <div className="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+        <div className="absolute right-0 z-[var(--z-dropdown)] mt-1 w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
           <button
             type="button"
             onClick={() => {

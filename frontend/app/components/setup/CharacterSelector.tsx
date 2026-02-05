@@ -15,11 +15,19 @@ function resolveImageUrl(url: string | null | undefined): string | null {
   return url.startsWith("http") ? url : `${API_BASE}${url}`;
 }
 
-function CharacterThumbnail({ src, name, size = 28 }: { src: string | null; name: string; size?: number }) {
+function CharacterThumbnail({
+  src,
+  name,
+  size = 28,
+}: {
+  src: string | null;
+  name: string;
+  size?: number;
+}) {
   if (!src) {
     return (
       <div
-        className="shrink-0 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 text-[10px] font-bold"
+        className="flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-[10px] font-bold text-zinc-400"
         style={{ width: size, height: size }}
       >
         {name.charAt(0).toUpperCase()}
@@ -78,8 +86,8 @@ export default function CharacterSelector({
   ].filter((g) => g.items.length > 0);
 
   return (
-    <div ref={ref} className="relative flex-1 min-w-[200px]">
-      <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase mb-1 block">
+    <div ref={ref} className="relative min-w-[200px] flex-1">
+      <label className="mb-1 block text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
         Character
       </label>
 
@@ -87,7 +95,7 @@ export default function CharacterSelector({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`flex w-full items-center gap-2.5 rounded-2xl border px-3 py-2 text-sm outline-none transition hover:border-zinc-400 ${
+        className={`flex w-full items-center gap-2.5 rounded-2xl border px-3 py-2 text-sm transition outline-none hover:border-zinc-400 ${
           !selectedCharacterId
             ? "border-amber-300 bg-amber-50/80 text-amber-700"
             : "border-zinc-200 bg-white/80 text-zinc-800"
@@ -104,17 +112,25 @@ export default function CharacterSelector({
         ) : (
           <span className="text-amber-600/70">Select Character...</span>
         )}
-        <svg className="ml-auto h-4 w-4 shrink-0 opacity-40" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        <svg
+          className="ml-auto h-4 w-4 shrink-0 opacity-40"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+            clipRule="evenodd"
+          />
         </svg>
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
+        <div className="absolute top-full right-0 left-0 z-[var(--z-popover)] mt-1 max-h-64 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="sticky top-0 bg-zinc-50 px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase border-b border-zinc-100">
+              <div className="sticky top-0 border-b border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
                 {group.label}
               </div>
               {group.items.map((char) => {
@@ -138,8 +154,16 @@ export default function CharacterSelector({
                     />
                     <span className="truncate">{char.name}</span>
                     {isSelected && (
-                      <svg className="ml-auto h-4 w-4 shrink-0 text-zinc-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                      <svg
+                        className="ml-auto h-4 w-4 shrink-0 text-zinc-600"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     )}
                   </button>

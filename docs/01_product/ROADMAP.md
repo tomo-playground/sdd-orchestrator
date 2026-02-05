@@ -154,10 +154,10 @@
 | 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [x] |
 | 6 | Frontend Trash 탭 (Manage) | Soft Delete | [x] |
 | 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [x] |
-| 8 | z-index 통합 관리 (Tailwind 설정) | UI | [ ] |
-| 9 | Hook Extraction (`useManageState` 등) | Frontend | [ ] |
+| 8 | z-index 통합 관리 (Tailwind 설정) | UI | [x] |
+| 9 | Hook Extraction (5개 탭 커스텀 Hook 분리) | Frontend | [x] |
 | 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] |
-| 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [ ] |
+| 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [x] |
 | 12 | WD14 Validate 매칭 정확도 개선 (부분문자열 오탐 제거, 복합태그 분해, 동의어, skipped/partial 응답) | 프롬프트 | [x] |
 
 | 13 | Character Voice Preset (캐릭터 대표 목소리) | Voice | [x] |
@@ -214,6 +214,7 @@
 | 14 | Character Identity Injection (Gemini 스토리보드에 캐릭터 태그/LoRA 주입 + 오토파일럿 overlay 수정) | 품질 | - | [x] |
 | 15 | 좌측 사이드바 네비게이션 + 컨텍스트 전환 버그 수정 (Phase A 버그 6건 + Phase B 사이드바 완료. Phase C ContextBar 정리 보류) | UX | [명세](FEATURES/SIDEBAR_NAVIGATION.md) | [x] |
 | 16 | Insights 탭 Studio → Manage 이동 (QualityDashboard + AnalyticsDashboard, 스토리보드 셀렉터) | UX | - | [x] |
+| 17 | YouTube Shorts Upload (OAuth + per-project credential + upload modal) | 기능 | [명세](FEATURES/YOUTUBE_UPLOAD.md) | [x] |
 
 ---
 
@@ -279,7 +280,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | 씬 순서 드래그 앤 드롭 | - |
 | Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화) | - |
 | Backend response_model 전면 적용 (125개 엔드포인트 중 핵심 경로 우선, dict 타입 구체화) | - |
-| YouTube Shorts Upload (OAuth 연동 + 수동 업로드 + 이력) | [명세](FEATURES/YOUTUBE_UPLOAD.md) |
+| ~~YouTube Shorts Upload~~ | ~~[명세](FEATURES/YOUTUBE_UPLOAD.md)~~ → 7-1 #17로 이동 (완료) |
 
 ---
 
@@ -293,12 +294,38 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-04):
+**현재 진행 상태** (2026-02-05):
 - Phase 6-5 ~ 6-8: **완료**
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
-- Phase 6-7: 12/16 완료 (#1 CI, #3 GC, #4-6 Soft Delete, #7 UI Toolkit, #12 WD14 매칭, #13-15 Voice, #16 Schema Cleanup)
-- Phase 7-2: Phase 1.7 **완료** (Group Defaults cascade + loadGroupDefaults 연동), Phase 2 대기
-- Phase 7-1: 8/16 완료 (#1 Quick Start, #9 OutputTab, #11 Studio UI, #12 씬 텍스트, #13 스크립트 길이, #14 Character Identity, #15 사이드바+버그, #16 Insights→Manage)
+- Phase 6-7: **15/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
+- Phase 7-1: **9/17** 완료 (잔여: #2 Wizard, #3 접근성, #4 WebSocket, #5 Multi-Char, #6 Scene Builder, #7 템플릿, #8 Char Builder, #10 Auto Eval)
+- Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
+
+### 잔여 작업 우선순위 (재정리 2026-02-05)
+
+**Tier 1 — 높은 임팩트 (중형, 3-5일)**
+| 순위 | 출처 | 작업 | 근거 |
+|------|------|------|------|
+| 1 | 7-1 #4 | WebSocket Progress (생성/렌더링 진행률) | UX 핵심, 현재 폴링 방식 한계 |
+| 2 | 7-1 #7 | Structure별 전용 Gemini 템플릿 (5종) | 콘텐츠 품질 직결 |
+| 3 | 6-7 #10 | WD14 Feedback Loop (tag_effectiveness 자동 업데이트) | 프롬프트 자동 개선 루프 |
+| 4 | 7-1 #5 | Multi-Character UI (DB 스키마 완료) | DB 준비 완료, UI만 구현 |
+
+**Tier 2 — 확장 기능 (대형, 1주+)**
+| 순위 | 출처 | 작업 | 근거 |
+|------|------|------|------|
+| 5 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장 |
+| 6 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
+| 7 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
+| 8 | 7-1 #10 | Automated Evaluation Runner | 품질 자동화 |
+
+**Tier 3 — 후순위**
+| 순위 | 출처 | 작업 | 근거 |
+|------|------|------|------|
+| 9 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
+| 10 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
+| 11 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
+| 14 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
 
 **Hotfix (2026-02-04)**:
 - Batch image field mismatch 수정 (`image_url` → `image`) + `response_model` 적용

@@ -101,7 +101,7 @@ function GeminiEditModal({
   showToast,
 }: GeminiEditModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
       <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-zinc-800">✨ Fix with Gemini Nano Banana</h3>
@@ -111,7 +111,8 @@ function GeminiEditModal({
         <div className="space-y-4">
           <div>
             <p className="mb-2 text-sm text-zinc-600">
-              현재 Match Rate가 낮습니다 ({(qualityScore?.match_rate ?? 0) * 100}%). 어떤 부분을 수정하시겠습니까?
+              현재 Match Rate가 낮습니다 ({(qualityScore?.match_rate ?? 0) * 100}%). 어떤 부분을
+              수정하시겠습니까?
             </p>
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
               <strong>Missing Tags:</strong>{" "}
@@ -191,7 +192,7 @@ function GeminiSuggestModal({
   onApproveSuggestion,
 }: GeminiSuggestModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
       <div className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-zinc-800">🤖 Gemini Auto Suggestions</h3>
@@ -200,7 +201,8 @@ function GeminiSuggestModal({
 
         <div className="space-y-4">
           <p className="text-sm text-zinc-600">
-            Gemini가 이미지와 프롬프트를 비교해 {geminiSuggestions.length}개의 수정 제안을 생성했습니다.
+            Gemini가 이미지와 프롬프트를 비교해 {geminiSuggestions.length}개의 수정 제안을
+            생성했습니다.
           </p>
 
           <div className="space-y-3">
@@ -269,9 +271,7 @@ function SuggestionCard({
           </div>
           <p className="text-sm text-zinc-600">{suggestion.description}</p>
         </div>
-        <div className="text-xs text-zinc-500">
-          {(suggestion.confidence * 100).toFixed(0)}%
-        </div>
+        <div className="text-xs text-zinc-500">{(suggestion.confidence * 100).toFixed(0)}%</div>
       </div>
 
       <div className="mb-3 rounded-lg bg-indigo-50 p-3">

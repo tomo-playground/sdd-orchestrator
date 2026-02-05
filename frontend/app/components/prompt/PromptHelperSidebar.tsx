@@ -28,11 +28,11 @@ export default function PromptHelperSidebar({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fixed inset-0 z-[var(--z-sidebar)] bg-black/30 transition-opacity ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
       />
       <aside
-        className={`fixed top-0 right-0 z-50 h-full w-full max-w-md transform bg-white shadow-2xl transition-transform ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed top-0 right-0 z-[var(--z-sidebar)] h-full w-full max-w-md transform bg-white shadow-2xl transition-transform ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="flex h-full flex-col gap-4 p-6">
           <div className="flex items-center justify-between">
