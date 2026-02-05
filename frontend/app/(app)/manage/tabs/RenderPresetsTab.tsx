@@ -23,7 +23,9 @@ const EMPTY_PRESET: EditingPreset = {
   voice_preset_id: null,
 };
 
-export default function RenderPresetsTab() {
+type Props = { projectId: number | null };
+
+export default function RenderPresetsTab({ projectId }: Props) {
   const [presets, setPresets] = useState<RenderPreset[]>([]);
   const [editing, setEditing] = useState<EditingPreset | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
@@ -37,12 +39,13 @@ export default function RenderPresetsTab() {
 
   const fetchPresets = useCallback(async () => {
     try {
-      const res = await axios.get<RenderPreset[]>(`${API_BASE}/render-presets`);
+      const params = projectId ? { project_id: projectId } : {};
+      const res = await axios.get<RenderPreset[]>(`${API_BASE}/render-presets`, { params });
       setPresets(res.data);
     } catch {
       console.error("Failed to fetch presets");
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     void fetchPresets();
@@ -67,7 +70,7 @@ export default function RenderPresetsTab() {
 
   const handleCreate = () => {
     setEditId(null);
-    setEditing({ ...EMPTY_PRESET });
+    setEditing({ ...EMPTY_PRESET, project_id: projectId });
   };
 
   const handleEdit = (p: RenderPreset) => {

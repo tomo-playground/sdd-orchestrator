@@ -8,7 +8,6 @@ import { useTags } from "../../hooks";
 import { useStudioStore } from "../../store/useStudioStore";
 import CharacterEditModal from "./CharacterEditModal";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
-import AssetsTab from "./tabs/AssetsTab";
 import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
@@ -23,7 +22,6 @@ const VALID_TABS: ManageTab[] = [
   "tags",
   "style",
   "prompts",
-  "assets",
   "presets",
   "voice",
   "youtube",
@@ -112,8 +110,7 @@ function ManageContent() {
           {manageTab === "tags" && <TagsTab />}
           {manageTab === "style" && <StyleTab />}
           {manageTab === "prompts" && <PromptsTab />}
-          {manageTab === "assets" && <AssetsTab />}
-          {manageTab === "presets" && <RenderPresetsTab />}
+          {manageTab === "presets" && <RenderPresetsTab projectId={projectId} />}
           {manageTab === "voice" && <VoicePresetsTab />}
           {manageTab === "trash" && <TrashTab />}
           {manageTab === "youtube" && <YouTubeTab projectId={projectId} />}
@@ -175,13 +172,15 @@ export default function ManagePage() {
 // ── Mobile tab bar (< lg) ────────────────────────────────────
 
 const MOBILE_TABS: { id: ManageTab; label: string }[] = [
+  // Library
   { id: "tags", label: "Tags" },
-  { id: "style", label: "Style" },
-  { id: "prompts", label: "Prompts" },
-  { id: "assets", label: "Assets" },
-  { id: "presets", label: "Presets" },
+  { id: "style", label: "Styles" },
   { id: "voice", label: "Voice" },
+  // Project
+  { id: "presets", label: "Presets" },
   { id: "youtube", label: "YouTube" },
+  // Utility
+  { id: "prompts", label: "Prompts" },
   { id: "settings", label: "Settings" },
   { id: "trash", label: "Trash" },
 ];

@@ -7,16 +7,18 @@ import {
   FileText,
   SlidersHorizontal,
   Mic,
-  FolderOpen,
   Settings,
   Trash2,
   Upload,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  Library,
+  FolderCog,
   type LucideIcon,
 } from "lucide-react";
 import { cx, LABEL_CLASSES } from "../../components/ui/variants";
+import { useStudioStore } from "../../store/useStudioStore";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -24,7 +26,6 @@ export type ManageTab =
   | "tags"
   | "style"
   | "prompts"
-  | "assets"
   | "presets"
   | "voice"
   | "youtube"
@@ -40,6 +41,7 @@ type NavItem = {
 type NavGroup = {
   key: string;
   label: string;
+  icon?: LucideIcon;
   items: NavItem[];
 };
 
@@ -47,27 +49,28 @@ type NavGroup = {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    key: "content",
-    label: "Content",
+    key: "library",
+    label: "Library",
+    icon: Library,
     items: [
       { id: "tags", label: "Tags", icon: Tag },
-      { id: "style", label: "Style", icon: Palette },
-      { id: "prompts", label: "Prompts", icon: FileText },
+      { id: "style", label: "Styles", icon: Palette },
+      { id: "voice", label: "Voice Presets", icon: Mic },
     ],
   },
   {
-    key: "output",
-    label: "Output",
+    key: "project",
+    label: "Project",
+    icon: FolderCog,
     items: [
       { id: "presets", label: "Render Presets", icon: SlidersHorizontal },
-      { id: "voice", label: "Voice", icon: Mic },
-      { id: "assets", label: "Assets", icon: FolderOpen },
       { id: "youtube", label: "YouTube", icon: Upload },
     ],
   },
 ];
 
 const UTILITY_ITEMS: NavItem[] = [
+  { id: "prompts", label: "Prompts", icon: FileText },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "trash", label: "Trash", icon: Trash2 },
 ];
@@ -84,6 +87,10 @@ export default function ManageSidebar({
   activeTab: ManageTab;
   onTabChange: (tab: ManageTab) => void;
 }) {
+  const projectId = useStudioStore((s) => s.projectId);
+  const projects = useStudioStore((s) => s.projects);
+  const projectName = projects.find((p) => p.id === projectId)?.name ?? null;
+
   const [collapsed, setCollapsed] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -146,6 +153,11 @@ export default function ManageSidebar({
                     className={cx("h-3 w-3 transition-transform", isGroupCollapsed && "-rotate-90")}
                   />
                   {group.label}
+                  {group.key === "project" && projectName && (
+                    <span className="ml-auto truncate max-w-[7rem] text-[9px] font-medium text-zinc-400">
+                      {projectName}
+                    </span>
+                  )}
                 </button>
               )}
               {/* Items */}
