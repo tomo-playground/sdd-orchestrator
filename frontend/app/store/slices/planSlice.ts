@@ -109,7 +109,7 @@ export type PlanPersistState = Omit<
 >;
 
 export function extractPlanPersist(state: PlanSlice): Partial<PlanPersistState> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
     setPlan: _setPlan,
     resetPlan: _resetPlan,
@@ -119,5 +119,6 @@ export function extractPlanPersist(state: PlanSlice): Partial<PlanPersistState> 
     characterBLoras: _characterBLoras,
     ...rest
   } = state;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   return rest;
 }

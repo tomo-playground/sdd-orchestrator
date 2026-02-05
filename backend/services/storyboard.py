@@ -446,7 +446,14 @@ def _sync_speaker_mappings(
     from services.speaker_resolver import assign_speakers
 
     if not character_b_id:
-        assign_speakers(storyboard_id, {}, db)
+        # Only clear if there might be existing mappings (update path)
+        from models.storyboard_character import StoryboardCharacter
+
+        existing = db.query(StoryboardCharacter.id).filter(
+            StoryboardCharacter.storyboard_id == storyboard_id,
+        ).first()
+        if existing:
+            assign_speakers(storyboard_id, {}, db)
         return
 
     speaker_map: dict[str, int] = {}
