@@ -157,8 +157,9 @@ export default function Sidebar() {
               {!collapsed && (
                 <button
                   onClick={() => groupId && setConfigGroupId(groupId)}
+                  disabled={!groupId}
                   title="Group settings"
-                  className="ml-auto shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+                  className="ml-auto shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600 disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Settings className="h-3.5 w-3.5" />
                 </button>
