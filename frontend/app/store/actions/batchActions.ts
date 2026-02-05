@@ -3,6 +3,7 @@ import { API_BASE } from "../../constants";
 import { useStudioStore } from "../useStudioStore";
 import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
+import { resolveCharacterIdForSpeaker, resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
 
 interface BatchResult {
   index: number;
@@ -39,7 +40,9 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
   }
 
   try {
-    const sceneRequests = targetScenes.map((scene) => ({
+    const sceneRequests = targetScenes.map((scene) => {
+      const ipAdapter = resolveIpAdapterForSpeaker(scene.speaker, state);
+      return {
       prompt: scene.image_prompt || "",
       negative_prompt: scene.negative_prompt || "",
       steps: 27,
@@ -49,18 +52,19 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
       width: scene.width || 512,
       height: scene.height || 768,
       clip_skip: 2,
-      character_id: state.selectedCharacterId || 0,
+      character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
       storyboard_id: state.storyboardId || undefined,
       style_loras: state.characterLoras?.filter((l) => l.lora_type === "style") || [],
       use_controlnet: state.useControlnet || false,
-      use_ip_adapter: state.useIpAdapter || false,
-      ip_adapter_reference: state.ipAdapterReference || undefined,
-      ip_adapter_weight: state.ipAdapterWeight || 0.7,
+      use_ip_adapter: state.useIpAdapter && !!ipAdapter.reference,
+      ip_adapter_reference: ipAdapter.reference || undefined,
+      ip_adapter_weight: ipAdapter.weight || 0.7,
       use_reference_only: scene.use_reference_only ?? true,
       reference_only_weight: scene.reference_only_weight ?? 0.5,
       environment_reference_id: scene.environment_reference_id || undefined,
       environment_reference_weight: scene.environment_reference_weight ?? 0.3,
-    }));
+    };
+    });
 
     const res = await axios.post<BatchResponse>(`${API_BASE}/scene/generate-batch`, {
       scenes: sceneRequests,

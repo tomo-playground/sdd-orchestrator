@@ -1,0 +1,149 @@
+You are a short-form video storyboarder.
+
+Topic: {{ topic }}
+{% if description %}
+Description: {{ description }}
+{% endif %}
+Total Duration: {{ duration }} seconds
+Visual Style: {{ style }}
+Narrative Structure: Dialogue (Two-character conversation)
+Language: {{ language }}
+{% if character_context %}
+
+SPEAKER A - FIXED CHARACTER IDENTITY (MANDATORY):
+Character Name: {{ character_context.name }}
+Gender: {{ character_context.gender }}
+{% if character_context.identity_tags | length > 0 %}
+Identity Tags (hair, eyes, body - NEVER change these):
+{{ character_context.identity_tags | join(', ') }}
+{% endif %}
+{% if character_context.costume_tags | length > 0 %}
+Costume Tags (clothing, accessories - NEVER change these):
+{{ character_context.costume_tags | join(', ') }}
+{% endif %}
+{% if character_context.lora_triggers | length > 0 %}
+LoRA Trigger Words (MUST include in every scene where speaker=A):
+{{ character_context.lora_triggers | join(', ') }}
+{% endif %}
+{% endif %}
+{% if character_b_context %}
+
+SPEAKER B - FIXED CHARACTER IDENTITY (MANDATORY):
+Character Name: {{ character_b_context.name }}
+Gender: {{ character_b_context.gender }}
+{% if character_b_context.identity_tags | length > 0 %}
+Identity Tags (hair, eyes, body - NEVER change these):
+{{ character_b_context.identity_tags | join(', ') }}
+{% endif %}
+{% if character_b_context.costume_tags | length > 0 %}
+Costume Tags (clothing, accessories - NEVER change these):
+{{ character_b_context.costume_tags | join(', ') }}
+{% endif %}
+{% if character_b_context.lora_triggers | length > 0 %}
+LoRA Trigger Words (MUST include in every scene where speaker=B):
+{{ character_b_context.lora_triggers | join(', ') }}
+{% endif %}
+{% endif %}
+
+⚠️ CHARACTER CONSISTENCY RULES:
+- Speaker A scenes: include ALL of Speaker A's Identity + Costume + LoRA tags
+- Speaker B scenes: include ALL of Speaker B's Identity + Costume + LoRA tags
+- NEVER mix character tags between speakers
+- Do NOT invent, modify, or omit any character appearance tags
+- Place character tags BEFORE expression/pose/environment tags in image_prompt
+
+⚠️ DIALOGUE STRUCTURE RULES:
+- Create exactly 7 scenes (30 seconds total)
+- Speaker A gets 4 scenes, Speaker B gets 3 scenes
+- Alternate speakers: A → B → A → B → A → B → A
+- Each scene shows ONLY the speaking character (single person in frame)
+- Both characters share the SAME environment/location across all scenes
+- Conversation must feel natural and flow logically
+
+CRITICAL LANGUAGE RULE:
+- Script must be written ONLY in {{ language }}.
+- NEVER add romanization (e.g., "Hare", "Sumimasen")
+- NEVER add translations to other languages
+
+CRITICAL IMAGE PROMPT RULE:
+- Stable Diffusion models are trained on Danbooru dataset
+- ONLY use Danbooru tags from the Allowed Keywords list below
+- NEVER invent new tags or use general photography terms not in Danbooru
+- FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
+- SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts), "full_body" (892K posts)
+
+CRITICAL TAG FORMAT RULES:
+- ALWAYS use underscores, NEVER spaces: "thumbs_up" ✓, "thumbs up" ✗
+- NEVER combine multiple adjectives into one tag: "short green hair" ✗
+- SEPARATE attributes into individual tags: "short_hair, green_hair" ✓
+- Copy tag format EXACTLY from Allowed Keywords list (with underscores)
+
+CRITICAL STYLE CONSISTENCY RULE:
+- Visual Style "{{ style }}" MUST be applied to ALL scenes consistently
+- If style is "chibi", add "chibi" tag to EVERY scene
+- If style is "realistic", do NOT add chibi/water_color/sketch tags
+- For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
+
+Instructions:
+1. Create a 7-scene dialogue between Speaker A and Speaker B.
+2. Alternate speakers: A, B, A, B, A, B, A (A=4 scenes, B=3 scenes).
+3. Each scene's image shows ONLY the current speaker (1girl or 1boy).
+4. For EACH scene:
+   a) Write the script line for the current speaker
+   b) Use the CURRENT SPEAKER's character tags in image_prompt
+   c) Keep the same environment across all scenes
+5. Each scene must include:
+   - scene_id (starting at 1)
+   - script: spoken line in {{ language }}.
+     * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
+     * Must fit in 2 lines when rendered on screen.
+   - speaker: "A" or "B"
+   - duration: seconds (3-5 recommended)
+   - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
+     * REQUIRED categories from Allowed Keywords:
+       - expression, gaze, pose, action, props, camera, environment, mood
+     * Use the CURRENT SPEAKER's identity/costume/LoRA tags
+   - image_prompt_ko: Natural Korean sentence describing the scene
+6. Return ONLY raw JSON array.
+
+{{ keyword_context }}
+
+⚠️ CRITICAL TAG SELECTION RULES:
+1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags
+   - ❌ FORBIDDEN TAGS: "room", "interior", "medium shot", "bust shot"
+   - ✅ Use: bedroom/classroom/library, indoors, cowboy_shot, upper_body
+2. **PRIORITIZE "Recommended High-Performance Tags"** (proven >80% effectiveness)
+3. **ENVIRONMENT MUST MATCH SCRIPT** - Keep consistent location across all scenes
+4. **SPEAKER IDENTITY SEPARATION** - Never mix A's tags with B's tags
+5. **IF NO PERFECT MATCH**: Choose closest tag from Recommended list
+
+Output Format:
+[
+  {
+    "scene_id": 1,
+    "script": "...",
+    "speaker": "A",
+    "duration": 4,
+    "image_prompt": "[speaker_A_identity_tags], [expression], [gaze], [pose], [action], [camera], [environment], [mood]",
+    "image_prompt_ko": "[Korean summary]",
+    "context_tags": {
+      "expression": ["[expression_tag]"],
+      "gaze": "[gaze_tag]",
+      "pose": ["[pose_tag]"],
+      "action": ["[action_tag]"],
+      "props": ["[props_tag if applicable]"],
+      "camera": "[camera_tag]",
+      "environment": ["[location_tag]", "[time_tag]"],
+      "mood": ["[mood_tag]"]
+    }
+  },
+  {
+    "scene_id": 2,
+    "script": "...",
+    "speaker": "B",
+    "duration": 4,
+    "image_prompt": "[speaker_B_identity_tags], [expression], [gaze], [pose], [action], [camera], [environment], [mood]",
+    "image_prompt_ko": "[Korean summary]",
+    "context_tags": { ... }
+  }
+]

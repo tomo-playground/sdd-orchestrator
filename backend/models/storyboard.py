@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from models.group import Group
     from models.render_history import RenderHistory
     from models.scene import Scene
+    from models.storyboard_character import StoryboardCharacter
 
 
 class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
@@ -35,6 +36,9 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     # Relationships
     group: Mapped[Group] = relationship("Group", back_populates="storyboards")
     scenes: Mapped[list[Scene]] = relationship("Scene", back_populates="storyboard", cascade="all, delete-orphan")
+    characters: Mapped[list[StoryboardCharacter]] = relationship(
+        "StoryboardCharacter", back_populates="storyboard", cascade="all, delete-orphan"
+    )
     render_history: Mapped[list[RenderHistory]] = relationship(
         "RenderHistory",
         back_populates="storyboard",

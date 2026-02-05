@@ -91,6 +91,22 @@ PRESETS: dict[str, StoryboardPreset] = {
         ],
         default_duration=30,
     ),
+    "dialogue": StoryboardPreset(
+        id="dialogue",
+        name="Dialogue",
+        name_ko="대화",
+        description="Two-character conversation",
+        structure="Dialogue",
+        template="create_storyboard_dialogue.j2",
+        sample_topics=[
+            "첫 만남에서 어색한 대화",
+            "오래된 친구와의 재회",
+            "선생님과 학생의 상담",
+            "카페에서 우연히 만난 두 사람",
+            "형제자매의 말다툼",
+        ],
+        default_duration=30,
+    ),
     "motivation": StoryboardPreset(
         id="motivation",
         name="Motivation",

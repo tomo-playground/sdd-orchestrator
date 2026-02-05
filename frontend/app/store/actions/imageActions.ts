@@ -3,6 +3,7 @@ import type { Scene, GeminiSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
+import { resolveCharacterIdForSpeaker, resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return URL + asset_id */
@@ -57,17 +58,18 @@ export async function generateSceneImageFor(
   scene: Scene,
   silent = false
 ): Promise<Partial<Scene> | null> {
+  const state = useStudioStore.getState();
   const {
     autoComposePrompt,
     useControlnet,
     controlnetWeight,
     useIpAdapter,
-    ipAdapterReference,
-    ipAdapterWeight,
-    selectedCharacterId,
     storyboardId,
     showToast,
-  } = useStudioStore.getState();
+  } = state;
+  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
+  const { reference: ipAdapterReference, weight: ipAdapterWeight } =
+    resolveIpAdapterForSpeaker(scene.speaker, state);
 
   if (!selectedCharacterId) {
     if (!silent) showToast("Character selection is required", "error");

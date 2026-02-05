@@ -3,10 +3,18 @@ import type { Scene } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { splitPromptTokens, deduplicatePromptTokens } from "../../utils";
 import { API_BASE } from "../../constants";
+import {
+  resolveCharacterIdForSpeaker,
+  resolveNegativePromptForSpeaker,
+} from "../../utils/speakerResolver";
 
 export function buildNegativePrompt(scene: Scene): string {
-  const { autoComposePrompt, baseNegativePromptA } = useStudioStore.getState();
-  const base = baseNegativePromptA.trim();
+  const { autoComposePrompt, baseNegativePromptA, baseNegativePromptB } = useStudioStore.getState();
+  const base = resolveNegativePromptForSpeaker(
+    scene.speaker,
+    baseNegativePromptA,
+    baseNegativePromptB
+  ).trim();
   const sceneNeg = scene.negative_prompt.trim();
   if (!autoComposePrompt) return sceneNeg;
   const combined = base && sceneNeg ? `${base}, ${sceneNeg}` : base || sceneNeg;
@@ -14,11 +22,13 @@ export function buildNegativePrompt(scene: Scene): string {
 }
 
 export async function buildScenePrompt(scene: Scene): Promise<string | null> {
-  const { autoComposePrompt, selectedCharacterId } = useStudioStore.getState();
+  const state = useStudioStore.getState();
+  const { autoComposePrompt } = state;
+  const characterId = resolveCharacterIdForSpeaker(scene.speaker, state);
 
   const scenePrompt = scene.image_prompt.trim();
   if (!autoComposePrompt) return scenePrompt || null;
-  if (!selectedCharacterId) return scenePrompt || null;
+  if (!characterId) return scenePrompt || null;
 
   const sceneTokens = scenePrompt ? splitPromptTokens(scenePrompt) : [];
   if (sceneTokens.length === 0) return null;
@@ -27,7 +37,7 @@ export async function buildScenePrompt(scene: Scene): Promise<string | null> {
     // base_prompt / loras are NOT sent — Backend loads from DB via character_id (SSOT)
     const res = await axios.post(`${API_BASE}/prompt/compose`, {
       tokens: sceneTokens,
-      character_id: selectedCharacterId,
+      character_id: characterId,
       context_tags: scene.context_tags || undefined,
       use_break: false,
     });

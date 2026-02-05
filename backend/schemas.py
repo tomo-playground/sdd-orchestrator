@@ -191,6 +191,8 @@ class StoryboardBase(BaseModel):
 
 
 class StoryboardSave(StoryboardBase):
+    character_id: int | None = None
+    character_b_id: int | None = None
     scenes: list[StoryboardScene]
 
 
@@ -217,6 +219,7 @@ class StoryboardRequest(BaseModel):
     structure: str = "Monologue"
     actor_a_gender: str = "female"
     character_id: int | None = None
+    character_b_id: int | None = None
 
 
 class StoryboardScene(BaseModel):

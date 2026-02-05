@@ -5,6 +5,7 @@ import type { Character } from "../../types";
 import { API_BASE } from "../../constants";
 
 type CharacterSelectorProps = {
+  label?: string;
   characters: Character[];
   selectedCharacterId: number | null;
   onSelect: (charId: number | null) => void;
@@ -46,6 +47,7 @@ function CharacterThumbnail({
 }
 
 export default function CharacterSelector({
+  label = "Character",
   characters,
   selectedCharacterId,
   onSelect,
@@ -88,7 +90,7 @@ export default function CharacterSelector({
   return (
     <div ref={ref} className="relative min-w-[200px] flex-1">
       <label className="mb-1 block text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-        Character
+        {label}
       </label>
 
       {/* Trigger Button */}

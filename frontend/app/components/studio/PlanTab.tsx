@@ -21,8 +21,11 @@ export default function PlanTab() {
     structure,
     actorAGender,
     selectedCharacterId,
+    selectedCharacterBId,
     basePromptA,
     baseNegativePromptA,
+    basePromptB,
+    baseNegativePromptB,
     autoComposePrompt,
     autoRewritePrompt,
     autoReplaceRiskyTags,
@@ -122,6 +125,53 @@ export default function PlanTab() {
     setPlan,
   ]);
 
+  // Auto-load character B data when selectedCharacterBId changes
+  useEffect(() => {
+    if (!selectedCharacterBId) {
+      setPlan({
+        characterBLoras: [],
+        basePromptB: "",
+        baseNegativePromptB: "",
+      });
+      return;
+    }
+    getCharacterFull(selectedCharacterBId).then((charFull) => {
+      if (!charFull) return;
+      const basePrompt = buildCharacterPrompt(charFull);
+      const baseNegative = buildCharacterNegative(charFull);
+      const loras = charFull.loras?.length
+        ? charFull.loras.map((l) => ({
+            id: l.id,
+            name: l.name,
+            weight: l.weight,
+            trigger_words: l.trigger_words,
+            lora_type: l.lora_type,
+            optimal_weight: l.optimal_weight,
+          }))
+        : [];
+
+      const matchB =
+        referenceImages.length > 0
+          ? referenceImages.find((r) => r.character_id === charFull.id)
+          : null;
+
+      setPlan({
+        basePromptB: basePrompt,
+        baseNegativePromptB: baseNegative,
+        characterBLoras: loras,
+        ipAdapterReferenceB: matchB?.character_key || "",
+        ipAdapterWeightB: matchB?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.75,
+      });
+    });
+  }, [
+    selectedCharacterBId,
+    referenceImages,
+    getCharacterFull,
+    buildCharacterPrompt,
+    buildCharacterNegative,
+    setPlan,
+  ]);
+
   const TOGGLES = [
     { key: "autoComposePrompt" as const, label: "Auto Compose", value: autoComposePrompt },
     { key: "autoRewritePrompt" as const, label: "Auto Rewrite", value: autoRewritePrompt },
@@ -145,6 +195,13 @@ export default function PlanTab() {
           characters={characters}
           selectedCharacterId={selectedCharacterId}
           onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
+          structure={structure}
+          selectedCharacterBId={selectedCharacterBId}
+          onSelectCharacterB={(id) => setPlan({ selectedCharacterBId: id })}
+          basePromptB={basePromptB}
+          setBasePromptB={(v: string) => setPlan({ basePromptB: v })}
+          baseNegativePromptB={baseNegativePromptB}
+          setBaseNegativePromptB={(v: string) => setPlan({ baseNegativePromptB: v })}
         />
         <StoryboardGeneratorPanel
           topic={topic}

@@ -372,14 +372,19 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
                 return preset_id
             return None
 
-        # Non-narrator speaker -> look up character voice via cascade
-        char_id = effective["values"].get("character_id")
-        if not char_id:
+        # Non-narrator speaker -> resolve via storyboard_characters first, then fallback to cascade
+        from services.speaker_resolver import resolve_speaker_to_character
+
+        resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
+        if not resolved_char_id:
+            # Fallback: use cascade character_id (Monologue mode)
+            resolved_char_id = effective["values"].get("character_id")
+        if not resolved_char_id:
             return None
-        char = db.get(Character, char_id)
+        char = db.get(Character, resolved_char_id)
         if char and char.voice_preset_id:
             logger.info(
-                f"[TTS] Speaker '{speaker}' voice preset from character {char.name}({char_id}): {char.voice_preset_id}"
+                f"[TTS] Speaker '{speaker}' voice preset from character {char.name}({resolved_char_id}): {char.voice_preset_id}"
             )
             return char.voice_preset_id
         return None

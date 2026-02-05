@@ -28,10 +28,13 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   }
 
   try {
+    const { selectedCharacterId, selectedCharacterBId } = useStudioStore.getState();
     const payload = {
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
+      character_id: selectedCharacterId || undefined,
+      character_b_id: selectedCharacterBId || undefined,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
@@ -153,8 +156,17 @@ export function mapGeminiScenes(
  * PUT if storyboardId exists, POST otherwise (with scene ID reassignment).
  */
 export async function persistStoryboard(): Promise<boolean> {
-  const { storyboardId, groupId, scenes, topic, videoCaption, setMeta, setScenes } =
-    useStudioStore.getState();
+  const {
+    storyboardId,
+    groupId,
+    scenes,
+    topic,
+    videoCaption,
+    selectedCharacterId,
+    selectedCharacterBId,
+    setMeta,
+    setScenes,
+  } = useStudioStore.getState();
 
   if (scenes.length === 0 || !groupId) return false;
 
@@ -164,6 +176,8 @@ export async function persistStoryboard(): Promise<boolean> {
       description: useStudioStore.getState().description || null,
       group_id: groupId,
       caption: videoCaption || null,
+      character_id: selectedCharacterId || undefined,
+      character_b_id: selectedCharacterBId || undefined,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         script: s.script,
@@ -248,6 +262,7 @@ export async function generateStoryboard(): Promise<boolean> {
     structure,
     actorAGender,
     selectedCharacterId,
+    selectedCharacterBId,
     baseNegativePromptA,
     setScenes,
     setActiveTab,
@@ -260,6 +275,7 @@ export async function generateStoryboard(): Promise<boolean> {
   }
 
   try {
+    const isDialogue = structure.toLowerCase() === "dialogue";
     const res = await axios.post(`${API_BASE}/storyboards/create`, {
       topic,
       description: description || undefined,
@@ -269,6 +285,7 @@ export async function generateStoryboard(): Promise<boolean> {
       structure,
       actor_a_gender: actorAGender,
       character_id: selectedCharacterId || undefined,
+      character_b_id: isDialogue ? selectedCharacterBId || undefined : undefined,
     });
 
     const data = res.data;

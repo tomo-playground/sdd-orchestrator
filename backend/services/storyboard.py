@@ -244,10 +244,26 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
+        is_dialogue = request.structure.lower() == "dialogue"
+
+        # Dialogue validation
+        if is_dialogue:
+            if not request.character_id:
+                raise HTTPException(status_code=400, detail="Dialogue requires character_id (Speaker A)")
+            if not request.character_b_id:
+                raise HTTPException(status_code=400, detail="Dialogue requires character_b_id (Speaker B)")
+            if request.character_id == request.character_b_id:
+                raise HTTPException(status_code=400, detail="Speaker A and B must be different characters")
+
         # Load character context if character_id provided
         character_context = None
         if request.character_id and db:
             character_context = _load_character_context(request.character_id, db)
+
+        # Load character B context for Dialogue
+        character_b_context = None
+        if is_dialogue and request.character_b_id and db:
+            character_b_context = _load_character_context(request.character_b_id, db)
 
         preset = get_preset_by_structure(request.structure)
         template_name = preset.template if preset else "create_storyboard.j2"
@@ -272,6 +288,7 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
             actor_a_gender=request.actor_a_gender,
             keyword_context=format_keyword_context(),
             character_context=character_context,
+            character_b_context=character_b_context,
             **extra_fields,
         )
         from google.genai import types
@@ -398,6 +415,8 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
         result = {"scenes": scenes}
         if request.character_id:
             result["character_id"] = request.character_id
+        if request.character_b_id:
+            result["character_b_id"] = request.character_b_id
         return result
     except Exception as exc:
         # Check if it's a Gemini API quota error
@@ -411,6 +430,30 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
 
         logger.exception("Storyboard generation failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def _sync_speaker_mappings(
+    db: Session,
+    storyboard_id: int,
+    character_id: int | None,
+    character_b_id: int | None,
+) -> None:
+    """Sync speaker→character mappings for a storyboard.
+
+    If character_b_id is provided (Dialogue mode), maps A→character_id, B→character_b_id.
+    Otherwise clears all mappings.
+    """
+    from services.speaker_resolver import assign_speakers
+
+    if not character_b_id:
+        assign_speakers(storyboard_id, {}, db)
+        return
+
+    speaker_map: dict[str, int] = {}
+    if character_id:
+        speaker_map["A"] = character_id
+    speaker_map["B"] = character_b_id
+    assign_speakers(storyboard_id, speaker_map, db)
 
 
 def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
@@ -431,6 +474,9 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     db.flush()
 
     create_scenes(db, db_storyboard.id, request.scenes)
+
+    # Save speaker→character mappings if character_b_id is provided (Dialogue)
+    _sync_speaker_mappings(db, db_storyboard.id, request.character_id, request.character_b_id)
 
     db.commit()
     db.refresh(db_storyboard)
@@ -519,12 +565,18 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         if rh.created_at
     ]
 
+    # Resolve character_b_id from storyboard_characters
+    from services.speaker_resolver import resolve_speaker_to_character
+
+    character_b_id = resolve_speaker_to_character(storyboard.id, "B", db)
+
     return {
         "id": storyboard.id,
         "title": storyboard.title,
         "description": storyboard.description,
         "group_id": storyboard.group_id,
         "character_id": effective["values"].get("character_id"),
+        "character_b_id": character_b_id,
         "style_profile_id": effective["values"].get("style_profile_id"),
         "narrator_voice_preset_id": effective["values"].get("narrator_voice_preset_id"),
         "video_url": storyboard.video_url,
@@ -582,6 +634,9 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     db.flush()
 
     create_scenes(db, storyboard_id, request.scenes)
+
+    # Update speaker→character mappings (Dialogue)
+    _sync_speaker_mappings(db, storyboard_id, request.character_id, request.character_b_id)
 
     db.commit()
     db.refresh(storyboard)

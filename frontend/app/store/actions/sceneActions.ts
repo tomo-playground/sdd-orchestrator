@@ -4,6 +4,7 @@ import { useStudioStore } from "../useStudioStore";
 import { API_BASE, CAMERA_KEYWORDS, ACTION_KEYWORDS, BACKGROUND_KEYWORDS } from "../../constants";
 import { computeValidationResults, getFixSuggestions } from "../../utils";
 import { buildNegativePrompt } from "./promptActions";
+import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 
 // --------------- Validation ---------------
 
@@ -180,10 +181,10 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
 // --------------- Speaker Change ---------------
 
 export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
-  const { baseNegativePromptA, updateScene } = useStudioStore.getState();
+  const { baseNegativePromptA, baseNegativePromptB, updateScene } = useStudioStore.getState();
   updateScene(scene.id, {
     speaker,
-    negative_prompt: baseNegativePromptA,
+    negative_prompt: speaker === "B" ? baseNegativePromptB : baseNegativePromptA,
   });
 }
 
@@ -278,7 +279,9 @@ export async function handleMarkFail(scene: Scene) {
 // --------------- Save Prompt ---------------
 
 export async function handleSavePrompt(scene: Scene) {
-  const { selectedCharacterId, characterLoras, showToast } = useStudioStore.getState();
+  const state = useStudioStore.getState();
+  const { characterLoras, showToast } = state;
+  const characterId = resolveCharacterIdForSpeaker(scene.speaker, state);
   const name = window.prompt("Enter a name for this prompt:");
   if (!name?.trim()) return;
 
@@ -289,7 +292,7 @@ export async function handleSavePrompt(scene: Scene) {
       negative_prompt: buildNegativePrompt(scene),
       context_tags: scene.context_tags ? Object.values(scene.context_tags).flat() : [],
     };
-    if (selectedCharacterId) payload.character_id = selectedCharacterId;
+    if (characterId) payload.character_id = characterId;
     if (characterLoras?.length) {
       payload.lora_settings = characterLoras.map((lora) => ({
         lora_id: lora.id ?? 0,

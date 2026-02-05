@@ -252,6 +252,7 @@ export default function ScenesTab() {
             applySuggestion={applySuggestion}
             selectedCharacterId={selectedCharacterId}
             basePromptA={basePromptA}
+            structure={useStudioStore.getState().structure}
             buildNegativePrompt={buildNegativePrompt}
             buildScenePrompt={buildScenePrompt}
             showToast={showToast}

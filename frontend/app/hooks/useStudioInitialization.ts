@@ -155,12 +155,16 @@ export function useStudioInitialization() {
         });
         setPlan({
           selectedCharacterId: data.character_id || null,
+          selectedCharacterBId: data.character_b_id || null,
           topic: data.title || "",
           description: data.description || "",
         });
 
         if (data.character_id) {
           loadCharacterData(data.character_id, setPlan);
+        }
+        if (data.character_b_id) {
+          loadCharacterBData(data.character_b_id, setPlan);
         }
 
         if (data.style_profile_id) {
@@ -204,23 +208,61 @@ export function useStudioInitialization() {
   };
 }
 
-// --- Helper: Load character data ---
-async function loadCharacterData(
+// --- Helper: Load character data (A or B) ---
+type CharacterFieldMap = {
+  loras: string;
+  promptMode?: string;
+  basePrompt: string;
+  baseNegative: string;
+};
+
+const CHAR_A_FIELDS: CharacterFieldMap = {
+  loras: "characterLoras",
+  promptMode: "characterPromptMode",
+  basePrompt: "basePromptA",
+  baseNegative: "baseNegativePromptA",
+};
+
+const CHAR_B_FIELDS: CharacterFieldMap = {
+  loras: "characterBLoras",
+  basePrompt: "basePromptB",
+  baseNegative: "baseNegativePromptB",
+};
+
+async function loadCharacterForRole(
   characterId: number,
+  fields: CharacterFieldMap,
   setPlan: (updates: Record<string, unknown>) => void
 ) {
   try {
     const charRes = await axios.get(`${API_BASE}/characters/${characterId}`);
     const char = charRes.data;
-    setPlan({
-      characterLoras: char.loras || [],
-      characterPromptMode: char.prompt_mode || "auto",
-      basePromptA: char.base_prompt || "",
-      baseNegativePromptA: char.base_negative || "",
-    });
+    const updates: Record<string, unknown> = {
+      [fields.loras]: char.loras || [],
+      [fields.basePrompt]: char.base_prompt || "",
+      [fields.baseNegative]: char.base_negative || "",
+    };
+    if (fields.promptMode) {
+      updates[fields.promptMode] = char.prompt_mode || "auto";
+    }
+    setPlan(updates);
   } catch (err) {
-    console.error("Failed to load character:", err);
+    console.error(`Failed to load character (${fields.basePrompt}):`, err);
   }
+}
+
+function loadCharacterData(
+  characterId: number,
+  setPlan: (updates: Record<string, unknown>) => void
+) {
+  return loadCharacterForRole(characterId, CHAR_A_FIELDS, setPlan);
+}
+
+function loadCharacterBData(
+  characterId: number,
+  setPlan: (updates: Record<string, unknown>) => void
+) {
+  return loadCharacterForRole(characterId, CHAR_B_FIELDS, setPlan);
 }
 
 // --- Helper: Map DB scenes to frontend Scene type ---

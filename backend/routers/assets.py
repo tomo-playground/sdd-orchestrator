@@ -73,8 +73,11 @@ async def get_font_file(filename: str):
         storage_key = f"shared/fonts/{filename}"
         if not storage.exists(storage_key):
             raise HTTPException(status_code=404, detail="Font not found in storage")
-        from fastapi.responses import RedirectResponse
-        return RedirectResponse(storage.get_url(storage_key))
+        # Proxy via local cache to avoid CORS issues with FontFace.load()
+        local_path = storage.get_local_path(storage_key)
+        ext = local_path.suffix.lower()
+        ct = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2"}.get(ext, "application/octet-stream")
+        return FileResponse(local_path, media_type=ct)
 
     fonts_dir = ASSETS_DIR / "fonts"
     font_path = fonts_dir / filename

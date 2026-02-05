@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import type { Scene, SceneValidation, ImageValidation, FixSuggestion, Tag, GeminiSuggestion } from "../../types";
+import type {
+  Scene,
+  SceneValidation,
+  ImageValidation,
+  FixSuggestion,
+  Tag,
+  GeminiSuggestion,
+} from "../../types";
 import DebugTabContent from "../quality/DebugTabContent";
 import SceneImagePanel from "../quality/SceneImagePanel";
 import Button from "../ui/Button";
@@ -60,6 +67,7 @@ type SceneCardProps = {
   // V3 prompt integration
   selectedCharacterId?: number | null;
   basePromptA?: string;
+  structure?: string;
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
@@ -107,6 +115,7 @@ export default function SceneCard({
   isMarkingStatus = false,
   selectedCharacterId,
   basePromptA = "",
+  structure,
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
@@ -151,6 +160,16 @@ export default function SceneCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-zinc-800">Scene {sceneIndex + 1}</h3>
+          {scene.speaker === "B" && (
+            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+              B
+            </span>
+          )}
+          {scene.speaker === "A" && structure?.toLowerCase() === "dialogue" && (
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              A
+            </span>
+          )}
           <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
             {getSceneStatus(scene)}
           </span>
@@ -180,6 +199,7 @@ export default function SceneCard({
             promptMode={promptMode}
             selectedCharacterId={selectedCharacterId}
             basePromptA={basePromptA}
+            structure={structure}
             tagsByGroup={tagsByGroup}
             sceneTagGroups={sceneTagGroups}
             isExclusiveGroup={isExclusiveGroup}

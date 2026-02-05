@@ -11,7 +11,7 @@ export interface PlanSlice {
   structure: string;
   actorAGender: ActorGender;
 
-  // Character
+  // Character A
   selectedCharacterId: number | null;
   characterPromptMode: "auto" | "standard" | "lora";
   loraTriggerWords: string[];
@@ -23,6 +23,19 @@ export interface PlanSlice {
     lora_type?: string;
     optimal_weight?: number;
   }>;
+
+  // Character B (Dialogue)
+  selectedCharacterBId: number | null;
+  characterBLoras: Array<{
+    id: number;
+    name: string;
+    weight?: number;
+    trigger_words?: string[];
+    lora_type?: string;
+    optimal_weight?: number;
+  }>;
+  basePromptB: string;
+  baseNegativePromptB: string;
 
   // Prompt settings
   basePromptA: string;
@@ -39,6 +52,8 @@ export interface PlanSlice {
   useIpAdapter: boolean;
   ipAdapterReference: string;
   ipAdapterWeight: number;
+  ipAdapterReferenceB: string;
+  ipAdapterWeightB: number;
 
   // Setters
   setPlan: (updates: Partial<PlanSlice>) => void;
@@ -57,6 +72,10 @@ const initialPlanState = {
   characterPromptMode: "auto" as const,
   loraTriggerWords: [] as string[],
   characterLoras: [] as PlanSlice["characterLoras"],
+  selectedCharacterBId: null,
+  characterBLoras: [] as PlanSlice["characterBLoras"],
+  basePromptB: "",
+  baseNegativePromptB: "",
   basePromptA: "",
   baseNegativePromptA: "",
   autoComposePrompt: true,
@@ -69,6 +88,8 @@ const initialPlanState = {
   useIpAdapter: false,
   ipAdapterReference: "",
   ipAdapterWeight: 0.7,
+  ipAdapterReferenceB: "",
+  ipAdapterWeightB: 0.7,
 };
 
 export const createPlanSlice: StateCreator<PlanSlice, [], [], PlanSlice> = (set) => ({
@@ -79,7 +100,12 @@ export const createPlanSlice: StateCreator<PlanSlice, [], [], PlanSlice> = (set)
 
 export type PlanPersistState = Omit<
   PlanSlice,
-  "setPlan" | "resetPlan" | "loraTriggerWords" | "characterLoras" | "characterPromptMode"
+  | "setPlan"
+  | "resetPlan"
+  | "loraTriggerWords"
+  | "characterLoras"
+  | "characterPromptMode"
+  | "characterBLoras"
 >;
 
 export function extractPlanPersist(state: PlanSlice): Partial<PlanPersistState> {
@@ -90,6 +116,7 @@ export function extractPlanPersist(state: PlanSlice): Partial<PlanPersistState> 
     loraTriggerWords: _loraTriggerWords,
     characterLoras: _characterLoras,
     characterPromptMode: _characterPromptMode,
+    characterBLoras: _characterBLoras,
     ...rest
   } = state;
   return rest;

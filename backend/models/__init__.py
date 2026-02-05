@@ -17,6 +17,7 @@ from models.scene import Scene
 from models.scene_quality import SceneQualityScore
 from models.sd_model import Embedding, SDModel, StyleProfile
 from models.storyboard import Storyboard
+from models.storyboard_character import StoryboardCharacter
 from models.tag import Tag, TagEffectiveness, TagRule
 from models.tag_alias import TagAlias
 from models.tag_filter import TagFilter
@@ -51,5 +52,6 @@ __all__ = [
     "RenderHistory",
     "EvaluationRun",
     "VoicePreset",
+    "StoryboardCharacter",
     "YouTubeCredential",
 ]

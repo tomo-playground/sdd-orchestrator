@@ -22,6 +22,7 @@ type SceneFormFieldsProps = {
   promptMode: "auto" | "standard" | "lora";
   selectedCharacterId?: number | null;
   basePromptA: string;
+  structure?: string;
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
   isExclusiveGroup: (groupName: string) => boolean;
@@ -37,6 +38,7 @@ export default function SceneFormFields({
   promptMode,
   selectedCharacterId,
   basePromptA,
+  structure,
   tagsByGroup,
   sceneTagGroups,
   isExclusiveGroup,
@@ -45,6 +47,7 @@ export default function SceneFormFields({
   onImageUpload,
 }: SceneFormFieldsProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const isDialogue = structure?.toLowerCase() === "dialogue";
 
   return (
     <>
@@ -73,6 +76,7 @@ export default function SceneFormFields({
             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
             <option value="A">Actor A</option>
+            {isDialogue && <option value="B">Actor B</option>}
           </select>
         </div>
         <div className="flex flex-col gap-2">

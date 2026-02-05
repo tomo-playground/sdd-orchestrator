@@ -73,6 +73,7 @@ export async function runAutoRunFromStep(
       if (currentStep === "storyboard") {
         setAutoRunStep("storyboard", "Generating storyboard...");
         pushAutoRunLog("Storyboard started");
+        const isDialogue = structure.toLowerCase() === "dialogue";
         const res = await axios.post(`${API_BASE}/storyboards/create`, {
           topic,
           duration,
@@ -82,6 +83,9 @@ export async function runAutoRunFromStep(
           actor_a_gender: actorAGender,
           description: useStudioStore.getState().description || undefined,
           character_id: useStudioStore.getState().selectedCharacterId || undefined,
+          character_b_id: isDialogue
+            ? useStudioStore.getState().selectedCharacterBId || undefined
+            : undefined,
         });
         const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
         workingScenes = mapGeminiScenes(incoming, baseNegativePromptA);
@@ -245,7 +249,12 @@ export async function runAutoRunFromStep(
           videoUrl: withTs,
           ...(layoutStyle === "full" ? { videoUrlFull: withTs } : { videoUrlPost: withTs }),
           recentVideos: [
-            { url: withTs, label: layoutStyle, createdAt: Date.now(), renderHistoryId: res.data.render_history_id },
+            {
+              url: withTs,
+              label: layoutStyle,
+              createdAt: Date.now(),
+              renderHistoryId: res.data.render_history_id,
+            },
             ...useStudioStore.getState().recentVideos.slice(0, 9),
           ],
         });

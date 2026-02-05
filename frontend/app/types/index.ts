@@ -20,7 +20,7 @@ export type Scene = {
   id: number;
   order: number; // 씬 순서 (1, 2, 3...)
   script: string;
-  speaker: "Narrator" | "A";
+  speaker: "Narrator" | "A" | "B";
   duration: number;
   image_prompt: string;
   image_prompt_ko: string;
