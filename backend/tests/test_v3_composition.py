@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from services.prompt.v3_composition import (
+    EXCLUSIVE_GROUPS,  # noqa: F811
     LAYER_ACTION,
     LAYER_CAMERA,
     LAYER_ENVIRONMENT,
@@ -349,3 +350,217 @@ class TestPatternBasedFallback:
         """Unknown pattern → LAYER_SUBJECT."""
         assert V3PromptBuilder._infer_layer_from_pattern("unknown_tag") == LAYER_SUBJECT
         assert V3PromptBuilder._infer_layer_from_pattern("mystery") == LAYER_SUBJECT
+
+
+# ────────────────────────────────────────────
+# Exclusive group filtering tests
+# ────────────────────────────────────────────
+
+def _make_tag_info(_name: str, layer: int = LAYER_IDENTITY, group: str | None = None) -> dict:
+    """Helper to build tag info dict."""
+    return {"layer": layer, "scope": "ANY", "group_name": group}
+
+
+class TestBuildCharOccupiedGroups:
+    """Test _build_char_occupied_groups identifies occupied exclusive groups."""
+
+    def test_hair_color_occupied(self, builder):
+        builder.get_tag_info = MagicMock(return_value={
+            "red_hair": _make_tag_info("red_hair", group="hair_color"),
+        })
+        result = builder._build_char_occupied_groups([{"name": "red_hair", "layer": 2, "weight": 1.0}])
+        assert "hair_color" in result
+
+    def test_multiple_groups(self, builder):
+        builder.get_tag_info = MagicMock(return_value={
+            "red_hair": _make_tag_info("red_hair", group="hair_color"),
+            "blue_eyes": _make_tag_info("blue_eyes", group="eye_color"),
+        })
+        char_tags = [
+            {"name": "red_hair", "layer": 2, "weight": 1.0},
+            {"name": "blue_eyes", "layer": 2, "weight": 1.0},
+        ]
+        result = builder._build_char_occupied_groups(char_tags)
+        assert result == {"hair_color", "eye_color"}
+
+    def test_non_exclusive_group_ignored(self, builder):
+        builder.get_tag_info = MagicMock(return_value={
+            "messy_hair": _make_tag_info("messy_hair", group="hair_style"),
+        })
+        result = builder._build_char_occupied_groups([{"name": "messy_hair", "layer": 2, "weight": 1.0}])
+        assert len(result) == 0
+
+    def test_empty_char_tags(self, builder):
+        result = builder._build_char_occupied_groups([])
+        assert result == set()
+
+    def test_no_group_name(self, builder):
+        builder.get_tag_info = MagicMock(return_value={
+            "1girl": _make_tag_info("1girl", group="subject"),
+        })
+        result = builder._build_char_occupied_groups([{"name": "1girl", "layer": 1, "weight": 1.0}])
+        assert len(result) == 0
+
+
+class TestDistributeTags:
+    """Test _distribute_tags filters scene tags from occupied exclusive groups."""
+
+    def _setup_tag_info(self, builder, char_info: dict, scene_info: dict):
+        """Mock get_tag_info to return different results for char vs scene tags."""
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(side_effect=lambda names: {
+            n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+        })
+
+    def test_hair_color_conflict_drops_scene_tag(self, builder):
+        """Char red_hair + scene brown_hair → brown_hair dropped."""
+        char_info = {"red_hair": _make_tag_info("red_hair", group="hair_color")}
+        scene_info = {
+            "brown_hair": _make_tag_info("brown_hair", group="hair_color"),
+            "outdoors": _make_tag_info("outdoors", LAYER_ENVIRONMENT, group="location"),
+        }
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "red_hair", "layer": LAYER_IDENTITY, "weight": 1.0}]
+        scene_tags = ["brown_hair", "outdoors"]
+        scene_tag_info = dict(scene_info)
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, scene_tags, scene_tag_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "red_hair" in all_tokens
+        assert "brown_hair" not in all_tokens
+        assert "outdoors" in all_tokens
+
+    def test_eye_color_conflict_drops_scene_tag(self, builder):
+        """Char purple_eyes + scene brown_eyes → brown_eyes dropped."""
+        char_info = {"purple_eyes": _make_tag_info("purple_eyes", group="eye_color")}
+        scene_info = {"brown_eyes": _make_tag_info("brown_eyes", group="eye_color")}
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "purple_eyes", "layer": LAYER_IDENTITY, "weight": 1.0}]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["brown_eyes"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "purple_eyes" in all_tokens
+        assert "brown_eyes" not in all_tokens
+
+    def test_no_char_tag_keeps_scene_tag(self, builder):
+        """No char hair tag → scene brown_hair kept."""
+        char_info = {"1girl": _make_tag_info("1girl", group="subject")}
+        scene_info = {"brown_hair": _make_tag_info("brown_hair", group="hair_color")}
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "1girl", "layer": LAYER_SUBJECT, "weight": 1.0}]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["brown_hair"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "brown_hair" in all_tokens
+
+    def test_non_exclusive_group_not_filtered(self, builder):
+        """Char messy_hair (hair_style) + scene ponytail → both kept."""
+        char_info = {"messy_hair": _make_tag_info("messy_hair", group="hair_style")}
+        scene_info = {"ponytail": _make_tag_info("ponytail", group="hair_style")}
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "messy_hair", "layer": LAYER_IDENTITY, "weight": 1.0}]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["ponytail"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "messy_hair" in all_tokens
+        assert "ponytail" in all_tokens
+
+    def test_multiple_groups_filtered(self, builder):
+        """Char red_hair + blue_eyes → scene brown_hair + green_eyes dropped."""
+        char_info = {
+            "red_hair": _make_tag_info("red_hair", group="hair_color"),
+            "blue_eyes": _make_tag_info("blue_eyes", group="eye_color"),
+        }
+        scene_info = {
+            "brown_hair": _make_tag_info("brown_hair", group="hair_color"),
+            "green_eyes": _make_tag_info("green_eyes", group="eye_color"),
+            "standing": _make_tag_info("standing", LAYER_ACTION, group="pose"),
+        }
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [
+            {"name": "red_hair", "layer": LAYER_IDENTITY, "weight": 1.0},
+            {"name": "blue_eyes", "layer": LAYER_IDENTITY, "weight": 1.0},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["brown_hair", "green_eyes", "standing"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "red_hair" in all_tokens
+        assert "blue_eyes" in all_tokens
+        assert "brown_hair" not in all_tokens
+        assert "green_eyes" not in all_tokens
+        assert "standing" in all_tokens
+
+    def test_weighted_char_tag_occupies_group(self, builder):
+        """Char (red_hair:0.8) still occupies hair_color group."""
+        char_info = {"red_hair": _make_tag_info("red_hair", group="hair_color")}
+        scene_info = {"brown_hair": _make_tag_info("brown_hair", group="hair_color")}
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "red_hair", "layer": LAYER_IDENTITY, "weight": 0.8}]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["brown_hair"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "(red_hair:0.8)" in all_tokens
+        assert "brown_hair" not in all_tokens
+
+    def test_scene_tag_without_group_always_passes(self, builder):
+        """Scene tags with group_name=None always pass through."""
+        char_info = {"red_hair": _make_tag_info("red_hair", group="hair_color")}
+        scene_info = {"unknown_tag": _make_tag_info("unknown_tag", LAYER_SUBJECT, group=None)}
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "red_hair", "layer": LAYER_IDENTITY, "weight": 1.0}]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["unknown_tag"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "unknown_tag" in all_tokens
+
+    def test_skin_color_conflict(self, builder):
+        """Char pale_skin + scene dark_skin → dark_skin dropped."""
+        char_info = {"pale_skin": _make_tag_info("pale_skin", group="skin_color")}
+        scene_info = {"dark_skin": _make_tag_info("dark_skin", group="skin_color")}
+        self._setup_tag_info(builder, char_info, scene_info)
+
+        char_tags = [{"name": "pale_skin", "layer": LAYER_IDENTITY, "weight": 1.0}]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["dark_skin"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "pale_skin" in all_tokens
+        assert "dark_skin" not in all_tokens
+
+
+class TestExclusiveGroupsConstant:
+    """Verify EXCLUSIVE_GROUPS contains expected groups."""
+
+    def test_contains_expected_groups(self):
+        assert "hair_color" in EXCLUSIVE_GROUPS
+        assert "eye_color" in EXCLUSIVE_GROUPS
+        assert "hair_length" in EXCLUSIVE_GROUPS
+        assert "skin_color" in EXCLUSIVE_GROUPS
+
+    def test_does_not_contain_hair_style(self):
+        assert "hair_style" not in EXCLUSIVE_GROUPS
+
+    def test_does_not_contain_clothing(self):
+        assert "clothing" not in EXCLUSIVE_GROUPS

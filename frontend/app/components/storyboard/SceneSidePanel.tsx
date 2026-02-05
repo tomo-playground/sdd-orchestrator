@@ -34,6 +34,8 @@ type SceneSidePanelProps = {
   ipAdapterWeight: number;
   onIpAdapterWeightChange: (weight: number) => void;
   referenceImages: ReferenceImage[];
+  // Current speaker context for IP-Adapter display
+  currentSpeaker?: "Narrator" | "A" | "B";
   // Validation
   validationSummary: ValidationSummary;
   // Match rates
@@ -56,6 +58,7 @@ export default function SceneSidePanel({
   ipAdapterWeight,
   onIpAdapterWeightChange,
   referenceImages,
+  currentSpeaker,
   validationSummary,
   imageValidationResults,
   scenes: scenesInfo,
@@ -95,10 +98,10 @@ export default function SceneSidePanel({
             />
           )}
           <ToggleRow
-            label="IP-Adapter"
+            label={currentSpeaker === "B" ? "IP-Adapter (B)" : "IP-Adapter"}
             checked={useIpAdapter}
             onChange={onUseIpAdapterChange}
-            accent="amber"
+            accent={currentSpeaker === "B" ? "sky" : "amber"}
           />
           {useIpAdapter && (
             <>
@@ -110,7 +113,9 @@ export default function SceneSidePanel({
                   const match = referenceImages.find((r) => r.character_key === key);
                   if (match?.preset?.weight) onIpAdapterWeightChange(match.preset.weight);
                 }}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-[10px] text-zinc-600"
+                className={`w-full rounded-lg border bg-white px-2 py-1.5 text-[10px] text-zinc-600 ${
+                  currentSpeaker === "B" ? "border-sky-300" : "border-zinc-200"
+                }`}
               >
                 <option value="">Select Reference</option>
                 {referenceImages.map((ref) => (
@@ -125,7 +130,7 @@ export default function SceneSidePanel({
                 min={0.3}
                 max={1.0}
                 step={0.05}
-                accent="amber"
+                accent={currentSpeaker === "B" ? "sky" : "amber"}
               />
             </>
           )}

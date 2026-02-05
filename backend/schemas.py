@@ -165,6 +165,7 @@ class EffectiveConfigResponse(BaseModel):
     """Resolved cascading config: Project < GroupConfig < Storyboard."""
 
     render_preset_id: int | None = None
+    render_preset: RenderPresetResponse | None = None  # Full preset for frontend
     character_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None

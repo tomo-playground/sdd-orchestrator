@@ -22,6 +22,13 @@ LAYER_CAMERA = 9
 LAYER_ENVIRONMENT = 10
 LAYER_ATMOSPHERE = 11  # Style LoRA & Artistic Style
 
+# Exclusive semantic groups: character tags take priority over scene tags.
+# When a character occupies a group (e.g. hair_color=red_hair),
+# scene tags in the same group (e.g. brown_hair) are dropped.
+EXCLUSIVE_GROUPS = frozenset({
+    "hair_color", "eye_color", "hair_length", "skin_color",
+})
+
 
 class V3PromptBuilder:
     """Prompt builder using the 12-layer semantic staking system."""
@@ -39,13 +46,20 @@ class V3PromptBuilder:
         normalized_names = [t.lower().replace(" ", "_").strip() for t in tag_names]
 
         tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
-        result = {tag.name: {"layer": tag.default_layer, "scope": tag.usage_scope} for tag in tags}
+        result = {
+            tag.name: {
+                "layer": tag.default_layer,
+                "scope": tag.usage_scope,
+                "group_name": tag.group_name,
+            }
+            for tag in tags
+        }
 
         # Pattern-based fallback for DB-missing tags
         for normalized in normalized_names:
             if normalized not in result:
                 layer = self._infer_layer_from_pattern(normalized)
-                result[normalized] = {"layer": layer, "scope": "ANY"}
+                result[normalized] = {"layer": layer, "scope": "ANY", "group_name": None}
 
         return result
 
@@ -88,6 +102,8 @@ class V3PromptBuilder:
         # Default fallback
         return LAYER_SUBJECT
 
+    # ── compose_for_character ────────────────────────────────────────────
+
     def compose_for_character(
         self,
         character_id: int,
@@ -99,112 +115,154 @@ class V3PromptBuilder:
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
 
-        # 1. Collect Character tags (is_permanent = always include, layer from default_layer)
+        # 1-2. Collect character tags (DB + custom_base_prompt)
+        char_tags_data = self._collect_character_tags(character)
+
+        # 3. Resolve aliases and get scene tag info
+        scene_tags = self._resolve_aliases(scene_tags)
+        scene_tag_info = self.get_tag_info(scene_tags)
+
+        # 4. Initialize 12 layers
+        layers: list[list[str]] = [[] for _ in range(12)]
+
+        # 5-6. Distribute character + scene tags into layers
+        self._distribute_tags(char_tags_data, scene_tags, scene_tag_info, layers)
+
+        # 7-9. Inject LoRAs (character, scene-triggered, style)
+        self._inject_loras(character, scene_tags, layers, style_loras)
+
+        # 10. Gender enhancement for male characters (SD model bias)
+        self._apply_gender_enhancement(character, char_tags_data, layers)
+
+        # 11. Resolve environment and camera conflicts
+        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
+        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
+
+        # 12. Ensure quality tags
+        self._ensure_quality_tags(layers)
+
+        return self._flatten_layers(layers)
+
+    def _collect_character_tags(self, character: Character) -> list[dict]:
+        """Collect character tags from DB associations + custom_base_prompt."""
         char_tags_data = []
         for char_tag in character.tags:
             tag = char_tag.tag
             char_tags_data.append({
                 "name": tag.name,
                 "layer": tag.default_layer,
-                "weight": char_tag.weight
+                "weight": char_tag.weight,
             })
 
-        # 2. Add Custom Base Prompt (Identity)
-        # Initialize TagFilterCache for restricted tag filtering
         TagFilterCache.initialize(self.db)
         if character.custom_base_prompt:
-            base_tokens = [t.strip() for t in character.custom_base_prompt.split(",")]
-            for bt in base_tokens:
-                if TagFilterCache.is_restricted(bt):
-                    continue # Skip restricted tags (background/situation) in Identity DNA
-                if bt:
+            for bt in (t.strip() for t in character.custom_base_prompt.split(",")):
+                if bt and not TagFilterCache.is_restricted(bt):
                     char_tags_data.append({
                         "name": bt,
                         "layer": LAYER_IDENTITY,
-                        "weight": 1.0
+                        "weight": 1.0,
                     })
 
-        # 2. Resolve aliases in scene tags
-        scene_tags = self._resolve_aliases(scene_tags)
+        return char_tags_data
 
-        # 3. Get Scene tag info
-        scene_tag_info = self.get_tag_info(scene_tags)
+    def _build_char_occupied_groups(self, char_tags_data: list[dict]) -> set[str]:
+        """Identify exclusive semantic groups occupied by character tags."""
+        names = [ct["name"].lower().replace(" ", "_").strip() for ct in char_tags_data]
+        if not names:
+            return set()
 
-        # 4. Initialize 12 layers
-        layers: list[list[str]] = [[] for _ in range(12)]
+        info_map = self.get_tag_info(names)
+        return {
+            info["group_name"]
+            for info in info_map.values()
+            if info.get("group_name") in EXCLUSIVE_GROUPS
+        }
 
-        # 5. Distribute Character Tags
+    def _distribute_tags(
+        self,
+        char_tags_data: list[dict],
+        scene_tags: list[str],
+        scene_tag_info: dict[str, dict],
+        layers: list[list[str]],
+    ) -> set[str]:
+        """Distribute character and scene tags into layers.
+
+        Character tags are placed first. Scene tags in exclusive groups
+        already occupied by the character are dropped.
+        Returns the set of occupied exclusive groups.
+        """
+        # 5. Distribute character tags
         for ct in char_tags_data:
             token = ct["name"]
             if ct["weight"] != 1.0:
                 token = f"({token}:{ct['weight']})"
             layers[ct["layer"]].append(token)
 
-        # 6. Distribute Scene Tags
+        # 5b. Build character-occupied exclusive groups
+        char_occupied = self._build_char_occupied_groups(char_tags_data)
+
+        # 6. Distribute scene tags (skip occupied exclusive groups)
         for tag in scene_tags:
             norm_tag = tag.lower().replace(" ", "_").strip()
-            info = scene_tag_info.get(norm_tag, {"layer": LAYER_SUBJECT})
+            info = scene_tag_info.get(norm_tag, {"layer": LAYER_SUBJECT, "group_name": None})
+            if info.get("group_name") in char_occupied:
+                continue  # Character tag takes priority
             layers[info["layer"]].append(tag)
 
-        # 6. Inject Character LoRAs & Triggers
-        # active_loras: name -> (weight, lora_type)
+        return char_occupied
+
+    def _inject_loras(
+        self,
+        character: Character,
+        scene_tags: list[str],
+        layers: list[list[str]],
+        style_loras: list[dict] | None,
+    ) -> None:
+        """Inject character LoRAs, scene-triggered LoRAs, and style LoRAs."""
         active_loras: dict[str, tuple[float, str | None]] = {}
 
+        # Character LoRAs
         if character.loras and character.prompt_mode != "standard":
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
                 weight = lora_info.get("weight")
-
                 lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
                 if lora_obj:
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
-
                     active_loras[lora_obj.name] = (weight, lora_obj.lora_type)
                     trigger_layer = LAYER_ATMOSPHERE if lora_obj.lora_type == "style" else LAYER_IDENTITY
                     for trigger in (lora_obj.trigger_words or []):
                         if trigger not in layers[trigger_layer]:
                             layers[trigger_layer].append(trigger)
 
-        # 7. Collect Triggered LoRAs from Scene Tags
+        # Scene-triggered LoRAs
         for tag in scene_tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name and lora_name not in active_loras:
                 active_loras[lora_name] = self._get_lora_info(lora_name)
 
-        # 8. Inject LoRA Tags into Layers (character→L2, style→L11)
+        # Inject LoRA tags into layers
         for name, (weight, lora_type) in active_loras.items():
             target_layer = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
             layers[target_layer].append(f"<lora:{name}:{weight}>")
 
-        # 9. Inject Style LoRAs (Atmosphere) - These are explicit overrides
+        # Style LoRAs (explicit overrides)
         if style_loras:
             for lora_info in style_loras:
-                name = lora_info.get("name")
+                name: str = lora_info.get("name", "")
                 weight = lora_info.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(name)
-
-                triggers = lora_info.get("trigger_words", [])
-                for trigger in triggers:
+                for trigger in lora_info.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{weight}>")
 
-        # 10. Gender enhancement for male characters (SD model bias)
-        self._apply_gender_enhancement(character, char_tags_data, layers)
-
-        # 11. Resolve location conflicts in ENVIRONMENT layer
-        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(
-            layers[LAYER_ENVIRONMENT]
-        )
-
-        # 11b. Resolve camera conflicts in CAMERA layer
-        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(
-            layers[LAYER_CAMERA]
-        )
-
-        # 12. Ensure Quality Tags in Layer 0
+    @staticmethod
+    def _ensure_quality_tags(layers: list[list[str]]) -> None:
+        """Ensure masterpiece and best_quality are in the quality layer."""
         quality_tokens = {t.lower().strip("() ").split(":")[0] for t in layers[LAYER_QUALITY]}
         if "masterpiece" not in quality_tokens:
             layers[LAYER_QUALITY].insert(0, "masterpiece")
@@ -212,7 +270,7 @@ class V3PromptBuilder:
             idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
             layers[LAYER_QUALITY].insert(idx, "best_quality")
 
-        return self._flatten_layers(layers, )
+    # ── compose (generic, no character) ──────────────────────────────────
 
     def compose(
         self,
@@ -232,25 +290,23 @@ class V3PromptBuilder:
 
         if character_loras:
             for lora in character_loras:
-                # Triggers
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_IDENTITY]:
                         layers[LAYER_IDENTITY].append(trigger)
 
-                # LoRA tag logic
                 weight = lora.get("weight")
                 if weight is None:
-                    # Resolve from name
                     weight = self.get_lora_weight_by_name(lora["name"])
-
                 layers[LAYER_IDENTITY].append(f"<lora:{lora['name']}:{weight}>")
 
         # Auto-triggered LoRAs from tags
         for tag in tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name:
-                # Check if already added
-                already_present = any(f"<lora:{lora_name}:" in t for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE]))
+                already_present = any(
+                    f"<lora:{lora_name}:" in t
+                    for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE])
+                )
                 if not already_present:
                     weight, lora_type = self._get_lora_info(lora_name)
                     target = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
@@ -258,36 +314,22 @@ class V3PromptBuilder:
 
         if style_loras:
             for lora in style_loras:
-                # Triggers
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
 
-                # LoRA tag logic
                 weight = lora.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora["name"])
-
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
 
-        # Resolve location conflicts
-        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(
-            layers[LAYER_ENVIRONMENT]
-        )
+        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
+        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
+        self._ensure_quality_tags(layers)
 
-        # Resolve camera conflicts
-        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(
-            layers[LAYER_CAMERA]
-        )
+        return self._flatten_layers(layers)
 
-        quality_tokens = {t.lower().strip("() ").split(":")[0] for t in layers[LAYER_QUALITY]}
-        if "masterpiece" not in quality_tokens:
-            layers[LAYER_QUALITY].insert(0, "masterpiece")
-        if "best_quality" not in quality_tokens:
-            idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
-            layers[LAYER_QUALITY].insert(idx, "best_quality")
-
-        return self._flatten_layers(layers, )
+    # ── Shared utilities ─────────────────────────────────────────────────
 
     def _resolve_aliases(self, tags: list[str]) -> list[str]:
         """Replace aliased tags using TagAliasCache.
@@ -315,7 +357,6 @@ class V3PromptBuilder:
         self, character: "Character", char_tags_data: list[dict], layers: list[list[str]]
     ) -> None:
         """Add male enhancement tags if character is male (SD model bias fix)."""
-        # Detect gender from character DB field, custom_base_prompt, or tags
         gender = (character.gender or "").lower()
         if not gender:
             all_names = {ct["name"].lower().strip("()").split(":")[0] for ct in char_tags_data}
@@ -336,18 +377,16 @@ class V3PromptBuilder:
     def _dedup_key(token: str) -> str:
         """Normalize token for dedup: strip weight parens e.g. (1boy:1.3) → 1boy."""
         t = token.strip().lower()
-        # Strip weight syntax: (tag:weight) → tag
         if t.startswith("(") and ":" in t and t.endswith(")"):
             t = t[1:].split(":")[0]
         return t
 
     def _flatten_layers(self, layers: list[list[str]]) -> str:
         """Flattens 12 layers into a final string with global deduplication and conflict resolution."""
-        # Initialize TagRuleCache for conflict detection
         TagRuleCache.initialize(self.db)
 
         final_tokens = []
-        global_seen: set[str] = set()  # Cross-layer deduplication
+        global_seen: set[str] = set()
 
         for i, layer_tokens in enumerate(layers):
             if layer_tokens:
@@ -355,12 +394,10 @@ class V3PromptBuilder:
                 for t in layer_tokens:
                     key = self._dedup_key(t)
                     if key not in global_seen:
-                        # Check for conflicts with already-added tokens
                         has_conflict = False
                         for existing_key in global_seen:
                             if TagRuleCache.is_conflicting(key, existing_key):
                                 has_conflict = True
-                                # Priority: first tag wins (already in global_seen)
                                 break
 
                         if not has_conflict:
@@ -405,7 +442,8 @@ class V3PromptBuilder:
         weight, _ = self._get_lora_info(name)
         return weight
 
-    # Location tag groups for conflict resolution
+    # ── Conflict resolution ──────────────────────────────────────────────
+
     _OUTDOOR_TAGS = frozenset({
         "outdoors", "street", "park", "forest", "beach", "mountain",
         "garden", "city", "field", "lake", "river", "rooftop",
@@ -416,18 +454,12 @@ class V3PromptBuilder:
         "restaurant", "shop", "hallway", "living_room",
     })
 
-    # Camera tags that conflict with each other (only one framing allowed)
     _CAMERA_WIDE = frozenset({"full_body", "wide_shot"})
     _CAMERA_MID = frozenset({"cowboy_shot", "upper_body", "from_waist"})
     _CAMERA_CLOSE = frozenset({"close-up", "close_up", "portrait", "face", "headshot"})
 
     def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
-        """Remove conflicting location tags from the environment layer.
-
-        1. Indoor vs outdoor conflict: keep the majority group.
-        2. Same-category dedup: keep only the first specific location.
-           Generic tags (indoors/outdoors) are kept as-is.
-        """
+        """Remove conflicting location tags from the environment layer."""
         if not env_tokens:
             return env_tokens
 
@@ -444,16 +476,11 @@ class V3PromptBuilder:
             else:
                 neutral.append(token)
 
-        # Resolve indoor vs outdoor conflict
         if outdoor_found and indoor_found:
-            if len(outdoor_found) >= len(indoor_found):
-                winner = outdoor_found
-            else:
-                winner = indoor_found
+            winner = outdoor_found if len(outdoor_found) >= len(indoor_found) else indoor_found
         else:
             winner = outdoor_found + indoor_found
 
-        # Limit to 1 specific location + generic tag (indoors/outdoors)
         generic = {"indoors", "outdoors"}
         specific = []
         generic_tags = []
@@ -461,16 +488,13 @@ class V3PromptBuilder:
             norm = token.lower().replace(" ", "_").strip()
             if norm in generic:
                 generic_tags.append(token)
-            elif not specific:  # Keep only first specific location
+            elif not specific:
                 specific.append(token)
 
         return specific + generic_tags + neutral
 
     def _resolve_camera_conflicts(self, cam_tokens: list[str]) -> list[str]:
-        """Keep only one framing tag when conflicts exist.
-
-        Priority: first tag wins. Removes conflicting framing tags.
-        """
+        """Keep only one framing tag when conflicts exist."""
         if not cam_tokens:
             return cam_tokens
 
@@ -484,7 +508,6 @@ class V3PromptBuilder:
                 if first_framing is None:
                     first_framing = token
                     result.append(token)
-                # Skip subsequent conflicting framing tags
             else:
                 result.append(token)
 

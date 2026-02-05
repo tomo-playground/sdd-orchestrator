@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.group import Group
-from models.storyboard import Storyboard
 from models.group_config import GroupConfig
 from models.project import Project
+from models.storyboard import Storyboard
 from schemas import (
     EffectiveConfigResponse,
     GroupConfigResponse,
@@ -17,6 +17,7 @@ from schemas import (
     GroupCreate,
     GroupResponse,
     GroupUpdate,
+    RenderPresetResponse,
 )
 from services.config_resolver import (
     SD_SYSTEM_DEFAULTS,
@@ -144,6 +145,8 @@ def _get_or_create_config(group: Group, db: Session) -> GroupConfig:
 
 @router.get("/{group_id}/effective-config", response_model=EffectiveConfigResponse)
 def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
+    from models.render_preset import RenderPreset
+
     group = (
         db.query(Group)
         .options(joinedload(Group.config), joinedload(Group.project))
@@ -154,8 +157,18 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Group not found")
     result = resolve_effective_config(group.project, group)
     apply_system_defaults(result, db)
+
+    # Load full render_preset if ID exists
+    render_preset_id = result["values"].get("render_preset_id")
+    render_preset = None
+    if render_preset_id:
+        preset_obj = db.query(RenderPreset).filter(RenderPreset.id == render_preset_id).first()
+        if preset_obj:
+            render_preset = RenderPresetResponse.model_validate(preset_obj)
+
     return EffectiveConfigResponse(
-        render_preset_id=result["values"].get("render_preset_id"),
+        render_preset_id=render_preset_id,
+        render_preset=render_preset,
         character_id=result["values"].get("character_id"),
         style_profile_id=result["values"].get("style_profile_id"),
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),

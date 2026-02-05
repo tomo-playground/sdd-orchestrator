@@ -572,17 +572,22 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         if rh.created_at
     ]
 
-    # Resolve character_b_id from storyboard_characters
+    # Resolve character_id and character_b_id from storyboard_characters
     from services.speaker_resolver import resolve_speaker_to_character
 
+    character_id = resolve_speaker_to_character(storyboard.id, "A", db)
     character_b_id = resolve_speaker_to_character(storyboard.id, "B", db)
+
+    # Fallback to effective config if no explicit mapping (backwards compat)
+    if character_id is None:
+        character_id = effective["values"].get("character_id")
 
     return {
         "id": storyboard.id,
         "title": storyboard.title,
         "description": storyboard.description,
         "group_id": storyboard.group_id,
-        "character_id": effective["values"].get("character_id"),
+        "character_id": character_id,
         "character_b_id": character_b_id,
         "style_profile_id": effective["values"].get("style_profile_id"),
         "narrator_voice_preset_id": effective["values"].get("narrator_voice_preset_id"),

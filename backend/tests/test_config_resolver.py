@@ -118,6 +118,72 @@ class TestEffectiveConfigAPI:
         assert data["render_preset_id"] == preset.id
         assert data["sources"]["render_preset_id"] == "group"
 
+    def test_render_preset_object_included(self, client, db_session):
+        """EffectiveConfig includes full render_preset object for frontend."""
+        from models.group import Group
+        from models.group_config import GroupConfig
+        from models.render_preset import RenderPreset
+
+        preset = RenderPreset(
+            name="Full Preset Test",
+            is_system=False,
+            bgm_file="test.mp3",
+            bgm_volume=0.5,
+            audio_ducking=True,
+            scene_text_font="NotoSans",
+            layout_style="full",
+            frame_style="clean",
+            transition_type="crossfade",
+            ken_burns_preset="zoom_in",
+            ken_burns_intensity=1.2,
+            speed_multiplier=1.1,
+            voice_preset_id=None,
+        )
+        db_session.add(preset)
+        db_session.flush()
+
+        group = db_session.query(Group).first()
+        config = db_session.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
+        if not config:
+            config = GroupConfig(group_id=group.id, render_preset_id=preset.id)
+            db_session.add(config)
+        else:
+            config.render_preset_id = preset.id
+        db_session.commit()
+
+        resp = client.get(f"/groups/{group.id}/effective-config")
+        data = resp.json()
+
+        assert data["render_preset_id"] == preset.id
+        assert data["render_preset"] is not None
+        rp = data["render_preset"]
+        assert rp["name"] == "Full Preset Test"
+        assert rp["bgm_file"] == "test.mp3"
+        assert rp["bgm_volume"] == 0.5
+        assert rp["audio_ducking"] is True
+        assert rp["scene_text_font"] == "NotoSans"
+        assert rp["layout_style"] == "full"
+        assert rp["frame_style"] == "clean"
+        assert rp["transition_type"] == "crossfade"
+        assert rp["ken_burns_preset"] == "zoom_in"
+        assert rp["ken_burns_intensity"] == 1.2
+        assert rp["speed_multiplier"] == 1.1
+
+    def test_render_preset_null_when_no_preset(self, client, db_session):
+        """render_preset is null when no preset configured."""
+        from models.group import Group
+        from models.group_config import GroupConfig
+
+        group = db_session.query(Group).first()
+        config = db_session.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
+        if config:
+            config.render_preset_id = None
+            db_session.commit()
+
+        resp = client.get(f"/groups/{group.id}/effective-config")
+        data = resp.json()
+        assert data["render_preset"] is None
+
     def test_404_on_missing_project(self, client):
         resp = client.get("/projects/9999/effective-config")
         assert resp.status_code == 404

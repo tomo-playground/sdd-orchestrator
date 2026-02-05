@@ -11,6 +11,7 @@ import SceneSidePanel from "../storyboard/SceneSidePanel";
 import SceneCard from "../storyboard/SceneCard";
 import { SIDE_PANEL_LAYOUT } from "../ui/variants";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
+import { resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
 import {
   handleGenerateImage,
   handleImageUpload,
@@ -62,6 +63,8 @@ export default function ScenesTab() {
     useIpAdapter,
     ipAdapterReference,
     ipAdapterWeight,
+    ipAdapterReferenceB,
+    ipAdapterWeightB,
     setPlan,
   } = useStudioStore();
 
@@ -82,6 +85,13 @@ export default function ScenesTab() {
   }, []);
 
   const currentScene = scenes[currentSceneIndex];
+  const currentSpeaker = currentScene?.speaker ?? "A";
+  const resolvedIpAdapter = resolveIpAdapterForSpeaker(currentSpeaker, {
+    ipAdapterReference,
+    ipAdapterWeight,
+    ipAdapterReferenceB,
+    ipAdapterWeightB,
+  });
 
   const handleUpdateScene = useCallback(
     (updates: Partial<(typeof scenes)[0]>) => {
@@ -270,11 +280,16 @@ export default function ScenesTab() {
         onControlnetWeightChange={(v) => setPlan({ controlnetWeight: v })}
         useIpAdapter={useIpAdapter}
         onUseIpAdapterChange={(v) => setPlan({ useIpAdapter: v })}
-        ipAdapterReference={ipAdapterReference}
-        onIpAdapterReferenceChange={(v) => setPlan({ ipAdapterReference: v })}
-        ipAdapterWeight={ipAdapterWeight}
-        onIpAdapterWeightChange={(v) => setPlan({ ipAdapterWeight: v })}
+        ipAdapterReference={resolvedIpAdapter.reference}
+        onIpAdapterReferenceChange={(v) =>
+          setPlan(currentSpeaker === "B" ? { ipAdapterReferenceB: v } : { ipAdapterReference: v })
+        }
+        ipAdapterWeight={resolvedIpAdapter.weight}
+        onIpAdapterWeightChange={(v) =>
+          setPlan(currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v })
+        }
         referenceImages={referenceImages}
+        currentSpeaker={currentSpeaker}
         validationSummary={validationSummary}
         imageValidationResults={imageValidationResults}
         scenes={scenes.map((s, i) => ({ id: s.id, order: i }))}
