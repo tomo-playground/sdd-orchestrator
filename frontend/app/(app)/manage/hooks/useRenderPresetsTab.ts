@@ -129,9 +129,9 @@ export function useRenderPresetsTab() {
   }, []);
 
   const set = useCallback(
-    (key: string, value: unknown) =>
+    (key: keyof EditingPreset, value: unknown) =>
       setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
-    []
+    [],
   );
 
   return {

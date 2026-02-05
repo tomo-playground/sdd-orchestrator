@@ -7,7 +7,6 @@ import { API_BASE } from "../../../constants";
 export type TrashItem = {
   id: number;
   name: string | null;
-  title?: string;
   deleted_at: string;
   type: "storyboard" | "character" | "prompt_history";
 };

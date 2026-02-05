@@ -19,9 +19,11 @@ export function usePromptsTab() {
   const [promptsSearch, setPromptsSearch] = useState("");
   const [deletingPromptId, setDeletingPromptId] = useState<number | null>(null);
 
-  // Ref to avoid auto-fetch on every keystroke (search is triggered manually via Enter/button)
+  // Refs to avoid unnecessary deps in callbacks
   const promptsSearchRef = useRef(promptsSearch);
   promptsSearchRef.current = promptsSearch;
+  const promptHistoriesRef = useRef(promptHistories);
+  promptHistoriesRef.current = promptHistories;
 
   const fetchPromptHistories = useCallback(async () => {
     setIsPromptsLoading(true);
@@ -60,34 +62,31 @@ export function usePromptsTab() {
     }
   }, []);
 
-  const togglePromptFavorite = useCallback(
-    async (id: number) => {
-      try {
-        const prompt = promptHistories.find((p) => p.id === id);
-        if (!prompt) return;
-        await axios.put(`${API_BASE}/prompt-histories/${id}`, {
-          is_favorite: !prompt.is_favorite,
-        });
-        setPromptHistories((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p))
-        );
-      } catch {
-        alert("Failed to update favorite status");
-      }
-    },
-    [promptHistories]
-  );
+  const togglePromptFavorite = useCallback(async (id: number) => {
+    try {
+      const prompt = promptHistoriesRef.current.find((p) => p.id === id);
+      if (!prompt) return;
+      await axios.put(`${API_BASE}/prompt-histories/${id}`, {
+        is_favorite: !prompt.is_favorite,
+      });
+      setPromptHistories((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p)),
+      );
+    } catch {
+      alert("Failed to update favorite status");
+    }
+  }, []);
 
   const applyPromptHistory = useCallback(
     (id: number) => {
-      const prompt = promptHistories.find((p) => p.id === id);
+      const prompt = promptHistoriesRef.current.find((p) => p.id === id);
       if (!prompt) return;
 
       // Save to localStorage so Storyboard page can pick it up
       localStorage.setItem(PROMPT_APPLY_KEY, JSON.stringify(prompt));
       router.push("/");
     },
-    [promptHistories, router]
+    [router],
   );
 
   return {
