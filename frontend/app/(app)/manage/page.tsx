@@ -110,7 +110,7 @@ function ManageContent() {
           {manageTab === "tags" && <TagsTab />}
           {manageTab === "style" && <StyleTab />}
           {manageTab === "prompts" && <PromptsTab />}
-          {manageTab === "presets" && <RenderPresetsTab projectId={projectId} />}
+          {manageTab === "presets" && <RenderPresetsTab />}
           {manageTab === "voice" && <VoicePresetsTab />}
           {manageTab === "trash" && <TrashTab />}
           {manageTab === "youtube" && <YouTubeTab projectId={projectId} />}

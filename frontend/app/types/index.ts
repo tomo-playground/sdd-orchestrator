@@ -467,7 +467,6 @@ export type RenderPreset = {
   name: string;
   description: string | null;
   is_system: boolean;
-  project_id: number | null;
   bgm_file: string | null;
   bgm_volume: number | null;
   audio_ducking: boolean | null;

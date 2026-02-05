@@ -13,18 +13,8 @@ router = APIRouter(prefix="/render-presets", tags=["render-presets"])
 
 
 @router.get("", response_model=list[RenderPresetResponse])
-def list_render_presets(
-    project_id: int | None = None,
-    db: Session = Depends(get_db),
-):
-    query = db.query(RenderPreset)
-    if project_id is not None:
-        query = query.filter(
-            (RenderPreset.project_id == project_id) | (RenderPreset.project_id.is_(None))
-        )
-    else:
-        query = query.filter(RenderPreset.project_id.is_(None))
-    return query.order_by(RenderPreset.id).all()
+def list_render_presets(db: Session = Depends(get_db)):
+    return db.query(RenderPreset).order_by(RenderPreset.id).all()
 
 
 @router.get("/{preset_id}", response_model=RenderPresetResponse)
@@ -46,7 +36,9 @@ def create_render_preset(body: RenderPresetCreate, db: Session = Depends(get_db)
 
 @router.put("/{preset_id}", response_model=RenderPresetResponse)
 def update_render_preset(
-    preset_id: int, body: RenderPresetUpdate, db: Session = Depends(get_db),
+    preset_id: int,
+    body: RenderPresetUpdate,
+    db: Session = Depends(get_db),
 ):
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:

@@ -15,9 +15,6 @@ class RenderPreset(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     is_system: Mapped[bool] = mapped_column(Boolean, default=True)
-    project_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True
-    )
 
     # Render fields
     bgm_file: Mapped[str | None] = mapped_column(String(255))

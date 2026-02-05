@@ -54,7 +54,6 @@ class ProjectResponse(BaseModel):
 class RenderPresetCreate(BaseModel):
     name: str
     description: str | None = None
-    project_id: int | None = None
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
@@ -89,7 +88,6 @@ class RenderPresetResponse(BaseModel):
     name: str
     description: str | None = None
     is_system: bool = True
-    project_id: int | None = None
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
