@@ -8,11 +8,15 @@ import { useStudioStore } from "../../store/useStudioStore";
 import { createGroup, deleteGroup } from "../../store/actions/groupActions";
 import { deleteProject, updateProject } from "../../store/actions/projectActions";
 import { cx } from "../ui/variants";
-import { GroupConfigEditor, GroupFormModal, ProjectDropdown, ProjectFormModal } from "../context";
+import {
+  GroupConfigEditor,
+  GroupDropdown,
+  GroupFormModal,
+  ProjectDropdown,
+  ProjectFormModal,
+} from "../context";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import SectionHeader from "./sidebar/SectionHeader";
-import GroupList from "./sidebar/GroupList";
-import AddButton from "./sidebar/AddButton";
 import StudioSections from "./sidebar/StudioSections";
 
 const STORAGE_KEY = "sidebarCollapsed";
@@ -137,23 +141,30 @@ export default function Sidebar() {
 
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto">
-          {/* Groups — always visible */}
-          <SectionHeader label="Groups" collapsed={collapsed} />
-          <GroupList
-            groups={groups}
-            activeId={groupId}
-            collapsed={collapsed}
-            onSelect={handleGroupSelect}
-            onConfig={setConfigGroupId}
-            onDelete={handleDeleteGroup}
-          />
-          <AddButton
-            label="New Group"
-            collapsed={collapsed}
-            onClick={() => setShowGroupModal(true)}
-          />
-
-          <div className="mx-3 my-2 border-t border-zinc-100" />
+          {/* Group Selector */}
+          <div className="border-b border-zinc-100 pb-3">
+            <SectionHeader label="Group" collapsed={collapsed} />
+            <div className="flex items-center gap-1 px-1">
+              <GroupDropdown
+                groups={groups}
+                currentId={groupId}
+                onSelect={handleGroupSelect}
+                onNew={() => setShowGroupModal(true)}
+                onEdit={(g) => setConfigGroupId(g.id)}
+                onDelete={(g) => handleDeleteGroup(g.id)}
+                collapsed={collapsed}
+              />
+              {!collapsed && (
+                <button
+                  onClick={() => groupId && setConfigGroupId(groupId)}
+                  title="Group settings"
+                  className="ml-auto shrink-0 rounded p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* Stories — studio only */}
           {isStudio && <StudioSections collapsed={collapsed} groupId={groupId} />}
