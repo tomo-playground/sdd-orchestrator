@@ -557,10 +557,7 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 > v3.1: 렌더링 설정 (TTS, BGM, 레이아웃, Ken Burns 등)을 프리셋으로 관리.
 
 ### `GET /render-presets`
-렌더링 프리셋 목록을 조회합니다.
-
-**Query Parameters:**
-- `project_id`: int (optional) - 지정 시 해당 프로젝트 전용 + 글로벌 프리셋 반환, 미지정 시 글로벌만
+렌더링 프리셋 목록을 조회합니다 (글로벌 공통).
 
 **Response:**
 ```json
@@ -570,8 +567,6 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
     "name": "기본 프리셋",
     "description": "표준 렌더링 설정",
     "is_system": true,
-    "project_id": null,
-    "narrator_voice": "ko-KR-SunHiNeural",
     "bgm_file": "bgm_chill.mp3",
     "bgm_volume": 0.25,
     "audio_ducking": true,
@@ -582,9 +577,6 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
     "ken_burns_preset": "zoom_in_center",
     "ken_burns_intensity": 1.0,
     "speed_multiplier": 1.0,
-    "tts_engine": "edge",
-    "voice_design_prompt": null,
-    "voice_ref_audio_url": null,
     "voice_preset_id": null,
     "created_at": "2026-02-01T12:00:00"
   }
