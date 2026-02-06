@@ -54,22 +54,43 @@ describe("computeValidationResults", () => {
   });
 
   describe("Speaker Validation", () => {
-    it("should pass for Speaker A", () => {
+    it("should pass for Speaker A in Monologue", () => {
       const scenes = [createScene({ speaker: "A" })];
-      const { results } = computeValidationResults(scenes);
+      const { results } = computeValidationResults(scenes, "Monologue");
 
       expect(results[1].status).toBe("ok");
     });
 
-    it("should error for non-A speaker", () => {
+    it("should error for Narrator speaker in Monologue", () => {
       const scenes = [createScene({ speaker: "Narrator" })];
-      const { results } = computeValidationResults(scenes);
+      const { results } = computeValidationResults(scenes, "Monologue");
 
       expect(results[1].status).toBe("error");
       expect(results[1].issues).toContainEqual({
         level: "error",
-        message: "Speaker must be Actor A (monologue).",
+        message: 'Speaker "Narrator" is not valid for Monologue.',
       });
+    });
+
+    it("should pass for Speaker A and B in Dialogue", () => {
+      const scenes = [createScene({ speaker: "A" }), createScene({ id: 2, speaker: "B" })];
+      const { results } = computeValidationResults(scenes, "Dialogue");
+
+      expect(results[1].status).toBe("ok");
+      expect(results[2].status).toBe("ok");
+    });
+
+    it("should pass for Narrator, A, B in Narrated Dialogue", () => {
+      const scenes = [
+        createScene({ speaker: "Narrator" }),
+        createScene({ id: 2, speaker: "A" }),
+        createScene({ id: 3, speaker: "B" }),
+      ];
+      const { results } = computeValidationResults(scenes, "Narrated Dialogue");
+
+      expect(results[1].status).toBe("ok");
+      expect(results[2].status).toBe("ok");
+      expect(results[3].status).toBe("ok");
     });
   });
 

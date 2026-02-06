@@ -165,9 +165,16 @@ export default function SceneCard({
               B
             </span>
           )}
-          {scene.speaker === "A" && structure?.toLowerCase() === "dialogue" && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-              A
+          {scene.speaker === "A" &&
+            (structure?.toLowerCase() === "dialogue" ||
+              structure?.toLowerCase() === "narrated dialogue") && (
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                A
+              </span>
+            )}
+          {scene.speaker === "Narrator" && structure?.toLowerCase() === "narrated dialogue" && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              N
             </span>
           )}
           <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">

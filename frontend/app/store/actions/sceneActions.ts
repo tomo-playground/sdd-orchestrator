@@ -9,8 +9,8 @@ import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 // --------------- Validation ---------------
 
 export function runValidation() {
-  const { scenes } = useStudioStore.getState();
-  const { results, summary } = computeValidationResults(scenes);
+  const { scenes, structure } = useStudioStore.getState();
+  const { results, summary } = computeValidationResults(scenes, structure);
   useStudioStore.getState().setScenesState({
     validationResults: results,
     validationSummary: summary,
@@ -18,8 +18,8 @@ export function runValidation() {
 }
 
 export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
-  const { topic, baseNegativePromptA } = useStudioStore.getState();
-  const { results, summary } = computeValidationResults(inputScenes);
+  const { topic, baseNegativePromptA, structure } = useStudioStore.getState();
+  const { results, summary } = computeValidationResults(inputScenes, structure);
   useStudioStore.getState().setScenesState({
     validationResults: results,
     validationSummary: summary,

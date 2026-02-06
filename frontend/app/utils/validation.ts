@@ -9,14 +9,23 @@ import {
 /**
  * Check if text contains any of the keywords from the list.
  */
-const hasAny = (text: string, list: string[]) =>
-  list.some((keyword) => text.includes(keyword));
+const hasAny = (text: string, list: string[]) => list.some((keyword) => text.includes(keyword));
+
+/**
+ * Get valid speakers for a given structure.
+ */
+const getValidSpeakers = (structure?: string): Scene["speaker"][] => {
+  const s = structure?.toLowerCase() || "monologue";
+  if (s === "narrated dialogue") return ["Narrator", "A", "B"];
+  if (s === "dialogue") return ["A", "B"];
+  return ["A"]; // Monologue
+};
 
 /**
  * Compute validation results for a list of scenes.
  * Returns validation status and issues for each scene.
  */
-export const computeValidationResults = (inputScenes: Scene[]) => {
+export const computeValidationResults = (inputScenes: Scene[], structure?: string) => {
   const results: Record<number, SceneValidation> = {};
   let ok = 0;
   let warn = 0;
@@ -38,8 +47,12 @@ export const computeValidationResults = (inputScenes: Scene[]) => {
       issues.push({ level: "warn", message: "Script is longer than 40 characters." });
     }
 
-    if (scene.speaker !== "A") {
-      issues.push({ level: "error", message: "Speaker must be Actor A (monologue)." });
+    const validSpeakers = getValidSpeakers(structure);
+    if (!validSpeakers.includes(scene.speaker)) {
+      issues.push({
+        level: "error",
+        message: `Speaker "${scene.speaker}" is not valid for ${structure || "Monologue"}.`,
+      });
     }
 
     if (!scene.image_prompt.trim()) {

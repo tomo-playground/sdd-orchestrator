@@ -7,7 +7,12 @@
       "Bash(python -m py_compile:*)",
       "mcp__serena__find_symbol",
       "mcp__serena__get_symbols_overview",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(alembic revision:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: remove project_id from render_presets \\(global-only presets\\)\n\n- Drop project_id column, FK, index from render_presets table\n- Remove project_id from model, schemas \\(Create/Response\\), router filter\n- Revert frontend RenderPresetsTab to global fetch without projectId prop\n- Remove project_id from frontend RenderPreset type\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)"
     ]
   },
   "enableAllProjectMcpServers": true,

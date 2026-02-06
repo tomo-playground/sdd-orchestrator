@@ -174,7 +174,10 @@ export async function runAutoRunFromStep(
             // non-critical
           }
         }
-        const { results, summary } = computeValidationResults(workingScenes);
+        const { results, summary } = computeValidationResults(
+          workingScenes,
+          useStudioStore.getState().structure
+        );
         useStudioStore.getState().setScenesState({
           validationResults: results,
           validationSummary: summary,
