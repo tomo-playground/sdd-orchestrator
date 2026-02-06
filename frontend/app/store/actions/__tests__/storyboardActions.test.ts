@@ -157,12 +157,14 @@ describe("persistStoryboard", () => {
     expect(await persistStoryboard()).toBe(false);
   });
 
-  it("calls PUT when storyboardId exists", async () => {
+  it("calls PUT when storyboardId exists and updates scene IDs", async () => {
+    const setScenes = vi.fn();
     const state = makeStoreState({
       storyboardId: 42,
+      setScenes,
       scenes: [
         {
-          id: 0,
+          id: 100, // Old scene ID
           script: "test",
           speaker: "Narrator",
           duration: 3,
@@ -178,7 +180,10 @@ describe("persistStoryboard", () => {
       ],
     });
     vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
-    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ data: {} });
+    // PUT now returns scene_ids (scenes are deleted and recreated)
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [200] },
+    });
 
     const result = await persistStoryboard();
 
@@ -188,6 +193,8 @@ describe("persistStoryboard", () => {
       expect.objectContaining({ title: "Test Topic" })
     );
     expect(axios.post).not.toHaveBeenCalled();
+    // Verify scene IDs are updated
+    expect(setScenes).toHaveBeenCalledWith([expect.objectContaining({ id: 200 })]);
   });
 
   it("calls POST when no storyboardId and reassigns scene IDs", async () => {

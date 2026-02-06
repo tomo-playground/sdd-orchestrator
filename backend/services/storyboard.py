@@ -756,7 +756,11 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
     db.commit()
     db.refresh(storyboard)
-    return {"status": "success", "storyboard_id": storyboard.id}
+
+    # Return new scene IDs (scenes were deleted and recreated)
+    scene_ids = [scene.id for scene in storyboard.scenes]
+
+    return {"status": "success", "storyboard_id": storyboard.id, "scene_ids": scene_ids}
 
 
 def update_storyboard_metadata(db: Session, storyboard_id: int, request: StoryboardUpdate) -> dict:

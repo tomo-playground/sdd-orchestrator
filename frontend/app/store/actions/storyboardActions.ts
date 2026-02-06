@@ -219,7 +219,13 @@ export async function persistStoryboard(): Promise<boolean> {
     };
 
     if (storyboardId) {
-      await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload);
+      // PUT also returns scene_ids since scenes are deleted and recreated
+      const res = await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload);
+      const sceneIds: number[] = res.data.scene_ids || [];
+      if (sceneIds.length > 0) {
+        const current = useStudioStore.getState().scenes;
+        setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
+      }
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload);
       const newId = res.data.storyboard_id;
