@@ -88,8 +88,10 @@ CRITICAL STYLE CONSISTENCY RULE:
 - For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
 
 Instructions:
-1. Create a 7-scene dialogue between Speaker A and Speaker B.
-2. Alternate speakers: A, B, A, B, A, B, A (A=4 scenes, B=3 scenes).
+1. Create a dialogue between Speaker A and Speaker B.
+   - Target: {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - Each scene: 2-3 seconds (for fast pacing)
+2. Alternate speakers: A, B, A, B... (roughly equal distribution).
 3. Each scene's image shows ONLY the current speaker (1girl or 1boy).
 4. For EACH scene:
    a) Write the script line for the current speaker
@@ -101,7 +103,7 @@ Instructions:
      * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
      * Must fit in 2 lines when rendered on screen.
    - speaker: "A" or "B"
-   - duration: seconds (3-5 recommended)
+   - duration: seconds (2-3 recommended for fast pacing)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * REQUIRED categories from Allowed Keywords:
        - expression, gaze, pose, action, props, camera, environment, mood

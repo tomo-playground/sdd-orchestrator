@@ -96,8 +96,10 @@ CRITICAL STYLE CONSISTENCY RULE:
 - For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
 
 Instructions:
-1. Create a 9-scene narrated dialogue with Narrator, Speaker A, and Speaker B.
-2. Follow pattern: Narrator → A → B → Narrator → A → B → Narrator → A → B
+1. Create a narrated dialogue with Narrator, Speaker A, and Speaker B.
+   - Target: {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - Each scene: 2-3 seconds (for fast pacing)
+2. Follow pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 3. Narrator scenes:
    - Provide context, inner thoughts, or dramatic commentary
    - Image shows environment, objects, or atmospheric elements (NO characters)
@@ -111,7 +113,7 @@ Instructions:
      * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
      * Must fit in 2 lines when rendered on screen.
    - speaker: "Narrator", "A", or "B"
-   - duration: seconds (Narrator: 3-4, A/B: 3-5)
+   - duration: seconds (2-3 recommended for fast pacing)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * For A/B: include character's identity/costume/LoRA tags
      * For Narrator: focus on environment/mood (no_humans, scenery, etc.)
