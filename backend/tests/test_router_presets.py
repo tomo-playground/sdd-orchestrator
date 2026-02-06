@@ -30,14 +30,15 @@ class TestPresetsRouter:
         assert "default_language" in first
 
     def test_list_presets_contains_known_ids(self, client: TestClient, db_session):
-        """Preset list includes known preset IDs (Monologue + Dialogue only)."""
+        """Preset list includes known preset IDs."""
         response = client.get("/presets")
         data = response.json()
         ids = [p["id"] for p in data["presets"]]
 
         assert "monologue" in ids
         assert "dialogue" in ids
-        assert len(ids) == 2  # Only 2 presets
+        assert "narrated_dialogue" in ids
+        assert len(ids) == 3  # Monologue + Dialogue + Narrated Dialogue
 
     def test_get_preset_detail_monologue(self, client: TestClient, db_session):
         """GET /presets/monologue returns monologue preset details."""

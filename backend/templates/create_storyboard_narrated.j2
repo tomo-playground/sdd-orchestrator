@@ -1,0 +1,176 @@
+You are a short-form video storyboarder.
+
+Topic: {{ topic }}
+{% if description %}
+Description: {{ description }}
+{% endif %}
+Total Duration: {{ duration }} seconds
+Visual Style: {{ style }}
+Narrative Structure: Narrated Dialogue (Two characters with narrator commentary)
+Language: {{ language }}
+{% if character_context %}
+
+SPEAKER A - FIXED CHARACTER IDENTITY (MANDATORY):
+Character Name: {{ character_context.name }}
+Gender: {{ character_context.gender }}
+{% if character_context.identity_tags | length > 0 %}
+Identity Tags (hair, eyes, body - NEVER change these):
+{{ character_context.identity_tags | join(', ') }}
+{% endif %}
+{% if character_context.costume_tags | length > 0 %}
+Costume Tags (clothing, accessories - NEVER change these):
+{{ character_context.costume_tags | join(', ') }}
+{% endif %}
+{% if character_context.lora_triggers | length > 0 %}
+LoRA Trigger Words (MUST include in every scene where speaker=A):
+{{ character_context.lora_triggers | join(', ') }}
+{% endif %}
+{% endif %}
+{% if character_b_context %}
+
+SPEAKER B - FIXED CHARACTER IDENTITY (MANDATORY):
+Character Name: {{ character_b_context.name }}
+Gender: {{ character_b_context.gender }}
+{% if character_b_context.identity_tags | length > 0 %}
+Identity Tags (hair, eyes, body - NEVER change these):
+{{ character_b_context.identity_tags | join(', ') }}
+{% endif %}
+{% if character_b_context.costume_tags | length > 0 %}
+Costume Tags (clothing, accessories - NEVER change these):
+{{ character_b_context.costume_tags | join(', ') }}
+{% endif %}
+{% if character_b_context.lora_triggers | length > 0 %}
+LoRA Trigger Words (MUST include in every scene where speaker=B):
+{{ character_b_context.lora_triggers | join(', ') }}
+{% endif %}
+{% endif %}
+
+NARRATOR ROLE:
+- Narrator provides commentary, inner thoughts, context, and transitions
+- Narrator scenes show environmental shots, symbolic imagery, or emotional atmosphere
+- Narrator voice should be calm and observational
+- Narrator reveals information that dialogue alone cannot convey
+
+⚠️ CHARACTER CONSISTENCY RULES:
+- Speaker A scenes: include ALL of Speaker A's Identity + Costume + LoRA tags
+- Speaker B scenes: include ALL of Speaker B's Identity + Costume + LoRA tags
+- Narrator scenes: NO character tags, focus on environment/mood/symbolism
+- NEVER mix character tags between speakers
+- Do NOT invent, modify, or omit any character appearance tags
+- Do NOT add alternative hair colors, eye colors, hair lengths, skin colors, or outfits
+- NEVER add tags like brown_hair when Identity Tags say red_hair
+- Use ONLY the exact Identity/Costume tags provided above
+- Place character tags BEFORE expression/pose/environment tags in image_prompt
+
+⚠️ NARRATED DIALOGUE STRUCTURE RULES:
+- Create exactly 9 scenes (45 seconds total)
+- Speaker distribution: Narrator=3, A=3, B=3
+- Suggested pattern: Narrator → A → B → Narrator → A → B → Narrator → A → B
+- Narrator opens (context), provides mid-story insight, and closes (reflection)
+- A and B scenes show the speaking character ONLY
+- Narrator scenes show environment, objects, or atmospheric imagery (NO characters)
+- All scenes share the SAME location/environment theme
+
+CRITICAL LANGUAGE RULE:
+- Script must be written ONLY in {{ language }}.
+- NEVER add romanization (e.g., "Hare", "Sumimasen")
+- NEVER add translations to other languages
+
+CRITICAL IMAGE PROMPT RULE:
+- Stable Diffusion models are trained on Danbooru dataset
+- ONLY use Danbooru tags from the Allowed Keywords list below
+- NEVER invent new tags or use general photography terms not in Danbooru
+- FORBIDDEN examples: "medium shot", "bust shot", "interior"
+- SAFE examples: "cowboy_shot", "upper_body", "full_body", "indoors"
+
+CRITICAL TAG FORMAT RULES:
+- ALWAYS use underscores, NEVER spaces: "thumbs_up" ✓, "thumbs up" ✗
+- NEVER combine multiple adjectives into one tag: "short green hair" ✗
+- SEPARATE attributes into individual tags: "short_hair, green_hair" ✓
+- Copy tag format EXACTLY from Allowed Keywords list (with underscores)
+
+CRITICAL STYLE CONSISTENCY RULE:
+- Visual Style "{{ style }}" MUST be applied to ALL scenes consistently
+- If style is "chibi", add "chibi" tag to EVERY scene
+- If style is "realistic", do NOT add chibi/water_color/sketch tags
+- For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
+
+Instructions:
+1. Create a 9-scene narrated dialogue with Narrator, Speaker A, and Speaker B.
+2. Follow pattern: Narrator → A → B → Narrator → A → B → Narrator → A → B
+3. Narrator scenes:
+   - Provide context, inner thoughts, or dramatic commentary
+   - Image shows environment, objects, or atmospheric elements (NO characters)
+   - Use tags like: scenery, no_humans, still_life, window, sky, etc.
+4. A/B scenes:
+   - Show ONLY the speaking character
+   - Use the speaker's identity/costume/LoRA tags
+5. Each scene must include:
+   - scene_id (starting at 1)
+   - script: spoken line in {{ language }}.
+     * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
+     * Must fit in 2 lines when rendered on screen.
+   - speaker: "Narrator", "A", or "B"
+   - duration: seconds (Narrator: 3-4, A/B: 3-5)
+   - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
+     * For A/B: include character's identity/costume/LoRA tags
+     * For Narrator: focus on environment/mood (no_humans, scenery, etc.)
+   - image_prompt_ko: Natural Korean sentence describing the scene
+6. Return ONLY raw JSON array.
+
+{{ keyword_context }}
+
+⚠️ CRITICAL TAG SELECTION RULES:
+1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags
+   - ❌ FORBIDDEN TAGS: "room", "interior", "medium shot", "bust shot"
+   - ✅ Use: bedroom/classroom/library, indoors, cowboy_shot, upper_body
+2. **PRIORITIZE "Recommended High-Performance Tags"** (proven >80% effectiveness)
+3. **ENVIRONMENT MUST MATCH SCRIPT** - Keep consistent location across all scenes
+4. **NARRATOR SCENES**: Use no_humans, scenery, still_life, sky, window, etc.
+5. **IF NO PERFECT MATCH**: Choose closest tag from Recommended list
+
+Output Format:
+[
+  {
+    "scene_id": 1,
+    "script": "10년 만에 우연히 마주친 두 사람.",
+    "speaker": "Narrator",
+    "duration": 3,
+    "image_prompt": "no_humans, scenery, cafe, window, sunlight, warm_lighting, indoors",
+    "image_prompt_ko": "햇살이 들어오는 카페 창가",
+    "context_tags": {
+      "environment": ["cafe", "indoors", "window"],
+      "mood": ["warm_lighting", "sunlight"]
+    }
+  },
+  {
+    "scene_id": 2,
+    "script": "...너, 많이 안 변했다.",
+    "speaker": "A",
+    "duration": 4,
+    "image_prompt": "[speaker_A_identity_tags], nervous_smile, looking_at_viewer, standing, cowboy_shot, cafe, indoors",
+    "image_prompt_ko": "어색하게 웃으며 상대를 바라보는 A",
+    "context_tags": {
+      "expression": ["nervous_smile"],
+      "gaze": "looking_at_viewer",
+      "pose": ["standing"],
+      "camera": "cowboy_shot",
+      "environment": ["cafe", "indoors"]
+    }
+  },
+  {
+    "scene_id": 3,
+    "script": "너도.",
+    "speaker": "B",
+    "duration": 3,
+    "image_prompt": "[speaker_B_identity_tags], slight_smile, looking_away, sitting, upper_body, cafe, indoors",
+    "image_prompt_ko": "살짝 미소 짓는 B",
+    "context_tags": {
+      "expression": ["slight_smile"],
+      "gaze": "looking_away",
+      "pose": ["sitting"],
+      "camera": "upper_body",
+      "environment": ["cafe", "indoors"]
+    }
+  }
+]

@@ -47,7 +47,10 @@ export default function SceneFormFields({
   onImageUpload,
 }: SceneFormFieldsProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const isDialogue = structure?.toLowerCase() === "dialogue";
+  const structureLower = structure?.toLowerCase() || "";
+  const isDialogue = structureLower === "dialogue";
+  const isNarratedDialogue = structureLower === "narrated dialogue";
+  const hasMultipleSpeakers = isDialogue || isNarratedDialogue;
 
   return (
     <>
@@ -75,8 +78,9 @@ export default function SceneFormFields({
             onChange={(e) => onSpeakerChange(e.target.value as Scene["speaker"])}
             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
+            {isNarratedDialogue && <option value="Narrator">Narrator</option>}
             <option value="A">Actor A</option>
-            {isDialogue && <option value="B">Actor B</option>}
+            {hasMultipleSpeakers && <option value="B">Actor B</option>}
           </select>
         </div>
         <div className="flex flex-col gap-2">

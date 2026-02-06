@@ -25,7 +25,7 @@ class StoryboardPreset:
     extra_fields: dict = field(default_factory=dict)
 
 
-# Available presets (Monologue + Dialogue only)
+# Available presets (Monologue + Dialogue + Narrated Dialogue)
 PRESETS: dict[str, StoryboardPreset] = {
     "monologue": StoryboardPreset(
         id="monologue",
@@ -58,6 +58,22 @@ PRESETS: dict[str, StoryboardPreset] = {
             "형제자매의 말다툼",
         ],
         default_duration=30,
+    ),
+    "narrated_dialogue": StoryboardPreset(
+        id="narrated_dialogue",
+        name="Narrated Dialogue",
+        name_ko="내레이션 대화",
+        description="Two characters with narrator commentary",
+        structure="Narrated Dialogue",
+        template="create_storyboard_narrated.j2",
+        sample_topics=[
+            "10년 후 재회한 첫사랑",
+            "면접관이 알아본 지원자의 비밀",
+            "부모님이 몰래 보는 SNS",
+            "카페 알바생이 본 이별 장면",
+            "퇴사 전날 사수와의 대화",
+        ],
+        default_duration=45,
     ),
 }
 
