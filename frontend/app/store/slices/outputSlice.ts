@@ -10,6 +10,7 @@ import type {
 import {
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
+  DEFAULT_SCENE_TEXT_FONT,
 } from "../../constants";
 
 export interface OutputSlice {
@@ -94,7 +95,7 @@ const initialOutputState = {
   bgmVolume: 0.25,
   speedMultiplier: 1.0,
   fontList: [] as FontItem[],
-  sceneTextFont: "",
+  sceneTextFont: DEFAULT_SCENE_TEXT_FONT,
   loadedFonts: new Set<string>(),
   ttsEngine: "qwen" as const,
   voiceDesignPrompt: "",

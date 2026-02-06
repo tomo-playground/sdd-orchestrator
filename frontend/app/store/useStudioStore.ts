@@ -30,6 +30,7 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "bgmList",
   "fontList",
   "loadedFonts",
+  "sceneTextFont", // Render preset controls this; don't persist
   "overlayAvatarUrl",
   "postAvatarUrl",
   // MetaSlice transient
