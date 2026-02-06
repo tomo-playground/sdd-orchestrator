@@ -514,10 +514,14 @@ def list_storyboards_from_db(
 ) -> list[dict]:
     """List all storyboards with scene/image counts."""
     from models.group import Group
+    from models.storyboard_character import StoryboardCharacter
 
     query = (
         db.query(Storyboard)
-        .options(joinedload(Storyboard.scenes).joinedload(Scene.image_asset))
+        .options(
+            joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
+            joinedload(Storyboard.characters).joinedload(StoryboardCharacter.character),
+        )
         .filter(Storyboard.deleted_at.is_(None))
     )
     if group_id is not None:
@@ -535,6 +539,19 @@ def list_storyboards_from_db(
     result = []
     for s in storyboards:
         scenes = s.scenes or []
+        # Extract cast (characters) with preview thumbnails
+        cast = []
+        for sc in sorted(s.characters or [], key=lambda x: x.speaker):
+            char = sc.character
+            if char:
+                cast.append(
+                    {
+                        "id": char.id,
+                        "name": char.name,
+                        "speaker": sc.speaker,
+                        "preview_url": char.preview_image_url,
+                    }
+                )
         result.append(
             {
                 "id": s.id,
@@ -542,6 +559,7 @@ def list_storyboards_from_db(
                 "description": s.description,
                 "scene_count": len(scenes),
                 "image_count": sum(1 for sc in scenes if sc.image_url),
+                "cast": cast,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
                 "updated_at": s.updated_at.isoformat() if s.updated_at else None,
             }

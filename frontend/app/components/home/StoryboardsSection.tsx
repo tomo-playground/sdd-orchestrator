@@ -17,6 +17,13 @@ type Preset = {
   structure: string;
 };
 
+interface CastMember {
+  id: number;
+  name: string;
+  speaker: string;
+  preview_url: string | null;
+}
+
 interface StoryboardItem {
   id: number;
   title: string;
@@ -24,6 +31,7 @@ interface StoryboardItem {
   scene_count: number;
   image_count: number;
   group_id: number | null;
+  cast: CastMember[];
   created_at: string | null;
   updated_at: string | null;
 }
@@ -261,6 +269,31 @@ function StoryboardCard({
         <span>{sb.image_count} images</span>
         {sb.updated_at && <span>{format(new Date(sb.updated_at), "yyyy.MM.dd")}</span>}
       </div>
+      {/* Cast thumbnails */}
+      {sb.cast && sb.cast.length > 0 && (
+        <div className="mt-1 flex items-center gap-1">
+          {sb.cast.map((c) => (
+            <div
+              key={c.id}
+              title={`${c.speaker}: ${c.name}`}
+              className="h-6 w-6 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100"
+            >
+              {c.preview_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={c.preview_url}
+                  alt={c.name}
+                  className="h-full w-full object-cover object-top"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-[8px] text-zinc-400">
+                  {c.speaker}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       <button
         onClick={(e) => {
           e.stopPropagation();
