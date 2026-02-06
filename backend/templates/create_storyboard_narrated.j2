@@ -46,10 +46,28 @@ LoRA Trigger Words (MUST include in every scene where speaker=B):
 {% endif %}
 
 NARRATOR ROLE:
-- Narrator provides commentary, inner thoughts, context, and transitions
-- Narrator scenes show environmental shots, symbolic imagery, or emotional atmosphere
-- Narrator voice should be calm and observational
-- Narrator reveals information that dialogue alone cannot convey
+- Narrator scenes show environmental shots, symbolic imagery, or emotional atmosphere (NO characters)
+- CRITICAL: The script subject must NEVER be a person. Subject = place, object, time, or abstract concept.
+- Narrator script should be SHORT: max 20 characters (Korean) / 40 characters (English)
+- Narrator scripts should be SHORTER than A/B dialogue lines
+
+✅ ALLOWED Narrator Script Patterns (subject = environment/mood/abstract):
+- "카페에 햇살이 든다." (subject: 카페/햇살)
+- "차가운 빗소리." (subject: 빗소리)
+- "어색한 침묵." (subject: 침묵)
+- "10년이라는 시간." (subject: 시간)
+- "창밖, 노을이 진다." (subject: 노을)
+
+❌ FORBIDDEN Narrator Script Patterns (subject = person/character action):
+- "두 사람이 마주 앉았다." (subject: 두 사람 → FORBIDDEN)
+- "그녀가 고개를 돌렸다." (subject: 그녀 → FORBIDDEN)
+- "그는 천천히 걸어갔다." (subject: 그 → FORBIDDEN)
+- "서로를 바라보았다." (implied subject: people → FORBIDDEN)
+
+Narrator Position Roles:
+- Opening (scene 1): Set the scene atmosphere/location. e.g., "오래된 카페, 오후."
+- Transition (mid): Convey mood shift or time passage. e.g., "무거운 침묵."
+- Closing (final): Wrap with emotion or reflection. e.g., "창밖, 노을이 진다."
 
 ⚠️ CHARACTER CONSISTENCY RULES:
 - Speaker A scenes: include ALL of Speaker A's Identity + Costume + LoRA tags
@@ -101,9 +119,13 @@ Instructions:
    - Each scene: 2-3 seconds (for fast pacing)
 2. Follow pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 3. Narrator scenes:
-   - Provide context, inner thoughts, or dramatic commentary
    - Image shows environment, objects, or atmospheric elements (NO characters)
    - Use tags like: scenery, no_humans, still_life, window, sky, etc.
+   - Script-Image Alignment: script subject must match image content
+     * Script says "차가운 빗소리" → image_prompt includes "rain, window, dark_sky"
+     * Script says "오래된 카페" → image_prompt includes "cafe, indoors, warm_lighting"
+   - Script subject = place/object/time/abstract (NEVER a person)
+   - Script max 20 chars (Korean) / 40 chars (English) — shorter than A/B lines
 4. A/B scenes:
    - Show ONLY the speaking character
    - Use the speaker's identity/costume/LoRA tags
@@ -135,7 +157,7 @@ Output Format:
 [
   {
     "scene_id": 1,
-    "script": "10년 만에 우연히 마주친 두 사람.",
+    "script": "오래된 카페, 오후.",
     "speaker": "Narrator",
     "duration": 3,
     "image_prompt": "no_humans, scenery, cafe, window, sunlight, warm_lighting, indoors",

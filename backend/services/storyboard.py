@@ -426,6 +426,25 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
                     f"{len(script)} chars (max {MAX_SCRIPT_CHARS}): '{script[:40]}...'"
                 )
 
+        # Warn if Narrator scene scripts describe character actions (image-script mismatch)
+        _NARRATOR_PERSON_PATTERN = re.compile(r"(그|그녀|그들|두\s*사람|세\s*사람|그가|그녀가|그는|그녀는|서로를|서로)")
+        MAX_NARRATOR_SCRIPT_CHARS = 20
+        for s in scenes:
+            if s.get("speaker") != "Narrator":
+                continue
+            scene_id = s.get("scene_id", "?")
+            script = s.get("script", "")
+            if _NARRATOR_PERSON_PATTERN.search(script):
+                logger.warning(
+                    f"[Scene {scene_id}] Narrator script contains character reference: '{script}' "
+                    f"— should describe environment/mood, not character actions"
+                )
+            if len(script) > MAX_NARRATOR_SCRIPT_CHARS:
+                logger.warning(
+                    f"[Scene {scene_id}] Narrator script too long: "
+                    f"{len(script)} chars (max {MAX_NARRATOR_SCRIPT_CHARS}): '{script[:30]}...'"
+                )
+
         for scene in scenes:
             from config import ENABLE_DANBOORU_VALIDATION
             from services.keywords import filter_prompt_tokens
