@@ -57,15 +57,16 @@ export default function StoryboardGeneratorPanel({
       .catch(() => setPresets([]));
   }, []);
 
-  // Update sample topics when structure changes
+  // Update sample topics and duration when structure changes
   useEffect(() => {
     const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
     if (preset) {
       setSampleTopics(preset.sample_topics); // eslint-disable-line react-hooks/set-state-in-effect
+      setDuration(preset.default_duration);
     } else {
       setSampleTopics([]);
     }
-  }, [structure, presets]);
+  }, [structure, presets, setDuration]);
 
   return (
     <section className={cx(SECTION_CLASSES, "grid gap-6")}>

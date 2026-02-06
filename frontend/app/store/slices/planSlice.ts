@@ -64,7 +64,7 @@ export interface PlanSlice {
 const initialPlanState = {
   topic: "",
   description: "",
-  duration: 10,
+  duration: 30, // Synced with backend preset default (Monologue)
   style: "Anime",
   language: "Korean",
   structure: DEFAULT_STRUCTURE,

@@ -34,7 +34,7 @@ export function migrateDraft(): void {
         // Plan fields
         topic: draft.topic ?? "",
         description: draft.description ?? "",
-        duration: draft.duration ?? 10,
+        duration: draft.duration ?? 30,
         style: draft.style ?? "Anime",
         language: draft.language ?? "Korean",
         structure: draft.structure ?? DEFAULT_STRUCTURE,
