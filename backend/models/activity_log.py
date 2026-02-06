@@ -33,24 +33,13 @@ class ActivityLog(Base, TimestampMixin):
     )
     media_asset = relationship("MediaAsset", lazy="joined")
 
-    # Legacy: image_storage_key (deprecated, kept for migration compatibility)
-    # Will be removed in future migration after verification
-    image_storage_key: Mapped[str | None] = mapped_column(String(500))
-
     match_rate: Mapped[float | None] = mapped_column(Float, index=True)
     tags_used: Mapped[list[str] | None] = mapped_column(JSONB)
 
     @property
     def image_url(self) -> str | None:
-        """Generate URL from media_asset or legacy storage key."""
-        # Primary: use media_asset reference
-        if self.media_asset:
-            return self.media_asset.url
-        # Fallback: legacy storage_key (for unmatched records)
-        if self.image_storage_key:
-            from services.storage import get_storage
-            return get_storage().get_url(self.image_storage_key)
-        return None
+        """Generate URL from media_asset reference."""
+        return self.media_asset.url if self.media_asset else None
 
     # Status
     status: Mapped[str] = mapped_column(String(20), default="success")  # success, fail

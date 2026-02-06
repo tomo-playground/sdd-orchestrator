@@ -65,17 +65,15 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
     ```
     """
     try:
-        # Extract storage key and lookup media_asset_id
-        image_storage_key = None
+        # Lookup media_asset_id from image URL
         media_asset_id = None
         if request.image_url and not request.image_url.startswith("data:"):
             from services.validation import _extract_storage_key
-            image_storage_key = _extract_storage_key(request.image_url)
-            if image_storage_key:
-                # Lookup media_asset by storage_key
+            storage_key = _extract_storage_key(request.image_url)
+            if storage_key:
                 from models.media_asset import MediaAsset
                 asset = db.query(MediaAsset).filter(
-                    MediaAsset.storage_key == image_storage_key
+                    MediaAsset.storage_key == storage_key
                 ).first()
                 if asset:
                     media_asset_id = asset.id
@@ -92,7 +90,6 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
             seed=request.seed,
             status=request.status or "pending",
             media_asset_id=media_asset_id,
-            image_storage_key=image_storage_key,  # Keep for fallback
         )
         db.add(log)
         db.commit()
