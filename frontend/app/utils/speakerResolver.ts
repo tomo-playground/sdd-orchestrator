@@ -8,13 +8,17 @@ export type SpeakerResolverState = {
 /**
  * Resolve speaker label to the correct character_id.
  *
- * - "A" / "Narrator" → selectedCharacterId (Character A)
+ * - "A" → selectedCharacterId (Character A)
  * - "B" → selectedCharacterBId (Character B, Dialogue mode)
+ * - "Narrator" → null (background-only scene, no character)
  */
 export function resolveCharacterIdForSpeaker(
   speaker: Scene["speaker"],
   state: SpeakerResolverState
 ): number | null {
+  if (speaker === "Narrator") {
+    return null; // Narrator scenes show environment only (no_humans)
+  }
   if (speaker === "B") {
     return state.selectedCharacterBId;
   }
@@ -31,13 +35,17 @@ export type IpAdapterResolverState = {
 /**
  * Resolve IP-Adapter reference for a speaker.
  *
- * - "A" / "Narrator" → ipAdapterReference (Character A)
+ * - "A" → ipAdapterReference (Character A)
  * - "B" → ipAdapterReferenceB (Character B, Dialogue mode)
+ * - "Narrator" → empty (background-only scene, no character reference)
  */
 export function resolveIpAdapterForSpeaker(
   speaker: Scene["speaker"],
   state: IpAdapterResolverState
 ): { reference: string; weight: number } {
+  if (speaker === "Narrator") {
+    return { reference: "", weight: 0 }; // Narrator scenes: no IP-Adapter
+  }
   if (speaker === "B") {
     return { reference: state.ipAdapterReferenceB, weight: state.ipAdapterWeightB };
   }
@@ -47,8 +55,9 @@ export function resolveIpAdapterForSpeaker(
 /**
  * Resolve negative prompt for a speaker.
  *
- * - "A" / "Narrator" → baseNegativePromptA
+ * - "A" → baseNegativePromptA
  * - "B" → baseNegativePromptB
+ * - "Narrator" → baseNegativePromptA (background scenes still need negative prompts)
  */
 export function resolveNegativePromptForSpeaker(
   speaker: Scene["speaker"],
@@ -64,8 +73,9 @@ export function resolveNegativePromptForSpeaker(
 /**
  * Resolve base prompt for a speaker.
  *
- * - "A" / "Narrator" → basePromptA
+ * - "A" → basePromptA
  * - "B" → basePromptB
+ * - "Narrator" → basePromptA (for style consistency, but character tags excluded via LoRA)
  */
 export function resolveBasePromptForSpeaker(
   speaker: Scene["speaker"],
@@ -90,16 +100,29 @@ export type CharacterLora = {
 /**
  * Resolve character LoRAs for a speaker.
  *
- * - "A" / "Narrator" → characterLoras
- * - "B" → characterBLoras
+ * Style LoRA Unification: All speakers use character LoRAs only.
+ * Style LoRAs come from StyleProfile (applied uniformly to all scenes).
+ *
+ * - "A" → characterLoras filtered to identity only
+ * - "B" → characterBLoras filtered to identity only
+ * - "Narrator" → empty array (no character, style from StyleProfile)
+ *
+ * Note: This ensures visual consistency across A, B, and Narrator scenes
+ * by using a single style source (StyleProfile) for all scenes.
  */
 export function resolveCharacterLorasForSpeaker(
   speaker: Scene["speaker"],
   characterLoras: CharacterLora[],
   characterBLoras: CharacterLora[]
 ): CharacterLora[] {
-  if (speaker === "B") {
-    return characterBLoras;
+  if (speaker === "Narrator") {
+    // Narrator: no character LoRAs (background-only, style from StyleProfile)
+    return [];
   }
-  return characterLoras;
+  if (speaker === "B") {
+    // B: character LoRAs only (style from StyleProfile)
+    return characterBLoras.filter((l) => l.lora_type === "character");
+  }
+  // A: character LoRAs only (style from StyleProfile)
+  return characterLoras.filter((l) => l.lora_type === "character");
 }

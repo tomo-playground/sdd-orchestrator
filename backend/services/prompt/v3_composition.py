@@ -288,21 +288,33 @@ class V3PromptBuilder:
             info = tag_info.get(norm_tag, {"layer": LAYER_SUBJECT})
             layers[info["layer"]].append(tag)
 
+        # Style LoRA Unification: Collect style_loras names first for dedup
+        # StyleProfile LoRAs take precedence over character LoRAs
+        style_lora_names = {lora["name"] for lora in (style_loras or [])}
+
         if character_loras:
             for lora in character_loras:
+                lora_name = lora["name"]
+                # Dedup: skip if same LoRA is in style_loras (StyleProfile takes precedence)
+                if lora_name in style_lora_names:
+                    continue
+
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_IDENTITY]:
                         layers[LAYER_IDENTITY].append(trigger)
 
                 weight = lora.get("weight")
                 if weight is None:
-                    weight = self.get_lora_weight_by_name(lora["name"])
-                layers[LAYER_IDENTITY].append(f"<lora:{lora['name']}:{weight}>")
+                    weight = self.get_lora_weight_by_name(lora_name)
+                layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{weight}>")
 
         # Auto-triggered LoRAs from tags
         for tag in tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name:
+                # Skip if already in style_loras (StyleProfile precedence)
+                if lora_name in style_lora_names:
+                    continue
                 already_present = any(
                     f"<lora:{lora_name}:" in t
                     for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE])

@@ -114,7 +114,25 @@
 | 기대결과 | Model, LoRA, Embedding이 StyleProfile에 따라 적용 |
 | 테스트 파일 | `tests/test_style_lora_integration.py`, `tests/test_scene_generation_with_style_profile.py` |
 
-### 4.3 Character Tags → Prompt
+### 4.3 Style LoRA Unification (v4.2)
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | Dialogue/Narrated Dialogue 구조, StyleProfile 설정됨 |
+| 절차 | A, B, Narrator 씬 이미지 생성 |
+| 기대결과 | 모든 씬이 동일한 StyleProfile.loras 적용, Character별 character LoRA만 구분 |
+| 테스트 파일 | `tests/test_style_lora_unification.py`, `frontend/app/utils/__tests__/speakerResolver.test.ts` |
+
+**테스트 케이스**:
+1. StyleProfile LoRA → Speaker A 적용
+2. StyleProfile LoRA → Speaker B 적용 (동일 style)
+3. StyleProfile LoRA → Narrator 적용 (배경씬)
+4. Character style LoRA 무시 (StyleProfile 우선)
+5. 중복 LoRA 제거 (StyleProfile weight 우선)
+6. StyleProfile 없을 때 Fallback
+7. 모든 씬 동일 Style 검증
+
+### 4.4 Character Tags → Prompt
 
 | 항목 | 내용 |
 |------|------|

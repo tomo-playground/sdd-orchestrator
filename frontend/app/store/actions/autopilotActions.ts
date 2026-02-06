@@ -10,6 +10,7 @@ import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { getCurrentProject } from "../selectors/projectSelectors";
 import { initializeVideoMetadata } from "./outputActions";
 import { mapGeminiScenes, persistStoryboard } from "./storyboardActions";
+import { applyAutoPinAfterGeneration } from "../../utils/applyAutoPin";
 
 /**
  * Run the autopilot pipeline from a given step.
@@ -155,6 +156,27 @@ export async function runAutoRunFromStep(
             workingScenes = useStudioStore.getState().scenes;
           }
         }
+
+        // Apply auto-pin for all scenes after image generation
+        // Process in scene order so earlier scenes get pinned first
+        const { updateScene } = useStudioStore.getState();
+        const sortedScenes = [...workingScenes].sort((a, b) => a.order - b.order);
+        let autoPinCount = 0;
+        for (const scene of sortedScenes) {
+          // Re-fetch scenes each iteration to get updated environment_reference_id
+          const currentScenes = useStudioStore.getState().scenes;
+          const result = applyAutoPinAfterGeneration(currentScenes, scene.id, updateScene);
+          if (result?.success) {
+            autoPinCount++;
+            pushAutoRunLog(`AutoPin: Scene ${scene.order} - ${result.message}`);
+          }
+        }
+        if (autoPinCount > 0) {
+          pushAutoRunLog(`AutoPin applied to ${autoPinCount} scenes`);
+        }
+
+        // Sync workingScenes after auto-pin
+        workingScenes = useStudioStore.getState().scenes;
         await persistStoryboard();
         pushAutoRunLog("Images generated");
       }
