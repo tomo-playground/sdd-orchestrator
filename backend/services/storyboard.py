@@ -741,6 +741,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "title": storyboard.title,
         "description": storyboard.description,
         "group_id": storyboard.group_id,
+        "project_id": group.project_id if group else None,
         "structure": storyboard.structure,
         "character_id": character_id,
         "character_b_id": character_b_id,

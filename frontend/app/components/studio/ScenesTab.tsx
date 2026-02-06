@@ -113,6 +113,11 @@ export default function ScenesTab() {
     characterBLoras
   );
 
+  // Resolve pinned scene order for display (environment_reference_id → scene order)
+  const pinnedSceneOrder = currentScene?.environment_reference_id
+    ? scenes.find((s) => s.image_asset_id === currentScene.environment_reference_id)?.order
+    : undefined;
+
   const handleUpdateScene = useCallback(
     (updates: Partial<(typeof scenes)[0]>) => {
       if (currentScene) updateScene(currentScene.id, updates);
@@ -256,6 +261,7 @@ export default function ScenesTab() {
             isExclusiveGroup={isExclusiveGroup}
             onUpdateScene={handleUpdateScene}
             onPinToggle={handlePinToggle}
+            pinnedSceneOrder={pinnedSceneOrder}
             onRemoveScene={() => handleRemoveScene(currentScene.id)}
             onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
             onImageUpload={(file) => handleImageUpload(currentScene.id, file)}

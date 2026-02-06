@@ -10,6 +10,7 @@ type SceneActionBarProps = {
   sceneMenuOpen: boolean;
   isLoadingSuggestions: boolean;
   isMarkingStatus?: boolean;
+  pinnedSceneOrder?: number;
   onGenerateImage: () => void;
   onGeminiEditOpen: () => void;
   onAutoSuggest: () => void;
@@ -31,6 +32,7 @@ export default function SceneActionBar({
   sceneMenuOpen,
   isLoadingSuggestions,
   isMarkingStatus = false,
+  pinnedSceneOrder,
   onGenerateImage,
   onGeminiEditOpen,
   onAutoSuggest,
@@ -68,7 +70,7 @@ export default function SceneActionBar({
           <Button
             variant={scene.environment_reference_id ? "secondary" : "outline"}
             size="sm"
-            icon
+            icon={pinnedSceneOrder == null}
             onClick={onPinToggle}
             className={
               scene.environment_reference_id
@@ -76,10 +78,15 @@ export default function SceneActionBar({
                 : ""
             }
             title={
-              scene.environment_reference_id ? "배경 고정 해제" : "이전 장면의 배경을 참조합니다"
+              scene.environment_reference_id
+                ? `S${pinnedSceneOrder ?? "?"} 배경 참조 중 (클릭하여 해제)`
+                : "이전 장면의 배경을 참조합니다"
             }
           >
             📌
+            {pinnedSceneOrder != null ? (
+              <span className="ml-0.5 text-[10px]">S{pinnedSceneOrder + 1}</span>
+            ) : null}
           </Button>
         )}
 

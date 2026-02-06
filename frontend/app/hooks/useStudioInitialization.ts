@@ -69,9 +69,14 @@ export function useStudioInitialization() {
     })();
   }, [searchParams, setPlan]);
 
-  // Clear transient data when storyboard ID changes
+  // Clear transient data when switching between storyboards (not on initial mount)
+  const prevStoryboardIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (storyboardId) {
+    if (
+      storyboardId &&
+      prevStoryboardIdRef.current &&
+      prevStoryboardIdRef.current !== storyboardId
+    ) {
       useStudioStore.getState().setOutput({
         videoUrl: null,
         videoUrlFull: null,
@@ -79,6 +84,7 @@ export function useStudioInitialization() {
         recentVideos: [],
       });
     }
+    prevStoryboardIdRef.current = storyboardId;
   }, [storyboardId]);
 
   // Apply prompt from localStorage (from /manage Prompts tab)
@@ -119,14 +125,9 @@ export function useStudioInitialization() {
       .get(`${API_BASE}/storyboards/${id}`)
       .then((res) => {
         const data = res.data;
-        // Sync groupId and projectId from storyboard's group
+        // Sync groupId and projectId from storyboard response
         const groupId = data.group_id ?? null;
-        let projectId: number | null = null;
-        if (groupId) {
-          const { groups } = useStudioStore.getState();
-          const group = groups.find((g) => g.id === groupId);
-          if (group) projectId = group.project_id;
-        }
+        const projectId = data.project_id ?? null;
         setMeta({
           storyboardId: data.id,
           storyboardTitle: data.title,
@@ -134,10 +135,15 @@ export function useStudioInitialization() {
           ...(groupId ? { groupId } : {}),
           ...(projectId ? { projectId } : {}),
         });
+        // Restore video data from DB, mapping label to correct slot
+        const recentVideos = data.recent_videos || [];
+        const latestFull = recentVideos.find((v: { label?: string }) => v.label === "full");
+        const latestPost = recentVideos.find((v: { label?: string }) => v.label === "post");
         useStudioStore.getState().setOutput({
           videoUrl: data.video_url || null,
-          videoUrlFull: data.video_url || null,
-          recentVideos: data.recent_videos || [],
+          videoUrlFull: latestFull?.url || data.video_url || null,
+          videoUrlPost: latestPost?.url || null,
+          recentVideos,
           videoCaption: data.caption || "",
         });
         setPlan({

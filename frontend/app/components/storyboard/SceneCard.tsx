@@ -60,6 +60,7 @@ type SceneCardProps = {
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
   onPinToggle?: () => void;
+  pinnedSceneOrder?: number;
   onSavePrompt?: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
@@ -109,6 +110,7 @@ export default function SceneCard({
   onApplyMissingTags,
   onImagePreview,
   onPinToggle,
+  pinnedSceneOrder,
   onSavePrompt,
   onMarkSuccess,
   onMarkFail,
@@ -222,6 +224,7 @@ export default function SceneCard({
             qualityScore={qualityScore}
             sceneMenuOpen={sceneMenuOpen}
             isLoadingSuggestions={isLoadingSuggestions}
+            pinnedSceneOrder={pinnedSceneOrder}
             onGenerateImage={onGenerateImage}
             onGeminiEditOpen={() => setGeminiEditOpen(true)}
             onAutoSuggest={handleAutoSuggest}

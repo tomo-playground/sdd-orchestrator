@@ -64,17 +64,19 @@ export default function SceneSidePanel({
   scenes: scenesInfo,
   onSceneSelect,
 }: SceneSidePanelProps) {
+  const isNarrator = currentSpeaker === "Narrator";
   const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
   const hasMatchRateGrid =
-    scenesInfo && scenesInfo.length > 0 && imageValidationResults && Object.keys(imageValidationResults).length > 0;
+    scenesInfo &&
+    scenesInfo.length > 0 &&
+    imageValidationResults &&
+    Object.keys(imageValidationResults).length > 0;
 
   return (
     <div className={SIDE_PANEL_CLASSES}>
       {/* Generation Settings */}
       <div>
-        <label className={SIDE_PANEL_LABEL}>
-          Settings
-        </label>
+        <label className={SIDE_PANEL_LABEL}>Settings</label>
         <div className="space-y-2">
           <ToggleRow
             label="3x Candidates"
@@ -86,8 +88,10 @@ export default function SceneSidePanel({
             checked={useControlnet}
             onChange={onUseControlnetChange}
             accent="violet"
+            disabled={isNarrator}
+            disabledReason="Narrator 씬에서는 사용 불가"
           />
-          {useControlnet && (
+          {useControlnet && !isNarrator && (
             <SliderRow
               value={controlnetWeight}
               onChange={onControlnetWeightChange}
@@ -102,8 +106,10 @@ export default function SceneSidePanel({
             checked={useIpAdapter}
             onChange={onUseIpAdapterChange}
             accent={currentSpeaker === "B" ? "sky" : "amber"}
+            disabled={isNarrator}
+            disabledReason="Narrator 씬에서는 사용 불가"
           />
-          {useIpAdapter && (
+          {useIpAdapter && !isNarrator && (
             <>
               <select
                 value={ipAdapterReference}
@@ -140,9 +146,7 @@ export default function SceneSidePanel({
       {/* Validation Summary */}
       {totalValidation > 0 && (
         <div>
-          <label className={SIDE_PANEL_LABEL}>
-            Validation
-          </label>
+          <label className={SIDE_PANEL_LABEL}>Validation</label>
           <div className="grid grid-cols-3 gap-1.5">
             <StatBadge label="OK" count={validationSummary.ok} color="emerald" />
             <StatBadge label="Warn" count={validationSummary.warn} color="amber" />
@@ -154,9 +158,7 @@ export default function SceneSidePanel({
       {/* Match Rate Grid */}
       {hasMatchRateGrid && (
         <div>
-          <label className={SIDE_PANEL_LABEL}>
-            Match Rates
-          </label>
+          <label className={SIDE_PANEL_LABEL}>Match Rates</label>
           <div className="grid grid-cols-3 gap-1.5">
             {scenesInfo!.map((scene, index) => {
               const result = imageValidationResults![scene.id];
@@ -180,7 +182,7 @@ export default function SceneSidePanel({
                       ? `Scene ${index + 1}: ${Math.round(rate)}% match`
                       : `Scene ${index + 1}: not validated`
                   }
-                  className={`flex flex-col items-center rounded-lg border px-1 py-1.5 text-[9px] font-semibold leading-tight transition-all hover:scale-105 cursor-pointer ${colorClass}`}
+                  className={`flex cursor-pointer flex-col items-center rounded-lg border px-1 py-1.5 text-[9px] leading-tight font-semibold transition-all hover:scale-105 ${colorClass}`}
                 >
                   <span>S{index + 1}</span>
                   <span>{hasRate ? `${Math.round(rate)}%` : "--"}</span>
@@ -201,20 +203,30 @@ function ToggleRow({
   checked,
   onChange,
   accent = "zinc",
+  disabled = false,
+  disabledReason,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
   accent?: string;
+  disabled?: boolean;
+  disabledReason?: string;
 }) {
   return (
-    <label className="flex items-center justify-between text-[10px] font-medium text-zinc-500 cursor-pointer">
+    <label
+      className={`flex items-center justify-between text-[10px] font-medium ${
+        disabled ? "cursor-not-allowed text-zinc-300" : "cursor-pointer text-zinc-500"
+      }`}
+      title={disabled ? disabledReason : undefined}
+    >
       {label}
       <input
         type="checkbox"
-        checked={checked}
+        checked={disabled ? false : checked}
         onChange={(e) => onChange(e.target.checked)}
-        className={`h-3.5 w-3.5 accent-${accent}-600`}
+        disabled={disabled}
+        className={`h-3.5 w-3.5 accent-${accent}-600 ${disabled ? "opacity-30" : ""}`}
       />
     </label>
   );
@@ -253,17 +265,11 @@ function SliderRow({
   );
 }
 
-function StatBadge({
-  label,
-  count,
-  color,
-}: {
-  label: string;
-  count: number;
-  color: string;
-}) {
+function StatBadge({ label, count, color }: { label: string; count: number; color: string }) {
   return (
-    <div className={`flex flex-col items-center rounded-lg border border-${color}-200 bg-${color}-50 px-2 py-1.5`}>
+    <div
+      className={`flex flex-col items-center rounded-lg border border-${color}-200 bg-${color}-50 px-2 py-1.5`}
+    >
       <span className={`text-xs font-bold text-${color}-700`}>{count}</span>
       <span className={`text-[9px] text-${color}-500`}>{label}</span>
     </div>

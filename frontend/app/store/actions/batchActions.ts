@@ -51,28 +51,30 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         state.characterLoras || [],
         state.characterBLoras || []
       );
+      // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
+      const isNarrator = scene.speaker === "Narrator";
       return {
-      prompt: scene.image_prompt || "",
-      negative_prompt: scene.negative_prompt || "",
-      steps: 27,
-      cfg_scale: 7,
-      sampler_name: "DPM++ 2M Karras",
-      seed: -1,
-      width: scene.width || 512,
-      height: scene.height || 768,
-      clip_skip: 2,
-      character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
-      storyboard_id: state.storyboardId || undefined,
-      style_loras: speakerLoras.filter((l) => l.lora_type === "style") || [],
-      use_controlnet: state.useControlnet || false,
-      use_ip_adapter: state.useIpAdapter && !!ipAdapter.reference,
-      ip_adapter_reference: ipAdapter.reference || undefined,
-      ip_adapter_weight: ipAdapter.weight || 0.7,
-      use_reference_only: scene.use_reference_only ?? true,
-      reference_only_weight: scene.reference_only_weight ?? 0.5,
-      environment_reference_id: scene.environment_reference_id || undefined,
-      environment_reference_weight: scene.environment_reference_weight ?? 0.3,
-    };
+        prompt: scene.image_prompt || "",
+        negative_prompt: scene.negative_prompt || "",
+        steps: 27,
+        cfg_scale: 7,
+        sampler_name: "DPM++ 2M Karras",
+        seed: -1,
+        width: scene.width || 512,
+        height: scene.height || 768,
+        clip_skip: 2,
+        character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
+        storyboard_id: state.storyboardId || undefined,
+        style_loras: speakerLoras.filter((l) => l.lora_type === "style") || [],
+        use_controlnet: state.useControlnet && !isNarrator,
+        use_ip_adapter: state.useIpAdapter && !!ipAdapter.reference && !isNarrator,
+        ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
+        ip_adapter_weight: ipAdapter.weight || 0.7,
+        use_reference_only: scene.use_reference_only ?? true,
+        reference_only_weight: scene.reference_only_weight ?? 0.5,
+        environment_reference_id: scene.environment_reference_id || undefined,
+        environment_reference_weight: scene.environment_reference_weight ?? 0.3,
+      };
     });
 
     const res = await axios.post<BatchResponse>(`${API_BASE}/scene/generate-batch`, {

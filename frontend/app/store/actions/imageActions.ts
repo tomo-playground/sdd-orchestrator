@@ -356,6 +356,7 @@ export async function handleGenerateImage(scene: Scene) {
     return;
   }
 
+  const sceneOrder = updatedScene.order;
   updateScene(updatedScene.id, { isGenerating: true });
   try {
     const result = multiGenEnabled
@@ -363,7 +364,8 @@ export async function handleGenerateImage(scene: Scene) {
       : await generateSceneImageFor(updatedScene);
     if (result) {
       console.log("[handleGenerateImage] Image generation result:", result);
-      updateScene(updatedScene.id, result);
+      // Include isGenerating: false before saveStoryboard to survive ID reassignment
+      updateScene(updatedScene.id, { ...result, isGenerating: false });
 
       // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
       const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
@@ -386,7 +388,13 @@ export async function handleGenerateImage(scene: Scene) {
       console.warn("[handleGenerateImage] No result from image generation");
     }
   } finally {
-    updateScene(updatedScene.id, { isGenerating: false });
+    // Scene ID may have changed after saveStoryboard (ID reassignment).
+    // Look up by order (stable) instead of old ID.
+    const currentScenes = useStudioStore.getState().scenes;
+    const targetScene = currentScenes.find((s) => s.order === sceneOrder);
+    if (targetScene) {
+      useStudioStore.getState().updateScene(targetScene.id, { isGenerating: false });
+    }
   }
 }
 

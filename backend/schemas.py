@@ -210,6 +210,79 @@ class StoryboardResponse(StoryboardBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RecentVideoResponse(BaseModel):
+    """A recent render video entry."""
+
+    url: str
+    label: str | None = None
+    createdAt: int  # Millisecond timestamp
+
+
+class SceneTagResponse(BaseModel):
+    """Tag attached to a scene (read-only)."""
+
+    tag_id: int
+    weight: float = 1.0
+
+
+class SceneActionResponse(BaseModel):
+    """Character action attached to a scene (read-only)."""
+
+    character_id: int
+    tag_id: int
+    weight: float = 1.0
+
+
+class SceneDetailResponse(BaseModel):
+    """Full scene detail returned from GET /storyboards/{id}."""
+
+    id: int
+    scene_id: int
+    script: str
+    speaker: str
+    duration: float
+    description: str | None = None
+    image_prompt: str = ""
+    image_prompt_ko: str = ""
+    negative_prompt: str | None = None
+    image_url: str | None = None
+    width: int = 512
+    height: int = 768
+    context_tags: dict | None = None
+    tags: list[SceneTagResponse] = []
+    character_actions: list[SceneActionResponse] = []
+    use_reference_only: bool | None = None
+    reference_only_weight: float | None = None
+    environment_reference_id: int | None = None
+    environment_reference_weight: float | None = None
+    image_asset_id: int | None = None
+    candidates: list[SceneCandidate] | None = None
+    auto_pin_previous: bool = Field(default=False, alias="_auto_pin_previous")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StoryboardDetailResponse(BaseModel):
+    """Full storyboard detail returned from GET /storyboards/{id}."""
+
+    id: int
+    title: str
+    description: str | None = None
+    group_id: int | None = None
+    project_id: int | None = None
+    structure: str = DEFAULT_STRUCTURE
+    character_id: int | None = None
+    character_b_id: int | None = None
+    style_profile_id: int | None = None
+    narrator_voice_preset_id: int | None = None
+    video_url: str | None = None
+    recent_videos: list[RecentVideoResponse] = []
+    caption: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    scenes: list[SceneDetailResponse] = []
+
+
 class StoryboardRequest(BaseModel):
     topic: str
     description: str | None = None
