@@ -82,6 +82,11 @@ docs/
 - **Boolean은 Boolean**: `Integer`로 boolean 저장 금지. `Boolean` 타입 + `is_`/`_enabled` 네이밍.
 - **JSON은 JSONB**: `Text`에 JSON 문자열 저장 금지. 구조화 데이터는 반드시 `JSONB`.
 - **설정 소유권**: `System Default < Project Config < Group Config`. 콘텐츠 엔티티는 설정을 소유하지 않는다.
+- **미디어 참조는 media_asset_id 필수**: 이미지/비디오/오디오 URL을 직접 저장하지 않는다.
+  - ❌ `image_url: "http://localhost:9000/..."` — 환경 종속, 이동 불가
+  - ✅ `media_asset_id: 123` — `media_assets` 테이블 FK 참조
+  - Backend GET 응답에서 `media_asset_id` → `url` 변환 (serialize 시점)
+  - Frontend는 저장 시 URL 제거, 조회 시 Backend가 채워준 URL 사용
 - **상세**: `.claude/agents/dba.md` "스키마 설계 철학" 섹션 참조.
 
 ## API Contract Principles (Backend ↔ Frontend)
