@@ -15,7 +15,7 @@ def avatar_filename(avatar_key: str) -> str:
     """Generate a unique filename for an avatar based on its key.
 
     Args:
-        avatar_key: The avatar key (e.g., channel name)
+        avatar_key: The avatar key (e.g., channel name or URL)
 
     Returns:
         A unique filename like 'avatar_abc123def456.png'
@@ -25,6 +25,41 @@ def avatar_filename(avatar_key: str) -> str:
     return f"avatar_{hash_value}.png"
 
 
+async def _download_avatar_from_url(url: str, timeout: float = 60.0) -> str | None:
+    """Download avatar image from a URL and save to storage.
+
+    Args:
+        url: The URL to download the avatar from
+        timeout: Request timeout in seconds
+
+    Returns:
+        The storage key if successful, None otherwise
+    """
+    filename = avatar_filename(url)
+    storage_key = f"shared/avatars/{filename}"
+    storage = get_storage()
+
+    if storage.exists(storage_key):
+        logger.info(f"Avatar (from URL) found in storage: {storage_key}")
+        return storage_key
+
+    logger.info(f"Downloading avatar from URL: {url}")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(url, timeout=timeout, follow_redirects=True)
+            res.raise_for_status()
+            image_bytes = res.content
+            if len(image_bytes) < 100:
+                logger.warning(f"Downloaded avatar too small ({len(image_bytes)} bytes)")
+                return None
+            storage.save(storage_key, image_bytes, content_type="image/png")
+            logger.info(f"✅ Avatar downloaded from URL: {storage_key}")
+            return storage_key
+    except Exception as e:
+        logger.exception(f"Failed to download avatar from URL: {e}")
+        return None
+
+
 async def ensure_avatar_file(
     avatar_key: str,
     timeout: float = 60.0,
@@ -32,12 +67,16 @@ async def ensure_avatar_file(
     """Ensure an avatar file exists, using StorageService.
 
     Args:
-        avatar_key: The avatar key to generate for
+        avatar_key: The avatar key (can be a URL or simple string)
         timeout: Request timeout in seconds
 
     Returns:
         The storage key of the avatar if successful, None otherwise
     """
+    # If avatar_key is a URL, download it directly
+    if avatar_key.startswith(("http://", "https://")):
+        return await _download_avatar_from_url(avatar_key, timeout)
+
     filename = avatar_filename(avatar_key)
     storage_key = f"shared/avatars/{filename}"
     storage = get_storage()
@@ -47,7 +86,6 @@ async def ensure_avatar_file(
         return storage_key
 
     logger.info(f"Avatar not found, generating: {avatar_key} -> {storage_key}")
-    # ... (payload and other logic remains same, but save via storage)
     prompt = (
         "anime avatar portrait, clean background, head and shoulders, "
         "soft lighting, centered, high quality"
@@ -83,15 +121,13 @@ async def ensure_avatar_file(
         try:
             from services.simple_avatar import generate_simple_avatar
 
-            # Simple avatar currently writes to path, we might need to adapt it
-            # or just use a temporary file.
             storage = get_storage()
             fake_path = storage.get_local_path(storage_key)
             fake_path.parent.mkdir(parents=True, exist_ok=True)
             generate_simple_avatar(avatar_key, fake_path)
 
-            if storage_key.startswith("shared/"): # Trigger sync if needed for S3
-                 get_storage().save(storage_key, fake_path.read_bytes(), content_type="image/png")
+            if storage_key.startswith("shared/"):
+                get_storage().save(storage_key, fake_path.read_bytes(), content_type="image/png")
 
             logger.info(f"✅ Simple avatar generated: {storage_key}")
             return storage_key
