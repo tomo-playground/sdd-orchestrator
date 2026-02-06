@@ -3,7 +3,11 @@ import type { Scene, GeminiSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
-import { resolveCharacterIdForSpeaker, resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
+import {
+  resolveCharacterIdForSpeaker,
+  resolveIpAdapterForSpeaker,
+  resolveCharacterLorasForSpeaker,
+} from "../../utils/speakerResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return URL + asset_id */
@@ -70,6 +74,11 @@ export async function generateSceneImageFor(
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
   const { reference: ipAdapterReference, weight: ipAdapterWeight } =
     resolveIpAdapterForSpeaker(scene.speaker, state);
+  const speakerLoras = resolveCharacterLorasForSpeaker(
+    scene.speaker,
+    state.characterLoras || [],
+    state.characterBLoras || []
+  );
 
   if (!selectedCharacterId) {
     if (!silent) showToast("Character selection is required", "error");
@@ -125,6 +134,7 @@ export async function generateSceneImageFor(
     ...controlnetPayload,
     ...ipAdapterPayload,
     character_id: selectedCharacterId,
+    style_loras: speakerLoras.filter((l) => l.lora_type === "style"),
   };
 
   try {

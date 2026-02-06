@@ -113,10 +113,10 @@ describe("resolveBasePromptForSpeaker", () => {
 
 describe("resolveCharacterLorasForSpeaker", () => {
   const lorasA = [
-    { lora_id: 1, weight: 0.8, name: "Doremi LoRA" },
-    { lora_id: 2, weight: 0.6, name: "School Uniform" },
+    { id: 1, weight: 0.8, name: "Doremi LoRA" },
+    { id: 2, weight: 0.6, name: "School Uniform" },
   ];
-  const lorasB = [{ lora_id: 3, weight: 0.9, name: "Takeshi LoRA" }];
+  const lorasB = [{ id: 3, weight: 0.9, name: "Takeshi LoRA" }];
 
   it("returns characterLoras for speaker A", () => {
     const result = resolveCharacterLorasForSpeaker("A", lorasA, lorasB);

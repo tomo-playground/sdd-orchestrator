@@ -79,10 +79,11 @@ export function resolveBasePromptForSpeaker(
 }
 
 export type CharacterLora = {
-  lora_id: number;
-  weight: number;
-  name?: string;
+  id: number;
+  name: string;
+  weight?: number;
   trigger_words?: string[];
+  lora_type?: string;
   optimal_weight?: number;
 };
 

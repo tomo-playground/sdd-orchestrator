@@ -3,7 +3,11 @@ import { API_BASE } from "../../constants";
 import { useStudioStore } from "../useStudioStore";
 import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
-import { resolveCharacterIdForSpeaker, resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
+import {
+  resolveCharacterIdForSpeaker,
+  resolveIpAdapterForSpeaker,
+  resolveCharacterLorasForSpeaker,
+} from "../../utils/speakerResolver";
 
 interface BatchResult {
   index: number;
@@ -42,6 +46,11 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
   try {
     const sceneRequests = targetScenes.map((scene) => {
       const ipAdapter = resolveIpAdapterForSpeaker(scene.speaker, state);
+      const speakerLoras = resolveCharacterLorasForSpeaker(
+        scene.speaker,
+        state.characterLoras || [],
+        state.characterBLoras || []
+      );
       return {
       prompt: scene.image_prompt || "",
       negative_prompt: scene.negative_prompt || "",
@@ -54,7 +63,7 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
       clip_skip: 2,
       character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
       storyboard_id: state.storyboardId || undefined,
-      style_loras: state.characterLoras?.filter((l) => l.lora_type === "style") || [],
+      style_loras: speakerLoras.filter((l) => l.lora_type === "style") || [],
       use_controlnet: state.useControlnet || false,
       use_ip_adapter: state.useIpAdapter && !!ipAdapter.reference,
       ip_adapter_reference: ipAdapter.reference || undefined,
