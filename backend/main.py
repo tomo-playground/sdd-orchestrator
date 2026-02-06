@@ -78,14 +78,11 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    # TTS Model Preloading (non-blocking)
-    try:
-        from services.video.scene_processing import get_qwen_model
-        logger.info("[TTS] Preloading Qwen3-TTS model...")
-        get_qwen_model()
-        logger.info("[TTS] Qwen3-TTS model loaded successfully")
-    except Exception as e:
-        logger.warning(f"[TTS] Qwen preload failed (will retry on first request): {e}")
+    # TTS Model Eager Loading (required for video rendering)
+    from services.video.scene_processing import get_qwen_model
+    logger.info("[TTS] Loading Qwen3-TTS model...")
+    get_qwen_model()
+    logger.info("[TTS] Qwen3-TTS model loaded successfully")
 
     logger.info("🚀 [Startup] Application started successfully")
 

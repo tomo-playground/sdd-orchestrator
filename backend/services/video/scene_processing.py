@@ -30,28 +30,16 @@ from config import (
 from services.storage import get_storage
 from services.video.utils import clean_script_for_tts
 
-# Lazy-loaded TTS dependencies (torch + qwen_tts)
-# These are optional: video rendering works without TTS (silent audio fallback).
-_torch = None
-_Qwen3TTSModel = None
-_TTS_AVAILABLE: bool | None = None  # None = not yet checked
+# Eager-loaded TTS dependencies (torch + qwen_tts)
+# TTS is required for video rendering with voice narration.
+import torch as _torch
+from qwen_tts import Qwen3TTSModel as _Qwen3TTSModel
+
+_TTS_AVAILABLE = True
 
 
 def _ensure_tts_deps() -> bool:
-    """Lazy-load torch and qwen_tts. Returns True if available."""
-    global _torch, _Qwen3TTSModel, _TTS_AVAILABLE
-    if _TTS_AVAILABLE is not None:
-        return _TTS_AVAILABLE
-    try:
-        import torch as _t
-        from qwen_tts import Qwen3TTSModel as _Q
-
-        _torch = _t
-        _Qwen3TTSModel = _Q
-        _TTS_AVAILABLE = True
-    except Exception as e:
-        logger.warning(f"[TTS] torch/qwen_tts unavailable, TTS disabled: {e}")
-        _TTS_AVAILABLE = False
+    """Check TTS availability. Always returns True with eager loading."""
     return _TTS_AVAILABLE
 
 
