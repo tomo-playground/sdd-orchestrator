@@ -3,14 +3,8 @@ import { API_BASE } from "../../constants";
 import { useStudioStore } from "../useStudioStore";
 import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
-import {
-  resolveCharacterIdForSpeaker,
-  resolveCharacterLorasForSpeaker,
-} from "../../utils/speakerResolver";
-import {
-  resolveSceneControlnet,
-  resolveSceneIpAdapter,
-} from "../../utils/sceneSettingsResolver";
+import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
+import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
 
 interface BatchResult {
   index: number;
@@ -50,11 +44,6 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
     const sceneRequests = targetScenes.map((scene) => {
       const controlnet = resolveSceneControlnet(scene, state);
       const ipAdapter = resolveSceneIpAdapter(scene, state);
-      const speakerLoras = resolveCharacterLorasForSpeaker(
-        scene.speaker,
-        state.characterLoras || [],
-        state.characterBLoras || []
-      );
       // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
       const isNarrator = scene.speaker === "Narrator";
       return {
@@ -69,7 +58,7 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         clip_skip: 2,
         character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
         storyboard_id: state.storyboardId || undefined,
-        style_loras: speakerLoras.filter((l) => l.lora_type === "style") || [],
+        style_loras: state.currentStyleProfile?.loras || [],
         use_controlnet: controlnet.enabled && !isNarrator,
         controlnet_weight: controlnet.weight,
         use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,

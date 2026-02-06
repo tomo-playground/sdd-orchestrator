@@ -3,10 +3,7 @@ import type { Scene, GeminiSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
-import {
-  resolveCharacterIdForSpeaker,
-  resolveCharacterLorasForSpeaker,
-} from "../../utils/speakerResolver";
+import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 import {
   resolveSceneControlnet,
   resolveSceneIpAdapter,
@@ -67,20 +64,10 @@ export async function generateSceneImageFor(
   silent = false
 ): Promise<Partial<Scene> | null> {
   const state = useStudioStore.getState();
-  const {
-    autoComposePrompt,
-    storyboardId,
-    showToast,
-  } = state;
+  const { autoComposePrompt, storyboardId, showToast } = state;
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
   const controlnet = resolveSceneControlnet(scene, state);
   const ipAdapter = resolveSceneIpAdapter(scene, state);
-  const speakerLoras = resolveCharacterLorasForSpeaker(
-    scene.speaker,
-    state.characterLoras || [],
-    state.characterBLoras || []
-  );
-
   // Narrator scenes don't require character selection (no_humans, scenery only)
   if (!selectedCharacterId && scene.speaker !== "Narrator") {
     if (!silent) showToast("Character selection is required", "error");
@@ -139,7 +126,7 @@ export async function generateSceneImageFor(
     ...controlnetPayload,
     ...ipAdapterPayload,
     character_id: selectedCharacterId,
-    style_loras: speakerLoras.filter((l) => l.lora_type === "style"),
+    style_loras: state.currentStyleProfile?.loras || [],
   };
 
   try {
