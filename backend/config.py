@@ -286,9 +286,11 @@ VOICE_PRESET_MAX_DURATION = float(os.getenv("VOICE_PRESET_MAX_DURATION", "60.0")
 VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 
 # --- TTS Generation Parameters ---
-TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))  # Lower = more consistent
-TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.9"))  # Nucleus sampling threshold
-TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.1"))  # Discourage repetition
+# Qwen recommended: temperature=0.6~0.7, top_p=0.8~0.95
+# WARNING: Do NOT use temperature=0 (greedy) - causes infinite repetitions
+TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.6"))  # Lower = more consistent (0.6 stable)
+TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))  # Nucleus sampling (Qwen recommended)
+TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.2"))  # Discourage repetition
 
 # --- TTS Performance ---
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
