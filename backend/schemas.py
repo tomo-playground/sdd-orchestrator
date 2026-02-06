@@ -779,6 +779,46 @@ class StyleProfileResponse(StyleProfileBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class SDModelBrief(BaseModel):
+    id: int
+    name: str
+    display_name: str | None = None
+
+
+class LoRABrief(BaseModel):
+    id: int
+    name: str
+    display_name: str | None = None
+    trigger_words: list[str] | None = None
+    weight: float = 1.0
+
+
+class EmbeddingBrief(BaseModel):
+    id: int
+    name: str
+    trigger_word: str | None = None
+
+
+class StyleProfileFullResponse(BaseModel):
+    id: int
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    sd_model: SDModelBrief | None = None
+    loras: list[LoRABrief] = []
+    negative_embeddings: list[EmbeddingBrief] = []
+    positive_embeddings: list[EmbeddingBrief] = []
+    default_positive: str | None = None
+    default_negative: str | None = None
+    is_default: bool = False
+    is_active: bool = True
+
+
+class StyleProfileDeleteResponse(BaseModel):
+    ok: bool
+    deleted: str
+
+
 # ============================================================
 # Activity Log Schemas (Unified Memory)
 # ============================================================

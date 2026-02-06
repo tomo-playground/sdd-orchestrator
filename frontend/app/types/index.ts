@@ -467,8 +467,6 @@ export type ProjectItem = {
   avatar_media_asset_id: number | null;
   avatar_url: string | null; // Read-only from backend
   avatar_key: string | null; // Read-only from backend (storage key for rendering)
-  render_preset_id: number | null;
-  style_profile_id: number | null;
   created_at: string | null;
 };
 

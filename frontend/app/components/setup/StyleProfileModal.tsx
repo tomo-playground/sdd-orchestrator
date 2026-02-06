@@ -11,7 +11,6 @@ type StyleProfile = {
   display_name: string | null;
   description: string | null;
   is_default: boolean;
-  sd_model_name?: string;
 };
 
 type StyleProfileModalProps = {
@@ -172,11 +171,6 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
                       <p className="text-xs text-zinc-500 line-clamp-2">
                         {profile.description || "설명 없음"}
                       </p>
-                      {profile.sd_model_name && (
-                        <p className="mt-2 text-[10px] text-zinc-400">
-                          Model: {profile.sd_model_name}
-                        </p>
-                      )}
                     </div>
                     {/* Radio indicator */}
                     <div className={`shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedProfileId === profile.id

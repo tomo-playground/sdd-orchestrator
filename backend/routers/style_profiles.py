@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import get_db
 from models import Embedding, LoRA, SDModel, StyleProfile
-from schemas import StyleProfileCreate, StyleProfileResponse, StyleProfileUpdate
+from schemas import (
+    StyleProfileCreate,
+    StyleProfileDeleteResponse,
+    StyleProfileFullResponse,
+    StyleProfileResponse,
+    StyleProfileUpdate,
+)
 
 router = APIRouter(prefix="/style-profiles", tags=["style-profiles"])
 
@@ -22,7 +28,7 @@ async def list_style_profiles(active_only: bool = True, db: Session = Depends(ge
     return profiles
 
 
-@router.get("/default")
+@router.get("/default", response_model=StyleProfileFullResponse)
 async def get_default_profile(db: Session = Depends(get_db)):
     """Get the default style profile with full details."""
     profile = db.query(StyleProfile).filter(StyleProfile.is_default).first()
@@ -40,7 +46,7 @@ async def get_style_profile(profile_id: int, db: Session = Depends(get_db)):
     return profile
 
 
-@router.get("/{profile_id}/full")
+@router.get("/{profile_id}/full", response_model=StyleProfileFullResponse)
 async def get_style_profile_full(profile_id: int, db: Session = Depends(get_db)):
     """Get style profile with all resolved references."""
     profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
@@ -64,13 +70,15 @@ def _build_full_profile(db: Session, profile: StyleProfile) -> dict:
         for lora_config in profile.loras:
             lora = db.query(LoRA).filter(LoRA.id == lora_config.get("lora_id")).first()
             if lora:
-                loras.append({
-                    "id": lora.id,
-                    "name": lora.name,
-                    "display_name": lora.display_name,
-                    "trigger_words": lora.trigger_words,
-                    "weight": lora_config.get("weight", 1.0),
-                })
+                loras.append(
+                    {
+                        "id": lora.id,
+                        "name": lora.name,
+                        "display_name": lora.display_name,
+                        "trigger_words": lora.trigger_words,
+                        "weight": lora_config.get("weight", 1.0),
+                    }
+                )
 
     # Resolve negative embeddings
     negative_embeddings = []
@@ -152,7 +160,7 @@ async def update_style_profile(profile_id: int, data: StyleProfileUpdate, db: Se
     return profile
 
 
-@router.delete("/{profile_id}")
+@router.delete("/{profile_id}", response_model=StyleProfileDeleteResponse)
 async def delete_style_profile(profile_id: int, db: Session = Depends(get_db)):
     """Delete a style profile."""
     profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()

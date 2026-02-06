@@ -1,7 +1,8 @@
-"""Cascading config resolver: Project < GroupConfig.
+"""Cascading config resolver: GroupConfig only.
 
-For each CASCADING_FIELDS entry, the most specific non-None value wins:
-  GroupConfig (if given) > Project.
+For each CASCADING_FIELDS entry, the most specific non-None value wins.
+Currently only the GroupConfig layer provides config values.
+The Project model does not carry config fields directly.
 """
 
 from __future__ import annotations
@@ -23,32 +24,26 @@ CASCADING_FIELDS = [
 
 
 def resolve_effective_config(
-    project: Any,
+    _project: Any,
     group: Any | None = None,
 ) -> dict:
     """Return resolved config dict with ``values`` and ``sources``.
 
     Each source entry records which level the value came from.
     The group layer reads from group.config (GroupConfig) if available.
+    Note: Project model has no config fields; only GroupConfig is resolved.
     """
     values: dict[str, Any] = {}
     sources: dict[str, str] = {}
 
-    # Build layers: project -> group_config
     group_config = _get_group_config(group)
-    layers = [
-        ("project", project),
-        ("group", group_config),
-    ]
 
     for field in CASCADING_FIELDS:
-        for level_name, obj in layers:
-            if obj is None:
-                continue
-            val = getattr(obj, field, None)
+        if group_config is not None:
+            val = getattr(group_config, field, None)
             if val is not None:
                 values[field] = val
-                sources[field] = level_name
+                sources[field] = "group"
 
     return {"values": values, "sources": sources}
 

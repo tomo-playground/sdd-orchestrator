@@ -66,7 +66,7 @@ class StyleProfile(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text)
 
     # SD Model
-    sd_model_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sd_models.id"))
+    sd_model_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sd_models.id", ondelete="SET NULL"))
     sd_model: Mapped["SDModel"] = relationship("SDModel")
 
     # LoRAs (array of {lora_id, weight})

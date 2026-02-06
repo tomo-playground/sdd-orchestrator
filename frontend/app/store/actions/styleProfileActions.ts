@@ -123,7 +123,6 @@ async function updateExistingStoryboard(
       title: topic || "Untitled",
       description: useStudioStore.getState().description || null,
       character_id: selectedCharacterId,
-      style_profile_id: profile.id,
       scenes: scenesPayload,
     });
     console.log("[StyleProfileModal] Storyboard updated with profile ID:", profile.id);
@@ -147,7 +146,6 @@ async function createNewStoryboard(
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
       character_id: selectedCharacterId,
-      style_profile_id: profile.id,
       scenes: scenesPayload,
     });
     setMeta({ storyboardId: res.data.storyboard_id });

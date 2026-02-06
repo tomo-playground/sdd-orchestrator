@@ -11,7 +11,6 @@ type StyleProfile = {
   display_name: string | null;
   description: string | null;
   is_default: boolean;
-  sd_model_name?: string;
 };
 
 type Props = {

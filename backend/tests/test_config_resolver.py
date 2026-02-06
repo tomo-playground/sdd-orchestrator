@@ -18,18 +18,16 @@ class _Obj:
 
 
 class TestResolveEffectiveConfig:
-    def test_project_only(self):
-        """Project layer can provide values (generic resolver test)."""
-        project = _Obj(render_preset_id=10, style_profile_id=2)
+    def test_project_only_returns_empty(self):
+        """Project model has no config fields; project-only returns empty."""
+        project = _Obj()
         result = resolve_effective_config(project)
-        assert result["values"] == {
-            "render_preset_id": 10,
-            "style_profile_id": 2,
-        }
-        assert all(v == "project" for v in result["sources"].values())
+        assert result["values"] == {}
+        assert result["sources"] == {}
 
-    def test_group_config_overrides_project(self):
-        project = _Obj(render_preset_id=10, style_profile_id=2)
+    def test_group_config_provides_values(self):
+        """GroupConfig is the only layer that provides config values."""
+        project = _Obj()
         group_config = _Obj(render_preset_id=20, style_profile_id=3)
         group = _Obj(config=group_config)
         result = resolve_effective_config(project, group)
@@ -39,23 +37,25 @@ class TestResolveEffectiveConfig:
         assert result["sources"]["style_profile_id"] == "group"
 
     def test_all_none_returns_empty(self):
-        project = _Obj(render_preset_id=None, style_profile_id=None)
+        project = _Obj()
         result = resolve_effective_config(project)
         assert result["values"] == {}
         assert result["sources"] == {}
 
     def test_no_group(self):
-        project = _Obj(render_preset_id=5, style_profile_id=None)
+        """Without a group, no config is resolved."""
+        project = _Obj()
         result = resolve_effective_config(project, None)
-        assert result["values"] == {"render_preset_id": 5}
-        assert result["sources"] == {"render_preset_id": "project"}
+        assert result["values"] == {}
+        assert result["sources"] == {}
 
     def test_group_without_config(self):
-        project = _Obj(render_preset_id=5, style_profile_id=None)
+        """Group without a config object resolves nothing."""
+        project = _Obj()
         group = _Obj(config=None)
         result = resolve_effective_config(project, group)
-        assert result["values"] == {"render_preset_id": 5}
-        assert result["sources"] == {"render_preset_id": "project"}
+        assert result["values"] == {}
+        assert result["sources"] == {}
 
 
 # ===========================================================================
