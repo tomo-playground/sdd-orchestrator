@@ -4,12 +4,18 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
-import { API_BASE } from "../../constants";
+import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { LABEL_CLASSES } from "../ui/variants";
 import type { GroupItem } from "../../types";
+
+type Preset = {
+  id: string;
+  name: string;
+  structure: string;
+};
 
 interface StoryboardItem {
   id: number;
@@ -42,9 +48,23 @@ export default function StoryboardsSection({
   const [sbLoading, setSbLoading] = useState(true);
   const [showNewSbModal, setShowNewSbModal] = useState(false);
   const [newSbTitle, setNewSbTitle] = useState("");
+  const [newSbStructure, setNewSbStructure] = useState(DEFAULT_STRUCTURE);
+  const [presets, setPresets] = useState<Preset[]>([]);
+
+  // Fetch presets on mount
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/presets`)
+      .then((res) => {
+        const list = res.data?.presets ?? res.data;
+        if (Array.isArray(list)) setPresets(list);
+      })
+      .catch(() => setPresets([]));
+  }, []);
 
   const openNewStoryboard = useCallback(() => {
     setNewSbTitle("");
+    setNewSbStructure(DEFAULT_STRUCTURE);
     setShowNewSbModal(true);
   }, []);
 
@@ -53,8 +73,9 @@ export default function StoryboardsSection({
     selectGroup(groupId);
     const params = new URLSearchParams({ new: "true" });
     if (newSbTitle.trim()) params.set("title", newSbTitle.trim());
+    if (newSbStructure) params.set("structure", newSbStructure);
     router.push(`/studio?${params.toString()}`);
-  }, [groupId, newSbTitle, selectGroup, router]);
+  }, [groupId, newSbTitle, newSbStructure, selectGroup, router]);
 
   // Fetch storyboards filtered by sidebar's selected group
   useEffect(() => {
@@ -90,11 +111,7 @@ export default function StoryboardsSection({
               Storyboards{!sbLoading && storyboards.length > 0 ? ` (${storyboards.length})` : ""}
             </h2>
             {!sbLoading && storyboards.length > 0 && (
-              <Button
-                size="sm"
-                onClick={openNewStoryboard}
-                className="shrink-0 rounded-full"
-              >
+              <Button size="sm" onClick={openNewStoryboard} className="shrink-0 rounded-full">
                 + New Storyboard
               </Button>
             )}
@@ -106,10 +123,7 @@ export default function StoryboardsSection({
             <LoadingSpinner size="md" />
           </div>
         ) : storyboards.length === 0 ? (
-          <EmptyState
-            hasGroups={groups.length > 0}
-            onNewStoryboard={openNewStoryboard}
-          />
+          <EmptyState hasGroups={groups.length > 0} onNewStoryboard={openNewStoryboard} />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <DraftCard onClick={() => router.push("/studio")} />
@@ -137,20 +151,38 @@ export default function StoryboardsSection({
               x
             </button>
           </Modal.Header>
-          <div className="px-5 py-4">
-            <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-              Topic *
-            </label>
-            <input
-              value={newSbTitle}
-              onChange={(e) => setNewSbTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newSbTitle.trim()) confirmNewStoryboard();
-              }}
-              placeholder="e.g. 에어컨 소리 30초 쇼츠"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
-              autoFocus
-            />
+          <div className="flex flex-col gap-4 px-5 py-4">
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                Structure *
+              </label>
+              <select
+                value={newSbStructure}
+                onChange={(e) => setNewSbStructure(e.target.value)}
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              >
+                {presets.map((p) => (
+                  <option key={p.structure} value={p.structure}>
+                    {p.structure}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                Topic *
+              </label>
+              <input
+                value={newSbTitle}
+                onChange={(e) => setNewSbTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newSbTitle.trim()) confirmNewStoryboard();
+                }}
+                placeholder="e.g. 에어컨 소리 30초 쇼츠"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+                autoFocus
+              />
+            </div>
           </div>
           <Modal.Footer>
             <Button variant="ghost" size="sm" onClick={() => setShowNewSbModal(false)}>

@@ -48,14 +48,19 @@ export function useStudioInitialization() {
     }
 
     const storyTitle = searchParams.get("title") || undefined;
-    if (storyTitle) {
-      setPlan({ topic: storyTitle });
+    const storyStructure = searchParams.get("structure") || undefined;
+    const planUpdates: Record<string, unknown> = {};
+    if (storyTitle) planUpdates.topic = storyTitle;
+    if (storyStructure) planUpdates.structure = storyStructure;
+    if (Object.keys(planUpdates).length > 0) {
+      setPlan(planUpdates);
     }
 
     // Clear URL params (prevents searchParams re-trigger)
     const url = new URL(window.location.href);
     url.searchParams.delete("new");
     url.searchParams.delete("title");
+    url.searchParams.delete("structure");
     url.searchParams.delete("id");
     window.history.replaceState({}, "", url.toString());
   }, [searchParams, setPlan]);
