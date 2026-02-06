@@ -4,6 +4,20 @@ import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
 import type { Scene } from "../../types";
 
 /**
+ * Sanitize candidates for DB storage.
+ * Removes image_url (stored via media_asset_id, backend resolves URL on GET)
+ */
+export function sanitizeCandidatesForDb(
+  candidates: Scene["candidates"]
+): Array<{ media_asset_id: number; match_rate?: number }> | null {
+  if (!candidates || candidates.length === 0) return null;
+  return candidates.map((c) => ({
+    media_asset_id: c.media_asset_id,
+    ...(c.match_rate !== undefined && { match_rate: c.match_rate }),
+  }));
+}
+
+/**
  * Auto-save storyboard before image generation
  * Ensures all activity logs have proper storyboard_id
  *
@@ -54,7 +68,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         environment_reference_weight: s.environment_reference_weight ?? 0.3,
         use_reference_only: s.use_reference_only ?? true,
         reference_only_weight: s.reference_only_weight ?? 0.5,
-        candidates: s.candidates ?? null,
+        candidates: sanitizeCandidatesForDb(s.candidates),
       })),
     };
 
@@ -200,7 +214,7 @@ export async function persistStoryboard(): Promise<boolean> {
         environment_reference_weight: s.environment_reference_weight ?? 0.3,
         use_reference_only: s.use_reference_only ?? true,
         reference_only_weight: s.reference_only_weight ?? 0.5,
-        candidates: s.candidates ?? null,
+        candidates: sanitizeCandidatesForDb(s.candidates),
       })),
     };
 

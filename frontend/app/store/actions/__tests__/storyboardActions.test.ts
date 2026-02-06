@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
-import { mapGeminiScenes, persistStoryboard, saveStoryboard } from "../storyboardActions";
+import {
+  mapGeminiScenes,
+  persistStoryboard,
+  saveStoryboard,
+  sanitizeCandidatesForDb,
+} from "../storyboardActions";
 import { useStudioStore } from "../../useStudioStore";
 
 vi.mock("axios");
@@ -312,5 +317,80 @@ describe("saveStoryboard", () => {
 
     expect(result).toBe(false);
     expect(showToast).toHaveBeenCalledWith("Failed to save storyboard", "error");
+  });
+});
+
+describe("sanitizeCandidatesForDb", () => {
+  it("removes image_url from candidates (prevents localhost URLs in DB)", () => {
+    const candidates = [
+      {
+        media_asset_id: 100,
+        match_rate: 0.85,
+        image_url: "http://localhost:9000/shorts-producer/projects/3/img.png",
+      },
+      {
+        media_asset_id: 101,
+        match_rate: 0.72,
+        image_url: "http://localhost:9000/shorts-producer/projects/3/img2.png",
+      },
+    ];
+
+    const result = sanitizeCandidatesForDb(candidates);
+
+    expect(result).toEqual([
+      { media_asset_id: 100, match_rate: 0.85 },
+      { media_asset_id: 101, match_rate: 0.72 },
+    ]);
+    // Ensure image_url is NOT present
+    expect(result![0]).not.toHaveProperty("image_url");
+    expect(result![1]).not.toHaveProperty("image_url");
+  });
+
+  it("returns null for empty candidates array", () => {
+    expect(sanitizeCandidatesForDb([])).toBeNull();
+  });
+
+  it("returns null for undefined candidates", () => {
+    expect(sanitizeCandidatesForDb(undefined)).toBeNull();
+  });
+
+  it("preserves media_asset_id and match_rate only", () => {
+    const candidates = [
+      {
+        media_asset_id: 200,
+        match_rate: 0.9,
+        image_url: "http://example.com/img.png",
+      },
+    ];
+
+    const result = sanitizeCandidatesForDb(candidates);
+
+    expect(result).toHaveLength(1);
+    expect(Object.keys(result![0])).toEqual(["media_asset_id", "match_rate"]);
+  });
+
+  it("omits match_rate when undefined", () => {
+    const candidates = [{ media_asset_id: 300, image_url: "http://example.com/img.png" }];
+
+    const result = sanitizeCandidatesForDb(candidates);
+
+    expect(result).toEqual([{ media_asset_id: 300 }]);
+    expect(result![0]).not.toHaveProperty("match_rate");
+  });
+
+  it("handles multiple candidates with mixed match_rate presence", () => {
+    const candidates = [
+      { media_asset_id: 400, match_rate: 0.8, image_url: "http://a.com" },
+      { media_asset_id: 401, image_url: "http://b.com" }, // no match_rate
+      { media_asset_id: 402, match_rate: 0.5, image_url: "http://c.com" },
+    ];
+
+    const result = sanitizeCandidatesForDb(candidates);
+
+    expect(result).toEqual([
+      { media_asset_id: 400, match_rate: 0.8 },
+      { media_asset_id: 401 },
+      { media_asset_id: 402, match_rate: 0.5 },
+    ]);
   });
 });

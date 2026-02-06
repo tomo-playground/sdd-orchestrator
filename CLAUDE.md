@@ -96,6 +96,15 @@ docs/
   3. Frontend 타입(interface)을 Backend 스키마와 일치시킴
   4. REST API 명세 (`docs/03_engineering/api/REST_API.md`) 업데이트
 
+## Code Modularization Principles (중복 로직 금지)
+- **변환 로직 모듈화**: 동일한 데이터 변환이 여러 곳에서 필요하면 **반드시 헬퍼 함수로 추출**한다.
+  - 예: `sanitizeCandidatesForDb()` — candidates 저장 시 `image_url` 제거
+  - 예: `mapGeminiScenes()` — Gemini 응답 → Scene 타입 변환
+- **복사-붙여넣기 금지**: 같은 로직이 2곳 이상에서 사용되면 즉시 공통 함수로 추출한다.
+- **완전성 검증**: 새 기능 추가 시 **모든 호출 경로**에서 해당 로직이 적용되는지 확인한다.
+  - ❌ `autoSaveStoryboard()`에만 적용하고 `persistStoryboard()`에서 누락하는 실수 방지
+- **테스트 케이스 필수**: 공통 헬퍼 함수는 **단위 테스트로 방어**한다.
+
 ## Frontend State Sync Principles (Active Entity Deletion)
 - **삭제 = 즉시 정리**: 현재 활성 엔티티(스토리보드, 씬 등)를 삭제하면 **스토어 전체 리셋** + 안전한 화면으로 리다이렉트. `storyboardId: null`만 설정하고 나머지 데이터를 방치하지 않는다.
 - **404 = 삭제된 것으로 간주**: API에서 404 반환 시 에러를 무시하지 않는다. 토스트 메시지 표시 + 스토어 리셋 + URL 정리.
