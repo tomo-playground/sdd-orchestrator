@@ -32,6 +32,7 @@ describe("mapGeminiScenes", () => {
         image_prompt_ko: "소녀, 미소",
         description: "A smiling girl",
         negative_prompt: "bad hands",
+        _auto_pin_previous: true,
       },
     ];
 
@@ -53,6 +54,7 @@ describe("mapGeminiScenes", () => {
       negative_prompt: "lowres, blurry, bad hands",
       isGenerating: false,
       debug_payload: "",
+      _auto_pin_previous: true,
     });
   });
 
@@ -101,6 +103,35 @@ describe("mapGeminiScenes", () => {
 
     expect(result.map((s) => s.id)).toEqual([0, 1, 2]);
     expect(result.map((s) => s.order)).toEqual([1, 2, 3]);
+  });
+
+  it("maps _auto_pin_previous true from backend", () => {
+    const raw = [{ _auto_pin_previous: true }];
+    const result = mapGeminiScenes(raw, "");
+    expect(result[0]._auto_pin_previous).toBe(true);
+  });
+
+  it("maps _auto_pin_previous false from backend", () => {
+    const raw = [{ _auto_pin_previous: false }];
+    const result = mapGeminiScenes(raw, "");
+    expect(result[0]._auto_pin_previous).toBe(false);
+  });
+
+  it("defaults _auto_pin_previous to false when missing", () => {
+    const raw = [{}];
+    const result = mapGeminiScenes(raw, "");
+    expect(result[0]._auto_pin_previous).toBe(false);
+  });
+
+  it("handles mixed _auto_pin_previous values across scenes", () => {
+    const raw = [
+      { _auto_pin_previous: false }, // first scene (location change)
+      { _auto_pin_previous: true }, // same location
+      { _auto_pin_previous: false }, // location change
+      { _auto_pin_previous: true }, // same location
+    ];
+    const result = mapGeminiScenes(raw, "");
+    expect(result.map((s) => s._auto_pin_previous)).toEqual([false, true, false, true]);
   });
 });
 

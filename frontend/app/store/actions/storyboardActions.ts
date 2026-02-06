@@ -147,6 +147,7 @@ export function mapGeminiScenes(
       context_tags: (s.context_tags as Scene["context_tags"]) || undefined,
       isGenerating: false,
       debug_payload: "",
+      _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
     };
   });
 }

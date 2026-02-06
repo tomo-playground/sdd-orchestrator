@@ -390,7 +390,8 @@ export function handleImageUpload(sceneId: number, file?: File) {
   const reader = new FileReader();
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
-    const { projectId, groupId, storyboardId, showToast: toast } = useStudioStore.getState();
+    const { projectId, groupId, storyboardId, showToast: toast, scenes, updateScene } =
+      useStudioStore.getState();
     if (!projectId || !groupId || !storyboardId) {
       toast("Project/Group context required", "error");
       return;
@@ -403,11 +404,19 @@ export function handleImageUpload(sceneId: number, file?: File) {
       sceneId,
       `upload_${sceneId}_${Date.now()}.png`
     );
-    useStudioStore.getState().updateScene(sceneId, {
+    updateScene(sceneId, {
       image_url: stored.url,
       image_asset_id: stored.asset_id ?? null,
       candidates: [],
     });
+
+    // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
+    const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
+    const autoPinResult = applyAutoPinAfterGeneration(scenes, sceneId, updateScene);
+    if (autoPinResult?.success) {
+      console.log("[AutoPin]", autoPinResult.message);
+      toast(`🔗 ${autoPinResult.message}`, "success");
+    }
 
     // Auto-save after image upload to persist to DB
     await saveStoryboard();

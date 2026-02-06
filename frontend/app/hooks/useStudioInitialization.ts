@@ -283,5 +283,6 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     environment_reference_weight: (s.environment_reference_weight as number) || undefined,
     use_reference_only: (s.use_reference_only as boolean) || undefined,
     reference_only_weight: (s.reference_only_weight as number) || undefined,
+    _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
   }));
 }
