@@ -61,8 +61,24 @@ def truncate_title(title: str, max_length: int = 190) -> str:
     return title
 
 
-def serialize_scene(scene: Scene) -> dict:
-    """Serialize a Scene ORM object to dict for API response."""
+def serialize_scene(scene: Scene, asset_url_map: dict[int, str] | None = None) -> dict:
+    """Serialize a Scene ORM object to dict for API response.
+
+    Args:
+        scene: Scene ORM object
+        asset_url_map: Optional mapping of media_asset_id -> URL for candidates
+    """
+    # Enrich candidates with URLs if asset_url_map is provided
+    candidates_with_url = None
+    if scene.candidates:
+        candidates_with_url = []
+        for c in scene.candidates:
+            enriched = dict(c)  # Copy to avoid mutating DB data
+            asset_id = c.get("media_asset_id")
+            if asset_id and asset_url_map and asset_id in asset_url_map:
+                enriched["image_url"] = asset_url_map[asset_id]
+            candidates_with_url.append(enriched)
+
     return {
         "id": scene.id,
         "scene_id": scene.order,
@@ -86,7 +102,7 @@ def serialize_scene(scene: Scene) -> dict:
         "environment_reference_id": scene.environment_reference_id,
         "environment_reference_weight": scene.environment_reference_weight,
         "image_asset_id": scene.image_asset_id,
-        "candidates": scene.candidates,
+        "candidates": candidates_with_url,
     }
 
 
@@ -96,6 +112,13 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         image_url = s_data.image_url
         if image_url and image_url.startswith("data:"):
             image_url = None
+
+        # Convert Pydantic SceneCandidate models to dicts for JSONB storage
+        candidates_for_db = None
+        if s_data.candidates:
+            candidates_for_db = [
+                c.model_dump() if hasattr(c, "model_dump") else c for c in s_data.candidates
+            ]
 
         db_scene = Scene(
             storyboard_id=storyboard_id,
@@ -114,7 +137,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             reference_only_weight=s_data.reference_only_weight or 0.5,
             environment_reference_id=s_data.environment_reference_id,
             environment_reference_weight=s_data.environment_reference_weight or 0.3,
-            candidates=s_data.candidates,
+            candidates=candidates_for_db,
         )
         db.add(db_scene)
         db.flush()
@@ -594,6 +617,21 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
 
     scenes = sorted(storyboard.scenes, key=lambda s: s.order)
 
+    # Collect all candidate asset IDs for batch query (N+1 prevention)
+    candidate_asset_ids: set[int] = set()
+    for sc in scenes:
+        if sc.candidates:
+            for c in sc.candidates:
+                asset_id = c.get("media_asset_id")
+                if asset_id:
+                    candidate_asset_ids.add(asset_id)
+
+    # Batch fetch candidate assets and build URL map
+    asset_url_map: dict[int, str] = {}
+    if candidate_asset_ids:
+        candidate_assets = db.query(MediaAsset).filter(MediaAsset.id.in_(candidate_asset_ids)).all()
+        asset_url_map = {a.id: a.url for a in candidate_assets}
+
     recent_videos = [
         {"url": rh.media_asset.url, "label": rh.label, "createdAt": int(rh.created_at.timestamp() * 1000)}
         for rh in storyboard.render_history[:10]
@@ -621,7 +659,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "caption": storyboard.caption,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
-        "scenes": [serialize_scene(sc) for sc in scenes],
+        "scenes": [serialize_scene(sc, asset_url_map) for sc in scenes],
     }
 
 

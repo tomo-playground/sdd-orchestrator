@@ -68,7 +68,6 @@ class RenderPresetCreate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    voice_preset_id: int | None = None
 
 
 class RenderPresetUpdate(BaseModel):
@@ -84,7 +83,6 @@ class RenderPresetUpdate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    voice_preset_id: int | None = None
 
 
 class RenderPresetResponse(BaseModel):
@@ -102,7 +100,6 @@ class RenderPresetResponse(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    voice_preset_id: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -115,7 +112,7 @@ class GroupCreate(BaseModel):
     # Config fields applied to auto-created GroupConfig
     render_preset_id: int | None = None
     style_profile_id: int | None = None
-    character_id: int | None = None
+    narrator_voice_preset_id: int | None = None
 
 
 class GroupUpdate(BaseModel):
@@ -137,7 +134,6 @@ class GroupConfigUpdate(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    character_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
@@ -153,7 +149,6 @@ class GroupConfigResponse(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    character_id: int | None = None
     language: str | None = None
     structure: str | None = None
     duration: int | None = None
@@ -170,7 +165,6 @@ class EffectiveConfigResponse(BaseModel):
 
     render_preset_id: int | None = None
     render_preset: RenderPresetResponse | None = None  # Full preset for frontend
-    character_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
@@ -228,6 +222,14 @@ class StoryboardRequest(BaseModel):
     character_b_id: int | None = None
 
 
+class SceneCandidate(BaseModel):
+    """Candidate image for scene selection."""
+
+    media_asset_id: int
+    match_rate: float | None = None
+    image_url: str | None = None  # Backend populates this on read
+
+
 class StoryboardScene(BaseModel):
     scene_id: int
     script: str
@@ -244,8 +246,8 @@ class StoryboardScene(BaseModel):
     negative_prompt: str | None = None
     context_tags: dict | None = None
 
-    # Candidate images
-    candidates: list[dict] | None = None
+    # Candidate images (media_asset_id based)
+    candidates: list[SceneCandidate] | None = None
 
     # V3 Data Persistence
     tags: list[SceneTagSave] | None = None

@@ -193,7 +193,11 @@ export async function generateSceneImageFor(
       const bestCandidate = sortedCandidates[0];
       const mainImageUrl = bestCandidate.image_url;
       const bestAssetId = bestCandidate.asset_id;
-      const candidates = sortedCandidates.map((c) => ({ image_url: c.image_url }));
+      const candidates = sortedCandidates.map((c) => ({
+        media_asset_id: c.asset_id!,
+        match_rate: c.match_rate ?? undefined,
+        image_url: c.image_url, // UI 표시용으로 유지
+      }));
 
       // Update validation results cache in store for the best image
       if (bestCandidate.validation) {
@@ -281,14 +285,19 @@ export async function generateSceneCandidates(
     return null;
   }
 
-  const candidates: Array<{ image_url: string; match_rate?: number }> = [];
+  const candidates: Array<{
+    media_asset_id: number;
+    match_rate?: number;
+    image_url?: string;
+  }> = [];
   for (let i = 0; i < 3; i += 1) {
     const result = await generateSceneImageFor(scene, true);
-    if (!result?.image_url) continue;
+    if (!result?.image_url || !result?.image_asset_id) continue;
     const validation = await validateImageCandidate(result.image_url, prompt, scene.id);
     candidates.push({
-      image_url: result.image_url,
+      media_asset_id: result.image_asset_id,
       match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
+      image_url: result.image_url, // UI 표시용으로 유지
     });
   }
   if (!candidates.length) return null;
@@ -308,8 +317,12 @@ export async function generateSceneCandidates(
     }
   }
 
+  // best의 image_asset_id 찾기
+  const bestAssetId = best.media_asset_id;
+
   return {
     image_url: best.image_url,
+    image_asset_id: bestAssetId,
     candidates,
     debug_prompt: prompt,
     image_prompt: autoComposePrompt ? prompt : undefined,

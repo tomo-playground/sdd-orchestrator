@@ -277,7 +277,7 @@ export default function SceneCard({
             onImageClick={(url) =>
               onImagePreview(
                 url,
-                scene.candidates?.map((c) => c.image_url)
+                scene.candidates?.filter((c) => c.image_url).map((c) => c.image_url!)
               )
             }
             onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}

@@ -29,7 +29,11 @@ export type Scene = {
   description?: string;
   width?: number;
   height?: number;
-  candidates?: Array<{ image_url: string; match_rate?: number }>;
+  candidates?: Array<{
+    media_asset_id: number;
+    match_rate?: number;
+    image_url?: string; // Backend가 조회 시 채워줌
+  }>;
   negative_prompt: string;
   isGenerating: boolean;
   debug_payload: string;
@@ -151,7 +155,11 @@ export type DraftScene = {
   image_prompt_ko: string;
   image_url: string | null;
   image_asset_id?: number | null;
-  candidates?: Array<{ image_url: string; match_rate?: number }>;
+  candidates?: Array<{
+    media_asset_id: number;
+    match_rate?: number;
+    image_url?: string; // Backend가 조회 시 채워줌
+  }>;
   negative_prompt: string;
   context_tags?: SceneContextTags;
   prompt_history_id?: number;
@@ -460,7 +468,6 @@ export type ProjectItem = {
   avatar_url: string | null; // Read-only from backend
   avatar_key: string | null; // Read-only from backend (storage key for rendering)
   render_preset_id: number | null;
-  character_id: number | null;
   style_profile_id: number | null;
   created_at: string | null;
 };
@@ -480,7 +487,6 @@ export type RenderPreset = {
   ken_burns_preset: string | null;
   ken_burns_intensity: number | null;
   speed_multiplier: number | null;
-  voice_preset_id: number | null;
 };
 
 export type VoicePreset = {
@@ -525,7 +531,6 @@ export type YouTubeUploadStatus = {
 
 export type EffectiveConfig = {
   render_preset_id: number | null;
-  character_id: number | null;
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
   language: string | null;

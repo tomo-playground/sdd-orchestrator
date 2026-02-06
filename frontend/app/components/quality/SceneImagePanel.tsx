@@ -200,29 +200,31 @@ export default function SceneImagePanel({
       </div>
 
       {/* Candidates */}
-      {scene.candidates && scene.candidates.length > 1 && (
+      {scene.candidates && scene.candidates.filter((c) => c.image_url).length > 1 && (
         <div className="grid grid-cols-3 gap-2">
-          {scene.candidates.map((candidate, idx) => {
-            const isSelected = candidate.image_url === scene.image_url;
-            return (
-              <button
-                key={`${scene.id}-candidate-${idx}`}
-                type="button"
-                onClick={() => onCandidateSelect(candidate.image_url)}
-                className={`overflow-hidden rounded-xl border ${
-                  isSelected ? "border-zinc-900" : "border-zinc-200"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={candidate.image_url}
-                  alt={`Candidate ${idx + 1}`}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                />
-              </button>
-            );
-          })}
+          {scene.candidates
+            .filter((c) => c.image_url)
+            .map((candidate, idx) => {
+              const isSelected = candidate.image_url === scene.image_url;
+              return (
+                <button
+                  key={`${scene.id}-candidate-${idx}`}
+                  type="button"
+                  onClick={() => onCandidateSelect(candidate.image_url!)}
+                  className={`overflow-hidden rounded-xl border ${
+                    isSelected ? "border-zinc-900" : "border-zinc-200"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={candidate.image_url}
+                    alt={`Candidate ${idx + 1}`}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              );
+            })}
         </div>
       )}
     </div>
