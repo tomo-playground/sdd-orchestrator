@@ -221,6 +221,13 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         if not request.character_id:
             cleaned_prompt = normalize_prompt_tokens(request.prompt)
 
+    # Narrator scenes (no_humans): append person-exclusion tags to negative prompt
+    if "no_humans" in request.prompt:
+        from config import NARRATOR_NEGATIVE_PROMPT_EXTRA
+
+        request.negative_prompt = f"{request.negative_prompt}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
+        logger.info("🚫 [Narrator Negative] Appended person-exclusion tags to negative prompt")
+
     return cleaned_prompt, final_warnings, character_obj
 
 
@@ -339,8 +346,13 @@ def _apply_controlnet(
             )
 
     # Environment Pinning for Background Consistency
-    if request.environment_reference_id:
+    # Skip for Narrator scenes (no_humans) — reference images containing characters
+    # would inject character edges via Canny, defeating the no_humans intent
+    is_no_humans = "no_humans" in request.prompt
+    if request.environment_reference_id and not is_no_humans:
         _apply_environment_pinning(request, controlnet_args_list, final_warnings, db)
+    elif request.environment_reference_id and is_no_humans:
+        logger.info("🏠 [Environment Pinning] Skipped for no_humans scene (Narrator)")
 
     # IP-Adapter for Style/Identity Transfer
     if request.use_ip_adapter and request.ip_adapter_reference:

@@ -219,6 +219,9 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = "lowres, (bad_anatomy:1.2), (bad_hands:1.2),
 # Default negative prompt for scene generation (applied to Gemini-generated scenes)
 DEFAULT_SCENE_NEGATIVE_PROMPT = "lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, jpeg_artifacts, signature, watermark, username, blurry, easynegative, verybadimagenegative_v1.3"
 
+# Extra negative tags appended for Narrator scenes (no_humans) to suppress character generation
+NARRATOR_NEGATIVE_PROMPT_EXTRA = "1girl, 1boy, 2girls, 2boys, multiple_girls, multiple_boys, person, human, male, female, solo, couple, face, portrait, upper_body, cowboy_shot"
+
 # --- Gemini Auto Edit Configuration (Phase 6-4.22) ---
 # Master switch: Enable automatic image editing with Gemini when match_rate is low
 # WARNING: This feature incurs API costs (~$0.04 per edit)
