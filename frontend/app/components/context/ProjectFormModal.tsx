@@ -13,7 +13,7 @@ type Props = {
     name: string;
     description?: string;
     handle?: string;
-    avatar_key?: string;
+    avatar_media_asset_id?: number | null;
   }) => Promise<void>;
   onClose: () => void;
 };
@@ -23,7 +23,9 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
   const [handle, setHandle] = useState(project?.handle ?? "");
-  const [avatarKey, setAvatarKey] = useState(project?.avatar_key ?? "");
+  const [avatarAssetId, setAvatarAssetId] = useState<number | null>(
+    project?.avatar_media_asset_id ?? null
+  );
   const [saving, setSaving] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
 
@@ -46,7 +48,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
         name: name.trim(),
         ...(description.trim() && { description: description.trim() }),
         ...(handle.trim() && { handle: handle.trim() }),
-        avatar_key: avatarKey || undefined,
+        avatar_media_asset_id: avatarAssetId,
       });
       onClose();
     } finally {
@@ -54,7 +56,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
     }
   };
 
-  const charsWithImage = characters.filter((c) => c.preview_key);
+  const charsWithImage = characters.filter((c) => c.preview_image_asset_id);
 
   return (
     <Modal open onClose={onClose} size="sm">
@@ -113,9 +115,9 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
               {/* None option */}
               <button
                 type="button"
-                onClick={() => setAvatarKey("")}
+                onClick={() => setAvatarAssetId(null)}
                 className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-[10px] font-bold transition ${
-                  !avatarKey
+                  avatarAssetId === null
                     ? "border-zinc-900 bg-zinc-100 text-zinc-600"
                     : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300"
                 }`}
@@ -126,12 +128,12 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                 const imgUrl = ch.preview_image_url!.startsWith("http")
                   ? ch.preview_image_url!
                   : `${API_BASE}${ch.preview_image_url}`;
-                const isSelected = avatarKey === ch.preview_key;
+                const isSelected = avatarAssetId === ch.preview_image_asset_id;
                 return (
                   <button
                     key={ch.id}
                     type="button"
-                    onClick={() => setAvatarKey(ch.preview_key!)}
+                    onClick={() => setAvatarAssetId(ch.preview_image_asset_id!)}
                     title={ch.name}
                     className={`h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 transition ${
                       isSelected

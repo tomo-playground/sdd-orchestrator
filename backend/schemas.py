@@ -32,14 +32,14 @@ class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
     handle: str | None = None
-    avatar_key: str | None = None
+    avatar_media_asset_id: int | None = None
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     handle: str | None = None
-    avatar_key: str | None = None
+    avatar_media_asset_id: int | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -47,7 +47,9 @@ class ProjectResponse(BaseModel):
     name: str
     description: str | None = None
     handle: str | None = None
-    avatar_key: str | None = None
+    avatar_media_asset_id: int | None = None
+    avatar_url: str | None = None  # Read-only from @property
+    avatar_key: str | None = None  # Read-only from @property (storage key for rendering)
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -645,8 +647,9 @@ class CharacterResponse(CharacterBase):
     id: int
     project_id: int | None
     tags: list[CharacterTagLink] = []
+    preview_image_asset_id: int | None = None
     preview_image_url: str | None = None  # Read-only from @property
-    preview_key: str | None = None  # Read-only from @property (storage key for avatar_key)
+    preview_key: str | None = None  # Read-only from @property (storage key)
     preview_locked: bool = False
     deleted_at: datetime | None = None
 

@@ -20,7 +20,7 @@ export async function createProject(data: {
   name: string;
   description?: string;
   handle?: string;
-  avatar_key?: string;
+  avatar_media_asset_id?: number | null;
 }): Promise<ProjectItem | undefined> {
   const { showToast } = useStudioStore.getState();
   try {
@@ -37,7 +37,7 @@ export async function createProject(data: {
 
 export async function updateProject(
   projectId: number,
-  data: { name?: string; description?: string; handle?: string; avatar_key?: string }
+  data: { name?: string; description?: string; handle?: string; avatar_media_asset_id?: number | null }
 ): Promise<ProjectItem | undefined> {
   const { showToast } = useStudioStore.getState();
   try {

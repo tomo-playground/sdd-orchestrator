@@ -228,6 +228,7 @@ export type Character = {
   custom_negative_prompt: string | null;
   reference_base_prompt: string | null;
   reference_negative_prompt: string | null;
+  preview_image_asset_id: number | null;
   preview_image_url: string | null;
   preview_key: string | null;
   preview_locked: boolean;
@@ -455,8 +456,9 @@ export type ProjectItem = {
   name: string;
   description: string | null;
   handle: string | null;
-  avatar_url: string | null;
-  avatar_key: string | null;
+  avatar_media_asset_id: number | null;
+  avatar_url: string | null; // Read-only from backend
+  avatar_key: string | null; // Read-only from backend (storage key for rendering)
   render_preset_id: number | null;
   character_id: number | null;
   style_profile_id: number | null;

@@ -104,28 +104,6 @@ export function useStudioInitialization() {
     }
   }, [setPlan]);
 
-  // One-time migration: localStorage channelProfile → Project.avatar_key
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem("channel_profile_migrated")) return;
-
-    try {
-      const raw = localStorage.getItem("shorts-producer:studio:v1");
-      if (!raw) return;
-      const persisted = JSON.parse(raw)?.state;
-      const profile = persisted?.channelProfile;
-      if (!profile?.avatar_key) return;
-
-      const { projectId } = useStudioStore.getState();
-      if (!projectId) return;
-
-      updateProject(projectId, { avatar_key: profile.avatar_key });
-      localStorage.setItem("channel_profile_migrated", "true");
-    } catch {
-      // Silently ignore migration errors
-    }
-  }, []);
-
   // Load storyboard from DB if ?id=X
   useEffect(() => {
     if (!storyboardId) return;
