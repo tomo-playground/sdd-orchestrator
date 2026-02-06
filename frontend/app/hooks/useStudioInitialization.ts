@@ -6,6 +6,7 @@ import axios from "axios";
 import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { initializeVideoMetadata } from "../store/actions/outputActions";
+import { loadGroupDefaults } from "../store/actions/groupActions";
 import type { Scene } from "../types";
 import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
 import { updateProject } from "../store/actions/projectActions";
@@ -41,28 +42,31 @@ export function useStudioInitialization() {
     if (newHandledRef.current) return;
     newHandledRef.current = true;
 
-    resetStudioStore();
-    const { effectiveCharacterId } = useStudioStore.getState();
-    if (effectiveCharacterId) {
-      setPlan({ selectedCharacterId: effectiveCharacterId });
-    }
+    // Async IIFE to handle resetStudioStore (now async)
+    (async () => {
+      await resetStudioStore();
+      const { effectiveCharacterId } = useStudioStore.getState();
+      if (effectiveCharacterId) {
+        setPlan({ selectedCharacterId: effectiveCharacterId });
+      }
 
-    const storyTitle = searchParams.get("title") || undefined;
-    const storyStructure = searchParams.get("structure") || undefined;
-    const planUpdates: Record<string, unknown> = {};
-    if (storyTitle) planUpdates.topic = storyTitle;
-    if (storyStructure) planUpdates.structure = storyStructure;
-    if (Object.keys(planUpdates).length > 0) {
-      setPlan(planUpdates);
-    }
+      const storyTitle = searchParams.get("title") || undefined;
+      const storyStructure = searchParams.get("structure") || undefined;
+      const planUpdates: Record<string, unknown> = {};
+      if (storyTitle) planUpdates.topic = storyTitle;
+      if (storyStructure) planUpdates.structure = storyStructure;
+      if (Object.keys(planUpdates).length > 0) {
+        setPlan(planUpdates);
+      }
 
-    // Clear URL params (prevents searchParams re-trigger)
-    const url = new URL(window.location.href);
-    url.searchParams.delete("new");
-    url.searchParams.delete("title");
-    url.searchParams.delete("structure");
-    url.searchParams.delete("id");
-    window.history.replaceState({}, "", url.toString());
+      // Clear URL params (prevents searchParams re-trigger)
+      const url = new URL(window.location.href);
+      url.searchParams.delete("new");
+      url.searchParams.delete("title");
+      url.searchParams.delete("structure");
+      url.searchParams.delete("id");
+      window.history.replaceState({}, "", url.toString());
+    })();
   }, [searchParams, setPlan]);
 
   // Clear transient data when storyboard ID changes
@@ -166,10 +170,16 @@ export function useStudioInitialization() {
 
         // Initialize video metadata (caption/likes) once topic is set
         initializeVideoMetadata(data.title || "");
+
+        // Load group render defaults (bgmFile, speedMultiplier, voicePresetId, etc.)
+        // This ensures defaults are applied even if groupId hasn't changed
+        if (groupId) {
+          loadGroupDefaults(groupId);
+        }
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (err?.response?.status === 404) {
-          resetStudioStore();
+          await resetStudioStore();
           useStudioStore
             .getState()
             .showToast("삭제되었거나 존재하지 않는 스토리보드입니다.", "error");

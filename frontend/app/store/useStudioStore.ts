@@ -113,8 +113,11 @@ export const useStudioStore = create<StudioState>()(
  * Reset all store slices to initial state.
  * Call this when creating a new storyboard to clear previous data.
  * Channel info is now derived from the selected Project (no profileSlice).
+ *
+ * @param options.reloadGroupDefaults - If true, reload group defaults after reset (default: true)
  */
-export const resetStudioStore = () => {
+export const resetStudioStore = async (options?: { reloadGroupDefaults?: boolean }) => {
+  const { reloadGroupDefaults = true } = options ?? {};
   const state = useStudioStore.getState();
 
   // Preserve context data before reset
@@ -139,4 +142,10 @@ export const resetStudioStore = () => {
     projectId: preserved.projectId,
     groupId: preserved.groupId,
   });
+
+  // Reload group defaults to restore render preset values (bgmFile, speedMultiplier, etc.)
+  if (reloadGroupDefaults && preserved.groupId !== null) {
+    const { loadGroupDefaults } = await import("./actions/groupActions");
+    await loadGroupDefaults(preserved.groupId);
+  }
 };

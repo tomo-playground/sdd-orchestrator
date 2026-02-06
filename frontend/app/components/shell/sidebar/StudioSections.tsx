@@ -66,7 +66,7 @@ export default function StudioSections({ collapsed, groupId }: Props) {
         await axios.delete(`${API_BASE}/storyboards/${id}`);
         setStoryboards((prev) => prev.filter((s) => s.id !== id));
         if (storyboardId === id) {
-          resetStudioStore();
+          await resetStudioStore();
           router.push("/studio?new=true");
         }
         showToast("Storyboard deleted", "success");
