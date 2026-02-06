@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { API_BASE } from "../../constants";
 import { cx, SECTION_CLASSES } from "../ui/variants";
 
@@ -57,14 +57,21 @@ export default function StoryboardGeneratorPanel({
       .catch(() => setPresets([]));
   }, []);
 
-  // Update sample topics and duration when structure changes
+  // Update sample topics when structure changes
   useEffect(() => {
     const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
-    if (preset) {
-      setSampleTopics(preset.sample_topics); // eslint-disable-line react-hooks/set-state-in-effect
-      setDuration(preset.default_duration);
-    } else {
-      setSampleTopics([]);
+    setSampleTopics(preset?.sample_topics ?? []);
+  }, [structure, presets]);
+
+  // Update duration when structure changes (separate effect to avoid loop)
+  const prevStructureRef = useRef(structure);
+  useEffect(() => {
+    if (prevStructureRef.current !== structure) {
+      prevStructureRef.current = structure;
+      const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
+      if (preset) {
+        setDuration(preset.default_duration);
+      }
     }
   }, [structure, presets, setDuration]);
 
