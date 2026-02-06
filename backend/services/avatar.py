@@ -67,19 +67,25 @@ async def ensure_avatar_file(
     """Ensure an avatar file exists, using StorageService.
 
     Args:
-        avatar_key: The avatar key (can be a URL or simple string)
+        avatar_key: The avatar key (can be a URL, storage key, or simple string)
         timeout: Request timeout in seconds
 
     Returns:
         The storage key of the avatar if successful, None otherwise
     """
+    storage = get_storage()
+
     # If avatar_key is a URL, download it directly
     if avatar_key.startswith(("http://", "https://")):
         return await _download_avatar_from_url(avatar_key, timeout)
 
+    # If avatar_key is already an existing storage key (e.g., characters/9/preview/...)
+    if storage.exists(avatar_key):
+        logger.info(f"Avatar key is existing storage key: {avatar_key}")
+        return avatar_key
+
     filename = avatar_filename(avatar_key)
     storage_key = f"shared/avatars/{filename}"
-    storage = get_storage()
 
     if storage.exists(storage_key):
         logger.info(f"Avatar found in storage: {storage_key}")
