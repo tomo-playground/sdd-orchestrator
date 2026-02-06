@@ -3,7 +3,7 @@ Test Style LoRA Unification (TDD)
 
 This test suite verifies that:
 1. StyleProfile.loras are applied to ALL scenes (A, B, Narrator)
-2. Character.loras are filtered to identity-only (style excluded)
+2. Character.loras are filtered to character-type only (style excluded)
 3. Duplicate LoRAs between StyleProfile and Character are handled correctly
 """
 
@@ -30,8 +30,8 @@ def style_lora(db_session: Session) -> LoRA:
 
 
 @pytest.fixture
-def identity_lora_a(db_session: Session) -> LoRA:
-    """Create an identity LoRA for Character A."""
+def character_lora_a(db_session: Session) -> LoRA:
+    """Create an character LoRA for Character A."""
     lora = LoRA(
         name="character_a_lora",
         display_name="Character A LoRA",
@@ -45,8 +45,8 @@ def identity_lora_a(db_session: Session) -> LoRA:
 
 
 @pytest.fixture
-def identity_lora_b(db_session: Session) -> LoRA:
-    """Create an identity LoRA for Character B."""
+def character_lora_b(db_session: Session) -> LoRA:
+    """Create an character LoRA for Character B."""
     lora = LoRA(
         name="character_b_lora",
         display_name="Character B LoRA",
@@ -96,20 +96,20 @@ class TestStyleLoRAUnification:
     """Test Style LoRA unification across all scene types."""
 
     def test_style_profile_loras_applied_to_speaker_a(
-        self, db_session: Session, style_profile_with_lora: StyleProfile, identity_lora_a: LoRA
+        self, db_session: Session, style_profile_with_lora: StyleProfile, character_lora_a: LoRA
     ):
         """
-        Given: StyleProfile with style LoRA, Character A with identity LoRA
+        Given: StyleProfile with style LoRA, Character A with character LoRA
         When: Generate prompt for Speaker A scene
-        Then: Both StyleProfile.style and CharA.identity LoRAs should be applied
+        Then: Both StyleProfile.style and CharA.character LoRAs should be applied
         """
         # Arrange
         style_loras = style_profile_with_lora.loras
         character_loras = [
             {
-                "name": identity_lora_a.name,
-                "weight": identity_lora_a.default_weight,
-                "trigger_words": identity_lora_a.trigger_words,
+                "name": character_lora_a.name,
+                "weight": character_lora_a.default_weight,
+                "trigger_words": character_lora_a.trigger_words,
                 "lora_type": "character",
             }
         ]
@@ -125,15 +125,15 @@ class TestStyleLoRAUnification:
 
         # Assert
         assert "<lora:flat_color_style:0.7>" in result, "StyleProfile style LoRA should be applied"
-        assert "<lora:character_a_lora:0.8>" in result, "Character identity LoRA should be applied"
+        assert "<lora:character_a_lora:0.8>" in result, "Character character LoRA should be applied"
         assert "flat_color" in result, "Style LoRA trigger words should be included"
         assert "char_a_trigger" in result, "Identity LoRA trigger words should be included"
 
     def test_style_profile_loras_applied_to_speaker_b(
-        self, db_session: Session, style_profile_with_lora: StyleProfile, identity_lora_b: LoRA
+        self, db_session: Session, style_profile_with_lora: StyleProfile, character_lora_b: LoRA
     ):
         """
-        Given: StyleProfile with style LoRA, Character B with identity LoRA
+        Given: StyleProfile with style LoRA, Character B with character LoRA
         When: Generate prompt for Speaker B scene
         Then: Same StyleProfile.style LoRA + CharB.identity should be applied
         """
@@ -141,9 +141,9 @@ class TestStyleLoRAUnification:
         style_loras = style_profile_with_lora.loras
         character_loras = [
             {
-                "name": identity_lora_b.name,
-                "weight": identity_lora_b.default_weight,
-                "trigger_words": identity_lora_b.trigger_words,
+                "name": character_lora_b.name,
+                "weight": character_lora_b.default_weight,
+                "trigger_words": character_lora_b.trigger_words,
                 "lora_type": "character",
             }
         ]
@@ -159,15 +159,13 @@ class TestStyleLoRAUnification:
 
         # Assert
         assert "<lora:flat_color_style:0.7>" in result, "Same StyleProfile LoRA for Speaker B"
-        assert "<lora:character_b_lora:0.8>" in result, "Character B identity LoRA should be applied"
+        assert "<lora:character_b_lora:0.8>" in result, "Character B character LoRA should be applied"
 
-    def test_style_profile_loras_applied_to_narrator(
-        self, db_session: Session, style_profile_with_lora: StyleProfile
-    ):
+    def test_style_profile_loras_applied_to_narrator(self, db_session: Session, style_profile_with_lora: StyleProfile):
         """
         Given: StyleProfile with style LoRA
         When: Generate prompt for Narrator scene (no_humans)
-        Then: StyleProfile.style LoRA should be applied (no identity LoRA)
+        Then: StyleProfile.style LoRA should be applied (no character LoRA)
         """
         # Arrange
         style_loras = style_profile_with_lora.loras
@@ -185,8 +183,8 @@ class TestStyleLoRAUnification:
         # Assert
         assert "<lora:flat_color_style:0.7>" in result, "StyleProfile LoRA should be applied to Narrator"
         assert "flat_color" in result, "Style trigger words should be included"
-        assert "character_a_lora" not in result, "No identity LoRA for Narrator"
-        assert "character_b_lora" not in result, "No identity LoRA for Narrator"
+        assert "character_a_lora" not in result, "No character LoRA for Narrator"
+        assert "character_b_lora" not in result, "No character LoRA for Narrator"
 
     def test_character_style_lora_ignored_when_style_profile_set(
         self, db_session: Session, style_profile_with_lora: StyleProfile
@@ -196,27 +194,27 @@ class TestStyleLoRAUnification:
         When: Generate prompt
         Then: Character's style LoRA should be ignored (only identity used)
 
-        Note: This filtering happens on Frontend. Backend receives only identity LoRAs.
+        Note: This filtering happens on Frontend. Backend receives only character LoRAs.
         This test verifies Backend correctly handles the filtered input.
         """
         # Arrange - Character has style LoRA that should be ignored
-        identity_lora = LoRA(
+        char_lora = LoRA(
             name="char_identity",
             display_name="Character Identity",
             trigger_words=["char_id"],
             lora_type="character",
             default_weight=0.8,
         )
-        db_session.add(identity_lora)
+        db_session.add(char_lora)
         db_session.flush()
 
         style_loras = style_profile_with_lora.loras
-        # Frontend filters out style LoRAs - only identity sent
+        # Frontend filters out style LoRAs - only character type sent
         character_loras = [
             {
-                "name": identity_lora.name,
-                "weight": identity_lora.default_weight,
-                "trigger_words": identity_lora.trigger_words,
+                "name": char_lora.name,
+                "weight": char_lora.default_weight,
+                "trigger_words": char_lora.trigger_words,
                 "lora_type": "character",
             },
         ]
@@ -232,7 +230,7 @@ class TestStyleLoRAUnification:
 
         # Assert
         assert "<lora:flat_color_style:0.7>" in result, "StyleProfile LoRA applied"
-        assert "<lora:char_identity:0.8>" in result, "Character identity LoRA applied"
+        assert "<lora:char_identity:0.8>" in result, "Character character LoRA applied"
 
 
 class TestStyleLoRADeduplication:
@@ -294,19 +292,19 @@ class TestStyleLoRADeduplication:
 class TestStyleLoRAFallback:
     """Test fallback behavior when StyleProfile is not set."""
 
-    def test_no_style_loras_when_profile_empty(self, db_session: Session, identity_lora_a: LoRA):
+    def test_no_style_loras_when_profile_empty(self, db_session: Session, character_lora_a: LoRA):
         """
         Given: No StyleProfile set (style_loras is empty)
         When: Generate prompt
-        Then: Only character identity LoRA should be applied (no style)
+        Then: Only character character LoRA should be applied (no style)
         """
         # Arrange
         style_loras = []  # No StyleProfile
         character_loras = [
             {
-                "name": identity_lora_a.name,
-                "weight": identity_lora_a.default_weight,
-                "trigger_words": identity_lora_a.trigger_words,
+                "name": character_lora_a.name,
+                "weight": character_lora_a.default_weight,
+                "trigger_words": character_lora_a.trigger_words,
                 "lora_type": "character",
             }
         ]
@@ -332,8 +330,8 @@ class TestConsistentStyleAcrossScenes:
         self,
         db_session: Session,
         style_profile_with_lora: StyleProfile,
-        identity_lora_a: LoRA,
-        identity_lora_b: LoRA,
+        character_lora_a: LoRA,
+        character_lora_b: LoRA,
     ):
         """
         Given: Storyboard with StyleProfile, Characters A and B
@@ -348,9 +346,9 @@ class TestConsistentStyleAcrossScenes:
             tags=["1girl", "talking", "masterpiece"],
             character_loras=[
                 {
-                    "name": identity_lora_a.name,
+                    "name": character_lora_a.name,
                     "weight": 0.8,
-                    "trigger_words": identity_lora_a.trigger_words,
+                    "trigger_words": character_lora_a.trigger_words,
                     "lora_type": "character",
                 }
             ],
@@ -362,9 +360,9 @@ class TestConsistentStyleAcrossScenes:
             tags=["1boy", "listening", "masterpiece"],
             character_loras=[
                 {
-                    "name": identity_lora_b.name,
+                    "name": character_lora_b.name,
                     "weight": 0.8,
-                    "trigger_words": identity_lora_b.trigger_words,
+                    "trigger_words": character_lora_b.trigger_words,
                     "lora_type": "character",
                 }
             ],
@@ -384,7 +382,7 @@ class TestConsistentStyleAcrossScenes:
         assert style_lora_tag in result_b, "Speaker B should have same style LoRA"
         assert style_lora_tag in result_narrator, "Narrator should have same style LoRA"
 
-        # Each scene has its own identity LoRA (or none for Narrator)
+        # Each scene has its own character LoRA (or none for Narrator)
         assert "<lora:character_a_lora:" in result_a
         assert "<lora:character_b_lora:" in result_b
         assert "character_a_lora" not in result_narrator
