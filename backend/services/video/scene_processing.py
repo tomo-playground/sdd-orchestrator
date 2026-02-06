@@ -336,6 +336,7 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
       looked up via character_id on the storyboard.
     """
     if not storyboard_id:
+        logger.debug("[TTS] _get_speaker_voice_preset: no storyboard_id, returning None")
         return None
 
     from database import get_db
@@ -399,18 +400,22 @@ def _resolve_voice_preset_id(
 
     # 1. Per-scene voice_design_prompt overrides everything
     if scene_req.voice_design_prompt:
+        logger.debug(f"[TTS] Scene {scene_idx}: using per-scene voice_design_prompt, skipping preset")
         return None
 
     # 2. Speaker-specific preset
     speaker = scene_req.speaker or DEFAULT_SPEAKER
+    logger.debug(f"[TTS] Scene {scene_idx}: speaker='{speaker}', storyboard_id={builder.request.storyboard_id}")
     speaker_preset = _get_speaker_voice_preset(
         builder.request.storyboard_id,
         speaker,
     )
     if speaker_preset:
+        logger.info(f"[TTS] Scene {scene_idx}: using speaker-specific preset {speaker_preset}")
         return speaker_preset
 
     # 3. Global fallback
+    logger.info(f"[TTS] Scene {scene_idx}: falling back to global preset {builder.request.voice_preset_id}")
     return builder.request.voice_preset_id
 
 
