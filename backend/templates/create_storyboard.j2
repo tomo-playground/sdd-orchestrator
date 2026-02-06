@@ -162,7 +162,11 @@ Instructions:
        4. NEVER choose unrelated location tags
      * Use ONLY keywords from the Allowed Keywords list. Do not invent new tags.
    - image_prompt_ko: Natural Korean sentence describing the scene (NOT comma-separated tags)
+     * Describe ONLY: action, emotion, situation, environment
+     * EXCLUDE character appearance (hair, eyes, clothing, style) — already injected by Character Identity system
      * GOOD: "밤에 부엌에서 땀 흘리며 서 있는 모습"
+     * GOOD: "미소 지으며 밖에서 서 있다. 놀란 표정."
+     * BAD: "플랫 컬러 스타일의 갈색 머리 소녀가 흰 셔츠를 입고 미소 지으며 서 있다." (identity included)
      * BAD: "미소, 서있는, 부엌, 밤" (comma-separated tags)
      * Write as a natural descriptive sentence for human readers
 4. Return ONLY raw JSON array.

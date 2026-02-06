@@ -109,6 +109,10 @@ Instructions:
        - expression, gaze, pose, action, props, camera, environment, mood
      * Use the CURRENT SPEAKER's identity/costume/LoRA tags
    - image_prompt_ko: Natural Korean sentence describing the scene
+     * Describe ONLY: action, emotion, situation, environment
+     * EXCLUDE character appearance (hair, eyes, clothing, style) — already injected by Character Identity system
+     * GOOD: "어색하게 웃으며 상대를 바라보는 모습"
+     * BAD: "갈색 머리 소녀가 흰 셔츠를 입고 어색하게 웃으며 서 있다." (identity included)
 6. Return ONLY raw JSON array.
 
 {{ keyword_context }}
