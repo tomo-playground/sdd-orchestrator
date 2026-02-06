@@ -8,6 +8,7 @@ import Button from "../ui/Button";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import VoicePresetSelector from "../voice/VoicePresetSelector";
 import { useStudioStore } from "../../store/useStudioStore";
+import { fetchGroups } from "../../store/actions/groupActions";
 
 // ── Types ────────────────────────────────────────────────────
 type GroupConfig = {
@@ -81,6 +82,7 @@ function SelectField({
 export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const showToast = useStudioStore((s) => s.showToast);
   const [config, setConfig] = useState<GroupConfig | null>(null);
+  const [groupName, setGroupName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -95,9 +97,11 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
       axios.get(`${API_BASE}/render-presets`),
       axios.get(`${API_BASE}/style-profiles`),
       axios.get(`${API_BASE}/presets`),
+      axios.get(`${API_BASE}/groups/${groupId}`),
     ])
-      .then(([cfgRes, presetsRes, profilesRes, sbPresetsRes]) => {
+      .then(([cfgRes, presetsRes, profilesRes, sbPresetsRes, groupRes]) => {
         setConfig(cfgRes.data);
+        setGroupName(groupRes.data.name || "");
         setPresets(
           presetsRes.data.map((p: Record<string, unknown>) => ({
             id: p.id as number,
@@ -128,18 +132,23 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
     if (!config) return;
     setSaving(true);
     try {
-      await axios.put(`${API_BASE}/groups/${groupId}/config`, {
-        render_preset_id: config.render_preset_id,
-        style_profile_id: config.style_profile_id,
-        narrator_voice_preset_id: config.narrator_voice_preset_id,
-        language: config.language,
-        structure: config.structure,
-        duration: config.duration,
-        sd_steps: config.sd_steps,
-        sd_cfg_scale: config.sd_cfg_scale,
-        sd_sampler_name: config.sd_sampler_name,
-        sd_clip_skip: config.sd_clip_skip,
-      });
+      await Promise.all([
+        axios.put(`${API_BASE}/groups/${groupId}/config`, {
+          render_preset_id: config.render_preset_id,
+          style_profile_id: config.style_profile_id,
+          narrator_voice_preset_id: config.narrator_voice_preset_id,
+          language: config.language,
+          structure: config.structure,
+          duration: config.duration,
+          sd_steps: config.sd_steps,
+          sd_cfg_scale: config.sd_cfg_scale,
+          sd_sampler_name: config.sd_sampler_name,
+          sd_clip_skip: config.sd_clip_skip,
+        }),
+        axios.put(`${API_BASE}/groups/${groupId}`, { name: groupName.trim() }),
+      ]);
+      const projectId = useStudioStore.getState().projectId;
+      if (projectId) fetchGroups(projectId);
       showToast("Group config saved", "success");
       onClose();
     } catch {
@@ -170,6 +179,17 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         </div>
       ) : (
         <div className="max-h-[60vh] space-y-4 overflow-y-auto px-5 py-4">
+          {/* Group Name */}
+          <div>
+            <label className={labelCls}>Group Name</label>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className={inputCls}
+              placeholder="Group name"
+            />
+          </div>
+
           {/* Content Settings */}
           <div className="space-y-3">
             <SelectField

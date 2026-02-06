@@ -222,20 +222,21 @@ class V3PromptBuilder:
         """Inject character LoRAs, scene-triggered LoRAs, and style LoRAs."""
         active_loras: dict[str, tuple[float, str | None]] = {}
 
-        # Character LoRAs
+        # Character LoRAs (style-type skipped; StyleProfile is SSOT for style)
         if character.loras and character.prompt_mode != "standard":
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
                 weight = lora_info.get("weight")
                 lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
                 if lora_obj:
+                    if lora_obj.lora_type == "style":
+                        continue  # StyleProfile handles style LoRAs uniformly
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
                     active_loras[lora_obj.name] = (weight, lora_obj.lora_type)
-                    trigger_layer = LAYER_ATMOSPHERE if lora_obj.lora_type == "style" else LAYER_IDENTITY
                     for trigger in (lora_obj.trigger_words or []):
-                        if trigger not in layers[trigger_layer]:
-                            layers[trigger_layer].append(trigger)
+                        if trigger not in layers[LAYER_IDENTITY]:
+                            layers[LAYER_IDENTITY].append(trigger)
 
         # Scene-triggered LoRAs
         for tag in scene_tags:

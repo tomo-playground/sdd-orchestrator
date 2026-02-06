@@ -206,6 +206,7 @@ export type LoRA = {
   default_weight: number;
   weight_min: number;
   weight_max: number;
+  lora_type: string | null;
   base_models: string[] | null;
   character_defaults: Record<string, string> | null;
   recommended_negative: string[] | null;

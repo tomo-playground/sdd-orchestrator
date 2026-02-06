@@ -323,6 +323,116 @@ class TestStyleLoRAFallback:
         assert "flat_color" not in result, "No style LoRA without StyleProfile"
 
 
+class TestComposeForCharacterSkipsStyleLoRA:
+    """Test that compose_for_character() skips style-type LoRAs from character.loras.
+
+    StyleProfile is SSOT for style LoRAs. When backend loads character.loras from DB,
+    it should NOT inject style-type LoRAs (to prevent double application with StyleProfile).
+    """
+
+    def test_style_lora_in_character_loras_skipped(
+        self, db_session: Session, style_lora: LoRA, character_lora_a: LoRA
+    ):
+        """
+        Given: Character has both character-type AND style-type LoRAs in DB
+        When: compose_for_character() is called
+        Then: Only character-type LoRA should be injected; style-type should be skipped
+        """
+        from models import Character, Tag
+        from models.associations import CharacterTag
+
+        # Create a tag for the character
+        tag = Tag(name="red_hair", category="character", group_name="hair_color")
+        db_session.add(tag)
+        db_session.flush()
+
+        # Create character with BOTH lora types in its loras JSONB
+        character = Character(
+            name="test_char_style_skip",
+            gender="female",
+            prompt_mode="auto",
+            loras=[
+                {"lora_id": character_lora_a.id, "weight": 0.8},
+                {"lora_id": style_lora.id, "weight": 0.7},  # style-type should be SKIPPED
+            ],
+        )
+        db_session.add(character)
+        db_session.flush()
+
+        # Add a tag association
+        char_tag = CharacterTag(character_id=character.id, tag_id=tag.id, weight=1.0)
+        db_session.add(char_tag)
+        db_session.flush()
+
+        builder = V3PromptBuilder(db_session)
+
+        # Act
+        result = builder.compose_for_character(
+            character_id=character.id,
+            scene_tags=["standing", "smile"],
+        )
+
+        # Assert
+        assert f"<lora:{character_lora_a.name}:" in result, "Character LoRA should be injected"
+        assert f"<lora:{style_lora.name}:" not in result, (
+            "Style LoRA from character.loras should be SKIPPED (StyleProfile is SSOT)"
+        )
+        assert "char_a_trigger" in result, "Character LoRA trigger words should be included"
+        assert "flat_color" not in result, "Style LoRA trigger words should NOT be included"
+
+    def test_style_lora_still_applied_via_style_loras_param(
+        self, db_session: Session, style_lora: LoRA, character_lora_a: LoRA
+    ):
+        """
+        Given: Character has style LoRA in DB, StyleProfile passes style_loras separately
+        When: compose_for_character() is called with style_loras param
+        Then: Style LoRA comes from style_loras param (not from character.loras)
+        """
+        from models import Character, Tag
+        from models.associations import CharacterTag
+
+        tag = Tag(name="blue_eyes", category="character", group_name="eye_color")
+        db_session.add(tag)
+        db_session.flush()
+
+        character = Character(
+            name="test_char_style_param",
+            gender="female",
+            prompt_mode="auto",
+            loras=[
+                {"lora_id": character_lora_a.id, "weight": 0.8},
+                {"lora_id": style_lora.id, "weight": 0.5},  # will be skipped from character.loras
+            ],
+        )
+        db_session.add(character)
+        db_session.flush()
+
+        char_tag = CharacterTag(character_id=character.id, tag_id=tag.id, weight=1.0)
+        db_session.add(char_tag)
+        db_session.flush()
+
+        # StyleProfile provides style LoRA explicitly with different weight
+        explicit_style_loras = [
+            {"name": style_lora.name, "weight": 0.7, "trigger_words": style_lora.trigger_words},
+        ]
+
+        builder = V3PromptBuilder(db_session)
+
+        # Act
+        result = builder.compose_for_character(
+            character_id=character.id,
+            scene_tags=["standing"],
+            style_loras=explicit_style_loras,
+        )
+
+        # Assert
+        assert f"<lora:{character_lora_a.name}:" in result, "Character LoRA applied"
+        assert f"<lora:{style_lora.name}:0.7>" in result, "Style LoRA from style_loras param applied"
+        # Should NOT have duplicate style LoRA from character.loras
+        lora_count = result.count(f"<lora:{style_lora.name}:")
+        assert lora_count == 1, f"Style LoRA should appear exactly once, found {lora_count}"
+
+
 class TestConsistentStyleAcrossScenes:
     """Test that all scenes in a storyboard use the same style LoRA."""
 

@@ -94,6 +94,7 @@ export function useCharacterForm(
 
   // --- LoRAs ---
   const [selectedLoras, setSelectedLoras] = useState<CharacterLoRA[]>(character?.loras || []);
+  const [localLoras, setLocalLoras] = useState<LoRA[]>(allLoras);
 
   // --- Async flags ---
   const [isSaving, setIsSaving] = useState(false);
@@ -279,6 +280,15 @@ export function useCharacterForm(
     setSelectedLoras(selectedLoras.filter((_, i) => i !== index));
   };
 
+  const handleLoraTypeChange = async (loraId: number, newType: string) => {
+    try {
+      await axios.put(`${API_BASE}/loras/${loraId}`, { lora_type: newType });
+      setLocalLoras((prev) => prev.map((l) => (l.id === loraId ? { ...l, lora_type: newType } : l)));
+    } catch {
+      alert("Failed to update LoRA type.");
+    }
+  };
+
   // --- Submit ---
   const handleSubmit = async () => {
     let finalIdentityTagIds = identityTagIds;
@@ -382,6 +392,7 @@ export function useCharacterForm(
     voicePresets,
     // LoRAs
     selectedLoras,
+    localLoras,
     // Async flags
     isSaving,
     isGenerating,
@@ -411,6 +422,7 @@ export function useCharacterForm(
     handleAddLora,
     handleUpdateLora,
     handleRemoveLora,
+    handleLoraTypeChange,
     handleSubmit,
   };
 }

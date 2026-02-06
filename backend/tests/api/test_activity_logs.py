@@ -248,8 +248,9 @@ def test_log_data_integrity(client: TestClient):
     assert log["match_rate"] == test_data["match_rate"]
     assert log["seed"] == test_data["seed"]
     assert log["status"] == test_data["status"]
-    # image_url is derived from storage key via storage service
-    assert log["image_url"] is not None
+    # image_url is derived from media_asset relationship;
+    # no matching media_asset exists in the test DB, so it should be None
+    assert log["image_url"] is None
 
 
 def test_isolation(client: TestClient):
@@ -346,7 +347,7 @@ def test_success_combinations_with_success_logs(client: TestClient):
     assert len(categories) > 0
 
     # Check that each category has tags with expected structure
-    for _category, tags in categories.items():
+    for tags in categories.values():
         assert isinstance(tags, list)
         if len(tags) > 0:
             tag_data = tags[0]

@@ -1,7 +1,8 @@
 """Tests for avatar service functions."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 PATCH_PREFIX = "services.avatar"
 
@@ -182,10 +183,13 @@ class TestEnsureAvatarFile:
     @patch(f"{PATCH_PREFIX}.get_storage")
     async def test_returns_cached_for_non_url_key(self, mock_storage_fn):
         """Non-URL keys check cache first."""
-        from services.avatar import ensure_avatar_file
+        from services.avatar import avatar_filename, ensure_avatar_file
+
+        expected_key = f"shared/avatars/{avatar_filename('my_channel')}"
 
         mock_storage = MagicMock()
-        mock_storage.exists.return_value = True
+        # Return False for raw key, True for the hashed shared/avatars/ key
+        mock_storage.exists.side_effect = lambda key: key == expected_key
         mock_storage_fn.return_value = mock_storage
 
         result = await ensure_avatar_file("my_channel")

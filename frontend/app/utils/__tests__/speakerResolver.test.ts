@@ -140,10 +140,9 @@ describe("resolveCharacterLorasForSpeaker", () => {
     expect(result.find((l) => l.lora_type === "style")).toBeUndefined();
   });
 
-  it("returns empty array for Narrator (no character LoRAs, style from StyleProfile)", () => {
+  it("returns empty array for Narrator (style LoRAs come from StyleProfile, not character)", () => {
     const result = resolveCharacterLorasForSpeaker("Narrator", lorasA, lorasB);
     expect(result).toEqual([]);
-    expect(result).toHaveLength(0);
   });
 
   it("returns all character LoRAs when character has multiple", () => {

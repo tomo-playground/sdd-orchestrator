@@ -203,22 +203,26 @@ class TestOverlayList:
 class TestFontFile:
     """Tests for /fonts/file/{filename} endpoint."""
 
-    def test_get_font_file_s3_mode(self):
-        """Test font file serving in S3 mode."""
+    def test_get_font_file_s3_mode(self, tmp_path):
+        """Test font file serving in S3 mode (proxied via local cache for CORS)."""
+        # Create a temporary font file to serve
+        font_file = tmp_path / "test.ttf"
+        font_file.write_bytes(b"\x00\x01\x00\x00" + b"\x00" * 100)
+
         with patch("services.storage.get_storage") as mock_get_storage, \
              patch("config.STORAGE_MODE", "s3"):
 
             mock_storage = MagicMock()
             mock_get_storage.return_value = mock_storage
             mock_storage.exists.return_value = True
-            mock_storage.get_url.return_value = "http://minio/shared/fonts/test.ttf"
+            mock_storage.get_local_path.return_value = font_file
 
-            response = client.get("/fonts/file/test.ttf", follow_redirects=False)
+            response = client.get("/fonts/file/test.ttf")
 
-            # Should redirect to storage URL
-            assert response.status_code == 307  # Temporary redirect
-            assert "location" in response.headers
-            assert response.headers["location"] == "http://minio/shared/fonts/test.ttf"
+            # Implementation proxies via local cache (FileResponse) to avoid CORS
+            assert response.status_code == 200
+            mock_storage.exists.assert_called_once_with("shared/fonts/test.ttf")
+            mock_storage.get_local_path.assert_called_once_with("shared/fonts/test.ttf")
 
     def test_get_font_file_not_found_s3(self):
         """Test 404 when font file doesn't exist in S3."""

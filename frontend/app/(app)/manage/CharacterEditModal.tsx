@@ -133,10 +133,11 @@ export default function CharacterEditModal({
           {/* LoRAs */}
           <LoRAsSection
             selectedLoras={form.selectedLoras}
-            allLoras={allLoras}
+            allLoras={form.localLoras}
             onAddLora={form.handleAddLora}
             onUpdateLora={form.handleUpdateLora}
             onRemoveLora={form.handleRemoveLora}
+            onLoraTypeChange={form.handleLoraTypeChange}
           />
 
           {/* Reference Prompts */}
@@ -418,12 +419,14 @@ function LoRAsSection({
   onAddLora,
   onUpdateLora,
   onRemoveLora,
+  onLoraTypeChange,
 }: {
   selectedLoras: { lora_id: number; weight: number }[];
   allLoras: LoRA[];
   onAddLora: () => void;
   onUpdateLora: (index: number, field: "lora_id" | "weight", value: number) => void;
   onRemoveLora: (index: number) => void;
+  onLoraTypeChange: (loraId: number, newType: string) => void;
 }) {
   return (
     <div>
@@ -439,39 +442,55 @@ function LoRAsSection({
         </button>
       </div>
       <div className="space-y-2">
-        {selectedLoras.map((lora, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/50 p-2"
-          >
-            <select
-              value={lora.lora_id}
-              onChange={(e) => onUpdateLora(index, "lora_id", Number(e.target.value))}
-              className="flex-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-400"
+        {selectedLoras.map((lora, index) => {
+          const loraInfo = allLoras.find((l) => l.id === lora.lora_id);
+          return (
+            <div
+              key={index}
+              className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/50 p-2"
             >
-              {allLoras.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.display_name || l.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="2"
-              value={lora.weight}
-              onChange={(e) => onUpdateLora(index, "weight", Number(e.target.value))}
-              className="w-16 rounded-lg border border-zinc-200 px-2 py-1.5 text-center text-xs outline-none focus:border-zinc-400"
-            />
-            <button
-              onClick={() => onRemoveLora(index)}
-              className="px-1 text-rose-400 hover:text-rose-600"
-            >
-              x
-            </button>
-          </div>
-        ))}
+              <select
+                value={lora.lora_id}
+                onChange={(e) => onUpdateLora(index, "lora_id", Number(e.target.value))}
+                className="flex-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-400"
+              >
+                {allLoras.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.display_name || l.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={loraInfo?.lora_type || "character"}
+                onChange={(e) => onLoraTypeChange(lora.lora_id, e.target.value)}
+                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[10px] font-semibold outline-none ${
+                  loraInfo?.lora_type === "style"
+                    ? "border-violet-200 bg-violet-50 text-violet-600"
+                    : "border-zinc-200 bg-white text-zinc-500"
+                }`}
+              >
+                <option value="character">character</option>
+                <option value="style">style</option>
+                <option value="pose">pose</option>
+              </select>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="2"
+                value={lora.weight}
+                onChange={(e) => onUpdateLora(index, "weight", Number(e.target.value))}
+                className="w-16 rounded-lg border border-zinc-200 px-2 py-1.5 text-center text-xs outline-none focus:border-zinc-400"
+              />
+              <button
+                onClick={() => onRemoveLora(index)}
+                className="px-1 text-rose-400 hover:text-rose-600"
+              >
+                x
+              </button>
+            </div>
+          );
+        })}
         {selectedLoras.length === 0 && (
           <p className="text-xs text-zinc-400 italic">No LoRAs assigned.</p>
         )}

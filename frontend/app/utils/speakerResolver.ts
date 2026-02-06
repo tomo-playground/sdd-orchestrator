@@ -116,7 +116,7 @@ export function resolveCharacterLorasForSpeaker(
   characterBLoras: CharacterLora[]
 ): CharacterLora[] {
   if (speaker === "Narrator") {
-    // Narrator: no character LoRAs (background-only, style from StyleProfile)
+    // Narrator: no character LoRAs. Style LoRAs come from StyleProfile (backend SSOT).
     return [];
   }
   if (speaker === "B") {
