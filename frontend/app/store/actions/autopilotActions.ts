@@ -73,7 +73,9 @@ export async function runAutoRunFromStep(
       if (currentStep === "storyboard") {
         setAutoRunStep("storyboard", "Generating storyboard...");
         pushAutoRunLog("Storyboard started");
-        const isDialogue = structure.toLowerCase() === "dialogue";
+        const structureLower = structure.toLowerCase();
+        const hasCharacterB =
+          structureLower === "dialogue" || structureLower === "narrated dialogue";
         const res = await axios.post(`${API_BASE}/storyboards/create`, {
           topic,
           duration,
@@ -83,7 +85,7 @@ export async function runAutoRunFromStep(
           actor_a_gender: actorAGender,
           description: useStudioStore.getState().description || undefined,
           character_id: useStudioStore.getState().selectedCharacterId || undefined,
-          character_b_id: isDialogue
+          character_b_id: hasCharacterB
             ? useStudioStore.getState().selectedCharacterBId || undefined
             : undefined,
         });

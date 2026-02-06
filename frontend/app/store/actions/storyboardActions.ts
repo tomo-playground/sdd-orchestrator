@@ -278,7 +278,8 @@ export async function generateStoryboard(): Promise<boolean> {
   }
 
   try {
-    const isDialogue = structure.toLowerCase() === "dialogue";
+    const structureLower = structure.toLowerCase();
+    const hasCharacterB = structureLower === "dialogue" || structureLower === "narrated dialogue";
     const res = await axios.post(`${API_BASE}/storyboards/create`, {
       topic,
       description: description || undefined,
@@ -288,7 +289,7 @@ export async function generateStoryboard(): Promise<boolean> {
       structure,
       actor_a_gender: actorAGender,
       character_id: selectedCharacterId || undefined,
-      character_b_id: isDialogue ? selectedCharacterBId || undefined : undefined,
+      character_b_id: hasCharacterB ? selectedCharacterBId || undefined : undefined,
     });
 
     const data = res.data;

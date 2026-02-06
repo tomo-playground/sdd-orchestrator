@@ -43,7 +43,8 @@ export default function PromptSetupPanel({
   baseNegativePromptB,
   setBaseNegativePromptB,
 }: PromptSetupPanelProps) {
-  const isDialogue = structure.toLowerCase() === "dialogue";
+  const structureLower = structure.toLowerCase();
+  const isDialogue = structureLower === "dialogue" || structureLower === "narrated dialogue";
   const sameCharacterWarning =
     isDialogue &&
     selectedCharacterId &&

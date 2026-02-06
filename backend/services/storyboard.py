@@ -252,10 +252,11 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
-        is_dialogue = request.structure.lower() == "dialogue"
+        structure_lower = request.structure.lower()
+        has_two_characters = structure_lower in ("dialogue", "narrated dialogue")
 
-        # Dialogue validation
-        if is_dialogue:
+        # Dialogue validation (structures with two characters)
+        if has_two_characters:
             if not request.character_id:
                 raise HTTPException(status_code=400, detail="Dialogue requires character_id (Speaker A)")
             if not request.character_b_id:
@@ -268,9 +269,9 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
         if request.character_id and db:
             character_context = _load_character_context(request.character_id, db)
 
-        # Load character B context for Dialogue
+        # Load character B context for two-character structures
         character_b_context = None
-        if is_dialogue and request.character_b_id and db:
+        if has_two_characters and request.character_b_id and db:
             character_b_context = _load_character_context(request.character_b_id, db)
 
         preset = get_preset_by_structure(request.structure)
