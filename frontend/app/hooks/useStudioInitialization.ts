@@ -172,9 +172,9 @@ export function useStudioInitialization() {
         initializeVideoMetadata(data.title || "");
 
         // Load group render defaults (bgmFile, speedMultiplier, voicePresetId, etc.)
-        // This ensures defaults are applied even if groupId hasn't changed
+        // Skip content defaults (structure/language/duration) since storyboard already has them
         if (groupId) {
-          loadGroupDefaults(groupId);
+          loadGroupDefaults(groupId, { skipContentDefaults: true });
         }
       })
       .catch(async (err) => {
