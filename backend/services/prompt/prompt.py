@@ -219,6 +219,7 @@ IDENTITY_TAGS = [
     "multiple_girls", "multiple_boys",
     "solo", "duo", "trio", "group",
     "male_focus", "female_focus",
+    "no_humans",  # Narrator scenes (scenery only)
 ]
 
 
