@@ -61,12 +61,51 @@ def truncate_title(title: str, max_length: int = 190) -> str:
     return title
 
 
-def serialize_scene(scene: Scene, asset_url_map: dict[int, str] | None = None) -> dict:
+def calculate_auto_pin_flags(scenes: list) -> dict[int, bool]:
+    """Calculate _auto_pin_previous flags for scenes based on environment tags.
+
+    A scene should auto-pin to the previous scene if they share at least one
+    environment tag (same location).
+
+    Args:
+        scenes: List of Scene ORM objects, sorted by order
+
+    Returns:
+        Dict mapping scene.id -> bool (True if should auto-pin)
+    """
+    result: dict[int, bool] = {}
+    previous_env_tags: set[str] | None = None
+
+    for i, scene in enumerate(scenes):
+        context_tags = scene.context_tags or {}
+        current_env_tags = set(context_tags.get("environment", []))
+
+        if i == 0:
+            # First scene has no previous to pin to
+            result[scene.id] = False
+        elif current_env_tags and previous_env_tags and (current_env_tags & previous_env_tags):
+            # Same location as previous scene
+            result[scene.id] = True
+        else:
+            # Location changed
+            result[scene.id] = False
+
+        previous_env_tags = current_env_tags
+
+    return result
+
+
+def serialize_scene(
+    scene: Scene,
+    asset_url_map: dict[int, str] | None = None,
+    auto_pin_previous: bool = False,
+) -> dict:
     """Serialize a Scene ORM object to dict for API response.
 
     Args:
         scene: Scene ORM object
         asset_url_map: Optional mapping of media_asset_id -> URL for candidates
+        auto_pin_previous: Whether this scene should auto-pin to previous scene's environment
     """
     # Enrich candidates with URLs if asset_url_map is provided
     candidates_with_url = None
@@ -103,6 +142,7 @@ def serialize_scene(scene: Scene, asset_url_map: dict[int, str] | None = None) -
         "environment_reference_weight": scene.environment_reference_weight,
         "image_asset_id": scene.image_asset_id,
         "candidates": candidates_with_url,
+        "_auto_pin_previous": auto_pin_previous,
     }
 
 
@@ -116,9 +156,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         # Convert Pydantic SceneCandidate models to dicts for JSONB storage
         candidates_for_db = None
         if s_data.candidates:
-            candidates_for_db = [
-                c.model_dump() if hasattr(c, "model_dump") else c for c in s_data.candidates
-            ]
+            candidates_for_db = [c.model_dump() if hasattr(c, "model_dump") else c for c in s_data.candidates]
 
         db_scene = Scene(
             storyboard_id=storyboard_id,
@@ -644,6 +682,9 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     character_id = resolve_speaker_to_character(storyboard.id, SPEAKER_A, db)
     character_b_id = resolve_speaker_to_character(storyboard.id, SPEAKER_B, db)
 
+    # Calculate _auto_pin_previous for each scene based on environment tags
+    auto_pin_flags = calculate_auto_pin_flags(scenes)
+
     return {
         "id": storyboard.id,
         "title": storyboard.title,
@@ -659,7 +700,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "caption": storyboard.caption,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
-        "scenes": [serialize_scene(sc, asset_url_map) for sc in scenes],
+        "scenes": [serialize_scene(sc, asset_url_map, auto_pin_flags.get(sc.id, False)) for sc in scenes],
     }
 
 
