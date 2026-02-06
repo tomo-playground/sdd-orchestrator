@@ -36,7 +36,11 @@ export async function loadGroupDefaults(groupId: number): Promise<void> {
     if (p.ken_burns_preset) updates.kenBurnsPreset = p.ken_burns_preset;
     if (p.ken_burns_intensity != null) updates.kenBurnsIntensity = p.ken_burns_intensity;
     if (p.speed_multiplier != null) updates.speedMultiplier = p.speed_multiplier;
+    // voice_preset_id from render_preset (lower priority)
     if (p.voice_preset_id != null) updates.voicePresetId = p.voice_preset_id;
+
+    // narrator_voice_preset_id from GroupConfig (higher priority, overrides render_preset)
+    if (cfg.narrator_voice_preset_id != null) updates.voicePresetId = cfg.narrator_voice_preset_id;
 
     if (Object.keys(updates).length > 0) {
       useStudioStore.getState().setOutput(updates);
