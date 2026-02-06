@@ -289,6 +289,13 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     environment_reference_weight: (s.environment_reference_weight as number) || undefined,
     use_reference_only: (s.use_reference_only as boolean) || undefined,
     reference_only_weight: (s.reference_only_weight as number) || undefined,
+    // Per-scene generation settings override (null = inherit global)
+    use_controlnet: (s.use_controlnet as boolean | null) ?? null,
+    controlnet_weight: (s.controlnet_weight as number | null) ?? null,
+    use_ip_adapter: (s.use_ip_adapter as boolean | null) ?? null,
+    ip_adapter_reference: (s.ip_adapter_reference as string | null) ?? null,
+    ip_adapter_weight: (s.ip_adapter_weight as number | null) ?? null,
+    multi_gen_enabled: (s.multi_gen_enabled as boolean | null) ?? null,
     _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
   }));
 }

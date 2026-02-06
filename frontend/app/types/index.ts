@@ -46,6 +46,13 @@ export type Scene = {
   reference_only_weight?: number;
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
+  // Per-scene generation settings override (null = inherit global)
+  use_controlnet?: boolean | null;
+  controlnet_weight?: number | null;
+  use_ip_adapter?: boolean | null;
+  ip_adapter_reference?: string | null;
+  ip_adapter_weight?: number | null;
+  multi_gen_enabled?: boolean | null;
   // Auto-pin flag from backend (Gemini context_tags analysis)
   _auto_pin_previous?: boolean;
 };
@@ -166,6 +173,13 @@ export type DraftScene = {
   activity_log_id?: number;
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
+  // Per-scene generation settings override (null = inherit global)
+  use_controlnet?: boolean | null;
+  controlnet_weight?: number | null;
+  use_ip_adapter?: boolean | null;
+  ip_adapter_reference?: string | null;
+  ip_adapter_weight?: number | null;
+  multi_gen_enabled?: boolean | null;
 };
 
 // ============================================================

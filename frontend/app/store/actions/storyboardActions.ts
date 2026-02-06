@@ -69,6 +69,13 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         use_reference_only: s.use_reference_only ?? true,
         reference_only_weight: s.reference_only_weight ?? 0.5,
         candidates: sanitizeCandidatesForDb(s.candidates),
+        // Per-scene generation settings override
+        use_controlnet: s.use_controlnet ?? null,
+        controlnet_weight: s.controlnet_weight ?? null,
+        use_ip_adapter: s.use_ip_adapter ?? null,
+        ip_adapter_reference: s.ip_adapter_reference ?? null,
+        ip_adapter_weight: s.ip_adapter_weight ?? null,
+        multi_gen_enabled: s.multi_gen_enabled ?? null,
       })),
     };
 
@@ -215,6 +222,13 @@ export async function persistStoryboard(): Promise<boolean> {
         use_reference_only: s.use_reference_only ?? true,
         reference_only_weight: s.reference_only_weight ?? 0.5,
         candidates: sanitizeCandidatesForDb(s.candidates),
+        // Per-scene generation settings override
+        use_controlnet: s.use_controlnet ?? null,
+        controlnet_weight: s.controlnet_weight ?? null,
+        use_ip_adapter: s.use_ip_adapter ?? null,
+        ip_adapter_reference: s.ip_adapter_reference ?? null,
+        ip_adapter_weight: s.ip_adapter_weight ?? null,
+        multi_gen_enabled: s.multi_gen_enabled ?? null,
       })),
     };
 

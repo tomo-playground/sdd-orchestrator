@@ -158,11 +158,22 @@ def serialize_scene(
         "image_asset_id": scene.image_asset_id,
         "candidates": candidates_with_url,
         "_auto_pin_previous": auto_pin_previous,
+        # Per-scene generation settings override
+        "use_controlnet": scene.use_controlnet,
+        "controlnet_weight": scene.controlnet_weight,
+        "use_ip_adapter": scene.use_ip_adapter,
+        "ip_adapter_reference": scene.ip_adapter_reference,
+        "ip_adapter_weight": scene.ip_adapter_weight,
+        "multi_gen_enabled": scene.multi_gen_enabled,
     }
 
 
 def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
     """Create scenes with tags and character actions for a storyboard."""
+    # Track old→new asset ID mapping for environment_reference_id remapping
+    asset_id_remap: dict[int, int] = {}
+    created_scenes: list[Scene] = []
+
     for idx, s_data in enumerate(scenes_data):
         image_url = s_data.image_url
         if image_url and image_url.startswith("data:"):
@@ -191,6 +202,13 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             environment_reference_id=s_data.environment_reference_id,
             environment_reference_weight=s_data.environment_reference_weight or 0.3,
             candidates=candidates_for_db,
+            # Per-scene generation settings override
+            use_controlnet=getattr(s_data, "use_controlnet", None),
+            controlnet_weight=getattr(s_data, "controlnet_weight", None),
+            use_ip_adapter=getattr(s_data, "use_ip_adapter", None),
+            ip_adapter_reference=getattr(s_data, "ip_adapter_reference", None),
+            ip_adapter_weight=getattr(s_data, "ip_adapter_weight", None),
+            multi_gen_enabled=getattr(s_data, "multi_gen_enabled", None),
         )
         db.add(db_scene)
         db.flush()
@@ -212,6 +230,18 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
 
         if image_url:
             _link_media_asset(db, db_scene, image_url)
+
+        # Build old→new asset ID mapping for reference remapping
+        old_asset_id = getattr(s_data, "image_asset_id", None)
+        if old_asset_id and db_scene.image_asset_id and old_asset_id != db_scene.image_asset_id:
+            asset_id_remap[old_asset_id] = db_scene.image_asset_id
+        created_scenes.append(db_scene)
+
+    # Remap environment_reference_id from old asset IDs to new ones
+    if asset_id_remap:
+        for scene in created_scenes:
+            if scene.environment_reference_id and scene.environment_reference_id in asset_id_remap:
+                scene.environment_reference_id = asset_id_remap[scene.environment_reference_id]
 
 
 def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:

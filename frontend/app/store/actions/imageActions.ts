@@ -5,9 +5,13 @@ import { API_BASE } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import {
   resolveCharacterIdForSpeaker,
-  resolveIpAdapterForSpeaker,
   resolveCharacterLorasForSpeaker,
 } from "../../utils/speakerResolver";
+import {
+  resolveSceneControlnet,
+  resolveSceneIpAdapter,
+  resolveSceneMultiGen,
+} from "../../utils/sceneSettingsResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
 /** Store a base64 image on the backend and return URL + asset_id */
@@ -65,17 +69,12 @@ export async function generateSceneImageFor(
   const state = useStudioStore.getState();
   const {
     autoComposePrompt,
-    useControlnet,
-    controlnetWeight,
-    useIpAdapter,
     storyboardId,
     showToast,
   } = state;
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
-  const { reference: ipAdapterReference, weight: ipAdapterWeight } = resolveIpAdapterForSpeaker(
-    scene.speaker,
-    state
-  );
+  const controlnet = resolveSceneControlnet(scene, state);
+  const ipAdapter = resolveSceneIpAdapter(scene, state);
   const speakerLoras = resolveCharacterLorasForSpeaker(
     scene.speaker,
     state.characterLoras || [],
@@ -119,15 +118,15 @@ export async function generateSceneImageFor(
   // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
   const isNarrator = scene.speaker === "Narrator";
   const controlnetPayload =
-    useControlnet && !isNarrator
-      ? { use_controlnet: true, controlnet_weight: controlnetWeight }
+    controlnet.enabled && !isNarrator
+      ? { use_controlnet: true, controlnet_weight: controlnet.weight }
       : { use_controlnet: false };
   const ipAdapterPayload =
-    useIpAdapter && ipAdapterReference && !isNarrator
+    ipAdapter.enabled && ipAdapter.reference && !isNarrator
       ? {
           use_ip_adapter: true,
-          ip_adapter_reference: ipAdapterReference,
-          ip_adapter_weight: ipAdapterWeight,
+          ip_adapter_reference: ipAdapter.reference,
+          ip_adapter_weight: ipAdapter.weight,
         }
       : { use_ip_adapter: false };
 
@@ -337,7 +336,8 @@ export async function generateSceneCandidates(
 
 /** Generate image for a scene (single or multi-gen) and update store */
 export async function handleGenerateImage(scene: Scene) {
-  const { multiGenEnabled, updateScene, showToast, scenes } = useStudioStore.getState();
+  const { updateScene, showToast, scenes } = useStudioStore.getState();
+  const multiGenEnabled = resolveSceneMultiGen(scene, useStudioStore.getState());
 
   // Auto-save storyboard before image generation
   // Ensures activity logs have proper storyboard_id and scene IDs are assigned

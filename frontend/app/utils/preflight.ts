@@ -337,7 +337,15 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     errors.push(settings.character.message || "캐릭터 필요");
   }
   if (!settings.ipAdapter.valid) {
-    errors.push(settings.ipAdapter.message || "IP-Adapter 설정 오류");
+    // Demote to warning if any scene has per-scene IP-Adapter override
+    const hasSceneIpOverride = input.scenes.some(
+      (s) => "use_ip_adapter" in s && (s as Scene).use_ip_adapter != null
+    );
+    if (hasSceneIpOverride) {
+      warnings.push(settings.ipAdapter.message || "IP-Adapter: 글로벌 참조 없음 (씬별 설정 사용)");
+    } else {
+      errors.push(settings.ipAdapter.message || "IP-Adapter 설정 오류");
+    }
   }
   if (settings.controlnet.message?.includes("권장")) {
     warnings.push(settings.controlnet.message);

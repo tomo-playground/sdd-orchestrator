@@ -7,6 +7,7 @@ import { computeValidationResults } from "../../utils";
 import { applyAutoFixForScenes } from "./sceneActions";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
+import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
 import { getCurrentProject } from "../selectors/projectSelectors";
 import { initializeVideoMetadata } from "./outputActions";
 import { mapGeminiScenes, persistStoryboard } from "./storyboardActions";
@@ -30,7 +31,6 @@ export async function runAutoRunFromStep(
     actorAGender,
     baseNegativePromptA,
     layoutStyle,
-    multiGenEnabled,
     scenes: initialScenes,
     showToast,
     setScenes,
@@ -112,12 +112,20 @@ export async function runAutoRunFromStep(
         setActiveTab("scenes");
         assertNotCancelled();
 
-        if (multiGenEnabled) {
-          // Multi-gen mode: sequential per scene (candidate ranking)
+        // Split scenes by per-scene multiGen setting
+        const globalState = useStudioStore.getState();
+        const multiGenScenes = workingScenes.filter(
+          (s) => !s.image_url && resolveSceneMultiGen(s, globalState)
+        );
+        const singleGenScenes = workingScenes.filter(
+          (s) => !s.image_url && !resolveSceneMultiGen(s, globalState)
+        );
+
+        // Multi-gen scenes: sequential per scene (candidate ranking)
+        if (multiGenScenes.length > 0) {
           const { updateScene } = useStudioStore.getState();
-          for (const scene of workingScenes) {
+          for (const scene of multiGenScenes) {
             assertNotCancelled();
-            if (scene.image_url) continue;
             updateScene(scene.id, { isGenerating: true });
             let result = await generateSceneCandidates(scene, true);
             if (!result?.image_url) {
@@ -129,32 +137,32 @@ export async function runAutoRunFromStep(
             updateScene(scene.id, result);
             workingScenes = workingScenes.map((s) => (s.id === scene.id ? { ...s, ...result } : s));
           }
-        } else {
-          // Batch mode: concurrent generation with server-side throttling
-          const sceneIds = workingScenes.filter((s) => !s.image_url).map((s) => s.id);
-          if (sceneIds.length > 0) {
-            const batchResult = await generateBatchImages(sceneIds);
-            if (!batchResult || batchResult.failed > 0) {
-              const failCount = batchResult?.failed ?? sceneIds.length;
-              pushAutoRunLog(`Batch: ${failCount} scene(s) failed, retrying individually`);
-              // Retry failed scenes individually
-              const { updateScene } = useStudioStore.getState();
-              for (const scene of workingScenes) {
-                assertNotCancelled();
-                if (scene.image_url) continue;
-                updateScene(scene.id, { isGenerating: true });
-                const result = await generateSceneImageFor(scene, true);
-                updateScene(scene.id, { isGenerating: false });
-                if (!result?.image_url) throw new Error(`Image failed for Scene ${scene.id}`);
-                updateScene(scene.id, result);
-                workingScenes = workingScenes.map((s) =>
-                  s.id === scene.id ? { ...s, ...result } : s
-                );
-              }
+        }
+
+        // Single-gen scenes: batch mode with server-side throttling
+        if (singleGenScenes.length > 0) {
+          const sceneIds = singleGenScenes.map((s) => s.id);
+          const batchResult = await generateBatchImages(sceneIds);
+          if (!batchResult || batchResult.failed > 0) {
+            const failCount = batchResult?.failed ?? sceneIds.length;
+            pushAutoRunLog(`Batch: ${failCount} scene(s) failed, retrying individually`);
+            // Retry failed scenes individually
+            const { updateScene } = useStudioStore.getState();
+            for (const scene of workingScenes) {
+              assertNotCancelled();
+              if (scene.image_url) continue;
+              updateScene(scene.id, { isGenerating: true });
+              const result = await generateSceneImageFor(scene, true);
+              updateScene(scene.id, { isGenerating: false });
+              if (!result?.image_url) throw new Error(`Image failed for Scene ${scene.id}`);
+              updateScene(scene.id, result);
+              workingScenes = workingScenes.map((s) =>
+                s.id === scene.id ? { ...s, ...result } : s
+              );
             }
-            // Sync workingScenes with store state after batch
-            workingScenes = useStudioStore.getState().scenes;
           }
+          // Sync workingScenes with store state after batch
+          workingScenes = useStudioStore.getState().scenes;
         }
 
         // Apply auto-pin for all scenes after image generation

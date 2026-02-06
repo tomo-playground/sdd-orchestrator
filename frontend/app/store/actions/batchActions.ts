@@ -5,9 +5,12 @@ import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
 import {
   resolveCharacterIdForSpeaker,
-  resolveIpAdapterForSpeaker,
   resolveCharacterLorasForSpeaker,
 } from "../../utils/speakerResolver";
+import {
+  resolveSceneControlnet,
+  resolveSceneIpAdapter,
+} from "../../utils/sceneSettingsResolver";
 
 interface BatchResult {
   index: number;
@@ -45,7 +48,8 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
 
   try {
     const sceneRequests = targetScenes.map((scene) => {
-      const ipAdapter = resolveIpAdapterForSpeaker(scene.speaker, state);
+      const controlnet = resolveSceneControlnet(scene, state);
+      const ipAdapter = resolveSceneIpAdapter(scene, state);
       const speakerLoras = resolveCharacterLorasForSpeaker(
         scene.speaker,
         state.characterLoras || [],
@@ -66,8 +70,9 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
         storyboard_id: state.storyboardId || undefined,
         style_loras: speakerLoras.filter((l) => l.lora_type === "style") || [],
-        use_controlnet: state.useControlnet && !isNarrator,
-        use_ip_adapter: state.useIpAdapter && !!ipAdapter.reference && !isNarrator,
+        use_controlnet: controlnet.enabled && !isNarrator,
+        controlnet_weight: controlnet.weight,
+        use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
         ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
         ip_adapter_weight: ipAdapter.weight || 0.7,
         use_reference_only: scene.use_reference_only ?? true,

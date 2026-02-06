@@ -49,6 +49,14 @@ class Scene(Base, TimestampMixin):
     environment_reference_id: Mapped[int | None] = mapped_column()
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
 
+    # Per-scene generation settings override (nullable = inherit global)
+    use_controlnet: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    controlnet_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    use_ip_adapter: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    ip_adapter_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ip_adapter_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    multi_gen_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
     environment_asset: Mapped["MediaAsset | None"] = relationship(
         primaryjoin="Scene.environment_reference_id == MediaAsset.id",
         foreign_keys=[environment_reference_id],

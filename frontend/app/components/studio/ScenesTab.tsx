@@ -299,13 +299,10 @@ export default function ScenesTab() {
       {/* Right: Settings & Status (sticky) */}
       <SceneSidePanel
         multiGenEnabled={multiGenEnabled}
-        onMultiGenEnabledChange={(v) => setScenesState({ multiGenEnabled: v })}
         useControlnet={useControlnet}
-        onUseControlnetChange={(v) => setPlan({ useControlnet: v })}
         controlnetWeight={controlnetWeight}
         onControlnetWeightChange={(v) => setPlan({ controlnetWeight: v })}
         useIpAdapter={useIpAdapter}
-        onUseIpAdapterChange={(v) => setPlan({ useIpAdapter: v })}
         ipAdapterReference={resolvedIpAdapter.reference}
         onIpAdapterReferenceChange={(v) =>
           setPlan(currentSpeaker === "B" ? { ipAdapterReferenceB: v } : { ipAdapterReference: v })
@@ -315,6 +312,30 @@ export default function ScenesTab() {
           setPlan(currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v })
         }
         referenceImages={referenceImages}
+        sceneMultiGen={currentScene?.multi_gen_enabled}
+        onSceneMultiGenChange={(v) => {
+          if (currentScene) updateScene(currentScene.id, { multi_gen_enabled: v });
+        }}
+        sceneControlnet={currentScene?.use_controlnet}
+        onSceneControlnetChange={(v) => {
+          if (currentScene) updateScene(currentScene.id, { use_controlnet: v });
+        }}
+        sceneControlnetWeight={currentScene?.controlnet_weight}
+        onSceneControlnetWeightChange={(v) => {
+          if (currentScene) updateScene(currentScene.id, { controlnet_weight: v });
+        }}
+        sceneIpAdapter={currentScene?.use_ip_adapter}
+        onSceneIpAdapterChange={(v) => {
+          if (currentScene) updateScene(currentScene.id, { use_ip_adapter: v });
+        }}
+        sceneIpAdapterReference={currentScene?.ip_adapter_reference}
+        onSceneIpAdapterReferenceChange={(v) => {
+          if (currentScene) updateScene(currentScene.id, { ip_adapter_reference: v });
+        }}
+        sceneIpAdapterWeight={currentScene?.ip_adapter_weight}
+        onSceneIpAdapterWeightChange={(v) => {
+          if (currentScene) updateScene(currentScene.id, { ip_adapter_weight: v });
+        }}
         currentSpeaker={currentSpeaker}
         validationSummary={validationSummary}
         imageValidationResults={imageValidationResults}

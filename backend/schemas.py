@@ -259,6 +259,14 @@ class SceneDetailResponse(BaseModel):
     candidates: list[SceneCandidate] | None = None
     auto_pin_previous: bool = Field(default=False, alias="_auto_pin_previous")
 
+    # Per-scene generation settings override (null = inherit global)
+    use_controlnet: bool | None = None
+    controlnet_weight: float | None = None
+    use_ip_adapter: bool | None = None
+    ip_adapter_reference: str | None = None
+    ip_adapter_weight: float | None = None
+    multi_gen_enabled: bool | None = None
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -332,6 +340,14 @@ class StoryboardScene(BaseModel):
     environment_reference_id: int | None = None
     environment_reference_weight: float | None = None
     image_asset_id: int | None = None
+
+    # Per-scene generation settings override (null = inherit global)
+    use_controlnet: bool | None = None
+    controlnet_weight: float | None = None
+    use_ip_adapter: bool | None = None
+    ip_adapter_reference: str | None = None
+    ip_adapter_weight: float | None = None
+    multi_gen_enabled: bool | None = None
 
     model_config = ConfigDict(extra="allow")
 
