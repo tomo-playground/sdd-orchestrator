@@ -175,4 +175,87 @@ describe("loadGroupDefaults", () => {
 
     expect(mockSetEffectiveDefaults).toHaveBeenCalledWith(null, null, true);
   });
+
+  describe("skipContentDefaults option", () => {
+    it("skips content defaults when skipContentDefaults is true", async () => {
+      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: {
+          render_preset: { name: "Test", bgm_file: "random" },
+          language: "Korean",
+          structure: "Monologue",
+          duration: 30,
+          sources: { render_preset_id: "group" },
+        },
+      });
+
+      await loadGroupDefaults(3, { skipContentDefaults: true });
+
+      // Render preset should still be applied
+      expect(mockSetOutput).toHaveBeenCalledWith(expect.objectContaining({ bgmFile: "random" }));
+      // Content defaults (language/structure/duration) should NOT be applied
+      expect(mockSetPlan).not.toHaveBeenCalled();
+    });
+
+    it("applies content defaults when skipContentDefaults is false", async () => {
+      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: {
+          render_preset: { name: "Test" },
+          language: "Korean",
+          structure: "Dialogue",
+          duration: 45,
+          sources: {},
+        },
+      });
+
+      await loadGroupDefaults(3, { skipContentDefaults: false });
+
+      expect(mockSetPlan).toHaveBeenCalledWith({
+        language: "Korean",
+        structure: "Dialogue",
+        duration: 45,
+      });
+    });
+
+    it("applies content defaults when options is undefined (default behavior)", async () => {
+      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: {
+          render_preset: { name: "Test" },
+          language: "English",
+          structure: "Narrated Dialogue",
+          duration: 60,
+          sources: {},
+        },
+      });
+
+      await loadGroupDefaults(3);
+
+      expect(mockSetPlan).toHaveBeenCalledWith({
+        language: "English",
+        structure: "Narrated Dialogue",
+        duration: 60,
+      });
+    });
+
+    it("preserves storyboard structure when loading existing storyboard", async () => {
+      // Scenario: User loads storyboard with structure="Dialogue" from a group with default structure="Monologue"
+      // The storyboard's structure should be preserved, not overwritten by group default
+      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: {
+          render_preset: { name: "Test", speed_multiplier: 1.2 },
+          language: "Korean",
+          structure: "Monologue", // Group default
+          duration: 30,
+          sources: {},
+        },
+      });
+
+      // When skipContentDefaults is true (existing storyboard scenario)
+      await loadGroupDefaults(3, { skipContentDefaults: true });
+
+      // Render settings should be applied
+      expect(mockSetOutput).toHaveBeenCalledWith(expect.objectContaining({ speedMultiplier: 1.2 }));
+      // But structure/language/duration should NOT overwrite storyboard values
+      expect(mockSetPlan).not.toHaveBeenCalled();
+    });
+  });
 });
