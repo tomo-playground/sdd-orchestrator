@@ -449,30 +449,24 @@ def _sync_speaker_mappings(
 ) -> None:
     """Sync speaker→character mappings for a storyboard.
 
-    If character_b_id is provided (Dialogue mode), maps A→character_id, B→character_b_id.
-    Otherwise clears all mappings.
+    Mapping rules:
+    - Monologue (character_id only): A → character_id
+    - Dialogue (both): A → character_id, B → character_b_id
+    - No characters: clear all mappings
     """
     from services.speaker_resolver import assign_speakers
 
-    if not character_b_id:
-        # Only clear if there might be existing mappings (update path)
-        from models.storyboard_character import StoryboardCharacter
-
-        existing = (
-            db.query(StoryboardCharacter.id)
-            .filter(
-                StoryboardCharacter.storyboard_id == storyboard_id,
-            )
-            .first()
-        )
-        if existing:
-            assign_speakers(storyboard_id, {}, db)
-        return
-
     speaker_map: dict[str, int] = {}
+
+    # Map Speaker A to character_id (Monologue or Dialogue)
     if character_id:
         speaker_map[SPEAKER_A] = character_id
-    speaker_map[SPEAKER_B] = character_b_id
+
+    # Map Speaker B to character_b_id (Dialogue only)
+    if character_b_id:
+        speaker_map[SPEAKER_B] = character_b_id
+
+    # assign_speakers handles deletion of old mappings before inserting new ones
     assign_speakers(storyboard_id, speaker_map, db)
 
 
@@ -611,10 +605,6 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
 
     character_id = resolve_speaker_to_character(storyboard.id, SPEAKER_A, db)
     character_b_id = resolve_speaker_to_character(storyboard.id, SPEAKER_B, db)
-
-    # Fallback to effective config if no explicit mapping (backwards compat)
-    if character_id is None:
-        character_id = effective["values"].get("character_id")
 
     return {
         "id": storyboard.id,
