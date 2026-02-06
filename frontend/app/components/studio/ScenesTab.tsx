@@ -11,7 +11,12 @@ import SceneSidePanel from "../storyboard/SceneSidePanel";
 import SceneCard from "../storyboard/SceneCard";
 import { SIDE_PANEL_LAYOUT } from "../ui/variants";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
-import { resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
+import {
+  resolveIpAdapterForSpeaker,
+  resolveCharacterIdForSpeaker,
+  resolveBasePromptForSpeaker,
+  resolveCharacterLorasForSpeaker,
+} from "../../utils/speakerResolver";
 import {
   handleGenerateImage,
   handleImageUpload,
@@ -55,9 +60,12 @@ export default function ScenesTab() {
     autoComposePrompt,
     loraTriggerWords,
     characterLoras,
+    characterBLoras,
     characterPromptMode,
     selectedCharacterId,
+    selectedCharacterBId,
     basePromptA,
+    basePromptB,
     useControlnet,
     controlnetWeight,
     useIpAdapter,
@@ -92,6 +100,18 @@ export default function ScenesTab() {
     ipAdapterReferenceB,
     ipAdapterWeightB,
   });
+
+  // Resolve character settings based on current speaker
+  const resolvedCharacterId = resolveCharacterIdForSpeaker(currentSpeaker, {
+    selectedCharacterId,
+    selectedCharacterBId,
+  });
+  const resolvedBasePrompt = resolveBasePromptForSpeaker(currentSpeaker, basePromptA, basePromptB);
+  const resolvedCharacterLoras = resolveCharacterLorasForSpeaker(
+    currentSpeaker,
+    characterLoras,
+    characterBLoras
+  );
 
   const handleUpdateScene = useCallback(
     (updates: Partial<(typeof scenes)[0]>) => {
@@ -230,7 +250,6 @@ export default function ScenesTab() {
             validatingSceneId={validatingSceneId}
             autoComposePrompt={autoComposePrompt}
             loraTriggerWords={loraTriggerWords}
-            characterLoras={characterLoras}
             promptMode={characterPromptMode}
             tagsByGroup={tagsByGroup}
             sceneTagGroups={sceneTagGroups}
@@ -260,8 +279,9 @@ export default function ScenesTab() {
               getFixSuggestions(scene, validation, useStudioStore.getState().topic)
             }
             applySuggestion={applySuggestion}
-            selectedCharacterId={selectedCharacterId}
-            basePromptA={basePromptA}
+            selectedCharacterId={resolvedCharacterId}
+            basePromptA={resolvedBasePrompt}
+            characterLoras={resolvedCharacterLoras}
             structure={useStudioStore.getState().structure}
             buildNegativePrompt={buildNegativePrompt}
             buildScenePrompt={buildScenePrompt}

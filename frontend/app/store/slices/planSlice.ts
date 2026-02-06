@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { ActorGender } from "../../types";
+import { DEFAULT_STRUCTURE } from "../../constants";
 
 export interface PlanSlice {
   // Content
@@ -66,7 +67,7 @@ const initialPlanState = {
   duration: 10,
   style: "Anime",
   language: "Korean",
-  structure: "Monologue",
+  structure: DEFAULT_STRUCTURE,
   actorAGender: "female" as ActorGender,
   selectedCharacterId: null,
   characterPromptMode: "auto" as const,

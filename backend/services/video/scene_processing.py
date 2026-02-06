@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from config import (
+    DEFAULT_SPEAKER,
     GEMINI_TEXT_MODEL,
     STORAGE_MODE,
     TTS_ATTN_IMPLEMENTATION,
@@ -365,7 +366,7 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
         group = db.get(Group, storyboard.group_id) if storyboard.group_id else None
         effective = resolve_effective_config(group.project, group) if group else {"values": {}}
 
-        if speaker == "Narrator":
+        if speaker == DEFAULT_SPEAKER:
             preset_id = effective["values"].get("narrator_voice_preset_id")
             if preset_id:
                 logger.info(f"[TTS] Narrator voice preset from cascade: {preset_id}")
@@ -412,7 +413,7 @@ def _resolve_voice_preset_id(
         return None
 
     # 2. Speaker-specific preset
-    speaker = scene_req.speaker or "Narrator"
+    speaker = scene_req.speaker or DEFAULT_SPEAKER
     speaker_preset = _get_speaker_voice_preset(
         builder.request.storyboard_id,
         speaker,

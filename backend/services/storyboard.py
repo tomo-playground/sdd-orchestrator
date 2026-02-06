@@ -10,7 +10,15 @@ from urllib.parse import urlparse
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from config import DEFAULT_SCENE_NEGATIVE_PROMPT, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
+from config import (
+    DEFAULT_SCENE_NEGATIVE_PROMPT,
+    GEMINI_TEXT_MODEL,
+    SPEAKER_A,
+    SPEAKER_B,
+    gemini_client,
+    logger,
+    template_env,
+)
 from models.associations import CharacterTag, SceneCharacterAction, SceneTag
 from models.character import Character
 from models.media_asset import MediaAsset
@@ -449,17 +457,21 @@ def _sync_speaker_mappings(
         # Only clear if there might be existing mappings (update path)
         from models.storyboard_character import StoryboardCharacter
 
-        existing = db.query(StoryboardCharacter.id).filter(
-            StoryboardCharacter.storyboard_id == storyboard_id,
-        ).first()
+        existing = (
+            db.query(StoryboardCharacter.id)
+            .filter(
+                StoryboardCharacter.storyboard_id == storyboard_id,
+            )
+            .first()
+        )
         if existing:
             assign_speakers(storyboard_id, {}, db)
         return
 
     speaker_map: dict[str, int] = {}
     if character_id:
-        speaker_map["A"] = character_id
-    speaker_map["B"] = character_b_id
+        speaker_map[SPEAKER_A] = character_id
+    speaker_map[SPEAKER_B] = character_b_id
     assign_speakers(storyboard_id, speaker_map, db)
 
 
@@ -476,6 +488,7 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         description=request.description,
         group_id=request.group_id,
         caption=request.caption,
+        structure=request.structure,
     )
     db.add(db_storyboard)
     db.flush()
@@ -575,8 +588,8 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     # Resolve character_id and character_b_id from storyboard_characters
     from services.speaker_resolver import resolve_speaker_to_character
 
-    character_id = resolve_speaker_to_character(storyboard.id, "A", db)
-    character_b_id = resolve_speaker_to_character(storyboard.id, "B", db)
+    character_id = resolve_speaker_to_character(storyboard.id, SPEAKER_A, db)
+    character_b_id = resolve_speaker_to_character(storyboard.id, SPEAKER_B, db)
 
     # Fallback to effective config if no explicit mapping (backwards compat)
     if character_id is None:
@@ -587,6 +600,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "title": storyboard.title,
         "description": storyboard.description,
         "group_id": storyboard.group_id,
+        "structure": storyboard.structure,
         "character_id": character_id,
         "character_b_id": character_b_id,
         "style_profile_id": effective["values"].get("style_profile_id"),

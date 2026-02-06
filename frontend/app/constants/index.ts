@@ -12,6 +12,7 @@ export const Z_INDEX = {
 
 export const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
 export const DEFAULT_SCENE_TEXT_FONT = "온글잎 박다현체.ttf";
+export const DEFAULT_STRUCTURE = "Monologue";
 export const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";
 export const PROMPT_APPLY_KEY = "shorts-producer:apply-prompt";
 export const MAX_IMAGE_CACHE_SIZE = 8_000_000;

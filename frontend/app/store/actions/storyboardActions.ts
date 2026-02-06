@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
 import type { Scene } from "../../types";
 
 /**
@@ -28,11 +28,12 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   }
 
   try {
-    const { selectedCharacterId, selectedCharacterBId } = useStudioStore.getState();
+    const { selectedCharacterId, selectedCharacterBId, structure } = useStudioStore.getState();
     const payload = {
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
+      structure: structure || DEFAULT_STRUCTURE,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,
       scenes: scenes.map((s, i) => ({
@@ -164,6 +165,7 @@ export async function persistStoryboard(): Promise<boolean> {
     videoCaption,
     selectedCharacterId,
     selectedCharacterBId,
+    structure,
     setMeta,
     setScenes,
   } = useStudioStore.getState();
@@ -175,6 +177,7 @@ export async function persistStoryboard(): Promise<boolean> {
       title: topic || "Untitled",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
+      structure: structure || DEFAULT_STRUCTURE,
       caption: videoCaption || null,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,

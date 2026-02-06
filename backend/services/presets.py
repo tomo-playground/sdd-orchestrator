@@ -25,7 +25,7 @@ class StoryboardPreset:
     extra_fields: dict = field(default_factory=dict)
 
 
-# Available presets
+# Available presets (Monologue + Dialogue only)
 PRESETS: dict[str, StoryboardPreset] = {
     "monologue": StoryboardPreset(
         id="monologue",
@@ -40,54 +40,6 @@ PRESETS: dict[str, StoryboardPreset] = {
             "처음 요리를 해본 날",
             "잊을 수 없는 여행 이야기",
             "나의 취미 생활",
-        ],
-        default_duration=30,
-    ),
-    "storytelling": StoryboardPreset(
-        id="storytelling",
-        name="Storytelling",
-        name_ko="스토리텔링",
-        description="Narrative story with beginning, middle, end",
-        structure="Storytelling",
-        template="create_storyboard.j2",
-        sample_topics=[
-            "마법의 숲에서 길을 잃은 소녀",
-            "시간여행자의 첫 번째 모험",
-            "외로운 로봇의 친구 찾기",
-            "비 오는 날 우연한 만남",
-            "꿈에서 만난 신비로운 존재",
-        ],
-        default_duration=45,
-    ),
-    "tutorial": StoryboardPreset(
-        id="tutorial",
-        name="Tutorial",
-        name_ko="튜토리얼",
-        description="Step-by-step instructional content",
-        structure="Tutorial",
-        template="create_storyboard.j2",
-        sample_topics=[
-            "맛있는 계란찜 만들기",
-            "종이접기로 학 접기",
-            "기초 스트레칭 루틴",
-            "스마트폰 사진 잘 찍는 법",
-            "집에서 하는 간단한 운동",
-        ],
-        default_duration=40,
-    ),
-    "facts": StoryboardPreset(
-        id="facts",
-        name="Fun Facts",
-        name_ko="재미있는 사실",
-        description="Interesting facts and trivia",
-        structure="Facts",
-        template="create_storyboard.j2",
-        sample_topics=[
-            "우주에 대한 놀라운 사실들",
-            "동물들의 신기한 능력",
-            "역사 속 재미있는 이야기",
-            "과학이 밝힌 일상의 비밀",
-            "세계의 독특한 문화",
         ],
         default_duration=30,
     ),
@@ -106,22 +58,6 @@ PRESETS: dict[str, StoryboardPreset] = {
             "형제자매의 말다툼",
         ],
         default_duration=30,
-    ),
-    "motivation": StoryboardPreset(
-        id="motivation",
-        name="Motivation",
-        name_ko="동기부여",
-        description="Inspirational and motivational content",
-        structure="Motivation",
-        template="create_storyboard.j2",
-        sample_topics=[
-            "포기하고 싶을 때 기억할 것",
-            "작은 시작의 힘",
-            "실패는 성공의 어머니",
-            "오늘을 살아가는 이유",
-            "꿈을 향한 한 걸음",
-        ],
-        default_duration=25,
     ),
 }
 

@@ -133,6 +133,12 @@ SD_BATCH_CONCURRENCY = int(os.getenv("SD_BATCH_CONCURRENCY", "3"))
 SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "512"))
 SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "768"))
 
+# --- Storyboard Defaults ---
+DEFAULT_STRUCTURE = "Monologue"  # Options: "Monologue", "Dialogue"
+DEFAULT_SPEAKER = "Narrator"  # Default speaker for scenes
+SPEAKER_A = "A"  # Dialogue speaker A
+SPEAKER_B = "B"  # Dialogue speaker B
+
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
 if API_PUBLIC_URL == "http://localhost:8000":
     logger.info("Using default API_PUBLIC_URL: %s", API_PUBLIC_URL)

@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from config import DEFAULT_SPEAKER
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -27,7 +28,7 @@ class Scene(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text)  # LLM generated visual description
 
     # Scene metadata
-    speaker: Mapped[str | None] = mapped_column(String(20), default="Narrator")
+    speaker: Mapped[str | None] = mapped_column(String(20), default=DEFAULT_SPEAKER)
     duration: Mapped[float | None] = mapped_column(Float, default=3.0)
 
     # Prompt fields

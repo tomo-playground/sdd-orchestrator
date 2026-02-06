@@ -5,6 +5,8 @@
  * Runs once on first load; deletes the old key after migration.
  */
 
+import { DEFAULT_STRUCTURE } from "../../constants";
+
 const OLD_KEY = "shorts-producer:draft:v1";
 const NEW_KEY = "shorts-producer:studio:v1";
 
@@ -35,7 +37,7 @@ export function migrateDraft(): void {
         duration: draft.duration ?? 10,
         style: draft.style ?? "Anime",
         language: draft.language ?? "Korean",
-        structure: draft.structure ?? "Monologue",
+        structure: draft.structure ?? DEFAULT_STRUCTURE,
         actorAGender: draft.actorAGender ?? "female",
         selectedCharacterId: draft.selectedCharacterId ?? null,
         selectedCharacterBId: null,

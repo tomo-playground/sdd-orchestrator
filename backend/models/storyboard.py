@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from config import DEFAULT_STRUCTURE
 from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     caption: Mapped[str | None] = mapped_column(Text)
+    structure: Mapped[str] = mapped_column(String(50), nullable=False, default=DEFAULT_STRUCTURE)
 
     @property
     def video_url(self) -> str | None:

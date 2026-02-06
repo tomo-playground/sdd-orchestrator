@@ -7,7 +7,7 @@ import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { initializeVideoMetadata } from "../store/actions/outputActions";
 import type { Scene } from "../types";
-import { API_BASE, PROMPT_APPLY_KEY } from "../constants";
+import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
 import { updateProject } from "../store/actions/projectActions";
 
 /**
@@ -156,6 +156,7 @@ export function useStudioInitialization() {
         setPlan({
           selectedCharacterId: data.character_id || null,
           selectedCharacterBId: data.character_b_id || null,
+          structure: data.structure || DEFAULT_STRUCTURE,
           topic: data.title || "",
           description: data.description || "",
         });

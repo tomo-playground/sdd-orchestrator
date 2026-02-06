@@ -3,6 +3,8 @@ import {
   resolveCharacterIdForSpeaker,
   resolveIpAdapterForSpeaker,
   resolveNegativePromptForSpeaker,
+  resolveBasePromptForSpeaker,
+  resolveCharacterLorasForSpeaker,
 } from "../speakerResolver";
 
 describe("resolveCharacterIdForSpeaker", () => {
@@ -85,5 +87,62 @@ describe("resolveIpAdapterForSpeaker", () => {
     const result = resolveIpAdapterForSpeaker("B", noRef);
     expect(result.reference).toBe("");
     expect(result.weight).toBe(0.7);
+  });
+});
+
+describe("resolveBasePromptForSpeaker", () => {
+  const promptA = "1girl, solo, red_hair, school_uniform";
+  const promptB = "1boy, solo, blue_hair, casual_clothes";
+
+  it("returns basePromptA for speaker A", () => {
+    expect(resolveBasePromptForSpeaker("A", promptA, promptB)).toBe(promptA);
+  });
+
+  it("returns basePromptA for Narrator", () => {
+    expect(resolveBasePromptForSpeaker("Narrator", promptA, promptB)).toBe(promptA);
+  });
+
+  it("returns basePromptB for speaker B", () => {
+    expect(resolveBasePromptForSpeaker("B", promptA, promptB)).toBe(promptB);
+  });
+
+  it("returns empty string when speaker B prompt is empty", () => {
+    expect(resolveBasePromptForSpeaker("B", promptA, "")).toBe("");
+  });
+});
+
+describe("resolveCharacterLorasForSpeaker", () => {
+  const lorasA = [
+    { lora_id: 1, weight: 0.8, name: "Doremi LoRA" },
+    { lora_id: 2, weight: 0.6, name: "School Uniform" },
+  ];
+  const lorasB = [{ lora_id: 3, weight: 0.9, name: "Takeshi LoRA" }];
+
+  it("returns characterLoras for speaker A", () => {
+    const result = resolveCharacterLorasForSpeaker("A", lorasA, lorasB);
+    expect(result).toEqual(lorasA);
+    expect(result).toHaveLength(2);
+  });
+
+  it("returns characterLoras for Narrator", () => {
+    const result = resolveCharacterLorasForSpeaker("Narrator", lorasA, lorasB);
+    expect(result).toEqual(lorasA);
+  });
+
+  it("returns characterBLoras for speaker B", () => {
+    const result = resolveCharacterLorasForSpeaker("B", lorasA, lorasB);
+    expect(result).toEqual(lorasB);
+    expect(result).toHaveLength(1);
+  });
+
+  it("returns empty array when speaker B has no LoRAs", () => {
+    const result = resolveCharacterLorasForSpeaker("B", lorasA, []);
+    expect(result).toEqual([]);
+    expect(result).toHaveLength(0);
+  });
+
+  it("handles empty arrays for both speakers", () => {
+    const result = resolveCharacterLorasForSpeaker("A", [], []);
+    expect(result).toEqual([]);
   });
 });

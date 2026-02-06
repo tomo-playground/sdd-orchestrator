@@ -30,16 +30,14 @@ class TestPresetsRouter:
         assert "default_language" in first
 
     def test_list_presets_contains_known_ids(self, client: TestClient, db_session):
-        """Preset list includes known preset IDs."""
+        """Preset list includes known preset IDs (Monologue + Dialogue only)."""
         response = client.get("/presets")
         data = response.json()
         ids = [p["id"] for p in data["presets"]]
 
         assert "monologue" in ids
-        assert "storytelling" in ids
-        assert "tutorial" in ids
-        assert "facts" in ids
-        assert "motivation" in ids
+        assert "dialogue" in ids
+        assert len(ids) == 2  # Only 2 presets
 
     def test_get_preset_detail_monologue(self, client: TestClient, db_session):
         """GET /presets/monologue returns monologue preset details."""
@@ -57,14 +55,16 @@ class TestPresetsRouter:
         assert len(data["sample_topics"]) > 0
         assert data["default_duration"] == 30
 
-    def test_get_preset_detail_storytelling(self, client: TestClient, db_session):
-        """GET /presets/storytelling returns storytelling preset."""
-        response = client.get("/presets/storytelling")
+    def test_get_preset_detail_dialogue(self, client: TestClient, db_session):
+        """GET /presets/dialogue returns dialogue preset."""
+        response = client.get("/presets/dialogue")
         assert response.status_code == 200
         data = response.json()
 
-        assert data["id"] == "storytelling"
-        assert data["default_duration"] == 45
+        assert data["id"] == "dialogue"
+        assert data["name"] == "Dialogue"
+        assert data["structure"] == "Dialogue"
+        assert data["default_duration"] == 30
 
     def test_get_preset_not_found(self, client: TestClient, db_session):
         """GET /presets/{invalid_id} returns 404."""

@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from config import DEFAULT_SPEAKER, DEFAULT_STRUCTURE
+
 logger = logging.getLogger(__name__)
 
 # Type alias for prompt mode
@@ -189,6 +191,7 @@ class StoryboardBase(BaseModel):
     description: str | None = None
     group_id: int | None = None
     caption: str | None = None
+    structure: str = DEFAULT_STRUCTURE
 
 
 class StoryboardSave(StoryboardBase):
@@ -217,7 +220,7 @@ class StoryboardRequest(BaseModel):
     duration: int = 10
     style: str = "Anime"
     language: str = "Korean"
-    structure: str = "Monologue"
+    structure: str = DEFAULT_STRUCTURE
     actor_a_gender: str = "female"
     character_id: int | None = None
     character_b_id: int | None = None
@@ -226,7 +229,7 @@ class StoryboardRequest(BaseModel):
 class StoryboardScene(BaseModel):
     scene_id: int
     script: str
-    speaker: str = "Narrator"
+    speaker: str = DEFAULT_SPEAKER
     duration: float = 3
     image_prompt: str = ""
     image_prompt_ko: str = ""
@@ -276,7 +279,7 @@ class TTSEngine(str, Enum):
 class VideoScene(BaseModel):
     image_url: str
     script: str = ""
-    speaker: str = "Narrator"
+    speaker: str = DEFAULT_SPEAKER
     duration: float = 3
     # Per-scene voice override
     narrator_voice: str | None = None

@@ -60,3 +60,45 @@ export function resolveNegativePromptForSpeaker(
   }
   return baseNegativePromptA;
 }
+
+/**
+ * Resolve base prompt for a speaker.
+ *
+ * - "A" / "Narrator" → basePromptA
+ * - "B" → basePromptB
+ */
+export function resolveBasePromptForSpeaker(
+  speaker: Scene["speaker"],
+  basePromptA: string,
+  basePromptB: string
+): string {
+  if (speaker === "B") {
+    return basePromptB;
+  }
+  return basePromptA;
+}
+
+export type CharacterLora = {
+  lora_id: number;
+  weight: number;
+  name?: string;
+  trigger_words?: string[];
+  optimal_weight?: number;
+};
+
+/**
+ * Resolve character LoRAs for a speaker.
+ *
+ * - "A" / "Narrator" → characterLoras
+ * - "B" → characterBLoras
+ */
+export function resolveCharacterLorasForSpeaker(
+  speaker: Scene["speaker"],
+  characterLoras: CharacterLora[],
+  characterBLoras: CharacterLora[]
+): CharacterLora[] {
+  if (speaker === "B") {
+    return characterBLoras;
+  }
+  return characterLoras;
+}
