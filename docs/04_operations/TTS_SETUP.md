@@ -46,7 +46,10 @@ cd backend && uv pip install qwen-tts torch torchaudio transformers accelerate s
 |------|--------|-----------|------|
 | `TTS_MODEL_NAME` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | `TTS_MODEL_NAME` | HuggingFace 모델 ID |
 | `TTS_DEVICE` | `"auto"` | `TTS_DEVICE` | `"auto"` / `"mps"` / `"cpu"` |
-| `TTS_ATTN_IMPLEMENTATION` | `"sdpa"` | `TTS_ATTN_IMPLEMENTATION` | Attention 구현체 |
+| `TTS_ATTN_IMPLEMENTATION` | `"sdpa"` | `TTS_ATTN_IMPLEMENTATION` | Attention 구현체 (sdpa 권장) |
+| `TTS_TEMPERATURE` | `0.7` | `TTS_TEMPERATURE` | 생성 다양성 (낮을수록 일관된 음성) |
+| `TTS_TOP_P` | `0.9` | `TTS_TOP_P` | Nucleus sampling 임계값 |
+| `TTS_REPETITION_PENALTY` | `1.1` | `TTS_REPETITION_PENALTY` | 반복 억제 (1.0 = 비활성) |
 
 **디바이스 자동 감지 로직** (`services/video/scene_processing.py`):
 
@@ -287,8 +290,13 @@ TTS_MODEL_NAME=Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
 # 디바이스 설정 (auto 권장)
 TTS_DEVICE=auto
 
-# Attention 구현체 (sdpa 권장)
+# Attention 구현체 (sdpa 권장, eager보다 2-3x 빠름)
 TTS_ATTN_IMPLEMENTATION=sdpa
+
+# 생성 파라미터 (음성 품질/일관성 조절)
+TTS_TEMPERATURE=0.7         # 낮을수록 일관된 음성 (0.5~1.0)
+TTS_TOP_P=0.9               # Nucleus sampling (0.8~1.0)
+TTS_REPETITION_PENALTY=1.1  # 반복 억제 (1.0~1.3)
 
 # Gemini API (한국어 번역에 필요)
 GEMINI_API_KEY=your_api_key_here

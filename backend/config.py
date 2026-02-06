@@ -285,6 +285,11 @@ VOICE_PRESET_MIN_DURATION = float(os.getenv("VOICE_PRESET_MIN_DURATION", "3.0"))
 VOICE_PRESET_MAX_DURATION = float(os.getenv("VOICE_PRESET_MAX_DURATION", "60.0"))
 VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 
+# --- TTS Generation Parameters ---
+TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))  # Lower = more consistent
+TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.9"))  # Nucleus sampling threshold
+TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.1"))  # Discourage repetition
+
 # --- TTS Performance ---
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"

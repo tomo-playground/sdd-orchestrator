@@ -23,7 +23,10 @@ from config import (
     TTS_DEFAULT_LANGUAGE,
     TTS_DEVICE,
     TTS_MODEL_NAME,
+    TTS_REPETITION_PENALTY,
+    TTS_TEMPERATURE,
     TTS_TIMEOUT_SECONDS,
+    TTS_TOP_P,
     gemini_client,
     logger,
 )
@@ -484,6 +487,9 @@ async def generate_tts(
                 text=clean_script,
                 instruct=voice_design or "",
                 language=TTS_DEFAULT_LANGUAGE,
+                temperature=TTS_TEMPERATURE,
+                top_p=TTS_TOP_P,
+                repetition_penalty=TTS_REPETITION_PENALTY,
             )
 
         logger.info(f"Scene {i}: voice design — '{(voice_design or '')[:40]}'")
