@@ -646,6 +646,7 @@ class CharacterResponse(CharacterBase):
     project_id: int | None
     tags: list[CharacterTagLink] = []
     preview_image_url: str | None = None  # Read-only from @property
+    preview_key: str | None = None  # Read-only from @property (storage key for avatar_key)
     preview_locked: bool = False
     deleted_at: datetime | None = None
 

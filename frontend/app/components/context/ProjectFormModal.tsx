@@ -9,7 +9,12 @@ import type { Character, ProjectItem } from "../../types";
 
 type Props = {
   project?: ProjectItem;
-  onSave: (data: { name: string; description?: string; handle?: string; avatar_key?: string }) => Promise<void>;
+  onSave: (data: {
+    name: string;
+    description?: string;
+    handle?: string;
+    avatar_key?: string;
+  }) => Promise<void>;
   onClose: () => void;
 };
 
@@ -49,7 +54,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
     }
   };
 
-  const charsWithImage = characters.filter((c) => c.preview_image_url);
+  const charsWithImage = characters.filter((c) => c.preview_key);
 
   return (
     <Modal open onClose={onClose} size="sm">
@@ -57,12 +62,14 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
         <h2 className="text-sm font-bold text-zinc-900">
           {isEdit ? "Edit Project" : "New Project"}
         </h2>
-        <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-xs">x</button>
+        <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-600">
+          x
+        </button>
       </Modal.Header>
 
       <div className="space-y-3 px-5 py-4">
         <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
             Name *
           </label>
           <input
@@ -74,7 +81,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
             Handle
           </label>
           <input
@@ -85,7 +92,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
             Description
           </label>
           <input
@@ -98,7 +105,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
 
         {/* Avatar: Character Selector */}
         <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
             Channel Avatar
           </label>
           {charsWithImage.length > 0 ? (
@@ -119,12 +126,12 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                 const imgUrl = ch.preview_image_url!.startsWith("http")
                   ? ch.preview_image_url!
                   : `${API_BASE}${ch.preview_image_url}`;
-                const isSelected = avatarKey === ch.preview_image_url;
+                const isSelected = avatarKey === ch.preview_key;
                 return (
                   <button
                     key={ch.id}
                     type="button"
-                    onClick={() => setAvatarKey(ch.preview_image_url!)}
+                    onClick={() => setAvatarKey(ch.preview_key!)}
                     title={ch.name}
                     className={`h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 transition ${
                       isSelected
@@ -133,7 +140,11 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imgUrl} alt={ch.name} className="h-full w-full object-cover object-top" />
+                    <img
+                      src={imgUrl}
+                      alt={ch.name}
+                      className="h-full w-full object-cover object-top"
+                    />
                   </button>
                 );
               })}
@@ -145,7 +156,9 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
       </div>
 
       <Modal.Footer>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Cancel
+        </Button>
         <Button size="sm" loading={saving} disabled={!name.trim()} onClick={handleSubmit}>
           {isEdit ? "Save" : "Create"}
         </Button>

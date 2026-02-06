@@ -18,12 +18,12 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     """Character preset with identity tags, clothing tags, and multiple LoRAs."""
 
     __tablename__ = "characters"
-    __table_args__ = (
-        UniqueConstraint("name", name="uq_characters_name"),
-    )
+    __table_args__ = (UniqueConstraint("name", name="uq_characters_name"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    project_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    project_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     gender: Mapped[str | None] = mapped_column(String(10))  # female, male
     description: Mapped[str | None] = mapped_column(String(500))
@@ -62,9 +62,17 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
             return self.preview_image_asset.url
         return None
 
+    @property
+    def preview_key(self) -> str | None:
+        if self.preview_image_asset:
+            return self.preview_image_asset.storage_key
+        return None
+
     # Voice
     voice_preset_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True,
+        Integer,
+        ForeignKey("voice_presets.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # System Settings

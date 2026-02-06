@@ -229,6 +229,7 @@ export type Character = {
   reference_base_prompt: string | null;
   reference_negative_prompt: string | null;
   preview_image_url: string | null;
+  preview_key: string | null;
   preview_locked: boolean;
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
