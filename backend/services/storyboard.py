@@ -470,29 +470,44 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
                     f"  \u2139\ufe0f  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}..."
                 )
 
-        # Auto-pin background based on context_tags.environment
-        logger.info("[Storyboard] Auto-pin: Analyzing environment tags for background consistency")
-        previous_env_tags = None
+        # Auto-pin background based on structure type
+        # For Dialogue/Narrated Dialogue: all scenes (except first) share same background
+        # For Monologue: use environment tag overlap logic
+        is_dialogue_structure = structure_lower in ("dialogue", "narrated dialogue")
 
-        for i, scene in enumerate(scenes):
-            context_tags = scene.get("context_tags", {})
-            current_env_tags = set(context_tags.get("environment", [])) if context_tags else set()
+        if is_dialogue_structure:
+            logger.info(f"[Storyboard] Auto-pin: {request.structure} structure - all scenes share background")
+            for i, scene in enumerate(scenes):
+                if i == 0:
+                    scene["_auto_pin_previous"] = False
+                    logger.info(f"  Scene {i}: First scene (no auto-pin)")
+                else:
+                    scene["_auto_pin_previous"] = True
+                    logger.info(f"  Scene {i}: Auto-pin to previous (shared background)")
+        else:
+            logger.info("[Storyboard] Auto-pin: Analyzing environment tags for background consistency")
+            previous_env_tags = None
 
-            if i == 0:
+            for i, scene in enumerate(scenes):
+                context_tags = scene.get("context_tags", {})
+                current_env_tags = set(context_tags.get("environment", [])) if context_tags else set()
+
+                if i == 0:
+                    previous_env_tags = current_env_tags
+                    scene["_auto_pin_previous"] = False
+                    logger.info(f"  Scene {i}: First scene, env={list(current_env_tags)}")
+                    continue
+
+                if current_env_tags and previous_env_tags and (current_env_tags & previous_env_tags):
+                    scene["_auto_pin_previous"] = True
+                    logger.info(f"  Scene {i}: Same location {list(current_env_tags)} \u2192 mark for auto-pin")
+                else:
+                    scene["_auto_pin_previous"] = False
+                    logger.info(
+                        f"  Scene {i}: Location changed {list(previous_env_tags)} \u2192 {list(current_env_tags)}, no pin"
+                    )
+
                 previous_env_tags = current_env_tags
-                logger.info(f"  Scene {i}: First scene, env={list(current_env_tags)}")
-                continue
-
-            if current_env_tags and previous_env_tags and (current_env_tags & previous_env_tags):
-                scene["_auto_pin_previous"] = True
-                logger.info(f"  Scene {i}: Same location {list(current_env_tags)} \u2192 mark for auto-pin")
-            else:
-                scene["_auto_pin_previous"] = False
-                logger.info(
-                    f"  Scene {i}: Location changed {list(previous_env_tags)} \u2192 {list(current_env_tags)}, no pin"
-                )
-
-            previous_env_tags = current_env_tags
 
         logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
         for i, s in enumerate(scenes):
@@ -742,6 +757,8 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     if request.group_id is not None:
         storyboard.group_id = request.group_id
     storyboard.caption = request.caption
+    # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
+    storyboard.structure = request.structure
 
     # Nullify asset FK references on scenes first
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
