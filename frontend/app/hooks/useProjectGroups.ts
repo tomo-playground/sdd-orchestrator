@@ -54,7 +54,9 @@ export function useProjectGroups() {
   // Load group render defaults when groupId changes
   useEffect(() => {
     if (groupId !== null) {
-      loadGroupDefaults(groupId);
+      // Skip content defaults (structure/language/duration) if storyboard is already loaded
+      const { storyboardId } = useStudioStore.getState();
+      loadGroupDefaults(groupId, { skipContentDefaults: storyboardId !== null });
     }
   }, [groupId]);
 
