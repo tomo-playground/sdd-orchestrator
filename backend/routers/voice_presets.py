@@ -64,7 +64,7 @@ def get_voice_preset(preset_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=VoicePresetResponse, status_code=201)
 def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
     preset = VoicePreset(
-        **body.model_dump(exclude_unset=True),
+        **body.model_dump(exclude_unset=True, exclude={"source_type"}),
         source_type="generated",
         tts_engine="qwen",
         is_system=False,
@@ -77,7 +77,9 @@ def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
 
 @router.put("/{preset_id}", response_model=VoicePresetResponse)
 def update_voice_preset(
-    preset_id: int, body: VoicePresetUpdate, db: Session = Depends(get_db),
+    preset_id: int,
+    body: VoicePresetUpdate,
+    db: Session = Depends(get_db),
 ):
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:
@@ -130,6 +132,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
         def _generate():
             import soundfile as sf
             import torch
+
             torch.manual_seed(voice_seed)
             wavs, sr = model.generate_voice_design(
                 text=req.sample_text,
