@@ -1,7 +1,8 @@
 """Tests for calculate_auto_pin_flags function.
 
-This function calculates _auto_pin_previous flags for scenes based on
-environment tags. Scenes with overlapping environment tags should auto-pin.
+This function calculates _auto_pin_previous flags for scenes based on:
+- Monologue: environment tags overlap
+- Dialogue/Narrated Dialogue: all scenes share same background (auto-pin all after first)
 """
 
 from unittest.mock import MagicMock
@@ -147,3 +148,117 @@ class TestCalculateAutoPinFlags:
         assert result[2] is True
         assert result[3] is True
         assert result[4] is True
+
+
+class TestDialogueStructureAutoPin:
+    """Test auto-pin for Dialogue/Narrated Dialogue structures.
+
+    In dialogue structures, all speakers share the same background,
+    so all scenes after the first should auto-pin regardless of environment tags.
+    """
+
+    def test_dialogue_all_scenes_auto_pin(self):
+        """Dialogue: all scenes after first should auto-pin."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        # Even with different/no environment tags, all should auto-pin
+        scenes = [
+            create_mock_scene(1, ["cafe"]),  # Speaker A
+            create_mock_scene(2, ["restaurant"]),  # Speaker B - different tag but same bg
+            create_mock_scene(3, None),  # Speaker A - no tags
+            create_mock_scene(4, []),  # Speaker B - empty tags
+        ]
+        result = calculate_auto_pin_flags(scenes, structure="Dialogue")
+
+        assert result[1] is False  # First scene - no previous
+        assert result[2] is True  # Auto-pin (same background by spec)
+        assert result[3] is True  # Auto-pin
+        assert result[4] is True  # Auto-pin
+
+    def test_narrated_dialogue_all_scenes_auto_pin(self):
+        """Narrated Dialogue: all scenes after first should auto-pin."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        scenes = [
+            create_mock_scene(1, ["office"]),  # Narrator
+            create_mock_scene(2, ["different_office"]),  # Speaker A
+            create_mock_scene(3, ["workplace"]),  # Speaker B
+            create_mock_scene(4, None),  # Narrator
+        ]
+        result = calculate_auto_pin_flags(scenes, structure="Narrated Dialogue")
+
+        assert result[1] is False  # First scene
+        assert result[2] is True  # Auto-pin
+        assert result[3] is True  # Auto-pin
+        assert result[4] is True  # Auto-pin
+
+    def test_monologue_uses_environment_tags(self):
+        """Monologue: should use environment tag overlap logic."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        scenes = [
+            create_mock_scene(1, ["cafe"]),
+            create_mock_scene(2, ["park"]),  # Different location
+            create_mock_scene(3, ["park"]),  # Same as previous
+        ]
+        result = calculate_auto_pin_flags(scenes, structure="Monologue")
+
+        assert result[1] is False  # First
+        assert result[2] is False  # Different location
+        assert result[3] is True  # Same as previous
+
+    def test_no_structure_uses_environment_tags(self):
+        """No structure specified: should use environment tag overlap logic."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        scenes = [
+            create_mock_scene(1, ["cafe"]),
+            create_mock_scene(2, ["park"]),  # Different
+        ]
+        result = calculate_auto_pin_flags(scenes, structure=None)
+
+        assert result[1] is False
+        assert result[2] is False  # Different location
+
+    def test_dialogue_case_insensitive(self):
+        """Structure comparison should be case-insensitive."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        scenes = [
+            create_mock_scene(1, ["a"]),
+            create_mock_scene(2, ["b"]),
+        ]
+
+        # Test various case variations
+        for structure in ["dialogue", "DIALOGUE", "Dialogue", "DiAlOgUe"]:
+            result = calculate_auto_pin_flags(scenes, structure=structure)
+            assert result[2] is True, f"Failed for structure='{structure}'"
+
+    def test_narrated_dialogue_case_insensitive(self):
+        """Narrated Dialogue comparison should be case-insensitive."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        scenes = [
+            create_mock_scene(1, ["a"]),
+            create_mock_scene(2, ["b"]),
+        ]
+
+        for structure in ["narrated dialogue", "NARRATED DIALOGUE", "Narrated Dialogue"]:
+            result = calculate_auto_pin_flags(scenes, structure=structure)
+            assert result[2] is True, f"Failed for structure='{structure}'"
+
+    def test_dialogue_single_scene(self):
+        """Dialogue with single scene should have no auto-pin."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        scenes = [create_mock_scene(1, ["cafe"])]
+        result = calculate_auto_pin_flags(scenes, structure="Dialogue")
+
+        assert result[1] is False  # No previous scene
+
+    def test_dialogue_empty_scenes(self):
+        """Dialogue with empty scenes should return empty dict."""
+        from services.storyboard import calculate_auto_pin_flags
+
+        result = calculate_auto_pin_flags([], structure="Dialogue")
+        assert result == {}

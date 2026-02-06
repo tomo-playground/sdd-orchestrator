@@ -61,19 +61,34 @@ def truncate_title(title: str, max_length: int = 190) -> str:
     return title
 
 
-def calculate_auto_pin_flags(scenes: list) -> dict[int, bool]:
+def calculate_auto_pin_flags(scenes: list, structure: str | None = None) -> dict[int, bool]:
     """Calculate _auto_pin_previous flags for scenes based on environment tags.
 
     A scene should auto-pin to the previous scene if they share at least one
     environment tag (same location).
 
+    For Dialogue and Narrated Dialogue structures, all scenes after the first
+    auto-pin because all speakers share the same environment by spec.
+
     Args:
         scenes: List of Scene ORM objects, sorted by order
+        structure: Storyboard structure type (Monologue, Dialogue, Narrated Dialogue)
 
     Returns:
         Dict mapping scene.id -> bool (True if should auto-pin)
     """
     result: dict[int, bool] = {}
+
+    # For Dialogue/Narrated Dialogue: all scenes share the same background
+    is_dialogue = structure and structure.lower() in ("dialogue", "narrated dialogue")
+
+    if is_dialogue:
+        for i, scene in enumerate(scenes):
+            # First scene has no previous to pin to; all others auto-pin
+            result[scene.id] = i > 0
+        return result
+
+    # For Monologue: use environment tag overlap logic
     previous_env_tags: set[str] | None = None
 
     for i, scene in enumerate(scenes):
@@ -682,8 +697,10 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     character_id = resolve_speaker_to_character(storyboard.id, SPEAKER_A, db)
     character_b_id = resolve_speaker_to_character(storyboard.id, SPEAKER_B, db)
 
-    # Calculate _auto_pin_previous for each scene based on environment tags
-    auto_pin_flags = calculate_auto_pin_flags(scenes)
+    # Calculate _auto_pin_previous for each scene based on structure type
+    # Dialogue/Narrated Dialogue: all scenes share same background (auto-pin all)
+    # Monologue: use environment tag overlap logic
+    auto_pin_flags = calculate_auto_pin_flags(scenes, storyboard.structure)
 
     return {
         "id": storyboard.id,
