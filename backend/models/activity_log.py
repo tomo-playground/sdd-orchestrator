@@ -1,8 +1,8 @@
 """Unified Activity Log model for generation history and favorites."""
 
-from sqlalchemy import BigInteger, Boolean, Float, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
 
@@ -27,18 +27,30 @@ class ActivityLog(Base, TimestampMixin):
     sd_params: Mapped[dict | None] = mapped_column(JSONB)  # steps, cfg, sampler, etc.
     seed: Mapped[int | None] = mapped_column(BigInteger)
 
-    # Results & Quality
+    # Results & Quality - media_asset reference (normalized)
+    media_asset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    media_asset = relationship("MediaAsset", lazy="joined")
+
+    # Legacy: image_storage_key (deprecated, kept for migration compatibility)
+    # Will be removed in future migration after verification
     image_storage_key: Mapped[str | None] = mapped_column(String(500))
+
     match_rate: Mapped[float | None] = mapped_column(Float, index=True)
     tags_used: Mapped[list[str] | None] = mapped_column(JSONB)
 
     @property
     def image_url(self) -> str | None:
-        """Generate URL from storage key at runtime (backward compatibility)."""
-        if not self.image_storage_key:
-            return None
-        from services.storage import get_storage
-        return get_storage().get_url(self.image_storage_key)
+        """Generate URL from media_asset or legacy storage key."""
+        # Primary: use media_asset reference
+        if self.media_asset:
+            return self.media_asset.url
+        # Fallback: legacy storage_key (for unmatched records)
+        if self.image_storage_key:
+            from services.storage import get_storage
+            return get_storage().get_url(self.image_storage_key)
+        return None
 
     # Status
     status: Mapped[str] = mapped_column(String(20), default="success")  # success, fail
