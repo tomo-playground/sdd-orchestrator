@@ -378,9 +378,6 @@ def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | 
 
         resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
         if not resolved_char_id:
-            # Fallback: use cascade character_id (Monologue mode)
-            resolved_char_id = effective["values"].get("character_id")
-        if not resolved_char_id:
             return None
         char = db.get(Character, resolved_char_id)
         if char and char.voice_preset_id:

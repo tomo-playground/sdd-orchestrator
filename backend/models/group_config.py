@@ -46,10 +46,6 @@ class GroupConfig(Base, TimestampMixin):
         Integer,
         ForeignKey("voice_presets.id", ondelete="SET NULL"),
     )
-    character_id: Mapped[int | None] = mapped_column(
-        Integer,
-        ForeignKey("characters.id", ondelete="SET NULL"),
-    )
     language: Mapped[str | None] = mapped_column(String(20))
     structure: Mapped[str | None] = mapped_column(String(30))
     duration: Mapped[int | None] = mapped_column(Integer)
@@ -76,8 +72,4 @@ class GroupConfig(Base, TimestampMixin):
     narrator_voice_preset: Mapped[VoicePreset | None] = relationship(
         "VoicePreset",
         foreign_keys=[narrator_voice_preset_id],
-    )
-    character: Mapped[Character | None] = relationship(
-        "Character",
-        foreign_keys=[character_id],
     )

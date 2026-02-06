@@ -11,7 +11,6 @@ export default function RenderPresetsTab() {
     bgmFiles,
     fonts,
     overlays,
-    voicePresets,
     handleCreate,
     handleEdit,
     handleDelete,
@@ -134,23 +133,6 @@ export default function RenderPresetsTab() {
               >
                 <option value="post">Post</option>
                 <option value="full">Full</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Voice Preset</label>
-              <select
-                value={editing.voice_preset_id ?? ""}
-                onChange={(e) =>
-                  set("voice_preset_id", e.target.value ? Number(e.target.value) : null)
-                }
-                className={inputCls}
-              >
-                <option value="">-- None (auto) --</option>
-                {voicePresets.map((vp) => (
-                  <option key={vp.id} value={vp.id}>
-                    {vp.name}
-                  </option>
-                ))}
               </select>
             </div>
             <div>

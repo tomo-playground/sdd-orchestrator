@@ -13,7 +13,6 @@ A YouTube Channel project.
 - `avatar_asset_id`: Integer (FK -> media_assets.id)
 - `handle`: String(100)
 - `render_preset_id`: Integer (FK -> render_presets.id)
-- `character_id`: Integer (FK -> characters.id)
 - `style_profile_id`: Integer (FK -> style_profiles.id)
 
 ### Groups (`groups`)

@@ -60,10 +60,14 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
 
     # Pre-fill GroupConfig with project defaults + system defaults
     config_fields: dict = {}
-    for field in ("render_preset_id", "style_profile_id", "character_id"):
+    for field in ("render_preset_id", "style_profile_id"):
         val = getattr(body, field, None) or getattr(project, field, None)
         if val is not None:
             config_fields[field] = val
+
+    # GroupConfig-only fields (no project fallback)
+    if body.narrator_voice_preset_id is not None:
+        config_fields["narrator_voice_preset_id"] = body.narrator_voice_preset_id
 
     # System default: style_profile with is_default=true
     if "style_profile_id" not in config_fields:
@@ -169,7 +173,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     return EffectiveConfigResponse(
         render_preset_id=render_preset_id,
         render_preset=render_preset,
-        character_id=result["values"].get("character_id"),
         style_profile_id=result["values"].get("style_profile_id"),
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
         language=result["values"].get("language"),

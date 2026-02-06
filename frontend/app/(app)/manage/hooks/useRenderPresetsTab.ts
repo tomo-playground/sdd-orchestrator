@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
-import type { RenderPreset, VoicePreset } from "../../../types";
+import type { RenderPreset } from "../../../types";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -20,7 +20,6 @@ export const EMPTY_PRESET: EditingPreset = {
   ken_burns_preset: "random",
   ken_burns_intensity: 1.0,
   speed_multiplier: 1.3,
-  voice_preset_id: null,
 };
 
 // ── Hook ───────────────────────────────────────────────
@@ -35,7 +34,6 @@ export function useRenderPresetsTab() {
   const [bgmFiles, setBgmFiles] = useState<string[]>([]);
   const [fonts, setFonts] = useState<string[]>([]);
   const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
-  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
 
   const fetchPresets = useCallback(async () => {
     try {
@@ -61,10 +59,6 @@ export function useRenderPresetsTab() {
       .get<{ overlays: { id: string; name: string }[] }>(`${API_BASE}/overlay/list`)
       .then((r) => setOverlays(r.data.overlays))
       .catch(() => {});
-    void axios
-      .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
-      .then((r) => setVoicePresets(r.data))
-      .catch(() => {});
   }, [fetchPresets]);
 
   const handleCreate = useCallback(() => {
@@ -87,7 +81,6 @@ export function useRenderPresetsTab() {
       ken_burns_preset: p.ken_burns_preset ?? "random",
       ken_burns_intensity: p.ken_burns_intensity ?? 1.0,
       speed_multiplier: p.speed_multiplier ?? 1.0,
-      voice_preset_id: p.voice_preset_id ?? null,
     });
   }, []);
 
@@ -142,7 +135,6 @@ export function useRenderPresetsTab() {
     bgmFiles,
     fonts,
     overlays,
-    voicePresets,
     handleCreate,
     handleEdit,
     handleDelete,

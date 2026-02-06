@@ -10,7 +10,6 @@ from typing import Any
 
 CASCADING_FIELDS = [
     "render_preset_id",
-    "character_id",
     "style_profile_id",
     "narrator_voice_preset_id",
     "language",

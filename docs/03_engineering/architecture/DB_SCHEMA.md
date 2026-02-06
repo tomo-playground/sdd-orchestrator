@@ -1,4 +1,4 @@
-# Database Schema (v3.9)
+# Database Schema (v3.10)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.10 | 2026-02-06 | `render_presets.voice_preset_id` 제거 (GroupConfig.narrator_voice_preset_id로 대체), `group_config.character_id` 제거 (storyboard 레벨에서만 설정) |
 | v3.9 | 2026-02-05 | `render_presets.project_id` 컬럼 제거 (글로벌 공통 프리셋으로 단순화) |
 | v3.8 | 2026-02-04 | Schema Cleanup Batch B: `scenes.use_reference_only` Integer→Boolean, `storyboards.recent_videos_json` Text→JSONB + rename→`recent_videos` |
 | v3.7 | 2026-02-04 | `storyboards.default_caption` → `caption`, `characters.default_voice_preset_id` → `voice_preset_id` 리네이밍. FK/인덱스 리네이밍 포함 |
@@ -34,7 +35,6 @@ erDiagram
     scenes ||--o{ scene_character_actions : "has"
     scenes ||--o{ scene_quality_scores : "evaluated_by"
 
-    render_presets }o--o| voice_presets : "voice"
     voice_presets }o--o| media_assets : "audio"
 
     characters ||--o{ character_tags : "has"
@@ -76,7 +76,6 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `handle` | String(100) | 채널 핸들 (@...) |
 | `avatar_key` | String(100) | 아바타 키 (localStorage 마이그레이션용) |
 | `render_preset_id` | Integer (FK → render_presets, SET NULL) | 기본 렌더 프리셋 |
-| `character_id` | Integer (FK → characters, SET NULL) | 기본 캐릭터 |
 | `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -84,6 +83,8 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 - `avatar_url` (`@property`): `avatar_asset.url` 반환
 
 **Cascading Config 상속 순서**: Project → Group → Storyboard (하위가 상위를 오버라이드)
+
+> v3.10 변경: `character_id` 제거 — 캐릭터는 storyboard 레벨에서만 설정 (storyboard_characters 테이블)
 
 ### `groups`
 프로젝트 내의 개별 시리즈 또는 카테고리. Cascading Config으로 프로젝트 설정을 상속/오버라이드.
@@ -488,7 +489,6 @@ Model + LoRAs + Embeddings 번들.
 | `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤) |
 | `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
 | `audio_ducking` | Boolean | 오디오 더킹 여부 |
-| `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 글로벌 음성 프리셋 |
 | `speed_multiplier` | Float | 재생 속도 배율 |
 | **Visual** | | |
 | `layout_style` | String(50) | 레이아웃 (`full`, `post`) |
@@ -500,6 +500,7 @@ Model + LoRAs + Embeddings 번들.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 > v3.5 변경: `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 → `voice_preset_id` FK로 대체
+> v3.10 변경: `voice_preset_id` 제거 → `group_config.narrator_voice_preset_id`로 이관 (음성은 GroupConfig에서만 관리)
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -704,7 +705,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-04
-**Schema Version:** v3.8
+**Last Updated:** 2026-02-06
+**Schema Version:** v3.10
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup)
+**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup + Redundant FK Removal)
