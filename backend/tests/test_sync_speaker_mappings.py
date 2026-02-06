@@ -293,3 +293,56 @@ class TestVoicePresetResolution:
 
         # character_id should be resolved from storyboard_characters
         assert data["character_id"] == char.id
+
+
+class TestTTSWarningOnMissingMapping:
+    """Test that TTS logs warnings when speaker→character mapping is missing."""
+
+    def test_tts_logs_warning_when_no_character_mapping(
+        self, client, db_session: Session
+    ):
+        """TTS should log warning when Speaker A has no character mapping.
+
+        Since _get_speaker_voice_preset uses its own DB session via get_db(),
+        we test by mocking the logger and verifying the warning is called.
+        """
+        from unittest.mock import MagicMock, patch
+
+        from models.storyboard import Storyboard
+
+        # Create storyboard directly in test DB (no character mapping)
+        storyboard = Storyboard(
+            title="Missing Mapping Test",
+            description="Test",
+            group_id=1,  # Uses default group from seed
+            structure="Monologue",
+        )
+        db_session.add(storyboard)
+        db_session.commit()
+        sb_id = storyboard.id
+
+        # Mock the logger and database session
+        mock_logger = MagicMock()
+        mock_db = MagicMock()
+        mock_storyboard = MagicMock()
+        mock_storyboard.group_id = 1
+        mock_db.get.return_value = mock_storyboard
+
+        # Mock resolve_speaker_to_character to return None (no mapping)
+        # The function imports resolve_speaker_to_character inside, so patch the source module
+        with patch("services.video.scene_processing.logger", mock_logger), \
+             patch("services.speaker_resolver.resolve_speaker_to_character", return_value=None), \
+             patch("database.get_db", return_value=iter([mock_db])):
+
+            from services.video.scene_processing import _get_speaker_voice_preset
+
+            result = _get_speaker_voice_preset(sb_id, "A")
+
+        # Should return None (no preset found)
+        assert result is None
+
+        # Should have logged a warning about missing mapping
+        mock_logger.warning.assert_called_once()
+        warning_call = mock_logger.warning.call_args[0][0]
+        assert "No character mapping for speaker" in warning_call
+        assert f"storyboard {sb_id}" in warning_call
