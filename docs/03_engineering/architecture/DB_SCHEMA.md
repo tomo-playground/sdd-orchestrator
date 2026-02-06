@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.11 | 2026-02-06 | `scenes.candidates` 형식 변경: `image_url` 제거, `media_asset_id` 필수. Backend에서 GET 시 URL 자동 해석 |
 | v3.10 | 2026-02-06 | `render_presets.voice_preset_id` 제거 (GroupConfig.narrator_voice_preset_id로 대체), `group_config.character_id` 제거 (storyboard 레벨에서만 설정) |
 | v3.9 | 2026-02-05 | `render_presets.project_id` 컬럼 제거 (글로벌 공통 프리셋으로 단순화) |
 | v3.8 | 2026-02-04 | Schema Cleanup Batch B: `scenes.use_reference_only` Integer→Boolean, `storyboards.recent_videos_json` Text→JSONB + rename→`recent_videos` |
@@ -157,7 +158,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
 | **Generated** | | |
 | `image_asset_id` | Integer (FK → media_assets) | 생성된 이미지 (폴리모픽 참조) |
-| `candidates` | JSONB | 후보 이미지 목록 (image_url, match_rate 등) |
+| `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) — URL 직접 저장 금지 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
