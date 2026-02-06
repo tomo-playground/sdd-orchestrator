@@ -80,7 +80,8 @@ export async function generateSceneImageFor(
     state.characterBLoras || []
   );
 
-  if (!selectedCharacterId) {
+  // Narrator scenes don't require character selection (no_humans, scenery only)
+  if (!selectedCharacterId && scene.speaker !== "Narrator") {
     if (!silent) showToast("Character selection is required", "error");
     return null;
   }

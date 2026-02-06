@@ -48,6 +48,14 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
         db.refresh(rh)
         res["render_history_id"] = rh.id
         logger.info("✅ RenderHistory created id=%d for storyboard id=%d", rh.id, request.storyboard_id)
+    elif video_url:
+        # Log warning if video was created but RenderHistory wasn't linked
+        missing = []
+        if not request.storyboard_id:
+            missing.append("storyboard_id")
+        if not media_asset_id:
+            missing.append("media_asset_id")
+        logger.warning("⚠️ Video created but RenderHistory skipped (missing: %s)", ", ".join(missing))
 
     return res
 

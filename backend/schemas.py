@@ -373,8 +373,8 @@ class SceneGenerateRequest(BaseModel):
     hr_upscaler: str = "R-ESRGAN 4x+ Anime6B"
     hr_second_pass_steps: int = 10
     denoising_strength: float = 0.35
-    # V3 Character Integration (required)
-    character_id: int
+    # V3 Character Integration (optional for Narrator scenes)
+    character_id: int | None = None
     # Storyboard Integration (for Style Profile lookup)
     storyboard_id: int | None = None
     # Style LoRAs (V3)
