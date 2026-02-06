@@ -528,6 +528,8 @@ def list_storyboards_from_db(
             query = query.filter(Storyboard.group_id.in_(group_ids))
         else:
             return []
+    # Sort by updated_at DESC (most recently edited first)
+    query = query.order_by(Storyboard.updated_at.desc())
     storyboards = query.all()
 
     result = []
