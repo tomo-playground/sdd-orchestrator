@@ -72,8 +72,10 @@ export async function generateSceneImageFor(
     showToast,
   } = state;
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
-  const { reference: ipAdapterReference, weight: ipAdapterWeight } =
-    resolveIpAdapterForSpeaker(scene.speaker, state);
+  const { reference: ipAdapterReference, weight: ipAdapterWeight } = resolveIpAdapterForSpeaker(
+    scene.speaker,
+    state
+  );
   const speakerLoras = resolveCharacterLorasForSpeaker(
     scene.speaker,
     state.characterLoras || [],
@@ -114,11 +116,14 @@ export async function generateSceneImageFor(
   }
 
   const hiResPayload = buildHiResPayload();
-  const controlnetPayload = useControlnet
-    ? { use_controlnet: true, controlnet_weight: controlnetWeight }
-    : { use_controlnet: false };
+  // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
+  const isNarrator = scene.speaker === "Narrator";
+  const controlnetPayload =
+    useControlnet && !isNarrator
+      ? { use_controlnet: true, controlnet_weight: controlnetWeight }
+      : { use_controlnet: false };
   const ipAdapterPayload =
-    useIpAdapter && ipAdapterReference
+    useIpAdapter && ipAdapterReference && !isNarrator
       ? {
           use_ip_adapter: true,
           ip_adapter_reference: ipAdapterReference,
@@ -391,8 +396,14 @@ export function handleImageUpload(sceneId: number, file?: File) {
   const reader = new FileReader();
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
-    const { projectId, groupId, storyboardId, showToast: toast, scenes, updateScene } =
-      useStudioStore.getState();
+    const {
+      projectId,
+      groupId,
+      storyboardId,
+      showToast: toast,
+      scenes,
+      updateScene,
+    } = useStudioStore.getState();
     if (!projectId || !groupId || !storyboardId) {
       toast("Project/Group context required", "error");
       return;
