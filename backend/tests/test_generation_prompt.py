@@ -182,6 +182,35 @@ class TestStyleProfileSkipLoras:
         assert "masterpiece" in result_prompt
 
     @patch("services.config_resolver.resolve_effective_config")
+    def test_default_positive_dedup_no_duplicates(self, mock_resolve):
+        """Quality tags already in prompt are NOT duplicated by default_positive."""
+        mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
+        db = self._mock_db(default_positive="masterpiece, best_quality")
+
+        # Prompt already contains the same quality tags (from V3 /prompt/compose)
+        result_prompt, _ = apply_style_profile_to_prompt("masterpiece, best_quality, 1girl, standing", "", 10, db)
+
+        # Each quality tag should appear exactly once
+        tokens = [t.strip() for t in result_prompt.split(",")]
+        assert tokens.count("masterpiece") == 1
+        assert tokens.count("best_quality") == 1
+        assert "1girl" in tokens
+
+    @patch("services.config_resolver.resolve_effective_config")
+    def test_default_positive_dedup_partial_overlap(self, mock_resolve):
+        """Only overlapping tokens are skipped; non-overlapping ones are added."""
+        mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
+        db = self._mock_db(default_positive="masterpiece, best_quality, absurdres")
+
+        # Prompt has masterpiece but not best_quality or absurdres
+        result_prompt, _ = apply_style_profile_to_prompt("masterpiece, 1girl", "", 10, db)
+
+        tokens = [t.strip() for t in result_prompt.split(",")]
+        assert tokens.count("masterpiece") == 1
+        assert "best_quality" in tokens
+        assert "absurdres" in tokens
+
+    @patch("services.config_resolver.resolve_effective_config")
     def test_embeddings_injected_into_prompts(self, mock_resolve):
         """Positive/negative embedding trigger words are injected."""
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}

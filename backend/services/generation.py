@@ -19,6 +19,7 @@ from services.controlnet import (
     load_pose_reference,
     load_reference_image,
 )
+from services.keywords.core import normalize_prompt_token
 from services.lora_calibration import get_optimal_weights_from_db
 from services.prompt import (
     apply_optimal_lora_weights,
@@ -126,12 +127,21 @@ def apply_style_profile_to_prompt(
         pos_emb_triggers = _resolve_embedding_triggers(profile.positive_embeddings, db)
         neg_emb_triggers = _resolve_embedding_triggers(profile.negative_embeddings, db)
 
-        # Compose final prompt
+        # Compose final prompt — deduplicate default_positive against existing prompt
+        existing_normalized = {
+            normalize_prompt_token(t) for t in split_prompt_tokens(prompt) if normalize_prompt_token(t)
+        }
         parts = []
 
-        # 1. Default positive prompt (quality tags)
+        # 1. Default positive prompt (quality tags), skip tokens already in prompt
         if profile.default_positive:
-            parts.append(profile.default_positive.strip())
+            new_tokens = [
+                t
+                for t in split_prompt_tokens(profile.default_positive)
+                if normalize_prompt_token(t) not in existing_normalized
+            ]
+            if new_tokens:
+                parts.append(", ".join(new_tokens))
 
         # 2. Trigger words
         if trigger_words:
@@ -250,7 +260,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
 
     character_obj = db.query(Character).filter(Character.id == request.character_id).first()
 
-    logger.info(
+    logger.debug(
         "🔀 [Prompt Route] pre_composed=%s, character_id=%s, character_found=%s",
         request.prompt_pre_composed,
         request.character_id,
@@ -264,7 +274,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             request.prompt, request.negative_prompt or "", request.storyboard_id, db
         )
         cleaned_prompt = request.prompt
-        logger.info("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
+        logger.debug("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
     elif request.character_id and character_obj:
         # Raw prompt → V3 engine composes with character LoRA + style LoRA
         # Style profile: quality tags + negative only (LoRA/trigger handled by V3)
@@ -278,7 +288,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         # Fallback: resolve style_loras from DB if frontend didn't send them
         style_loras = request.style_loras or _resolve_style_loras(request.storyboard_id, db)
         lora_names = [l.get("name") for l in style_loras] if style_loras else []
-        logger.info(
+        logger.debug(
             "🎨 [V3 Engine] Path B: style_loras=%s (from %s)",
             lora_names,
             "request" if request.style_loras else "DB fallback",
@@ -290,7 +300,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             scene_tags=scene_tags,
             style_loras=style_loras,
         )
-        logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+        logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
     else:
         # No character (Narrator etc) → full style profile, no V3
         request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
@@ -301,7 +311,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
     # Debug: verify LoRA tags in final prompt
     lora_tags_found = re.findall(r"<lora:[^>]+>", cleaned_prompt)
     if lora_tags_found:
-        logger.info("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
+        logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
     else:
         logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
 
