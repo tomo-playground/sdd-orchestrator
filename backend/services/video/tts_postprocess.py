@@ -92,3 +92,8 @@ def trim_tts_audio(wav: np.ndarray, sr: int) -> np.ndarray:
         trimmed[:fade_samples] *= np.linspace(0, 1, fade_samples)
         trimmed[-fade_samples:] *= np.linspace(1, 0, fade_samples)
     return trimmed
+
+
+def validate_tts_duration(wav: np.ndarray, sr: int, min_sec: float) -> bool:
+    """Check if TTS audio meets minimum duration requirement."""
+    return len(wav) / sr >= min_sec

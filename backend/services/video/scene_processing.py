@@ -20,6 +20,8 @@ from config import (
     TTS_CACHE_DIR,
     TTS_DEFAULT_LANGUAGE,
     TTS_MAX_NEW_TOKENS,
+    TTS_MAX_RETRIES,
+    TTS_MIN_DURATION_SEC,
     TTS_REPETITION_PENALTY,
     TTS_TEMPERATURE,
     TTS_TIMEOUT_SECONDS,
@@ -34,7 +36,7 @@ from services.video.tts_helpers import (
     translate_voice_prompt,
     tts_cache_key,
 )
-from services.video.tts_postprocess import trim_tts_audio
+from services.video.tts_postprocess import trim_tts_audio, validate_tts_duration
 from services.video.utils import clean_script_for_tts
 
 if TYPE_CHECKING:
@@ -324,32 +326,63 @@ async def generate_tts(
         import soundfile as sf
 
         loop = asyncio.get_event_loop()
+        logger.info(f"Scene {i}: voice design -- '{(voice_design or '')[:40]}'")
 
-        def _voice_design():
-            _torch.manual_seed(voice_seed)
-            return model.generate_voice_design(
-                text=clean_script,
-                instruct=voice_design or "",
-                language=TTS_DEFAULT_LANGUAGE,
-                temperature=TTS_TEMPERATURE,
-                top_p=TTS_TOP_P,
-                repetition_penalty=TTS_REPETITION_PENALTY,
-                max_new_tokens=TTS_MAX_NEW_TOKENS,
+        # --- Retry loop: generate → trim → validate duration ---
+        best_wav = None
+        best_sr = 0
+        best_dur = 0.0
+
+        for attempt in range(1 + TTS_MAX_RETRIES):
+            attempt_seed = voice_seed + attempt
+
+            def _voice_design(_seed=attempt_seed):
+                _torch.manual_seed(_seed)
+                return model.generate_voice_design(
+                    text=clean_script,
+                    instruct=voice_design or "",
+                    language=TTS_DEFAULT_LANGUAGE,
+                    temperature=TTS_TEMPERATURE,
+                    top_p=TTS_TOP_P,
+                    repetition_penalty=TTS_REPETITION_PENALTY,
+                    max_new_tokens=TTS_MAX_NEW_TOKENS,
+                )
+
+            wavs, sr = await asyncio.wait_for(
+                loop.run_in_executor(None, _voice_design),
+                timeout=TTS_TIMEOUT_SECONDS,
             )
 
-        logger.info(f"Scene {i}: voice design -- '{(voice_design or '')[:40]}'")
-        wavs, sr = await asyncio.wait_for(
-            loop.run_in_executor(None, _voice_design),
-            timeout=TTS_TIMEOUT_SECONDS,
-        )
+            wav = trim_tts_audio(wavs[0], sr)
+            dur = len(wav) / sr
 
-        wav = trim_tts_audio(wavs[0], sr)
-        sf.write(str(tts_path), wav, sr)
+            # Track best attempt (longest duration)
+            if dur > best_dur:
+                best_wav, best_sr, best_dur = wav, sr, dur
 
-        if tts_path.exists() and tts_path.stat().st_size > 0:
-            shutil.copy2(tts_path, cached)
+            if validate_tts_duration(wav, sr, TTS_MIN_DURATION_SEC):
+                sf.write(str(tts_path), wav, sr)
+                shutil.copy2(tts_path, cached)
+                tts_duration = builder._get_audio_duration(tts_path)
+                if attempt > 0:
+                    logger.info(f"[TTS] Scene {i}: passed on attempt {attempt + 1}, duration={tts_duration:.2f}s")
+                else:
+                    logger.info(f"TTS success (VoiceDesign): duration={tts_duration}s, seed={attempt_seed}")
+                return True, tts_duration
+
+            logger.warning(
+                f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
+                f"too short ({dur:.2f}s < {TTS_MIN_DURATION_SEC}s), seed={attempt_seed}"
+            )
+
+        # All retries exhausted — use best attempt as fallback
+        if best_wav is not None and best_dur > 0:
+            sf.write(str(tts_path), best_wav, best_sr)
+            # Don't cache failed results — allow re-generation next render
             tts_duration = builder._get_audio_duration(tts_path)
-            logger.info(f"TTS success (VoiceDesign): duration={tts_duration}s, seed={voice_seed}")
+            logger.warning(
+                f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)"
+            )
             return True, tts_duration
 
         logger.warning("Qwen-TTS generation failed (empty file)")
