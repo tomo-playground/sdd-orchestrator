@@ -182,42 +182,46 @@ async def generate_parallel(
     }
 
     Returns list of result dicts: {
-        "role": str, "preset_id": int,
+        "agent_role": str, "preset_id": int,
         "content": str, "token_usage": dict,
         "model_id": str, "latency_ms": int,
-        "error": str | None,
+        "temperature": float, "error": str | None,
     }
     """
 
     async def _run_one(agent: dict) -> dict[str, Any]:
         role = agent["role"]
+        agent_objective = agent.get("objective")
+        prompt = f"{objective}\n\n{agent_objective}" if agent_objective else objective
         start = time.monotonic()
         try:
             provider = get_provider(agent["provider"], agent["model_name"])
             result = await provider.generate(
-                prompt=objective,
+                prompt=prompt,
                 system_prompt=agent["system_prompt"],
                 temperature=agent["temperature"],
             )
             elapsed = int((time.monotonic() - start) * 1000)
             return {
-                "role": role,
+                "agent_role": role,
                 "preset_id": agent.get("preset_id"),
                 "content": result["content"],
                 "token_usage": result["token_usage"],
                 "model_id": result["model_id"],
                 "latency_ms": elapsed,
+                "temperature": agent["temperature"],
             }
         except Exception as e:
             elapsed = int((time.monotonic() - start) * 1000)
             logger.warning("[Creative] Agent %s failed: %s", role, e)
             return {
-                "role": role,
+                "agent_role": role,
                 "preset_id": agent.get("preset_id"),
                 "content": "",
                 "token_usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
                 "model_id": agent.get("model_name", "unknown"),
                 "latency_ms": elapsed,
+                "temperature": agent.get("temperature", 0.9),
                 "error": str(e),
             }
 

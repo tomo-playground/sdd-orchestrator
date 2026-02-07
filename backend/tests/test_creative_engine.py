@@ -1,10 +1,8 @@
-"""TDD tests for Creative Engine orchestration (services/creative_engine.py).
-
-Tests written FIRST -- implementation does not exist yet.
-"""
+"""TDD tests for Creative Engine orchestration (services/creative_engine.py)."""
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -67,7 +65,7 @@ def _make_generation_result(role: str, text: str, score: float = 0.0):
     }
 
 
-def _make_leader_evaluation(agents: list[str]):
+def _make_leader_evaluation(agents: list[str], direction: str = "Improve next round"):
     """Helper to build a mock leader evaluation dict."""
     scores = {a: {"score": 0.7 + i * 0.05, "feedback": f"Good {a}"} for i, a in enumerate(agents)}
     best = max(scores, key=lambda k: scores[k]["score"])
@@ -77,7 +75,24 @@ def _make_leader_evaluation(agents: list[str]):
         "scores": scores,
         "best_agent_role": best,
         "best_score": scores[best]["score"],
+        "direction": direction,
     }
+
+
+def _engine_patches(gen_results, leader_eval):
+    """Context manager for patching generate_parallel and evaluate_round."""
+    return (
+        patch(
+            "services.creative_engine.generate_parallel",
+            new_callable=AsyncMock,
+            return_value=gen_results,
+        ),
+        patch(
+            "services.creative_engine.evaluate_round",
+            new_callable=AsyncMock,
+            return_value=leader_eval,
+        ),
+    )
 
 
 # ===========================================================================
@@ -109,9 +124,7 @@ class TestCreateSession:
         assert session.final_output is None
 
     @pytest.mark.asyncio
-    async def test_default_evaluation_criteria_for_scenario(
-        self, db_session, sample_agent_config
-    ):
+    async def test_default_evaluation_criteria_for_scenario(self, db_session, sample_agent_config):
         """When evaluation_criteria is None and task_type='scenario', defaults are applied."""
         from services.creative_engine import create_session
 
@@ -128,9 +141,62 @@ class TestCreateSession:
         assert len(session.evaluation_criteria) > 0
 
     @pytest.mark.asyncio
-    async def test_stores_agent_config_as_jsonb(
-        self, db_session, sample_agent_config
-    ):
+    async def test_auto_assigns_system_presets_when_agent_config_none(self, db_session):
+        """When agent_config is None, system presets (excluding Leader) are auto-assigned."""
+        from models.creative import CreativeAgentPreset
+        from services.creative_engine import create_session
+
+        # Insert system presets into DB
+        presets = [
+            CreativeAgentPreset(
+                name="Leader",
+                role_description="Evaluator",
+                system_prompt="Evaluate",
+                model_provider="gemini",
+                model_name="gemini-2.0-flash",
+                is_system=True,
+            ),
+            CreativeAgentPreset(
+                name="파격형",
+                role_description="Bold writer",
+                system_prompt="Be bold",
+                model_provider="gemini",
+                model_name="gemini-2.0-flash",
+                is_system=True,
+            ),
+            CreativeAgentPreset(
+                name="안정형",
+                role_description="Stable writer",
+                system_prompt="Be stable",
+                model_provider="gemini",
+                model_name="gemini-2.0-flash",
+                is_system=True,
+            ),
+        ]
+        for p in presets:
+            db_session.add(p)
+        db_session.commit()
+
+        session = await create_session(
+            db=db_session,
+            task_type="scenario",
+            objective="Auto-preset test",
+            agent_config=None,
+        )
+
+        assert session.agent_config is not None
+        assert len(session.agent_config) == 2  # Leader excluded
+        roles = {cfg["role"] for cfg in session.agent_config}
+        assert "Leader" not in roles
+        assert "파격형" in roles
+        assert "안정형" in roles
+        # Each config must have a preset_id
+        for cfg in session.agent_config:
+            assert "preset_id" in cfg
+            assert cfg["preset_id"] is not None
+
+    @pytest.mark.asyncio
+    async def test_stores_agent_config_as_jsonb(self, db_session, sample_agent_config):
         from services.creative_engine import create_session
 
         session = await create_session(
@@ -160,18 +226,8 @@ class TestRunRound:
         gen_results = [_make_generation_result(r, f"Output from {r}") for r in agents]
         leader_eval = _make_leader_evaluation(agents)
 
-        with (
-            patch(
-                "services.creative_engine.generate_parallel",
-                new_callable=AsyncMock,
-                return_value=gen_results,
-            ),
-            patch(
-                "services.creative_engine.evaluate_round",
-                new_callable=AsyncMock,
-                return_value=leader_eval,
-            ),
-        ):
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
             rnd = await run_round(
                 db=db_session,
                 session_id=created_session.id,
@@ -192,18 +248,8 @@ class TestRunRound:
         gen_results = [_make_generation_result(r, f"Text {r}") for r in agents]
         leader_eval = _make_leader_evaluation(agents)
 
-        with (
-            patch(
-                "services.creative_engine.generate_parallel",
-                new_callable=AsyncMock,
-                return_value=gen_results,
-            ),
-            patch(
-                "services.creative_engine.evaluate_round",
-                new_callable=AsyncMock,
-                return_value=leader_eval,
-            ),
-        ):
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
             await run_round(db=db_session, session_id=created_session.id, round_number=1)
 
         traces = (
@@ -220,12 +266,114 @@ class TestRunRound:
         assert trace_types[-1] == "evaluation"
 
     @pytest.mark.asyncio
-    async def test_leader_evaluation_includes_per_agent_scores(
-        self, db_session, created_session
-    ):
+    async def test_leader_evaluation_includes_per_agent_scores(self, db_session, created_session):
         from services.creative_engine import run_round
 
         agents = ["writer_bold", "writer_stable"]
+        gen_results = [_make_generation_result(r, f"Text {r}") for r in agents]
+        leader_eval = _make_leader_evaluation(agents)
+
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
+            rnd = await run_round(db=db_session, session_id=created_session.id, round_number=1)
+
+        assert rnd.best_agent_role is not None
+        assert rnd.best_score is not None
+        assert rnd.best_score > 0
+
+    @pytest.mark.asyncio
+    async def test_stores_leader_direction(self, db_session, created_session):
+        """Round should store leader_direction from evaluation."""
+        from services.creative_engine import run_round
+
+        agents = ["writer_bold", "writer_stable"]
+        gen_results = [_make_generation_result(r, f"Text {r}") for r in agents]
+        leader_eval = _make_leader_evaluation(agents, direction="Focus on emotional depth")
+
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
+            rnd = await run_round(db=db_session, session_id=created_session.id, round_number=1)
+
+        assert rnd.leader_direction == "Focus on emotional depth"
+
+    @pytest.mark.asyncio
+    async def test_writes_agent_scores_to_traces(self, db_session, created_session):
+        """Generation traces should have score/feedback after evaluation."""
+        from services.creative_engine import run_round
+
+        agents = ["writer_bold", "writer_stable"]
+        gen_results = [_make_generation_result(r, f"Text {r}") for r in agents]
+        leader_eval = _make_leader_evaluation(agents)
+
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
+            await run_round(db=db_session, session_id=created_session.id, round_number=1)
+
+        gen_traces = (
+            db_session.query(CreativeTrace)
+            .filter(
+                CreativeTrace.session_id == created_session.id,
+                CreativeTrace.trace_type == "generation",
+            )
+            .all()
+        )
+        for trace in gen_traces:
+            assert trace.score is not None
+            assert trace.feedback is not None
+
+    @pytest.mark.asyncio
+    async def test_evaluation_trace_stores_full_json(self, db_session, created_session):
+        """Evaluation trace should contain full JSON (not just summary)."""
+        from services.creative_engine import run_round
+
+        agents = ["writer_bold"]
+        gen_results = [_make_generation_result("writer_bold", "Text")]
+        leader_eval = _make_leader_evaluation(agents)
+
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
+            await run_round(db=db_session, session_id=created_session.id, round_number=1)
+
+        eval_trace = (
+            db_session.query(CreativeTrace)
+            .filter(
+                CreativeTrace.session_id == created_session.id,
+                CreativeTrace.trace_type == "evaluation",
+            )
+            .first()
+        )
+        parsed = json.loads(eval_trace.output_content)
+        assert "scores" in parsed
+        assert "direction" in parsed
+
+    @pytest.mark.asyncio
+    async def test_run_round_injects_feedback(self, db_session, created_session):
+        """Round 2+ should inject per-agent feedback into agent objectives."""
+        from services.creative_engine import run_round
+        from services.creative_trace import record_trace
+
+        # Simulate round 1 evaluation trace
+        r1_eval = _make_leader_evaluation(
+            ["writer_bold", "writer_stable", "writer_emotional"],
+            direction="Be more creative",
+        )
+        await record_trace(
+            db=db_session,
+            session_id=created_session.id,
+            round_number=1,
+            sequence=0,
+            trace_type="evaluation",
+            agent_role="leader",
+            input_prompt="eval",
+            output_content=json.dumps(r1_eval, ensure_ascii=False),
+            model_id="gemini-2.0-flash",
+            token_usage={},
+            latency_ms=0,
+            temperature=0.3,
+        )
+        db_session.commit()
+
+        agents = ["writer_bold", "writer_stable", "writer_emotional"]
         gen_results = [_make_generation_result(r, f"Text {r}") for r in agents]
         leader_eval = _make_leader_evaluation(agents)
 
@@ -234,20 +382,21 @@ class TestRunRound:
                 "services.creative_engine.generate_parallel",
                 new_callable=AsyncMock,
                 return_value=gen_results,
-            ),
+            ) as mock_gen,
             patch(
                 "services.creative_engine.evaluate_round",
                 new_callable=AsyncMock,
                 return_value=leader_eval,
             ),
         ):
-            rnd = await run_round(
-                db=db_session, session_id=created_session.id, round_number=1
-            )
+            await run_round(db=db_session, session_id=created_session.id, round_number=2)
 
-        assert rnd.best_agent_role is not None
-        assert rnd.best_score is not None
-        assert rnd.best_score > 0
+            # Check that agents received feedback via objective
+            called_agents = mock_gen.call_args.kwargs.get("agents", mock_gen.call_args[1].get("agents", []))
+            for agent in called_agents:
+                if agent["role"] in r1_eval["scores"]:
+                    assert "objective" in agent
+                    assert "이전 라운드 피드백" in agent["objective"]
 
 
 # ===========================================================================
@@ -268,24 +417,12 @@ class TestRunDebate:
             _make_generation_result("writer_stable", "Stable text"),
         ]
 
-        with (
-            patch(
-                "services.creative_engine.generate_parallel",
-                new_callable=AsyncMock,
-                return_value=gen_results,
-            ),
-            patch(
-                "services.creative_engine.evaluate_round",
-                new_callable=AsyncMock,
-                return_value=leader_eval,
-            ),
-        ):
+        p_gen, p_eval = _engine_patches(gen_results, leader_eval)
+        with p_gen, p_eval:
             await run_debate(db=db_session, session_id=created_session.id)
 
         rounds = (
-            db_session.query(CreativeSessionRound)
-            .filter(CreativeSessionRound.session_id == created_session.id)
-            .all()
+            db_session.query(CreativeSessionRound).filter(CreativeSessionRound.session_id == created_session.id).all()
         )
         assert len(rounds) == created_session.max_rounds
 
@@ -301,24 +438,12 @@ class TestRunDebate:
             _make_generation_result("writer_stable", "Stable text"),
         ]
 
-        with (
-            patch(
-                "services.creative_engine.generate_parallel",
-                new_callable=AsyncMock,
-                return_value=gen_results,
-            ),
-            patch(
-                "services.creative_engine.evaluate_round",
-                new_callable=AsyncMock,
-                return_value=converged_eval,
-            ),
-        ):
+        p_gen, p_eval = _engine_patches(gen_results, converged_eval)
+        with p_gen, p_eval:
             result = await run_debate(db=db_session, session_id=created_session.id)
 
         rounds = (
-            db_session.query(CreativeSessionRound)
-            .filter(CreativeSessionRound.session_id == created_session.id)
-            .all()
+            db_session.query(CreativeSessionRound).filter(CreativeSessionRound.session_id == created_session.id).all()
         )
         assert len(rounds) == 1  # stopped after first round
         assert result.status == "completed"
@@ -332,18 +457,8 @@ class TestRunDebate:
 
         gen_results = [_make_generation_result("writer_bold", "Final")]
 
-        with (
-            patch(
-                "services.creative_engine.generate_parallel",
-                new_callable=AsyncMock,
-                return_value=gen_results,
-            ),
-            patch(
-                "services.creative_engine.evaluate_round",
-                new_callable=AsyncMock,
-                return_value=converged_eval,
-            ),
-        ):
+        p_gen, p_eval = _engine_patches(gen_results, converged_eval)
+        with p_gen, p_eval:
             result = await run_debate(db=db_session, session_id=created_session.id)
 
         db_session.refresh(result)
@@ -358,23 +473,107 @@ class TestRunDebate:
 
         gen_results = [_make_generation_result("writer_bold", "Output")]
 
-        with (
-            patch(
-                "services.creative_engine.generate_parallel",
-                new_callable=AsyncMock,
-                return_value=gen_results,
-            ),
-            patch(
-                "services.creative_engine.evaluate_round",
-                new_callable=AsyncMock,
-                return_value=converged_eval,
-            ),
-        ):
+        p_gen, p_eval = _engine_patches(gen_results, converged_eval)
+        with p_gen, p_eval:
             result = await run_debate(db=db_session, session_id=created_session.id)
 
         assert result.total_token_usage is not None
         assert "prompt_tokens" in result.total_token_usage
         assert "completion_tokens" in result.total_token_usage
+
+    @pytest.mark.asyncio
+    async def test_auto_finalizes_with_best_output(self, db_session, created_session):
+        from services.creative_engine import run_debate
+
+        converged_eval = _make_leader_evaluation(["writer_bold", "writer_stable"])
+        converged_eval["decision"] = "converged"
+
+        gen_results = [
+            _make_generation_result("writer_bold", "Bold final output"),
+            _make_generation_result("writer_stable", "Stable final output"),
+        ]
+
+        p_gen, p_eval = _engine_patches(gen_results, converged_eval)
+        with (
+            p_gen,
+            p_eval,
+            patch(
+                "services.creative_engine.synthesize_output",
+                new_callable=AsyncMock,
+                return_value={
+                    "content": "Synthesized output",
+                    "agent_role": "leader_synthesis",
+                    "score": 0.85,
+                },
+            ),
+        ):
+            result = await run_debate(db=db_session, session_id=created_session.id)
+
+        assert result.final_output is not None
+        assert result.context.get("auto_finalized") is True
+
+    @pytest.mark.asyncio
+    async def test_synthesizes_on_converge(self, db_session, created_session):
+        """When converged, run_debate should call synthesize_output."""
+        from services.creative_engine import run_debate
+
+        converged_eval = _make_leader_evaluation(["writer_bold", "writer_stable"])
+        converged_eval["decision"] = "converged"
+
+        gen_results = [
+            _make_generation_result("writer_bold", "Bold output"),
+            _make_generation_result("writer_stable", "Stable output"),
+        ]
+
+        synthesis_result = {
+            "content": "Best of both worlds",
+            "agent_role": "leader_synthesis",
+            "score": 0.9,
+        }
+
+        p_gen, p_eval = _engine_patches(gen_results, converged_eval)
+        with (
+            p_gen,
+            p_eval,
+            patch(
+                "services.creative_engine.synthesize_output",
+                new_callable=AsyncMock,
+                return_value=synthesis_result,
+            ) as mock_synth,
+        ):
+            result = await run_debate(db=db_session, session_id=created_session.id)
+
+        mock_synth.assert_called_once()
+        assert result.final_output["agent_role"] == "leader_synthesis"
+        assert result.final_output["content"] == "Best of both worlds"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_best_when_synthesis_fails(self, db_session, created_session):
+        """If synthesize returns empty, fall back to best agent output."""
+        from services.creative_engine import run_debate
+
+        converged_eval = _make_leader_evaluation(["writer_bold", "writer_stable"])
+        converged_eval["decision"] = "converged"
+
+        gen_results = [
+            _make_generation_result("writer_bold", "Bold output"),
+            _make_generation_result("writer_stable", "Stable output"),
+        ]
+
+        p_gen, p_eval = _engine_patches(gen_results, converged_eval)
+        with (
+            p_gen,
+            p_eval,
+            patch(
+                "services.creative_engine.synthesize_output",
+                new_callable=AsyncMock,
+                return_value={},  # synthesis failed
+            ),
+        ):
+            result = await run_debate(db=db_session, session_id=created_session.id)
+
+        assert result.final_output is not None
+        assert result.final_output["agent_role"] == converged_eval["best_agent_role"]
 
 
 # ===========================================================================
@@ -402,20 +601,25 @@ class TestFinalize:
         assert result.final_output["title"] == "Best Scene"
 
     @pytest.mark.asyncio
-    async def test_error_if_already_finalized(self, db_session, created_session):
+    async def test_allows_re_finalize(self, db_session, created_session):
         from services.creative_engine import finalize
 
         created_session.status = "completed"
         created_session.final_output = {"already": "done"}
+        created_session.context = {"auto_finalized": True}
         db_session.commit()
 
-        with pytest.raises(ValueError, match="already finalized"):
-            await finalize(
-                db=db_session,
-                session_id=created_session.id,
-                selected_output={"new": "output"},
-                reason="Attempt",
-            )
+        new_output = {"content": "New selected output", "agent_role": "writer_bold"}
+        result = await finalize(
+            db=db_session,
+            session_id=created_session.id,
+            selected_output=new_output,
+            reason="Manual selection",
+        )
+
+        assert result.final_output == new_output
+        assert result.context.get("auto_finalized") is False
+        assert result.context.get("finalize_reason") == "Manual selection"
 
 
 # ===========================================================================
@@ -473,16 +677,32 @@ class TestGetSessionTimeline:
 
         # Create traces in deliberate non-sequential insert order
         await record_trace(
-            db=db_session, session_id=created_session.id,
-            round_number=1, sequence=2, trace_type="generation",
-            agent_role="writer_stable", input_prompt="p", output_content="o",
-            model_id="gemini-2.0-flash", token_usage={}, latency_ms=100, temperature=0.9,
+            db=db_session,
+            session_id=created_session.id,
+            round_number=1,
+            sequence=2,
+            trace_type="generation",
+            agent_role="writer_stable",
+            input_prompt="p",
+            output_content="o",
+            model_id="gemini-2.0-flash",
+            token_usage={},
+            latency_ms=100,
+            temperature=0.9,
         )
         await record_trace(
-            db=db_session, session_id=created_session.id,
-            round_number=1, sequence=1, trace_type="instruction",
-            agent_role="leader", input_prompt="p", output_content="o",
-            model_id="gemini-2.0-flash", token_usage={}, latency_ms=50, temperature=0.7,
+            db=db_session,
+            session_id=created_session.id,
+            round_number=1,
+            sequence=1,
+            trace_type="instruction",
+            agent_role="leader",
+            input_prompt="p",
+            output_content="o",
+            model_id="gemini-2.0-flash",
+            token_usage={},
+            latency_ms=50,
+            temperature=0.7,
         )
 
         timeline = await get_session_timeline(db=db_session, session_id=created_session.id)

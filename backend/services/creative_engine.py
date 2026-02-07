@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
-from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -21,8 +19,19 @@ from models.creative import (
     CreativeSessionRound,
     CreativeTrace,
 )
-from services.creative_agents import generate_parallel, get_provider
-from services.creative_trace import record_trace
+from services.creative_agents import generate_parallel
+from services.creative_leader import (
+    build_agent_feedback_context,
+    evaluate_round,
+    synthesize_output,
+)
+from services.creative_trace import (
+    get_best_output,
+    get_prev_evaluation,
+    get_round_gen_results,
+    record_trace,
+    write_agent_scores,
+)
 from services.creative_url import extract_urls, fetch_url_content
 
 
@@ -68,6 +77,21 @@ async def create_session(
     if evaluation_criteria is None:
         evaluation_criteria = _get_criteria(task_type)
 
+    if not agent_config:
+        system_presets = (
+            db.query(CreativeAgentPreset)
+            .filter(
+                CreativeAgentPreset.is_system.is_(True),
+                CreativeAgentPreset.deleted_at.is_(None),
+                CreativeAgentPreset.name != "Leader",
+            )
+            .all()
+        )
+        if system_presets:
+            agent_config = [{"preset_id": p.id, "role": p.name} for p in system_presets]
+        else:
+            logger.warning("[Creative] No system presets available for auto-assignment")
+
     # Fetch URL content from objective for agent context
     urls = extract_urls(objective)
     if urls:
@@ -109,7 +133,18 @@ async def run_round(
     agents = _build_agent_list(db, session)
     seq = 0
 
-    # 1. Record instruction trace
+    # 0. Get previous round evaluation for leader context
+    prev_evaluation = get_prev_evaluation(db, session_id, round_number)
+
+    # 1. Inject per-agent feedback from previous evaluation
+    if prev_evaluation:
+        feedback_map = build_agent_feedback_context(prev_evaluation)
+        for agent in agents:
+            role = agent["role"]
+            if role in feedback_map:
+                agent["objective"] = feedback_map[role]
+
+    # 2. Record instruction trace
     instruction_prompt = _build_instruction(session, round_number, user_feedback)
     await record_trace(
         db=db,
@@ -127,10 +162,10 @@ async def run_round(
     )
     seq += 1
 
-    # 2. Generate from all agents in parallel
+    # 3. Generate from all agents in parallel
     gen_results = await generate_parallel(agents=agents, objective=instruction_prompt)
 
-    # 3. Record generation traces
+    # 4. Record generation traces
     for result in gen_results:
         await record_trace(
             db=db,
@@ -138,9 +173,9 @@ async def run_round(
             round_number=round_number,
             sequence=seq,
             trace_type="generation",
-            agent_role=result.get("agent_role", result.get("role", "unknown")),
+            agent_role=result.get("agent_role", "unknown"),
             input_prompt=instruction_prompt,
-            output_content=result.get("output", result.get("content", "")),
+            output_content=result.get("content", ""),
             model_id=result.get("model_id", "unknown"),
             token_usage=result.get("token_usage", {}),
             latency_ms=result.get("latency_ms", 0),
@@ -149,14 +184,16 @@ async def run_round(
         )
         seq += 1
 
-    # 4. Leader evaluation
+    # 5. Leader evaluation (with previous evaluation context)
     leader_eval = await evaluate_round(
         session=session,
         round_number=round_number,
         gen_results=gen_results,
+        prev_evaluation=prev_evaluation,
     )
 
-    # 5. Record evaluation trace
+    # 6. Record evaluation trace (full JSON for downstream use)
+    eval_json = json.dumps(leader_eval, ensure_ascii=False)
     await record_trace(
         db=db,
         session_id=session_id,
@@ -165,14 +202,18 @@ async def run_round(
         trace_type="evaluation",
         agent_role="leader",
         input_prompt="Evaluate agent outputs",
-        output_content=leader_eval.get("summary", ""),
+        output_content=eval_json,
         model_id=CREATIVE_LEADER_MODEL,
         token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
         latency_ms=0,
         temperature=0.3,
     )
+    seq += 1
 
-    # 6. Create round summary
+    # 7. Write per-agent scores/feedback to generation traces
+    write_agent_scores(db, session_id, round_number, leader_eval)
+
+    # 8. Create round summary
     rnd = CreativeSessionRound(
         session_id=session_id,
         round_number=round_number,
@@ -180,61 +221,12 @@ async def run_round(
         round_decision=leader_eval.get("decision", "continue"),
         best_agent_role=leader_eval.get("best_agent_role"),
         best_score=leader_eval.get("best_score"),
+        leader_direction=leader_eval.get("direction"),
     )
     db.add(rnd)
     db.commit()
     db.refresh(rnd)
     return rnd
-
-
-async def evaluate_round(
-    session: CreativeSession,
-    round_number: int,
-    gen_results: list[dict],
-) -> dict[str, Any]:
-    """Leader agent evaluates all generation outputs.
-
-    Returns: {"summary": str, "decision": str, "scores": dict, "best_agent_role": str, "best_score": float}
-    """
-    leader_provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
-    criteria = session.evaluation_criteria or {}
-
-    outputs_text = "\n\n".join(
-        f"[{r.get('agent_role', r.get('role', 'unknown'))}]\n{r.get('output', r.get('content', ''))}"
-        for r in gen_results
-    )
-
-    eval_prompt = (
-        f"Round {round_number} evaluation.\n"
-        f"Objective: {session.objective}\n"
-        f"Criteria: {criteria}\n\n"
-        f"Outputs:\n{outputs_text}\n\n"
-        "Evaluate each output. Return JSON with: summary, decision (continue/converged/terminate), "
-        "scores (agent_role -> {score, feedback}), best_agent_role, best_score."
-    )
-
-    try:
-        result = await leader_provider.generate(
-            prompt=eval_prompt,
-            system_prompt="You are a creative director evaluating agent outputs. Be critical and specific.",
-            temperature=0.3,
-        )
-        raw = result["content"]
-        # Strip markdown code fences (```json ... ``` or ``` ... ```)
-        cleaned = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip())
-        cleaned = re.sub(r"\n?```\s*$", "", cleaned.strip())
-        parsed = json.loads(cleaned)
-        return parsed
-    except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-        logger.warning("[Creative] Leader evaluation failed: %s, using fallback", e)
-        agents = [r.get("agent_role", r.get("role", "unknown")) for r in gen_results]
-        return {
-            "summary": f"Auto-evaluation (round {round_number})",
-            "decision": "continue",
-            "scores": {a: {"score": 0.5, "feedback": "Auto-scored"} for a in agents},
-            "best_agent_role": agents[0] if agents else None,
-            "best_score": 0.5,
-        }
 
 
 # ── Debate Loop ──────────────────────────────────────────────
@@ -247,10 +239,18 @@ async def run_debate(
     """Run the full debate loop until convergence or max rounds."""
     session = _get_active_session(db, session_id)
 
+    last_round: CreativeSessionRound | None = None
+    last_gen_results: list[dict] = []
+    last_eval: dict = {}
+
     for round_num in range(1, session.max_rounds + 1):
         rnd = await run_round(db=db, session_id=session_id, round_number=round_num)
+        last_round = rnd
 
+        # Retrieve eval + gen_results for potential synthesis
+        last_eval = get_prev_evaluation(db, session_id, round_num + 1) or {}
         if rnd.round_decision in ("converged", "terminate"):
+            last_gen_results = get_round_gen_results(db, session_id, round_num)
             break
 
     # Calculate total token usage from all traces
@@ -264,6 +264,25 @@ async def run_debate(
         "total_tokens": total_prompt + total_completion,
     }
     session.status = "completed"
+
+    # Synthesize on convergence, otherwise use best agent output
+    final_output = None
+    if last_round and last_round.round_decision == "converged" and last_gen_results:
+        synthesized = await synthesize_output(
+            session=session,
+            gen_results=last_gen_results,
+            evaluation=last_eval,
+        )
+        if synthesized:
+            final_output = synthesized
+
+    if not final_output and last_round:
+        final_output = get_best_output(db, session_id, last_round)
+
+    if final_output:
+        session.final_output = final_output
+        session.context = {**(session.context or {}), "auto_finalized": True}
+
     db.commit()
     db.refresh(session)
     return session
@@ -278,17 +297,16 @@ async def finalize(
     selected_output: dict,
     reason: str | None = None,
 ) -> CreativeSession:
-    """Finalize a session with the selected output."""
+    """Finalize (or re-finalize) a session with the selected output."""
     session = _get_active_session(db, session_id)
-
-    if session.final_output is not None:
-        msg = f"Session {session_id} already finalized"
-        raise ValueError(msg)
 
     session.final_output = selected_output
     session.status = "completed"
+    ctx = dict(session.context or {})
     if reason:
-        session.context = {**(session.context or {}), "finalize_reason": reason}
+        ctx["finalize_reason"] = reason
+    ctx["auto_finalized"] = False
+    session.context = ctx
     db.commit()
     db.refresh(session)
     return session
@@ -319,6 +337,9 @@ def _build_agent_list(db: Session, session: CreativeSession) -> list[dict]:
     return agents
 
 
+_CONTEXT_INTERNAL_KEYS = {"url_content", "auto_finalized", "finalize_reason"}
+
+
 def _build_instruction(
     session: CreativeSession,
     round_number: int,
@@ -334,13 +355,10 @@ def _build_instruction(
         url_content = session.context.get("url_content")
         if url_content:
             for url, text in url_content.items():
-                parts.append(f"<reference url=\"{url}\">\n{text}\n</reference>")
-            # Include remaining context without url_content
-            rest = {k: v for k, v in session.context.items() if k != "url_content"}
-            if rest:
-                parts.append(f"Context: {rest}")
-        else:
-            parts.append(f"Context: {session.context}")
+                parts.append(f'<reference url="{url}">\n{text}\n</reference>')
+        rest = {k: v for k, v in session.context.items() if k not in _CONTEXT_INTERNAL_KEYS}
+        if rest:
+            parts.append(f"Context: {rest}")
     if user_feedback:
         parts.append(f"User feedback: {user_feedback}")
     return "\n".join(parts)

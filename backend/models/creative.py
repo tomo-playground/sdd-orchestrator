@@ -30,9 +30,7 @@ class CreativeAgentPreset(Base, TimestampMixin, SoftDeleteMixin):
     is_system: Mapped[bool] = mapped_column(default=False, server_default="false")
 
     # Relationships
-    traces: Mapped[list[CreativeTrace]] = relationship(
-        "CreativeTrace", back_populates="agent_preset"
-    )
+    traces: Mapped[list[CreativeTrace]] = relationship("CreativeTrace", back_populates="agent_preset")
 
 
 class CreativeSession(Base, TimestampMixin, SoftDeleteMixin):
@@ -78,6 +76,7 @@ class CreativeSessionRound(Base):
     round_decision: Mapped[str] = mapped_column(String(20), nullable=False)
     best_agent_role: Mapped[str | None] = mapped_column(String(50))
     best_score: Mapped[float | None] = mapped_column(Float)
+    leader_direction: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now())
 
     # Relationships
@@ -121,9 +120,7 @@ class CreativeTrace(Base):
 
     # Relationships
     session: Mapped[CreativeSession] = relationship("CreativeSession", back_populates="traces")
-    agent_preset: Mapped[CreativeAgentPreset | None] = relationship(
-        "CreativeAgentPreset", back_populates="traces"
-    )
+    agent_preset: Mapped[CreativeAgentPreset | None] = relationship("CreativeAgentPreset", back_populates="traces")
     parent_trace: Mapped[CreativeTrace | None] = relationship(
         "CreativeTrace", remote_side=[id], foreign_keys=[parent_trace_id]
     )

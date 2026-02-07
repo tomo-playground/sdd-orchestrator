@@ -23,6 +23,7 @@ export type CreativeRound = {
   round_decision: string | null;
   best_agent_role: string | null;
   best_score: number | null;
+  leader_direction: string | null;
   created_at: string | null;
 };
 

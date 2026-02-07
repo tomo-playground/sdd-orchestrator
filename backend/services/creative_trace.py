@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -86,6 +87,7 @@ def _serialize_round(rnd: CreativeSessionRound) -> dict[str, Any]:
         "round_decision": rnd.round_decision,
         "best_agent_role": rnd.best_agent_role,
         "best_score": rnd.best_score,
+        "leader_direction": rnd.leader_direction,
         "created_at": rnd.created_at,
     }
 
@@ -110,9 +112,7 @@ def _serialize_session(session: CreativeSession) -> dict[str, Any]:
 async def get_session_timeline(db: Session, session_id: int) -> dict[str, Any]:
     """Return full session timeline with rounds and traces as serialized dicts."""
     session = (
-        db.query(CreativeSession)
-        .filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None))
-        .first()
+        db.query(CreativeSession).filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None)).first()
     )
     if not session:
         return {"session": None, "rounds": [], "traces": []}
@@ -190,3 +190,99 @@ async def get_agent_comparison(
         results.append(stats)
 
     return sorted(results, key=lambda x: x.get("avg_score") or 0, reverse=True)
+
+
+# ── Trace Query Helpers (used by creative_engine) ────────────
+
+
+def get_prev_evaluation(db: Session, session_id: int, round_number: int) -> dict | None:
+    """Retrieve the evaluation JSON from the previous round."""
+    if round_number <= 1:
+        return None
+
+    trace = (
+        db.query(CreativeTrace)
+        .filter(
+            CreativeTrace.session_id == session_id,
+            CreativeTrace.round_number == round_number - 1,
+            CreativeTrace.trace_type == "evaluation",
+            CreativeTrace.agent_role == "leader",
+        )
+        .first()
+    )
+    if not trace:
+        return None
+
+    try:
+        return json.loads(trace.output_content)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def write_agent_scores(db: Session, session_id: int, round_number: int, leader_eval: dict) -> None:
+    """Write per-agent score and feedback to generation traces."""
+    scores = leader_eval.get("scores", {})
+    if not scores:
+        return
+
+    gen_traces = (
+        db.query(CreativeTrace)
+        .filter(
+            CreativeTrace.session_id == session_id,
+            CreativeTrace.round_number == round_number,
+            CreativeTrace.trace_type == "generation",
+        )
+        .all()
+    )
+    for trace in gen_traces:
+        agent_score = scores.get(trace.agent_role, {})
+        if agent_score:
+            trace.score = agent_score.get("score")
+            trace.feedback = agent_score.get("feedback")
+    db.flush()
+
+
+def get_round_gen_results(db: Session, session_id: int, round_number: int) -> list[dict]:
+    """Retrieve generation traces as result dicts for synthesis."""
+    traces = (
+        db.query(CreativeTrace)
+        .filter(
+            CreativeTrace.session_id == session_id,
+            CreativeTrace.round_number == round_number,
+            CreativeTrace.trace_type == "generation",
+        )
+        .all()
+    )
+    return [
+        {
+            "agent_role": t.agent_role,
+            "content": t.output_content,
+            "model_id": t.model_id,
+        }
+        for t in traces
+    ]
+
+
+def get_best_output(db: Session, session_id: int, last_round: CreativeSessionRound) -> dict | None:
+    """Extract the best agent's output from the last round's generation traces."""
+    if not last_round.best_agent_role:
+        return None
+
+    trace = (
+        db.query(CreativeTrace)
+        .filter(
+            CreativeTrace.session_id == session_id,
+            CreativeTrace.round_number == last_round.round_number,
+            CreativeTrace.trace_type == "generation",
+            CreativeTrace.agent_role == last_round.best_agent_role,
+        )
+        .first()
+    )
+    if not trace:
+        return None
+
+    return {
+        "content": trace.output_content,
+        "agent_role": trace.agent_role,
+        "score": last_round.best_score,
+    }

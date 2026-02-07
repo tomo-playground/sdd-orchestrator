@@ -124,6 +124,7 @@ class CreativeRoundResponse(BaseModel):
     round_decision: str | None = None
     best_agent_role: str | None = None
     best_score: float | None = None
+    leader_direction: str | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
