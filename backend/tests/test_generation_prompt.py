@@ -297,6 +297,7 @@ class TestResolveStyleLoras:
 
     @patch("services.config_resolver.resolve_effective_config")
     def test_resolves_from_storyboard_cascade(self, mock_resolve):
+        """DB cascade resolves LoRA name + trigger_words from lora_id."""
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
         db = MagicMock()
 
@@ -330,3 +331,63 @@ class TestResolveStyleLoras:
         assert result[0]["name"] == "flat_color"
         assert result[0]["weight"] == 0.7
         assert result[0]["trigger_words"] == ["flat_color"]
+
+
+# ────────────────────────────────────────────
+# Batch LoRA resolution regression
+# ────────────────────────────────────────────
+
+
+class TestBatchLoraResolution:
+    """Regression: batch path must resolve style_loras from DB, not frontend format."""
+
+    @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation._resolve_style_loras")
+    @patch("services.generation.apply_style_profile_to_prompt")
+    def test_batch_ignores_frontend_style_loras(self, mock_style, mock_resolve, mock_ref):
+        """Even when frontend sends style_loras, DB resolution is used (SSOT)."""
+        mock_style.return_value = ("quality, 1girl, standing", "bad")
+        mock_resolve.return_value = [
+            {"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}
+        ]
+        # Frontend sends {lora_id, weight} format (no name/trigger_words)
+        req = _make_request(
+            prompt_pre_composed=False,
+            style_loras=[{"lora_id": 5, "weight": 0.7}],
+        )
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation.V3PromptService") as mock_v3:
+            mock_v3.return_value.generate_prompt_for_scene.return_value = "composed"
+            _prepare_prompt(req, db)
+
+        # V3 must receive DB-resolved loras (with name), NOT frontend format
+        call_args = mock_v3.return_value.generate_prompt_for_scene.call_args
+        style_loras_used = call_args.kwargs.get("style_loras", call_args[1].get("style_loras"))
+        assert style_loras_used[0]["name"] == "flat_color"
+        assert "trigger_words" in style_loras_used[0]
+
+    @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation._resolve_style_loras")
+    @patch("services.generation.apply_style_profile_to_prompt")
+    def test_batch_uses_db_even_with_empty_frontend_loras(self, mock_style, mock_resolve, mock_ref):
+        """DB resolution is always used regardless of frontend style_loras."""
+        mock_style.return_value = ("quality, 1girl", "bad")
+        mock_resolve.return_value = [
+            {"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}
+        ]
+        req = _make_request(prompt_pre_composed=False, style_loras=[])
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation.V3PromptService") as mock_v3:
+            mock_v3.return_value.generate_prompt_for_scene.return_value = "composed"
+            _prepare_prompt(req, db)
+
+        # Even with empty frontend loras, DB is consulted
+        mock_resolve.assert_called_once()
+        call_args = mock_v3.return_value.generate_prompt_for_scene.call_args
+        style_loras_used = call_args.kwargs.get("style_loras", call_args[1].get("style_loras"))
+        assert len(style_loras_used) == 1
+        assert style_loras_used[0]["name"] == "flat_color"

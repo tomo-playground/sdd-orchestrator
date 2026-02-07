@@ -470,7 +470,7 @@ class SceneGenerateRequest(BaseModel):
     character_id: int | None = None
     # Storyboard Integration (for Style Profile lookup)
     storyboard_id: int | None = None
-    # Style LoRAs (V3)
+    # Style LoRAs — ignored by backend; resolved from DB (SSOT). Kept for backward compat.
     style_loras: list[dict] | None = None
     # ControlNet options
     use_controlnet: bool = False

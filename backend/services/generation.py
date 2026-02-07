@@ -285,14 +285,11 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             db,
             skip_loras=True,
         )
-        # Fallback: resolve style_loras from DB if frontend didn't send them
-        style_loras = request.style_loras or _resolve_style_loras(request.storyboard_id, db)
+        # Always resolve style_loras from DB (SSOT for LoRA names + trigger_words)
+        # Frontend sends {lora_id, weight} format which lacks name/trigger_words
+        style_loras = _resolve_style_loras(request.storyboard_id, db)
         lora_names = [l.get("name") for l in style_loras] if style_loras else []
-        logger.debug(
-            "🎨 [V3 Engine] Path B: style_loras=%s (from %s)",
-            lora_names,
-            "request" if request.style_loras else "DB fallback",
-        )
+        logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", lora_names)
         v3_service = V3PromptService(db)
         scene_tags = split_prompt_tokens(request.prompt)
         cleaned_prompt = v3_service.generate_prompt_for_scene(
@@ -343,7 +340,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     request.character_id,
                     request.ip_adapter_reference,
                 )
-                style_loras = request.style_loras or _resolve_style_loras(request.storyboard_id, db)
+                style_loras = _resolve_style_loras(request.storyboard_id, db)
                 v3_service = V3PromptService(db)
                 scene_tags = split_prompt_tokens(request.prompt)
                 cleaned_prompt = v3_service.generate_prompt_for_scene(
