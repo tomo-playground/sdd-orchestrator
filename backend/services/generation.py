@@ -538,7 +538,7 @@ def _apply_environment_pinning(
         reason = ""
 
         if env_asset.owner_type == "scene":
-            ref_scene = db.query(Scene).filter(Scene.id == env_asset.owner_id).first()
+            ref_scene = db.query(Scene).filter(Scene.id == env_asset.owner_id, Scene.deleted_at.is_(None)).first()
             if ref_scene:
                 ref_env = set(ref_scene.context_tags.get("environment", [])) if ref_scene.context_tags else set()
 

@@ -102,7 +102,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         if request.scene_id:
             from models.scene import Scene
 
-            db_scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+            db_scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
             if db_scene:
                 db_scene.image_asset_id = asset.id
                 db.add(db_scene)

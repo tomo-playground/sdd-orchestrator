@@ -811,14 +811,22 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.structure = request.structure
 
     # Nullify asset FK references on scenes first
-    db.query(Scene).filter(Scene.storyboard_id == storyboard_id).update(
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)
+    ).update(
         {Scene.image_asset_id: None, Scene.environment_reference_id: None},
         synchronize_session=False,
     )
     db.flush()
 
-    scene_ids = [s.id for s in db.query(Scene.id).filter(Scene.storyboard_id == storyboard_id).all()]
-    db.query(Scene).filter(Scene.storyboard_id == storyboard_id).delete(synchronize_session=False)
+    scene_ids = [
+        s.id for s in db.query(Scene.id).filter(
+            Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)
+        ).all()
+    ]
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)
+    ).delete(synchronize_session=False)
 
     db.query(MediaAsset).filter(
         MediaAsset.owner_type == "storyboard",
@@ -882,7 +890,13 @@ def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
     logger.info("\U0001f5d1\ufe0f [Storyboard Soft Delete] id=%d title=%s", storyboard_id, storyboard.title)
-    storyboard.deleted_at = datetime.now(UTC)
+    now = datetime.now(UTC)
+    storyboard.deleted_at = now
+    # Cascade soft-delete to child scenes
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id,
+        Scene.deleted_at.is_(None),
+    ).update({Scene.deleted_at: now}, synchronize_session=False)
     db.commit()
     return {"status": "success"}
 

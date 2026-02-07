@@ -5,18 +5,50 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from models.activity_log import ActivityLog
+from models.group import Group
+from models.project import Project
+from models.scene import Scene
+from models.storyboard import Storyboard
 from models.tag import Tag, TagRule
+
+
+def _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1):
+    """Create project→group→storyboard→scenes hierarchy for FK validity."""
+    if not db_session.query(Storyboard).filter(Storyboard.id == storyboard_id).first():
+        if not db_session.query(Project).first():
+            db_session.add(Project(id=1, name="Test Project"))
+            db_session.flush()
+        if not db_session.query(Group).first():
+            db_session.add(Group(id=1, name="Test Group", project_id=1))
+            db_session.flush()
+        sb = Storyboard(id=storyboard_id, title="Test", group_id=1)
+        db_session.add(sb)
+        db_session.flush()
+    # Create scenes as needed
+    existing = {s.id for s in db_session.query(Scene.id).filter(Scene.storyboard_id == storyboard_id).all()}
+    scenes_needed = scene_count - len(existing)
+    if scenes_needed > 0:
+        for i in range(scenes_needed):
+            db_session.add(Scene(storyboard_id=storyboard_id, order=len(existing) + i, script=f"s{i}"))
+        db_session.flush()
+    scene_ids = [s.id for s in db_session.query(Scene).filter(Scene.storyboard_id == storyboard_id).order_by(Scene.id).all()]
+    return scene_ids
 
 
 def _create_log(db_session, **kwargs):
     """Helper to insert an activity log."""
+    sb_id = kwargs.get("storyboard_id", 1)
+    scene_count = max(kwargs.get("scene_id", 0) + 1, 1)
+    scene_ids = _ensure_hierarchy(db_session, storyboard_id=sb_id, scene_count=scene_count)
     defaults = {
-        "storyboard_id": 1,
-        "scene_id": 0,
+        "storyboard_id": sb_id,
+        "scene_id": scene_ids[kwargs.get("scene_id", 0)] if "scene_id" in kwargs else scene_ids[0],
         "prompt": "1girl, smile",
         "status": "success",
     }
-    defaults.update(kwargs)
+    # Replace scene_id index with actual scene PK
+    overrides = {k: v for k, v in kwargs.items() if k != "scene_id"}
+    defaults.update(overrides)
     log = ActivityLog(**defaults)
     db_session.add(log)
     db_session.commit()
@@ -41,9 +73,10 @@ class TestCreateActivityLog:
     @patch("services.validation._extract_storage_key", return_value="projects/1/images/scene_0.png")
     def test_create_log(self, mock_extract, client: TestClient, db_session):
         """Create a basic activity log."""
+        scene_ids = _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
         resp = client.post("/activity-logs", json={
             "storyboard_id": 1,
-            "scene_id": 0,
+            "scene_id": scene_ids[0],
             "prompt": "1girl, smile",
             "tags": ["1girl", "smile"],
             "match_rate": 0.85,
@@ -52,14 +85,15 @@ class TestCreateActivityLog:
         })
         assert resp.status_code == 200
         data = resp.json()
-        assert data["scene_id"] == 0
+        assert data["scene_id"] == scene_ids[0]
         assert data["status"] == "success"
         assert data["match_rate"] == 0.85
 
     def test_create_log_minimal(self, client: TestClient, db_session):
         """Create a log with minimal fields."""
+        scene_ids = _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
         resp = client.post("/activity-logs", json={
-            "scene_id": 0,
+            "scene_id": scene_ids[0],
         })
         assert resp.status_code == 200
         data = resp.json()

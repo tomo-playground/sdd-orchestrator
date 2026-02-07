@@ -100,6 +100,13 @@ async def restore_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     if not storyboard:
         raise HTTPException(status_code=404, detail="Trashed storyboard not found")
     storyboard.deleted_at = None
+    # Cascade restore to child scenes
+    from models.scene import Scene
+
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id,
+        Scene.deleted_at.isnot(None),
+    ).update({Scene.deleted_at: None}, synchronize_session=False)
     db.commit()
     logger.info("[Storyboard Restore] id=%d title=%s", storyboard_id, storyboard.title)
     return {"ok": True, "restored": storyboard.title}

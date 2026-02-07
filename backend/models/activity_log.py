@@ -16,10 +16,14 @@ class ActivityLog(Base, TimestampMixin):
 
     # Context
     storyboard_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, index=True
+        Integer, ForeignKey("storyboards.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    scene_id: Mapped[int | None] = mapped_column(Integer, index=True)
-    character_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    scene_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("scenes.id", ondelete="SET NULL"), index=True
+    )
+    character_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("characters.id", ondelete="SET NULL"), index=True
+    )
 
     # The Prompt Bundle
     prompt: Mapped[str] = mapped_column(Text, nullable=False)

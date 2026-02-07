@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from config import DEFAULT_SPEAKER
-from models.base import Base, TimestampMixin
+from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.associations import SceneCharacterAction, SceneTag
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from models.storyboard import Storyboard
 
 
-class Scene(Base, TimestampMixin):
+class Scene(Base, TimestampMixin, SoftDeleteMixin):
     """A single scene/shot in a storyboard."""
 
     __tablename__ = "scenes"
@@ -46,7 +46,9 @@ class Scene(Base, TimestampMixin):
     # Consistency Enhancements
     use_reference_only: Mapped[bool] = mapped_column(Boolean, default=True)
     reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)
-    environment_reference_id: Mapped[int | None] = mapped_column()
+    environment_reference_id: Mapped[int | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL")
+    )
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
 
     # Per-scene generation settings override (nullable = inherit global)

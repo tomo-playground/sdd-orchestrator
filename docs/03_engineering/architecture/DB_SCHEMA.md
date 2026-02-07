@@ -1,4 +1,4 @@
-# Database Schema (v3.12)
+# Database Schema (v3.13)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.13 | 2026-02-07 | FK 정합성 강화: `scenes.environment_reference_id` → FK media_assets, `activity_logs` 3컬럼 FK 추가, `tags.replacement_tag_id` ondelete 추가. `scenes.deleted_at` SoftDeleteMixin 적용 |
 | v3.12 | 2026-02-07 | `music_presets` 테이블 추가 (AI BGM 프리셋). `render_presets`에 `bgm_mode`, `music_preset_id` FK 추가 |
 | v3.11 | 2026-02-06 | `scenes.candidates` 형식 변경: `image_url` 제거, `media_asset_id` 필수. Backend에서 GET 시 URL 자동 해석 |
 | v3.10 | 2026-02-06 | `render_presets.voice_preset_id` 제거 (GroupConfig.narrator_voice_preset_id로 대체), `group_config.character_id` 제거 (storyboard 레벨에서만 설정) |
@@ -157,11 +158,12 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | **IP-Adapter** | | |
 | `use_reference_only` | Boolean | IP-Adapter 사용 여부 (default: true) |
 | `reference_only_weight` | Float | IP-Adapter 가중치 (default: 0.5) |
-| `environment_reference_id` | Integer | 환경 참조 이미지 ID |
+| `environment_reference_id` | Integer (FK → media_assets, SET NULL) | 환경 참조 이미지 ID |
 | `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
 | **Generated** | | |
 | `image_asset_id` | Integer (FK → media_assets) | 생성된 이미지 (폴리모픽 참조) |
 | `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) — URL 직접 저장 금지 |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
@@ -249,7 +251,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `wd14_category` | Integer | WD14 카테고리 코드 |
 | `is_active` | Boolean | 태그 활성화 상태 (default: TRUE) |
 | `deprecated_reason` | String(200) | 비활성화 이유 |
-| `replacement_tag_id` | Integer | 대체 태그 ID (FK to tags.id) |
+| `replacement_tag_id` | Integer (FK → tags, SET NULL) | 대체 태그 ID |
 
 > **Removed**: `subcategory` 컬럼 (deprecated Phase 6-4.25, removed Phase 6-4.26)
 > **Added** (Phase 6-4.15.8): `is_active`, `deprecated_reason`, `replacement_tag_id` - DB 기반 태그 비활성화 시스템
@@ -570,9 +572,9 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `storyboard_id` | Integer (nullable) | 소속 스토리보드 (FK 제거됨, NULL 허용) |
-| `scene_id` | Integer | 씬 인덱스 |
-| `character_id` | Integer | 캐릭터 ID |
+| `storyboard_id` | Integer (FK → storyboards, SET NULL) | 소속 스토리보드 |
+| `scene_id` | Integer (FK → scenes, SET NULL) | 소속 씬 |
+| `character_id` | Integer (FK → characters, SET NULL) | 캐릭터 ID |
 | `prompt` | Text | 사용된 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `sd_params` | JSONB | `{steps, cfg_scale, sampler, ...}` |
@@ -731,6 +733,6 @@ Textual Inversion 임베딩.
 ---
 
 **Last Updated:** 2026-02-07
-**Schema Version:** v3.12
+**Schema Version:** v3.13
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup + Redundant FK Removal + Music Presets)
+**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup + Redundant FK Removal + Music Presets + FK Constraints)

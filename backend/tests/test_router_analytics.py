@@ -3,17 +3,43 @@
 from fastapi.testclient import TestClient
 
 from models.activity_log import ActivityLog
+from models.group import Group
+from models.project import Project
+from models.scene import Scene
+from models.storyboard import Storyboard
+
+
+def _ensure_hierarchy(db_session, storyboard_id=1):
+    """Create minimal hierarchy for FK validity."""
+    if not db_session.query(Storyboard).filter(Storyboard.id == storyboard_id).first():
+        if not db_session.query(Project).first():
+            db_session.add(Project(id=1, name="Test Project"))
+            db_session.flush()
+        if not db_session.query(Group).first():
+            db_session.add(Group(id=1, name="Test Group", project_id=1))
+            db_session.flush()
+        sb = Storyboard(id=storyboard_id, title="Test", group_id=1)
+        db_session.add(sb)
+        db_session.flush()
+    if not db_session.query(Scene).filter(Scene.storyboard_id == storyboard_id).first():
+        db_session.add(Scene(storyboard_id=storyboard_id, order=0, script="s0"))
+        db_session.flush()
+    return db_session.query(Scene).filter(Scene.storyboard_id == storyboard_id).first().id
 
 
 def _create_activity_log(db_session, **kwargs):
     """Helper to insert an activity log."""
+    sb_id = kwargs.get("storyboard_id", 1)
+    scene_id = _ensure_hierarchy(db_session, storyboard_id=sb_id)
     defaults = {
-        "storyboard_id": 1,
-        "scene_id": 0,
+        "storyboard_id": sb_id,
+        "scene_id": scene_id,
         "prompt": "1girl, smile",
         "status": "success",
     }
     defaults.update(kwargs)
+    if "scene_id" not in kwargs:
+        defaults["scene_id"] = scene_id
     log = ActivityLog(**defaults)
     db_session.add(log)
     db_session.commit()

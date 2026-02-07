@@ -38,7 +38,9 @@ class Tag(Base, TimestampMixin):
     # Deprecation & replacement (15.8)
     is_active: Mapped[bool] = mapped_column(default=True, index=True)
     deprecated_reason: Mapped[str | None] = mapped_column(String(200))
-    replacement_tag_id: Mapped[int | None] = mapped_column(Integer)
+    replacement_tag_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("tags.id", ondelete="SET NULL")
+    )
 
 
 class ClassificationRule(Base, TimestampMixin):
