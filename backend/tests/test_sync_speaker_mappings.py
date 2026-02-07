@@ -12,9 +12,7 @@ from sqlalchemy.orm import Session
 class TestSyncSpeakerMappingsMonologue:
     """Test speaker mapping for Monologue structure (single character)."""
 
-    def test_monologue_preserves_speaker_a_mapping(
-        self, client, db_session: Session
-    ):
+    def test_monologue_preserves_speaker_a_mapping(self, client, db_session: Session):
         """Monologue with character_id should map Speaker A to that character."""
         from models.character import Character
         from models.storyboard_character import StoryboardCharacter
@@ -87,11 +85,7 @@ class TestSyncSpeakerMappingsMonologue:
         sb_id = resp.json()["storyboard_id"]
 
         # Verify no mappings exist
-        mappings = (
-            db_session.query(StoryboardCharacter)
-            .filter(StoryboardCharacter.storyboard_id == sb_id)
-            .all()
-        )
+        mappings = db_session.query(StoryboardCharacter).filter(StoryboardCharacter.storyboard_id == sb_id).all()
         assert len(mappings) == 0, "No character → no mappings"
 
 
@@ -142,11 +136,7 @@ class TestSyncSpeakerMappingsDialogue:
         sb_id = resp.json()["storyboard_id"]
 
         # Verify both mappings
-        mappings = (
-            db_session.query(StoryboardCharacter)
-            .filter(StoryboardCharacter.storyboard_id == sb_id)
-            .all()
-        )
+        mappings = db_session.query(StoryboardCharacter).filter(StoryboardCharacter.storyboard_id == sb_id).all()
         assert len(mappings) == 2
 
         speaker_map = {m.speaker: m.character_id for m in mappings}
@@ -157,9 +147,7 @@ class TestSyncSpeakerMappingsDialogue:
 class TestSyncSpeakerMappingsUpdate:
     """Test speaker mapping updates when storyboard is modified."""
 
-    def test_update_dialogue_to_monologue_keeps_speaker_a(
-        self, client, db_session: Session
-    ):
+    def test_update_dialogue_to_monologue_keeps_speaker_a(self, client, db_session: Session):
         """When updating from Dialogue to Monologue, Speaker A mapping should be preserved."""
         from models.character import Character
         from models.storyboard_character import StoryboardCharacter
@@ -298,9 +286,7 @@ class TestVoicePresetResolution:
 class TestTTSWarningOnMissingMapping:
     """Test that TTS logs warnings when speaker→character mapping is missing."""
 
-    def test_tts_logs_warning_when_no_character_mapping(
-        self, client, db_session: Session
-    ):
+    def test_tts_logs_warning_when_no_character_mapping(self, client, db_session: Session):
         """TTS should log warning when Speaker A has no character mapping.
 
         Since _get_speaker_voice_preset uses its own DB session via get_db(),
@@ -330,13 +316,14 @@ class TestTTSWarningOnMissingMapping:
 
         # Mock resolve_speaker_to_character to return None (no mapping)
         # The function imports resolve_speaker_to_character inside, so patch the source module
-        with patch("services.video.scene_processing.logger", mock_logger), \
-             patch("services.speaker_resolver.resolve_speaker_to_character", return_value=None), \
-             patch("database.get_db", return_value=iter([mock_db])):
+        with (
+            patch("services.video.tts_helpers.logger", mock_logger),
+            patch("services.speaker_resolver.resolve_speaker_to_character", return_value=None),
+            patch("database.get_db", return_value=iter([mock_db])),
+        ):
+            from services.video.tts_helpers import get_speaker_voice_preset
 
-            from services.video.scene_processing import _get_speaker_voice_preset
-
-            result = _get_speaker_voice_preset(sb_id, "A")
+            result = get_speaker_voice_preset(sb_id, "A")
 
         # Should return None (no preset found)
         assert result is None

@@ -1,37 +1,22 @@
 """VideoBuilder: state container and pipeline orchestrator.
 
 The VideoBuilder class holds all state for a video build and delegates
-processing to module-level functions in scene_processing, filters, and
-effects. The ``create_video_task`` entry-point creates a builder and
-runs the full pipeline.
+processing to module-level functions in scene_processing, filters,
+effects, encoding, and upload. The ``create_video_task`` entry-point
+creates a builder and runs the full pipeline.
 """
 
 from __future__ import annotations
 
-import asyncio  # noqa: TC004 - used at runtime in _encode_async
 import random
-import re  # noqa: TC004 - used at runtime in _encode_async
 import shutil
 import time
 from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException
 
-from config import (
-    AUDIO_BITRATE,
-    AUDIO_CODEC,
-    BUILD_DIR,
-    FFMPEG_TIMEOUT_SECONDS,
-    VIDEO_CODEC,
-    VIDEO_CRF,
-    VIDEO_DIR,
-    VIDEO_FPS,
-    VIDEO_PIX_FMT,
-    VIDEO_PRESET,
-    logger,
-)
+from config import BUILD_DIR, VIDEO_DIR, logger
 from database import SessionLocal
-from services.asset_service import AssetService
 from services.motion import resolve_preset_name
 from services.video.progress import (  # noqa: TC004 - used at runtime
     RenderStage,
@@ -313,134 +298,15 @@ class VideoBuilder:
         apply_overlays(self)
         apply_bgm(self)
 
-    def _build_ffmpeg_cmd(self) -> list[str]:
-        """Build the FFmpeg command arguments."""
-        filter_complex_str = ";".join(self.filters)
-
-        logger.info("FFmpeg Filter Chain Debug:")
-        logger.info("-" * 80)
-        for idx, f in enumerate(self.filters):
-            logger.info(f"Filter {idx:2d}: {f}")
-        logger.info("-" * 80)
-        logger.info(f"Video map: {self._map_v}")
-        logger.info(f"Audio map: {self._map_a}")
-        logger.info(f"Include subtitles: {self.request.include_scene_text}")
-        logger.info("=" * 80)
-
-        return [
-            "ffmpeg",
-            "-y",
-            *self.input_args,
-            "-filter_complex",
-            filter_complex_str,
-            "-map",
-            self._map_v,
-            "-map",
-            self._map_a,
-            "-s",
-            f"{self.out_w}x{self.out_h}",
-            "-r",
-            str(VIDEO_FPS),
-            "-c:v",
-            VIDEO_CODEC,
-            "-pix_fmt",
-            VIDEO_PIX_FMT,
-            "-preset",
-            VIDEO_PRESET,
-            "-crf",
-            str(VIDEO_CRF),
-            "-movflags",
-            "+faststart",
-            "-c:a",
-            AUDIO_CODEC,
-            "-b:a",
-            AUDIO_BITRATE,
-            str(self.video_path),
-        ]
-
     async def _encode_async(self) -> None:
-        """Encode using async subprocess with real-time progress parsing."""
-        cmd = self._build_ffmpeg_cmd()
-        logger.info("Running FFmpeg async (timeout=%ds)", FFMPEG_TIMEOUT_SECONDS)
+        from services.video.encoding import encode_async
 
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        # Parse FFmpeg stderr for time= progress
-        _TIME_RE = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
-        total_dur = self._total_dur or 1.0
-        stderr_lines: list[str] = []
-
-        async def _read_stderr():
-            assert proc.stderr is not None
-            buf = b""
-            while True:
-                chunk = await proc.stderr.read(512)
-                if not chunk:
-                    break
-                buf += chunk
-                # Process complete lines/carriage returns
-                while b"\r" in buf or b"\n" in buf:
-                    sep = buf.find(b"\r")
-                    if sep == -1:
-                        sep = buf.find(b"\n")
-                    line = buf[:sep].decode("utf-8", errors="replace")
-                    buf = buf[sep + 1 :]
-                    if line.strip():
-                        stderr_lines.append(line)
-                    m = _TIME_RE.search(line)
-                    if m and self._progress:
-                        secs = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3)) + int(m.group(4)) / 100
-                        enc_pct = min(int(secs / total_dur * 100), 99)
-                        self._progress.encode_percent = enc_pct
-                        self._progress.percent = calc_overall_percent(self._progress)
-                        self._progress.notify()
-
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(_read_stderr(), proc.wait()),
-                timeout=FFMPEG_TIMEOUT_SECONDS,
-            )
-        except TimeoutError:
-            proc.kill()
-            logger.error("FFmpeg timed out after %d seconds", FFMPEG_TIMEOUT_SECONDS)
-            raise Exception(f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds") from None
-
-        if proc.returncode != 0:
-            stderr_tail = "\n".join(stderr_lines[-10:])
-            logger.error("FFmpeg failed (rc=%d)", proc.returncode)
-            raise Exception(
-                f"FFmpeg failed with exit code {proc.returncode}: {stderr_tail[:500]}"
-            )
+        await encode_async(self)
 
     def _upload_result(self) -> dict:
-        """Upload and register the final video, return URL dict."""
-        if self.project_id_int and self.group_id_int and self.request.storyboard_id:
-            db = SessionLocal()
-            try:
-                asset_service = AssetService(db)
-                asset = asset_service.save_rendered_video(
-                    video_path=self.video_path,
-                    project_id=self.project_id_int,
-                    group_id=self.group_id_int,
-                    storyboard_id=self.request.storyboard_id,
-                    file_name=self.video_filename,
-                )
-                db.commit()
+        from services.video.upload import upload_result
 
-                url = asset_service.get_asset_url(asset.storage_key)
-                logger.info(
-                    "[Video Build] Video uploaded and registered: %s",
-                    asset.storage_key,
-                )
-                return {"video_url": url, "media_asset_id": asset.id}
-            finally:
-                db.close()
-
-        return {"video_url": f"/outputs/videos/{self.video_filename}"}
+        return upload_result(self)
 
     def _cleanup(self) -> None:
         """Clean up temporary files."""

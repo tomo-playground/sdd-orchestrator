@@ -8,135 +8,41 @@ instance as its first argument.
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import re
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# Eager-loaded TTS dependencies (torch + qwen_tts)
-# TTS is required for video rendering with voice narration.
 import torch as _torch
-from qwen_tts import Qwen3TTSModel as _Qwen3TTSModel
 
 from config import (
     DEFAULT_SPEAKER,
-    GEMINI_TEXT_MODEL,
     STORAGE_MODE,
-    TTS_ATTN_IMPLEMENTATION,
     TTS_CACHE_DIR,
     TTS_DEFAULT_LANGUAGE,
-    TTS_DEVICE,
-    TTS_MODEL_NAME,
     TTS_REPETITION_PENALTY,
     TTS_TEMPERATURE,
     TTS_TIMEOUT_SECONDS,
     TTS_TOP_P,
-    gemini_client,
     logger,
 )
 from services.storage import get_storage
+from services.video.tts_helpers import (
+    get_preset_voice_info,
+    get_qwen_model_async,
+    get_speaker_voice_preset,
+    translate_voice_prompt,
+    tts_cache_key,
+)
 from services.video.utils import clean_script_for_tts
-
-_TTS_AVAILABLE = True
-
-
-def _ensure_tts_deps() -> bool:
-    """Check TTS availability. Always returns True with eager loading."""
-    return _TTS_AVAILABLE
-
-
-# Global model cache for Qwen-TTS (single model swap)
-_current_model = None
-_current_model_type: str | None = None
-_model_lock = asyncio.Lock()
-
-# Simple cache: Korean prompt → English translation
-_VOICE_PROMPT_CACHE: dict[str, str] = {}
-_HANGUL_RE = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
-
-
-def _tts_cache_key(text: str, voice_preset_id: int | None, voice_design_prompt: str | None, language: str) -> str:
-    """Deterministic hash for TTS caching based on text + voice config."""
-    parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}"
-    return hashlib.sha256(parts.encode()).hexdigest()[:16]
-
-
-def _resolve_device() -> str:
-    device = TTS_DEVICE
-    if device == "auto":
-        device = "mps" if _torch.backends.mps.is_available() else "cpu"
-    return device
-
-
-def _load_model(model_name: str):
-    """Load a Qwen-TTS model (blocking). Requires _ensure_tts_deps() first."""
-    device = _resolve_device()
-    logger.info(f"Loading Qwen-TTS model ({model_name}) on {device}...")
-    model = _Qwen3TTSModel.from_pretrained(
-        model_name,
-        dtype=_torch.bfloat16 if device == "mps" else _torch.float32,
-        attn_implementation=TTS_ATTN_IMPLEMENTATION,
-    )
-    model.model.to(device)
-    model.device = _torch.device(device)
-    return model
-
-
-def get_qwen_model():
-    """Synchronous model getter (for lifespan preload). Always loads VoiceDesign model."""
-    global _current_model, _current_model_type
-    if not _ensure_tts_deps():
-        raise RuntimeError("TTS dependencies unavailable (torch/qwen_tts)")
-    if _current_model is None:
-        _current_model = _load_model(TTS_MODEL_NAME)
-        _current_model_type = "voice_design"
-    return _current_model
-
-
-async def get_qwen_model_async():
-    """Async model getter. Loads VoiceDesign model if not already loaded."""
-    global _current_model, _current_model_type
-    if not _ensure_tts_deps():
-        raise RuntimeError("TTS dependencies unavailable (torch/qwen_tts)")
-    async with _model_lock:
-        if _current_model is not None:
-            return _current_model
-        loop = asyncio.get_event_loop()
-        _current_model = await loop.run_in_executor(None, _load_model, TTS_MODEL_NAME)
-        _current_model_type = "voice_design"
-        return _current_model
-
-
-def _translate_voice_prompt(prompt: str) -> str:
-    """Translate Korean voice design prompt to English via Gemini."""
-    if not prompt or not _HANGUL_RE.search(prompt):
-        return prompt
-    if prompt in _VOICE_PROMPT_CACHE:
-        return _VOICE_PROMPT_CACHE[prompt]
-    if not gemini_client:
-        logger.warning("[TTS] No Gemini client, skipping voice prompt translation")
-        return prompt
-    try:
-        res = gemini_client.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=(
-                "Translate the following Korean TTS voice description to English. "
-                "Return ONLY the translated text, nothing else.\n\n"
-                f"{prompt}"
-            ),
-        )
-        translated = res.text.strip()
-        _VOICE_PROMPT_CACHE[prompt] = translated
-        logger.info(f"[TTS] Voice prompt translated: '{prompt}' → '{translated}'")
-        return translated
-    except Exception as e:
-        logger.warning(f"[TTS] Voice prompt translation failed: {e}")
-        return prompt
-
 
 if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
+
+# Re-export for backward compatibility (main.py, routers/voice_presets.py, tests)
+from services.video.tts_helpers import get_qwen_model  # noqa: F401
+
+_translate_voice_prompt = translate_voice_prompt  # noqa: F841 — alias for voice_presets.py
+_get_speaker_voice_preset = get_speaker_voice_preset  # noqa: F841 — alias for tests
 
 
 async def process_scenes(builder: VideoBuilder) -> None:
@@ -214,7 +120,10 @@ def _load_scene_image(builder: VideoBuilder, img_src: str | None) -> bytes:
                 return image_bytes
             return builder._load_image_bytes(img_src)
         except Exception as e:
-            logger.warning("[Video Build] Failed to load from storage, fallback to URL: %s", e)
+            logger.warning(
+                "[Video Build] Failed to load from storage, fallback to URL: %s",
+                e,
+            )
             return builder._load_image_bytes(img_src)
     return builder._load_image_bytes(img_src)
 
@@ -290,7 +199,12 @@ def wrap_scene_text(builder: VideoBuilder, text: str) -> tuple[list[str], int]:
         return lines, base_font_size
 
 
-def process_post_layout_image(builder: VideoBuilder, i: int, image_bytes: bytes, img_path: Path) -> None:
+def process_post_layout_image(
+    builder: VideoBuilder,
+    i: int,
+    image_bytes: bytes,
+    img_path: Path,
+) -> None:
     """Process image for post layout."""
     try:
         overlay_settings = builder.request.overlay_settings or builder._OverlaySettings()
@@ -317,93 +231,13 @@ def process_post_layout_image(builder: VideoBuilder, i: int, image_bytes: bytes,
         img_path.write_bytes(image_bytes)
 
 
-def _get_preset_voice_info(voice_preset_id: int) -> tuple[str | None, int | None]:
-    """Fetch voice_design_prompt and voice_seed from a voice preset."""
-    from database import get_db
-    from models.voice_preset import VoicePreset
-
-    db = next(get_db())
-    try:
-        preset = db.get(VoicePreset, voice_preset_id)
-        if not preset:
-            return None, None
-        prompt = preset.voice_design_prompt
-        seed = preset.voice_seed
-        if prompt:
-            logger.info(f"[TTS] Preset {voice_preset_id}: prompt='{prompt[:40]}', seed={seed}")
-        return prompt, seed
-    except Exception as e:
-        logger.error(f"[TTS] Failed to get preset voice info: {e}")
-        return None, None
-    finally:
-        db.close()
-
-
-def _get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | None:
-    """Resolve speaker to a voice_preset_id from Storyboard/Character.
-
-    - "Narrator" -> Storyboard.narrator_voice_preset_id
-    - Character name (e.g. "A") -> Character.voice_preset_id
-      looked up via character_id on the storyboard.
-    """
-    if not storyboard_id:
-        logger.debug("[TTS] _get_speaker_voice_preset: no storyboard_id, returning None")
-        return None
-
-    from database import get_db
-    from models.character import Character
-    from models.group import Group
-    from models.storyboard import Storyboard
-    from services.config_resolver import resolve_effective_config
-
-    db = next(get_db())
-    try:
-        storyboard = db.get(Storyboard, storyboard_id)
-        if not storyboard:
-            return None
-
-        # Resolve effective config via cascade
-        group = db.get(Group, storyboard.group_id) if storyboard.group_id else None
-        effective = resolve_effective_config(group.project, group) if group else {"values": {}}
-
-        if speaker == DEFAULT_SPEAKER:
-            preset_id = effective["values"].get("narrator_voice_preset_id")
-            if preset_id:
-                logger.info(f"[TTS] Narrator voice preset from cascade: {preset_id}")
-                return preset_id
-            return None
-
-        # Non-narrator speaker -> resolve via storyboard_characters first, then fallback to cascade
-        from services.speaker_resolver import resolve_speaker_to_character
-
-        resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
-        if not resolved_char_id:
-            logger.warning(
-                f"[TTS] No character mapping for speaker '{speaker}' in storyboard {storyboard_id}. "
-                f"Falling back to default voice."
-            )
-            return None
-        char = db.get(Character, resolved_char_id)
-        if char and char.voice_preset_id:
-            logger.info(
-                f"[TTS] Speaker '{speaker}' voice preset from character {char.name}({resolved_char_id}): {char.voice_preset_id}"
-            )
-            return char.voice_preset_id
-        return None
-    except Exception as e:
-        logger.error(f"[TTS] Failed to resolve speaker voice preset: {e}")
-        return None
-    finally:
-        db.close()
-
-
 def _resolve_voice_preset_id(
     builder: VideoBuilder,
     scene_idx: int,
 ) -> int | None:
     """Resolve voice_preset_id for a scene following priority:
 
-    1. scene_req.voice_design_prompt  (per-scene override — skip preset lookup)
+    1. scene_req.voice_design_prompt  (per-scene override -- skip preset lookup)
     2. Speaker-specific preset (Narrator -> storyboard, Character -> character)
     3. VideoRequest.voice_preset_id   (global render panel preset)
     """
@@ -417,7 +251,7 @@ def _resolve_voice_preset_id(
     # 2. Speaker-specific preset
     speaker = scene_req.speaker or DEFAULT_SPEAKER
     logger.debug(f"[TTS] Scene {scene_idx}: speaker='{speaker}', storyboard_id={builder.request.storyboard_id}")
-    speaker_preset = _get_speaker_voice_preset(
+    speaker_preset = get_speaker_voice_preset(
         builder.request.storyboard_id,
         speaker,
     )
@@ -453,7 +287,7 @@ async def generate_tts(
 
     # --- TTS result cache lookup ---
     voice_design_for_cache = scene_req.voice_design_prompt or builder.request.voice_design_prompt or ""
-    cache_key = _tts_cache_key(
+    cache_key = tts_cache_key(
         clean_script,
         resolved_preset_id,
         voice_design_for_cache,
@@ -472,12 +306,12 @@ async def generate_tts(
         preset_seed: int | None = None
 
         if resolved_preset_id:
-            preset_voice_design, preset_seed = _get_preset_voice_info(
+            preset_voice_design, preset_seed = get_preset_voice_info(
                 resolved_preset_id,
             )
 
         voice_design = scene_req.voice_design_prompt or preset_voice_design or builder.request.voice_design_prompt
-        voice_design = _translate_voice_prompt(voice_design or "")
+        voice_design = translate_voice_prompt(voice_design or "")
 
         # Seed: preset seed > hash-based fallback
         voice_seed = preset_seed or (hash(voice_design or "") % (2**31))
@@ -500,7 +334,7 @@ async def generate_tts(
                 repetition_penalty=TTS_REPETITION_PENALTY,
             )
 
-        logger.info(f"Scene {i}: voice design — '{(voice_design or '')[:40]}'")
+        logger.info(f"Scene {i}: voice design -- '{(voice_design or '')[:40]}'")
         wavs, sr = await asyncio.wait_for(
             loop.run_in_executor(None, _voice_design),
             timeout=TTS_TIMEOUT_SECONDS,
