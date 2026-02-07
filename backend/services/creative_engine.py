@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from config import CREATIVE_LEADER_MODEL, CREATIVE_MAX_ROUNDS, logger
+from config import (
+    CREATIVE_LEADER_MODEL,
+    CREATIVE_MAX_ROUNDS,
+    CREATIVE_URL_MAX_FETCH_COUNT,
+    logger,
+)
 from models.creative import (
     CreativeAgentPreset,
     CreativeSession,
@@ -17,6 +23,7 @@ from models.creative import (
 )
 from services.creative_agents import generate_parallel, get_provider
 from services.creative_trace import record_trace
+from services.creative_url import extract_urls, fetch_url_content
 
 
 def _get_active_session(db: Session, session_id: int) -> CreativeSession:
@@ -60,6 +67,16 @@ async def create_session(
     """Create a new creative session."""
     if evaluation_criteria is None:
         evaluation_criteria = _get_criteria(task_type)
+
+    # Fetch URL content from objective for agent context
+    urls = extract_urls(objective)
+    if urls:
+        targets = urls[:CREATIVE_URL_MAX_FETCH_COUNT]
+        results = await asyncio.gather(*(fetch_url_content(u) for u in targets))
+        fetched = {u: r for u, r in zip(targets, results, strict=True) if r}
+        if fetched:
+            context = context or {}
+            context["url_content"] = fetched
 
     session = CreativeSession(
         task_type=task_type,
@@ -314,7 +331,16 @@ def _build_instruction(
         f"Round: {round_number}/{session.max_rounds}",
     ]
     if session.context:
-        parts.append(f"Context: {session.context}")
+        url_content = session.context.get("url_content")
+        if url_content:
+            for url, text in url_content.items():
+                parts.append(f"<reference url=\"{url}\">\n{text}\n</reference>")
+            # Include remaining context without url_content
+            rest = {k: v for k, v in session.context.items() if k != "url_content"}
+            if rest:
+                parts.append(f"Context: {rest}")
+        else:
+            parts.append(f"Context: {session.context}")
     if user_feedback:
         parts.append(f"User feedback: {user_feedback}")
     return "\n".join(parts)

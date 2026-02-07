@@ -309,6 +309,10 @@ TTS_AUDIO_TRIM_TOP_DB = int(
 TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))  # Fade-in/out ms (removes click artifacts)
 TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "300"))  # Internal silence max length (ms)
 
+# --- TTS Quality Validation & Retry ---
+TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
+TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
+
 # --- TTS Performance ---
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
@@ -351,6 +355,10 @@ LAB_BATCH_MAX_SIZE = int(os.getenv("LAB_BATCH_MAX_SIZE", "20"))
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
 CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.0-flash")
+CREATIVE_URL_FETCH_TIMEOUT = int(os.getenv("CREATIVE_URL_FETCH_TIMEOUT", "15"))
+CREATIVE_URL_MAX_CONTENT_LENGTH = int(os.getenv("CREATIVE_URL_MAX_CONTENT_LENGTH", "5000"))
+CREATIVE_URL_MAX_FETCH_COUNT = int(os.getenv("CREATIVE_URL_MAX_FETCH_COUNT", "3"))
+CREATIVE_URL_MAX_RESPONSE_BYTES = int(os.getenv("CREATIVE_URL_MAX_RESPONSE_BYTES", str(1024 * 1024)))
 
 # --- Ollama (Local LLM) Configuration ---
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
