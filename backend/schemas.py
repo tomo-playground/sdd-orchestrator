@@ -1063,6 +1063,7 @@ class VoicePresetCreate(BaseModel):
 class VoicePresetUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+    voice_design_prompt: str | None = None
 
 
 class VoicePreviewRequest(BaseModel):
