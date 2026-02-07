@@ -41,8 +41,8 @@ SYSTEM_PRESETS = [
             "뻔한 전개보다 의외성과 신선함을 최우선으로 추구합니다. "
             "다른 에이전트의 피드백을 반영하되, 독창성은 절대 포기하지 마세요."
         ),
-        "model_provider": "ollama",
-        "model_name": "exaone3.5:7.8b",
+        "model_provider": "gemini",
+        "model_name": "gemini-2.0-flash",
         "temperature": 1.0,
         "is_system": True,
     },
@@ -67,8 +67,8 @@ SYSTEM_PRESETS = [
             "캐릭터의 내면 심리, 분위기 묘사, 감정선의 흐름을 섬세하게 다듬으세요. "
             "읽는 사람이 몰입하고 공감할 수 있는 결과물을 만드세요."
         ),
-        "model_provider": "ollama",
-        "model_name": "gemma3:4b",
+        "model_provider": "gemini",
+        "model_name": "gemini-2.0-flash",
         "temperature": 0.9,
         "is_system": True,
     },
