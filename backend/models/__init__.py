@@ -9,6 +9,7 @@ from models.group import Group
 from models.group_config import GroupConfig
 from models.lora import LoRA
 from models.media_asset import MediaAsset
+from models.music_preset import MusicPreset
 from models.project import Project
 from models.prompt_history import PromptHistory
 from models.render_history import RenderHistory
@@ -52,6 +53,7 @@ __all__ = [
     "RenderHistory",
     "EvaluationRun",
     "VoicePreset",
+    "MusicPreset",
     "StoryboardCharacter",
     "YouTubeCredential",
 ]

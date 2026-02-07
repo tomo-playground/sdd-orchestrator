@@ -27,3 +27,7 @@ class RenderPreset(Base, TimestampMixin):
     ken_burns_preset: Mapped[str | None] = mapped_column(String(50))
     ken_burns_intensity: Mapped[float | None] = mapped_column(Float)
     speed_multiplier: Mapped[float | None] = mapped_column(Float)
+    bgm_mode: Mapped[str | None] = mapped_column(String(20))  # "file" | "ai"
+    music_preset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("music_presets.id", ondelete="SET NULL"), nullable=True
+    )

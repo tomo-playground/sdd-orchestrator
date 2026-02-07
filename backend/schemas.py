@@ -100,6 +100,8 @@ class RenderPresetResponse(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
+    bgm_mode: str | None = None
+    music_preset_id: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -441,6 +443,8 @@ class VideoRequest(BaseModel):
     audio_ducking: bool = True
     bgm_volume: float = 0.25
     ducking_threshold: float = 0.01
+    bgm_mode: str = "file"  # "file" | "ai"
+    music_preset_id: int | None = None  # AI BGM preset
 
 
 class VideoDeleteRequest(BaseModel):
@@ -1081,6 +1085,48 @@ class VoicePresetResponse(BaseModel):
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Music Preset Schemas
+# ============================================================
+
+
+class MusicPresetCreate(BaseModel):
+    name: str
+    description: str | None = None
+    prompt: str | None = None
+    duration: float = 30.0
+    seed: int | None = None
+
+
+class MusicPresetUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    prompt: str | None = None
+    duration: float | None = None
+    seed: int | None = None
+
+
+class MusicPresetResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    prompt: str | None = None
+    duration: float | None = None
+    seed: int | None = None
+    audio_url: str | None = None
+    is_system: bool
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MusicPreviewRequest(BaseModel):
+    prompt: str
+    duration: float = 30.0
+    seed: int = -1
+    num_inference_steps: int = 100
 
 
 # ============================================================

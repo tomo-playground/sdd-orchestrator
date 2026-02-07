@@ -29,6 +29,8 @@ export default function RenderTab() {
     bgmVolume,
     voiceDesignPrompt,
     voicePresetId,
+    bgmMode,
+    musicPresetId,
     recentVideos,
     setOutput,
     showToast,
@@ -149,6 +151,8 @@ export default function RenderTab() {
           voice_preset_id: voicePresetId || null,
           speed_multiplier: speedMultiplier,
           bgm_file: bgmFile,
+          bgm_mode: bgmMode,
+          music_preset_id: musicPresetId || null,
           audio_ducking: audioDucking,
           bgm_volume: bgmVolume,
           overlay_settings: finalOverlaySettings,
@@ -190,6 +194,8 @@ export default function RenderTab() {
       sceneTextFont,
       speedMultiplier,
       bgmFile,
+      bgmMode,
+      musicPresetId,
       audioDucking,
       bgmVolume,
       voiceDesignPrompt,
@@ -263,6 +269,10 @@ export default function RenderTab() {
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voicePresetId={voicePresetId}
         setVoicePresetId={(v) => setOutput({ voicePresetId: v })}
+        bgmMode={bgmMode}
+        setBgmMode={(v) => setOutput({ bgmMode: v })}
+        musicPresetId={musicPresetId}
+        setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
       />
 
       {/* Right: Layout + Render Action (sticky) */}

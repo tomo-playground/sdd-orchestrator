@@ -42,6 +42,8 @@ export async function loadGroupDefaults(
     if (p.ken_burns_preset) updates.kenBurnsPreset = p.ken_burns_preset;
     if (p.ken_burns_intensity != null) updates.kenBurnsIntensity = p.ken_burns_intensity;
     if (p.speed_multiplier != null) updates.speedMultiplier = p.speed_multiplier;
+    if (p.bgm_mode) updates.bgmMode = p.bgm_mode;
+    if (p.music_preset_id != null) updates.musicPresetId = p.music_preset_id;
 
     // narrator_voice_preset_id from GroupConfig
     if (cfg.narrator_voice_preset_id != null) updates.voicePresetId = cfg.narrator_voice_preset_id;

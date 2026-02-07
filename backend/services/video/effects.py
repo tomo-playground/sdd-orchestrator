@@ -43,10 +43,7 @@ def apply_transitions(builder: VideoBuilder) -> None:
                 f"duration={builder.transition_dur}:offset={acc_offset}[v{i}_m]"
             )
             curr_v = f"[v{i}_m]"
-            builder.filters.append(
-                f"{curr_a}[a{i}_raw]acrossfade=d={builder.transition_dur}:"
-                f"o=1:c1=tri:c2=tri[a{i}_m]"
-            )
+            builder.filters.append(f"{curr_a}[a{i}_raw]acrossfade=d={builder.transition_dur}:o=1:c1=tri:c2=tri[a{i}_m]")
             curr_a = f"[a{i}_m]"
         builder._map_v = curr_v
         builder._map_a = curr_a
@@ -54,9 +51,7 @@ def apply_transitions(builder: VideoBuilder) -> None:
     else:
         builder._map_v = "[v0_raw]"
         builder._map_a = "[a0_raw]"
-        builder._total_dur = (
-            builder.scene_durations[0] if builder.scene_durations else 0
-        )
+        builder._total_dur = builder.scene_durations[0] if builder.scene_durations else 0
 
 
 def apply_overlays(builder: VideoBuilder) -> None:
@@ -102,22 +97,12 @@ def apply_overlays(builder: VideoBuilder) -> None:
     footer_idx = next_input_idx + 1
 
     # Header animation: slide in from top (0.5 seconds)
-    builder.filters.append(
-        f"[{header_idx}:v]format=rgba,colorchannelmixer=aa=1.6[ovr_h]"
-    )
-    builder.filters.append(
-        f"{builder._map_v}[ovr_h]overlay=0:"
-        f"'if(lt(t,0.5),-h*(1-t*2),0)':format=auto[v_h]"
-    )
+    builder.filters.append(f"[{header_idx}:v]format=rgba,colorchannelmixer=aa=1.6[ovr_h]")
+    builder.filters.append(f"{builder._map_v}[ovr_h]overlay=0:'if(lt(t,0.5),-h*(1-t*2),0)':format=auto[v_h]")
 
     # Footer animation: slide in from bottom (0.5 seconds)
-    builder.filters.append(
-        f"[{footer_idx}:v]format=rgba,colorchannelmixer=aa=1.6[ovr_f]"
-    )
-    builder.filters.append(
-        "[v_h][ovr_f]overlay=0:"
-        "'if(lt(t,0.5),h*(1-t*2),0)':format=auto[vid_o]"
-    )
+    builder.filters.append(f"[{footer_idx}:v]format=rgba,colorchannelmixer=aa=1.6[ovr_f]")
+    builder.filters.append("[v_h][ovr_f]overlay=0:'if(lt(t,0.5),h*(1-t*2),0)':format=auto[vid_o]")
 
     builder._map_v = "[vid_o]"
     builder._next_input_idx = footer_idx + 1
@@ -125,22 +110,10 @@ def apply_overlays(builder: VideoBuilder) -> None:
 
 def apply_bgm(builder: VideoBuilder) -> None:
     """Apply background music with optional audio ducking."""
-    storage = get_storage()
-
-    # Resolve BGM file (supports 'random' selection with project-based seed)
-    seed = hash(builder.project_id)
-    resolved_bgm = resolve_bgm_file(builder.request.bgm_file, seed=seed)
-    if not resolved_bgm:
+    bgm_path = _resolve_bgm_path(builder)
+    if not bgm_path:
         return
 
-    storage_key = f"shared/audio/{resolved_bgm}"
-    if not storage.exists(storage_key):
-        logger.warning(
-            f"[Video Build] BGM file not found in storage: {storage_key}"
-        )
-        return
-
-    bgm_path = storage.get_local_path(storage_key)
     builder.input_args.extend(["-i", str(bgm_path)])
     bgm_idx = builder._next_input_idx
     bgm_vol = builder.request.bgm_volume
@@ -153,18 +126,35 @@ def apply_bgm(builder: VideoBuilder) -> None:
     builder._map_a = "[a_f]"
 
 
-def _apply_ducked_bgm(
-    builder: VideoBuilder, bgm_idx: int, bgm_vol: float
-) -> None:
+def _resolve_bgm_path(builder: VideoBuilder) -> str | None:
+    """Resolve BGM file path based on bgm_mode (file or ai)."""
+    bgm_mode = getattr(builder.request, "bgm_mode", "file")
+
+    if bgm_mode == "ai":
+        return builder._ai_bgm_path  # None → no BGM (no fallthrough to file)
+
+    # File mode (existing logic)
+    storage = get_storage()
+    seed = hash(builder.project_id)
+    resolved_bgm = resolve_bgm_file(builder.request.bgm_file, seed=seed)
+    if not resolved_bgm:
+        return None
+
+    storage_key = f"shared/audio/{resolved_bgm}"
+    if not storage.exists(storage_key):
+        logger.warning(f"[Video Build] BGM file not found in storage: {storage_key}")
+        return None
+
+    return str(storage.get_local_path(storage_key))
+
+
+def _apply_ducked_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> None:
     """Apply BGM with sidechain compression (audio ducking)."""
     # 1. Split narration as sidechain key signal
-    builder.filters.append(
-        f"{builder._map_a}asplit=2[narr_out][narr_key]"
-    )
+    builder.filters.append(f"{builder._map_a}asplit=2[narr_out][narr_key]")
     # 2. Prepare BGM with volume and fade
     builder.filters.append(
-        f"[{bgm_idx}:a]volume={bgm_vol},"
-        f"afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_vol]"
+        f"[{bgm_idx}:a]volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_vol]"
     )
     # 3. Apply sidechain compression
     threshold = builder.request.ducking_threshold
@@ -174,21 +164,10 @@ def _apply_ducked_bgm(
         f"level_sc=1:makeup=1[bgm_ducked]"
     )
     # 4. Mix ducked BGM with narration
-    builder.filters.append(
-        "[narr_out][bgm_ducked]amix=inputs=2:duration=first:"
-        "dropout_transition=2[a_f]"
-    )
+    builder.filters.append("[narr_out][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2[a_f]")
 
 
-def _apply_simple_bgm(
-    builder: VideoBuilder, bgm_idx: int, bgm_vol: float
-) -> None:
+def _apply_simple_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> None:
     """Apply BGM with simple fixed-volume mixing."""
-    builder.filters.append(
-        f"[{bgm_idx}:a]volume={bgm_vol},"
-        f"afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_f]"
-    )
-    builder.filters.append(
-        f"{builder._map_a}[bgm_f]amix=inputs=2:duration=first:"
-        "dropout_transition=2[a_f]"
-    )
+    builder.filters.append(f"[{bgm_idx}:a]volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_f]")
+    builder.filters.append(f"{builder._map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]")

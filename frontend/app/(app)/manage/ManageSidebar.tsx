@@ -7,6 +7,7 @@ import {
   FileText,
   SlidersHorizontal,
   Mic,
+  Music2,
   Settings,
   Trash2,
   Upload,
@@ -28,6 +29,7 @@ export type ManageTab =
   | "prompts"
   | "presets"
   | "voice"
+  | "music"
   | "youtube"
   | "settings"
   | "trash";
@@ -56,6 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "tags", label: "Tags", icon: Tag },
       { id: "style", label: "Styles", icon: Palette },
       { id: "voice", label: "Voice Presets", icon: Mic },
+      { id: "music", label: "Music Presets", icon: Music2 },
     ],
   },
   {

@@ -500,6 +500,8 @@ export type RenderPreset = {
   ken_burns_preset: string | null;
   ken_burns_intensity: number | null;
   speed_multiplier: number | null;
+  bgm_mode: string | null;
+  music_preset_id: number | null;
 };
 
 export type VoicePreset = {
@@ -514,6 +516,18 @@ export type VoicePreset = {
   sample_text: string | null;
   is_system: boolean;
   created_at: string;
+};
+
+export type MusicPreset = {
+  id: number;
+  name: string;
+  description: string | null;
+  prompt: string | null;
+  duration: number | null;
+  seed: number | null;
+  audio_url: string | null;
+  is_system: boolean;
+  created_at: string | null;
 };
 
 export type GroupItem = {

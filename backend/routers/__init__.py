@@ -12,6 +12,7 @@ from .evaluation import router as evaluation_router
 from .groups import router as groups_router
 from .keywords import router as keywords_router
 from .loras import router as loras_router
+from .music_presets import router as music_presets_router
 from .presets import router as presets_router
 from .projects import router as projects_router
 from .prompt import router as prompt_router
@@ -57,5 +58,6 @@ __all__ = [
     "projects_router",
     "render_presets_router",
     "voice_presets_router",
+    "music_presets_router",
     "youtube_router",
 ]

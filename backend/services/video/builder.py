@@ -137,6 +137,7 @@ class VideoBuilder:
         self.avatar_file: str | None = None
         self.post_avatar_file: str | None = None
         self.post_layout_metrics: dict[str, Any] | None = None
+        self._ai_bgm_path: str | None = None  # Set by _prepare_bgm for AI BGM
 
         # Filter chain state (populated by effects module)
         self._map_v: str = ""
@@ -160,6 +161,7 @@ class VideoBuilder:
             await self._setup_avatars()
             await self._process_scenes()
             self._calculate_durations()
+            await self._prepare_bgm()
             self._build_filters()
             self._encode()
             return self._upload_result()
@@ -206,6 +208,58 @@ class VideoBuilder:
             self.speed_multiplier,
             self.tts_padding,
         )
+
+    async def _prepare_bgm(self) -> None:
+        """Prepare AI-generated BGM if bgm_mode is 'ai'."""
+        if getattr(self.request, "bgm_mode", "file") != "ai":
+            return
+        preset_id = getattr(self.request, "music_preset_id", None)
+        if not preset_id:
+            return
+
+        from models.media_asset import MediaAsset
+        from models.music_preset import MusicPreset
+        from services.storage import get_storage
+
+        db = SessionLocal()
+        try:
+            preset = db.query(MusicPreset).filter(MusicPreset.id == preset_id).first()
+            if not preset:
+                logger.warning("[Video Build] Music preset %d not found", preset_id)
+                return
+
+            # If preset has a cached audio asset, use it directly
+            if preset.audio_asset_id:
+                asset = db.get(MediaAsset, preset.audio_asset_id)
+                if asset:
+                    storage = get_storage()
+                    local_path = storage.get_local_path(asset.storage_key)
+                    if local_path:
+                        self._ai_bgm_path = str(local_path)
+                        logger.info("[Video Build] Using cached AI BGM from asset %d", asset.id)
+                        return
+
+            # No cached asset — generate on the fly
+            if preset.prompt:
+                import asyncio
+
+                from services.audio.music_generator import generate_music
+
+                loop = asyncio.get_event_loop()
+                wav_bytes, _, _ = await loop.run_in_executor(
+                    None,
+                    lambda: generate_music(
+                        prompt=preset.prompt,
+                        duration=preset.duration or 30.0,
+                        seed=preset.seed or -1,
+                    ),
+                )
+                out_path = self.temp_dir / "ai_bgm.wav"
+                out_path.write_bytes(wav_bytes)
+                self._ai_bgm_path = str(out_path)
+                logger.info("[Video Build] Generated AI BGM on the fly (%d bytes)", len(wav_bytes))
+        finally:
+            db.close()
 
     def _build_filters(self) -> None:
         from services.video.effects import (

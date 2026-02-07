@@ -20,6 +20,7 @@ from routers import (
     groups_router,
     keywords_router,
     loras_router,
+    music_presets_router,
     presets_router,
     projects_router,
     prompt_histories_router,
@@ -134,6 +135,7 @@ app.include_router(style_profiles_router)
 app.include_router(tags_router)
 app.include_router(video_router)
 app.include_router(voice_presets_router)
+app.include_router(music_presets_router)
 app.include_router(youtube_router)
 
 

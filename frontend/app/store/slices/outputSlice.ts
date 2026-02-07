@@ -48,6 +48,8 @@ export interface OutputSlice {
   ttsEngine: "qwen";
   voiceDesignPrompt: string;
   voicePresetId: number | null;
+  bgmMode: "file" | "ai";
+  musicPresetId: number | null;
 
   // Video metadata
   videoCaption: string;
@@ -100,6 +102,8 @@ const initialOutputState = {
   ttsEngine: "qwen" as const,
   voiceDesignPrompt: "",
   voicePresetId: null as number | null,
+  bgmMode: "file" as const,
+  musicPresetId: null as number | null,
   videoCaption: "",
   videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,
