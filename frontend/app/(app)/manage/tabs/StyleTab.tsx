@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import StyleProfileEditor from "../StyleProfileEditor";
 import { useStyleTab } from "../hooks/useStyleTab";
 
 export default function StyleTab() {
@@ -17,6 +18,9 @@ export default function StyleTab() {
     sdModels,
     embeddings,
     loraEntries,
+    handleSetProfileModel,
+    handleToggleProfileLora,
+    handleToggleProfileEmbedding,
     editingLora,
     setEditingLora,
     isUpdatingLora,
@@ -120,56 +124,17 @@ export default function StyleTab() {
 
       {/* Editor Panel */}
       {selectedProfile && (
-        <div className="rounded-2xl border border-indigo-200 bg-white p-6 shadow-sm ring-4 ring-indigo-50/50">
-          <div className="mb-6 flex items-center justify-between border-b border-indigo-50 pb-4">
-            <div>
-              <input
-                type="text"
-                value={selectedProfile.name}
-                onChange={(e) => handleUpdateStyle(selectedProfile.id, { name: e.target.value })}
-                className="bg-transparent text-lg font-black text-indigo-900 focus:outline-none"
-              />
-              <p className="mt-1 text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
-                Editing Style ID #{selectedProfile.id}
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedProfile(null)}
-              className="rounded-full bg-indigo-50 px-4 py-1.5 text-[10px] font-bold text-indigo-500 hover:bg-indigo-100"
-            >
-              Done
-            </button>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">
-                Positive Prompt
-              </label>
-              <textarea
-                value={selectedProfile.default_positive || ""}
-                onChange={(e) =>
-                  handleUpdateStyle(selectedProfile.id, { default_positive: e.target.value })
-                }
-                className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-                placeholder="Describe the style..."
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">
-                Negative Prompt
-              </label>
-              <textarea
-                value={selectedProfile.default_negative || ""}
-                onChange={(e) =>
-                  handleUpdateStyle(selectedProfile.id, { default_negative: e.target.value })
-                }
-                className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-                placeholder="What to avoid..."
-              />
-            </div>
-          </div>
-        </div>
+        <StyleProfileEditor
+          profile={selectedProfile}
+          sdModels={sdModels}
+          loraEntries={loraEntries}
+          embeddings={embeddings}
+          onUpdateStyle={handleUpdateStyle}
+          onSetModel={handleSetProfileModel}
+          onToggleLora={handleToggleProfileLora}
+          onToggleEmbedding={handleToggleProfileEmbedding}
+          onClose={() => setSelectedProfile(null)}
+        />
       )}
 
       {/* Model & Civitai Section */}

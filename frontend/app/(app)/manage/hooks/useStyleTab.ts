@@ -112,7 +112,7 @@ export function useStyleTab() {
           if (prev && prev.id === id) {
             // Trigger reload of full profile
             void axios
-              .get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`)
+              .get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`)
               .then((res) => setSelectedProfile(res.data));
           }
           return prev;
@@ -139,12 +139,16 @@ export function useStyleTab() {
           }
         );
         const newId = createRes.data.id;
-        const detailRes = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
+        const detailRes = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
         const fullOriginal = detailRes.data;
 
         await axios.put(`${API_BASE}/style-profiles/${newId}`, {
           default_positive: fullOriginal.default_positive,
           default_negative: fullOriginal.default_negative,
+          sd_model_id: fullOriginal.sd_model?.id ?? null,
+          loras: fullOriginal.loras?.map((l) => ({ lora_id: l.id, weight: l.weight })) ?? [],
+          negative_embeddings: fullOriginal.negative_embeddings?.map((e) => e.id) ?? [],
+          positive_embeddings: fullOriginal.positive_embeddings?.map((e) => e.id) ?? [],
         });
         await fetchStyles();
       } catch {
@@ -156,12 +160,66 @@ export function useStyleTab() {
 
   const handleLoadProfile = useCallback(async (id: number) => {
     try {
-      const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}`);
+      const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
       setSelectedProfile(res.data);
     } catch {
       alert("Failed to load style details");
     }
   }, []);
+
+  // ── Profile Asset Handlers ────────────────────────
+
+  const handleSetProfileModel = useCallback(
+    async (profileId: number, modelId: number | null) => {
+      await handleUpdateStyle(profileId, { sd_model_id: modelId } as Partial<StyleProfile>);
+    },
+    [handleUpdateStyle]
+  );
+
+  const handleToggleProfileLora = useCallback(
+    async (profileId: number, loraId: number, weight?: number) => {
+      if (!selectedProfile || selectedProfile.id !== profileId) return;
+      const current = selectedProfile.loras ?? [];
+      const exists = current.find((l) => l.id === loraId);
+      let updated: { lora_id: number; weight: number }[];
+      if (exists) {
+        if (weight !== undefined && weight !== exists.weight) {
+          updated = current.map((l) =>
+            l.id === loraId
+              ? { lora_id: l.id, weight: weight }
+              : { lora_id: l.id, weight: l.weight }
+          );
+        } else {
+          updated = current
+            .filter((l) => l.id !== loraId)
+            .map((l) => ({ lora_id: l.id, weight: l.weight }));
+        }
+      } else {
+        const defaultWeight =
+          weight ?? loraEntries.find((l) => l.id === loraId)?.default_weight ?? 0.7;
+        updated = [
+          ...current.map((l) => ({ lora_id: l.id, weight: l.weight })),
+          { lora_id: loraId, weight: defaultWeight },
+        ];
+      }
+      await handleUpdateStyle(profileId, { loras: updated } as Partial<StyleProfile>);
+    },
+    [handleUpdateStyle, selectedProfile, loraEntries]
+  );
+
+  const handleToggleProfileEmbedding = useCallback(
+    async (profileId: number, embeddingId: number, type: "positive" | "negative") => {
+      if (!selectedProfile || selectedProfile.id !== profileId) return;
+      const key = type === "positive" ? "positive_embeddings" : "negative_embeddings";
+      const current = selectedProfile[key] ?? [];
+      const ids = current.map((e) => e.id);
+      const updated = ids.includes(embeddingId)
+        ? ids.filter((id) => id !== embeddingId)
+        : [...ids, embeddingId];
+      await handleUpdateStyle(profileId, { [key]: updated } as Partial<StyleProfile>);
+    },
+    [handleUpdateStyle, selectedProfile]
+  );
 
   // ── Civitai ────────────────────────────────────────
 
@@ -262,6 +320,10 @@ export function useStyleTab() {
     sdModels,
     embeddings,
     loraEntries,
+    // Profile asset handlers
+    handleSetProfileModel,
+    handleToggleProfileLora,
+    handleToggleProfileEmbedding,
     // LoRA editing
     editingLora,
     setEditingLora,
