@@ -140,8 +140,11 @@ export default function AnalyticsTab() {
                 </tr>
               </thead>
               <tbody>
-                {report.items.map((item) => (
-                  <tr key={item.tag_id} className="border-b border-zinc-50 text-zinc-600">
+                {report.items.map((item, idx) => (
+                  <tr
+                    key={`${item.tag_id}-${idx}`}
+                    className="border-b border-zinc-50 text-zinc-600"
+                  >
                     <td className="py-2 pr-4 font-medium">{item.tag_name}</td>
                     <td className="py-2 pr-4 font-mono text-zinc-400">{item.use_count}</td>
                     <td className="py-2 pr-4 font-mono text-zinc-400">{item.match_count}</td>

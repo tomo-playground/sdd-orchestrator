@@ -2,15 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Loader2,
-  ArrowLeft,
-  Send,
-  Settings,
-} from "lucide-react";
+import { Loader2, ArrowLeft, Send, Settings, Trophy } from "lucide-react";
 import { API_BASE } from "../../../constants";
 import type {
   CreativeSession,
+  CreativeTrace,
   SessionListResponse,
   SendToStudioResponse,
 } from "../../../types/creative";
@@ -20,11 +16,11 @@ import CreativeRoundView from "../../../components/lab/CreativeRoundView";
 import AgentConfigPanel from "../../../components/lab/AgentConfigPanel";
 import SessionHistoryTable from "../../../components/lab/SessionHistoryTable";
 
-// ── Panel type ───────────────────────────────────────────────
+// -- Panel type -----------------------------------------------------------
 
 type Panel = "main" | "config";
 
-// ── Main Component ───────────────────────────────────────────
+// -- Main Component -------------------------------------------------------
 
 export default function CreativeLabTab() {
   const [sessions, setSessions] = useState<CreativeSession[]>([]);
@@ -42,10 +38,9 @@ export default function CreativeLabTab() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await axios.get<SessionListResponse>(
-        `${API_BASE}/lab/creative/sessions`,
-        { params: { limit: 50, offset: 0 } }
-      );
+      const res = await axios.get<SessionListResponse>(`${API_BASE}/lab/creative/sessions`, {
+        params: { limit: 50, offset: 0 },
+      });
       setSessions(res.data.items);
     } catch {
       /* silently fail on list fetch */
@@ -61,10 +56,11 @@ export default function CreativeLabTab() {
     setDebateLoading(true);
     setError(null);
     try {
-      const createRes = await axios.post<CreativeSession>(
-        `${API_BASE}/lab/creative/sessions`,
-        { task_type: taskType, objective: objective.trim(), max_rounds: maxRounds }
-      );
+      const createRes = await axios.post<CreativeSession>(`${API_BASE}/lab/creative/sessions`, {
+        task_type: taskType,
+        objective: objective.trim(),
+        max_rounds: maxRounds,
+      });
       const debateRes = await axios.post<CreativeSession>(
         `${API_BASE}/lab/creative/sessions/${createRes.data.id}/run-debate`
       );
@@ -73,7 +69,7 @@ export default function CreativeLabTab() {
       await fetchSessions();
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.detail ?? err.message
+        ? (err.response?.data?.detail ?? err.message)
         : "Failed to run debate";
       setError(String(msg));
     } finally {
@@ -95,7 +91,7 @@ export default function CreativeLabTab() {
       );
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.detail ?? err.message
+        ? (err.response?.data?.detail ?? err.message)
         : "Failed to send to studio";
       setError(String(msg));
     } finally {
@@ -103,17 +99,42 @@ export default function CreativeLabTab() {
     }
   }, [selectedSession]);
 
+  const handleFinalize = useCallback(
+    async (trace: CreativeTrace) => {
+      if (!selectedSession) return;
+      setError(null);
+      try {
+        const res = await axios.post<CreativeSession>(
+          `${API_BASE}/lab/creative/sessions/${selectedSession.id}/finalize`,
+          {
+            selected_output: {
+              content: trace.output_content,
+              agent_role: trace.agent_role,
+              score: trace.score,
+            },
+            reason: `Manual selection: ${trace.agent_role}`,
+          }
+        );
+        setSelectedSession(res.data);
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.detail ?? err.message)
+          : "Failed to finalize";
+        setError(String(msg));
+      }
+    },
+    [selectedSession]
+  );
+
   const handleSelectSession = useCallback(async (id: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get<CreativeSession>(
-        `${API_BASE}/lab/creative/sessions/${id}`
-      );
+      const res = await axios.get<CreativeSession>(`${API_BASE}/lab/creative/sessions/${id}`);
       setSelectedSession(res.data);
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.detail ?? err.message
+        ? (err.response?.data?.detail ?? err.message)
         : "Failed to load session";
       setError(String(msg));
     } finally {
@@ -126,7 +147,7 @@ export default function CreativeLabTab() {
     setError(null);
   }, []);
 
-  // ── Config panel ─────────────────────────────────────────
+  // -- Config panel -------------------------------------------------------
 
   if (panel === "config") {
     return (
@@ -142,16 +163,14 @@ export default function CreativeLabTab() {
     );
   }
 
-  // ── Main panel ───────────────────────────────────────────
+  // -- Main panel ---------------------------------------------------------
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-zinc-800">Creative Lab</h2>
-          <p className="mt-0.5 text-xs text-zinc-400">
-            Multi-agent creative debate engine
-          </p>
+          <p className="mt-0.5 text-xs text-zinc-400">Multi-agent creative debate engine</p>
         </div>
         <button
           onClick={() => setPanel("config")}
@@ -173,6 +192,7 @@ export default function CreativeLabTab() {
           sendLoading={sendLoading}
           onBack={handleBack}
           onSendToStudio={handleSendToStudio}
+          onFinalize={handleFinalize}
         />
       ) : (
         <>
@@ -197,19 +217,23 @@ export default function CreativeLabTab() {
   );
 }
 
-// ── Active Session View ──────────────────────────────────────
+// -- Active Session View --------------------------------------------------
 
 function ActiveSessionView({
   session,
   sendLoading,
   onBack,
   onSendToStudio,
+  onFinalize,
 }: {
   session: CreativeSession;
   sendLoading: boolean;
   onBack: () => void;
   onSendToStudio: () => void;
+  onFinalize: (trace: CreativeTrace) => void;
 }) {
+  const finalOutput = session.final_output as Record<string, unknown> | null;
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
@@ -240,18 +264,27 @@ function ActiveSessionView({
           )}
         </div>
         <p className="text-xs text-zinc-600">{session.objective}</p>
-        {session.final_output && (
+        {finalOutput && (
           <div className="mt-3 rounded-lg bg-emerald-50 p-3">
-            <p className="mb-1 text-[10px] font-semibold tracking-wider text-emerald-600 uppercase">
-              Final Output
-            </p>
-            <pre className="whitespace-pre-wrap text-xs text-emerald-800">
-              {JSON.stringify(session.final_output, null, 2)}
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[10px] font-semibold tracking-wider text-emerald-600 uppercase">
+                Final Output
+              </p>
+              {finalOutput.agent_role != null && (
+                <span className="flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                  <Trophy className="h-3 w-3" />
+                  {String(finalOutput.agent_role)}
+                  {finalOutput.score != null && ` (${Number(finalOutput.score).toFixed(2)})`}
+                </span>
+              )}
+            </div>
+            <pre className="max-h-60 overflow-y-auto text-xs leading-relaxed whitespace-pre-wrap text-emerald-800">
+              {String(finalOutput.content ?? JSON.stringify(session.final_output, null, 2))}
             </pre>
           </div>
         )}
       </div>
-      <CreativeRoundView sessionId={session.id} />
+      <CreativeRoundView sessionId={session.id} session={session} onFinalize={onFinalize} />
     </div>
   );
 }
