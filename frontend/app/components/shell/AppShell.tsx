@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Settings, FlaskConical } from "lucide-react";
+import { useStudioStore } from "../../store/useStudioStore";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
+import Toast from "../ui/Toast";
 import Sidebar from "./Sidebar";
 import type { ReactNode } from "react";
 
@@ -17,6 +19,7 @@ const NAV_ITEMS = [
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const showSidebar = !pathname.startsWith("/manage") && !pathname.startsWith("/quality");
+  const toast = useStudioStore((s) => s.toast);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
@@ -54,6 +57,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <CommandPalette />
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }

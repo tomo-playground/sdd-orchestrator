@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
 import { API_BASE } from "../../constants";
+import { useStudioStore } from "../../store/useStudioStore";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Button from "../ui/Button";
 import { LABEL_CLASSES } from "../ui/variants";
@@ -33,16 +34,11 @@ type Props = {
   projectId: number | null;
   groupId: number | null;
   groups: GroupItem[];
-  showToast: (message: string, type: "success" | "error") => void;
 };
 
-export default function StoryboardsSection({
-  projectId,
-  groupId,
-  groups,
-  showToast,
-}: Props) {
+export default function StoryboardsSection({ projectId, groupId, groups }: Props) {
   const router = useRouter();
+  const showToast = useStudioStore((s) => s.showToast);
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
   const [sbLoading, setSbLoading] = useState(true);
 

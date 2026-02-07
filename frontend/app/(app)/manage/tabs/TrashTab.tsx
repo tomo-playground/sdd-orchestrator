@@ -26,16 +26,8 @@ const TYPE_BADGE: Record<TrashItem["type"], { label: string; color: string }> = 
 };
 
 export default function TrashTab() {
-  const {
-    items,
-    filter,
-    setFilter,
-    loading,
-    toast,
-    filtered,
-    handleRestore,
-    handlePermanentDelete,
-  } = useTrashTab();
+  const { items, filter, setFilter, loading, filtered, handleRestore, handlePermanentDelete } =
+    useTrashTab();
 
   return (
     <section className="flex flex-col gap-4">
@@ -117,17 +109,6 @@ export default function TrashTab() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 left-1/2 z-[var(--z-toast)] -translate-x-1/2 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition ${
-            toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
-          }`}
-        >
-          {toast.message}
         </div>
       )}
     </section>

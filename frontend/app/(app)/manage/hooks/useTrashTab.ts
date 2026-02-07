@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
+import { useStudioStore } from "../../../store/useStudioStore";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -19,12 +20,7 @@ export function useTrashTab() {
   const [items, setItems] = useState<TrashItem[]>([]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  const showToast = useCallback((message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
+  const showToast = useStudioStore((s) => s.showToast);
 
   const fetchTrash = useCallback(async () => {
     setLoading(true);
@@ -123,7 +119,6 @@ export function useTrashTab() {
     filter,
     setFilter,
     loading,
-    toast,
     filtered,
     handleRestore,
     handlePermanentDelete,

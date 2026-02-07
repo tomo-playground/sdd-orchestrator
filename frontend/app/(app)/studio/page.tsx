@@ -8,7 +8,6 @@ import ScenesTab from "../../components/studio/ScenesTab";
 import RenderTab from "../../components/studio/RenderTab";
 import OutputTab from "../../components/studio/OutputTab";
 
-import Toast from "../../components/ui/Toast";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
 import VideoPreviewModal from "../../components/ui/VideoPreviewModal";
@@ -39,7 +38,6 @@ function StudioContent() {
   // Store selectors for rendering
   const activeTab = useStudioStore((s) => s.activeTab);
   const setActiveTab = useStudioStore((s) => s.setActiveTab);
-  const toast = useStudioStore((s) => s.toast);
   const setMeta = useStudioStore((s) => s.setMeta);
   const scenes = useStudioStore((s) => s.scenes);
   const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
@@ -208,8 +206,6 @@ function StudioContent() {
         copyStatus={copyStatus}
         onCopyText={copyPromptHelperText}
       />
-
-      {toast && <Toast message={toast.message} type={toast.type} />}
 
       <ImagePreviewModal
         src={imagePreviewSrc}
