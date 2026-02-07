@@ -1198,6 +1198,28 @@ class VideoCreateAccepted(BaseModel):
     task_id: str
 
 
+class TextExtractRequest(BaseModel):
+    """Request body for caption/hashtag extraction endpoints."""
+
+    text: str
+
+
+class CaptionExtractResponse(BaseModel):
+    """Response for extract-caption endpoint."""
+
+    caption: str
+    original_length: int | None = None
+    fallback: bool | None = None
+
+
+class HashtagExtractResponse(BaseModel):
+    """Response for extract-hashtags endpoint."""
+
+    caption: str
+    original_topic: str | None = None
+    fallback: bool | None = None
+
+
 class RenderProgressEvent(BaseModel):
     """SSE event payload for render progress."""
 

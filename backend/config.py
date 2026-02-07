@@ -268,6 +268,9 @@ AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "192k")
 FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "600"))
 RENDER_TASK_TTL_SECONDS = int(os.getenv("RENDER_TASK_TTL_SECONDS", "1800"))
 
+# --- Text Extraction Defaults ---
+CAPTION_MAX_LENGTH = int(os.getenv("CAPTION_MAX_LENGTH", "60"))
+
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
 # weight=0.35: POC 30-scene 실험 검증값 (clip_face + no BREAK 최적)

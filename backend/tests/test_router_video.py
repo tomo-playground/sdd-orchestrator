@@ -303,6 +303,6 @@ class TestExtractCaption:
             assert data.get("fallback") is True
 
     def test_extract_caption_missing_text_field(self, client: TestClient):
-        """Missing text field returns 400."""
+        """Missing text field returns 422 (Pydantic validation)."""
         response = client.post("/video/extract-caption", json={})
-        assert response.status_code == 400
+        assert response.status_code == 422

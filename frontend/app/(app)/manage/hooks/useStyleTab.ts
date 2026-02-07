@@ -1,19 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
-import type { StyleProfile, StyleProfileFull, LoRA, SDModelEntry, Embedding } from "../../../types";
+import type { StyleProfile, StyleProfileFull, SDModelEntry, Embedding } from "../../../types";
+import { useCivitai } from "./useCivitai";
+import { useLoraManagement } from "./useLoraManagement";
 
-// ── Types ──────────────────────────────────────────────
-
-export type CivitaiResult = {
-  civitai_id: number;
-  name: string;
-  type: "LORA" | "Checkpoint";
-  trigger_words: string[];
-  base_model: string;
-  preview_image: string;
-  civitai_url: string;
-};
+// Re-export for consumers that import CivitaiResult from useStyleTab
+export type { CivitaiResult } from "./useCivitai";
 
 // ── Hook ───────────────────────────────────────────────
 
@@ -22,18 +15,11 @@ export function useStyleTab() {
   const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
   const [isStyleLoading, setIsStyleLoading] = useState(false);
 
-  const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
   const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
 
-  // Editing state for Civitai LoRA
-  const [editingLora, setEditingLora] = useState<LoRA | null>(null);
-  const [isUpdatingLora, setIsUpdatingLora] = useState(false);
-
-  // Civitai Search
-  const [civitaiSearch, setCivitaiSearch] = useState("");
-  const [civitaiResults, setCivitaiResults] = useState<CivitaiResult[]>([]);
-  const [isSearchingCivitai, setIsSearchingCivitai] = useState(false);
+  const civitai = useCivitai();
+  const lora = useLoraManagement();
 
   // ── Fetchers ───────────────────────────────────────
 
@@ -67,15 +53,6 @@ export function useStyleTab() {
     }
   }, []);
 
-  const fetchPublicLoras = useCallback(async () => {
-    try {
-      const res = await axios.get<LoRA[]>(`${API_BASE}/loras/`);
-      setLoraEntries(res.data || []);
-    } catch {
-      console.error("Failed to fetch public LoRAs");
-    }
-  }, []);
-
   // ── Style CRUD ─────────────────────────────────────
 
   const handleCreateStyle = useCallback(async () => {
@@ -100,7 +77,7 @@ export function useStyleTab() {
         alert("Failed to delete style");
       }
     },
-    [fetchStyles]
+    [fetchStyles],
   );
 
   const handleUpdateStyle = useCallback(
@@ -110,7 +87,6 @@ export function useStyleTab() {
         await fetchStyles();
         setSelectedProfile((prev) => {
           if (prev && prev.id === id) {
-            // Trigger reload of full profile
             void axios
               .get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`)
               .then((res) => setSelectedProfile(res.data));
@@ -121,7 +97,7 @@ export function useStyleTab() {
         alert("Failed to update style");
       }
     },
-    [fetchStyles]
+    [fetchStyles],
   );
 
   const handleDuplicateStyle = useCallback(
@@ -134,12 +110,12 @@ export function useStyleTab() {
       try {
         const createRes = await axios.post<{ id: number; name: string }>(
           `${API_BASE}/style-profiles/`,
-          {
-            name: newName,
-          }
+          { name: newName },
         );
         const newId = createRes.data.id;
-        const detailRes = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
+        const detailRes = await axios.get<StyleProfileFull>(
+          `${API_BASE}/style-profiles/${id}/full`,
+        );
         const fullOriginal = detailRes.data;
 
         await axios.put(`${API_BASE}/style-profiles/${newId}`, {
@@ -155,7 +131,7 @@ export function useStyleTab() {
         alert("Failed to duplicate style");
       }
     },
-    [fetchStyles, styleProfiles]
+    [fetchStyles, styleProfiles],
   );
 
   const handleLoadProfile = useCallback(async (id: number) => {
@@ -173,7 +149,7 @@ export function useStyleTab() {
     async (profileId: number, modelId: number | null) => {
       await handleUpdateStyle(profileId, { sd_model_id: modelId } as Partial<StyleProfile>);
     },
-    [handleUpdateStyle]
+    [handleUpdateStyle],
   );
 
   const handleToggleProfileLora = useCallback(
@@ -187,7 +163,7 @@ export function useStyleTab() {
           updated = current.map((l) =>
             l.id === loraId
               ? { lora_id: l.id, weight: weight }
-              : { lora_id: l.id, weight: l.weight }
+              : { lora_id: l.id, weight: l.weight },
           );
         } else {
           updated = current
@@ -196,7 +172,7 @@ export function useStyleTab() {
         }
       } else {
         const defaultWeight =
-          weight ?? loraEntries.find((l) => l.id === loraId)?.default_weight ?? 0.7;
+          weight ?? lora.loraEntries.find((l) => l.id === loraId)?.default_weight ?? 0.7;
         updated = [
           ...current.map((l) => ({ lora_id: l.id, weight: l.weight })),
           { lora_id: loraId, weight: defaultWeight },
@@ -204,7 +180,7 @@ export function useStyleTab() {
       }
       await handleUpdateStyle(profileId, { loras: updated } as Partial<StyleProfile>);
     },
-    [handleUpdateStyle, selectedProfile, loraEntries]
+    [handleUpdateStyle, selectedProfile, lora.loraEntries],
   );
 
   const handleToggleProfileEmbedding = useCallback(
@@ -218,82 +194,7 @@ export function useStyleTab() {
         : [...ids, embeddingId];
       await handleUpdateStyle(profileId, { [key]: updated } as Partial<StyleProfile>);
     },
-    [handleUpdateStyle, selectedProfile]
-  );
-
-  // ── Civitai ────────────────────────────────────────
-
-  const handleCivitaiSearch = useCallback(async () => {
-    if (!civitaiSearch.trim()) return;
-    setIsSearchingCivitai(true);
-    setCivitaiResults([]);
-    try {
-      const res = await axios.get<{ results: CivitaiResult[] }>(
-        `${API_BASE}/loras/search-civitai`,
-        {
-          params: { query: civitaiSearch, limit: 10 },
-        }
-      );
-      setCivitaiResults(res.data.results || []);
-    } catch {
-      alert("Search failed or no results");
-    } finally {
-      setIsSearchingCivitai(false);
-    }
-  }, [civitaiSearch]);
-
-  const handleDownloadModel = useCallback(async (modelId: number, type: "LORA" | "Checkpoint") => {
-    if (type !== "LORA") {
-      alert("Only LoRA download is supported by backend for now.");
-      return;
-    }
-    const userConfirm = confirm(`Download this LoRA (ID: ${modelId})? It may take a while.`);
-    if (!userConfirm) return;
-
-    try {
-      await axios.post(`${API_BASE}/loras/import-civitai/${modelId}`);
-      alert("Download started. Check database later.");
-    } catch {
-      alert("Download request failed");
-    }
-  }, []);
-
-  // ── LoRA CRUD ──────────────────────────────────────
-
-  const handleUpdateLora = useCallback(async () => {
-    if (!editingLora) return;
-    setIsUpdatingLora(true);
-    try {
-      await axios.put(`${API_BASE}/loras/${editingLora.id}`, {
-        name: editingLora.name,
-        trigger_words: editingLora.trigger_words,
-        default_weight: editingLora.default_weight,
-      });
-      setEditingLora(null);
-      await fetchPublicLoras();
-    } catch {
-      alert("Failed to update LoRA");
-    } finally {
-      setIsUpdatingLora(false);
-    }
-  }, [editingLora, fetchPublicLoras]);
-
-  const handleDeleteLora = useCallback(
-    async (id: number) => {
-      if (
-        !confirm(
-          "Delete this LoRA registration? (File/Weights might remain on disk, this removes DB entry)"
-        )
-      )
-        return;
-      try {
-        await axios.delete(`${API_BASE}/loras/${id}`);
-        await fetchPublicLoras();
-      } catch {
-        alert("Failed to delete LoRA");
-      }
-    },
-    [fetchPublicLoras]
+    [handleUpdateStyle, selectedProfile],
   );
 
   // ── Effects ────────────────────────────────────────
@@ -302,7 +203,7 @@ export function useStyleTab() {
     void fetchStyles();
     void fetchSdModels();
     void fetchEmbeddings();
-    void fetchPublicLoras();
+    void lora.fetchPublicLoras();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
@@ -319,23 +220,23 @@ export function useStyleTab() {
     // Models & Embeddings
     sdModels,
     embeddings,
-    loraEntries,
+    loraEntries: lora.loraEntries,
     // Profile asset handlers
     handleSetProfileModel,
     handleToggleProfileLora,
     handleToggleProfileEmbedding,
     // LoRA editing
-    editingLora,
-    setEditingLora,
-    isUpdatingLora,
-    handleUpdateLora,
-    handleDeleteLora,
+    editingLora: lora.editingLora,
+    setEditingLora: lora.setEditingLora,
+    isUpdatingLora: lora.isUpdatingLora,
+    handleUpdateLora: lora.handleUpdateLora,
+    handleDeleteLora: lora.handleDeleteLora,
     // Civitai
-    civitaiSearch,
-    setCivitaiSearch,
-    civitaiResults,
-    isSearchingCivitai,
-    handleCivitaiSearch,
-    handleDownloadModel,
+    civitaiSearch: civitai.civitaiSearch,
+    setCivitaiSearch: civitai.setCivitaiSearch,
+    civitaiResults: civitai.civitaiResults,
+    isSearchingCivitai: civitai.isSearchingCivitai,
+    handleCivitaiSearch: civitai.handleCivitaiSearch,
+    handleDownloadModel: civitai.handleDownloadModel,
   };
 }

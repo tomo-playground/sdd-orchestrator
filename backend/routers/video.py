@@ -16,8 +16,11 @@ from database import SessionLocal, get_db
 from models.media_asset import MediaAsset
 from models.render_history import RenderHistory
 from schemas import (
+    CaptionExtractResponse,
+    HashtagExtractResponse,
     RenderHistoryLookupResponse,
     RenderProgressEvent,
+    TextExtractRequest,
     VideoCreateAccepted,
     VideoDeleteRequest,
     VideoRequest,
@@ -291,98 +294,82 @@ async def get_transitions():
     return {"transitions": get_transition_list()}
 
 
-@router.post("/extract-caption")
-async def extract_caption(request: dict):
+@router.post("/extract-caption", response_model=CaptionExtractResponse)
+async def extract_caption(request: TextExtractRequest):
     """Extract a concise caption from longer text using LLM."""
-    from config import GEMINI_TEXT_MODEL, gemini_client
+    from config import CAPTION_MAX_LENGTH, GEMINI_TEXT_MODEL, gemini_client
 
-    text = request.get("text", "").strip()
+    text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="No text provided")
 
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini API not configured")
 
-    if len(text) <= 60:
-        return {"caption": text}
+    max_len = CAPTION_MAX_LENGTH
+    if len(text) <= max_len:
+        return CaptionExtractResponse(caption=text)
 
     try:
-        prompt = f"""다음 텍스트에서 핵심 내용만 추출하여 60자 이내의 간결한 캡션을 만들어주세요.
-규칙:
-- 반드시 60자 이내로 작성
-- 핵심 키워드와 주제만 포함
-- 해시태그 포함 가능
-- 이모지 사용 가능하지만 과도하지 않게
-
-텍스트:
-{text}
-
-캡션만 출력하세요 (설명이나 따옴표 없이):"""
+        prompt = (
+            f"다음 텍스트에서 핵심 내용만 추출하여 {max_len}자 이내의 간결한 캡션을 만들어주세요.\n"
+            f"규칙:\n- 반드시 {max_len}자 이내로 작성\n- 핵심 키워드와 주제만 포함\n"
+            f"- 해시태그 포함 가능\n- 이모지 사용 가능하지만 과도하지 않게\n\n"
+            f"텍스트:\n{text}\n\n캡션만 출력하세요 (설명이나 따옴표 없이):"
+        )
 
         response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
+        caption = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
-        caption = response.text.strip()
+        if len(caption) > max_len:
+            caption = caption[:max_len].rstrip()
 
-        if caption.startswith('"') and caption.endswith('"'):
-            caption = caption[1:-1]
-        if caption.startswith("'") and caption.endswith("'"):
-            caption = caption[1:-1]
-
-        if len(caption) > 60:
-            caption = caption[:60].rstrip()
-
-        logger.info(f"Caption extracted: {len(text)} chars -> {len(caption)} chars")
-        return {"caption": caption, "original_length": len(text)}
+        logger.info("Caption extracted: %d chars -> %d chars", len(text), len(caption))
+        return CaptionExtractResponse(caption=caption, original_length=len(text))
 
     except Exception:
         logger.exception("Caption extraction failed")
-        fallback = text[:60].rstrip()
-        return {"caption": fallback, "fallback": True}
+        return CaptionExtractResponse(caption=text[:max_len].rstrip(), fallback=True)
 
 
-@router.post("/extract-hashtags")
-async def extract_hashtags(request: dict):
+@router.post("/extract-hashtags", response_model=HashtagExtractResponse)
+async def extract_hashtags(request: TextExtractRequest):
     """Extract 3 hashtag keywords from topic text using LLM."""
-    from config import GEMINI_TEXT_MODEL, gemini_client
+    from config import CAPTION_MAX_LENGTH, GEMINI_TEXT_MODEL, gemini_client
 
-    text = request.get("text", "").strip()
+    text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="No text provided")
 
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini API not configured")
 
+    max_len = CAPTION_MAX_LENGTH
     try:
-        prompt = f"""다음 주제에서 핵심 키워드 3개를 해시태그로 추출하세요.
-
-규칙:
-- 정확히 3개의 해시태그
-- 각 키워드는 한글 기준 5자 이내 (# 제외)
-- 형식: #키워드1 #키워드2 #키워드3
-- 해시태그만 출력 (설명이나 따옴표 없이)
-
-주제:
-{text}
-
-해시태그:"""
-
-        response = gemini_client.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=prompt,
+        prompt = (
+            "다음 주제에서 핵심 키워드 3개를 해시태그로 추출하세요.\n\n"
+            "규칙:\n- 정확히 3개의 해시태그\n- 각 키워드는 한글 기준 5자 이내 (# 제외)\n"
+            "- 형식: #키워드1 #키워드2 #키워드3\n"
+            f"- 해시태그만 출력 (설명이나 따옴표 없이)\n\n주제:\n{text}\n\n해시태그:"
         )
 
-        hashtags = response.text.strip()
+        response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
+        hashtags = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
-        for q in ('"', "'", "`"):
-            if hashtags.startswith(q) and hashtags.endswith(q):
-                hashtags = hashtags[1:-1]
+        if len(hashtags) > max_len:
+            hashtags = hashtags[:max_len].rstrip()
 
-        if len(hashtags) > 60:
-            hashtags = hashtags[:60].rstrip()
-
-        logger.info(f"Hashtags extracted from topic: {hashtags}")
-        return {"caption": hashtags, "original_topic": text}
+        logger.info("Hashtags extracted from topic: %s", hashtags)
+        return HashtagExtractResponse(caption=hashtags, original_topic=text)
 
     except Exception:
         logger.exception("Hashtag extraction failed")
-        return {"caption": text[:57] + "...", "fallback": True}
+        return HashtagExtractResponse(caption=text[: max_len - 3] + "...", fallback=True)
+
+
+def _strip_quotes(text: str) -> str:
+    """Remove surrounding quotes from LLM output."""
+    for q in ('"', "'", "`"):
+        if text.startswith(q) and text.endswith(q):
+            text = text[1:-1]
+    return text
