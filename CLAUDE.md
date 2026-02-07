@@ -210,6 +210,19 @@ docs/
 
 설정: `.claude/settings.json` / 스크립트: `.claude/hooks/auto-lint.sh`
 
+## Workflow Rules (에이전트 자동 워크플로우)
+
+| 트리거 | 자동 액션 | 설명 |
+|--------|----------|------|
+| 구현 완료 | Tech Lead 코드 리뷰 | 코드 변경 구현 후, 커밋 전에 자동으로 Tech Lead 에이전트가 리뷰 수행 |
+
+**구현 → 리뷰 → 수정 자동 파이프라인**:
+1. 코드 변경(Edit/Write) + 빌드/린트 통과
+2. Tech Lead 리뷰 자동 실행 (사용자 보고 전)
+3. WARNING/BLOCKER 이슈 발견 시 **즉시 자동 수정** 후 재빌드 확인
+4. 최종 결과(변경 요약 + 리뷰 통과)를 사용자에게 보고
+- 단, 단순 설정 변경(CLAUDE.md, config 수정 등)이나 문서만 수정한 경우는 리뷰를 생략한다.
+
 ## 용어 정의 (Terminology)
 
 ### Scene Text vs Caption (2026-01-31 변경)

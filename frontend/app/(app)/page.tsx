@@ -8,7 +8,7 @@ import Toast from "../components/ui/Toast";
 import Footer from "../components/ui/Footer";
 
 export default function Home() {
-  const { projectId, groupId, groups, selectGroup } = useProjectGroups();
+  const { projectId, groupId, groups } = useProjectGroups();
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
@@ -23,7 +23,6 @@ export default function Home() {
           projectId={projectId}
           groupId={groupId}
           groups={groups}
-          selectGroup={selectGroup}
           showToast={showToast}
         />
         <div className="border-t border-zinc-200" />

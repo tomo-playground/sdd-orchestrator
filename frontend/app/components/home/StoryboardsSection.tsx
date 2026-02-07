@@ -4,18 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
-import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
+import { API_BASE } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { LABEL_CLASSES } from "../ui/variants";
 import type { GroupItem } from "../../types";
-
-type Preset = {
-  id: string;
-  name: string;
-  structure: string;
-};
 
 interface CastMember {
   id: number;
@@ -40,7 +33,6 @@ type Props = {
   projectId: number | null;
   groupId: number | null;
   groups: GroupItem[];
-  selectGroup: (id: number) => void;
   showToast: (message: string, type: "success" | "error") => void;
 };
 
@@ -48,42 +40,16 @@ export default function StoryboardsSection({
   projectId,
   groupId,
   groups,
-  selectGroup,
   showToast,
 }: Props) {
   const router = useRouter();
   const [storyboards, setStoryboards] = useState<StoryboardItem[]>([]);
   const [sbLoading, setSbLoading] = useState(true);
-  const [showNewSbModal, setShowNewSbModal] = useState(false);
-  const [newSbTitle, setNewSbTitle] = useState("");
-  const [newSbStructure, setNewSbStructure] = useState(DEFAULT_STRUCTURE);
-  const [presets, setPresets] = useState<Preset[]>([]);
 
-  // Fetch presets on mount
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/presets`)
-      .then((res) => {
-        const list = res.data?.presets ?? res.data;
-        if (Array.isArray(list)) setPresets(list);
-      })
-      .catch(() => setPresets([]));
-  }, []);
-
-  const openNewStoryboard = useCallback(() => {
-    setNewSbTitle("");
-    setNewSbStructure(DEFAULT_STRUCTURE);
-    setShowNewSbModal(true);
-  }, []);
-
-  const confirmNewStoryboard = useCallback(() => {
+  const navigateToNewStoryboard = useCallback(() => {
     if (!groupId) return;
-    selectGroup(groupId);
-    const params = new URLSearchParams({ new: "true" });
-    if (newSbTitle.trim()) params.set("title", newSbTitle.trim());
-    if (newSbStructure) params.set("structure", newSbStructure);
-    router.push(`/studio?${params.toString()}`);
-  }, [groupId, newSbTitle, newSbStructure, selectGroup, router]);
+    router.push("/studio?new=true");
+  }, [groupId, router]);
 
   // Fetch storyboards filtered by sidebar's selected group
   useEffect(() => {
@@ -110,99 +76,41 @@ export default function StoryboardsSection({
   };
 
   return (
-    <>
-      <section>
-        {/* Header */}
-        {groups.length > 0 && (
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className={LABEL_CLASSES}>
-              Storyboards{!sbLoading && storyboards.length > 0 ? ` (${storyboards.length})` : ""}
-            </h2>
-            {!sbLoading && storyboards.length > 0 && (
-              <Button size="sm" onClick={openNewStoryboard} className="shrink-0 rounded-full">
-                + New Storyboard
-              </Button>
-            )}
-          </div>
-        )}
-
-        {sbLoading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size="md" />
-          </div>
-        ) : storyboards.length === 0 ? (
-          <EmptyState hasGroups={groups.length > 0} onNewStoryboard={openNewStoryboard} />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <DraftCard onClick={() => router.push("/studio")} />
-            {storyboards.map((sb) => (
-              <StoryboardCard
-                key={sb.id}
-                sb={sb}
-                onClick={() => router.push(`/studio?id=${sb.id}`)}
-                onDelete={() => handleDelete(sb.id)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* New Storyboard Title Modal */}
-      {showNewSbModal && (
-        <Modal open onClose={() => setShowNewSbModal(false)} size="sm">
-          <Modal.Header>
-            <h2 className="text-sm font-bold text-zinc-900">New Storyboard</h2>
-            <button
-              onClick={() => setShowNewSbModal(false)}
-              className="text-xs text-zinc-400 hover:text-zinc-600"
-            >
-              x
-            </button>
-          </Modal.Header>
-          <div className="flex flex-col gap-4 px-5 py-4">
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Structure *
-              </label>
-              <select
-                value={newSbStructure}
-                onChange={(e) => setNewSbStructure(e.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
-              >
-                {presets.map((p) => (
-                  <option key={p.structure} value={p.structure}>
-                    {p.structure}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Topic *
-              </label>
-              <input
-                value={newSbTitle}
-                onChange={(e) => setNewSbTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newSbTitle.trim()) confirmNewStoryboard();
-                }}
-                placeholder="e.g. 에어컨 소리 30초 쇼츠"
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
-                autoFocus
-              />
-            </div>
-          </div>
-          <Modal.Footer>
-            <Button variant="ghost" size="sm" onClick={() => setShowNewSbModal(false)}>
-              Cancel
+    <section>
+      {/* Header */}
+      {groups.length > 0 && (
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className={LABEL_CLASSES}>
+            Storyboards{!sbLoading && storyboards.length > 0 ? ` (${storyboards.length})` : ""}
+          </h2>
+          {!sbLoading && storyboards.length > 0 && (
+            <Button size="sm" onClick={navigateToNewStoryboard} className="shrink-0 rounded-full">
+              + New Storyboard
             </Button>
-            <Button size="sm" disabled={!newSbTitle.trim()} onClick={confirmNewStoryboard}>
-              Create
-            </Button>
-          </Modal.Footer>
-        </Modal>
+          )}
+        </div>
       )}
-    </>
+
+      {sbLoading ? (
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="md" />
+        </div>
+      ) : storyboards.length === 0 ? (
+        <EmptyState hasGroups={groups.length > 0} onNewStoryboard={navigateToNewStoryboard} />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <DraftCard onClick={() => router.push("/studio")} />
+          {storyboards.map((sb) => (
+            <StoryboardCard
+              key={sb.id}
+              sb={sb}
+              onClick={() => router.push(`/studio?id=${sb.id}`)}
+              onDelete={() => handleDelete(sb.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

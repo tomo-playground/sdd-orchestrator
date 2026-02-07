@@ -9,7 +9,6 @@ import { initializeVideoMetadata } from "../store/actions/outputActions";
 import { loadGroupDefaults } from "../store/actions/groupActions";
 import type { Scene } from "../types";
 import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
-import { updateProject } from "../store/actions/projectActions";
 
 /**
  * Handles all studio initialization logic:
@@ -50,20 +49,9 @@ export function useStudioInitialization() {
         setPlan({ selectedCharacterId: effectiveCharacterId });
       }
 
-      const storyTitle = searchParams.get("title") || undefined;
-      const storyStructure = searchParams.get("structure") || undefined;
-      const planUpdates: Record<string, unknown> = {};
-      if (storyTitle) planUpdates.topic = storyTitle;
-      if (storyStructure) planUpdates.structure = storyStructure;
-      if (Object.keys(planUpdates).length > 0) {
-        setPlan(planUpdates);
-      }
-
       // Clear URL params (prevents searchParams re-trigger)
       const url = new URL(window.location.href);
       url.searchParams.delete("new");
-      url.searchParams.delete("title");
-      url.searchParams.delete("structure");
       url.searchParams.delete("id");
       window.history.replaceState({}, "", url.toString());
     })();
