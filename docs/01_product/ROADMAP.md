@@ -182,12 +182,19 @@
 | 5 | Voice Preset CRUD API + 음성 업로드/프리뷰 | API | [x] |
 | 6 | Render Preset에 `voice_preset_id` FK 연동 | DB | [x] |
 
+| 7 | Stable Audio Open AI BGM 엔진 (MPS 로컬 실행) | 인프라 | [x] |
+| 8 | `music_presets` 테이블 + CRUD API (8 엔드포인트) | API | [x] |
+| 9 | Music Presets 미리듣기 (생성 + Play/Stop) | UX | [x] |
+| 10 | `render_presets` BGM 모드 (`bgm_mode`, `music_preset_id`) + VideoBuilder 연동 | 렌더링 | [x] |
+| 11 | Frontend Music Presets 관리 탭 + BGM AI 모드 토글 | UX | [x] |
+
 **6-8 세부 완료 항목**:
 - `voice_presets` 테이블: VoiceDesign 전용 (Clone/Upload 제거, `voice_seed` 추가)
 - `render_presets`에 TTS 설정 통합: `tts_engine`, `voice_design_prompt`, `voice_preset_id`
 - Voice Preview API (`POST /voice-presets/preview`): seed 기반 재현성 보장
 - TTS 캐시 시스템 (`TTS_CACHE_DIR`) + timeout 설정
 - Caption 해시태그 추출 기능 추가
+- (2026-02-07) Stable Audio Open AI BGM: `music_presets` 테이블 + Alembic 마이그레이션, CRUD API 8개, 프리셋 미리듣기, `render_presets`에 `bgm_mode`/`music_preset_id` 추가, VideoBuilder `effects.py` BGM 모드 분기 (file/ai), Frontend Music Presets 관리 탭 + BGM AI 모드 토글, 시스템 프리셋 10개 시딩, 테스트 22개 추가
 
 ---
 
@@ -274,6 +281,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Scene Clothing Override (장면별 의상 변경) | [명세](FEATURES/SCENE_CLOTHING_OVERRIDE.md) |
 | Scene 단위 자연어 이미지 편집 | [명세](FEATURES/SCENE_IMAGE_EDIT.md) |
+| AI BGM Generation (Stable Audio Open 기반 텍스트-투-뮤직) | [명세](FEATURES/AI_BGM.md) |
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
 | Real-time Prompt Preview (12-Layer) | - |
@@ -288,14 +296,14 @@ Phase 8 이후 또는 우선순위 미정 항목.
 
 ```
 Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI) → 7-0 (ControlNet) → 7-1 (UX/Feature)
-     P0/P1 Fixes          Refactoring          CI + Soft Delete      TTS/Voice       Pose Control      New Features
+     P0/P1 Fixes          Refactoring          CI + Soft Delete    TTS/Voice/BGM     Pose Control      New Features
                                                                                                             ↓
                                                           7-2 (Project/Group) → 8 (Multi-Style)
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-05):
-- Phase 6-5 ~ 6-8: **완료**
+**현재 진행 상태** (2026-02-07):
+- Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM 엔진 추가 완료)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **15/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
 - Phase 7-1: **9/17** 완료 (잔여: #2 Wizard, #3 접근성, #4 WebSocket, #5 Multi-Char, #6 Scene Builder, #7 템플릿, #8 Char Builder, #10 Auto Eval)

@@ -24,7 +24,8 @@ graph TD
     end
 
     subgraph Finalization ["3. 완성 단계"]
-        Audio --> FFmpeg[<b>FFmpeg Pipeline</b><br/>영상 합성]
+        Audio --> BGM[<b>Stable Audio Open</b><br/>AI BGM 생성]
+        BGM --> FFmpeg[<b>FFmpeg Pipeline</b><br/>영상 합성]
         FFmpeg --> MinIO[<b>MinIO Storage</b><br/>객체 저장]
         MinIO --> History[활동 로그 및 대시보드 기록]
     end
@@ -57,5 +58,22 @@ mindmap
 ```
 
 ## 3. 제품 요구사항 및 우선순위
+
+### 3.1 AI BGM 생성
+
+**배경**: 현재 BGM은 정적 파일(File 모드)만 지원. 콘텐츠 분위기에 맞는 배경음악을 매번 수동으로 찾아야 하는 비효율 발생.
+
+**요구사항**:
+
+| # | 요구사항 | 우선순위 |
+|---|---------|---------|
+| 1 | Stable Audio Open 모델 기반 텍스트-투-뮤직 로컬 생성 (M4 Pro MPS) | P0 |
+| 2 | Music Preset CRUD + 프롬프트 기반 미리듣기/생성 | P0 |
+| 3 | 렌더 설정에서 BGM 모드 선택 (File: 기존 정적 파일 / AI: 프리셋 기반 생성) | P0 |
+| 4 | 시스템 프리셋 10종 기본 제공 (Lo-fi Chill, Epic Cinematic, Dark Ambient 등) | P1 |
+| 5 | SHA256 캐시로 동일 프롬프트 중복 생성 방지 | P1 |
+
+**기능 명세**: [AI_BGM.md](FEATURES/AI_BGM.md)
+
 *(기존 상세 내용 유지)*
 ...

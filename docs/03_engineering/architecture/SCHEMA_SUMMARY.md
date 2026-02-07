@@ -85,6 +85,21 @@ Polymorphic storage for all files.
 
 ---
 
+## Presets
+
+### Music Presets (`music_presets`)
+AI BGM generation presets. Referenced by `render_presets.music_preset_id`.
+- `id`: Integer (PK)
+- `name`: String(200)
+- `description`: Text
+- `prompt`: Text
+- `duration`: Float
+- `seed`: Integer
+- `audio_asset_id`: Integer (FK -> media_assets.id)
+- `is_system`: Boolean
+
+---
+
 ## Analytics & Tracking
 
 ### Activity Logs (`activity_logs`)

@@ -255,3 +255,73 @@
 | 절차 | 여러 테스트 병렬 실행 |
 | 기대결과 | 테스트 간 DB 상태 간섭 없음 |
 | 테스트 파일 | `tests/test_db_isolation.py` |
+
+---
+
+## 9. AI BGM
+
+### 9.1 음악 생성 캐시 키
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | - |
+| 절차 | `_music_cache_key()` 호출 (다양한 파라미터 조합) |
+| 기대결과 | 동일 입력 → 동일 키, 파라미터 변경 시 다른 키, 키 길이 16 |
+| 테스트 파일 | `tests/test_music_generator.py` |
+
+**테스트 케이스** (TestMusicCacheKey, 6개):
+1. 동일 입력(prompt, duration, seed, steps)은 동일 캐시 키 반환
+2. prompt 변경 시 다른 키
+3. duration 변경 시 다른 키
+4. seed 변경 시 다른 키
+5. steps 변경 시 다른 키
+6. 캐시 키 길이는 항상 16
+
+### 9.2 음악 생성 캐시 히트
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 캐시 파일 존재 |
+| 절차 | `generate_music()` 호출 |
+| 기대결과 | 모델 로드 없이 캐시된 바이트 반환, 음수 시드 → 양수 변환 |
+| 테스트 파일 | `tests/test_music_generator.py` |
+
+**테스트 케이스** (TestGenerateMusicCacheHit, 2개):
+1. 캐시 히트 시 WAV 바이트 반환 + SR 44100 + 모델 호출 안 함
+2. 음수 시드(-1) 입력 시 양수 시드로 자동 변환
+
+### 9.3 Music Presets CRUD
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | DB 테이블 존재 |
+| 절차 | `/music-presets` 엔드포인트 CRUD 호출 |
+| 기대결과 | 생성/조회/수정/삭제 정상 동작, 404 에러 처리 |
+| 테스트 파일 | `tests/test_router_music_presets.py` |
+
+**테스트 케이스** (TestMusicPresetsRouter, 9개):
+1. 빈 목록 조회 → `[]` 반환
+2. 프리셋 생성 → name, prompt, duration, is_system 필드 검증
+3. 단건 조회 → 생성된 프리셋 정상 반환
+4. 존재하지 않는 ID 조회 → 404
+5. 프리셋 수정 → name, prompt 변경 반영
+6. 존재하지 않는 ID 수정 → 404
+7. 프리셋 삭제 → `{"status": "deleted"}` 반환
+8. 삭제된 프리셋 재조회 → 404
+9. 복수 생성 후 목록 조회 → 모든 프리셋 포함
+
+### 9.4 BGM 경로 해석 (AI / File 모드)
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | effects 모듈의 `_resolve_bgm_path()` |
+| 절차 | bgm_mode별(ai, file) 경로 해석 |
+| 기대결과 | AI 모드 → ai_bgm_path 반환, File 모드 → resolve_bgm_file 사용, 모드 간 fallthrough 방지 |
+| 테스트 파일 | `tests/test_effects_ai_bgm.py` |
+
+**테스트 케이스** (TestResolveBgmPath, 5개):
+1. AI 모드 + 경로 존재 → AI BGM 경로 반환
+2. AI 모드 + 경로 없음 → None 반환
+3. AI 모드 + 경로 없음 → File 모드로 fallthrough 하지 않음 (resolve_bgm_file 미호출)
+4. File 모드 → resolve_bgm_file 사용하여 스토리지 경로 반환
+5. File 모드 + BGM 파일 없음 → None 반환

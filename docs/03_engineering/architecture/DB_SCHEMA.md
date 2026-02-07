@@ -1,4 +1,4 @@
-# Database Schema (v3.10)
+# Database Schema (v3.12)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.12 | 2026-02-07 | `music_presets` 테이블 추가 (AI BGM 프리셋). `render_presets`에 `bgm_mode`, `music_preset_id` FK 추가 |
 | v3.11 | 2026-02-06 | `scenes.candidates` 형식 변경: `image_url` 제거, `media_asset_id` 필수. Backend에서 GET 시 URL 자동 해석 |
 | v3.10 | 2026-02-06 | `render_presets.voice_preset_id` 제거 (GroupConfig.narrator_voice_preset_id로 대체), `group_config.character_id` 제거 (storyboard 레벨에서만 설정) |
 | v3.9 | 2026-02-05 | `render_presets.project_id` 컬럼 제거 (글로벌 공통 프리셋으로 단순화) |
@@ -37,6 +38,8 @@ erDiagram
     scenes ||--o{ scene_quality_scores : "evaluated_by"
 
     voice_presets }o--o| media_assets : "audio"
+    music_presets }o--o| media_assets : "audio"
+    render_presets }o--o| music_presets : "bgm_ai"
 
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
@@ -487,7 +490,9 @@ Model + LoRAs + Embeddings 번들.
 | `description` | Text | 설명 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
 | **Audio** | | |
-| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤) |
+| `bgm_mode` | String(20) | BGM 모드 (`"file"` = 파일, `"ai"` = AI 생성, default: `"file"`) |
+| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="file"` 시 사용) |
+| `music_preset_id` | Integer (FK → music_presets, SET NULL) | AI BGM 프리셋 (`bgm_mode="ai"` 시 사용) |
 | `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
 | `audio_ducking` | Boolean | 오디오 더킹 여부 |
 | `speed_multiplier` | Float | 재생 속도 배율 |
@@ -502,6 +507,7 @@ Model + LoRAs + Embeddings 번들.
 
 > v3.5 변경: `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 → `voice_preset_id` FK로 대체
 > v3.10 변경: `voice_preset_id` 제거 → `group_config.narrator_voice_preset_id`로 이관 (음성은 GroupConfig에서만 관리)
+> v3.12 변경: `bgm_mode`, `music_preset_id` FK 추가 — AI BGM 생성 지원
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -523,6 +529,23 @@ Model + LoRAs + Embeddings 번들.
 
 **Read-only 속성**:
 - `audio_url` (`@property`): `audio_asset.url` 반환
+
+### `music_presets`
+재사용 가능한 AI BGM 생성 프리셋. `render_presets`에서 참조.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `name` | String(200) | 프리셋 이름 |
+| `description` | Text | 설명 |
+| `prompt` | Text | AI 음악 생성 프롬프트 |
+| `duration` | Float | 음악 길이 (초) |
+| `seed` | Integer | 생성 시드 |
+| `audio_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 오디오 파일 |
+| `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+> v3.12 추가: AI BGM 생성을 위한 프리셋 테이블. `render_presets.music_preset_id`에서 참조.
 
 ### `embeddings`
 Textual Inversion 임베딩.
@@ -679,6 +702,7 @@ Textual Inversion 임베딩.
 | `TagRule.rule_type` | `conflict`, `requires` |
 | `TagAlias.target_tag` | String or `NULL` (= remove tag) |
 | `TagFilter.filter_type` | `ignore`, `skip` |
+| `RenderPreset.bgm_mode` | `file`, `ai` |
 | `ActivityLog.status` | `success`, `fail` |
 
 ---
@@ -706,7 +730,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-06
-**Schema Version:** v3.10
+**Last Updated:** 2026-02-07
+**Schema Version:** v3.12
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup + Redundant FK Removal)
+**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup + Redundant FK Removal + Music Presets)
