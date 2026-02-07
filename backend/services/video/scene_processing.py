@@ -12,13 +12,17 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import numpy as np
 import torch as _torch
 
 from config import (
     DEFAULT_SPEAKER,
     STORAGE_MODE,
+    TTS_AUDIO_FADE_MS,
+    TTS_AUDIO_TRIM_TOP_DB,
     TTS_CACHE_DIR,
     TTS_DEFAULT_LANGUAGE,
+    TTS_MAX_NEW_TOKENS,
     TTS_REPETITION_PENALTY,
     TTS_TEMPERATURE,
     TTS_TIMEOUT_SECONDS,
@@ -264,6 +268,19 @@ def _resolve_voice_preset_id(
     return builder.request.voice_preset_id
 
 
+def _trim_tts_audio(wav: np.ndarray, sr: int) -> np.ndarray:
+    """Trim trailing silence/artifacts and apply fade-in/out."""
+    import librosa
+
+    trimmed, _ = librosa.effects.trim(wav, top_db=TTS_AUDIO_TRIM_TOP_DB)
+    trimmed = trimmed.copy()
+    fade_samples = int(sr * TTS_AUDIO_FADE_MS / 1000)
+    if len(trimmed) > fade_samples * 2:
+        trimmed[:fade_samples] *= np.linspace(0, 1, fade_samples)
+        trimmed[-fade_samples:] *= np.linspace(1, 0, fade_samples)
+    return trimmed
+
+
 async def generate_tts(
     builder: VideoBuilder,
     i: int,
@@ -332,6 +349,7 @@ async def generate_tts(
                 temperature=TTS_TEMPERATURE,
                 top_p=TTS_TOP_P,
                 repetition_penalty=TTS_REPETITION_PENALTY,
+                max_new_tokens=TTS_MAX_NEW_TOKENS,
             )
 
         logger.info(f"Scene {i}: voice design -- '{(voice_design or '')[:40]}'")
@@ -340,7 +358,8 @@ async def generate_tts(
             timeout=TTS_TIMEOUT_SECONDS,
         )
 
-        sf.write(str(tts_path), wavs[0], sr)
+        wav = _trim_tts_audio(wavs[0], sr)
+        sf.write(str(tts_path), wav, sr)
 
         if tts_path.exists() and tts_path.stat().st_size > 0:
             shutil.copy2(tts_path, cached)
