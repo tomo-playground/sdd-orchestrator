@@ -17,6 +17,7 @@ from schemas_creative import (
     CreativeSessionListResponse,
     CreativeSessionResponse,
     FinalizeRequest,
+    OkResponse,
     RunRoundRequest,
     SendToStudioRequest,
     SendToStudioResponse,
@@ -69,9 +70,7 @@ def api_list_sessions(
 def api_get_session(session_id: int, db: Session = Depends(get_db)):
     """Get a creative session by ID."""
     session = (
-        db.query(CreativeSession)
-        .filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None))
-        .first()
+        db.query(CreativeSession).filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None)).first()
     )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -166,7 +165,7 @@ async def api_get_timeline(
     return timeline
 
 
-@router.delete("/sessions/{session_id}")
+@router.delete("/sessions/{session_id}", response_model=OkResponse)
 def api_delete_session(session_id: int, db: Session = Depends(get_db)):
     """Soft-delete a creative session."""
     session = db.get(CreativeSession, session_id)
@@ -224,7 +223,7 @@ def api_update_preset(
     return preset
 
 
-@router.delete("/agent-presets/{preset_id}")
+@router.delete("/agent-presets/{preset_id}", response_model=OkResponse)
 def api_delete_preset(
     preset_id: int,
     db: Session = Depends(get_db),

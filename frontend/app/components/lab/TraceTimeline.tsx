@@ -2,29 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { Clock, Cpu, ChevronDown, ChevronRight, Filter } from "lucide-react";
-
-// ── Types ────────────────────────────────────────────────────
-
-type CreativeTrace = {
-  id: number;
-  session_id: number;
-  round_number: number;
-  sequence: number;
-  trace_type: string;
-  agent_role: string;
-  agent_preset_id: number | null;
-  input_prompt: string;
-  output_content: string;
-  score: number | null;
-  feedback: string | null;
-  model_id: string;
-  token_usage: Record<string, number> | null;
-  latency_ms: number;
-  temperature: number;
-  parent_trace_id: number | null;
-  diff_summary: string | null;
-  created_at: string | null;
-};
+import type { CreativeTrace } from "../../types/creative";
 
 type Props = {
   traces: CreativeTrace[];

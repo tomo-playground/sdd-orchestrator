@@ -6,6 +6,13 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+# ── Common ────────────────────────────────────────────────────
+
+
+class OkResponse(BaseModel):
+    ok: bool = True
+
+
 # ── Agent Presets ─────────────────────────────────────────────
 
 

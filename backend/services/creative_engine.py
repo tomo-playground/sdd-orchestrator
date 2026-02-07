@@ -8,7 +8,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from config import CREATIVE_MAX_ROUNDS, logger
+from config import CREATIVE_LEADER_MODEL, CREATIVE_MAX_ROUNDS, logger
 from models.creative import (
     CreativeAgentPreset,
     CreativeSession,
@@ -22,9 +22,7 @@ from services.creative_trace import record_trace
 def _get_active_session(db: Session, session_id: int) -> CreativeSession:
     """Fetch a session with soft-delete filter."""
     session = (
-        db.query(CreativeSession)
-        .filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None))
-        .first()
+        db.query(CreativeSession).filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None)).first()
     )
     if not session:
         msg = f"Session {session_id} not found"
@@ -35,12 +33,17 @@ def _get_active_session(db: Session, session_id: int) -> CreativeSession:
 # ── Default evaluation criteria by task_type ─────────────────
 
 DEFAULT_CRITERIA: dict[str, dict] = {
-    "scenario": {
-        "originality": {"weight": 0.3, "description": "Novel and surprising ideas"},
-        "coherence": {"weight": 0.4, "description": "Logical flow and structure"},
-        "engagement": {"weight": 0.3, "description": "Audience appeal and emotional impact"},
-    },
+    "scenario": None,  # lazy-loaded from creative_tasks.scenario
 }
+
+
+def _get_criteria(task_type: str) -> dict:
+    """Get default evaluation criteria for a task_type."""
+    if task_type == "scenario":
+        from services.creative_tasks.scenario import DEFAULT_SCENARIO_CRITERIA
+
+        return DEFAULT_SCENARIO_CRITERIA.copy()
+    return {}
 
 
 # ── Session Management ───────────────────────────────────────
@@ -58,7 +61,7 @@ async def create_session(
 ) -> CreativeSession:
     """Create a new creative session."""
     if evaluation_criteria is None:
-        evaluation_criteria = DEFAULT_CRITERIA.get(task_type, {})
+        evaluation_criteria = _get_criteria(task_type)
 
     session = CreativeSession(
         task_type=task_type,
@@ -148,7 +151,7 @@ async def run_round(
         agent_role="leader",
         input_prompt="Evaluate agent outputs",
         output_content=leader_eval.get("summary", ""),
-        model_id="gemini-2.0-flash",
+        model_id=CREATIVE_LEADER_MODEL,
         token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
         latency_ms=0,
         temperature=0.3,
@@ -178,12 +181,11 @@ async def evaluate_round(
 
     Returns: {"summary": str, "decision": str, "scores": dict, "best_agent_role": str, "best_score": float}
     """
-    leader_provider = get_provider("gemini", "gemini-2.0-flash")
+    leader_provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     criteria = session.evaluation_criteria or {}
 
     outputs_text = "\n\n".join(
-        f"[{r.get('agent_role', r.get('role', 'unknown'))}]\n"
-        f"{r.get('output', r.get('content', ''))}"
+        f"[{r.get('agent_role', r.get('role', 'unknown'))}]\n{r.get('output', r.get('content', ''))}"
         for r in gen_results
     )
 
@@ -237,11 +239,7 @@ async def run_debate(
             break
 
     # Calculate total token usage from all traces
-    traces = (
-        db.query(CreativeTrace)
-        .filter(CreativeTrace.session_id == session_id)
-        .all()
-    )
+    traces = db.query(CreativeTrace).filter(CreativeTrace.session_id == session_id).all()
     total_prompt = sum((t.token_usage or {}).get("prompt_tokens", 0) for t in traces)
     total_completion = sum((t.token_usage or {}).get("completion_tokens", 0) for t in traces)
 
@@ -290,15 +288,19 @@ def _build_agent_list(db: Session, session: CreativeSession) -> list[dict]:
     for cfg in session.agent_config or []:
         preset_id = cfg.get("preset_id")
         preset = db.get(CreativeAgentPreset, preset_id) if preset_id else None
+        if preset_id and not preset:
+            logger.warning("[Creative] Preset %d not found, using defaults", preset_id)
 
-        agents.append({
-            "role": cfg.get("role", "unknown"),
-            "preset_id": preset_id,
-            "provider": preset.model_provider if preset else "gemini",
-            "model_name": preset.model_name if preset else "gemini-2.0-flash",
-            "system_prompt": preset.system_prompt if preset else "You are a creative agent.",
-            "temperature": preset.temperature if preset else 0.9,
-        })
+        agents.append(
+            {
+                "role": cfg.get("role", "unknown"),
+                "preset_id": preset_id,
+                "provider": preset.model_provider if preset else "gemini",
+                "model_name": preset.model_name if preset else CREATIVE_LEADER_MODEL,
+                "system_prompt": preset.system_prompt if preset else "You are a creative agent.",
+                "temperature": preset.temperature if preset else 0.9,
+            }
+        )
     return agents
 
 

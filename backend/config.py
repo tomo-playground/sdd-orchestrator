@@ -298,11 +298,16 @@ VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.6"))  # Lower = more consistent (0.6 stable)
 TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))  # Nucleus sampling (Qwen recommended)
 TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.2"))  # Discourage repetition
-TTS_MAX_NEW_TOKENS = int(os.getenv("TTS_MAX_NEW_TOKENS", "2048"))  # Official example uses 2048 (default 8192 causes trailing hallucination)
+TTS_MAX_NEW_TOKENS = int(
+    os.getenv("TTS_MAX_NEW_TOKENS", "2048")
+)  # Official example uses 2048 (default 8192 causes trailing hallucination)
 
 # --- TTS Audio Post-processing ---
-TTS_AUDIO_TRIM_TOP_DB = int(os.getenv("TTS_AUDIO_TRIM_TOP_DB", "30"))  # librosa.effects.trim threshold (removes trailing silence/hallucination)
+TTS_AUDIO_TRIM_TOP_DB = int(
+    os.getenv("TTS_AUDIO_TRIM_TOP_DB", "30")
+)  # librosa.effects.trim threshold (removes trailing silence/hallucination)
 TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))  # Fade-in/out ms (removes click artifacts)
+TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "300"))  # Internal silence max length (ms)
 
 # --- TTS Performance ---
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
@@ -345,6 +350,7 @@ LAB_BATCH_MAX_SIZE = int(os.getenv("LAB_BATCH_MAX_SIZE", "20"))
 
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
+CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.0-flash")
 
 # --- Ollama (Local LLM) Configuration ---
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
