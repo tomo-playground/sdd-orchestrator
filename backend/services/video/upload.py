@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import logger
+from config import VIDEO_DIR, logger
 from database import SessionLocal
 from services.asset_service import AssetService
 
@@ -41,4 +41,5 @@ def upload_result(builder: VideoBuilder) -> dict:
         finally:
             db.close()
 
-    return {"video_url": f"/outputs/videos/{builder.video_filename}"}
+    # Fallback: local path relative to VIDEO_DIR
+    return {"video_url": str(VIDEO_DIR / builder.video_filename)}

@@ -141,6 +141,10 @@ class VideoBuilder:
     # Progress reporting
     # ------------------------------------------------------------------
 
+    def set_progress(self, progress: TaskProgress) -> None:
+        """Attach SSE progress tracker to this builder."""
+        self._progress = progress
+
     def _report(self, stage: RenderStage, detail: str = "") -> None:
         """Update progress state and notify SSE consumers."""
         if not self._progress:

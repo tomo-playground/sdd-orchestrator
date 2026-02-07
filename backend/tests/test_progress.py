@@ -1,5 +1,6 @@
 """Tests for video render progress tracking (SSE infrastructure)."""
 
+import asyncio
 import time
 from unittest.mock import patch
 
@@ -90,15 +91,41 @@ class TestCalcOverallPercent:
 
 
 class TestTaskNotify:
-    def test_notify_sets_event(self):
+    def test_notify_increments_version(self):
         task = create_task(total_scenes=1)
-        old_event = task._event
-        assert not old_event.is_set()
+        assert task._version == 0
         task.notify()
-        assert old_event.is_set()
-        # New event is created after notify
-        assert task._event is not old_event
-        assert not task._event.is_set()
+        assert task._version == 1
+        assert task._event.is_set()
+        task.notify()
+        assert task._version == 2
+
+    @pytest.mark.asyncio
+    async def test_wait_for_update_receives_notify(self):
+        task = create_task(total_scenes=1)
+        version = task._version
+
+        async def _notify_later():
+            await asyncio.sleep(0.05)
+            task.notify()
+
+        asyncio.create_task(_notify_later())
+        updated = await task.wait_for_update(version, timeout=2.0)
+        assert updated is True
+
+    @pytest.mark.asyncio
+    async def test_wait_for_update_times_out(self):
+        task = create_task(total_scenes=1)
+        updated = await task.wait_for_update(task._version, timeout=0.05)
+        assert updated is False
+
+    @pytest.mark.asyncio
+    async def test_wait_for_update_already_changed(self):
+        """If version already changed, wait_for_update returns immediately."""
+        task = create_task(total_scenes=1)
+        task.notify()  # version=1
+        updated = await task.wait_for_update(0, timeout=0.01)
+        assert updated is True
 
 
 class TestCleanupExpired:

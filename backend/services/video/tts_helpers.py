@@ -152,18 +152,12 @@ def get_preset_voice_info(
 
 
 def get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | None:
-    """Resolve speaker to a voice_preset_id from Storyboard/Character.
-
-    - "Narrator" -> Storyboard.narrator_voice_preset_id
-    - Character name (e.g. "A") -> Character.voice_preset_id
-      looked up via character_id on the storyboard.
-    """
+    """Resolve speaker to a voice_preset_id from Storyboard/Character."""
     if not storyboard_id:
         logger.debug("[TTS] get_speaker_voice_preset: no storyboard_id, returning None")
         return None
 
     from database import get_db
-    from models.character import Character
     from models.group import Group
     from models.storyboard import Storyboard
     from services.config_resolver import resolve_effective_config
@@ -174,39 +168,48 @@ def get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | N
         if not storyboard:
             return None
 
-        # Resolve effective config via cascade
         group = db.get(Group, storyboard.group_id) if storyboard.group_id else None
         effective = resolve_effective_config(group.project, group) if group else {"values": {}}
 
         if speaker == DEFAULT_SPEAKER:
-            preset_id = effective["values"].get("narrator_voice_preset_id")
-            if preset_id:
-                logger.info(f"[TTS] Narrator voice preset from cascade: {preset_id}")
-                return preset_id
-            return None
-
-        # Non-narrator speaker -> resolve via storyboard_characters
-        from services.speaker_resolver import resolve_speaker_to_character
-
-        resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
-        if not resolved_char_id:
-            logger.warning(
-                f"[TTS] No character mapping for speaker '{speaker}' "
-                f"in storyboard {storyboard_id}. "
-                f"Falling back to default voice."
-            )
-            return None
-        char = db.get(Character, resolved_char_id)
-        if char and char.voice_preset_id:
-            logger.info(
-                f"[TTS] Speaker '{speaker}' voice preset from "
-                f"character {char.name}({resolved_char_id}): "
-                f"{char.voice_preset_id}"
-            )
-            return char.voice_preset_id
-        return None
+            return _resolve_narrator_preset(effective)
+        return _resolve_character_preset(storyboard_id, speaker, db)
     except Exception as e:
         logger.error(f"[TTS] Failed to resolve speaker voice preset: {e}")
         return None
     finally:
         db.close()
+
+
+def _resolve_narrator_preset(effective: dict) -> int | None:
+    """Extract narrator voice preset from effective config cascade."""
+    preset_id = effective["values"].get("narrator_voice_preset_id")
+    if preset_id:
+        logger.info(f"[TTS] Narrator voice preset from cascade: {preset_id}")
+    return preset_id
+
+
+def _resolve_character_preset(storyboard_id: int, speaker: str, db) -> int | None:
+    """Resolve character speaker to a voice_preset_id via storyboard mapping."""
+    from models.character import Character
+    from services.speaker_resolver import resolve_speaker_to_character
+
+    resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
+    if not resolved_char_id:
+        logger.warning(
+            "[TTS] No character mapping for speaker '%s' in storyboard %d. Falling back to default voice.",
+            speaker,
+            storyboard_id,
+        )
+        return None
+    char = db.get(Character, resolved_char_id)
+    if char and char.voice_preset_id:
+        logger.info(
+            "[TTS] Speaker '%s' voice preset from character %s(%d): %d",
+            speaker,
+            char.name,
+            resolved_char_id,
+            char.voice_preset_id,
+        )
+        return char.voice_preset_id
+    return None

@@ -97,7 +97,7 @@ async def _run_video_build(task_id: str, request: VideoRequest) -> None:
         return
     try:
         builder = VideoBuilder(request)
-        builder._progress = task
+        builder.set_progress(task)
         result = await builder.build()
 
         # Save render history in a new DB session
@@ -157,10 +157,9 @@ async def _event_generator(task_id: str) -> AsyncGenerator[str]:
             return
 
         # Wait for next progress update (with timeout to send keep-alive)
-        try:
-            await asyncio.wait_for(task._event.wait(), timeout=15.0)
-        except TimeoutError:
-            # Send keep-alive comment
+        version = task._version
+        updated = await task.wait_for_update(version, timeout=15.0)
+        if not updated:
             yield ": keep-alive\n\n"
 
 

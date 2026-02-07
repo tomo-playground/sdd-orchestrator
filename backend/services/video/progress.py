@@ -67,13 +67,26 @@ class TaskProgress:
     result: dict | None = None
     error: str | None = None
     created_at: float = field(default_factory=time.time)
+    _version: int = field(default=0)
     _event: asyncio.Event = field(default_factory=asyncio.Event)
 
     def notify(self) -> None:
-        """Wake up SSE consumers waiting on this task."""
+        """Wake up SSE consumers. Uses version counter to avoid TOCTOU race."""
+        self._version += 1
         self._event.set()
-        # Reset immediately so next wait blocks until next notify
-        self._event = asyncio.Event()
+
+    async def wait_for_update(self, known_version: int, timeout: float = 15.0) -> bool:
+        """Wait until version changes or timeout. Returns True if updated."""
+        if self._version != known_version:
+            return True
+        try:
+            await asyncio.wait_for(self._event.wait(), timeout=timeout)
+        except TimeoutError:
+            return self._version != known_version
+        # Reset event for next wait cycle; safe because version is the
+        # real synchronization mechanism (consumers always re-check version).
+        self._event.clear()
+        return self._version != known_version
 
 
 # In-memory task store

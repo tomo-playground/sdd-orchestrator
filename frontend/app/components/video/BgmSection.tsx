@@ -9,38 +9,44 @@ import type { AudioItem, MusicPreset } from "../../types";
 const truncate = (str: string | undefined, maxLen: number) =>
   str && str.length > maxLen ? str.slice(0, maxLen - 1) + "..." : str || "";
 
-export type BgmSectionProps = {
+export type BgmState = {
   bgmMode: "file" | "ai";
-  setBgmMode: (v: "file" | "ai") => void;
   bgmFile: string | null;
-  setBgmFile: (v: string | null) => void;
   bgmList: AudioItem[];
-  onPreviewBgm: () => void;
   isPreviewingBgm: boolean;
   musicPresetId: number | null;
-  setMusicPresetId: (v: number | null) => void;
   audioDucking: boolean;
-  setAudioDucking: (v: boolean) => void;
   bgmVolume: number;
+};
+
+export type BgmActions = {
+  setBgmMode: (v: "file" | "ai") => void;
+  setBgmFile: (v: string | null) => void;
+  onPreviewBgm: () => void;
+  setMusicPresetId: (v: number | null) => void;
+  setAudioDucking: (v: boolean) => void;
   setBgmVolume: (v: number) => void;
 };
 
+export type BgmSectionProps = BgmState & BgmActions;
+
 /** BGM sub-section with File/AI mode toggle */
-export default function BgmSection({
-  bgmMode,
-  setBgmMode,
-  bgmFile,
-  setBgmFile,
-  bgmList,
-  onPreviewBgm,
-  isPreviewingBgm,
-  musicPresetId,
-  setMusicPresetId,
-  audioDucking,
-  setAudioDucking,
-  bgmVolume,
-  setBgmVolume,
-}: BgmSectionProps) {
+export default function BgmSection(props: BgmSectionProps) {
+  const {
+    bgmMode,
+    setBgmMode,
+    bgmFile,
+    setBgmFile,
+    bgmList,
+    onPreviewBgm,
+    isPreviewingBgm,
+    musicPresetId,
+    setMusicPresetId,
+    audioDucking,
+    setAudioDucking,
+    bgmVolume,
+    setBgmVolume,
+  } = props;
   const [musicPresets, setMusicPresets] = useState<MusicPreset[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 

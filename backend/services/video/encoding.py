@@ -91,7 +91,8 @@ async def encode_async(builder: VideoBuilder) -> None:
     stderr_lines: list[str] = []
 
     async def _read_stderr():
-        assert proc.stderr is not None
+        if proc.stderr is None:
+            return
         buf = b""
         while True:
             chunk = await proc.stderr.read(512)
@@ -123,9 +124,9 @@ async def encode_async(builder: VideoBuilder) -> None:
     except TimeoutError:
         proc.kill()
         logger.error("FFmpeg timed out after %d seconds", FFMPEG_TIMEOUT_SECONDS)
-        raise Exception(f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds") from None
+        raise RuntimeError(f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds") from None
 
     if proc.returncode != 0:
         stderr_tail = "\n".join(stderr_lines[-10:])
         logger.error("FFmpeg failed (rc=%d)", proc.returncode)
-        raise Exception(f"FFmpeg failed with exit code {proc.returncode}: {stderr_tail[:500]}")
+        raise RuntimeError(f"FFmpeg failed with exit code {proc.returncode}: {stderr_tail[:500]}")
