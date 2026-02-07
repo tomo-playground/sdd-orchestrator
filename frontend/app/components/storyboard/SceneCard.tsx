@@ -10,8 +10,8 @@ import type {
   Tag,
   GeminiSuggestion,
 } from "../../types";
-import DebugTabContent from "../quality/DebugTabContent";
-import SceneImagePanel from "../quality/SceneImagePanel";
+import DebugTabContent from "./DebugTabContent";
+import SceneImagePanel from "./SceneImagePanel";
 import Button from "../ui/Button";
 import FixSuggestionsPanel from "./FixSuggestionsPanel";
 import SceneActionBar from "./SceneActionBar";

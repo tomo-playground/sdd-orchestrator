@@ -8,9 +8,10 @@ from .avatar import router as avatar_router
 from .characters import router as characters_router
 from .cleanup import router as cleanup_router
 from .controlnet import router as controlnet_router
-from .evaluation import router as evaluation_router
+from .creative import router as creative_router
 from .groups import router as groups_router
 from .keywords import router as keywords_router
+from .lab import router as lab_router
 from .loras import router as loras_router
 from .music_presets import router as music_presets_router
 from .presets import router as presets_router
@@ -38,7 +39,9 @@ __all__ = [
     "characters_router",
     "cleanup_router",
     "controlnet_router",
+    "creative_router",
     "keywords_router",
+    "lab_router",
     "loras_router",
     "presets_router",
     "prompt_router",
@@ -52,7 +55,6 @@ __all__ = [
     "style_profiles_router",
     "tags_router",
     "video_router",
-    "evaluation_router",
     "activity_logs_router",
     "groups_router",
     "projects_router",

@@ -4,9 +4,15 @@ from models.activity_log import ActivityLog
 from models.associations import CharacterTag, SceneCharacterAction, SceneTag
 from models.base import Base
 from models.character import Character
-from models.evaluation import EvaluationRun
+from models.creative import (
+    CreativeAgentPreset,
+    CreativeSession,
+    CreativeSessionRound,
+    CreativeTrace,
+)
 from models.group import Group
 from models.group_config import GroupConfig
+from models.lab import LabExperiment
 from models.lora import LoRA
 from models.media_asset import MediaAsset
 from models.music_preset import MusicPreset
@@ -51,9 +57,13 @@ __all__ = [
     "SceneQualityScore",
     "PromptHistory",
     "RenderHistory",
-    "EvaluationRun",
     "VoicePreset",
     "MusicPreset",
     "StoryboardCharacter",
     "YouTubeCredential",
+    "LabExperiment",
+    "CreativeAgentPreset",
+    "CreativeSession",
+    "CreativeSessionRound",
+    "CreativeTrace",
 ]

@@ -12,13 +12,13 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home, exact: true },
-  { href: "/quality", label: "Quality", icon: FlaskConical, exact: false },
+  { href: "/lab", label: "Lab", icon: FlaskConical, exact: false },
   { href: "/manage", label: "Manage", icon: Settings, exact: false },
 ] as const;
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const showSidebar = !pathname.startsWith("/manage") && !pathname.startsWith("/quality");
+  const showSidebar = !pathname.startsWith("/manage") && !pathname.startsWith("/lab");
   const toast = useStudioStore((s) => s.toast);
 
   return (

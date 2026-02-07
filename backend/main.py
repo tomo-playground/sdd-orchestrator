@@ -16,9 +16,10 @@ from routers import (
     characters_router,
     cleanup_router,
     controlnet_router,
-    evaluation_router,
+    creative_router,
     groups_router,
     keywords_router,
+    lab_router,
     loras_router,
     music_presets_router,
     presets_router,
@@ -55,6 +56,7 @@ async def lifespan(app: FastAPI):
 
     # Ensure repository assets are in shared storage
     from services.asset_service import AssetService
+
     AssetService.ensure_shared_assets()
     Base.metadata.create_all(bind=engine)
 
@@ -70,6 +72,7 @@ async def lifespan(app: FastAPI):
 
         # Self-Correction: Apply high-confidence tag suggestions
         from services.keywords.suggestions import apply_high_confidence_suggestions
+
         applied = apply_high_confidence_suggestions()
         if applied > 0:
             logger.info(f"✅ [Self-Correction] Auto-classified {applied} tags on startup")
@@ -81,6 +84,7 @@ async def lifespan(app: FastAPI):
 
     # TTS Model Eager Loading (required for video rendering)
     from services.video.scene_processing import get_qwen_model
+
     logger.info("[TTS] Loading Qwen3-TTS model...")
     get_qwen_model()
     logger.info("[TTS] Qwen3-TTS model loaded successfully")
@@ -91,6 +95,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown logic (if any)
     logger.info("🛑 [Shutdown] Application execution finished")
+
 
 # --- App Setup ---
 app = FastAPI(lifespan=lifespan)
@@ -115,11 +120,12 @@ app.include_router(avatar_router)
 app.include_router(characters_router)
 app.include_router(cleanup_router)
 app.include_router(controlnet_router)
-app.include_router(evaluation_router)
 app.include_router(groups_router)
 app.include_router(projects_router)
 app.include_router(activity_logs_router)
 app.include_router(keywords_router)
+app.include_router(lab_router)
+app.include_router(creative_router)
 app.include_router(loras_router)
 app.include_router(presets_router)
 app.include_router(prompt_router)
