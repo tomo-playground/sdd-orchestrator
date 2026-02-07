@@ -5,6 +5,7 @@ import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
+import { buildNegativePrompt } from "./promptActions";
 
 interface BatchResult {
   index: number;
@@ -48,7 +49,7 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
       const isNarrator = scene.speaker === "Narrator";
       return {
         prompt: scene.image_prompt || "",
-        negative_prompt: scene.negative_prompt || "",
+        negative_prompt: buildNegativePrompt(scene),
         steps: 27,
         cfg_scale: 7,
         sampler_name: "DPM++ 2M Karras",

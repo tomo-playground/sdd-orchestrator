@@ -134,6 +134,7 @@ export async function generateSceneImageFor(
       ...debugPayload,
       character_id: selectedCharacterId,
       storyboard_id: storyboardId,
+      prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
     });
     const images = res.data.images || (res.data.image ? [res.data.image] : []);
     const warnings = res.data.warnings || [];

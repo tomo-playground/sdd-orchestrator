@@ -485,8 +485,8 @@ class SceneGenerateRequest(BaseModel):
     reference_only_weight: float = 0.5
     environment_reference_id: int | None = None  # For Environment Pinning
     environment_reference_weight: float = 0.3
-    # Analytics/Hierarchy tracking
-    storyboard_id: int | None = None
+    # Explicit V3 composition flag (True when frontend /prompt/compose already ran V3)
+    prompt_pre_composed: bool = False
     # Warnings field to return messages from backend
     warnings: list[str] | None = None
 
@@ -1185,3 +1185,30 @@ class RenderHistoryLookupResponse(BaseModel):
 
 class YouTubeRevokeResponse(BaseModel):
     status: str
+
+
+# ============================================================
+# Render Progress (SSE) Schemas
+# ============================================================
+
+
+class VideoCreateAccepted(BaseModel):
+    """202 response for async video creation."""
+
+    task_id: str
+
+
+class RenderProgressEvent(BaseModel):
+    """SSE event payload for render progress."""
+
+    task_id: str
+    stage: str
+    percent: int = 0
+    stage_detail: str = ""
+    encode_percent: int = 0
+    current_scene: int = 0
+    total_scenes: int = 0
+    video_url: str | None = None
+    media_asset_id: int | None = None
+    render_history_id: int | None = None
+    error: str | None = None

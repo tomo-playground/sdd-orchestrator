@@ -44,7 +44,9 @@ def get_db_session():
         db.close()
 
 
-def apply_style_profile_to_prompt(prompt: str, negative_prompt: str, storyboard_id: int | None, db) -> tuple[str, str]:
+def apply_style_profile_to_prompt(
+    prompt: str, negative_prompt: str, storyboard_id: int | None, db, *, skip_loras: bool = False
+) -> tuple[str, str]:
     """
     Apply Style Profile settings from Storyboard to prompt.
 
@@ -91,7 +93,7 @@ def apply_style_profile_to_prompt(prompt: str, negative_prompt: str, storyboard_
         lora_tags = []
         trigger_words = []
 
-        if profile.loras:
+        if profile.loras and not skip_loras:
             for lora_config in profile.loras:
                 lora_id = lora_config.get("lora_id")
                 lora_name = lora_config.get("name")
@@ -155,30 +157,104 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
         return await _generate_scene_image_with_db(request, db)
 
 
+def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
+    """Resolve style LoRAs from DB config cascade for V3 engine.
+
+    Returns list of dicts: [{"name": "...", "weight": ..., "trigger_words": [...]}]
+    """
+    if not storyboard_id:
+        return []
+    try:
+        from models import LoRA, Storyboard, StyleProfile
+        from models.group import Group
+        from services.config_resolver import resolve_effective_config
+
+        storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+        if not storyboard:
+            return []
+        group = (
+            db.query(Group)
+            .options(joinedload(Group.config), joinedload(Group.project))
+            .filter(Group.id == storyboard.group_id)
+            .first()
+        )
+        if not group:
+            return []
+        cfg = resolve_effective_config(group.project, group)
+        style_profile_id = cfg["values"].get("style_profile_id")
+        if not style_profile_id:
+            return []
+        profile = db.query(StyleProfile).filter(StyleProfile.id == style_profile_id).first()
+        if not profile or not profile.loras:
+            return []
+
+        result = []
+        for lora_config in profile.loras:
+            lora_id = lora_config.get("lora_id")
+            lora_name = lora_config.get("name")
+            weight = lora_config.get("weight", 0.7)
+            tw: list[str] = []
+            if lora_id:
+                lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
+                if lora_obj and lora_obj.trigger_words:
+                    tw = list(lora_obj.trigger_words)
+            if lora_name:
+                result.append({"name": lora_name, "weight": weight, "trigger_words": tw})
+        return result
+    except Exception as e:
+        logger.error("❌ [_resolve_style_loras] Error: %s", e)
+        return []
+
+
 def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], object]:
     """Prepare the final prompt via style profile + V3 composition.
 
+    Routing logic based on explicit ``prompt_pre_composed`` flag:
+    - **pre_composed** (manual w/ V3): Style profile full apply, prompt as-is.
+    - **raw + character** (batch/autopilot): Style profile quality-only (skip_loras),
+      then V3 engine injects character + style LoRAs.
+    - **no character** (Narrator etc): Style profile full apply, no V3.
+
     Returns: (cleaned_prompt, final_warnings, character_obj)
     """
-    request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-        request.prompt, request.negative_prompt or "", request.storyboard_id, db
-    )
-
     from models import Character
 
     character_obj = db.query(Character).filter(Character.id == request.character_id).first()
 
-    prompt_already_composed = "BREAK" in request.prompt or "masterpiece" in request.prompt.lower()
-    if prompt_already_composed:
+    if request.prompt_pre_composed:
+        # Frontend /prompt/compose already ran V3 (character LoRA included)
+        # Apply full style profile (style LoRA + quality + negative)
+        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+            request.prompt, request.negative_prompt or "", request.storyboard_id, db
+        )
         cleaned_prompt = request.prompt
-        logger.info("🎨 [V3 Engine] Using pre-composed prompt for character %d", request.character_id)
-    else:
+        logger.info("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
+    elif request.character_id and character_obj:
+        # Raw prompt → V3 engine composes with character LoRA + style LoRA
+        # Style profile: quality tags + negative only (LoRA/trigger handled by V3)
+        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+            request.prompt,
+            request.negative_prompt or "",
+            request.storyboard_id,
+            db,
+            skip_loras=True,
+        )
+        # Fallback: resolve style_loras from DB if frontend didn't send them
+        style_loras = request.style_loras or _resolve_style_loras(request.storyboard_id, db)
         v3_service = V3PromptService(db)
         scene_tags = split_prompt_tokens(request.prompt)
         cleaned_prompt = v3_service.generate_prompt_for_scene(
-            character_id=request.character_id, scene_tags=scene_tags, style_loras=request.style_loras
+            character_id=request.character_id,
+            scene_tags=scene_tags,
+            style_loras=style_loras,
         )
         logger.info("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+    else:
+        # No character (Narrator etc) → full style profile, no V3
+        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+            request.prompt, request.negative_prompt or "", request.storyboard_id, db
+        )
+        cleaned_prompt = request.prompt
 
     final_warnings: list[str] = []
 
@@ -200,8 +276,6 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
     elif not character_obj:
         # Auto-populate character_id from IP-Adapter reference
         if request.use_ip_adapter and request.ip_adapter_reference:
-            from models import Character
-
             character_obj = db.query(Character).filter(Character.name == request.ip_adapter_reference).first()
             if character_obj:
                 request.character_id = character_obj.id
@@ -210,12 +284,13 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     request.character_id,
                     request.ip_adapter_reference,
                 )
+                style_loras = request.style_loras or _resolve_style_loras(request.storyboard_id, db)
                 v3_service = V3PromptService(db)
                 scene_tags = split_prompt_tokens(request.prompt)
                 cleaned_prompt = v3_service.generate_prompt_for_scene(
                     character_id=request.character_id,
                     scene_tags=scene_tags,
-                    style_loras=request.style_loras,
+                    style_loras=style_loras,
                 )
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)
         if not request.character_id:
