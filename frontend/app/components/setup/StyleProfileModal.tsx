@@ -29,7 +29,11 @@ type StyleProfileModalProps = {
   onSkip?: () => void;
 };
 
-export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip }: StyleProfileModalProps) {
+export default function StyleProfileModal({
+  defaultProfileId,
+  onComplete,
+  onSkip,
+}: StyleProfileModalProps) {
   const [profiles, setProfiles] = useState<StyleProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,11 +51,12 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
       const profilesList = res.data || [];
       setProfiles(profilesList);
 
-      // defaultProfileId가 있으면 그걸 선택, 없으면 첫 번째
-      if (defaultProfileId && profilesList.find(p => p.id === defaultProfileId)) {
+      // defaultProfileId가 있으면 그걸 선택, 없으면 is_default 프로파일, 없으면 첫 번째
+      if (defaultProfileId && profilesList.find((p) => p.id === defaultProfileId)) {
         setSelectedProfileId(defaultProfileId);
-      } else if (profilesList.length > 0) {
-        setSelectedProfileId(profilesList[0].id);
+      } else {
+        const defaultProfile = profilesList.find((p) => p.is_default);
+        setSelectedProfileId(defaultProfile?.id ?? profilesList[0]?.id ?? null);
       }
     } catch (error) {
       console.error("Failed to fetch style profiles:", error);
@@ -70,7 +75,7 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
 
     try {
       // 프로필 상세 정보 조회 (sd_model 정보 포함)
-      const res = await axios.get(`${API_BASE}/style-profiles/${selectedProfileId}`);
+      const res = await axios.get(`${API_BASE}/style-profiles/${selectedProfileId}/full`);
       const fullProfile = res.data;
 
       onComplete({
@@ -116,9 +121,16 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
         {onSkip && (
           <button
             onClick={onSkip}
-            className="absolute top-4 right-4 rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+            className="absolute top-4 right-4 rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-5 w-5"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -151,32 +163,36 @@ export default function StyleProfileModal({ defaultProfileId, onComplete, onSkip
                 <button
                   key={profile.id}
                   onClick={() => setSelectedProfileId(profile.id)}
-                  className={`group relative rounded-2xl border p-5 text-left transition-all duration-300 ${selectedProfileId === profile.id
+                  className={`group relative rounded-2xl border p-5 text-left transition-all duration-300 ${
+                    selectedProfileId === profile.id
                       ? "border-indigo-300 bg-indigo-50 shadow-lg shadow-indigo-500/10"
                       : "border-zinc-200 bg-white hover:border-indigo-200 hover:shadow-md"
-                    }`}
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="mb-1.5 flex items-center gap-2">
                         <h3 className="text-sm font-bold text-zinc-900">
                           {profile.display_name || profile.name}
                         </h3>
                         {profile.is_default && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-bold text-emerald-600 uppercase tracking-wider">
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-bold tracking-wider text-emerald-600 uppercase">
                             Default
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500 line-clamp-2">
+                      <p className="line-clamp-2 text-xs text-zinc-500">
                         {profile.description || "설명 없음"}
                       </p>
                     </div>
                     {/* Radio indicator */}
-                    <div className={`shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedProfileId === profile.id
-                        ? "border-indigo-500 bg-indigo-500"
-                        : "border-zinc-300 bg-white"
-                      }`}>
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                        selectedProfileId === profile.id
+                          ? "border-indigo-500 bg-indigo-500"
+                          : "border-zinc-300 bg-white"
+                      }`}
+                    >
                       {selectedProfileId === profile.id && (
                         <div className="h-2 w-2 rounded-full bg-white" />
                       )}

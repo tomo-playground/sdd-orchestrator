@@ -8,7 +8,6 @@ import { API_BASE } from "../../constants";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StyleProfileSelector from "../setup/StyleProfileSelector";
-import { handleInlineStyleProfileSelect } from "../../store/actions/styleProfileActions";
 import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 
 export default function PlanTab() {
@@ -220,11 +219,9 @@ export default function PlanTab() {
       {/* Right: Settings Panel (sticky) */}
       <div className={SIDE_PANEL_CLASSES}>
         <StyleProfileSelector
-          currentProfileId={currentStyleProfile?.id ?? null}
           currentProfileName={
             currentStyleProfile?.display_name ?? currentStyleProfile?.name ?? null
           }
-          onSelect={handleInlineStyleProfileSelect}
         />
 
         <div>

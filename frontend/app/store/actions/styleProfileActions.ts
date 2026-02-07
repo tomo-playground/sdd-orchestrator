@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
-import { saveStoryboard } from "./storyboardActions";
 
 /** The subset of style profile fields used in the output slice. */
 interface StyleProfileSelection {
@@ -31,7 +30,8 @@ export async function handleStyleProfileComplete(
   profile: StyleProfileSelection,
   callbacks: StyleProfileCallbacks
 ): Promise<void> {
-  const { setOutput, showToast, setMeta } = useStudioStore.getState();
+  const { setOutput, showToast, setMeta, groupId, setEffectiveDefaults } =
+    useStudioStore.getState();
 
   // 1. Store profile in output slice
   console.log("[StyleProfileModal] Selected profile:", profile);
@@ -48,13 +48,26 @@ export async function handleStyleProfileComplete(
       default_negative: profile.default_negative || null,
     },
   });
-  console.log("[StyleProfileModal] Store updated");
   callbacks.setShowStyleProfileModal(false);
 
-  // 2. Create or update storyboard
+  // 2. Persist style_profile_id to GroupConfig (SSOT for generation)
+  if (groupId) {
+    try {
+      await axios.put(`${API_BASE}/groups/${groupId}/config`, {
+        style_profile_id: profile.id,
+      });
+      setEffectiveDefaults(profile.id, null, true);
+      console.log("[StyleProfile] GroupConfig updated with style_profile_id:", profile.id);
+    } catch (err) {
+      console.error("[StyleProfile] Failed to update GroupConfig:", err);
+      showToast("Style saved locally but GroupConfig update failed", "error");
+    }
+  }
+
+  // 3. Create or update storyboard
   await saveStoryboardWithProfile(profile, setMeta, showToast);
 
-  // 3. Change SD model in background
+  // 4. Change SD model in background
   await changeSdModel(profile, showToast);
 }
 
@@ -168,7 +181,7 @@ async function createNewStoryboard(
  */
 export async function loadStyleProfileFromId(profileId: number): Promise<void> {
   const { setOutput, showToast } = useStudioStore.getState();
-  const res = await axios.get(`${API_BASE}/style-profiles/${profileId}`);
+  const res = await axios.get(`${API_BASE}/style-profiles/${profileId}/full`);
   const profile = res.data;
 
   setOutput({
@@ -192,15 +205,6 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
     },
     showToast
   );
-}
-
-/**
- * Handle inline style profile selection from StyleProfileSelector.
- * Loads the profile into store and saves the storyboard.
- */
-export async function handleInlineStyleProfileSelect(profileId: number): Promise<void> {
-  await loadStyleProfileFromId(profileId);
-  await saveStoryboard();
 }
 
 // --- Helper: Change SD model in background ---
