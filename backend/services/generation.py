@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from contextlib import contextmanager
 
 import httpx
@@ -96,18 +97,20 @@ def apply_style_profile_to_prompt(
         if profile.loras and not skip_loras:
             for lora_config in profile.loras:
                 lora_id = lora_config.get("lora_id")
-                lora_name = lora_config.get("name")
                 weight = lora_config.get("weight", 0.7)
 
-                # Get trigger words from LoRA model
-                if lora_id:
-                    lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
-                    if lora_obj and lora_obj.trigger_words:
-                        trigger_words.extend(lora_obj.trigger_words)
+                if not lora_id:
+                    continue
+                lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
+                if not lora_obj:
+                    continue
 
-                # Add LoRA tag
-                if lora_name:
-                    lora_tags.append(f"<lora:{lora_name}:{weight}>")
+                # Get trigger words from LoRA model
+                if lora_obj.trigger_words:
+                    trigger_words.extend(lora_obj.trigger_words)
+
+                # Add LoRA tag (resolve name from DB, not JSONB)
+                lora_tags.append(f"<lora:{lora_obj.name}:{weight}>")
 
         # Compose final prompt
         parts = []
@@ -191,15 +194,14 @@ def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
         result = []
         for lora_config in profile.loras:
             lora_id = lora_config.get("lora_id")
-            lora_name = lora_config.get("name")
             weight = lora_config.get("weight", 0.7)
-            tw: list[str] = []
-            if lora_id:
-                lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
-                if lora_obj and lora_obj.trigger_words:
-                    tw = list(lora_obj.trigger_words)
-            if lora_name:
-                result.append({"name": lora_name, "weight": weight, "trigger_words": tw})
+            if not lora_id:
+                continue
+            lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
+            if not lora_obj:
+                continue
+            tw = list(lora_obj.trigger_words) if lora_obj.trigger_words else []
+            result.append({"name": lora_obj.name, "weight": weight, "trigger_words": tw})
         return result
     except Exception as e:
         logger.error("❌ [_resolve_style_loras] Error: %s", e)
@@ -221,6 +223,13 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
 
     character_obj = db.query(Character).filter(Character.id == request.character_id).first()
 
+    logger.info(
+        "🔀 [Prompt Route] pre_composed=%s, character_id=%s, character_found=%s",
+        request.prompt_pre_composed,
+        request.character_id,
+        character_obj is not None,
+    )
+
     if request.prompt_pre_composed:
         # Frontend /prompt/compose already ran V3 (character LoRA included)
         # Apply full style profile (style LoRA + quality + negative)
@@ -241,6 +250,12 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         )
         # Fallback: resolve style_loras from DB if frontend didn't send them
         style_loras = request.style_loras or _resolve_style_loras(request.storyboard_id, db)
+        lora_names = [l.get("name") for l in style_loras] if style_loras else []
+        logger.info(
+            "🎨 [V3 Engine] Path B: style_loras=%s (from %s)",
+            lora_names,
+            "request" if request.style_loras else "DB fallback",
+        )
         v3_service = V3PromptService(db)
         scene_tags = split_prompt_tokens(request.prompt)
         cleaned_prompt = v3_service.generate_prompt_for_scene(
@@ -255,6 +270,13 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             request.prompt, request.negative_prompt or "", request.storyboard_id, db
         )
         cleaned_prompt = request.prompt
+
+    # Debug: verify LoRA tags in final prompt
+    lora_tags_found = re.findall(r"<lora:[^>]+>", cleaned_prompt)
+    if lora_tags_found:
+        logger.info("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
+    else:
+        logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
 
     final_warnings: list[str] = []
 

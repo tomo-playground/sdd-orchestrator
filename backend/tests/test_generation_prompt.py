@@ -112,6 +112,7 @@ class TestStyleProfileSkipLoras:
         profile.default_negative = default_negative
 
         lora_obj = MagicMock()
+        lora_obj.name = "flat_color"
         lora_obj.trigger_words = ["flat_color"]
 
         def query_side_effect(model):
@@ -133,7 +134,8 @@ class TestStyleProfileSkipLoras:
     @patch("services.config_resolver.resolve_effective_config")
     def test_skip_loras_true_excludes_lora_tags(self, mock_resolve):
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
-        loras = [{"lora_id": 1, "name": "flat_color", "weight": 0.7}]
+        # Real JSONB: only lora_id + weight (no name)
+        loras = [{"lora_id": 1, "weight": 0.7}]
         db = self._mock_db(profile_loras=loras)
 
         result_prompt, result_neg = apply_style_profile_to_prompt("1girl, standing", "bad", 10, db, skip_loras=True)
@@ -146,7 +148,7 @@ class TestStyleProfileSkipLoras:
     @patch("services.config_resolver.resolve_effective_config")
     def test_skip_loras_true_keeps_quality_and_negative(self, mock_resolve):
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
-        loras = [{"lora_id": 1, "name": "flat_color", "weight": 0.7}]
+        loras = [{"lora_id": 1, "weight": 0.7}]
         db = self._mock_db(profile_loras=loras)
 
         result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "", 10, db, skip_loras=True)
@@ -157,7 +159,8 @@ class TestStyleProfileSkipLoras:
     @patch("services.config_resolver.resolve_effective_config")
     def test_skip_loras_false_includes_everything(self, mock_resolve):
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
-        loras = [{"lora_id": 1, "name": "flat_color", "weight": 0.7}]
+        # Real JSONB: only lora_id + weight (name resolved from LoRA object)
+        loras = [{"lora_id": 1, "weight": 0.7}]
         db = self._mock_db(profile_loras=loras)
 
         result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "", 10, db, skip_loras=False)
@@ -189,8 +192,10 @@ class TestResolveStyleLoras:
         storyboard.group_id = 1
         group = MagicMock()
         profile = MagicMock()
-        profile.loras = [{"lora_id": 1, "name": "flat_color", "weight": 0.7}]
+        # Real JSONB: only lora_id + weight (no name)
+        profile.loras = [{"lora_id": 1, "weight": 0.7}]
         lora_obj = MagicMock()
+        lora_obj.name = "flat_color"
         lora_obj.trigger_words = ["flat_color"]
 
         def query_side_effect(model):
