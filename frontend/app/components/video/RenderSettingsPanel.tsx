@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
-import type { AudioItem, FontItem, KenBurnsPreset, MusicPreset, VoicePreset } from "../../types";
+import type {
+  AudioItem,
+  FontItem,
+  KenBurnsPreset,
+  MusicPreset,
+  RenderProgress,
+  RenderStage,
+  VoicePreset,
+} from "../../types";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../ui/variants";
 
 // Ken Burns preset options for dropdown
@@ -481,6 +489,19 @@ export function RenderMediaPanel({
 
 /* ======== Render Side Panel (right column) ======== */
 
+const STAGE_LABELS: Record<RenderStage, string> = {
+  queued: "대기중",
+  setup_avatars: "아바타 설정",
+  process_scenes: "음성 생성",
+  calculate_durations: "시간 계산",
+  prepare_bgm: "BGM 준비",
+  build_filters: "필터 구성",
+  encode: "인코딩",
+  upload: "업로드",
+  completed: "완료",
+  failed: "실패",
+};
+
 export type RenderSidePanelProps = {
   layoutStyle: "full" | "post";
   setLayoutStyle: (value: "full" | "post") => void;
@@ -494,6 +515,7 @@ export type RenderSidePanelProps = {
   disabledReason?: string | null;
   renderPresetName?: string | null;
   renderPresetSource?: string | null;
+  renderProgress?: RenderProgress | null;
 };
 
 export function RenderSidePanel({
@@ -509,6 +531,7 @@ export function RenderSidePanel({
   disabledReason,
   renderPresetName,
   renderPresetSource,
+  renderProgress,
 }: RenderSidePanelProps) {
   return (
     <div className={SIDE_PANEL_CLASSES}>
@@ -562,6 +585,26 @@ export function RenderSidePanel({
         >
           {isRendering ? "Rendering..." : "Render"}
         </button>
+
+        {/* Progress Bar */}
+        {isRendering && renderProgress && (
+          <div className="w-full space-y-1.5">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200">
+              <div
+                className="h-full rounded-full bg-zinc-900 transition-all duration-300 ease-out"
+                style={{ width: `${renderProgress.percent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+              <span>
+                {STAGE_LABELS[renderProgress.stage] || renderProgress.stage}
+                {renderProgress.stage_detail ? ` (${renderProgress.stage_detail})` : ""}
+              </span>
+              <span className="font-medium">{renderProgress.percent}%</span>
+            </div>
+          </div>
+        )}
+
         <span className="text-[10px] text-zinc-400">
           Images: {scenesWithImages}/{totalScenes}
         </span>

@@ -14,6 +14,11 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+# Eager-loaded TTS dependencies (torch + qwen_tts)
+# TTS is required for video rendering with voice narration.
+import torch as _torch
+from qwen_tts import Qwen3TTSModel as _Qwen3TTSModel
+
 from config import (
     DEFAULT_SPEAKER,
     GEMINI_TEXT_MODEL,
@@ -32,11 +37,6 @@ from config import (
 )
 from services.storage import get_storage
 from services.video.utils import clean_script_for_tts
-
-# Eager-loaded TTS dependencies (torch + qwen_tts)
-# TTS is required for video rendering with voice narration.
-import torch as _torch
-from qwen_tts import Qwen3TTSModel as _Qwen3TTSModel
 
 _TTS_AVAILABLE = True
 
@@ -141,7 +141,15 @@ if TYPE_CHECKING:
 
 async def process_scenes(builder: VideoBuilder) -> None:
     """Process all scenes: images, TTS, and subtitles."""
+    from services.video.progress import calc_overall_percent
+
     for i, scene in enumerate(builder.request.scenes):
+        if builder._progress:
+            builder._progress.current_scene = i + 1
+            builder._progress.stage_detail = f"Scene {i + 1}/{builder.num_scenes} TTS"
+            builder._progress.percent = calc_overall_percent(builder._progress)
+            builder._progress.notify()
+
         img_path = builder.temp_dir / f"scene_{i}.png"
         tts_path = builder.temp_dir / f"tts_{i}.mp3"
 

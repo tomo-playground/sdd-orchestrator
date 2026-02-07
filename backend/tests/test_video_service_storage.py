@@ -33,7 +33,7 @@ async def test_video_builder_uses_storage_and_asset_service(mock_asset_service, 
          patch("services.video.VideoBuilder._process_scenes"), \
          patch("services.video.VideoBuilder._calculate_durations"), \
          patch("services.video.VideoBuilder._build_filters"), \
-         patch("services.video.VideoBuilder._encode"), \
+         patch("services.video.VideoBuilder._encode_async"), \
          patch("services.video.VideoBuilder._cleanup"):
 
         builder = VideoBuilder(request)

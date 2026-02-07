@@ -27,6 +27,7 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "imageValidationResults",
   // OutputSlice transient
   "isRendering",
+  "renderProgress",
   "bgmList",
   "fontList",
   "loadedFonts",

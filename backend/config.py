@@ -266,6 +266,7 @@ AUDIO_CODEC = os.getenv("AUDIO_CODEC", "aac")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "192k")
 # FFmpeg subprocess timeout in seconds (prevents infinite hangs)
 FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "600"))
+RENDER_TASK_TTL_SECONDS = int(os.getenv("RENDER_TASK_TTL_SECONDS", "1800"))
 
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)

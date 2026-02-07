@@ -7,6 +7,7 @@ import { API_BASE } from "../../constants";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
 import { SIDE_PANEL_LAYOUT } from "../ui/variants";
+import { renderWithProgress } from "../../utils/renderWithProgress";
 
 export default function RenderTab() {
   const store = useStudioStore();
@@ -32,6 +33,7 @@ export default function RenderTab() {
     bgmMode,
     musicPresetId,
     recentVideos,
+    renderProgress,
     setOutput,
     showToast,
   } = store;
@@ -99,7 +101,7 @@ export default function RenderTab() {
         return;
       }
 
-      setOutput({ isRendering: true });
+      setOutput({ isRendering: true, renderProgress: null });
       try {
         const project = getCurrentProject();
         const finalOverlaySettings =
@@ -159,29 +161,34 @@ export default function RenderTab() {
           post_card_settings: finalPostCardSettings,
         };
 
-        const res = await axios.post(`${API_BASE}/video/create`, payload);
-        const url = res.data.video_url;
-        if (mode === "full") {
-          setOutput({ videoUrlFull: url, videoUrl: url });
-        } else {
-          setOutput({ videoUrlPost: url, videoUrl: url });
-        }
-        setOutput({
-          recentVideos: [
-            {
-              url,
-              label: mode,
-              createdAt: Date.now(),
-              renderHistoryId: res.data.render_history_id,
-            },
-            ...recentVideos.slice(0, 9),
-          ],
+        const result = await renderWithProgress(payload, (p) => {
+          setOutput({ renderProgress: p });
         });
+
+        const url = result.video_url;
+        if (url) {
+          if (mode === "full") {
+            setOutput({ videoUrlFull: url, videoUrl: url });
+          } else {
+            setOutput({ videoUrlPost: url, videoUrl: url });
+          }
+          setOutput({
+            recentVideos: [
+              {
+                url,
+                label: mode,
+                createdAt: Date.now(),
+                renderHistoryId: result.render_history_id,
+              },
+              ...recentVideos.slice(0, 9),
+            ],
+          });
+        }
         showToast("Video rendered", "success");
       } catch {
         showToast("Render failed", "error");
       } finally {
-        setOutput({ isRendering: false });
+        setOutput({ isRendering: false, renderProgress: null });
       }
     },
     [
@@ -289,6 +296,7 @@ export default function RenderTab() {
         disabledReason={disabledReason}
         renderPresetName={store.effectivePresetName}
         renderPresetSource={store.effectivePresetSource}
+        renderProgress={renderProgress}
       />
     </div>
   );

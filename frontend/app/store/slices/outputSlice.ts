@@ -6,6 +6,7 @@ import type {
   OverlaySettings,
   PostCardSettings,
   RecentVideo,
+  RenderProgress,
 } from "../../types";
 import {
   DEFAULT_OVERLAY_SETTINGS,
@@ -67,6 +68,9 @@ export interface OutputSlice {
   videoUrlPost: string | null;
   recentVideos: RecentVideo[];
 
+  // Render progress (SSE)
+  renderProgress: RenderProgress | null;
+
   // Setters
   setOutput: (updates: Partial<OutputSlice>) => void;
   resetOutput: () => void;
@@ -114,6 +118,7 @@ const initialOutputState = {
   videoUrlFull: null as string | null,
   videoUrlPost: null as string | null,
   recentVideos: [] as RecentVideo[],
+  renderProgress: null as RenderProgress | null,
 };
 
 export const createOutputSlice: StateCreator<OutputSlice, [], [], OutputSlice> = (set) => ({

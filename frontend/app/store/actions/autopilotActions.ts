@@ -12,6 +12,7 @@ import { getCurrentProject } from "../selectors/projectSelectors";
 import { initializeVideoMetadata } from "./outputActions";
 import { mapGeminiScenes, persistStoryboard } from "./storyboardActions";
 import { applyAutoPinAfterGeneration } from "../../utils/applyAutoPin";
+import { renderWithProgress } from "../../utils/renderWithProgress";
 
 /**
  * Run the autopilot pipeline from a given step.
@@ -276,8 +277,10 @@ export async function runAutoRunFromStep(
           overlay_settings: overlaySettings,
           post_card_settings: postCardSettings,
         };
-        const res = await axios.post(`${API_BASE}/video/create`, payload);
-        const videoUrl = res.data?.video_url;
+        const result = await renderWithProgress(payload, (p) => {
+          pushAutoRunLog(`Rendering... ${p.percent}% (${p.stage_detail || p.stage})`);
+        });
+        const videoUrl = result.video_url;
         if (!videoUrl) throw new Error(`${layoutStyle} render failed`);
         const withTs = `${videoUrl}?t=${Date.now()}`;
         setOutput({
@@ -288,7 +291,7 @@ export async function runAutoRunFromStep(
               url: withTs,
               label: layoutStyle,
               createdAt: Date.now(),
-              renderHistoryId: res.data.render_history_id,
+              renderHistoryId: result.render_history_id,
             },
             ...useStudioStore.getState().recentVideos.slice(0, 9),
           ],

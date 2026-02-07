@@ -556,6 +556,36 @@ export type YouTubeUploadStatus = {
   youtube_uploaded_at: string | null;
 };
 
+// ============================================================
+// Render Progress (SSE) Types
+// ============================================================
+
+export type RenderStage =
+  | "queued"
+  | "setup_avatars"
+  | "process_scenes"
+  | "calculate_durations"
+  | "prepare_bgm"
+  | "build_filters"
+  | "encode"
+  | "upload"
+  | "completed"
+  | "failed";
+
+export type RenderProgress = {
+  task_id: string;
+  stage: RenderStage;
+  percent: number;
+  stage_detail: string;
+  encode_percent: number;
+  current_scene: number;
+  total_scenes: number;
+  video_url?: string;
+  media_asset_id?: number;
+  render_history_id?: number;
+  error?: string;
+};
+
 export type EffectiveConfig = {
   render_preset_id: number | null;
   style_profile_id: number | null;

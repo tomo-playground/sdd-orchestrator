@@ -8,9 +8,10 @@ runs the full pipeline.
 
 from __future__ import annotations
 
+import asyncio  # noqa: TC004 - used at runtime in _encode_async
 import random
+import re  # noqa: TC004 - used at runtime in _encode_async
 import shutil
-import subprocess
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -32,6 +33,11 @@ from config import (
 from database import SessionLocal
 from services.asset_service import AssetService
 from services.motion import resolve_preset_name
+from services.video.progress import (  # noqa: TC004 - used at runtime
+    RenderStage,
+    TaskProgress,
+    calc_overall_percent,
+)
 from services.video.utils import (
     calculate_scene_durations,
     calculate_speed_params,
@@ -138,12 +144,26 @@ class VideoBuilder:
         self.post_avatar_file: str | None = None
         self.post_layout_metrics: dict[str, Any] | None = None
         self._ai_bgm_path: str | None = None  # Set by _prepare_bgm for AI BGM
+        self._progress: TaskProgress | None = None  # SSE progress tracking
 
         # Filter chain state (populated by effects module)
         self._map_v: str = ""
         self._map_a: str = ""
         self._total_dur: float = 0.0
         self._next_input_idx: int = 0
+
+    # ------------------------------------------------------------------
+    # Progress reporting
+    # ------------------------------------------------------------------
+
+    def _report(self, stage: RenderStage, detail: str = "") -> None:
+        """Update progress state and notify SSE consumers."""
+        if not self._progress:
+            return
+        self._progress.stage = stage
+        self._progress.stage_detail = detail
+        self._progress.percent = calc_overall_percent(self._progress)
+        self._progress.notify()
 
     # ------------------------------------------------------------------
     # Pipeline
@@ -158,14 +178,33 @@ class VideoBuilder:
         VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
         try:
+            self._report(RenderStage.SETUP_AVATARS)
             await self._setup_avatars()
+            self._report(RenderStage.PROCESS_SCENES)
             await self._process_scenes()
+            self._report(RenderStage.CALCULATE_DURATIONS)
             self._calculate_durations()
+            self._report(RenderStage.PREPARE_BGM)
             await self._prepare_bgm()
+            self._report(RenderStage.BUILD_FILTERS)
             self._build_filters()
-            self._encode()
-            return self._upload_result()
+            self._report(RenderStage.ENCODE)
+            await self._encode_async()
+            self._report(RenderStage.UPLOAD)
+            result = self._upload_result()
+
+            if self._progress:
+                self._progress.stage = RenderStage.COMPLETED
+                self._progress.result = result
+                self._progress.percent = 100
+                self._progress.notify()
+
+            return result
         except Exception as exc:
+            if self._progress:
+                self._progress.stage = RenderStage.FAILED
+                self._progress.error = str(exc)
+                self._progress.notify()
             logger.exception("Video Create Error")
             raise exc
         finally:
@@ -274,8 +313,8 @@ class VideoBuilder:
         apply_overlays(self)
         apply_bgm(self)
 
-    def _encode(self) -> None:
-        """Encode the final video using FFmpeg."""
+    def _build_ffmpeg_cmd(self) -> list[str]:
+        """Build the FFmpeg command arguments."""
         filter_complex_str = ";".join(self.filters)
 
         logger.info("FFmpeg Filter Chain Debug:")
@@ -288,7 +327,7 @@ class VideoBuilder:
         logger.info(f"Include subtitles: {self.request.include_scene_text}")
         logger.info("=" * 80)
 
-        cmd = [
+        return [
             "ffmpeg",
             "-y",
             *self.input_args,
@@ -319,20 +358,63 @@ class VideoBuilder:
             str(self.video_path),
         ]
 
-        logger.info("Running FFmpeg (timeout=%ds)", FFMPEG_TIMEOUT_SECONDS)
+    async def _encode_async(self) -> None:
+        """Encode using async subprocess with real-time progress parsing."""
+        cmd = self._build_ffmpeg_cmd()
+        logger.info("Running FFmpeg async (timeout=%ds)", FFMPEG_TIMEOUT_SECONDS)
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        # Parse FFmpeg stderr for time= progress
+        _TIME_RE = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+        total_dur = self._total_dur or 1.0
+        stderr_lines: list[str] = []
+
+        async def _read_stderr():
+            assert proc.stderr is not None
+            buf = b""
+            while True:
+                chunk = await proc.stderr.read(512)
+                if not chunk:
+                    break
+                buf += chunk
+                # Process complete lines/carriage returns
+                while b"\r" in buf or b"\n" in buf:
+                    sep = buf.find(b"\r")
+                    if sep == -1:
+                        sep = buf.find(b"\n")
+                    line = buf[:sep].decode("utf-8", errors="replace")
+                    buf = buf[sep + 1 :]
+                    if line.strip():
+                        stderr_lines.append(line)
+                    m = _TIME_RE.search(line)
+                    if m and self._progress:
+                        secs = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3)) + int(m.group(4)) / 100
+                        enc_pct = min(int(secs / total_dur * 100), 99)
+                        self._progress.encode_percent = enc_pct
+                        self._progress.percent = calc_overall_percent(self._progress)
+                        self._progress.notify()
+
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
+            await asyncio.wait_for(
+                asyncio.gather(_read_stderr(), proc.wait()),
                 timeout=FFMPEG_TIMEOUT_SECONDS,
             )
-        except subprocess.TimeoutExpired:
+        except TimeoutError:
+            proc.kill()
             logger.error("FFmpeg timed out after %d seconds", FFMPEG_TIMEOUT_SECONDS)
             raise Exception(f"FFmpeg process timed out after {FFMPEG_TIMEOUT_SECONDS} seconds") from None
-        if result.returncode != 0:
-            logger.error("FFmpeg failed: %s", result.stderr)
-            raise Exception(result.stderr)
+
+        if proc.returncode != 0:
+            stderr_tail = "\n".join(stderr_lines[-10:])
+            logger.error("FFmpeg failed (rc=%d)", proc.returncode)
+            raise Exception(
+                f"FFmpeg failed with exit code {proc.returncode}: {stderr_tail[:500]}"
+            )
 
     def _upload_result(self) -> dict:
         """Upload and register the final video, return URL dict."""

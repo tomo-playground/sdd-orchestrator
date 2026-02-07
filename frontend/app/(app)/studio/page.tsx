@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useStudioStore } from "../../store/useStudioStore";
-import type { AutoRunStepId } from "../../types";
 import TabBar from "../../components/studio/TabBar";
 import PlanTab from "../../components/studio/PlanTab";
 import ScenesTab from "../../components/studio/ScenesTab";
@@ -96,6 +95,16 @@ function StudioContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyboardId]);
+
+  // Warn before refresh/close during render or autopilot
+  useEffect(() => {
+    if (!isRendering && !autopilot.isAutoRunning) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isRendering, autopilot.isAutoRunning]);
 
   if (isLoadingDb) {
     return (

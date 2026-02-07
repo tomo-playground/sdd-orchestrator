@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from config import VIDEO_DIR, logger
-from database import get_db
+from database import SessionLocal, get_db
 from models.media_asset import MediaAsset
 from models.render_history import RenderHistory
 from schemas import (
     RenderHistoryLookupResponse,
+    RenderProgressEvent,
+    VideoCreateAccepted,
     VideoDeleteRequest,
     VideoRequest,
     YouTubeStatusesRequest,
@@ -20,23 +26,21 @@ from schemas import (
 )
 from services.utils import scrub_payload
 from services.video import create_video_task
+from services.video.builder import VideoBuilder
+from services.video.progress import RenderStage, create_task, get_task
 
 router = APIRouter(prefix="/video", tags=["video"])
 
 
-@router.post("/create")
-async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
-    logger.info("📥 [Video Req] %s", scrub_payload(request.model_dump()))
-    logger.info(
-        f"🔍 [DEBUG] include_scene_text={request.include_scene_text}, scene_text_font={request.scene_text_font}"
-    )
-    logger.info(
-        f"🎤 [DEBUG] voice_preset_id={request.voice_preset_id}, voice_design_prompt={request.voice_design_prompt}, tts_engine={request.tts_engine}"
-    )
-    res = await create_video_task(request)
-    video_url = res.get("video_url")
+# ------------------------------------------------------------------
+# Helper: Save render history (shared by sync and async endpoints)
+# ------------------------------------------------------------------
 
-    media_asset_id = res.get("media_asset_id")
+
+def _save_render_history(db: Session, request: VideoRequest, result: dict) -> int | None:
+    """Save RenderHistory row and return its id, or None."""
+    video_url = result.get("video_url")
+    media_asset_id = result.get("media_asset_id")
     if video_url and request.storyboard_id and media_asset_id:
         rh = RenderHistory(
             storyboard_id=request.storyboard_id,
@@ -46,18 +50,127 @@ async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
         db.add(rh)
         db.commit()
         db.refresh(rh)
-        res["render_history_id"] = rh.id
-        logger.info("✅ RenderHistory created id=%d for storyboard id=%d", rh.id, request.storyboard_id)
-    elif video_url:
-        # Log warning if video was created but RenderHistory wasn't linked
+        logger.info("RenderHistory created id=%d for storyboard id=%d", rh.id, request.storyboard_id)
+        return rh.id
+    if video_url:
         missing = []
         if not request.storyboard_id:
             missing.append("storyboard_id")
         if not media_asset_id:
             missing.append("media_asset_id")
-        logger.warning("⚠️ Video created but RenderHistory skipped (missing: %s)", ", ".join(missing))
+        logger.warning("Video created but RenderHistory skipped (missing: %s)", ", ".join(missing))
+    return None
 
+
+# ------------------------------------------------------------------
+# Sync endpoint (backward compatible)
+# ------------------------------------------------------------------
+
+
+@router.post("/create")
+async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
+    logger.info("[Video Req] %s", scrub_payload(request.model_dump()))
+    res = await create_video_task(request)
+    rh_id = _save_render_history(db, request, res)
+    if rh_id is not None:
+        res["render_history_id"] = rh_id
     return res
+
+
+# ------------------------------------------------------------------
+# Async endpoint + SSE progress stream
+# ------------------------------------------------------------------
+
+
+@router.post("/create-async", response_model=VideoCreateAccepted, status_code=202)
+async def create_video_async(request: VideoRequest):
+    logger.info("[Video Async Req] %s", scrub_payload(request.model_dump()))
+    task = create_task(total_scenes=len(request.scenes))
+    asyncio.create_task(_run_video_build(task.task_id, request))
+    return VideoCreateAccepted(task_id=task.task_id)
+
+
+async def _run_video_build(task_id: str, request: VideoRequest) -> None:
+    """Background coroutine: build video and save render history."""
+    task = get_task(task_id)
+    if not task:
+        return
+    try:
+        builder = VideoBuilder(request)
+        builder._progress = task
+        result = await builder.build()
+
+        # Save render history in a new DB session
+        db = SessionLocal()
+        try:
+            rh_id = _save_render_history(db, request, result)
+            if rh_id is not None:
+                result["render_history_id"] = rh_id
+                task.result = result
+                task.notify()
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.exception("[Video Async] Build failed for task %s", task_id)
+        if task.stage != RenderStage.FAILED:
+            task.stage = RenderStage.FAILED
+            task.error = str(exc)
+            task.notify()
+
+
+@router.get("/progress/{task_id}")
+async def stream_progress(task_id: str):
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return StreamingResponse(
+        _event_generator(task_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _event_generator(task_id: str) -> AsyncGenerator[str]:
+    """Yield SSE events until the task completes or fails."""
+    while True:
+        task = get_task(task_id)
+        if not task:
+            yield _sse_event(RenderProgressEvent(task_id=task_id, stage="failed", error="Task expired"))
+            return
+
+        event = RenderProgressEvent(
+            task_id=task.task_id,
+            stage=task.stage.value,
+            percent=task.percent,
+            stage_detail=task.stage_detail,
+            encode_percent=task.encode_percent,
+            current_scene=task.current_scene,
+            total_scenes=task.total_scenes,
+            video_url=task.result.get("video_url") if task.result else None,
+            media_asset_id=task.result.get("media_asset_id") if task.result else None,
+            render_history_id=task.result.get("render_history_id") if task.result else None,
+            error=task.error,
+        )
+        yield _sse_event(event)
+
+        if task.stage in (RenderStage.COMPLETED, RenderStage.FAILED):
+            return
+
+        # Wait for next progress update (with timeout to send keep-alive)
+        try:
+            await asyncio.wait_for(task._event.wait(), timeout=15.0)
+        except TimeoutError:
+            # Send keep-alive comment
+            yield ": keep-alive\n\n"
+
+
+def _sse_event(event: RenderProgressEvent) -> str:
+    return f"data: {json.dumps(event.model_dump())}\n\n"
+
+
+# ------------------------------------------------------------------
+# Existing endpoints
+# ------------------------------------------------------------------
 
 
 @router.post("/delete")
@@ -78,12 +191,12 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
         asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
 
         if asset:
-            logger.info(f"🗑️ Deleting video asset: {asset.storage_key} (ID: {asset.id})")
+            logger.info(f"Deleting video asset: {asset.storage_key} (ID: {asset.id})")
 
             # 1. Delete from S3 storage
             if storage.exists(asset.storage_key):
                 storage.delete(asset.storage_key)
-                logger.info(f"✅ Deleted from storage: {asset.storage_key}")
+                logger.info(f"Deleted from storage: {asset.storage_key}")
 
             # 2. Remove render_history rows referencing this asset (CASCADE handles this too)
             deleted_count = (
@@ -91,24 +204,24 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
                 .filter(RenderHistory.media_asset_id == asset.id)
                 .delete(synchronize_session=False)
             )
-            logger.info(f"🗑️ Deleted {deleted_count} render_history rows by asset_id")
+            logger.info(f"Deleted {deleted_count} render_history rows by asset_id")
 
             # 3. Delete MediaAsset record
             db.delete(asset)
             db.commit()
-            logger.info(f"✅ Deleted MediaAsset record ID: {asset.id}")
+            logger.info(f"Deleted MediaAsset record ID: {asset.id}")
 
             return {"ok": True, "deleted": True, "asset_id": asset.id}
 
         # Fallback: Try legacy local file deletion
         target = VIDEO_DIR / filename
         if target.exists():
-            logger.info(f"🗑️ Deleting legacy local file: {target}")
+            logger.info(f"Deleting legacy local file: {target}")
             target.unlink()
-            logger.info(f"✅ Deleted local file: {filename}")
+            logger.info(f"Deleted local file: {filename}")
             return {"ok": True, "deleted": True, "legacy": True}
 
-        logger.warning(f"⚠️ Video not found: {filename}")
+        logger.warning(f"Video not found: {filename}")
         return {"ok": False, "deleted": False, "reason": "not_found"}
 
     except Exception as exc:
@@ -181,14 +294,7 @@ async def get_transitions():
 
 @router.post("/extract-caption")
 async def extract_caption(request: dict):
-    """Extract a concise caption from longer text using LLM.
-
-    Accepts:
-        - text: str (the long text to extract from)
-
-    Returns:
-        - caption: str (extracted concise caption, max 60 chars)
-    """
+    """Extract a concise caption from longer text using LLM."""
     from config import GEMINI_TEXT_MODEL, gemini_client
 
     text = request.get("text", "").strip()
@@ -198,7 +304,6 @@ async def extract_caption(request: dict):
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini API not configured")
 
-    # If text is already short enough, return as-is
     if len(text) <= 60:
         return {"caption": text}
 
@@ -219,36 +324,26 @@ async def extract_caption(request: dict):
 
         caption = response.text.strip()
 
-        # Remove quotes if present
         if caption.startswith('"') and caption.endswith('"'):
             caption = caption[1:-1]
         if caption.startswith("'") and caption.endswith("'"):
             caption = caption[1:-1]
 
-        # Ensure it's within 60 chars (hard truncate if needed)
         if len(caption) > 60:
             caption = caption[:60].rstrip()
 
-        logger.info(f"📝 Caption extracted: {len(text)} chars → {len(caption)} chars")
+        logger.info(f"Caption extracted: {len(text)} chars -> {len(caption)} chars")
         return {"caption": caption, "original_length": len(text)}
 
     except Exception:
         logger.exception("Caption extraction failed")
-        # Fallback: simple truncation
         fallback = text[:60].rstrip()
         return {"caption": fallback, "fallback": True}
 
 
 @router.post("/extract-hashtags")
 async def extract_hashtags(request: dict):
-    """Extract 3 hashtag keywords from topic text using LLM.
-
-    Accepts:
-        - text: str (topic text to extract keywords from)
-
-    Returns:
-        - caption: str (e.g. "#키워드1 #키워드2 #키워드3")
-    """
+    """Extract 3 hashtag keywords from topic text using LLM."""
     from config import GEMINI_TEXT_MODEL, gemini_client
 
     text = request.get("text", "").strip()
@@ -279,12 +374,10 @@ async def extract_hashtags(request: dict):
 
         hashtags = response.text.strip()
 
-        # Remove surrounding quotes
         for q in ('"', "'", "`"):
             if hashtags.startswith(q) and hashtags.endswith(q):
                 hashtags = hashtags[1:-1]
 
-        # Ensure within 60 chars
         if len(hashtags) > 60:
             hashtags = hashtags[:60].rstrip()
 
