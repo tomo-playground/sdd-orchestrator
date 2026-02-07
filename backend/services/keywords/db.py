@@ -45,12 +45,55 @@ def load_synonyms_from_db() -> dict[str, str]:
     return {}
 
 def load_tag_effectiveness_map() -> dict[str, tuple[float | None, int]]:
-    """Load tag effectiveness data (Stub for V3)."""
-    return {}
+    """Load tag effectiveness data from DB.
+
+    Returns: {tag_name: (effectiveness_ratio, use_count)}
+    """
+    from models.tag import TagEffectiveness
+
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(Tag.name, TagEffectiveness.effectiveness, TagEffectiveness.use_count)
+            .join(TagEffectiveness, Tag.id == TagEffectiveness.tag_id)
+            .filter(TagEffectiveness.use_count > 0)
+            .all()
+        )
+        return {name: (eff, count) for name, eff, count in rows}
+    finally:
+        db.close()
 
 def load_tag_effectiveness_report() -> list[dict[str, Any]]:
-    """Load full effectiveness report (Stub for V3)."""
-    return []
+    """Load full effectiveness report from DB."""
+    from models.tag import TagEffectiveness
+
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(
+                Tag.name,
+                Tag.id,
+                TagEffectiveness.use_count,
+                TagEffectiveness.match_count,
+                TagEffectiveness.effectiveness,
+            )
+            .join(TagEffectiveness, Tag.id == TagEffectiveness.tag_id)
+            .filter(TagEffectiveness.use_count > 0)
+            .order_by(TagEffectiveness.effectiveness.desc())
+            .all()
+        )
+        return [
+            {
+                "tag_name": name,
+                "tag_id": tag_id,
+                "use_count": use_count,
+                "match_count": match_count,
+                "effectiveness": effectiveness,
+            }
+            for name, tag_id, use_count, match_count, effectiveness in rows
+        ]
+    finally:
+        db.close()
 
 # Legacy group mappings for Gemini-friendly prompt formatting
 _SCENE_GROUPS = [
