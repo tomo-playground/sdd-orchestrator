@@ -1,6 +1,16 @@
 "use client";
 
+import axios from "axios";
 import { Loader2, Play } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { API_BASE } from "../../constants";
+
+type TaskTypeItem = {
+  key: string;
+  label: string;
+  description: string;
+};
 
 type Props = {
   taskType: string;
@@ -23,6 +33,17 @@ export default function SetupForm({
   onMaxRoundsChange,
   onStartDebate,
 }: Props) {
+  const [taskTypes, setTaskTypes] = useState<TaskTypeItem[]>([
+    { key: "scenario", label: "Scenario", description: "" },
+  ]);
+
+  useEffect(() => {
+    axios
+      .get<{ items: TaskTypeItem[] }>(`${API_BASE}/lab/creative/task-types`)
+      .then((res) => setTaskTypes(res.data.items))
+      .catch(() => setTaskTypes([{ key: "scenario", label: "Scenario", description: "" }]));
+  }, []);
+
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
       <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
@@ -38,10 +59,11 @@ export default function SetupForm({
             onChange={(e) => onTaskTypeChange(e.target.value)}
             className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
           >
-            <option value="scenario">Scenario</option>
-            <option value="dialogue">Dialogue</option>
-            <option value="visual_concept">Visual Concept</option>
-            <option value="character_design">Character Design</option>
+            {taskTypes.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.label}
+              </option>
+            ))}
           </select>
         </div>
         <div>

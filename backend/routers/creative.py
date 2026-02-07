@@ -21,6 +21,7 @@ from schemas_creative import (
     RunRoundRequest,
     SendToStudioRequest,
     SendToStudioResponse,
+    TaskTypeListResponse,
     TraceTimelineResponse,
 )
 from services.creative_engine import create_session, finalize, run_debate, run_round
@@ -140,10 +141,20 @@ async def api_send_to_studio(
     db: Session = Depends(get_db),
 ):
     """Send finalized creative output to Studio as storyboard scenes."""
-    from services.creative_tasks.scenario import send_to_studio
+    from models.creative import CreativeSession as CS
+    from services.creative_tasks import get_task_module
+
+    session = db.get(CS, session_id)
+    if not session or session.deleted_at:
+        raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        return await send_to_studio(
+        module = get_task_module(session.task_type)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    try:
+        return await module.send_to_studio(
             db=db,
             session_id=session_id,
             storyboard_id=req.storyboard_id,
@@ -174,6 +185,18 @@ def api_delete_session(session_id: int, db: Session = Depends(get_db)):
     session.deleted_at = datetime.now(UTC)
     db.commit()
     return {"ok": True}
+
+
+# ── Task Types ───────────────────────────────────────────────
+
+
+@router.get("/task-types", response_model=TaskTypeListResponse)
+def api_list_task_types():
+    """List all available creative task types."""
+    from services.creative_tasks import TASK_REGISTRY
+
+    items = [{"key": k, **v} for k, v in TASK_REGISTRY.items()]
+    return TaskTypeListResponse(items=items)
 
 
 # ── Agent Presets ────────────────────────────────────────────

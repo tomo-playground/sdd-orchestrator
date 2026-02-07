@@ -3,14 +3,43 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
+
+VALID_TASK_TYPES = Literal["scenario", "dialogue", "visual_concept", "character_design"]
 
 # ── Common ────────────────────────────────────────────────────
 
 
 class OkResponse(BaseModel):
     ok: bool = True
+
+
+# ── Shared sub-schemas ───────────────────────────────────────
+
+
+class CriterionWeight(BaseModel):
+    """Single evaluation criterion with weight and description."""
+
+    weight: float
+    description: str
+
+
+class TokenUsage(BaseModel):
+    """LLM token usage counters."""
+
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+class AgentConfigItem(BaseModel):
+    """Agent slot in a session's agent_config array."""
+
+    preset_id: int | None = None
+    role: str | None = None
+    role_override: str | None = None
 
 
 # ── Agent Presets ─────────────────────────────────────────────
@@ -53,12 +82,12 @@ class AgentPresetResponse(BaseModel):
 
 
 class CreativeSessionCreate(BaseModel):
-    task_type: str = "scenario"
+    task_type: VALID_TASK_TYPES = "scenario"
     objective: str
-    evaluation_criteria: dict | None = None
+    evaluation_criteria: dict[str, CriterionWeight] | None = None
     character_id: int | None = None
-    context: dict | None = None
-    agent_config: list[dict] | None = None  # [{preset_id, role_override}]
+    context: dict[str, Any] | None = None
+    agent_config: list[AgentConfigItem] | None = None
     max_rounds: int = 3
 
 
@@ -66,13 +95,13 @@ class CreativeSessionResponse(BaseModel):
     id: int
     task_type: str
     objective: str
-    evaluation_criteria: dict | None = None
+    evaluation_criteria: dict[str, Any] | None = None
     character_id: int | None = None
-    context: dict | None = None
-    agent_config: list[dict] | None = None
-    final_output: dict | None = None
+    context: dict[str, Any] | None = None
+    agent_config: list[dict[str, Any]] | None = None
+    final_output: dict[str, Any] | None = None
     max_rounds: int
-    total_token_usage: dict | None = None
+    total_token_usage: TokenUsage | None = None
     status: str
     created_at: datetime | None = None
 
@@ -116,7 +145,7 @@ class CreativeTraceResponse(BaseModel):
     score: float | None = None
     feedback: str | None = None
     model_id: str
-    token_usage: dict | None = None
+    token_usage: dict[str, Any] | None = None
     latency_ms: int
     temperature: float
     parent_trace_id: int | None = None
@@ -146,7 +175,7 @@ class RunRoundRequest(BaseModel):
 class FinalizeRequest(BaseModel):
     """Select the final output."""
 
-    selected_output: dict  # The chosen result
+    selected_output: dict[str, Any]  # The chosen result
     reason: str | None = None
 
 
@@ -160,3 +189,16 @@ class SendToStudioRequest(BaseModel):
 class SendToStudioResponse(BaseModel):
     storyboard_id: int
     scenes_created: int
+
+
+# ── Task Types ──────────────────────────────────────────────
+
+
+class TaskTypeItem(BaseModel):
+    key: str
+    label: str
+    description: str
+
+
+class TaskTypeListResponse(BaseModel):
+    items: list[TaskTypeItem]

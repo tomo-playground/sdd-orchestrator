@@ -32,18 +32,16 @@ def _get_active_session(db: Session, session_id: int) -> CreativeSession:
 
 # ── Default evaluation criteria by task_type ─────────────────
 
-DEFAULT_CRITERIA: dict[str, dict] = {
-    "scenario": None,  # lazy-loaded from creative_tasks.scenario
-}
-
 
 def _get_criteria(task_type: str) -> dict:
-    """Get default evaluation criteria for a task_type."""
-    if task_type == "scenario":
-        from services.creative_tasks.scenario import DEFAULT_SCENARIO_CRITERIA
+    """Get default evaluation criteria via task_type registry."""
+    from services.creative_tasks import get_default_criteria
 
-        return DEFAULT_SCENARIO_CRITERIA.copy()
-    return {}
+    try:
+        return get_default_criteria(task_type)
+    except (ValueError, ModuleNotFoundError):
+        logger.warning("[Creative] No criteria for task_type=%s, using empty", task_type)
+        return {}
 
 
 # ── Session Management ───────────────────────────────────────
@@ -210,7 +208,7 @@ async def evaluate_round(
         cleaned = re.sub(r"\n?```\s*$", "", cleaned.strip())
         parsed = json.loads(cleaned)
         return parsed
-    except Exception as e:
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
         logger.warning("[Creative] Leader evaluation failed: %s, using fallback", e)
         agents = [r.get("agent_role", r.get("role", "unknown")) for r in gen_results]
         return {
