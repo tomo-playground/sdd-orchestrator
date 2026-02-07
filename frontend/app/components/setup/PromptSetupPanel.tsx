@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ActorGender, Character } from "../../types";
 import CharacterSelector from "./CharacterSelector";
 import { cx, SECTION_CLASSES } from "../ui/variants";
@@ -51,25 +52,14 @@ export default function PromptSetupPanel({
     selectedCharacterBId &&
     selectedCharacterId === selectedCharacterBId;
 
+  const [promptOpen, setPromptOpen] = useState(false);
+  const hasPrompt = !!(basePromptA || baseNegativePromptA || basePromptB || baseNegativePromptB);
+
   return (
     <section className={cx(SECTION_CLASSES, "grid gap-4")}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-900">
-            {isDialogue ? "Characters" : "Character"}
-          </h2>
-          <p className="text-[10px] text-zinc-400">
-            Identity and style prompts. Scene prompts handle action, camera, and background.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenPromptHelper}
-          className="rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-        >
-          Prompt Helper
-        </button>
-      </div>
+      <h2 className="text-lg font-semibold text-zinc-900">
+        {isDialogue ? "Characters" : "Character"}
+      </h2>
       <div className="flex flex-wrap items-end gap-3">
         <CharacterSelector
           label={isDialogue ? "Speaker A" : "Character"}
@@ -97,60 +87,91 @@ export default function PromptSetupPanel({
           Speaker A and B must be different characters.
         </p>
       )}
-      <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          {isDialogue ? "Base Prompt (A)" : "Base Prompt"}
-        </label>
-        <textarea
-          value={basePromptA}
-          onChange={(e) => setBasePromptA(e.target.value)}
-          rows={2}
-          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-          placeholder="1girl, eureka, (black t-shirt:1.2), ... <lora:...:1.0>"
-        />
-        <p className="text-[10px] text-zinc-500">
-          Model tags like &lt;model:...&gt; are ignored. Use the SD Model selector instead.
-        </p>
-      </div>
-      <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          {isDialogue ? "Negative Prompt (A)" : "Negative Prompt"}
-        </label>
-        <textarea
-          value={baseNegativePromptA}
-          onChange={(e) => setBaseNegativePromptA(e.target.value)}
-          rows={2}
-          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-          placeholder="verybadimagenegative_v1.3"
-        />
-      </div>
-      {isDialogue && (
-        <>
+
+      {/* Collapsible prompt section */}
+      <button
+        type="button"
+        onClick={() => setPromptOpen((v) => !v)}
+        className="flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
+      >
+        <svg
+          className={cx("h-3 w-3 transition-transform", promptOpen && "rotate-90")}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        Prompts
+        {hasPrompt && !promptOpen && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-zinc-400" />}
+      </button>
+
+      {promptOpen && (
+        <div className="grid gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Base Prompt (B)
+              {isDialogue ? "Base Prompt (A)" : "Base Prompt"}
             </label>
             <textarea
-              value={basePromptB}
-              onChange={(e) => setBasePromptB(e.target.value)}
+              value={basePromptA}
+              onChange={(e) => setBasePromptA(e.target.value)}
               rows={2}
               className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-              placeholder="1boy, character_b tags..."
+              placeholder="1girl, eureka, (black t-shirt:1.2), ... <lora:...:1.0>"
             />
+            <p className="text-[10px] text-zinc-500">
+              Model tags like &lt;model:...&gt; are ignored. Use the SD Model selector instead.
+            </p>
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Negative Prompt (B)
+              {isDialogue ? "Negative Prompt (A)" : "Negative Prompt"}
             </label>
             <textarea
-              value={baseNegativePromptB}
-              onChange={(e) => setBaseNegativePromptB(e.target.value)}
+              value={baseNegativePromptA}
+              onChange={(e) => setBaseNegativePromptA(e.target.value)}
               rows={2}
               className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
               placeholder="verybadimagenegative_v1.3"
             />
           </div>
-        </>
+          {isDialogue && (
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  Base Prompt (B)
+                </label>
+                <textarea
+                  value={basePromptB}
+                  onChange={(e) => setBasePromptB(e.target.value)}
+                  rows={2}
+                  className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+                  placeholder="1boy, character_b tags..."
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  Negative Prompt (B)
+                </label>
+                <textarea
+                  value={baseNegativePromptB}
+                  onChange={(e) => setBaseNegativePromptB(e.target.value)}
+                  rows={2}
+                  className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+                  placeholder="verybadimagenegative_v1.3"
+                />
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={onOpenPromptHelper}
+            className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+          >
+            Prompt Helper
+          </button>
+        </div>
       )}
     </section>
   );

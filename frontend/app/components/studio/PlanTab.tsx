@@ -183,6 +183,18 @@ export default function PlanTab() {
     <div className={SIDE_PANEL_LAYOUT}>
       {/* Left: Main Form */}
       <div className="space-y-6">
+        <StoryboardGeneratorPanel
+          topic={topic}
+          setTopic={(v: string) => setPlan({ topic: v })}
+          description={description}
+          setDescription={(v: string) => setPlan({ description: v })}
+          duration={duration}
+          setDuration={(v: number) => setPlan({ duration: v })}
+          language={language}
+          setLanguage={(v: string) => setPlan({ language: v })}
+          structure={structure}
+          setStructure={(v: string) => setPlan({ structure: v })}
+        />
         <PromptSetupPanel
           actorAGender={actorAGender}
           setActorAGender={(v) => setPlan({ actorAGender: v })}
@@ -201,18 +213,6 @@ export default function PlanTab() {
           setBasePromptB={(v: string) => setPlan({ basePromptB: v })}
           baseNegativePromptB={baseNegativePromptB}
           setBaseNegativePromptB={(v: string) => setPlan({ baseNegativePromptB: v })}
-        />
-        <StoryboardGeneratorPanel
-          topic={topic}
-          setTopic={(v: string) => setPlan({ topic: v })}
-          description={description}
-          setDescription={(v: string) => setPlan({ description: v })}
-          duration={duration}
-          setDuration={(v: number) => setPlan({ duration: v })}
-          language={language}
-          setLanguage={(v: string) => setPlan({ language: v })}
-          structure={structure}
-          setStructure={(v: string) => setPlan({ structure: v })}
         />
       </div>
 
