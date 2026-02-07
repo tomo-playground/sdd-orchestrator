@@ -95,7 +95,15 @@ class TestPreparePromptFlag:
 class TestStyleProfileSkipLoras:
     """Test skip_loras parameter in apply_style_profile_to_prompt."""
 
-    def _mock_db(self, profile_loras=None, default_positive="masterpiece", default_negative="lowres"):
+    def _mock_db(
+        self,
+        profile_loras=None,
+        default_positive="masterpiece",
+        default_negative="lowres",
+        positive_embeddings=None,
+        negative_embeddings=None,
+        embedding_objs=None,
+    ):
         db = MagicMock()
         storyboard = MagicMock()
         storyboard.group_id = 1
@@ -110,6 +118,8 @@ class TestStyleProfileSkipLoras:
         profile.loras = profile_loras
         profile.default_positive = default_positive
         profile.default_negative = default_negative
+        profile.positive_embeddings = positive_embeddings
+        profile.negative_embeddings = negative_embeddings
 
         lora_obj = MagicMock()
         lora_obj.name = "flat_color"
@@ -126,6 +136,8 @@ class TestStyleProfileSkipLoras:
                 mock_q.filter.return_value.first.return_value = profile
             elif model_name == "LoRA":
                 mock_q.filter.return_value.first.return_value = lora_obj
+            elif model_name == "Embedding":
+                mock_q.filter.return_value.all.return_value = embedding_objs or []
             return mock_q
 
         db.query.side_effect = query_side_effect
@@ -168,6 +180,77 @@ class TestStyleProfileSkipLoras:
         assert "<lora:flat_color:0.7>" in result_prompt
         assert "flat_color" in result_prompt  # trigger word included
         assert "masterpiece" in result_prompt
+
+    @patch("services.config_resolver.resolve_effective_config")
+    def test_embeddings_injected_into_prompts(self, mock_resolve):
+        """Positive/negative embedding trigger words are injected."""
+        mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
+        neg_emb = MagicMock()
+        neg_emb.trigger_word = "EasyNegative"
+        pos_emb = MagicMock()
+        pos_emb.trigger_word = "beautiful_style"
+        db = self._mock_db(
+            positive_embeddings=[1],
+            negative_embeddings=[2],
+            embedding_objs=[neg_emb, pos_emb],
+        )
+        # Embedding query returns different results per call
+        emb_call_count = {"n": 0}
+        original_side = db.query.side_effect
+
+        def patched_query(model):
+            model_name = getattr(model, "__name__", str(model))
+            if model_name == "Embedding":
+                mock_q = MagicMock()
+                emb_call_count["n"] += 1
+                if emb_call_count["n"] == 1:
+                    mock_q.filter.return_value.all.return_value = [pos_emb]
+                else:
+                    mock_q.filter.return_value.all.return_value = [neg_emb]
+                return mock_q
+            return original_side(model)
+
+        db.query.side_effect = patched_query
+
+        result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "bad", 10, db)
+
+        assert "beautiful_style" in result_prompt
+        assert "EasyNegative" in result_neg
+
+    @patch("services.config_resolver.resolve_effective_config")
+    def test_embeddings_applied_even_with_skip_loras(self, mock_resolve):
+        """Embeddings are applied regardless of skip_loras flag."""
+        mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
+        neg_emb = MagicMock()
+        neg_emb.trigger_word = "EasyNegative"
+        db = self._mock_db(negative_embeddings=[1])
+
+        def patched_query(model):
+            mock_q = MagicMock()
+            model_name = getattr(model, "__name__", str(model))
+            if model_name == "Embedding":
+                mock_q.filter.return_value.all.return_value = [neg_emb]
+            elif model_name == "Storyboard":
+                mock_q.filter.return_value.first.return_value = MagicMock(group_id=1)
+            elif model_name == "Group":
+                mock_q.options.return_value.filter.return_value.first.return_value = MagicMock()
+            elif model_name == "StyleProfile":
+                profile = MagicMock()
+                profile.name = "test"
+                profile.id = 1
+                profile.loras = None
+                profile.default_positive = "masterpiece"
+                profile.default_negative = None
+                profile.positive_embeddings = None
+                profile.negative_embeddings = [1]
+                mock_q.filter.return_value.first.return_value = profile
+            return mock_q
+
+        db.query.side_effect = patched_query
+
+        result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "", 10, db, skip_loras=True)
+
+        assert "EasyNegative" in result_neg  # Embedding applied even with skip_loras
 
 
 # ────────────────────────────────────────────

@@ -45,6 +45,16 @@ def get_db_session():
         db.close()
 
 
+def _resolve_embedding_triggers(embedding_ids: list[int] | None, db) -> list[str]:
+    """Resolve embedding IDs to trigger words."""
+    if not embedding_ids:
+        return []
+    from models.sd_model import Embedding
+
+    embs = db.query(Embedding).filter(Embedding.id.in_(embedding_ids), Embedding.is_active).all()
+    return [e.trigger_word for e in embs if e.trigger_word]
+
+
 def apply_style_profile_to_prompt(
     prompt: str, negative_prompt: str, storyboard_id: int | None, db, *, skip_loras: bool = False
 ) -> tuple[str, str]:
@@ -112,6 +122,10 @@ def apply_style_profile_to_prompt(
                 # Add LoRA tag (resolve name from DB, not JSONB)
                 lora_tags.append(f"<lora:{lora_obj.name}:{weight}>")
 
+        # Resolve embedding trigger words (always applied, independent of skip_loras)
+        pos_emb_triggers = _resolve_embedding_triggers(profile.positive_embeddings, db)
+        neg_emb_triggers = _resolve_embedding_triggers(profile.negative_embeddings, db)
+
         # Compose final prompt
         parts = []
 
@@ -123,11 +137,15 @@ def apply_style_profile_to_prompt(
         if trigger_words:
             parts.append(", ".join(trigger_words))
 
-        # 3. Original prompt
+        # 3. Positive embedding triggers
+        if pos_emb_triggers:
+            parts.append(", ".join(pos_emb_triggers))
+
+        # 4. Original prompt
         if prompt:
             parts.append(prompt.strip())
 
-        # 4. LoRA tags (at the end)
+        # 5. LoRA tags (at the end)
         if lora_tags:
             parts.append(", ".join(lora_tags))
 
@@ -135,13 +153,22 @@ def apply_style_profile_to_prompt(
 
         # Compose final negative prompt
         modified_negative = negative_prompt or ""
+        if neg_emb_triggers:
+            emb_str = ", ".join(neg_emb_triggers)
+            modified_negative = f"{emb_str}, {modified_negative}" if modified_negative else emb_str
         if profile.default_negative:
             if modified_negative:
                 modified_negative = f"{modified_negative}, {profile.default_negative}"
             else:
                 modified_negative = profile.default_negative
 
-        logger.info("✅ [Style Profile] Applied %d LoRAs, %d trigger words", len(lora_tags), len(trigger_words))
+        logger.info(
+            "✅ [Style Profile] Applied %d LoRAs, %d trigger words, %d pos embeds, %d neg embeds",
+            len(lora_tags),
+            len(trigger_words),
+            len(pos_emb_triggers),
+            len(neg_emb_triggers),
+        )
         logger.info("📝 [Style Profile] Final prompt: %s", modified_prompt[:200])
 
         return modified_prompt, modified_negative
