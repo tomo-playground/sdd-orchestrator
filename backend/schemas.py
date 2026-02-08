@@ -240,12 +240,12 @@ class SceneDetailResponse(BaseModel):
 
     id: int
     scene_id: int
-    script: str
-    speaker: str
-    duration: float
+    script: str | None = ""
+    speaker: str | None = ""
+    duration: float | None = 3.0
     description: str | None = None
-    image_prompt: str = ""
-    image_prompt_ko: str = ""
+    image_prompt: str | None = ""
+    image_prompt_ko: str | None = ""
     negative_prompt: str | None = None
     image_url: str | None = None
     width: int = 512

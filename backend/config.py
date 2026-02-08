@@ -295,16 +295,16 @@ VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 # --- TTS Generation Parameters ---
 # Qwen recommended: temperature=0.6~0.7, top_p=0.8~0.95
 # WARNING: Do NOT use temperature=0 (greedy) - causes infinite repetitions
-TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.6"))  # Lower = more consistent (0.6 stable)
+TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))  # Increased slightly for naturalness
 TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))  # Nucleus sampling (Qwen recommended)
-TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.2"))  # Discourage repetition
+TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.0"))  # Lowered from 1.2 to 1.0 (speed + reduce hallucination)
 TTS_MAX_NEW_TOKENS = int(
     os.getenv("TTS_MAX_NEW_TOKENS", "2048")
 )  # Official example uses 2048 (default 8192 causes trailing hallucination)
 
 # --- TTS Audio Post-processing ---
 TTS_AUDIO_TRIM_TOP_DB = int(
-    os.getenv("TTS_AUDIO_TRIM_TOP_DB", "30")
+    os.getenv("TTS_AUDIO_TRIM_TOP_DB", "60")
 )  # librosa.effects.trim threshold (removes trailing silence/hallucination)
 TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))  # Fade-in/out ms (removes click artifacts)
 TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "300"))  # Internal silence max length (ms)
@@ -314,7 +314,7 @@ TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TT
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
 
 # --- TTS Performance ---
-TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "300"))
+TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "600"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
 TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
