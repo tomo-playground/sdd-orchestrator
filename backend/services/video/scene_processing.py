@@ -361,12 +361,26 @@ async def generate_tts(
 
         for attempt in range(1 + TTS_MAX_RETRIES):
             attempt_seed = voice_seed + attempt
+            
+            # --- Simplification Logic ---
+            # If initial attempt fails, try simplifying or stripping the prompt
+            current_voice_design = voice_design
+            if attempt == 1 and voice_design:
+                # Strip complex emotion/tone descriptors, keep core characteristics
+                # Usually stripping the last few words or removing specific keywords
+                # "A young woman laughing happily" -> "A young woman"
+                logger.info(f"[TTS] Scene {i}: Attempt 2 - simplifying voice design prompt")
+                current_voice_design = ", ".join((voice_design or "").split(",")[:1]).strip()
+            elif attempt == 2:
+                # Last resort: use preset base only or empty if everything else fails
+                logger.info(f"[TTS] Scene {i}: Attempt 3 - using minimal voice design")
+                current_voice_design = preset_voice_design or ""
 
-            def _voice_design(_seed=attempt_seed):
+            def _voice_design(_seed=attempt_seed, _design=current_voice_design):
                 _torch.manual_seed(_seed)
                 return model.generate_voice_design(
                     text=clean_script,
-                    instruct=voice_design or "",
+                    instruct=_design or "",
                     language=TTS_DEFAULT_LANGUAGE,
                     temperature=TTS_TEMPERATURE,
                     top_p=TTS_TOP_P,
@@ -386,7 +400,7 @@ async def generate_tts(
             if dur > best_dur:
                 best_wav, best_sr, best_dur = wav, sr, dur
 
-            if validate_tts_duration(wav, sr, TTS_MIN_DURATION_SEC):
+            if validate_tts_duration(wav, sr, TTS_MIN_DURATION_SEC) and validate_tts_quality(wav, sr):
                 sf.write(str(tts_path), wav, sr)
                 shutil.copy2(tts_path, cached)
                 tts_duration = builder._get_audio_duration(tts_path)
@@ -398,10 +412,9 @@ async def generate_tts(
 
             logger.warning(
                 f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
-                f"too short ({dur:.2f}s < {TTS_MIN_DURATION_SEC}s), seed={attempt_seed}"
+                f"failed quality/duration validation ({dur:.2f}s), seed={attempt_seed}"
             )
 
-        # All retries exhausted — use best attempt as fallback
         if best_wav is not None and best_dur > 0:
             sf.write(str(tts_path), best_wav, best_sr)
             # Don't cache failed results — allow re-generation next render
@@ -411,10 +424,19 @@ async def generate_tts(
             )
             return True, tts_duration
 
-        logger.warning("Qwen-TTS generation failed (empty file)")
+        # All retries failed and no usable fallback found
+        error_msg = f"Qwen-TTS generation failed for scene {i} after all retries."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
     except TimeoutError:
-        logger.error(f"[TTS] Generation timed out ({TTS_TIMEOUT_SECONDS}s) for scene {i}")
+        error_msg = f"[TTS] Generation timed out ({TTS_TIMEOUT_SECONDS}s) for scene {i}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
     except Exception as e:
-        logger.error(f"TTS generation error (Qwen): {e}")
+        if isinstance(e, RuntimeError):
+            raise e
+        error_msg = f"TTS generation error (Qwen) for scene {i}: {e}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
 
     return False, 0.0

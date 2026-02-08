@@ -592,8 +592,12 @@ def _sync_speaker_mappings(
     Mapping rules:
     - Monologue (character_id only): A → character_id
     - Dialogue (both): A → character_id, B → character_b_id
-    - No characters: clear all mappings
+    - Both None: do not change existing mappings (avoids wiping when save omits character IDs)
     """
+    if character_id is None and character_b_id is None:
+        logger.debug("[SpeakerMapping] Skipping sync (both character_id and character_b_id omitted)")
+        return
+
     from services.speaker_resolver import assign_speakers
 
     speaker_map: dict[str, int] = {}
@@ -811,22 +815,18 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.structure = request.structure
 
     # Nullify asset FK references on scenes first
-    db.query(Scene).filter(
-        Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)
-    ).update(
+    db.query(Scene).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).update(
         {Scene.image_asset_id: None, Scene.environment_reference_id: None},
         synchronize_session=False,
     )
     db.flush()
 
     scene_ids = [
-        s.id for s in db.query(Scene.id).filter(
-            Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)
-        ).all()
+        s.id for s in db.query(Scene.id).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).all()
     ]
-    db.query(Scene).filter(
-        Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)
-    ).delete(synchronize_session=False)
+    db.query(Scene).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).delete(
+        synchronize_session=False
+    )
 
     db.query(MediaAsset).filter(
         MediaAsset.owner_type == "storyboard",

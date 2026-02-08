@@ -30,16 +30,21 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
     )
     if len(rms) < 4:
         return wav
-    # Scan last 25% for valley->rise pattern
-    scan_start = max(len(rms) // 2, len(rms) - 20)
+    # Scan last 30% for valley->rise pattern
+    # Hallucination often manifests as a re-rising energy after a natural decay
+    scan_start = max(int(len(rms) * 0.7), len(rms) - 15)
     min_idx = scan_start + np.argmin(rms[scan_start:])
-    if min_idx < len(rms) - 1:
+    
+    if min_idx < len(rms) - 2:  # Must have at least a few frames after valley
         valley_rms = rms[min_idx]
         peak_after = np.max(rms[min_idx + 1 :])
         median_rms = np.median(rms[:scan_start]) if scan_start > 0 else np.median(rms)
-        if valley_rms < median_rms * 0.1 and peak_after > median_rms * 0.3:
+        
+        # Criteria: sharp rise (>3x valley) and significant energy (>15% median)
+        if valley_rms < median_rms * 0.05 and peak_after > median_rms * 0.15:
             cut_sample = min_idx * frame_len
-            logger.info("[TTS] Trailing hallucination cut at %.2fs", cut_sample / sr)
+            logger.info("[TTS] Trailing hallucination cut: valley=%.4f, peak=%.4f (median=%.4f) at %.2fs", 
+                        valley_rms, peak_after, median_rms, cut_sample / sr)
             return wav[:cut_sample]
     return wav
 
@@ -97,3 +102,36 @@ def trim_tts_audio(wav: np.ndarray, sr: int) -> np.ndarray:
 def validate_tts_duration(wav: np.ndarray, sr: int, min_sec: float) -> bool:
     """Check if TTS audio meets minimum duration requirement."""
     return len(wav) / sr >= min_sec
+
+
+def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
+    """Perform basic quality checks on TTS audio.
+    
+    Checks for:
+    1. Excessive silence ratio (>50% of audio)
+    2. Signal-to-noise ratio (SNR) proxy (max energy vs median noise)
+    """
+    if len(wav) == 0:
+        return False
+        
+    # Check silence ratio
+    max_val = np.max(np.abs(wav))
+    if max_val < 1e-4:
+        return False
+        
+    threshold = max_val * 0.05
+    voiced_samples = np.sum(np.abs(wav) > threshold)
+    silence_ratio = 1.0 - (voiced_samples / len(wav))
+    
+    if silence_ratio > 0.6:  # Over 60% silence is suspicious
+        logger.warning("[TTS] Quality check failed: excessive silence (%.1f%%)", silence_ratio * 100)
+        return False
+        
+    # Check energy spread (proxy for SNR/hallucination noise)
+    # If the median absolute energy is too high relative to peak, it might be noise/hum
+    median_abs = np.median(np.abs(wav))
+    if median_abs > max_val * 0.3:
+        logger.warning("[TTS] Quality check failed: poor SNR (median/peak = %.2f)", median_abs / max_val)
+        return False
+        
+    return True
