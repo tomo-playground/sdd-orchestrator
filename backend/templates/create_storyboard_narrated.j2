@@ -81,9 +81,10 @@ Narrator Position Roles:
 - Place character tags BEFORE expression/pose/environment tags in image_prompt
 
 ⚠️ NARRATED DIALOGUE STRUCTURE RULES:
-- Create exactly 9 scenes (45 seconds total)
-- Speaker distribution: Narrator=3, A=3, B=3
-- Suggested pattern: Narrator → A → B → Narrator → A → B → Narrator → A → B
+- STRICT: Create {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
+- NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
+- Distribute evenly: ~⅓ Narrator, ~⅓ A, ~⅓ B
+- Pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 - Narrator opens (context), provides mid-story insight, and closes (reflection)
 - A and B scenes show the speaking character ONLY
 - Narrator scenes show environment, objects, or atmospheric imagery (NO characters)

@@ -113,6 +113,56 @@ def test_update_storyboard(client: TestClient):
     assert body["scenes"][0]["script"] == "New script"
 
 
+def test_update_with_environment_reference_id_no_crash(client: TestClient):
+    """Test PUT /storyboards/{id} with environment_reference_id pointing to old assets.
+
+    Regression test: during storyboard update, old MediaAssets are deleted
+    before new scenes are created. If environment_reference_id points to a
+    deleted asset, the FK constraint must not crash with 500.
+    """
+    # 1. Create storyboard with an image (creates a MediaAsset)
+    scenes = [_make_scene(0, image_url="/img/scene0.png")]
+    data = create_test_storyboard(client, title="EnvRef Test", scenes=scenes)
+    sb_id = data["storyboard_id"]
+
+    # 2. Get storyboard to find the image_asset_id
+    get_resp = client.get(f"/storyboards/{sb_id}")
+    body = get_resp.json()
+    asset_id = body["scenes"][0].get("image_asset_id")
+
+    # 3. Update with environment_reference_id pointing to the old asset
+    #    The update deletes old assets, so this reference becomes dangling
+    update_resp = client.put(f"/storyboards/{sb_id}", json={
+        "title": "EnvRef Updated",
+        "description": "test",
+        "scenes": [
+            _make_scene(0, script="Scene with env ref", environment_reference_id=asset_id),
+            _make_scene(1, script="Scene B", environment_reference_id=asset_id),
+        ],
+    })
+    # Must not crash with 500 — should succeed (environment_reference_id safely skipped)
+    assert update_resp.status_code == 200
+
+    # Verify env ref was cleared (old asset was deleted)
+    verify = client.get(f"/storyboards/{sb_id}")
+    for sc in verify.json()["scenes"]:
+        assert sc["environment_reference_id"] is None
+
+
+def test_update_with_nonexistent_environment_reference_id(client: TestClient):
+    """Test PUT with environment_reference_id pointing to non-existent asset."""
+    data = create_test_storyboard(client, title="Bad Ref", scenes=[_make_scene(0)])
+    sb_id = data["storyboard_id"]
+
+    update_resp = client.put(f"/storyboards/{sb_id}", json={
+        "title": "Bad Ref Updated",
+        "description": "test",
+        "scenes": [_make_scene(0, environment_reference_id=99999)],
+    })
+    # Must not crash — invalid reference should be safely ignored
+    assert update_resp.status_code == 200
+
+
 def test_delete_storyboard(client: TestClient):
     """Test DELETE /storyboards/{id}."""
     data = create_test_storyboard(client, title="ToDelete", scenes=[_make_scene(0)])

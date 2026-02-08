@@ -344,7 +344,14 @@ async def generate_tts(
         # Seed: preset seed > hash-based fallback
         voice_seed = preset_seed or (hash(voice_design or "") % (2**31))
 
-        logger.info(f"TTS generation (VoiceDesign): script={clean_script[:50]}..., voice_seed={voice_seed}")
+        # Pad very short scripts to prevent TTS model hang
+        # Qwen3-TTS tends to hang on very short texts (< 10 chars)
+        tts_text = clean_script
+        if len(tts_text) < 10:
+            tts_text = f"{tts_text} {tts_text} {tts_text}"
+            logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' → '{tts_text}'")
+
+        logger.info(f"TTS generation (VoiceDesign): script={tts_text[:50]}..., voice_seed={voice_seed}")
         model = await get_qwen_model_async()
 
         import soundfile as sf
@@ -377,7 +384,7 @@ async def generate_tts(
             def _voice_design(_seed=attempt_seed, _design=current_voice_design):
                 _torch.manual_seed(_seed)
                 return model.generate_voice_design(
-                    text=clean_script,
+                    text=tts_text,
                     instruct=_design or "",
                     language=TTS_DEFAULT_LANGUAGE,
                     temperature=TTS_TEMPERATURE,
@@ -386,10 +393,17 @@ async def generate_tts(
                     max_new_tokens=TTS_MAX_NEW_TOKENS,
                 )
 
-            wavs, sr = await asyncio.wait_for(
-                loop.run_in_executor(None, _voice_design),
-                timeout=TTS_TIMEOUT_SECONDS,
-            )
+            try:
+                wavs, sr = await asyncio.wait_for(
+                    loop.run_in_executor(None, _voice_design),
+                    timeout=TTS_TIMEOUT_SECONDS,
+                )
+            except TimeoutError:
+                logger.warning(
+                    f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
+                    f"timed out ({TTS_TIMEOUT_SECONDS}s), seed={attempt_seed}"
+                )
+                continue
 
             wav = trim_tts_audio(wavs[0], sr)
             dur = len(wav) / sr
@@ -424,15 +438,9 @@ async def generate_tts(
         error_msg = f"Qwen-TTS generation failed for scene {i} after all retries."
         logger.error(error_msg)
         raise RuntimeError(error_msg)
-    except TimeoutError as e:
-        error_msg = f"[TTS] Generation timed out ({TTS_TIMEOUT_SECONDS}s) for scene {i}"
-        logger.error(error_msg)
-        raise RuntimeError(error_msg) from e
     except Exception as e:
         if isinstance(e, RuntimeError):
             raise
         error_msg = f"TTS generation error (Qwen) for scene {i}: {e}"
         logger.error(error_msg)
         raise RuntimeError(error_msg) from e
-
-    return False, 0.0

@@ -56,9 +56,10 @@ LoRA Trigger Words (MUST include in every scene where speaker=B):
 - Place character tags BEFORE expression/pose/environment tags in image_prompt
 
 ⚠️ DIALOGUE STRUCTURE RULES:
-- Create exactly 7 scenes (30 seconds total)
-- Speaker A gets 4 scenes, Speaker B gets 3 scenes
-- Alternate speakers: A → B → A → B → A → B → A
+- STRICT: Create {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
+- NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
+- Speaker A gets roughly half the scenes, Speaker B gets the rest
+- Alternate speakers: A → B → A → B → A...
 - Each scene shows ONLY the speaking character (single person in frame)
 - Both characters share the SAME environment/location across all scenes
 - Conversation must feel natural and flow logically

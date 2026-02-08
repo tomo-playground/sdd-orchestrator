@@ -316,7 +316,7 @@ TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TT
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
 
 # --- TTS Performance ---
-TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "600"))
+TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "120"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
 TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import os
 import re
 from datetime import UTC
@@ -50,6 +51,32 @@ def normalize_scene_tags_key(scenes: list[dict]) -> list[dict]:
         if "scene_tags" in scene and "context_tags" not in scene:
             scene["context_tags"] = scene.pop("scene_tags")
     return scenes
+
+
+def calculate_max_scenes(duration: int) -> int:
+    """Calculate the maximum allowed scene count for a given duration.
+
+    Formula: ceil(duration / 2) — assumes minimum 2 seconds per scene.
+    Returns at least 1.
+    """
+    return max(1, math.ceil(duration / 2))
+
+
+def trim_scenes_to_duration(scenes: list[dict], duration: int) -> list[dict]:
+    """Trim Gemini-generated scenes if count exceeds max for the given duration.
+
+    Returns the original list if within bounds, or a trimmed copy.
+    """
+    max_scenes = calculate_max_scenes(duration)
+    if len(scenes) <= max_scenes:
+        return scenes
+    logger.warning(
+        "[Storyboard] Gemini returned %d scenes for %ds (max %d). Trimming.",
+        len(scenes),
+        duration,
+        max_scenes,
+    )
+    return scenes[:max_scenes]
 
 
 def truncate_title(title: str, max_length: int = 190) -> str:
@@ -173,6 +200,9 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
     # Track old→new asset ID mapping for environment_reference_id remapping
     asset_id_remap: dict[int, int] = {}
     created_scenes: list[Scene] = []
+    # Defer environment_reference_id assignment to avoid FK violation
+    # when old MediaAssets have been deleted (e.g. during storyboard update)
+    deferred_env_refs: list[int | None] = []
 
     for idx, s_data in enumerate(scenes_data):
         image_url = s_data.image_url
@@ -183,6 +213,9 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         candidates_for_db = None
         if s_data.candidates:
             candidates_for_db = [c.model_dump() if hasattr(c, "model_dump") else c for c in s_data.candidates]
+
+        # Store requested environment_reference_id for deferred assignment
+        deferred_env_refs.append(s_data.environment_reference_id)
 
         db_scene = Scene(
             storyboard_id=storyboard_id,
@@ -199,7 +232,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             context_tags=s_data.context_tags,
             use_reference_only=s_data.use_reference_only if s_data.use_reference_only is not None else True,
             reference_only_weight=s_data.reference_only_weight or 0.5,
-            environment_reference_id=s_data.environment_reference_id,
+            environment_reference_id=None,  # Deferred — set after asset remap
             environment_reference_weight=s_data.environment_reference_weight or 0.3,
             candidates=candidates_for_db,
             # Per-scene generation settings override
@@ -237,11 +270,22 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             asset_id_remap[old_asset_id] = db_scene.image_asset_id
         created_scenes.append(db_scene)
 
-    # Remap environment_reference_id from old asset IDs to new ones
-    if asset_id_remap:
-        for scene in created_scenes:
-            if scene.environment_reference_id and scene.environment_reference_id in asset_id_remap:
-                scene.environment_reference_id = asset_id_remap[scene.environment_reference_id]
+    # Apply deferred environment_reference_id with remapping
+    for i, scene in enumerate(created_scenes):
+        ref_id = deferred_env_refs[i]
+        if ref_id is None:
+            continue
+        # Remap old asset ID to new one if available
+        remapped_id = asset_id_remap.get(ref_id, ref_id)
+        # Verify the target asset exists before setting FK
+        if db.query(MediaAsset.id).filter(MediaAsset.id == remapped_id).first():
+            scene.environment_reference_id = remapped_id
+        else:
+            logger.warning(
+                "[Scene %d] environment_reference_id %d not found (deleted), skipping",
+                scene.order,
+                ref_id,
+            )
 
 
 def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:
@@ -445,6 +489,9 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
         cleaned = strip_markdown_codeblock(res.text)
         scenes = json.loads(cleaned)
         scenes = normalize_scene_tags_key(scenes)
+
+        # Guard: trim excess scenes if Gemini exceeded the duration-based limit
+        scenes = trim_scenes_to_duration(scenes, request.duration)
 
         # Warn if scripts exceed 2-line rendering limit
         MAX_SCRIPT_CHARS = 35

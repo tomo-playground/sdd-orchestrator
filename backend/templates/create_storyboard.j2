@@ -72,9 +72,9 @@ CRITICAL STYLE CONSISTENCY RULE:
 
 Instructions:
 1. Break the story into sequential scenes that fit the total duration.
-   - Target scene count: {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - STRICT: Create {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
    - Each scene: 2-3 seconds (for fast pacing)
-   - More scenes = faster cuts = better engagement
 2. Use Actor A only. Make it a single-person monologue (spoken tone).
 3. For EACH scene, follow this process:
    a) Write the script first
