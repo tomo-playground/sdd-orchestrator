@@ -4,10 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from models.creative import CreativeSession
-from models.scene import Scene
-from models.storyboard import Storyboard
-
 # ===========================================================================
 # 1. Registry (services/creative_tasks/__init__.py)
 # ===========================================================================
@@ -34,7 +30,6 @@ class TestTaskRegistry:
 
         mod = get_task_module("scenario")
         assert hasattr(mod, "DEFAULT_CRITERIA")
-        assert hasattr(mod, "send_to_studio")
 
     def test_get_task_module_unknown_raises(self):
         from services.creative_tasks import get_task_module
@@ -92,192 +87,7 @@ class TestTaskRegistry:
 
 
 # ===========================================================================
-# 2. Scenario — send_to_studio (existing, regression)
-# ===========================================================================
-
-
-class TestScenarioSendToStudio:
-    @pytest.mark.asyncio
-    async def test_creates_storyboard_and_scenes(self, db_session):
-        from services.creative_tasks.scenario import send_to_studio
-
-        session = CreativeSession(
-            task_type="scenario",
-            objective="Test",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="completed",
-            final_output={"title": "My Story", "content": "Scene 1\n\nScene 2\n\nScene 3"},
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        result = await send_to_studio(db=db_session, session_id=session.id)
-
-        assert result["scenes_created"] == 3
-        sb = db_session.get(Storyboard, result["storyboard_id"])
-        assert sb is not None
-        assert sb.title == "My Story"
-
-
-# ===========================================================================
-# 3. Dialogue — send_to_studio
-# ===========================================================================
-
-
-class TestDialogueSendToStudio:
-    @pytest.mark.asyncio
-    async def test_creates_scenes_from_dialogue_lines(self, db_session):
-        from services.creative_tasks.dialogue import send_to_studio
-
-        session = CreativeSession(
-            task_type="dialogue",
-            objective="Write dialogue",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="completed",
-            final_output={
-                "title": "Cafe Talk",
-                "content": "A: Hello!\nB: Hi there.\nA: How are you?",
-            },
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        result = await send_to_studio(db=db_session, session_id=session.id)
-
-        assert result["scenes_created"] == 3
-        scenes = (
-            db_session.query(Scene).filter(Scene.storyboard_id == result["storyboard_id"]).order_by(Scene.order).all()
-        )
-        assert scenes[0].script == "A: Hello!"
-        assert scenes[1].script == "B: Hi there."
-
-    @pytest.mark.asyncio
-    async def test_raises_if_not_finalized(self, db_session):
-        from services.creative_tasks.dialogue import send_to_studio
-
-        session = CreativeSession(
-            task_type="dialogue",
-            objective="No output",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="running",
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        with pytest.raises(ValueError, match="not finalized"):
-            await send_to_studio(db=db_session, session_id=session.id)
-
-
-# ===========================================================================
-# 4. Visual Concept — send_to_studio
-# ===========================================================================
-
-
-class TestVisualConceptSendToStudio:
-    @pytest.mark.asyncio
-    async def test_creates_scenes_from_sections(self, db_session):
-        from services.creative_tasks.visual_concept import send_to_studio
-
-        session = CreativeSession(
-            task_type="visual_concept",
-            objective="Design mood",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="completed",
-            final_output={
-                "title": "Neon City",
-                "content": "Neon-lit street at night\n\nRain-soaked reflections\n\nClose-up of neon sign",
-            },
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        result = await send_to_studio(db=db_session, session_id=session.id)
-
-        assert result["scenes_created"] == 3
-        scenes = (
-            db_session.query(Scene).filter(Scene.storyboard_id == result["storyboard_id"]).order_by(Scene.order).all()
-        )
-        # visual_concept uses description field, not script
-        assert scenes[0].description == "Neon-lit street at night"
-
-
-# ===========================================================================
-# 5. Character Design — send_to_studio
-# ===========================================================================
-
-
-class TestCharacterDesignSendToStudio:
-    @pytest.mark.asyncio
-    async def test_creates_single_scene(self, db_session):
-        from services.creative_tasks.character_design import send_to_studio
-
-        session = CreativeSession(
-            task_type="character_design",
-            objective="Design a character",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="completed",
-            final_output={
-                "title": "Hero Design",
-                "content": "Tall, silver hair, blue eyes, wears a cape",
-            },
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        result = await send_to_studio(db=db_session, session_id=session.id)
-
-        assert result["scenes_created"] == 1
-        scenes = db_session.query(Scene).filter(Scene.storyboard_id == result["storyboard_id"]).all()
-        assert len(scenes) == 1
-        assert "silver hair" in scenes[0].description
-
-    @pytest.mark.asyncio
-    async def test_appends_to_existing_storyboard(self, db_session):
-        from services.creative_tasks.character_design import send_to_studio
-
-        # Create existing storyboard with a scene
-        sb = Storyboard(title="Existing", group_id=1)
-        db_session.add(sb)
-        db_session.flush()
-        db_session.add(Scene(storyboard_id=sb.id, order=0, script="Existing scene"))
-        db_session.commit()
-
-        session = CreativeSession(
-            task_type="character_design",
-            objective="Add char",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="completed",
-            final_output={"title": "Villain", "content": "Dark armor, red eyes"},
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        result = await send_to_studio(
-            db=db_session,
-            session_id=session.id,
-            storyboard_id=sb.id,
-        )
-
-        assert result["storyboard_id"] == sb.id
-        assert result["scenes_created"] == 1
-        scenes = (
-            db_session.query(Scene)
-            .filter(Scene.storyboard_id == sb.id, Scene.deleted_at.is_(None))
-            .order_by(Scene.order)
-            .all()
-        )
-        assert len(scenes) == 2
-        assert scenes[1].order == 1
-
-
-# ===========================================================================
-# 6. creative_engine._get_criteria uses registry
+# 2. creative_engine._get_criteria uses registry
 # ===========================================================================
 
 
@@ -340,31 +150,3 @@ class TestTaskTypesEndpoint:
             assert "description" in item
 
 
-# ===========================================================================
-# 8. Router — send_to_studio dynamic dispatch
-# ===========================================================================
-
-
-class TestSendToStudioDynamic:
-    @pytest.mark.asyncio
-    async def test_send_dialogue_to_studio_via_router(self, client, db_session):
-        """POST send-to-studio with a dialogue session uses dialogue module."""
-        session = CreativeSession(
-            task_type="dialogue",
-            objective="Dialogue test",
-            evaluation_criteria={},
-            max_rounds=3,
-            status="completed",
-            final_output={"title": "Talk", "content": "A: Hey\nB: Yo"},
-        )
-        db_session.add(session)
-        db_session.commit()
-
-        resp = client.post(
-            f"/lab/creative/sessions/{session.id}/send-to-studio",
-            json={"group_id": 1},
-        )
-
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["scenes_created"] == 2

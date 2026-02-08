@@ -2,14 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { Loader2, ArrowLeft, Send, Settings, Trophy } from "lucide-react";
+import { ArrowLeft, Settings, Trophy } from "lucide-react";
 import { API_BASE } from "../../../constants";
-import type {
-  CreativeSession,
-  CreativeTrace,
-  SessionListResponse,
-  SendToStudioResponse,
-} from "../../../types/creative";
+import type { CreativeSession, CreativeTrace, SessionListResponse } from "../../../types/creative";
 import StatusBadge from "../../../components/lab/StatusBadge";
 import SetupForm from "../../../components/lab/SetupForm";
 import CreativeRoundView from "../../../components/lab/CreativeRoundView";
@@ -27,7 +22,6 @@ export default function CreativeLabTab() {
   const [selectedSession, setSelectedSession] = useState<CreativeSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [debateLoading, setDebateLoading] = useState(false);
-  const [sendLoading, setSendLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>("main");
 
@@ -76,28 +70,6 @@ export default function CreativeLabTab() {
       setDebateLoading(false);
     }
   }, [objective, taskType, maxRounds, fetchSessions]);
-
-  const handleSendToStudio = useCallback(async () => {
-    if (!selectedSession) return;
-    setSendLoading(true);
-    setError(null);
-    try {
-      const res = await axios.post<SendToStudioResponse>(
-        `${API_BASE}/lab/creative/sessions/${selectedSession.id}/send-to-studio`,
-        {}
-      );
-      alert(
-        `Sent to Studio: storyboard #${res.data.storyboard_id}, ${res.data.scenes_created} scene(s) created.`
-      );
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.detail ?? err.message)
-        : "Failed to send to studio";
-      setError(String(msg));
-    } finally {
-      setSendLoading(false);
-    }
-  }, [selectedSession]);
 
   const handleFinalize = useCallback(
     async (trace: CreativeTrace) => {
@@ -189,9 +161,7 @@ export default function CreativeLabTab() {
       {selectedSession ? (
         <ActiveSessionView
           session={selectedSession}
-          sendLoading={sendLoading}
           onBack={handleBack}
-          onSendToStudio={handleSendToStudio}
           onFinalize={handleFinalize}
         />
       ) : (
@@ -221,15 +191,11 @@ export default function CreativeLabTab() {
 
 function ActiveSessionView({
   session,
-  sendLoading,
   onBack,
-  onSendToStudio,
   onFinalize,
 }: {
   session: CreativeSession;
-  sendLoading: boolean;
   onBack: () => void;
-  onSendToStudio: () => void;
   onFinalize: (trace: CreativeTrace) => void;
 }) {
   const finalOutput = session.final_output as Record<string, unknown> | null;
@@ -237,31 +203,15 @@ function ActiveSessionView({
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to List
-            </button>
-            <StatusBadge status={session.status} />
-            <span className="text-[10px] text-zinc-400">#{session.id}</span>
-          </div>
-          {session.status === "completed" && (
-            <button
-              onClick={onSendToStudio}
-              disabled={sendLoading}
-              className="flex items-center gap-1 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {sendLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-              Send to Studio
-            </button>
-          )}
+        <div className="mb-3 flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to List
+          </button>
+          <StatusBadge status={session.status} />
+          <span className="text-[10px] text-zinc-400">#{session.id}</span>
         </div>
         <p className="text-xs text-zinc-600">{session.objective}</p>
         {finalOutput && (

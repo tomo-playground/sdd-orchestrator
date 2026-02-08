@@ -180,18 +180,6 @@ class FinalizeRequest(BaseModel):
     reason: str | None = None
 
 
-class SendToStudioRequest(BaseModel):
-    """Send creative output to Studio as storyboard scenes."""
-
-    storyboard_id: int | None = None  # Existing storyboard, or create new
-    group_id: int = 1
-
-
-class SendToStudioResponse(BaseModel):
-    storyboard_id: int
-    scenes_created: int
-
-
 # ── Task Types ──────────────────────────────────────────────
 
 

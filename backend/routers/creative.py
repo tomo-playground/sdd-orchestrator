@@ -19,8 +19,6 @@ from schemas_creative import (
     FinalizeRequest,
     OkResponse,
     RunRoundRequest,
-    SendToStudioRequest,
-    SendToStudioResponse,
     TaskTypeListResponse,
     TraceTimelineResponse,
 )
@@ -129,36 +127,6 @@ async def api_finalize(
             session_id=session_id,
             selected_output=req.selected_output,
             reason=req.reason,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-
-
-@router.post("/sessions/{session_id}/send-to-studio", response_model=SendToStudioResponse)
-async def api_send_to_studio(
-    session_id: int,
-    req: SendToStudioRequest,
-    db: Session = Depends(get_db),
-):
-    """Send finalized creative output to Studio as storyboard scenes."""
-    from models.creative import CreativeSession as CS
-    from services.creative_tasks import get_task_module
-
-    session = db.get(CS, session_id)
-    if not session or session.deleted_at:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    try:
-        module = get_task_module(session.task_type)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-
-    try:
-        return await module.send_to_studio(
-            db=db,
-            session_id=session_id,
-            storyboard_id=req.storyboard_id,
-            group_id=req.group_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
