@@ -326,7 +326,7 @@ async def generate_tts(
 
         if not voice_design and not is_narrator:
             # Prefer Korean prompt (usually richer context) > English prompt > Tags
-            context_text = scene_req.image_prompt_ko or scene_req.image_prompt or ""
+            context_text = getattr(scene_req, "image_prompt_ko", "") or getattr(scene_req, "image_prompt", "") or ""
             if context_text:
                 # Merge: preset_voice_design (Base) + context -> Final Prompt
                 voice_design = generate_context_aware_voice_prompt(
@@ -424,15 +424,15 @@ async def generate_tts(
         error_msg = f"Qwen-TTS generation failed for scene {i} after all retries."
         logger.error(error_msg)
         raise RuntimeError(error_msg)
-    except TimeoutError:
+    except TimeoutError as e:
         error_msg = f"[TTS] Generation timed out ({TTS_TIMEOUT_SECONDS}s) for scene {i}"
         logger.error(error_msg)
-        raise RuntimeError(error_msg)
+        raise RuntimeError(error_msg) from e
     except Exception as e:
         if isinstance(e, RuntimeError):
-            raise e
+            raise
         error_msg = f"TTS generation error (Qwen) for scene {i}: {e}"
         logger.error(error_msg)
-        raise RuntimeError(error_msg)
+        raise RuntimeError(error_msg) from e
 
     return False, 0.0

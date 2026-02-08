@@ -3,6 +3,7 @@
 Covers narrator_voice_preset_id update and verifies partial update behavior.
 """
 
+import pytest
 from sqlalchemy.orm import Session
 
 
@@ -111,15 +112,13 @@ class TestGroupConfigUpdate:
     def test_update_nonexistent_voice_preset_id_fails(self, client, db_session):
         """PUT with nonexistent narrator_voice_preset_id should fail (FK constraint).
 
-        Even though narrator_voice_preset_id is nullable, setting a non-null invalid ID
-        violates the foreign key constraint.
+        SQLite enforces FK constraint → IntegrityError propagates through TestClient.
         """
-        import pytest
+        from sqlalchemy.exc import IntegrityError
 
         group_id = self._create_group(db_session)
 
-        # Expecting FK constraint violation (500) since voice_preset 99999 doesn't exist
-        with pytest.raises(Exception):  # SQLite raises IntegrityError, caught by FastAPI
+        with pytest.raises(IntegrityError):
             client.put(
                 f"/groups/{group_id}/config",
                 json={"narrator_voice_preset_id": 99999},
