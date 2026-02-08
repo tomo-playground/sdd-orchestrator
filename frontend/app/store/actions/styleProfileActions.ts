@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
+import { imageUrlForPayload } from "./storyboardActions";
 
 /** The subset of style profile fields used in the output slice. */
 interface StyleProfileSelection {
@@ -114,7 +115,7 @@ function buildScenesPayload(scenes: ReturnType<typeof useStudioStore.getState>["
     duration: s.duration,
     image_prompt: s.image_prompt,
     image_prompt_ko: s.image_prompt_ko,
-    image_url: s.image_asset_id ? null : s.image_url,
+    image_url: imageUrlForPayload(s.image_url, s.image_asset_id ?? null),
     description: s.description,
     width: s.width || 512,
     height: s.height || 768,

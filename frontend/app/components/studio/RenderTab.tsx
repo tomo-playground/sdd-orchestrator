@@ -128,6 +128,12 @@ export default function RenderTab() {
           showToast("프로젝트/그룹을 먼저 선택해주세요", "error");
           return;
         }
+        const hasDataUrl = scenes.some((s) => s.image_url?.startsWith("data:"));
+        if (hasDataUrl) {
+          showToast("이미지를 저장한 뒤 렌더해주세요 (data URL은 전송할 수 없습니다)", "error");
+          setOutput({ isRendering: false });
+          return;
+        }
 
         const payload = {
           project_id: store.projectId,
@@ -136,7 +142,7 @@ export default function RenderTab() {
           scenes: scenes
             .filter((s) => s.image_url)
             .map((s) => ({
-              image_url: s.image_url,
+              image_url: s.image_url!,
               script: s.script,
               speaker: s.speaker,
               duration: s.duration,
@@ -275,7 +281,19 @@ export default function RenderTab() {
         voiceDesignPrompt={voiceDesignPrompt}
         setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
         voicePresetId={voicePresetId}
-        setVoicePresetId={(v) => setOutput({ voicePresetId: v })}
+        setVoicePresetId={async (v) => {
+          setOutput({ voicePresetId: v });
+          // Persist to Group Config
+          if (store.groupId) {
+            try {
+              await axios.put(`${API_BASE}/groups/${store.groupId}/config`, {
+                narrator_voice_preset_id: v,
+              });
+            } catch (err) {
+              console.error("[setVoicePresetId] Failed to update group config:", err);
+            }
+          }
+        }}
         bgmMode={bgmMode}
         setBgmMode={(v) => setOutput({ bgmMode: v })}
         musicPresetId={musicPresetId}

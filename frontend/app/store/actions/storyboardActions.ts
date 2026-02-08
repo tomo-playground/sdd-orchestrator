@@ -18,6 +18,19 @@ export function sanitizeCandidatesForDb(
 }
 
 /**
+ * Image URL to send in save payload. Never send data: (base64) — backend ignores it
+ * and it blows up request size → Network Error. Send null when asset_id is set or URL is data:.
+ */
+export function imageUrlForPayload(
+  imageUrl: string | undefined | null,
+  imageAssetId: number | null
+): string | null {
+  if (imageAssetId != null) return null;
+  if (!imageUrl || imageUrl.startsWith("data:")) return null;
+  return imageUrl;
+}
+
+/**
  * Auto-save storyboard before image generation
  * Ensures all activity logs have proper storyboard_id
  *
@@ -57,7 +70,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         duration: s.duration,
         image_prompt: s.image_prompt,
         image_prompt_ko: s.image_prompt_ko,
-        image_url: s.image_asset_id ? null : s.image_url,
+        image_url: imageUrlForPayload(s.image_url, s.image_asset_id ?? null),
         description: s.description,
         width: s.width || 512,
         height: s.height || 768,
@@ -212,7 +225,7 @@ export async function persistStoryboard(): Promise<boolean> {
         duration: s.duration,
         image_prompt: s.image_prompt,
         image_prompt_ko: s.image_prompt_ko,
-        image_url: s.image_asset_id ? null : s.image_url,
+        image_url: imageUrlForPayload(s.image_url, s.image_asset_id ?? null),
         description: s.description,
         width: s.width || 512,
         height: s.height || 768,

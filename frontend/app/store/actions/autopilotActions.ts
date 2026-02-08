@@ -196,13 +196,24 @@ export async function runAutoRunFromStep(
         for (const scene of workingScenes) {
           assertNotCancelled();
           if (!scene.image_url) continue;
+          // Don't send data: (base64) in body — causes large request → Network Error. Use URL or skip.
+          if (scene.image_url.startsWith("data:")) continue;
           try {
-            await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, {
-              image_b64: scene.image_url,
-              prompt: scene.debug_prompt || scene.image_prompt,
-              storyboard_id: storyboardId,
-              scene_id: scene.id,
-            });
+            const payload =
+              scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
+                ? {
+                    image_url: scene.image_url,
+                    prompt: scene.debug_prompt || scene.image_prompt,
+                    storyboard_id: storyboardId,
+                    scene_id: scene.id,
+                  }
+                : {
+                    image_b64: scene.image_url,
+                    prompt: scene.debug_prompt || scene.image_prompt,
+                    storyboard_id: storyboardId,
+                    scene_id: scene.id,
+                  };
+            await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
           } catch {
             // non-critical
           }

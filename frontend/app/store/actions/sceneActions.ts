@@ -196,17 +196,21 @@ export async function handleValidateImage(scene: Scene) {
     showToast("Upload or generate an image first.", "error");
     return;
   }
+  // Sending data: (base64) in request body causes large payload → Network Error. Use stored URL only.
+  if (scene.image_url.startsWith("data:")) {
+    showToast("Save the scene first (image must be stored).", "error");
+    return;
+  }
   useStudioStore.getState().setScenesState({ validatingSceneId: scene.id });
   const prompt = scene.debug_prompt || scene.image_prompt;
   const { storyboardId } = useStudioStore.getState();
 
   try {
-    const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, {
-      image_b64: scene.image_url,
-      prompt,
-      storyboard_id: storyboardId,
-      scene_id: scene.id,
-    });
+    const payload =
+      scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
+        ? { image_url: scene.image_url, prompt, storyboard_id: storyboardId, scene_id: scene.id }
+        : { image_b64: scene.image_url, prompt, storyboard_id: storyboardId, scene_id: scene.id };
+    const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
     const prev = useStudioStore.getState().imageValidationResults;
     useStudioStore.getState().setScenesState({
       imageValidationResults: { ...prev, [scene.id]: res.data },

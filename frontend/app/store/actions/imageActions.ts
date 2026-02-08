@@ -11,6 +11,17 @@ import {
 } from "../../utils/sceneSettingsResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
+// Debounced save to prevent concurrent requests during batch generation
+let saveTimeout: NodeJS.Timeout | null = null;
+function debouncedSaveStoryboard() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    console.log("[debouncedSave] Executing saveStoryboard...");
+    const saved = await saveStoryboard();
+    console.log("[debouncedSave] saveStoryboard result:", saved);
+  }, 1000); // Wait 1s after last image generation
+}
+
 /** Store a base64 image on the backend and return URL + asset_id */
 export async function storeSceneImage(
   dataUrl: string,
@@ -229,7 +240,7 @@ export async function generateSceneImageFor(
             sd_params: {},
             seed: -1,
             status: "pending",
-            image_url: mainImageUrl, // Use the best image
+            image_url: mainImageUrl?.startsWith("data:") ? null : (mainImageUrl ?? null),
             match_rate: bestCandidate.match_rate || null, // Use the best match rate
           });
           activityLogId = logRes.data.id;
@@ -260,14 +271,14 @@ export async function generateSceneImageFor(
 }
 
 async function validateImageCandidate(imageUrl: string, prompt: string, sceneId?: number) {
+  if (!imageUrl || imageUrl.startsWith("data:")) return null;
   try {
     const { storyboardId } = useStudioStore.getState();
-    const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, {
-      image_b64: imageUrl,
-      prompt,
-      storyboard_id: storyboardId,
-      scene_id: sceneId,
-    });
+    const payload =
+      imageUrl.startsWith("http://") || imageUrl.startsWith("https://")
+        ? { image_url: imageUrl, prompt, storyboard_id: storyboardId, scene_id: sceneId }
+        : { image_b64: imageUrl, prompt, storyboard_id: storyboardId, scene_id: sceneId };
+    const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
     return res.data;
   } catch {
     return null;
@@ -377,9 +388,9 @@ export async function handleGenerateImage(scene: Scene) {
 
       // Auto-save after image generation to persist image_url to DB
       // Prevents image loss on page refresh
-      console.log("[handleGenerateImage] Calling saveStoryboard...");
-      const saved = await saveStoryboard();
-      console.log("[handleGenerateImage] saveStoryboard result:", saved);
+      // Debounce to prevent concurrent saves during batch generation
+      console.log("[handleGenerateImage] Scheduling saveStoryboard...");
+      debouncedSaveStoryboard();
     } else {
       console.warn("[handleGenerateImage] No result from image generation");
     }
@@ -447,6 +458,10 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     showToast("No image to edit. Generate one first.", "error");
     return;
   }
+  if (scene.image_url.startsWith("data:")) {
+    showToast("Save the scene first (image must be stored).", "error");
+    return;
+  }
   updateScene(scene.id, { isGenerating: true });
   try {
     const prompt = await buildScenePrompt(scene);
@@ -455,11 +470,11 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
       updateScene(scene.id, { isGenerating: false });
       return;
     }
-    const res = await axios.post(`${API_BASE}/scene/edit-with-gemini`, {
-      image_url: scene.image_url,
-      original_prompt: prompt,
-      target_change: targetChange,
-    });
+    const payload =
+      scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
+        ? { image_url: scene.image_url, original_prompt: prompt, target_change: targetChange }
+        : { image_b64: scene.image_url, original_prompt: prompt, target_change: targetChange };
+    const res = await axios.post(`${API_BASE}/scene/edit-with-gemini`, payload);
     if (res.data.edited_image) {
       const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
       const { projectId, groupId, storyboardId } = useStudioStore.getState();
@@ -503,16 +518,21 @@ export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiS
     showToast("No image. Generate one first.", "error");
     return [];
   }
+  if (scene.image_url.startsWith("data:")) {
+    showToast("Save the scene first (image must be stored).", "error");
+    return [];
+  }
   try {
     const prompt = await buildScenePrompt(scene);
     if (!prompt) {
       showToast("Prompt build failed", "error");
       return [];
     }
-    const res = await axios.post(`${API_BASE}/scene/suggest-edit`, {
-      image_url: scene.image_url,
-      original_prompt: prompt,
-    });
+    const payload =
+      scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
+        ? { image_url: scene.image_url, original_prompt: prompt }
+        : { image_b64: scene.image_url, original_prompt: prompt };
+    const res = await axios.post(`${API_BASE}/scene/suggest-edit`, payload);
     if (res.data.has_mismatch && res.data.suggestions?.length > 0) {
       showToast(
         `${res.data.suggestions.length} suggestions - $${res.data.cost_usd.toFixed(4)}`,
