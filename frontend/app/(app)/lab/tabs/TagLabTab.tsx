@@ -10,6 +10,13 @@ import { API_BASE } from "../../../constants";
 type Character = {
   id: number;
   name: string;
+  project_id: number;
+};
+
+type Group = {
+  id: number;
+  name: string;
+  project_id: number;
 };
 
 type WD14Result = {
@@ -63,6 +70,7 @@ export default function TagLabTab() {
   // Form state
   const [tags, setTags] = useState("");
   const [characterId, setCharacterId] = useState<number | null>(null);
+  const [groupId, setGroupId] = useState<number | null>(null);
   const [steps, setSteps] = useState(28);
   const [cfgScale, setCfgScale] = useState(7);
   const [seed, setSeed] = useState(-1);
@@ -70,18 +78,48 @@ export default function TagLabTab() {
 
   // Data state
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [result, setResult] = useState<ExperimentResult | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ── Fetch characters on mount ──────────────────────────────
+  // ── Fetch characters and groups on mount ──────────────────
   useEffect(() => {
     axios
       .get<Character[]>(`${API_BASE}/characters`)
       .then((res) => setCharacters(res.data))
       .catch(() => setCharacters([]));
+
+    axios
+      .get<Group[]>(`${API_BASE}/groups`)
+      .then((res) => {
+        setGroups(res.data);
+        // Set default group to first available
+        if (res.data.length > 0) {
+          setGroupId(res.data[0].id);
+        }
+      })
+      .catch(() => setGroups([]));
   }, []);
+
+  // ── Filter groups when character changes ───────────────────
+  const availableGroups = characterId
+    ? groups.filter((g) => {
+        const char = characters.find((c) => c.id === characterId);
+        return char ? g.project_id === char.project_id : true;
+      })
+    : groups;
+
+  // Update groupId when character changes and current group is invalid
+  useEffect(() => {
+    if (characterId && groupId) {
+      const isValidGroup = availableGroups.some((g) => g.id === groupId);
+      if (!isValidGroup && availableGroups.length > 0) {
+        setGroupId(availableGroups[0].id);
+      }
+    }
+  }, [characterId, groupId, availableGroups]);
 
   // ── Fetch history on mount ─────────────────────────────────
   const loadHistory = useCallback(async () => {
@@ -105,7 +143,7 @@ export default function TagLabTab() {
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
-    if (tagList.length === 0) return;
+    if (tagList.length === 0 || !groupId) return;
 
     setLoading(true);
     setError("");
@@ -114,6 +152,7 @@ export default function TagLabTab() {
     try {
       const res = await axios.post<ExperimentResult>(`${API_BASE}/lab/experiments/run`, {
         experiment_type: "tag_render",
+        group_id: groupId,
         character_id: characterId,
         target_tags: tagList,
         negative_prompt: negativePrompt || undefined,
@@ -128,13 +167,67 @@ export default function TagLabTab() {
     } finally {
       setLoading(false);
     }
-  }, [tags, characterId, negativePrompt, steps, cfgScale, seed, loadHistory]);
+  }, [tags, groupId, characterId, negativePrompt, steps, cfgScale, seed, loadHistory]);
 
   // ── Render ─────────────────────────────────────────────────
   const wd14 = result?.wd14_result;
 
   return (
     <div className="space-y-6">
+      {/* ── Purpose Section ── */}
+      <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5">
+        <h2 className="mb-2 text-base font-bold text-zinc-800">Tag Lab</h2>
+        <p className="text-xs leading-relaxed text-zinc-600">
+          <strong className="text-zinc-700">목표:</strong> SD 프롬프트 태그가 생성된 이미지에 정확히
+          반영되는지 검증합니다.
+        </p>
+        <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
+          WD14 Tagger로 생성 이미지를 역분석하여 입력 태그와 일치율(Match Rate)을 측정합니다. 높은
+          Match Rate는 프롬프트가 의도대로 렌더링되었음을 의미합니다.
+        </p>
+
+        {/* Collapsible Details */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-semibold text-blue-700 hover:text-blue-800">
+            📖 자세히 보기
+          </summary>
+          <div className="mt-3 space-y-3 rounded-lg border border-blue-100 bg-white p-3 text-xs">
+            <div>
+              <strong className="text-zinc-700">💡 사용 시나리오:</strong>
+              <ul className="mt-1 ml-4 list-disc space-y-0.5 text-zinc-600">
+                <li>새로운 캐릭터 LoRA 추가 시 트리거 워드 효과 검증</li>
+                <li>특정 포즈/배경 태그의 정확도 테스트</li>
+                <li>Danbooru에 없는 커스텀 태그의 SD 반영률 확인</li>
+              </ul>
+            </div>
+            <div>
+              <strong className="text-zinc-700">✅ 성공 기준:</strong>
+              <span className="ml-1 text-zinc-600">
+                Match Rate <strong className="text-emerald-600">80% 이상</strong> → 프롬프트 안정적
+                렌더링
+              </span>
+            </div>
+            <div>
+              <strong className="text-zinc-700">📊 주요 메트릭:</strong>
+              <span className="ml-1 text-zinc-600">Match Rate, Missing Tags, Extra Tags</span>
+            </div>
+            <div>
+              <strong className="text-zinc-700">🔄 워크플로우:</strong>
+              <span className="ml-1 text-zinc-600">
+                Tag Lab → Studio 프롬프트에 적용 → 품질 개선
+              </span>
+            </div>
+            <div>
+              <strong className="text-zinc-700">⚡ Quick Tips:</strong>
+              <ul className="mt-1 ml-4 list-disc space-y-0.5 text-zinc-600">
+                <li>Seed 고정(-1 제외)하면 재현성 확보</li>
+                <li>Steps 28, CFG 7이 기본 최적값</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+      </div>
+
       {/* ── Top: Two-column form + result ── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left: Form */}
@@ -157,13 +250,35 @@ export default function TagLabTab() {
               onChange={(e) => setCharacterId(e.target.value ? Number(e.target.value) : null)}
               className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
             >
-              <option value="">None</option>
+              <option value="">None (Narrator)</option>
               {characters.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+          </Field>
+
+          <Field label="Group (Style Profile)">
+            <select
+              value={groupId ?? ""}
+              onChange={(e) => setGroupId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+              title="Group determines which Style Profile (LoRAs, Quality Tags) to use"
+            >
+              {availableGroups.length === 0 ? (
+                <option value="">No groups available</option>
+              ) : (
+                availableGroups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="mt-1 text-[10px] text-zinc-400">
+              Applies Style Profile (LoRAs + Quality Tags) from this Group
+            </p>
           </Field>
 
           <div className="grid grid-cols-3 gap-3">
@@ -211,7 +326,7 @@ export default function TagLabTab() {
 
           <button
             onClick={handleRun}
-            disabled={loading || !tags.trim()}
+            disabled={loading || !tags.trim() || !groupId}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
             {loading ? (
