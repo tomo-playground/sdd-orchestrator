@@ -42,3 +42,8 @@ cache/
 
 # OS files
 .DS_Store
+
+# TTS demo and test files (temporary exploration)
+demo_tts_*.py
+reproduce_tts_issue.py
+tests/test_tts_context.py
