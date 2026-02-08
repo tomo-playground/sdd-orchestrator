@@ -8,10 +8,7 @@ from __future__ import annotations
 
 import httpx
 
-from config import logger
-
-# Danbooru API base URL
-DANBOORU_API_BASE = "https://danbooru.donmai.us"
+from config import DANBOORU_API_BASE, DANBOORU_API_TIMEOUT, DANBOORU_USER_AGENT, logger
 
 # Danbooru category IDs
 DANBOORU_CATEGORIES = {
@@ -43,20 +40,22 @@ async def get_tag_info(tag_name: str) -> dict | None:
     """
     # Always normalize to pure tag name for Danbooru
     from .keywords.core import normalize_prompt_token
+
     normalized = normalize_prompt_token(tag_name)
 
     # Skip API calls for known quality/style tags that won't have useful Danbooru info
     from .keywords.patterns import CATEGORY_PATTERNS
+
     if normalized in CATEGORY_PATTERNS.get("quality", []) or normalized in CATEGORY_PATTERNS.get("style", []):
         return None
 
     try:
-        headers = {"User-Agent": "ShortsProducer/1.0 (Contact: user@example.com)"}
+        headers = {"User-Agent": DANBOORU_USER_AGENT}
         async with httpx.AsyncClient(headers=headers) as client:
             response = await client.get(
                 f"{DANBOORU_API_BASE}/tags.json",
                 params={"search[name]": normalized, "limit": 1},
-                timeout=15.0,
+                timeout=DANBOORU_API_TIMEOUT,
             )
             response.raise_for_status()
             data = response.json()
@@ -97,7 +96,7 @@ async def get_wiki_info(tag_name: str) -> dict | None:
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{DANBOORU_API_BASE}/wiki_pages/{normalized}.json",
-                timeout=10.0,
+                timeout=DANBOORU_API_TIMEOUT,
             )
             if response.status_code == 404:
                 return None
@@ -153,7 +152,23 @@ def _classify_general_tag(tag_name: str) -> str | None:
 
     # Hair patterns
     if "hair" in name:
-        if any(c in name for c in ["blue", "red", "pink", "green", "white", "black", "brown", "blonde", "silver", "purple", "aqua", "orange"]):
+        if any(
+            c in name
+            for c in [
+                "blue",
+                "red",
+                "pink",
+                "green",
+                "white",
+                "black",
+                "brown",
+                "blonde",
+                "silver",
+                "purple",
+                "aqua",
+                "orange",
+            ]
+        ):
             return "hair_color"
         if any(length in name for length in ["long", "short", "medium", "very long"]):
             return "hair_length"
@@ -182,11 +197,15 @@ def _classify_general_tag(tag_name: str) -> str | None:
         return "camera"
 
     # Clothing patterns
-    if any(c in name for c in ["dress", "shirt", "skirt", "uniform", "jacket", "coat", "hat", "glasses", "shoes", "boots"]):
+    if any(
+        c in name for c in ["dress", "shirt", "skirt", "uniform", "jacket", "coat", "hat", "glasses", "shoes", "boots"]
+    ):
         return "clothing"
 
     # Location patterns
-    if any(loc in name for loc in ["indoor", "outdoor", "room", "street", "forest", "beach", "city", "school", "office"]):
+    if any(
+        loc in name for loc in ["indoor", "outdoor", "room", "street", "forest", "beach", "city", "school", "office"]
+    ):
         return "location_indoor" if "indoor" in name or "room" in name else "location_outdoor"
 
     # Time/Weather patterns

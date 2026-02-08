@@ -18,9 +18,6 @@ BASE_DIR = pathlib.Path(__file__).resolve().parent
 
 load_dotenv(BASE_DIR / ".env")
 
-# --- Public URL ---
-API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000")
-
 # --- Storage Configuration ---
 STORAGE_MODE = os.getenv("STORAGE_MODE", "s3")  # 's3' or 'local'
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
@@ -132,6 +129,34 @@ SD_BATCH_CONCURRENCY = int(os.getenv("SD_BATCH_CONCURRENCY", "3"))
 # 512x768 (2:3) allows perfect 1:1 top-crop and full 9:16 cover
 SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "512"))
 SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "768"))
+SD_DEFAULT_STEPS = int(os.getenv("SD_DEFAULT_STEPS", "28"))
+SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "7.0"))
+SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "DPM++ 2M Karras")
+
+# --- SD API Timeouts (lightweight operations) ---
+SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
+
+# --- ControlNet Timeouts ---
+CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))
+CONTROLNET_GENERATE_TIMEOUT = float(os.getenv("CONTROLNET_GENERATE_TIMEOUT", "180"))
+CONTROLNET_DETECT_TIMEOUT = float(os.getenv("CONTROLNET_DETECT_TIMEOUT", "60"))
+
+# --- Character Reference Generation ---
+SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
+SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "9.0"))
+SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
+SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
+
+# --- External API ---
+DANBOORU_API_BASE = os.getenv("DANBOORU_API_BASE", "https://danbooru.donmai.us")
+DANBOORU_USER_AGENT = os.getenv("DANBOORU_USER_AGENT", "ShortsProducer/1.0")
+DANBOORU_API_TIMEOUT = float(os.getenv("DANBOORU_API_TIMEOUT", "15"))
+CIVITAI_API_BASE = os.getenv("CIVITAI_API_BASE", "https://civitai.com/api/v1")
+CIVITAI_API_TIMEOUT = float(os.getenv("CIVITAI_API_TIMEOUT", "10"))
+
+# --- Font & LoRA Defaults ---
+DEFAULT_SCENE_TEXT_FONT = os.getenv("DEFAULT_SCENE_TEXT_FONT", "온글잎 박다현체.ttf")
+DEFAULT_LORA_WEIGHT = float(os.getenv("DEFAULT_LORA_WEIGHT", "0.7"))
 
 # --- Storyboard Defaults ---
 DEFAULT_STRUCTURE = "Monologue"  # Options: "Monologue", "Dialogue"

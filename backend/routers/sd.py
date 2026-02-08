@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from config import SD_LORAS_URL, SD_MODELS_URL, SD_OPTIONS_URL, logger
+from config import SD_API_TIMEOUT, SD_LORAS_URL, SD_MODELS_URL, SD_OPTIONS_URL, logger
 from schemas import SDModelRequest
 
 router = APIRouter(prefix="/sd", tags=["sd"])
@@ -16,7 +16,7 @@ async def list_sd_models():
     logger.info("📥 [SD Models]")
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.get(SD_MODELS_URL, timeout=10.0)
+            res = await client.get(SD_MODELS_URL, timeout=SD_API_TIMEOUT)
             res.raise_for_status()
             data = res.json()
             return {"models": data if isinstance(data, list) else []}
@@ -30,7 +30,7 @@ async def get_sd_options():
     logger.info("📥 [SD Options]")
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.get(SD_OPTIONS_URL, timeout=10.0)
+            res = await client.get(SD_OPTIONS_URL, timeout=SD_API_TIMEOUT)
             res.raise_for_status()
             data = res.json()
             if isinstance(data, dict):
@@ -47,7 +47,7 @@ async def update_sd_options(request: SDModelRequest):
     payload = {"sd_model_checkpoint": request.sd_model_checkpoint}
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.post(SD_OPTIONS_URL, json=payload, timeout=10.0)
+            res = await client.post(SD_OPTIONS_URL, json=payload, timeout=SD_API_TIMEOUT)
             res.raise_for_status()
             data = res.json()
             model_name = request.sd_model_checkpoint
@@ -64,7 +64,7 @@ async def list_sd_loras():
     logger.info("📥 [SD LoRAs]")
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.get(SD_LORAS_URL, timeout=10.0)
+            res = await client.get(SD_LORAS_URL, timeout=SD_API_TIMEOUT)
             res.raise_for_status()
             data = res.json()
             return {"loras": data if isinstance(data, list) else []}

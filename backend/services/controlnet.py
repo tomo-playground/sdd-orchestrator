@@ -17,6 +17,9 @@ from PIL import Image
 from sqlalchemy.orm import Session
 
 from config import (
+    CONTROLNET_API_TIMEOUT,
+    CONTROLNET_DETECT_TIMEOUT,
+    CONTROLNET_GENERATE_TIMEOUT,
     DEFAULT_CHARACTER_PRESET,
     DEFAULT_REFERENCE_BASE_PROMPT,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
@@ -70,7 +73,7 @@ CONTROLNET_MODELS = {
     "openpose": "control_v11p_sd15_openpose [cab727d4]",
     "depth": "control_v11f1p_sd15_depth [cfd03158]",
     "canny": "control_v11p_sd15_canny [d14c016b]",
-    "reference": "None", # Reference-only doesn't need a specific model if using the preprocessor
+    "reference": "None",  # Reference-only doesn't need a specific model if using the preprocessor
 }
 
 # IP-Adapter models
@@ -84,11 +87,10 @@ IP_ADAPTER_MODELS = {
 DEFAULT_IP_ADAPTER_MODEL = "clip_face"
 
 
-
 def check_controlnet_available() -> bool:
     """Check if ControlNet extension is available."""
     try:
-        resp = requests.get(f"{SD_BASE_URL}/controlnet/version", timeout=5)
+        resp = requests.get(f"{SD_BASE_URL}/controlnet/version", timeout=CONTROLNET_API_TIMEOUT)
         return resp.status_code == 200
     except Exception:
         return False
@@ -97,7 +99,7 @@ def check_controlnet_available() -> bool:
 def get_controlnet_models() -> list[str]:
     """Get list of available ControlNet models."""
     try:
-        resp = requests.get(f"{SD_BASE_URL}/controlnet/model_list", timeout=10)
+        resp = requests.get(f"{SD_BASE_URL}/controlnet/model_list", timeout=CONTROLNET_API_TIMEOUT)
         if resp.status_code == 200:
             return resp.json().get("model_list", [])
     except Exception as e:
@@ -115,6 +117,7 @@ def load_pose_reference(pose_name: str) -> str | None:
         Base64 encoded image or None if not found
     """
     from services.storage import get_storage
+
     storage = get_storage()
 
     filename = POSE_MAPPING.get(pose_name)
@@ -144,15 +147,34 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
     """
     # Priority order for pose detection (specific actions before generic)
     pose_priority = [
-        "eating", "cooking", "writing", "holding umbrella", "holding object",
-        "waving", "arms up", "thumbs up", "arms crossed", "hands on hips",
-        "jumping", "running", "walking",
-        "sitting eating", "leaning wall", "standing looking up", "profile standing",
-        "chin rest", "leaning",
-        "covering face", "pointing forward",
-        "lying", "kneeling", "crouching",
-        "looking at viewer", "from behind",
-        "sitting", "standing",
+        "eating",
+        "cooking",
+        "writing",
+        "holding umbrella",
+        "holding object",
+        "waving",
+        "arms up",
+        "thumbs up",
+        "arms crossed",
+        "hands on hips",
+        "jumping",
+        "running",
+        "walking",
+        "sitting eating",
+        "leaning wall",
+        "standing looking up",
+        "profile standing",
+        "chin rest",
+        "leaning",
+        "covering face",
+        "pointing forward",
+        "lying",
+        "kneeling",
+        "crouching",
+        "looking at viewer",
+        "from behind",
+        "sitting",
+        "standing",
     ]
 
     # Synonyms mapping for more robust detection
@@ -189,9 +211,10 @@ def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
     for tag in prompt_tags:
         # Robust cleaning: remove (), [], and weight suffix
         import re
-        clean = re.sub(r'[\(\)\[\]]', '', tag).split(":")[0].strip().lower()
+
+        clean = re.sub(r"[\(\)\[\]]", "", tag).split(":")[0].strip().lower()
         # Handle underscores
-        clean = clean.replace('_', ' ')
+        clean = clean.replace("_", " ")
         cleaned_tags.append(clean)
 
     for pose in pose_priority:
@@ -235,9 +258,9 @@ def build_controlnet_args(
         "enabled": True,
         "image": input_image,
         "model": CONTROLNET_MODELS.get(model, model),
-        "module": preprocessor or model, # Default module same as model name (e.g. openpose, canny)
+        "module": preprocessor or model,  # Default module same as model name (e.g. openpose, canny)
         "weight": weight,
-        "control_mode": control_mode, # "Balanced", "My prompt is more important", "ControlNet is more important"
+        "control_mode": control_mode,  # "Balanced", "My prompt is more important", "ControlNet is more important"
         "pixel_perfect": True,
         "low_vram": False,
         "guidance_start": 0.0,
@@ -247,7 +270,7 @@ def build_controlnet_args(
     if model == "reference":
         args["module"] = "reference_only"
         args["model"] = "None"
-        args["guidance_end"] = 0.75 # Allow prompt to take over in later steps for better flexibility
+        args["guidance_end"] = 0.75  # Allow prompt to take over in later steps for better flexibility
 
     return args
 
@@ -301,7 +324,7 @@ def generate_with_controlnet(
     resp = requests.post(
         f"{SD_BASE_URL}/sdapi/v1/txt2img",
         json=payload,
-        timeout=180,
+        timeout=CONTROLNET_GENERATE_TIMEOUT,
     )
     resp.raise_for_status()
     return resp.json()
@@ -325,7 +348,7 @@ def create_pose_from_image(image_b64: str) -> dict[str, Any]:
     resp = requests.post(
         f"{SD_BASE_URL}/controlnet/detect",
         json=payload,
-        timeout=60,
+        timeout=CONTROLNET_DETECT_TIMEOUT,
     )
     resp.raise_for_status()
     return resp.json()
@@ -334,8 +357,6 @@ def create_pose_from_image(image_b64: str) -> dict[str, Any]:
 # ============================================================
 # IP-Adapter Functions (Character Consistency)
 # ============================================================
-
-
 
 
 def save_reference_image(character_key: str, image_b64: str, db: Session | None = None) -> str:
@@ -370,6 +391,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     # Register asset via AssetService if DB is available (preferred)
     if db:
         from services.asset_service import AssetService
+
         asset_service = AssetService(db)
         char = db.query(Character).filter(Character.name == character_key).first()
         asset = asset_service.register_asset(
@@ -379,7 +401,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
             owner_type="character",
             owner_id=char.id if char else None,
             mime_type="image/png",
-            file_size=len(image_bytes)
+            file_size=len(image_bytes),
         )
 
         if char:
@@ -426,9 +448,7 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
         return []
 
     # Get all characters with preview images
-    chars = db.query(Character).filter(
-        Character.preview_image_asset_id.isnot(None)
-    ).order_by(Character.id).all()
+    chars = db.query(Character).filter(Character.preview_image_asset_id.isnot(None)).order_by(Character.id).all()
 
     return [
         {
@@ -567,17 +587,21 @@ def build_combined_controlnet_args(
     args = []
 
     if pose_image:
-        args.append(build_controlnet_args(
-            input_image=pose_image,
-            model="openpose",
-            weight=pose_weight,
-        ))
+        args.append(
+            build_controlnet_args(
+                input_image=pose_image,
+                model="openpose",
+                weight=pose_weight,
+            )
+        )
 
     if reference_image:
-        args.append(build_ip_adapter_args(
-            reference_image=reference_image,
-            weight=ip_adapter_weight,
-        ))
+        args.append(
+            build_ip_adapter_args(
+                reference_image=reference_image,
+                weight=ip_adapter_weight,
+            )
+        )
 
     return args
 
@@ -628,15 +652,12 @@ def _validate_reference_image(image_b64: str, required_tags: list[str], threshol
         "detected": found,
         "missing": missing,
         "details": tag_details,
-        "all_tags": [t["tag"] for t in tags[:20]]  # Top 20 for debugging
+        "all_tags": [t["tag"] for t in tags[:20]],  # Top 20 for debugging
     }
 
 
 async def generate_reference_for_character(
-    db: Session,
-    character: Character,
-    max_attempts: int = 3,
-    validate: bool = True
+    db: Session, character: Character, max_attempts: int = 3, validate: bool = True
 ) -> str:
     """Generate and save a reference image for a character with validation.
 
@@ -656,9 +677,9 @@ async def generate_reference_for_character(
     lora_prompt_parts = []
     if character.loras:
         for lora_entry in character.loras:
-            lora_obj = db.query(LoRA).filter(LoRA.id == lora_entry['lora_id']).first()
+            lora_obj = db.query(LoRA).filter(LoRA.id == lora_entry["lora_id"]).first()
             if lora_obj:
-                weight = lora_entry.get('weight', 1.0)
+                weight = lora_entry.get("weight", 1.0)
                 lora_prompt_parts.append(f"<lora:{lora_obj.name}:{weight}>")
                 if lora_obj.trigger_words:
                     tag_list.extend(lora_obj.trigger_words)
@@ -673,10 +694,10 @@ async def generate_reference_for_character(
     # Build full prompt (only add tags/loras if they exist)
     prompt_parts = [base_positive]
     if unique_tags:
-        prompt_parts.append(', '.join(unique_tags))
+        prompt_parts.append(", ".join(unique_tags))
     if lora_prompt_parts:
-        prompt_parts.append(' '.join(lora_prompt_parts))
-    full_prompt = ', '.join(prompt_parts)
+        prompt_parts.append(" ".join(lora_prompt_parts))
+    full_prompt = ", ".join(prompt_parts)
 
     # 4. Construct negative prompt
     # Use character's reference_negative_prompt or fallback to default
@@ -703,19 +724,19 @@ async def generate_reference_for_character(
             "height": 512,
             "cfg_scale": 7.0,
             "sampler_name": "Euler a",
-            "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1
+            "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1,
         }
 
-        logger.info(f"🎨 [{attempt+1}/{max_attempts}] Generating reference for {character.name}...")
+        logger.info(f"🎨 [{attempt + 1}/{max_attempts}] Generating reference for {character.name}...")
         logger.info(f"  Prompt: {payload['prompt'][:200]}...")
         logger.info(f"  Negative: {payload['negative_prompt'][:100]}...")
 
         # 5. Call SD
         async with httpx.AsyncClient() as client:
-            resp = await client.post(SD_TXT2IMG_URL, json=payload, timeout=120)
+            resp = await client.post(SD_TXT2IMG_URL, json=payload, timeout=CONTROLNET_GENERATE_TIMEOUT)
             resp.raise_for_status()
             r = resp.json()
-            image_b64 = r['images'][0]
+            image_b64 = r["images"][0]
 
         if not validate:
             return save_reference_image(character.name, image_b64)
@@ -724,8 +745,10 @@ async def generate_reference_for_character(
         validation = _validate_reference_image(image_b64, required_tags)
         score = len(validation["detected"]) / len(required_tags) if required_tags else 1.0
 
-        logger.info(f"🔍 [{attempt+1}] Validation: valid={validation['valid']}, "
-                   f"detected={validation['detected']}, missing={validation['missing']}")
+        logger.info(
+            f"🔍 [{attempt + 1}] Validation: valid={validation['valid']}, "
+            f"detected={validation['detected']}, missing={validation['missing']}"
+        )
 
         if validation["valid"]:
             logger.info("✅ Reference image validated successfully!")

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import CIVITAI_API_BASE, CIVITAI_API_TIMEOUT, DEFAULT_LORA_WEIGHT, logger
 from database import get_db
 from models import LoRA
 from schemas import LoRACreate, LoRAResponse, LoRAUpdate
@@ -31,9 +31,9 @@ async def search_civitai(
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "https://civitai.com/api/v1/models",
+                f"{CIVITAI_API_BASE}/models",
                 params={"query": query, "types": "LORA", "limit": limit, "sort": "Most Downloaded"},
-                timeout=10.0,
+                timeout=CIVITAI_API_TIMEOUT,
             )
             response.raise_for_status()
             data = response.json()
@@ -44,18 +44,20 @@ async def search_civitai(
             versions = model.get("modelVersions", [])
             version = versions[0] if versions else {}
 
-            results.append({
-                "civitai_id": model.get("id"),
-                "name": model.get("name"),
-                "creator": model.get("creator", {}).get("username"),
-                "downloads": model.get("stats", {}).get("downloadCount", 0),
-                "rating": model.get("stats", {}).get("rating", 0),
-                "tags": model.get("tags", []),
-                "trigger_words": version.get("trainedWords", []),
-                "base_model": version.get("baseModel"),
-                "preview_image": version.get("images", [{}])[0].get("url") if version.get("images") else None,
-                "civitai_url": f"https://civitai.com/models/{model.get('id')}",
-            })
+            results.append(
+                {
+                    "civitai_id": model.get("id"),
+                    "name": model.get("name"),
+                    "creator": model.get("creator", {}).get("username"),
+                    "downloads": model.get("stats", {}).get("downloadCount", 0),
+                    "rating": model.get("stats", {}).get("rating", 0),
+                    "tags": model.get("tags", []),
+                    "trigger_words": version.get("trainedWords", []),
+                    "base_model": version.get("baseModel"),
+                    "preview_image": version.get("images", [{}])[0].get("url") if version.get("images") else None,
+                    "civitai_url": f"https://civitai.com/models/{model.get('id')}",
+                }
+            )
 
         logger.info("🔍 [Civitai] Searched '%s': %d results", query, len(results))
         return {"query": query, "results": results}
@@ -78,8 +80,8 @@ async def import_from_civitai(civitai_id: int, db: Session = Depends(get_db)):
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"https://civitai.com/api/v1/models/{civitai_id}",
-                timeout=10.0,
+                f"{CIVITAI_API_BASE}/models/{civitai_id}",
+                timeout=CIVITAI_API_TIMEOUT,
             )
             response.raise_for_status()
             data = response.json()
@@ -97,7 +99,7 @@ async def import_from_civitai(civitai_id: int, db: Session = Depends(get_db)):
             civitai_id=civitai_id,
             civitai_url=f"https://civitai.com/models/{civitai_id}",
             trigger_words=version.get("trainedWords", []),
-            default_weight=0.7,  # Optimal for scene expression
+            default_weight=DEFAULT_LORA_WEIGHT,
             weight_min=0.5,
             weight_max=1.5,
             base_models=[version.get("baseModel")] if version.get("baseModel") else None,
@@ -242,17 +244,21 @@ async def calibrate_all_loras(db: Session = Depends(get_db)):
             lora.optimal_weight = result["optimal_weight"]
             lora.calibration_score = result["calibration_score"]
             lora.lora_type = result["lora_type"]
-            results.append({
-                "name": lora.name,
-                "optimal_weight": result["optimal_weight"],
-                "calibration_score": result["calibration_score"],
-                "lora_type": result["lora_type"],
-            })
+            results.append(
+                {
+                    "name": lora.name,
+                    "optimal_weight": result["optimal_weight"],
+                    "calibration_score": result["calibration_score"],
+                    "lora_type": result["lora_type"],
+                }
+            )
         else:
-            results.append({
-                "name": lora.name,
-                "error": result.get("error"),
-            })
+            results.append(
+                {
+                    "name": lora.name,
+                    "error": result.get("error"),
+                }
+            )
 
     db.commit()
 

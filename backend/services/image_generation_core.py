@@ -13,7 +13,16 @@ import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from config import (
+    SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_HEIGHT,
+    SD_DEFAULT_SAMPLER,
+    SD_DEFAULT_STEPS,
+    SD_DEFAULT_WIDTH,
+    SD_TIMEOUT_SECONDS,
+    SD_TXT2IMG_URL,
+    logger,
+)
 from services.prompt.v3_composition import V3PromptBuilder
 
 
@@ -87,19 +96,13 @@ async def generate_image_with_v3(
     if not style_loras:
         if group_id:
             style_loras = resolve_style_loras_from_group(group_id, db)
-            logger.debug(
-                f"{mode_prefix} Resolved {len(style_loras)} Style LoRAs from Group {group_id}"
-            )
+            logger.debug(f"{mode_prefix} Resolved {len(style_loras)} Style LoRAs from Group {group_id}")
         elif storyboard_id:
             style_loras = resolve_style_loras_from_storyboard(storyboard_id, db)
-            logger.debug(
-                f"{mode_prefix} Resolved {len(style_loras)} Style LoRAs from Storyboard {storyboard_id}"
-            )
+            logger.debug(f"{mode_prefix} Resolved {len(style_loras)} Style LoRAs from Storyboard {storyboard_id}")
         else:
             style_loras = []
-            logger.warning(
-                f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs"
-            )
+            logger.warning(f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs")
 
     # 3. V3 Composition (Character LoRA + Scene Tags + Style LoRAs)
     if character_id:
@@ -145,15 +148,11 @@ async def generate_image_with_v3(
     payload = {
         "prompt": final_prompt,
         "negative_prompt": negative_prompt,
-        "steps": sd_params.get("steps", 28) if sd_params else 28,
-        "cfg_scale": sd_params.get("cfg_scale", 7.0) if sd_params else 7.0,
-        "sampler_name": (
-            sd_params.get("sampler", "DPM++ 2M Karras")
-            if sd_params
-            else "DPM++ 2M Karras"
-        ),
-        "width": sd_params.get("width", 512) if sd_params else 512,
-        "height": sd_params.get("height", 768) if sd_params else 768,
+        "steps": sd_params.get("steps", SD_DEFAULT_STEPS) if sd_params else SD_DEFAULT_STEPS,
+        "cfg_scale": sd_params.get("cfg_scale", SD_DEFAULT_CFG_SCALE) if sd_params else SD_DEFAULT_CFG_SCALE,
+        "sampler_name": (sd_params.get("sampler", SD_DEFAULT_SAMPLER) if sd_params else SD_DEFAULT_SAMPLER),
+        "width": sd_params.get("width", SD_DEFAULT_WIDTH) if sd_params else SD_DEFAULT_WIDTH,
+        "height": sd_params.get("height", SD_DEFAULT_HEIGHT) if sd_params else SD_DEFAULT_HEIGHT,
         "seed": sd_params.get("seed", -1) if sd_params else -1,
     }
 
@@ -218,9 +217,7 @@ def resolve_style_loras_from_group(group_id: int, db: Session) -> list[dict]:
         logger.warning(f"Group {group_id} has no style_profile_id")
         return []
 
-    profile = (
-        db.query(StyleProfile).filter(StyleProfile.id == config.style_profile_id).first()
-    )
+    profile = db.query(StyleProfile).filter(StyleProfile.id == config.style_profile_id).first()
     if not profile or not profile.loras:
         return []
 
@@ -237,9 +234,7 @@ def resolve_style_loras_from_group(group_id: int, db: Session) -> list[dict]:
             {
                 "name": lora_obj.name,
                 "weight": weight,
-                "trigger_words": (
-                    list(lora_obj.trigger_words) if lora_obj.trigger_words else []
-                ),
+                "trigger_words": (list(lora_obj.trigger_words) if lora_obj.trigger_words else []),
             }
         )
 
@@ -251,9 +246,7 @@ def resolve_style_loras_from_storyboard(storyboard_id: int, db: Session) -> list
     """Resolve Style LoRAs from Storyboard (via Group Config)."""
     from models import Storyboard
 
-    storyboard = (
-        db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
-    )
+    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
     if not storyboard or not storyboard.group_id:
         logger.warning(f"Storyboard {storyboard_id} has no group_id")
         return []

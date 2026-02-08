@@ -15,7 +15,7 @@ from typing import Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-from config import ASSETS_DIR, OVERLAY_DIR, logger
+from config import ASSETS_DIR, DEFAULT_SCENE_TEXT_FONT, OVERLAY_DIR, logger
 from services.storage import get_storage
 
 
@@ -25,6 +25,7 @@ def _get_assets_dir() -> pathlib.Path:
 
 def _get_avatar_dir() -> pathlib.Path:
     from config import AVATAR_DIR
+
     return AVATAR_DIR
 
 
@@ -48,6 +49,7 @@ def load_avatar_image(filename: str | None) -> Image.Image | None:
 
     # Fallback for legacy filenames (none-storage keys)
     from config import AVATAR_DIR
+
     candidate = AVATAR_DIR / filename
     if candidate.exists():
         try:
@@ -127,7 +129,7 @@ def _build_post_meta(
 def _get_font(size: int) -> ImageFont.FreeTypeFont:
     """Get default Korean font from storage or repo assets."""
     # 1. Try shared storage first
-    font_key = "shared/fonts/온글잎 박다현체.ttf"
+    font_key = f"shared/fonts/{DEFAULT_SCENE_TEXT_FONT}"
     try:
         storage = get_storage()
         if storage.exists(font_key):
@@ -137,7 +139,7 @@ def _get_font(size: int) -> ImageFont.FreeTypeFont:
         pass
 
     # 2. Fallback to repo assets
-    font_path = str(_get_assets_dir() / "fonts" / "온글잎 박다현체.ttf")
+    font_path = str(_get_assets_dir() / "fonts" / DEFAULT_SCENE_TEXT_FONT)
     if not os.path.exists(font_path):
         font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
         if not os.path.exists(font_path):
@@ -191,7 +193,7 @@ def _is_emoji_char(char: str) -> bool:
 def resolve_scene_text_font_path(font_name: str | None) -> str:
     """Resolve font path for scene text using shared storage."""
     storage = get_storage()
-    default_font = "온글잎 박다현체.ttf"
+    default_font = DEFAULT_SCENE_TEXT_FONT
 
     # 1. Try provided font_name in storage
     if font_name:
@@ -455,7 +457,9 @@ def _draw_common_content(
     if settings.posted_time:
         meta_line = f"{settings.likes_count} 조회 · {settings.posted_time}"
     if use_stroke:
-        _draw_text_with_stroke(draw, (name_x, name_y), settings.channel_name, name_font, text_color, stroke_width, stroke_fill)
+        _draw_text_with_stroke(
+            draw, (name_x, name_y), settings.channel_name, name_font, text_color, stroke_width, stroke_fill
+        )
         if show_meta:
             _draw_text_with_stroke(draw, (meta_x, meta_y), meta_line, small_font, sub_color, stroke_width, stroke_fill)
     else:
@@ -487,7 +491,9 @@ def _draw_common_content(
     for idx, line in enumerate(caption_lines[:2]):
         y_pos = caption_y + idx * int(footer_height * 0.38)
         if use_stroke:
-            _draw_text_with_stroke(draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, stroke_width, stroke_fill)
+            _draw_text_with_stroke(
+                draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, stroke_width, stroke_fill
+            )
         else:
             draw.text((offset_x + safe_margin + 20, y_pos), line, fill=text_color, font=caption_font)
 
@@ -508,13 +514,37 @@ def _draw_clean_overlay(
     footer_top = int(height * 0.80)
     footer_height = int(height * 0.10)
 
-    header_box = (offset_x + safe_margin, offset_y + header_top, offset_x + width - safe_margin, offset_y + header_top + header_height)
-    footer_box = (offset_x + safe_margin, offset_y + footer_top, offset_x + width - safe_margin, offset_y + footer_top + footer_height)
+    header_box = (
+        offset_x + safe_margin,
+        offset_y + header_top,
+        offset_x + width - safe_margin,
+        offset_y + header_top + header_height,
+    )
+    footer_box = (
+        offset_x + safe_margin,
+        offset_y + footer_top,
+        offset_x + width - safe_margin,
+        offset_y + footer_top + footer_height,
+    )
 
     draw.rounded_rectangle(header_box, radius=28, fill=(10, 10, 10, 170))
     draw.rounded_rectangle(footer_box, radius=28, fill=(10, 10, 10, 170))
 
-    _draw_common_content(draw, canvas, width, height, settings, safe_margin, header_top, header_height, footer_top, footer_height, offset_x=offset_x, offset_y=offset_y, show_meta=False)
+    _draw_common_content(
+        draw,
+        canvas,
+        width,
+        height,
+        settings,
+        safe_margin,
+        header_top,
+        header_height,
+        footer_top,
+        footer_height,
+        offset_x=offset_x,
+        offset_y=offset_y,
+        show_meta=False,
+    )
 
 
 def _draw_minimal_overlay(
@@ -533,7 +563,22 @@ def _draw_minimal_overlay(
     footer_top = int(height * 0.80)
     footer_height = int(height * 0.10)
 
-    _draw_common_content(draw, canvas, width, height, settings, safe_margin, header_top, header_height, footer_top, footer_height, use_stroke=True, offset_x=offset_x, offset_y=offset_y, show_meta=False)
+    _draw_common_content(
+        draw,
+        canvas,
+        width,
+        height,
+        settings,
+        safe_margin,
+        header_top,
+        header_height,
+        footer_top,
+        footer_height,
+        use_stroke=True,
+        offset_x=offset_x,
+        offset_y=offset_y,
+        show_meta=False,
+    )
 
 
 def _draw_bold_overlay(
@@ -552,13 +597,39 @@ def _draw_bold_overlay(
     footer_top = int(height * 0.80)
     footer_height = int(height * 0.10)
 
-    header_box = (offset_x + safe_margin, offset_y + header_top, offset_x + width - safe_margin, offset_y + header_top + header_height)
-    footer_box = (offset_x + safe_margin, offset_y + footer_top, offset_x + width - safe_margin, offset_y + footer_top + footer_height)
+    header_box = (
+        offset_x + safe_margin,
+        offset_y + header_top,
+        offset_x + width - safe_margin,
+        offset_y + header_top + header_height,
+    )
+    footer_box = (
+        offset_x + safe_margin,
+        offset_y + footer_top,
+        offset_x + width - safe_margin,
+        offset_y + footer_top + footer_height,
+    )
 
     draw.rounded_rectangle(header_box, radius=16, fill=(255, 235, 59, 240), outline=(0, 0, 0, 255), width=4)
     draw.rounded_rectangle(footer_box, radius=16, fill=(255, 255, 255, 240), outline=(0, 0, 0, 255), width=4)
 
-    _draw_common_content(draw, canvas, width, height, settings, safe_margin, header_top, header_height, footer_top, footer_height, text_color=(0, 0, 0, 255), sub_color=(60, 60, 60, 255), offset_x=offset_x, offset_y=offset_y, show_meta=False)
+    _draw_common_content(
+        draw,
+        canvas,
+        width,
+        height,
+        settings,
+        safe_margin,
+        header_top,
+        header_height,
+        footer_top,
+        footer_height,
+        text_color=(0, 0, 0, 255),
+        sub_color=(60, 60, 60, 255),
+        offset_x=offset_x,
+        offset_y=offset_y,
+        show_meta=False,
+    )
 
 
 def _draw_overlay_header(
@@ -582,11 +653,21 @@ def _draw_overlay_header(
         pass
     elif frame_style == "overlay_bold.png":
         # Bold: yellow background
-        header_box = (offset_x + safe_margin, offset_y + header_top, offset_x + width - safe_margin, offset_y + header_top + header_height)
+        header_box = (
+            offset_x + safe_margin,
+            offset_y + header_top,
+            offset_x + width - safe_margin,
+            offset_y + header_top + header_height,
+        )
         draw.rounded_rectangle(header_box, radius=16, fill=(255, 235, 59, 240), outline=(0, 0, 0, 255), width=4)
     else:
         # Clean: dark semi-transparent background
-        header_box = (offset_x + safe_margin, offset_y + header_top, offset_x + width - safe_margin, offset_y + header_top + header_height)
+        header_box = (
+            offset_x + safe_margin,
+            offset_y + header_top,
+            offset_x + width - safe_margin,
+            offset_y + header_top + header_height,
+        )
         draw.rounded_rectangle(header_box, radius=28, fill=(10, 10, 10, 170))
 
     # Draw header content (avatar + channel name)
@@ -667,11 +748,21 @@ def _draw_overlay_footer(
         pass
     elif frame_style == "overlay_bold.png":
         # Bold: white background
-        footer_box = (offset_x + safe_margin, offset_y + footer_top, offset_x + width - safe_margin, offset_y + footer_top + footer_height)
+        footer_box = (
+            offset_x + safe_margin,
+            offset_y + footer_top,
+            offset_x + width - safe_margin,
+            offset_y + footer_top + footer_height,
+        )
         draw.rounded_rectangle(footer_box, radius=16, fill=(255, 255, 255, 240), outline=(0, 0, 0, 255), width=4)
     else:
         # Clean: dark semi-transparent background
-        footer_box = (offset_x + safe_margin, offset_y + footer_top, offset_x + width - safe_margin, offset_y + footer_top + footer_height)
+        footer_box = (
+            offset_x + safe_margin,
+            offset_y + footer_top,
+            offset_x + width - safe_margin,
+            offset_y + footer_top + footer_height,
+        )
         draw.rounded_rectangle(footer_box, radius=28, fill=(10, 10, 10, 170))
 
     # Draw footer content (caption)
@@ -695,7 +786,9 @@ def _draw_overlay_footer(
     for idx, line in enumerate(caption_lines[:2]):
         y_pos = caption_y + idx * int(footer_height * 0.38)
         if use_stroke:
-            _draw_text_with_stroke(draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, 3, (0, 0, 0, 255))
+            _draw_text_with_stroke(
+                draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, 3, (0, 0, 0, 255)
+            )
         else:
             draw.text((offset_x + safe_margin + 20, y_pos), line, fill=text_color, font=caption_font)
 
@@ -825,8 +918,7 @@ def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
 
     inner_width = card_width - (card_padding * 2)
     inner_height = card_height - (
-        card_padding * 2 + header_height + scene_text_area_height +
-        action_bar_height + caption_height
+        card_padding * 2 + header_height + scene_text_area_height + action_bar_height + caption_height
     )
     image_area = min(inner_width, inner_height)
     image_area = max(image_area, int(card_width * 0.45))
@@ -921,7 +1013,11 @@ def compose_post_frame(
             text_x = card_x + card_padding + (text_area_width - line_w) // 2
             text_y = text_start_y + idx * line_height
             _draw_text_with_fallback(
-                draw, (text_x, text_y), line, subtitle_font, emoji_font,
+                draw,
+                (text_x, text_y),
+                line,
+                subtitle_font,
+                emoji_font,
                 (0, 0, 0, 255),
                 stroke_width=0,
                 stroke_fill=(255, 255, 255, 255),
@@ -934,7 +1030,9 @@ def compose_post_frame(
     meta_font = _get_font_from_path(font_path, meta_font_size)
     caption_font = _get_font_from_path(font_path, caption_font_size)
 
-    meta_source = _build_post_meta(channel_name, caption, subtitle_text, views_override=views_override, time_override=time_override)
+    meta_source = _build_post_meta(
+        channel_name, caption, subtitle_text, views_override=views_override, time_override=time_override
+    )
     display_name = meta_source["display_name"]
     timestamp = meta_source["timestamp"]
     views = meta_source["views"]
@@ -951,10 +1049,17 @@ def compose_post_frame(
         avatar_mask_draw = ImageDraw.Draw(avatar_mask)
         avatar_mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
         avatar_resized.putalpha(avatar_mask)
-        background.alpha_composite(avatar_resized, (profile_center[0] - profile_radius, profile_center[1] - profile_radius))
+        background.alpha_composite(
+            avatar_resized, (profile_center[0] - profile_radius, profile_center[1] - profile_radius)
+        )
     else:
         draw.ellipse(
-            (profile_center[0] - profile_radius, profile_center[1] - profile_radius, profile_center[0] + profile_radius, profile_center[1] + profile_radius),
+            (
+                profile_center[0] - profile_radius,
+                profile_center[1] - profile_radius,
+                profile_center[0] + profile_radius,
+                profile_center[1] + profile_radius,
+            ),
             fill=avatar_color,
             outline=(255, 255, 255),
             width=2,
@@ -962,7 +1067,9 @@ def compose_post_frame(
         initial = (str(display_name).strip()[:1] or "A").upper()
         init_font = _get_font_from_path(font_path, int(profile_radius * 1.2))
         text_w, text_h = draw.textbbox((0, 0), initial, font=init_font)[2:]
-        draw.text((profile_center[0] - text_w / 2, profile_center[1] - text_h / 2), initial, fill=(80, 60, 40), font=init_font)
+        draw.text(
+            (profile_center[0] - text_w / 2, profile_center[1] - text_h / 2), initial, fill=(80, 60, 40), font=init_font
+        )
 
     name_x = profile_center[0] + profile_radius + int(card_width * 0.02)
     name_y = profile_center[1] - int(name_font_size * 0.5)

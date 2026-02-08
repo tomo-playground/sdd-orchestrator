@@ -11,7 +11,7 @@ import io
 import httpx
 from PIL import Image
 
-from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from config import LAB_DEFAULT_SD_STEPS, SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
 from services.controlnet import build_controlnet_args, load_pose_reference
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
@@ -46,7 +46,7 @@ async def generate_test_image(
     payload = {
         "prompt": prompt,
         "negative_prompt": CALIBRATION_NEGATIVE,
-        "steps": 20,
+        "steps": LAB_DEFAULT_SD_STEPS,
         "cfg_scale": 7.0,
         "sampler_name": "DPM++ 2M Karras",
         "seed": CALIBRATION_SEED,
@@ -65,9 +65,7 @@ async def generate_test_image(
                 model="openpose",
                 weight=0.8,
             )
-            payload["alwayson_scripts"] = {
-                "controlnet": {"args": [controlnet_args]}
-            }
+            payload["alwayson_scripts"] = {"controlnet": {"args": [controlnet_args]}}
 
     try:
         async with httpx.AsyncClient() as client:
@@ -143,12 +141,14 @@ async def calibrate_lora(
 
         match_rate, matched, missing = evaluate_image(image_bytes)
 
-        results.append({
-            "weight": weight,
-            "match_rate": match_rate,
-            "matched": matched,
-            "missing": missing,
-        })
+        results.append(
+            {
+                "weight": weight,
+                "match_rate": match_rate,
+                "matched": matched,
+                "missing": missing,
+            }
+        )
 
         logger.info(f"🔧 [Calibration] weight={weight} → {match_rate:.0f}% ({matched})")
 
@@ -173,7 +173,9 @@ async def calibrate_lora(
     else:
         lora_type = "style"  # Neutral impact
 
-    logger.info(f"🔧 [Calibration] Complete: optimal={best['weight']}, score={best['match_rate']:.0f}%, type={lora_type}")
+    logger.info(
+        f"🔧 [Calibration] Complete: optimal={best['weight']}, score={best['match_rate']:.0f}%, type={lora_type}"
+    )
 
     return {
         "success": True,
@@ -220,20 +222,17 @@ def get_optimal_weights_from_db(lora_names: list[str]) -> dict[str, float]:
     db = SessionLocal()
     try:
         # Normalize names for lookup
-        normalized_names = [
-            name.lower().replace(".safetensors", "")
-            for name in lora_names
-        ]
+        normalized_names = [name.lower().replace(".safetensors", "") for name in lora_names]
 
-        loras = db.query(LoRA).filter(
-            LoRA.name.in_(lora_names) | LoRA.name.in_(normalized_names)
-        ).all()
+        loras = db.query(LoRA).filter(LoRA.name.in_(lora_names) | LoRA.name.in_(normalized_names)).all()
 
         for lora in loras:
-            weight = get_effective_weight({
-                "optimal_weight": lora.optimal_weight,
-                "default_weight": lora.default_weight,
-            })
+            weight = get_effective_weight(
+                {
+                    "optimal_weight": lora.optimal_weight,
+                    "default_weight": lora.default_weight,
+                }
+            )
             # Store with normalized name for matching
             normalized = lora.name.lower().replace(".safetensors", "")
             weights[normalized] = weight

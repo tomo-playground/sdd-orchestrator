@@ -1,6 +1,6 @@
 """Character CRUD endpoints for Pure V3."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session, joinedload
 from config import (
     DEFAULT_REFERENCE_BASE_PROMPT,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
+    SD_REFERENCE_CFG_SCALE,
+    SD_REFERENCE_DENOISING,
+    SD_REFERENCE_HR_UPSCALER,
+    SD_REFERENCE_STEPS,
     logger,
 )
 from database import get_db
@@ -20,9 +24,14 @@ router = APIRouter(prefix="/characters", tags=["characters"])
 @router.get("/trash")
 async def list_trashed_characters(db: Session = Depends(get_db)):
     """List soft-deleted characters."""
-    items = db.query(Character).filter(
-        Character.deleted_at.isnot(None),
-    ).order_by(Character.deleted_at.desc()).all()
+    items = (
+        db.query(Character)
+        .filter(
+            Character.deleted_at.isnot(None),
+        )
+        .order_by(Character.deleted_at.desc())
+        .all()
+    )
     return [
         {
             "id": c.id,
@@ -36,9 +45,11 @@ async def list_trashed_characters(db: Session = Depends(get_db)):
 @router.get("", response_model=list[CharacterResponse])
 async def list_characters(project_id: int | None = None, db: Session = Depends(get_db)):
     """List all characters with their tags and tag metadata."""
-    query = db.query(Character).options(
-        joinedload(Character.tags).joinedload(CharacterTag.tag)
-    ).filter(Character.deleted_at.is_(None))
+    query = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.deleted_at.is_(None))
+    )
     if project_id is not None:
         query = query.filter(Character.project_id == project_id)
     characters = query.order_by(Character.name).all()
@@ -70,12 +81,16 @@ async def list_characters(project_id: int | None = None, db: Session = Depends(g
 
     return characters
 
+
 @router.get("/{character_id}", response_model=CharacterResponse)
 async def get_character(character_id: int, db: Session = Depends(get_db)):
     """Get a single character by ID with tag metadata."""
-    character = db.query(Character).options(
-        joinedload(Character.tags).joinedload(CharacterTag.tag)
-    ).filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
+    character = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == character_id, Character.deleted_at.is_(None))
+        .first()
+    )
 
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
@@ -105,12 +120,17 @@ async def get_character(character_id: int, db: Session = Depends(get_db)):
 
     return character
 
+
 @router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character(data: CharacterCreate, db: Session = Depends(get_db)):
     """Create a new character and link tags."""
-    existing = db.query(Character).filter(
-        Character.name == data.name,
-    ).first()
+    existing = (
+        db.query(Character)
+        .filter(
+            Character.name == data.name,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=409, detail="Character name already exists")
 
@@ -147,12 +167,14 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
     # Legacy Fallback: Convert legacy id lists to CharacterTagLink objects
     if data.identity_tags:
         from schemas import CharacterTagLink
+
         for tid in data.identity_tags:
             if not any(t.tag_id == tid for t in final_tags):
                 final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=True))
 
     if data.clothing_tags:
         from schemas import CharacterTagLink
+
         for tid in data.clothing_tags:
             if not any(t.tag_id == tid for t in final_tags):
                 final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=False))
@@ -163,12 +185,13 @@ async def create_character(data: CharacterCreate, db: Session = Depends(get_db))
                 character_id=character.id,
                 tag_id=tag_link.tag_id,
                 weight=tag_link.weight,
-                is_permanent=tag_link.is_permanent
+                is_permanent=tag_link.is_permanent,
             )
             db.add(link)
 
     db.commit()
     return await get_character(character.id, db)
+
 
 @router.put("/{character_id}", response_model=CharacterResponse)
 async def update_character(character_id: int, data: CharacterUpdate, db: Session = Depends(get_db)):
@@ -206,12 +229,14 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
 
         if data.identity_tags:
             from schemas import CharacterTagLink
+
             for tid in data.identity_tags:
                 if not any(t.tag_id == tid for t in final_tags):
                     final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=True))
 
         if data.clothing_tags:
             from schemas import CharacterTagLink
+
             for tid in data.clothing_tags:
                 if not any(t.tag_id == tid for t in final_tags):
                     final_tags.append(CharacterTagLink(tag_id=tid, is_permanent=False))
@@ -221,24 +246,29 @@ async def update_character(character_id: int, data: CharacterUpdate, db: Session
                 character_id=character_id,
                 tag_id=tag_link.tag_id,
                 weight=tag_link.weight,
-                is_permanent=tag_link.is_permanent
+                is_permanent=tag_link.is_permanent,
             )
             db.add(link)
 
     db.commit()
     return await get_character(character_id, db)
 
+
 @router.delete("/{character_id}")
 async def delete_character(character_id: int, db: Session = Depends(get_db)):
     """Soft-delete a character."""
-    character = db.query(Character).filter(
-        Character.id == character_id,
-        Character.deleted_at.is_(None),
-    ).first()
+    character = (
+        db.query(Character)
+        .filter(
+            Character.id == character_id,
+            Character.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
-    character.deleted_at = datetime.now(timezone.utc)
+    character.deleted_at = datetime.now(UTC)
     db.commit()
     logger.info("[Characters] Soft deleted: %s", character.name)
     return {"ok": True, "deleted": character.name}
@@ -247,10 +277,14 @@ async def delete_character(character_id: int, db: Session = Depends(get_db)):
 @router.post("/{character_id}/restore")
 async def restore_character(character_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted character."""
-    character = db.query(Character).filter(
-        Character.id == character_id,
-        Character.deleted_at.isnot(None),
-    ).first()
+    character = (
+        db.query(Character)
+        .filter(
+            Character.id == character_id,
+            Character.deleted_at.isnot(None),
+        )
+        .first()
+    )
     if not character:
         raise HTTPException(status_code=404, detail="Trashed character not found")
     character.deleted_at = None
@@ -269,6 +303,7 @@ async def permanently_delete_character(character_id: int, db: Session = Depends(
     name = character.name
     try:
         from services.controlnet import delete_reference_image
+
         delete_reference_image(name)
     except Exception as e:
         logger.warning("[Characters] Failed to delete reference image for %s: %s", name, e)
@@ -278,10 +313,12 @@ async def permanently_delete_character(character_id: int, db: Session = Depends(
     logger.info("[Characters] Permanently deleted: %s", name)
     return {"ok": True, "deleted": name}
 
+
 @router.get("/{character_id}/full", response_model=CharacterResponse)
 async def get_character_full(character_id: int, db: Session = Depends(get_db)):
     """Alias for get_character to maintain frontend compatibility."""
     return await get_character(character_id, db)
+
 
 @router.post("/{character_id}/regenerate-reference")
 async def regenerate_reference(character_id: int, db: Session = Depends(get_db)):
@@ -290,9 +327,12 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     from schemas import SceneGenerateRequest
     from services.generation import generate_scene_image
 
-    character = db.query(Character).options(
-        joinedload(Character.tags).joinedload(CharacterTag.tag)
-    ).filter(Character.id == character_id).first()
+    character = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == character_id)
+        .first()
+    )
 
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
@@ -318,25 +358,30 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
                 if lora_obj.trigger_words:
                     tag_names.extend(lora_obj.trigger_words)
 
-    full_prompt_raw = f"{base}, {', '.join(tag_names)}, {', '.join(lora_tags)}" if base else f"{', '.join(tag_names)}, {', '.join(lora_tags)}"
+    full_prompt_raw = (
+        f"{base}, {', '.join(tag_names)}, {', '.join(lora_tags)}"
+        if base
+        else f"{', '.join(tag_names)}, {', '.join(lora_tags)}"
+    )
 
     # Normalize to Danbooru standard
     from services.prompt.prompt import normalize_and_fix_tags
+
     full_prompt = normalize_and_fix_tags(full_prompt_raw)
 
     # Generate image
     request = SceneGenerateRequest(
         prompt=full_prompt,
         negative_prompt=character.reference_negative_prompt or "",
-        steps=25,
-        cfg_scale=9.0,
+        steps=SD_REFERENCE_STEPS,
+        cfg_scale=SD_REFERENCE_CFG_SCALE,
         width=512,
         height=768,
         seed=-1,
         enable_hr=True,
         hr_scale=1.5,
-        hr_upscaler="R-ESRGAN 4x+ Anime6B",  # Fix blurriness with Latent
-        denoising_strength=0.35  # Slight boost for better details
+        hr_upscaler=SD_REFERENCE_HR_UPSCALER,
+        denoising_strength=SD_REFERENCE_DENOISING,
     )
 
     res = await generate_scene_image(request)
@@ -357,6 +402,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
 
     # Use AssetService to save
     from services.storage import get_storage
+
     storage = get_storage()
     storage.save(storage_key, image_bytes, content_type="image/png")
 
@@ -369,7 +415,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
         owner_type="character",
         owner_id=character_id,
         file_size=len(image_bytes),
-        mime_type="image/png"
+        mime_type="image/png",
     )
 
     # Update character
@@ -409,9 +455,7 @@ async def enhance_preview(character_id: int, db: Session = Depends(get_db)):
     result = await service.enhance_image(image_b64)
 
     # Store enhanced image
-    enhanced_bytes = decode_data_url(
-        f"data:image/png;base64,{result['enhanced_image']}"
-    )
+    enhanced_bytes = decode_data_url(f"data:image/png;base64,{result['enhanced_image']}")
     digest = hashlib.sha1(enhanced_bytes).hexdigest()[:16]
     file_name = f"character_{character_id}_preview_{digest}.png"
     storage_key = f"characters/{character_id}/preview/{file_name}"
@@ -469,6 +513,7 @@ async def edit_preview(
     tag_names = []
     if character.tags:
         from models import CharacterTag as CT
+
         char_tags = db.query(CT).filter(CT.character_id == character_id).all()
         for ct in char_tags:
             if ct.tag:
@@ -484,9 +529,7 @@ async def edit_preview(
     )
 
     # Store edited image
-    edited_bytes = decode_data_url(
-        f"data:image/png;base64,{result['edited_image']}"
-    )
+    edited_bytes = decode_data_url(f"data:image/png;base64,{result['edited_image']}")
     digest = hashlib.sha1(edited_bytes).hexdigest()[:16]
     file_name = f"character_{character_id}_preview_{digest}.png"
     storage_key = f"characters/{character_id}/preview/{file_name}"
