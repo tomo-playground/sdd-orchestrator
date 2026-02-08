@@ -99,6 +99,20 @@ class TestCreateActivityLog:
         data = resp.json()
         assert data["status"] == "pending"
 
+    def test_create_log_with_nonexistent_scene_id_sets_null(self, client: TestClient, db_session):
+        """Scene ID that doesn't exist (e.g. after PUT recreated scenes) is set to NULL, not FK error."""
+        _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
+        resp = client.post("/activity-logs", json={
+            "storyboard_id": 1,
+            "scene_id": 99999,  # Non-existent scene (simulates stale ID after PUT)
+            "prompt": "1girl, smile",
+            "status": "pending",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        # scene_id should be NULL (not 99999) since scene doesn't exist
+        assert data["scene_id"] is None
+
 
 class TestGetStoryboardLogs:
     """Test GET /activity-logs/storyboard/{storyboard_id}."""

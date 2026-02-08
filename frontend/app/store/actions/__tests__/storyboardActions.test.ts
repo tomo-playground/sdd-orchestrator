@@ -21,6 +21,8 @@ function makeStoreState(overrides: Record<string, unknown> = {}) {
     videoCaption: null,
     setMeta: vi.fn(),
     setScenes: vi.fn(),
+    setCurrentSceneIndex: vi.fn(),
+    currentSceneIndex: 0,
     showToast: vi.fn(),
     ...overrides,
   };
@@ -190,7 +192,8 @@ describe("persistStoryboard", () => {
     expect(result).toBe(true);
     expect(axios.put).toHaveBeenCalledWith(
       expect.stringContaining("/storyboards/42"),
-      expect.objectContaining({ title: "Test Topic" })
+      expect.objectContaining({ title: "Test Topic" }),
+      expect.anything()
     );
     expect(axios.post).not.toHaveBeenCalled();
     // Verify scene IDs are updated
@@ -226,7 +229,8 @@ describe("persistStoryboard", () => {
     expect(result).toBe(true);
     expect(axios.post).toHaveBeenCalledWith(
       expect.stringContaining("/storyboards"),
-      expect.objectContaining({ title: "Test Topic" })
+      expect.objectContaining({ title: "Test Topic" }),
+      expect.anything()
     );
     expect(setMeta).toHaveBeenCalledWith({ storyboardId: 99, storyboardTitle: "Test Topic" });
     expect(setScenes).toHaveBeenCalledWith([expect.objectContaining({ id: 501 })]);
@@ -324,6 +328,73 @@ describe("saveStoryboard", () => {
 
     expect(result).toBe(false);
     expect(showToast).toHaveBeenCalledWith("Failed to save storyboard", "error");
+  });
+});
+
+describe("persistStoryboard scene index preservation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("restores currentSceneIndex after PUT scene ID update", async () => {
+    const setScenes = vi.fn();
+    const setCurrentSceneIndex = vi.fn();
+    const state = makeStoreState({
+      storyboardId: 42,
+      setScenes,
+      setCurrentSceneIndex,
+      currentSceneIndex: 2, // User is viewing scene 3 (0-indexed)
+      scenes: [
+        { id: 100, order: 1, script: "s1" },
+        { id: 101, order: 2, script: "s2" },
+        { id: 102, order: 3, script: "s3" },
+      ],
+    });
+    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [200, 201, 202] },
+    });
+
+    await persistStoryboard();
+
+    // Scene IDs should be updated
+    expect(setScenes).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 200 }),
+      expect.objectContaining({ id: 201 }),
+      expect.objectContaining({ id: 202 }),
+    ]);
+    // currentSceneIndex should be restored (not reset to 0)
+    expect(setCurrentSceneIndex).toHaveBeenCalledWith(2);
+  });
+
+  it("restores currentSceneIndex after POST scene ID assignment", async () => {
+    const setScenes = vi.fn();
+    const setMeta = vi.fn();
+    const setCurrentSceneIndex = vi.fn();
+    const state = makeStoreState({
+      storyboardId: null,
+      setScenes,
+      setMeta,
+      setCurrentSceneIndex,
+      currentSceneIndex: 1, // User is viewing scene 2
+      scenes: [
+        { id: 0, order: 1, script: "s1" },
+        { id: 1, order: 2, script: "s2" },
+      ],
+    });
+    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
+    (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { storyboard_id: 99, scene_ids: [500, 501] },
+    });
+
+    await persistStoryboard();
+
+    expect(setScenes).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 500 }),
+      expect.objectContaining({ id: 501 }),
+    ]);
+    // currentSceneIndex should be restored after POST too
+    expect(setCurrentSceneIndex).toHaveBeenCalledWith(1);
   });
 });
 

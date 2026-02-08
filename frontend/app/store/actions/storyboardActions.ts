@@ -18,19 +18,6 @@ export function sanitizeCandidatesForDb(
 }
 
 /**
- * Image URL to send in save payload. Never send data: (base64) — backend ignores it
- * and it blows up request size → Network Error. Send null when asset_id is set or URL is data:.
- */
-export function imageUrlForPayload(
-  imageUrl: string | undefined | null,
-  imageAssetId: number | null
-): string | null {
-  if (imageAssetId != null) return null;
-  if (!imageUrl || imageUrl.startsWith("data:")) return null;
-  return imageUrl;
-}
-
-/**
  * Auto-save storyboard before image generation
  * Ensures all activity logs have proper storyboard_id
  *
@@ -70,7 +57,6 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         duration: s.duration,
         image_prompt: s.image_prompt,
         image_prompt_ko: s.image_prompt_ko,
-        image_url: imageUrlForPayload(s.image_url, s.image_asset_id ?? null),
         description: s.description,
         width: s.width || 512,
         height: s.height || 768,
@@ -103,14 +89,16 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       storyboardTitle: topic || "Draft Storyboard",
     });
 
-    // Update scene IDs with DB-assigned IDs
+    // Update scene IDs with DB-assigned IDs (preserve current scene focus)
     if (sceneIds.length > 0) {
-      const { scenes: currentScenes, setScenes } = useStudioStore.getState();
+      const { scenes: currentScenes, setScenes, currentSceneIndex, setCurrentSceneIndex } =
+        useStudioStore.getState();
       const updatedScenes = currentScenes.map((scene, idx) => ({
         ...scene,
         id: sceneIds[idx] || scene.id,
       }));
       setScenes(updatedScenes);
+      setCurrentSceneIndex(currentSceneIndex);
     }
 
     // Sync URL with newly created storyboard ID
@@ -225,7 +213,6 @@ export async function persistStoryboard(): Promise<boolean> {
         duration: s.duration,
         image_prompt: s.image_prompt,
         image_prompt_ko: s.image_prompt_ko,
-        image_url: imageUrlForPayload(s.image_url, s.image_asset_id ?? null),
         description: s.description,
         width: s.width || 512,
         height: s.height || 768,
@@ -247,6 +234,12 @@ export async function persistStoryboard(): Promise<boolean> {
       })),
     };
 
+    // Preserve current scene index across setScenes (which resets to 0)
+    const preserveSceneIndex = () => {
+      const { currentSceneIndex, setCurrentSceneIndex } = useStudioStore.getState();
+      setCurrentSceneIndex(currentSceneIndex);
+    };
+
     if (storyboardId) {
       // PUT also returns scene_ids since scenes are deleted and recreated
       const res = await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload, {
@@ -256,6 +249,7 @@ export async function persistStoryboard(): Promise<boolean> {
       if (sceneIds.length > 0) {
         const current = useStudioStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
+        preserveSceneIndex();
       }
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload, {
@@ -267,6 +261,7 @@ export async function persistStoryboard(): Promise<boolean> {
       if (sceneIds.length > 0) {
         const current = useStudioStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
+        preserveSceneIndex();
       }
       // Sync URL with newly created storyboard ID
       if (typeof window !== "undefined") {

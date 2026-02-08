@@ -78,9 +78,21 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
                 if asset:
                     media_asset_id = asset.id
 
+        # Verify scene_id exists (scenes may be recreated during PUT with new IDs)
+        resolved_scene_id = request.scene_id
+        if resolved_scene_id is not None:
+            from models.scene import Scene
+            exists = db.query(Scene.id).filter(Scene.id == resolved_scene_id).first()
+            if not exists:
+                logger.warning(
+                    "[ActivityLog] scene_id %d not found (likely recreated), setting NULL",
+                    resolved_scene_id,
+                )
+                resolved_scene_id = None
+
         log = ActivityLog(
             storyboard_id=request.storyboard_id,
-            scene_id=request.scene_id,
+            scene_id=resolved_scene_id,
             character_id=request.character_id,
             prompt=request.prompt or "",
             negative_prompt=request.negative_prompt,

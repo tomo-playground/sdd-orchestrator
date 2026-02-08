@@ -98,7 +98,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
             file_name=file_name,
         )
 
-        # Update Scene record
+        # Update Scene record (scene may have been recreated with a new ID)
         if request.scene_id:
             from models.scene import Scene
 
@@ -107,6 +107,11 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
                 db_scene.image_asset_id = asset.id
                 db.add(db_scene)
                 db.commit()
+            else:
+                logger.warning(
+                    "[Image Store] scene_id %d not found (likely recreated), skipping link",
+                    request.scene_id,
+                )
 
         url = asset_service.get_asset_url(asset.storage_key)
         logger.info("💾 [Image Store] Saved: %s", asset.storage_key)

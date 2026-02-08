@@ -116,9 +116,8 @@ def test_update_storyboard(client: TestClient):
 def test_update_with_environment_reference_id_no_crash(client: TestClient):
     """Test PUT /storyboards/{id} with environment_reference_id pointing to old assets.
 
-    Regression test: during storyboard update, old MediaAssets are deleted
-    before new scenes are created. If environment_reference_id points to a
-    deleted asset, the FK constraint must not crash with 500.
+    Referenced assets are now preserved during update (not deleted), so
+    environment_reference_id should survive the update cycle.
     """
     # 1. Create storyboard with an image (creates a MediaAsset)
     scenes = [_make_scene(0, image_url="/img/scene0.png")]
@@ -131,7 +130,7 @@ def test_update_with_environment_reference_id_no_crash(client: TestClient):
     asset_id = body["scenes"][0].get("image_asset_id")
 
     # 3. Update with environment_reference_id pointing to the old asset
-    #    The update deletes old assets, so this reference becomes dangling
+    #    The asset is preserved because it's referenced by environment_reference_id
     update_resp = client.put(f"/storyboards/{sb_id}", json={
         "title": "EnvRef Updated",
         "description": "test",
@@ -140,13 +139,12 @@ def test_update_with_environment_reference_id_no_crash(client: TestClient):
             _make_scene(1, script="Scene B", environment_reference_id=asset_id),
         ],
     })
-    # Must not crash with 500 — should succeed (environment_reference_id safely skipped)
     assert update_resp.status_code == 200
 
-    # Verify env ref was cleared (old asset was deleted)
+    # Verify env ref is preserved (asset was kept because it's referenced)
     verify = client.get(f"/storyboards/{sb_id}")
     for sc in verify.json()["scenes"]:
-        assert sc["environment_reference_id"] is None
+        assert sc["environment_reference_id"] == asset_id
 
 
 def test_update_with_nonexistent_environment_reference_id(client: TestClient):

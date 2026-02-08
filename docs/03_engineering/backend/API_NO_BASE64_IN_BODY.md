@@ -11,8 +11,8 @@
 
 | 위치 | API | 방어 방법 |
 |------|-----|-----------|
-| `storyboardActions` | PUT/POST `/storyboards` | `imageUrlForPayload()` — data: 또는 asset 없으면 `null` |
-| `styleProfileActions` | PUT `/storyboards/:id` | 동일하게 `imageUrlForPayload()` 사용 |
+| `storyboardActions` | PUT/POST `/storyboards` | `image_url` 필드 자체를 payload에서 제거. `image_asset_id`로 참조 |
+| `styleProfileActions` | PUT `/storyboards/:id` | 동일하게 `image_url` 제거, `image_asset_id` 사용 |
 | `autopilotActions` (Validate) | POST `/scene/validate-and-auto-edit` | `scene.image_url`이 data:면 해당 씬 스킵; HTTP면 `image_url`로 전송 |
 | `sceneActions` (수동 검증) | POST `/scene/validate-and-auto-edit` | data:면 "먼저 저장하세요" 토스트 후 호출 안 함; HTTP면 `image_url`로 전송 |
 | `imageActions.validateImageCandidate` | POST `/scene/validate-and-auto-edit` | 인자로 받은 URL이 data:면 API 호출 안 함 (즉시 `null` 반환) |
@@ -28,6 +28,6 @@
 
 ## 관련 코드
 
-- `frontend/app/store/actions/storyboardActions.ts`: `imageUrlForPayload()`, `sanitizeCandidatesForDb()`
-- `backend/services/storyboard.py`: `create_scenes()` 내 `image_url.startswith("data:")` 시 무시 (저장 안 함)
+- `frontend/app/store/actions/storyboardActions.ts`: `sanitizeCandidatesForDb()` — candidates에서 `image_url` 제거 후 저장
+- `backend/services/storyboard.py`: `create_scenes()` 내 `image_asset_id` 직접 설정 우선, `image_url` fallback 시 `data:` 무시
 - `backend/services/image.py`: `load_image_bytes()` — data: URL은 디코딩 지원 (로컬 처리용); **요청 body에 긴 문자열을 실어 보내는 것은 금지**

@@ -271,11 +271,40 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
                     )
                 )
 
-        if image_url:
+        # Link image asset: prefer image_asset_id (direct), fallback to image_url
+        old_asset_id = getattr(s_data, "image_asset_id", None)
+        if old_asset_id:
+            # Verify asset exists before setting FK
+            if db.query(MediaAsset.id).filter(MediaAsset.id == old_asset_id).first():
+                db_scene.image_asset_id = old_asset_id
+                # Update asset owner to new scene
+                db.query(MediaAsset).filter(MediaAsset.id == old_asset_id).update(
+                    {"owner_type": "scene", "owner_id": db_scene.id},
+                    synchronize_session=False,
+                )
+            else:
+                logger.warning(
+                    "[Scene %d] image_asset_id %d not found, skipping",
+                    idx,
+                    old_asset_id,
+                )
+        elif image_url:
             _link_media_asset(db, db_scene, image_url)
 
+        # Update candidate asset owners to point to new scene
+        if s_data.candidates:
+            candidate_asset_ids = []
+            for c in s_data.candidates:
+                mid = c.media_asset_id if hasattr(c, "media_asset_id") else c.get("media_asset_id")
+                if mid:
+                    candidate_asset_ids.append(mid)
+            if candidate_asset_ids:
+                db.query(MediaAsset).filter(MediaAsset.id.in_(candidate_asset_ids)).update(
+                    {"owner_type": "scene", "owner_id": db_scene.id},
+                    synchronize_session=False,
+                )
+
         # Build old→new asset ID mapping for reference remapping
-        old_asset_id = getattr(s_data, "image_asset_id", None)
         if old_asset_id and db_scene.image_asset_id and old_asset_id != db_scene.image_asset_id:
             asset_id_remap[old_asset_id] = db_scene.image_asset_id
         created_scenes.append(db_scene)
@@ -871,6 +900,19 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
     storyboard.structure = request.structure
 
+    # Collect asset IDs referenced by incoming scenes (to preserve them)
+    preserved_asset_ids: set[int] = set()
+    for s_data in request.scenes:
+        if s_data.image_asset_id:
+            preserved_asset_ids.add(s_data.image_asset_id)
+        if s_data.environment_reference_id:
+            preserved_asset_ids.add(s_data.environment_reference_id)
+        if s_data.candidates:
+            for c in s_data.candidates:
+                mid = c.media_asset_id if hasattr(c, "media_asset_id") else c.get("media_asset_id")
+                if mid:
+                    preserved_asset_ids.add(mid)
+
     # Nullify asset FK references on scenes first
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).update(
         {Scene.image_asset_id: None, Scene.environment_reference_id: None},
@@ -885,16 +927,25 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         synchronize_session=False
     )
 
+    # Delete storyboard-owned media assets (videos etc.)
     db.query(MediaAsset).filter(
         MediaAsset.owner_type == "storyboard",
         MediaAsset.owner_id == storyboard_id,
     ).delete(synchronize_session=False)
 
+    # Delete scene media assets that are NOT referenced by incoming scenes
     if scene_ids:
-        db.query(MediaAsset).filter(
-            MediaAsset.owner_type == "scene",
-            MediaAsset.owner_id.in_(scene_ids),
-        ).delete(synchronize_session=False)
+        if preserved_asset_ids:
+            db.query(MediaAsset).filter(
+                MediaAsset.owner_type == "scene",
+                MediaAsset.owner_id.in_(scene_ids),
+                ~MediaAsset.id.in_(preserved_asset_ids),
+            ).delete(synchronize_session=False)
+        else:
+            db.query(MediaAsset).filter(
+                MediaAsset.owner_type == "scene",
+                MediaAsset.owner_id.in_(scene_ids),
+            ).delete(synchronize_session=False)
 
     db.flush()
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
-import { API_BASE } from "../../constants";
-import { imageUrlForPayload } from "./storyboardActions";
+import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
+import { sanitizeCandidatesForDb } from "./storyboardActions";
 
 /** The subset of style profile fields used in the output slice. */
 interface StyleProfileSelection {
@@ -79,31 +79,33 @@ async function saveStoryboardWithProfile(
   setMeta: (updates: Record<string, unknown>) => void,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
-  const { storyboardId, scenes, topic, selectedCharacterId } = useStudioStore.getState();
+  const {
+    storyboardId,
+    scenes,
+    topic,
+    groupId: currentGroupId,
+    structure,
+    selectedCharacterId,
+    selectedCharacterBId,
+  } = useStudioStore.getState();
 
   const validId =
     storyboardId && typeof storyboardId === "number" && !isNaN(storyboardId) && storyboardId > 0;
 
   const scenesPayload = buildScenesPayload(scenes);
+  const commonPayload = {
+    description: useStudioStore.getState().description || null,
+    group_id: currentGroupId,
+    structure: structure || DEFAULT_STRUCTURE,
+    character_id: selectedCharacterId || undefined,
+    character_b_id: selectedCharacterBId || undefined,
+    scenes: scenesPayload,
+  };
 
   if (validId) {
-    await updateExistingStoryboard(
-      storyboardId,
-      profile,
-      scenesPayload,
-      topic,
-      selectedCharacterId,
-      showToast
-    );
+    await updateExistingStoryboard(storyboardId, profile, topic, commonPayload, showToast);
   } else {
-    await createNewStoryboard(
-      profile,
-      scenesPayload,
-      topic,
-      selectedCharacterId,
-      setMeta,
-      showToast
-    );
+    await createNewStoryboard(profile, topic, commonPayload, setMeta, showToast);
   }
 }
 
@@ -115,29 +117,38 @@ function buildScenesPayload(scenes: ReturnType<typeof useStudioStore.getState>["
     duration: s.duration,
     image_prompt: s.image_prompt,
     image_prompt_ko: s.image_prompt_ko,
-    image_url: imageUrlForPayload(s.image_url, s.image_asset_id ?? null),
     description: s.description,
     width: s.width || 512,
     height: s.height || 768,
     negative_prompt: s.negative_prompt,
     context_tags: s.context_tags,
+    image_asset_id: s.image_asset_id ?? null,
+    environment_reference_id: s.environment_reference_id ?? null,
+    environment_reference_weight: s.environment_reference_weight ?? 0.3,
+    use_reference_only: s.use_reference_only ?? true,
+    reference_only_weight: s.reference_only_weight ?? 0.5,
+    candidates: sanitizeCandidatesForDb(s.candidates),
+    // Per-scene generation settings override
+    use_controlnet: s.use_controlnet ?? null,
+    controlnet_weight: s.controlnet_weight ?? null,
+    use_ip_adapter: s.use_ip_adapter ?? null,
+    ip_adapter_reference: s.ip_adapter_reference ?? null,
+    ip_adapter_weight: s.ip_adapter_weight ?? null,
+    multi_gen_enabled: s.multi_gen_enabled ?? null,
   }));
 }
 
 async function updateExistingStoryboard(
   storyboardId: number,
   profile: StyleProfileSelection,
-  scenesPayload: ReturnType<typeof buildScenesPayload>,
   topic: string,
-  selectedCharacterId: number | null,
+  payload: Record<string, unknown>,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
   try {
     await axios.put(`${API_BASE}/storyboards/${storyboardId}`, {
       title: topic || "Untitled",
-      description: useStudioStore.getState().description || null,
-      character_id: selectedCharacterId,
-      scenes: scenesPayload,
+      ...payload,
     });
     console.log("[StyleProfileModal] Storyboard updated with profile ID:", profile.id);
     showToast("Storyboard updated", "success");
@@ -149,18 +160,15 @@ async function updateExistingStoryboard(
 
 async function createNewStoryboard(
   profile: StyleProfileSelection,
-  scenesPayload: ReturnType<typeof buildScenesPayload>,
   topic: string,
-  selectedCharacterId: number | null,
+  payload: Record<string, unknown>,
   setMeta: (updates: Record<string, unknown>) => void,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
   try {
     const res = await axios.post(`${API_BASE}/storyboards`, {
       title: topic || "Draft Storyboard",
-      description: useStudioStore.getState().description || null,
-      character_id: selectedCharacterId,
-      scenes: scenesPayload,
+      ...payload,
     });
     setMeta({ storyboardId: res.data.storyboard_id });
     console.log(
