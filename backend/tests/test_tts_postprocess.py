@@ -48,14 +48,12 @@ class TestValidateTtsQuality:
         assert validate_tts_quality(wav, sr=24000) is False
 
     def test_excessive_silence_fails(self):
-        """Audio with >60% silence should fail."""
+        """Audio with >80% silence should fail."""
         sr = 24000
         wav = np.zeros(sr, dtype=np.float32)
-        # Only 20% voiced
-        voiced_len = int(sr * 0.2)
-        wav[:voiced_len] = 0.5 * np.sin(
-            2 * np.pi * 440 * np.linspace(0, 0.2, voiced_len, dtype=np.float32)
-        )
+        # Only 10% voiced (90% silence > 80% threshold)
+        voiced_len = int(sr * 0.1)
+        wav[:voiced_len] = 0.5 * np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, voiced_len, dtype=np.float32))
         assert validate_tts_quality(wav, sr) is False
 
     def test_noisy_audio_fails(self):

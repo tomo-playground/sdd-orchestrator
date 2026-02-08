@@ -297,10 +297,12 @@ VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 # WARNING: Do NOT use temperature=0 (greedy) - causes infinite repetitions
 TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))  # Increased slightly for naturalness
 TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))  # Nucleus sampling (Qwen recommended)
-TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.0"))  # Lowered from 1.2 to 1.0 (speed + reduce hallucination)
+TTS_REPETITION_PENALTY = float(
+    os.getenv("TTS_REPETITION_PENALTY", "1.0")
+)  # Lowered from 1.2 to 1.0 (speed + reduce hallucination)
 TTS_MAX_NEW_TOKENS = int(
-    os.getenv("TTS_MAX_NEW_TOKENS", "2048")
-)  # Official example uses 2048 (default 8192 causes trailing hallucination)
+    os.getenv("TTS_MAX_NEW_TOKENS", "1024")
+)  # Reduced from 2048: shorts scripts are short, 1024 is sufficient and faster
 
 # --- TTS Audio Post-processing ---
 TTS_AUDIO_TRIM_TOP_DB = int(

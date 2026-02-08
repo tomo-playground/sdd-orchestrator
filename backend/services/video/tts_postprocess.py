@@ -25,9 +25,7 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
     if len(wav) < frame_len * 4:
         return wav
     n_frames = len(wav) // frame_len
-    rms = np.array(
-        [np.sqrt(np.mean(wav[i * frame_len : (i + 1) * frame_len] ** 2)) for i in range(n_frames)]
-    )
+    rms = np.array([np.sqrt(np.mean(wav[i * frame_len : (i + 1) * frame_len] ** 2)) for i in range(n_frames)])
     if len(rms) < 4:
         return wav
     # Scan last 30% for valley->rise pattern
@@ -43,8 +41,13 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
         # Criteria: sharp rise (>3x valley) and significant energy (>15% median)
         if valley_rms < median_rms * 0.05 and peak_after > median_rms * 0.15:
             cut_sample = min_idx * frame_len
-            logger.info("[TTS] Trailing hallucination cut: valley=%.4f, peak=%.4f (median=%.4f) at %.2fs",
-                        valley_rms, peak_after, median_rms, cut_sample / sr)
+            logger.info(
+                "[TTS] Trailing hallucination cut: valley=%.4f, peak=%.4f (median=%.4f) at %.2fs",
+                valley_rms,
+                peak_after,
+                median_rms,
+                cut_sample / sr,
+            )
             return wav[:cut_sample]
     return wav
 
@@ -123,7 +126,7 @@ def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
     voiced_samples = np.sum(np.abs(wav) > threshold)
     silence_ratio = 1.0 - (voiced_samples / len(wav))
 
-    if silence_ratio > 0.6:  # Over 60% silence is suspicious
+    if silence_ratio > 0.8:  # Over 80% silence is suspicious (relaxed for short Korean scripts)
         logger.warning("[TTS] Quality check failed: excessive silence (%.1f%%)", silence_ratio * 100)
         return False
 
