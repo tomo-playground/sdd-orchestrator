@@ -48,7 +48,7 @@ describe("mapGeminiScenes", () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       id: 0,
-      order: 1,
+      order: 0,
       script: "Hello world",
       speaker: "A",
       duration: 5,
@@ -109,7 +109,23 @@ describe("mapGeminiScenes", () => {
     const result = mapGeminiScenes(raw, "");
 
     expect(result.map((s) => s.id)).toEqual([0, 1, 2]);
-    expect(result.map((s) => s.order)).toEqual([1, 2, 3]);
+    expect(result.map((s) => s.order)).toEqual([0, 1, 2]);
+  });
+
+  it("uses 0-indexed order matching backend create_scenes convention", () => {
+    const raw = [
+      { script: "First" },
+      { script: "Second" },
+      { script: "Third" },
+    ];
+    const result = mapGeminiScenes(raw, "");
+
+    // order must be 0-indexed to match backend create_scenes(order=idx)
+    expect(result[0].order).toBe(0);
+    expect(result[1].order).toBe(1);
+    expect(result[2].order).toBe(2);
+    // id also 0-indexed
+    expect(result[0].id).toBe(0);
   });
 
   it("maps _auto_pin_previous true from backend", () => {
@@ -345,9 +361,9 @@ describe("persistStoryboard scene index preservation", () => {
       setCurrentSceneIndex,
       currentSceneIndex: 2, // User is viewing scene 3 (0-indexed)
       scenes: [
-        { id: 100, order: 1, script: "s1" },
-        { id: 101, order: 2, script: "s2" },
-        { id: 102, order: 3, script: "s3" },
+        { id: 100, order: 0, script: "s1" },
+        { id: 101, order: 1, script: "s2" },
+        { id: 102, order: 2, script: "s3" },
       ],
     });
     vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
@@ -378,8 +394,8 @@ describe("persistStoryboard scene index preservation", () => {
       setCurrentSceneIndex,
       currentSceneIndex: 1, // User is viewing scene 2
       scenes: [
-        { id: 0, order: 1, script: "s1" },
-        { id: 1, order: 2, script: "s2" },
+        { id: 0, order: 0, script: "s1" },
+        { id: 1, order: 1, script: "s2" },
       ],
     });
     vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
@@ -481,9 +497,9 @@ describe("persistStoryboard scene ID → image_asset_id mapping", () => {
   it("preserves image_asset_id for each scene through PUT ID reassignment", async () => {
     const setScenes = vi.fn();
     const scenes = [
-      { id: 3581, order: 1, script: "S1", image_asset_id: 100, image_url: "http://img1" },
-      { id: 3582, order: 2, script: "S2", image_asset_id: 200, image_url: "http://img2" },
-      { id: 3583, order: 3, script: "S3", image_asset_id: null, image_url: null },
+      { id: 3581, order: 0, script: "S1", image_asset_id: 100, image_url: "http://img1" },
+      { id: 3582, order: 1, script: "S2", image_asset_id: 200, image_url: "http://img2" },
+      { id: 3583, order: 2, script: "S3", image_asset_id: null, image_url: null },
     ];
     const state = makeStoreState({
       storyboardId: 42,
@@ -512,9 +528,9 @@ describe("persistStoryboard scene ID → image_asset_id mapping", () => {
 
   it("sends image_asset_id in correct array order to PUT endpoint", async () => {
     const scenes = [
-      { id: 10, order: 1, script: "A", image_asset_id: 501, image_url: "http://a" },
-      { id: 11, order: 2, script: "B", image_asset_id: null, image_url: null },
-      { id: 12, order: 3, script: "C", image_asset_id: 502, image_url: "http://c" },
+      { id: 10, order: 0, script: "A", image_asset_id: 501, image_url: "http://a" },
+      { id: 11, order: 1, script: "B", image_asset_id: null, image_url: null },
+      { id: 12, order: 2, script: "C", image_asset_id: 502, image_url: "http://c" },
     ];
     const state = makeStoreState({
       storyboardId: 1,

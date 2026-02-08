@@ -157,7 +157,7 @@ export function mapGeminiScenes(
 
     return {
       id: i,
-      order: i + 1,
+      order: i,
       script: (s.script as string) || "",
       speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
       duration: (s.duration as number) || 3,
