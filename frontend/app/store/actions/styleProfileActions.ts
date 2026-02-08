@@ -114,7 +114,7 @@ function buildScenesPayload(scenes: ReturnType<typeof useStudioStore.getState>["
     duration: s.duration,
     image_prompt: s.image_prompt,
     image_prompt_ko: s.image_prompt_ko,
-    image_url: s.image_url,
+    image_url: s.image_asset_id ? null : s.image_url,
     description: s.description,
     width: s.width || 512,
     height: s.height || 768,
