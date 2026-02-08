@@ -7,14 +7,33 @@ from fastapi.testclient import TestClient
 from models.lab import LabExperiment
 
 
+def _create_test_group(db_session):
+    """Helper to create a test Project and Group."""
+    from models import Project
+    from models.group import Group
+
+    project = Project(name="Test Project")
+    db_session.add(project)
+    db_session.flush()
+
+    group = Group(name="Test Group", project_id=project.id)
+    db_session.add(group)
+    db_session.flush()
+
+    return group
+
+
 class TestRunExperiment:
     """POST /lab/experiments/run"""
 
     def test_run_experiment_success(self, client: TestClient, db_session):
         """Successful experiment via API."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl, smile",
             target_tags=["1girl", "smile"],
             match_rate=0.8,
@@ -37,6 +56,7 @@ class TestRunExperiment:
                 "/lab/experiments/run",
                 json={
                     "target_tags": ["1girl", "smile"],
+                    "group_id": group.id,
                     "sd_params": {"steps": 20},
                 },
             )
@@ -51,9 +71,12 @@ class TestRunExperiment:
         self, client: TestClient, db_session,
     ):
         """Minimal payload with only required fields."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl",
             target_tags=["1girl"],
             seed=-1,
@@ -68,7 +91,7 @@ class TestRunExperiment:
         ):
             resp = client.post(
                 "/lab/experiments/run",
-                json={"target_tags": ["1girl"]},
+                json={"target_tags": ["1girl"], "group_id": group.id},
             )
 
         assert resp.status_code == 200
@@ -85,9 +108,12 @@ class TestRunBatch:
 
     def test_run_batch_success(self, client: TestClient, db_session):
         """Successful batch run via API."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl",
             target_tags=["1girl"],
             seed=1,
@@ -110,7 +136,7 @@ class TestRunBatch:
         ):
             resp = client.post(
                 "/lab/experiments/run-batch",
-                json={"target_tags": ["1girl"], "count": 1},
+                json={"target_tags": ["1girl"], "group_id": group.id, "count": 1},
             )
 
         assert resp.status_code == 200
@@ -125,9 +151,12 @@ class TestGetExperiments:
 
     def test_list_experiments(self, client: TestClient, db_session):
         """List experiments returns items and total."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl",
             target_tags=["1girl"],
             match_rate=0.9,
@@ -146,9 +175,12 @@ class TestGetExperiments:
         self, client: TestClient, db_session,
     ):
         """Filter by experiment_type."""
+        group = _create_test_group(db_session)
+
         exp1 = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="a",
             target_tags=["a"],
             seed=1,
@@ -156,6 +188,7 @@ class TestGetExperiments:
         exp2 = LabExperiment(
             experiment_type="scene_translate",
             status="completed",
+            group_id=group.id,
             prompt_used="b",
             target_tags=["b"],
             seed=2,
@@ -183,10 +216,13 @@ class TestGetExperiments:
         self, client: TestClient, db_session,
     ):
         """Offset/limit pagination works."""
+        group = _create_test_group(db_session)
+
         for i in range(3):
             db_session.add(LabExperiment(
                 experiment_type="tag_render",
                 status="completed",
+                group_id=group.id,
                 prompt_used=f"tag_{i}",
                 target_tags=[f"tag_{i}"],
                 seed=i,
@@ -205,9 +241,12 @@ class TestGetExperiment:
 
     def test_get_experiment_by_id(self, client: TestClient, db_session):
         """Retrieve single experiment by ID."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl",
             target_tags=["1girl"],
             seed=1,
@@ -231,9 +270,12 @@ class TestDeleteExperiment:
 
     def test_delete_experiment(self, client: TestClient, db_session):
         """Delete removes the experiment from DB."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl",
             target_tags=["1girl"],
             seed=1,
@@ -276,9 +318,12 @@ class TestAnalytics:
         self, client: TestClient, db_session,
     ):
         """Tag effectiveness aggregates from completed experiments."""
+        group = _create_test_group(db_session)
+
         exp = LabExperiment(
             experiment_type="tag_render",
             status="completed",
+            group_id=group.id,
             prompt_used="1girl, smile",
             target_tags=["1girl", "smile"],
             seed=1,
