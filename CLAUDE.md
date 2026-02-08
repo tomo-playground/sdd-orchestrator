@@ -87,6 +87,14 @@ docs/
   - ✅ `media_asset_id: 123` — `media_assets` 테이블 FK 참조
   - Backend GET 응답에서 `media_asset_id` → `url` 변환 (serialize 시점)
   - Frontend는 저장 시 URL 제거, 조회 시 Backend가 채워준 URL 사용
+- **URL 필드 규칙 (image_url / preview_image_url)**:
+  - URL은 **DB에 저장하지 않는다**. ORM `@property`가 `media_asset` 관계에서 런타임 파생.
+  - Pydantic 스키마에 URL 필드 추가 시 반드시 **용도 주석** 명시:
+    - `# Response-only: derived from @property` — GET 응답 전용
+    - `# Input-only: backend fetches this URL` — URL fetch 입력
+    - `# Transient: render-time only, never stored` — 메모리 전용
+  - `model_dump()` → JSONB 저장 시 `exclude={"image_url"}` 필수
+  - Frontend: `sanitizeCandidatesForDb()` / Backend: `_sanitize_candidates_for_db()` 양쪽 방어
 - **상세**: `.claude/agents/dba.md` "스키마 설계 철학" 섹션 참조.
 
 ## API Contract Principles (Backend ↔ Frontend)

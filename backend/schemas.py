@@ -7,7 +7,15 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from config import DEFAULT_SPEAKER, DEFAULT_STRUCTURE
+from config import (
+    DEFAULT_SPEAKER,
+    DEFAULT_STRUCTURE,
+    SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_HEIGHT,
+    SD_DEFAULT_SAMPLER,
+    SD_DEFAULT_STEPS,
+    SD_DEFAULT_WIDTH,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -247,6 +255,7 @@ class SceneDetailResponse(BaseModel):
     image_prompt: str | None = ""
     image_prompt_ko: str | None = ""
     negative_prompt: str | None = None
+    # Response-only: derived from Scene.image_asset @property
     image_url: str | None = None
     width: int = 512
     height: int = 768
@@ -310,7 +319,8 @@ class SceneCandidate(BaseModel):
 
     media_asset_id: int
     match_rate: float | None = None
-    image_url: str | None = None  # Backend populates this on read
+    # Response-only: enriched on GET, excluded from JSONB storage
+    image_url: str | None = None
 
 
 class StoryboardScene(BaseModel):
@@ -320,6 +330,7 @@ class StoryboardScene(BaseModel):
     duration: float = 3
     image_prompt: str = ""
     image_prompt_ko: str = ""
+    # Input-only: triggers _link_media_asset, not stored directly
     image_url: str | None = None
     description: str | None = None
     width: int = 512
@@ -372,6 +383,7 @@ class TTSEngine(str, Enum):
 
 
 class VideoScene(BaseModel):
+    # Transient: FFmpeg rendering input, never stored
     image_url: str
     script: str = ""
     speaker: str = DEFAULT_SPEAKER
@@ -454,12 +466,12 @@ class VideoDeleteRequest(BaseModel):
 class SceneGenerateRequest(BaseModel):
     prompt: str
     negative_prompt: str = ""
-    steps: int = 27
-    cfg_scale: float = 7.0
-    sampler_name: str = "DPM++ 2M Karras"
+    steps: int = SD_DEFAULT_STEPS
+    cfg_scale: float = SD_DEFAULT_CFG_SCALE
+    sampler_name: str = SD_DEFAULT_SAMPLER
     seed: int = -1
-    width: int = 512
-    height: int = 768
+    width: int = SD_DEFAULT_WIDTH
+    height: int = SD_DEFAULT_HEIGHT
     clip_skip: int = 2
     enable_hr: bool = False
     hr_scale: float = 1.5
@@ -934,6 +946,7 @@ class ActivityLogBase(BaseModel):
     negative_prompt: str | None = None
     sd_params: dict | None = None
     seed: int | None = None
+    # Input→media_asset_id on create; Response→derived from @property
     image_url: str | None = None
     match_rate: float | None = None
     tags_used: list[str] | None = None

@@ -195,6 +195,16 @@ def serialize_scene(
     }
 
 
+def _sanitize_candidates_for_db(candidates: list) -> list[dict]:
+    """Strip image_url from candidates before JSONB storage."""
+    result = []
+    for c in candidates:
+        d = c.model_dump(exclude={"image_url"}) if hasattr(c, "model_dump") else dict(c)
+        d.pop("image_url", None)
+        result.append(d)
+    return result
+
+
 def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
     """Create scenes with tags and character actions for a storyboard."""
     # Track old→new asset ID mapping for environment_reference_id remapping
@@ -212,7 +222,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         # Convert Pydantic SceneCandidate models to dicts for JSONB storage
         candidates_for_db = None
         if s_data.candidates:
-            candidates_for_db = [c.model_dump() if hasattr(c, "model_dump") else c for c in s_data.candidates]
+            candidates_for_db = _sanitize_candidates_for_db(s_data.candidates)
 
         # Store requested environment_reference_id for deferred assignment
         deferred_env_refs.append(s_data.environment_reference_id)
