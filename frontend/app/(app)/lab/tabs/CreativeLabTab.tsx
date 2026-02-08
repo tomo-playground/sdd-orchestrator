@@ -26,7 +26,6 @@ export default function CreativeLabTab() {
   const [panel, setPanel] = useState<Panel>("main");
 
   // Form state
-  const [taskType, setTaskType] = useState("scenario");
   const [objective, setObjective] = useState("");
   const [maxRounds, setMaxRounds] = useState(3);
 
@@ -51,7 +50,7 @@ export default function CreativeLabTab() {
     setError(null);
     try {
       const createRes = await axios.post<CreativeSession>(`${API_BASE}/lab/creative/sessions`, {
-        task_type: taskType,
+        task_type: "scenario",
         objective: objective.trim(),
         max_rounds: maxRounds,
       });
@@ -69,7 +68,7 @@ export default function CreativeLabTab() {
     } finally {
       setDebateLoading(false);
     }
-  }, [objective, taskType, maxRounds, fetchSessions]);
+  }, [objective, maxRounds, fetchSessions]);
 
   const handleFinalize = useCallback(
     async (trace: CreativeTrace) => {
@@ -167,11 +166,9 @@ export default function CreativeLabTab() {
       ) : (
         <>
           <SetupForm
-            taskType={taskType}
             objective={objective}
             maxRounds={maxRounds}
             debateLoading={debateLoading}
-            onTaskTypeChange={setTaskType}
             onObjectiveChange={setObjective}
             onMaxRoundsChange={setMaxRounds}
             onStartDebate={handleStartDebate}

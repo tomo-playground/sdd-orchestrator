@@ -1,85 +1,29 @@
 "use client";
 
-import axios from "axios";
 import { Loader2, Play } from "lucide-react";
-import { useEffect, useState } from "react";
-
-import { API_BASE } from "../../constants";
-
-type TaskTypeItem = {
-  key: string;
-  label: string;
-  description: string;
-};
 
 type Props = {
-  taskType: string;
   objective: string;
   maxRounds: number;
   debateLoading: boolean;
-  onTaskTypeChange: (v: string) => void;
   onObjectiveChange: (v: string) => void;
   onMaxRoundsChange: (v: number) => void;
   onStartDebate: () => void;
 };
 
 export default function SetupForm({
-  taskType,
   objective,
   maxRounds,
   debateLoading,
-  onTaskTypeChange,
   onObjectiveChange,
   onMaxRoundsChange,
   onStartDebate,
 }: Props) {
-  const [taskTypes, setTaskTypes] = useState<TaskTypeItem[]>([
-    { key: "scenario", label: "Scenario", description: "" },
-  ]);
-
-  useEffect(() => {
-    axios
-      .get<{ items: TaskTypeItem[] }>(`${API_BASE}/lab/creative/task-types`)
-      .then((res) => setTaskTypes(res.data.items))
-      .catch(() => setTaskTypes([{ key: "scenario", label: "Scenario", description: "" }]));
-  }, []);
-
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
       <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
         New Creative Session
       </p>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-            Task Type
-          </label>
-          <select
-            value={taskType}
-            onChange={(e) => onTaskTypeChange(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-          >
-            {taskTypes.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-            Max Rounds
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={maxRounds}
-            onChange={(e) => onMaxRoundsChange(Number(e.target.value))}
-            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-          />
-        </div>
-      </div>
       <div>
         <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
           Objective
@@ -92,7 +36,20 @@ export default function SetupForm({
           className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
         />
       </div>
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            Max Rounds
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={maxRounds}
+            onChange={(e) => onMaxRoundsChange(Number(e.target.value))}
+            className="w-16 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
         <button
           onClick={onStartDebate}
           disabled={debateLoading || !objective.trim()}
