@@ -48,15 +48,20 @@ LoRA Trigger Words (MUST include in every scene where speaker=B):
 NARRATOR ROLE:
 - Narrator scenes show environmental shots, symbolic imagery, or emotional atmosphere (NO characters)
 - CRITICAL: The script subject must NEVER be a person. Subject = place, object, time, or abstract concept.
-- Narrator script should be SHORT: max 20 characters (Korean) / 40 characters (English)
-- Narrator scripts should be SHORTER than A/B dialogue lines
+- Narrator script LENGTH: 10–20 characters (Korean) / 20–40 characters (English)
+- Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
+- Narrator scripts should be SHORTER than A/B dialogue lines, but still 10+ chars.
 
-✅ ALLOWED Narrator Script Patterns (subject = environment/mood/abstract):
-- "카페에 햇살이 든다." (subject: 카페/햇살)
-- "차가운 빗소리." (subject: 빗소리)
-- "어색한 침묵." (subject: 침묵)
-- "10년이라는 시간." (subject: 시간)
-- "창밖, 노을이 진다." (subject: 노을)
+✅ ALLOWED Narrator Script Patterns (subject = environment/mood/abstract, 10+ chars):
+- "오래된 카페에 햇살이 든다." (13자, subject: 카페/햇살)
+- "창밖으로 차가운 빗소리." (11자, subject: 빗소리)
+- "길고 어색한 침묵이 흐른다." (13자, subject: 침묵)
+- "10년이라는 긴 시간." (10자, subject: 시간)
+- "창밖, 노을이 지고 있다." (12자, subject: 노을)
+
+❌ BAD Narrator Scripts (too short, TTS fails):
+- "어색한 침묵." (6자) → TOO SHORT, expand to "길고 어색한 침묵이 흐른다."
+- "빗소리." (3자) → TOO SHORT, expand to "창밖으로 차가운 빗소리."
 
 ❌ FORBIDDEN Narrator Script Patterns (subject = person/character action):
 - "두 사람이 마주 앉았다." (subject: 두 사람 → FORBIDDEN)
@@ -64,10 +69,10 @@ NARRATOR ROLE:
 - "그는 천천히 걸어갔다." (subject: 그 → FORBIDDEN)
 - "서로를 바라보았다." (implied subject: people → FORBIDDEN)
 
-Narrator Position Roles:
-- Opening (scene 1): Set the scene atmosphere/location. e.g., "오래된 카페, 오후."
-- Transition (mid): Convey mood shift or time passage. e.g., "무거운 침묵."
-- Closing (final): Wrap with emotion or reflection. e.g., "창밖, 노을이 진다."
+Narrator Position Roles (all examples 10+ chars):
+- Opening (scene 1): Set the scene atmosphere/location. e.g., "오래된 카페, 오후의 햇살."
+- Transition (mid): Convey mood shift or time passage. e.g., "길고 무거운 침묵이 흐른다."
+- Closing (final): Wrap with emotion or reflection. e.g., "창밖, 노을이 지고 있다."
 
 ⚠️ CHARACTER CONSISTENCY RULES:
 - Speaker A scenes: include ALL of Speaker A's Identity + Costume + LoRA tags
@@ -126,14 +131,15 @@ Instructions:
      * Script says "차가운 빗소리" → image_prompt includes "rain, window, dark_sky"
      * Script says "오래된 카페" → image_prompt includes "cafe, indoors, warm_lighting"
    - Script subject = place/object/time/abstract (NEVER a person)
-   - Script max 20 chars (Korean) / 40 chars (English) — shorter than A/B lines
+   - Script 10–20 chars (Korean) / 20–40 chars (English) — shorter than A/B but always 10+ chars
 4. A/B scenes:
    - Show ONLY the speaking character
    - Use the speaker's identity/costume/LoRA tags
 5. Each scene must include:
    - scene_id (starting at 1)
    - script: spoken line in {{ language }}.
-     * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
+     * STRICT LENGTH RULE: 10–30 characters (Korean) / 20–60 characters (English).
+     * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen.
    - speaker: "Narrator", "A", or "B"
    - duration: seconds (2-3 recommended for fast pacing)
@@ -163,7 +169,7 @@ Output Format:
 [
   {
     "scene_id": 1,
-    "script": "오래된 카페, 오후.",
+    "script": "오래된 카페, 오후의 햇살.",
     "speaker": "Narrator",
     "duration": 3,
     "image_prompt": "no_humans, scenery, cafe, window, sunlight, warm_lighting, indoors",
@@ -175,7 +181,7 @@ Output Format:
   },
   {
     "scene_id": 2,
-    "script": "...너, 많이 안 변했다.",
+    "script": "...너, 많이 안 변했다, 진짜.",
     "speaker": "A",
     "duration": 4,
     "image_prompt": "[speaker_A_identity_tags], nervous_smile, looking_at_viewer, standing, cowboy_shot, cafe, indoors",
@@ -190,7 +196,7 @@ Output Format:
   },
   {
     "scene_id": 3,
-    "script": "너도.",
+    "script": "너도 하나도 안 변했네.",
     "speaker": "B",
     "duration": 3,
     "image_prompt": "[speaker_B_identity_tags], slight_smile, looking_away, sitting, upper_body, cafe, indoors",

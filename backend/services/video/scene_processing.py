@@ -346,9 +346,10 @@ async def generate_tts(
 
         # Pad very short scripts to prevent TTS model hang
         # Qwen3-TTS tends to hang on very short texts (< 10 chars)
+        # Append trailing dots to reach 10+ chars (never repeat text — causes multiple pronunciations)
         tts_text = clean_script
         if len(tts_text) < 10:
-            tts_text = f"{tts_text} {tts_text} {tts_text}"
+            tts_text = tts_text + "." * (10 - len(tts_text))
             logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' → '{tts_text}'")
 
         logger.info(f"TTS generation (VoiceDesign): script={tts_text[:50]}..., voice_seed={voice_seed}")

@@ -84,9 +84,12 @@ Instructions:
 4. Each scene must include:
    - scene_id (starting at 1)
    - script: spoken line in {{ language }}.
-     * STRICT LENGTH RULE: max 30 characters (Korean) / 60 characters (English).
+     * STRICT LENGTH RULE: 10–30 characters (Korean) / 20–60 characters (English).
+     * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen (~15 chars per line for Korean).
      * If the sentence is too long, split into TWO shorter scenes instead.
+     * TOO SHORT (2자): "너도." → BAD (TTS fails on very short text)
+     * GOOD (15자): "너도 하나도 안 변했다."
      * GOOD (28자): "오늘은 진짜 일찍 일어나서… 운동도 하고…"
      * BAD (50자): "오늘은 진짜 일찍 일어나서 운동도 하고 커피도 내려 마시고 하루를 시작했어" (too long, 3+ lines)
    - speaker: "A"
