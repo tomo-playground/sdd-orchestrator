@@ -195,6 +195,7 @@
 - TTS 캐시 시스템 (`TTS_CACHE_DIR`) + timeout 설정
 - Caption 해시태그 추출 기능 추가
 - (2026-02-07) Stable Audio Open AI BGM: `music_presets` 테이블 + Alembic 마이그레이션, CRUD API 8개, 프리셋 미리듣기, `render_presets`에 `bgm_mode`/`music_preset_id` 추가, VideoBuilder `effects.py` BGM 모드 분기 (file/ai), Frontend Music Presets 관리 탭 + BGM AI 모드 토글, 시스템 프리셋 10개 시딩, 테스트 22개 추가
+- (2026-02-08) TTS 품질 강화: Context-Aware Voice Design, 후처리 개선 (무음 압축, 환각 감지/제거), 최소 duration 검증 + seed 변형 자동 재생성, 짧은 대본 반복 발음 방지 (최소 10자 규칙), MPS 최적화
 
 ---
 
@@ -208,13 +209,13 @@
 | 1 | Quick Start Flow: +New Story Lazy Creation (첫 Save/Generate 시 DB 저장), PlanTab 설정/스토리 재설계, 인라인 StyleProfile 셀렉터 | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [x] |
 | 2 | Setup Wizard (첫 실행 가이드) | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [ ] |
 | 3 | 접근성 기본 (ARIA, focus trap, keyboard) | UX | - | [ ] |
-| 4 | WebSocket Progress (생성/렌더링 진행률) | 기능 | - | [ ] |
+| 4 | 이미지 생성 Progress (WebSocket/SSE) | 기능 | - | [ ] |
 | 5 | Multi-Character UI (DB 스키마 완료) | 기능 | [명세](FEATURES/MULTI_CHARACTER.md) | [ ] |
 | 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
 | 7 | Structure별 전용 Gemini 템플릿 (5종) | 기능 | - | [ ] |
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
 | 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [x] |
-| 10 | Automated Evaluation Runner | 품질 | - | [ ] |
+| 10 | Creative Lab & Engine (Tag Lab + Scene Lab + Multi-Agent Creative) | 기능 | [API](../03_engineering/api/REST_API_CREATIVE.md) | [x] |
 | 11 | Studio UI Polish (Video탭 통합, Global 접기, Save 이동, 캐릭터 프리뷰 확대) | UX | - | [x] |
 | 12 | 씬 텍스트 하단 배치 + 드롭섀도우 + Color Grade | 영상 품질 | - | [x] |
 | 13 | Gemini 스크립트 길이 제한 강화 (30자/Korean) | 품질 | - | [x] |
@@ -222,6 +223,11 @@
 | 15 | 좌측 사이드바 네비게이션 + 컨텍스트 전환 버그 수정 (Phase A 버그 6건 + Phase B 사이드바 완료. Phase C ContextBar 정리 보류) | UX | [명세](FEATURES/SIDEBAR_NAVIGATION.md) | [x] |
 | 16 | Insights 탭 Studio → Manage 이동 (QualityDashboard + AnalyticsDashboard, 스토리보드 셀렉터) | UX | - | [x] |
 | 17 | YouTube Shorts Upload (OAuth + per-project credential + upload modal) | 기능 | [명세](FEATURES/YOUTUBE_UPLOAD.md) | [x] |
+| 18 | Dialogue & Narrated Dialogue 구조 (2-character + 3-speaker Narrator) | 기능 | - | [x] |
+| 19 | 렌더링 진행률 SSE 스트리밍 (실시간 % 표시) | UX | - | [x] |
+| 20 | Style LoRA Unification + Embedding trigger words 프롬프트 주입 | 품질 | - | [x] |
+| 21 | Narrator Scene 스타일 적용 (image_prompt 백엔드 주입 + ControlNet/IP-Adapter 자동 비활성) | 품질 | - | [x] |
+| 22 | image_url 정합성 강화 (JSONB 저장 방어, base64 전송 방지, stale ID 방어) | 안정성 | - | [x] |
 
 ---
 
@@ -281,7 +287,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Scene Clothing Override (장면별 의상 변경) | [명세](FEATURES/SCENE_CLOTHING_OVERRIDE.md) |
 | Scene 단위 자연어 이미지 편집 | [명세](FEATURES/SCENE_IMAGE_EDIT.md) |
-| AI BGM Generation (Stable Audio Open 기반 텍스트-투-뮤직) | [명세](FEATURES/AI_BGM.md) |
+| ~~AI BGM Generation~~ | ~~[명세](FEATURES/AI_BGM.md)~~ → 6-8 #7-11로 이동 (완료) |
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
 | Real-time Prompt Preview (12-Layer) | - |
@@ -297,25 +303,27 @@ Phase 8 이후 또는 우선순위 미정 항목.
 ```
 Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI) → 7-0 (ControlNet) → 7-1 (UX/Feature)
      P0/P1 Fixes          Refactoring          CI + Soft Delete    TTS/Voice/BGM     Pose Control      New Features
+                                                                                                       + Creative Lab
                                                                                                             ↓
                                                           7-2 (Project/Group) → 8 (Multi-Style)
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-07):
-- Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM 엔진 추가 완료)
+**현재 진행 상태** (2026-02-08):
+- Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
-- Phase 6-7: **15/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
-- Phase 7-1: **9/17** 완료 (잔여: #2 Wizard, #3 접근성, #4 WebSocket, #5 Multi-Char, #6 Scene Builder, #7 템플릿, #8 Char Builder, #10 Auto Eval)
+- Phase 6-7: **14/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
+- Phase 7-1: **15/22** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
+- **Backend 테스트**: 1,220개 수집
 
-### 잔여 작업 우선순위 (재정리 2026-02-05)
+### 잔여 작업 우선순위 (재정리 2026-02-08)
 
 **Tier 1 — 높은 임팩트 (중형, 3-5일)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 1 | 7-1 #4 | WebSocket Progress (생성/렌더링 진행률) | UX 핵심, 현재 폴링 방식 한계 |
-| 2 | 7-1 #7 | Structure별 전용 Gemini 템플릿 (5종) | 콘텐츠 품질 직결 |
+| 1 | 7-1 #7 | Structure별 전용 Gemini 템플릿 (5종) | 콘텐츠 품질 직결 |
+| 2 | 7-1 #4 | 이미지 생성 Progress (SSE/WebSocket) | 렌더링 SSE 완료, 생성은 미구현 |
 | 3 | 6-7 #10 | WD14 Feedback Loop (tag_effectiveness 자동 업데이트) | 프롬프트 자동 개선 루프 |
 | 4 | 7-1 #5 | Multi-Character UI (DB 스키마 완료) | DB 준비 완료, UI만 구현 |
 
@@ -325,19 +333,17 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | 5 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장 |
 | 6 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
 | 7 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
-| 8 | 7-1 #10 | Automated Evaluation Runner | 품질 자동화 |
 
 **Tier 3 — 후순위**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 9 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
-| 10 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
-| 11 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
-| 14 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
+| 8 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
+| 9 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
+| 10 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
+| 11 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
 
-**Hotfix (2026-02-04)**:
-- Batch image field mismatch 수정 (`image_url` → `image`) + `response_model` 적용
-- Autopilot 에러 상태 스토리보드 스코핑 (다른 스토리보드로 누출 방지)
-- 삭제된 스토리보드 재생성 방지 (404 처리 + soft delete 필터 통일)
-- Lazy Creation 전환 (+New Story 클릭 시 빈 Draft DB 저장 제거)
-- Frontend State Sync Principles + API Contract Principles 규칙 추가
+**7-1 최근 완료 (2026-02-05 ~ 02-08)**:
+- Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)
+- Dialogue(2-char) + Narrated Dialogue(3-speaker) 구조 추가, Narrator 씬 전용 처리
+- 렌더링 SSE 진행률, Style LoRA 통합, image_url 정합성 강화
+- TTS 품질: Context-Aware Voice, 환각 감지/제거, 반복 방지, 자동 재생성
