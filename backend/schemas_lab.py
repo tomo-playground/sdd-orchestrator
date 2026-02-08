@@ -8,9 +8,14 @@ from pydantic import BaseModel, ConfigDict
 
 
 class LabExperimentRunRequest(BaseModel):
-    """Request to run a single tag render experiment."""
+    """
+    Request to run a single experiment.
+
+    Phase 1: Requires group_id for V3 Prompt Engine + Style Profile.
+    """
 
     experiment_type: str = "tag_render"
+    group_id: int  # Required: Lab experiments belong to Groups
     character_id: int | None = None
     target_tags: list[str]
     negative_prompt: str | None = None
@@ -21,14 +26,19 @@ class LabExperimentRunRequest(BaseModel):
 
 
 class LabExperimentResponse(BaseModel):
-    """Single experiment result."""
+    """
+    Single experiment result.
+
+    Phase 1: Includes V3 metadata (final_prompt, loras_applied).
+    """
 
     id: int
     batch_id: str | None = None
     experiment_type: str
     status: str
+    group_id: int
     character_id: int | None = None
-    prompt_used: str
+    prompt_used: str  # Original tags joined
     negative_prompt: str | None = None
     target_tags: list[str]
     sd_params: dict | None = None
@@ -40,13 +50,22 @@ class LabExperimentResponse(BaseModel):
     notes: str | None = None
     created_at: datetime | None = None
 
+    # V3 Prompt Engine metadata (Phase 1)
+    final_prompt: str | None = None  # Full prompt after V3 composition
+    loras_applied: list[dict] | None = None  # [{name, weight, source}]
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class LabBatchRunRequest(BaseModel):
-    """Request to run a batch of experiments."""
+    """
+    Request to run a batch of experiments.
+
+    Phase 1: Requires group_id for V3 Prompt Engine + Style Profile.
+    """
 
     experiment_type: str = "tag_render"
+    group_id: int  # Required: Lab experiments belong to Groups
     character_id: int | None = None
     target_tags: list[str]
     negative_prompt: str | None = None

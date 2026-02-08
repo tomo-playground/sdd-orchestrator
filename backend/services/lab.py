@@ -1,25 +1,21 @@
-"""Lab service -- experiment execution and tag effectiveness aggregation."""
+"""
+Lab service -- experiment execution and tag effectiveness aggregation.
+
+Phase 1 Integration: Uses unified image_generation_core.py for V3 Prompt Engine.
+"""
 
 from __future__ import annotations
 
 import base64
-import json
 import uuid
 from collections import defaultdict
 from io import BytesIO
 from typing import Any
 
-import httpx
 from PIL import Image
 from sqlalchemy.orm import Session
 
-from config import (
-    LAB_BATCH_MAX_SIZE,
-    LAB_DEFAULT_SD_STEPS,
-    SD_TIMEOUT_SECONDS,
-    SD_TXT2IMG_URL,
-    logger,
-)
+from config import LAB_BATCH_MAX_SIZE, LAB_DEFAULT_SD_STEPS, logger
 from models.lab import LabExperiment
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
@@ -27,6 +23,7 @@ from services.validation import compare_prompt_to_tags, wd14_predict_tags
 async def run_experiment(
     db: Session,
     target_tags: list[str],
+    group_id: int,
     character_id: int | None = None,
     negative_prompt: str | None = None,
     sd_params: dict | None = None,
@@ -36,8 +33,16 @@ async def run_experiment(
     notes: str | None = None,
     batch_id: str | None = None,
 ) -> LabExperiment:
-    """Run a single experiment: SD generation -> WD14 validation -> DB record."""
-    prompt = ", ".join(target_tags)
+    """
+    Run a single experiment using V3 Prompt Engine.
+
+    Phase 1 Integration: Uses unified image_generation_core.py
+    - Applies V3 Prompt Builder (Character LoRA + Scene Tags + Style LoRAs)
+    - Applies Style Profile (Quality Tags + Negative Prompt)
+    - Stores final_prompt and loras_applied metadata
+    """
+    from services.image_generation_core import generate_image_with_v3
+
     params = sd_params or {}
     steps = params.get("steps", LAB_DEFAULT_SD_STEPS)
     cfg_scale = params.get("cfg_scale", 7.0)
@@ -46,12 +51,16 @@ async def run_experiment(
     height = params.get("height", 768)
     actual_seed = seed if seed and seed > 0 else -1
 
+    # Initial prompt (for reference)
+    initial_prompt = ", ".join(target_tags)
+
     experiment = LabExperiment(
         batch_id=batch_id,
         experiment_type=experiment_type,
         status="running",
         character_id=character_id,
-        prompt_used=prompt,
+        group_id=group_id,
+        prompt_used=initial_prompt,  # Original prompt
         negative_prompt=negative_prompt,
         target_tags=target_tags,
         sd_params={
@@ -69,23 +78,50 @@ async def run_experiment(
     db.flush()
 
     try:
-        image_b64, actual_seed = await _generate_image(
-            prompt, negative_prompt, steps, cfg_scale,
-            sampler, width, height, actual_seed,
+        # V3 Prompt Engine + SD Generation
+        result = await generate_image_with_v3(
+            db=db,
+            prompt=target_tags,
+            character_id=character_id,
+            group_id=group_id,
+            sd_params={
+                "steps": steps,
+                "cfg_scale": cfg_scale,
+                "sampler": sampler,
+                "width": width,
+                "height": height,
+                "seed": actual_seed,
+                "negative_prompt": negative_prompt or "",
+            },
+            mode="lab",
         )
-        image_bytes = base64.b64decode(image_b64)
+
+        # Store V3 metadata
+        experiment.final_prompt = result.final_prompt
+        experiment.loras_applied = result.loras_applied
+        experiment.seed = result.seed
+
+        # Decode image and validate
+        image_bytes = base64.b64decode(result.image)
         image = Image.open(BytesIO(image_bytes))
 
         save_experiment_image(experiment.id, image_bytes)
 
+        # WD14 Validation
         tags = wd14_predict_tags(image)
-        comparison = compare_prompt_to_tags(prompt, tags)
+        comparison = compare_prompt_to_tags(initial_prompt, tags)
         match_rate = _calc_match_rate(comparison)
 
         experiment.status = "completed"
-        experiment.seed = actual_seed
         experiment.match_rate = match_rate
         experiment.wd14_result = _build_wd14_result(comparison, tags)
+
+        # Log warnings from V3 (if any)
+        if result.warnings:
+            logger.warning(
+                "[Lab] Experiment %s warnings: %s",
+                experiment.id, result.warnings
+            )
 
     except Exception as e:
         logger.error("[Lab] Experiment %s failed: %s", experiment.id, e)
@@ -96,38 +132,6 @@ async def run_experiment(
     return experiment
 
 
-async def _generate_image(
-    prompt: str,
-    negative_prompt: str | None,
-    steps: int,
-    cfg_scale: float,
-    sampler: str,
-    width: int,
-    height: int,
-    seed: int,
-) -> tuple[str, int]:
-    """Call SD WebUI txt2img and return (base64_image, actual_seed)."""
-    payload = {
-        "prompt": prompt,
-        "negative_prompt": negative_prompt or "",
-        "steps": steps,
-        "cfg_scale": cfg_scale,
-        "sampler_name": sampler,
-        "width": width,
-        "height": height,
-        "seed": seed,
-    }
-    async with httpx.AsyncClient(timeout=SD_TIMEOUT_SECONDS) as client:
-        resp = await client.post(SD_TXT2IMG_URL, json=payload)
-
-    if resp.status_code != 200:
-        msg = f"SD API error: {resp.status_code}"
-        raise RuntimeError(msg)
-
-    data = resp.json()
-    info = json.loads(data.get("info", "{}"))
-    resolved_seed = info.get("seed", seed)
-    return data["images"][0], resolved_seed
 
 
 def _calc_match_rate(comparison: dict) -> float:
@@ -172,6 +176,7 @@ def save_experiment_image(
 async def run_batch(
     db: Session,
     target_tags: list[str],
+    group_id: int,
     count: int = 5,
     character_id: int | None = None,
     negative_prompt: str | None = None,
@@ -179,7 +184,7 @@ async def run_batch(
     seeds: list[int] | None = None,
     notes: str | None = None,
 ) -> dict[str, Any]:
-    """Run a batch of experiments with the same tags."""
+    """Run a batch of experiments with the same tags (V3 Prompt Engine)."""
     count = min(count, LAB_BATCH_MAX_SIZE)
     bid = uuid.uuid4().hex[:12]
     results: list[LabExperiment] = []
@@ -189,6 +194,7 @@ async def run_batch(
         exp = await run_experiment(
             db=db,
             target_tags=target_tags,
+            group_id=group_id,
             character_id=character_id,
             negative_prompt=negative_prompt,
             sd_params=sd_params,
@@ -269,13 +275,18 @@ def aggregate_tag_effectiveness(db: Session) -> dict[str, Any]:
 async def compose_and_run(
     db: Session,
     scene_description: str,
+    group_id: int,
     character_id: int,
     negative_prompt: str | None = None,
     sd_params: dict | None = None,
     seed: int | None = None,
     notes: str | None = None,
 ) -> LabExperiment:
-    """Scene Lab: compose scene description via V3, then run experiment."""
+    """
+    Scene Lab: compose scene description via V3, then run experiment.
+
+    Phase 1 Integration: Uses V3 Prompt Engine for scene composition.
+    """
     from services.prompt.v3_composition import V3PromptBuilder
 
     builder = V3PromptBuilder(db)
@@ -293,6 +304,7 @@ async def compose_and_run(
     return await run_experiment(
         db=db,
         target_tags=target_tags,
+        group_id=group_id,
         character_id=character_id,
         negative_prompt=negative_prompt,
         sd_params=sd_params,

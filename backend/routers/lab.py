@@ -30,10 +30,15 @@ async def api_run_experiment(
     req: LabExperimentRunRequest,
     db: Session = Depends(get_db),
 ):
-    """Run a single tag render experiment."""
+    """
+    Run a single experiment using V3 Prompt Engine.
+
+    Phase 1: Requires group_id for Style Profile + Character LoRA.
+    """
     experiment = await run_experiment(
         db=db,
         target_tags=req.target_tags,
+        group_id=req.group_id,
         character_id=req.character_id,
         negative_prompt=req.negative_prompt,
         sd_params=req.sd_params,
@@ -53,7 +58,11 @@ async def api_compose_and_run(
     req: LabExperimentRunRequest,
     db: Session = Depends(get_db),
 ):
-    """Scene Lab: compose scene description via V3, then generate and validate."""
+    """
+    Scene Lab: compose scene via V3, then generate and validate.
+
+    Phase 1: Uses V3 Prompt Engine for scene composition.
+    """
     if not req.scene_description:
         raise HTTPException(
             status_code=400,
@@ -70,6 +79,7 @@ async def api_compose_and_run(
     experiment = await compose_and_run(
         db=db,
         scene_description=req.scene_description,
+        group_id=req.group_id,
         character_id=req.character_id,
         negative_prompt=req.negative_prompt,
         sd_params=req.sd_params,
@@ -84,10 +94,15 @@ async def api_run_batch(
     req: LabBatchRunRequest,
     db: Session = Depends(get_db),
 ):
-    """Run a batch of experiments."""
+    """
+    Run a batch of experiments using V3 Prompt Engine.
+
+    Phase 1: All experiments use the same group_id for consistent Style Profile.
+    """
     result = await run_batch(
         db=db,
         target_tags=req.target_tags,
+        group_id=req.group_id,
         count=req.count,
         character_id=req.character_id,
         negative_prompt=req.negative_prompt,

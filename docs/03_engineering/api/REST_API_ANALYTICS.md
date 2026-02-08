@@ -11,7 +11,8 @@ Quality, Activity Logs, Evaluation, Admin 관련 API 명세입니다.
 1. [Quality](#-quality-품질-검증-자동화) - 품질 검증
 2. [Activity Logs](#-activity-logs-활동-로그-분석) - 활동 로그 분석
 3. [Evaluation](#-evaluation-프롬프트-모드-비교) - 프롬프트 모드 비교
-4. [Admin](#-admin-관리) - 마이그레이션, 캐시, 태그 관리, Media GC
+4. [Lab Experiments](#-lab-experiments-실험-및-분석) - 실험 및 분석 (Phase 1)
+5. [Admin](#-admin-관리) - 마이그레이션, 캐시, 태그 관리, Media GC
 
 ---
 
@@ -247,6 +248,334 @@ Mode A/B 비교 평가를 실행합니다.
 
 ---
 
+## Lab Experiments (실험 및 분석)
+
+> **Phase 1**: Lab 실험이 Studio와 동일한 V3 Prompt Engine + Style Profile 사용
+> **통합**: Lab → Studio 워크플로우 (실험 → 검증 → 스토리보드 복사)
+
+### 핵심 개념
+
+**Lab의 역할**:
+- **Tag Lab**: 개별 태그 조합의 렌더링 품질 실험
+- **Scene Lab**: V3 Prompt Engine을 사용한 씬 구성 실험
+- **Creative Lab**: 멀티 에이전트 협업 스토리보드 생성
+
+**V3 Integration (Phase 1)**:
+- 모든 Lab 실험은 **Group에 속함** (`group_id` 필수)
+- V3 Prompt Builder 사용 (Character LoRA + Scene Tags + Style LoRAs)
+- Group Config의 Style Profile 자동 적용 (Quality Tags + Negative Prompt)
+- 실험 결과에 V3 메타데이터 저장 (`final_prompt`, `loras_applied`)
+
+---
+
+### `POST /lab/experiments/run`
+Tag Lab/Scene Lab 단일 실험을 실행합니다 (V3 Prompt Engine 사용).
+
+**Request:**
+```json
+{
+  "experiment_type": "tag_render",  // "tag_render" or "scene_translate"
+  "group_id": 1,  // Required: Lab 실험은 Group에 속함
+  "character_id": 1,  // Optional: null이면 narrator 실험
+  "target_tags": ["1girl", "smile", "school_uniform"],
+  "negative_prompt": "worst quality, low quality",
+  "sd_params": {
+    "steps": 20,
+    "cfg_scale": 7.0,
+    "sampler": "DPM++ 2M Karras",
+    "width": 512,
+    "height": 768,
+    "seed": -1
+  },
+  "scene_description": null,  // scene_translate 타입에서만 사용
+  "notes": "Testing uniform rendering"
+}
+```
+
+**Response:**
+```json
+{
+  "id": 123,
+  "batch_id": null,
+  "experiment_type": "tag_render",
+  "status": "completed",
+  "group_id": 1,
+  "character_id": 1,
+
+  // Original prompt
+  "prompt_used": "1girl, smile, school_uniform",
+  "negative_prompt": "worst quality, low quality",
+  "target_tags": ["1girl", "smile", "school_uniform"],
+
+  // V3 Metadata (Phase 1)
+  "final_prompt": "1girl, smile, school_uniform, <lora:character_lora:1.0>, <lora:anime_style:0.7>, masterpiece, best quality",
+  "loras_applied": [
+    {"name": "character_lora", "weight": 1.0, "source": "character"},
+    {"name": "anime_style", "weight": 0.7, "source": "style"}
+  ],
+
+  // Results
+  "image_url": "http://localhost:9000/lab/experiments/123.png",
+  "seed": 42,
+  "match_rate": 0.85,
+  "wd14_result": {
+    "matched": ["1girl", "smile"],
+    "missing": ["school_uniform"],
+    "extra": ["indoors", "classroom"],
+    "partial_matched": [],
+    "skipped": [],
+    "raw_tags": [
+      {"tag": "1girl", "score": 0.95},
+      {"tag": "smile", "score": 0.88}
+    ]
+  },
+
+  "sd_params": {"steps": 20, "cfg_scale": 7.0, ...},
+  "notes": "Testing uniform rendering",
+  "created_at": "2026-02-08T12:00:00Z"
+}
+```
+
+**V3 Prompt Engine 동작**:
+1. `target_tags` + `character_id` → V3PromptBuilder로 Character LoRA 삽입
+2. Group Config → Style Profile 조회 → Style LoRAs 추가
+3. Style Profile의 Quality Tags + Negative Prompt 병합
+4. `final_prompt` 생성 → SD API 호출
+5. `loras_applied` 메타데이터 추출 및 저장
+
+**Error Handling (Lab Mode)**:
+- V3 composition 실패 → fallback to original prompt + warning
+- SD API 실패 → status='failed', partial result 반환
+- Style Profile 실패 → warning 로그, 실험 계속 진행
+
+---
+
+### `POST /lab/experiments/compose-and-run`
+Scene Lab: 씬 설명을 V3로 구성한 후 이미지 생성 및 검증.
+
+**Request:**
+```json
+{
+  "experiment_type": "scene_translate",
+  "group_id": 1,
+  "character_id": 1,  // Required for Scene Lab
+  "scene_description": "A student sitting in the classroom during lunch break",
+  "target_tags": [],  // Gemini가 생성한 태그로 자동 채워짐
+  "negative_prompt": "blurry, low quality",
+  "sd_params": {"steps": 25, "cfg_scale": 7.5},
+  "notes": "Testing scene composition"
+}
+```
+
+**Response:**
+```json
+{
+  "id": 124,
+  "experiment_type": "scene_translate",
+  "status": "completed",
+  "group_id": 1,
+  "character_id": 1,
+
+  // Scene description
+  "scene_description": "A student sitting in the classroom during lunch break",
+
+  // V3 Composed prompt
+  "prompt_used": "1girl, sitting, classroom, lunch_break, school_uniform",
+  "final_prompt": "1girl, sitting, classroom, lunch_break, school_uniform, <lora:char:1.0>, <lora:anime:0.7>, masterpiece",
+  "loras_applied": [...],
+
+  "match_rate": 0.82,
+  "image_url": "...",
+  "created_at": "2026-02-08T12:01:00Z"
+}
+```
+
+---
+
+### `POST /lab/experiments/run-batch`
+동일한 태그 조합으로 배치 실험을 실행합니다 (시드만 다름).
+
+**Request:**
+```json
+{
+  "experiment_type": "tag_render",
+  "group_id": 1,
+  "character_id": 1,
+  "target_tags": ["1girl", "smile"],
+  "count": 5,  // 배치 크기 (max: LAB_BATCH_MAX_SIZE)
+  "seeds": [100, 200, 300, 400, 500],  // Optional: 지정하지 않으면 랜덤
+  "sd_params": {"steps": 20},
+  "notes": "Testing consistency"
+}
+```
+
+**Response:**
+```json
+{
+  "batch_id": "abc123def456",
+  "total": 5,
+  "completed": 5,
+  "failed": 0,
+  "experiments": [
+    {
+      "id": 125,
+      "batch_id": "abc123def456",
+      "status": "completed",
+      "seed": 100,
+      "match_rate": 0.87,
+      "final_prompt": "...",
+      "loras_applied": [...]
+    },
+    // ... 4 more experiments
+  ]
+}
+```
+
+**Use Case**: 동일 프롬프트의 일관성 검증, 최적 시드 탐색.
+
+---
+
+### `GET /lab/experiments`
+실험 목록을 조회합니다 (필터링, 페이지네이션).
+
+**Query Parameters:**
+- `experiment_type`: `tag_render`, `scene_translate`
+- `character_id`: 특정 캐릭터 실험만
+- `batch_id`: 특정 배치 실험만
+- `limit`: 최대 반환 개수 (default: 50)
+- `offset`: 페이지네이션 오프셋 (default: 0)
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "id": 123,
+      "experiment_type": "tag_render",
+      "status": "completed",
+      "group_id": 1,
+      "character_id": 1,
+      "match_rate": 0.85,
+      "final_prompt": "...",
+      "loras_applied": [...],
+      "created_at": "2026-02-08T12:00:00Z"
+    }
+  ],
+  "total": 50
+}
+```
+
+---
+
+### `GET /lab/experiments/{experiment_id}`
+단일 실험의 상세 정보를 조회합니다.
+
+**Response:**
+```json
+{
+  "id": 123,
+  "experiment_type": "tag_render",
+  "status": "completed",
+  "group_id": 1,
+  "character_id": 1,
+
+  "prompt_used": "1girl, smile",
+  "final_prompt": "1girl, smile, <lora:char:1.0>, <lora:style:0.7>, masterpiece",
+  "loras_applied": [
+    {"name": "char", "weight": 1.0, "source": "character"},
+    {"name": "style", "weight": 0.7, "source": "style"}
+  ],
+
+  "target_tags": ["1girl", "smile"],
+  "match_rate": 0.85,
+  "wd14_result": {...},
+  "image_url": "...",
+  "seed": 42,
+  "created_at": "2026-02-08T12:00:00Z"
+}
+```
+
+---
+
+### `DELETE /lab/experiments/{experiment_id}`
+실험을 삭제합니다.
+
+**Response:**
+```json
+{
+  "ok": true
+}
+```
+
+---
+
+### `GET /lab/analytics/tag-effectiveness`
+Lab 실험 결과 기반 태그 효과성을 집계합니다.
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "tag_name": "1girl",
+      "tag_id": 1,
+      "use_count": 100,
+      "match_count": 95,
+      "effectiveness": 0.95
+    },
+    {
+      "tag_name": "smile",
+      "tag_id": 2,
+      "use_count": 80,
+      "match_count": 72,
+      "effectiveness": 0.90
+    },
+    {
+      "tag_name": "school_uniform",
+      "tag_id": 3,
+      "use_count": 50,
+      "match_count": 30,
+      "effectiveness": 0.60
+    }
+  ],
+  "total_experiments": 150,
+  "avg_match_rate": 0.82
+}
+```
+
+**Use Case**:
+- Effectiveness < 70%인 태그 → 프롬프트에서 제외 고려
+- Effectiveness > 90%인 태그 → 우선적으로 사용
+
+---
+
+### `POST /lab/analytics/sync-effectiveness`
+Lab 실험 결과를 Studio의 `tag_effectiveness` 테이블에 동기화합니다.
+
+**Response:**
+```json
+{
+  "synced": 25
+}
+```
+
+**동작**:
+- Lab의 `aggregate_tag_effectiveness()` 결과를 DB `tag_effectiveness` 테이블에 upsert
+- Studio에서 프롬프트 생성 시 태그 효과성 데이터 참조 가능
+
+---
+
+### Lab → Studio Workflow
+
+```
+1. Tag Lab → 태그 조합 실험 (V3 + Style Profile)
+2. Analytics → 효과성 분석 (Match Rate < 70% 태그 제외)
+3. Sync → Studio tag_effectiveness 테이블에 동기화
+4. Studio → V3 Prompt Engine이 효과성 데이터 참조
+```
+
+---
+
 ## Admin (관리)
 
 > v3.0+: DB 마이그레이션, 캐시, 태그 관리, 미디어 GC 엔드포인트
@@ -461,5 +790,5 @@ Mode A/B 비교 평가를 실행합니다.
 
 ---
 
-**Last Updated:** 2026-02-03
-**API Version:** v3.1
+**Last Updated:** 2026-02-08
+**API Version:** v3.2 (Phase 1: Lab-Studio Integration)

@@ -26,9 +26,21 @@ class LabExperiment(Base, TimestampMixin):
         nullable=True,
     )
 
+    # Group reference (required - Lab experiments belong to Groups)
+    group_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Prompt data
     prompt_used: Mapped[str] = mapped_column(Text, nullable=False)
     negative_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # V3 Prompt Engine metadata (Phase 1 integration)
+    final_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    loras_applied: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     # Experiment inputs
     target_tags: Mapped[list | None] = mapped_column(JSONB)
