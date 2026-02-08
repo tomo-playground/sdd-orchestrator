@@ -100,7 +100,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
     {
       "scene_id": 1,
       "script": "나레이션 텍스트",
-      "image_url": "/outputs/images/scene_001.png",
+      "image_url": "/outputs/images/scene_001.png",  // Response-only: @property에서 media_asset 기반 파생
       "width": 512,
       "height": 768,
       "tags": [{"tag_id": 10, "weight": 1.0}],
@@ -150,7 +150,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 ### `POST /scene/generate`
 Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 
-**Request:**
+**Request:** `SceneGenerateRequest`
 ```json
 {
   "prompt": "1girl, coffee shop, anime style",
@@ -160,20 +160,57 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "sampler_name": "DPM++ 2M Karras",
   "seed": -1,
   "width": 512,
-  "height": 512,
+  "height": 768,
   "clip_skip": 2,
   "enable_hr": false,
   "hr_scale": 1.5,
   "hr_upscaler": "Latent",
   "hr_second_pass_steps": 10,
-  "denoising_strength": 0.25
+  "denoising_strength": 0.25,
+  "character_id": 8,
+  "storyboard_id": 374,
+  "prompt_pre_composed": false,
+  "style_loras": []
 }
 ```
 
-**Response:**
+**Response:** `SceneGenerateResponse`
 ```json
 {
-  "image": "base64_encoded_string..."
+  "image": "base64_encoded_string...",
+  "images": ["base64_1...", "base64_2..."],
+  "controlnet_pose": "base64_or_null",
+  "ip_adapter_reference": "base64_or_null",
+  "warnings": ["unpinned tag: xyz"],
+  "used_prompt": "flat_color, 1girl, cafe, indoors, <lora:flat_color:0.76>"
+}
+```
+
+- `used_prompt`: 백엔드가 스타일 프로파일/LoRA/V3 엔진을 적용한 최종 프롬프트. Narrator 씬 등 프론트엔드가 프롬프트를 pre-compose하지 않은 경우, 이 값으로 `image_prompt`를 업데이트한다.
+
+### `POST /scene/generate-batch`
+여러 씬의 이미지를 한 번에 생성합니다.
+
+**Request:** `BatchSceneRequest`
+```json
+{
+  "scenes": [
+    { "prompt": "...", "negative_prompt": "...", "width": 512, "height": 768 },
+    { "prompt": "...", "negative_prompt": "...", "width": 512, "height": 768 }
+  ]
+}
+```
+
+**Response:** `BatchSceneResponse`
+```json
+{
+  "results": [
+    { "index": 0, "status": "success", "data": { "image": "...", "used_prompt": "..." } },
+    { "index": 1, "status": "failed", "error": "SD WebUI timeout" }
+  ],
+  "total": 2,
+  "succeeded": 1,
+  "failed": 1
 }
 ```
 
@@ -228,7 +265,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 {
   "scenes": [
     {
-      "image_url": "http://localhost:8000/outputs/images/stored/scene_001.png",
+      "image_url": "http://localhost:8000/outputs/images/stored/scene_001.png",  // Transient: render-time only, HTTP URL 필수
       "script": "나레이션 텍스트",
       "speaker": "Narrator",
       "duration": 3.0

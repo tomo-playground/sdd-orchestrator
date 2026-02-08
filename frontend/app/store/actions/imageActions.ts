@@ -253,14 +253,16 @@ export async function generateSceneImageFor(
         image_url: mainImageUrl,
         image_asset_id: bestAssetId ?? null,
         candidates: candidates,
-        image_prompt: autoComposePrompt ? prompt : undefined,
+        image_prompt:
+          autoComposePrompt && selectedCharacterId ? prompt : (res.data.used_prompt || undefined),
         debug_prompt: prompt,
         debug_payload: JSON.stringify(debugPayload, null, 2),
         activity_log_id: activityLogId,
       } as Partial<Scene>;
     }
     return {
-      image_prompt: autoComposePrompt ? prompt : undefined,
+      image_prompt:
+        autoComposePrompt && selectedCharacterId ? prompt : (res.data.used_prompt || undefined),
       debug_prompt: prompt,
       debug_payload: JSON.stringify(debugPayload, null, 2),
     } as Partial<Scene>;
@@ -290,7 +292,9 @@ export async function generateSceneCandidates(
   scene: Scene,
   silent = false
 ): Promise<Partial<Scene> | null> {
-  const { autoComposePrompt } = useStudioStore.getState();
+  const state = useStudioStore.getState();
+  const { autoComposePrompt } = state;
+  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
   const prompt = await buildScenePrompt(scene);
   if (!prompt) {
     if (!silent) useStudioStore.getState().showToast("Prompt is required", "error");
@@ -302,9 +306,13 @@ export async function generateSceneCandidates(
     match_rate?: number;
     image_url?: string;
   }> = [];
+  let resolvedImagePrompt: string | undefined;
   for (let i = 0; i < 3; i += 1) {
     const result = await generateSceneImageFor(scene, true);
     if (!result?.image_url || !result?.image_asset_id) continue;
+    if (!resolvedImagePrompt && result.image_prompt) {
+      resolvedImagePrompt = result.image_prompt;
+    }
     const validation = await validateImageCandidate(result.image_url, prompt, scene.id);
     candidates.push({
       media_asset_id: result.image_asset_id,
@@ -337,7 +345,7 @@ export async function generateSceneCandidates(
     image_asset_id: bestAssetId,
     candidates,
     debug_prompt: prompt,
-    image_prompt: autoComposePrompt ? prompt : undefined,
+    image_prompt: resolvedImagePrompt || ((autoComposePrompt && selectedCharacterId) ? prompt : undefined),
   } as Partial<Scene>;
 }
 
@@ -371,15 +379,22 @@ export async function handleGenerateImage(scene: Scene) {
       : await generateSceneImageFor(updatedScene);
     if (result) {
       console.log("[handleGenerateImage] Image generation result:", result);
+      // Scene ID may have changed during generation (concurrent save → ID reassignment).
+      // Look up by order (stable) instead of stale captured ID.
+      const currentScenes = useStudioStore.getState().scenes;
+      const currentScene = currentScenes.find((s) => s.order === sceneOrder);
+      const currentId = currentScene?.id ?? updatedScene.id;
+      const { updateScene: liveUpdateScene } = useStudioStore.getState();
+
       // Include isGenerating: false before saveStoryboard to survive ID reassignment
-      updateScene(updatedScene.id, { ...result, isGenerating: false });
+      liveUpdateScene(currentId, { ...result, isGenerating: false });
 
       // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
       const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
       const autoPinResult = applyAutoPinAfterGeneration(
         useStudioStore.getState().scenes,
-        updatedScene.id,
-        updateScene
+        currentId,
+        liveUpdateScene
       );
       if (autoPinResult?.success) {
         console.log("[AutoPin]", autoPinResult.message);
@@ -453,7 +468,7 @@ export function handleImageUpload(sceneId: number, file?: File) {
 
 /** Edit scene image with Gemini */
 export async function handleEditWithGemini(scene: Scene, targetChange: string) {
-  const { updateScene, showToast } = useStudioStore.getState();
+  const { showToast } = useStudioStore.getState();
   if (!scene.image_url) {
     showToast("No image to edit. Generate one first.", "error");
     return;
@@ -462,12 +477,13 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     showToast("Save the scene first (image must be stored).", "error");
     return;
   }
-  updateScene(scene.id, { isGenerating: true });
+  const sceneOrder = scene.order;
+  useStudioStore.getState().updateScene(scene.id, { isGenerating: true });
   try {
     const prompt = await buildScenePrompt(scene);
     if (!prompt) {
       showToast("Prompt build failed", "error");
-      updateScene(scene.id, { isGenerating: false });
+      useStudioStore.getState().updateScene(scene.id, { isGenerating: false });
       return;
     }
     const payload =
@@ -480,18 +496,22 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
       const { projectId, groupId, storyboardId } = useStudioStore.getState();
       if (!projectId || !groupId || !storyboardId) {
         showToast("Project/Group context required", "error");
-        updateScene(scene.id, { isGenerating: false });
+        useStudioStore.getState().updateScene(scene.id, { isGenerating: false });
         return;
       }
+      // Re-lookup by order: scene IDs may have changed during Gemini API call
+      const currentScenes = useStudioStore.getState().scenes;
+      const currentScene = currentScenes.find((s) => s.order === sceneOrder);
+      const currentId = currentScene?.id ?? scene.id;
       const stored = await storeSceneImage(
         dataUrl,
         projectId,
         groupId,
         storyboardId,
-        scene.id,
-        `gemini_edit_${scene.id}_${Date.now()}.png`
+        currentId,
+        `gemini_edit_${currentId}_${Date.now()}.png`
       );
-      updateScene(scene.id, {
+      useStudioStore.getState().updateScene(currentId, {
         image_url: stored.url,
         image_asset_id: stored.asset_id ?? null,
         isGenerating: false,
@@ -507,7 +527,11 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     showToast(`Gemini edit failed: ${msg}`, "error");
-    updateScene(scene.id, { isGenerating: false });
+    // Re-lookup by order for cleanup
+    const currentScenes = useStudioStore.getState().scenes;
+    const currentScene = currentScenes.find((s) => s.order === sceneOrder);
+    const currentId = currentScene?.id ?? scene.id;
+    useStudioStore.getState().updateScene(currentId, { isGenerating: false });
   }
 }
 

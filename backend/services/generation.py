@@ -655,4 +655,6 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
 
     controlnet_used, ip_adapter_used = _apply_controlnet(request, payload, character_obj, final_warnings, db)
 
-    return await _call_sd_api(payload, controlnet_used, ip_adapter_used, final_warnings)
+    result = await _call_sd_api(payload, controlnet_used, ip_adapter_used, final_warnings)
+    result["used_prompt"] = cleaned_prompt
+    return result

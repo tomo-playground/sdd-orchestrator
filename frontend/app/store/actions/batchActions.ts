@@ -10,7 +10,7 @@ import { buildNegativePrompt } from "./promptActions";
 interface BatchResult {
   index: number;
   status: "success" | "failed";
-  data?: { image?: string; images?: string[]; [key: string]: unknown };
+  data?: { image?: string; images?: string[]; used_prompt?: string; [key: string]: unknown };
   error?: string;
 }
 
@@ -88,8 +88,12 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
 
     await Promise.all(
       results.map(async (result) => {
-        const scene = targetScenes[result.index];
-        if (!scene) return;
+        const originalScene = targetScenes[result.index];
+        if (!originalScene) return;
+
+        // Re-lookup by order: IDs may have changed during batch generation
+        const currentScenes = useStudioStore.getState().scenes;
+        const scene = currentScenes.find((s) => s.order === originalScene.order) || originalScene;
 
         const b64 = result.data?.image;
         if (result.status === "success" && b64 && canStore) {
@@ -102,22 +106,25 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
             scene.id,
             `scene_${scene.id}_${Date.now()}.png`
           );
-          updateScene(scene.id, {
+          useStudioStore.getState().updateScene(scene.id, {
             image_url: stored.url,
             image_asset_id: stored.asset_id ?? null,
+            image_prompt: result.data?.used_prompt || undefined,
             isGenerating: false,
           });
         } else {
-          updateScene(scene.id, { isGenerating: false });
+          useStudioStore.getState().updateScene(scene.id, { isGenerating: false });
         }
       })
     );
 
     return res.data;
   } catch (error) {
-    // Mark all as not generating on error
+    // Mark all as not generating on error (use fresh IDs)
     for (const scene of targetScenes) {
-      updateScene(scene.id, { isGenerating: false });
+      const currentScenes = useStudioStore.getState().scenes;
+      const fresh = currentScenes.find((s) => s.order === scene.order) || scene;
+      useStudioStore.getState().updateScene(fresh.id, { isGenerating: false });
     }
     console.error("Batch generation failed:", error);
     return null;

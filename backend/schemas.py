@@ -515,6 +515,7 @@ class SceneGenerateResponse(BaseModel):
     controlnet_pose: str | None = None
     ip_adapter_reference: str | None = None
     warnings: list[str] = []
+    used_prompt: str | None = None
 
 
 class BatchSceneResult(BaseModel):
