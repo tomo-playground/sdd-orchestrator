@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine` (Agents), `GroupConfig`, `RenderHistory`, `LabExperiments`, `YouTubeCredential` 추가. `evaluation_runs` 제거. `StoryboardCharacter` 추가. |
 | v3.13 | 2026-02-07 | FK 정합성 강화: `scenes.environment_reference_id` → FK media_assets, `activity_logs` 3컬럼 FK 추가, `tags.replacement_tag_id` ondelete 추가. `scenes.deleted_at` SoftDeleteMixin 적용 |
 | v3.12 | 2026-02-07 | `music_presets` 테이블 추가 (AI BGM 프리셋). `render_presets`에 `bgm_mode`, `music_preset_id` FK 추가 |
 | v3.11 | 2026-02-06 | `scenes.candidates` 형식 변경: `image_url` 제거, `media_asset_id` 필수. Backend에서 GET 시 URL 자동 해석 |
@@ -30,10 +31,21 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 ```mermaid
 erDiagram
     projects ||--o{ groups : "contains"
+    projects ||--o| youtube_credentials : "has"
     projects }o--o| render_presets : "default_preset"
+    
+    groups ||--o| group_config : "has_config"
     groups ||--o{ storyboards : "contains"
-    groups }o--o| render_presets : "preset"
+    
+    group_config }o--o| render_presets : "preset"
+    group_config }o--o| style_profiles : "style"
+    group_config }o--o| voice_presets : "narrator"
+
     storyboards ||--o{ scenes : "has"
+    storyboards ||--o{ storyboard_characters : "maps_speakers"
+    storyboards ||--o{ activity_logs : "logged"
+    storyboards ||--o{ render_history : "renders"
+    
     scenes ||--o{ scene_tags : "has"
     scenes ||--o{ scene_character_actions : "has"
     scenes ||--o{ scene_quality_scores : "evaluated_by"
@@ -44,6 +56,7 @@ erDiagram
 
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
+    storyboard_characters }o--o| characters : "maps_to"
 
     tags ||--o{ character_tags : "linked"
     tags ||--o{ scene_tags : "linked"
@@ -52,7 +65,10 @@ erDiagram
     tags ||--o{ tag_effectiveness : "tracked"
 
     sd_models ||--o{ style_profiles : "base_model"
-    storyboards ||--o{ activity_logs : "logged"
+    
+    creative_sessions ||--o{ creative_session_rounds : "has"
+    creative_sessions ||--o{ creative_traces : "has"
+    creative_agent_presets ||--o{ creative_traces : "executed"
 
     tag_aliases {
         string source_tag
@@ -87,12 +103,23 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 **Read-only 속성**:
 - `avatar_url` (`@property`): `avatar_asset.url` 반환
 
-**Cascading Config 상속 순서**: Project → Group → Storyboard (하위가 상위를 오버라이드)
+**Cascading Config 상속 순서**: Project → Group (GroupConfig) → Storyboard (하위가 상위를 오버라이드)
 
-> v3.10 변경: `character_id` 제거 — 캐릭터는 storyboard 레벨에서만 설정 (storyboard_characters 테이블)
+### `youtube_credentials`
+프로젝트별 YouTube OAuth 인증 정보 (1:1).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `project_id` | Integer (FK → projects, UNIQUE) | 소속 프로젝트 |
+| `channel_id` | String(100) | YouTube Channel ID |
+| `channel_title` | String(200) | 채널명 |
+| `encrypted_token` | Text | 암호화된 OAuth 토큰 |
+| `is_valid` | Boolean | 토큰 유효 여부 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `groups`
-프로젝트 내의 개별 시리즈 또는 카테고리. Cascading Config으로 프로젝트 설정을 상속/오버라이드.
+프로젝트 내의 개별 시리즈 또는 카테고리.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -100,12 +127,23 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `project_id` | Integer (FK → projects, RESTRICT) | 소속 프로젝트 |
 | `name` | String(200) | 시리즈 이름 |
 | `description` | Text | 설명 |
-| `render_preset_id` | Integer (FK → render_presets, SET NULL) | 렌더 프리셋 |
-| `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
-> v3.4 변경: `default_bgm_file`, `default_narrator_voice` 제거 → `render_presets` 테이블로 이관
-> v3.6 변경: `character_id` 삭제 (DROP, storyboard 레벨에서만 설정), `style_profile_id` 리네이밍 (旧 `default_style_profile_id`)
+### `group_config`
+Group별 설정 (1:1, 분리된 설정 테이블). 프로젝트 설정을 상속/오버라이드.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `group_id` | Integer (FK → groups, UNIQUE) | 소속 그룹 |
+| `render_preset_id` | Integer (FK → render_presets) | 렌더 프리셋 |
+| `style_profile_id` | Integer (FK → style_profiles) | 기본 스타일 프로파일 |
+| `narrator_voice_preset_id` | Integer (FK → voice_presets) | 나레이터 음성 |
+| `language` | String(20) | 언어 설정 |
+| `structure` | String(30) | 구조 설정 |
+| `duration` | Integer | 목표 길이 |
+| `sd_steps`, `sd_cfg_scale`, ... | | SD 생성 파라미터 오버라이드 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `storyboards`
 YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
@@ -121,14 +159,12 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `caption` | Text | 캡션 텍스트 (Post Layout용) |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 프리셋 |
 | `video_asset_id` | Integer (FK → media_assets, SET NULL) | 최신 렌더링 영상 |
-| `recent_videos` | JSONB | 최근 렌더링 이력 |
+| `recent_videos` | JSONB | 최근 렌더링 이력 (Legacy, RenderHistory로 대체됨) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `video_url` (`@property`): `video_asset.url` 반환
-
-> v3.5 변경: `narrator_voice_preset_id` FK 추가, `deleted_at` Soft Delete 추가
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -146,7 +182,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `image_prompt` | Text | Gemini 생성 프롬프트 (V3 compose 입력) |
 | `image_prompt_ko` | Text | 한국어 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
-| `context_tags` | JSONB | 씬 컨텍스트 태그 (아래 구조 참조) |
+| `context_tags` | JSONB | 씬 컨텍스트 태그 (expression, gaze, pose, action, camera, environment, mood) |
 | **SD Parameters** | | |
 | `steps` | Integer | 샘플링 스텝 |
 | `cfg_scale` | Float | CFG 스케일 |
@@ -162,7 +198,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
 | **Generated** | | |
 | `image_asset_id` | Integer (FK → media_assets) | 생성된 이미지 (폴리모픽 참조) |
-| `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) — URL 직접 저장 금지 |
+| `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -186,7 +222,81 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 
 ---
 
+## 🤖 Creative Engine (Agents)
+
+Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
+
+### `creative_agent_presets`
+재사용 가능한 에이전트 페르소나 및 모델 설정.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `name` | String(100) | 에이전트 이름 (Unique) |
+| `role_description` | Text | 역할 설명 |
+| `system_prompt` | Text | 시스템 프롬프트 |
+| `model_provider` | String(20) | `gemini`, `ollama` |
+| `model_name` | String(50) | 모델명 (e.g. `gemini-1.5-pro`) |
+| `temperature` | Float | 생성 다양성 |
+| `is_system` | Boolean | 시스템 프리셋 여부 |
+
+### `creative_sessions`
+에이전트 간의 창작 세션 (Leader Agent가 오케스트레이션).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `objective` | Text | 세션 목표 |
+| `evaluation_criteria` | JSONB | 평가 기준 |
+| `character_id` | Integer (FK) | 대상 캐릭터 (Optional) |
+| `context` | JSONB | 추가 컨텍스트 |
+| `agent_config` | JSONB | 참여 에이전트 구성 |
+| `final_output` | JSONB | 최종 결과물 |
+| `max_rounds` | Integer | 최대 라운드 수 |
+| `status` | String(20) | 진행 상태 |
+
+### `creative_session_rounds`
+세션 내의 각 토의 라운드 요약.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `session_id` | Integer (FK) | 소속 세션 |
+| `round_number` | Integer | 라운드 번호 |
+| `leader_summary` | Text | 리더의 라운드 요약 |
+| `round_decision` | String(20) | 라운드 결정 (`revise`, `approve` 등) |
+| `leader_direction` | Text | 다음 라운드 지시사항 |
+
+### `creative_traces`
+개별 에이전트의 LLM 호출 및 생각(Thought) 추적.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `session_id` | Integer (FK) | 소속 세션 |
+| `round_number` | Integer | 라운드 번호 |
+| `sequence` | Integer | 순서 |
+| `trace_type` | String(20) | `thought`, `action`, `observation` |
+| `agent_role` | String(50) | 에이전트 역할 |
+| `agent_preset_id` | Integer (FK) | 사용된 프리셋 |
+| `input_prompt` | Text | 입력 프롬프트 |
+| `output_content` | Text | LLM 응답 |
+| `token_usage` | JSONB | 토큰 사용량 |
+| `latency_ms` | Integer | 응답 시간 |
+
+---
+
 ## 🔗 Association Tables (V3 Relational Tags)
+
+### `storyboard_characters`
+스토리보드 내 화자(Speaker)와 캐릭터 매핑 (Dialogue).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `storyboard_id` | Integer (FK) | |
+| `speaker` | String(10) | 화자 라벨 (`A`, `B` 등) |
+| `character_id` | Integer (FK) | 매핑된 캐릭터 |
 
 ### `character_tags`
 캐릭터 ↔ 태그 연결.
@@ -592,6 +702,33 @@ Textual Inversion 임베딩.
 **Read-only 속성**:
 - `image_url` (`@property`): `image_storage_key` 기반 URL 반환
 
+### `render_history`
+영상 렌더링 및 YouTube 업로드 이력.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `storyboard_id` | Integer (FK) | 소속 스토리보드 |
+| `media_asset_id` | Integer (FK) | 렌더링된 영상 파일 |
+| `label` | String(20) | 버전/라벨 |
+| `youtube_video_id` | String(20) | 업로드된 영상 ID |
+| `youtube_upload_status` | String(20) | 업로드 상태 |
+| `youtube_uploaded_at` | DateTime | 업로드 시각 |
+
+### `lab_experiments`
+태그 렌더링, 씬 번역 등 실험실 기능 이력 (旧 evaluation_runs 대체).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `experiment_type` | String(20) | `tag_render`, `scene_translate` |
+| `status` | String(20) | `pending`, `completed` |
+| `prompt_used` | Text | 사용된 프롬프트 |
+| `target_tags` | JSONB | 타겟 태그 |
+| `match_rate` | Float | 결과 매치율 |
+| `wd14_result` | JSONB | 상세 분석 결과 |
+| `notes` | Text | 사용자 메모 |
+
 ### `scene_quality_scores`
 장면별 품질 점수 및 WD14 검증 결과 전용 스토어.
 
@@ -610,9 +747,6 @@ Textual Inversion 임베딩.
 **Read-only 속성**:
 - `image_url` (`@property`): `image_storage_key` 기반 URL 반환
 
-> v3.0: `generation_logs` → `activity_logs`로 이름 변경 및 통합
-> **Removed** (Phase 6-4.26): `is_favorite`, `name` - 즐겨찾기 기능 미구현 (0 usage, 0 data)
-
 ### `prompt_histories`
 저장된 프롬프트 설정.
 
@@ -630,26 +764,6 @@ Textual Inversion 임베딩.
 | `validation_count` | Integer | |
 | `is_favorite` | Boolean | |
 | `use_count` | Integer | |
-
-### `evaluation_runs`
-프롬프트 모드 A/B 테스트 결과.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `batch_id` | String(50) | 배치 실행 그룹 |
-| `test_name` | String(100) | 테스트명 |
-| `mode` | String(20) | `standard`, `lora` |
-| `character_id` | Integer | 캐릭터 ID |
-| `character_name` | String(100) | 캐릭터명 |
-| `prompt_used` | Text | 사용된 프롬프트 |
-| `negative_prompt` | Text | 네거티브 프롬프트 |
-| `seed` | Integer | 생성 시드 |
-| `steps` | Integer | 샘플링 스텝 |
-| `cfg_scale` | Float | CFG 스케일 |
-| `match_rate` | Float | WD14 매치율 |
-| `matched_tags`, `missing_tags`, `extra_tags` | JSONB | 태그 분석 결과 |
-| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ---
 
@@ -706,6 +820,12 @@ Textual Inversion 임베딩.
 | `TagFilter.filter_type` | `ignore`, `skip` |
 | `RenderPreset.bgm_mode` | `file`, `ai` |
 | `ActivityLog.status` | `success`, `fail` |
+| `CreativeSession.status` | `pending`, `running`, `completed`, `failed` |
+| `CreativeSessionRound.round_decision` | `revise`, `approve`, `reject` |
+| `CreativeTrace.trace_type` | `thought`, `action`, `observation` |
+| `RenderHistory.youtube_upload_status` | `pending`, `uploaded`, `failed` |
+| `LabExperiment.experiment_type` | `tag_render`, `scene_translate` |
+| `LabExperiment.status` | `pending`, `completed`, `failed` |
 
 ---
 
@@ -732,7 +852,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-07
-**Schema Version:** v3.13
+**Last Updated:** 2026-02-08
+**Schema Version:** v3.14
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
-**Migrations:** Alembic (V3 Baseline + Media Assets + Render/Voice Presets + Voice FK + Schema Cleanup + Redundant FK Removal + Music Presets + FK Constraints)
+**Migrations:** Alembic
