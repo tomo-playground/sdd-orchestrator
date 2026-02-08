@@ -2,6 +2,7 @@ import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE } from "../../constants";
 import type { EffectiveConfig, GroupItem } from "../../types";
+import { loadStyleProfileFromId } from "./styleProfileActions";
 
 /**
  * Load effective config (cascading: Project < Group) and apply to output slice.
@@ -23,6 +24,13 @@ export async function loadGroupDefaults(
 
     // Store effective IDs (contextSlice — survives resetStudioStore)
     setEffectiveDefaults(cfg.style_profile_id ?? null, null, true);
+
+    // Auto-load style profile if not already loaded
+    if (cfg.style_profile_id && !useStudioStore.getState().currentStyleProfile) {
+      loadStyleProfileFromId(cfg.style_profile_id).catch((err) => {
+        console.error("[loadGroupDefaults] Failed to load style profile:", err);
+      });
+    }
 
     const p = cfg.render_preset;
     if (!p) {
