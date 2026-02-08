@@ -221,7 +221,7 @@ class TestGenerateParallel:
 
         assert len(results) == 3
         for r in results:
-            assert r["role"] in {"storyteller", "critic", "editor"}
+            assert r["agent_role"] in {"storyteller", "critic", "editor"}
             assert r["content"] == "Generated text"
             assert "token_usage" in r
 

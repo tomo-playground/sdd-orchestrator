@@ -40,7 +40,6 @@ def sample_evaluation_criteria():
 def created_session(db_session, sample_agent_config, sample_evaluation_criteria):
     """Insert a CreativeSession directly into DB for tests that need one."""
     session = CreativeSession(
-        task_type="scenario",
         objective="Write a dramatic short",
         evaluation_criteria=sample_evaluation_criteria,
         agent_config=sample_agent_config,
@@ -109,7 +108,6 @@ class TestCreateSession:
 
         session = await create_session(
             db=db_session,
-            task_type="scenario",
             objective="Write a comedic short",
             evaluation_criteria=sample_evaluation_criteria,
             agent_config=sample_agent_config,
@@ -118,19 +116,17 @@ class TestCreateSession:
 
         assert isinstance(session, CreativeSession)
         assert session.status == "running"
-        assert session.task_type == "scenario"
         assert session.objective == "Write a comedic short"
         assert session.max_rounds == 3
         assert session.final_output is None
 
     @pytest.mark.asyncio
     async def test_default_evaluation_criteria_for_scenario(self, db_session, sample_agent_config):
-        """When evaluation_criteria is None and task_type='scenario', defaults are applied."""
+        """When evaluation_criteria is None, scenario defaults are applied."""
         from services.creative_engine import create_session
 
         session = await create_session(
             db=db_session,
-            task_type="scenario",
             objective="Test objective",
             evaluation_criteria=None,
             agent_config=sample_agent_config,
@@ -179,7 +175,6 @@ class TestCreateSession:
 
         session = await create_session(
             db=db_session,
-            task_type="scenario",
             objective="Auto-preset test",
             agent_config=None,
         )
@@ -201,7 +196,6 @@ class TestCreateSession:
 
         session = await create_session(
             db=db_session,
-            task_type="scenario",
             objective="Config test",
             agent_config=sample_agent_config,
         )

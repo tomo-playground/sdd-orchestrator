@@ -46,17 +46,17 @@ def _get_active_session(db: Session, session_id: int) -> CreativeSession:
     return session
 
 
-# ── Default evaluation criteria by task_type ─────────────────
+# ── Default evaluation criteria ─────────────────────────────
 
 
-def _get_criteria(task_type: str) -> dict:
-    """Get default evaluation criteria via task_type registry."""
+def _get_criteria() -> dict:
+    """Get default evaluation criteria for scenario tasks."""
     from services.creative_tasks import get_default_criteria
 
     try:
-        return get_default_criteria(task_type)
+        return get_default_criteria("scenario")
     except (ValueError, ModuleNotFoundError):
-        logger.warning("[Creative] No criteria for task_type=%s, using empty", task_type)
+        logger.warning("[Creative] No criteria available, using empty")
         return {}
 
 
@@ -65,7 +65,6 @@ def _get_criteria(task_type: str) -> dict:
 
 async def create_session(
     db: Session,
-    task_type: str,
     objective: str,
     evaluation_criteria: dict | None = None,
     character_id: int | None = None,
@@ -75,7 +74,7 @@ async def create_session(
 ) -> CreativeSession:
     """Create a new creative session."""
     if evaluation_criteria is None:
-        evaluation_criteria = _get_criteria(task_type)
+        evaluation_criteria = _get_criteria()
 
     if not agent_config:
         system_presets = (
@@ -103,7 +102,6 @@ async def create_session(
             context["url_content"] = fetched
 
     session = CreativeSession(
-        task_type=task_type,
         objective=objective,
         evaluation_criteria=evaluation_criteria,
         character_id=character_id,
@@ -347,7 +345,6 @@ def _build_instruction(
 ) -> str:
     """Build the instruction prompt for a round."""
     parts = [
-        f"Task: {session.task_type}",
         f"Objective: {session.objective}",
         f"Round: {round_number}/{session.max_rounds}",
     ]

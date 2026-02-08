@@ -55,9 +55,6 @@ export default function SessionHistoryTable({
               Objective
             </th>
             <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-              Type
-            </th>
-            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
               Status
             </th>
             <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
@@ -74,11 +71,6 @@ export default function SessionHistoryTable({
             >
               <td className="px-5 py-2.5 font-mono text-[10px]">#{s.id}</td>
               <td className="max-w-xs truncate px-5 py-2.5">{s.objective}</td>
-              <td className="px-5 py-2.5">
-                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px]">
-                  {s.task_type}
-                </span>
-              </td>
               <td className="px-5 py-2.5">
                 <StatusBadge status={s.status} />
               </td>

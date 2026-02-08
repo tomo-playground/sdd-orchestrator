@@ -186,7 +186,6 @@ class TestBuildInstruction:
         from services.creative_engine import _build_instruction
 
         session = AsyncMock()
-        session.task_type = "scenario"
         session.objective = "Write about https://example.com"
         session.max_rounds = 3
         session.context = {
@@ -203,7 +202,6 @@ class TestBuildInstruction:
         from services.creative_engine import _build_instruction
 
         session = AsyncMock()
-        session.task_type = "scenario"
         session.objective = "Test"
         session.max_rounds = 3
         session.context = {
@@ -224,7 +222,6 @@ class TestBuildInstruction:
         from services.creative_engine import _build_instruction
 
         session = AsyncMock()
-        session.task_type = "scenario"
         session.objective = "Plain objective"
         session.max_rounds = 3
         session.context = {"key": "value"}

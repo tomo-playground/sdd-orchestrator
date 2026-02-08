@@ -19,7 +19,6 @@ from schemas_creative import (
     FinalizeRequest,
     OkResponse,
     RunRoundRequest,
-    TaskTypeListResponse,
     TraceTimelineResponse,
 )
 from services.creative_engine import create_session, finalize, run_debate, run_round
@@ -39,7 +38,6 @@ async def api_create_session(
     """Create a new creative session."""
     return await create_session(
         db=db,
-        task_type=req.task_type,
         objective=req.objective,
         evaluation_criteria=req.evaluation_criteria,
         character_id=req.character_id,
@@ -51,15 +49,12 @@ async def api_create_session(
 
 @router.get("/sessions", response_model=CreativeSessionListResponse)
 def api_list_sessions(
-    task_type: str | None = None,
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    """List creative sessions with optional task_type filter."""
+    """List creative sessions."""
     query = db.query(CreativeSession).filter(CreativeSession.deleted_at.is_(None))
-    if task_type:
-        query = query.filter(CreativeSession.task_type == task_type)
     total = query.count()
     items = query.order_by(CreativeSession.id.desc()).offset(offset).limit(limit).all()
     return CreativeSessionListResponse(items=items, total=total)
@@ -153,18 +148,6 @@ def api_delete_session(session_id: int, db: Session = Depends(get_db)):
     session.deleted_at = datetime.now(UTC)
     db.commit()
     return {"ok": True}
-
-
-# ── Task Types ───────────────────────────────────────────────
-
-
-@router.get("/task-types", response_model=TaskTypeListResponse)
-def api_list_task_types():
-    """List all available creative task types."""
-    from services.creative_tasks import TASK_REGISTRY
-
-    items = [{"key": k, **v} for k, v in TASK_REGISTRY.items()]
-    return TaskTypeListResponse(items=items)
 
 
 # ── Agent Presets ────────────────────────────────────────────

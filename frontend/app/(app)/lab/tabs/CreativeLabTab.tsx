@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { ArrowLeft, Settings, Trophy } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { API_BASE } from "../../../constants";
 import type { CreativeSession, CreativeTrace, SessionListResponse } from "../../../types/creative";
 import StatusBadge from "../../../components/lab/StatusBadge";
@@ -50,7 +51,6 @@ export default function CreativeLabTab() {
     setError(null);
     try {
       const createRes = await axios.post<CreativeSession>(`${API_BASE}/lab/creative/sessions`, {
-        task_type: "scenario",
         objective: objective.trim(),
         max_rounds: maxRounds,
       });
@@ -199,6 +199,7 @@ function ActiveSessionView({
 
   return (
     <div className="space-y-4">
+      {/* Session Info Card */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center gap-3">
           <button
@@ -211,26 +212,32 @@ function ActiveSessionView({
           <span className="text-[10px] text-zinc-400">#{session.id}</span>
         </div>
         <p className="text-xs text-zinc-600">{session.objective}</p>
-        {finalOutput && (
-          <div className="mt-3 rounded-lg bg-emerald-50 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] font-semibold tracking-wider text-emerald-600 uppercase">
-                Final Output
-              </p>
-              {finalOutput.agent_role != null && (
-                <span className="flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                  <Trophy className="h-3 w-3" />
-                  {String(finalOutput.agent_role)}
-                  {finalOutput.score != null && ` (${Number(finalOutput.score).toFixed(2)})`}
-                </span>
-              )}
-            </div>
-            <pre className="max-h-60 overflow-y-auto text-xs leading-relaxed whitespace-pre-wrap text-emerald-800">
-              {String(finalOutput.content ?? JSON.stringify(session.final_output, null, 2))}
-            </pre>
-          </div>
-        )}
       </div>
+
+      {/* Final Output Card - Independent & Emphasized */}
+      {finalOutput && (
+        <div className="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-emerald-600" />
+              <h3 className="text-sm font-semibold text-emerald-900">Final Output</h3>
+            </div>
+            {finalOutput.agent_role != null && (
+              <span className="flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                {String(finalOutput.agent_role)}
+                {finalOutput.score != null && ` • ${Number(finalOutput.score).toFixed(2)}`}
+              </span>
+            )}
+          </div>
+          <div className="prose prose-sm prose-emerald max-h-80 max-w-none overflow-y-auto rounded-lg border border-emerald-100 bg-white p-4">
+            <ReactMarkdown>
+              {String(finalOutput.content ?? JSON.stringify(session.final_output, null, 2))}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
+
+      {/* Rounds History */}
       <CreativeRoundView sessionId={session.id} session={session} onFinalize={onFinalize} />
     </div>
   );

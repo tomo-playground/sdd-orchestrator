@@ -39,7 +39,6 @@ class CreativeSession(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "creative_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    task_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     objective: Mapped[str] = mapped_column(Text, nullable=False)
     evaluation_criteria: Mapped[dict] = mapped_column(JSONB, nullable=False)
     character_id: Mapped[int | None] = mapped_column(

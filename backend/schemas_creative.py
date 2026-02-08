@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
-
-VALID_TASK_TYPES = Literal["scenario", "dialogue", "visual_concept", "character_design"]
 
 # ── Common ────────────────────────────────────────────────────
 
@@ -82,7 +80,6 @@ class AgentPresetResponse(BaseModel):
 
 
 class CreativeSessionCreate(BaseModel):
-    task_type: VALID_TASK_TYPES = "scenario"
     objective: str
     evaluation_criteria: dict[str, CriterionWeight] | None = None
     character_id: int | None = None
@@ -93,7 +90,6 @@ class CreativeSessionCreate(BaseModel):
 
 class CreativeSessionResponse(BaseModel):
     id: int
-    task_type: str
     objective: str
     evaluation_criteria: dict[str, Any] | None = None
     character_id: int | None = None
@@ -178,16 +174,3 @@ class FinalizeRequest(BaseModel):
 
     selected_output: dict[str, Any]  # The chosen result
     reason: str | None = None
-
-
-# ── Task Types ──────────────────────────────────────────────
-
-
-class TaskTypeItem(BaseModel):
-    key: str
-    label: str
-    description: str
-
-
-class TaskTypeListResponse(BaseModel):
-    items: list[TaskTypeItem]

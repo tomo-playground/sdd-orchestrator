@@ -2,7 +2,6 @@
 
 export type CreativeSession = {
   id: number;
-  task_type: string;
   objective: string;
   evaluation_criteria: Record<string, unknown> | null;
   character_id: number | null;
@@ -57,9 +56,4 @@ export type CreativeTimeline = {
 export type SessionListResponse = {
   items: CreativeSession[];
   total: number;
-};
-
-export type SendToStudioResponse = {
-  storyboard_id: number;
-  scenes_created: number;
 };

@@ -96,7 +96,6 @@ def _serialize_session(session: CreativeSession) -> dict[str, Any]:
     """Serialize a session ORM object to dict."""
     return {
         "id": session.id,
-        "task_type": session.task_type,
         "objective": session.objective,
         "evaluation_criteria": session.evaluation_criteria,
         "character_id": session.character_id,

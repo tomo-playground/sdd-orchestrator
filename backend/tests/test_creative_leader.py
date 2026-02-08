@@ -12,7 +12,6 @@ from models.creative import CreativeSession
 @pytest.fixture
 def sample_session(db_session):
     session = CreativeSession(
-        task_type="scenario",
         objective="Write a dramatic short",
         evaluation_criteria={
             "originality": {"weight": 0.3, "description": "Novel ideas"},

@@ -17,7 +17,6 @@ class TestCreateSession:
         """Create a new creative session."""
         session = CreativeSession(
             id=1,
-            task_type="scenario",
             objective="Write a story",
             evaluation_criteria={"originality": {"weight": 0.5}},
             max_rounds=3,
@@ -35,7 +34,6 @@ class TestCreateSession:
 
         assert resp.status_code == 200
         data = resp.json()
-        assert data["task_type"] == "scenario"
         assert data["objective"] == "Write a story"
         assert data["status"] == "running"
 
@@ -59,7 +57,6 @@ class TestListSessions:
     def test_list_sessions_with_data(self, client: TestClient, db_session):
         """List returns existing sessions."""
         session = CreativeSession(
-            task_type="scenario",
             objective="Test",
             evaluation_criteria={},
             max_rounds=3,
@@ -79,7 +76,6 @@ class TestListSessions:
     ):
         """Soft-deleted sessions are excluded."""
         session = CreativeSession(
-            task_type="scenario",
             objective="Deleted",
             evaluation_criteria={},
             max_rounds=3,
@@ -93,24 +89,6 @@ class TestListSessions:
         assert resp.status_code == 200
         assert resp.json()["total"] == 0
 
-    def test_list_sessions_filter_task_type(
-        self, client: TestClient, db_session,
-    ):
-        """Filter by task_type works."""
-        db_session.add(CreativeSession(
-            task_type="scenario", objective="A", evaluation_criteria={}, max_rounds=3, status="running",
-        ))
-        db_session.add(CreativeSession(
-            task_type="scene_direction", objective="B", evaluation_criteria={}, max_rounds=3, status="running",
-        ))
-        db_session.commit()
-
-        resp = client.get("/lab/creative/sessions?task_type=scenario")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["total"] == 1
-        assert data["items"][0]["task_type"] == "scenario"
-
 
 class TestGetSession:
     """GET /lab/creative/sessions/{id}"""
@@ -118,7 +96,6 @@ class TestGetSession:
     def test_get_session_by_id(self, client: TestClient, db_session):
         """Retrieve session by ID."""
         session = CreativeSession(
-            task_type="scenario",
             objective="Get me",
             evaluation_criteria={},
             max_rounds=3,
@@ -141,7 +118,6 @@ class TestGetSession:
     ):
         """Soft-deleted session returns 404."""
         session = CreativeSession(
-            task_type="scenario",
             objective="Deleted",
             evaluation_criteria={},
             max_rounds=3,
@@ -161,7 +137,6 @@ class TestDeleteSession:
     def test_delete_session(self, client: TestClient, db_session):
         """Soft-delete sets deleted_at."""
         session = CreativeSession(
-            task_type="scenario",
             objective="Delete me",
             evaluation_criteria={},
             max_rounds=3,
