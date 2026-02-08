@@ -520,13 +520,22 @@ class BatchSceneResponse(BaseModel):
 
 
 class SceneValidateRequest(BaseModel):
-    image_b64: str
+    """Validate scene image (WD14). Either image_b64 or image_url must be provided."""
+
+    image_b64: str | None = None  # Data URL or raw base64
+    image_url: str | None = None  # HTTP URL (backend fetches)
     prompt: str = ""
     # Analytics tracking
     storyboard_id: int | None = None
     scene_id: int | None = None  # Scene DB ID
     topic: str | None = None  # Optional: Content topic for reference
     scene_index: int | None = None  # Optional: Scene number (순서)
+
+    @model_validator(mode="after")
+    def require_image_source(self):
+        if not self.image_b64 and not self.image_url:
+            raise ValueError("Either image_b64 or image_url must be provided")
+        return self
 
 
 class ImageStoreRequest(BaseModel):

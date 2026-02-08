@@ -237,14 +237,17 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
     """Validate scene image using WD14 tagger.
 
     Args:
-        request: SceneValidateRequest with image and prompt
+        request: SceneValidateRequest with image (image_b64 or image_url) and prompt
         db: Database session (optional, for saving validation results)
 
     Returns:
         Validation result dict with match_rate, matched/missing/extra tags
     """
     try:
-        image_bytes = load_image_bytes(request.image_b64)
+        source = request.image_b64 or request.image_url
+        if not source:
+            raise ValueError("Either image_b64 or image_url must be provided")
+        image_bytes = load_image_bytes(source)
         image = Image.open(io.BytesIO(image_bytes))
         tags = wd14_predict_tags(image, WD14_THRESHOLD)
         comparison = compare_prompt_to_tags(request.prompt or "", tags)

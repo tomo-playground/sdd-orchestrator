@@ -30,14 +30,14 @@ from config import (
 )
 from services.storage import get_storage
 from services.video.tts_helpers import (
+    generate_context_aware_voice_prompt,
     get_preset_voice_info,
     get_qwen_model_async,
     get_speaker_voice_preset,
     translate_voice_prompt,
     tts_cache_key,
-    generate_context_aware_voice_prompt,
 )
-from services.video.tts_postprocess import trim_tts_audio, validate_tts_duration
+from services.video.tts_postprocess import trim_tts_audio, validate_tts_duration, validate_tts_quality
 from services.video.utils import clean_script_for_tts
 
 if TYPE_CHECKING:
@@ -316,27 +316,25 @@ async def generate_tts(
             )
 
         voice_design = scene_req.voice_design_prompt or builder.request.voice_design_prompt
-        
+
         # --- NEW: Context-Aware Voice Design (Auto-Generation) ---
         # Only apply context-aware generation if:
         # 1. No explicit voice design prompt in request (global or scene)
         # 2. Speaker is NOT the default narrator (Narrator should be consistent)
         speaker = scene_req.speaker or DEFAULT_SPEAKER
         is_narrator = speaker == DEFAULT_SPEAKER
-        
+
         if not voice_design and not is_narrator:
             # Prefer Korean prompt (usually richer context) > English prompt > Tags
             context_text = scene_req.image_prompt_ko or scene_req.image_prompt or ""
             if context_text:
                 # Merge: preset_voice_design (Base) + context -> Final Prompt
                 voice_design = generate_context_aware_voice_prompt(
-                    clean_script, 
-                    context_text, 
-                    base_prompt=preset_voice_design
+                    clean_script, context_text, base_prompt=preset_voice_design
                 )
                 if voice_design:
                     logger.info(f"Scene {i}: Auto-generated voice design (Character={speaker}): '{voice_design}'")
-        
+
         # Fallback to preset if still empty
         if not voice_design:
             voice_design = preset_voice_design
@@ -361,7 +359,7 @@ async def generate_tts(
 
         for attempt in range(1 + TTS_MAX_RETRIES):
             attempt_seed = voice_seed + attempt
-            
+
             # --- Simplification Logic ---
             # If initial attempt fails, try simplifying or stripping the prompt
             current_voice_design = voice_design
@@ -419,9 +417,7 @@ async def generate_tts(
             sf.write(str(tts_path), best_wav, best_sr)
             # Don't cache failed results — allow re-generation next render
             tts_duration = builder._get_audio_duration(tts_path)
-            logger.warning(
-                f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)"
-            )
+            logger.warning(f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)")
             return True, tts_duration
 
         # All retries failed and no usable fallback found

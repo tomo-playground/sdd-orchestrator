@@ -228,8 +228,9 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
 
         from services.imagen_edit import auto_edit_with_gemini
 
-        # Load image as base64
-        image_bytes = load_image_bytes(request.image_url)
+        # Load image as base64 (from image_url or image_b64)
+        source = request.image_b64 or request.image_url
+        image_bytes = load_image_bytes(source)
         image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
 
         # Execute auto-edit
