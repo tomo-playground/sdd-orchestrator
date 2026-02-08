@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { Clock, Cpu, ChevronDown, ChevronRight, Filter } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import type { CreativeTrace } from "../../types/creative";
 
 type Props = {
@@ -88,9 +89,11 @@ function TraceCard({ trace }: { trace: CreativeTrace }) {
         ) : (
           <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-zinc-400" />
         )}
-        <pre className="whitespace-pre-wrap text-xs text-zinc-600">
-          {expanded ? trace.output_content : contentPreview}
-        </pre>
+        <div className="prose prose-sm prose-zinc max-w-none flex-1 text-xs">
+          <ReactMarkdown>
+            {expanded ? trace.output_content : contentPreview}
+          </ReactMarkdown>
+        </div>
       </button>
 
       {/* Feedback row */}

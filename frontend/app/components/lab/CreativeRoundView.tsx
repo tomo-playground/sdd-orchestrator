@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Loader2, Trophy, MessageSquare, Compass } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { API_BASE } from "../../constants";
 import type {
   CreativeRound,
@@ -96,10 +97,8 @@ function AgentComparePanel({
             )}
           </div>
         </div>
-        <div className="max-h-80 overflow-y-auto">
-          <pre className="text-xs leading-relaxed whitespace-pre-wrap text-zinc-600">
-            {active.output_content}
-          </pre>
+        <div className="prose prose-sm prose-zinc max-h-80 max-w-none overflow-y-auto">
+          <ReactMarkdown>{active.output_content}</ReactMarkdown>
         </div>
       </div>
     </div>
@@ -146,6 +145,21 @@ function RoundCard({
         )}
       </div>
 
+      {/* Leader direction - Round objective at the top */}
+      {round.leader_direction && (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3">
+          <Compass className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
+          <div className="w-full">
+            <p className="mb-1 text-[10px] font-semibold tracking-wider text-blue-600 uppercase">
+              Leader Direction
+            </p>
+            <div className="prose prose-sm prose-blue max-w-none text-blue-700">
+              <ReactMarkdown>{round.leader_direction}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Agent generation compare panel */}
       {generationTraces.length > 0 && (
         <AgentComparePanel
@@ -156,19 +170,18 @@ function RoundCard({
         />
       )}
 
-      {/* Leader summary */}
+      {/* Leader summary - Round evaluation at the bottom */}
       {round.leader_summary && (
-        <div className="flex items-start gap-2 rounded-lg bg-zinc-50 p-3">
-          <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" />
-          <p className="text-xs text-zinc-600">{round.leader_summary}</p>
-        </div>
-      )}
-
-      {/* Leader direction */}
-      {round.leader_direction && (
-        <div className="mt-2 flex items-start gap-2 rounded-lg bg-blue-50 p-3">
-          <Compass className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-400" />
-          <p className="text-xs text-blue-700">{round.leader_direction}</p>
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 p-3">
+          <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <div className="w-full">
+            <p className="mb-1 text-[10px] font-semibold tracking-wider text-amber-600 uppercase">
+              Leader Evaluation
+            </p>
+            <div className="prose prose-sm prose-amber max-w-none text-amber-700">
+              <ReactMarkdown>{round.leader_summary}</ReactMarkdown>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -190,6 +203,7 @@ export default function CreativeRoundView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("rounds");
+  const [activeRoundNumber, setActiveRoundNumber] = useState<number>(1);
 
   const fetchTimeline = useCallback(async () => {
     setLoading(true);
@@ -212,6 +226,14 @@ export default function CreativeRoundView({
   useEffect(() => {
     fetchTimeline();
   }, [fetchTimeline]);
+
+  useEffect(() => {
+    if (timeline && timeline.rounds.length > 0) {
+      // Set active round to the latest round by default
+      const lastRoundNumber = Math.max(...timeline.rounds.map((r) => r.round_number));
+      setActiveRoundNumber(lastRoundNumber);
+    }
+  }, [timeline]);
 
   if (loading) {
     return (
@@ -248,6 +270,10 @@ export default function CreativeRoundView({
   const selectedAgentRole = (session?.final_output as Record<string, unknown> | null)
     ?.agent_role as string | undefined;
 
+  const activeRound = timeline.rounds.find((r) => r.round_number === activeRoundNumber);
+  const activeRoundTraces = tracesByRound.get(activeRoundNumber) ?? [];
+  const activeGenerationTraces = activeRoundTraces.filter((t) => t.trace_type === "generation");
+
   return (
     <div className="space-y-4">
       {/* View mode toggle */}
@@ -276,20 +302,33 @@ export default function CreativeRoundView({
 
       {viewMode === "rounds" ? (
         <div className="space-y-4">
-          {timeline.rounds.map((round) => {
-            const roundTraces = tracesByRound.get(round.round_number) ?? [];
-            const generationTraces = roundTraces.filter((t) => t.trace_type === "generation");
-            return (
-              <RoundCard
+          {/* Round tabs */}
+          <div className="flex items-center gap-1 border-b border-zinc-100 pb-2">
+            {timeline.rounds.map((round) => (
+              <button
                 key={round.id}
-                round={round}
-                generationTraces={generationTraces}
-                isLastRound={round.round_number === lastRoundNumber}
-                selectedAgentRole={selectedAgentRole}
-                onSelect={onFinalize}
-              />
-            );
-          })}
+                onClick={() => setActiveRoundNumber(round.round_number)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  activeRoundNumber === round.round_number
+                    ? "bg-zinc-900 text-white"
+                    : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                }`}
+              >
+                Round {round.round_number}
+              </button>
+            ))}
+          </div>
+
+          {/* Active round content */}
+          {activeRound && (
+            <RoundCard
+              round={activeRound}
+              generationTraces={activeGenerationTraces}
+              isLastRound={activeRound.round_number === lastRoundNumber}
+              selectedAgentRole={selectedAgentRole}
+              onSelect={onFinalize}
+            />
+          )}
         </div>
       ) : (
         <TraceTimeline traces={timeline.traces} />

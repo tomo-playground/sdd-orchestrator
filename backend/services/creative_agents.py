@@ -192,7 +192,18 @@ async def generate_parallel(
     async def _run_one(agent: dict) -> dict[str, Any]:
         role = agent["role"]
         agent_objective = agent.get("objective")
-        prompt = f"{objective}\n\n{agent_objective}" if agent_objective else objective
+        base_prompt = f"{objective}\n\n{agent_objective}" if agent_objective else objective
+
+        # Add markdown formatting instruction
+        prompt = (
+            f"{base_prompt}\n\n"
+            "**응답 작성 가이드 (마크다운 사용):**\n"
+            "- ## 제목, ### 소제목으로 구조화\n"
+            "- 핵심 내용은 **굵게** 강조\n"
+            "- 단계별 설명은 * 리스트 활용\n"
+            "- 섹션 구분은 --- 사용\n"
+            "- 가독성을 위해 단락을 명확히 구분"
+        )
         start = time.monotonic()
         try:
             provider = get_provider(agent["provider"], agent["model_name"])

@@ -138,17 +138,70 @@ export default function CreativeLabTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-800">Creative Lab</h2>
-          <p className="mt-0.5 text-xs text-zinc-400">Multi-agent creative debate engine</p>
+      {/* ── Purpose Section ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-5">
+          <div className="flex-1">
+            <h2 className="mb-2 text-base font-bold text-zinc-800">Creative Lab</h2>
+            <p className="text-xs leading-relaxed text-zinc-600">
+              <strong className="text-zinc-700">목표:</strong> Leader + Writer 멀티 에이전트가
+              협업하여 고품질 스토리보드를 생성합니다.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
+              Leader 에이전트가 전체 방향을 제시하고, Writer 에이전트가 초안을 작성합니다.
+              여러 라운드의 피드백을 통해 스토리보드를 점진적으로 개선합니다.
+            </p>
+
+            {/* Collapsible Details */}
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-semibold text-green-700 hover:text-green-800">
+                📖 자세히 보기
+              </summary>
+              <div className="mt-3 space-y-3 rounded-lg border border-green-100 bg-white p-3 text-xs">
+                <div>
+                  <strong className="text-zinc-700">💡 사용 시나리오:</strong>
+                  <ul className="ml-4 mt-1 list-disc space-y-0.5 text-zinc-600">
+                    <li>다양한 스토리보드 아이디어를 빠르게 탐색</li>
+                    <li>에이전트 페르소나 및 설정 최적화</li>
+                    <li>Leader/Writer 협업 품질 개선 실험</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong className="text-zinc-700">✅ 성공 기준:</strong>
+                  <span className="ml-1 text-zinc-600">
+                    <strong className="text-emerald-600">3라운드 내</strong> 만족스러운 스토리보드 생성
+                  </span>
+                </div>
+                <div>
+                  <strong className="text-zinc-700">📊 주요 메트릭:</strong>
+                  <span className="ml-1 text-zinc-600">
+                    Round Count, Agent Agreement, Quality Score
+                  </span>
+                </div>
+                <div>
+                  <strong className="text-zinc-700">🔄 워크플로우:</strong>
+                  <span className="ml-1 text-zinc-600">
+                    Creative Lab → 검증 → Studio로 복사하여 이미지 생성
+                  </span>
+                </div>
+                <div>
+                  <strong className="text-zinc-700">⚡ Quick Tips:</strong>
+                  <ul className="ml-4 mt-1 list-disc space-y-0.5 text-zinc-600">
+                    <li>Max Rounds 3-5 추천 (너무 많으면 과최적화)</li>
+                    <li>Objective는 명확하고 구체적으로</li>
+                  </ul>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <button
+            onClick={() => setPanel("config")}
+            className="ml-4 flex items-center gap-1 self-start rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
+          >
+            <Settings className="h-3.5 w-3.5" /> Agent Presets
+          </button>
         </div>
-        <button
-          onClick={() => setPanel("config")}
-          className="flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
-        >
-          <Settings className="h-3.5 w-3.5" /> Agent Presets
-        </button>
       </div>
 
       {error && (

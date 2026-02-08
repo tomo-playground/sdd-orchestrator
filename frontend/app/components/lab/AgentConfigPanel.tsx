@@ -2,14 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Loader2,
-  Plus,
-  Trash2,
-  Shield,
-  X,
-} from "lucide-react";
+import { Loader2, Plus, Trash2, Shield, X, Pencil } from "lucide-react";
 import { API_BASE } from "../../constants";
+import PresetFormFields from "./PresetFormFields";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -52,6 +47,7 @@ export default function AgentConfigPanel() {
   const [form, setForm] = useState<NewPresetForm>({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const fetchPresets = useCallback(async () => {
     setLoading(true);
@@ -105,6 +101,43 @@ export default function AgentConfigPanel() {
     [fetchPresets]
   );
 
+  const handleEdit = useCallback((preset: AgentPreset) => {
+    setEditingId(preset.id);
+    setForm({
+      name: preset.name,
+      role_description: preset.role_description,
+      system_prompt: preset.system_prompt,
+      model_provider: preset.model_provider,
+      model_name: preset.model_name,
+      temperature: preset.temperature,
+    });
+    setShowForm(false);
+  }, []);
+
+  const handleUpdate = useCallback(async () => {
+    if (!editingId || !form.name.trim() || !form.role_description.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await axios.put(`${API_BASE}/lab/creative/agent-presets/${editingId}`, form);
+      setForm({ ...EMPTY_FORM });
+      setEditingId(null);
+      await fetchPresets();
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.detail ?? err.message
+        : "Failed to update preset";
+      setError(String(msg));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [editingId, form, fetchPresets]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingId(null);
+    setForm({ ...EMPTY_FORM });
+  }, []);
+
   const updateField = useCallback(
     <K extends keyof NewPresetForm>(key: K, value: NewPresetForm[K]) => {
       setForm((prev) => ({ ...prev, [key]: value }));
@@ -149,106 +182,15 @@ export default function AgentConfigPanel() {
 
       {/* Create form */}
       {showForm && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-3">
-          <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-            New Agent Preset
-          </p>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Name
-              </label>
-              <input
-                value={form.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                placeholder="e.g. Creative Writer"
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Model Provider
-              </label>
-              <select
-                value={form.model_provider}
-                onChange={(e) => updateField("model_provider", e.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-              >
-                <option value="gemini">Gemini</option>
-                <option value="ollama">Ollama</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Model Name
-              </label>
-              <input
-                value={form.model_name}
-                onChange={(e) => updateField("model_name", e.target.value)}
-                placeholder="gemini-2.0-flash"
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Temperature ({form.temperature.toFixed(2)})
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.05"
-                value={form.temperature}
-                onChange={(e) =>
-                  updateField("temperature", parseFloat(e.target.value))
-                }
-                className="mt-1 w-full"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-              Role Description
-            </label>
-            <input
-              value={form.role_description}
-              onChange={(e) => updateField("role_description", e.target.value)}
-              placeholder="Describe the agent's role..."
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-              System Prompt
-            </label>
-            <textarea
-              value={form.system_prompt}
-              onChange={(e) => updateField("system_prompt", e.target.value)}
-              rows={3}
-              placeholder="System prompt for the agent..."
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              onClick={handleCreate}
-              disabled={submitting || !form.name.trim() || !form.role_description.trim()}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {submitting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                "Create Preset"
-              )}
-            </button>
-          </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <PresetFormFields
+            title="New Agent Preset"
+            form={form}
+            updateField={updateField}
+            onSubmit={handleCreate}
+            submitting={submitting}
+            submitLabel="Create Preset"
+          />
         </div>
       )}
 
@@ -264,37 +206,63 @@ export default function AgentConfigPanel() {
               key={preset.id}
               className="rounded-2xl border border-zinc-200 bg-white p-4"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-zinc-800">
-                    {preset.name}
-                  </span>
-                  {preset.is_system && (
-                    <span className="flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
-                      <Shield className="h-3 w-3" />
-                      System
+              {editingId === preset.id ? (
+                // Edit mode
+                <PresetFormFields
+                  title="Edit Agent Preset"
+                  form={form}
+                  updateField={updateField}
+                  onSubmit={handleUpdate}
+                  onCancel={handleCancelEdit}
+                  submitting={submitting}
+                  submitLabel="Save"
+                  submitIcon="save"
+                />
+              ) : (
+                // View mode
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-zinc-800">
+                        {preset.name}
+                      </span>
+                      {preset.is_system && (
+                        <span className="flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
+                          <Shield className="h-3 w-3" />
+                          System
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEdit(preset)}
+                        className="rounded p-1 text-zinc-400 transition hover:bg-blue-50 hover:text-blue-500"
+                        title="Edit preset"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      {!preset.is_system && (
+                        <button
+                          onClick={() => handleDelete(preset.id)}
+                          className="rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-500"
+                          title="Delete preset"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {preset.role_description}
+                  </p>
+                  <div className="mt-2 flex items-center gap-3 text-[10px] text-zinc-400">
+                    <span>
+                      {preset.model_provider}/{preset.model_name}
                     </span>
-                  )}
-                </div>
-                {!preset.is_system && (
-                  <button
-                    onClick={() => handleDelete(preset.id)}
-                    className="rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-500"
-                    title="Delete preset"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-zinc-500">
-                {preset.role_description}
-              </p>
-              <div className="mt-2 flex items-center gap-3 text-[10px] text-zinc-400">
-                <span>
-                  {preset.model_provider}/{preset.model_name}
-                </span>
-                <span>temp: {preset.temperature}</span>
-              </div>
+                    <span>temp: {preset.temperature}</span>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
