@@ -152,16 +152,28 @@ export async function runAutoRunFromStep(
         if (singleGenScenes.length > 0) {
           const sceneIds = singleGenScenes.map((s) => s.id);
           const batchResult = await generateBatchImages(sceneIds);
-          if (!batchResult || batchResult.failed > 0) {
-            const failCount = batchResult?.failed ?? sceneIds.length;
-            pushAutoRunLog(`Batch: ${failCount} scene(s) failed, retrying individually`);
-            // Retry failed scenes individually
-            for (const scene of workingScenes) {
+
+          // Check for scenes that need retry: either batch API failure OR
+          // successful generation but failed image store (missing image_asset_id)
+          const freshAfterBatch = useStudioStore.getState().scenes;
+          const scenesNeedingRetry = singleGenScenes.filter((target) => {
+            const fresh = freshAfterBatch.find((s) => s.order === target.order);
+            // Retry if: no image_url, or has data URL (store failed), or no asset_id
+            return !fresh?.image_url || !fresh?.image_asset_id;
+          });
+
+          const batchFailed = !batchResult || batchResult.failed > 0;
+          if (batchFailed || scenesNeedingRetry.length > 0) {
+            const reason = batchFailed
+              ? `Batch: ${batchResult?.failed ?? sceneIds.length} scene(s) failed`
+              : `${scenesNeedingRetry.length} scene(s) missing stored image`;
+            pushAutoRunLog(`${reason}, retrying individually`);
+            // Retry scenes that are missing images (use fresh store, not stale workingScenes)
+            for (const target of scenesNeedingRetry) {
               assertNotCancelled();
-              if (scene.image_url) continue;
-              const sceneOrder = scene.order;
+              const sceneOrder = target.order;
               const freshScene =
-                useStudioStore.getState().scenes.find((s) => s.order === sceneOrder) || scene;
+                useStudioStore.getState().scenes.find((s) => s.order === sceneOrder) || target;
               useStudioStore.getState().updateScene(freshScene.id, { isGenerating: true });
               const result = await generateSceneImageFor(freshScene, true);
               // Re-lookup after async: scene IDs may have changed
@@ -171,7 +183,6 @@ export async function runAutoRunFromStep(
               useStudioStore.getState().updateScene(currentId, { isGenerating: false });
               if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);
               useStudioStore.getState().updateScene(currentId, result);
-              workingScenes = useStudioStore.getState().scenes;
             }
           }
           // Sync workingScenes with store state after batch

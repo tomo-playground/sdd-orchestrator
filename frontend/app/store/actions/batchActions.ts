@@ -98,7 +98,7 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         const b64 = result.data?.image;
         if (result.status === "success" && b64 && canStore) {
           const dataUrl = `data:image/png;base64,${b64}`;
-          const stored = await storeSceneImage(
+          let stored = await storeSceneImage(
             dataUrl,
             projectId,
             groupId,
@@ -106,6 +106,17 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
             scene.id,
             `scene_${scene.id}_${Date.now()}.png`
           );
+          // Retry store once if asset_id is missing (transient storage failure)
+          if (!stored.asset_id) {
+            stored = await storeSceneImage(
+              dataUrl,
+              projectId,
+              groupId,
+              storyboardId,
+              scene.id,
+              `scene_${scene.id}_${Date.now()}_retry.png`
+            );
+          }
           useStudioStore.getState().updateScene(scene.id, {
             image_url: stored.url,
             image_asset_id: stored.asset_id ?? null,

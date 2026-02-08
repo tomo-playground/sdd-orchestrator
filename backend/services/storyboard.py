@@ -726,7 +726,7 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     db.commit()
     db.refresh(db_storyboard)
 
-    scene_ids = [scene.id for scene in db_storyboard.scenes]
+    scene_ids = [scene.id for scene in sorted(db_storyboard.scenes, key=lambda s: s.order)]
 
     return {"status": "success", "storyboard_id": db_storyboard.id, "scene_ids": scene_ids}
 
@@ -957,8 +957,9 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     db.commit()
     db.refresh(storyboard)
 
-    # Return new scene IDs (scenes were deleted and recreated)
-    scene_ids = [scene.id for scene in storyboard.scenes]
+    # Return new scene IDs ordered by scene.order (relationship now has order_by,
+    # but explicit sort as belt-and-suspenders to prevent ID/order mismatch on frontend)
+    scene_ids = [scene.id for scene in sorted(storyboard.scenes, key=lambda s: s.order)]
 
     return {"status": "success", "storyboard_id": storyboard.id, "scene_ids": scene_ids}
 

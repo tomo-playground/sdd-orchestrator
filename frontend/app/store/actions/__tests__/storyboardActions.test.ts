@@ -472,3 +472,66 @@ describe("sanitizeCandidatesForDb", () => {
     ]);
   });
 });
+
+describe("persistStoryboard scene ID → image_asset_id mapping", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("preserves image_asset_id for each scene through PUT ID reassignment", async () => {
+    const setScenes = vi.fn();
+    const scenes = [
+      { id: 3581, order: 1, script: "S1", image_asset_id: 100, image_url: "http://img1" },
+      { id: 3582, order: 2, script: "S2", image_asset_id: 200, image_url: "http://img2" },
+      { id: 3583, order: 3, script: "S3", image_asset_id: null, image_url: null },
+    ];
+    const state = makeStoreState({
+      storyboardId: 42,
+      setScenes,
+      scenes,
+    });
+    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [3590, 3591, 3592] },
+    });
+
+    await persistStoryboard();
+
+    // Verify setScenes was called with correct ID mapping
+    const calledScenes = setScenes.mock.calls[0][0];
+    expect(calledScenes).toHaveLength(3);
+    // Scene IDs updated
+    expect(calledScenes[0].id).toBe(3590);
+    expect(calledScenes[1].id).toBe(3591);
+    expect(calledScenes[2].id).toBe(3592);
+    // image_asset_id preserved from original scenes (not shifted)
+    expect(calledScenes[0].image_asset_id).toBe(100);
+    expect(calledScenes[1].image_asset_id).toBe(200);
+    expect(calledScenes[2].image_asset_id).toBeNull();
+  });
+
+  it("sends image_asset_id in correct array order to PUT endpoint", async () => {
+    const scenes = [
+      { id: 10, order: 1, script: "A", image_asset_id: 501, image_url: "http://a" },
+      { id: 11, order: 2, script: "B", image_asset_id: null, image_url: null },
+      { id: 12, order: 3, script: "C", image_asset_id: 502, image_url: "http://c" },
+    ];
+    const state = makeStoreState({
+      storyboardId: 1,
+      setScenes: vi.fn(),
+      scenes,
+    });
+    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [20, 21, 22] },
+    });
+
+    await persistStoryboard();
+
+    const payload = (axios.put as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    // Verify the payload scenes are in the correct order with correct asset IDs
+    expect(payload.scenes[0].image_asset_id).toBe(501);
+    expect(payload.scenes[1].image_asset_id).toBeNull();
+    expect(payload.scenes[2].image_asset_id).toBe(502);
+  });
+});

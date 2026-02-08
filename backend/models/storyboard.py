@@ -37,7 +37,9 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
 
     # Relationships
     group: Mapped[Group] = relationship("Group", back_populates="storyboards")
-    scenes: Mapped[list[Scene]] = relationship("Scene", back_populates="storyboard", cascade="all, delete-orphan")
+    scenes: Mapped[list[Scene]] = relationship(
+        "Scene", back_populates="storyboard", cascade="all, delete-orphan", order_by="Scene.order"
+    )
     characters: Mapped[list[StoryboardCharacter]] = relationship(
         "StoryboardCharacter", back_populates="storyboard", cascade="all, delete-orphan"
     )
