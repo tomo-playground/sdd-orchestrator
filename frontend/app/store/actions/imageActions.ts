@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { Scene, GeminiSuggestion } from "../../types";
 import { useStudioStore } from "../useStudioStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, API_TIMEOUT } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 import {
@@ -85,10 +85,14 @@ export async function generateSceneImageFor(
 
   // Pre-generation validation
   try {
-    const validateRes = await axios.post(`${API_BASE}/prompt/validate`, {
-      positive: prompt,
-      negative: negativePrompt,
-    });
+    const validateRes = await axios.post(
+      `${API_BASE}/prompt/validate`,
+      {
+        positive: prompt,
+        negative: negativePrompt,
+      },
+      { timeout: API_TIMEOUT.DEFAULT }
+    );
     const validation = validateRes.data;
     if (validation.errors?.length > 0) {
       if (!silent) showToast(validation.errors.join("; "), "error");
@@ -130,12 +134,16 @@ export async function generateSceneImageFor(
   };
 
   try {
-    const res = await axios.post(`${API_BASE}/scene/generate`, {
-      ...debugPayload,
-      character_id: selectedCharacterId,
-      storyboard_id: storyboardId,
-      prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
-    });
+    const res = await axios.post(
+      `${API_BASE}/scene/generate`,
+      {
+        ...debugPayload,
+        character_id: selectedCharacterId,
+        storyboard_id: storyboardId,
+        prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
+      },
+      { timeout: API_TIMEOUT.IMAGE_GENERATION }
+    );
     const images = res.data.images || (res.data.image ? [res.data.image] : []);
     const warnings = res.data.warnings || [];
 

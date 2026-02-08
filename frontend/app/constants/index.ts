@@ -2,6 +2,14 @@ import type { OverlaySettings, PostCardSettings } from "../types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// API Timeout settings (milliseconds)
+export const API_TIMEOUT = {
+  DEFAULT: 60_000, // 60 seconds
+  STORYBOARD_SAVE: 120_000, // 2 minutes (large scene data)
+  VIDEO_RENDER: 600_000, // 10 minutes (video processing)
+  IMAGE_GENERATION: 180_000, // 3 minutes (SD image generation)
+} as const;
+
 export const Z_INDEX = {
   PREVIEW: 100,
   MODAL: 1000,

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useStudioStore } from "../useStudioStore";
-import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
+import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
 import type { Scene } from "../../types";
 
 /**
@@ -79,7 +79,9 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       })),
     };
 
-    const res = await axios.post(`${API_BASE}/storyboards`, payload);
+    const res = await axios.post(`${API_BASE}/storyboards`, payload, {
+      timeout: API_TIMEOUT.STORYBOARD_SAVE,
+    });
     const newStoryboardId = res.data.storyboard_id;
     const sceneIds = res.data.scene_ids || [];
 
@@ -234,14 +236,18 @@ export async function persistStoryboard(): Promise<boolean> {
 
     if (storyboardId) {
       // PUT also returns scene_ids since scenes are deleted and recreated
-      const res = await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload);
+      const res = await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload, {
+        timeout: API_TIMEOUT.STORYBOARD_SAVE,
+      });
       const sceneIds: number[] = res.data.scene_ids || [];
       if (sceneIds.length > 0) {
         const current = useStudioStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
       }
     } else {
-      const res = await axios.post(`${API_BASE}/storyboards`, payload);
+      const res = await axios.post(`${API_BASE}/storyboards`, payload, {
+        timeout: API_TIMEOUT.STORYBOARD_SAVE,
+      });
       const newId = res.data.storyboard_id;
       const sceneIds: number[] = res.data.scene_ids || [];
       setMeta({ storyboardId: newId, storyboardTitle: topic });

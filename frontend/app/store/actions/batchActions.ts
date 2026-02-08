@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE, API_TIMEOUT } from "../../constants";
 import { useStudioStore } from "../useStudioStore";
 import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
@@ -72,9 +72,13 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
       };
     });
 
-    const res = await axios.post<BatchResponse>(`${API_BASE}/scene/generate-batch`, {
-      scenes: sceneRequests,
-    });
+    const res = await axios.post<BatchResponse>(
+      `${API_BASE}/scene/generate-batch`,
+      {
+        scenes: sceneRequests,
+      },
+      { timeout: API_TIMEOUT.IMAGE_GENERATION * sceneRequests.length }
+    );
 
     const { results } = res.data;
 
