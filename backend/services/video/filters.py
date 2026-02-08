@@ -242,7 +242,11 @@ def build_audio_filters(builder: VideoBuilder) -> None:
         clip_dur = builder.scene_durations[i] + (
             builder.transition_dur if i < builder.num_scenes - 1 else 0
         )
+        # Delay audio start by transition duration to prevent fading in during speech start
+        # adelay takes milliseconds, builder.transition_dur is in seconds
+        delay_ms = int(builder.transition_dur * 1000)
         builder.filters.append(
-            f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,apad,"
+            f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,"
+            f"adelay={delay_ms}|{delay_ms},apad,"
             f"atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]"
         )

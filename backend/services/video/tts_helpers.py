@@ -213,3 +213,92 @@ def _resolve_character_preset(storyboard_id: int, speaker: str, db) -> int | Non
         )
         return char.voice_preset_id
     return None
+
+
+# Cache: Context (script+prompt) -> Voice Design Prompt (English)
+_CONTEXT_PROMPT_CACHE: dict[str, str] = {}
+
+
+def generate_context_aware_voice_prompt(
+    script: str,
+    context_text: str,
+    base_prompt: str | None = None,
+) -> str:
+    """Generate a context-aware voice design prompt using Gemini.
+
+    Analyzes the script and metadata (image prompt, tags) to determine
+    the appropriate satisfaction/emotion/tone for the TTS.
+    
+    If base_prompt is provided (e.g. from a preset), it modifies the base prompt
+    to include the new emotional context while keeping the original voice characteristics.
+
+    Args:
+        script: The spoken text (Korean).
+        context_text: Description of the scene (image prompt, tags, etc.)
+        base_prompt: Optional base voice description (e.g. "A soft female voice")
+
+    Returns:
+        English voice design prompt (e.g., "A young woman speaking in a sad tone").
+    """
+    if not gemini_client:
+        return base_prompt or ""
+
+    # Create cache key
+    cache_key = f"{script[:50]}|{context_text[:100]}|{base_prompt or ''}"
+    if cache_key in _CONTEXT_PROMPT_CACHE:
+        return _CONTEXT_PROMPT_CACHE[cache_key]
+
+    try:
+        if base_prompt:
+            system_instruction = (
+                "You are an expert voice director. Your task is to MODIFY the provided 'Base Voice Description' "
+                "to match the emotional 'Scene Context' and 'Script'.\n"
+                "Keep the speaker's original age, gender, and core characteristics from the Base Description, "
+                "but adjust the TONE and EMOTION to fit the scene.\n"
+                "Output ONLY the modified English description (e.g., 'A calm male voice' -> 'A male voice shouting angrily').\n"
+                "Keep it under 20 words."
+            )
+            user_prompt_content = (
+                f"Base Voice Description: {base_prompt}\n"
+                f"Script (Korean): {script}\n"
+                f"Scene Context: {context_text}\n\n"
+                "Modified Voice Design Prompt (English):"
+            )
+        else:
+            system_instruction = (
+                "You are an expert voice director. Your task is to generate a SHORT, PRECISE "
+                "English description of the speaker's voice and tone for a TTS engine.\n"
+                "Analyze the provided Korean script and Scene Context (visuals/situation).\n"
+                "Output ONLY the English description (e.g., 'A man shouting angrily', 'A whispering woman').\n"
+                "Do NOT include the script itself. Keep it under 15 words."
+            )
+            user_prompt_content = (
+                f"Script (Korean): {script}\n"
+                f"Scene Context: {context_text}\n\n"
+                "Voice Design Prompt (English):"
+            )
+        
+        # Use simpler prompt structure for reliability
+        prompt = (
+            f"{system_instruction}\n\n"
+            f"{user_prompt_content}"
+        )
+
+        res = gemini_client.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=prompt,
+        )
+        
+        voice_prompt = res.text.strip()
+        # Basic cleanup: remove quotes if present
+        voice_prompt = voice_prompt.strip('"').strip("'")
+        
+        if voice_prompt:
+            _CONTEXT_PROMPT_CACHE[cache_key] = voice_prompt
+            logger.info(f"[TTS] Generated context prompt: '{voice_prompt}' (for '{script[:20]}...')")
+            return voice_prompt
+
+    except Exception as e:
+        logger.warning(f"[TTS] Failed to generate context-aware prompt: {e}")
+    
+    return ""

@@ -98,23 +98,30 @@ if device == "auto":
 
 ---
 
-## 4. 음성 일관성 유지
+## 4. 음성 디자인 및 컨텍스트 반영 (Context-Aware TTS)
 
-현재 시스템은 **Voice Design** 프롬프트를 기반으로 일관된 목소리를 생성합니다.
+시스템은 **Speaker** 종류에 따라 다른 전략으로 음성을 생성합니다.
 
-### 동작 원리
+### 4.1 나레이터 (Default Speaker)
+- **목표**: 일관된 설명조/다큐멘터리 톤 유지
+- **동작**: `Voice Preset` 설정을 그대로 따르며, 시나리오상의 감정(화남, 슬픔)을 **자동으로 반영하지 않습니다.**
+- **예외**: 사용자가 `Voice Design Prompt`를 직접 입력한 경우, 해당 프롬프트를 최우선으로 따릅니다.
 
-`voice_design_prompt`와 `voice_seed`(프리셋 지정 또는 해시 기반)를 사용하여 모든 씬에서 동일한 음성 특성을 유지합니다. 사양 문제로 인해 참조 음성 기반의 Cloning 기능은 지원하지 않습니다.
+### 4.2 캐릭터 (Actor A, B 등)
+- **목표**: 시나리오 상황에 맞는 연기 및 감정 표현
+- **동작**: **Context-Aware Logic**이 작동합니다.
+    1. **자동 감정 분석**: Gemini가 `Script`(대사)와 `Prompt (KO)`(지문)를 분석하여 알맞은 목소리 톤(예: "속삭이듯", "소리치며")을 생성합니다.
+    2. **Voice Merge**: 캐릭터에게 설정된 `Voice Preset`(기본 목소리)이 있다면, **기본 목소리 + 감정**을 합쳐서 생성합니다.
+        - *예: "차분한 현서 목소리" + "화난 상황" -> "화내고 있는 현서 목소리"*
 
-### 우선순위
-
-음성 설정은 다음 순서로 결정됩니다 (높은 것이 우선):
+### 4.3 우선순위 요약
 
 | 순위 | 소스 | 설명 |
 |------|------|------|
-| 1 | Per-scene `voice_design_prompt` | 개별 씬에 직접 지정된 음성 디자인 |
-| 2 | Global `voice_design_prompt` | VideoRequest 레벨 음성 디자인 |
-| 3 | System Default | 기본 설정값 |
+| 1 | Per-scene `voice_design_prompt` | 사용자가 직접 입력한 값 (가장 강력함) |
+| 2 | Context-Aware Auto-Generation | **(캐릭터 전용)** 시나리오 기반 자동 감정 생성 |
+| 3 | Voice Preset (Global/Character) | 캐릭터/나레이터의 기본 목소리 설정 |
+| 4 | System Default | 기본값 |
 
 ---
 

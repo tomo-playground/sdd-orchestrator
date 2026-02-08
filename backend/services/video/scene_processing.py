@@ -35,6 +35,7 @@ from services.video.tts_helpers import (
     get_speaker_voice_preset,
     translate_voice_prompt,
     tts_cache_key,
+    generate_context_aware_voice_prompt,
 )
 from services.video.tts_postprocess import trim_tts_audio, validate_tts_duration
 from services.video.utils import clean_script_for_tts
@@ -314,7 +315,32 @@ async def generate_tts(
                 resolved_preset_id,
             )
 
-        voice_design = scene_req.voice_design_prompt or preset_voice_design or builder.request.voice_design_prompt
+        voice_design = scene_req.voice_design_prompt or builder.request.voice_design_prompt
+        
+        # --- NEW: Context-Aware Voice Design (Auto-Generation) ---
+        # Only apply context-aware generation if:
+        # 1. No explicit voice design prompt in request (global or scene)
+        # 2. Speaker is NOT the default narrator (Narrator should be consistent)
+        speaker = scene_req.speaker or DEFAULT_SPEAKER
+        is_narrator = speaker == DEFAULT_SPEAKER
+        
+        if not voice_design and not is_narrator:
+            # Prefer Korean prompt (usually richer context) > English prompt > Tags
+            context_text = scene_req.image_prompt_ko or scene_req.image_prompt or ""
+            if context_text:
+                # Merge: preset_voice_design (Base) + context -> Final Prompt
+                voice_design = generate_context_aware_voice_prompt(
+                    clean_script, 
+                    context_text, 
+                    base_prompt=preset_voice_design
+                )
+                if voice_design:
+                    logger.info(f"Scene {i}: Auto-generated voice design (Character={speaker}): '{voice_design}'")
+        
+        # Fallback to preset if still empty
+        if not voice_design:
+            voice_design = preset_voice_design
+
         voice_design = translate_voice_prompt(voice_design or "")
 
         # Seed: preset seed > hash-based fallback
