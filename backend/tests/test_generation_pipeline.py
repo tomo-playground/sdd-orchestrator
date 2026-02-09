@@ -12,6 +12,7 @@ from services.prompt.prompt import (
 # IP-Adapter auto-activation tests
 # ────────────────────────────────────────────
 
+
 class TestIPAdapterAutoActivation:
     """Test IP-Adapter auto-enable when character reference exists."""
 
@@ -37,6 +38,7 @@ class TestIPAdapterAutoActivation:
         # Simulate the auto-activation logic from generation.py
         with patch("services.controlnet.load_reference_image", return_value="base64data"):
             from services.controlnet import load_reference_image
+
             ref = load_reference_image(character.name)
             if character and not request.use_ip_adapter and ref:
                 request.use_ip_adapter = True
@@ -57,6 +59,7 @@ class TestIPAdapterAutoActivation:
 
         with patch("services.controlnet.load_reference_image", return_value="base64data"):
             from services.controlnet import load_reference_image
+
             ref = load_reference_image(character.name)
             if character and not request.use_ip_adapter and ref:
                 request.use_ip_adapter = True
@@ -75,6 +78,7 @@ class TestIPAdapterAutoActivation:
 
         with patch("services.controlnet.load_reference_image", return_value=None):
             from services.controlnet import load_reference_image
+
             ref = load_reference_image(character.name)
             if character and not request.use_ip_adapter and ref:
                 request.use_ip_adapter = True
@@ -99,53 +103,39 @@ class TestIPAdapterAutoActivation:
 # LoRA weight override (0.6 cap) tests
 # ────────────────────────────────────────────
 
+
 class TestLoRAWeightCap:
-    """Test LoRA weight capping when IP-Adapter is active."""
+    """Test LoRA weight capping applied unconditionally to all scenes."""
 
-    IP_ADAPTER_LORA_CAP = 0.6
+    STYLE_LORA_WEIGHT_CAP = 0.76
 
-    def test_cap_applied_when_ip_adapter_active(self):
-        """Weights above 0.6 are capped."""
-        optimal_weights = {"char_lora": 0.8, "style_lora": 0.5}
-        use_ip_adapter = True
-        character_obj = MagicMock()
+    def test_cap_applied_above_threshold(self):
+        """Weights above 0.76 are capped."""
+        optimal_weights = {"char_lora": 0.89, "style_lora": 0.67}
 
-        if use_ip_adapter and character_obj and optimal_weights:
-            optimal_weights = {
-                name: min(w, self.IP_ADAPTER_LORA_CAP)
-                for name, w in optimal_weights.items()
-            }
+        if optimal_weights:
+            optimal_weights = {name: min(w, self.STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
 
-        assert optimal_weights["char_lora"] == 0.6  # Capped
-        assert optimal_weights["style_lora"] == 0.5  # Preserved (below cap)
+        assert optimal_weights["char_lora"] == 0.76  # Capped
+        assert optimal_weights["style_lora"] == 0.67  # Preserved (below cap)
 
-    def test_no_cap_without_ip_adapter(self):
-        """Weights preserved when IP-Adapter is off."""
-        optimal_weights = {"char_lora": 0.8}
-        use_ip_adapter = False
-        character_obj = MagicMock()
+    def test_cap_applied_unconditionally(self):
+        """Cap applies regardless of IP-Adapter or character presence."""
+        optimal_weights = {"char_lora": 0.89}
 
-        if use_ip_adapter and character_obj and optimal_weights:
-            optimal_weights = {
-                name: min(w, self.IP_ADAPTER_LORA_CAP)
-                for name, w in optimal_weights.items()
-            }
+        if optimal_weights:
+            optimal_weights = {name: min(w, self.STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
 
-        assert optimal_weights["char_lora"] == 0.8  # No cap
+        assert optimal_weights["char_lora"] == 0.76  # Capped unconditionally
 
-    def test_no_cap_without_character(self):
-        """Weights preserved when no character."""
-        optimal_weights = {"style_lora": 0.9}
-        use_ip_adapter = True
-        character_obj = None
+    def test_narrator_and_character_same_weight(self):
+        """Narrator and character scenes get same cap → visual consistency."""
+        optimal_weights = {"flat_color": 0.76}
 
-        if use_ip_adapter and character_obj and optimal_weights:
-            optimal_weights = {
-                name: min(w, self.IP_ADAPTER_LORA_CAP)
-                for name, w in optimal_weights.items()
-            }
+        if optimal_weights:
+            optimal_weights = {name: min(w, self.STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
 
-        assert optimal_weights["style_lora"] == 0.9  # No cap
+        assert optimal_weights["flat_color"] == 0.76  # DB calibrated = cap → unchanged
 
     def test_apply_capped_weights_to_prompt(self):
         """Capped weights are correctly applied to LoRA tags in prompt."""
@@ -169,6 +159,7 @@ class TestLoRAWeightCap:
 # Complexity adjustment tests
 # ────────────────────────────────────────────
 
+
 class TestComplexityAdjustment:
     """Test detect_scene_complexity and parameter adjustment."""
 
@@ -181,12 +172,13 @@ class TestComplexityAdjustment:
     def test_moderate_scene(self):
         """4-6 scene tokens → moderate."""
         tokens = [
-            "masterpiece", "1girl",
-            "smile",              # expression
+            "masterpiece",
+            "1girl",
+            "smile",  # expression
             "looking_at_viewer",  # gaze
-            "standing",           # pose
-            "cowboy_shot",        # camera
-            "indoors",            # location_indoor
+            "standing",  # pose
+            "cowboy_shot",  # camera
+            "indoors",  # location_indoor
         ]
         result = detect_scene_complexity(tokens)
         assert result in ("moderate", "complex")
@@ -194,16 +186,17 @@ class TestComplexityAdjustment:
     def test_complex_scene(self):
         """7+ scene tokens → complex."""
         tokens = [
-            "masterpiece", "1girl",
-            "smile",              # expression
+            "masterpiece",
+            "1girl",
+            "smile",  # expression
             "looking_at_viewer",  # gaze
-            "standing",           # pose
-            "waving",             # action
-            "cowboy_shot",        # camera
-            "indoors",            # location_indoor
-            "sunset",             # time_weather
+            "standing",  # pose
+            "waving",  # action
+            "cowboy_shot",  # camera
+            "indoors",  # location_indoor
+            "sunset",  # time_weather
             "dramatic_lighting",  # lighting
-            "melancholic",        # mood
+            "melancholic",  # mood
         ]
         result = detect_scene_complexity(tokens)
         assert result == "complex"
@@ -263,6 +256,7 @@ class TestComplexityAdjustment:
 # Hi-Res payload tests
 # ────────────────────────────────────────────
 
+
 class TestHiResPayload:
     """Test Hi-Res payload construction for SD WebUI."""
 
@@ -288,13 +282,15 @@ class TestHiResPayload:
         denoising_strength = 0.35
 
         if enable_hr:
-            payload.update({
-                "enable_hr": True,
-                "hr_scale": hr_scale,
-                "hr_upscaler": hr_upscaler,
-                "hr_second_pass_steps": hr_second_pass_steps,
-                "denoising_strength": denoising_strength,
-            })
+            payload.update(
+                {
+                    "enable_hr": True,
+                    "hr_scale": hr_scale,
+                    "hr_upscaler": hr_upscaler,
+                    "hr_second_pass_steps": hr_second_pass_steps,
+                    "denoising_strength": denoising_strength,
+                }
+            )
 
         assert payload["enable_hr"] is True
         assert payload["hr_scale"] == 1.5
@@ -315,13 +311,15 @@ class TestHiResPayload:
     def test_hires_custom_params(self):
         """Custom Hi-Res parameters are respected."""
         payload = self._base_payload()
-        payload.update({
-            "enable_hr": True,
-            "hr_scale": 2.0,
-            "hr_upscaler": "Latent",
-            "hr_second_pass_steps": 20,
-            "denoising_strength": 0.5,
-        })
+        payload.update(
+            {
+                "enable_hr": True,
+                "hr_scale": 2.0,
+                "hr_upscaler": "Latent",
+                "hr_second_pass_steps": 20,
+                "denoising_strength": 0.5,
+            }
+        )
 
         assert payload["hr_scale"] == 2.0
         assert payload["hr_upscaler"] == "Latent"
@@ -331,13 +329,15 @@ class TestHiResPayload:
     def test_hires_doesnt_affect_base_params(self):
         """Hi-Res update doesn't overwrite base SD params."""
         payload = self._base_payload()
-        payload.update({
-            "enable_hr": True,
-            "hr_scale": 1.5,
-            "hr_upscaler": "R-ESRGAN 4x+ Anime6B",
-            "hr_second_pass_steps": 10,
-            "denoising_strength": 0.35,
-        })
+        payload.update(
+            {
+                "enable_hr": True,
+                "hr_scale": 1.5,
+                "hr_upscaler": "R-ESRGAN 4x+ Anime6B",
+                "hr_second_pass_steps": 10,
+                "denoising_strength": 0.35,
+            }
+        )
 
         # Base params preserved
         assert payload["steps"] == 24

@@ -8,7 +8,7 @@ import httpx
 from fastapi import HTTPException
 from sqlalchemy.orm import joinedload
 
-from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, STYLE_LORA_WEIGHT_CAP, logger
 from database import SessionLocal
 from schemas import SceneGenerateRequest
 from services.controlnet import (
@@ -380,15 +380,13 @@ def _adjust_parameters(cleaned_prompt: str, request: SceneGenerateRequest, chara
         final_steps = max(final_steps, 25)
 
     # Apply optimal LoRA weights from calibration DB
-    IP_ADAPTER_LORA_CAP = 0.6
     lora_names = extract_lora_names(cleaned_prompt)
     if lora_names:
         try:
             optimal_weights = get_optimal_weights_from_db(lora_names)
-            if request.use_ip_adapter and character_obj and optimal_weights:
-                optimal_weights = {name: min(w, IP_ADAPTER_LORA_CAP) for name, w in optimal_weights.items()}
-                logger.info("🔧 [LoRA] IP-Adapter active, capped at %.1f: %s", IP_ADAPTER_LORA_CAP, optimal_weights)
             if optimal_weights:
+                optimal_weights = {name: min(w, STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
+                logger.info("🔧 [LoRA] Capped at %.1f: %s", STYLE_LORA_WEIGHT_CAP, optimal_weights)
                 cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
                 logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
         except Exception as e:

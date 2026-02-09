@@ -22,12 +22,35 @@ LAYER_CAMERA = 9
 LAYER_ENVIRONMENT = 10
 LAYER_ATMOSPHERE = 11  # Style LoRA & Artistic Style
 
+# Layers that only apply when a character is present (SUBJECT through ACTION)
+CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
+
+# Character-specific camera framing tags — filtered from LAYER_CAMERA for background scenes
+_CHARACTER_CAMERA_TAGS = frozenset(
+    {
+        "cowboy_shot",
+        "upper_body",
+        "portrait",
+        "close-up",
+        "close_up",
+        "full_body",
+        "headshot",
+        "face",
+        "from_waist",
+    }
+)
+
 # Exclusive semantic groups: character tags take priority over scene tags.
 # When a character occupies a group (e.g. hair_color=red_hair),
 # scene tags in the same group (e.g. brown_hair) are dropped.
-EXCLUSIVE_GROUPS = frozenset({
-    "hair_color", "eye_color", "hair_length", "skin_color",
-})
+EXCLUSIVE_GROUPS = frozenset(
+    {
+        "hair_color",
+        "eye_color",
+        "hair_length",
+        "skin_color",
+    }
+)
 
 
 class V3PromptBuilder:
@@ -77,8 +100,18 @@ class V3PromptBuilder:
         """
         # Expression patterns (check BEFORE *ing to prioritize)
         expression_keywords = {
-            "smiling", "crying", "angry", "sad", "happy", "surprised", "confused",
-            "blushing", "embarrassed", "scared", "worried", "nervous"
+            "smiling",
+            "crying",
+            "angry",
+            "sad",
+            "happy",
+            "surprised",
+            "confused",
+            "blushing",
+            "embarrassed",
+            "scared",
+            "worried",
+            "nervous",
         }
         if tag in expression_keywords:
             return LAYER_EXPRESSION
@@ -102,6 +135,72 @@ class V3PromptBuilder:
         # Default fallback
         return LAYER_SUBJECT
 
+    # ── Background scene handling ────────────────────────────────────────
+
+    @staticmethod
+    def _is_background_scene(tags: list[str]) -> bool:
+        """Detect background-only scene by presence of no_humans tag."""
+        return any(t.lower().replace(" ", "_").strip() == "no_humans" for t in tags)
+
+    def _compose_background_scene(
+        self,
+        scene_tags: list[str],
+        style_loras: list[dict] | None = None,
+    ) -> str:
+        """Compose prompt for background-only scenes (no_humans).
+
+        Skips CHARACTER_ONLY_LAYERS and character-specific camera tags.
+        Keeps QUALITY, ENVIRONMENT, ATMOSPHERE, and background-safe CAMERA.
+        """
+        scene_tags = self._resolve_aliases(scene_tags)
+        layers: list[list[str]] = [[] for _ in range(12)]
+        tag_info = self.get_tag_info(scene_tags)
+
+        for tag in scene_tags:
+            norm_tag = tag.lower().replace(" ", "_").strip()
+            info = tag_info.get(norm_tag, {"layer": LAYER_SUBJECT})
+            target_layer = info["layer"]
+
+            # Skip character-only layers
+            if target_layer in CHARACTER_ONLY_LAYERS:
+                continue
+            # Skip character-specific camera framing
+            if target_layer == LAYER_CAMERA and norm_tag in _CHARACTER_CAMERA_TAGS:
+                continue
+
+            layers[target_layer].append(tag)
+
+        # Ensure no_humans is present in ENVIRONMENT
+        env_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_ENVIRONMENT]}
+        if "no_humans" not in env_norms:
+            layers[LAYER_ENVIRONMENT].insert(0, "no_humans")
+
+        # Style LoRAs (visual consistency)
+        if style_loras:
+            for lora in style_loras:
+                for trigger in lora.get("trigger_words", []):
+                    if trigger not in layers[LAYER_ATMOSPHERE]:
+                        layers[LAYER_ATMOSPHERE].append(trigger)
+                weight = lora.get("weight")
+                if weight is None:
+                    weight = self.get_lora_weight_by_name(lora["name"])
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
+
+        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
+        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
+        self._ensure_quality_tags(layers)
+
+        return self._flatten_layers(layers)
+
+    @staticmethod
+    def _strip_character_layers(layers: list[list[str]]) -> None:
+        """Clear character-only layers and character camera tags (defense for generic compose)."""
+        for i in CHARACTER_ONLY_LAYERS:
+            layers[i].clear()
+        layers[LAYER_CAMERA] = [
+            t for t in layers[LAYER_CAMERA] if t.lower().replace(" ", "_").strip() not in _CHARACTER_CAMERA_TAGS
+        ]
+
     # ── compose_for_character ────────────────────────────────────────────
 
     def compose_for_character(
@@ -111,6 +210,10 @@ class V3PromptBuilder:
         style_loras: list[dict] | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
+        # Background scene: skip character DB lookup entirely
+        if self._is_background_scene(scene_tags):
+            return self._compose_background_scene(scene_tags, style_loras)
+
         character = self.db.query(Character).filter(Character.id == character_id).first()
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
@@ -148,21 +251,25 @@ class V3PromptBuilder:
         char_tags_data = []
         for char_tag in character.tags:
             tag = char_tag.tag
-            char_tags_data.append({
-                "name": tag.name,
-                "layer": tag.default_layer,
-                "weight": char_tag.weight,
-            })
+            char_tags_data.append(
+                {
+                    "name": tag.name,
+                    "layer": tag.default_layer,
+                    "weight": char_tag.weight,
+                }
+            )
 
         TagFilterCache.initialize(self.db)
         if character.custom_base_prompt:
             for bt in (t.strip() for t in character.custom_base_prompt.split(",")):
                 if bt and not TagFilterCache.is_restricted(bt):
-                    char_tags_data.append({
-                        "name": bt,
-                        "layer": LAYER_IDENTITY,
-                        "weight": 1.0,
-                    })
+                    char_tags_data.append(
+                        {
+                            "name": bt,
+                            "layer": LAYER_IDENTITY,
+                            "weight": 1.0,
+                        }
+                    )
 
         return char_tags_data
 
@@ -173,11 +280,7 @@ class V3PromptBuilder:
             return set()
 
         info_map = self.get_tag_info(names)
-        return {
-            info["group_name"]
-            for info in info_map.values()
-            if info.get("group_name") in EXCLUSIVE_GROUPS
-        }
+        return {info["group_name"] for info in info_map.values() if info.get("group_name") in EXCLUSIVE_GROUPS}
 
     def _distribute_tags(
         self,
@@ -234,7 +337,7 @@ class V3PromptBuilder:
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
                     active_loras[lora_obj.name] = (weight, lora_obj.lora_type)
-                    for trigger in (lora_obj.trigger_words or []):
+                    for trigger in lora_obj.trigger_words or []:
                         if trigger not in layers[LAYER_IDENTITY]:
                             layers[LAYER_IDENTITY].append(trigger)
 
@@ -253,6 +356,8 @@ class V3PromptBuilder:
         if style_loras:
             for lora_info in style_loras:
                 name: str = lora_info.get("name", "")
+                if name in active_loras:
+                    continue  # Already injected via scene-triggered detection
                 weight = lora_info.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(name)
@@ -317,8 +422,7 @@ class V3PromptBuilder:
                 if lora_name in style_lora_names:
                     continue
                 already_present = any(
-                    f"<lora:{lora_name}:" in t
-                    for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE])
+                    f"<lora:{lora_name}:" in t for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE])
                 )
                 if not already_present:
                     weight, lora_type = self._get_lora_info(lora_name)
@@ -335,6 +439,10 @@ class V3PromptBuilder:
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora["name"])
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
+
+        # Background scene defense: strip character layers after all LoRA injection
+        if self._is_background_scene(tags):
+            self._strip_character_layers(layers)
 
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
@@ -419,10 +527,7 @@ class V3PromptBuilder:
 
                 # Layer 7, 8 (Expression, Action) weight boost
                 if i in [LAYER_EXPRESSION, LAYER_ACTION]:
-                    unique_layer_tokens = [
-                        f"({t}:1.1)" if ":" not in t else t
-                        for t in unique_layer_tokens
-                    ]
+                    unique_layer_tokens = [f"({t}:1.1)" if ":" not in t else t for t in unique_layer_tokens]
 
                 final_tokens.extend(unique_layer_tokens)
 
@@ -457,15 +562,42 @@ class V3PromptBuilder:
 
     # ── Conflict resolution ──────────────────────────────────────────────
 
-    _OUTDOOR_TAGS = frozenset({
-        "outdoors", "street", "park", "forest", "beach", "mountain",
-        "garden", "city", "field", "lake", "river", "rooftop",
-    })
-    _INDOOR_TAGS = frozenset({
-        "indoors", "room", "bedroom", "kitchen", "bathroom", "classroom",
-        "library", "office", "cafe", "school", "hospital", "church",
-        "restaurant", "shop", "hallway", "living_room",
-    })
+    _OUTDOOR_TAGS = frozenset(
+        {
+            "outdoors",
+            "street",
+            "park",
+            "forest",
+            "beach",
+            "mountain",
+            "garden",
+            "city",
+            "field",
+            "lake",
+            "river",
+            "rooftop",
+        }
+    )
+    _INDOOR_TAGS = frozenset(
+        {
+            "indoors",
+            "room",
+            "bedroom",
+            "kitchen",
+            "bathroom",
+            "classroom",
+            "library",
+            "office",
+            "cafe",
+            "school",
+            "hospital",
+            "church",
+            "restaurant",
+            "shop",
+            "hallway",
+            "living_room",
+        }
+    )
 
     _CAMERA_WIDE = frozenset({"full_body", "wide_shot"})
     _CAMERA_MID = frozenset({"cowboy_shot", "upper_body", "from_waist"})

@@ -133,6 +133,10 @@ SD_DEFAULT_STEPS = int(os.getenv("SD_DEFAULT_STEPS", "28"))
 SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "7.0"))
 SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "DPM++ 2M Karras")
 
+# --- LoRA Weight Cap ---
+# Maximum weight for style LoRAs (applied to both character and narrator scenes)
+STYLE_LORA_WEIGHT_CAP = float(os.getenv("STYLE_LORA_WEIGHT_CAP", "0.76"))
+
 # --- SD API Timeouts (lightweight operations) ---
 SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
 

@@ -5,8 +5,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from services.prompt.v3_composition import (
+    _CHARACTER_CAMERA_TAGS,
+    CHARACTER_ONLY_LAYERS,
     EXCLUSIVE_GROUPS,  # noqa: F811
     LAYER_ACTION,
+    LAYER_ATMOSPHERE,
     LAYER_CAMERA,
     LAYER_ENVIRONMENT,
     LAYER_EXPRESSION,
@@ -28,6 +31,7 @@ def builder():
 # ────────────────────────────────────────────
 # _dedup_key tests
 # ────────────────────────────────────────────
+
 
 class TestDedupKey:
     """Test _dedup_key weight syntax stripping."""
@@ -63,6 +67,7 @@ class TestDedupKey:
 # ────────────────────────────────────────────
 # _flatten_layers tests
 # ────────────────────────────────────────────
+
 
 class TestFlattenLayers:
     """Test _flatten_layers: dedup, BREAK, weight boost."""
@@ -151,6 +156,7 @@ class TestFlattenLayers:
 # Gender enhancement tests
 # ────────────────────────────────────────────
 
+
 class TestGenderEnhancement:
     """Test _apply_gender_enhancement for male character SD bias fix."""
 
@@ -229,6 +235,7 @@ class TestGenderEnhancement:
 # D-2: TagRuleCache conflict resolution tests
 # ────────────────────────────────────────────
 
+
 class TestConflictResolution:
     """Test TagRuleCache integration in _flatten_layers (D-2)."""
 
@@ -238,8 +245,7 @@ class TestConflictResolution:
         # Mock conflict: brown_hair vs blonde_hair
         mock_cache.initialize.return_value = None
         mock_cache.is_conflicting.side_effect = lambda t1, t2: (
-            (t1 == "blonde_hair" and t2 == "brown_hair") or
-            (t1 == "brown_hair" and t2 == "blonde_hair")
+            (t1 == "blonde_hair" and t2 == "brown_hair") or (t1 == "brown_hair" and t2 == "blonde_hair")
         )
 
         layers = [[] for _ in range(12)]
@@ -272,6 +278,7 @@ class TestConflictResolution:
 # D-3: TagFilterCache restricted tags tests
 # ────────────────────────────────────────────
 
+
 class TestRestrictedTags:
     """Test TagFilterCache integration (D-3)."""
 
@@ -295,10 +302,7 @@ class TestRestrictedTags:
         # Mock DB queries
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
-        result = builder.compose_for_character(
-            character_id=1,
-            scene_tags=["sitting"]
-        )
+        result = builder.compose_for_character(character_id=1, scene_tags=["sitting"])
 
         # kitchen and outdoors should be filtered out
         assert "kitchen" not in result
@@ -309,6 +313,7 @@ class TestRestrictedTags:
 # ────────────────────────────────────────────
 # D-4: Pattern-based fallback tests
 # ────────────────────────────────────────────
+
 
 class TestPatternBasedFallback:
     """Test _infer_layer_from_pattern for DB-missing tags (D-4)."""
@@ -356,6 +361,7 @@ class TestPatternBasedFallback:
 # Exclusive group filtering tests
 # ────────────────────────────────────────────
 
+
 def _make_tag_info(_name: str, layer: int = LAYER_IDENTITY, group: str | None = None) -> dict:
     """Helper to build tag info dict."""
     return {"layer": layer, "scope": "ANY", "group_name": group}
@@ -365,17 +371,21 @@ class TestBuildCharOccupiedGroups:
     """Test _build_char_occupied_groups identifies occupied exclusive groups."""
 
     def test_hair_color_occupied(self, builder):
-        builder.get_tag_info = MagicMock(return_value={
-            "red_hair": _make_tag_info("red_hair", group="hair_color"),
-        })
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "red_hair": _make_tag_info("red_hair", group="hair_color"),
+            }
+        )
         result = builder._build_char_occupied_groups([{"name": "red_hair", "layer": 2, "weight": 1.0}])
         assert "hair_color" in result
 
     def test_multiple_groups(self, builder):
-        builder.get_tag_info = MagicMock(return_value={
-            "red_hair": _make_tag_info("red_hair", group="hair_color"),
-            "blue_eyes": _make_tag_info("blue_eyes", group="eye_color"),
-        })
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "red_hair": _make_tag_info("red_hair", group="hair_color"),
+                "blue_eyes": _make_tag_info("blue_eyes", group="eye_color"),
+            }
+        )
         char_tags = [
             {"name": "red_hair", "layer": 2, "weight": 1.0},
             {"name": "blue_eyes", "layer": 2, "weight": 1.0},
@@ -384,9 +394,11 @@ class TestBuildCharOccupiedGroups:
         assert result == {"hair_color", "eye_color"}
 
     def test_non_exclusive_group_ignored(self, builder):
-        builder.get_tag_info = MagicMock(return_value={
-            "messy_hair": _make_tag_info("messy_hair", group="hair_style"),
-        })
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "messy_hair": _make_tag_info("messy_hair", group="hair_style"),
+            }
+        )
         result = builder._build_char_occupied_groups([{"name": "messy_hair", "layer": 2, "weight": 1.0}])
         assert len(result) == 0
 
@@ -395,9 +407,11 @@ class TestBuildCharOccupiedGroups:
         assert result == set()
 
     def test_no_group_name(self, builder):
-        builder.get_tag_info = MagicMock(return_value={
-            "1girl": _make_tag_info("1girl", group="subject"),
-        })
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "1girl": _make_tag_info("1girl", group="subject"),
+            }
+        )
         result = builder._build_char_occupied_groups([{"name": "1girl", "layer": 1, "weight": 1.0}])
         assert len(result) == 0
 
@@ -408,9 +422,11 @@ class TestDistributeTags:
     def _setup_tag_info(self, builder, char_info: dict, scene_info: dict):
         """Mock get_tag_info to return different results for char vs scene tags."""
         all_info = {**char_info, **scene_info}
-        builder.get_tag_info = MagicMock(side_effect=lambda names: {
-            n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
-        })
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
 
     def test_hair_color_conflict_drops_scene_tag(self, builder):
         """Char red_hair + scene brown_hair → brown_hair dropped."""
@@ -564,3 +580,243 @@ class TestExclusiveGroupsConstant:
 
     def test_does_not_contain_clothing(self):
         assert "clothing" not in EXCLUSIVE_GROUPS
+
+
+# ────────────────────────────────────────────
+# _inject_loras dedup tests
+# ────────────────────────────────────────────
+
+
+class TestInjectLorasDedup:
+    """Test _inject_loras dedup: scene-triggered + style_loras with same name."""
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    def test_inject_loras_no_duplicate_style_lora(self, mock_trigger_cache, builder):
+        """Scene-triggered + style_loras with same name → only one <lora:> tag."""
+        # Scene tag "flat_color" triggers LoRA via cache
+        mock_trigger_cache.get_lora_name.side_effect = lambda tag: "flat_color" if tag == "flat_color" else None
+
+        # Mock _get_lora_info for scene-triggered lookup
+        builder._get_lora_info = MagicMock(return_value=(0.6, "style"))
+
+        character = MagicMock()
+        character.loras = []
+        character.prompt_mode = "standard"
+
+        layers = [[] for _ in range(12)]
+        scene_tags = ["flat_color", "outdoors"]
+
+        # style_loras also includes flat_color (would be duplicate)
+        style_loras = [{"name": "flat_color", "weight": 0.6, "trigger_words": []}]
+
+        builder._inject_loras(character, scene_tags, layers, style_loras)
+
+        # Count lora tags across all layers
+        all_tokens = [t for layer in layers for t in layer]
+        lora_count = sum(1 for t in all_tokens if "<lora:flat_color:" in t)
+        assert lora_count == 1, f"Expected 1 flat_color LoRA tag, got {lora_count}: {all_tokens}"
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    def test_inject_loras_style_lora_added_when_not_triggered(self, mock_trigger_cache, builder):
+        """style_loras not in scene tags → still added normally."""
+        mock_trigger_cache.get_lora_name.return_value = None
+
+        character = MagicMock()
+        character.loras = []
+        character.prompt_mode = "standard"
+
+        layers = [[] for _ in range(12)]
+        scene_tags = ["outdoors", "standing"]
+
+        # flat_color only in style_loras, not triggered by scene
+        style_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
+
+        builder._inject_loras(character, scene_tags, layers, style_loras)
+
+        atmo_tokens = layers[LAYER_ATMOSPHERE]
+        assert "<lora:flat_color:0.7>" in atmo_tokens
+        assert "flat color" in atmo_tokens
+
+
+# ────────────────────────────────────────────
+# Background scene filtering tests
+# ────────────────────────────────────────────
+
+
+class TestBackgroundSceneFiltering:
+    """Test background scene detection and character tag stripping."""
+
+    def test_is_background_scene_detection(self):
+        """no_humans tag triggers background scene detection."""
+        assert V3PromptBuilder._is_background_scene(["no_humans", "scenery", "cafe"])
+        assert V3PromptBuilder._is_background_scene(["scenery", "no_humans"])
+        # Case/whitespace insensitive
+        assert V3PromptBuilder._is_background_scene(["No_Humans", "park"])
+        assert V3PromptBuilder._is_background_scene(["no humans", "park"])
+
+    def test_is_background_scene_negative(self):
+        """Scenes without no_humans are not background scenes."""
+        assert not V3PromptBuilder._is_background_scene(["1girl", "standing", "cafe"])
+        assert not V3PromptBuilder._is_background_scene(["scenery", "outdoors"])
+        assert not V3PromptBuilder._is_background_scene([])
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_compose_background_strips_character_tags(self, mock_alias, mock_rule, builder):
+        """Background compose removes standing/cooking/smiling but keeps environment."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...  # No alias — keep original
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        # Mock tag DB to return proper layers
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "no_humans": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "scenery": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "cafe": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "standing": {"layer": LAYER_ACTION, "scope": "ANY", "group_name": None},
+                "cooking": {"layer": LAYER_ACTION, "scope": "ANY", "group_name": None},
+                "cowboy_shot": {"layer": LAYER_CAMERA, "scope": "ANY", "group_name": None},
+                "night": {"layer": LAYER_ATMOSPHERE, "scope": "ANY", "group_name": None},
+            }
+        )
+
+        result = builder._compose_background_scene(
+            ["no_humans", "scenery", "cafe", "standing", "cooking", "cowboy_shot", "night"]
+        )
+
+        # Character tags stripped
+        assert "standing" not in result
+        assert "cooking" not in result
+        assert "cowboy_shot" not in result
+
+        # Environment/atmosphere tags kept
+        assert "no_humans" in result
+        assert "scenery" in result
+        assert "cafe" in result
+        assert "night" in result
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_compose_for_character_background_skips_character(self, mock_alias, mock_rule, builder):
+        """compose_for_character with no_humans skips character DB query."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        # Mock tag DB to return proper layers
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "no_humans": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "scenery": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "library": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+            }
+        )
+
+        result = builder.compose_for_character(
+            character_id=999,
+            scene_tags=["no_humans", "scenery", "library"],
+        )
+
+        # Should not query Character table (no_humans early exit)
+        builder.db.query.return_value.filter.return_value.first.assert_not_called()
+
+        assert "no_humans" in result
+        assert "library" in result
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_background_scene_keeps_style_loras(self, mock_alias, mock_rule, builder):
+        """Background scene preserves style LoRAs for visual consistency."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        style_loras = [{"name": "flat_color", "weight": 0.6, "trigger_words": ["flat color"]}]
+
+        result = builder._compose_background_scene(
+            ["no_humans", "scenery", "cafe"],
+            style_loras=style_loras,
+        )
+
+        assert "<lora:flat_color:0.6>" in result
+        assert "flat color" in result
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_background_scene_keeps_no_humans(self, mock_alias, mock_rule, builder):
+        """no_humans tag is always present in final background prompt."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        result = builder._compose_background_scene(["scenery", "cafe", "no_humans"])
+        assert "no_humans" in result
+
+    def test_strip_character_layers(self):
+        """_strip_character_layers clears layers 1-8 and character camera tags."""
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["masterpiece"]
+        layers[LAYER_SUBJECT] = ["1girl"]
+        layers[LAYER_IDENTITY] = ["brown_hair"]
+        layers[LAYER_ACTION] = ["standing"]
+        layers[LAYER_CAMERA] = ["cowboy_shot", "from_above"]
+        layers[LAYER_ENVIRONMENT] = ["cafe", "no_humans"]
+
+        V3PromptBuilder._strip_character_layers(layers)
+
+        # Character layers cleared
+        assert layers[LAYER_SUBJECT] == []
+        assert layers[LAYER_IDENTITY] == []
+        assert layers[LAYER_ACTION] == []
+
+        # Character camera tags stripped, non-character kept
+        assert "cowboy_shot" not in layers[LAYER_CAMERA]
+        assert "from_above" in layers[LAYER_CAMERA]
+
+        # Non-character layers untouched
+        assert layers[LAYER_QUALITY] == ["masterpiece"]
+        assert "cafe" in layers[LAYER_ENVIRONMENT]
+
+    def test_character_only_layers_constant(self):
+        """CHARACTER_ONLY_LAYERS covers layers 1-8 (SUBJECT through ACTION)."""
+        assert CHARACTER_ONLY_LAYERS == frozenset({1, 2, 3, 4, 5, 6, 7, 8})
+
+    def test_character_camera_tags_constant(self):
+        """_CHARACTER_CAMERA_TAGS contains expected framing tags."""
+        expected = {"cowboy_shot", "upper_body", "portrait", "close-up", "close_up", "full_body"}
+        assert expected.issubset(_CHARACTER_CAMERA_TAGS)
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_compose_generic_background_strips_character_loras(self, mock_alias, mock_rule, mock_trigger, builder):
+        """compose() with no_humans + character_loras → character LoRAs stripped."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_trigger.get_lora_name.return_value = None
+
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "no_humans": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "scenery": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+            }
+        )
+
+        result = builder.compose(
+            tags=["no_humans", "scenery"],
+            character_loras=[{"name": "char_lora", "weight": 0.7, "trigger_words": ["trigger1"]}],
+        )
+
+        # Character LoRA and trigger should be stripped
+        assert "char_lora" not in result
+        assert "trigger1" not in result
+        # Environment kept
+        assert "no_humans" in result
+        assert "scenery" in result
