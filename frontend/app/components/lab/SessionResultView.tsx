@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { API_BASE } from "../../constants";
 import type { CopyrightResult, MusicRecommendation } from "../../types/creative";
 import CheckResultCard from "./CheckResultCard";
+
+type Group = {
+  id: number;
+  name: string;
+  project_id: number;
+};
 
 type SceneData = {
   order: number;
@@ -32,16 +40,28 @@ export default function SessionResultView({
 }: Props) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [groupId, setGroupId] = useState<string>("");
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [groupId, setGroupId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [deepParse, setDeepParse] = useState(false);
 
+  useEffect(() => {
+    axios
+      .get<Group[]>(`${API_BASE}/groups`)
+      .then((res) => {
+        setGroups(res.data);
+        if (res.data.length > 0) {
+          setGroupId(res.data[0].id);
+        }
+      })
+      .catch(() => setGroups([]));
+  }, []);
+
   const handleSend = async () => {
-    const gid = parseInt(groupId, 10);
-    if (isNaN(gid) || gid <= 0) return;
+    if (!groupId) return;
     setSending(true);
     try {
-      await onSendToStudio(gid, title || undefined, deepParse);
+      await onSendToStudio(groupId, title || undefined, deepParse);
       setSent(true);
     } finally {
       setSending(false);
@@ -122,15 +142,23 @@ export default function SessionResultView({
         <div className="flex items-end gap-3 border-t border-zinc-100 pt-3">
           <div className="flex-1">
             <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-              Group ID
+              Group
             </label>
-            <input
-              type="number"
-              value={groupId}
-              onChange={(e) => setGroupId(e.target.value)}
-              placeholder="Group ID"
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs focus:border-zinc-400 focus:outline-none"
-            />
+            <select
+              value={groupId ?? ""}
+              onChange={(e) => setGroupId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+            >
+              {groups.length === 0 ? (
+                <option value="">No groups available</option>
+              ) : (
+                groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
