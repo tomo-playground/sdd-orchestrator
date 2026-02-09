@@ -661,6 +661,11 @@ async def generate_reference_for_character(
 ) -> str:
     """Generate and save a reference image for a character with validation.
 
+    # INTENTIONAL BYPASS: This function intentionally does NOT use
+    # generate_image_with_v3() because reference images use the character's
+    # own reference_base_prompt + reference_negative_prompt (special logic
+    # for IP-Adapter/Reference-only reference images).
+
     Args:
         db: Database session
         character: Character model instance
@@ -670,8 +675,8 @@ async def generate_reference_for_character(
     Returns:
         Saved filename
     """
-    # 1. Build prompt from tags
-    tag_list = [char_tag.tag.name.replace("_", " ") for char_tag in character.tags]
+    # 1. Build prompt from tags (keep Danbooru underscore format)
+    tag_list = [char_tag.tag.name for char_tag in character.tags]
 
     # 2. Build LoRA prompt
     lora_prompt_parts = []

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from config import DEFAULT_SCENE_NEGATIVE_PROMPT, NARRATOR_NEGATIVE_PROMPT_EXTRA
 from models.creative import CreativeSession
 from models.scene import Scene
 from models.storyboard import Storyboard
 from models.storyboard_character import StoryboardCharacter
 from services.creative_utils import parse_image_prompt_to_tags
+from services.image_generation_core import resolve_style_loras_from_group
 
 # ── Shorts Session Creation ─────────────────────────────────
 
@@ -121,19 +123,34 @@ def _build_scene(
     builder,
     characters: dict[str, dict],
     fallback_char_id: int | None,
+    group_id: int | None = None,
+    style_loras: list[dict] | None = None,
 ) -> Scene:
-    """Build a single Scene from pipeline output dict."""
+    """Build a single Scene from pipeline output dict.
+
+    Uses V3 composition pipeline with style_loras and negative_prompt.
+    """
     image_prompt = s.get("image_prompt", "")
     context_tags = s.get("context_tags")
+    negative_prompt = DEFAULT_SCENE_NEGATIVE_PROMPT
 
     if builder and image_prompt:
         tags = parse_image_prompt_to_tags(image_prompt)
         speaker = s.get("speaker", "A")
         char_id = characters.get(speaker, {}).get("id") or fallback_char_id
+
         if char_id:
-            image_prompt = builder.compose_for_character(char_id, tags)
+            image_prompt = builder.compose_for_character(
+                char_id, tags, style_loras=style_loras or [],
+            )
         else:
-            image_prompt = builder.compose(tags)
+            image_prompt = builder.compose(tags, style_loras=style_loras or [])
+
+        # Narrator scenes: append person-exclusion tags
+        is_narrator = "no_humans" in image_prompt.lower().replace(" ", "_")
+        if is_narrator:
+            negative_prompt = f"{negative_prompt}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
+
         context_tags = {"original_tags": tags, "composed": True}
 
     return Scene(
@@ -144,6 +161,7 @@ def _build_scene(
         duration=s.get("duration", 2.5),
         image_prompt=image_prompt,
         image_prompt_ko=s.get("image_prompt_ko", ""),
+        negative_prompt=negative_prompt,
         context_tags=context_tags,
     )
 
@@ -182,12 +200,14 @@ def send_to_studio(
     db.add(storyboard)
     db.flush()
 
-    # 2. Optionally build prompt composer
+    # 2. Optionally build prompt composer + resolve style LoRAs
     builder = None
+    style_loras: list[dict] = []
     if deep_parse:
         from services.prompt.v3_composition import V3PromptBuilder
 
         builder = V3PromptBuilder(db)
+        style_loras = resolve_style_loras_from_group(group_id, db)
 
     # 3. Link characters
     characters = ctx.get("characters", {})
@@ -202,6 +222,8 @@ def send_to_studio(
             builder,
             characters,
             session.character_id,
+            group_id=group_id,
+            style_loras=style_loras,
         )
         db.add(scene)
 

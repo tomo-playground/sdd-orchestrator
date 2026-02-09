@@ -1,4 +1,11 @@
-"""Pure V3 Prompt Composition Service with 12-Layer System."""
+"""Pure V3 Prompt Composition Service with 12-Layer System.
+
+NOTE: This module uses inline `.lower().replace(" ", "_").strip()` for tag
+normalization. This is equivalent to `normalize_prompt_token()` from
+`services.keywords.core` but kept inline to avoid circular imports and
+minimize risk in the composition hot-path. Do NOT refactor to external calls
+without validating all tag paths.
+"""
 
 from sqlalchemy.orm import Session
 

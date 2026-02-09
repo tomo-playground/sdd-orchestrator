@@ -66,6 +66,10 @@ async def ensure_avatar_file(
 ) -> str | None:
     """Ensure an avatar file exists, using StorageService.
 
+    # INTENTIONAL BYPASS: This function does NOT use generate_image_with_v3()
+    # because avatars are generic placeholder images (256x256) with a fixed
+    # prompt, unrelated to any character/storyboard/style profile pipeline.
+
     Args:
         avatar_key: The avatar key (can be a URL, storage key, or simple string)
         timeout: Request timeout in seconds

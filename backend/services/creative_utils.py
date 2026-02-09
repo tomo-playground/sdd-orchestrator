@@ -6,6 +6,7 @@ import json
 import re
 
 from models.creative import CreativeTrace
+from services.prompt.prompt import split_prompt_tokens
 
 
 def parse_json_response(raw: str) -> dict:
@@ -78,11 +79,11 @@ def record_trace_sync(db, **kwargs) -> CreativeTrace:
 def parse_image_prompt_to_tags(prompt: str) -> list[str]:
     """Split image_prompt string into a Danbooru tag list.
 
-    Comma-separated → stripped → non-empty items.
+    Delegates to split_prompt_tokens() (SSOT).
     """
     if not prompt:
         return []
-    return [tag.strip() for tag in prompt.split(",") if tag.strip()]
+    return split_prompt_tokens(prompt)
 
 
 def resolve_characters_from_context(ctx: dict) -> dict[str, dict]:

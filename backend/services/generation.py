@@ -200,46 +200,14 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
     """Resolve style LoRAs from DB config cascade for V3 engine.
 
-    Returns list of dicts: [{"name": "...", "weight": ..., "trigger_words": [...]}]
+    Delegates to image_generation_core.resolve_style_loras_from_storyboard (SSOT).
     """
     if not storyboard_id:
         return []
     try:
-        from models import LoRA, Storyboard, StyleProfile
-        from models.group import Group
-        from services.config_resolver import resolve_effective_config
+        from services.image_generation_core import resolve_style_loras_from_storyboard
 
-        storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
-        if not storyboard:
-            return []
-        group = (
-            db.query(Group)
-            .options(joinedload(Group.config), joinedload(Group.project))
-            .filter(Group.id == storyboard.group_id)
-            .first()
-        )
-        if not group:
-            return []
-        cfg = resolve_effective_config(group.project, group)
-        style_profile_id = cfg["values"].get("style_profile_id")
-        if not style_profile_id:
-            return []
-        profile = db.query(StyleProfile).filter(StyleProfile.id == style_profile_id).first()
-        if not profile or not profile.loras:
-            return []
-
-        result = []
-        for lora_config in profile.loras:
-            lora_id = lora_config.get("lora_id")
-            weight = lora_config.get("weight", 0.7)
-            if not lora_id:
-                continue
-            lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
-            if not lora_obj:
-                continue
-            tw = list(lora_obj.trigger_words) if lora_obj.trigger_words else []
-            result.append({"name": lora_obj.name, "weight": weight, "trigger_words": tw})
-        return result
+        return resolve_style_loras_from_storyboard(storyboard_id, db)
     except Exception as e:
         logger.error("❌ [_resolve_style_loras] Error: %s", e)
         return []

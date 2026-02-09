@@ -282,24 +282,14 @@ async def compose_and_run(
     seed: int | None = None,
     notes: str | None = None,
 ) -> LabExperiment:
+    """Scene Lab: run experiment with scene_description tags.
+
+    V3 composition is handled inside run_experiment → generate_image_with_v3.
+    No direct V3PromptBuilder call here (DRY).
     """
-    Scene Lab: compose scene description via V3, then run experiment.
+    from services.prompt.prompt import split_prompt_tokens
 
-    Phase 1 Integration: Uses V3 Prompt Engine for scene composition.
-    """
-    from services.prompt.v3_composition import V3PromptBuilder
-
-    builder = V3PromptBuilder(db)
-    # Extract scene tags from description (simple split for now)
-    scene_tags = [
-        t.strip()
-        for t in scene_description.replace(",", " ").split()
-        if t.strip()
-    ]
-    composed_prompt = builder.compose_for_character(character_id, scene_tags)
-
-    # Parse composed prompt back to tag list
-    target_tags = [t.strip() for t in composed_prompt.split(",") if t.strip()]
+    target_tags = split_prompt_tokens(scene_description)
 
     return await run_experiment(
         db=db,

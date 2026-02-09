@@ -23,6 +23,7 @@ from config import (
     SD_TXT2IMG_URL,
     logger,
 )
+from services.prompt.prompt import split_prompt_tokens
 from services.prompt.v3_composition import V3PromptBuilder
 
 
@@ -88,7 +89,7 @@ async def generate_image_with_v3(
         logger.debug(f"{mode_prefix} Prompt type: list[str] → joined")
     else:
         prompt_str = prompt
-        scene_tags = _split_prompt_tokens(prompt)
+        scene_tags = split_prompt_tokens(prompt)
         logger.debug(f"{mode_prefix} Prompt type: str")
 
     # 2. Resolve Style LoRAs
@@ -202,22 +203,30 @@ async def generate_image_with_v3(
 
 
 def resolve_style_loras_from_group(group_id: int, db: Session) -> list[dict]:
-    """Resolve Style LoRAs from Group Config."""
+    """Resolve Style LoRAs from Group Config via resolve_effective_config cascade."""
+    from sqlalchemy.orm import joinedload
+
     from models import LoRA, StyleProfile
     from models.group import Group
-    from models.group_config import GroupConfig
+    from services.config_resolver import resolve_effective_config
 
-    group = db.query(Group).filter(Group.id == group_id).first()
-    if not group or not group.config:
-        logger.warning(f"Group {group_id} has no config")
+    group = (
+        db.query(Group)
+        .options(joinedload(Group.config), joinedload(Group.project))
+        .filter(Group.id == group_id)
+        .first()
+    )
+    if not group:
+        logger.warning(f"Group {group_id} not found")
         return []
 
-    config: GroupConfig = group.config
-    if not config.style_profile_id:
-        logger.warning(f"Group {group_id} has no style_profile_id")
+    cfg = resolve_effective_config(group.project, group)
+    style_profile_id = cfg["values"].get("style_profile_id")
+    if not style_profile_id:
+        logger.warning(f"Group {group_id} has no style_profile_id (cascade)")
         return []
 
-    profile = db.query(StyleProfile).filter(StyleProfile.id == config.style_profile_id).first()
+    profile = db.query(StyleProfile).filter(StyleProfile.id == style_profile_id).first()
     if not profile or not profile.loras:
         return []
 
@@ -252,19 +261,6 @@ def resolve_style_loras_from_storyboard(storyboard_id: int, db: Session) -> list
         return []
 
     return resolve_style_loras_from_group(storyboard.group_id, db)
-
-
-def _split_prompt_tokens(prompt: str) -> list[str]:
-    """
-    Split prompt string into individual tag tokens.
-
-    Args:
-        prompt: Comma-separated tag string (e.g., "1girl, smile, blue_eyes")
-
-    Returns:
-        List of individual tag strings with whitespace stripped
-    """
-    return [t.strip() for t in prompt.split(",") if t.strip()]
 
 
 def _extract_loras_from_prompt(prompt: str) -> list[dict]:

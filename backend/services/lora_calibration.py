@@ -30,6 +30,11 @@ async def generate_test_image(
 ) -> bytes | None:
     """Generate a test image with specified LoRA weight.
 
+    # INTENTIONAL BYPASS: This function does NOT use generate_image_with_v3()
+    # because calibration requires a fixed, reproducible prompt
+    # (CALIBRATION_PROMPT + fixed seed) to isolate LoRA weight effects.
+    # Using V3 composition would introduce variable prompt changes.
+
     Args:
         lora_name: LoRA filename (without extension)
         lora_weight: Weight to test
