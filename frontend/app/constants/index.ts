@@ -6,7 +6,7 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:800
 export const API_TIMEOUT = {
   DEFAULT: 60_000, // 60 seconds
   STORYBOARD_SAVE: 120_000, // 2 minutes (large scene data)
-  VIDEO_RENDER: 600_000, // 10 minutes (video processing)
+  VIDEO_RENDER: 1200_000, // 20 minutes (video processing)
   IMAGE_GENERATION: 180_000, // 3 minutes (SD image generation)
 } as const;
 

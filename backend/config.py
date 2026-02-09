@@ -294,7 +294,7 @@ VIDEO_PIX_FMT = os.getenv("VIDEO_PIX_FMT", "yuv420p")
 AUDIO_CODEC = os.getenv("AUDIO_CODEC", "aac")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "192k")
 # FFmpeg subprocess timeout in seconds (prevents infinite hangs)
-FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "600"))
+FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "1200"))
 RENDER_TASK_TTL_SECONDS = int(os.getenv("RENDER_TASK_TTL_SECONDS", "1800"))
 
 # --- Text Extraction Defaults ---

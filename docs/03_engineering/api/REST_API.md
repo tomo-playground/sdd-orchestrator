@@ -326,6 +326,8 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 
 **Request:** `VideoRequest` (`POST /video/create`와 동일)
 
+> **Timeout**: 비동기 렌더링 작업은 최대 **20분**(`API_TIMEOUT.VIDEO_RENDER`)까지 허용됩니다. 초과 시 `failed` 상태로 전환되며 타임아웃 에러가 발생합니다.
+
 **Response (202 Accepted):**
 ```json
 {

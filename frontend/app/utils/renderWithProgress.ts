@@ -22,7 +22,7 @@ export async function renderWithProgress(
     // Set overall timeout for the entire render process
     timeoutId = setTimeout(() => {
       es.close();
-      reject(new Error("Render timeout after 10 minutes"));
+      reject(new Error("Render timeout after 20 minutes"));
     }, API_TIMEOUT.VIDEO_RENDER);
 
     es.onmessage = (event) => {

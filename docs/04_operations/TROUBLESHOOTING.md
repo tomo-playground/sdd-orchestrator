@@ -54,6 +54,17 @@
 
 ## 🎬 Post Layout 자막(Scene Text) 미표시
 
+## 🎬 Render Timeout (20분 제한)
+
+### 증상
+*   **증상**: 복잡한 영상(Full Layout, 많은 씬, 고화질) 렌더링 시 20분이 지나면 `Render timeout after 20 minutes` 에러와 함께 실패함.
+*   **원인**: `API_TIMEOUT.VIDEO_RENDER` (Frontend) 및 `FFMPEG_TIMEOUT_SECONDS` (Backend) 제한 시간 초과.
+*   **해결**:
+    1. **단기 해결**: 씬 개수를 줄이거나 해상도를 낮춰 재생성 시도.
+    2. **설정 변경**: `frontend/app/constants/index.ts` 및 `backend/config.py`의 타임아웃 값 증가 (배포 필요).
+
+## 🎬 Post Layout 자막(Scene Text) 미표시
+
 ### 증상
 Post layout 영상에서 이미지 상단(scene_text_area)에 자막이 나타나지 않음. Full layout은 정상.
 
