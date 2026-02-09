@@ -105,7 +105,10 @@ class TestIPAdapterAutoActivation:
 
 
 class TestLoRAWeightCap:
-    """Test LoRA weight capping applied unconditionally to all scenes."""
+    """Test LoRA weight capping applied unconditionally to all scenes.
+
+    Note: V3 composition에서 1차 cap, _adjust_parameters에서 2차 cap (idempotent).
+    """
 
     STYLE_LORA_WEIGHT_CAP = 0.76
 

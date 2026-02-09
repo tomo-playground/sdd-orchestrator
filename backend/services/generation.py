@@ -252,7 +252,9 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
     - **pre_composed** (manual w/ V3): Style profile full apply, prompt as-is.
     - **raw + character** (batch/autopilot): Style profile quality-only (skip_loras),
       then V3 engine injects character + style LoRAs.
-    - **no character** (Narrator etc): Style profile full apply, no V3.
+    - **no_humans narrator**: Style profile quality-only (skip_loras),
+      then V3 compose() filters character tags via background scene defense.
+    - **no character** (other): Style profile full apply, no V3.
 
     Returns: (cleaned_prompt, final_warnings, character_obj)
     """
@@ -298,8 +300,24 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             style_loras=style_loras,
         )
         logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+    elif "no_humans" in request.prompt.lower().replace(" ", "_"):
+        # Narrator (no_humans) → V3 background composition filters character tags
+        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+            request.prompt,
+            request.negative_prompt or "",
+            request.storyboard_id,
+            db,
+            skip_loras=True,
+        )
+        style_loras = _resolve_style_loras(request.storyboard_id, db)
+        from services.prompt.v3_composition import V3PromptBuilder
+
+        builder = V3PromptBuilder(db)
+        scene_tags = split_prompt_tokens(request.prompt)
+        cleaned_prompt = builder.compose(scene_tags, style_loras=style_loras)
+        logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
     else:
-        # No character (Narrator etc) → full style profile, no V3
+        # No character, no no_humans → full style profile, no V3
         request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
             request.prompt, request.negative_prompt or "", request.storyboard_id, db
         )
@@ -349,7 +367,8 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     style_loras=style_loras,
                 )
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)
-        if not request.character_id:
+        # Non-Narrator, non-character: normalize manually (Narrator already via V3 compose)
+        if not request.character_id and "no_humans" not in request.prompt.lower().replace(" ", "_"):
             cleaned_prompt = normalize_prompt_tokens(request.prompt)
 
     # Narrator scenes (no_humans): append person-exclusion tags to negative prompt
@@ -380,6 +399,8 @@ def _adjust_parameters(cleaned_prompt: str, request: SceneGenerateRequest, chara
         final_steps = max(final_steps, 25)
 
     # Apply optimal LoRA weights from calibration DB
+    # V3 composition에서 STYLE_LORA_WEIGHT_CAP 이미 적용됨.
+    # 아래 calibration은 tag_effectiveness DB 기반 최적화 → 별도 관심사.
     lora_names = extract_lora_names(cleaned_prompt)
     if lora_names:
         try:

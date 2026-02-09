@@ -820,3 +820,148 @@ class TestBackgroundSceneFiltering:
         # Environment kept
         assert "no_humans" in result
         assert "scenery" in result
+
+
+# ────────────────────────────────────────────
+# LoRA Weight Cap tests
+# ────────────────────────────────────────────
+
+
+class TestLoRAWeightCap:
+    """Test STYLE_LORA_WEIGHT_CAP applied at V3 composition time (SSOT)."""
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    def test_cap_applied_to_character_lora(self, mock_trigger_cache, builder):
+        """Character LoRA weight 0.89 → capped to 0.76."""
+        mock_trigger_cache.get_lora_name.return_value = None
+
+        character = MagicMock()
+        character.prompt_mode = "lora"
+        lora_obj = MagicMock()
+        lora_obj.name = "char_lora"
+        lora_obj.lora_type = "character"
+        lora_obj.trigger_words = []
+        builder.db.query.return_value.filter.return_value.first.return_value = lora_obj
+        builder.get_effective_lora_weight = MagicMock(return_value=0.89)
+
+        character.loras = [{"lora_id": 1, "weight": 0.89}]
+
+        layers = [[] for _ in range(12)]
+        builder._inject_loras(character, [], layers, None)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "<lora:char_lora:0.76>" in all_tokens
+        assert "<lora:char_lora:0.89>" not in all_tokens
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    def test_cap_applied_to_style_lora(self, mock_trigger_cache, builder):
+        """Style LoRA weight 0.9 → capped to 0.76."""
+        mock_trigger_cache.get_lora_name.return_value = None
+
+        character = MagicMock()
+        character.loras = []
+        character.prompt_mode = "standard"
+
+        layers = [[] for _ in range(12)]
+        style_loras = [{"name": "style_lora", "weight": 0.9, "trigger_words": []}]
+
+        builder._inject_loras(character, [], layers, style_loras)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "<lora:style_lora:0.76>" in all_tokens
+        assert "<lora:style_lora:0.9>" not in all_tokens
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    def test_cap_applied_to_scene_triggered_lora(self, mock_trigger_cache, builder):
+        """Scene-triggered LoRA weight 0.85 → capped to 0.76."""
+        mock_trigger_cache.get_lora_name.side_effect = lambda tag: "scene_lora" if tag == "trigger_tag" else None
+        builder._get_lora_info = MagicMock(return_value=(0.85, "character"))
+
+        character = MagicMock()
+        character.loras = []
+        character.prompt_mode = "standard"
+
+        layers = [[] for _ in range(12)]
+        builder._inject_loras(character, ["trigger_tag"], layers, None)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "<lora:scene_lora:0.76>" in all_tokens
+        assert "<lora:scene_lora:0.85>" not in all_tokens
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    def test_weight_below_cap_preserved(self, mock_trigger_cache, builder):
+        """Weight 0.65 (below cap) → preserved as-is."""
+        mock_trigger_cache.get_lora_name.return_value = None
+
+        character = MagicMock()
+        character.loras = []
+        character.prompt_mode = "standard"
+
+        layers = [[] for _ in range(12)]
+        style_loras = [{"name": "mild_lora", "weight": 0.65, "trigger_words": []}]
+
+        builder._inject_loras(character, [], layers, style_loras)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "<lora:mild_lora:0.65>" in all_tokens
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_cap_in_compose_background_scene(self, mock_alias, mock_rule, builder):
+        """Background scene style LoRA 0.9 → capped to 0.76."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "no_humans": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "scenery": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+            }
+        )
+
+        style_loras = [{"name": "style_lora", "weight": 0.9, "trigger_words": []}]
+
+        result = builder._compose_background_scene(
+            ["no_humans", "scenery"],
+            style_loras=style_loras,
+        )
+
+        assert "<lora:style_lora:0.76>" in result
+        assert "<lora:style_lora:0.9>" not in result
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_cap_in_compose_generic(self, mock_alias, mock_rule, mock_trigger, builder):
+        """compose() character_loras weight 0.89 → capped to 0.76."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_trigger.get_lora_name.return_value = None
+
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "1girl": {"layer": LAYER_SUBJECT, "scope": "ANY", "group_name": None},
+            }
+        )
+
+        result = builder.compose(
+            tags=["1girl"],
+            character_loras=[{"name": "char_lora", "weight": 0.89, "trigger_words": []}],
+        )
+
+        assert "<lora:char_lora:0.76>" in result
+        assert "<lora:char_lora:0.89>" not in result
+
+    def test_default_weight_not_capped(self):
+        """DEFAULT_LORA_WEIGHT=0.7 < 0.76 → stays 0.7."""
+        assert V3PromptBuilder._cap_lora_weight(0.7) == 0.7
+
+    def test_cap_static_method(self):
+        """_cap_lora_weight caps at STYLE_LORA_WEIGHT_CAP."""
+        assert V3PromptBuilder._cap_lora_weight(0.89) == 0.76
+        assert V3PromptBuilder._cap_lora_weight(0.76) == 0.76
+        assert V3PromptBuilder._cap_lora_weight(0.5) == 0.5

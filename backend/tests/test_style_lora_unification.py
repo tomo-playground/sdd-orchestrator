@@ -123,9 +123,9 @@ class TestStyleLoRAUnification:
             style_loras=style_loras,
         )
 
-        # Assert
+        # Assert — character_a weight 0.8 → capped to 0.76 (STYLE_LORA_WEIGHT_CAP)
         assert "<lora:flat_color_style:0.7>" in result, "StyleProfile style LoRA should be applied"
-        assert "<lora:character_a_lora:0.8>" in result, "Character character LoRA should be applied"
+        assert "<lora:character_a_lora:0.76>" in result, "Character LoRA should be capped to 0.76"
         assert "flat_color" in result, "Style LoRA trigger words should be included"
         assert "char_a_trigger" in result, "Identity LoRA trigger words should be included"
 
@@ -157,9 +157,9 @@ class TestStyleLoRAUnification:
             style_loras=style_loras,
         )
 
-        # Assert
+        # Assert — character_b weight 0.8 → capped to 0.76
         assert "<lora:flat_color_style:0.7>" in result, "Same StyleProfile LoRA for Speaker B"
-        assert "<lora:character_b_lora:0.8>" in result, "Character B character LoRA should be applied"
+        assert "<lora:character_b_lora:0.76>" in result, "Character B LoRA should be capped to 0.76"
 
     def test_style_profile_loras_applied_to_narrator(self, db_session: Session, style_profile_with_lora: StyleProfile):
         """
@@ -228,9 +228,9 @@ class TestStyleLoRAUnification:
             style_loras=style_loras,
         )
 
-        # Assert
+        # Assert — char_identity weight 0.8 → capped to 0.76
         assert "<lora:flat_color_style:0.7>" in result, "StyleProfile LoRA applied"
-        assert "<lora:char_identity:0.8>" in result, "Character character LoRA applied"
+        assert "<lora:char_identity:0.76>" in result, "Character LoRA should be capped to 0.76"
 
 
 class TestStyleLoRADeduplication:
@@ -318,8 +318,8 @@ class TestStyleLoRAFallback:
             style_loras=style_loras,
         )
 
-        # Assert
-        assert "<lora:character_a_lora:0.8>" in result, "Identity LoRA should still work"
+        # Assert — character_a weight 0.8 → capped to 0.76
+        assert "<lora:character_a_lora:0.76>" in result, "Identity LoRA should be capped to 0.76"
         assert "flat_color" not in result, "No style LoRA without StyleProfile"
 
 

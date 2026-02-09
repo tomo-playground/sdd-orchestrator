@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 
+from config import STYLE_LORA_WEIGHT_CAP
 from database import SessionLocal
 from models.character import Character
 from models.lora import LoRA
@@ -142,6 +143,11 @@ class V3PromptBuilder:
         """Detect background-only scene by presence of no_humans tag."""
         return any(t.lower().replace(" ", "_").strip() == "no_humans" for t in tags)
 
+    @staticmethod
+    def _cap_lora_weight(weight: float) -> float:
+        """Apply STYLE_LORA_WEIGHT_CAP to prevent LoRA overfitting."""
+        return min(weight, STYLE_LORA_WEIGHT_CAP)
+
     def _compose_background_scene(
         self,
         scene_tags: list[str],
@@ -184,7 +190,7 @@ class V3PromptBuilder:
                 weight = lora.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora["name"])
-                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{self._cap_lora_weight(weight)}>")
 
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
@@ -350,7 +356,7 @@ class V3PromptBuilder:
         # Inject LoRA tags into layers
         for name, (weight, lora_type) in active_loras.items():
             target_layer = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
-            layers[target_layer].append(f"<lora:{name}:{weight}>")
+            layers[target_layer].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
 
         # Style LoRAs (explicit overrides)
         if style_loras:
@@ -364,7 +370,7 @@ class V3PromptBuilder:
                 for trigger in lora_info.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
-                layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{weight}>")
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
 
     @staticmethod
     def _ensure_quality_tags(layers: list[list[str]]) -> None:
@@ -412,7 +418,7 @@ class V3PromptBuilder:
                 weight = lora.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora_name)
-                layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{weight}>")
+                layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
 
         # Auto-triggered LoRAs from tags
         for tag in tags:
@@ -427,7 +433,7 @@ class V3PromptBuilder:
                 if not already_present:
                     weight, lora_type = self._get_lora_info(lora_name)
                     target = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
-                    layers[target].append(f"<lora:{lora_name}:{weight}>")
+                    layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
 
         if style_loras:
             for lora in style_loras:
@@ -438,7 +444,7 @@ class V3PromptBuilder:
                 weight = lora.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora["name"])
-                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{weight}>")
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{self._cap_lora_weight(weight)}>")
 
         # Background scene defense: strip character layers after all LoRA injection
         if self._is_background_scene(tags):

@@ -148,8 +148,8 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     assert response.status_code == 200
 
     # Verify Style Profile was applied
-    # 1. LoRA should be added to the prompt
-    assert "<lora:test_lora:0.8>" in captured_payload["prompt"]
+    # 1. LoRA should be added to the prompt (weight 0.8 → capped to 0.76 by STYLE_LORA_WEIGHT_CAP)
+    assert "<lora:test_lora:0.76>" in captured_payload["prompt"]
 
     # 2. Trigger words should be included
     assert "test_trigger" in captured_payload["prompt"]
