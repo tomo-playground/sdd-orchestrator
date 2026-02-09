@@ -141,7 +141,9 @@ def _build_scene(
 
         if char_id:
             image_prompt = builder.compose_for_character(
-                char_id, tags, style_loras=style_loras or [],
+                char_id,
+                tags,
+                style_loras=style_loras or [],
             )
         else:
             image_prompt = builder.compose(tags, style_loras=style_loras or [])
@@ -210,7 +212,7 @@ def send_to_studio(
         style_loras = resolve_style_loras_from_group(group_id, db)
 
     # 3. Link characters
-    characters = ctx.get("characters", {})
+    characters = ctx.get("characters") or {}
     if characters:
         _link_characters(db, storyboard.id, characters)
 

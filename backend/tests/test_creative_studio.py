@@ -113,6 +113,89 @@ class TestBuildSceneNegativePrompt:
         assert scene.negative_prompt, "Scene.negative_prompt must not be empty"
 
 
+class TestSendToStudioNullCharacters:
+    """send_to_studio must handle None characters in session context."""
+
+    def test_null_characters_does_not_crash(self, db_session):
+        """ctx['characters'] = None must not raise AttributeError."""
+        from models import Project
+        from models.group import Group
+
+        project = Project(name="Test")
+        db_session.add(project)
+        db_session.flush()
+        group = Group(name="G", project_id=project.id)
+        db_session.add(group)
+        db_session.flush()
+
+        # Simulate session where characters is explicitly None
+        session = MagicMock()
+        session.final_output = {
+            "scenes": [
+                {
+                    "order": 0,
+                    "script": "Solo narration",
+                    "speaker": "A",
+                    "duration": 2.5,
+                    "image_prompt": "1girl, classroom",
+                },
+            ]
+        }
+        session.context = {"structure": "Monologue", "characters": None}
+        session.objective = "Test"
+        session.character_id = None
+
+        from services.creative_studio import send_to_studio
+
+        result = send_to_studio(
+            db=db_session,
+            session=session,
+            group_id=group.id,
+            deep_parse=False,
+        )
+
+        assert result["scene_count"] == 1
+
+    def test_missing_characters_key_does_not_crash(self, db_session):
+        """ctx with no 'characters' key must not raise."""
+        from models import Project
+        from models.group import Group
+
+        project = Project(name="Test")
+        db_session.add(project)
+        db_session.flush()
+        group = Group(name="G", project_id=project.id)
+        db_session.add(group)
+        db_session.flush()
+
+        session = MagicMock()
+        session.final_output = {
+            "scenes": [
+                {
+                    "order": 0,
+                    "script": "Solo",
+                    "speaker": "A",
+                    "duration": 2.5,
+                    "image_prompt": "1girl, smile",
+                },
+            ]
+        }
+        session.context = {"structure": "Monologue"}  # no characters key
+        session.objective = "Test"
+        session.character_id = None
+
+        from services.creative_studio import send_to_studio
+
+        result = send_to_studio(
+            db=db_session,
+            session=session,
+            group_id=group.id,
+            deep_parse=False,
+        )
+
+        assert result["scene_count"] == 1
+
+
 class TestSendToStudioIntegration:
     """send_to_studio with deep_parse=True must use full V3 pipeline."""
 
