@@ -196,6 +196,7 @@ class ShortsSessionCreate(BaseModel):
     structure: str = "Monologue"
     language: str = "Korean"
     character_id: int | None = None
+    character_ids: dict[str, int] | None = None  # {"A": 1, "B": 2}
     director_mode: str = "advisor"
     max_rounds: int = 2
     references: list[str] | None = None

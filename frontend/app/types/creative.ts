@@ -126,6 +126,7 @@ export type StepProgress = {
 export type PipelineProgress = {
   scriptwriter?: StepProgress | string;
   cinematographer?: StepProgress | string;
+  sound_designer?: StepProgress | string;
   copyright_reviewer?: StepProgress | string;
 };
 
@@ -143,6 +144,7 @@ export type ShortsSessionCreate = {
   structure: string;
   language: string;
   character_id?: number;
+  character_ids?: Record<string, number>; // {"A": 1, "B": 2}
   director_mode: string;
   max_rounds: number;
   references?: string[];
@@ -165,4 +167,11 @@ export type CopyrightResult = {
   overall: "PASS" | "WARN" | "FAIL";
   checks: CopyrightCheck[];
   confidence: number;
+};
+
+export type MusicRecommendation = {
+  prompt: string;
+  mood: string;
+  duration: number;
+  reasoning: string;
 };

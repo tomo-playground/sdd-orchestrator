@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, ExternalLink, Loader2 } from "lucide-react";
-import type { CopyrightResult } from "../../types/creative";
+import type { CopyrightResult, MusicRecommendation } from "../../types/creative";
 import CheckResultCard from "./CheckResultCard";
 
 type SceneData = {
@@ -18,6 +18,7 @@ type SceneData = {
 type Props = {
   scenes: SceneData[];
   topic: string;
+  musicRecommendation?: MusicRecommendation;
   copyrightResult?: CopyrightResult;
   onSendToStudio: (groupId: number, title?: string, deepParse?: boolean) => Promise<void>;
 };
@@ -25,6 +26,7 @@ type Props = {
 export default function SessionResultView({
   scenes,
   topic,
+  musicRecommendation,
   copyrightResult,
   onSendToStudio,
 }: Props) {
@@ -96,6 +98,21 @@ export default function SessionResultView({
           </tbody>
         </table>
       </div>
+
+      {/* Music Recommendation */}
+      {musicRecommendation && (
+        <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
+          <p className="text-[10px] font-semibold tracking-wider text-purple-700 uppercase">
+            BGM Recommendation
+          </p>
+          <p className="mt-1 text-xs text-purple-800">{musicRecommendation.prompt}</p>
+          <div className="mt-1 flex gap-3 text-[10px] text-purple-600">
+            <span>Mood: {musicRecommendation.mood}</span>
+            <span>{musicRecommendation.duration}s</span>
+          </div>
+          <p className="mt-1 text-[10px] text-zinc-500">{musicRecommendation.reasoning}</p>
+        </div>
+      )}
 
       {/* Copyright Result */}
       {copyrightResult && <CheckResultCard result={copyrightResult} />}

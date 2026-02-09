@@ -1,7 +1,7 @@
 # Creative Lab V2: Shorts Multi-Agent Scenario Generator
 
 **Phase**: 7-1 #24
-**상태**: MVP 구현 완료
+**상태**: Phase 3 구현 완료 (Multi-Character + Sound Designer + Copyright Reviewer)
 **우선순위**: P0
 
 ## 배경
@@ -49,23 +49,28 @@ V2는 **에이전트가 실제 쇼츠 시나리오를 만들고**, Studio로 바
 │     │ Analyst     │                                              │
 │     └─────────────┘                                             │
 │     ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│     │ Scriptwriter│ │ Cinemato-   │ │ Copyright   │  Phase 2   │
-│     │ "대본 전문" │ │ grapher     │ │ Reviewer    │  전문가    │
-│     └─────────────┘ └─────────────┘ └─────────────┘ (Future)   │
+│     │ Scriptwriter│ │ Cinemato-   │ │ Sound       │  Phase 2   │
+│     │ "대본 전문" │ │ grapher     │ │ Designer    │  전문가    │
+│     └─────────────┘ └─────────────┘ └─────────────┘            │
+│                      ┌─────────────┐                            │
+│                      │ Copyright   │  Phase 2 저작권 검증        │
+│                      │ Reviewer    │                             │
+│                      └─────────────┘                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-| # | 에이전트 | Phase | 역할 | MVP |
-|---|----------|-------|------|-----|
+| # | 에이전트 | Phase | 역할 | 구현 |
+|---|----------|-------|------|------|
 | 1 | **Creative Director** | 1+2 | 총괄, 평가, QC, 라우팅. Auto/Advisor 이중 모드 | O (Advisor만) |
 | 2 | **Story Architect (Emotional Arc)** | 1 | 감정 곡선 중심 콘셉트 (hook 0.2, arc 0.4, feasibility 0.2, originality 0.2) | O |
 | 3 | **Story Architect (Visual Hook)** | 1 | 시각적 훅 중심 콘셉트 (hook 0.4, arc 0.2, feasibility 0.2, originality 0.2) | O |
 | 4 | **Story Architect (Narrative Twist)** | 1 | 서사 반전 중심 콘셉트 (hook 0.2, arc 0.2, feasibility 0.2, originality 0.4) | O |
 | 5 | **Devil's Advocate** | 1 | 5관점 비판적 검증 | O |
-| 6 | **Reference Analyst** | 0 | 레퍼런스 구조/훅/감정/페이싱 인사이트 추출 | X |
-| 7 | **Scriptwriter** | 2 | 2-Pass 스크립트 (Draft → Self-Edit) | O |
-| 8 | **Cinematographer** | 2 | Danbooru 태그 비주얼 설계 | O |
-| 9 | **Copyright Reviewer** | 2 | 4관점 저작권/독창성 검증 | X |
+| 6 | **Reference Analyst** | 0 | 레퍼런스 구조/훅/감정/페이싱 인사이트 추출 | X (Future) |
+| 7 | **Scriptwriter** | 2 | 2-Pass 스크립트 (Draft → Self-Edit) + Multi-Character 지원 | O |
+| 8 | **Cinematographer** | 2 | Danbooru 태그 비주얼 설계 + speaker별 캐릭터 태그 | O |
+| 9 | **Sound Designer** | 2 | BGM 방향 추천 (Stable Audio Open 프롬프트) | O |
+| 10 | **Copyright Reviewer** | 2 | 4관점 저작권/독창성 검증 | O |
 
 ### Creative Director — 이중 모드 설계
 
@@ -163,13 +168,25 @@ Pass 2 — Self-Edit (단일 LLM 호출 내):
 ══════ Phase 2: 전문가 Pipeline (순차) ══════
 
   Director handoff → Scriptwriter
-                        │ ⑥ 2-Pass 스크립트 생성
+                        │ ⑥ 2-Pass 스크립트 생성 (Multi-Character 지원)
                         ▼
                    Director QC 검증
                    PASS │ FAIL → feedback (max 2회)
                         ▼
   Director handoff → Cinematographer
-                        │ ⑧ Danbooru 태그 비주얼 설계
+                        │ ⑧ Danbooru 태그 비주얼 설계 (speaker별 캐릭터 태그)
+                        ▼
+                   Director QC 검증
+                   PASS │ FAIL → feedback (max 2회)
+                        ▼
+  Director handoff → Sound Designer
+                        │ ⑩ BGM 방향 추천 (SAO 프롬프트)
+                        ▼
+                   Director QC 검증
+                   PASS │ FAIL → feedback (max 2회)
+                        ▼
+  Director handoff → Copyright Reviewer
+                        │ ⑫ 4관점 저작권/독창성 검증
                         ▼
                    Director QC 검증
                    PASS │ FAIL → feedback (max 2회)
@@ -224,13 +241,20 @@ Session #42 — "요리를 처음 배우는 소녀" (30s, Monologue, Korean)
 ═══ Phase 2: 전문가 Pipeline ═══
 #7  handoff       Director → Scriptwriter
 #8  generation    Scriptwriter → Director          2.1K tok  4.5s
-#9  handoff       Director → Cinematographer
-#10 generation    Cinematographer → Director        3.2K tok  6.1s
-#11 quality_report Director (WARN: Scene 4 tag)
-#12 feedback      Director → Cinematographer       "Scene 4: room → bedroom"
-#13 generation    Cinematographer (재실행)           0.8K tok  2.1s
-#14 quality_report Director (PASS)
-#15 decision      Director (auto: "모든 QC 통과")
+#9  quality_report Director (PASS)
+#10 handoff       Director → Cinematographer
+#11 generation    Cinematographer → Director        3.2K tok  6.1s
+#12 quality_report Director (WARN: Scene 4 tag)
+#13 feedback      Director → Cinematographer       "Scene 4: room → bedroom"
+#14 generation    Cinematographer (재실행)           0.8K tok  2.1s
+#15 quality_report Director (PASS)
+#16 handoff       Director → Sound Designer
+#17 generation    Sound Designer → Director         0.6K tok  2.0s
+#18 quality_report Director (PASS)
+#19 handoff       Director → Copyright Reviewer
+#20 generation    Copyright Reviewer → Director     0.9K tok  2.5s
+#21 quality_report Director (PASS)
+#22 decision      Director (auto: "모든 QC 통과")
 ```
 
 ---
@@ -350,19 +374,23 @@ backend/
 ├── services/
 │   ├── creative_shorts.py          # Phase 1 오케스트레이터 (run_debate_v2)
 │   ├── creative_debate_agents.py   # 3 Architect + Devil's Advocate + Director 에이전트
-│   ├── creative_pipeline.py        # Phase 2 순차 파이프라인 (run_pipeline)
-│   ├── creative_qc.py              # QC 검증 (validate_scripts, validate_visuals)
-│   └── creative_utils.py           # 공통 유틸리티 (parse_json, trace, token 계산)
+│   ├── creative_pipeline.py        # Phase 2 순차 파이프라인 (run_pipeline, 337줄)
+│   ├── creative_studio.py          # 세션 생성 + send-to-studio 서비스 (210줄)
+│   ├── creative_qc.py              # QC 검증 (validate_scripts/visuals/music/copyright)
+│   └── creative_utils.py           # 공통 유틸리티 (parse_json, trace, token, 헬퍼)
 ├── templates/creative/
 │   ├── concept_architect.j2        # Architect 프롬프트
 │   ├── devils_advocate.j2          # Devil's Advocate 프롬프트
 │   ├── director_evaluate.j2        # Director 평가 프롬프트
-│   ├── scriptwriter.j2             # Scriptwriter 프롬프트
-│   ├── cinematographer.j2          # Cinematographer 프롬프트
+│   ├── scriptwriter.j2             # Scriptwriter 프롬프트 (+ multi-char + feedback)
+│   ├── cinematographer.j2          # Cinematographer 프롬프트 (+ characters_tags + feedback)
+│   ├── sound_designer.j2           # Sound Designer BGM 추천 (+ feedback)
+│   ├── copyright_reviewer.j2       # Copyright Reviewer 4관점 검증 (+ feedback)
 │   └── qc_visual.j2               # QC 검증 프롬프트
-├── routers/creative.py             # V1 + V2 통합 API
+├── routers/creative.py             # V1 + V2 통합 API (401줄)
 ├── models/creative.py              # CreativeSession, CreativeTrace ORM
-└── schemas_creative.py             # Pydantic 스키마
+├── schemas_creative.py             # Pydantic 스키마 (+ character_ids)
+└── tests/test_creative_qc_music.py # validate_music + resolve_characters 테스트 (14개)
 ```
 
 ### 트랜잭션 설계
@@ -375,13 +403,22 @@ backend/
 
 ```json
 {
-  "duration": 30, "structure": "Monologue", "language": "Korean",
+  "duration": 30, "structure": "Dialogue", "language": "Korean",
+  "characters": {
+    "A": { "id": 1, "name": "하루", "tags": ["brown_hair", "purple_eyes"] },
+    "B": { "id": 2, "name": "미나", "tags": ["blonde_hair", "blue_eyes"] }
+  },
+  "character_name": "하루",
+  "character_tags": ["brown_hair", "purple_eyes"],
   "selected_concept": { "title": "...", "hook": "...", "arc": "..." },
   "pipeline": {
-    "current_step": "cinematographer",
-    "progress": { "scriptwriter": "done", "cinematographer": "running" },
-    "state": { "scriptwriter_result": [...] },
-    "heartbeat": "2026-02-09T10:00:30Z"
+    "current_step": "sound_designer",
+    "progress": {
+      "scriptwriter": "done", "cinematographer": "done",
+      "sound_designer": "running", "copyright_reviewer": "pending"
+    },
+    "state": { "scriptwriter_result": {...}, "cinematographer_result": {...} },
+    "heartbeat": "2026-02-10T10:00:30Z"
   }
 }
 ```
@@ -426,13 +463,15 @@ frontend/app/
 ├── (app)/lab/tabs/
 │   └── CreativeLabTab.tsx          # V1/V2 모드 토글 + status 자동 전환
 ├── components/lab/
-│   ├── ShortsSetupForm.tsx         # V2 전용 폼 (topic, duration, structure, mode)
+│   ├── ShortsSetupForm.tsx         # V2 전용 폼 (presets API 연동, 184줄)
+│   ├── CharacterPicker.tsx         # speaker별 캐릭터 드롭다운 (67줄)
+│   ├── ShortsActiveView.tsx        # 세션 활성 뷰 (polling + 상태 자동 전환)
 │   ├── ConceptCompareView.tsx      # Phase 1 카드 비교 (summary + drawer + CTA)
-│   ├── PipelineProgressView.tsx    # Phase 2 스텝 인디케이터
-│   ├── SessionResultView.tsx       # 씬 테이블 + Send to Studio
+│   ├── PipelineProgressView.tsx    # Phase 2 스텝 인디케이터 (4 Steps)
+│   ├── SessionResultView.tsx       # 씬 테이블 + BGM 추천 + Send to Studio
 │   ├── StatusBadge.tsx             # V2 상태 배지 (phase1_running 등)
 │   └── TraceTimeline.tsx           # 트레이스 타임라인 (7종 type + 필터)
-└── types/creative.ts               # V2 타입 정의
+└── types/creative.ts               # V2 타입 (MusicRecommendation, character_ids 등)
 ```
 
 ---
@@ -452,8 +491,10 @@ frontend/app/
 
 | Preset | System Prompt 핵심 |
 |--------|-------------------|
-| `expert:scriptwriter` | key_moments → 씬 분할. 2-Pass: Draft → Self-Edit. 규칙 엄수 |
-| `expert:cinematographer` | Danbooru 태그 비주얼 설계. 환경-스크립트 일치. 카메라 다양성 |
+| `expert:scriptwriter` | key_moments → 씬 분할. 2-Pass: Draft → Self-Edit. Multi-Character speaker 규칙 |
+| `expert:cinematographer` | Danbooru 태그 비주얼 설계. speaker별 캐릭터 태그. 카메라 다양성 |
+| `expert:sound_designer` | concept mood_progression 분석. SAO 프롬프트 생성. 씬 페이싱 고려 |
+| `expert:copyright_reviewer` | 4관점 저작권 검증 (스크립트/구조/캐릭터IP/비주얼). PASS/WARN/FAIL |
 
 ### Leader
 
@@ -479,10 +520,10 @@ frontend/app/
 | Step | LLM Calls | 레이턴시 |
 |------|-----------|---------|
 | Scriptwriter | 1 | 4.5-6s |
-| Director QC | 1 | 2-3s |
 | Cinematographer | 1 | 5.5-8s |
-| Director QC | 1 | 2.5-3.5s |
-| **소계** | **4** | **14.5-20.5s** |
+| Sound Designer | 1 | 2-3s |
+| Copyright Reviewer | 1 | 2-3s |
+| **소계** | **4** | **14-20s** |
 
 ### 엔드투엔드
 
@@ -490,14 +531,15 @@ frontend/app/
 |----------|-----------|--------|
 | 2라운드 + Phase 2 happy | 14 | **29-41s** |
 | 3라운드 + Phase 2 happy | 19 | **37-52s** |
-| 3라운드 + 1회 retry | 21-22 | **45-63s** |
+| 3라운드 + 1회 retry | 20-22 | **42-60s** |
 
 ---
 
 ## 10. MVP 범위
 
-### 포함 (Phase 1 MVP — 구현 완료)
+### 포함 (구현 완료)
 
+**Phase 1 MVP (2026-02-09)**:
 - Phase 1: 3 Architect + Devil's Advocate + Director (Advisor 모드)
 - Phase 2: Scriptwriter → QC → Cinematographer → QC (Background Task)
 - send-to-studio: Shallow Copy (image_prompt 직접 저장)
@@ -505,16 +547,25 @@ frontend/app/
 - 에이전트 trace 전체 기록 (7종 trace_type)
 - 피드백 루프 + 재시도 (max 2회)
 
+**Phase 3 (2026-02-10)**:
+- Multi-Character Dialogue: `character_ids` 매핑, speaker별 캐릭터 태그 주입
+- Sound Designer: BGM 방향 추천 (SAO 프롬프트), QC 검증 (`validate_music`)
+- Copyright Reviewer: 4관점 저작권/독창성 검증, QC 검증 (`validate_copyright`)
+- 4개 템플릿 feedback 블록 (retry 시 QC 피드백을 LLM에 주입)
+- send-to-studio 서비스 추출 (`creative_studio.py`, StoryboardCharacter 생성)
+- ShortsSetupForm SSOT presets API 연동 (구조/언어/duration Backend에서 로드)
+- CharacterPicker 컴포넌트 추출 (Dialogue/Narrated Dialogue UI)
+- `final_output.music_recommendation` + Frontend BGM 추천 카드
+
 ### 제외 (Future)
 
 | 항목 | Phase |
 |------|-------|
-| Director Auto-pilot 모드 | Phase 2 |
-| Reference Analyst (Phase 0 소재 수집) | Phase 3 |
-| Copyright Reviewer (저작권 검증) | Phase 3 |
-| Deep Parse send-to-studio (12-Layer 태그 분해) | Phase 2 |
-| Multi-Character Dialogue 지원 | Phase 3 |
-| Sound Designer (BGM 방향) | Phase 3 |
+| Director Auto-pilot 모드 | Phase 4 |
+| Reference Analyst (Phase 0 소재 수집) | Phase 4 |
+| Deep Parse send-to-studio (12-Layer 태그 분해) | Phase 4 |
+| 실시간 파이프라인 WebSocket 알림 | Phase 4 |
+| Studio 연동 시 music_recommendation → music_preset_id 자동 매핑 | Phase 4 |
 
 ### Frontend 보강 필요 항목
 
@@ -525,6 +576,7 @@ frontend/app/
 | DebugSlideOver (우측 패널) | 낮음 | inline 구현 (슬라이드 아님) |
 | TraceTimeline Phase 필터 | 중 | Agent 필터만 구현 |
 | PipelineProgressView 라이브 티커 | 중상 | 미구현 |
+| Music Preset 자동 매핑 (BGM 추천 → music_preset_id) | 중 | 미구현 |
 
 ---
 
@@ -543,6 +595,11 @@ frontend/app/
 | 9 | 모든 에이전트 상호작용이 trace로 기록된다 | [x] |
 | 10 | 실패 시 retry로 resume/restart가 가능하다 | [x] |
 | 11 | V1/V2 모드 전환이 정상 동작한다 | [x] |
+| 12 | Dialogue/Narrated Dialogue에서 speaker별 캐릭터 매핑이 동작한다 | [x] |
+| 13 | Sound Designer가 BGM 방향을 추천하고 final_output에 포함된다 | [x] |
+| 14 | Copyright Reviewer가 4관점 저작권 검증을 수행한다 | [x] |
+| 15 | QC feedback이 retry 시 LLM 프롬프트에 주입된다 | [x] |
+| 16 | send-to-studio에서 StoryboardCharacter 레코드가 생성된다 | [x] |
 
 ### 성공 지표
 

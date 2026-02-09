@@ -12,6 +12,7 @@ type Props = {
 const STEPS = [
   { key: "scriptwriter", label: "Scriptwriter", desc: "Scene scripts" },
   { key: "cinematographer", label: "Cinematographer", desc: "Visual design" },
+  { key: "sound_designer", label: "Sound Designer", desc: "BGM direction" },
   { key: "copyright_reviewer", label: "Copyright", desc: "Originality check" },
 ] as const;
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
 
 
 def validate_scripts(
@@ -28,14 +28,16 @@ def validate_scripts(
         checks["scene_count"] = "FAIL"
         issues.append(f"Scene count {count} outside range [{min_scenes}, {max_scenes}]")
 
-    # Script length check
+    # Script length check (SSOT: config.py SCRIPT_LENGTH_*)
+    ko_min, ko_max = SCRIPT_LENGTH_KOREAN
+    other_min, other_max = SCRIPT_LENGTH_OTHER
     length_pass = 0
     for i, s in enumerate(scripts):
         script_text = s.get("script", "")
         if language == "Korean":
-            ok = 5 <= len(script_text) <= 40
+            ok = ko_min <= len(script_text) <= ko_max
         else:
-            ok = 3 <= len(script_text.split()) <= 20
+            ok = other_min <= len(script_text.split()) <= other_max
         if ok:
             length_pass += 1
         else:
@@ -52,6 +54,9 @@ def validate_scripts(
         elif structure == "Dialogue" and speaker not in ("A", "B"):
             speaker_ok = False
             issues.append(f"Scene {i}: Dialogue expects speaker A/B, got '{speaker}'")
+        elif structure == "Narrated Dialogue" and speaker not in ("Narrator", "A", "B"):
+            speaker_ok = False
+            issues.append(f"Scene {i}: Narrated Dialogue expects Narrator/A/B, got '{speaker}'")
     checks["speaker_rule"] = "PASS" if speaker_ok else "FAIL"
 
     # Duration sum check
@@ -63,10 +68,12 @@ def validate_scripts(
         checks["duration_sum"] = "WARN"
         issues.append(f"Total duration {total_dur:.1f}s vs target {duration}s")
 
-    ok = all(v == "PASS" for v in checks.values())
-    if not ok:
-        logger.info("[CreativeQC] Script issues: %s", issues)
-    return {"ok": ok, "issues": issues, "checks": checks}
+    has_fail = any(v == "FAIL" for v in checks.values())
+    if has_fail:
+        logger.info("[CreativeQC] Script FAIL: %s", issues)
+    elif issues:
+        logger.info("[CreativeQC] Script WARN: %s", issues)
+    return {"ok": not has_fail, "issues": issues, "checks": checks}
 
 
 def validate_visuals(scenes: list[dict]) -> dict:
@@ -100,10 +107,12 @@ def validate_visuals(scenes: list[dict]) -> dict:
         missing = [i for i, s in enumerate(scenes) if not s.get("environment")]
         issues.append(f"Scenes {missing}: missing environment")
 
-    ok = all(v == "PASS" for v in checks.values())
-    if not ok:
-        logger.info("[CreativeQC] Visual issues: %s", issues)
-    return {"ok": ok, "issues": issues, "checks": checks}
+    has_fail = any(v == "FAIL" for v in checks.values())
+    if has_fail:
+        logger.info("[CreativeQC] Visual FAIL: %s", issues)
+    elif issues:
+        logger.info("[CreativeQC] Visual WARN: %s", issues)
+    return {"ok": not has_fail, "issues": issues, "checks": checks}
 
 
 def validate_copyright(checks_list: list[dict]) -> dict:
@@ -133,3 +142,28 @@ def validate_copyright(checks_list: list[dict]) -> dict:
     if has_fail:
         logger.info("[CreativeQC] Copyright FAIL: %s", issues)
     return {"ok": not has_fail, "issues": issues, "checks": checks}
+
+
+def validate_music(recommendation: list[dict] | dict) -> dict:
+    """Validate sound designer recommendation output.
+
+    Returns: {"ok": bool, "issues": [str], "checks": {name: "PASS"|"FAIL"}}
+    """
+    rec = recommendation if isinstance(recommendation, dict) else (recommendation[0] if recommendation else {})
+    issues: list[str] = []
+
+    if not rec.get("prompt"):
+        issues.append("Missing music prompt")
+    if not rec.get("mood"):
+        issues.append("Missing mood description")
+    try:
+        dur = int(rec.get("duration", 0))
+    except (TypeError, ValueError):
+        dur = 0
+    if dur < 10:
+        issues.append("Invalid duration (must be >= 10s)")
+
+    status = "PASS" if not issues else "FAIL"
+    if issues:
+        logger.info("[CreativeQC] Music issues: %s", issues)
+    return {"ok": len(issues) == 0, "issues": issues, "checks": {"music_recommendation": status}}

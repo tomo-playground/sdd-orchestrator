@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Play } from "lucide-react";
+import { API_BASE } from "../../constants";
 import type { ShortsSessionCreate } from "../../types/creative";
+import CharacterPicker from "./CharacterPicker";
+
+type LangOption = { value: string; label: string };
+type PresetOption = { structure: string; name: string };
 
 type Props = {
   loading: boolean;
@@ -13,10 +18,6 @@ const LABEL = "mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400
 const INPUT =
   "w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none";
 
-const DURATIONS = [15, 30, 45, 60] as const;
-const STRUCTURES = ["Monologue", "Dialogue", "Narrated Dialogue"] as const;
-const LANGUAGES = ["Korean", "English", "Japanese"] as const;
-
 export default function ShortsSetupForm({ loading, onSubmit }: Props) {
   const [topic, setTopic] = useState("");
   const [duration, setDuration] = useState<number>(30);
@@ -25,6 +26,35 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
   const [directorMode, setDirectorMode] = useState<string>("advisor");
   const [maxRounds, setMaxRounds] = useState<number>(2);
   const [references, setReferences] = useState("");
+  const [characterIds, setCharacterIds] = useState<Record<string, number>>({});
+
+  const [structures, setStructures] = useState<PresetOption[]>([
+    { structure: "Monologue", name: "Monologue" },
+    { structure: "Dialogue", name: "Dialogue" },
+    { structure: "Narrated Dialogue", name: "Narrated Dialogue" },
+  ]);
+  const [languages, setLanguages] = useState<LangOption[]>([
+    { value: "Korean", label: "Korean" },
+    { value: "English", label: "English" },
+    { value: "Japanese", label: "Japanese" },
+  ]);
+  const [durations, setDurations] = useState<number[]>([15, 30, 45, 60]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/presets`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.presets)) {
+          setStructures(data.presets.map((p: PresetOption) => ({ structure: p.structure, name: p.name })));
+        }
+        if (Array.isArray(data?.languages)) setLanguages(data.languages);
+        if (Array.isArray(data?.durations)) setDurations(data.durations);
+      })
+      .catch(() => {});
+  }, []);
+
+  const isMultiChar = structure === "Dialogue" || structure === "Narrated Dialogue";
+  const handleCharacterChange = useCallback((ids: Record<string, number>) => setCharacterIds(ids), []);
 
   const handleSubmit = () => {
     if (!topic.trim()) return;
@@ -32,11 +62,13 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
+
     onSubmit({
       topic: topic.trim(),
       duration,
       structure,
       language,
+      character_ids: isMultiChar && Object.keys(characterIds).length > 0 ? characterIds : undefined,
       director_mode: directorMode,
       max_rounds: maxRounds,
       references: refs.length > 0 ? refs : undefined,
@@ -73,7 +105,7 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
             onChange={(e) => setDuration(Number(e.target.value))}
             className={INPUT}
           >
-            {DURATIONS.map((d) => (
+            {durations.map((d) => (
               <option key={d} value={d}>
                 {d}s
               </option>
@@ -87,9 +119,9 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
             onChange={(e) => setStructure(e.target.value)}
             className={INPUT}
           >
-            {STRUCTURES.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {structures.map((s) => (
+              <option key={s.structure} value={s.structure}>
+                {s.name}
               </option>
             ))}
           </select>
@@ -101,9 +133,9 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
         <div>
           <label className={LABEL}>Language</label>
           <select value={language} onChange={(e) => setLanguage(e.target.value)} className={INPUT}>
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>
-                {l}
+            {languages.map((l) => (
+              <option key={l.value} value={l.value}>
+                {l.label}
               </option>
             ))}
           </select>
@@ -120,6 +152,16 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
           </select>
         </div>
       </div>
+
+      {/* Character Pickers (for Dialogue / Narrated Dialogue) */}
+      {isMultiChar && (
+        <CharacterPicker
+          structure={structure}
+          inputClass={INPUT}
+          labelClass={LABEL}
+          onChange={handleCharacterChange}
+        />
+      )}
 
       {/* References (optional) */}
       <div>

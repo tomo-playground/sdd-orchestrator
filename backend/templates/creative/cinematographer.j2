@@ -6,7 +6,13 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 ## Scenes
 {{ scenes | tojson(indent=2) }}
 
-{% if character_tags %}
+{% if characters_tags %}
+## Character Visual Tags (per speaker)
+{% for speaker, tags in characters_tags.items() %}
+### Speaker "{{ speaker }}"
+{{ tags | tojson(indent=2) }}
+{% endfor %}
+{% elif character_tags %}
 ## Character Visual Tags
 {{ character_tags | tojson(indent=2) }}
 {% endif %}
@@ -19,6 +25,7 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 4. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
 5. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
 6. **image_prompt_ko**: Korean description for human review
+7. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
 
 ## Output Format (JSON)
 ```json
@@ -44,3 +51,9 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 ```
 
 Ensure every scene has a valid image_prompt with character tags included.
+{% if feedback %}
+
+## Previous Attempt Feedback
+{{ feedback }}
+Fix the issues above in your new output.
+{% endif %}

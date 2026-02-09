@@ -33,6 +33,15 @@ from services.creative_trace import get_session_timeline
 router = APIRouter(prefix="/lab/creative", tags=["creative"])
 
 
+def _get_session_or_404(db: Session, session_id: int) -> CreativeSession:
+    session = (
+        db.query(CreativeSession).filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None)).first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
+
+
 # ── Sessions ─────────────────────────────────────────────────
 
 
@@ -69,12 +78,7 @@ def api_list_sessions(
 @router.get("/sessions/{session_id}", response_model=CreativeSessionResponse)
 def api_get_session(session_id: int, db: Session = Depends(get_db)):
     """Get a creative session by ID."""
-    session = (
-        db.query(CreativeSession).filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None)).first()
-    )
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return session
+    return _get_session_or_404(db, session_id)
 
 
 @router.post("/sessions/{session_id}/run-round", response_model=CreativeSessionResponse)
@@ -145,47 +149,26 @@ def api_delete_session(session_id: int, db: Session = Depends(get_db)):
 # ── V2 Shorts Pipeline ──────────────────────────────────────
 
 
-def _get_session_or_404(db: Session, session_id: int) -> CreativeSession:
-    session = (
-        db.query(CreativeSession).filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None)).first()
-    )
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return session
-
-
 @router.post("/sessions/shorts", response_model=CreativeSessionResponse, status_code=201)
 async def api_create_shorts_session(
     req: ShortsSessionCreate,
     db: Session = Depends(get_db),
 ):
     """Create a V2 shorts pipeline session."""
-    from services.creative_tasks import get_default_criteria
+    from services.creative_studio import create_shorts_session
 
-    try:
-        criteria = get_default_criteria("scenario")
-    except (ValueError, ModuleNotFoundError):
-        criteria = {}
-
-    session = CreativeSession(
-        objective=req.topic,
-        evaluation_criteria=criteria,
+    return create_shorts_session(
+        db,
+        topic=req.topic,
+        duration=req.duration,
+        structure=req.structure,
+        language=req.language,
         character_id=req.character_id,
-        context={
-            "duration": req.duration,
-            "structure": req.structure,
-            "language": req.language,
-            "references": req.references or [],
-        },
+        character_ids=req.character_ids,
+        references=req.references,
         max_rounds=req.max_rounds,
-        status="created",
-        session_type="shorts",
         director_mode=req.director_mode,
     )
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-    return session
 
 
 @router.post("/sessions/{session_id}/run-debate", response_model=PipelineStatusResponse, status_code=202)
@@ -281,7 +264,12 @@ async def api_run_pipeline(
     return PipelineStatusResponse(
         status="phase2_running",
         session_type="shorts",
-        progress={"scriptwriter": "pending", "cinematographer": "pending", "copyright_reviewer": "pending"},
+        progress={
+            "scriptwriter": "pending",
+            "cinematographer": "pending",
+            "sound_designer": "pending",
+            "copyright_reviewer": "pending",
+        },
     )
 
 
@@ -328,68 +316,24 @@ async def api_send_to_studio(
     db: Session = Depends(get_db),
 ):
     """Send completed scenes to Studio as a new storyboard (shallow copy)."""
-    from models.scene import Scene
-    from models.storyboard import Storyboard
+    from services.creative_studio import send_to_studio
 
     session = _get_session_or_404(db, session_id)
     if session.status != "completed":
         raise HTTPException(status_code=400, detail="Session must be completed")
 
-    final = session.final_output or {}
-    scenes_data = final.get("scenes", [])
-    if not scenes_data:
-        raise HTTPException(status_code=400, detail="No scenes to send")
-
-    ctx = dict(session.context or {})
-    title = req.title or f"Creative Lab: {session.objective[:50]}"
-    structure = ctx.get("structure", "Monologue")
-
-    # Create storyboard
-    storyboard = Storyboard(
-        group_id=req.group_id,
-        title=title,
-        structure=structure,
-        description=session.objective,
-    )
-    db.add(storyboard)
-    db.flush()
-
-    # Build prompt composer for deep_parse mode
-    builder = None
-    if req.deep_parse:
-        from services.prompt.v3_composition import V3PromptBuilder
-
-        builder = V3PromptBuilder(db)
-
-    # Create scenes from pipeline output
-    for s in scenes_data:
-        image_prompt = s.get("image_prompt", "")
-        context_tags = s.get("context_tags")
-
-        if builder and image_prompt:
-            from services.creative_utils import parse_image_prompt_to_tags
-
-            tags = parse_image_prompt_to_tags(image_prompt)
-            if session.character_id:
-                image_prompt = builder.compose_for_character(session.character_id, tags)
-            else:
-                image_prompt = builder.compose(tags)
-            context_tags = {"original_tags": tags, "composed": True}
-
-        scene = Scene(
-            storyboard_id=storyboard.id,
-            order=s.get("order", 0),
-            script=s.get("script", ""),
-            speaker=s.get("speaker", "A"),
-            duration=s.get("duration", 2.5),
-            image_prompt=image_prompt,
-            image_prompt_ko=s.get("image_prompt_ko", ""),
-            context_tags=context_tags,
+    try:
+        result = send_to_studio(
+            db=db,
+            session=session,
+            group_id=req.group_id,
+            title=req.title,
+            deep_parse=req.deep_parse,
         )
-        db.add(scene)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
-    db.commit()
-    return SendToStudioResponse(storyboard_id=storyboard.id, scene_count=len(scenes_data))
+    return SendToStudioResponse(**result)
 
 
 # ── Agent Presets ────────────────────────────────────────────

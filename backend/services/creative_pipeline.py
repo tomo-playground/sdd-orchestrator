@@ -1,39 +1,52 @@
 """Creative Lab V2 Pipeline — Phase 2 sequential execution with feedback loops.
 
-Runs as a BackgroundTask: Scriptwriter → QC → Cinematographer → QC → Complete.
+Runs as a BackgroundTask: Scriptwriter → Cinematographer → Sound Designer → Copyright → Complete.
 Each step commits independently for resumability.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from datetime import UTC, datetime
 
 from jinja2 import Environment, FileSystemLoader
+import json
 
 from config import (
     BASE_DIR,
     CREATIVE_LEADER_MODEL,
     CREATIVE_PIPELINE_MAX_RETRIES,
+    SCRIPT_LENGTH_KOREAN,
+    SCRIPT_LENGTH_OTHER,
     logger,
 )
 from database import SessionLocal
 from models.creative import CreativeSession, CreativeTrace
 from services.creative_agents import get_provider
-from services.creative_qc import validate_copyright, validate_scripts, validate_visuals
+from services.creative_qc import validate_copyright, validate_music, validate_scripts, validate_visuals
 from services.creative_utils import (
     calculate_total_tokens,
     get_next_sequence,
     parse_json_response,
+    record_feedback,
+    record_handoff,
+    record_quality_report,
     record_trace_sync,
+    resolve_characters_from_context,
 )
 
 _template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates" / "creative")))
 
 
-# ── Trace helpers ──────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────
+
+
+def _script_length_hint(language: str) -> str:
+    """Build human-readable script length hint from config constants."""
+    if language == "Korean":
+        return f"{SCRIPT_LENGTH_KOREAN[0]}-{SCRIPT_LENGTH_KOREAN[1]} characters (Korean)"
+    return f"{SCRIPT_LENGTH_OTHER[0]}-{SCRIPT_LENGTH_OTHER[1]} words (English/other)"
 
 
 def _commit_step(db, session: CreativeSession, step_name: str, status: str, state: dict) -> None:
@@ -98,80 +111,6 @@ def _run_llm_step(
     return parsed, trace
 
 
-def _record_handoff(db, session: CreativeSession, target: str, content: str) -> CreativeTrace:
-    """Record a handoff trace from director to target agent."""
-    seq = get_next_sequence(db, session.id)
-    return record_trace_sync(
-        db,
-        session_id=session.id,
-        round_number=0,
-        sequence=seq,
-        trace_type="handoff",
-        agent_role="creative_director",
-        target_agent=target,
-        input_prompt=content,
-        output_content=content,
-        model_id="system",
-        token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        latency_ms=0,
-        temperature=0.0,
-        phase="production",
-        step_name=target,
-    )
-
-
-def _record_feedback(
-    db,
-    session: CreativeSession,
-    target: str,
-    issues: list[str],
-    parent_trace_id: int | None = None,
-) -> CreativeTrace:
-    """Record a feedback trace from director to target agent."""
-    feedback_text = "\n".join(f"- {issue}" for issue in issues)
-    seq = get_next_sequence(db, session.id)
-    return record_trace_sync(
-        db,
-        session_id=session.id,
-        round_number=0,
-        sequence=seq,
-        trace_type="feedback",
-        agent_role="creative_director",
-        target_agent=target,
-        input_prompt=f"Quality issues for {target}",
-        output_content=feedback_text,
-        model_id="system",
-        token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        latency_ms=0,
-        temperature=0.0,
-        phase="production",
-        step_name=target,
-        feedback=feedback_text,
-        parent_trace_id=parent_trace_id,
-    )
-
-
-def _record_quality_report(db, session: CreativeSession, qc_result: dict, step_name: str) -> None:
-    """Record a quality_report trace."""
-    seq = get_next_sequence(db, session.id)
-    record_trace_sync(
-        db,
-        session_id=session.id,
-        round_number=0,
-        sequence=seq,
-        trace_type="quality_report",
-        agent_role="creative_director",
-        input_prompt=f"QC check for {step_name}",
-        output_content=json.dumps(qc_result, ensure_ascii=False),
-        model_id="system",
-        token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        latency_ms=0,
-        temperature=0.0,
-        phase="production",
-        step_name=step_name,
-    )
-
-
 # ── Per-step phases ────────────────────────────────────────────
 
 
@@ -185,35 +124,71 @@ def _run_step_with_retry(
     system_prompt: str,
     validate_fn,
     scenes_key: str = "scenes",
-) -> list:
-    """Generic retry loop for a pipeline step (Scriptwriter or Cinematographer)."""
-    _record_handoff(db, session, step_name, f"Execute {step_name} step")
+) -> list | dict:
+    """Generic retry loop for a pipeline step.
+
+    Returns the extracted data (list for scenes, dict for recommendation, etc.).
+    On retry, injects QC feedback into template_vars so the LLM can correct.
+    """
+    record_handoff(db, session.id, step_name, f"Execute {step_name} step")
 
     last_trace_id = None
     result_data = None
+    retry_vars = dict(template_vars)
     for retry in range(CREATIVE_PIPELINE_MAX_RETRIES + 1):
-        parsed, trace = _run_llm_step(
-            db,
-            session,
-            template_name=template_name,
-            template_vars=template_vars,
-            system_prompt=system_prompt,
-            step_name=step_name,
-            retry_count=retry,
-            parent_trace_id=last_trace_id,
-        )
-        scenes = parsed.get(scenes_key, [])
-        qc = validate_fn(scenes)
-        _record_quality_report(db, session, qc, step_name)
+        try:
+            parsed, trace = _run_llm_step(
+                db,
+                session,
+                template_name=template_name,
+                template_vars=retry_vars,
+                system_prompt=system_prompt,
+                step_name=step_name,
+                retry_count=retry,
+                parent_trace_id=last_trace_id,
+            )
+        except json.JSONDecodeError as e:
+            logger.warning("[Pipeline] %s JSON error (retry %d): %s", step_name, retry, e)
+            if retry < CREATIVE_PIPELINE_MAX_RETRIES:
+                error_msg = f"JSON Output Error: {e}. Please ensure valid JSON format."
+                # We can't record feedback without a trace if _run_llm_step failed BEFORE returning trace.
+                # However, _run_llm_step parses AFTER recording trace, so normally we should have the trace if we split it.
+                # BUT `parse_json_response` is called inside `_run_llm_step` at the end.
+                # So if it fails there, `_run_llm_step` raises and we don't get the trace return value.
+                # We need to rely on the fact that `_run_llm_step` records the trace anyway?
+                # Actually, looking at `_run_llm_step`:
+                # DO NOT change `_run_llm_step` signature.
+                # Instead, we should probably catch the error inside `_run_llm_step` or move parsing OUTSIDE.
+                # Let's move parsing OUTSIDE `_run_llm_step` to simplify this, or better yet, catch it here implies we change logic.
+                
+                # To be safe and minimal: catch here. But we miss the `trace` object if exception raised inside.
+                # Let's see `_run_llm_step` implementation again.
+                # It calls `record_trace_sync` then `parse_json_response`.
+                # If `parse_json_response` fails, `trace` was already recorded but we don't have the object here.
+                # We can construct a feedback for next round anyway.
+                retry_vars = {**template_vars, "feedback": error_msg}
+                continue
+            else:
+                 # Max retries exceeded with JSON Error
+                 logger.error("[Pipeline] %s max retries reached with JSON error", step_name)
+                 raise e
+
+        # If we got here, parsing succeeded
+        extracted = parsed.get(scenes_key, [])
+        extracted = parsed.get(scenes_key, [])
+        qc = validate_fn(extracted)
+        record_quality_report(db, session.id, qc, step_name)
 
         if qc["ok"]:
             state[f"{step_name}_result"] = parsed
-            return scenes
+            return extracted
 
         last_trace_id = trace.id
         result_data = parsed
         if retry < CREATIVE_PIPELINE_MAX_RETRIES:
-            _record_feedback(db, session, step_name, qc["issues"], parent_trace_id=trace.id)
+            feedback_text = "\n".join(f"- {issue}" for issue in qc["issues"])
+            record_feedback(db, session.id, step_name, qc["issues"], parent_trace_id=trace.id)
+            retry_vars = {**template_vars, "feedback": feedback_text}
         else:
             logger.warning("[Pipeline] %s max retries reached, using last result", step_name)
             state[f"{step_name}_result"] = result_data
@@ -224,7 +199,12 @@ def _run_step_with_retry(
 def _finalize_pipeline(db, session: CreativeSession, state: dict) -> None:
     """Store final output, record completion trace, calculate tokens."""
     final_scenes = state.get("cinematographer_result", {}).get("scenes", [])
-    session.final_output = {"scenes": final_scenes, "source": "creative_lab_v2"}
+    music_rec = state.get("sound_designer_result", {}).get("recommendation")
+    session.final_output = {
+        "scenes": final_scenes,
+        "music_recommendation": music_rec,
+        "source": "creative_lab_v2",
+    }
     session.status = "completed"
 
     seq = get_next_sequence(db, session.id)
@@ -291,6 +271,7 @@ def run_pipeline(session_id: int) -> None:
         pipeline_state = dict(ctx.get("pipeline", {}).get("state", {}))
         state = pipeline_state
         concept = ctx.get("selected_concept", {})
+        characters = resolve_characters_from_context(ctx)
 
         # Step 1: Scriptwriter
         current_step = "scriptwriter"
@@ -307,8 +288,10 @@ def run_pipeline(session_id: int) -> None:
                     "structure": ctx.get("structure", "Monologue"),
                     "language": ctx.get("language", "Korean"),
                     "character_name": ctx.get("character_name"),
+                    "characters": characters or None,
                     "min_scenes": max(4, ctx.get("duration", 30) // 5),
                     "max_scenes": ctx.get("duration", 30) // 2,
+                    "script_length_hint": _script_length_hint(ctx.get("language", "Korean")),
                 },
                 system_prompt="You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
                 validate_fn=lambda scenes: validate_scripts(
@@ -331,13 +314,43 @@ def run_pipeline(session_id: int) -> None:
                 state,
                 step_name="cinematographer",
                 template_name="cinematographer.j2",
-                template_vars={"scenes": scripts, "character_tags": ctx.get("character_tags")},
+                template_vars={
+                    "scenes": scripts,
+                    "character_tags": ctx.get("character_tags"),
+                    "characters_tags": {
+                        speaker: info.get("tags", [])
+                        for speaker, info in characters.items()
+                    }
+                    if characters
+                    else None,
+                },
                 system_prompt="You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
                 validate_fn=validate_visuals,
             )
             _commit_step(db, session, "cinematographer", "done", state)
 
-        # Step 3: Copyright Reviewer
+        # Step 3: Sound Designer
+        current_step = "sound_designer"
+        if "sound_designer_result" not in state:
+            cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+            _run_step_with_retry(
+                db,
+                session,
+                state,
+                step_name="sound_designer",
+                template_name="sound_designer.j2",
+                template_vars={
+                    "concept": concept,
+                    "scenes": cinema_scenes,
+                    "duration": ctx.get("duration", 30),
+                },
+                system_prompt="You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
+                validate_fn=validate_music,
+                scenes_key="recommendation",
+            )
+            _commit_step(db, session, "sound_designer", "done", state)
+
+        # Step 4: Copyright Reviewer
         current_step = "copyright_reviewer"
         if "copyright_reviewer_result" not in state:
             cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])

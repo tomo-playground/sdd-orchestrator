@@ -7,7 +7,11 @@ Convert the selected concept into scene-by-scene scripts for a {{ duration }}s {
 {{ concept | tojson(indent=2) }}
 
 ## Character
-{% if character_name %}
+{% if characters %}
+{% for speaker, char in characters.items() %}
+- Speaker "{{ speaker }}": {{ char.name }}
+{% endfor %}
+{% elif character_name %}
 Name: {{ character_name }}
 {% endif %}
 
@@ -22,7 +26,7 @@ Name: {{ character_name }}
 {% endif %}
 
 ## Script Rules
-- Each scene script: 10-30 characters (Korean) or 5-15 words (English)
+- Each scene script: {{ script_length_hint }}
 - Scene count: {{ min_scenes }}-{{ max_scenes }} scenes
 - Total duration must sum to approximately {{ duration }}s
 - Duration per scene: 2.0-3.5s (tense/climax: 2.0s, transition/calm: 3.5s)
@@ -52,3 +56,9 @@ Name: {{ character_name }}
 ```
 
 All scripts in {{ language }}.
+{% if feedback %}
+
+## Previous Attempt Feedback
+{{ feedback }}
+Fix the issues above in your new output.
+{% endif %}

@@ -229,7 +229,7 @@
 | 21 | Narrator Scene 스타일 적용 (image_prompt 백엔드 주입 + ControlNet/IP-Adapter 자동 비활성) | 품질 | - | [x] |
 | 22 | image_url 정합성 강화 (JSONB 저장 방어, base64 전송 방지, stale ID 방어) | 안정성 | - | [x] |
 | 23 | Background Scene 태그 필터링 (no_humans 감지 → 캐릭터 레이어 제거) + LoRA Weight Cap 통합 (0.76) | 품질 | - | [x] |
-| 24 | Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 (9-Agent Pipeline + Studio 연동) | 기능 | [명세](FEATURES/CREATIVE_LAB_V2.md) | [ ] |
+| 24 | Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 (9-Agent Pipeline + Studio 연동) | 기능 | [명세](FEATURES/CREATIVE_LAB_V2.md) | [x] |
 
 ---
 
@@ -311,20 +311,15 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-09):
+**현재 진행 상태** (2026-02-10):
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
-- Phase 7-1: **16/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder, #24 Creative Lab V2)
+- Phase 7-1: **17/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- **Backend 테스트**: 1,220개 수집
+- **Backend 테스트**: 1,234개 수집
 
-### 잔여 작업 우선순위 (재정리 2026-02-08)
-
-**Tier 0 — 최우선순위 (대형, 1-2주)**
-| 순위 | 출처 | 작업 | 근거 |
-|------|------|------|------|
-| 0 | 7-1 #24 | Creative Lab V2 (쇼츠 멀티에이전트 시나리오 생성기) | 9-Agent 파이프라인, Studio 직접 연동, 콘텐츠 품질 혁신. 선행: #7 |
+### 잔여 작업 우선순위 (재정리 2026-02-10)
 
 **Tier 1 — 높은 임팩트 (중형, 3-5일)**
 | 순위 | 출처 | 작업 | 근거 |
@@ -332,7 +327,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | 1 | 7-1 #7 | Structure별 전용 Gemini 템플릿 (5종) | 콘텐츠 품질 직결 |
 | 2 | 7-1 #4 | 이미지 생성 Progress (SSE/WebSocket) | 렌더링 SSE 완료, 생성은 미구현 |
 | 3 | 6-7 #10 | WD14 Feedback Loop (tag_effectiveness 자동 업데이트) | 프롬프트 자동 개선 루프 |
-| 4 | 7-1 #5 | Multi-Character UI (DB 스키마 완료) | DB 준비 완료, UI만 구현 |
+| 4 | 7-1 #5 | Multi-Character UI (Studio 스토리보드 생성기) | DB/Creative Lab 준비 완료, Studio UI만 구현 |
 
 **Tier 2 — 확장 기능 (대형, 1주+)**
 | 순위 | 출처 | 작업 | 근거 |
@@ -355,4 +350,5 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - 렌더링 SSE 진행률, Style LoRA 통합, image_url 정합성 강화
 - TTS 품질: Context-Aware Voice, 환각 감지/제거, 반복 방지, 자동 재생성
 - (2026-02-09) Background Scene 태그 필터링: `no_humans` 감지 → CHARACTER_ONLY_LAYERS(1-8) 제거 + 캐릭터 카메라 태그 필터. LoRA Weight Cap `STYLE_LORA_WEIGHT_CAP=0.76` 무조건 적용으로 통합
-- (2026-02-09) Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 MVP 구현 (9-Agent 시스템, Phase 1 Concept Debate + Phase 2 Production Pipeline, 6 Jinja2 Templates, Frontend V1/V2 모드 전환)
+- (2026-02-09) Creative Lab V2 MVP: 9-Agent 시스템, Phase 1 Concept Debate + Phase 2 Production Pipeline, 6 Jinja2 Templates, Frontend V1/V2 모드 전환
+- (2026-02-10) Creative Lab V2 Phase 3: Multi-Character Dialogue (character_ids 매핑, CharacterPicker 컴포넌트), Sound Designer 에이전트 (BGM 추천), Copyright Reviewer 에이전트, send-to-studio 서비스 추출 (creative_studio.py), QC feedback retry 개선, SSOT presets API 연동, 단위 테스트 14개

@@ -56,3 +56,9 @@ Rules:
 - WARN = Minor concerns that should be noted but do not block production
 - FAIL = Significant IP or originality issues that must be addressed
 - overall = FAIL if any check is FAIL, WARN if any check is WARN (and none FAIL), PASS otherwise
+{% if feedback %}
+
+## Previous Attempt Feedback
+{{ feedback }}
+Fix the issues above in your new output.
+{% endif %}

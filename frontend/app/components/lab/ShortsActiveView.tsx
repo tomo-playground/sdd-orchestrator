@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { ArrowLeft, Wrench } from "lucide-react";
+import { ArrowLeft, RotateCcw, Wrench } from "lucide-react";
 import { API_BASE } from "../../constants";
 import type {
   CreativeSession,
   CreativeTimeline,
   CopyrightResult,
+  MusicRecommendation,
   PipelineProgress,
 } from "../../types/creative";
 import StatusBadge from "./StatusBadge";
@@ -116,6 +117,31 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
     [session.id],
   );
 
+  const handleRetry = useCallback(async () => {
+    setError(null);
+    try {
+      // Default to "resume" mode for now, could offer "restart" option later
+      const res = await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/retry`, {
+        mode: "resume",
+      });
+      // Immediately refresh with response to update status to running
+      if (res.data && res.data.status) {
+        // Optimistic update or wait for poll? 
+        // Force refresh parent
+      }
+      // Re-fetch session to get updated status
+      const sessionRes = await axios.get<CreativeSession>(
+        `${API_BASE}/lab/creative/sessions/${session.id}`,
+      );
+      onRefresh(sessionRes.data);
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.detail ?? err.message)
+        : "Failed to retry session";
+      setError(String(msg));
+    }
+  }, [session.id, onRefresh]);
+
   const autoStartRef = useRef(false);
 
   // Auto-pilot: auto-start pipeline when director auto-selected a concept
@@ -157,11 +183,10 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
           <div className="flex-1" />
           <button
             onClick={() => setShowDebug(!showDebug)}
-            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition ${
-              showDebug
-                ? "border-indigo-300 bg-indigo-50 text-indigo-600"
-                : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
-            }`}
+            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition ${showDebug
+              ? "border-indigo-300 bg-indigo-50 text-indigo-600"
+              : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
+              }`}
           >
             <Wrench className="h-3 w-3" />
             Debug
@@ -236,11 +261,15 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
             }>
           }
           topic={session.objective}
+          musicRecommendation={
+            (session.final_output as Record<string, unknown> | null)
+              ?.music_recommendation as MusicRecommendation | undefined
+          }
           copyrightResult={
             (
               (ctx.pipeline as Record<string, unknown> | undefined)?.state as
-                | Record<string, unknown>
-                | undefined
+              | Record<string, unknown>
+              | undefined
             )?.copyright_reviewer_result as CopyrightResult | undefined
           }
           onSendToStudio={handleSendToStudio}
@@ -249,11 +278,22 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
 
       {session.status === "failed" && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-          <p className="text-xs font-semibold text-red-700">Pipeline Failed</p>
-          <p className="mt-1 text-[10px] text-red-500">
-            {((ctx.pipeline as Record<string, unknown> | undefined)?.error as string) ??
-              "Unknown error"}
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-red-700">Pipeline Failed</p>
+              <p className="mt-1 text-[10px] text-red-500">
+                {((ctx.pipeline as Record<string, unknown> | undefined)?.error as string) ??
+                  "Unknown error"}
+              </p>
+            </div>
+            <button
+              onClick={() => handleRetry()}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
         </div>
       )}
 

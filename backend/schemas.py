@@ -1258,3 +1258,47 @@ class RenderProgressEvent(BaseModel):
     media_asset_id: int | None = None
     render_history_id: int | None = None
     error: str | None = None
+
+
+# ── Storyboard Presets ─────────────────────────────────────────
+
+
+class LanguageOption(BaseModel):
+    value: str
+    label: str
+
+
+class PresetSummary(BaseModel):
+    id: str
+    name: str
+    name_ko: str
+    description: str
+    structure: str
+    sample_topics: list[str]
+    default_duration: int
+    default_style: str
+    default_language: str
+
+
+class PresetDetailResponse(BaseModel):
+    id: str
+    name: str
+    name_ko: str
+    description: str
+    structure: str
+    template: str
+    sample_topics: list[str]
+    default_duration: int
+    default_style: str
+    default_language: str
+    extra_fields: dict
+
+
+class PresetListResponse(BaseModel):
+    presets: list[PresetSummary]
+    languages: list[LanguageOption]
+    durations: list[int]
+
+
+class PresetTopicsResponse(BaseModel):
+    topics: list[str]

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from config import STORYBOARD_LANGUAGES
+from config import SHORTS_DURATIONS, STORYBOARD_LANGUAGES
+from schemas import PresetDetailResponse, PresetListResponse, PresetTopicsResponse
 from services.presets import get_all_presets, get_preset, get_sample_topics
 
 router = APIRouter(prefix="/presets", tags=["presets"])
 
 
-@router.get("")
+@router.get("", response_model=PresetListResponse)
 async def list_presets():
     """Get all available storyboard presets.
 
@@ -19,10 +20,11 @@ async def list_presets():
     return {
         "presets": get_all_presets(),
         "languages": STORYBOARD_LANGUAGES,
+        "durations": SHORTS_DURATIONS,
     }
 
 
-@router.get("/{preset_id}")
+@router.get("/{preset_id}", response_model=PresetDetailResponse)
 async def get_preset_detail(preset_id: str):
     """Get details for a specific preset."""
     preset = get_preset(preset_id)
@@ -43,7 +45,7 @@ async def get_preset_detail(preset_id: str):
     }
 
 
-@router.get("/{preset_id}/topics")
+@router.get("/{preset_id}/topics", response_model=PresetTopicsResponse)
 async def get_preset_topics(preset_id: str):
     """Get sample topics for a preset."""
     topics = get_sample_topics(preset_id)
