@@ -7,11 +7,11 @@ Each step commits independently for resumability.
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from datetime import UTC, datetime
 
 from jinja2 import Environment, FileSystemLoader
-import json
 
 from config import (
     BASE_DIR,
@@ -150,31 +150,16 @@ def _run_step_with_retry(
         except json.JSONDecodeError as e:
             logger.warning("[Pipeline] %s JSON error (retry %d): %s", step_name, retry, e)
             if retry < CREATIVE_PIPELINE_MAX_RETRIES:
+                # NOTE: trace is already recorded in DB by _run_llm_step before parsing,
+                # but we don't have the trace object here since the exception was raised.
                 error_msg = f"JSON Output Error: {e}. Please ensure valid JSON format."
-                # We can't record feedback without a trace if _run_llm_step failed BEFORE returning trace.
-                # However, _run_llm_step parses AFTER recording trace, so normally we should have the trace if we split it.
-                # BUT `parse_json_response` is called inside `_run_llm_step` at the end.
-                # So if it fails there, `_run_llm_step` raises and we don't get the trace return value.
-                # We need to rely on the fact that `_run_llm_step` records the trace anyway?
-                # Actually, looking at `_run_llm_step`:
-                # DO NOT change `_run_llm_step` signature.
-                # Instead, we should probably catch the error inside `_run_llm_step` or move parsing OUTSIDE.
-                # Let's move parsing OUTSIDE `_run_llm_step` to simplify this, or better yet, catch it here implies we change logic.
-                
-                # To be safe and minimal: catch here. But we miss the `trace` object if exception raised inside.
-                # Let's see `_run_llm_step` implementation again.
-                # It calls `record_trace_sync` then `parse_json_response`.
-                # If `parse_json_response` fails, `trace` was already recorded but we don't have the object here.
-                # We can construct a feedback for next round anyway.
                 retry_vars = {**template_vars, "feedback": error_msg}
                 continue
             else:
-                 # Max retries exceeded with JSON Error
-                 logger.error("[Pipeline] %s max retries reached with JSON error", step_name)
-                 raise e
+                logger.error("[Pipeline] %s max retries reached with JSON error", step_name)
+                raise e
 
         # If we got here, parsing succeeded
-        extracted = parsed.get(scenes_key, [])
         extracted = parsed.get(scenes_key, [])
         qc = validate_fn(extracted)
         record_quality_report(db, session.id, qc, step_name)
@@ -317,10 +302,7 @@ def run_pipeline(session_id: int) -> None:
                 template_vars={
                     "scenes": scripts,
                     "character_tags": ctx.get("character_tags"),
-                    "characters_tags": {
-                        speaker: info.get("tags", [])
-                        for speaker, info in characters.items()
-                    }
+                    "characters_tags": {speaker: info.get("tags", []) for speaker, info in characters.items()}
                     if characters
                     else None,
                 },

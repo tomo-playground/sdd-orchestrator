@@ -9,42 +9,51 @@ from models.creative import CreativeTrace
 
 
 def parse_json_response(raw: str) -> dict:
-    """Extract JSON from LLM output (strip markdown fences)."""
+    """Extract JSON from LLM output (strip markdown fences, fix invalid escapes)."""
     cleaned = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip())
     cleaned = re.sub(r"\n?```\s*$", "", cleaned.strip())
-    # Attempt to fix common LLM JSON errors
-    # 1. Fix unescaped backslashes (e.g. "path\to\file" -> "path\\to\\file"), but ignore valid escapes like \n, \t, \", \\
-    # This is complex to do perfectly with regex, but we can try to catch obvious ones or just rely on a try-except block with fallback
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        # Fallback: simple escape of backslashes that look like they aren't part of a valid escape sequence
-        # This is a heuristic and might not cover all cases
-        # For now, let's try to just log the error and re-raise, or try to escape single backslashes if strictly needed.
-        # Given the error is "Invalid \escape", it means there's a backslash followed by an invalid character.
-        # We can try to double-escape backslashes that are NOT followed by specific chars.
-        # Valid escapes in JSON: ", \, /, b, f, n, r, t, uXXXX
-        # We want to turn invalid `\x` into `\\x`
-        
-        # 1. Regex to find backslashes that are NOT followed by valid escape chars
-        # valid: ["\\/bfnrtu]
-        # So we look for \ followed by anything ELSE
-        cleaned_fixed = re.sub(r'\\(?![\\/bfnrtu"])', r"\\\\", cleaned)
-        
-        # 2. Fix invalid unicode escapes (e.g. \uXXXX where XXXX is not 4 hex digits)
-        # The previous attempt didn't work because `\u` is already being processed by step 1 if we are not careful?
-        # Step 1 excludes `u` from `[^\\/bfnrtu]`. So `\u` is preserved.
-        # Now we want `\u` to be `\\u` IF it's not followed by 4 hex digits.
-        # Regex: `\\u(?![0-9a-fA-F]{4})` matches `\u` not followed by 4 hex digits.
-        # However, due to python string escaping, we need to be very careful with backslashes in regex.
-        # In literal r'\\u', we match a literal backslash and u.
-        cleaned_fixed = re.sub(r'\\u(?![0-9a-fA-F]{4})', r"\\\\u", cleaned_fixed)
-        
-        try:
-             return json.loads(cleaned_fixed)
-        except json.JSONDecodeError:
-            # If still failing, raise the original error (or the new one)
-            raise
+        cleaned_fixed = _fix_json_escapes(cleaned)
+        return json.loads(cleaned_fixed)
+
+
+_VALID_JSON_ESCAPES = frozenset('"\\\\/bfnrt')
+_HEX_CHARS = frozenset("0123456789abcdefABCDEF")
+
+
+def _fix_json_escapes(text: str) -> str:
+    """Fix invalid JSON backslash escapes from LLM output character-by-character."""
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch != "\\":
+            out.append(ch)
+            i += 1
+            continue
+        # Backslash found — check next char
+        if i + 1 >= n:
+            out.append("\\\\")
+            i += 1
+            continue
+        nxt = text[i + 1]
+        if nxt in _VALID_JSON_ESCAPES:
+            out.append(text[i : i + 2])
+            i += 2
+        elif nxt == "u":
+            # Valid unicode: \uXXXX (4 hex digits)
+            if i + 5 < n and all(c in _HEX_CHARS for c in text[i + 2 : i + 6]):
+                out.append(text[i : i + 6])
+                i += 6
+            else:
+                out.append("\\\\")
+                i += 1
+        else:
+            out.append("\\\\")
+            i += 1
+    return "".join(out)
 
 
 def get_next_sequence(db, session_id: int) -> int:
