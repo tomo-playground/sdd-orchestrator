@@ -215,6 +215,15 @@ def send_to_studio(
     characters = ctx.get("characters") or {}
     if characters:
         _link_characters(db, storyboard.id, characters)
+    elif session.character_id:
+        # Monologue fallback: single character_id → speaker "A"
+        db.add(
+            StoryboardCharacter(
+                storyboard_id=storyboard.id,
+                speaker="A",
+                character_id=session.character_id,
+            )
+        )
 
     # 4. Create scenes
     for s in scenes_data:

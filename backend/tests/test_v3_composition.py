@@ -566,6 +566,31 @@ class TestDistributeTags:
         assert "dark_skin" not in all_tokens
 
 
+    def test_lora_tags_in_scene_tags_are_stripped(self, builder):
+        """LoRA tags in scene_tags must be stripped to prevent double injection."""
+        scene_info = {"outdoors": _make_tag_info("outdoors", LAYER_ENVIRONMENT)}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: scene_info[n]
+                for n in [t.lower().replace(" ", "_").strip() for t in names]
+                if n in scene_info
+            }
+        )
+
+        char_tags = [{"name": "1girl", "layer": LAYER_SUBJECT, "weight": 1.0}]
+        scene_tags = ["outdoors", "<lora:flat_color:0.76>", "flat color"]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, scene_tags, scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "outdoors" in all_tokens
+        assert "flat color" in all_tokens
+        # LoRA tag must NOT appear — _inject_loras handles LoRA injection
+        lora_tokens = [t for t in all_tokens if "<lora:" in t]
+        assert lora_tokens == [], f"LoRA tags must be stripped from scene_tags: {lora_tokens}"
+
+
 class TestExclusiveGroupsConstant:
     """Verify EXCLUSIVE_GROUPS contains expected groups."""
 

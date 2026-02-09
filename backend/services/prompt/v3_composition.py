@@ -318,8 +318,10 @@ class V3PromptBuilder:
         # 5b. Build character-occupied exclusive groups
         char_occupied = self._build_char_occupied_groups(char_tags_data)
 
-        # 6. Distribute scene tags (skip occupied exclusive groups)
+        # 6. Distribute scene tags (skip occupied exclusive groups + LoRA tags)
         for tag in scene_tags:
+            if tag.strip().startswith("<lora:"):
+                continue  # LoRA injection handled by _inject_loras
             norm_tag = tag.lower().replace(" ", "_").strip()
             info = scene_tag_info.get(norm_tag, {"layer": LAYER_SUBJECT, "group_name": None})
             if info.get("group_name") in char_occupied:

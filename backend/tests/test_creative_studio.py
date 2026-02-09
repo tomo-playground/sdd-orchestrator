@@ -196,6 +196,99 @@ class TestSendToStudioNullCharacters:
         assert result["scene_count"] == 1
 
 
+class TestMonologueCharacterLinkage:
+    """Monologue session with character_id must create StoryboardCharacter."""
+
+    def test_monologue_links_fallback_character(self, db_session):
+        """session.character_id (monologue) must create StoryboardCharacter for speaker A."""
+        from models import Project
+        from models.character import Character
+        from models.group import Group
+        from models.storyboard_character import StoryboardCharacter
+
+        project = Project(name="Test")
+        db_session.add(project)
+        db_session.flush()
+        group = Group(name="G", project_id=project.id)
+        db_session.add(group)
+        db_session.flush()
+        char = Character(name="Haru")
+        db_session.add(char)
+        db_session.flush()
+
+        # Monologue: character_id set, but characters dict is None
+        session = MagicMock()
+        session.final_output = {
+            "scenes": [
+                {
+                    "order": 0,
+                    "script": "Hello",
+                    "speaker": "A",
+                    "duration": 2.5,
+                    "image_prompt": "1girl, smile",
+                },
+            ]
+        }
+        session.context = {"structure": "Monologue", "characters": None}
+        session.objective = "Test"
+        session.character_id = char.id
+
+        from services.creative_studio import send_to_studio
+
+        result = send_to_studio(
+            db=db_session,
+            session=session,
+            group_id=group.id,
+            deep_parse=False,
+        )
+
+        # StoryboardCharacter must exist for speaker A
+        sc = db_session.query(StoryboardCharacter).filter_by(storyboard_id=result["storyboard_id"], speaker="A").first()
+        assert sc is not None, "StoryboardCharacter must be created for monologue"
+        assert sc.character_id == char.id
+
+    def test_no_character_id_no_link(self, db_session):
+        """No character_id and no characters dict → no StoryboardCharacter."""
+        from models import Project
+        from models.group import Group
+        from models.storyboard_character import StoryboardCharacter
+
+        project = Project(name="Test")
+        db_session.add(project)
+        db_session.flush()
+        group = Group(name="G", project_id=project.id)
+        db_session.add(group)
+        db_session.flush()
+
+        session = MagicMock()
+        session.final_output = {
+            "scenes": [
+                {
+                    "order": 0,
+                    "script": "Narration",
+                    "speaker": "A",
+                    "duration": 2.5,
+                    "image_prompt": "no_humans, sunset",
+                },
+            ]
+        }
+        session.context = {"structure": "Monologue", "characters": None}
+        session.objective = "Test"
+        session.character_id = None
+
+        from services.creative_studio import send_to_studio
+
+        result = send_to_studio(
+            db=db_session,
+            session=session,
+            group_id=group.id,
+            deep_parse=False,
+        )
+
+        sc_count = db_session.query(StoryboardCharacter).filter_by(storyboard_id=result["storyboard_id"]).count()
+        assert sc_count == 0, "No character → no StoryboardCharacter"
+
+
 class TestSendToStudioIntegration:
     """send_to_studio with deep_parse=True must use full V3 pipeline."""
 
