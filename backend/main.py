@@ -16,6 +16,7 @@ from routers import (
     characters_router,
     cleanup_router,
     controlnet_router,
+    creative_presets_router,
     creative_router,
     groups_router,
     keywords_router,
@@ -126,6 +127,7 @@ app.include_router(activity_logs_router)
 app.include_router(keywords_router)
 app.include_router(lab_router)
 app.include_router(creative_router)
+app.include_router(creative_presets_router)
 app.include_router(loras_router)
 app.include_router(presets_router)
 app.include_router(prompt_router)

@@ -1,21 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import axios from "axios";
 import { ArrowLeft, RotateCcw, Wrench } from "lucide-react";
-import { API_BASE } from "../../constants";
-import type {
-  CreativeSession,
-  CreativeTimeline,
-  CopyrightResult,
-  MusicRecommendation,
-  PipelineProgress,
-} from "../../types/creative";
+import type { CreativeSession, CopyrightResult, MusicRecommendation } from "../../types/creative";
 import StatusBadge from "./StatusBadge";
 import ConceptCompareView from "./ConceptCompareView";
 import PipelineProgressView from "./PipelineProgressView";
 import SessionResultView from "./SessionResultView";
 import DebugSlideOver from "./DebugSlideOver";
+import { useShortsSession } from "./useShortsSession";
 
 type Props = {
   session: CreativeSession;
@@ -24,148 +16,19 @@ type Props = {
 };
 
 export default function ShortsActiveView({ session, onBack, onRefresh }: Props) {
-  const [error, setError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [timeline, setTimeline] = useState<CreativeTimeline | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const isPolling = ["phase1_running", "phase2_running"].includes(session.status);
-
-  // Poll for status updates
-  useEffect(() => {
-    if (!isPolling) {
-      if (pollRef.current) clearInterval(pollRef.current);
-      return;
-    }
-
-    const poll = async () => {
-      try {
-        const res = await axios.get<CreativeSession>(
-          `${API_BASE}/lab/creative/sessions/${session.id}`,
-        );
-        onRefresh(res.data);
-      } catch {
-        /* ignore poll errors */
-      }
-    };
-
-    pollRef.current = setInterval(poll, 2000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [session.id, isPolling, onRefresh]);
-
-  // Fetch timeline for debug panel
-  useEffect(() => {
-    if (!showDebug) return;
-    const fetchTimeline = async () => {
-      try {
-        const res = await axios.get<CreativeTimeline>(
-          `${API_BASE}/lab/creative/sessions/${session.id}/timeline`,
-        );
-        setTimeline(res.data);
-      } catch {
-        /* ignore */
-      }
-    };
-    fetchTimeline();
-  }, [session.id, session.status, showDebug]);
-
-  const handleSelectConcept = useCallback(
-    async (index: number) => {
-      setError(null);
-      try {
-        const res = await axios.post<CreativeSession>(
-          `${API_BASE}/lab/creative/sessions/${session.id}/select-concept`,
-          { concept_index: index },
-        );
-        onRefresh(res.data);
-      } catch (err) {
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.detail ?? err.message)
-          : "Failed to select concept";
-        setError(String(msg));
-      }
-    },
-    [session.id, onRefresh],
-  );
-
-  const handleStartPipeline = useCallback(async () => {
-    setError(null);
-    try {
-      await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/run-pipeline`);
-      const res = await axios.get<CreativeSession>(
-        `${API_BASE}/lab/creative/sessions/${session.id}`,
-      );
-      onRefresh(res.data);
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.detail ?? err.message)
-        : "Failed to start pipeline";
-      setError(String(msg));
-    }
-  }, [session.id, onRefresh]);
-
-  const handleSendToStudio = useCallback(
-    async (groupId: number, title?: string, deepParse?: boolean) => {
-      await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/send-to-studio`, {
-        group_id: groupId,
-        title,
-        deep_parse: deepParse ?? false,
-      });
-    },
-    [session.id],
-  );
-
-  const handleRetry = useCallback(async () => {
-    setError(null);
-    try {
-      // Default to "resume" mode for now, could offer "restart" option later
-      const res = await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/retry`, {
-        mode: "resume",
-      });
-      // Immediately refresh with response to update status to running
-      if (res.data && res.data.status) {
-        // Optimistic update or wait for poll? 
-        // Force refresh parent
-      }
-      // Re-fetch session to get updated status
-      const sessionRes = await axios.get<CreativeSession>(
-        `${API_BASE}/lab/creative/sessions/${session.id}`,
-      );
-      onRefresh(sessionRes.data);
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.detail ?? err.message)
-        : "Failed to retry session";
-      setError(String(msg));
-    }
-  }, [session.id, onRefresh]);
-
-  const autoStartRef = useRef(false);
-
-  // Auto-pilot: auto-start pipeline when director auto-selected a concept
-  useEffect(() => {
-    if (
-      session.status === "phase1_done" &&
-      session.director_mode === "auto" &&
-      session.selected_concept_index !== null &&
-      !autoStartRef.current
-    ) {
-      autoStartRef.current = true;
-      // Defer to next tick to avoid cascading setState within effect
-      const timer = setTimeout(() => handleStartPipeline(), 0);
-      return () => clearTimeout(timer);
-    }
-    if (session.status !== "phase1_done") {
-      autoStartRef.current = false;
-    }
-  }, [session.status, session.director_mode, session.selected_concept_index, handleStartPipeline]);
-
-  const ctx = (session.context ?? {}) as Record<string, unknown>;
-  const progress = ((ctx.pipeline as Record<string, unknown> | undefined)?.progress ??
-    null) as PipelineProgress | null;
-  const candidates = session.concept_candidates?.candidates ?? [];
+  const {
+    error,
+    showDebug,
+    setShowDebug,
+    timeline,
+    ctx,
+    progress,
+    candidates,
+    handleSelectConcept,
+    handleStartPipeline,
+    handleSendToStudio,
+    handleRetry,
+  } = useShortsSession(session, onRefresh);
 
   return (
     <div className="space-y-4">
@@ -183,10 +46,11 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
           <div className="flex-1" />
           <button
             onClick={() => setShowDebug(!showDebug)}
-            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition ${showDebug
-              ? "border-indigo-300 bg-indigo-50 text-indigo-600"
-              : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
-              }`}
+            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition ${
+              showDebug
+                ? "border-indigo-300 bg-indigo-50 text-indigo-600"
+                : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
+            }`}
           >
             <Wrench className="h-3 w-3" />
             Debug
@@ -262,14 +126,15 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
           }
           topic={session.objective}
           musicRecommendation={
-            (session.final_output as Record<string, unknown> | null)
-              ?.music_recommendation as MusicRecommendation | undefined
+            (session.final_output as Record<string, unknown> | null)?.music_recommendation as
+              | MusicRecommendation
+              | undefined
           }
           copyrightResult={
             (
               (ctx.pipeline as Record<string, unknown> | undefined)?.state as
-              | Record<string, unknown>
-              | undefined
+                | Record<string, unknown>
+                | undefined
             )?.copyright_reviewer_result as CopyrightResult | undefined
           }
           onSendToStudio={handleSendToStudio}

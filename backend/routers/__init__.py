@@ -9,6 +9,7 @@ from .characters import router as characters_router
 from .cleanup import router as cleanup_router
 from .controlnet import router as controlnet_router
 from .creative import router as creative_router
+from .creative_presets import router as creative_presets_router
 from .groups import router as groups_router
 from .keywords import router as keywords_router
 from .lab import router as lab_router
@@ -40,6 +41,7 @@ __all__ = [
     "cleanup_router",
     "controlnet_router",
     "creative_router",
+    "creative_presets_router",
     "keywords_router",
     "lab_router",
     "loras_router",
