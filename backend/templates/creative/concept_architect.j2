@@ -1,0 +1,60 @@
+You are a Story Architect specializing in {{ perspective }}.
+
+## Task
+Create a compelling concept for a {{ duration }}s shorts video.
+
+## Topic
+{{ topic }}
+
+## Language
+{{ language }}
+
+## Structure
+{{ structure }}
+
+{% if character_name %}
+## Character
+Name: {{ character_name }}
+{% endif %}
+
+{% if reference_guidelines %}
+## Reference Guidelines
+{{ reference_guidelines }}
+{% endif %}
+
+{% if prev_concept %}
+## Your Previous Concept (Improve This)
+{{ prev_concept }}
+{% endif %}
+
+{% if director_feedback %}
+## Director Feedback
+{{ director_feedback }}
+{% endif %}
+
+{% if critic_feedback %}
+## Critic Feedback (Address These Weaknesses)
+{{ critic_feedback }}
+{% endif %}
+
+## Output Format (JSON)
+Respond with a single JSON object:
+```json
+{
+  "title": "콘셉트 제목",
+  "hook": "첫 3초 훅 설명",
+  "hook_strength": "visual_tension | emotional_question | surprise_reveal | mystery",
+  "arc": "스토리 아크 요약 (A → B → C)",
+  "key_moments": [
+    { "beat": "opening", "description": "장면 설명", "camera_hint": "close-up | cowboy_shot | full_body" },
+    { "beat": "turning_point", "description": "...", "camera_hint": "..." },
+    { "beat": "climax", "description": "...", "camera_hint": "..." }
+  ],
+  "mood_progression": "tense → frustrated → joyful",
+  "estimated_scenes": 12,
+  "pacing_note": "페이싱 노트"
+}
+```
+
+Focus on {{ focus_instruction }}.
+All text content should be in {{ language }}.

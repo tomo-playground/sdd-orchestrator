@@ -16,6 +16,11 @@ const TRACE_STYLES: Record<string, { bg: string; text: string; label: string }> 
   generation: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Generation" },
   evaluation: { bg: "bg-amber-50", text: "text-amber-700", label: "Evaluation" },
   revision: { bg: "bg-purple-50", text: "text-purple-700", label: "Revision" },
+  // V2 trace types
+  decision: { bg: "bg-orange-50", text: "text-orange-700", label: "Decision" },
+  handoff: { bg: "bg-sky-50", text: "text-sky-700", label: "Handoff" },
+  feedback: { bg: "bg-rose-50", text: "text-rose-700", label: "Feedback" },
+  quality_report: { bg: "bg-teal-50", text: "text-teal-700", label: "QC Report" },
 };
 
 function getTraceStyle(traceType: string) {
@@ -53,13 +58,14 @@ function TraceCard({ trace }: { trace: CreativeTrace }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span
-            className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${style.text}`}
+            className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${style.text}`}
           >
             {style.label}
           </span>
-          <span className="text-xs font-medium text-zinc-700">
-            {trace.agent_role}
-          </span>
+          <span className="text-xs font-medium text-zinc-700">{trace.agent_role}</span>
+          {trace.target_agent && (
+            <span className="text-[10px] text-zinc-400">→ {trace.target_agent}</span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-[10px] text-zinc-400">
           <span className="flex items-center gap-0.5">
@@ -80,19 +86,14 @@ function TraceCard({ trace }: { trace: CreativeTrace }) {
       </div>
 
       {/* Content */}
-      <button
-        onClick={toggle}
-        className="mt-2 flex w-full items-start gap-1 text-left"
-      >
+      <button onClick={toggle} className="mt-2 flex w-full items-start gap-1 text-left">
         {expanded ? (
           <ChevronDown className="mt-0.5 h-3 w-3 shrink-0 text-zinc-400" />
         ) : (
           <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-zinc-400" />
         )}
         <div className="prose prose-sm prose-zinc max-w-none flex-1 text-xs">
-          <ReactMarkdown>
-            {expanded ? trace.output_content : contentPreview}
-          </ReactMarkdown>
+          <ReactMarkdown>{expanded ? trace.output_content : contentPreview}</ReactMarkdown>
         </div>
       </button>
 
@@ -110,10 +111,16 @@ function TraceCard({ trace }: { trace: CreativeTrace }) {
 
 export default function TraceTimeline({ traces }: Props) {
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [phaseFilter, setPhaseFilter] = useState<string>("all");
 
   const agentRoles = useMemo(() => {
     const roles = new Set(traces.map((t) => t.agent_role));
     return Array.from(roles).sort();
+  }, [traces]);
+
+  const phases = useMemo(() => {
+    const set = new Set(traces.map((t) => t.phase).filter(Boolean));
+    return Array.from(set).sort() as string[];
   }, [traces]);
 
   const filteredTraces = useMemo(() => {
@@ -121,9 +128,12 @@ export default function TraceTimeline({ traces }: Props) {
       if (a.round_number !== b.round_number) return a.round_number - b.round_number;
       return a.sequence - b.sequence;
     });
-    if (roleFilter === "all") return sorted;
-    return sorted.filter((t) => t.agent_role === roleFilter);
-  }, [traces, roleFilter]);
+    return sorted.filter((t) => {
+      if (roleFilter !== "all" && t.agent_role !== roleFilter) return false;
+      if (phaseFilter !== "all" && t.phase !== phaseFilter) return false;
+      return true;
+    });
+  }, [traces, roleFilter, phaseFilter]);
 
   const groupedByRound = useMemo(() => {
     const groups = new Map<number, CreativeTrace[]>();
@@ -157,6 +167,18 @@ export default function TraceTimeline({ traces }: Props) {
           {agentRoles.map((role) => (
             <option key={role} value={role}>
               {role}
+            </option>
+          ))}
+        </select>
+        <select
+          value={phaseFilter}
+          onChange={(e) => setPhaseFilter(e.target.value)}
+          className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+        >
+          <option value="all">All Phases</option>
+          {phases.map((phase) => (
+            <option key={phase} value={phase}>
+              {phase}
             </option>
           ))}
         </select>

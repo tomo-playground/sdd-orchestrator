@@ -11,6 +11,11 @@ export type CreativeSession = {
   max_rounds: number;
   total_token_usage: Record<string, unknown> | null;
   status: string;
+  // V2 fields
+  session_type: "free" | "shorts";
+  director_mode: "auto" | "advisor";
+  concept_candidates: ConceptCandidates | null;
+  selected_concept_index: number | null;
   created_at: string | null;
 };
 
@@ -44,6 +49,12 @@ export type CreativeTrace = {
   temperature: number;
   parent_trace_id: number | null;
   diff_summary: string | null;
+  // V2 fields
+  phase: string | null;
+  step_name: string | null;
+  target_agent: string | null;
+  decision_context: DecisionContext | null;
+  retry_count: number;
   created_at: string | null;
 };
 
@@ -56,4 +67,102 @@ export type CreativeTimeline = {
 export type SessionListResponse = {
   items: CreativeSession[];
   total: number;
+};
+
+// V2 types
+
+export type ConceptCandidate = {
+  agent_role: string;
+  concept: ConceptData;
+  score: number;
+  feedback: string;
+  breakdown?: Record<string, number>;
+};
+
+export type ConceptData = {
+  title: string;
+  hook: string;
+  hook_strength?: string;
+  arc: string;
+  key_moments?: KeyMoment[];
+  mood_progression?: string;
+  estimated_scenes?: number;
+  pacing_note?: string;
+};
+
+export type KeyMoment = {
+  beat: string;
+  description: string;
+  camera_hint?: string;
+};
+
+export type ConceptCandidates = {
+  candidates: ConceptCandidate[];
+  evaluation_summary: string;
+};
+
+export type DecisionContext = {
+  mode: "auto" | "advisor";
+  options: DecisionOption[];
+  selected: string | null;
+  reason: string;
+  confidence: number;
+  escalated_to_user: boolean;
+};
+
+export type DecisionOption = {
+  label: string;
+  score: number;
+  pros: string[];
+  cons: string[];
+};
+
+export type StepProgress = {
+  status: "pending" | "running" | "done" | "failed";
+  retry_count?: number;
+  started_at?: string;
+};
+
+export type PipelineProgress = {
+  scriptwriter?: StepProgress | string;
+  cinematographer?: StepProgress | string;
+  copyright_reviewer?: StepProgress | string;
+};
+
+export type PipelineStatusResponse = {
+  status: string;
+  session_type: string;
+  progress?: PipelineProgress;
+  concept_candidates?: ConceptCandidates;
+  selected_concept_index?: number;
+};
+
+export type ShortsSessionCreate = {
+  topic: string;
+  duration: number;
+  structure: string;
+  language: string;
+  character_id?: number;
+  director_mode: string;
+  max_rounds: number;
+  references?: string[];
+};
+
+export type SendToStudioRequest = {
+  group_id: number;
+  title?: string;
+  deep_parse?: boolean;
+};
+
+export type CopyrightCheck = {
+  type: string;
+  status: "PASS" | "WARN" | "FAIL";
+  detail: string | null;
+  suggestion?: string;
+};
+
+export type CopyrightResult = {
+  overall: "PASS" | "WARN" | "FAIL";
+  checks: CopyrightCheck[];
+  confidence: number;
 };

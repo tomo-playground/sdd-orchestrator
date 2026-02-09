@@ -99,6 +99,10 @@ class CreativeSessionResponse(BaseModel):
     max_rounds: int
     total_token_usage: TokenUsage | None = None
     status: str
+    session_type: str | None = "free"
+    director_mode: str | None = "advisor"
+    concept_candidates: dict[str, Any] | None = None
+    selected_concept_index: int | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -147,6 +151,11 @@ class CreativeTraceResponse(BaseModel):
     temperature: float
     parent_trace_id: int | None = None
     diff_summary: str | None = None
+    phase: str | None = None
+    step_name: str | None = None
+    target_agent: str | None = None
+    decision_context: dict[str, Any] | None = None
+    retry_count: int = 0
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -174,3 +183,56 @@ class FinalizeRequest(BaseModel):
 
     selected_output: dict[str, Any]  # The chosen result
     reason: str | None = None
+
+
+# ── V2 Shorts Pipeline ──────────────────────────────────────
+
+
+class ShortsSessionCreate(BaseModel):
+    """Create a V2 shorts pipeline session."""
+
+    topic: str
+    duration: int = 30
+    structure: str = "Monologue"
+    language: str = "Korean"
+    character_id: int | None = None
+    director_mode: str = "advisor"
+    max_rounds: int = 2
+    references: list[str] | None = None
+
+
+class SelectConceptRequest(BaseModel):
+    """Select a concept from Phase 1 candidates."""
+
+    concept_index: int
+
+
+class RetrySessionRequest(BaseModel):
+    """Retry a failed session."""
+
+    mode: str = "resume"  # "resume" | "restart"
+
+
+class SendToStudioRequest(BaseModel):
+    """Send completed scenes to Studio as a storyboard."""
+
+    group_id: int
+    title: str | None = None
+    deep_parse: bool = False
+
+
+class SendToStudioResponse(BaseModel):
+    """Response after sending to Studio."""
+
+    storyboard_id: int
+    scene_count: int
+
+
+class PipelineStatusResponse(BaseModel):
+    """Lightweight status for polling."""
+
+    status: str
+    session_type: str
+    progress: dict[str, Any] | None = None
+    concept_candidates: dict[str, Any] | None = None
+    selected_concept_index: int | None = None

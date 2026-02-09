@@ -28,6 +28,11 @@ async def record_trace(
     feedback: str | None = None,
     parent_trace_id: int | None = None,
     diff_summary: str | None = None,
+    phase: str | None = None,
+    step_name: str | None = None,
+    target_agent: str | None = None,
+    decision_context: dict | None = None,
+    retry_count: int = 0,
 ) -> CreativeTrace:
     """Record a single LLM interaction trace."""
     trace = CreativeTrace(
@@ -47,6 +52,11 @@ async def record_trace(
         temperature=temperature,
         parent_trace_id=parent_trace_id,
         diff_summary=diff_summary,
+        phase=phase,
+        step_name=step_name,
+        target_agent=target_agent,
+        decision_context=decision_context,
+        retry_count=retry_count,
     )
     db.add(trace)
     db.flush()
@@ -73,6 +83,11 @@ def _serialize_trace(trace: CreativeTrace) -> dict[str, Any]:
         "temperature": trace.temperature,
         "parent_trace_id": trace.parent_trace_id,
         "diff_summary": trace.diff_summary,
+        "phase": trace.phase,
+        "step_name": trace.step_name,
+        "target_agent": trace.target_agent,
+        "decision_context": trace.decision_context,
+        "retry_count": trace.retry_count,
         "created_at": trace.created_at,
     }
 
@@ -105,6 +120,10 @@ def _serialize_session(session: CreativeSession) -> dict[str, Any]:
         "max_rounds": session.max_rounds,
         "total_token_usage": session.total_token_usage,
         "status": session.status,
+        "session_type": session.session_type,
+        "director_mode": session.director_mode,
+        "concept_candidates": session.concept_candidates,
+        "selected_concept_index": session.selected_concept_index,
     }
 
 

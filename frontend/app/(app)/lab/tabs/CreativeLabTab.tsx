@@ -5,16 +5,24 @@ import axios from "axios";
 import { ArrowLeft, Settings, Trophy } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { API_BASE } from "../../../constants";
-import type { CreativeSession, CreativeTrace, SessionListResponse } from "../../../types/creative";
+import type {
+  CreativeSession,
+  CreativeTrace,
+  SessionListResponse,
+  ShortsSessionCreate,
+} from "../../../types/creative";
 import StatusBadge from "../../../components/lab/StatusBadge";
 import SetupForm from "../../../components/lab/SetupForm";
 import CreativeRoundView from "../../../components/lab/CreativeRoundView";
 import AgentConfigPanel from "../../../components/lab/AgentConfigPanel";
 import SessionHistoryTable from "../../../components/lab/SessionHistoryTable";
+import ShortsSetupForm from "../../../components/lab/ShortsSetupForm";
+import ShortsActiveView from "../../../components/lab/ShortsActiveView";
 
-// -- Panel type -----------------------------------------------------------
+// -- Types ----------------------------------------------------------------
 
 type Panel = "main" | "config";
+type LabMode = "free" | "shorts";
 
 // -- Main Component -------------------------------------------------------
 
@@ -25,8 +33,9 @@ export default function CreativeLabTab() {
   const [debateLoading, setDebateLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>("main");
+  const [labMode, setLabMode] = useState<LabMode>("shorts");
 
-  // Form state
+  // V1 form state
   const [objective, setObjective] = useState("");
   const [maxRounds, setMaxRounds] = useState(3);
 
@@ -44,6 +53,8 @@ export default function CreativeLabTab() {
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  // -- V1 handlers --------------------------------------------------------
 
   const handleStartDebate = useCallback(async () => {
     if (!objective.trim()) return;
@@ -97,6 +108,39 @@ export default function CreativeLabTab() {
     [selectedSession]
   );
 
+  // -- V2 handlers --------------------------------------------------------
+
+  const handleStartShorts = useCallback(
+    async (data: ShortsSessionCreate) => {
+      setDebateLoading(true);
+      setError(null);
+      try {
+        const createRes = await axios.post<CreativeSession>(
+          `${API_BASE}/lab/creative/sessions/shorts`,
+          data
+        );
+        // Start debate (background task)
+        await axios.post(`${API_BASE}/lab/creative/sessions/${createRes.data.id}/run-debate`);
+        // Set session — polling will handle status updates
+        const sessionRes = await axios.get<CreativeSession>(
+          `${API_BASE}/lab/creative/sessions/${createRes.data.id}`
+        );
+        setSelectedSession(sessionRes.data);
+        await fetchSessions();
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.detail ?? err.message)
+          : "Failed to start shorts pipeline";
+        setError(String(msg));
+      } finally {
+        setDebateLoading(false);
+      }
+    },
+    [fetchSessions]
+  );
+
+  // -- Common handlers ----------------------------------------------------
+
   const handleSelectSession = useCallback(async (id: number) => {
     setLoading(true);
     setError(null);
@@ -116,7 +160,8 @@ export default function CreativeLabTab() {
   const handleBack = useCallback(() => {
     setSelectedSession(null);
     setError(null);
-  }, []);
+    fetchSessions();
+  }, [fetchSessions]);
 
   // -- Config panel -------------------------------------------------------
 
@@ -138,68 +183,41 @@ export default function CreativeLabTab() {
 
   return (
     <div className="space-y-6">
-      {/* ── Purpose Section ── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-5">
-          <div className="flex-1">
-            <h2 className="mb-2 text-base font-bold text-zinc-800">Creative Lab</h2>
-            <p className="text-xs leading-relaxed text-zinc-600">
-              <strong className="text-zinc-700">목표:</strong> Leader + Writer 멀티 에이전트가
-              협업하여 고품질 스토리보드를 생성합니다.
-            </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-              Leader 에이전트가 전체 방향을 제시하고, Writer 에이전트가 초안을 작성합니다.
-              여러 라운드의 피드백을 통해 스토리보드를 점진적으로 개선합니다.
-            </p>
-
-            {/* Collapsible Details */}
-            <details className="mt-3">
-              <summary className="cursor-pointer text-xs font-semibold text-green-700 hover:text-green-800">
-                📖 자세히 보기
-              </summary>
-              <div className="mt-3 space-y-3 rounded-lg border border-green-100 bg-white p-3 text-xs">
-                <div>
-                  <strong className="text-zinc-700">💡 사용 시나리오:</strong>
-                  <ul className="ml-4 mt-1 list-disc space-y-0.5 text-zinc-600">
-                    <li>다양한 스토리보드 아이디어를 빠르게 탐색</li>
-                    <li>에이전트 페르소나 및 설정 최적화</li>
-                    <li>Leader/Writer 협업 품질 개선 실험</li>
-                  </ul>
-                </div>
-                <div>
-                  <strong className="text-zinc-700">✅ 성공 기준:</strong>
-                  <span className="ml-1 text-zinc-600">
-                    <strong className="text-emerald-600">3라운드 내</strong> 만족스러운 스토리보드 생성
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-zinc-700">📊 주요 메트릭:</strong>
-                  <span className="ml-1 text-zinc-600">
-                    Round Count, Agent Agreement, Quality Score
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-zinc-700">🔄 워크플로우:</strong>
-                  <span className="ml-1 text-zinc-600">
-                    Creative Lab → 검증 → Studio로 복사하여 이미지 생성
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-zinc-700">⚡ Quick Tips:</strong>
-                  <ul className="ml-4 mt-1 list-disc space-y-0.5 text-zinc-600">
-                    <li>Max Rounds 3-5 추천 (너무 많으면 과최적화)</li>
-                    <li>Objective는 명확하고 구체적으로</li>
-                  </ul>
-                </div>
-              </div>
-            </details>
+      {/* Header */}
+      <div className="flex items-center justify-between rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-5">
+        <div className="flex-1">
+          <h2 className="mb-2 text-base font-bold text-zinc-800">Creative Lab</h2>
+          <p className="text-xs text-zinc-500">
+            {labMode === "shorts"
+              ? "Multi-agent shorts pipeline: Concept Debate → Script → Visual Design → Studio"
+              : "Free-form debate: Leader + Writer multi-agent collaboration"}
+          </p>
+        </div>
+        <div className="ml-4 flex items-center gap-2">
+          {/* Mode toggle */}
+          <div className="flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
+            <button
+              onClick={() => setLabMode("free")}
+              className={`rounded-md px-3 py-1 text-[10px] font-semibold transition ${
+                labMode === "free" ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-500"
+              }`}
+            >
+              Free Debate
+            </button>
+            <button
+              onClick={() => setLabMode("shorts")}
+              className={`rounded-md px-3 py-1 text-[10px] font-semibold transition ${
+                labMode === "shorts" ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-500"
+              }`}
+            >
+              Shorts Pipeline
+            </button>
           </div>
-
           <button
             onClick={() => setPanel("config")}
-            className="ml-4 flex items-center gap-1 self-start rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
+            className="flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
           >
-            <Settings className="h-3.5 w-3.5" /> Agent Presets
+            <Settings className="h-3.5 w-3.5" /> Presets
           </button>
         </div>
       </div>
@@ -211,21 +229,29 @@ export default function CreativeLabTab() {
       )}
 
       {selectedSession ? (
-        <ActiveSessionView
-          session={selectedSession}
-          onBack={handleBack}
-          onFinalize={handleFinalize}
-        />
+        selectedSession.session_type === "shorts" ? (
+          <ShortsActiveView session={selectedSession} onBack={handleBack} onRefresh={setSelectedSession} />
+        ) : (
+          <V1ActiveSessionView
+            session={selectedSession}
+            onBack={handleBack}
+            onFinalize={handleFinalize}
+          />
+        )
       ) : (
         <>
-          <SetupForm
-            objective={objective}
-            maxRounds={maxRounds}
-            debateLoading={debateLoading}
-            onObjectiveChange={setObjective}
-            onMaxRoundsChange={setMaxRounds}
-            onStartDebate={handleStartDebate}
-          />
+          {labMode === "shorts" ? (
+            <ShortsSetupForm loading={debateLoading} onSubmit={handleStartShorts} />
+          ) : (
+            <SetupForm
+              objective={objective}
+              maxRounds={maxRounds}
+              debateLoading={debateLoading}
+              onObjectiveChange={setObjective}
+              onMaxRoundsChange={setMaxRounds}
+              onStartDebate={handleStartDebate}
+            />
+          )}
           <SessionHistoryTable
             sessions={sessions}
             loading={loading}
@@ -237,9 +263,9 @@ export default function CreativeLabTab() {
   );
 }
 
-// -- Active Session View --------------------------------------------------
+// -- V1 Active Session View -----------------------------------------------
 
-function ActiveSessionView({
+function V1ActiveSessionView({
   session,
   onBack,
   onFinalize,
@@ -252,14 +278,13 @@ function ActiveSessionView({
 
   return (
     <div className="space-y-4">
-      {/* Session Info Card */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center gap-3">
           <button
             onClick={onBack}
             className="flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to List
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
           </button>
           <StatusBadge status={session.status} />
           <span className="text-[10px] text-zinc-400">#{session.id}</span>
@@ -267,7 +292,6 @@ function ActiveSessionView({
         <p className="text-xs text-zinc-600">{session.objective}</p>
       </div>
 
-      {/* Final Output Card - Independent & Emphasized */}
       {finalOutput && (
         <div className="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
@@ -290,8 +314,8 @@ function ActiveSessionView({
         </div>
       )}
 
-      {/* Rounds History */}
       <CreativeRoundView sessionId={session.id} session={session} onFinalize={onFinalize} />
     </div>
   );
 }
+

@@ -51,6 +51,12 @@ class CreativeSession(Base, TimestampMixin, SoftDeleteMixin):
     total_token_usage: Mapped[dict | None] = mapped_column(JSONB)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
 
+    # V2 fields
+    session_type: Mapped[str] = mapped_column(String(20), server_default="free", nullable=False)
+    director_mode: Mapped[str] = mapped_column(String(20), server_default="advisor", nullable=False)
+    concept_candidates: Mapped[dict | None] = mapped_column(JSONB)
+    selected_concept_index: Mapped[int | None] = mapped_column(Integer)
+
     # Relationships
     character: Mapped[Character | None] = relationship("Character", foreign_keys=[character_id])
     rounds: Mapped[list[CreativeSessionRound]] = relationship(
@@ -90,6 +96,8 @@ class CreativeTrace(Base):
         Index("ix_creative_traces_session_round_seq", "session_id", "round_number", "sequence"),
         Index("ix_creative_traces_session_type", "session_id", "trace_type"),
         Index("ix_creative_traces_session_role", "session_id", "agent_role"),
+        Index("ix_creative_traces_phase_step", "session_id", "phase", "step_name"),
+        Index("ix_creative_traces_target", "session_id", "target_agent"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -116,6 +124,13 @@ class CreativeTrace(Base):
     )
     diff_summary: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now())
+
+    # V2 fields
+    phase: Mapped[str | None] = mapped_column(String(20))
+    step_name: Mapped[str | None] = mapped_column(String(50))
+    target_agent: Mapped[str | None] = mapped_column(String(50))
+    decision_context: Mapped[dict | None] = mapped_column(JSONB)
+    retry_count: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
 
     # Relationships
     session: Mapped[CreativeSession] = relationship("CreativeSession", back_populates="traces")

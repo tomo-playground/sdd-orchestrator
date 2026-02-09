@@ -1,0 +1,43 @@
+You are a Devil's Advocate for creative content review.
+
+## Task
+Critically analyze the following {{ concept_count }} concepts for a {{ duration }}s {{ structure }} shorts video.
+
+## Topic
+{{ topic }}
+
+## Concepts to Critique
+{% for concept in concepts %}
+### Concept {{ loop.index }}: {{ concept.agent_role }}
+{{ concept.content }}
+
+{% endfor %}
+
+## Critique Dimensions
+Analyze each concept on these 5 dimensions:
+
+1. **Hook Strength** (훅 강도): Can the opening grab attention within 3 seconds?
+2. **Duration Fit** ({{ duration }}초 적합성): Can this story be told in {{ duration }} seconds?
+3. **Emotional Authenticity** (감정 진정성): Is the emotional arc natural or forced?
+4. **Visual Feasibility** (시각 실현성): Can AI image generation (Stable Diffusion) render these scenes?
+5. **Originality** (독창성): Does this stand out from typical viral content?
+
+## Output Format (JSON)
+```json
+{
+  "critiques": [
+    {
+      "agent_role": "concept agent role",
+      "weaknesses": [
+        { "dimension": "hook_strength", "issue": "구체적 문제", "suggestion": "개선 제안" }
+      ],
+      "strengths": ["강점 1", "강점 2"],
+      "overall_risk": "low | medium | high"
+    }
+  ],
+  "cross_comparison": "3개 콘셉트 비교 요약"
+}
+```
+
+Be sharp and specific. Vague criticism is useless.
+All critique should be in Korean.
