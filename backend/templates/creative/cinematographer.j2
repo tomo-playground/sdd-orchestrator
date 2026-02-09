@@ -50,7 +50,9 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 }
 ```
 
-Ensure every scene has a valid image_prompt with character tags included.
+Ensure every scene has a valid image_prompt.
+- For speaker "A"/"B" scenes: include character tags in image_prompt.
+- For "Narrator" scenes: these are background/environment shots with NO human character. Use only scenery, atmosphere, and object tags (e.g. `scenery`, `no_humans`, `outdoors`, `building`).
 {% if feedback %}
 
 ## Previous Attempt Feedback

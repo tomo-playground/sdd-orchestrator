@@ -16,7 +16,6 @@ export default function CharacterPicker({ structure, inputClass, labelClass, onC
   const [characters, setCharacters] = useState<CharacterOption[]>([]);
   const [speakerA, setSpeakerA] = useState<number | null>(null);
   const [speakerB, setSpeakerB] = useState<number | null>(null);
-  const [narrator, setNarrator] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/characters`)
@@ -29,13 +28,16 @@ export default function CharacterPicker({ structure, inputClass, labelClass, onC
     const ids: Record<string, number> = {};
     if (speakerA !== null) ids["A"] = speakerA;
     if (speakerB !== null) ids["B"] = speakerB;
-    if (structure === "Narrated Dialogue" && narrator !== null) ids["Narrator"] = narrator;
     onChange(ids);
-  }, [speakerA, speakerB, narrator, structure, onChange]);
+  }, [speakerA, speakerB, onChange]);
 
   if (characters.length === 0) return null;
 
-  const renderSelect = (label: string, value: number | null, setter: (v: number | null) => void) => (
+  const renderSelect = (
+    label: string,
+    value: number | null,
+    setter: (v: number | null) => void
+  ) => (
     <div>
       <p className="mb-0.5 text-[10px] text-zinc-400">{label}</p>
       <select
@@ -57,7 +59,6 @@ export default function CharacterPicker({ structure, inputClass, labelClass, onC
     <div className="space-y-2">
       <label className={labelClass}>Characters (optional)</label>
       <div className="grid grid-cols-2 gap-3">
-        {structure === "Narrated Dialogue" && renderSelect("Narrator", narrator, setNarrator)}
         {renderSelect("Speaker A", speakerA, setSpeakerA)}
         {renderSelect("Speaker B", speakerB, setSpeakerB)}
       </div>

@@ -17,6 +17,7 @@ from config import (
     BASE_DIR,
     CREATIVE_LEADER_MODEL,
     CREATIVE_PIPELINE_MAX_RETRIES,
+    SCENE_DURATION_RANGE,
     SCRIPT_LENGTH_KOREAN,
     SCRIPT_LENGTH_OTHER,
     logger,
@@ -277,6 +278,9 @@ def run_pipeline(session_id: int) -> None:
                     "min_scenes": max(4, ctx.get("duration", 30) // 5),
                     "max_scenes": ctx.get("duration", 30) // 2,
                     "script_length_hint": _script_length_hint(ctx.get("language", "Korean")),
+                    "scene_duration_hint": f"{SCENE_DURATION_RANGE[0]}-{SCENE_DURATION_RANGE[1]}s",
+                    "scene_dur_min": SCENE_DURATION_RANGE[0],
+                    "scene_dur_max": SCENE_DURATION_RANGE[1],
                 },
                 system_prompt="You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
                 validate_fn=lambda scenes: validate_scripts(

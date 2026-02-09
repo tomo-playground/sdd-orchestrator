@@ -371,6 +371,7 @@ SHORTS_DURATIONS = [15, 30, 45, 60]
 # --- Script Length Rules (SSOT for scriptwriter.j2 + creative_qc.py) ---
 SCRIPT_LENGTH_KOREAN = (5, 35)  # (min_chars, max_chars)
 SCRIPT_LENGTH_OTHER = (3, 18)  # (min_words, max_words)
+SCENE_DURATION_RANGE = (2.0, 3.5)  # (min_seconds, max_seconds) per scene
 
 # --- YouTube Upload Configuration ---
 YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "")

@@ -8,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from services.creative_qc import validate_music, validate_scripts, validate_visuals
 from services.creative_utils import resolve_characters_from_context
 
-
 # ── validate_music ────────────────────────────────────────────
 
 
@@ -67,10 +66,7 @@ class TestValidateMusic:
 def _make_scripts(count: int, language: str = "Korean") -> list[dict]:
     """Helper to create valid script scenes."""
     text = "테스트 스크립트입니다" if language == "Korean" else "This is a test script"
-    return [
-        {"order": i, "script": text, "speaker": "A", "duration": 2.5}
-        for i in range(count)
-    ]
+    return [{"order": i, "script": text, "speaker": "A", "duration": 2.5} for i in range(count)]
 
 
 class TestWarnDoesNotFailScripts:
@@ -83,14 +79,27 @@ class TestWarnDoesNotFailScripts:
         assert result["checks"]["duration_sum"] == "WARN"
         assert result["ok"] is True
 
-    def test_script_length_warn_ok_true(self):
-        # Mix of in-range and out-of-range scripts → script_length WARN
+    def test_script_length_fail_triggers_retry(self):
+        # Short script → script_length FAIL (triggers retry)
         scripts = _make_scripts(6)
-        scripts[0]["script"] = "짧"  # too short
+        scripts[0]["script"] = "짧"  # too short (1 char < 5 min)
         result = validate_scripts(scripts, "Monologue", 30, "Korean")
-        assert result["checks"]["script_length"].startswith("WARN")
-        assert result["checks"]["scene_count"] == "PASS"
-        assert result["ok"] is True
+        assert result["checks"]["script_length"] == "FAIL"
+        assert result["ok"] is False
+
+    def test_scene_duration_range_fail(self):
+        # Scene with 1.5s duration → scene_duration_range FAIL
+        scripts = _make_scripts(6)
+        scripts[0]["duration"] = 1.5  # below 2.0s min
+        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        assert result["checks"]["scene_duration_range"] == "FAIL"
+        assert result["ok"] is False
+
+    def test_scene_duration_range_pass(self):
+        # All scenes within 2.0-3.5s → PASS
+        scripts = _make_scripts(6)
+        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        assert result["checks"]["scene_duration_range"] == "PASS"
 
     def test_fail_still_fails(self):
         # Wrong speaker → FAIL

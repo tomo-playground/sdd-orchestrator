@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
+from config import SCENE_DURATION_RANGE, SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
 
 
 def validate_scripts(
@@ -42,7 +42,17 @@ def validate_scripts(
             length_pass += 1
         else:
             issues.append(f"Scene {i}: script length out of range ({len(script_text)} chars)")
-    checks["script_length"] = "PASS" if length_pass == count else f"WARN {length_pass}/{count}"
+    checks["script_length"] = "PASS" if length_pass == count else "FAIL"
+
+    # Per-scene duration range check (SSOT: config.py SCENE_DURATION_RANGE)
+    dur_min, dur_max = SCENE_DURATION_RANGE
+    dur_range_ok = True
+    for i, s in enumerate(scripts):
+        d = s.get("duration", 0)
+        if not (dur_min <= d <= dur_max):
+            dur_range_ok = False
+            issues.append(f"Scene {i}: duration {d}s outside [{dur_min}-{dur_max}s]")
+    checks["scene_duration_range"] = "PASS" if dur_range_ok else "FAIL"
 
     # Speaker rules
     speaker_ok = True

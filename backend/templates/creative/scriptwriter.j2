@@ -23,13 +23,15 @@ Name: {{ character_name }}
 - Speakers: "A" and "B" (two characters in conversation)
 {% elif structure == "Narrated Dialogue" %}
 - Speakers: "Narrator" for narration, "A"/"B" for dialogue
+- IMPORTANT: "Narrator" scenes are background/environment description scenes (NO human character on screen). They describe the setting, atmosphere, or situation — NOT a person speaking. Only "A"/"B" scenes show characters.
 {% endif %}
 
 ## Script Rules
 - Each scene script: {{ script_length_hint }}
 - Scene count: {{ min_scenes }}-{{ max_scenes }} scenes
 - Total duration must sum to approximately {{ duration }}s
-- Duration per scene: 2.0-3.5s (tense/climax: 2.0s, transition/calm: 3.5s)
+- Duration per scene: {{ scene_duration_hint }} (tense/climax: {{ scene_dur_min }}s, transition/calm: {{ scene_dur_max }}s)
+- STRICT: Every scene MUST have duration between {{ scene_dur_min }}s and {{ scene_dur_max }}s. No exceptions.
 
 ## 2-Pass Process
 **Pass 1 — Draft:** Write scenes following the concept's key_moments and arc.
