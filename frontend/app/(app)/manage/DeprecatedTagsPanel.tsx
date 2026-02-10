@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
+import { useStudioStore } from "../../store/useStudioStore";
 
 interface DeprecatedTag {
   id: number;
@@ -27,6 +29,9 @@ interface TagSearchResult {
 }
 
 export default function DeprecatedTagsPanel() {
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
+
   const [deprecatedTags, setDeprecatedTags] = useState<DeprecatedTag[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +62,20 @@ export default function DeprecatedTagsPanel() {
   };
 
   const handleActivateTag = async (tagId: number) => {
-    if (!confirm("Are you sure you want to reactivate this tag?")) return;
+    const ok = await confirm({
+      title: "Reactivate Tag",
+      message: "Are you sure you want to reactivate this tag?",
+      confirmLabel: "Reactivate",
+    });
+    if (!ok) return;
     try {
       await axios.put(`${API_BASE}/admin/tags/${tagId}/activate`);
       await fetchDeprecatedTags();
     } catch (err) {
-      console.error("Failed to activate tag:", err);
-      alert("Failed to activate tag");
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.detail ?? err.message)
+        : "Unknown error";
+      showToast(`Failed to activate tag: ${msg}`, "error");
     }
   };
 
@@ -94,7 +106,13 @@ export default function DeprecatedTagsPanel() {
 
   const handleDeprecate = async () => {
     if (!selectedTag || !reason.trim()) return;
-    if (!confirm(`Deprecate tag "${selectedTag.name}"?`)) return;
+    const ok = await confirm({
+      title: "Deprecate Tag",
+      message: `Deprecate tag "${selectedTag.name}"?`,
+      confirmLabel: "Deprecate",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     setIsDeprecating(true);
     try {
@@ -105,8 +123,10 @@ export default function DeprecatedTagsPanel() {
       resetForm();
       await fetchDeprecatedTags();
     } catch (err) {
-      console.error("Failed to deprecate tag:", err);
-      alert("Failed to deprecate tag");
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.detail ?? err.message)
+        : "Unknown error";
+      showToast(`Failed to deprecate tag: ${msg}`, "error");
     } finally {
       setIsDeprecating(false);
     }
@@ -367,6 +387,7 @@ export default function DeprecatedTagsPanel() {
           ))}
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

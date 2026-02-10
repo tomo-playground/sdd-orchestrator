@@ -1,5 +1,7 @@
 "use client";
 
+import { useStudioStore } from "../../store/useStudioStore";
+
 const EXAMPLE_INSTRUCTIONS = [
   "Smile brightly, looking at viewer",
   "Sitting on chair with hands on lap",
@@ -29,9 +31,11 @@ export default function GeminiPreviewEditModal({
     onClose();
   };
 
+  const showToast = useStudioStore((s) => s.showToast);
+
   const handleStart = () => {
     if (!geminiTargetChange.trim()) {
-      alert("Please describe what to change.");
+      showToast("Please describe what to change.", "warning");
       return;
     }
     onSubmit(geminiTargetChange.trim());
@@ -49,7 +53,11 @@ export default function GeminiPreviewEditModal({
             className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
             </svg>
           </button>
         </div>
@@ -59,7 +67,11 @@ export default function GeminiPreviewEditModal({
           {previewImageUrl && (
             <div className="flex justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewImageUrl} alt="Current Preview" className="h-40 w-auto rounded-xl border border-zinc-200 object-cover" />
+              <img
+                src={previewImageUrl}
+                alt="Current Preview"
+                className="h-40 w-auto rounded-xl border border-zinc-200 object-cover"
+              />
             </div>
           )}
 
