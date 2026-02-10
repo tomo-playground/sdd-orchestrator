@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import re
 
-from models.creative import CreativeTrace
+from config import logger
+from models.creative import CreativeAgentPreset, CreativeTrace
 from services.prompt.prompt import split_prompt_tokens
 
 
@@ -55,6 +56,21 @@ def _fix_json_escapes(text: str) -> str:
             out.append("\\\\")
             i += 1
     return "".join(out)
+
+
+def load_preset(db, agent_role: str) -> CreativeAgentPreset | None:
+    """Load an agent preset by role key. Returns None if not found."""
+    preset = (
+        db.query(CreativeAgentPreset)
+        .filter(
+            CreativeAgentPreset.agent_role == agent_role,
+            CreativeAgentPreset.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not preset:
+        logger.warning("[Preset] No preset found for agent_role=%s, using fallback", agent_role)
+    return preset
 
 
 def get_next_sequence(db, session_id: int) -> int:

@@ -28,6 +28,9 @@ class CreativeAgentPreset(Base, TimestampMixin, SoftDeleteMixin):
     model_name: Mapped[str] = mapped_column(String(50), nullable=False)
     temperature: Mapped[float] = mapped_column(Float, default=0.9)
     is_system: Mapped[bool] = mapped_column(default=False, server_default="false")
+    agent_role: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    category: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    agent_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     traces: Mapped[list[CreativeTrace]] = relationship("CreativeTrace", back_populates="agent_preset")

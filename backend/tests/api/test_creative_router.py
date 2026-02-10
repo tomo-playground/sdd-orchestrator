@@ -72,7 +72,9 @@ class TestListSessions:
         assert data["items"][0]["objective"] == "Test"
 
     def test_list_sessions_excludes_deleted(
-        self, client: TestClient, db_session,
+        self,
+        client: TestClient,
+        db_session,
     ):
         """Soft-deleted sessions are excluded."""
         session = CreativeSession(
@@ -114,7 +116,9 @@ class TestGetSession:
         assert resp.status_code == 404
 
     def test_get_deleted_session_returns_404(
-        self, client: TestClient, db_session,
+        self,
+        client: TestClient,
+        db_session,
     ):
         """Soft-deleted session returns 404."""
         session = CreativeSession(
@@ -174,7 +178,9 @@ class TestListPresets:
         assert resp.json() == []
 
     def test_list_presets_excludes_deleted(
-        self, client: TestClient, db_session,
+        self,
+        client: TestClient,
+        db_session,
     ):
         """Soft-deleted presets are excluded."""
         preset = CreativeAgentPreset(
@@ -239,10 +245,12 @@ class TestUpdatePreset:
         assert resp.status_code == 200
         assert resp.json()["name"] == "Updated"
 
-    def test_update_system_preset_blocked(
-        self, client: TestClient, db_session,
+    def test_update_system_preset_allowed(
+        self,
+        client: TestClient,
+        db_session,
     ):
-        """System presets cannot be edited."""
+        """System presets can be edited (e.g. temperature, system_prompt)."""
         preset = CreativeAgentPreset(
             name="System",
             role_description="test",
@@ -256,9 +264,10 @@ class TestUpdatePreset:
 
         resp = client.put(
             f"/lab/creative/agent-presets/{preset.id}",
-            json={"name": "Hacked"},
+            json={"temperature": 0.5},
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
+        assert resp.json()["temperature"] == 0.5
 
     def test_update_preset_not_found(self, client: TestClient):
         """Update non-existent preset returns 404."""
@@ -290,7 +299,9 @@ class TestDeletePreset:
         assert resp.json()["ok"] is True
 
     def test_delete_system_preset_blocked(
-        self, client: TestClient, db_session,
+        self,
+        client: TestClient,
+        db_session,
     ):
         """System presets cannot be deleted."""
         preset = CreativeAgentPreset(

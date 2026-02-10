@@ -11,6 +11,8 @@ type PresetForm = {
   model_provider: string;
   model_name: string;
   temperature: number;
+  agent_role: string;
+  category: string;
 };
 
 type Props = {
@@ -96,6 +98,35 @@ export default function PresetFormFields({
             onChange={(e) => updateField("temperature", parseFloat(e.target.value))}
             className="mt-1 w-full"
           />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            Agent Role
+          </label>
+          <input
+            value={form.agent_role}
+            onChange={(e) => updateField("agent_role", e.target.value)}
+            placeholder="e.g. scriptwriter"
+            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            Category
+          </label>
+          <select
+            value={form.category}
+            onChange={(e) => updateField("category", e.target.value)}
+            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+          >
+            <option value="">None</option>
+            <option value="v1_debate">V1 Debate</option>
+            <option value="v2_concept">V2 Concept</option>
+            <option value="v2_production">V2 Production</option>
+          </select>
         </div>
       </div>
 

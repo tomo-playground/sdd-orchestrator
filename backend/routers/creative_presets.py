@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -20,14 +21,12 @@ router = APIRouter(prefix="/lab/creative", tags=["creative"])
 
 
 @router.get("/agent-presets", response_model=list[AgentPresetResponse])
-def api_list_presets(db: Session = Depends(get_db)):
-    """List all active agent presets."""
-    return (
-        db.query(CreativeAgentPreset)
-        .filter(CreativeAgentPreset.deleted_at.is_(None))
-        .order_by(CreativeAgentPreset.id)
-        .all()
-    )
+def api_list_presets(category: str | None = None, db: Session = Depends(get_db)):
+    """List all active agent presets, optionally filtered by category."""
+    query = db.query(CreativeAgentPreset).filter(CreativeAgentPreset.deleted_at.is_(None))
+    if category:
+        query = query.filter(CreativeAgentPreset.category == category)
+    return query.order_by(CreativeAgentPreset.id).all()
 
 
 @router.post("/agent-presets", response_model=AgentPresetResponse)
@@ -53,12 +52,14 @@ def api_update_preset(
     preset = db.get(CreativeAgentPreset, preset_id)
     if not preset or preset.deleted_at:
         raise HTTPException(status_code=404, detail="Preset not found")
-    if preset.is_system:
-        raise HTTPException(status_code=400, detail="Cannot edit system presets")
 
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(preset, field, value)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Duplicate agent_role or name") from None
     db.refresh(preset)
     return preset
 

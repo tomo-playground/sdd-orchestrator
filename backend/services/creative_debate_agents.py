@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader
 from config import BASE_DIR, CREATIVE_LEADER_MODEL, logger
 from models.creative import CreativeSession
 from services.creative_agents import generate_parallel, get_provider
-from services.creative_utils import get_next_sequence, parse_json_response, record_trace_sync
+from services.creative_utils import get_next_sequence, load_preset, parse_json_response, record_trace_sync
 
 _template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates" / "creative")))
 
@@ -80,13 +80,17 @@ async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext
         language=ctx.language,
     )
 
+    preset = load_preset(db, "reference_analyst")
+    sys_prompt = preset.system_prompt if preset else "You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON."
+    temp = preset.temperature if preset else 0.5
+
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     start = time.monotonic()
     try:
         result = await provider.generate(
             prompt=prompt,
-            system_prompt="You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON.",
-            temperature=0.5,
+            system_prompt=sys_prompt,
+            temperature=temp,
         )
     except Exception as e:
         logger.warning("[Shorts] Reference Analyst failed: %s", e)
@@ -101,12 +105,13 @@ async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext
         sequence=seq,
         trace_type="generation",
         agent_role="reference_analyst",
+        agent_preset_id=preset.id if preset else None,
         input_prompt=prompt,
         output_content=result["content"],
         model_id=result["model_id"],
         token_usage=result["token_usage"],
         latency_ms=elapsed_ms,
-        temperature=0.5,
+        temperature=temp,
         phase="reference",
         step_name="reference_analyst",
     )
@@ -131,8 +136,13 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
         if ctx.critic_feedback and arch["role"] in (ctx.critic_feedback.get("by_role") or {}):
             arch_critic = ctx.critic_feedback["by_role"][arch["role"]]
 
+        preset = load_preset(db, arch["role"])
+        meta = (preset.agent_metadata or {}) if preset else {}
+        perspective = meta.get("perspective", arch["perspective"])
+        focus = meta.get("focus_instruction", arch["focus_instruction"])
+
         prompt = template.render(
-            perspective=arch["perspective"],
+            perspective=perspective,
             duration=ctx.duration,
             topic=ctx.topic,
             language=ctx.language,
@@ -142,17 +152,20 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             prev_concept=json.dumps(prev_concept, ensure_ascii=False) if prev_concept else None,
             director_feedback=ctx.director_feedback,
             critic_feedback=arch_critic,
-            focus_instruction=arch["focus_instruction"],
+            focus_instruction=focus,
         )
+
+        sys_prompt = preset.system_prompt if preset else f"You are a Story Architect ({arch['perspective']}). Respond only in valid JSON."
+        temp = preset.temperature if preset else 0.9
 
         agents.append(
             {
                 "role": arch["role"],
-                "preset_id": None,
+                "preset_id": preset.id if preset else None,
                 "provider": "gemini",
                 "model_name": CREATIVE_LEADER_MODEL,
-                "system_prompt": f"You are a Story Architect ({arch['perspective']}). Respond only in valid JSON.",
-                "temperature": 0.9,
+                "system_prompt": sys_prompt,
+                "temperature": temp,
                 "objective": prompt,
             }
         )
@@ -168,6 +181,7 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             sequence=seq,
             trace_type="generation",
             agent_role=result.get("agent_role", "unknown"),
+            agent_preset_id=result.get("preset_id"),
             input_prompt=result.get("_prompt", ""),
             output_content=result.get("content", ""),
             model_id=result.get("model_id", "unknown"),
@@ -197,13 +211,17 @@ async def run_devils_advocate(
         structure=ctx.structure,
     )
 
+    preset = load_preset(db, "devils_advocate")
+    sys_prompt = preset.system_prompt if preset else "You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON."
+    temp = preset.temperature if preset else 0.7
+
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     start = time.monotonic()
     try:
         result = await provider.generate(
             prompt=prompt,
-            system_prompt="You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON.",
-            temperature=0.7,
+            system_prompt=sys_prompt,
+            temperature=temp,
         )
     except Exception as e:
         logger.warning("[Shorts] Devil's Advocate failed: %s", e)
@@ -218,12 +236,13 @@ async def run_devils_advocate(
         sequence=seq,
         trace_type="generation",
         agent_role="devils_advocate",
+        agent_preset_id=preset.id if preset else None,
         input_prompt=prompt,
         output_content=result["content"],
         model_id=result["model_id"],
         token_usage=result["token_usage"],
         latency_ms=elapsed_ms,
-        temperature=0.7,
+        temperature=temp,
         phase="concept",
         step_name="critic",
     )
@@ -258,12 +277,16 @@ async def run_director_evaluate(
         originality_weight=0.20,
     )
 
+    preset = load_preset(db, "creative_director")
+    sys_prompt = preset.system_prompt if preset else "You are a Creative Director. Evaluate concepts strictly. Respond only in valid JSON."
+    temp = preset.temperature if preset else 0.3
+
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     start = time.monotonic()
     result = await provider.generate(
         prompt=prompt,
-        system_prompt="You are a Creative Director. Evaluate concepts strictly. Respond only in valid JSON.",
-        temperature=0.3,
+        system_prompt=sys_prompt,
+        temperature=temp,
     )
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
@@ -275,12 +298,13 @@ async def run_director_evaluate(
         sequence=seq,
         trace_type="evaluation",
         agent_role="creative_director",
+        agent_preset_id=preset.id if preset else None,
         input_prompt=prompt,
         output_content=result["content"],
         model_id=result["model_id"],
         token_usage=result["token_usage"],
         latency_ms=elapsed_ms,
-        temperature=0.3,
+        temperature=temp,
         phase="concept",
     )
 

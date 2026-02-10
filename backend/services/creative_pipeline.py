@@ -29,6 +29,7 @@ from services.creative_qc import validate_copyright, validate_music, validate_sc
 from services.creative_utils import (
     calculate_total_tokens,
     get_next_sequence,
+    load_preset,
     parse_json_response,
     record_feedback,
     record_handoff,
@@ -70,6 +71,8 @@ def _run_llm_step(
     template_vars: dict,
     system_prompt: str,
     step_name: str,
+    temperature: float = 0.8,
+    agent_preset_id: int | None = None,
     phase: str = "production",
     retry_count: int = 0,
     parent_trace_id: int | None = None,
@@ -83,7 +86,9 @@ def _run_llm_step(
     start = time.monotonic()
     loop = asyncio.new_event_loop()
     try:
-        result = loop.run_until_complete(provider.generate(prompt=prompt, system_prompt=system_prompt, temperature=0.8))
+        result = loop.run_until_complete(
+            provider.generate(prompt=prompt, system_prompt=system_prompt, temperature=temperature)
+        )
     finally:
         loop.close()
     elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -96,12 +101,13 @@ def _run_llm_step(
         sequence=seq,
         trace_type="generation",
         agent_role=step_name,
+        agent_preset_id=agent_preset_id,
         input_prompt=prompt,
         output_content=result["content"],
         model_id=result["model_id"],
         token_usage=result["token_usage"],
         latency_ms=elapsed_ms,
-        temperature=0.8,
+        temperature=temperature,
         phase=phase,
         step_name=step_name,
         retry_count=retry_count,
@@ -124,6 +130,8 @@ def _run_step_with_retry(
     template_vars: dict,
     system_prompt: str,
     validate_fn,
+    temperature: float = 0.8,
+    agent_preset_id: int | None = None,
     scenes_key: str = "scenes",
 ) -> list | dict:
     """Generic retry loop for a pipeline step.
@@ -145,6 +153,8 @@ def _run_step_with_retry(
                 template_vars=retry_vars,
                 system_prompt=system_prompt,
                 step_name=step_name,
+                temperature=temperature,
+                agent_preset_id=agent_preset_id,
                 retry_count=retry,
                 parent_trace_id=last_trace_id,
             )
@@ -262,6 +272,7 @@ def run_pipeline(session_id: int) -> None:
         # Step 1: Scriptwriter
         current_step = "scriptwriter"
         if "scriptwriter_result" not in state:
+            p = load_preset(db, "scriptwriter")
             scripts = _run_step_with_retry(
                 db,
                 session,
@@ -282,13 +293,15 @@ def run_pipeline(session_id: int) -> None:
                     "scene_dur_min": SCENE_DURATION_RANGE[0],
                     "scene_dur_max": SCENE_DURATION_RANGE[1],
                 },
-                system_prompt="You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
+                system_prompt=p.system_prompt if p else "You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
                 validate_fn=lambda scenes: validate_scripts(
                     scenes,
                     ctx.get("structure", "Monologue"),
                     ctx.get("duration", 30),
                     ctx.get("language", "Korean"),
                 ),
+                temperature=p.temperature if p else 0.8,
+                agent_preset_id=p.id if p else None,
             )
             _commit_step(db, session, "scriptwriter", "done", state)
         else:
@@ -297,6 +310,7 @@ def run_pipeline(session_id: int) -> None:
         # Step 2: Cinematographer
         current_step = "cinematographer"
         if "cinematographer_result" not in state:
+            p = load_preset(db, "cinematographer")
             _run_step_with_retry(
                 db,
                 session,
@@ -310,8 +324,10 @@ def run_pipeline(session_id: int) -> None:
                     if characters
                     else None,
                 },
-                system_prompt="You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
+                system_prompt=p.system_prompt if p else "You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
                 validate_fn=validate_visuals,
+                temperature=p.temperature if p else 0.8,
+                agent_preset_id=p.id if p else None,
             )
             _commit_step(db, session, "cinematographer", "done", state)
 
@@ -319,6 +335,7 @@ def run_pipeline(session_id: int) -> None:
         current_step = "sound_designer"
         if "sound_designer_result" not in state:
             cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+            p = load_preset(db, "sound_designer")
             _run_step_with_retry(
                 db,
                 session,
@@ -330,8 +347,10 @@ def run_pipeline(session_id: int) -> None:
                     "scenes": cinema_scenes,
                     "duration": ctx.get("duration", 30),
                 },
-                system_prompt="You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
+                system_prompt=p.system_prompt if p else "You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
                 validate_fn=validate_music,
+                temperature=p.temperature if p else 0.8,
+                agent_preset_id=p.id if p else None,
                 scenes_key="recommendation",
             )
             _commit_step(db, session, "sound_designer", "done", state)
@@ -340,6 +359,7 @@ def run_pipeline(session_id: int) -> None:
         current_step = "copyright_reviewer"
         if "copyright_reviewer_result" not in state:
             cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+            p = load_preset(db, "copyright_reviewer")
             _run_step_with_retry(
                 db,
                 session,
@@ -347,8 +367,10 @@ def run_pipeline(session_id: int) -> None:
                 step_name="copyright_reviewer",
                 template_name="copyright_reviewer.j2",
                 template_vars={"scenes": cinema_scenes},
-                system_prompt="You are a Copyright Reviewer. Check for originality issues. Respond only in valid JSON.",
+                system_prompt=p.system_prompt if p else "You are a Copyright Reviewer. Check for originality issues. Respond only in valid JSON.",
                 validate_fn=validate_copyright,
+                temperature=p.temperature if p else 0.8,
+                agent_preset_id=p.id if p else None,
                 scenes_key="checks",
             )
             _commit_step(db, session, "copyright_reviewer", "done", state)

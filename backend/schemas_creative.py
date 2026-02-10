@@ -51,6 +51,9 @@ class AgentPresetCreate(BaseModel):
     model_name: str = "gemini-2.0-flash"
     temperature: float = 0.9
     is_system: bool = False
+    agent_role: str | None = None
+    category: str | None = None
+    agent_metadata: dict[str, Any] | None = None
 
 
 class AgentPresetUpdate(BaseModel):
@@ -60,6 +63,9 @@ class AgentPresetUpdate(BaseModel):
     model_provider: str | None = None
     model_name: str | None = None
     temperature: float | None = None
+    agent_role: str | None = None
+    category: str | None = None
+    agent_metadata: dict[str, Any] | None = None
 
 
 class AgentPresetResponse(BaseModel):
@@ -71,6 +77,9 @@ class AgentPresetResponse(BaseModel):
     model_name: str
     temperature: float
     is_system: bool
+    agent_role: str | None = None
+    category: str | None = None
+    agent_metadata: dict[str, Any] | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
