@@ -1,8 +1,12 @@
 "use client";
 
+import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
+import { useStudioStore } from "../../../store/useStudioStore";
 import { useRenderPresetsTab } from "../hooks/useRenderPresetsTab";
 
 export default function RenderPresetsTab() {
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
   const {
     presets,
     editing,
@@ -17,7 +21,7 @@ export default function RenderPresetsTab() {
     handleSave,
     handleCancel,
     set,
-  } = useRenderPresetsTab();
+  } = useRenderPresetsTab({ showToast, confirmDialog: confirm });
 
   const inputCls =
     "w-full rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] text-zinc-800 focus:border-zinc-400 focus:outline-none";
@@ -290,6 +294,7 @@ export default function RenderPresetsTab() {
           </div>
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

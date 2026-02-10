@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useSettingsTab } from "../hooks/useSettingsTab";
+import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
+import { useStudioStore } from "../../../store/useStudioStore";
 import AnalyticsSection from "./AnalyticsSection";
 import CacheRefreshSection from "./CacheRefreshSection";
 import MediaAssetsSection from "./MediaAssetsSection";
 
 export default function SettingsTab() {
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
+
   const {
     storageStats,
     isLoadingStorage,
@@ -36,7 +41,7 @@ export default function SettingsTab() {
     isRefreshingCaches,
     cacheRefreshResult,
     handleRefreshCaches,
-  } = useSettingsTab();
+  } = useSettingsTab({ showToast, confirmDialog: confirm });
 
   return (
     <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
@@ -489,6 +494,7 @@ export default function SettingsTab() {
           </Link>
         </div>
       </div>
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

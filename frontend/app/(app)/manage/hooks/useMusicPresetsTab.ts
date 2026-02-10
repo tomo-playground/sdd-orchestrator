@@ -5,6 +5,16 @@ import type { MusicPreset } from "../../../types";
 
 // ── Types ──────────────────────────────────────────────
 
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
 export type EditingMusic = {
   name: string;
   description: string;
@@ -23,7 +33,7 @@ export const EMPTY_MUSIC: EditingMusic = {
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useMusicPresetsTab() {
+export function useMusicPresetsTab(ui: UiCallbacks) {
   const [presets, setPresets] = useState<MusicPreset[]>([]);
   const [editing, setEditing] = useState<EditingMusic | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
@@ -72,15 +82,24 @@ export function useMusicPresetsTab() {
 
   const handleDelete = useCallback(
     async (p: MusicPreset) => {
-      if (!confirm(`Delete "${p.name}"?`)) return;
+      const ok = await ui.confirmDialog({
+        title: "Delete Music Preset",
+        message: `Delete "${p.name}"?`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
       try {
         await axios.delete(`${API_BASE}/music-presets/${p.id}`);
         await fetchPresets();
-      } catch {
-        alert("Delete failed");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Delete failed: ${msg}`, "error");
       }
     },
-    [fetchPresets]
+    [fetchPresets, ui]
   );
 
   const handlePreview = useCallback(async () => {
@@ -95,12 +114,15 @@ export function useMusicPresetsTab() {
       setPreviewUrl(res.data.audio_url);
       setPreviewAssetId(res.data.temp_asset_id);
       setPreviewSeed(res.data.seed ?? null);
-    } catch {
-      alert("Preview generation failed");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Preview generation failed: ${msg}`, "error");
     } finally {
       setPreviewing(false);
     }
-  }, [editing]);
+  }, [editing, ui]);
 
   const handleSave = useCallback(async () => {
     if (!editing?.name.trim()) return;
@@ -134,12 +156,15 @@ export function useMusicPresetsTab() {
       setPreviewAssetId(null);
       setPreviewSeed(null);
       await fetchPresets();
-    } catch {
-      alert("Save failed");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Save failed: ${msg}`, "error");
     } finally {
       setSaving(false);
     }
-  }, [editing, editId, previewSeed, previewAssetId, fetchPresets]);
+  }, [editing, editId, previewSeed, previewAssetId, fetchPresets, ui]);
 
   const handleCancel = useCallback(() => {
     setEditing(null);
@@ -166,7 +191,7 @@ export function useMusicPresetsTab() {
       audio.onended = () => setPlayingId(null);
       audio.play().catch(() => setPlayingId(null));
     },
-    [stopAudio],
+    [stopAudio]
   );
 
   const previewPreset = useCallback(
@@ -198,13 +223,16 @@ export function useMusicPresetsTab() {
           await axios.put(`${API_BASE}/music-presets/${p.id}`, { seed });
         }
         await fetchPresets();
-      } catch {
-        alert("Preview generation failed");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Preview generation failed: ${msg}`, "error");
       } finally {
         setPreviewingId(null);
       }
     },
-    [fetchPresets, playAudio, playingId, stopAudio],
+    [fetchPresets, playAudio, playingId, stopAudio, ui]
   );
 
   const set = useCallback(

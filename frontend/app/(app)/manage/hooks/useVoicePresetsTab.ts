@@ -5,6 +5,16 @@ import type { VoicePreset } from "../../../types";
 
 // ── Types ──────────────────────────────────────────────
 
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
 export type EditingPreset = {
   name: string;
   description: string;
@@ -25,7 +35,7 @@ export const EMPTY_PRESET: EditingPreset = {
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useVoicePresetsTab() {
+export function useVoicePresetsTab(ui: UiCallbacks) {
   const [presets, setPresets] = useState<VoicePreset[]>([]);
   const [editing, setEditing] = useState<EditingPreset | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
@@ -73,15 +83,24 @@ export function useVoicePresetsTab() {
 
   const handleDelete = useCallback(
     async (p: VoicePreset) => {
-      if (!confirm(`Delete "${p.name}"?`)) return;
+      const ok = await ui.confirmDialog({
+        title: "Delete Voice Preset",
+        message: `Delete "${p.name}"?`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
       try {
         await axios.delete(`${API_BASE}/voice-presets/${p.id}`);
         await fetchPresets();
-      } catch {
-        alert("Delete failed");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Delete failed: ${msg}`, "error");
       }
     },
-    [fetchPresets]
+    [fetchPresets, ui]
   );
 
   const handlePreview = useCallback(async () => {
@@ -96,12 +115,15 @@ export function useVoicePresetsTab() {
       setPreviewUrl(res.data.audio_url);
       setPreviewAssetId(res.data.temp_asset_id);
       setPreviewSeed(res.data.voice_seed ?? null);
-    } catch {
-      alert("Preview generation failed");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Preview generation failed: ${msg}`, "error");
     } finally {
       setPreviewing(false);
     }
-  }, [editing]);
+  }, [editing, ui]);
 
   const handleSave = useCallback(async () => {
     if (!editing?.name.trim()) return;
@@ -135,12 +157,15 @@ export function useVoicePresetsTab() {
       setPreviewAssetId(null);
       setPreviewSeed(null);
       await fetchPresets();
-    } catch {
-      alert("Save failed");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Save failed: ${msg}`, "error");
     } finally {
       setSaving(false);
     }
-  }, [editing, editId, previewSeed, previewAssetId, fetchPresets]);
+  }, [editing, editId, previewSeed, previewAssetId, fetchPresets, ui]);
 
   const handleCancel = useCallback(() => {
     setEditing(null);
@@ -162,7 +187,7 @@ export function useVoicePresetsTab() {
   const set = useCallback(
     (key: keyof EditingPreset, value: unknown) =>
       setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
-    [],
+    []
   );
 
   return {

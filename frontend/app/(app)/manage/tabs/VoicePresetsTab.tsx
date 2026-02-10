@@ -1,8 +1,12 @@
 "use client";
 
+import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
+import { useStudioStore } from "../../../store/useStudioStore";
 import { useVoicePresetsTab } from "../hooks/useVoicePresetsTab";
 
 export default function VoicePresetsTab() {
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
   const {
     presets,
     editing,
@@ -18,7 +22,7 @@ export default function VoicePresetsTab() {
     handleCancel,
     playAudio,
     set,
-  } = useVoicePresetsTab();
+  } = useVoicePresetsTab({ showToast, confirmDialog: confirm });
 
   const inputCls =
     "w-full rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] text-zinc-800 focus:border-zinc-400 focus:outline-none";
@@ -190,6 +194,7 @@ export default function VoicePresetsTab() {
           </div>
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

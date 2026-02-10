@@ -5,6 +5,16 @@ import type { RenderPreset } from "../../../types";
 
 // ── Types ──────────────────────────────────────────────
 
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
 export type EditingPreset = Partial<RenderPreset> & { name: string };
 
 export const EMPTY_PRESET: EditingPreset = {
@@ -24,7 +34,7 @@ export const EMPTY_PRESET: EditingPreset = {
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useRenderPresetsTab() {
+export function useRenderPresetsTab(ui: UiCallbacks) {
   const [presets, setPresets] = useState<RenderPreset[]>([]);
   const [editing, setEditing] = useState<EditingPreset | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
@@ -86,15 +96,24 @@ export function useRenderPresetsTab() {
 
   const handleDelete = useCallback(
     async (p: RenderPreset) => {
-      if (!confirm(`"${p.name}" 프리셋을 삭제하시겠습니까?`)) return;
+      const ok = await ui.confirmDialog({
+        title: "Delete Preset",
+        message: `"${p.name}" 프리셋을 삭제하시겠습니까?`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
       try {
         await axios.delete(`${API_BASE}/render-presets/${p.id}`);
         await fetchPresets();
-      } catch {
-        alert("삭제 실패");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Preset delete failed: ${msg}`, "error");
       }
     },
-    [fetchPresets]
+    [fetchPresets, ui]
   );
 
   const handleSave = useCallback(async () => {
@@ -109,12 +128,15 @@ export function useRenderPresetsTab() {
       setEditing(null);
       setEditId(null);
       await fetchPresets();
-    } catch {
-      alert("저장 실패");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Preset save failed: ${msg}`, "error");
     } finally {
       setSaving(false);
     }
-  }, [editing, editId, fetchPresets]);
+  }, [editing, editId, fetchPresets, ui]);
 
   const handleCancel = useCallback(() => {
     setEditing(null);
@@ -124,7 +146,7 @@ export function useRenderPresetsTab() {
   const set = useCallback(
     (key: keyof EditingPreset, value: unknown) =>
       setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
-    [],
+    []
   );
 
   return {

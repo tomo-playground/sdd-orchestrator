@@ -4,9 +4,21 @@ import axios from "axios";
 import { API_BASE, PROMPT_APPLY_KEY } from "../../../constants";
 import type { PromptHistory } from "../../../types";
 
+// ── Types ──────────────────────────────────────────────
+
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
 // ── Hook ───────────────────────────────────────────────
 
-export function usePromptsTab() {
+export function usePromptsTab(ui: UiCallbacks) {
   const router = useRouter();
 
   const [promptHistories, setPromptHistories] = useState<PromptHistory[]>([]);
@@ -49,33 +61,51 @@ export function usePromptsTab() {
     void fetchPromptHistories();
   }, [fetchPromptHistories]);
 
-  const deletePromptHistory = useCallback(async (id: number) => {
-    if (!confirm("Delete this prompt history?")) return;
-    setDeletingPromptId(id);
-    try {
-      await axios.delete(`${API_BASE}/prompt-histories/${id}`);
-      setPromptHistories((prev) => prev.filter((p) => p.id !== id));
-    } catch {
-      alert("Failed to delete prompt");
-    } finally {
-      setDeletingPromptId(null);
-    }
-  }, []);
-
-  const togglePromptFavorite = useCallback(async (id: number) => {
-    try {
-      const prompt = promptHistoriesRef.current.find((p) => p.id === id);
-      if (!prompt) return;
-      await axios.put(`${API_BASE}/prompt-histories/${id}`, {
-        is_favorite: !prompt.is_favorite,
+  const deletePromptHistory = useCallback(
+    async (id: number) => {
+      const ok = await ui.confirmDialog({
+        title: "Delete Prompt",
+        message: "Delete this prompt history?",
+        confirmLabel: "Delete",
+        variant: "danger",
       });
-      setPromptHistories((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p)),
-      );
-    } catch {
-      alert("Failed to update favorite status");
-    }
-  }, []);
+      if (!ok) return;
+      setDeletingPromptId(id);
+      try {
+        await axios.delete(`${API_BASE}/prompt-histories/${id}`);
+        setPromptHistories((prev) => prev.filter((p) => p.id !== id));
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Failed to delete prompt: ${msg}`, "error");
+      } finally {
+        setDeletingPromptId(null);
+      }
+    },
+    [ui]
+  );
+
+  const togglePromptFavorite = useCallback(
+    async (id: number) => {
+      try {
+        const prompt = promptHistoriesRef.current.find((p) => p.id === id);
+        if (!prompt) return;
+        await axios.put(`${API_BASE}/prompt-histories/${id}`, {
+          is_favorite: !prompt.is_favorite,
+        });
+        setPromptHistories((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p))
+        );
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Failed to update favorite status: ${msg}`, "error");
+      }
+    },
+    [ui]
+  );
 
   const applyPromptHistory = useCallback(
     (id: number) => {
@@ -86,7 +116,7 @@ export function usePromptsTab() {
       localStorage.setItem(PROMPT_APPLY_KEY, JSON.stringify(prompt));
       router.push("/");
     },
-    [router],
+    [router]
   );
 
   return {

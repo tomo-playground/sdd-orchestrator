@@ -1,6 +1,7 @@
 "use client";
 
 import { useTrashTab, type TrashItem, type FilterType } from "../hooks/useTrashTab";
+import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 
 const RETENTION_DAYS = 30;
 
@@ -26,8 +27,10 @@ const TYPE_BADGE: Record<TrashItem["type"], { label: string; color: string }> = 
 };
 
 export default function TrashTab() {
+  const { confirm, dialogProps } = useConfirm();
+
   const { items, filter, setFilter, loading, filtered, handleRestore, handlePermanentDelete } =
-    useTrashTab();
+    useTrashTab(confirm);
 
   return (
     <section className="flex flex-col gap-4">
@@ -111,6 +114,7 @@ export default function TrashTab() {
           })}
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

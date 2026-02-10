@@ -92,9 +92,21 @@ export type CacheRefreshResult = {
   error?: string;
 };
 
+// ── UI Callbacks ──────────────────────────────────────
+
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
 // ── Hook ───────────────────────────────────────────────
 
-export function useSettingsTab() {
+export function useSettingsTab(ui: UiCallbacks) {
   // Storage state
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [isLoadingStorage, setIsLoadingStorage] = useState(false);
@@ -158,13 +170,16 @@ export function useSettingsTab() {
           const statsRes = await axios.get(`${API_BASE}/storage/stats`);
           setStorageStats(statsRes.data);
         }
-      } catch {
-        alert("Cleanup failed.");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Cleanup failed: ${msg}`, "error");
       } finally {
         setIsCleaningUp(false);
       }
     },
-    [cleanupOptions]
+    [cleanupOptions, ui]
   );
 
   const fetchAutoEditSettings = useCallback(async () => {
@@ -234,13 +249,16 @@ export function useSettingsTab() {
         });
         setMediaCleanupResult(res.data);
         if (!dryRun) void fetchMediaStats();
-      } catch {
-        alert("Media cleanup failed.");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Media cleanup failed: ${msg}`, "error");
       } finally {
         setIsMediaCleaning(false);
       }
     },
-    [fetchMediaStats]
+    [fetchMediaStats, ui]
   );
 
   // ── Cache Refresh ────────────────────────────────

@@ -2,10 +2,14 @@
 
 import { useCharacters } from "../../../hooks";
 import { usePromptsTab } from "../hooks/usePromptsTab";
+import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
+import { useStudioStore } from "../../../store/useStudioStore";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import type { Character } from "../../../types";
 
 export default function PromptsTab() {
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
   const { characters } = useCharacters();
   const {
     promptHistories,
@@ -23,7 +27,7 @@ export default function PromptsTab() {
     deletePromptHistory,
     togglePromptFavorite,
     applyPromptHistory,
-  } = usePromptsTab();
+  } = usePromptsTab({ showToast, confirmDialog: confirm });
 
   return (
     <section className="grid gap-4 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
@@ -175,6 +179,7 @@ export default function PromptsTab() {
           ))}
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

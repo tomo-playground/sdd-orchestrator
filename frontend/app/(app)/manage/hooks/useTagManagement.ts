@@ -13,9 +13,21 @@ export type PendingTag = {
   classification_confidence: number | null;
 };
 
+// ── UI Callbacks ──────────────────────────────────────
+
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
 // ── Hook ───────────────────────────────────────────────
 
-export function useTagManagement(fetchTagsData: () => Promise<void>) {
+export function useTagManagement(fetchTagsData: () => Promise<void>, ui: UiCallbacks) {
   const [isTagsLoading, setIsTagsLoading] = useState(false);
 
   // Filters
@@ -61,7 +73,7 @@ export function useTagManagement(fetchTagsData: () => Promise<void>) {
     async (tagId: number) => {
       const groupName = pendingGroupSelection[tagId];
       if (!groupName) {
-        alert("Please select a group first");
+        ui.showToast("Please select a group first", "warning");
         return;
       }
       setPendingApproving((prev) => ({ ...prev, [tagId]: true }));
@@ -76,13 +88,16 @@ export function useTagManagement(fetchTagsData: () => Promise<void>) {
           delete next[tagId];
           return next;
         });
-      } catch {
-        alert("Failed to approve tag");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Tag approve failed: ${msg}`, "error");
       } finally {
         setPendingApproving((prev) => ({ ...prev, [tagId]: false }));
       }
     },
-    [pendingGroupSelection]
+    [pendingGroupSelection, ui]
   );
 
   // ── Effects ────────────────────────────────────────

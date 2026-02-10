@@ -5,10 +5,14 @@ import { useTags } from "../../../hooks";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import DeprecatedTagsPanel from "../DeprecatedTagsPanel";
 import { useTagManagement } from "../hooks/useTagManagement";
+import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
+import { useStudioStore } from "../../../store/useStudioStore";
 import type { Tag } from "../../../types";
 
 export default function TagsTab() {
   const { tags: allTags, reload: fetchTagsData } = useTags(null);
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
 
   const {
     isTagsLoading,
@@ -26,7 +30,7 @@ export default function TagsTab() {
     handleRefresh,
     fetchPendingTags,
     handleApprovePendingTag,
-  } = useTagManagement(fetchTagsData);
+  } = useTagManagement(fetchTagsData, { showToast, confirmDialog: confirm });
 
   const SCENE_TAG_GROUPS = [
     "expression",
@@ -455,6 +459,7 @@ export default function TagsTab() {
           ))}
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </section>
   );
 }

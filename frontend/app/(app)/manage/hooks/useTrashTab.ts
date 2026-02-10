@@ -16,7 +16,14 @@ export type FilterType = "all" | "storyboard" | "character" | "prompt_history";
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useTrashTab() {
+export function useTrashTab(
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>
+) {
   const [items, setItems] = useState<TrashItem[]>([]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
@@ -92,8 +99,13 @@ export function useTrashTab() {
 
   const handlePermanentDelete = useCallback(
     async (item: TrashItem) => {
-      if (!confirm(`Permanently delete "${item.name || "Untitled"}"? This cannot be undone.`))
-        return;
+      const ok = await confirmDialog({
+        title: "Permanent Delete",
+        message: `Permanently delete "${item.name || "Untitled"}"? This cannot be undone.`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
 
       const endpoint =
         item.type === "storyboard"
@@ -109,7 +121,7 @@ export function useTrashTab() {
         showToast("Delete failed", "error");
       }
     },
-    [showToast, fetchTrash]
+    [showToast, fetchTrash, confirmDialog]
   );
 
   const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
