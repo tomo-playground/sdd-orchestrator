@@ -14,3 +14,6 @@ export { useTagClassifier, getClassificationCache } from "./useTagClassifier";
 export { useStudioInitialization } from "./useStudioInitialization";
 
 export { useStudioOnboarding } from "./useStudioOnboarding";
+
+export { useBackendHealth } from "./useBackendHealth";
+export type { ConnectionStatus } from "./useBackendHealth";

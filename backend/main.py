@@ -113,6 +113,13 @@ app.add_middleware(
 os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
+
+# --- Health Check ---
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+
 # --- Routers ---
 app.include_router(admin_router)
 app.include_router(analytics_router)
