@@ -53,7 +53,11 @@ const initialScenesState = {
 
 export const createScenesSlice: StateCreator<ScenesSlice, [], [], ScenesSlice> = (set) => ({
   ...initialScenesState,
-  setScenes: (scenes) => set({ scenes, currentSceneIndex: 0 }),
+  setScenes: (scenes) =>
+    set((state) => ({
+      scenes,
+      currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, scenes.length - 1)),
+    })),
   updateScene: (sceneId, updates) =>
     set((state) => ({
       scenes: state.scenes.map((s) => (s.id === sceneId ? { ...s, ...updates } : s)),

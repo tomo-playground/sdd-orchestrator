@@ -89,16 +89,10 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       storyboardTitle: topic || "Draft Storyboard",
     });
 
-    // Update scene IDs with DB-assigned IDs (preserve current scene focus)
+    // Update scene IDs with DB-assigned IDs
     if (sceneIds.length > 0) {
-      const { scenes: currentScenes, setScenes, currentSceneIndex, setCurrentSceneIndex } =
-        useStudioStore.getState();
-      const updatedScenes = currentScenes.map((scene, idx) => ({
-        ...scene,
-        id: sceneIds[idx] || scene.id,
-      }));
-      setScenes(updatedScenes);
-      setCurrentSceneIndex(currentSceneIndex);
+      const { scenes: currentScenes, setScenes } = useStudioStore.getState();
+      setScenes(currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] || scene.id })));
     }
 
     // Sync URL with newly created storyboard ID
@@ -234,12 +228,6 @@ export async function persistStoryboard(): Promise<boolean> {
       })),
     };
 
-    // Preserve current scene index across setScenes (which resets to 0)
-    const preserveSceneIndex = () => {
-      const { currentSceneIndex, setCurrentSceneIndex } = useStudioStore.getState();
-      setCurrentSceneIndex(currentSceneIndex);
-    };
-
     if (storyboardId) {
       // PUT also returns scene_ids since scenes are deleted and recreated
       const res = await axios.put(`${API_BASE}/storyboards/${storyboardId}`, payload, {
@@ -249,7 +237,6 @@ export async function persistStoryboard(): Promise<boolean> {
       if (sceneIds.length > 0) {
         const current = useStudioStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
-        preserveSceneIndex();
       }
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload, {
@@ -261,7 +248,6 @@ export async function persistStoryboard(): Promise<boolean> {
       if (sceneIds.length > 0) {
         const current = useStudioStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
-        preserveSceneIndex();
       }
       // Sync URL with newly created storyboard ID
       if (typeof window !== "undefined") {
@@ -347,6 +333,7 @@ export async function generateStoryboard(): Promise<boolean> {
     const mapped = mapGeminiScenes(data.scenes, baseNegativePromptA);
 
     setScenes(mapped);
+    useStudioStore.getState().setCurrentSceneIndex(0);
     setActiveTab("scenes");
     showToast(`Generated ${mapped.length} scenes`, "success");
     saveStoryboard();

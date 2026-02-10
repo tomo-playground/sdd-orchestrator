@@ -352,7 +352,7 @@ describe("persistStoryboard scene index preservation", () => {
     vi.clearAllMocks();
   });
 
-  it("restores currentSceneIndex after PUT scene ID update", async () => {
+  it("preserves currentSceneIndex after PUT scene ID update (setScenes handles it natively)", async () => {
     const setScenes = vi.fn();
     const setCurrentSceneIndex = vi.fn();
     const state = makeStoreState({
@@ -379,11 +379,11 @@ describe("persistStoryboard scene index preservation", () => {
       expect.objectContaining({ id: 201 }),
       expect.objectContaining({ id: 202 }),
     ]);
-    // currentSceneIndex should be restored (not reset to 0)
-    expect(setCurrentSceneIndex).toHaveBeenCalledWith(2);
+    // setScenes now preserves currentSceneIndex natively — no explicit restore needed
+    expect(setCurrentSceneIndex).not.toHaveBeenCalled();
   });
 
-  it("restores currentSceneIndex after POST scene ID assignment", async () => {
+  it("preserves currentSceneIndex after POST scene ID assignment (setScenes handles it natively)", async () => {
     const setScenes = vi.fn();
     const setMeta = vi.fn();
     const setCurrentSceneIndex = vi.fn();
@@ -409,8 +409,8 @@ describe("persistStoryboard scene index preservation", () => {
       expect.objectContaining({ id: 500 }),
       expect.objectContaining({ id: 501 }),
     ]);
-    // currentSceneIndex should be restored after POST too
-    expect(setCurrentSceneIndex).toHaveBeenCalledWith(1);
+    // setScenes now preserves currentSceneIndex natively — no explicit restore needed
+    expect(setCurrentSceneIndex).not.toHaveBeenCalled();
   });
 });
 

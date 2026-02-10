@@ -99,6 +99,7 @@ export async function runAutoRunFromStep(
         workingScenes = mapGeminiScenes(incoming, baseNegativePromptA);
         if (!workingScenes.length) throw new Error("Storyboard is empty");
         setScenes(workingScenes);
+        useStudioStore.getState().setCurrentSceneIndex(0);
         await initializeVideoMetadata(topic);
         await persistStoryboard();
         workingScenes = useStudioStore.getState().scenes;
