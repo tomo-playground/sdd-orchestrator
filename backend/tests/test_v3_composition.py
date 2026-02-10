@@ -240,6 +240,40 @@ class TestGenderEnhancement:
         count = layers[LAYER_SUBJECT].count("(1boy:1.3)")
         assert count == 1
 
+    def test_male_removes_conflicting_female_tags(self, builder):
+        """Male character → removes 1girl from LAYER_SUBJECT."""
+        char = self._make_character(gender="male")
+        layers = [[] for _ in range(12)]
+        layers[LAYER_SUBJECT] = ["1girl", "solo"]
+
+        builder._apply_gender_enhancement(char, [], layers)
+
+        assert "1girl" not in layers[LAYER_SUBJECT]
+        assert "solo" in layers[LAYER_SUBJECT]
+        assert "(1boy:1.3)" in layers[LAYER_SUBJECT]
+
+    def test_male_removes_weighted_female_tags(self, builder):
+        """Male character → removes (1girl:1.0) weighted variant too."""
+        char = self._make_character(gender="male")
+        layers = [[] for _ in range(12)]
+        layers[LAYER_SUBJECT] = ["(1girl:1.0)", "solo"]
+
+        builder._apply_gender_enhancement(char, [], layers)
+
+        assert "(1girl:1.0)" not in layers[LAYER_SUBJECT]
+        assert "(1boy:1.3)" in layers[LAYER_SUBJECT]
+
+    def test_female_character_keeps_female_tags(self, builder):
+        """Female character → 1girl NOT removed."""
+        char = self._make_character(gender="female")
+        layers = [[] for _ in range(12)]
+        layers[LAYER_SUBJECT] = ["1girl"]
+
+        builder._apply_gender_enhancement(char, [], layers)
+
+        assert "1girl" in layers[LAYER_SUBJECT]
+        assert "(1boy:1.3)" not in layers[LAYER_SUBJECT]
+
 
 # ────────────────────────────────────────────
 # D-2: TagRuleCache conflict resolution tests
@@ -360,6 +394,27 @@ class TestPatternBasedFallback:
         """Known expression keywords → LAYER_EXPRESSION."""
         assert V3PromptBuilder._infer_layer_from_pattern("smiling") == LAYER_EXPRESSION
         assert V3PromptBuilder._infer_layer_from_pattern("crying") == LAYER_EXPRESSION
+
+    def test_background_suffix_to_environment(self):
+        """*_background tags → LAYER_ENVIRONMENT."""
+        assert V3PromptBuilder._infer_layer_from_pattern("machine_background") == LAYER_ENVIRONMENT
+        assert V3PromptBuilder._infer_layer_from_pattern("mechanical_background") == LAYER_ENVIRONMENT
+
+    def test_location_keywords_to_environment(self):
+        """Known location keywords → LAYER_ENVIRONMENT."""
+        assert V3PromptBuilder._infer_layer_from_pattern("laboratory") == LAYER_ENVIRONMENT
+        assert V3PromptBuilder._infer_layer_from_pattern("lab") == LAYER_ENVIRONMENT
+        assert V3PromptBuilder._infer_layer_from_pattern("space") == LAYER_ENVIRONMENT
+
+    def test_room_suffix_to_environment(self):
+        """*_room tags → LAYER_ENVIRONMENT."""
+        assert V3PromptBuilder._infer_layer_from_pattern("server_room") == LAYER_ENVIRONMENT
+
+    def test_mood_keywords_to_atmosphere(self):
+        """Mood/genre keywords → LAYER_ATMOSPHERE."""
+        assert V3PromptBuilder._infer_layer_from_pattern("futuristic") == LAYER_ATMOSPHERE
+        assert V3PromptBuilder._infer_layer_from_pattern("cyberpunk") == LAYER_ATMOSPHERE
+        assert V3PromptBuilder._infer_layer_from_pattern("steampunk") == LAYER_ATMOSPHERE
 
     def test_unknown_tag_defaults_to_subject(self):
         """Unknown pattern → LAYER_SUBJECT."""
@@ -575,15 +630,12 @@ class TestDistributeTags:
         assert "pale_skin" in all_tokens
         assert "dark_skin" not in all_tokens
 
-
     def test_lora_tags_in_scene_tags_are_stripped(self, builder):
         """LoRA tags in scene_tags must be stripped to prevent double injection."""
         scene_info = {"outdoors": _make_tag_info("outdoors", LAYER_ENVIRONMENT)}
         builder.get_tag_info = MagicMock(
             side_effect=lambda names: {
-                n: scene_info[n]
-                for n in [t.lower().replace(" ", "_").strip() for t in names]
-                if n in scene_info
+                n: scene_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in scene_info
             }
         )
 

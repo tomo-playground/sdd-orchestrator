@@ -130,34 +130,40 @@ class V3PromptBuilder:
         found = {tag.name for tag in self.db.query(Tag.name).filter(Tag.name.in_(normalized)).all()}
         return [t for t in normalized if t not in found]
 
+    # Pattern-based fallback constants for _infer_layer_from_pattern
+    _EXPRESSION_KEYWORDS = frozenset(
+        {
+            "smiling", "crying", "angry", "sad", "happy",
+            "surprised", "confused", "blushing", "embarrassed",
+            "scared", "worried", "nervous",
+        }
+    )
+    _LOCATION_KEYWORDS = frozenset(
+        {
+            "room", "lab", "laboratory", "street", "city",
+            "forest", "beach", "space", "spaceship", "neon_city",
+        }
+    )
+    _MOOD_KEYWORDS = frozenset(
+        {"futuristic", "cyberpunk", "sci-fi", "steampunk", "post-apocalyptic"}
+    )
+
     @staticmethod
     def _infer_layer_from_pattern(tag: str) -> int:
         """Infer layer from tag pattern when not found in DB.
 
         Pattern matching rules:
+        - Known expressions → LAYER_EXPRESSION (checked before *ing)
         - *_hair, *_colored_hair → LAYER_IDENTITY (hair color)
         - *_eyes, *_colored_eyes → LAYER_IDENTITY (eye color)
-        - Known expressions → LAYER_EXPRESSION (checked before *ing)
         - *ing (e.g., running, walking) → LAYER_ACTION
         - *_shot, *_view, from_* → LAYER_CAMERA
+        - *_background → LAYER_ENVIRONMENT
+        - Location keywords, *_room → LAYER_ENVIRONMENT
+        - Mood/genre keywords → LAYER_ATMOSPHERE
         - Default: LAYER_SUBJECT
         """
-        # Expression patterns (check BEFORE *ing to prioritize)
-        expression_keywords = {
-            "smiling",
-            "crying",
-            "angry",
-            "sad",
-            "happy",
-            "surprised",
-            "confused",
-            "blushing",
-            "embarrassed",
-            "scared",
-            "worried",
-            "nervous",
-        }
-        if tag in expression_keywords:
+        if tag in V3PromptBuilder._EXPRESSION_KEYWORDS:
             return LAYER_EXPRESSION
 
         # Hair patterns
@@ -175,6 +181,18 @@ class V3PromptBuilder:
         # Camera patterns
         if tag.endswith("_shot") or tag.endswith("_view") or tag.startswith("from_"):
             return LAYER_CAMERA
+
+        # Background patterns (*_background)
+        if tag.endswith("_background"):
+            return LAYER_ENVIRONMENT
+
+        # Location patterns (indoor/outdoor indicators)
+        if tag in V3PromptBuilder._LOCATION_KEYWORDS or tag.endswith("_room"):
+            return LAYER_ENVIRONMENT
+
+        # Mood/genre patterns
+        if tag in V3PromptBuilder._MOOD_KEYWORDS:
+            return LAYER_ATMOSPHERE
 
         # Default fallback
         return LAYER_SUBJECT
@@ -544,6 +562,10 @@ class V3PromptBuilder:
                     break
 
         if gender == "male":
+            # Remove conflicting female subject tags before adding male enhancement
+            layers[LAYER_SUBJECT] = [
+                t for t in layers[LAYER_SUBJECT] if self._dedup_key(t) not in self._FEMALE_INDICATORS
+            ]
             for tag in self._MALE_ENHANCEMENT:
                 if tag not in layers[LAYER_SUBJECT]:
                     layers[LAYER_SUBJECT].append(tag)

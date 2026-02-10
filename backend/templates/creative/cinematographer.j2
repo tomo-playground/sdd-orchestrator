@@ -24,7 +24,8 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 3. **Environment consistency**: Maintain consistent setting within scene groups
 4. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
 5. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
-6. **image_prompt_ko**: Korean description for human review
+6. **image_prompt_ko**:
+{% include '_partials/image_prompt_ko_rules.j2' %}
 7. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
 
 ## Output Format (JSON)

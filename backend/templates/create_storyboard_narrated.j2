@@ -146,12 +146,7 @@ Instructions:
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * For A/B: include character's identity/costume/LoRA tags
      * For Narrator: focus on environment/mood (no_humans, scenery, etc.)
-   - image_prompt_ko: Natural Korean sentence describing the scene
-     * Describe ONLY: action, emotion, situation, environment
-     * EXCLUDE character appearance (hair, eyes, clothing, style) — already injected by Character Identity system
-     * For A/B: "어색하게 웃으며 상대를 바라보는 모습" (action/emotion only)
-     * For Narrator: "햇살이 들어오는 카페 창가" (environment only)
-     * BAD: "갈색 머리 소녀가 흰 셔츠를 입고 서 있다." (identity included)
+{% include '_partials/image_prompt_ko_rules.j2' %}
 6. Return ONLY raw JSON array.
 
 {{ keyword_context }}

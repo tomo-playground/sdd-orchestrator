@@ -392,6 +392,28 @@ CREATIVE_MIN_CONCEPT_SCORE = float(os.getenv("CREATIVE_MIN_CONCEPT_SCORE", "0.6"
 CREATIVE_PIPELINE_POLL_INTERVAL_MS = int(os.getenv("CREATIVE_PIPELINE_POLL_INTERVAL_MS", "2000"))
 CREATIVE_ZOMBIE_TIMEOUT_SECONDS = int(os.getenv("CREATIVE_ZOMBIE_TIMEOUT_SECONDS", "300"))
 
+# Creative Lab: Agent Categories (SSOT for Frontend)
+CREATIVE_AGENT_CATEGORIES = [
+    {"value": "concept", "label": "Concept"},
+    {"value": "production", "label": "Production"},
+]
+
+# Creative Lab: Agent-Template Mapping
+CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
+    # Concept Phase
+    "emotional_arc": "creative/concept_architect.j2",
+    "visual_hook": "creative/concept_architect.j2",
+    "narrative_twist": "creative/concept_architect.j2",
+    "devils_advocate": "creative/devils_advocate.j2",
+    "creative_director": "creative/director_evaluate.j2",
+    "reference_analyst": "creative/reference_analyst.j2",
+    # Production Phase
+    "scriptwriter": "creative/scriptwriter.j2",
+    "cinematographer": "creative/cinematographer.j2",
+    "sound_designer": "creative/sound_designer.j2",
+    "copyright_reviewer": "creative/copyright_reviewer.j2",
+}
+
 # --- Ollama (Local LLM) Configuration ---
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))

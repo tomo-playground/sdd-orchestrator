@@ -15,6 +15,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from config import (
     BASE_DIR,
+    CREATIVE_AGENT_TEMPLATES,
     CREATIVE_LEADER_MODEL,
     CREATIVE_PIPELINE_MAX_RETRIES,
     SCENE_DURATION_RANGE,
@@ -38,7 +39,7 @@ from services.creative_utils import (
     resolve_characters_from_context,
 )
 
-_template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates" / "creative")))
+_template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
 
 # ── Helpers ───────────────────────────────────────────────────
@@ -278,7 +279,7 @@ def run_pipeline(session_id: int) -> None:
                 session,
                 state,
                 step_name="scriptwriter",
-                template_name="scriptwriter.j2",
+                template_name=CREATIVE_AGENT_TEMPLATES["scriptwriter"],
                 template_vars={
                     "concept": concept,
                     "duration": ctx.get("duration", 30),
@@ -293,7 +294,9 @@ def run_pipeline(session_id: int) -> None:
                     "scene_dur_min": SCENE_DURATION_RANGE[0],
                     "scene_dur_max": SCENE_DURATION_RANGE[1],
                 },
-                system_prompt=p.system_prompt if p else "You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
+                system_prompt=p.system_prompt
+                if p
+                else "You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
                 validate_fn=lambda scenes: validate_scripts(
                     scenes,
                     ctx.get("structure", "Monologue"),
@@ -316,7 +319,7 @@ def run_pipeline(session_id: int) -> None:
                 session,
                 state,
                 step_name="cinematographer",
-                template_name="cinematographer.j2",
+                template_name=CREATIVE_AGENT_TEMPLATES["cinematographer"],
                 template_vars={
                     "scenes": scripts,
                     "character_tags": ctx.get("character_tags"),
@@ -324,7 +327,9 @@ def run_pipeline(session_id: int) -> None:
                     if characters
                     else None,
                 },
-                system_prompt=p.system_prompt if p else "You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
+                system_prompt=p.system_prompt
+                if p
+                else "You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
                 validate_fn=validate_visuals,
                 temperature=p.temperature if p else 0.8,
                 agent_preset_id=p.id if p else None,
@@ -341,13 +346,15 @@ def run_pipeline(session_id: int) -> None:
                 session,
                 state,
                 step_name="sound_designer",
-                template_name="sound_designer.j2",
+                template_name=CREATIVE_AGENT_TEMPLATES["sound_designer"],
                 template_vars={
                     "concept": concept,
                     "scenes": cinema_scenes,
                     "duration": ctx.get("duration", 30),
                 },
-                system_prompt=p.system_prompt if p else "You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
+                system_prompt=p.system_prompt
+                if p
+                else "You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
                 validate_fn=validate_music,
                 temperature=p.temperature if p else 0.8,
                 agent_preset_id=p.id if p else None,
@@ -365,9 +372,11 @@ def run_pipeline(session_id: int) -> None:
                 session,
                 state,
                 step_name="copyright_reviewer",
-                template_name="copyright_reviewer.j2",
+                template_name=CREATIVE_AGENT_TEMPLATES["copyright_reviewer"],
                 template_vars={"scenes": cinema_scenes},
-                system_prompt=p.system_prompt if p else "You are a Copyright Reviewer. Check for originality issues. Respond only in valid JSON.",
+                system_prompt=p.system_prompt
+                if p
+                else "You are a Copyright Reviewer. Check for originality issues. Respond only in valid JSON.",
                 validate_fn=validate_copyright,
                 temperature=p.temperature if p else 0.8,
                 agent_preset_id=p.id if p else None,

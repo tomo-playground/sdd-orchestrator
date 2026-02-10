@@ -12,12 +12,12 @@ from dataclasses import dataclass, field
 
 from jinja2 import Environment, FileSystemLoader
 
-from config import BASE_DIR, CREATIVE_LEADER_MODEL, logger
+from config import BASE_DIR, CREATIVE_AGENT_TEMPLATES, CREATIVE_LEADER_MODEL, logger
 from models.creative import CreativeSession
 from services.creative_agents import generate_parallel, get_provider
 from services.creative_utils import get_next_sequence, load_preset, parse_json_response, record_trace_sync
 
-_template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates" / "creative")))
+_template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
 # ── Constants ──────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ class DebateContext:
 
 async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext) -> dict | None:
     """Phase 0: Analyze user-provided references."""
-    template = _template_env.get_template("reference_analyst.j2")
+    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["reference_analyst"])
     session_ctx = dict(session.context or {})
     references = session_ctx.get("references", [])
     if not references:
@@ -81,7 +81,11 @@ async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext
     )
 
     preset = load_preset(db, "reference_analyst")
-    sys_prompt = preset.system_prompt if preset else "You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON."
+    sys_prompt = (
+        preset.system_prompt
+        if preset
+        else "You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON."
+    )
     temp = preset.temperature if preset else 0.5
 
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
@@ -125,7 +129,7 @@ async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext
 
 async def run_architects(db, session: CreativeSession, round_number: int, ctx: DebateContext) -> list[dict]:
     """Run 3 architects in parallel and record traces."""
-    template = _template_env.get_template("concept_architect.j2")
+    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["emotional_arc"])
     agents = []
 
     for arch in ARCHITECT_PERSPECTIVES:
@@ -155,7 +159,11 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             focus_instruction=focus,
         )
 
-        sys_prompt = preset.system_prompt if preset else f"You are a Story Architect ({arch['perspective']}). Respond only in valid JSON."
+        sys_prompt = (
+            preset.system_prompt
+            if preset
+            else f"You are a Story Architect ({arch['perspective']}). Respond only in valid JSON."
+        )
         temp = preset.temperature if preset else 0.9
 
         agents.append(
@@ -202,7 +210,7 @@ async def run_devils_advocate(
     ctx: DebateContext,
 ) -> dict | None:
     """Run Devil's Advocate critique on all concepts."""
-    template = _template_env.get_template("devils_advocate.j2")
+    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["devils_advocate"])
     prompt = template.render(
         concepts=concepts,
         concept_count=len(concepts),
@@ -212,7 +220,11 @@ async def run_devils_advocate(
     )
 
     preset = load_preset(db, "devils_advocate")
-    sys_prompt = preset.system_prompt if preset else "You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON."
+    sys_prompt = (
+        preset.system_prompt
+        if preset
+        else "You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON."
+    )
     temp = preset.temperature if preset else 0.7
 
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
@@ -262,7 +274,7 @@ async def run_director_evaluate(
     ctx: DebateContext,
 ) -> dict:
     """Director evaluates all concepts."""
-    template = _template_env.get_template("director_evaluate.j2")
+    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["creative_director"])
     prompt = template.render(
         concepts=concepts,
         topic=ctx.topic,
@@ -278,7 +290,11 @@ async def run_director_evaluate(
     )
 
     preset = load_preset(db, "creative_director")
-    sys_prompt = preset.system_prompt if preset else "You are a Creative Director. Evaluate concepts strictly. Respond only in valid JSON."
+    sys_prompt = (
+        preset.system_prompt
+        if preset
+        else "You are a Creative Director. Evaluate concepts strictly. Respond only in valid JSON."
+    )
     temp = preset.temperature if preset else 0.3
 
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
