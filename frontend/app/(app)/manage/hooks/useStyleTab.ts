@@ -8,9 +8,20 @@ import { useLoraManagement } from "./useLoraManagement";
 // Re-export for consumers that import CivitaiResult from useStyleTab
 export type { CivitaiResult } from "./useCivitai";
 
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+  promptDialog: (msg: string) => string | null;
+};
+
 // ── Hook ───────────────────────────────────────────────
 
-export function useStyleTab() {
+export function useStyleTab(ui: UiCallbacks) {
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
   const [isStyleLoading, setIsStyleLoading] = useState(false);
@@ -18,8 +29,8 @@ export function useStyleTab() {
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
   const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
 
-  const civitai = useCivitai();
-  const lora = useLoraManagement();
+  const civitai = useCivitai(ui);
+  const lora = useLoraManagement(ui);
 
   // ── Fetchers ───────────────────────────────────────
 
@@ -56,28 +67,40 @@ export function useStyleTab() {
   // ── Style CRUD ─────────────────────────────────────
 
   const handleCreateStyle = useCallback(async () => {
-    const name = prompt("New Style Name:");
+    const name = ui.promptDialog("New Style Name:");
     if (!name) return;
     try {
       await axios.post(`${API_BASE}/style-profiles/`, { name });
       await fetchStyles();
-    } catch {
-      alert("Failed to create style");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Style create failed: ${msg}`, "error");
     }
-  }, [fetchStyles]);
+  }, [fetchStyles, ui]);
 
   const handleDeleteStyle = useCallback(
     async (id: number) => {
-      if (!confirm("Delete this style?")) return;
+      const ok = await ui.confirmDialog({
+        title: "Delete Style",
+        message: "Delete this style profile?",
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
       try {
         await axios.delete(`${API_BASE}/style-profiles/${id}`);
         setSelectedProfile((prev) => (prev?.id === id ? null : prev));
         await fetchStyles();
-      } catch {
-        alert("Failed to delete style");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Style delete failed: ${msg}`, "error");
       }
     },
-    [fetchStyles],
+    [fetchStyles, ui]
   );
 
   const handleUpdateStyle = useCallback(
@@ -93,11 +116,14 @@ export function useStyleTab() {
           }
           return prev;
         });
-      } catch {
-        alert("Failed to update style");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Style update failed: ${msg}`, "error");
       }
     },
-    [fetchStyles],
+    [fetchStyles, ui]
   );
 
   const handleDuplicateStyle = useCallback(
@@ -105,16 +131,21 @@ export function useStyleTab() {
       const original = styleProfiles.find((s) => s.id === id);
       if (!original) return;
       const newName = `${original.name} (Copy)`;
-      if (!confirm(`Duplicate style as "${newName}"?`)) return;
+      const ok = await ui.confirmDialog({
+        title: "Duplicate Style",
+        message: `Duplicate style as "${newName}"?`,
+        confirmLabel: "Duplicate",
+      });
+      if (!ok) return;
 
       try {
         const createRes = await axios.post<{ id: number; name: string }>(
           `${API_BASE}/style-profiles/`,
-          { name: newName },
+          { name: newName }
         );
         const newId = createRes.data.id;
         const detailRes = await axios.get<StyleProfileFull>(
-          `${API_BASE}/style-profiles/${id}/full`,
+          `${API_BASE}/style-profiles/${id}/full`
         );
         const fullOriginal = detailRes.data;
 
@@ -127,21 +158,30 @@ export function useStyleTab() {
           positive_embeddings: fullOriginal.positive_embeddings?.map((e) => e.id) ?? [],
         });
         await fetchStyles();
-      } catch {
-        alert("Failed to duplicate style");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Style duplicate failed: ${msg}`, "error");
       }
     },
-    [fetchStyles, styleProfiles],
+    [fetchStyles, styleProfiles, ui]
   );
 
-  const handleLoadProfile = useCallback(async (id: number) => {
-    try {
-      const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
-      setSelectedProfile(res.data);
-    } catch {
-      alert("Failed to load style details");
-    }
-  }, []);
+  const handleLoadProfile = useCallback(
+    async (id: number) => {
+      try {
+        const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
+        setSelectedProfile(res.data);
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Failed to load style details: ${msg}`, "error");
+      }
+    },
+    [ui]
+  );
 
   // ── Profile Asset Handlers ────────────────────────
 
@@ -149,7 +189,7 @@ export function useStyleTab() {
     async (profileId: number, modelId: number | null) => {
       await handleUpdateStyle(profileId, { sd_model_id: modelId } as Partial<StyleProfile>);
     },
-    [handleUpdateStyle],
+    [handleUpdateStyle]
   );
 
   const handleToggleProfileLora = useCallback(
@@ -163,7 +203,7 @@ export function useStyleTab() {
           updated = current.map((l) =>
             l.id === loraId
               ? { lora_id: l.id, weight: weight }
-              : { lora_id: l.id, weight: l.weight },
+              : { lora_id: l.id, weight: l.weight }
           );
         } else {
           updated = current
@@ -180,7 +220,7 @@ export function useStyleTab() {
       }
       await handleUpdateStyle(profileId, { loras: updated } as Partial<StyleProfile>);
     },
-    [handleUpdateStyle, selectedProfile, lora.loraEntries],
+    [handleUpdateStyle, selectedProfile, lora.loraEntries]
   );
 
   const handleToggleProfileEmbedding = useCallback(
@@ -194,7 +234,7 @@ export function useStyleTab() {
         : [...ids, embeddingId];
       await handleUpdateStyle(profileId, { [key]: updated } as Partial<StyleProfile>);
     },
-    [handleUpdateStyle, selectedProfile],
+    [handleUpdateStyle, selectedProfile]
   );
 
   // ── Effects ────────────────────────────────────────

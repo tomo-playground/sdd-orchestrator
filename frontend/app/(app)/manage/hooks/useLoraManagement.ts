@@ -3,7 +3,17 @@ import axios from "axios";
 import { API_BASE } from "../../../constants";
 import type { LoRA } from "../../../types";
 
-export function useLoraManagement() {
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean>;
+};
+
+export function useLoraManagement(ui: UiCallbacks) {
   const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);
   const [editingLora, setEditingLora] = useState<LoRA | null>(null);
   const [isUpdatingLora, setIsUpdatingLora] = useState(false);
@@ -28,8 +38,11 @@ export function useLoraManagement() {
       });
       setEditingLora(null);
       await fetchPublicLoras();
-    } catch {
-      alert("Failed to update LoRA");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`LoRA update failed: ${msg}`, "error");
     } finally {
       setIsUpdatingLora(false);
     }
@@ -37,20 +50,24 @@ export function useLoraManagement() {
 
   const handleDeleteLora = useCallback(
     async (id: number) => {
-      if (
-        !confirm(
-          "Delete this LoRA registration? (File/Weights might remain on disk, this removes DB entry)",
-        )
-      )
-        return;
+      const ok = await ui.confirmDialog({
+        title: "Delete LoRA",
+        message: "Delete this LoRA registration? (File may remain on disk, this removes DB entry)",
+        confirmLabel: "Delete",
+        variant: "danger",
+      });
+      if (!ok) return;
       try {
         await axios.delete(`${API_BASE}/loras/${id}`);
         await fetchPublicLoras();
-      } catch {
-        alert("Failed to delete LoRA");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`LoRA delete failed: ${msg}`, "error");
       }
     },
-    [fetchPublicLoras],
+    [fetchPublicLoras, ui]
   );
 
   return {

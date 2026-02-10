@@ -12,7 +12,16 @@ export type CivitaiResult = {
   civitai_url: string;
 };
 
-export function useCivitai() {
+type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+  }) => Promise<boolean>;
+};
+
+export function useCivitai(ui: UiCallbacks) {
   const [civitaiSearch, setCivitaiSearch] = useState("");
   const [civitaiResults, setCivitaiResults] = useState<CivitaiResult[]>([]);
   const [isSearchingCivitai, setIsSearchingCivitai] = useState(false);
@@ -24,31 +33,44 @@ export function useCivitai() {
     try {
       const res = await axios.get<{ results: CivitaiResult[] }>(
         `${API_BASE}/loras/search-civitai`,
-        { params: { query: civitaiSearch, limit: 10 } },
+        { params: { query: civitaiSearch, limit: 10 } }
       );
       setCivitaiResults(res.data.results || []);
-    } catch {
-      alert("Search failed or no results");
+    } catch (error) {
+      const msg = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ?? error.message)
+        : "Unknown error";
+      ui.showToast(`Search failed: ${msg}`, "error");
     } finally {
       setIsSearchingCivitai(false);
     }
-  }, [civitaiSearch]);
+  }, [civitaiSearch, ui]);
 
-  const handleDownloadModel = useCallback(async (modelId: number, type: "LORA" | "Checkpoint") => {
-    if (type !== "LORA") {
-      alert("Only LoRA download is supported by backend for now.");
-      return;
-    }
-    const userConfirm = confirm(`Download this LoRA (ID: ${modelId})? It may take a while.`);
-    if (!userConfirm) return;
+  const handleDownloadModel = useCallback(
+    async (modelId: number, type: "LORA" | "Checkpoint") => {
+      if (type !== "LORA") {
+        ui.showToast("Only LoRA download is supported by backend for now.", "warning");
+        return;
+      }
+      const ok = await ui.confirmDialog({
+        title: "Download LoRA",
+        message: `Download this LoRA (ID: ${modelId})? It may take a while.`,
+        confirmLabel: "Download",
+      });
+      if (!ok) return;
 
-    try {
-      await axios.post(`${API_BASE}/loras/import-civitai/${modelId}`);
-      alert("Download started. Check database later.");
-    } catch {
-      alert("Download request failed");
-    }
-  }, []);
+      try {
+        await axios.post(`${API_BASE}/loras/import-civitai/${modelId}`);
+        ui.showToast("Download started. Check database later.", "success");
+      } catch (error) {
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`Download failed: ${msg}`, "error");
+      }
+    },
+    [ui]
+  );
 
   return {
     civitaiSearch,
