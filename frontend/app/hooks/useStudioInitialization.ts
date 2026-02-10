@@ -140,6 +140,8 @@ export function useStudioInitialization() {
           structure: data.structure || DEFAULT_STRUCTURE,
           topic: data.title || "",
           description: data.description || "",
+          ...(data.duration != null && { duration: data.duration }),
+          ...(data.language != null && { language: data.language }),
         });
 
         if (data.character_id) {

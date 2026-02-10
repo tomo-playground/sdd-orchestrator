@@ -193,12 +193,14 @@ def send_to_studio(
     resolved_title = title or f"Creative Lab: {session.objective[:50]}"
     structure = ctx.get("structure", "Monologue")
 
-    # 1. Create storyboard
+    # 1. Create storyboard (transfer duration/language from session context)
     storyboard = Storyboard(
         group_id=group_id,
         title=resolved_title,
         structure=structure,
         description=session.objective,
+        duration=ctx.get("duration"),
+        language=ctx.get("language"),
     )
     db.add(storyboard)
     db.flush()

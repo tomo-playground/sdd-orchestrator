@@ -198,6 +198,8 @@ class StoryboardBase(BaseModel):
     group_id: int | None = None
     caption: str | None = None
     structure: str = DEFAULT_STRUCTURE
+    duration: int | None = None
+    language: str | None = None
 
 
 class StoryboardSave(StoryboardBase):
@@ -290,6 +292,8 @@ class StoryboardDetailResponse(BaseModel):
     group_id: int | None = None
     project_id: int | None = None
     structure: str = DEFAULT_STRUCTURE
+    duration: int | None = None
+    language: str | None = None
     character_id: int | None = None
     character_b_id: int | None = None
     style_profile_id: int | None = None

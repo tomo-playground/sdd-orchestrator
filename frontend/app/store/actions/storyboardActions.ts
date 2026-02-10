@@ -42,12 +42,15 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   }
 
   try {
-    const { selectedCharacterId, selectedCharacterBId, structure } = useStudioStore.getState();
+    const { selectedCharacterId, selectedCharacterBId, structure, duration, language } =
+      useStudioStore.getState();
     const payload = {
       title: topic || "Draft Storyboard",
       description: useStudioStore.getState().description || null,
       group_id: groupId,
       structure: structure || DEFAULT_STRUCTURE,
+      duration: duration || undefined,
+      language: language || undefined,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,
       scenes: scenes.map((s, i) => ({
@@ -185,6 +188,8 @@ export async function persistStoryboard(): Promise<boolean> {
     selectedCharacterId,
     selectedCharacterBId,
     structure,
+    duration,
+    language,
     setMeta,
     setScenes,
   } = useStudioStore.getState();
@@ -197,6 +202,8 @@ export async function persistStoryboard(): Promise<boolean> {
       description: useStudioStore.getState().description || null,
       group_id: groupId,
       structure: structure || DEFAULT_STRUCTURE,
+      duration: duration || undefined,
+      language: language || undefined,
       caption: videoCaption || null,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,

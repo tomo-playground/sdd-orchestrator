@@ -300,6 +300,57 @@ class TestMonologueCharacterLinkage:
         assert sc_count == 0, "No character → no StoryboardCharacter"
 
 
+class TestSendToStudioDurationLanguage:
+    """send_to_studio must transfer duration and language from session context."""
+
+    def test_duration_and_language_transferred(self, db_session):
+        """Storyboard must receive duration and language from session context."""
+        from models import Project
+        from models.group import Group
+        from models.storyboard import Storyboard
+
+        project = Project(name="Test")
+        db_session.add(project)
+        db_session.flush()
+        group = Group(name="G", project_id=project.id)
+        db_session.add(group)
+        db_session.flush()
+
+        session = MagicMock()
+        session.final_output = {
+            "scenes": [
+                {
+                    "order": 0,
+                    "script": "Test",
+                    "speaker": "A",
+                    "duration": 2.5,
+                    "image_prompt": "1girl, smile",
+                },
+            ]
+        }
+        session.context = {
+            "structure": "Monologue",
+            "duration": 10,
+            "language": "English",
+            "characters": None,
+        }
+        session.objective = "Test"
+        session.character_id = None
+
+        from services.creative_studio import send_to_studio
+
+        result = send_to_studio(
+            db=db_session,
+            session=session,
+            group_id=group.id,
+            deep_parse=False,
+        )
+
+        sb = db_session.get(Storyboard, result["storyboard_id"])
+        assert sb.duration == 10
+        assert sb.language == "English"
+
+
 class TestSendToStudioIntegration:
     """send_to_studio with deep_parse=True must use compose_scene_with_style."""
 

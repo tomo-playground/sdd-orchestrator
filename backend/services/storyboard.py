@@ -714,6 +714,8 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         group_id=request.group_id,
         caption=request.caption,
         structure=request.structure,
+        duration=request.duration,
+        language=request.language,
     )
     db.add(db_storyboard)
     db.flush()
@@ -865,6 +867,8 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "group_id": storyboard.group_id,
         "project_id": group.project_id if group else None,
         "structure": storyboard.structure,
+        "duration": storyboard.duration,
+        "language": storyboard.language,
         "character_id": character_id,
         "character_b_id": character_b_id,
         "style_profile_id": effective["values"].get("style_profile_id"),
@@ -901,6 +905,10 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.caption = request.caption
     # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
     storyboard.structure = request.structure
+    if request.duration is not None:
+        storyboard.duration = request.duration
+    if request.language is not None:
+        storyboard.language = request.language
 
     # Collect asset IDs referenced by incoming scenes (to preserve them)
     preserved_asset_ids: set[int] = set()

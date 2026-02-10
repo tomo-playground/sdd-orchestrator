@@ -28,6 +28,8 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text)
     caption: Mapped[str | None] = mapped_column(Text)
     structure: Mapped[str] = mapped_column(String(50), nullable=False, default=DEFAULT_STRUCTURE)
+    duration: Mapped[int | None] = mapped_column(Integer)
+    language: Mapped[str | None] = mapped_column(String(20))
 
     @property
     def video_url(self) -> str | None:
