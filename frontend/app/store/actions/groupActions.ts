@@ -15,7 +15,7 @@ export async function loadGroupDefaults(
   groupId: number,
   options?: { skipContentDefaults?: boolean }
 ): Promise<void> {
-  const { setEffectiveDefaults, setEffectivePreset } = useStudioStore.getState();
+  const { setEffectiveDefaults, setEffectivePreset, setEffectiveSdParams } = useStudioStore.getState();
   setEffectiveDefaults(null, null, false);
 
   try {
@@ -24,6 +24,14 @@ export async function loadGroupDefaults(
 
     // Store effective IDs (contextSlice — survives resetStudioStore)
     setEffectiveDefaults(cfg.style_profile_id ?? null, null, true);
+
+    // Store effective SD params for preflight display
+    setEffectiveSdParams({
+      steps: cfg.sd_steps ?? null,
+      cfgScale: cfg.sd_cfg_scale ?? null,
+      samplerName: cfg.sd_sampler_name ?? null,
+      clipSkip: cfg.sd_clip_skip ?? null,
+    });
 
     // Auto-load style profile if not already loaded
     if (cfg.style_profile_id && !useStudioStore.getState().currentStyleProfile) {

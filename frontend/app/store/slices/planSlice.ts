@@ -14,6 +14,7 @@ export interface PlanSlice {
 
   // Character A
   selectedCharacterId: number | null;
+  selectedCharacterName: string | null;
   characterPromptMode: "auto" | "standard" | "lora";
   loraTriggerWords: string[];
   characterLoras: Array<{
@@ -70,6 +71,7 @@ const initialPlanState = {
   structure: DEFAULT_STRUCTURE,
   actorAGender: "female" as ActorGender,
   selectedCharacterId: null,
+  selectedCharacterName: null as string | null,
   characterPromptMode: "auto" as const,
   loraTriggerWords: [] as string[],
   characterLoras: [] as PlanSlice["characterLoras"],

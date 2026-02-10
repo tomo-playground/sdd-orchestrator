@@ -25,6 +25,9 @@ import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { generateStoryboard, saveStoryboard } from "../../store/actions/storyboardActions";
 import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
 import { suggestPromptSplit, copyPromptHelperText } from "../../store/actions/promptHelperActions";
+import PreflightModal from "../../components/common/PreflightModal";
+import { runPreflight, buildPreflightInput } from "../../utils/preflight";
+import type { AutoRunStepId } from "../../utils/preflight";
 
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
@@ -45,6 +48,9 @@ function StudioContent() {
   const imagePreviewCandidates = useStudioStore((s) => s.imagePreviewCandidates);
   const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
   const showToast = useStudioStore((s) => s.showToast);
+
+  // Preflight modal
+  const showPreflightModal = useStudioStore((s) => s.showPreflightModal);
 
   // Group empty-state
   const groups = useStudioStore((s) => s.groups);
@@ -124,7 +130,7 @@ function StudioContent() {
             )}
             <StoryboardActionsBar
               onGenerate={handleGenerate}
-              onAutoRun={() => runAutoRunFromStep("storyboard", autopilot)}
+              onAutoRun={() => setMeta({ showPreflightModal: true })}
               onSave={handleSave}
               isGenerating={isGenerating}
               isRendering={isRendering}
@@ -237,6 +243,19 @@ function StudioContent() {
           onSkip={() => {
             setShowStyleProfileModal(false);
             showToast("Style profile selection skipped", "success");
+          }}
+        />
+      )}
+
+      {/* Preflight Modal */}
+      {showPreflightModal && (
+        <PreflightModal
+          isOpen
+          preflight={runPreflight(buildPreflightInput())}
+          onClose={() => setMeta({ showPreflightModal: false })}
+          onRun={(stepsToRun: AutoRunStepId[]) => {
+            setMeta({ showPreflightModal: false });
+            runAutoRunFromStep(stepsToRun[0] || "storyboard", autopilot, stepsToRun);
           }}
         />
       )}

@@ -58,6 +58,7 @@ export default function PlanTab() {
         loraTriggerWords: [],
         characterLoras: [],
         characterPromptMode: "auto",
+        selectedCharacterName: null,
         basePromptA: "",
         baseNegativePromptA: "",
       });
@@ -105,6 +106,7 @@ export default function PlanTab() {
       );
 
       setPlan({
+        selectedCharacterName: charFull.name,
         basePromptA: basePrompt,
         baseNegativePromptA: baseNegative,
         loraTriggerWords: triggers,
@@ -205,7 +207,10 @@ export default function PlanTab() {
           onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
           characters={characters}
           selectedCharacterId={selectedCharacterId}
-          onSelectCharacter={(id) => setPlan({ selectedCharacterId: id })}
+          onSelectCharacter={(id) => {
+            const name = characters.find((c) => c.id === id)?.name ?? null;
+            setPlan({ selectedCharacterId: id, selectedCharacterName: name });
+          }}
           structure={structure}
           selectedCharacterBId={selectedCharacterBId}
           onSelectCharacterB={(id) => setPlan({ selectedCharacterBId: id })}

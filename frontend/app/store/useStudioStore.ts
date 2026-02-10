@@ -59,6 +59,10 @@ const TRANSIENT_KEYS: (keyof StudioState)[] = [
   "effectiveStyleProfileId",
   "effectiveCharacterId",
   "effectiveConfigLoaded",
+  "effectiveSdSteps",
+  "effectiveSdCfgScale",
+  "effectiveSdSamplerName",
+  "effectiveSdClipSkip",
 ];
 
 // Pre-hydration cleanup: clear localStorage before Zustand hydrates old data

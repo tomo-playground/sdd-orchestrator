@@ -23,6 +23,10 @@ export async function runAutoRunFromStep(
   autopilot: UseAutopilotReturn,
   stepsToRun?: AutoRunStepId[]
 ) {
+  // Derive startStep from stepsToRun to prevent mismatch
+  if (stepsToRun?.length) {
+    startStep = stepsToRun[0];
+  }
   const {
     topic,
     duration,
@@ -139,7 +143,9 @@ export async function runAutoRunFromStep(
               result = await generateSceneCandidates(retryScene, true);
             }
             // Re-lookup after async: scene IDs may have changed
-            const currentScene = useStudioStore.getState().scenes.find((s) => s.order === sceneOrder);
+            const currentScene = useStudioStore
+              .getState()
+              .scenes.find((s) => s.order === sceneOrder);
             const currentId = currentScene?.id ?? freshScene.id;
             useStudioStore.getState().updateScene(currentId, { isGenerating: false });
             if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);
@@ -177,8 +183,9 @@ export async function runAutoRunFromStep(
               useStudioStore.getState().updateScene(freshScene.id, { isGenerating: true });
               const result = await generateSceneImageFor(freshScene, true);
               // Re-lookup after async: scene IDs may have changed
-              const currentScene =
-                useStudioStore.getState().scenes.find((s) => s.order === sceneOrder);
+              const currentScene = useStudioStore
+                .getState()
+                .scenes.find((s) => s.order === sceneOrder);
               const currentId = currentScene?.id ?? freshScene.id;
               useStudioStore.getState().updateScene(currentId, { isGenerating: false });
               if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);

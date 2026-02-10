@@ -8,6 +8,7 @@
  */
 
 import type { Scene, DraftScene } from "../types";
+import { useStudioStore } from "../store/useStudioStore";
 
 // ============================================================
 // Types
@@ -43,7 +44,7 @@ export interface PreflightResult {
     steps: number;
     cfgScale: number;
     sampler: string;
-    seed: number;
+    seed?: number;
     clipSkip: number;
   };
 
@@ -78,7 +79,7 @@ export interface PreflightInput {
   steps: number;
   cfgScale: number;
   sampler: string;
-  seed: number;
+  seed?: number;
   clipSkip: number;
 
   // State
@@ -174,10 +175,7 @@ function checkControlnet(enabled: boolean, weight: number): SettingsCheck {
   };
 }
 
-function checkIpAdapter(
-  enabled: boolean,
-  reference: string | null
-): SettingsCheck {
+function checkIpAdapter(enabled: boolean, reference: string | null): SettingsCheck {
   if (!enabled) {
     return {
       valid: true,
@@ -278,10 +276,7 @@ function checkValidateStep(scenes: (Scene | DraftScene)[]): StepCheck {
   };
 }
 
-function checkRenderStep(
-  scenes: (Scene | DraftScene)[],
-  videoUrl: string | null
-): StepCheck {
+function checkRenderStep(scenes: (Scene | DraftScene)[], videoUrl: string | null): StepCheck {
   if (scenes.length === 0) {
     return {
       needed: true,
@@ -359,7 +354,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     steps: input.steps,
     cfgScale: input.cfgScale,
     sampler: input.sampler,
-    seed: input.seed,
+    ...(input.seed != null && { seed: input.seed }),
     clipSkip: input.clipSkip,
   };
 
@@ -405,6 +400,32 @@ export function getStepsToExecute(
     // Otherwise use preflight result
     return preflight.steps[stepId].needed;
   });
+}
+
+// ============================================================
+// Utility: Build PreflightInput from store
+// ============================================================
+
+export function buildPreflightInput(): PreflightInput {
+  const s = useStudioStore.getState();
+  const voiceName = s.voicePresetId ? `Preset #${s.voicePresetId}` : "";
+  return {
+    topic: s.topic,
+    characterName: s.selectedCharacterName,
+    characterId: s.selectedCharacterId,
+    voiceName,
+    bgmFile: s.bgmFile,
+    controlnetEnabled: s.useControlnet,
+    controlnetWeight: s.controlnetWeight,
+    ipAdapterEnabled: s.useIpAdapter,
+    ipAdapterReference: s.ipAdapterReference || null,
+    steps: s.effectiveSdSteps ?? 0,
+    cfgScale: s.effectiveSdCfgScale ?? 0,
+    sampler: s.effectiveSdSamplerName ?? "",
+    clipSkip: s.effectiveSdClipSkip ?? 0,
+    scenes: s.scenes,
+    videoUrl: s.videoUrl,
+  };
 }
 
 // ============================================================
