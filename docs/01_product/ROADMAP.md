@@ -331,9 +331,9 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
-- Phase 7-1: **19/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
+- Phase 7-1: **20/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- **Backend 테스트**: 1,273개 수집
+- **Backend 테스트**: 1,309개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-10)
 
@@ -372,3 +372,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-10) `compose_scene_with_style` SSOT 추출: Creative Lab/Studio Direct 프롬프트 파이프라인 단일화 (StyleProfile → V3 composition). `generate_image_with_v3`도 통합. `prompt_pre_composed` 경로 LoRA 이중 적용 버그 수정 (`skip_loras=True` + defense-in-depth 중복 방어)
 - (2026-02-10) Creative Lab 쇼츠 표준화: V1(Free Debate) 코드/테스트/컴포넌트 전량 삭제 (5 backend + 2 frontend 파일), category 리네이밍 (`v2_concept`→`concept`, `v2_production`→`production`), SSOT 전환 (categories + agent-template 매핑 config.py), `session_type` 기본값 `"shorts"` 전환, Alembic 마이그레이션 2건
 - (2026-02-10) Script QC Agent + Interactive Review: Pause-Review-Resume 패턴 (파이프라인 스텝 완료 후 `step_review` 상태 전환 → 사용자 리뷰 → 승인/리비전), Script QC 프롬프트 (`script_qc.j2`, 6가지 가중 평가), `creative_review.py` 모듈 분리, 자동 승인 (`score≥0.85` + critical 0건), 챗봇식 리뷰 UI (QCSummaryCard + StepReviewView), `with_for_update()` 동시성 방어, 단위 테스트 15개
+- (2026-02-10) Multi-Character UI 5-Phase 통합: SceneCharacterAction 타입/스토어, SpeakerBadge 드롭다운, SceneCharacterActions 태그 편집 UI, `auto_populate_character_actions` context_tags→actions 자동 변환, V3 12-Layer scene_character_actions 주입, `resolve_action_tag_ids` tag_name→tag_id 해결, QC 스키마 Gemini 출력 유연화 (500 에러 수정), `NegativePromptToggle` 컴포넌트 분리, 테스트 55개 추가

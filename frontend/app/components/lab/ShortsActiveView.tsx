@@ -60,6 +60,49 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
     }
   };
 
+  const renderReviewSection = () => {
+    if (reviewLoading && !review) {
+      return (
+        <div className="flex h-40 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50">
+          <div className="text-center">
+            <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+            <p className="text-xs font-semibold text-amber-700">Loading Review...</p>
+          </div>
+        </div>
+      );
+    }
+    if (reviewError && !review) {
+      return (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-xs font-semibold text-red-700">Review Load Failed</p>
+          <p className="mt-1 text-[10px] text-red-500">{reviewError}</p>
+          <button
+            onClick={fetchReview}
+            className="mt-3 flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Retry
+          </button>
+        </div>
+      );
+    }
+    if (review) {
+      return (
+        <StepReviewView
+          review={review}
+          messages={reviewMessages}
+          sending={reviewSending}
+          onSendMessage={handleReviewMessage}
+          onAction={onReviewAction}
+        />
+      );
+    }
+    return null;
+  };
+
+  const pipelineState = ctx.pipeline as Record<string, unknown> | undefined;
+  const finalOutput = session.final_output as Record<string, unknown> | null;
+
   return (
     <div className="space-y-4">
       {/* Session header */}
@@ -141,57 +184,16 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
         <PipelineProgressView progress={progress} topic={session.objective} />
       )}
 
-      {session.status === "step_review" && reviewLoading && !review && (
-        <div className="flex h-40 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50">
-          <div className="text-center">
-            <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
-            <p className="text-xs font-semibold text-amber-700">Loading Review...</p>
-          </div>
-        </div>
-      )}
-
-      {session.status === "step_review" && reviewError && !review && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-          <p className="text-xs font-semibold text-red-700">Review Load Failed</p>
-          <p className="mt-1 text-[10px] text-red-500">{reviewError}</p>
-          <button
-            onClick={fetchReview}
-            className="mt-3 flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Retry
-          </button>
-        </div>
-      )}
-
-      {session.status === "step_review" && review && (
-        <StepReviewView
-          review={review}
-          messages={reviewMessages}
-          sending={reviewSending}
-          onSendMessage={handleReviewMessage}
-          onAction={onReviewAction}
-        />
-      )}
+      {session.status === "step_review" && renderReviewSection()}
 
       {session.status === "completed" && session.session_type === "shorts" && (
         <SessionResultView
-          scenes={
-            ((session.final_output as Record<string, unknown> | null)?.scenes ??
-              []) as CreativeSceneSummary[]
-          }
+          scenes={(finalOutput?.scenes ?? []) as CreativeSceneSummary[]}
           topic={session.objective}
-          musicRecommendation={
-            (session.final_output as Record<string, unknown> | null)?.music_recommendation as
-              | MusicRecommendation
-              | undefined
-          }
+          musicRecommendation={finalOutput?.music_recommendation as MusicRecommendation | undefined}
           copyrightResult={
-            (
-              (ctx.pipeline as Record<string, unknown> | undefined)?.state as
-                | Record<string, unknown>
-                | undefined
-            )?.copyright_reviewer_result as CopyrightResult | undefined
+            (pipelineState?.state as Record<string, unknown> | undefined)
+              ?.copyright_reviewer_result as CopyrightResult | undefined
           }
           onSendToStudio={handleSendToStudio}
         />
@@ -203,8 +205,7 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
             <div>
               <p className="text-xs font-semibold text-red-700">Pipeline Failed</p>
               <p className="mt-1 text-[10px] text-red-500">
-                {((ctx.pipeline as Record<string, unknown> | undefined)?.error as string) ??
-                  "Unknown error"}
+                {(pipelineState?.error as string) ?? "Unknown error"}
               </p>
             </div>
             <button

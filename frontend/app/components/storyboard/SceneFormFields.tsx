@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import type { Scene, Tag } from "../../types";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
@@ -9,6 +7,7 @@ import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
+import NegativePromptToggle from "./NegativePromptToggle";
 
 type SceneFormFieldsProps = {
   scene: Scene;
@@ -54,7 +53,6 @@ export default function SceneFormFields({
   characterBName,
   selectedCharacterBId,
 }: SceneFormFieldsProps) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const structureLower = structure?.toLowerCase() || "";
   const isDialogue = structureLower === "dialogue";
   const isNarratedDialogue = structureLower === "narrated dialogue";
@@ -188,36 +186,11 @@ export default function SceneFormFields({
         )}
       </div>
 
-      {/* Advanced Toggle (Negative Prompt) */}
-      <button
-        type="button"
-        onClick={() => setShowAdvanced((v) => !v)}
-        className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
-      >
-        <ChevronDown
-          className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
-        />
-        Negative
-        {!showAdvanced && scene.negative_prompt && (
-          <span className="ml-1 max-w-[200px] truncate text-[9px] font-normal tracking-normal text-zinc-300 normal-case">
-            {scene.negative_prompt.slice(0, 40)}
-          </span>
-        )}
-      </button>
-
-      {showAdvanced && (
-        <div className="grid gap-2">
-          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Negative Prompt
-          </label>
-          <textarea
-            value={scene.negative_prompt}
-            onChange={(e) => onUpdateScene({ negative_prompt: e.target.value })}
-            rows={2}
-            className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-          />
-        </div>
-      )}
+      {/* Negative Prompt (collapsible) */}
+      <NegativePromptToggle
+        negativePrompt={scene.negative_prompt}
+        onChange={(value) => onUpdateScene({ negative_prompt: value })}
+      />
     </>
   );
 }
