@@ -17,6 +17,10 @@
 | `frontend` | Frontend vitest만 실행 |
 | `vrt` | Visual Regression Test만 실행 |
 | `e2e` | Playwright E2E 테스트만 실행 |
+| `changed` | 변경 코드에 영향받는 테스트만 (testmon) |
+| `failed` | 마지막 실패 테스트만 재실행 (--lf) |
+| `parallel` | 전체 테스트 병렬 실행 (xdist) |
+| `watch` | Watch 모드 + testmon (파일 저장 시 자동 실행) |
 
 ## 실행 내용
 
@@ -43,6 +47,26 @@ cd backend && uv run pytest tests/vrt/ -v
 ### E2E (Playwright)
 ```bash
 cd frontend && npx playwright test
+```
+
+### Changed (testmon)
+```bash
+cd backend && uv run pytest --testmon -v
+```
+
+### Failed (--lf)
+```bash
+cd backend && uv run pytest --lf -v
+```
+
+### Parallel (xdist)
+```bash
+cd backend && uv run pytest -n auto -v
+```
+
+### Watch (ptw + testmon)
+```bash
+cd backend && uv run ptw -- --testmon -x -v
 ```
 
 ## 출력 형식

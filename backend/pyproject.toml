@@ -50,10 +50,14 @@ test = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "--tb=short"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+markers = [
+    "integration: tests that call real external APIs (Gemini, etc.) — skipped by default",
+]
 
 [tool.ruff]
 line-length = 120
@@ -73,3 +77,10 @@ ignore = ["E501", "B008"] # Line too long, Depends in defaults
 
 [tool.ruff.lint.isort]
 known-first-party = ["logic", "schemas"]
+
+[dependency-groups]
+dev = [
+    "pytest-testmon>=2.2.0",
+    "pytest-watch>=4.2.0",
+    "pytest-xdist>=3.8.0",
+]

@@ -30,21 +30,38 @@ def client(db_session):
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
+# 일상 개발 (가장 추천) - watch + 영향받는 테스트만 + 첫 실패 중단
+uv run ptw -- --testmon -x -v
 
-# Run specific test file
-pytest tests/test_db_isolation.py
+# 수동 실행 - 변경 코드에 영향받는 테스트만
+uv run pytest --testmon -v
 
-# Run specific test
-pytest tests/test_db_isolation.py::test_db_isolation_activity_logs
+# 마지막 실패 테스트만 재실행
+uv run pytest --lf -v
 
-# Verbose output
-pytest -v
+# 병렬 실행 (전체 테스트 빠르게)
+uv run pytest -n auto -v
+
+# 커밋 전 전체 실행 (VRT 제외)
+uv run pytest --ignore=tests/vrt -v
+
+# 특정 파일/테스트 실행
+uv run pytest tests/test_db_isolation.py
+uv run pytest tests/test_db_isolation.py::test_db_isolation_activity_logs
 
 # Show print statements
-pytest -s
+uv run pytest -s
 ```
+
+#### 플러그인 설명
+
+| 플러그인 | 용도 | 명령어 |
+|----------|------|--------|
+| `pytest-testmon` | 변경 코드에 영향받는 테스트만 자동 선택 | `--testmon` |
+| `pytest-watch` | 파일 변경 시 자동 재실행 (watch 모드) | `uv run ptw` |
+| `pytest-xdist` | 병렬 실행 (CPU 코어 활용) | `-n auto` |
+
+> **참고**: `--testmon` 첫 실행 시 `.testmondata` 파일 생성 (전체 테스트 실행). 이후부터 변경분만 실행.
 
 ### Writing Tests
 

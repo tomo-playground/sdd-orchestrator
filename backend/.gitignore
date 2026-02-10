@@ -39,6 +39,7 @@ cache/
 # IDE/Tool caches
 .ruff_cache/
 .pytest_cache/
+.testmondata
 
 # OS files
 .DS_Store

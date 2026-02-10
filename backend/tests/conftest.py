@@ -14,6 +14,28 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+
+def pytest_addoption(parser):
+    """Add --run-integration flag for tests that call real external APIs."""
+    parser.addoption(
+        "--run-integration",
+        action="store_true",
+        default=False,
+        help="Run integration tests that call real external APIs (Gemini, etc.)",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip @pytest.mark.integration tests unless --run-integration is passed."""
+    if config.getoption("--run-integration"):
+        return
+    skip_integration = pytest.mark.skip(reason="Needs --run-integration to run (real API calls)")
+    for item in items:
+        if "integration" in item.keywords:
+            item.add_marker(skip_integration)
+
+
 from sqlalchemy import JSON, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -86,6 +108,7 @@ def ssim_threshold() -> float:
 def fixed_seed() -> int:
     """Return the fixed seed for deterministic tests."""
     from constants.testing import VRTConfig
+
     return VRTConfig.FIXED_SEED
 
 
@@ -93,6 +116,7 @@ def fixed_seed() -> int:
 def test_random() -> random.Random:
     """Return a seeded Random instance for tests."""
     from constants.testing import create_seeded_random
+
     return create_seeded_random()
 
 
@@ -151,6 +175,7 @@ def client(db_session) -> TestClient:
     Overrides the app's database dependency to use test DB.
     Production database is never touched during tests.
     """
+
     # Override database dependency
     def override_get_db():
         try:
@@ -205,6 +230,7 @@ def seed_default_project_group(db_session):
 def test_project(db_session):
     """Return the default test project (id=1)."""
     from models.project import Project
+
     return db_session.query(Project).first()
 
 
@@ -212,6 +238,7 @@ def test_project(db_session):
 def test_group(db_session):
     """Return the default test group (id=1)."""
     from models.group import Group
+
     return db_session.query(Group).first()
 
 
@@ -228,10 +255,20 @@ def init_tag_caches():
 
     # --- TagFilterCache: skip tags ---
     TagFilterCache._initialized = True
-    TagFilterCache._skip_tags = frozenset({
-        "breasts", "medium_breasts", "large_breasts", "small_breasts", "huge_breasts",
-        "child", "male_child", "female_child", "loli", "shota",
-    })
+    TagFilterCache._skip_tags = frozenset(
+        {
+            "breasts",
+            "medium_breasts",
+            "large_breasts",
+            "small_breasts",
+            "huge_breasts",
+            "child",
+            "male_child",
+            "female_child",
+            "loli",
+            "shota",
+        }
+    )
 
     # --- TagRuleCache: conflict rules ---
     TagRuleCache._initialized = True
@@ -242,17 +279,109 @@ def init_tag_caches():
         "medium_hair": {"short_hair", "long_hair", "very_long_hair"},
         "very_long_hair": {"short_hair", "long_hair", "medium_hair"},
         # camera shot conflicts (mutual exclusion among all camera tokens)
-        "full_body": {"medium_shot", "close-up", "upper_body", "cowboy_shot", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
-        "upper_body": {"full_body", "cowboy_shot", "close-up", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
-        "cowboy_shot": {"full_body", "upper_body", "close-up", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
-        "close-up": {"full_body", "upper_body", "cowboy_shot", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
-        "portrait": {"full_body", "upper_body", "cowboy_shot", "close-up", "wide_shot", "from_above", "from_below", "side_view"},
-        "wide_shot": {"full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "from_above", "from_below", "side_view"},
-        "medium_shot": {"full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot", "from_above", "from_below", "side_view"},
+        "full_body": {
+            "medium_shot",
+            "close-up",
+            "upper_body",
+            "cowboy_shot",
+            "portrait",
+            "wide_shot",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
+        "upper_body": {
+            "full_body",
+            "cowboy_shot",
+            "close-up",
+            "portrait",
+            "wide_shot",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
+        "cowboy_shot": {
+            "full_body",
+            "upper_body",
+            "close-up",
+            "portrait",
+            "wide_shot",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
+        "close-up": {
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "portrait",
+            "wide_shot",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
+        "portrait": {
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "close-up",
+            "wide_shot",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
+        "wide_shot": {
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "close-up",
+            "portrait",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
+        "medium_shot": {
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "close-up",
+            "portrait",
+            "wide_shot",
+            "from_above",
+            "from_below",
+            "side_view",
+        },
         # camera angle conflicts
-        "from_above": {"from_below", "side_view", "full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot"},
-        "from_below": {"from_above", "side_view", "full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot"},
-        "side_view": {"from_above", "from_below", "full_body", "upper_body", "cowboy_shot", "close-up", "portrait", "wide_shot"},
+        "from_above": {
+            "from_below",
+            "side_view",
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "close-up",
+            "portrait",
+            "wide_shot",
+        },
+        "from_below": {
+            "from_above",
+            "side_view",
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "close-up",
+            "portrait",
+            "wide_shot",
+        },
+        "side_view": {
+            "from_above",
+            "from_below",
+            "full_body",
+            "upper_body",
+            "cowboy_shot",
+            "close-up",
+            "portrait",
+            "wide_shot",
+        },
         # expression conflicts (opposing emotions conflict)
         "smile": {"angry", "crying", "sad", "frown"},
         "angry": {"smile", "happy", "laughing", "crying", "sad"},
@@ -262,7 +391,15 @@ def init_tag_caches():
         "frown": {"smile", "laughing", "happy"},
         "happy": {"sad", "angry", "crying", "frown"},
         # gaze conflicts (all gaze directions mutually exclusive)
-        "looking_at_viewer": {"looking_away", "looking_down", "looking_up", "looking_back", "looking_to_the_side", "eyes_closed", "closed_eyes"},
+        "looking_at_viewer": {
+            "looking_away",
+            "looking_down",
+            "looking_up",
+            "looking_back",
+            "looking_to_the_side",
+            "eyes_closed",
+            "closed_eyes",
+        },
         "looking_away": {"looking_at_viewer", "looking_down", "looking_up", "looking_back", "looking_to_the_side"},
         "looking_down": {"looking_at_viewer", "looking_away", "looking_up", "looking_back", "looking_to_the_side"},
         "looking_up": {"looking_at_viewer", "looking_away", "looking_down", "looking_back", "looking_to_the_side"},
@@ -330,4 +467,3 @@ def create_test_storyboard(
     resp = client.post("/storyboards", json=payload)
     assert resp.status_code == 200, f"Storyboard creation failed: {resp.text}"
     return resp.json()
-

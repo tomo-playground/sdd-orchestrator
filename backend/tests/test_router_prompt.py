@@ -1,6 +1,5 @@
 """Tests for prompt router endpoints."""
 
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -8,16 +7,14 @@ from fastapi.testclient import TestClient
 
 from models import Tag
 
-requires_gemini = pytest.mark.skipif(
-    os.getenv("GEMINI_API_KEY", "") in ("", "test-key"),
-    reason="Requires real GEMINI_API_KEY",
-)
+# Real API tests: skipped by default, run with `pytest --run-integration`
+integration = pytest.mark.integration
 
 
 class TestPromptRewrite:
     """Test POST /prompt/rewrite endpoint."""
 
-    @requires_gemini
+    @integration
     def test_rewrite_prompt_compose_mode(self, client: TestClient):
         """Rewrite prompt in compose mode returns merged result."""
         request_data = {
@@ -31,7 +28,7 @@ class TestPromptRewrite:
         data = response.json()
         assert "prompt" in data
 
-    @requires_gemini
+    @integration
     def test_rewrite_prompt_default_mode(self, client: TestClient):
         """Rewrite prompt with default mode."""
         request_data = {
@@ -54,7 +51,7 @@ class TestPromptRewrite:
 class TestPromptSplit:
     """Test POST /prompt/split endpoint."""
 
-    @requires_gemini
+    @integration
     def test_split_prompt_basic(self, client: TestClient):
         """Split prompt into base and scene components."""
         request_data = {
@@ -138,9 +135,7 @@ class TestPromptValidate:
 
         with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.get = AsyncMock(
-                side_effect=httpx.ConnectError("Connection refused")
-            )
+            mock_client.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client_cls.return_value = mock_client
