@@ -44,11 +44,7 @@ export default function StoryList({
                 onClick={() => onSelect(sb)}
                 disabled={isDisabled}
                 title={
-                  isDisabled
-                    ? "Autopilot running — wait for completion"
-                    : collapsed
-                      ? sb.title
-                      : undefined
+                  isDisabled ? "Autopilot running — wait for completion" : sb.title || `Story #${sb.id}`
                 }
                 className="flex min-w-0 flex-1 items-center gap-2"
               >

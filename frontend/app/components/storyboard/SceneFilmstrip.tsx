@@ -33,9 +33,9 @@ export default function SceneFilmstrip({
             key={s.id}
             type="button"
             onClick={() => onSceneSelect(idx)}
-            className={`relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+            className={`relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
               idx === currentSceneIndex
-                ? "border-zinc-900 shadow-md"
+                ? "scale-105 border-zinc-900 ring-2 ring-zinc-900/20 ring-offset-1 shadow-md"
                 : "border-zinc-200 opacity-60 hover:opacity-100"
             }`}
             style={{ width: 64, height: 64 }}

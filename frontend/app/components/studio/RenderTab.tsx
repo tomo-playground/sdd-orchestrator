@@ -254,6 +254,17 @@ export default function RenderTab() {
   return (
     <div className={SIDE_PANEL_LAYOUT}>
       {/* Left: Media Settings */}
+      {disabledReason && (
+        <div className="col-span-full mb-2 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <span className="text-xl">⚠</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800">{disabledReason}</p>
+            <p className="mt-0.5 text-xs text-amber-600">
+              렌더링 설정은 아래에서 미리 구성할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      )}
       <RenderMediaPanel
         includeSceneText={includeSceneText}
         setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}

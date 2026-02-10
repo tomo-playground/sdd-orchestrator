@@ -263,7 +263,6 @@ function OverrideToggleRow({
   hasOverride,
   onChange,
   onReset,
-  accent = "zinc",
   disabled = false,
   disabledReason,
 }: {
@@ -276,10 +275,11 @@ function OverrideToggleRow({
   disabled?: boolean;
   disabledReason?: string;
 }) {
+  const isOn = disabled ? false : checked;
   return (
-    <div className="flex items-center justify-between text-[10px] font-medium">
+    <div className="flex items-center justify-between">
       <span
-        className={disabled ? "text-zinc-300" : "text-zinc-500"}
+        className={`text-[11px] font-medium ${disabled ? "text-zinc-300" : "text-zinc-600"}`}
         title={disabled ? disabledReason : undefined}
       >
         {label}
@@ -297,20 +297,22 @@ function OverrideToggleRow({
           </button>
         )}
       </span>
-      <input
-        type="checkbox"
-        checked={disabled ? false : checked}
-        onChange={(e) => {
-          if (hasOverride) {
-            onChange(e.target.checked);
-          } else {
-            // First toggle creates scene override
-            onChange(e.target.checked);
-          }
-        }}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isOn}
+        onClick={() => !disabled && onChange(!isOn)}
         disabled={disabled}
-        className={`h-3.5 w-3.5 accent-${accent}-600 ${disabled ? "opacity-30" : ""}`}
-      />
+        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
+          disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
+        } ${isOn ? "bg-zinc-900" : "bg-zinc-200"}`}
+      >
+        <span
+          className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${
+            isOn ? "translate-x-3.5" : "translate-x-0.5"
+          }`}
+        />
+      </button>
     </div>
   );
 }
@@ -321,7 +323,6 @@ function SliderRow({
   min,
   max,
   step,
-  accent = "zinc",
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -339,22 +340,36 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className={`h-1 flex-1 accent-${accent}-600`}
+        className="h-1 flex-1 accent-zinc-600"
       />
-      <span className={`text-[10px] font-semibold text-${accent}-600 w-8 text-right`}>
+      <span className="w-8 text-right text-[10px] font-semibold text-zinc-600">
         {value.toFixed(step < 0.1 ? 2 : 1)}
       </span>
     </div>
   );
 }
 
-function StatBadge({ label, count, color }: { label: string; count: number; color: string }) {
+const STAT_BADGE_COLORS = {
+  emerald: "border-emerald-200 bg-emerald-50 text-emerald-700 [&>:last-child]:text-emerald-500",
+  amber: "border-amber-200 bg-amber-50 text-amber-700 [&>:last-child]:text-amber-500",
+  rose: "border-rose-200 bg-rose-50 text-rose-700 [&>:last-child]:text-rose-500",
+} as const;
+
+function StatBadge({
+  label,
+  count,
+  color,
+}: {
+  label: string;
+  count: number;
+  color: keyof typeof STAT_BADGE_COLORS;
+}) {
   return (
     <div
-      className={`flex flex-col items-center rounded-lg border border-${color}-200 bg-${color}-50 px-2 py-1.5`}
+      className={`flex flex-col items-center rounded-lg border px-2 py-1.5 ${STAT_BADGE_COLORS[color]}`}
     >
-      <span className={`text-xs font-bold text-${color}-700`}>{count}</span>
-      <span className={`text-[9px] text-${color}-500`}>{label}</span>
+      <span className="text-xs font-bold">{count}</span>
+      <span className="text-[9px]">{label}</span>
     </div>
   );
 }

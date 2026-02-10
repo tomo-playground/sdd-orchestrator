@@ -163,7 +163,7 @@ function StoryboardCard({
   return (
     <div
       data-testid={`storyboard-card-${sb.id}`}
-      className="group relative flex cursor-pointer flex-col gap-2 rounded-2xl border border-zinc-200/60 bg-white p-4 shadow-sm transition hover:shadow-md"
+      className="group relative flex h-full cursor-pointer flex-col gap-2 rounded-2xl border border-zinc-200/60 bg-white p-4 shadow-sm transition hover:shadow-md"
       onClick={onClick}
     >
       <h3 className="line-clamp-1 text-sm font-semibold text-zinc-900">{sb.title}</h3>
@@ -175,7 +175,7 @@ function StoryboardCard({
       </div>
       {/* Cast thumbnails */}
       {sb.cast && sb.cast.length > 0 && (
-        <div className="mt-1 flex items-center gap-1">
+        <div className="mt-auto flex items-center gap-1 pt-1">
           {sb.cast.map((c, i) => (
             <div
               key={`${c.id}-${i}`}
