@@ -82,15 +82,11 @@ async def generate_image_with_v3(
         f"group_id={group_id}, storyboard_id={storyboard_id}"
     )
 
-    # 1. Normalize prompt
+    # 1. Normalize prompt to string
     if isinstance(prompt, list):
-        scene_tags = prompt
         prompt_str = ", ".join(prompt)
-        logger.debug(f"{mode_prefix} Prompt type: list[str] → joined")
     else:
         prompt_str = prompt
-        scene_tags = split_prompt_tokens(prompt)
-        logger.debug(f"{mode_prefix} Prompt type: str")
 
     # 2. Resolve Style LoRAs
     warnings: list[str] = []
@@ -105,47 +101,28 @@ async def generate_image_with_v3(
             style_loras = []
             logger.warning(f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs")
 
-    # 3. V3 Composition (Character LoRA + Scene Tags + Style LoRAs)
-    # TODO: Refactor to use compose_scene_with_style() for consistent ordering
-    #       (StyleProfile first, then V3) — currently reversed here (V3, then StyleProfile).
-    if character_id:
-        try:
-            builder = V3PromptBuilder(db)
-            final_prompt = builder.compose_for_character(
-                character_id=character_id,
-                scene_tags=scene_tags,
-                style_loras=style_loras,
-            )
-            logger.debug(f"{mode_prefix} V3 composition complete")
-        except Exception as e:
-            logger.error(f"{mode_prefix} V3 composition failed: {e}")
-            if mode == "studio":
-                raise
-            else:
-                # Lab: fallback to prompt without V3
-                final_prompt = prompt_str
-                warnings.append(f"V3 composition failed: {e}")
-    else:
-        final_prompt = prompt_str
-        logger.debug(f"{mode_prefix} No character_id, using prompt as-is")
-
-    # 4. Apply Style Profile (Quality Tags + Negative)
+    # 3-4. StyleProfile + V3 Composition via shared SSOT
     negative_prompt = sd_params.get("negative_prompt", "") if sd_params else ""
     if storyboard_id or group_id:
-        from services.generation import apply_style_profile_to_prompt
-
         try:
-            final_prompt, negative_prompt = apply_style_profile_to_prompt(
-                final_prompt,
-                negative_prompt,
-                storyboard_id or group_id,
-                db,
-                skip_loras=True,  # V3 already applied LoRAs
+            final_prompt, negative_prompt = compose_scene_with_style(
+                raw_prompt=prompt_str,
+                negative_prompt=negative_prompt,
+                character_id=character_id,
+                storyboard_id=storyboard_id or group_id,
+                style_loras=style_loras or [],
+                db=db,
             )
-            logger.debug(f"{mode_prefix} Style Profile applied")
+            logger.debug(f"{mode_prefix} compose_scene_with_style complete")
         except Exception as e:
-            logger.warning(f"{mode_prefix} Style Profile failed: {e}")
-            warnings.append(f"Style Profile failed: {e}")
+            logger.error(f"{mode_prefix} Composition failed: {e}")
+            if mode == "studio":
+                raise
+            final_prompt = prompt_str
+            warnings.append(f"Composition failed: {e}")
+    else:
+        final_prompt = prompt_str
+        logger.debug(f"{mode_prefix} No storyboard/group, using prompt as-is")
 
     # 5. Build SD payload
     payload = {
