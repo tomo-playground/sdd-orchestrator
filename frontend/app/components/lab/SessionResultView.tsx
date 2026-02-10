@@ -4,7 +4,11 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Check, ExternalLink, Loader2 } from "lucide-react";
 import { API_BASE } from "../../constants";
-import type { CopyrightResult, MusicRecommendation } from "../../types/creative";
+import type {
+  CopyrightResult,
+  CreativeSceneSummary,
+  MusicRecommendation,
+} from "../../types/creative";
 import CheckResultCard from "./CheckResultCard";
 
 type Group = {
@@ -13,18 +17,8 @@ type Group = {
   project_id: number;
 };
 
-type SceneData = {
-  order: number;
-  script: string;
-  speaker: string;
-  duration: number;
-  camera?: string;
-  environment?: string;
-  image_prompt?: string;
-};
-
 type Props = {
-  scenes: SceneData[];
+  scenes: CreativeSceneSummary[];
   topic: string;
   musicRecommendation?: MusicRecommendation;
   copyrightResult?: CopyrightResult;
@@ -97,6 +91,9 @@ export default function SessionResultView({
                 Duration
               </th>
               <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                Scene (KO)
+              </th>
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Camera
               </th>
               <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
@@ -111,6 +108,12 @@ export default function SessionResultView({
                 <td className="max-w-xs truncate px-3 py-2 text-zinc-700">{s.script}</td>
                 <td className="px-3 py-2 text-zinc-500">{s.speaker}</td>
                 <td className="px-3 py-2 text-zinc-500">{s.duration}s</td>
+                <td
+                  className="max-w-[200px] truncate px-3 py-2 text-zinc-500"
+                  title={s.image_prompt_ko ?? ""}
+                >
+                  {s.image_prompt_ko ?? "-"}
+                </td>
                 <td className="px-3 py-2 text-zinc-500">{s.camera ?? "-"}</td>
                 <td className="px-3 py-2 text-zinc-500">{s.environment ?? "-"}</td>
               </tr>

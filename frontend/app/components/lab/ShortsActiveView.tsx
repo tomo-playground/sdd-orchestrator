@@ -1,7 +1,12 @@
 "use client";
 
 import { ArrowLeft, RotateCcw, Wrench } from "lucide-react";
-import type { CreativeSession, CopyrightResult, MusicRecommendation } from "../../types/creative";
+import type {
+  CreativeSceneSummary,
+  CreativeSession,
+  CopyrightResult,
+  MusicRecommendation,
+} from "../../types/creative";
 import StatusBadge from "./StatusBadge";
 import ConceptCompareView from "./ConceptCompareView";
 import PipelineProgressView from "./PipelineProgressView";
@@ -114,15 +119,8 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
       {session.status === "completed" && session.session_type === "shorts" && (
         <SessionResultView
           scenes={
-            ((session.final_output as Record<string, unknown> | null)?.scenes ?? []) as Array<{
-              order: number;
-              script: string;
-              speaker: string;
-              duration: number;
-              camera?: string;
-              environment?: string;
-              image_prompt?: string;
-            }>
+            ((session.final_output as Record<string, unknown> | null)?.scenes ??
+              []) as CreativeSceneSummary[]
           }
           topic={session.objective}
           musicRecommendation={

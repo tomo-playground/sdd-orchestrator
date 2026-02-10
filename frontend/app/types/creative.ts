@@ -11,8 +11,7 @@ export type CreativeSession = {
   max_rounds: number;
   total_token_usage: Record<string, unknown> | null;
   status: string;
-  // V2 fields
-  session_type: "free" | "shorts";
+  session_type: string;
   director_mode: "auto" | "advisor";
   concept_candidates: ConceptCandidates | null;
   selected_concept_index: number | null;
@@ -174,4 +173,15 @@ export type MusicRecommendation = {
   mood: string;
   duration: number;
   reasoning: string;
+};
+
+export type CreativeSceneSummary = {
+  order: number;
+  script: string;
+  speaker: string;
+  duration: number;
+  camera?: string;
+  environment?: string;
+  image_prompt?: string; // SD prompt (English) - not displayed in summary table
+  image_prompt_ko?: string; // Scene description (Korean) - displayed in summary
 };
