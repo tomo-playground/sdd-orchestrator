@@ -614,7 +614,7 @@ class V3PromptBuilder:
     # Male enhancement tags (Danbooru standard) to counter SD female bias
     _MALE_INDICATORS = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
     _FEMALE_INDICATORS = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
-    _MALE_ENHANCEMENT = ["(1boy:1.3)", "(male_focus:1.2)"]
+    _MALE_ENHANCEMENT = ["(1boy:1.3)", "(male_focus:1.2)", "(bishounen:1.1)"]
 
     def _apply_gender_enhancement(
         self, character: "Character", char_tags_data: list[dict], layers: list[list[str]]
