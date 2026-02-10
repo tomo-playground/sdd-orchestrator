@@ -75,7 +75,7 @@ export default function PreviewImageSection({
         <button
           type="button"
           onClick={() => setPreviewLocked(!previewLocked)}
-          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
             previewLocked
               ? "border border-amber-300 bg-amber-100 text-amber-700"
               : "border border-zinc-200 bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
@@ -135,7 +135,7 @@ export default function PreviewImageSection({
       </div>
 
       {isCreateMode && (
-        <p className="text-center text-[10px] text-zinc-400">Save first to generate.</p>
+        <p className="text-center text-[11px] text-zinc-400">Save first to generate.</p>
       )}
     </div>
   );

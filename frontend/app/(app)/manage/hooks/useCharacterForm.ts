@@ -32,7 +32,13 @@ export function useCharacterForm(
   allTags: Tag[],
   allLoras: LoRA[],
   onSave: (data: Partial<Character>, id?: number) => Promise<void>,
-  onClose: () => void
+  onClose: () => void,
+  showToast: (message: string, type: "success" | "error" | "warning") => void,
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+  }) => Promise<boolean>
 ) {
   const isCreateMode = !character;
 
@@ -166,7 +172,7 @@ export function useCharacterForm(
       if (res.data.url) setPreviewImageUrl(res.data.url);
     } catch (error) {
       console.error("Failed to generate reference", error);
-      alert("Failed to generate reference image.");
+      showToast("Failed to generate reference image.", "error");
     } finally {
       setIsGenerating(false);
     }
@@ -174,14 +180,19 @@ export function useCharacterForm(
 
   const handleEnhancePreview = async () => {
     if (isCreateMode || !character?.id || !previewImageUrl) return;
-    if (!confirm("Enhance preview image with Gemini? (~$0.04 cost)")) return;
+    const ok = await confirmDialog({
+      title: "Enhance Preview",
+      message: "Enhance preview image with Gemini? (~$0.04 cost)",
+      confirmLabel: "Enhance",
+    });
+    if (!ok) return;
     setIsEnhancing(true);
     try {
       const res = await axios.post(`${API_BASE}/characters/${character.id}/enhance-preview`);
       if (res.data.url) setPreviewImageUrl(res.data.url);
     } catch (error) {
       console.error("Failed to enhance preview", error);
-      alert("Failed to enhance preview image.");
+      showToast("Failed to enhance preview image.", "error");
     } finally {
       setIsEnhancing(false);
     }
@@ -201,7 +212,7 @@ export function useCharacterForm(
       }
     } catch (error) {
       console.error("Failed to edit preview", error);
-      alert("Failed to edit preview image.");
+      showToast("Failed to edit preview image.", "error");
     } finally {
       setIsEditing(false);
     }
@@ -245,8 +256,9 @@ export function useCharacterForm(
       });
 
       if (notFound.length > 0) {
-        alert(
-          `Warning: The following tags were not found and will be ignored:\n${notFound.join(", ")}\n\nPlease use the Tag Manager to add new tags first.`
+        showToast(
+          `Tags not found: ${notFound.join(", ")}. Use the Tag Manager to add new tags.`,
+          "warning"
         );
       }
 
@@ -283,9 +295,11 @@ export function useCharacterForm(
   const handleLoraTypeChange = async (loraId: number, newType: string) => {
     try {
       await axios.put(`${API_BASE}/loras/${loraId}`, { lora_type: newType });
-      setLocalLoras((prev) => prev.map((l) => (l.id === loraId ? { ...l, lora_type: newType } : l)));
+      setLocalLoras((prev) =>
+        prev.map((l) => (l.id === loraId ? { ...l, lora_type: newType } : l))
+      );
     } catch {
-      alert("Failed to update LoRA type.");
+      showToast("Failed to update LoRA type.", "error");
     }
   };
 
@@ -341,7 +355,7 @@ export function useCharacterForm(
       onClose();
     } catch (error) {
       console.error("Failed to save character", error);
-      alert("Failed to save changes");
+      showToast("Failed to save changes.", "error");
     } finally {
       setIsSaving(false);
     }

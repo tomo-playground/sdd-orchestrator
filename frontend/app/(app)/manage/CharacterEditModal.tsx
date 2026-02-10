@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useCharacterForm } from "./hooks/useCharacterForm";
 import PreviewImageSection from "./PreviewImageSection";
 import CharacterTagsEditor from "./CharacterTagsEditor";
 import ReferencePromptsPanel from "./ReferencePromptsPanel";
 import GeminiPreviewEditModal from "./GeminiPreviewEditModal";
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
+import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { useStudioStore } from "../../store/useStudioStore";
 import { Character, Tag, LoRA, ActorGender, PromptMode, VoicePreset } from "../../types";
 
 type Props = {
@@ -25,18 +27,43 @@ export default function CharacterEditModal({
   onClose,
   onSave,
 }: Props) {
-  const form = useCharacterForm(character, allTags, allLoras, onSave, onClose);
+  const showToast = useStudioStore((s) => s.showToast);
+  const { confirm, dialogProps } = useConfirm();
+  const form = useCharacterForm(character, allTags, allLoras, onSave, onClose, showToast, confirm);
+
+  // Escape key to close (guard: skip when inner modals are open)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "Escape" &&
+        !form.geminiEditOpen &&
+        !form.previewImageOpen &&
+        !dialogProps.open
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, form.geminiEditOpen, form.previewImageOpen, dialogProps.open]);
 
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="character-edit-title"
+    >
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 px-6 py-4">
-          <h2 className="text-lg font-bold text-zinc-900">
+          <h2 id="character-edit-title" className="text-lg font-bold text-zinc-900">
             {form.isCreateMode ? "Create New Character" : `Edit Character: ${character?.name}`}
           </h2>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close dialog"
             className="rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
           >
             <svg
@@ -191,6 +218,9 @@ export default function CharacterEditModal({
           onSubmit={form.handleEditPreview}
         />
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }
@@ -272,7 +302,7 @@ function PromptModeSection({
         <option value="standard">Standard (No LoRA)</option>
         <option value="lora">LoRA Only</option>
       </select>
-      <p className="mt-1 text-[10px] text-zinc-400">
+      <p className="mt-1 text-[11px] text-zinc-400">
         Auto: Smart compose. Standard: No LoRA. LoRA: Forces character LoRAs.
       </p>
     </div>
@@ -296,7 +326,7 @@ function IpAdapterSection({
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-[10px] text-zinc-400">Weight ({ipAdapterWeight})</label>
+          <label className="mb-1 block text-[11px] text-zinc-400">Weight ({ipAdapterWeight})</label>
           <input
             type="range"
             min="0"
@@ -308,7 +338,7 @@ function IpAdapterSection({
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] text-zinc-400">Model</label>
+          <label className="mb-1 block text-[11px] text-zinc-400">Model</label>
           <select
             value={ipAdapterModel}
             onChange={(e) => setIpAdapterModel(e.target.value)}
@@ -359,7 +389,7 @@ function SceneIdentitySection({
                   return prev;
                 })
               }
-              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
             >
               + QUALITY
             </button>
@@ -367,7 +397,7 @@ function SceneIdentitySection({
               <button
                 type="button"
                 onClick={() => setReferenceBasePrompt(customBasePrompt)}
-                className="text-[10px] text-zinc-500 hover:underline"
+                className="text-[11px] text-zinc-500 hover:underline"
               >
                 Copy to Ref.
               </button>
@@ -382,7 +412,7 @@ function SceneIdentitySection({
           className={`w-full rounded-xl border ${sceneIdentityWarning ? "border-amber-400" : "border-zinc-200"} resize-none px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400`}
         />
         {sceneIdentityWarning && (
-          <p className="mt-1 text-[10px] font-medium text-amber-600 italic">
+          <p className="mt-1 text-[11px] font-medium text-amber-600 italic">
             {sceneIdentityWarning}
           </p>
         )}
@@ -396,7 +426,7 @@ function SceneIdentitySection({
             <button
               type="button"
               onClick={() => setReferenceNegativePrompt(customNegativePrompt)}
-              className="text-[10px] text-zinc-500 hover:underline"
+              className="text-[11px] text-zinc-500 hover:underline"
             >
               Copy to Ref.
             </button>
@@ -436,7 +466,7 @@ function LoRAsSection({
         </label>
         <button
           onClick={onAddLora}
-          className="rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-700"
+          className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
         >
           + Add LoRA
         </button>
@@ -457,13 +487,14 @@ function LoRAsSection({
                 {allLoras.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.display_name || l.name}
+                    {l.lora_type ? ` [${l.lora_type}]` : ""}
                   </option>
                 ))}
               </select>
               <select
                 value={loraInfo?.lora_type || "character"}
                 onChange={(e) => onLoraTypeChange(lora.lora_id, e.target.value)}
-                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[10px] font-semibold outline-none ${
+                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[11px] font-semibold outline-none ${
                   loraInfo?.lora_type === "style"
                     ? "border-violet-200 bg-violet-50 text-violet-600"
                     : "border-zinc-200 bg-white text-zinc-500"
@@ -525,7 +556,7 @@ function VoicePresetSection({
           </option>
         ))}
       </select>
-      <p className="mt-1 text-[10px] text-zinc-400">
+      <p className="mt-1 text-[11px] text-zinc-400">
         Assigned voice for this character. Overrides the global render preset voice during TTS.
       </p>
     </div>

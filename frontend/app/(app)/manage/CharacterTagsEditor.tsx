@@ -43,7 +43,7 @@ export default function CharacterTagsEditor({
           </label>
           <button
             onClick={() => onToggleRawEdit("identity")}
-            className="text-[10px] font-semibold text-zinc-500 underline hover:text-zinc-800"
+            className="text-[11px] font-semibold text-zinc-500 underline hover:text-zinc-800"
           >
             {rawEditMode === "identity" ? "Done" : "Edit as Text"}
           </button>
@@ -83,7 +83,7 @@ export default function CharacterTagsEditor({
           </label>
           <button
             onClick={() => onToggleRawEdit("clothing")}
-            className="text-[10px] font-semibold text-zinc-500 underline hover:text-zinc-800"
+            className="text-[11px] font-semibold text-zinc-500 underline hover:text-zinc-800"
           >
             {rawEditMode === "clothing" ? "Done" : "Edit as Text"}
           </button>
@@ -173,7 +173,7 @@ function TagChipList({
                 onClick={() => onAddTag(tag)}
                 className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-50"
               >
-                {tag.name} <span className="text-[10px] text-zinc-400">({tag.category})</span>
+                {tag.name} <span className="text-[11px] text-zinc-400">({tag.category})</span>
               </button>
             ))}
           </div>
