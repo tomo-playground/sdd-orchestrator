@@ -133,20 +133,35 @@ class V3PromptBuilder:
     # Pattern-based fallback constants for _infer_layer_from_pattern
     _EXPRESSION_KEYWORDS = frozenset(
         {
-            "smiling", "crying", "angry", "sad", "happy",
-            "surprised", "confused", "blushing", "embarrassed",
-            "scared", "worried", "nervous",
+            "smiling",
+            "crying",
+            "angry",
+            "sad",
+            "happy",
+            "surprised",
+            "confused",
+            "blushing",
+            "embarrassed",
+            "scared",
+            "worried",
+            "nervous",
         }
     )
     _LOCATION_KEYWORDS = frozenset(
         {
-            "room", "lab", "laboratory", "street", "city",
-            "forest", "beach", "space", "spaceship", "neon_city",
+            "room",
+            "lab",
+            "laboratory",
+            "street",
+            "city",
+            "forest",
+            "beach",
+            "space",
+            "spaceship",
+            "neon_city",
         }
     )
-    _MOOD_KEYWORDS = frozenset(
-        {"futuristic", "cyberpunk", "sci-fi", "steampunk", "post-apocalyptic"}
-    )
+    _MOOD_KEYWORDS = frozenset({"futuristic", "cyberpunk", "sci-fi", "steampunk", "post-apocalyptic"})
 
     @staticmethod
     def _infer_layer_from_pattern(tag: str) -> int:
@@ -242,12 +257,10 @@ class V3PromptBuilder:
         if "no_humans" not in env_norms:
             layers[LAYER_ENVIRONMENT].insert(0, "no_humans")
 
-        # Style LoRAs (visual consistency)
+        # Style LoRAs — LoRA tag only; trigger words omitted for background
+        # scenes to prevent semantic bias toward character generation.
         if style_loras:
             for lora in style_loras:
-                for trigger in lora.get("trigger_words", []):
-                    if trigger not in layers[LAYER_ATMOSPHERE]:
-                        layers[LAYER_ATMOSPHERE].append(trigger)
                 weight = lora.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora["name"])
@@ -497,6 +510,7 @@ class V3PromptBuilder:
                 layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
                 injected_lora_names.add(lora_name)
 
+        _style_trigger_words: set[str] = set()
         if style_loras:
             for lora in style_loras:
                 lora_name = lora["name"]
@@ -505,6 +519,7 @@ class V3PromptBuilder:
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
+                    _style_trigger_words.add(trigger)
 
                 weight = lora.get("weight")
                 if weight is None:
@@ -512,9 +527,11 @@ class V3PromptBuilder:
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
                 injected_lora_names.add(lora_name)
 
-        # Background scene defense: strip character layers after all LoRA injection
+        # Background scene defense: strip character layers + style trigger words
         if self._is_background_scene(tags):
             self._strip_character_layers(layers)
+            if _style_trigger_words:
+                layers[LAYER_ATMOSPHERE] = [t for t in layers[LAYER_ATMOSPHERE] if t not in _style_trigger_words]
 
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])

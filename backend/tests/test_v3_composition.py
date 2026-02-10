@@ -815,8 +815,8 @@ class TestBackgroundSceneFiltering:
 
     @patch("services.prompt.v3_composition.TagRuleCache")
     @patch("services.prompt.v3_composition.TagAliasCache")
-    def test_background_scene_keeps_style_loras(self, mock_alias, mock_rule, builder):
-        """Background scene preserves style LoRAs for visual consistency."""
+    def test_background_scene_keeps_style_lora_tag_strips_trigger(self, mock_alias, mock_rule, builder):
+        """Background scene keeps LoRA tag but strips trigger words to avoid human bias."""
         mock_alias.initialize.return_value = None
         mock_alias.get_replacement.return_value = ...
         mock_rule.initialize.return_value = None
@@ -830,7 +830,8 @@ class TestBackgroundSceneFiltering:
         )
 
         assert "<lora:flat_color:0.6>" in result
-        assert "flat color" in result
+        # Trigger word stripped — may bias SD toward character generation
+        assert "flat color" not in result
 
     @patch("services.prompt.v3_composition.TagRuleCache")
     @patch("services.prompt.v3_composition.TagAliasCache")
@@ -907,6 +908,37 @@ class TestBackgroundSceneFiltering:
         # Environment kept
         assert "no_humans" in result
         assert "scenery" in result
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_compose_background_strips_style_trigger_keeps_lora_tag(self, mock_alias, mock_rule, mock_trigger, builder):
+        """compose() with no_humans: style LoRA tag kept, trigger word stripped."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_trigger.get_lora_name.return_value = None
+
+        builder.get_tag_info = MagicMock(
+            return_value={
+                "no_humans": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+                "beach": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
+            }
+        )
+
+        result = builder.compose(
+            tags=["no_humans", "beach"],
+            character_loras=[{"name": "eureka_v9", "weight": 0.7, "trigger_words": ["eureka_style"]}],
+            style_loras=[{"name": "flat_color", "weight": 0.6, "trigger_words": ["flat color"]}],
+        )
+
+        # Character LoRA fully stripped
+        assert "eureka_v9" not in result
+        assert "eureka_style" not in result
+        # Style LoRA tag kept, trigger word stripped
+        assert "<lora:flat_color:0.6>" in result
+        assert "flat color" not in result
 
 
 # ────────────────────────────────────────────
