@@ -1,7 +1,7 @@
 ---
 name: qa-validator
 description: 품질 체크, TROUBLESHOOTING 관리 및 테스트 검증
-allowed_tools: ["mcp__playwright__*", "mcp__memory__*"]
+allowed_tools: ["mcp__playwright__*", "mcp__memory__*", "mcp__postgres__*"]
 ---
 
 # QA Validator Agent
@@ -99,6 +99,15 @@ E2E 테스트와 VRT 검증의 핵심 도구입니다.
 ```
 browser_navigate → browser_snapshot → browser_click → browser_wait_for → browser_take_screenshot
 ```
+
+### PostgreSQL (`mcp__postgres__*`)
+품질 데이터를 직접 조회하여 검증합니다 (읽기 전용).
+
+| 시나리오 | 쿼리 예시 |
+|----------|----------|
+| 씬별 품질 점수 | `SELECT scene_id, match_rate FROM scene_quality_scores ORDER BY match_rate ASC LIMIT 10` |
+| 평가 실행 결과 | `SELECT test_name, mode, AVG(match_rate) FROM evaluation_runs GROUP BY 1, 2` |
+| 생성 성공률 추이 | `SELECT DATE(created_at), COUNT(*) FILTER (WHERE status='success') * 100.0 / COUNT(*) FROM activity_logs GROUP BY 1 ORDER BY 1 DESC LIMIT 7` |
 
 ### Memory (`mcp__memory__*`)
 | 시나리오 | 도구 |

@@ -27,9 +27,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `storyboards` — 개별 에피소드
 - `id` (PK), `group_id` (FK → groups), `title`, `description`
-- `character_id`, `style_profile_id`, `caption`
-- `narrator_voice_preset_id` (FK → voice_presets)
-- `video_asset_id` (FK → media_assets), `recent_videos` (JSONB)
+- `caption`, `structure` (String, default from config)
 - `deleted_at` (Soft Delete)
 
 ### `scenes` — 스토리보드 내 개별 씬
@@ -83,8 +81,16 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `civitai_id`, `preview_image_asset_id` (FK), `is_active`
 
 ### `style_profiles` — Model + LoRA 번들
-- `id` (PK), `name` (Unique), `sd_model_id` (FK)
-- `loras` (JSONB), `default_positive`, `default_negative`
+- `id` (PK), `name` (Unique), `display_name`, `description`
+- `sd_model_id` (FK), `loras` (JSONB)
+- `negative_embeddings` (ARRAY), `positive_embeddings` (ARRAY)
+- `default_positive`, `default_negative`
+- `is_default`, `is_active`
+
+### `embeddings` — 임베딩 모델
+- `id` (PK), `name` (Unique), `display_name`
+- `embedding_type` (`negative`/`positive`/`style`), `trigger_word`
+- `description`, `is_active`
 
 ---
 
@@ -133,6 +139,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ### `creative_sessions` — 멀티 에이전트 창작 세션
 - `id` (PK), `objective`, `evaluation_criteria` (JSONB), `agent_config` (JSONB)
 - `character_id` (FK), `final_output` (JSONB), `max_rounds`, `status`
+- **V2**: `session_type`, `director_mode`, `concept_candidates` (JSONB), `selected_concept_index`, `context` (JSONB)
 
 ### `creative_session_rounds` — 라운드별 요약
 - `id` (PK), `session_id` (FK), `round_number`, `leader_summary`, `round_decision`
@@ -140,7 +147,10 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ### `creative_traces` — 에이전트 LLM 호출 추적
 - `id` (PK), `session_id` (FK), `round_number`, `sequence`
 - `trace_type`, `agent_role`, `agent_preset_id` (FK)
-- `input_prompt`, `output_content`, `token_usage` (JSONB), `latency_ms`
+- `input_prompt`, `output_content`, `score`, `feedback`
+- `model_id`, `token_usage` (JSONB), `latency_ms`, `temperature`
+- `parent_trace_id` (FK, self-ref), `diff_summary`
+- **V2**: `phase`, `step_name`, `target_agent`, `decision_context` (JSONB), `retry_count`
 
 ### `creative_agent_presets` — 에이전트 페르소나 프리셋
 - `id` (PK), `name` (Unique), `role_description`, `system_prompt`

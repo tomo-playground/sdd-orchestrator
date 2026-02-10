@@ -6,7 +6,7 @@
 
 ## Phase 1-4: Foundation & Refactoring - ARCHIVED
 
-완료. [Phase 1-4 아카이브](../99_archive/ROADMAP_PHASE_1_4.md) 참조.
+완료. [Phase 1-4 아카이브](../99_archive/archive/ROADMAP_PHASE_1_4.md) 참조.
 
 ---
 

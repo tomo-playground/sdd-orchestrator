@@ -1,7 +1,7 @@
 ---
 name: ffmpeg-expert
 description: 영상 렌더링, FFmpeg 명령어 및 비디오 효과 전문가
-allowed_tools: ["mcp__ffmpeg__*"]
+allowed_tools: ["mcp__ffmpeg__*", "mcp__memory__*"]
 ---
 
 # FFmpeg Expert Agent
@@ -96,6 +96,13 @@ zoompan=z='min(zoom+0.001,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=150:
 | `extract_audio` | 오디오 트랙 추출 | TTS/BGM 분리, 오디오 분석 |
 
 > 복잡한 필터 체인(Ken Burns, xfade 등)은 MCP가 아닌 `backend/services/video.py`의 VideoBuilder에서 FFmpeg CLI로 직접 처리합니다.
+
+### Memory (`mcp__memory__*`)
+| 시나리오 | 도구 |
+|----------|------|
+| 렌더링 결정 기록 | `create_entities` → 필터 체인 최적화 결과, 인코딩 설정 결정 |
+| 효과 패턴 저장 | `add_observations` → Ken Burns/전환 효과 성능 비교 데이터 |
+| 과거 결정 검색 | `search_nodes` → "encoding preset" 관련 기록 조회 |
 
 ---
 

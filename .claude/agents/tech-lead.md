@@ -1,7 +1,7 @@
 ---
 name: tech-lead
 description: 개발 총괄, 크로스 에이전트 조율 및 기술 의사결정
-allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*"]
+allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__API_specification__*"]
 ---
 
 # Tech Lead Agent
@@ -74,6 +74,14 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*"]
 | 전체 테이블 현황 | `SELECT tablename, pg_total_relation_size(tablename::regclass) as size FROM pg_tables WHERE schemaname='public' ORDER BY size DESC` |
 | API 사용량 파악 | `SELECT DATE(created_at), COUNT(*) FROM activity_logs GROUP BY 1 ORDER BY 1 DESC LIMIT 14` |
 | 데이터 증가 추이 | `SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC` |
+
+### API Specification (`mcp__API_specification__*`)
+API 설계 리뷰 시 OAS 스펙을 참조합니다.
+
+| 시나리오 | 도구 |
+|----------|------|
+| API 스펙 전체 조회 | `read_project_oas` → API 계약 일관성 검증 |
+| 리소스별 상세 | `read_project_oas_ref_resources` → 특정 엔드포인트 스펙 확인 |
 
 ### Memory (`mcp__memory__*`)
 기술 의사결정 이력을 기록하고 참조합니다.

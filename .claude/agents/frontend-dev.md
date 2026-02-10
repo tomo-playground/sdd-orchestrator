@@ -1,7 +1,7 @@
 ---
 name: frontend-dev
 description: Next.js/React 프론트엔드 개발 및 Zustand 상태 관리 전문가
-allowed_tools: ["mcp__playwright__*", "mcp__context7__*", "mcp__memory__*"]
+allowed_tools: ["mcp__playwright__*", "mcp__context7__*", "mcp__memory__*", "mcp__API_specification__*"]
 ---
 
 # Frontend Developer Agent
@@ -116,6 +116,14 @@ E2E 테스트와 디버깅에 활용합니다.
 | Next.js App Router | `"nextjs"` | `"app router server components"` |
 | Zustand 패턴 | `"zustand"` | `"persist middleware localStorage"` |
 | Tailwind 유틸리티 | `"tailwindcss"` | `"responsive design breakpoints"` |
+
+### API Specification (`mcp__API_specification__*`)
+Backend API 스펙을 조회하여 연동 시 참조합니다.
+
+| 시나리오 | 도구 |
+|----------|------|
+| API 스펙 조회 | `read_project_oas` → 엔드포인트/스키마 확인 |
+| 리소스별 상세 | `read_project_oas_ref_resources` → 특정 API 응답 구조 확인 |
 
 ### Memory (`mcp__memory__*`)
 | 시나리오 | 도구 |

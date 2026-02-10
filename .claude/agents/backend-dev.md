@@ -1,7 +1,7 @@
 ---
 name: backend-dev
 description: FastAPI 백엔드 개발, 서비스 로직 및 API 설계 전문가
-allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*"]
+allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__API_specification__*"]
 ---
 
 # Backend Developer Agent
@@ -132,6 +132,14 @@ DB 데이터를 직접 조회하여 디버깅/검증합니다 (읽기 전용).
 | SQLAlchemy 2.0 | `"sqlalchemy"` | `"relationship lazy loading selectin"` |
 | Pydantic v2 | `"pydantic"` | `"model validator field alias"` |
 | Alembic | `"alembic"` | `"autogenerate migration batch operations"` |
+
+### API Specification (`mcp__API_specification__*`)
+Apidog OAS 스펙을 조회하여 API 설계 시 참조합니다.
+
+| 시나리오 | 도구 |
+|----------|------|
+| API 스펙 조회 | `read_project_oas` → 전체 OpenAPI 스펙 확인 |
+| 리소스별 조회 | `read_project_oas_ref_resources` → 특정 리소스 상세 |
 
 ### Memory (`mcp__memory__*`)
 | 시나리오 | 도구 |
