@@ -168,9 +168,11 @@ docs/
 | **FFmpeg Expert** | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI 설계/와이어프레임/사용성 개선 | `/vrt`, `/test` |
 | **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/review frontend`, `/vrt` |
-| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/review backend`, `/sd-status`, `/db` |
+| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/review backend`, `/sd-status`, `/db`, `/pose` |
 | **DBA** | DB 설계, Alembic 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 | **Security Engineer** | 보안 취약점 분석, 인증/인가, 시크릿 관리 | `/review`, `/test` |
+
+> **향후 확장**: 프로덕션 배포 및 규모 확장 시 DevOps Agent 분리 검토 (현재 인프라 담당: Backend Dev)
 
 ### Prompt Engineer 역할 상세
 **핵심 원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표. 수동적 대응이 아닌 **적극적 제안**으로 품질을 선제적으로 개선합니다.

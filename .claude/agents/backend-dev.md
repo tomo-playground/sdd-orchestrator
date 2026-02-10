@@ -156,6 +156,7 @@ Apidog OAS 스펙을 조회하여 API 설계 시 참조합니다.
 | `/test backend` | pytest 실행 | 유닛/통합 테스트, 특정 모듈 지정 가능 |
 | `/sd-status` | SD WebUI 상태 | 이미지 생성 연동 문제 진단 |
 | `/db` | DB 마이그레이션 | `migrate`, `upgrade`, `downgrade`, `schema` 관리 |
+| `/pose` | 포즈 에셋 관리 | audit, sync, reclassify |
 
 ## 참조 문서
 

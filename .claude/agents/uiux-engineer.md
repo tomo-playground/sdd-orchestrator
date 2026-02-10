@@ -30,6 +30,11 @@ allowed_tools: ["mcp__playwright__*", "mcp__memory__*"]
 - 색상 대비 기준 준수
 - Lighthouse 성능 점검
 
+### 5. Frontend Dev 협업 (핸드오프)
+- **설계 → 구현 흐름**: UI/UX Engineer가 와이어프레임/제안서 작성 → Frontend Dev가 구현
+- **산출물 위치**: `docs/02_design/` (UI 제안서), `docs/02_design/wireframes/` (와이어프레임)
+- **핸드오프 체크리스트**: 컴포넌트 계층 구조, 상태 관리 요구사항, 반응형 브레이크포인트, 접근성 요건 명시
+
 ---
 
 ## 현재 UI 구조
