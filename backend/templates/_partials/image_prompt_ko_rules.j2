@@ -1,4 +1,4 @@
-   - image_prompt_ko: Natural Korean sentence describing the scene (NOT comma-separated tags)
+   - image_prompt_ko: ONE natural Korean sentence (subject + verb/descriptive phrase, NOT comma-separated tags)
      * Describe ONLY: action, emotion, situation, environment
      * EXCLUDE character appearance (hair, eyes, clothing, style) — already injected by Character Identity system
      * GOOD: "밤에 부엌에서 땀 흘리며 서 있는 모습"
@@ -6,4 +6,5 @@
      * GOOD: "햇살이 들어오는 카페 창가" (environment-only scene)
      * BAD: "플랫 컬러 스타일의 갈색 머리 소녀가 흰 셔츠를 입고 미소 지으며 서 있다." (identity included)
      * BAD: "미소, 서있는, 부엌, 밤" (comma-separated tags)
-     * Write as a natural descriptive sentence for human readers
+     * BAD: "미래주의_도시, 실험실, 로봇, 전선" (Korean-translated Danbooru tags)
+     * Pattern: "[장소/상황]에서 [감정/동작]하는 모습" or "[분위기] [장소 묘사]"
