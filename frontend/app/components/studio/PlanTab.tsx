@@ -69,10 +69,6 @@ export default function PlanTab() {
 
       const basePrompt = buildCharacterPrompt(charFull);
       const baseNegative = buildCharacterNegative(charFull);
-      console.log("[PlanTab] Loading character:", charFull.name);
-      console.log("[PlanTab] Base prompt:", basePrompt);
-      console.log("[PlanTab] Base negative:", baseNegative);
-
       const triggers = charFull.loras?.length
         ? charFull.loras.flatMap((l) => l.trigger_words || [])
         : [];
@@ -90,21 +86,10 @@ export default function PlanTab() {
       const mode =
         charFull.prompt_mode || (charFull.effective_mode === "lora" ? "lora" : "standard");
 
-      console.log(
-        "[PlanTab] Available references:",
-        referenceImages.length,
-        referenceImages.map((r) => `${r.character_key} (ID: ${r.character_id})`)
-      );
-      console.log("[PlanTab] Looking for character ID:", charFull.id);
       const match =
         referenceImages.length > 0
           ? referenceImages.find((r) => r.character_id === charFull.id)
           : null;
-      console.log(
-        "[PlanTab] Matched reference:",
-        match ? `${match.character_key} (ID: ${match.character_id})` : "none"
-      );
-
       setPlan({
         selectedCharacterName: charFull.name,
         basePromptA: basePrompt,

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
+import { FileText, X } from "lucide-react";
 import { API_BASE } from "../../constants";
 import { useStudioStore } from "../../store/useStudioStore";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -170,7 +171,9 @@ function StoryboardCard({
       {sb.description && <p className="line-clamp-2 text-xs text-zinc-500">{sb.description}</p>}
       <div className="flex items-center gap-3 text-[10px] text-zinc-400">
         <span>{sb.scene_count} scenes</span>
-        <span>{sb.image_count} images</span>
+        <span className={sb.image_count === 0 ? "text-amber-500" : ""}>
+          {sb.image_count} images
+        </span>
         {sb.updated_at && <span>{format(new Date(sb.updated_at), "yyyy.MM.dd")}</span>}
       </div>
       {/* Cast thumbnails */}
@@ -203,10 +206,10 @@ function StoryboardCard({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute top-3 right-3 text-xs text-zinc-300 opacity-0 transition group-hover:opacity-100 hover:text-red-400"
+        className="absolute top-3 right-3 text-zinc-300 opacity-0 transition group-hover:opacity-100 hover:text-red-400"
         title="Delete"
       >
-        x
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -235,8 +238,9 @@ function DraftCard({ onClick }: { onClick: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="flex cursor-pointer flex-col gap-2 rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50 p-4 transition hover:border-zinc-400"
+      className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50 p-4 text-center transition hover:border-zinc-400 hover:bg-zinc-100/50"
     >
+      <FileText className="h-5 w-5 text-zinc-400" />
       <span className="text-xs font-semibold text-zinc-600">Continue Draft</span>
       <span className="text-[10px] text-zinc-400">Resume your unsaved work</span>
     </div>

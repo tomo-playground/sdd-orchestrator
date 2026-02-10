@@ -34,7 +34,7 @@ export default function StoryList({
               className={cx(
                 "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition",
                 isActive
-                  ? "bg-zinc-100 font-medium text-zinc-900"
+                  ? "border-l-2 border-zinc-900 bg-zinc-100 font-medium text-zinc-900"
                   : isDisabled
                     ? "cursor-not-allowed text-zinc-300"
                     : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
@@ -44,7 +44,9 @@ export default function StoryList({
                 onClick={() => onSelect(sb)}
                 disabled={isDisabled}
                 title={
-                  isDisabled ? "Autopilot running — wait for completion" : sb.title || `Story #${sb.id}`
+                  isDisabled
+                    ? "Autopilot running — wait for completion"
+                    : sb.title || `Story #${sb.id}`
                 }
                 className="flex min-w-0 flex-1 items-center gap-2"
               >

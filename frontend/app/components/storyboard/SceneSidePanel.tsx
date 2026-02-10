@@ -106,7 +106,7 @@ export default function SceneSidePanel({
   return (
     <div className={SIDE_PANEL_CLASSES}>
       {/* Generation Settings */}
-      <div>
+      <div className="pb-3">
         <label className={SIDE_PANEL_LABEL}>Settings</label>
         <div className="space-y-2">
           <OverrideToggleRow
@@ -115,7 +115,6 @@ export default function SceneSidePanel({
             hasOverride={hasMultiGenOverride}
             onChange={(v) => onSceneMultiGenChange(v)}
             onReset={() => onSceneMultiGenChange(null)}
-
           />
           <OverrideToggleRow
             label="ControlNet"
@@ -123,7 +122,6 @@ export default function SceneSidePanel({
             hasOverride={hasControlnetOverride}
             onChange={(v) => onSceneControlnetChange(v)}
             onReset={() => onSceneControlnetChange(null)}
-
             accent="violet"
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"
@@ -150,7 +148,6 @@ export default function SceneSidePanel({
             hasOverride={hasIpAdapterOverride}
             onChange={(v) => onSceneIpAdapterChange(v)}
             onReset={() => onSceneIpAdapterChange(null)}
-
             accent={currentSpeaker === "B" ? "sky" : "amber"}
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"
@@ -203,7 +200,7 @@ export default function SceneSidePanel({
 
       {/* Validation Summary */}
       {totalValidation > 0 && (
-        <div>
+        <div className="border-t border-zinc-100 pt-3">
           <label className={SIDE_PANEL_LABEL}>Validation</label>
           <div className="grid grid-cols-3 gap-1.5">
             <StatBadge label="OK" count={validationSummary.ok} color="emerald" />
@@ -215,7 +212,7 @@ export default function SceneSidePanel({
 
       {/* Match Rate Grid */}
       {hasMatchRateGrid && (
-        <div>
+        <div className="border-t border-zinc-100 pt-3">
           <label className={SIDE_PANEL_LABEL}>Match Rates</label>
           <div className="grid grid-cols-3 gap-1.5">
             {scenesInfo!.map((scene, index) => {
