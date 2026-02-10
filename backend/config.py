@@ -32,7 +32,7 @@ LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
 LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
-_handlers = [logging.StreamHandler()]
+_handlers: list[logging.Handler] = [logging.StreamHandler()]
 if LOG_TO_FILE:
     _log_path = pathlib.Path(LOG_FILE)
     _log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -46,20 +46,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("backend")
-if LOG_TO_FILE:
-    _log_path = pathlib.Path(LOG_FILE)
-    _log_path.parent.mkdir(parents=True, exist_ok=True)
-    if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
-        _file_handler = logging.FileHandler(_log_path, encoding="utf-8")
-        _file_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        logger.addHandler(_file_handler)
-        logger.propagate = True
-        logger.info("File logging enabled: %s", _log_path)
+# propagate=True (default): root logger's handlers (StreamHandler + FileHandler) handle all output.
+# Do NOT add a separate FileHandler here — it causes duplicate log entries in the log file.
 
 # --- Database ---
 DATABASE_URL = os.getenv("DATABASE_URL")
