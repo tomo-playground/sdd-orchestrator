@@ -150,6 +150,7 @@ export async function generateSceneImageFor(
       {
         ...debugPayload,
         character_id: selectedCharacterId,
+        character_b_id: state.selectedCharacterBId || undefined,
         storyboard_id: storyboardId,
         scene_id: scene.id > 0 ? scene.id : undefined,
         prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,

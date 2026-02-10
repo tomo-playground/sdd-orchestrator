@@ -1,4 +1,4 @@
-# API Specification (v3.6)
+# API Specification (v3.7)
 
 프론트엔드와 백엔드 간 데이터 통신을 위한 API 명세서입니다.
 
@@ -6,6 +6,7 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.7 | 2026-02-11 | Multi-Character LoRA 지원: Scene Generate/Prompt Compose에 `character_b_id` 추가, Scene 응답에 `scene_mode` 추가, LoRA API에 멀티캐릭터 필드 3개 추가 |
 | v3.6 | 2026-02-10 | Storyboard Soft Delete 엔드포인트 (trash/restore/permanent), Scene 편집 엔드포인트 (validate-and-auto-edit, edit-with-gemini, suggest-edit), Video 유틸리티 (extract-caption, extract-hashtags, transitions), Storyboard `duration`/`language` 필드 추가 |
 | v3.5 | 2026-02-07 | Creative Engine API 추가 (`/lab/creative/sessions`, `/lab/creative/agent-presets`) - AI 멀티 에이전트 토론 기반 창작 |
 | v3.4 | 2026-02-07 | Video 비동기 렌더링 API 추가 (`/video/create-async`, `/video/progress/{task_id}`), Style Profile Ownership 설계 노트 |
@@ -101,6 +102,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
     {
       "scene_id": 1,
       "script": "나레이션 텍스트",
+      "scene_mode": "single",
       "image_url": "/outputs/images/scene_001.png",  // Response-only: @property에서 media_asset 기반 파생
       "width": 512,
       "height": 768,
@@ -190,6 +192,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "hr_second_pass_steps": 10,
   "denoising_strength": 0.25,
   "character_id": 8,
+  "character_b_id": null,
   "storyboard_id": 374,
   "prompt_pre_composed": false,
   "style_loras": []
@@ -209,6 +212,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 ```
 
 - `used_prompt`: 백엔드가 스타일 프로파일/LoRA/V3 엔진을 적용한 최종 프롬프트. Narrator 씬 등 프론트엔드가 프롬프트를 pre-compose하지 않은 경우, 이 값으로 `image_prompt`를 업데이트한다.
+- `character_b_id`: (optional) 2인 동시 출연 시 두 번째 캐릭터 ID. 지정 시 멀티캐릭터 프롬프트 합성이 적용되며, 각 LoRA의 `multi_char_weight_scale`로 가중치가 축소된다.
 
 ### `POST /scene/generate-batch`
 여러 씬의 이미지를 한 번에 생성합니다.
@@ -791,7 +795,7 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 
 ---
 
-**Last Updated:** 2026-02-10
-**API Version:** v3.6
+**Last Updated:** 2026-02-11
+**API Version:** v3.7
 **Backend Version:** FastAPI 0.109+
 **Database:** PostgreSQL 14+ (v3.10)

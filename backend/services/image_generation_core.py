@@ -194,6 +194,7 @@ def compose_scene_with_style(
     db: Session,
     scene_id: int | None = None,
     scene_character_actions: list[dict] | None = None,
+    character_b_id: int | None = None,
 ) -> tuple[str, str, list[str]]:
     """Compose scene prompt: StyleProfile + V3 composition (SSOT).
 
@@ -228,29 +229,37 @@ def compose_scene_with_style(
         character = db.query(Character).filter(Character.id == character_id).first()
 
     # Resolve scene-specific character actions from DB (skip if provided directly)
-    if not scene_character_actions and scene_id and character_id:
+    if not scene_character_actions and scene_id:
         from models.associations import SceneCharacterAction
 
-        sca_rows = (
-            db.query(SceneCharacterAction)
-            .filter(
-                SceneCharacterAction.scene_id == scene_id,
-                SceneCharacterAction.character_id == character_id,
-            )
-            .all()
-        )
+        sca_filter = SceneCharacterAction.scene_id == scene_id
+        sca_rows = db.query(SceneCharacterAction).filter(sca_filter).all()
         if sca_rows:
             scene_character_actions = [
                 {"character_id": a.character_id, "tag_id": a.tag_id, "weight": a.weight} for a in sca_rows
             ]
 
-    if character:
+    # Multi-character routing
+    if character and character_b_id:
+        from services.prompt.v3_multi_character import MultiCharacterComposer
+
+        char_b = db.query(Character).filter(Character.id == character_b_id).first()
+        if char_b:
+            composer = MultiCharacterComposer(builder)
+            composed = composer.compose(
+                character, char_b, scene_tags,
+                style_loras=style_loras,
+                scene_character_actions=scene_character_actions,
+            )
+        else:
+            composed = builder.compose_for_character(
+                character.id, scene_tags, style_loras=style_loras,
+                character=character, scene_character_actions=scene_character_actions,
+            )
+    elif character:
         composed = builder.compose_for_character(
-            character.id,
-            scene_tags,
-            style_loras=style_loras,
-            character=character,
-            scene_character_actions=scene_character_actions,
+            character.id, scene_tags, style_loras=style_loras,
+            character=character, scene_character_actions=scene_character_actions,
         )
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras)

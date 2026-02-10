@@ -38,7 +38,9 @@ export async function buildScenePrompt(scene: Scene): Promise<string | null> {
     const res = await axios.post(`${API_BASE}/prompt/compose`, {
       tokens: sceneTokens,
       character_id: characterId,
+      character_b_id: state.selectedCharacterBId || undefined,
       storyboard_id: state.storyboardId || undefined,
+      scene_id: scene.id > 0 ? scene.id : undefined,
       context_tags: scene.context_tags || undefined,
       use_break: false,
     });

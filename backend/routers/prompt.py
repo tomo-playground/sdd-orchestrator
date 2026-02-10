@@ -199,13 +199,43 @@ async def compose_prompt(
                 request.storyboard_id,
             )
 
-        # 3. V3 engine composition (character tags, LoRAs, gender loaded from DB)
-        v3_service = V3PromptService(db)
-        composed_prompt = v3_service.generate_prompt_for_scene(
-            character_id=request.character_id,
-            scene_tags=all_tokens,
-            style_loras=style_loras,
-        )
+        # 3. Resolve effective character_b_id (only for scene_mode="multi")
+        effective_b_id = None
+        if request.character_b_id and request.scene_id:
+            from models.scene import Scene
+
+            scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+            if scene and scene.scene_mode == "multi":
+                effective_b_id = request.character_b_id
+
+        # 4. V3 engine composition (character tags, LoRAs, gender loaded from DB)
+        if request.character_id and effective_b_id:
+            from models.character import Character
+            from services.prompt.v3_composition import V3PromptBuilder
+            from services.prompt.v3_multi_character import MultiCharacterComposer
+
+            char_a = db.query(Character).filter(Character.id == request.character_id).first()
+            char_b = db.query(Character).filter(Character.id == effective_b_id).first()
+            if char_a and char_b:
+                builder = V3PromptBuilder(db)
+                composer = MultiCharacterComposer(builder)
+                composed_prompt = composer.compose(
+                    char_a, char_b, all_tokens, style_loras=style_loras,
+                )
+            else:
+                v3_service = V3PromptService(db)
+                composed_prompt = v3_service.generate_prompt_for_scene(
+                    character_id=request.character_id,
+                    scene_tags=all_tokens,
+                    style_loras=style_loras,
+                )
+        else:
+            v3_service = V3PromptService(db)
+            composed_prompt = v3_service.generate_prompt_for_scene(
+                character_id=request.character_id,
+                scene_tags=all_tokens,
+                style_loras=style_loras,
+            )
 
         # 4. Build response
         composed_tokens = split_prompt_tokens(composed_prompt)

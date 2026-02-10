@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import ARRAY, Boolean, ForeignKey, Index, Integer, Numeric, String, Text  # noqa: F401
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -35,6 +35,13 @@ class LoRA(Base, TimestampMixin):
     # Calibration & Performance
     optimal_weight: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     calibration_score: Mapped[int | None] = mapped_column(Integer)
+
+    # Multi-Character Support
+    is_multi_character_capable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    multi_char_weight_scale: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
+    # 2인 씬에서 LoRA weight 비율 (예: 0.75 = 기본 weight의 75%)
+    multi_char_trigger_prompt: Mapped[str | None] = mapped_column(String(200))
+    # 멀티캐릭터 호출 프롬프트 (예: "a boy and a girl")
 
     # External Metadata & Media
     civitai_id: Mapped[int | None] = mapped_column(Integer)

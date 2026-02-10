@@ -254,6 +254,7 @@ class SceneDetailResponse(BaseModel):
     script: str | None = ""
     speaker: str | None = ""
     duration: float | None = 3.0
+    scene_mode: Literal["single", "multi"] = "single"
     description: str | None = None
     image_prompt: str | None = ""
     image_prompt_ko: str | None = ""
@@ -343,6 +344,7 @@ class StoryboardScene(BaseModel):
     script: str
     speaker: str = DEFAULT_SPEAKER
     duration: float = 3
+    scene_mode: Literal["single", "multi"] = "single"
     image_prompt: str = ""
     image_prompt_ko: str = ""
     # Input-only: triggers _link_media_asset, not stored directly
@@ -496,6 +498,7 @@ class SceneGenerateRequest(BaseModel):
     denoising_strength: float = 0.35
     # V3 Character Integration (optional for Narrator scenes)
     character_id: int | None = None
+    character_b_id: int | None = None  # Multi-character: second character
     # Storyboard Integration (for Style Profile lookup)
     storyboard_id: int | None = None
     # Style LoRAs — ignored by backend; resolved from DB (SSOT). Kept for backward compat.
@@ -617,7 +620,9 @@ class PromptComposeRequest(BaseModel):
     use_break: bool = True  # Insert BREAK token
     # V3 extension fields
     character_id: int  # required — character tags/LoRAs loaded from DB
+    character_b_id: int | None = None  # Multi-character: second character
     storyboard_id: int | None = None  # for resolving style LoRAs from DB (SSOT)
+    scene_id: int | None = None  # for scene_mode validation (multi-char guard)
     context_tags: dict | None = None  # scene.context_tags
 
 
@@ -695,6 +700,10 @@ class LoRABase(BaseModel):
     gender_locked: str | None = None
     civitai_id: int | None = None
     civitai_url: str | None = None
+    # Multi-Character Support
+    is_multi_character_capable: bool = False
+    multi_char_weight_scale: float | None = None
+    multi_char_trigger_prompt: str | None = None
     # preview_image_url removed - now read-only @property via preview_image_asset
 
 
@@ -712,6 +721,10 @@ class LoRAUpdate(BaseModel):
     calibration_score: int | None = None
     weight_min: float | None = None
     weight_max: float | None = None
+    # Multi-Character Support
+    is_multi_character_capable: bool | None = None
+    multi_char_weight_scale: float | None = None
+    multi_char_trigger_prompt: str | None = None
     # preview_image_url removed - now read-only @property via preview_image_asset
 
 

@@ -308,6 +308,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | ~~AI BGM Generation~~ | ~~[명세](../99_archive/features/AI_BGM.md)~~ → 6-8 #7-11로 이동 (완료) |
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
+| v3_composition.py 하드코딩 프롬프트 DB/config 이동 (`_MALE_ENHANCEMENT` 등 10개 frozenset) | - |
 | Real-time Prompt Preview (12-Layer) | - |
 | 씬 순서 드래그 앤 드롭 | - |
 | Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화) | - |
@@ -327,7 +328,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
                                                            Cascading Config          Future
 ```
 
-**현재 진행 상태** (2026-02-10):
+**현재 진행 상태** (2026-02-11):
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
@@ -373,3 +374,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-10) Creative Lab 쇼츠 표준화: V1(Free Debate) 코드/테스트/컴포넌트 전량 삭제 (5 backend + 2 frontend 파일), category 리네이밍 (`v2_concept`→`concept`, `v2_production`→`production`), SSOT 전환 (categories + agent-template 매핑 config.py), `session_type` 기본값 `"shorts"` 전환, Alembic 마이그레이션 2건
 - (2026-02-10) Script QC Agent + Interactive Review: Pause-Review-Resume 패턴 (파이프라인 스텝 완료 후 `step_review` 상태 전환 → 사용자 리뷰 → 승인/리비전), Script QC 프롬프트 (`script_qc.j2`, 6가지 가중 평가), `creative_review.py` 모듈 분리, 자동 승인 (`score≥0.85` + critical 0건), 챗봇식 리뷰 UI (QCSummaryCard + StepReviewView), `with_for_update()` 동시성 방어, 단위 테스트 15개
 - (2026-02-10) Multi-Character UI 5-Phase 통합: SceneCharacterAction 타입/스토어, SpeakerBadge 드롭다운, SceneCharacterActions 태그 편집 UI, `auto_populate_character_actions` context_tags→actions 자동 변환, V3 12-Layer scene_character_actions 주입, `resolve_action_tag_ids` tag_name→tag_id 해결, QC 스키마 Gemini 출력 유연화 (500 에러 수정), `NegativePromptToggle` 컴포넌트 분리, 테스트 55개 추가
+- (2026-02-11) Multi-Character LoRA 지원: `loras` 테이블에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`), `scenes.scene_mode` 필드 추가 (`single`/`multi`), Scene Generate/Prompt Compose API에 `character_b_id` 파라미터 지원, 2인 동시 출연 시 LoRA weight 자동 축소

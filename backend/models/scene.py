@@ -30,6 +30,9 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     # Scene metadata
     speaker: Mapped[str | None] = mapped_column(String(20), default=DEFAULT_SPEAKER)
     duration: Mapped[float | None] = mapped_column(Float, default=3.0)
+    scene_mode: Mapped[str] = mapped_column(
+        String(10), default="single", server_default="single"
+    )  # "single" | "multi" (2인 동시 출연)
 
     # Prompt fields
     image_prompt: Mapped[str | None] = mapped_column(Text)
@@ -46,9 +49,7 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     # Consistency Enhancements
     use_reference_only: Mapped[bool] = mapped_column(Boolean, default=True)
     reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)
-    environment_reference_id: Mapped[int | None] = mapped_column(
-        ForeignKey("media_assets.id", ondelete="SET NULL")
-    )
+    environment_reference_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id", ondelete="SET NULL"))
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
 
     # Per-scene generation settings override (nullable = inherit global)

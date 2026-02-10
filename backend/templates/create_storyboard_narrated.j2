@@ -94,6 +94,28 @@ Narrator Position Roles (all examples 10+ chars):
 - A and B scenes show the speaking character ONLY
 - Narrator scenes show environment, objects, or atmospheric imagery (NO characters)
 - All scenes share the SAME location/environment theme
+{% if is_multi_character_capable %}
+
+⚠️ MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):
+- You MAY create 1-2 scenes where BOTH characters appear together
+- Use these ONLY for key emotional moments (reunion, confrontation, farewell, shared reaction)
+- Multi scenes: include BOTH characters' identity/costume/LoRA tags in image_prompt
+- Multi scenes: subject tag should reflect both characters (e.g., "1boy, 1girl" / "2girls" / "2boys")
+{% if character_context and character_b_context %}
+{% if character_context.gender == "male" and character_b_context.gender == "male" %}
+- Multi scenes subject: "2boys"
+{% elif character_context.gender == "female" and character_b_context.gender == "female" %}
+- Multi scenes subject: "2girls"
+{% else %}
+- Multi scenes subject: "1boy, 1girl"
+{% endif %}
+{% endif %}
+- Multi scenes: add interaction tags (e.g., "eye_contact", "facing_another", "hand_holding")
+- Multi scenes: speaker can be "A", "B", or "Narrator"
+- Each multi scene MUST include "scene_mode": "multi" in JSON output
+- All other scenes MUST include "scene_mode": "single" in JSON output
+- LIMIT: Maximum 1-2 multi scenes per storyboard
+{% endif %}
 
 CRITICAL LANGUAGE RULE:
 - Script must be written ONLY in {{ language }}.
@@ -135,6 +157,9 @@ Instructions:
 4. A/B scenes:
    - Show ONLY the speaking character
    - Use the speaker's identity/costume/LoRA tags
+{% if is_multi_character_capable %}
+   - For multi scenes: show BOTH characters together with interaction tags
+{% endif %}
 5. Each scene must include:
    - scene_id (starting at 1)
    - script: spoken line in {{ language }}.
@@ -143,6 +168,9 @@ Instructions:
      * Must fit in 2 lines when rendered on screen.
    - speaker: "Narrator", "A", or "B"
    - duration: seconds (2-3 recommended for fast pacing)
+{% if is_multi_character_capable %}
+   - scene_mode: "single" (default, one character) or "multi" (both characters together)
+{% endif %}
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * For A/B: include character's identity/costume/LoRA tags
      * For Narrator: focus on environment/mood (no_humans, scenery, etc.)
@@ -167,6 +195,9 @@ Output Format:
     "script": "오래된 카페, 오후의 햇살.",
     "speaker": "Narrator",
     "duration": 3,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
     "image_prompt": "no_humans, scenery, cafe, window, sunlight, warm_lighting, indoors",
     "image_prompt_ko": "햇살이 들어오는 카페 창가",
     "context_tags": {
@@ -179,6 +210,9 @@ Output Format:
     "script": "...너, 많이 안 변했다, 진짜.",
     "speaker": "A",
     "duration": 4,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
     "image_prompt": "[speaker_A_identity_tags], nervous_smile, looking_at_viewer, standing, cowboy_shot, cafe, indoors",
     "image_prompt_ko": "어색하게 웃으며 상대를 바라보는 A",
     "context_tags": {
@@ -194,6 +228,9 @@ Output Format:
     "script": "너도 하나도 안 변했네.",
     "speaker": "B",
     "duration": 3,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
     "image_prompt": "[speaker_B_identity_tags], slight_smile, looking_away, sitting, upper_body, cafe, indoors",
     "image_prompt_ko": "살짝 미소 짓는 B",
     "context_tags": {

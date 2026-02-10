@@ -70,39 +70,47 @@ def auto_populate_character_actions(
         if scene.get("character_actions"):
             continue
 
+        is_multi = scene.get("scene_mode") == "multi"
         speaker = scene.get("speaker", "")
         char_id = speaker_map.get(speaker)
-        if not char_id:
-            continue  # Narrator or unknown speaker
+        if not char_id and not is_multi:
+            continue  # Narrator or unknown speaker (single scene)
 
         context_tags = scene.get("context_tags") or {}
-        actions: list[dict] = []
 
-        for cat in _ACTION_CATEGORIES:
-            value = context_tags.get(cat)
-            if not value:
-                continue
-            tags = [value] if isinstance(value, str) else value
-            for tag_name in tags:
-                tag_name = tag_name.strip()
-                if not tag_name or tag_name not in tag_lookup:
+        # Determine which characters get actions
+        if is_multi:
+            target_char_ids = [cid for cid in (character_id, character_b_id) if cid]
+        else:
+            target_char_ids = [char_id] if char_id else []
+
+        actions: list[dict] = []
+        for cid in target_char_ids:
+            for cat in _ACTION_CATEGORIES:
+                value = context_tags.get(cat)
+                if not value:
                     continue
-                tag_id, _ = tag_lookup[tag_name]
-                actions.append(
-                    {
-                        "character_id": char_id,
-                        "tag_id": tag_id,
-                        "weight": 1.0,
-                    }
-                )
+                tags = [value] if isinstance(value, str) else value
+                for tag_name in tags:
+                    tag_name = tag_name.strip()
+                    if not tag_name or tag_name not in tag_lookup:
+                        continue
+                    tag_id, _ = tag_lookup[tag_name]
+                    actions.append(
+                        {
+                            "character_id": cid,
+                            "tag_id": tag_id,
+                            "weight": 1.0,
+                        }
+                    )
 
         if actions:
             scene["character_actions"] = actions
             logger.debug(
-                "[CharacterActionResolver] Scene %s: %d actions for character %d",
+                "[CharacterActionResolver] Scene %s: %d actions for %d character(s)",
                 scene.get("scene_id", "?"),
                 len(actions),
-                char_id,
+                len(target_char_ids),
             )
 
     return scenes

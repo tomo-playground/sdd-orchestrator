@@ -222,6 +222,25 @@ def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
         return []
 
 
+def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> int | None:
+    """Resolve character_b_id only when scene_mode='multi'.
+
+    Frontend always passes character_b_id from store state (no logic).
+    Backend decides usage based on scene_mode from DB.
+    """
+    if not request.character_b_id:
+        return None
+    if not request.scene_id:
+        return None
+    from models.scene import Scene
+
+    scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+    if scene and scene.scene_mode == "multi":
+        logger.debug("👥 [Multi-Char] scene_mode=multi, using character_b_id=%d", request.character_b_id)
+        return request.character_b_id
+    return None
+
+
 def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], object]:
     """Prepare the final prompt via style profile + V3 composition.
 
@@ -247,6 +266,9 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
     )
 
     final_warnings: list[str] = []
+
+    # Resolve character_b_id only for multi scenes (scene_mode="multi")
+    effective_b_id = _resolve_effective_character_b_id(request, db)
 
     # Narrator defense: no character + no person tags → inject no_humans
     if not request.character_id and not request.prompt_pre_composed:
@@ -296,6 +318,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             style_loras=style_loras,
             db=db,
             scene_id=request.scene_id,
+            character_b_id=effective_b_id,
         )
         final_warnings.extend(compose_warnings)
         logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
@@ -362,6 +385,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     style_loras=style_loras,
                     db=db,
                     scene_id=request.scene_id,
+                    character_b_id=effective_b_id,
                 )
                 final_warnings.extend(compose_warnings)
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)

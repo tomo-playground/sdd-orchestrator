@@ -177,6 +177,11 @@ export default function SceneCard({
             characterBName={characterBName}
             onSpeakerChange={onSpeakerChange}
           />
+          {scene.scene_mode === "multi" && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              Multi
+            </span>
+          )}
           <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
             {getSceneStatus(scene)}
           </span>

@@ -1,4 +1,4 @@
-# Database Schema (v3.16)
+# Database Schema (v3.17)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
 | v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
 | v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정 |
 | v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine`, `GroupConfig`, `RenderHistory`, `LabExperiments` 추가 |
@@ -183,6 +184,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `use_controlnet` | Boolean | ControlNet 사용 여부 |
 | `controlnet_weight` | Float | ControlNet 가중치 |
 | **Generation** | | |
+| `scene_mode` | String(10) | 씬 모드: `"single"` (1인) or `"multi"` (2인 동시 출연, default: `"single"`) |
 | `multi_gen_enabled` | Boolean | 멀티 생성 활성화 여부 |
 | `image_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 (폴리모픽 참조) |
 | `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) |
@@ -479,6 +481,10 @@ Stable Diffusion LoRA 모델.
 | `calibration_score` | Integer | 최적 가중치 시 점수 |
 | `weight_min`, `weight_max` | Decimal(3,2) | 가중치 범위 |
 | `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
+| **Multi-Character** | | |
+| `is_multi_character_capable` | Boolean | 2인 동시 출연 지원 여부 (default: false) |
+| `multi_char_weight_scale` | Numeric(3,2) | 2인 씬에서 LoRA weight 축소 비율 (nullable, 예: 0.70) |
+| `multi_char_trigger_prompt` | String(200) | 멀티캐릭터 호출 프롬프트 (nullable) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
@@ -757,6 +763,7 @@ Textual Inversion 임베딩.
 | `Tag.classification_source` | `pattern`, `danbooru`, `llm`, `manual` |
 | `LoRA.lora_type` | `character`, `style`, `concept`, `pose` |
 | `Character.prompt_mode` | `auto`, `standard`, `lora` |
+| `Scene.scene_mode` | `single`, `multi` |
 | `TagRule.rule_type` | `conflict`, `requires` |
 | `TagAlias.target_tag` | String or `NULL` (= remove tag) |
 | `TagFilter.filter_type` | `ignore`, `skip` |
@@ -794,7 +801,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-10
-**Schema Version:** v3.16
+**Last Updated:** 2026-02-11
+**Schema Version:** v3.17
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

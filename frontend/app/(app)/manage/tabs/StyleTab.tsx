@@ -304,6 +304,11 @@ export default function StyleTab() {
                         >
                           {lora.lora_type || "character"}
                         </span>
+                        {lora.is_multi_character_capable && (
+                          <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                            Multi
+                          </span>
+                        )}
                       </div>
                       {lora.display_name && lora.display_name !== lora.name && (
                         <p className="mt-0.5 truncate font-mono text-[11px] text-zinc-400">
@@ -447,6 +452,59 @@ export default function StyleTab() {
                   }
                   className="w-full"
                 />
+              </div>
+              {/* Multi-Character Support */}
+              <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editingLora.is_multi_character_capable ?? false}
+                    onChange={(e) =>
+                      setEditingLora({ ...editingLora, is_multi_character_capable: e.target.checked })
+                    }
+                    className="h-3.5 w-3.5 rounded accent-emerald-600"
+                  />
+                  <span className="text-[11px] font-bold text-zinc-600">Multi-Character Capable</span>
+                </label>
+                {editingLora.is_multi_character_capable && (
+                  <div className="mt-3 grid gap-3">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
+                        Weight Scale: {(editingLora.multi_char_weight_scale ?? 0.75).toFixed(2)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0.3"
+                        max="1.0"
+                        step="0.05"
+                        value={editingLora.multi_char_weight_scale ?? 0.75}
+                        onChange={(e) =>
+                          setEditingLora({
+                            ...editingLora,
+                            multi_char_weight_scale: parseFloat(e.target.value),
+                          })
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
+                        Trigger Prompt
+                      </label>
+                      <input
+                        value={editingLora.multi_char_trigger_prompt ?? ""}
+                        onChange={(e) =>
+                          setEditingLora({
+                            ...editingLora,
+                            multi_char_trigger_prompt: e.target.value || null,
+                          })
+                        }
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-700 outline-none focus:border-emerald-500"
+                        placeholder="e.g. a boy and a girl"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 pt-2">
                 <button

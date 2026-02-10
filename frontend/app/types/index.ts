@@ -23,12 +23,15 @@ export type SceneCharacterAction = {
   weight: number;
 };
 
+export type SceneMode = "single" | "multi";
+
 export type Scene = {
   id: number;
   order: number; // 씬 순서 (1, 2, 3...)
   script: string;
   speaker: "Narrator" | "A" | "B";
   duration: number;
+  scene_mode?: SceneMode;
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
@@ -167,6 +170,7 @@ export type DraftScene = {
   script: string;
   speaker: Scene["speaker"];
   duration: number;
+  scene_mode?: SceneMode;
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
@@ -225,6 +229,10 @@ export type LoRA = {
   // Calibration fields
   optimal_weight: number | null;
   calibration_score: number | null;
+  // Multi-Character Support
+  is_multi_character_capable?: boolean;
+  multi_char_weight_scale?: number | null;
+  multi_char_trigger_prompt?: string | null;
 };
 
 export type ReferenceImage = {

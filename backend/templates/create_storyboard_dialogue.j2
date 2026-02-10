@@ -60,9 +60,31 @@ LoRA Trigger Words (MUST include in every scene where speaker=B):
 - NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
 - Speaker A gets roughly half the scenes, Speaker B gets the rest
 - Alternate speakers: A → B → A → B → A...
-- Each scene shows ONLY the speaking character (single person in frame)
+- Most scenes show ONLY the speaking character (single person in frame)
 - Both characters share the SAME environment/location across all scenes
 - Conversation must feel natural and flow logically
+{% if is_multi_character_capable %}
+
+⚠️ MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):
+- You MAY create 1-2 scenes where BOTH characters appear together
+- Use these ONLY for key emotional moments (reunion, confrontation, farewell, shared reaction)
+- Multi scenes: include BOTH characters' identity/costume/LoRA tags in image_prompt
+- Multi scenes: subject tag should reflect both characters (e.g., "1boy, 1girl" / "2girls" / "2boys")
+{% if character_context and character_b_context %}
+{% if character_context.gender == "male" and character_b_context.gender == "male" %}
+- Multi scenes subject: "2boys"
+{% elif character_context.gender == "female" and character_b_context.gender == "female" %}
+- Multi scenes subject: "2girls"
+{% else %}
+- Multi scenes subject: "1boy, 1girl"
+{% endif %}
+{% endif %}
+- Multi scenes: add interaction tags (e.g., "eye_contact", "facing_another", "hand_holding")
+- Multi scenes: speaker can be "A" or "B" (whoever is speaking in that moment)
+- Each multi scene MUST include "scene_mode": "multi" in JSON output
+- All other scenes MUST include "scene_mode": "single" in JSON output
+- LIMIT: Maximum 1-2 multi scenes per storyboard
+{% endif %}
 
 CRITICAL LANGUAGE RULE:
 - Script must be written ONLY in {{ language }}.
@@ -93,10 +115,16 @@ Instructions:
    - Target: {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - Each scene: 2-3 seconds (for fast pacing)
 2. Alternate speakers: A, B, A, B... (roughly equal distribution).
-3. Each scene's image shows ONLY the current speaker (1girl or 1boy).
+3. Each single scene's image shows ONLY the current speaker (1girl or 1boy).
+{% if is_multi_character_capable %}
+   - For multi scenes: show BOTH characters together with interaction tags.
+{% endif %}
 4. For EACH scene:
    a) Write the script line for the current speaker
-   b) Use the CURRENT SPEAKER's character tags in image_prompt
+   b) Use the CURRENT SPEAKER's character tags in image_prompt (single scenes)
+{% if is_multi_character_capable %}
+      For multi scenes: include BOTH speakers' character tags + interaction tags
+{% endif %}
    c) Keep the same environment across all scenes
 5. Each scene must include:
    - scene_id (starting at 1)
@@ -106,6 +134,9 @@ Instructions:
      * Must fit in 2 lines when rendered on screen.
    - speaker: "A" or "B"
    - duration: seconds (2-3 recommended for fast pacing)
+{% if is_multi_character_capable %}
+   - scene_mode: "single" (default, one character) or "multi" (both characters together)
+{% endif %}
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * REQUIRED categories from Allowed Keywords:
        - expression, gaze, pose, action, props, camera, environment, mood
@@ -131,6 +162,9 @@ Output Format:
     "script": "...",
     "speaker": "A",
     "duration": 4,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
     "image_prompt": "[speaker_A_identity_tags], [expression], [gaze], [pose], [action], [camera], [environment], [mood]",
     "image_prompt_ko": "카페에서 긴장한 표정으로 상대를 바라보는 모습",
     "context_tags": {
@@ -144,11 +178,34 @@ Output Format:
       "mood": ["[mood_tag]"]
     }
   },
+{% if is_multi_character_capable %}
   {
     "scene_id": 2,
     "script": "...",
+    "speaker": "A",
+    "duration": 3,
+    "scene_mode": "multi",
+    "image_prompt": "[speaker_A_identity_tags], [speaker_B_identity_tags], eye_contact, facing_another, [pose], [camera], [environment], [mood]",
+    "image_prompt_ko": "두 캐릭터가 서로 마주 보는 순간",
+    "context_tags": {
+      "expression": ["[expression_tag]"],
+      "gaze": "eye_contact",
+      "pose": ["standing"],
+      "action": ["facing_another"],
+      "camera": "cowboy_shot",
+      "environment": ["[location_tag]"],
+      "mood": ["[mood_tag]"]
+    }
+  },
+{% endif %}
+  {
+    "scene_id": {{ 3 if is_multi_character_capable else 2 }},
+    "script": "...",
     "speaker": "B",
     "duration": 4,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
     "image_prompt": "[speaker_B_identity_tags], [expression], [gaze], [pose], [action], [camera], [environment], [mood]",
     "image_prompt_ko": "살짝 미소 지으며 커피잔을 내려놓는 모습",
     "context_tags": { ... }

@@ -205,6 +205,7 @@ def serialize_scene(
         "image_prompt": scene.image_prompt,
         "image_prompt_ko": scene.image_prompt_ko,
         "negative_prompt": scene.negative_prompt,
+        "scene_mode": scene.scene_mode,
         "image_url": scene.image_asset.url if scene.image_asset else scene.image_url,
         "width": scene.width,
         "height": scene.height,
@@ -274,6 +275,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             script=s_data.script,
             speaker=s_data.speaker,
             duration=s_data.duration,
+            scene_mode=getattr(s_data, "scene_mode", "single") or "single",
             description=s_data.description,
             image_prompt=s_data.image_prompt,
             image_prompt_ko=s_data.image_prompt_ko,
@@ -478,6 +480,41 @@ def _load_character_context(character_id: int, db: Session) -> dict | None:
     return ctx
 
 
+def _check_multi_character_capable(
+    character_id: int | None,
+    character_b_id: int | None,
+    db: Session,
+) -> bool:
+    """Check if any LoRA across both characters supports multi-character rendering.
+
+    Queries each character's loras JSONB, looks up LoRA rows, and returns True
+    if at least one has is_multi_character_capable=True.
+    """
+    from models.lora import LoRA
+
+    char_ids = [cid for cid in (character_id, character_b_id) if cid]
+    if not char_ids:
+        return False
+
+    chars = db.query(Character).filter(Character.id.in_(char_ids)).all()
+    lora_ids: set[int] = set()
+    for char in chars:
+        for entry in char.loras or []:
+            lid = entry.get("lora_id")
+            if lid:
+                lora_ids.add(lid)
+
+    if not lora_ids:
+        return False
+
+    count = (
+        db.query(LoRA.id)
+        .filter(LoRA.id.in_(lora_ids), LoRA.is_multi_character_capable.is_(True))
+        .count()
+    )
+    return count > 0
+
+
 async def create_storyboard(request: StoryboardRequest, db: Session | None = None) -> dict:
     """Generate a storyboard from a topic using Gemini (async)."""
     if not gemini_client:
@@ -505,6 +542,15 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
         if has_two_characters and request.character_b_id and db:
             character_b_context = _load_character_context(request.character_b_id, db)
 
+        # Detect multi-character capable LoRA for template injection
+        is_multi_character_capable = False
+        if has_two_characters and db:
+            is_multi_character_capable = _check_multi_character_capable(
+                request.character_id, request.character_b_id, db
+            )
+            if is_multi_character_capable:
+                logger.info("[Storyboard] Multi-character capable LoRA detected")
+
         preset = get_preset_by_structure(request.structure)
         template_name = preset.template if preset else "create_storyboard.j2"
         extra_fields = preset.extra_fields if preset else {}
@@ -529,6 +575,7 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
             keyword_context=format_keyword_context(),
             character_context=character_context,
             character_b_context=character_b_context,
+            is_multi_character_capable=is_multi_character_capable,
             **extra_fields,
         )
         from google.genai import types
