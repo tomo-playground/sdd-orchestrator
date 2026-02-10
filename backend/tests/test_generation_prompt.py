@@ -43,9 +43,9 @@ class TestPreparePromptFlag:
 
         mock_compose.assert_not_called()
         mock_style.assert_called_once()
-        # skip_loras should NOT be passed (defaults to False for pre-composed)
+        # skip_loras=True: LoRAs are already in V3-composed prompt
         call_kwargs = mock_style.call_args
-        assert call_kwargs.kwargs.get("skip_loras", False) is False
+        assert call_kwargs.kwargs.get("skip_loras", False) is True
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras", return_value=[])
@@ -277,6 +277,22 @@ class TestStyleProfileSkipLoras:
         result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "", 10, db, skip_loras=True)
 
         assert "EasyNegative" in result_neg  # Embedding applied even with skip_loras
+
+    @patch("services.config_resolver.resolve_effective_config")
+    def test_lora_dedup_skips_existing_lora_in_prompt(self, mock_resolve):
+        """Defense-in-depth: if prompt already has <lora:X>, skip_loras=False does not add it again."""
+        mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
+        loras = [{"lora_id": 1, "weight": 0.7}]
+        db = self._mock_db(profile_loras=loras)
+
+        # Prompt already contains flat_color LoRA (from V3 composition)
+        prompt_with_lora = "1girl, flat_color, <lora:flat_color:0.76>"
+        result_prompt, _ = apply_style_profile_to_prompt(prompt_with_lora, "", 10, db, skip_loras=False)
+
+        import re
+
+        lora_tags = re.findall(r"<lora:flat_color:[^>]+>", result_prompt)
+        assert len(lora_tags) == 1, f"Expected 1 LoRA tag, got {len(lora_tags)}: {lora_tags}"
 
 
 # ────────────────────────────────────────────

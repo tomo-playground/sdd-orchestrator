@@ -131,6 +131,13 @@ def apply_style_profile_to_prompt(
         existing_normalized = {
             normalize_prompt_token(t) for t in split_prompt_tokens(prompt) if normalize_prompt_token(t)
         }
+
+        # Defense-in-depth: skip LoRA tags/trigger words already in prompt
+        existing_lora_names = set(re.findall(r"<lora:([^:]+):", prompt))
+        if existing_lora_names:
+            lora_tags = [t for t in lora_tags if re.search(r"<lora:([^:]+):", t).group(1) not in existing_lora_names]
+            trigger_words = [tw for tw in trigger_words if normalize_prompt_token(tw) not in existing_normalized]
+
         parts = []
 
         # 1. Default positive prompt (quality tags), skip tokens already in prompt
@@ -143,7 +150,7 @@ def apply_style_profile_to_prompt(
             if new_tokens:
                 parts.append(", ".join(new_tokens))
 
-        # 2. Trigger words
+        # 2. Trigger words (deduplicated above)
         if trigger_words:
             parts.append(", ".join(trigger_words))
 
@@ -239,9 +246,11 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
 
     if request.prompt_pre_composed:
         # Frontend /prompt/compose already ran V3 (character LoRA included)
-        # Apply full style profile (style LoRA + quality + negative)
+        # Apply style profile quality tags + embeddings only (skip_loras=True)
+        # LoRAs are already present from V3 composition or scene-triggered injection
         request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt, request.negative_prompt or "", request.storyboard_id, db
+            request.prompt, request.negative_prompt or "", request.storyboard_id, db,
+            skip_loras=True,
         )
         cleaned_prompt = request.prompt
         logger.debug("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
