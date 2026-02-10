@@ -207,6 +207,7 @@ docs/
 | `/pose` | 포즈 에셋 분석/동기화 |
 | `/db` | DB 마이그레이션 상태/생성/적용/롤백 |
 | `/docs` | 문서 구조 조회/정합성 체크/크기 점검 |
+| `/pm-check` | PM 자율 점검 (문서/로드맵/기능 명세/DoD) |
 
 > Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조
 
@@ -223,6 +224,9 @@ docs/
 | 트리거 | 자동 액션 | 설명 |
 |--------|----------|------|
 | 구현 완료 | Tech Lead 코드 리뷰 | 코드 변경 구현 후, 커밋 전에 자동으로 Tech Lead 에이전트가 리뷰 수행 |
+| `models/*.py` 또는 `alembic/` 변경 | DBA 리뷰 필수 | 스키마/마이그레이션 변경 시 커밋 전 DBA 에이전트 검증 필수 |
+| Phase 작업 완료 시 | PM 문서 동기화 | ROADMAP 상태 업데이트 + FEATURES/ 상태 확인 |
+| 새 기능 착수 시 | PM 명세 확인 | FEATURES/ 명세 존재 여부 확인, 없으면 생성 권고 |
 
 **구현 → 리뷰 → 수정 자동 파이프라인**:
 1. 코드 변경(Edit/Write) + 빌드/린트 통과
@@ -230,6 +234,16 @@ docs/
 3. WARNING/BLOCKER 이슈 발견 시 **즉시 자동 수정** 후 재빌드 확인
 4. 최종 결과(변경 요약 + 리뷰 통과)를 사용자에게 보고
 - 단, 단순 설정 변경(CLAUDE.md, config 수정 등)이나 문서만 수정한 경우는 리뷰를 생략한다.
+
+**스키마 변경 → DBA 리뷰 파이프라인**:
+1. `backend/models/*.py` 편집 또는 `backend/alembic/` 마이그레이션 생성/수정
+2. DBA 에이전트 자동 호출 — 검증 항목:
+   - 네이밍 규칙 준수 (Boolean→`is_`, FK→`_id`)
+   - FK 제약조건 + CASCADE 정책 적합성
+   - JSONB vs 정규화 판단 근거
+   - `DB_SCHEMA.md` + `SCHEMA_SUMMARY.md` 업데이트 여부
+   - Known Issues 목록 갱신 필요 여부
+3. DBA BLOCKER 발견 시 수정 후 재검증, PASS 후에만 커밋 진행
 
 ## 용어 정의 (Terminology)
 

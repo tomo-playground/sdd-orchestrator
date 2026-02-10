@@ -1,4 +1,4 @@
-# Database Schema (v3.13)
+# Database Schema (v3.15)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정. `projects`(avatar_key/render_preset_id/style_profile_id 제거), `storyboards`(character_id 등 5개 제거, structure 추가), `scenes`(SD params 5개 제거, ControlNet/IP-Adapter 6개 추가), `characters`(project_id FK 추가), Creative Engine V2 필드 전체, `lab_experiments` 10개 컬럼 추가 |
 | v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine` (Agents), `GroupConfig`, `RenderHistory`, `LabExperiments`, `YouTubeCredential` 추가. `evaluation_runs` 제거. `StoryboardCharacter` 추가. |
 | v3.13 | 2026-02-07 | FK 정합성 강화: `scenes.environment_reference_id` → FK media_assets, `activity_logs` 3컬럼 FK 추가, `tags.replacement_tag_id` ondelete 추가. `scenes.deleted_at` SoftDeleteMixin 적용 |
 | v3.12 | 2026-02-07 | `music_presets` 테이블 추가 (AI BGM 프리셋). `render_presets`에 `bgm_mode`, `music_preset_id` FK 추가 |
@@ -32,10 +33,11 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 erDiagram
     projects ||--o{ groups : "contains"
     projects ||--o| youtube_credentials : "has"
-    projects }o--o| render_presets : "default_preset"
-    
+    projects }o--o| media_assets : "avatar"
+
     groups ||--o| group_config : "has_config"
     groups ||--o{ storyboards : "contains"
+    groups ||--o{ lab_experiments : "has"
     
     group_config }o--o| render_presets : "preset"
     group_config }o--o| style_profiles : "style"
@@ -56,6 +58,7 @@ erDiagram
 
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
+    characters }o--o| projects : "belongs_to"
     storyboard_characters }o--o| characters : "maps_to"
 
     tags ||--o{ character_tags : "linked"
@@ -93,15 +96,13 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `id` | Integer (PK) | |
 | `name` | String(200) | 채널/프로젝트 이름 |
 | `description` | Text | 설명 |
-| `avatar_asset_id` | Integer (FK → media_assets, SET NULL) | 아바타 이미지 |
 | `handle` | String(100) | 채널 핸들 (@...) |
-| `avatar_key` | String(100) | 아바타 키 (localStorage 마이그레이션용) |
-| `render_preset_id` | Integer (FK → render_presets, SET NULL) | 기본 렌더 프리셋 |
-| `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
+| `avatar_media_asset_id` | Integer (FK → media_assets, SET NULL) | 아바타 이미지 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `avatar_url` (`@property`): `avatar_asset.url` 반환
+- `avatar_key` (`@property`): `avatar_media_asset.storage_key` 반환
+- `avatar_url` (`@property`): `avatar_media_asset.url` 반환
 
 **Cascading Config 상속 순서**: Project → Group (GroupConfig) → Storyboard (하위가 상위를 오버라이드)
 
@@ -154,17 +155,13 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `group_id` | Integer (FK → groups, RESTRICT) | 소속 그룹 |
 | `title` | String(200) | 스토리보드 제목 |
 | `description` | Text | 설명 |
-| `character_id` | Integer | 기본 캐릭터 |
-| `style_profile_id` | Integer | 기본 스타일 프로파일 |
 | `caption` | Text | 캡션 텍스트 (Post Layout용) |
-| `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 프리셋 |
-| `video_asset_id` | Integer (FK → media_assets, SET NULL) | 최신 렌더링 영상 |
-| `recent_videos` | JSONB | 최근 렌더링 이력 (Legacy, RenderHistory로 대체됨) |
+| `structure` | String(50) | 구조 설정 (default: `"Monologue"`, config에서 상속) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `video_url` (`@property`): `video_asset.url` 반환
+- `video_url` (`@property`): `render_history[0].media_asset.url` 반환
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -183,21 +180,23 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `image_prompt_ko` | Text | 한국어 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `context_tags` | JSONB | 씬 컨텍스트 태그 (expression, gaze, pose, action, camera, environment, mood) |
-| **SD Parameters** | | |
-| `steps` | Integer | 샘플링 스텝 |
-| `cfg_scale` | Float | CFG 스케일 |
-| `sampler_name` | String(50) | 샘플러 이름 |
-| `seed` | BigInteger | 생성 시드 |
-| `clip_skip` | Integer | CLIP Skip |
+| **Size** | | |
 | `width` | Integer | 이미지 너비 (default: 512) |
 | `height` | Integer | 이미지 높이 (default: 768) |
-| **IP-Adapter** | | |
+| **IP-Adapter / Reference** | | |
 | `use_reference_only` | Boolean | IP-Adapter 사용 여부 (default: true) |
 | `reference_only_weight` | Float | IP-Adapter 가중치 (default: 0.5) |
 | `environment_reference_id` | Integer (FK → media_assets, SET NULL) | 환경 참조 이미지 ID |
 | `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
-| **Generated** | | |
-| `image_asset_id` | Integer (FK → media_assets) | 생성된 이미지 (폴리모픽 참조) |
+| `use_ip_adapter` | Boolean | IP-Adapter 사용 여부 (씬별 오버라이드) |
+| `ip_adapter_reference` | String | IP-Adapter 참조 이미지 경로 |
+| `ip_adapter_weight` | Float | IP-Adapter 가중치 (씬별 오버라이드) |
+| **ControlNet** | | |
+| `use_controlnet` | Boolean | ControlNet 사용 여부 |
+| `controlnet_weight` | Float | ControlNet 가중치 |
+| **Generation** | | |
+| `multi_gen_enabled` | Boolean | 멀티 생성 활성화 여부 |
+| `image_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 (폴리모픽 참조) |
 | `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
@@ -239,6 +238,8 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `model_name` | String(50) | 모델명 (e.g. `gemini-1.5-pro`) |
 | `temperature` | Float | 생성 다양성 |
 | `is_system` | Boolean | 시스템 프리셋 여부 |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `creative_sessions`
 에이전트 간의 창작 세션 (Leader Agent가 오케스트레이션).
@@ -253,7 +254,15 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `agent_config` | JSONB | 참여 에이전트 구성 |
 | `final_output` | JSONB | 최종 결과물 |
 | `max_rounds` | Integer | 최대 라운드 수 |
+| `total_token_usage` | JSONB | 총 토큰 사용량 |
 | `status` | String(20) | 진행 상태 |
+| **V2** | | |
+| `session_type` | String(20) | 세션 유형 (default: `"free"`) |
+| `director_mode` | String(20) | 디렉터 모드 (default: `"advisor"`) |
+| `concept_candidates` | JSONB | 컨셉 후보 목록 |
+| `selected_concept_index` | Integer | 선택된 컨셉 인덱스 |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `creative_session_rounds`
 세션 내의 각 토의 라운드 요약.
@@ -265,7 +274,10 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `round_number` | Integer | 라운드 번호 |
 | `leader_summary` | Text | 리더의 라운드 요약 |
 | `round_decision` | String(20) | 라운드 결정 (`revise`, `approve` 등) |
+| `best_agent_role` | String(50) | 최고 점수 에이전트 역할 |
+| `best_score` | Float | 최고 점수 |
 | `leader_direction` | Text | 다음 라운드 지시사항 |
+| `created_at` | DateTime | 생성 시각 (server_default: now()) |
 
 ### `creative_traces`
 개별 에이전트의 LLM 호출 및 생각(Thought) 추적.
@@ -281,8 +293,21 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `agent_preset_id` | Integer (FK) | 사용된 프리셋 |
 | `input_prompt` | Text | 입력 프롬프트 |
 | `output_content` | Text | LLM 응답 |
+| `score` | Float | 평가 점수 |
+| `feedback` | Text | 피드백 |
+| `model_id` | String(100) | 사용된 모델 ID |
 | `token_usage` | JSONB | 토큰 사용량 |
-| `latency_ms` | Integer | 응답 시간 |
+| `latency_ms` | Integer | 응답 시간 (ms) |
+| `temperature` | Float | 생성 온도 |
+| `parent_trace_id` | Integer (FK → creative_traces, SET NULL) | 부모 트레이스 (self-ref) |
+| `diff_summary` | Text | 변경 요약 |
+| `created_at` | DateTime | 생성 시각 (server_default: now()) |
+| **V2** | | |
+| `phase` | String(20) | 단계명 |
+| `step_name` | String(50) | 스텝명 |
+| `target_agent` | String(50) | 대상 에이전트 |
+| `decision_context` | JSONB | 결정 컨텍스트 |
+| `retry_count` | Integer | 재시도 횟수 (default: 0) |
 
 ---
 
@@ -412,7 +437,8 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `source_tag` | String(100) | 변환 전 (`medium shot`) |
 | `target_tag` | String(100) | 변환 후 (`cowboy_shot`), NULL = 삭제 |
 | `reason` | String(200) | 치환 사유 |
-| `active` | Boolean | 활성 여부 |
+| `active` | Boolean | 활성 여부 (Known Issue: `is_active`로 변경 예정) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `tag_filters`
 무시/스킵할 태그 관리.
@@ -423,7 +449,8 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `tag_name` | String(100) | Unique, 필터 대상 태그 |
 | `filter_type` | String(20) | `ignore` or `skip` |
 | `reason` | String(200) | 필터 사유 |
-| `active` | Boolean | 활성 여부 |
+| `active` | Boolean | 활성 여부 (Known Issue: `is_active`로 변경 예정) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `classification_rules`
 패턴 기반 태그 자동 분류 규칙.
@@ -435,7 +462,8 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `pattern` | String(100) | 매칭 패턴 (`_hair`, `eyes`) |
 | `target_group` | String(50) | 대상 그룹 |
 | `priority` | Integer | 평가 순서 |
-| `active` | Boolean | 활성 여부 |
+| `active` | Boolean | 활성 여부 (Known Issue: `is_active`로 변경 예정) |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `tag_effectiveness`
 WD14 피드백 루프 데이터.
@@ -467,7 +495,7 @@ WD14 피드백 루프 데이터.
 | `mime_type` | String(100) | `image/png`, `video/mp4` 등 |
 | `is_temp` | Boolean | 임시 파일 여부 (GC 대상) |
 | `checksum` | String(64) | 파일 SHA-256 해시 |
-| `created_at` | DateTime | 생성 시각 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **특징**:
 - **폴리모픽 연관**: `owner_type` + `owner_id`로 모든 엔티티 연결
@@ -491,6 +519,7 @@ WD14 피드백 루프 데이터.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
+| `project_id` | Integer (FK → projects, SET NULL) | 소속 프로젝트 |
 | `name` | String(100) | Unique |
 | `gender` | String(10) | `female`, `male` |
 | `description` | String(500) | |
@@ -583,7 +612,9 @@ Model + LoRAs + Embeddings 번들.
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `name` | String(100) | Unique |
-| `sd_model_id` | Integer (FK → sd_models) | 베이스 체크포인트 |
+| `display_name` | String(200) | 표시명 |
+| `description` | Text | 설명 |
+| `sd_model_id` | Integer (FK → sd_models, SET NULL) | 베이스 체크포인트 |
 | `loras` | JSONB | LoRA 목록 |
 | `positive_embeddings` | Integer[] | Embedding IDs |
 | `negative_embeddings` | Integer[] | Embedding IDs |
@@ -591,6 +622,7 @@ Model + LoRAs + Embeddings 번들.
 | `default_negative` | Text | 기본 네거티브 |
 | `is_default` | Boolean | |
 | `is_active` | Boolean | |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `render_presets`
 재사용 가능한 렌더링 설정 프리셋. Project/Group에서 참조.
@@ -629,18 +661,18 @@ Model + LoRAs + Embeddings 번들.
 | `id` | Integer (PK) | |
 | `name` | String(200) | 프리셋 이름 |
 | `description` | Text | 설명 |
-| `project_id` | Integer (FK → projects, SET NULL) | 소속 프로젝트 (NULL=글로벌) |
 | `source_type` | String(20) | `generated` (VoiceDesign) 또는 `uploaded` (파일) |
 | `tts_engine` | String(20) | TTS 엔진 (현재 `qwen`) |
 | `audio_asset_id` | Integer (FK → media_assets, SET NULL) | 음성 파일 |
 | `voice_design_prompt` | Text | VoiceDesign 프롬프트 |
 | `language` | String(20) | 언어 (default: `korean`) |
 | `sample_text` | Text | 샘플 텍스트 |
+| `voice_seed` | Integer | 음성 시드 (VoiceDesign 재현용) |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `audio_url` (`@property`): `audio_asset.url` 반환
+- `audio_url` (`@property`): `audio_asset.url` 반환 (Known Issue: 별도 DB 세션 생성 안티패턴)
 
 ### `music_presets`
 재사용 가능한 AI BGM 생성 프리셋. `render_presets`에서 참조.
@@ -671,6 +703,7 @@ Textual Inversion 임베딩.
 | `trigger_word` | String(100) | |
 | `description` | Text | |
 | `is_active` | Boolean | |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ---
 
@@ -689,7 +722,7 @@ Textual Inversion 임베딩.
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `sd_params` | JSONB | `{steps, cfg_scale, sampler, ...}` |
 | `seed` | BigInteger | 생성 시드 |
-| `image_storage_key` | String(500) | 생성 이미지 경로 |
+| `media_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 |
 | `match_rate` | Float | WD14 매치율 |
 | `tags_used` | JSONB | 사용된 태그 배열 |
 | `status` | String(20) | `success`, `fail` |
@@ -700,7 +733,7 @@ Textual Inversion 임베딩.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `image_url` (`@property`): `image_storage_key` 기반 URL 반환
+- `image_url` (`@property`): `media_asset.url` 반환
 
 ### `render_history`
 영상 렌더링 및 YouTube 업로드 이력.
@@ -721,13 +754,24 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
+| `batch_id` | String(50) | 배치 ID (인덱스) |
 | `experiment_type` | String(20) | `tag_render`, `scene_translate` |
-| `status` | String(20) | `pending`, `completed` |
+| `status` | String(20) | `pending`, `completed`, `failed` |
+| `character_id` | Integer (FK → characters, SET NULL) | 대상 캐릭터 (nullable) |
+| `group_id` | Integer (FK → groups, CASCADE) | 소속 그룹 (필수) |
 | `prompt_used` | Text | 사용된 프롬프트 |
+| `negative_prompt` | Text | 네거티브 프롬프트 |
+| `final_prompt` | Text | V3 Prompt Engine 최종 프롬프트 |
+| `loras_applied` | JSONB | 적용된 LoRA 목록 |
 | `target_tags` | JSONB | 타겟 태그 |
+| `sd_params` | JSONB | SD 생성 파라미터 |
+| `media_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 |
+| `seed` | BigInteger | 생성 시드 |
 | `match_rate` | Float | 결과 매치율 |
 | `wd14_result` | JSONB | 상세 분석 결과 |
+| `scene_description` | Text | 씬 번역 설명 (scene_translate용) |
 | `notes` | Text | 사용자 메모 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `scene_quality_scores`
 장면별 품질 점수 및 WD14 검증 결과 전용 스토어.
@@ -735,9 +779,8 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `storyboard_id` | Integer | 스토리보드 ID |
-| `scene_id` | Integer | 씬 인덱스 |
-| `image_storage_key` | String(500) | 이미지 경로 |
+| `storyboard_id` | Integer | 스토리보드 ID (인덱스, FK 없음) |
+| `scene_id` | Integer (FK → scenes, CASCADE) | 씬 ID |
 | `prompt` | Text | 사용된 프롬프트 |
 | `match_rate` | Float | WD14 매치율 |
 | `matched_tags`, `missing_tags`, `extra_tags` | JSONB | 상세 태그 분석 결과 |
@@ -745,7 +788,7 @@ Textual Inversion 임베딩.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `image_url` (`@property`): `image_storage_key` 기반 URL 반환
+- `image_url` (`@property`): `scene.image_asset.url` 반환
 
 ### `prompt_histories`
 저장된 프롬프트 설정.
@@ -757,13 +800,16 @@ Textual Inversion 임베딩.
 | `positive_prompt` | Text | |
 | `negative_prompt` | Text | |
 | `steps`, `cfg_scale`, `seed`, `clip_skip` | Integer/Float | SD 파라미터 |
-| `character_id` | Integer | |
+| `sampler_name` | String | 샘플러 이름 |
+| `character_id` | Integer | (인덱스, FK 없음 — Known Issue) |
 | `lora_settings` | JSONB | |
 | `context_tags` | JSONB | |
 | `last_match_rate`, `avg_match_rate` | Float | |
 | `validation_count` | Integer | |
 | `is_favorite` | Boolean | |
 | `use_count` | Integer | |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ---
 
@@ -852,7 +898,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-08
-**Schema Version:** v3.14
+**Last Updated:** 2026-02-10
+**Schema Version:** v3.15
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

@@ -1,7 +1,7 @@
 ---
 name: dba
 description: PostgreSQL DB 설계, 마이그레이션 및 쿼리 최적화 전문가
-allowed_tools: ["mcp__postgres__*", "mcp__memory__*"]
+allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 ---
 
 # DBA Agent
@@ -38,6 +38,12 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*"]
 - `{entity}_id` 형식: `character_id`, `voice_preset_id`
 - 역할 구분 필요 시 `{role}_{entity}_id`: `narrator_voice_preset_id`, `preview_image_asset_id`
 
+**Enum 컬럼**: `{도메인}_{역할}` 형식 — `rule_type`, `filter_type`, `file_type`
+
+**Association 테이블**: `{parent}_{child}` 복수형 — `character_tags`, `scene_tags`
+
+**Config 테이블**: `{entity}_config` 단수형 — `group_config`
+
 ### 3. JSON blob vs 정규화 테이블
 
 | 기준 | JSON (JSONB) | 정규화 테이블 |
@@ -58,6 +64,109 @@ System Default < Project Config < Group Config
 - 설정은 **가장 가까운 상위 컨테이너**가 소유한다
 - 콘텐츠 엔티티(Storyboard, Scene)는 설정을 소유하지 않는다 — 상속만 받는다
 - 설정 확장 시 콘텐츠 테이블이 아닌 config 테이블에 컬럼을 추가한다
+
+---
+
+## 정규화 레퍼런스
+
+### 정규형 기준
+
+| 정규형 | 위반 판단 기준 | 프로젝트 예시 |
+|--------|--------------|-------------|
+| 1NF | 반복 그룹, 복합 값 | ~~`tags TEXT "a,b,c"`~~ → `character_tags` 테이블 |
+| 2NF | 부분 함수 종속 | ~~`scene.style_profile_id`~~ → `group_config`에서 상속 |
+| 3NF | 이행 함수 종속 | ~~`storyboard.language`~~ → `group_config.language` |
+
+### 허용된 비정규화 (JSONB)
+
+| 컬럼 | 테이블 | 사유 |
+|------|--------|------|
+| `sd_params` | activity_logs | 스냅샷 (FK 불필요, 개별 필드 쿼리 없음) |
+| `context_tags` | scenes | 구조 유동적 (키 추가/삭제 빈번) |
+| `candidates` | scenes | 배열 + 스냅샷 |
+| `loras` | characters, style_profiles | 배열 + 외부 참조 스냅샷 |
+| `token_usage` | creative_traces | 스냅샷 |
+| `evaluation_criteria`, `agent_config`, `final_output` | creative_sessions | 구조 유동적 |
+
+### 비정규화 판단 체크리스트
+
+1. FK 참조가 필요한가? → Yes면 **정규화**
+2. 개별 필드로 WHERE/ORDER BY 쿼리하는가? → Yes면 **정규화**
+3. 스키마가 유동적인가? → Yes면 **JSONB**
+
+---
+
+## 컬럼 타입 레퍼런스
+
+| 데이터 성격 | 올바른 타입 | 금지 타입 | 예시 |
+|------------|-----------|----------|------|
+| Boolean | `Boolean` | `Integer` | `is_active`, `_enabled` |
+| JSON 구조체 | `JSONB` | `Text` | `sd_params`, `context_tags` |
+| Enum 문자열 | `String` + CHECK | 무제약 `String` | `status`, `rule_type` |
+| 미디어 참조 | FK → `media_assets` | `String` URL/경로 | `image_asset_id` |
+| 가중치 | `Float` | 혼용 (`Numeric` vs `Float`) | `weight` |
+| 타임스탬프 | `TimestampMixin` 사용 | 수동 `server_default` | `created_at`, `updated_at` |
+
+---
+
+## FK & CASCADE 정책 레퍼런스
+
+| 관계 유형 | DELETE 정책 | 근거 | 예시 |
+|----------|-----------|------|------|
+| 부모-자식 (소유) | `CASCADE` | 부모 삭제 시 자식 무의미 | storyboard→scene |
+| 참조 (설정) | `SET NULL` | 참조 대상 삭제 시 null 허용 | character→voice_preset |
+| 참조 (필수) | `RESTRICT` | 삭제 차단 | group→storyboard |
+| 로그/이력 | `SET NULL` | 원본 삭제 후에도 로그 보존 | activity_logs→character |
+| Association | `CASCADE` | 양쪽 FK 모두 CASCADE | character_tags |
+| Self-ref | `SET NULL` | 자기 참조 삭제 시 null | creative_traces→parent |
+
+**규칙**: 모든 FK 컬럼에는 반드시 DB 레벨 FK 제약조건 필수. index-only FK 금지.
+
+---
+
+## 인덱스 전략 레퍼런스
+
+| 규칙 | 설명 |
+|------|------|
+| FK 컬럼 = 자동 인덱스 | 모든 FK 컬럼에 btree 인덱스 필수 |
+| Soft Delete 테이블 | `deleted_at` 컬럼에 인덱스 (필터 조건 최적화) |
+| 빈번한 정렬 | `created_at DESC` 복합 인덱스 (listing API) |
+| UNIQUE 제약 | name 필드 (tags, loras, sd_models, embeddings, style_profiles) |
+| 복합 인덱스 | 빈번한 복합 조건 (creative_traces: session+round+seq) |
+
+---
+
+## 스키마 변경 전 검증 체크리스트
+
+새 테이블/컬럼 추가 시 반드시 확인:
+
+- [ ] 네이밍 규칙 준수? (Boolean→`is_`, FK→`_id`, Enum→CHECK)
+- [ ] FK 제약조건 + CASCADE 정책 설정?
+- [ ] FK 컬럼 인덱스 생성?
+- [ ] JSONB vs 정규화 판단 근거 명확?
+- [ ] TimestampMixin 적용? (콘텐츠/설정 테이블)
+- [ ] SoftDeleteMixin 필요 여부 검토?
+- [ ] `DB_SCHEMA.md` + `SCHEMA_SUMMARY.md` 업데이트?
+- [ ] ORM 모델에 relationship() 정의? (FK 있으면 관계도 필수)
+- [ ] `models/__init__.py`에 export?
+
+---
+
+## Known Issues (미해결 위반 사항)
+
+| 테이블 | 이슈 | 심각도 |
+|--------|------|--------|
+| `prompt_histories` | `character_id` FK 제약조건 없음 (index-only) | CRITICAL |
+| `scene_quality_scores` | `storyboard_id` FK 제약조건 없음 (index-only) | CRITICAL |
+| `tag_rules` | `active` → `is_active` 미변경 | HIGH |
+| `tag_aliases` | `active` → `is_active` 미변경 | HIGH |
+| `tag_filters` | `active` → `is_active` 미변경 | HIGH |
+| `classification_rules` | `active` → `is_active` 미변경 | HIGH |
+| `scenes` | `ip_adapter_reference` String 경로 → media_asset_id FK 미전환 | HIGH |
+| `voice_presets` | `audio_url` @property 별도 세션 생성 안티패턴 | MEDIUM |
+| `music_presets` | `audio_asset` relationship() 누락 | MEDIUM |
+| `classification_rules` | `models/__init__.py` 미export | MEDIUM |
+| 12+ enum 컬럼 | CHECK 제약조건 미적용 | MEDIUM |
 
 ---
 
