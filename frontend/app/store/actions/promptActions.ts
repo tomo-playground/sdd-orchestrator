@@ -34,10 +34,11 @@ export async function buildScenePrompt(scene: Scene): Promise<string | null> {
   if (sceneTokens.length === 0) return null;
 
   try {
-    // base_prompt / loras are NOT sent — Backend loads from DB via character_id (SSOT)
+    // Style LoRAs resolved by Backend from storyboard → group → style_profile (SSOT)
     const res = await axios.post(`${API_BASE}/prompt/compose`, {
       tokens: sceneTokens,
       character_id: characterId,
+      storyboard_id: state.storyboardId || undefined,
       context_tags: scene.context_tags || undefined,
       use_break: false,
     });

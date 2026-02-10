@@ -352,8 +352,12 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
             weight = lora_info.get("weight", 0.7)
             lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
             if lora_obj:
-                # Scale down LoRA weight for reference (face identity only)
-                ref_weight = round(weight * 0.25, 2)
+                # Style LoRAs: keep full weight (defines visual style)
+                # Character/pose LoRAs: scale down for reference (face identity only)
+                if lora_obj.lora_type == "style":
+                    ref_weight = weight
+                else:
+                    ref_weight = round(weight * 0.25, 2)
                 lora_tags.append(f"<lora:{lora_obj.name}:{ref_weight}>")
                 if lora_obj.trigger_words:
                     tag_names.extend(lora_obj.trigger_words)

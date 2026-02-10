@@ -257,16 +257,31 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             logger.info("🚫 [Narrator] Auto-injected no_humans for background scene")
 
     if request.prompt_pre_composed:
-        # Frontend /prompt/compose already ran V3 (character LoRA included)
-        # Apply style profile quality tags + embeddings only (skip_loras=True)
-        # LoRAs are already present from V3 composition or scene-triggered injection
+        # Frontend /prompt/compose already ran V3 — apply quality tags + embeddings
+        # Then check if style LoRAs are missing and inject them from DB
+        has_lora_tags = "<lora:" in request.prompt
         request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
             request.prompt,
             request.negative_prompt or "",
             request.storyboard_id,
             db,
-            skip_loras=True,
+            skip_loras=has_lora_tags,  # skip only if LoRAs already present
         )
+        # Safety net: if still no LoRA tags, resolve from DB and append
+        if "<lora:" not in request.prompt and request.storyboard_id:
+            style_loras = _resolve_style_loras(request.storyboard_id, db)
+            if style_loras:
+                lora_parts = []
+                for lr in style_loras:
+                    lora_parts.append(f"<lora:{lr['name']}:{lr['weight']}>")
+                    for tw in lr.get("trigger_words", []):
+                        if tw.lower() not in request.prompt.lower():
+                            lora_parts.append(tw)
+                request.prompt = f"{request.prompt}, {', '.join(lora_parts)}"
+                logger.info(
+                    "🔧 [V3 Engine] Injected missing style LoRAs into pre-composed prompt: %s",
+                    [lr["name"] for lr in style_loras],
+                )
         cleaned_prompt = request.prompt
         logger.debug("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
     elif request.character_id and character_obj:

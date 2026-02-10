@@ -31,10 +31,11 @@ class TestPreparePromptFlag:
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation.apply_style_profile_to_prompt")
-    def test_pre_composed_skips_v3(self, mock_style, mock_ref):
-        """prompt_pre_composed=True → compose_scene_with_style not called, prompt used as-is."""
-        mock_style.return_value = ("quality, 1girl, standing, <lora:style:0.7>", "bad")
-        req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing")
+    def test_pre_composed_with_lora_skips_injection(self, mock_style, mock_ref):
+        """prompt_pre_composed=True + LoRA already present → skip_loras=True."""
+        prompt_with_lora = "masterpiece, 1girl, standing, <lora:J_huiben:0.8>, J_huiben"
+        mock_style.return_value = (prompt_with_lora, "bad")
+        req = _make_request(prompt_pre_composed=True, prompt=prompt_with_lora)
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -43,9 +44,45 @@ class TestPreparePromptFlag:
 
         mock_compose.assert_not_called()
         mock_style.assert_called_once()
-        # skip_loras=True: LoRAs are already in V3-composed prompt
         call_kwargs = mock_style.call_args
         assert call_kwargs.kwargs.get("skip_loras", False) is True
+
+    @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation._resolve_style_loras")
+    @patch("services.generation.apply_style_profile_to_prompt")
+    def test_pre_composed_without_lora_injects_from_db(self, mock_style, mock_resolve, mock_ref):
+        """prompt_pre_composed=True + no LoRA in prompt → resolves from DB and injects."""
+        # apply_style_profile returns prompt WITHOUT LoRA (skip_loras=False but profile has none)
+        mock_style.return_value = ("masterpiece, 1girl, standing", "bad")
+        mock_resolve.return_value = [
+            {"name": "J_huiben", "weight": 0.8, "trigger_words": ["J_huiben"]}
+        ]
+        req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing")
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            cleaned, warnings, char = _prepare_prompt(req, db)
+
+        mock_compose.assert_not_called()
+        # Safety net: LoRA injected from DB
+        assert "<lora:J_huiben:0.8>" in cleaned
+        assert "J_huiben" in cleaned
+
+    @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation._resolve_style_loras")
+    @patch("services.generation.apply_style_profile_to_prompt")
+    def test_pre_composed_no_storyboard_no_injection(self, mock_style, mock_resolve, mock_ref):
+        """prompt_pre_composed=True + no storyboard_id → no safety-net injection."""
+        mock_style.return_value = ("masterpiece, 1girl, standing", "bad")
+        req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing", storyboard_id=None)
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        cleaned, warnings, char = _prepare_prompt(req, db)
+
+        mock_resolve.assert_not_called()
+        assert "<lora:" not in cleaned
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras", return_value=[])

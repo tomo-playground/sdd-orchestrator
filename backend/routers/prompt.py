@@ -187,15 +187,27 @@ async def compose_prompt(
             all_tokens.extend(_collect_context_tags(request.context_tags))
         all_tokens.extend(request.tokens)
 
-        # 2. V3 engine composition (character tags, LoRAs, gender loaded from DB)
+        # 2. Resolve style LoRAs: request > DB (storyboard → group → style_profile)
+        style_loras = _convert_loras(request.loras)
+        if not style_loras and request.storyboard_id:
+            from services.image_generation_core import resolve_style_loras_from_storyboard
+
+            style_loras = resolve_style_loras_from_storyboard(request.storyboard_id, db)
+            logger.info(
+                "🎨 [Prompt Compose] Resolved %d style LoRAs from storyboard %d",
+                len(style_loras) if style_loras else 0,
+                request.storyboard_id,
+            )
+
+        # 3. V3 engine composition (character tags, LoRAs, gender loaded from DB)
         v3_service = V3PromptService(db)
         composed_prompt = v3_service.generate_prompt_for_scene(
             character_id=request.character_id,
             scene_tags=all_tokens,
-            style_loras=_convert_loras(request.loras),
+            style_loras=style_loras,
         )
 
-        # 3. Build response
+        # 4. Build response
         composed_tokens = split_prompt_tokens(composed_prompt)
         scene_complexity = detect_scene_complexity(request.tokens)
         effective_mode = "v3" if request.character_id else "standard"
@@ -203,6 +215,8 @@ async def compose_prompt(
         lora_weights = None
         if request.loras:
             lora_weights = {lora.name: lora.weight for lora in request.loras}
+        elif style_loras:
+            lora_weights = {lr["name"]: lr["weight"] for lr in style_loras}
 
         logger.info(
             "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",

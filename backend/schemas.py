@@ -617,6 +617,7 @@ class PromptComposeRequest(BaseModel):
     use_break: bool = True  # Insert BREAK token
     # V3 extension fields
     character_id: int  # required — character tags/LoRAs loaded from DB
+    storyboard_id: int | None = None  # for resolving style LoRAs from DB (SSOT)
     context_tags: dict | None = None  # scene.context_tags
 
 

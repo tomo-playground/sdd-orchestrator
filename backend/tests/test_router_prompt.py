@@ -282,6 +282,57 @@ class TestPromptCompose:
         data = response.json()
         assert data["lora_weights"] == {"test_lora": 0.8}
 
+    def test_compose_resolves_style_loras_from_storyboard(self, client: TestClient, db_session):
+        """Compose with storyboard_id resolves style LoRAs from DB when not sent by frontend."""
+        from models import Character
+
+        char = Character(name="Style Test Char", gender="female", project_id=1)
+        db_session.add(char)
+        db_session.commit()
+
+        style_loras = [{"name": "J_huiben", "weight": 0.8, "trigger_words": ["J_huiben"]}]
+        with patch(
+            "services.image_generation_core.resolve_style_loras_from_storyboard",
+            return_value=style_loras,
+        ) as mock_resolve:
+            request_data = {
+                "tokens": ["smile", "standing"],
+                "character_id": char.id,
+                "storyboard_id": 404,
+            }
+            response = client.post("/prompt/compose", json=request_data)
+
+        assert response.status_code == 200
+        data = response.json()
+        mock_resolve.assert_called_once()
+        # LoRA should be in composed prompt (weight may be calibrated by V3)
+        assert "<lora:J_huiben:" in data["prompt"]
+        assert "J_huiben" in data["lora_weights"]
+
+    def test_compose_skips_db_resolve_when_loras_sent(self, client: TestClient, db_session):
+        """When frontend sends loras explicitly, DB resolve is skipped."""
+        from models import Character
+
+        char = Character(name="Explicit LoRA Char", gender="female", project_id=1)
+        db_session.add(char)
+        db_session.commit()
+
+        with patch(
+            "services.image_generation_core.resolve_style_loras_from_storyboard",
+        ) as mock_resolve:
+            request_data = {
+                "tokens": ["smile"],
+                "character_id": char.id,
+                "storyboard_id": 404,
+                "loras": [{"name": "custom_lora", "weight": 0.7, "trigger_words": ["trigger1"]}],
+            }
+            response = client.post("/prompt/compose", json=request_data)
+
+        assert response.status_code == 200
+        mock_resolve.assert_not_called()
+        data = response.json()
+        assert data["lora_weights"] == {"custom_lora": 0.7}
+
     def test_compose_prompt_missing_character(self, client: TestClient, db_session):
         """Compose with non-existent character_id returns 500."""
         request_data = {

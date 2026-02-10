@@ -16,6 +16,7 @@ type LoRAInfo = {
 type ComposedPromptPreviewProps = {
   tokens: string[];
   characterId?: number | null;
+  storyboardId?: number | null;
   basePrompt?: string;
   contextTags?: Record<string, unknown>;
   loras?: LoRAInfo[];
@@ -116,6 +117,7 @@ function getTokenCategory(token: string): string {
 export default function ComposedPromptPreview({
   tokens,
   characterId,
+  storyboardId,
   basePrompt,
   contextTags,
   loras = [],
@@ -177,13 +179,14 @@ export default function ComposedPromptPreview({
     setError(null);
 
     try {
-      // base_prompt / loras not sent — Backend loads from DB via character_id (SSOT)
+      // Style LoRAs resolved by Backend from storyboard → group → style_profile (SSOT)
       const response = await fetch(`${API_BASE}/prompt/compose`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tokens,
           character_id: characterId,
+          storyboard_id: storyboardId || undefined,
           context_tags: contextTags || undefined,
           use_break: useBreak,
         }),
@@ -201,7 +204,7 @@ export default function ComposedPromptPreview({
     } finally {
       setIsLoading(false);
     }
-  }, [tokens, characterId, contextTags, useBreak, onComposed]);
+  }, [tokens, characterId, storyboardId, contextTags, useBreak, onComposed]);
 
   // Auto-compose when tokens change (debounced)
   const prevTokensRef = useRef<string>("");
