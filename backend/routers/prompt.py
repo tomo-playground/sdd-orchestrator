@@ -60,11 +60,7 @@ def _convert_loras(loras: list | None) -> list[dict] | None:
 
 def check_tag_conflicts(tags: list[str], db) -> dict:
     """Stub: Check for tag conflicts."""
-    return {
-        "conflicts": [],
-        "has_conflicts": False,
-        "total_tags": len(tags)
-    }
+    return {"conflicts": [], "has_conflicts": False, "total_tags": len(tags)}
 
 
 @router.post("/rewrite")
@@ -89,8 +85,9 @@ async def validate_prompt(request: PromptValidateRequest):
 
     Returns validation result with warnings/errors.
     """
-    logger.info("📥 [Prompt Validate] positive=%d chars, negative=%d chars",
-                len(request.positive), len(request.negative))
+    logger.info(
+        "📥 [Prompt Validate] positive=%d chars, negative=%d chars", len(request.positive), len(request.negative)
+    )
 
     # Fetch available LoRAs from SD WebUI
     available_loras: list[str] | None = None
@@ -109,6 +106,7 @@ async def validate_prompt(request: PromptValidateRequest):
         lora_result = validate_loras(request.positive, available_loras)
     else:
         from services.prompt.prompt import extract_lora_names
+
         lora_result = {
             "valid": True,
             "prompt_loras": extract_lora_names(request.positive),
@@ -124,11 +122,7 @@ async def validate_prompt(request: PromptValidateRequest):
     identity_result = validate_identity_tags(request.positive)
 
     # Determine overall validity
-    is_valid = (
-        lora_result["valid"]
-        and not conflict_result["has_conflicts"]
-        and identity_result["valid"]
-    )
+    is_valid = lora_result["valid"] and not conflict_result["has_conflicts"] and identity_result["valid"]
     warnings = []
     errors = []
 
@@ -144,9 +138,13 @@ async def validate_prompt(request: PromptValidateRequest):
     if not identity_result["valid"]:
         warnings.append(f"Missing identity tag: {identity_result['suggested']}")
 
-    logger.info("✅ [Prompt Validate] valid=%s, loras=%s, conflicts=%s, identity=%s",
-                is_valid, lora_result["prompt_loras"], conflict_result["conflicts"],
-                identity_result["found_tags"])
+    logger.info(
+        "✅ [Prompt Validate] valid=%s, loras=%s, conflicts=%s, identity=%s",
+        is_valid,
+        lora_result["prompt_loras"],
+        conflict_result["conflicts"],
+        identity_result["found_tags"],
+    )
 
     return {
         "valid": is_valid,
@@ -220,7 +218,10 @@ async def compose_prompt(
                 builder = V3PromptBuilder(db)
                 composer = MultiCharacterComposer(builder)
                 composed_prompt = composer.compose(
-                    char_a, char_b, all_tokens, style_loras=style_loras,
+                    char_a,
+                    char_b,
+                    all_tokens,
+                    style_loras=style_loras,
                 )
             else:
                 v3_service = V3PromptService(db)
@@ -237,7 +238,7 @@ async def compose_prompt(
                 style_loras=style_loras,
             )
 
-        # 4. Build response
+        # 5. Build response
         composed_tokens = split_prompt_tokens(composed_prompt)
         scene_complexity = detect_scene_complexity(request.tokens)
         effective_mode = "v3" if request.character_id else "standard"
@@ -264,9 +265,7 @@ async def compose_prompt(
             "meta": {
                 "token_count": len(composed_tokens),
                 "has_break": "BREAK" in composed_tokens,
-                "quality_tags_added": any(
-                    t in composed_tokens for t in ["best_quality", "masterpiece"]
-                ),
+                "quality_tags_added": any(t in composed_tokens for t in ["best_quality", "masterpiece"]),
             },
         }
 
@@ -329,7 +328,8 @@ async def validate_tags(
 
     logger.info(
         "✅ [Validate Tags] risky=%d, unknown=%d",
-        len(risky_tags), len(unknown_in_db),
+        len(risky_tags),
+        len(unknown_in_db),
     )
 
     return {
