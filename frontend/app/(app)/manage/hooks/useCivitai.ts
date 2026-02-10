@@ -12,14 +12,7 @@ export type CivitaiResult = {
   civitai_url: string;
 };
 
-type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-  }) => Promise<boolean>;
-};
+import type { UiCallbacks } from "./types";
 
 export function useCivitai(ui: UiCallbacks) {
   const [civitaiSearch, setCivitaiSearch] = useState("");

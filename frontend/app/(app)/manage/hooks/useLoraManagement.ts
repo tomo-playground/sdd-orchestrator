@@ -2,16 +2,7 @@ import { useState, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
 import type { LoRA } from "../../../types";
-
-type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    variant?: "default" | "danger";
-  }) => Promise<boolean>;
-};
+import type { UiCallbacks } from "./types";
 
 export function useLoraManagement(ui: UiCallbacks) {
   const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);

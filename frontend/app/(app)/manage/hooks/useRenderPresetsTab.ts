@@ -3,17 +3,9 @@ import axios from "axios";
 import { API_BASE } from "../../../constants";
 import type { RenderPreset } from "../../../types";
 
-// ── Types ──────────────────────────────────────────────
+import type { UiCallbacks } from "./types";
 
-type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    variant?: "default" | "danger";
-  }) => Promise<boolean>;
-};
+// ── Types ──────────────────────────────────────────────
 
 export type EditingPreset = Partial<RenderPreset> & { name: string };
 

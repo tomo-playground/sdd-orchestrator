@@ -4,17 +4,7 @@ import axios from "axios";
 import { API_BASE, PROMPT_APPLY_KEY } from "../../../constants";
 import type { PromptHistory } from "../../../types";
 
-// ── Types ──────────────────────────────────────────────
-
-type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    variant?: "default" | "danger";
-  }) => Promise<boolean>;
-};
+import type { UiCallbacks } from "./types";
 
 // ── Hook ───────────────────────────────────────────────
 

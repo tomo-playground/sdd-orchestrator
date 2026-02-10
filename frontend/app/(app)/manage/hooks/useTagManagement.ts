@@ -13,17 +13,7 @@ export type PendingTag = {
   classification_confidence: number | null;
 };
 
-// ── UI Callbacks ──────────────────────────────────────
-
-type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    variant?: "default" | "danger";
-  }) => Promise<boolean>;
-};
+import type { UiCallbacks } from "./types";
 
 // ── Hook ───────────────────────────────────────────────
 

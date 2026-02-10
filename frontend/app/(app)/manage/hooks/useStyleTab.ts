@@ -8,20 +8,11 @@ import { useLoraManagement } from "./useLoraManagement";
 // Re-export for consumers that import CivitaiResult from useStyleTab
 export type { CivitaiResult } from "./useCivitai";
 
-type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    variant?: "default" | "danger";
-  }) => Promise<boolean>;
-  promptDialog: (msg: string) => string | null;
-};
+import type { UiCallbacksWithPrompt } from "./types";
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useStyleTab(ui: UiCallbacks) {
+export function useStyleTab(ui: UiCallbacksWithPrompt) {
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
   const [isStyleLoading, setIsStyleLoading] = useState(false);
