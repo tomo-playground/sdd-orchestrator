@@ -119,7 +119,7 @@ export function useStudioInitialization() {
         setMeta({
           storyboardId: data.id,
           storyboardTitle: data.title,
-          activeTab: data.scenes?.length > 0 ? "scenes" : "plan",
+          activeTab: "plan",
           ...(groupId ? { groupId } : {}),
           ...(projectId ? { projectId } : {}),
         });

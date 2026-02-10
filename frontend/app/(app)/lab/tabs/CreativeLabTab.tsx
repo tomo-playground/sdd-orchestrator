@@ -117,19 +117,24 @@ export default function CreativeLabTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-5">
-        <div className="flex-1">
+      <div className="rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-white p-5">
+        <div className="flex items-center justify-between">
           <h2 className="mb-2 text-base font-bold text-zinc-800">Creative Lab</h2>
-          <p className="text-xs text-zinc-500">
-            Multi-agent shorts pipeline: Concept Debate → Script → Visual Design → Studio
-          </p>
+          <button
+            onClick={() => setPanel("config")}
+            className="ml-4 flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
+          >
+            <Settings className="h-3.5 w-3.5" /> Presets
+          </button>
         </div>
-        <button
-          onClick={() => setPanel("config")}
-          className="ml-4 flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
-        >
-          <Settings className="h-3.5 w-3.5" /> Presets
-        </button>
+        <p className="text-xs leading-relaxed text-zinc-600">
+          <strong className="text-zinc-700">목표:</strong> AI 에이전트 파이프라인으로 쇼츠 영상을
+          자동 생성합니다.
+        </p>
+        <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
+          Concept Debate → Script → Visual Design → Sound → Copyright 5단계를 순차 실행하고, 각
+          단계마다 QC 검증으로 품질을 보장합니다.
+        </p>
       </div>
 
       {error && (
