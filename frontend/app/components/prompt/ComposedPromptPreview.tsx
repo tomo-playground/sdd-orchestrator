@@ -102,7 +102,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   unknown: "기타",
 };
 
-
 function getTokenCategory(token: string): string {
   // LoRA detection (special client-rule)
   if (token.startsWith("<lora:")) return "lora";
@@ -113,7 +112,6 @@ function getTokenCategory(token: string): string {
   // If useTagClassifier hook doesn't provide a category, it's unknown.
   return "unknown";
 }
-
 
 export default function ComposedPromptPreview({
   tokens,
@@ -203,13 +201,21 @@ export default function ComposedPromptPreview({
     } finally {
       setIsLoading(false);
     }
-     
   }, [tokens, characterId, contextTags, useBreak, onComposed]);
 
   // Auto-compose when tokens change (debounced)
   const prevTokensRef = useRef<string>("");
   useEffect(() => {
-    const tokenKey = tokens.join(",") + "|" + loras.map(l => l.name).join(",") + "|" + mode + "|" + (characterId ?? "") + "|" + (basePrompt ?? "");
+    const tokenKey =
+      tokens.join(",") +
+      "|" +
+      loras.map((l) => l.name).join(",") +
+      "|" +
+      mode +
+      "|" +
+      (characterId ?? "") +
+      "|" +
+      (basePrompt ?? "");
 
     // Skip if same as previous
     if (tokenKey === prevTokensRef.current || tokens.length === 0) {
@@ -227,15 +233,16 @@ export default function ComposedPromptPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokens, composePrompt]);
 
-  // Group tokens by category for grouped view (uses API categories when available)
+  // Group tokens by display label for grouped view (merges hair_color, hair_length, etc. into "헤어")
   const groupedTokens = (result?.tokens || tokens).reduce(
     (acc, token) => {
       const category = getCategory(token);
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(token);
+      const label = CATEGORY_LABELS[category] || category;
+      if (!acc[label]) acc[label] = { category, tokens: [] };
+      acc[label].tokens.push(token);
       return acc;
     },
-    {} as Record<string, string[]>
+    {} as Record<string, { category: string; tokens: string[] }>
   );
 
   const getTokenStyle = (token: string) => {
@@ -272,31 +279,31 @@ export default function ComposedPromptPreview({
           )}
           {result && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${result.effective_mode === "lora"
-                ? "bg-violet-100 text-violet-700"
-                : "bg-zinc-100 text-zinc-600"
-                }`}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                result.effective_mode === "lora"
+                  ? "bg-violet-100 text-violet-700"
+                  : "bg-zinc-100 text-zinc-600"
+              }`}
             >
               {result.effective_mode.toUpperCase()}
             </span>
           )}
           {result?.scene_complexity && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${result.scene_complexity === "complex"
-                ? "bg-red-100 text-red-700"
-                : result.scene_complexity === "moderate"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-emerald-100 text-emerald-700"
-                }`}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                result.scene_complexity === "complex"
+                  ? "bg-red-100 text-red-700"
+                  : result.scene_complexity === "moderate"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-emerald-100 text-emerald-700"
+              }`}
             >
               {result.scene_complexity}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {result?.prompt && (
-            <CopyButton text={result.prompt} variant="label" />
-          )}
+          {result?.prompt && <CopyButton text={result.prompt} variant="label" />}
           <button
             type="button"
             onClick={() => setShowGrouped(!showGrouped)}
@@ -316,28 +323,26 @@ export default function ComposedPromptPreview({
       </div>
 
       {/* Error message */}
-      {error && (
-        <div className="rounded-lg bg-red-50 p-2 text-[10px] text-red-600">{error}</div>
-      )}
+      {error && <div className="rounded-lg bg-red-50 p-2 text-[10px] text-red-600">{error}</div>}
 
       {/* Token display */}
       {showGrouped ? (
         // Grouped view by category
         <div className="space-y-2">
-          {Object.entries(groupedTokens).map(([category, categoryTokens]) => (
-            <div key={category} className="flex items-start gap-2">
+          {Object.entries(groupedTokens).map(([label, group]) => (
+            <div key={label} className="flex items-start gap-2">
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${CATEGORY_COLORS[category]?.bg || "bg-zinc-100"} ${CATEGORY_COLORS[category]?.text || "text-zinc-600"}`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${CATEGORY_COLORS[group.category]?.bg || "bg-zinc-100"} ${CATEGORY_COLORS[group.category]?.text || "text-zinc-600"}`}
               >
-                {CATEGORY_LABELS[category] || category}
+                {label}
               </span>
               <div className="flex flex-wrap gap-1">
-                {categoryTokens.map((token, idx) => {
+                {group.tokens.map((token, idx) => {
                   const style = getTokenStyle(token);
                   return (
                     <span
-                      key={`${category}-${idx}`}
-                      className={`rounded-full px-2 py-0.5 text-[10px] border ${style.bg} ${style.text} ${style.border}`}
+                      key={`${label}-${idx}`}
+                      className={`rounded-full border px-2 py-0.5 text-[10px] ${style.bg} ${style.text} ${style.border}`}
                     >
                       {token.startsWith("<lora:") ? (
                         <>
@@ -362,7 +367,7 @@ export default function ComposedPromptPreview({
             return (
               <span
                 key={idx}
-                className={`rounded-full px-2 py-0.5 text-[10px] border ${style.bg} ${style.text} ${style.border}`}
+                className={`rounded-full border px-2 py-0.5 text-[10px] ${style.bg} ${style.text} ${style.border}`}
                 title={getCategory(token)}
               >
                 {token === "BREAK" ? (
