@@ -8,25 +8,30 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from config import CREATIVE_AGENT_CATEGORIES
 from database import get_db
 from models.creative import CreativeAgentPreset
 from schemas_creative import (
     AgentPresetCreate,
     AgentPresetResponse,
+    AgentPresetsListResponse,
     AgentPresetUpdate,
+    CategoryOption,
     OkResponse,
 )
 
 router = APIRouter(prefix="/lab/creative", tags=["creative"])
 
 
-@router.get("/agent-presets", response_model=list[AgentPresetResponse])
+@router.get("/agent-presets", response_model=AgentPresetsListResponse)
 def api_list_presets(category: str | None = None, db: Session = Depends(get_db)):
     """List all active agent presets, optionally filtered by category."""
     query = db.query(CreativeAgentPreset).filter(CreativeAgentPreset.deleted_at.is_(None))
     if category:
         query = query.filter(CreativeAgentPreset.category == category)
-    return query.order_by(CreativeAgentPreset.id).all()
+    presets = query.order_by(CreativeAgentPreset.id).all()
+    categories = [CategoryOption(**c) for c in CREATIVE_AGENT_CATEGORIES]
+    return AgentPresetsListResponse(presets=presets, categories=categories)
 
 
 @router.post("/agent-presets", response_model=AgentPresetResponse)

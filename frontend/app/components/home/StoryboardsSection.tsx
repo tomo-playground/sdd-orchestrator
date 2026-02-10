@@ -176,9 +176,9 @@ function StoryboardCard({
       {/* Cast thumbnails */}
       {sb.cast && sb.cast.length > 0 && (
         <div className="mt-1 flex items-center gap-1">
-          {sb.cast.map((c) => (
+          {sb.cast.map((c, i) => (
             <div
-              key={c.id}
+              key={`${c.id}-${i}`}
               title={`${c.speaker}: ${c.name}`}
               className="h-6 w-6 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100"
             >

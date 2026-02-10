@@ -210,7 +210,7 @@ async def get_agent_comparison(
     return sorted(results, key=lambda x: x.get("avg_score") or 0, reverse=True)
 
 
-# ── Trace Query Helpers (used by creative_engine) ────────────
+# ── Trace Query Helpers ──────────────────────────────────────
 
 
 def get_prev_evaluation(db: Session, session_id: int, round_number: int) -> dict | None:

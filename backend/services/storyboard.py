@@ -763,11 +763,13 @@ def list_storyboards_from_db(
     result = []
     for s in storyboards:
         scenes = s.scenes or []
-        # Extract cast (characters) with preview thumbnails
+        # Extract cast (characters) with preview thumbnails — deduplicate by character id
         cast = []
+        seen_char_ids: set[int] = set()
         for sc in sorted(s.characters or [], key=lambda x: x.speaker):
             char = sc.character
-            if char:
+            if char and char.id not in seen_char_ids:
+                seen_char_ids.add(char.id)
                 cast.append(
                     {
                         "id": char.id,

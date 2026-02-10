@@ -282,6 +282,21 @@
 
 Phase 8 이후 또는 우선순위 미정 항목.
 
+### Creative Lab 개선
+
+쇼츠 파이프라인 표준화 완료 (2026-02-10). V1(Free Debate) 코드 전량 제거, category `v2_` prefix 제거, Backend SSOT 전환.
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| 1 | category 목록 Backend SSOT 전환 (Frontend 하드코딩 제거) | SSOT | [x] |
+| 2 | ~~V1 프리셋 `agent_role` 컬럼 추가~~ | ~~DB~~ | N/A (V1 제거됨) |
+| 3 | ~~V1 Leader → preset 시스템 이관~~ | ~~리팩토링~~ | N/A (V1 제거됨) |
+| 4 | Pipeline step 활성/비활성 설정 (Sound Designer/Copyright Reviewer optional화) | 기능 | [ ] |
+| 5 | 에이전트-템플릿 매핑 config.py 중앙화 (`CREATIVE_AGENT_TEMPLATES`) | SSOT | [x] |
+| 6 | Reference Analyst 에이전트 실제 활성화 (현재 DB만 존재, 파이프라인 미연동) | 기능 | [ ] |
+
+### 일반
+
 | 기능 | 참조 |
 |------|------|
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
@@ -355,3 +370,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-10) Creative Lab V2 Phase 3: Multi-Character Dialogue (character_ids 매핑, CharacterPicker 컴포넌트), Sound Designer 에이전트 (BGM 추천), Copyright Reviewer 에이전트, send-to-studio 서비스 추출 (creative_studio.py), QC feedback retry 개선, SSOT presets API 연동, 단위 테스트 14개
 - (2026-02-10) 모듈화 위반 전면 리팩토링 (TDD 22건): `split_prompt_tokens` SSOT 통합, `resolve_style_loras` config cascade 통합, `creative_studio._build_scene` V3 composition 파이프라인 적용 (style_loras + negative_prompt), `lab.py` V3 이중 호출 제거, `controlnet.py` 태그 underscore 포맷 수정, 모놀로그 캐릭터 링크 누락 수정, V3 `_distribute_tags` LoRA 이중 주입 방지
 - (2026-02-10) `compose_scene_with_style` SSOT 추출: Creative Lab/Studio Direct 프롬프트 파이프라인 단일화 (StyleProfile → V3 composition). `generate_image_with_v3`도 통합. `prompt_pre_composed` 경로 LoRA 이중 적용 버그 수정 (`skip_loras=True` + defense-in-depth 중복 방어)
+- (2026-02-10) Creative Lab 쇼츠 표준화: V1(Free Debate) 코드/테스트/컴포넌트 전량 삭제 (5 backend + 2 frontend 파일), category 리네이밍 (`v2_concept`→`concept`, `v2_production`→`production`), SSOT 전환 (categories + agent-template 매핑 config.py), `session_type` 기본값 `"shorts"` 전환, Alembic 마이그레이션 2건

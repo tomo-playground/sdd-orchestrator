@@ -15,6 +15,11 @@ type PresetForm = {
   category: string;
 };
 
+type CategoryOption = {
+  value: string;
+  label: string;
+};
+
 type Props = {
   title: string;
   form: PresetForm;
@@ -24,6 +29,7 @@ type Props = {
   submitting: boolean;
   submitLabel: string;
   submitIcon?: "create" | "save";
+  categoryOptions?: CategoryOption[];
 };
 
 // ── Component ────────────────────────────────────────────────
@@ -37,14 +43,13 @@ export default function PresetFormFields({
   submitting,
   submitLabel,
   submitIcon = "create",
+  categoryOptions = [],
 }: Props) {
   const isValid = form.name.trim() && form.role_description.trim();
 
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-        {title}
-      </p>
+      <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">{title}</p>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -123,9 +128,11 @@ export default function PresetFormFields({
             className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
           >
             <option value="">None</option>
-            <option value="v1_debate">V1 Debate</option>
-            <option value="v2_concept">V2 Concept</option>
-            <option value="v2_production">V2 Production</option>
+            {categoryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

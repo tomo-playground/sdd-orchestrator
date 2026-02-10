@@ -1,4 +1,4 @@
-"""Pydantic schemas for the Creative Engine module."""
+"""Pydantic schemas for the Creative Lab module."""
 
 from __future__ import annotations
 
@@ -17,27 +17,12 @@ class OkResponse(BaseModel):
 # ── Shared sub-schemas ───────────────────────────────────────
 
 
-class CriterionWeight(BaseModel):
-    """Single evaluation criterion with weight and description."""
-
-    weight: float
-    description: str
-
-
 class TokenUsage(BaseModel):
     """LLM token usage counters."""
 
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
-
-
-class AgentConfigItem(BaseModel):
-    """Agent slot in a session's agent_config array."""
-
-    preset_id: int | None = None
-    role: str | None = None
-    role_override: str | None = None
 
 
 # ── Agent Presets ─────────────────────────────────────────────
@@ -85,16 +70,17 @@ class AgentPresetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CategoryOption(BaseModel):
+    value: str
+    label: str
+
+
+class AgentPresetsListResponse(BaseModel):
+    presets: list[AgentPresetResponse]
+    categories: list[CategoryOption]
+
+
 # ── Creative Sessions ────────────────────────────────────────
-
-
-class CreativeSessionCreate(BaseModel):
-    objective: str
-    evaluation_criteria: dict[str, CriterionWeight] | None = None
-    character_id: int | None = None
-    context: dict[str, Any] | None = None
-    agent_config: list[AgentConfigItem] | None = None
-    max_rounds: int = 3
 
 
 class CreativeSessionResponse(BaseModel):
@@ -108,7 +94,7 @@ class CreativeSessionResponse(BaseModel):
     max_rounds: int
     total_token_usage: TokenUsage | None = None
     status: str
-    session_type: str | None = "free"
+    session_type: str | None = "shorts"
     director_mode: str | None = "advisor"
     concept_candidates: dict[str, Any] | None = None
     selected_concept_index: int | None = None
@@ -181,20 +167,7 @@ class TraceTimelineResponse(BaseModel):
 # ── Actions ──────────────────────────────────────────────────
 
 
-class RunRoundRequest(BaseModel):
-    """Optional overrides for a round execution."""
-
-    feedback: str | None = None  # User feedback to incorporate
-
-
-class FinalizeRequest(BaseModel):
-    """Select the final output."""
-
-    selected_output: dict[str, Any]  # The chosen result
-    reason: str | None = None
-
-
-# ── V2 Shorts Pipeline ──────────────────────────────────────
+# ── Shorts Pipeline ─────────────────────────────────────────
 
 
 class ShortsSessionCreate(BaseModel):

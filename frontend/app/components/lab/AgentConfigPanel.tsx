@@ -8,7 +8,10 @@ import PresetFormFields from "./PresetFormFields";
 
 // ── Types ────────────────────────────────────────────────────
 
-type PresetCategory = "v1_debate" | "v2_concept" | "v2_production";
+type CategoryOption = {
+  value: string;
+  label: string;
+};
 
 type AgentPreset = {
   id: number;
@@ -20,9 +23,14 @@ type AgentPreset = {
   temperature: number;
   is_system: boolean;
   agent_role: string | null;
-  category: PresetCategory | null;
+  category: string | null;
   agent_metadata: Record<string, unknown> | null;
   created_at: string | null;
+};
+
+type PresetsApiResponse = {
+  presets: AgentPreset[];
+  categories: CategoryOption[];
 };
 
 type NewPresetForm = {
@@ -47,40 +55,27 @@ const EMPTY_FORM: NewPresetForm = {
   category: "",
 };
 
-const CATEGORY_TABS: { label: string; value: PresetCategory | null }[] = [
-  { label: "All", value: null },
-  { label: "V1 Debate", value: "v1_debate" },
-  { label: "V2 Concept", value: "v2_concept" },
-  { label: "V2 Production", value: "v2_production" },
-];
-
-const CATEGORY_LABELS: Record<string, string> = {
-  v1_debate: "Debate",
-  v2_concept: "Concept",
-  v2_production: "Production",
-};
-
 // ── Main Component ───────────────────────────────────────────
 
 export default function AgentConfigPanel() {
   const [presets, setPresets] = useState<AgentPreset[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewPresetForm>({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<PresetCategory | null>(
-    null
-  );
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const categoryLabels = Object.fromEntries(categories.map((c) => [c.value, c.label]));
 
   const fetchPresets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get<AgentPreset[]>(
-        `${API_BASE}/lab/creative/agent-presets`
-      );
-      setPresets(res.data);
+      const res = await axios.get<PresetsApiResponse>(`${API_BASE}/lab/creative/agent-presets`);
+      setPresets(res.data.presets);
+      setCategories(res.data.categories);
     } catch {
       setError("Failed to load presets");
     } finally {
@@ -93,11 +88,14 @@ export default function AgentConfigPanel() {
   }, [fetchPresets]);
 
   /** Convert empty strings to null for optional fields before API call. */
-  const sanitizeForm = useCallback((f: NewPresetForm) => ({
-    ...f,
-    agent_role: f.agent_role.trim() || null,
-    category: f.category || null,
-  }), []);
+  const sanitizeForm = useCallback(
+    (f: NewPresetForm) => ({
+      ...f,
+      agent_role: f.agent_role.trim() || null,
+      category: f.category || null,
+    }),
+    []
+  );
 
   const handleCreate = useCallback(async () => {
     if (!form.name.trim() || !form.role_description.trim()) return;
@@ -110,7 +108,7 @@ export default function AgentConfigPanel() {
       await fetchPresets();
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.detail ?? err.message
+        ? (err.response?.data?.detail ?? err.message)
         : "Failed to create preset";
       setError(String(msg));
     } finally {
@@ -125,7 +123,7 @@ export default function AgentConfigPanel() {
         await fetchPresets();
       } catch (err) {
         const msg = axios.isAxiosError(err)
-          ? err.response?.data?.detail ?? err.message
+          ? (err.response?.data?.detail ?? err.message)
           : "Failed to delete preset";
         setError(String(msg));
       }
@@ -159,7 +157,7 @@ export default function AgentConfigPanel() {
       await fetchPresets();
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.detail ?? err.message
+        ? (err.response?.data?.detail ?? err.message)
         : "Failed to update preset";
       setError(String(msg));
     } finally {
@@ -214,17 +212,27 @@ export default function AgentConfigPanel() {
 
       {/* Category tabs */}
       <div className="flex gap-1">
-        {CATEGORY_TABS.map((tab) => (
+        <button
+          onClick={() => setCategoryFilter(null)}
+          className={`rounded-lg px-3 py-1 text-xs transition ${
+            categoryFilter === null
+              ? "bg-zinc-900 text-white"
+              : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+          }`}
+        >
+          All
+        </button>
+        {categories.map((cat) => (
           <button
-            key={tab.label}
-            onClick={() => setCategoryFilter(tab.value)}
+            key={cat.value}
+            onClick={() => setCategoryFilter(cat.value)}
             className={`rounded-lg px-3 py-1 text-xs transition ${
-              categoryFilter === tab.value
+              categoryFilter === cat.value
                 ? "bg-zinc-900 text-white"
                 : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
             }`}
           >
-            {tab.label}
+            {cat.label}
           </button>
         ))}
       </div>
@@ -245,6 +253,7 @@ export default function AgentConfigPanel() {
             onSubmit={handleCreate}
             submitting={submitting}
             submitLabel="Create Preset"
+            categoryOptions={categories}
           />
         </div>
       )}
@@ -257,10 +266,7 @@ export default function AgentConfigPanel() {
       ) : (
         <div className="space-y-2">
           {filteredPresets.map((preset) => (
-            <div
-              key={preset.id}
-              className="rounded-2xl border border-zinc-200 bg-white p-4"
-            >
+            <div key={preset.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
               {editingId === preset.id ? (
                 // Edit mode
                 <PresetFormFields
@@ -272,24 +278,23 @@ export default function AgentConfigPanel() {
                   submitting={submitting}
                   submitLabel="Save"
                   submitIcon="save"
+                  categoryOptions={categories}
                 />
               ) : (
                 // View mode
                 <>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-zinc-800">
-                        {preset.name}
-                      </span>
+                      <span className="text-xs font-medium text-zinc-800">{preset.name}</span>
                       {preset.is_system && (
                         <span className="flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
                           <Shield className="h-3 w-3" />
                           System
                         </span>
                       )}
-                      {preset.category && CATEGORY_LABELS[preset.category] && (
+                      {preset.category && categoryLabels[preset.category] && (
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
-                          {CATEGORY_LABELS[preset.category]}
+                          {categoryLabels[preset.category]}
                         </span>
                       )}
                     </div>
@@ -313,13 +318,9 @@ export default function AgentConfigPanel() {
                     </div>
                   </div>
                   {preset.agent_role && (
-                    <p className="mt-0.5 text-[10px] text-zinc-400">
-                      {preset.agent_role}
-                    </p>
+                    <p className="mt-0.5 text-[10px] text-zinc-400">{preset.agent_role}</p>
                   )}
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {preset.role_description}
-                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">{preset.role_description}</p>
                   <div className="mt-2 flex items-center gap-3 text-[10px] text-zinc-400">
                     <span>
                       {preset.model_provider}/{preset.model_name}

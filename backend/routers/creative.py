@@ -1,4 +1,4 @@
-"""Creative Engine API router -- sessions, rounds, presets."""
+"""Creative Lab API router -- shorts pipeline sessions."""
 
 from __future__ import annotations
 
@@ -10,21 +10,17 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.creative import CreativeSession
 from schemas_creative import (
-    CreativeSessionCreate,
     CreativeSessionListResponse,
     CreativeSessionResponse,
-    FinalizeRequest,
     OkResponse,
     PipelineStatusResponse,
     RetrySessionRequest,
-    RunRoundRequest,
     SelectConceptRequest,
     SendToStudioRequest,
     SendToStudioResponse,
     ShortsSessionCreate,
     TraceTimelineResponse,
 )
-from services.creative_engine import create_session, finalize, run_debate, run_round
 from services.creative_trace import get_session_timeline
 
 router = APIRouter(prefix="/lab/creative", tags=["creative"])
@@ -40,23 +36,6 @@ def _get_session_or_404(db: Session, session_id: int) -> CreativeSession:
 
 
 # ── Sessions ─────────────────────────────────────────────────
-
-
-@router.post("/sessions", response_model=CreativeSessionResponse)
-async def api_create_session(
-    req: CreativeSessionCreate,
-    db: Session = Depends(get_db),
-):
-    """Create a new creative session."""
-    return await create_session(
-        db=db,
-        objective=req.objective,
-        evaluation_criteria=req.evaluation_criteria,
-        character_id=req.character_id,
-        context=req.context,
-        agent_config=req.agent_config,
-        max_rounds=req.max_rounds,
-    )
 
 
 @router.get("/sessions", response_model=CreativeSessionListResponse)
@@ -76,48 +55,6 @@ def api_list_sessions(
 def api_get_session(session_id: int, db: Session = Depends(get_db)):
     """Get a creative session by ID."""
     return _get_session_or_404(db, session_id)
-
-
-@router.post("/sessions/{session_id}/run-round", response_model=CreativeSessionResponse)
-async def api_run_round(
-    session_id: int,
-    req: RunRoundRequest | None = None,
-    db: Session = Depends(get_db),
-):
-    """Run a single round for a session."""
-    session = db.get(CreativeSession, session_id)
-    if not session or session.deleted_at:
-        raise HTTPException(status_code=404, detail="Session not found")
-    if session.status != "running":
-        raise HTTPException(status_code=400, detail="Session is not running")
-
-    round_count = len(session.rounds)
-    await run_round(
-        db=db,
-        session_id=session_id,
-        round_number=round_count + 1,
-        user_feedback=req.feedback if req else None,
-    )
-    db.refresh(session)
-    return session
-
-
-@router.post("/sessions/{session_id}/finalize", response_model=CreativeSessionResponse)
-async def api_finalize(
-    session_id: int,
-    req: FinalizeRequest,
-    db: Session = Depends(get_db),
-):
-    """Finalize a session with the selected output."""
-    try:
-        return await finalize(
-            db=db,
-            session_id=session_id,
-            selected_output=req.selected_output,
-            reason=req.reason,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/sessions/{session_id}/timeline", response_model=TraceTimelineResponse)
@@ -143,7 +80,7 @@ def api_delete_session(session_id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 
-# ── V2 Shorts Pipeline ──────────────────────────────────────
+# ── Shorts Pipeline ─────────────────────────────────────────
 
 
 @router.post("/sessions/shorts", response_model=CreativeSessionResponse, status_code=201)
@@ -151,7 +88,7 @@ async def api_create_shorts_session(
     req: ShortsSessionCreate,
     db: Session = Depends(get_db),
 ):
-    """Create a V2 shorts pipeline session."""
+    """Create a shorts pipeline session."""
     from services.creative_studio import create_shorts_session
 
     return create_shorts_session(
@@ -174,20 +111,9 @@ async def api_run_debate_v2(
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Run Phase 1 concept debate (V2) or full debate (V1)."""
+    """Run Phase 1 concept debate."""
     session = _get_session_or_404(db, session_id)
 
-    # V1 path: existing behavior
-    if session.session_type == "free":
-        if session.status != "running":
-            raise HTTPException(status_code=400, detail="Session is not running")
-        result = await run_debate(db=db, session_id=session_id)
-        return PipelineStatusResponse(
-            status=result.status,
-            session_type="free",
-        )
-
-    # V2 path: background task
     if session.status != "created":
         raise HTTPException(status_code=400, detail=f"Cannot start debate from status '{session.status}'")
 

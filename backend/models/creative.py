@@ -54,8 +54,7 @@ class CreativeSession(Base, TimestampMixin, SoftDeleteMixin):
     total_token_usage: Mapped[dict | None] = mapped_column(JSONB)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    # V2 fields
-    session_type: Mapped[str] = mapped_column(String(20), server_default="free", nullable=False)
+    session_type: Mapped[str] = mapped_column(String(20), server_default="shorts", nullable=False)
     director_mode: Mapped[str] = mapped_column(String(20), server_default="advisor", nullable=False)
     concept_candidates: Mapped[dict | None] = mapped_column(JSONB)
     selected_concept_index: Mapped[int | None] = mapped_column(Integer)
