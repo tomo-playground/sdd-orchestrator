@@ -56,7 +56,7 @@ class TestPreparePromptFlag:
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("v3_composed", "bad")
+            mock_compose.return_value = ("v3_composed", "bad", [])
             cleaned, warnings, char = _prepare_prompt(req, db)
 
         mock_compose.assert_called_once()
@@ -368,7 +368,7 @@ class TestBatchLoraResolution:
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("composed", "bad")
+            mock_compose.return_value = ("composed", "bad", [])
             _prepare_prompt(req, db)
 
         # compose_scene_with_style must receive DB-resolved loras (with name)
@@ -387,7 +387,7 @@ class TestBatchLoraResolution:
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("composed", "bad")
+            mock_compose.return_value = ("composed", "bad", [])
             _prepare_prompt(req, db)
 
         mock_resolve.assert_called_once()
@@ -413,7 +413,7 @@ class TestNarratorBackgroundFiltering:
         db.query.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("no_humans, bedroom, night", "bad")
+            mock_compose.return_value = ("no_humans, bedroom, night", "bad", [])
             cleaned, _, _ = _prepare_prompt(req, db)
 
         mock_compose.assert_called_once()
@@ -430,7 +430,7 @@ class TestNarratorBackgroundFiltering:
         db.query.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("no_humans, bedroom", "bad")
+            mock_compose.return_value = ("no_humans, bedroom", "bad", [])
             cleaned, _, _ = _prepare_prompt(req, db)
 
         assert "full_body" not in cleaned
@@ -445,7 +445,7 @@ class TestNarratorBackgroundFiltering:
         db.query.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("no_humans, bedroom, night", "bad")
+            mock_compose.return_value = ("no_humans, bedroom, night", "bad", [])
             cleaned, _, _ = _prepare_prompt(req, db)
 
         assert "bedroom" in cleaned
@@ -463,7 +463,7 @@ class TestNarratorBackgroundFiltering:
         db.query.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("no_humans, bedroom, <lora:flat_color:0.7>", "bad")
+            mock_compose.return_value = ("no_humans, bedroom, <lora:flat_color:0.7>", "bad", [])
             _prepare_prompt(req, db)
 
         call_kwargs = mock_compose.call_args.kwargs

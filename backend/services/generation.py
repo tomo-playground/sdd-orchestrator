@@ -258,7 +258,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         # Raw prompt → compose_scene_with_style (StyleProfile + V3)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
         logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [l.get("name") for l in style_loras])
-        cleaned_prompt, request.negative_prompt = compose_scene_with_style(
+        cleaned_prompt, request.negative_prompt, _warnings = compose_scene_with_style(
             raw_prompt=request.prompt,
             negative_prompt=request.negative_prompt or "",
             character_id=request.character_id,
@@ -270,7 +270,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
     elif "no_humans" in request.prompt.lower().replace(" ", "_"):
         # Narrator (no_humans) → compose_scene_with_style (StyleProfile + V3 background)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
-        cleaned_prompt, request.negative_prompt = compose_scene_with_style(
+        cleaned_prompt, request.negative_prompt, _warnings = compose_scene_with_style(
             raw_prompt=request.prompt,
             negative_prompt=request.negative_prompt or "",
             character_id=None,
@@ -322,7 +322,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     request.ip_adapter_reference,
                 )
                 style_loras = _resolve_style_loras(request.storyboard_id, db)
-                cleaned_prompt, request.negative_prompt = compose_scene_with_style(
+                cleaned_prompt, request.negative_prompt, _warnings = compose_scene_with_style(
                     raw_prompt=request.prompt,
                     negative_prompt=request.negative_prompt or "",
                     character_id=request.character_id,

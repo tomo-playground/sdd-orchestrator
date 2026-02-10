@@ -42,6 +42,7 @@ class TestBuildSceneComposition:
             mock_compose.return_value = (
                 "high_quality, masterpiece, best_quality, 1girl, <lora:flat_color:0.76>",
                 "lowres, bad anatomy, style_negative",
+                [],
             )
 
             from services.creative_studio import _build_scene
@@ -70,7 +71,7 @@ class TestBuildSceneComposition:
         mock_db = MagicMock()
 
         with patch("services.creative_studio.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("no_humans, sunset, beach", "lowres, bad anatomy")
+            mock_compose.return_value = ("no_humans, sunset, beach", "lowres, bad anatomy", [])
 
             from services.creative_studio import _build_scene
 
@@ -111,7 +112,7 @@ class TestBuildSceneComposition:
         mock_db = MagicMock()
 
         with patch("services.creative_studio.compose_scene_with_style") as mock_compose:
-            mock_compose.return_value = ("composed_prompt", "lowres, bad anatomy")
+            mock_compose.return_value = ("composed_prompt", "lowres, bad anatomy", [])
 
             from services.creative_studio import _build_scene
 
@@ -326,7 +327,7 @@ class TestSendToStudioIntegration:
         with (
             patch(
                 "services.creative_studio.compose_scene_with_style",
-                return_value=("composed", "negative"),
+                return_value=("composed", "negative", []),
             ) as mock_compose,
             patch(
                 "services.creative_studio.resolve_style_loras_from_group",

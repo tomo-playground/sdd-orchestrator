@@ -45,7 +45,7 @@ class TestGenerateImageWithV3:
 
         lora = LoRA(
             name="test_style_lora",
-                        trigger_words=["anime", "vibrant"],
+            trigger_words=["anime", "vibrant"],
             lora_type="style",
         )
         db_session.add(lora)
@@ -153,7 +153,7 @@ class TestGenerateImageWithV3:
         assert result.image == ""
         assert result.seed == -1
         assert len(result.warnings) > 0
-        assert "SD API failed" in result.warnings[0]
+        assert any("SD API failed" in w for w in result.warnings)
 
     @pytest.mark.asyncio
     async def test_generate_studio_mode_raises_on_error(self, db_session):
@@ -233,6 +233,8 @@ class TestComposeSceneWithStyle:
     def test_calls_style_profile_then_v3(self):
         """Must call apply_style_profile_to_prompt(skip_loras=True) then V3 compose."""
         mock_db = MagicMock()
+        # Character query returns None (no custom_negative_prompt merge)
+        mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with (
             patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
@@ -241,9 +243,10 @@ class TestComposeSceneWithStyle:
             mock_apply.return_value = ("high_quality, 1girl, smile", "lowres, bad anatomy")
             mock_instance = MagicMock()
             mock_instance.compose_for_character.return_value = "masterpiece, best_quality, high_quality, 1girl"
+            mock_instance.find_unknown_tags.return_value = []
             MockBuilder.return_value = mock_instance
 
-            composed, negative = compose_scene_with_style(
+            composed, negative, warnings = compose_scene_with_style(
                 raw_prompt="1girl, smile",
                 negative_prompt="lowres",
                 character_id=10,
@@ -263,6 +266,7 @@ class TestComposeSceneWithStyle:
 
             assert composed == "masterpiece, best_quality, high_quality, 1girl"
             assert "bad anatomy" in negative
+            assert warnings == []
 
     def test_no_character_uses_generic_compose(self):
         """When character_id is None, must use builder.compose (not compose_for_character)."""
@@ -275,9 +279,10 @@ class TestComposeSceneWithStyle:
             mock_apply.return_value = ("no_humans, sunset", "lowres")
             mock_instance = MagicMock()
             mock_instance.compose.return_value = "no_humans, sunset, masterpiece"
+            mock_instance.find_unknown_tags.return_value = []
             MockBuilder.return_value = mock_instance
 
-            composed, _ = compose_scene_with_style(
+            composed, _, _warnings = compose_scene_with_style(
                 raw_prompt="no_humans, sunset",
                 negative_prompt="lowres",
                 character_id=None,
@@ -289,6 +294,97 @@ class TestComposeSceneWithStyle:
             mock_instance.compose.assert_called_once()
             mock_instance.compose_for_character.assert_not_called()
             assert "sunset" in composed
+
+    def test_negative_prompt_dedup(self):
+        """Duplicate tokens in negative prompt must be removed."""
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+        ):
+            # Style profile returns negative with duplicates
+            mock_apply.return_value = (
+                "1girl, smile",
+                "lowres, bad anatomy, lowres, worst quality, bad anatomy",
+            )
+            mock_instance = MagicMock()
+            mock_instance.compose_for_character.return_value = "1girl, smile"
+            mock_instance.find_unknown_tags.return_value = []
+            MockBuilder.return_value = mock_instance
+
+            _, negative, _warnings = compose_scene_with_style(
+                raw_prompt="1girl, smile",
+                negative_prompt="lowres",
+                character_id=10,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+            )
+
+            # Duplicates removed, each token appears exactly once
+            tokens = [t.strip() for t in negative.split(",")]
+            assert tokens == ["lowres", "bad anatomy", "worst quality"]
+
+    def test_unknown_tags_warning(self):
+        """Non-Danbooru tags must be reported in warnings."""
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+        ):
+            mock_apply.return_value = ("1girl, vibrant_colors", "lowres")
+            mock_instance = MagicMock()
+            mock_instance.compose_for_character.return_value = "1girl, vibrant_colors"
+            mock_instance.find_unknown_tags.return_value = ["vibrant_colors"]
+            MockBuilder.return_value = mock_instance
+
+            _, _, warnings = compose_scene_with_style(
+                raw_prompt="1girl, vibrant_colors",
+                negative_prompt="lowres",
+                character_id=10,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+            )
+
+            assert len(warnings) == 1
+            assert "Non-Danbooru tags detected" in warnings[0]
+            assert "vibrant_colors" in warnings[0]
+
+    def test_character_custom_negative_prompt_merged(self):
+        """Character custom_negative_prompt must be merged into negative."""
+        mock_db = MagicMock()
+        mock_char = MagicMock()
+        mock_char.custom_negative_prompt = "nsfw, revealing_clothes"
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_char
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+        ):
+            mock_apply.return_value = ("1girl, smile", "lowres, bad anatomy")
+            mock_instance = MagicMock()
+            mock_instance.compose_for_character.return_value = "1girl, smile"
+            mock_instance.find_unknown_tags.return_value = []
+            MockBuilder.return_value = mock_instance
+
+            _, negative, _ = compose_scene_with_style(
+                raw_prompt="1girl, smile",
+                negative_prompt="lowres",
+                character_id=10,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+            )
+
+            assert "nsfw" in negative
+            assert "revealing_clothes" in negative
+            assert "lowres" in negative
+            assert "bad anatomy" in negative
 
 
 class TestResolveStyleLorasFromGroup:

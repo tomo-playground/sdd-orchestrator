@@ -23,7 +23,7 @@ from config import (
     SD_TXT2IMG_URL,
     logger,
 )
-from services.prompt.prompt import split_prompt_tokens
+from services.prompt.prompt import normalize_negative_prompt, split_prompt_tokens
 from services.prompt.v3_composition import V3PromptBuilder
 
 
@@ -105,7 +105,7 @@ async def generate_image_with_v3(
     negative_prompt = sd_params.get("negative_prompt", "") if sd_params else ""
     if storyboard_id or group_id:
         try:
-            final_prompt, negative_prompt = compose_scene_with_style(
+            final_prompt, negative_prompt, compose_warnings = compose_scene_with_style(
                 raw_prompt=prompt_str,
                 negative_prompt=negative_prompt,
                 character_id=character_id,
@@ -113,6 +113,7 @@ async def generate_image_with_v3(
                 style_loras=style_loras or [],
                 db=db,
             )
+            warnings.extend(compose_warnings)
             logger.debug(f"{mode_prefix} compose_scene_with_style complete")
         except Exception as e:
             logger.error(f"{mode_prefix} Composition failed: {e}")
@@ -189,17 +190,22 @@ def compose_scene_with_style(
     storyboard_id: int | None,
     style_loras: list[dict],
     db: Session,
-) -> tuple[str, str]:
+) -> tuple[str, str, list[str]]:
     """Compose scene prompt: StyleProfile + V3 composition (SSOT).
 
     Shared by Studio Direct (generation.py) and Creative Lab (creative_studio.py).
     Flow matches Studio Direct exactly:
       1. apply_style_profile_to_prompt(skip_loras=True) → quality tags + embeddings
       2. V3 compose_for_character / compose → character tags + LoRA injection
+      3. Merge character custom_negative_prompt (if character_id)
+      4. Detect non-Danbooru tags → warnings
 
-    Returns: (composed_prompt, modified_negative_prompt)
+    Returns: (composed_prompt, modified_negative_prompt, warnings)
     """
+    from models.character import Character
     from services.generation import apply_style_profile_to_prompt
+
+    warnings: list[str] = []
 
     # 1. Apply style profile quality tags + embedding triggers (LoRAs handled by V3)
     styled_prompt, modified_negative = apply_style_profile_to_prompt(
@@ -215,6 +221,18 @@ def compose_scene_with_style(
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras)
 
+    # 3. Merge character custom_negative_prompt
+    if character_id:
+        character = db.query(Character).filter(Character.id == character_id).first()
+        if character and character.custom_negative_prompt:
+            modified_negative = f"{modified_negative}, {character.custom_negative_prompt}"
+
+    # 4. Detect non-Danbooru tags
+    unknown = builder.find_unknown_tags(scene_tags)
+    if unknown:
+        warnings.append(f"Non-Danbooru tags detected: {', '.join(unknown)}")
+        logger.warning("⚠️ [compose] Non-Danbooru tags: %s", unknown)
+
     logger.debug(
         "🎨 [compose_scene_with_style] char_id=%s, storyboard_id=%s, loras=%d",
         character_id,
@@ -222,7 +240,7 @@ def compose_scene_with_style(
         len(style_loras),
     )
 
-    return composed, modified_negative
+    return composed, normalize_negative_prompt(modified_negative), warnings
 
 
 def resolve_style_loras_from_group(group_id: int, db: Session) -> list[dict]:

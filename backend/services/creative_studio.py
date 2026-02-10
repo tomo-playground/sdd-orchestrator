@@ -140,7 +140,7 @@ def _build_scene(
         speaker = s.get("speaker", "A")
         char_id = characters.get(speaker, {}).get("id") or fallback_char_id
 
-        image_prompt, negative_prompt = compose_scene_with_style(
+        image_prompt, negative_prompt, _warnings = compose_scene_with_style(
             raw_prompt=", ".join(tags),
             negative_prompt=negative_prompt,
             character_id=char_id,

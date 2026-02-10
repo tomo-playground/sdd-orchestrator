@@ -94,6 +94,36 @@ class V3PromptBuilder:
 
         return result
 
+    def find_unknown_tags(self, tag_names: list[str]) -> list[str]:
+        """Return tags not found in DB (potential non-Danbooru tags).
+
+        Skips LoRA tags (<lora:...>), weighted tokens ((tag:1.2)),
+        and common quality tags that may not be in DB.
+        """
+        if not tag_names:
+            return []
+
+        normalized = []
+        for t in tag_names:
+            stripped = t.strip()
+            if stripped.startswith("<lora:"):
+                continue
+            # Strip weight parens: (tag:1.2) → tag
+            if stripped.startswith("(") and ":" in stripped and stripped.endswith(")"):
+                stripped = stripped[1:].split(":")[0]
+            stripped = stripped.lower().replace(" ", "_").strip()
+            if stripped:
+                normalized.append(stripped)
+
+        if not normalized:
+            return []
+
+        found = {
+            tag.name
+            for tag in self.db.query(Tag.name).filter(Tag.name.in_(normalized)).all()
+        }
+        return [t for t in normalized if t not in found]
+
     @staticmethod
     def _infer_layer_from_pattern(tag: str) -> int:
         """Infer layer from tag pattern when not found in DB.
