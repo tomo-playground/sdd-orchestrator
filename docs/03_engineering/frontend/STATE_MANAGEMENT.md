@@ -41,6 +41,11 @@ interface ContextSlice {
   effectiveStyleProfileId: number | null;
   effectiveCharacterId: number | null;
   effectiveConfigLoaded: boolean;
+  // SD 파라미터 오버라이드 (GroupConfig cascade)
+  effectiveSdSteps: number | null;
+  effectiveSdCfgScale: number | null;
+  effectiveSdSamplerName: string | null;
+  effectiveSdClipSkip: number | null;
 }
 ```
 
@@ -98,6 +103,7 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 | **`useTagValidation`** | 태그 충돌/의존성 검증 |
 | **`useTags`** | 태그 목록 조회 및 그룹화 |
 | **`useYouTubeUpload`** | YouTube OAuth 연동 및 영상 업로드 워크플로우 |
+| **`useBackendHealth`** | Backend 연결 상태 감지 (10초 polling, 3회 실패 threshold) |
 
 ---
 

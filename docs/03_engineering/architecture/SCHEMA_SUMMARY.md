@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.15) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.16) 참조.
 
-> **Last Synced:** 2026-02-10 (DB_SCHEMA v3.15 기준)
+> **Last Synced:** 2026-02-10 (DB_SCHEMA v3.16 기준)
 
 ---
 
@@ -29,6 +29,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ### `storyboards` — 개별 에피소드
 - `id` (PK), `group_id` (FK → groups), `title`, `description`
 - `caption`, `structure` (String, default: `"Monologue"`)
+- `duration` (Integer, nullable), `language` (String(20), nullable) — GroupConfig에서 상속 가능
 - `deleted_at` (Soft Delete)
 
 ### `scenes` — 스토리보드 내 개별 씬
@@ -158,7 +159,8 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `creative_agent_presets` — 에이전트 페르소나 프리셋
 - `id` (PK), `name` (Unique), `role_description`, `system_prompt`
-- `model_provider`, `model_name`, `temperature`, `is_system`
+- `agent_role` (String(50)), `category` (String(30)) — V2 Agent Presets
+- `model_provider`, `model_name`, `temperature`, `agent_metadata` (JSONB), `is_system`
 - `deleted_at` (Soft Delete)
 
 ---

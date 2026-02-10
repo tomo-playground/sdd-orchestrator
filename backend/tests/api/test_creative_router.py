@@ -1,7 +1,7 @@
 """TDD tests for Creative Engine router endpoints."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -10,36 +10,36 @@ from models.creative import CreativeAgentPreset, CreativeSession
 # ── Sessions ─────────────────────────────────────────────────
 
 
-class TestCreateSession:
-    """POST /lab/creative/sessions"""
+class TestCreateShortsSession:
+    """POST /lab/creative/sessions/shorts"""
 
-    def test_create_session_success(self, client: TestClient, db_session):
-        """Create a new creative session."""
+    def test_create_shorts_session_success(self, client: TestClient, db_session):
+        """Create a new shorts pipeline session."""
         session = CreativeSession(
             id=1,
-            objective="Write a story",
-            evaluation_criteria={"originality": {"weight": 0.5}},
-            max_rounds=3,
-            status="running",
+            objective="요리를 처음 배우는 소녀",
+            evaluation_criteria={},
+            max_rounds=2,
+            status="created",
+            session_type="shorts",
         )
         with patch(
-            "routers.creative.create_session",
-            new_callable=AsyncMock,
+            "services.creative_studio.create_shorts_session",
             return_value=session,
         ):
             resp = client.post(
-                "/lab/creative/sessions",
-                json={"objective": "Write a story"},
+                "/lab/creative/sessions/shorts",
+                json={"topic": "요리를 처음 배우는 소녀"},
             )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
-        assert data["objective"] == "Write a story"
-        assert data["status"] == "running"
+        assert data["objective"] == "요리를 처음 배우는 소녀"
+        assert data["status"] == "created"
 
-    def test_create_session_missing_objective(self, client: TestClient):
-        """Missing objective should fail validation."""
-        resp = client.post("/lab/creative/sessions", json={})
+    def test_create_shorts_session_missing_topic(self, client: TestClient):
+        """Missing topic should fail validation."""
+        resp = client.post("/lab/creative/sessions/shorts", json={})
         assert resp.status_code == 422
 
 
@@ -172,10 +172,12 @@ class TestListPresets:
     """GET /lab/creative/agent-presets"""
 
     def test_list_presets_empty(self, client: TestClient):
-        """Empty DB returns empty list."""
+        """Empty DB returns empty presets list with categories."""
         resp = client.get("/lab/creative/agent-presets")
         assert resp.status_code == 200
-        assert resp.json() == []
+        data = resp.json()
+        assert data["presets"] == []
+        assert "categories" in data
 
     def test_list_presets_excludes_deleted(
         self,
@@ -196,7 +198,7 @@ class TestListPresets:
 
         resp = client.get("/lab/creative/agent-presets")
         assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.json()["presets"] == []
 
 
 class TestCreatePreset:

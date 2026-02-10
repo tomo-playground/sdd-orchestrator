@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, Circle, Loader2, AlertTriangle } from "lucide-react";
+import { CheckCircle, Circle, Loader2, AlertTriangle, MessageCircle } from "lucide-react";
 import type { PipelineProgress, StepProgress } from "../../types/creative";
 
 type Props = {
@@ -31,6 +31,7 @@ function StepIcon({ status }: { status: string | undefined }) {
   if (status === "done") return <CheckCircle className="h-5 w-5 text-emerald-500" />;
   if (status === "running") return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
   if (status === "failed") return <AlertTriangle className="h-5 w-5 text-red-500" />;
+  if (status === "review") return <MessageCircle className="h-5 w-5 text-amber-500" />;
   return <Circle className="h-5 w-5 text-zinc-300" />;
 }
 
@@ -71,7 +72,9 @@ export default function PipelineProgressView({ progress, topic }: Props) {
                     ? "border-emerald-200 bg-emerald-50"
                     : status === "failed"
                       ? "border-red-200 bg-red-50"
-                      : "border-zinc-100 bg-zinc-50"
+                      : status === "review"
+                        ? "border-amber-200 bg-amber-50"
+                        : "border-zinc-100 bg-zinc-50"
               }`}
             >
               <StepIcon status={status} />
@@ -96,7 +99,9 @@ export default function PipelineProgressView({ progress, topic }: Props) {
                         ? "bg-blue-100 text-blue-700"
                         : status === "failed"
                           ? "bg-red-100 text-red-700"
-                          : "bg-zinc-100 text-zinc-500"
+                          : status === "review"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-zinc-100 text-zinc-500"
                   }`}
                 >
                   {status}

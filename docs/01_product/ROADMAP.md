@@ -156,7 +156,7 @@
 | 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [x] |
 | 8 | z-index 통합 관리 (Tailwind 설정) | UI | [x] |
 | 9 | Hook Extraction (5개 탭 커스텀 Hook 분리) | Frontend | [x] |
-| 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] (→ Tier 1 #3) |
+| 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [x] (Phase 1 완료) |
 | 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [x] |
 | 12 | WD14 Validate 매칭 정확도 개선 (부분문자열 오탐 제거, 복합태그 분해, 동의어, skipped/partial 응답) | 프롬프트 | [x] |
 
@@ -217,9 +217,9 @@
 | 2 | Setup Wizard (첫 실행 가이드) | UX | [명세](FEATURES/UX_IMPROVEMENTS.md) | [ ] |
 | 3 | 접근성 기본 (ARIA, focus trap, keyboard) | UX | - | [ ] |
 | 4 | 이미지 생성 Progress (WebSocket/SSE) | 기능 | - | [ ] |
-| 5 | Multi-Character UI (DB 스키마 완료) | 기능 | [명세](FEATURES/MULTI_CHARACTER.md) | [ ] |
+| 5 | Multi-Character UI (DB 스키마 완료) | 기능 | [명세](FEATURES/MULTI_CHARACTER.md) | [x] |
 | 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
-| 7 | Structure별 전용 Gemini 템플릿 (5종) | 기능 | - | [ ] |
+| 7 | Structure별 전용 Gemini 템플릿 (3종 structure = 3종 템플릿 1:1 매핑 완료) | 기능 | - | [x] |
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
 | 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [x] |
 | 10 | Creative Lab & Engine (Tag Lab + Scene Lab + Multi-Agent Creative) | 기능 | [API](../03_engineering/api/REST_API_CREATIVE.md) | [x] |
@@ -294,6 +294,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | 4 | Pipeline step 활성/비활성 설정 (Sound Designer/Copyright Reviewer optional화) | 기능 | [ ] |
 | 5 | 에이전트-템플릿 매핑 config.py 중앙화 (`CREATIVE_AGENT_TEMPLATES`) | SSOT | [x] |
 | 6 | Reference Analyst 에이전트 실제 활성화 (현재 DB만 존재, 파이프라인 미연동) | 기능 | [ ] |
+| 7 | Script QC Agent + Interactive Review (Pause-Review-Resume 패턴, 스텝별 리뷰 UI, 자동 승인) | 품질 | [x] |
 
 ### 일반
 
@@ -330,35 +331,34 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
-- Phase 7-1: **17/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder)
+- Phase 7-1: **19/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- **Backend 테스트**: 1,291개 수집
+- **Backend 테스트**: 1,273개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-10)
 
 **Tier 1 — 높은 임팩트 (중형, 3-5일)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 1 | 7-1 #7 | Structure별 전용 Gemini 템플릿 (5종) | 콘텐츠 품질 직결 |
-| 2 | 7-1 #4 | 이미지 생성 Progress (SSE/WebSocket) | 렌더링 SSE 완료, 생성은 미구현 |
-| 3 | 6-7 #10 | WD14 Feedback Loop (tag_effectiveness 자동 업데이트) | 프롬프트 자동 개선 루프 |
-| 4 | 7-1 #5 | Multi-Character UI (Studio 스토리보드 생성기) | DB/Creative Lab 준비 완료, Studio UI만 구현 |
+| ~~1~~ | ~~7-1 #5~~ | ~~Multi-Character UI~~ | ~~완료 (2026-02-10)~~ |
+| 2 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장, context_tags 활용도 향상 |
+| 3 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선, Multi-Char UI와 시너지 |
 
-**Tier 2 — 확장 기능 (대형, 1주+)**
+**Tier 2 — 자동화/인프라 (중형, 필요 시)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 5 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장 |
-| 6 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
-| 7 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
+| 4 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능, 체감 효과 낮음 |
+| 5 | 6-7 #10 | ~~WD14 Feedback Loop~~ (Phase 1 완료: 자동 갱신 훅) | ~~대량 생산 단계에서 의미~~ → 구현 완료 |
+| 6 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
 
 **Tier 3 — 후순위**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 8 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
-| 9 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
-| 10 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
-| 11 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
-| 12 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
+| 7 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
+| 8 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
+| 9 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
+| 10 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
+| 11 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
 
 **7-1 최근 완료 (2026-02-05 ~ 02-09)**:
 - Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)
@@ -371,3 +371,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-10) 모듈화 위반 전면 리팩토링 (TDD 22건): `split_prompt_tokens` SSOT 통합, `resolve_style_loras` config cascade 통합, `creative_studio._build_scene` V3 composition 파이프라인 적용 (style_loras + negative_prompt), `lab.py` V3 이중 호출 제거, `controlnet.py` 태그 underscore 포맷 수정, 모놀로그 캐릭터 링크 누락 수정, V3 `_distribute_tags` LoRA 이중 주입 방지
 - (2026-02-10) `compose_scene_with_style` SSOT 추출: Creative Lab/Studio Direct 프롬프트 파이프라인 단일화 (StyleProfile → V3 composition). `generate_image_with_v3`도 통합. `prompt_pre_composed` 경로 LoRA 이중 적용 버그 수정 (`skip_loras=True` + defense-in-depth 중복 방어)
 - (2026-02-10) Creative Lab 쇼츠 표준화: V1(Free Debate) 코드/테스트/컴포넌트 전량 삭제 (5 backend + 2 frontend 파일), category 리네이밍 (`v2_concept`→`concept`, `v2_production`→`production`), SSOT 전환 (categories + agent-template 매핑 config.py), `session_type` 기본값 `"shorts"` 전환, Alembic 마이그레이션 2건
+- (2026-02-10) Script QC Agent + Interactive Review: Pause-Review-Resume 패턴 (파이프라인 스텝 완료 후 `step_review` 상태 전환 → 사용자 리뷰 → 승인/리비전), Script QC 프롬프트 (`script_qc.j2`, 6가지 가중 평가), `creative_review.py` 모듈 분리, 자동 승인 (`score≥0.85` + critical 0건), 챗봇식 리뷰 UI (QCSummaryCard + StepReviewView), `with_for_update()` 동시성 방어, 단위 테스트 15개

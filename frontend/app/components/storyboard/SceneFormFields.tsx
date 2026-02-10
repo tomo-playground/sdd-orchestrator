@@ -8,6 +8,7 @@ import TagAutocomplete from "../ui/TagAutocomplete";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
 import SceneContextTags from "../prompt/SceneContextTags";
+import SceneCharacterActions from "./SceneCharacterActions";
 
 type SceneFormFieldsProps = {
   scene: Scene;
@@ -29,6 +30,10 @@ type SceneFormFieldsProps = {
   onUpdateScene: (updates: Partial<Scene>) => void;
   onSpeakerChange: (speaker: Scene["speaker"]) => void;
   onImageUpload: (file: File | undefined) => void;
+  // Multi-character props
+  characterAName?: string | null;
+  characterBName?: string | null;
+  selectedCharacterBId?: number | null;
 };
 
 export default function SceneFormFields({
@@ -45,6 +50,9 @@ export default function SceneFormFields({
   onUpdateScene,
   onSpeakerChange,
   onImageUpload,
+  characterAName,
+  characterBName,
+  selectedCharacterBId,
 }: SceneFormFieldsProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const structureLower = structure?.toLowerCase() || "";
@@ -133,6 +141,18 @@ export default function SceneFormFields({
         isExclusiveGroup={isExclusiveGroup}
         onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
       />
+
+      {/* Scene Character Actions (Dialogue/Narrated Dialogue only) */}
+      {hasMultipleSpeakers && (
+        <SceneCharacterActions
+          characterActions={scene.character_actions || []}
+          characterAName={characterAName}
+          characterBName={characterBName}
+          characterAId={selectedCharacterId}
+          characterBId={selectedCharacterBId}
+          onUpdate={(actions) => onUpdateScene({ character_actions: actions })}
+        />
+      )}
 
       {/* Positive Prompt */}
       <div className="grid gap-2">

@@ -9,6 +9,7 @@ from models.creative import CreativeSession
 from models.scene import Scene
 from models.storyboard import Storyboard
 from models.storyboard_character import StoryboardCharacter
+from services.character_action_resolver import extract_actions_from_context_tags
 from services.creative_utils import parse_image_prompt_to_tags
 from services.image_generation_core import compose_scene_with_style, resolve_style_loras_from_group
 
@@ -140,6 +141,9 @@ def _build_scene(
         speaker = s.get("speaker", "A")
         char_id = characters.get(speaker, {}).get("id") or fallback_char_id
 
+        # Extract character actions from context_tags (scene has no DB ID yet)
+        sca = extract_actions_from_context_tags(context_tags, char_id, db) if char_id else None
+
         image_prompt, negative_prompt, _warnings = compose_scene_with_style(
             raw_prompt=", ".join(tags),
             negative_prompt=negative_prompt,
@@ -147,6 +151,7 @@ def _build_scene(
             storyboard_id=storyboard_id,
             style_loras=style_loras or [],
             db=db,
+            scene_character_actions=sca,
         )
 
         # Narrator scenes: append person-exclusion tags

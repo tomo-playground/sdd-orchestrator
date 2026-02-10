@@ -64,6 +64,8 @@ export default function ScenesTab() {
     characterPromptMode,
     selectedCharacterId,
     selectedCharacterBId,
+    selectedCharacterName,
+    selectedCharacterBName,
     basePromptA,
     basePromptB,
     useControlnet,
@@ -289,6 +291,9 @@ export default function ScenesTab() {
             basePromptA={resolvedBasePrompt}
             characterLoras={resolvedCharacterLoras}
             structure={useStudioStore.getState().structure}
+            characterAName={selectedCharacterName}
+            characterBName={selectedCharacterBName}
+            selectedCharacterBId={selectedCharacterBId}
             buildNegativePrompt={buildNegativePrompt}
             buildScenePrompt={buildScenePrompt}
             showToast={showToast}

@@ -25,9 +25,44 @@ from models.character import Character
 from models.media_asset import MediaAsset
 from models.scene import Scene
 from models.storyboard import Storyboard
-from schemas import StoryboardRequest, StoryboardSave, StoryboardUpdate
+from schemas import SceneActionSave, StoryboardRequest, StoryboardSave, StoryboardUpdate
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure
+
+
+def resolve_action_tag_ids(actions: list[SceneActionSave], db: Session) -> list[SceneActionSave]:
+    """Resolve tag_id=0 entries by looking up tag_name in DB.
+
+    Frontend AddTagInput sends tag_name without knowing tag_id.
+    This batch-resolves names and drops unresolvable entries.
+    """
+    names_to_resolve = {a.tag_name for a in actions if a.tag_id == 0 and a.tag_name}
+    if not names_to_resolve:
+        return actions
+
+    from models.tag import Tag
+
+    rows = db.query(Tag.id, Tag.name).filter(Tag.name.in_(names_to_resolve)).all()
+    name_to_id = {r.name: r.id for r in rows}
+
+    resolved: list[SceneActionSave] = []
+    for a in actions:
+        if a.tag_id == 0 and a.tag_name:
+            tid = name_to_id.get(a.tag_name)
+            if tid:
+                resolved.append(
+                    SceneActionSave(
+                        character_id=a.character_id,
+                        tag_id=tid,
+                        tag_name=a.tag_name,
+                        weight=a.weight,
+                    )
+                )
+            else:
+                logger.warning("[resolve_action_tag_ids] Unknown tag: %s", a.tag_name)
+        else:
+            resolved.append(a)
+    return resolved
 
 
 def strip_markdown_codeblock(text: str) -> str:
@@ -176,7 +211,13 @@ def serialize_scene(
         "context_tags": scene.context_tags,
         "tags": [{"tag_id": t.tag_id, "weight": t.weight} for t in scene.tags],
         "character_actions": [
-            {"character_id": a.character_id, "tag_id": a.tag_id, "weight": a.weight} for a in scene.character_actions
+            {
+                "character_id": a.character_id,
+                "tag_id": a.tag_id,
+                "tag_name": a.tag.name if a.tag else None,
+                "weight": a.weight,
+            }
+            for a in scene.character_actions
         ],
         "use_reference_only": scene.use_reference_only,
         "reference_only_weight": scene.reference_only_weight,
@@ -261,7 +302,8 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
                 db.add(SceneTag(scene_id=db_scene.id, tag_id=t_data.tag_id, weight=t_data.weight))
 
         if s_data.character_actions:
-            for a_data in s_data.character_actions:
+            resolved = resolve_action_tag_ids(s_data.character_actions, db)
+            for a_data in resolved:
                 db.add(
                     SceneCharacterAction(
                         scene_id=db_scene.id,
@@ -644,6 +686,12 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
 
                 previous_env_tags = current_env_tags
 
+        # Auto-populate character_actions from context_tags (Dialogue/Narrated Dialogue)
+        if has_two_characters and (request.character_id or request.character_b_id) and db:
+            from services.character_action_resolver import auto_populate_character_actions
+
+            scenes = auto_populate_character_actions(scenes, request.character_id, request.character_b_id, db)
+
         logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
         for i, s in enumerate(scenes):
             logger.info(f"  Scene {i + 1} negative: {s.get('negative_prompt', 'NONE')[:80]}")
@@ -798,6 +846,7 @@ def list_storyboards_from_db(
 def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     """Get a storyboard with all scenes, tags, and character actions."""
     from models.render_history import RenderHistory
+    from models.storyboard_character import StoryboardCharacter
 
     storyboard = (
         db.query(Storyboard)
@@ -806,6 +855,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
             joinedload(Storyboard.scenes).joinedload(Scene.character_actions).joinedload(SceneCharacterAction.tag),
             joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
             joinedload(Storyboard.render_history).joinedload(RenderHistory.media_asset),
+            joinedload(Storyboard.characters).joinedload(StoryboardCharacter.character),
         )
         .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
         .first()
@@ -860,6 +910,20 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     # Monologue: use environment tag overlap logic
     auto_pin_flags = calculate_auto_pin_flags(scenes, storyboard.structure)
 
+    # Build characters cast list from storyboard_characters relationship
+    characters_list = []
+    for sc in sorted(storyboard.characters or [], key=lambda x: x.speaker):
+        char = sc.character
+        if char:
+            characters_list.append(
+                {
+                    "speaker": sc.speaker,
+                    "character_id": char.id,
+                    "character_name": char.name,
+                    "preview_image_url": char.preview_image_url,
+                }
+            )
+
     return {
         "id": storyboard.id,
         "title": storyboard.title,
@@ -878,6 +942,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "caption": storyboard.caption,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
+        "characters": characters_list,
         "scenes": [serialize_scene(sc, asset_url_map, auto_pin_flags.get(sc.id, False)) for sc in scenes],
     }
 

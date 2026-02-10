@@ -27,9 +27,16 @@ from database import SessionLocal
 from models.creative import CreativeSession, CreativeTrace
 from services.creative_agents import get_provider
 from services.creative_qc import validate_copyright, validate_music, validate_scripts, validate_visuals
+from services.creative_review import (
+    check_auto_approve,
+    pause_for_review,
+    run_script_qc,
+    should_review,
+)
 from services.creative_utils import (
-    calculate_total_tokens,
+    finalize_pipeline,
     get_next_sequence,
+    handle_pipeline_failure,
     load_preset,
     parse_json_response,
     record_feedback,
@@ -193,63 +200,6 @@ def _run_step_with_retry(
     return result_data.get(scenes_key, []) if result_data else []
 
 
-def _finalize_pipeline(db, session: CreativeSession, state: dict) -> None:
-    """Store final output, record completion trace, calculate tokens."""
-    final_scenes = state.get("cinematographer_result", {}).get("scenes", [])
-    music_rec = state.get("sound_designer_result", {}).get("recommendation")
-    session.final_output = {
-        "scenes": final_scenes,
-        "music_recommendation": music_rec,
-        "source": "creative_lab_v2",
-    }
-    session.status = "completed"
-
-    seq = get_next_sequence(db, session.id)
-    record_trace_sync(
-        db,
-        session_id=session.id,
-        round_number=0,
-        sequence=seq,
-        trace_type="decision",
-        agent_role="creative_director",
-        input_prompt="Pipeline complete",
-        output_content=f"All QC checks passed. {len(final_scenes)} scenes ready.",
-        model_id="system",
-        token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        latency_ms=0,
-        temperature=0.0,
-        phase="production",
-        decision_context={
-            "mode": "auto",
-            "selected": "approve",
-            "reason": "All QC passed",
-            "confidence": 1.0,
-        },
-    )
-
-    session.total_token_usage = calculate_total_tokens(db, session.id)
-    db.commit()
-    logger.info("[Pipeline] Session %d completed: %d scenes", session.id, len(final_scenes))
-
-
-def _handle_pipeline_failure(db, session_id: int, current_step: str, error: Exception, state: dict) -> None:
-    """Record failure state for resumability."""
-    try:
-        session = db.query(CreativeSession).get(session_id)
-        if session:
-            session.status = "failed"
-            ctx = dict(session.context or {})
-            pipeline = dict(ctx.get("pipeline", {}))
-            pipeline["failed_at"] = current_step
-            pipeline["error"] = str(error)
-            pipeline["state"] = state
-            ctx["pipeline"] = pipeline
-            session.context = ctx
-            db.commit()
-    except Exception:
-        logger.exception("[Pipeline] Failed to record error state for session %d", session_id)
-
-
 # ── Main orchestrator ──────────────────────────────────────────
 
 
@@ -272,6 +222,15 @@ def run_pipeline(session_id: int) -> None:
 
         # Step 1: Scriptwriter
         current_step = "scriptwriter"
+        # Inject revision feedback from interactive review (if re-entering after review)
+        revision_fb = ctx.get("pipeline", {}).get("revision_feedback")
+        if revision_fb:
+            pipeline_ctx = dict(ctx.get("pipeline", {}))
+            pipeline_ctx.pop("revision_feedback", None)
+            ctx["pipeline"] = pipeline_ctx
+            session.context = ctx
+            db.commit()
+
         if "scriptwriter_result" not in state:
             p = load_preset(db, "scriptwriter")
             scripts = _run_step_with_retry(
@@ -293,6 +252,7 @@ def run_pipeline(session_id: int) -> None:
                     "scene_duration_hint": f"{SCENE_DURATION_RANGE[0]}-{SCENE_DURATION_RANGE[1]}s",
                     "scene_dur_min": SCENE_DURATION_RANGE[0],
                     "scene_dur_max": SCENE_DURATION_RANGE[1],
+                    "feedback": revision_fb,
                 },
                 system_prompt=p.system_prompt
                 if p
@@ -307,6 +267,17 @@ def run_pipeline(session_id: int) -> None:
                 agent_preset_id=p.id if p else None,
             )
             _commit_step(db, session, "scriptwriter", "done", state)
+
+            # Interactive review: pause for Script QC if enabled
+            if should_review("scriptwriter"):
+                language = ctx.get("language", "Korean")
+                qc_result = run_script_qc(db, session, scripts, concept, language)
+                if not check_auto_approve(qc_result):
+                    pause_for_review(db, session, "scriptwriter", qc_result, state)
+                    return
+                logger.info(
+                    "[Pipeline] Session %d: script QC auto-approved (%.2f)", session.id, qc_result.get("score", 0)
+                )
         else:
             scripts = state["scriptwriter_result"].get("scenes", [])
 
@@ -385,10 +356,10 @@ def run_pipeline(session_id: int) -> None:
             _commit_step(db, session, "copyright_reviewer", "done", state)
 
         # Finalize
-        _finalize_pipeline(db, session, state)
+        finalize_pipeline(db, session, state)
 
     except Exception as e:
         logger.exception("[Pipeline] Session %d failed at %s: %s", session_id, current_step, e)
-        _handle_pipeline_failure(db, session_id, current_step, e, state)
+        handle_pipeline_failure(db, session_id, current_step, e, state)
     finally:
         db.close()

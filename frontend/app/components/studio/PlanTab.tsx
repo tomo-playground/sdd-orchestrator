@@ -116,6 +116,7 @@ export default function PlanTab() {
     if (!selectedCharacterBId) {
       setPlan({
         characterBLoras: [],
+        selectedCharacterBName: null,
         basePromptB: "",
         baseNegativePromptB: "",
       });
@@ -142,6 +143,7 @@ export default function PlanTab() {
           : null;
 
       setPlan({
+        selectedCharacterBName: charFull.name,
         basePromptB: basePrompt,
         baseNegativePromptB: baseNegative,
         characterBLoras: loras,

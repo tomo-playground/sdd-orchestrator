@@ -280,6 +280,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             storyboard_id=request.storyboard_id,
             style_loras=style_loras,
             db=db,
+            scene_id=request.scene_id,
         )
         final_warnings.extend(compose_warnings)
         logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
@@ -293,6 +294,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             storyboard_id=request.storyboard_id,
             style_loras=style_loras,
             db=db,
+            scene_id=request.scene_id,
         )
         final_warnings.extend(compose_warnings)
         logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
@@ -344,6 +346,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     storyboard_id=request.storyboard_id,
                     style_loras=style_loras,
                     db=db,
+                    scene_id=request.scene_id,
                 )
                 final_warnings.extend(compose_warnings)
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)

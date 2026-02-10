@@ -58,6 +58,7 @@ async def generate_image_with_v3(
     sd_params: dict | None = None,
     controlnet_config: dict | None = None,
     mode: Literal["studio", "lab"] = "studio",
+    scene_id: int | None = None,
 ) -> ImageGenerationResult:
     """
     Generate image using V3 Prompt Engine + SD.
@@ -112,6 +113,7 @@ async def generate_image_with_v3(
                 storyboard_id=storyboard_id or group_id,
                 style_loras=style_loras or [],
                 db=db,
+                scene_id=scene_id,
             )
             warnings.extend(compose_warnings)
             logger.debug(f"{mode_prefix} compose_scene_with_style complete")
@@ -190,6 +192,8 @@ def compose_scene_with_style(
     storyboard_id: int | None,
     style_loras: list[dict],
     db: Session,
+    scene_id: int | None = None,
+    scene_character_actions: list[dict] | None = None,
 ) -> tuple[str, str, list[str]]:
     """Compose scene prompt: StyleProfile + V3 composition (SSOT).
 
@@ -199,6 +203,9 @@ def compose_scene_with_style(
       2. V3 compose_for_character / compose → character tags + LoRA injection
       3. Merge character custom_negative_prompt (if character_id)
       4. Detect non-Danbooru tags → warnings
+
+    scene_character_actions can be provided directly (e.g. from context_tags)
+    or resolved from DB via scene_id. Direct takes precedence over DB lookup.
 
     Returns: (composed_prompt, modified_negative_prompt, warnings)
     """
@@ -220,8 +227,31 @@ def compose_scene_with_style(
     if character_id:
         character = db.query(Character).filter(Character.id == character_id).first()
 
+    # Resolve scene-specific character actions from DB (skip if provided directly)
+    if not scene_character_actions and scene_id and character_id:
+        from models.associations import SceneCharacterAction
+
+        sca_rows = (
+            db.query(SceneCharacterAction)
+            .filter(
+                SceneCharacterAction.scene_id == scene_id,
+                SceneCharacterAction.character_id == character_id,
+            )
+            .all()
+        )
+        if sca_rows:
+            scene_character_actions = [
+                {"character_id": a.character_id, "tag_id": a.tag_id, "weight": a.weight} for a in sca_rows
+            ]
+
     if character:
-        composed = builder.compose_for_character(character.id, scene_tags, style_loras=style_loras, character=character)
+        composed = builder.compose_for_character(
+            character.id,
+            scene_tags,
+            style_loras=style_loras,
+            character=character,
+            scene_character_actions=scene_character_actions,
+        )
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras)
 

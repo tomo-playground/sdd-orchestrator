@@ -289,6 +289,7 @@ class V3PromptBuilder:
         scene_tags: list[str],
         style_loras: list[dict] | None = None,
         character: Character | None = None,
+        scene_character_actions: list[dict] | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
         # Background scene: skip character DB lookup entirely
@@ -312,6 +313,10 @@ class V3PromptBuilder:
 
         # 5-6. Distribute character + scene tags into layers
         self._distribute_tags(char_tags_data, scene_tags, scene_tag_info, layers)
+
+        # 6b. Override with scene-specific character actions
+        if scene_character_actions:
+            self._apply_scene_character_actions(character.id, scene_character_actions, layers)
 
         # 7-9. Inject LoRAs (character, scene-triggered, style)
         self._inject_loras(character, scene_tags, layers, style_loras)
@@ -398,6 +403,54 @@ class V3PromptBuilder:
             layers[info["layer"]].append(tag)
 
         return char_occupied
+
+    def _apply_scene_character_actions(
+        self,
+        character_id: int,
+        actions: list[dict],
+        layers: list[list[str]],
+    ) -> None:
+        """Override expression/action layers with scene-specific character actions.
+
+        Filters actions for the given character_id, resolves tag metadata,
+        and replaces existing tokens in LAYER_EXPRESSION/LAYER_ACTION when
+        the new tag targets those layers (scene actions override character defaults).
+        """
+        # Filter actions for this character
+        my_actions = [a for a in actions if a.get("character_id") == character_id]
+        if not my_actions:
+            return
+
+        # Batch resolve tag_ids to Tag objects
+        tag_ids = [a["tag_id"] for a in my_actions]
+        tags = self.db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+        tag_map = {t.id: t for t in tags}
+
+        # Track which layers get overrides (clear existing for override layers)
+        override_layers: set[int] = set()
+        pending: list[tuple[int, str]] = []  # (layer, token)
+
+        for action in my_actions:
+            tag = tag_map.get(action["tag_id"])
+            if not tag:
+                continue
+            target_layer = tag.default_layer
+            weight = action.get("weight", 1.0)
+            token = f"({tag.name}:{weight})" if weight != 1.0 else tag.name
+
+            # Mark expression/action layers for override
+            if target_layer in (LAYER_EXPRESSION, LAYER_ACTION):
+                override_layers.add(target_layer)
+
+            pending.append((target_layer, token))
+
+        # Clear overridden layers (scene actions replace character defaults)
+        for layer_idx in override_layers:
+            layers[layer_idx].clear()
+
+        # Insert new tokens
+        for target_layer, token in pending:
+            layers[target_layer].append(token)
 
     def _inject_loras(
         self,

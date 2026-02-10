@@ -66,6 +66,36 @@ class TestPreparePromptFlag:
         assert cleaned == "v3_composed"
 
     @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation._resolve_style_loras", return_value=[])
+    def test_scene_id_passed_to_compose(self, mock_resolve, mock_ref):
+        """scene_id from request must be forwarded to compose_scene_with_style."""
+        req = _make_request(prompt_pre_composed=False, scene_id=42)
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "neg", [])
+            _prepare_prompt(req, db)
+
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["scene_id"] == 42
+
+    @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation._resolve_style_loras", return_value=[])
+    def test_scene_id_none_by_default(self, mock_resolve, mock_ref):
+        """No scene_id → scene_id=None passed to compose_scene_with_style."""
+        req = _make_request(prompt_pre_composed=False)
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "neg", [])
+            _prepare_prompt(req, db)
+
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["scene_id"] is None
+
+    @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation.apply_style_profile_to_prompt")
     def test_no_character_applies_full_style_profile(self, mock_style, mock_ref):
         """No character_id → full style profile applied, V3 not called."""

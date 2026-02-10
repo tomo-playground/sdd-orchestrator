@@ -28,6 +28,7 @@ export interface PlanSlice {
 
   // Character B (Dialogue)
   selectedCharacterBId: number | null;
+  selectedCharacterBName: string | null;
   characterBLoras: Array<{
     id: number;
     name: string;
@@ -76,6 +77,7 @@ const initialPlanState = {
   loraTriggerWords: [] as string[],
   characterLoras: [] as PlanSlice["characterLoras"],
   selectedCharacterBId: null,
+  selectedCharacterBName: null as string | null,
   characterBLoras: [] as PlanSlice["characterBLoras"],
   basePromptB: "",
   baseNegativePromptB: "",

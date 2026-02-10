@@ -6,7 +6,7 @@ import json
 import re
 
 from config import logger
-from models.creative import CreativeAgentPreset, CreativeTrace
+from models.creative import CreativeAgentPreset, CreativeSession, CreativeTrace
 from services.prompt.prompt import split_prompt_tokens
 
 
@@ -204,3 +204,60 @@ def calculate_total_tokens(db, session_id: int) -> dict:
         "completion_tokens": total_completion,
         "total_tokens": total_prompt + total_completion,
     }
+
+
+def finalize_pipeline(db, session: CreativeSession, state: dict) -> None:
+    """Store final output, record completion trace, calculate tokens."""
+    final_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+    music_rec = state.get("sound_designer_result", {}).get("recommendation")
+    session.final_output = {
+        "scenes": final_scenes,
+        "music_recommendation": music_rec,
+        "source": "creative_lab_v2",
+    }
+    session.status = "completed"
+
+    seq = get_next_sequence(db, session.id)
+    record_trace_sync(
+        db,
+        session_id=session.id,
+        round_number=0,
+        sequence=seq,
+        trace_type="decision",
+        agent_role="creative_director",
+        input_prompt="Pipeline complete",
+        output_content=f"All QC checks passed. {len(final_scenes)} scenes ready.",
+        model_id="system",
+        token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        latency_ms=0,
+        temperature=0.0,
+        phase="production",
+        decision_context={
+            "mode": "auto",
+            "selected": "approve",
+            "reason": "All QC passed",
+            "confidence": 1.0,
+        },
+    )
+
+    session.total_token_usage = calculate_total_tokens(db, session.id)
+    db.commit()
+    logger.info("[Pipeline] Session %d completed: %d scenes", session.id, len(final_scenes))
+
+
+def handle_pipeline_failure(db, session_id: int, current_step: str, error: Exception, state: dict) -> None:
+    """Record failure state for resumability."""
+    try:
+        session = db.query(CreativeSession).get(session_id)
+        if session:
+            session.status = "failed"
+            ctx = dict(session.context or {})
+            pipeline = dict(ctx.get("pipeline", {}))
+            pipeline["failed_at"] = current_step
+            pipeline["error"] = str(error)
+            pipeline["state"] = state
+            ctx["pipeline"] = pipeline
+            session.context = ctx
+            db.commit()
+    except Exception:
+        logger.exception("[Pipeline] Failed to record error state for session %d", session_id)

@@ -117,7 +117,7 @@ export type DecisionOption = {
 };
 
 export type StepProgress = {
-  status: "pending" | "running" | "done" | "failed";
+  status: "pending" | "running" | "done" | "failed" | "review";
   retry_count?: number;
   started_at?: string;
 };
@@ -173,6 +173,43 @@ export type MusicRecommendation = {
   mood: string;
   duration: number;
   reasoning: string;
+};
+
+// ── Interactive Review ────────────────────────────────────
+
+export type QCIssue = {
+  severity: "critical" | "warning" | "suggestion";
+  category: "readability" | "hook" | "emotion" | "tts" | "diversity" | "consistency";
+  scene: number;
+  description: string;
+};
+
+export type QCAnalysis = {
+  overall_rating: "good" | "needs_revision" | "poor";
+  score: number;
+  score_breakdown: Record<string, number>;
+  summary: string;
+  issues: QCIssue[];
+  strengths: string[];
+  revision_suggestions: string[];
+};
+
+export type ReviewMessage = {
+  role: "system" | "user" | "agent";
+  content: string;
+  timestamp: string;
+};
+
+export type StepReview = {
+  step: string;
+  result: Record<string, unknown> | null;
+  qc_analysis: QCAnalysis | null;
+  messages: ReviewMessage[];
+};
+
+export type ReviewActionRequest = {
+  action: "approve" | "revise";
+  feedback?: string;
 };
 
 export type CreativeSceneSummary = {

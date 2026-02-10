@@ -242,6 +242,7 @@ class SceneActionResponse(BaseModel):
 
     character_id: int
     tag_id: int
+    tag_name: str | None = None  # Enriched from tag relationship
     weight: float = 1.0
 
 
@@ -283,6 +284,15 @@ class SceneDetailResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class StoryboardCharacterResponse(BaseModel):
+    """Character cast info for a storyboard."""
+
+    speaker: str  # "A", "B"
+    character_id: int
+    character_name: str
+    preview_image_url: str | None = None  # Response-only: derived from Character.preview_image_url
+
+
 class StoryboardDetailResponse(BaseModel):
     """Full storyboard detail returned from GET /storyboards/{id}."""
 
@@ -303,6 +313,7 @@ class StoryboardDetailResponse(BaseModel):
     caption: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
+    characters: list[StoryboardCharacterResponse] = []
     scenes: list[SceneDetailResponse] = []
 
 
@@ -376,7 +387,8 @@ class SceneTagSave(BaseModel):
 
 class SceneActionSave(BaseModel):
     character_id: int
-    tag_id: int
+    tag_id: int = 0
+    tag_name: str | None = None  # Frontend may send tag_name when tag_id unknown
     weight: float = 1.0
 
     model_config = ConfigDict(extra="allow")
@@ -501,6 +513,8 @@ class SceneGenerateRequest(BaseModel):
     reference_only_weight: float = 0.5
     environment_reference_id: int | None = None  # For Environment Pinning
     environment_reference_weight: float = 0.3
+    # Scene DB ID for character_actions lookup during V3 composition
+    scene_id: int | None = None
     # Explicit V3 composition flag (True when frontend /prompt/compose already ran V3)
     prompt_pre_composed: bool = False
     # Warnings field to return messages from backend

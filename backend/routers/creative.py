@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from config import logger
 from database import get_db
 from models.creative import CreativeSession
 from schemas_creative import (
@@ -15,10 +16,13 @@ from schemas_creative import (
     OkResponse,
     PipelineStatusResponse,
     RetrySessionRequest,
+    ReviewActionRequest,
+    ReviewMessageRequest,
     SelectConceptRequest,
     SendToStudioRequest,
     SendToStudioResponse,
     ShortsSessionCreate,
+    StepReviewResponse,
     TraceTimelineResponse,
 )
 from services.creative_trace import get_session_timeline
@@ -173,7 +177,7 @@ async def api_run_pipeline(
         raise HTTPException(status_code=404, detail="Session not found")
     if session.session_type != "shorts":
         raise HTTPException(status_code=400, detail="Not a shorts session")
-    if session.status != "phase1_done":
+    if session.status not in ("phase1_done", "step_review"):
         raise HTTPException(status_code=400, detail=f"Cannot run pipeline from status '{session.status}'")
     if session.selected_concept_index is None:
         raise HTTPException(status_code=400, detail="No concept selected. Call select-concept first.")
@@ -257,3 +261,122 @@ async def api_send_to_studio(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
     return SendToStudioResponse(**result)
+
+
+# ── Interactive Review ─────────────────────────────────────
+
+
+@router.get("/sessions/{session_id}/review", response_model=StepReviewResponse)
+def api_get_review(session_id: int, db: Session = Depends(get_db)):
+    """Get current step review state."""
+    session = _get_session_or_404(db, session_id)
+    ctx = dict(session.context or {})
+    review = ctx.get("pipeline", {}).get("review")
+    if not review or session.status != "step_review":
+        raise HTTPException(status_code=404, detail="No active review")
+    step = review.get("step", "")
+    try:
+        return StepReviewResponse(
+            step=step,
+            result=ctx.get("pipeline", {}).get("state", {}).get(f"{step}_result"),
+            qc_analysis=review.get("qc_analysis"),
+            messages=review.get("messages", []),
+        )
+    except Exception as e:
+        logger.error("[Review] Response construction failed for session %d: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=f"Review data format error: {e}") from e
+
+
+@router.post("/sessions/{session_id}/review/message", response_model=StepReviewResponse)
+async def api_review_message(
+    session_id: int,
+    req: ReviewMessageRequest,
+    db: Session = Depends(get_db),
+):
+    """Send a chat message to the QC Agent during review."""
+    from services.creative_review import run_script_qc_async
+
+    session = _get_session_or_404(db, session_id)
+    if session.status != "step_review":
+        raise HTTPException(status_code=400, detail="Session is not in review")
+
+    ctx = dict(session.context or {})
+    pipeline = dict(ctx.get("pipeline", {}))
+    review = dict(pipeline.get("review", {}))
+    messages = list(review.get("messages", []))
+
+    now_iso = datetime.now(UTC).isoformat()
+    messages.append({"role": "user", "content": req.message, "timestamp": now_iso})
+
+    # Get context for QC agent response
+    step = review.get("step", "scriptwriter")
+    state = pipeline.get("state", {})
+    scenes = state.get(f"{step}_result", {}).get("scenes", [])
+    concept = ctx.get("selected_concept", {})
+    language = ctx.get("language", "Korean")
+
+    # Re-run QC (non-blocking async)
+    qc_result = await run_script_qc_async(db, session, scenes, concept, language)
+    review["qc_analysis"] = qc_result
+
+    agent_reply = qc_result.get("summary", "Analysis updated.")
+    messages.append({"role": "agent", "content": agent_reply, "timestamp": datetime.now(UTC).isoformat()})
+
+    review["messages"] = messages
+    pipeline["review"] = review
+    ctx["pipeline"] = pipeline
+    session.context = ctx
+    db.commit()
+
+    return StepReviewResponse(
+        step=step,
+        result=state.get(f"{step}_result"),
+        qc_analysis=qc_result,
+        messages=messages,
+    )
+
+
+@router.post("/sessions/{session_id}/review/action", response_model=PipelineStatusResponse, status_code=202)
+def api_review_action(
+    session_id: int,
+    req: ReviewActionRequest,
+    bg: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Approve or request revision for current review step."""
+    session = (
+        db.query(CreativeSession)
+        .filter(CreativeSession.id == session_id, CreativeSession.deleted_at.is_(None))
+        .with_for_update()
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.status != "step_review":
+        raise HTTPException(status_code=409, detail="Session is not in review (may have been already processed)")
+
+    ctx = dict(session.context or {})
+    review = ctx.get("pipeline", {}).get("review", {})
+    step = review.get("step", "scriptwriter")
+
+    from services.creative_review import clear_review, format_revision_feedback, inject_revision_feedback
+
+    if req.action == "approve":
+        clear_review(db, session)
+        session.status = "phase2_running"
+        db.commit()
+    else:
+        qc_result = review.get("qc_analysis", {})
+        feedback = format_revision_feedback(qc_result, req.feedback)
+        inject_revision_feedback(db, session, step, feedback)
+
+    from services.creative_pipeline import run_pipeline
+
+    bg.add_task(run_pipeline, session_id=session_id)
+
+    progress = ctx.get("pipeline", {}).get("progress")
+    return PipelineStatusResponse(
+        status="phase2_running",
+        session_type=session.session_type or "shorts",
+        progress=progress,
+    )

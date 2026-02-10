@@ -1,4 +1,4 @@
-# API Specification (v3.5)
+# API Specification (v3.6)
 
 프론트엔드와 백엔드 간 데이터 통신을 위한 API 명세서입니다.
 
@@ -6,6 +6,7 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.6 | 2026-02-10 | Storyboard Soft Delete 엔드포인트 (trash/restore/permanent), Scene 편집 엔드포인트 (validate-and-auto-edit, edit-with-gemini, suggest-edit), Video 유틸리티 (extract-caption, extract-hashtags, transitions), Storyboard `duration`/`language` 필드 추가 |
 | v3.5 | 2026-02-07 | Creative Engine API 추가 (`/lab/creative/sessions`, `/lab/creative/agent-presets`) - AI 멀티 에이전트 토론 기반 창작 |
 | v3.4 | 2026-02-07 | Video 비동기 렌더링 API 추가 (`/video/create-async`, `/video/progress/{task_id}`), Style Profile Ownership 설계 노트 |
 | v3.3 | 2026-02-07 | Music Presets API 추가 (Stable Audio Open AI BGM), `render_presets` 응답에 `bgm_mode`/`music_preset_id` 추가 |
@@ -94,6 +95,8 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
   "character_id": 1,
   "style_profile_id": 1,
   "caption": "좋아요 6만개\n15분 전",
+  "duration": 10,
+  "language": "Korean",
   "scenes": [
     {
       "scene_id": 1,
@@ -124,6 +127,27 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 
 > **동작**: 기존 씬을 모두 삭제 후 새 씬으로 교체 (orphaned media_assets 자동 정리).
 > Title은 200자로 자동 truncate됩니다.
+
+### `GET /storyboards/trash`
+Soft Delete된 스토리보드 목록을 조회합니다.
+
+**Response:** `GET /storyboards`와 동일 형식 (deleted_at 포함)
+
+### `POST /storyboards/{storyboard_id}/restore`
+Soft Delete된 스토리보드를 복원합니다.
+
+**Response:**
+```json
+{"status": "restored", "id": 1}
+```
+
+### `DELETE /storyboards/{storyboard_id}/permanent`
+스토리보드를 영구 삭제합니다 (복구 불가).
+
+**Response:**
+```json
+{"status": "permanently_deleted", "id": 1}
+```
 
 ### `GET /storyboards`
 저장된 스토리보드 목록을 조회합니다.
@@ -228,6 +252,40 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "url": "http://localhost:8000/outputs/images/stored/scene_abc123.png"
 }
 ```
+
+### `POST /scene/validate-and-auto-edit`
+WD14 검증 + 조건부 Gemini 자동 편집. 매치율이 낮으면 Gemini가 프롬프트를 자동 수정합니다.
+
+**Request:** `SceneValidateRequest` (validate_image와 동일)
+
+**Response:** 자동 편집 결과 포함 (edited_prompt, edit_history 등)
+
+### `POST /scene/edit-with-gemini`
+Gemini를 사용하여 이미지 프롬프트를 수동 편집합니다.
+
+**Request:** `GeminiEditRequest`
+```json
+{
+  "prompt": "1girl, coffee shop",
+  "instruction": "배경을 도서관으로 변경",
+  "negative_prompt": "bad quality"
+}
+```
+
+**Response:** `GeminiEditResponse`
+```json
+{
+  "edited_prompt": "1girl, library, bookshelf, reading",
+  "changes_summary": "배경을 커피숍에서 도서관으로 변경"
+}
+```
+
+### `POST /scene/suggest-edit`
+Gemini가 프롬프트 개선안을 자동 제안합니다.
+
+**Request:** `GeminiSuggestRequest`
+
+**Response:** `GeminiSuggestResponse` (제안 목록)
 
 ### `POST /scene/validate_image`
 이미지 품질 및 프롬프트 일치도를 검증합니다.
@@ -371,6 +429,40 @@ SSE(Server-Sent Events) 스트림으로 렌더링 진행 상황을 실시간 전
 
 ### `GET /video/exists`
 비디오 파일 존재 여부를 확인합니다. Query: `filename` (required) / Response: `{"exists": true}`
+
+### `GET /video/transitions`
+사용 가능한 전환 효과 목록을 조회합니다.
+
+**Response:**
+```json
+["none", "fade", "slide_left", "slide_right", ...]
+```
+
+### `POST /video/extract-caption`
+텍스트에서 캡션을 LLM으로 추출합니다.
+
+**Request:** `TextExtractRequest`
+```json
+{ "text": "영상 주제 텍스트" }
+```
+
+**Response:** `CaptionExtractResponse`
+```json
+{ "caption": "추출된 캡션 텍스트" }
+```
+
+### `POST /video/extract-hashtags`
+주제에서 해시태그 3개를 추출합니다.
+
+**Request:** `TextExtractRequest`
+```json
+{ "text": "영상 주제" }
+```
+
+**Response:** `HashtagExtractResponse`
+```json
+{ "hashtags": ["#쇼츠", "#일상", "#카페"] }
+```
 
 ---
 
@@ -699,7 +791,7 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 
 ---
 
-**Last Updated:** 2026-02-07
-**API Version:** v3.5
+**Last Updated:** 2026-02-10
+**API Version:** v3.6
 **Backend Version:** FastAPI 0.109+
 **Database:** PostgreSQL 14+ (v3.10)

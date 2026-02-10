@@ -278,6 +278,12 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
                 match_rate=match_rate,
             )
 
+            _increment_tag_effectiveness(
+                db=db,
+                matched_tags=comparison["matched"],
+                missing_tags=comparison["missing"],
+            )
+
         return {
             "mode": "wd14",
             "match_rate": match_rate,
@@ -363,4 +369,46 @@ def _update_activity_log_match_rate(
             log.status = "success" if match_rate >= 0.7 else "fail"
             db.commit()
     except Exception:
+        db.rollback()
+
+
+def _increment_tag_effectiveness(
+    db: Session,
+    matched_tags: list[str],
+    missing_tags: list[str],
+) -> None:
+    """Increment tag_effectiveness counters from WD14 validation results.
+
+    - matched_tags: use_count++ AND match_count++
+    - missing_tags: use_count++ only
+    - Tags in WD14_UNMATCHABLE_TAGS or not in DB are skipped.
+    """
+    from models.tag import Tag, TagEffectiveness
+
+    all_tags = set(matched_tags) | set(missing_tags)
+    if not all_tags:
+        return
+
+    try:
+        for tag_name in all_tags:
+            if tag_name in WD14_UNMATCHABLE_TAGS:
+                continue
+
+            tag = db.query(Tag).filter(Tag.name == tag_name).first()
+            if not tag:
+                continue
+
+            eff = db.query(TagEffectiveness).filter(TagEffectiveness.tag_id == tag.id).first()
+            if not eff:
+                eff = TagEffectiveness(tag_id=tag.id, use_count=0, match_count=0, effectiveness=0.0)
+                db.add(eff)
+
+            eff.use_count += 1
+            if tag_name in matched_tags:
+                eff.match_count += 1
+            eff.effectiveness = eff.match_count / eff.use_count
+
+        db.commit()
+    except Exception as e:
+        logger.error("Failed to update tag effectiveness: %s", e)
         db.rollback()

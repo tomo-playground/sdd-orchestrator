@@ -1,6 +1,8 @@
 "use client";
 
+import axios from "axios";
 import { ArrowLeft, RotateCcw, Wrench } from "lucide-react";
+import { API_BASE } from "../../constants";
 import type {
   CreativeSceneSummary,
   CreativeSession,
@@ -11,8 +13,10 @@ import StatusBadge from "./StatusBadge";
 import ConceptCompareView from "./ConceptCompareView";
 import PipelineProgressView from "./PipelineProgressView";
 import SessionResultView from "./SessionResultView";
+import StepReviewView from "./StepReviewView";
 import DebugSlideOver from "./DebugSlideOver";
 import { useShortsSession } from "./useShortsSession";
+import { useStepReview } from "../../hooks/useStepReview";
 
 type Props = {
   session: CreativeSession;
@@ -34,6 +38,27 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
     handleSendToStudio,
     handleRetry,
   } = useShortsSession(session, onRefresh);
+
+  const {
+    review,
+    loading: reviewLoading,
+    sending: reviewSending,
+    error: reviewError,
+    messages: reviewMessages,
+    fetchReview,
+    handleReviewMessage,
+    handleReviewAction,
+  } = useStepReview(session.id, session.status);
+
+  const onReviewAction = async (action: "approve" | "revise", feedback?: string) => {
+    await handleReviewAction(action, feedback);
+    try {
+      const res = await axios.get(`${API_BASE}/lab/creative/sessions/${session.id}`);
+      onRefresh(res.data);
+    } catch {
+      /* polling will catch up */
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -114,6 +139,39 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
 
       {session.status === "phase2_running" && (
         <PipelineProgressView progress={progress} topic={session.objective} />
+      )}
+
+      {session.status === "step_review" && reviewLoading && !review && (
+        <div className="flex h-40 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50">
+          <div className="text-center">
+            <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+            <p className="text-xs font-semibold text-amber-700">Loading Review...</p>
+          </div>
+        </div>
+      )}
+
+      {session.status === "step_review" && reviewError && !review && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-xs font-semibold text-red-700">Review Load Failed</p>
+          <p className="mt-1 text-[10px] text-red-500">{reviewError}</p>
+          <button
+            onClick={fetchReview}
+            className="mt-3 flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {session.status === "step_review" && review && (
+        <StepReviewView
+          review={review}
+          messages={reviewMessages}
+          sending={reviewSending}
+          onSendMessage={handleReviewMessage}
+          onAction={onReviewAction}
+        />
       )}
 
       {session.status === "completed" && session.session_type === "shorts" && (

@@ -17,6 +17,7 @@ import FixSuggestionsPanel from "./FixSuggestionsPanel";
 import SceneActionBar from "./SceneActionBar";
 import SceneFormFields from "./SceneFormFields";
 import SceneGeminiModals from "./SceneGeminiModals";
+import SpeakerBadge from "./SpeakerBadge";
 
 type SceneCardProps = {
   scene: Scene;
@@ -69,6 +70,10 @@ type SceneCardProps = {
   selectedCharacterId?: number | null;
   basePromptA?: string;
   structure?: string;
+  // Multi-character
+  characterAName?: string | null;
+  characterBName?: string | null;
+  selectedCharacterBId?: number | null;
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
@@ -118,6 +123,9 @@ export default function SceneCard({
   selectedCharacterId,
   basePromptA = "",
   structure,
+  characterAName,
+  characterBName,
+  selectedCharacterBId,
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
@@ -162,23 +170,13 @@ export default function SceneCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-zinc-800">Scene {sceneIndex + 1}</h3>
-          {scene.speaker === "B" && (
-            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-              B
-            </span>
-          )}
-          {scene.speaker === "A" &&
-            (structure?.toLowerCase() === "dialogue" ||
-              structure?.toLowerCase() === "narrated dialogue") && (
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                A
-              </span>
-            )}
-          {scene.speaker === "Narrator" && structure?.toLowerCase() === "narrated dialogue" && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-              N
-            </span>
-          )}
+          <SpeakerBadge
+            speaker={scene.speaker}
+            structure={structure}
+            characterAName={characterAName}
+            characterBName={characterBName}
+            onSpeakerChange={onSpeakerChange}
+          />
           <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
             {getSceneStatus(scene)}
           </span>
@@ -215,6 +213,9 @@ export default function SceneCard({
             onUpdateScene={onUpdateScene}
             onSpeakerChange={onSpeakerChange}
             onImageUpload={onImageUpload}
+            characterAName={characterAName}
+            characterBName={characterBName}
+            selectedCharacterBId={selectedCharacterBId}
           />
 
           {/* ③ Actions */}

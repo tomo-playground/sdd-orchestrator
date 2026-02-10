@@ -392,6 +392,11 @@ CREATIVE_MIN_CONCEPT_SCORE = float(os.getenv("CREATIVE_MIN_CONCEPT_SCORE", "0.6"
 CREATIVE_PIPELINE_POLL_INTERVAL_MS = int(os.getenv("CREATIVE_PIPELINE_POLL_INTERVAL_MS", "2000"))
 CREATIVE_ZOMBIE_TIMEOUT_SECONDS = int(os.getenv("CREATIVE_ZOMBIE_TIMEOUT_SECONDS", "300"))
 
+# --- Creative Lab: Interactive Review ---
+CREATIVE_REVIEW_ENABLED = os.getenv("CREATIVE_REVIEW_ENABLED", "true").lower() == "true"
+CREATIVE_REVIEW_STEPS: list[str] = ["scriptwriter"]
+CREATIVE_AUTO_APPROVE_THRESHOLD = float(os.getenv("CREATIVE_AUTO_APPROVE_THRESHOLD", "0.85"))
+
 # Creative Lab: Agent Categories (SSOT for Frontend)
 CREATIVE_AGENT_CATEGORIES = [
     {"value": "concept", "label": "Concept"},
@@ -412,6 +417,8 @@ CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
     "cinematographer": "creative/cinematographer.j2",
     "sound_designer": "creative/sound_designer.j2",
     "copyright_reviewer": "creative/copyright_reviewer.j2",
+    # QC Agents
+    "script_qc": "creative/script_qc.j2",
 }
 
 # --- Ollama (Local LLM) Configuration ---

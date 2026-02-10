@@ -1,4 +1,4 @@
-# Database Schema (v3.15)
+# Database Schema (v3.16)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,23 +7,11 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
-| v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정. `projects`(avatar_key/render_preset_id/style_profile_id 제거), `storyboards`(character_id 등 5개 제거, structure 추가), `scenes`(SD params 5개 제거, ControlNet/IP-Adapter 6개 추가), `characters`(project_id FK 추가), Creative Engine V2 필드 전체, `lab_experiments` 10개 컬럼 추가 |
-| v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine` (Agents), `GroupConfig`, `RenderHistory`, `LabExperiments`, `YouTubeCredential` 추가. `evaluation_runs` 제거. `StoryboardCharacter` 추가. |
-| v3.13 | 2026-02-07 | FK 정합성 강화: `scenes.environment_reference_id` → FK media_assets, `activity_logs` 3컬럼 FK 추가, `tags.replacement_tag_id` ondelete 추가. `scenes.deleted_at` SoftDeleteMixin 적용 |
-| v3.12 | 2026-02-07 | `music_presets` 테이블 추가 (AI BGM 프리셋). `render_presets`에 `bgm_mode`, `music_preset_id` FK 추가 |
-| v3.11 | 2026-02-06 | `scenes.candidates` 형식 변경: `image_url` 제거, `media_asset_id` 필수. Backend에서 GET 시 URL 자동 해석 |
-| v3.10 | 2026-02-06 | `render_presets.voice_preset_id` 제거 (GroupConfig.narrator_voice_preset_id로 대체), `group_config.character_id` 제거 (storyboard 레벨에서만 설정) |
-| v3.9 | 2026-02-05 | `render_presets.project_id` 컬럼 제거 (글로벌 공통 프리셋으로 단순화) |
-| v3.8 | 2026-02-04 | Schema Cleanup Batch B: `scenes.use_reference_only` Integer→Boolean, `storyboards.recent_videos_json` Text→JSONB + rename→`recent_videos` |
-| v3.7 | 2026-02-04 | `storyboards.default_caption` → `caption`, `characters.default_voice_preset_id` → `voice_preset_id` 리네이밍. FK/인덱스 리네이밍 포함 |
-| v3.6 | 2026-02-04 | `default_` prefix 제거: `projects`/`storyboards`에서 `default_character_id` → `character_id`, `default_style_profile_id` → `style_profile_id` 리네이밍. `groups`/`group_config`에서 `default_character_id` DROP, `default_style_profile_id` → `style_profile_id` 리네이밍. `group_config` 테이블 추가 (1:1 분리 설정). style_profile_id backfill (project → group → group_config) |
-| v3.5 | 2026-02-04 | `characters.default_voice_preset_id`, `storyboards.narrator_voice_preset_id` FK 추가. `render_presets`에서 `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 (voice_preset_id로 대체). Soft Delete (`deleted_at`) 추가 |
-| v3.4 | 2026-02-02 | `render_presets`, `voice_presets` 테이블 추가. `projects`에 Cascading Config FK 추가. `groups`에서 `default_bgm_file`/`default_narrator_voice` 제거 |
-| v3.3 | 2026-02-02 | `projects`, `groups`, `scene_quality_scores` 테이블 추가, `activity_logs`에 Gemini 트래킹 컬럼 추가, `media_assets`에 `is_temp`/`checksum` 추가, `storyboards`에 `default_caption` 반영 |
-| v3.2 | 2026-02-01 | scenes 테이블 누락 컬럼 보완 (prompt, SD params, IP-Adapter, context_tags), characters에 preview_locked 추가, is_permanent/default_layer 상호작용 문서화, 12-Layer 매핑 테이블 추가 |
-| v3.1 | 2026-01-31 | **Media Asset 시스템**: 폴리모픽 참조, Legacy URL 컬럼 삭제, S3/Local 통합, Video Asset 생성 활성화 |
-| v3.0 | 2026-01-30 | V3 아키텍처: Storyboard-Centric, Relational Tags, Activity Logs, Tag Aliases/Filters |
-| v2.0 | 2026-01-27 | Characters, LoRAs, Style Profiles, Tag System |
+| v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
+| v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정 |
+| v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine`, `GroupConfig`, `RenderHistory`, `LabExperiments` 추가 |
+
+> v3.13 이전 이력: [DB_SCHEMA_CHANGELOG.md](DB_SCHEMA_CHANGELOG.md)
 
 ---
 
@@ -83,8 +71,6 @@ erDiagram
         string filter_type
     }
 ```
-
----
 
 ## 📦 Core: Channel & Storyboard System
 
@@ -157,6 +143,8 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `description` | Text | 설명 |
 | `caption` | Text | 캡션 텍스트 (Post Layout용) |
 | `structure` | String(50) | 구조 설정 (default: `"Monologue"`, config에서 상속) |
+| `duration` | Integer | 목표 길이 (초), GroupConfig에서 상속 가능 |
+| `language` | String(20) | 언어 설정, GroupConfig에서 상속 가능 |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -223,93 +211,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 
 ## 🤖 Creative Engine (Agents)
 
-Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
-
-### `creative_agent_presets`
-재사용 가능한 에이전트 페르소나 및 모델 설정.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `name` | String(100) | 에이전트 이름 (Unique) |
-| `role_description` | Text | 역할 설명 |
-| `system_prompt` | Text | 시스템 프롬프트 |
-| `model_provider` | String(20) | `gemini`, `ollama` |
-| `model_name` | String(50) | 모델명 (e.g. `gemini-1.5-pro`) |
-| `temperature` | Float | 생성 다양성 |
-| `is_system` | Boolean | 시스템 프리셋 여부 |
-| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
-| `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
-### `creative_sessions`
-에이전트 간의 창작 세션 (Leader Agent가 오케스트레이션).
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `objective` | Text | 세션 목표 |
-| `evaluation_criteria` | JSONB | 평가 기준 |
-| `character_id` | Integer (FK) | 대상 캐릭터 (Optional) |
-| `context` | JSONB | 추가 컨텍스트 |
-| `agent_config` | JSONB | 참여 에이전트 구성 |
-| `final_output` | JSONB | 최종 결과물 |
-| `max_rounds` | Integer | 최대 라운드 수 |
-| `total_token_usage` | JSONB | 총 토큰 사용량 |
-| `status` | String(20) | 진행 상태 |
-| **V2** | | |
-| `session_type` | String(20) | 세션 유형 (default: `"free"`) |
-| `director_mode` | String(20) | 디렉터 모드 (default: `"advisor"`) |
-| `concept_candidates` | JSONB | 컨셉 후보 목록 |
-| `selected_concept_index` | Integer | 선택된 컨셉 인덱스 |
-| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
-| `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
-### `creative_session_rounds`
-세션 내의 각 토의 라운드 요약.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `session_id` | Integer (FK) | 소속 세션 |
-| `round_number` | Integer | 라운드 번호 |
-| `leader_summary` | Text | 리더의 라운드 요약 |
-| `round_decision` | String(20) | 라운드 결정 (`revise`, `approve` 등) |
-| `best_agent_role` | String(50) | 최고 점수 에이전트 역할 |
-| `best_score` | Float | 최고 점수 |
-| `leader_direction` | Text | 다음 라운드 지시사항 |
-| `created_at` | DateTime | 생성 시각 (server_default: now()) |
-
-### `creative_traces`
-개별 에이전트의 LLM 호출 및 생각(Thought) 추적.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `session_id` | Integer (FK) | 소속 세션 |
-| `round_number` | Integer | 라운드 번호 |
-| `sequence` | Integer | 순서 |
-| `trace_type` | String(20) | `thought`, `action`, `observation` |
-| `agent_role` | String(50) | 에이전트 역할 |
-| `agent_preset_id` | Integer (FK) | 사용된 프리셋 |
-| `input_prompt` | Text | 입력 프롬프트 |
-| `output_content` | Text | LLM 응답 |
-| `score` | Float | 평가 점수 |
-| `feedback` | Text | 피드백 |
-| `model_id` | String(100) | 사용된 모델 ID |
-| `token_usage` | JSONB | 토큰 사용량 |
-| `latency_ms` | Integer | 응답 시간 (ms) |
-| `temperature` | Float | 생성 온도 |
-| `parent_trace_id` | Integer (FK → creative_traces, SET NULL) | 부모 트레이스 (self-ref) |
-| `diff_summary` | Text | 변경 요약 |
-| `created_at` | DateTime | 생성 시각 (server_default: now()) |
-| **V2** | | |
-| `phase` | String(20) | 단계명 |
-| `step_name` | String(50) | 스텝명 |
-| `target_agent` | String(50) | 대상 에이전트 |
-| `decision_context` | JSONB | 결정 컨텍스트 |
-| `retry_count` | Integer | 재시도 횟수 (default: 0) |
-
----
+> 분리 문서: [DB_SCHEMA_CREATIVE.md](DB_SCHEMA_CREATIVE.md)
 
 ## 🔗 Association Tables (V3 Relational Tags)
 
@@ -361,8 +263,6 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `character_id` | Integer (FK → characters) | |
 | `tag_id` | Integer (FK → tags) | 액션/표정 태그 |
 | `weight` | Float | 태그 가중치 (default: 1.0) |
-
----
 
 ## 🏷️ Tag System
 
@@ -475,8 +375,6 @@ WD14 피드백 루프 데이터.
 | `use_count` | Integer | 프롬프트 사용 횟수 |
 | `match_count` | Integer | WD14 감지 횟수 |
 | `effectiveness` | Float | `match_count / use_count` |
-
----
 
 ## 🎨 Asset System
 
@@ -705,8 +603,6 @@ Textual Inversion 임베딩.
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
----
-
 ## 📊 Analytics & History
 
 ### `activity_logs`
@@ -899,6 +795,6 @@ Textual Inversion 임베딩.
 ---
 
 **Last Updated:** 2026-02-10
-**Schema Version:** v3.15
+**Schema Version:** v3.16
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

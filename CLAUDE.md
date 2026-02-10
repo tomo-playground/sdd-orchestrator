@@ -2,6 +2,14 @@
 
 AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) + Stable Diffusion (이미지) + FFmpeg (렌더링).
 
+## Agent 공통 규칙
+
+이 문서는 모든 AI 에이전트(Claude, Gemini 등)의 **SSOT 컨텍스트**입니다.
+
+- **언어**: 모든 응답은 **한국어**로 작성합니다.
+- **DB 스키마**: DB 관련 질문 시 `docs/03_engineering/architecture/DB_SCHEMA.md`를 최우선으로 참조합니다.
+- **아키텍처/규칙**: 이 파일(`CLAUDE.md`)의 원칙을 항상 준수합니다. 에이전트별 컨텍스트 파일(`GEMINI.md` 등)은 역할 정의만 포함하며, 세부 규칙은 이 파일을 참조합니다.
+
 ## 아키텍처
 
 | 레이어 | 기술 | 핵심 |

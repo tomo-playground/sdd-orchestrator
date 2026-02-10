@@ -90,13 +90,20 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
                 )
                 resolved_scene_id = None
 
+        tags_used = request.tags
+        if not tags_used and request.prompt:
+            from services.keywords import normalize_prompt_token
+            from services.prompt import split_prompt_tokens
+
+            tags_used = [normalize_prompt_token(t) for t in split_prompt_tokens(request.prompt) if t.strip()]
+
         log = ActivityLog(
             storyboard_id=request.storyboard_id,
             scene_id=resolved_scene_id,
             character_id=request.character_id,
             prompt=request.prompt or "",
             negative_prompt=request.negative_prompt,
-            tags_used=request.tags,
+            tags_used=tags_used,
             sd_params=request.sd_params,
             match_rate=request.match_rate,
             seed=request.seed,

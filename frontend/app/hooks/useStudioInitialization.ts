@@ -287,5 +287,6 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     ip_adapter_weight: (s.ip_adapter_weight as number | null) ?? null,
     multi_gen_enabled: (s.multi_gen_enabled as boolean | null) ?? null,
     _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
+    character_actions: (s.character_actions as Scene["character_actions"]) || undefined,
   }));
 }

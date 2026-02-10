@@ -1,6 +1,6 @@
 # Multi-Character 지원
 
-> 상태: 미착수 (DB 스키마 완료, UI 대기)
+> 상태: **완료** (2026-02-10)
 
 ## 배경
 
@@ -12,26 +12,37 @@
 - 캐릭터별 독립적 포즈/표정/의상 지정
 - 프롬프트 엔진에서 다중 캐릭터 태그 합성
 
-## 현재 상태
+## 구현 완료 항목
 
-- DB: `scene_character_actions` 연관 테이블 이미 존재 (V3 아키텍처)
-- Backend: CharacterAction 모델 정의 완료
-- Frontend: UI 미구현
+### DB 스키마
+- `storyboard_characters` 테이블: speaker→character 매핑 (UniqueConstraint: storyboard_id + speaker)
+- `scene_character_actions` 테이블: 씬별 캐릭터 액션 태그
 
-## 범위
+### Backend
+- `StoryboardRequest.character_b_id`: Dialogue 구조에서 Speaker B 캐릭터 지정
+- `_sync_speaker_mappings()`: 저장/업데이트 시 speaker→character 매핑 동기화
+- `auto_populate_character_actions()`: Gemini 스토리보드 생성 시 캐릭터 액션 자동 생성
+- `_load_character_context()`: Character A/B 각각 로드 → Gemini 템플릿에 전달
+- `StoryboardDetailResponse.characters`: 캐스트 정보 (speaker, character_name, preview_image_url) 반환
+- `get_storyboard_by_id()`: `storyboard_characters` eager load + characters 리스트 빌드
 
-| 항목 | 설명 |
-|------|------|
-| Scene Character Selector | 씬별 캐릭터 복수 선택 UI |
-| Character Position | 캐릭터 배치 순서 (좌/우/중앙) |
-| Per-Character Tags | 캐릭터별 독립 포즈/표정 태그 |
-| Prompt Composition | 12-Layer Builder 다중 캐릭터 합성 |
+### Frontend
+- `PromptSetupPanel`: Dialogue 모드에서 Character A/B 셀렉터 표시
+- `SceneCharacterActions.tsx`: 캐릭터별 액션 태그 그룹 표시/편집/삭제/추가
+- `SceneFormFields.tsx`: Dialogue 모드에서 캐릭터 액션 자동 렌더링
+- `speakerResolver.ts`: speaker별 character_id, LoRA, IP-Adapter, negative prompt 분기
+- `storyboardActions.ts`: 저장 시 `character_b_id` 전송
+- `useStudioInitialization.ts`: 로드 시 character_b_id 복원
+
+### 이미지 생성
+- speaker="A" 씬은 Character A 태그/LoRA, speaker="B" 씬은 Character B 태그/LoRA 사용
+- 현재는 "교대 표시" 방식 (씬별 한 캐릭터). "한 프레임에 2캐릭터"는 SD 기술적 한계로 별도 과제.
 
 ## 수락 기준
 
-| # | 기준 |
-|---|------|
-| 1 | 씬당 2명 이상 캐릭터 지정 가능 |
-| 2 | 캐릭터별 독립적 포즈/표정 설정 |
-| 3 | 생성된 이미지에 다중 캐릭터 반영 |
-| 4 | 기존 단일 캐릭터 워크플로우 영향 없음 |
+| # | 기준 | 상태 |
+|---|------|------|
+| 1 | 씬당 2명 이상 캐릭터 지정 가능 | ✅ |
+| 2 | 캐릭터별 독립적 포즈/표정 설정 | ✅ |
+| 3 | 생성된 이미지에 다중 캐릭터 반영 | ✅ |
+| 4 | 기존 단일 캐릭터 워크플로우 영향 없음 | ✅ |

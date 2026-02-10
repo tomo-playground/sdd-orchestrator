@@ -151,6 +151,7 @@ export async function generateSceneImageFor(
         ...debugPayload,
         character_id: selectedCharacterId,
         storyboard_id: storyboardId,
+        scene_id: scene.id > 0 ? scene.id : undefined,
         prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
       },
       { timeout: API_TIMEOUT.IMAGE_GENERATION }
@@ -254,7 +255,7 @@ export async function generateSceneImageFor(
         image_asset_id: bestAssetId ?? null,
         candidates: candidates,
         image_prompt:
-          autoComposePrompt && selectedCharacterId ? prompt : (res.data.used_prompt || undefined),
+          autoComposePrompt && selectedCharacterId ? prompt : res.data.used_prompt || undefined,
         debug_prompt: prompt,
         debug_payload: JSON.stringify(debugPayload, null, 2),
         activity_log_id: activityLogId,
@@ -262,7 +263,7 @@ export async function generateSceneImageFor(
     }
     return {
       image_prompt:
-        autoComposePrompt && selectedCharacterId ? prompt : (res.data.used_prompt || undefined),
+        autoComposePrompt && selectedCharacterId ? prompt : res.data.used_prompt || undefined,
       debug_prompt: prompt,
       debug_payload: JSON.stringify(debugPayload, null, 2),
     } as Partial<Scene>;
@@ -345,7 +346,8 @@ export async function generateSceneCandidates(
     image_asset_id: bestAssetId,
     candidates,
     debug_prompt: prompt,
-    image_prompt: resolvedImagePrompt || ((autoComposePrompt && selectedCharacterId) ? prompt : undefined),
+    image_prompt:
+      resolvedImagePrompt || (autoComposePrompt && selectedCharacterId ? prompt : undefined),
   } as Partial<Scene>;
 }
 

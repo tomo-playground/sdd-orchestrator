@@ -30,6 +30,14 @@ V1(자유형식 debate)과 V2(쇼츠 파이프라인)가 공존하며, `session_
 | `POST` | `/lab/creative/sessions/{id}/retry` | 실패 세션 재시도 | Y (202) |
 | `POST` | `/lab/creative/sessions/{id}/send-to-studio` | Studio로 전송 (Storyboard 생성) | N |
 
+### Interactive Review (Pause-Review-Resume)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/lab/creative/sessions/{id}/review` | 현재 리뷰 상태 조회 |
+| `POST` | `/lab/creative/sessions/{id}/review/message` | QC Agent에 채팅 메시지 전송 |
+| `POST` | `/lab/creative/sessions/{id}/review/action` | 승인/수정 요청 (파이프라인 재개) |
+
 ### Agent Presets
 
 | Method | Endpoint | Description |
@@ -216,6 +224,69 @@ Phase 2 Production Pipeline을 시작합니다 (비동기 BackgroundTask).
 - Storyboard + Scene 레코드 생성
 - `characters` 매핑이 있으면 StoryboardCharacter 레코드 생성
 - `deep_parse=true` 시 speaker별 character_id로 `compose_for_character` 호출
+
+### Interactive Review (Pause-Review-Resume)
+
+Pipeline Step 완료 후 QC 점수가 자동 승인 임계값 미달 시, `step_review` 상태로 전환되어 사용자 리뷰를 대기합니다.
+
+#### `GET /lab/creative/sessions/{id}/review`
+현재 리뷰 상태와 QC 분석 결과를 조회합니다.
+
+**허용 상태**: `step_review`
+
+**Response:** `StepReviewResponse`
+```json
+{
+  "step": "scriptwriter",
+  "result": { "scenes": [...] },
+  "qc_analysis": {
+    "overall_rating": "needs_revision",
+    "score": 0.65,
+    "score_breakdown": { "readability": 0.8, "hook": 0.5 },
+    "summary": "도입부 훅이 약합니다",
+    "issues": [{ "severity": "critical", "category": "hook", "scene": 0, "description": "..." }],
+    "strengths": ["대사 자연스러움"],
+    "revision_suggestions": ["씬 1 도입부 강화"]
+  },
+  "messages": [
+    { "role": "system", "content": "Script QC complete. Rating: needs_revision", "timestamp": "..." }
+  ]
+}
+```
+
+#### `POST /lab/creative/sessions/{id}/review/message`
+QC Agent에 채팅 메시지를 전송합니다. Agent가 QC를 재실행하고 응답합니다.
+
+**허용 상태**: `step_review`
+
+**Request:**
+```json
+{ "message": "씬 3의 대사가 어색해요" }
+```
+
+**Response:** `StepReviewResponse` (messages에 user + agent 메시지 추가)
+
+#### `POST /lab/creative/sessions/{id}/review/action`
+승인 또는 수정 요청을 전송합니다. 이후 파이프라인이 자동 재개됩니다.
+
+**허용 상태**: `step_review`
+
+**Request:**
+```json
+{ "action": "approve" }
+```
+```json
+{ "action": "revise", "feedback": "도입부를 더 강렬하게 수정해주세요" }
+```
+
+| action | 동작 |
+|--------|------|
+| `approve` | 리뷰 데이터 제거 후 다음 step 진행 |
+| `revise` | QC 이슈 + 사용자 피드백을 합쳐 해당 step 재실행 |
+
+**Response**: HTTP 202 + `PipelineStatusResponse`
+
+---
 
 ### final_output 구조
 

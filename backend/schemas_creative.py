@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # ── Common ────────────────────────────────────────────────────
 
@@ -219,3 +219,57 @@ class PipelineStatusResponse(BaseModel):
     progress: dict[str, Any] | None = None
     concept_candidates: dict[str, Any] | None = None
     selected_concept_index: int | None = None
+
+
+# ── Interactive Review ──────────────────────────────────────
+
+
+class QCIssue(BaseModel):
+    """Single QC issue — fields are str (not Literal) because Gemini output varies."""
+
+    severity: str  # expected: "critical" | "warning" | "suggestion"
+    category: str  # expected: "readability" | "hook" | "emotion" | "tts" | "diversity" | "consistency"
+    scene: int | str  # scene index or "all"
+    description: str
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class QCAnalysis(BaseModel):
+    """QC analysis result from Gemini — lenient parsing for LLM output."""
+
+    overall_rating: str = "unknown"  # expected: "good" | "needs_revision" | "poor"
+    score: float = 0.0
+    score_breakdown: dict[str, float] = {}
+    summary: str = ""
+    issues: list[QCIssue] = []
+    strengths: list[str] = []
+    revision_suggestions: list[str] = []
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class ReviewMessage(BaseModel):
+    role: str  # expected: "system" | "user" | "agent"
+    content: str
+    timestamp: str
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class StepReviewResponse(BaseModel):
+    step: str
+    result: dict[str, Any] | None = None
+    qc_analysis: QCAnalysis | None = None
+    messages: list[ReviewMessage] = []
+
+
+class ReviewMessageRequest(BaseModel):
+    message: str = Field(..., max_length=2000)
+
+    model_config = ConfigDict(json_schema_extra={"example": {"message": "씬 3의 대사가 어색해요"}})
+
+
+class ReviewActionRequest(BaseModel):
+    action: Literal["approve", "revise"]
+    feedback: str | None = None

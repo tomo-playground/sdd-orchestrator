@@ -203,6 +203,7 @@ hooks/useTags.ts             → axios GET → 캐싱 + 필터링
 hooks/useAutopilot.ts        → 단계별 API 호출 조율
 hooks/useYouTubeUpload.ts    → YouTube OAuth + 업로드 워크플로우
 hooks/useProjectGroups.ts    → Project/Group CRUD + 선택
+hooks/useBackendHealth.ts    → Backend 연결 상태 polling (ConnectionGuard 연동)
 ```
 
 ```
@@ -222,10 +223,10 @@ frontend/app/
 │   ├── video/            # 렌더링 설정
 │   ├── setup/            # 캐릭터/스타일 설정
 │   ├── lab/              # Creative Lab 컴포넌트
-│   ├── shell/            # 앱 레이아웃 (Sidebar, AppShell)
+│   ├── shell/            # 앱 레이아웃 (Sidebar, AppShell, ConnectionGuard)
 │   ├── context/          # 프로젝트/그룹 관리
 │   └── ui/               # 공통 컴포넌트 (Toast, Modal 등)
-├── hooks/                # 서버 동기화 훅 (11개)
+├── hooks/                # 서버 동기화 훅 (11개: useAutopilot, useCharacters, useBackendHealth 등)
 ├── constants/            # 상수 정의
 ├── types/                # TypeScript 타입
 └── utils/                # 유틸리티 함수

@@ -16,6 +16,13 @@ export type SceneContextTags = {
   mood?: string[];
 };
 
+export type SceneCharacterAction = {
+  character_id: number;
+  tag_id: number;
+  tag_name?: string; // GET 응답에서 enriched
+  weight: number;
+};
+
 export type Scene = {
   id: number;
   order: number; // 씬 순서 (1, 2, 3...)
@@ -55,6 +62,8 @@ export type Scene = {
   multi_gen_enabled?: boolean | null;
   // Auto-pin flag from backend (Gemini context_tags analysis)
   _auto_pin_previous?: boolean;
+  // V3 scene-level character actions (expression/pose per character)
+  character_actions?: SceneCharacterAction[];
 };
 
 export type AudioItem = { name: string; url: string };
@@ -180,6 +189,8 @@ export type DraftScene = {
   ip_adapter_reference?: string | null;
   ip_adapter_weight?: number | null;
   multi_gen_enabled?: boolean | null;
+  // V3 scene-level character actions (expression/pose per character)
+  character_actions?: SceneCharacterAction[];
 };
 
 // ============================================================

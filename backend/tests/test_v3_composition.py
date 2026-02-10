@@ -1084,3 +1084,142 @@ class TestLoRAWeightCap:
         assert V3PromptBuilder._cap_lora_weight(0.89) == 0.76
         assert V3PromptBuilder._cap_lora_weight(0.76) == 0.76
         assert V3PromptBuilder._cap_lora_weight(0.5) == 0.5
+
+
+# ────────────────────────────────────────────
+# _apply_scene_character_actions tests
+# ────────────────────────────────────────────
+
+
+class TestApplySceneCharacterActions:
+    """Test scene-level character action overrides on LAYER_EXPRESSION/LAYER_ACTION."""
+
+    def _seed_tags(self, db_session, names_layers: list[tuple[str, int]]):
+        """Insert tags into DB and return {name: id}."""
+        from models.tag import Tag
+
+        result = {}
+        for name, layer in names_layers:
+            tag = Tag(name=name, default_layer=layer, category="expression")
+            db_session.add(tag)
+        db_session.flush()
+        for name, _ in names_layers:
+            tag = db_session.query(Tag).filter(Tag.name == name).one()
+            result[name] = tag.id
+        return result
+
+    def test_overrides_expression_layer(self, db_session):
+        """Scene actions should clear LAYER_EXPRESSION and inject new tags."""
+        tag_ids = self._seed_tags(db_session, [("crying", LAYER_EXPRESSION)])
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_EXPRESSION] = ["smile", "blush"]  # character defaults
+
+        actions = [{"character_id": 10, "tag_id": tag_ids["crying"], "weight": 1.0}]
+        builder._apply_scene_character_actions(10, actions, layers)
+
+        assert layers[LAYER_EXPRESSION] == ["crying"]
+        assert "smile" not in layers[LAYER_EXPRESSION]
+        assert "blush" not in layers[LAYER_EXPRESSION]
+
+    def test_overrides_action_layer(self, db_session):
+        """Scene actions should clear LAYER_ACTION and inject new tags."""
+        tag_ids = self._seed_tags(db_session, [("sitting", LAYER_ACTION)])
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_ACTION] = ["standing"]
+
+        actions = [{"character_id": 5, "tag_id": tag_ids["sitting"], "weight": 1.0}]
+        builder._apply_scene_character_actions(5, actions, layers)
+
+        assert layers[LAYER_ACTION] == ["sitting"]
+
+    def test_weighted_tag_format(self, db_session):
+        """Weight != 1.0 → (tag_name:weight) format."""
+        tag_ids = self._seed_tags(db_session, [("angry", LAYER_EXPRESSION)])
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        actions = [{"character_id": 1, "tag_id": tag_ids["angry"], "weight": 0.8}]
+        builder._apply_scene_character_actions(1, actions, layers)
+
+        assert "(angry:0.8)" in layers[LAYER_EXPRESSION]
+
+    def test_filters_by_character_id(self, db_session):
+        """Actions for other characters should be ignored."""
+        tag_ids = self._seed_tags(db_session, [("smile", LAYER_EXPRESSION)])
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        actions = [{"character_id": 99, "tag_id": tag_ids["smile"], "weight": 1.0}]
+        builder._apply_scene_character_actions(10, actions, layers)
+
+        assert layers[LAYER_EXPRESSION] == []  # not cleared, not injected
+
+    def test_non_expression_action_layers_not_cleared(self, db_session):
+        """Tags targeting other layers (e.g. LAYER_ENVIRONMENT) should append, not clear."""
+        tag_ids = self._seed_tags(db_session, [("night", LAYER_ENVIRONMENT)])
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_ENVIRONMENT] = ["park", "outdoors"]
+
+        actions = [{"character_id": 1, "tag_id": tag_ids["night"], "weight": 1.0}]
+        builder._apply_scene_character_actions(1, actions, layers)
+
+        # LAYER_ENVIRONMENT should be appended to, not cleared
+        assert "park" in layers[LAYER_ENVIRONMENT]
+        assert "outdoors" in layers[LAYER_ENVIRONMENT]
+        assert "night" in layers[LAYER_ENVIRONMENT]
+
+    def test_unknown_tag_id_skipped(self, db_session):
+        """Actions with tag_id not in DB should be silently skipped."""
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_EXPRESSION] = ["smile"]
+
+        actions = [{"character_id": 1, "tag_id": 99999, "weight": 1.0}]
+        builder._apply_scene_character_actions(1, actions, layers)
+
+        # Expression layer NOT cleared because no valid actions resolved
+        assert layers[LAYER_EXPRESSION] == ["smile"]
+
+    def test_empty_actions_noop(self, db_session):
+        """Empty actions list should not modify layers."""
+        builder = V3PromptBuilder(db_session)
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_EXPRESSION] = ["smile"]
+
+        builder._apply_scene_character_actions(1, [], layers)
+
+        assert layers[LAYER_EXPRESSION] == ["smile"]
+
+    def test_compose_for_character_integrates_actions(self, db_session):
+        """End-to-end: compose_for_character with scene_character_actions."""
+        from models.character import Character
+
+        tag_ids = self._seed_tags(db_session, [("crying", LAYER_EXPRESSION), ("kneeling", LAYER_ACTION)])
+        char = Character(name="test_char", custom_base_prompt="1girl")
+        db_session.add(char)
+        db_session.flush()
+
+        actions = [
+            {"character_id": char.id, "tag_id": tag_ids["crying"], "weight": 1.0},
+            {"character_id": char.id, "tag_id": tag_ids["kneeling"], "weight": 1.0},
+        ]
+
+        builder = V3PromptBuilder(db_session)
+        result = builder.compose_for_character(
+            char.id,
+            scene_tags=["1girl", "park"],
+            scene_character_actions=actions,
+            character=char,
+        )
+
+        # Scene actions should appear in output (with :1.1 boost from _flatten_layers)
+        assert "(crying:1.1)" in result
+        assert "(kneeling:1.1)" in result
