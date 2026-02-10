@@ -105,6 +105,16 @@ class TestFlattenLayers:
         assert tokens.count("(1boy:1.3)") == 1
         assert "1boy" not in tokens
 
+    def test_lora_weight_dedup(self, builder):
+        """Same LoRA with different weights → keep only first occurrence."""
+        layers = [[] for _ in range(12)]
+        layers[LAYER_IDENTITY] = ["<lora:flat_color:0.6>"]
+        layers[LAYER_ATMOSPHERE] = ["<lora:flat_color:0.76>"]
+
+        result = builder._flatten_layers(layers)
+        lora_count = result.count("<lora:flat_color:")
+        assert lora_count == 1, f"Expected 1 flat_color LoRA, got {lora_count}: {result}"
+
     def test_no_break_in_single_context(self, builder):
         """BREAK is never inserted - single context for better scene control."""
         layers = [[] for _ in range(12)]

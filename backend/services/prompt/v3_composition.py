@@ -447,14 +447,14 @@ class V3PromptBuilder:
             info = tag_info.get(norm_tag, {"layer": LAYER_SUBJECT})
             layers[info["layer"]].append(tag)
 
-        # Style LoRA Unification: Collect style_loras names first for dedup
-        # StyleProfile LoRAs take precedence over character LoRAs
+        # LoRA dedup: track injected names across all sources
         style_lora_names = {lora["name"] for lora in (style_loras or [])}
+        injected_lora_names: set[str] = set()
 
         if character_loras:
             for lora in character_loras:
                 lora_name = lora["name"]
-                # Dedup: skip if same LoRA is in style_loras (StyleProfile takes precedence)
+                # StyleProfile LoRAs take precedence over character LoRAs
                 if lora_name in style_lora_names:
                     continue
 
@@ -466,32 +466,33 @@ class V3PromptBuilder:
                 if weight is None:
                     weight = self.get_lora_weight_by_name(lora_name)
                 layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
+                injected_lora_names.add(lora_name)
 
         # Auto-triggered LoRAs from tags
         for tag in tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name:
-                # Skip if already in style_loras (StyleProfile precedence)
-                if lora_name in style_lora_names:
+                if lora_name in style_lora_names or lora_name in injected_lora_names:
                     continue
-                already_present = any(
-                    f"<lora:{lora_name}:" in t for t in (layers[LAYER_IDENTITY] + layers[LAYER_ATMOSPHERE])
-                )
-                if not already_present:
-                    weight, lora_type = self._get_lora_info(lora_name)
-                    target = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
-                    layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
+                weight, lora_type = self._get_lora_info(lora_name)
+                target = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
+                layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
+                injected_lora_names.add(lora_name)
 
         if style_loras:
             for lora in style_loras:
+                lora_name = lora["name"]
+                if lora_name in injected_lora_names:
+                    continue
                 for trigger in lora.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
 
                 weight = lora.get("weight")
                 if weight is None:
-                    weight = self.get_lora_weight_by_name(lora["name"])
-                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{self._cap_lora_weight(weight)}>")
+                    weight = self.get_lora_weight_by_name(lora_name)
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
+                injected_lora_names.add(lora_name)
 
         # Background scene defense: strip character layers after all LoRA injection
         if self._is_background_scene(tags):
@@ -549,8 +550,15 @@ class V3PromptBuilder:
 
     @staticmethod
     def _dedup_key(token: str) -> str:
-        """Normalize token for dedup: strip weight parens e.g. (1boy:1.3) → 1boy."""
+        """Normalize token for dedup: strip weights for comparison.
+
+        - (1boy:1.3) → 1boy
+        - <lora:flat_color:0.76> → <lora:flat_color> (ignore weight)
+        """
         t = token.strip().lower()
+        if t.startswith("<lora:") and t.endswith(">"):
+            name = t[6:-1].split(":")[0]
+            return f"<lora:{name}>"
         if t.startswith("(") and ":" in t and t.endswith(")"):
             t = t[1:].split(":")[0]
         return t
