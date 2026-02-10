@@ -14,14 +14,12 @@ export default function SceneListHeader({
   scenesCount,
 }: SceneListHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="min-w-0">
         <h2 className="text-lg font-semibold text-zinc-900">Scenes</h2>
-        <p className="text-xs text-zinc-500">
-          Manage prompts and generate images per scene.
-        </p>
+        <p className="text-xs text-zinc-500">Manage prompts and generate images per scene.</p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           onClick={onValidate}
           className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold tracking-[0.2em] text-white uppercase shadow"

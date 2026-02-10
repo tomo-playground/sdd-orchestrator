@@ -201,7 +201,7 @@ export default function ScenesTab() {
   return (
     <div className={SIDE_PANEL_LAYOUT}>
       {/* Left: Scene Editor */}
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-4">
         <SceneListHeader
           onValidate={runValidation}
           onAutoFixAll={handleAutoFixAll}
