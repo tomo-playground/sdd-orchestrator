@@ -1,6 +1,7 @@
-"""Tests for creative_studio.py -- V3 composition + negative prompt integration.
+"""Tests for creative_studio.py -- compose_scene_with_style integration.
 
-BLOCKER #1: _build_scene must use V3 composition pipeline, not raw V3Builder.
+_build_scene uses compose_scene_with_style (shared with Studio Direct)
+for StyleProfile + V3 composition when deep_parse=True.
 """
 
 from unittest.mock import MagicMock, patch
@@ -29,88 +30,100 @@ def _make_session_context(characters=None, character_id=None):
     return session
 
 
-class TestBuildSceneWithStyleLoras:
-    """_build_scene must pass style_loras to V3 composition."""
+class TestBuildSceneComposition:
+    """_build_scene must use compose_scene_with_style when db is provided."""
 
-    def test_actor_scene_passes_style_loras(self):
-        """Actor scene (char_id present) must pass style_loras to compose_for_character."""
-        mock_builder = MagicMock()
-        mock_builder.compose_for_character.return_value = "composed_prompt"
+    def test_compose_scene_with_style_called(self):
+        """When db provided, compose_scene_with_style must be called with correct params."""
+        mock_db = MagicMock()
+        style_loras = [{"name": "flat_color", "weight": 0.76}]
 
-        from services.creative_studio import _build_scene
+        with patch("services.creative_studio.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = (
+                "high_quality, masterpiece, best_quality, 1girl, <lora:flat_color:0.76>",
+                "lowres, bad anatomy, style_negative",
+            )
 
-        _build_scene(
-            s={
-                "order": 0,
-                "script": "Hello",
-                "speaker": "A",
-                "duration": 2.5,
-                "image_prompt": "1girl, smile",
-            },
-            storyboard_id=1,
-            builder=mock_builder,
-            characters={"A": {"id": 10, "name": "Haru", "tags": []}},
-            fallback_char_id=None,
-            group_id=1,
-        )
+            from services.creative_studio import _build_scene
 
-        # Must pass style_loras kwarg
-        call_kwargs = mock_builder.compose_for_character.call_args
-        assert "style_loras" in call_kwargs.kwargs, "compose_for_character must receive style_loras"
+            scene = _build_scene(
+                s={"order": 0, "script": "Hello", "speaker": "A", "duration": 2.5, "image_prompt": "1girl, smile"},
+                storyboard_id=42,
+                characters={"A": {"id": 10, "name": "Haru", "tags": []}},
+                fallback_char_id=None,
+                style_loras=style_loras,
+                db=mock_db,
+            )
 
-    def test_narrator_scene_uses_compose(self):
-        """Narrator scene (no char_id, no_humans) must use builder.compose."""
-        mock_builder = MagicMock()
-        mock_builder.compose_for_character.return_value = "composed"
-        mock_builder.compose.return_value = "bg_prompt"
+            mock_compose.assert_called_once()
+            call_kwargs = mock_compose.call_args.kwargs
+            assert call_kwargs["character_id"] == 10
+            assert call_kwargs["storyboard_id"] == 42
+            assert call_kwargs["style_loras"] == style_loras
+            assert call_kwargs["db"] is mock_db
+            assert "skip_loras" not in call_kwargs  # skip_loras is internal to compose_scene_with_style
+            assert "high_quality" in scene.image_prompt
+            assert "style_negative" in scene.negative_prompt
 
-        from services.creative_studio import _build_scene
+    def test_narrator_scene_passes_no_character_id(self):
+        """Narrator scene (no char_id) must call compose_scene_with_style with character_id=None."""
+        mock_db = MagicMock()
 
-        _build_scene(
-            s={
-                "order": 0,
-                "script": "Scenery",
-                "speaker": "Narrator",
-                "duration": 2.5,
-                "image_prompt": "no_humans, sunset, beach",
-            },
-            storyboard_id=1,
-            builder=mock_builder,
-            characters={},
-            fallback_char_id=None,
-            group_id=1,
-        )
+        with patch("services.creative_studio.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, sunset, beach", "lowres, bad anatomy")
 
-        # No characters → should use compose (not compose_for_character)
-        mock_builder.compose.assert_called_once()
+            from services.creative_studio import _build_scene
 
+            _build_scene(
+                s={
+                    "order": 0,
+                    "script": "Scenery",
+                    "speaker": "Narrator",
+                    "duration": 2.5,
+                    "image_prompt": "no_humans, sunset, beach",
+                },
+                storyboard_id=1,
+                characters={},
+                fallback_char_id=None,
+                db=mock_db,
+            )
 
-class TestBuildSceneNegativePrompt:
-    """_build_scene must set negative_prompt on the Scene."""
+            call_kwargs = mock_compose.call_args.kwargs
+            assert call_kwargs["character_id"] is None
+
+    def test_no_db_skips_composition(self):
+        """When db is None (deep_parse=False), compose_scene_with_style must not be called."""
+        with patch("services.creative_studio.compose_scene_with_style") as mock_compose:
+            from services.creative_studio import _build_scene
+
+            scene = _build_scene(
+                s={"order": 0, "script": "Hello", "speaker": "A", "duration": 2.5, "image_prompt": "1girl, smile"},
+                storyboard_id=42,
+                characters={"A": {"id": 10, "name": "Haru", "tags": []}},
+                fallback_char_id=None,
+            )
+
+            mock_compose.assert_not_called()
+            assert scene.image_prompt == "1girl, smile"  # raw prompt preserved
 
     def test_negative_prompt_is_set(self):
         """Scene must have a non-empty negative_prompt after _build_scene."""
-        mock_builder = MagicMock()
-        mock_builder.compose_for_character.return_value = "composed"
+        mock_db = MagicMock()
 
-        from services.creative_studio import _build_scene
+        with patch("services.creative_studio.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed_prompt", "lowres, bad anatomy")
 
-        scene = _build_scene(
-            s={
-                "order": 0,
-                "script": "Hello",
-                "speaker": "A",
-                "duration": 2.5,
-                "image_prompt": "1girl, smile",
-            },
-            storyboard_id=1,
-            builder=mock_builder,
-            characters={"A": {"id": 10, "name": "Haru", "tags": []}},
-            fallback_char_id=None,
-            group_id=1,
-        )
+            from services.creative_studio import _build_scene
 
-        assert scene.negative_prompt, "Scene.negative_prompt must not be empty"
+            scene = _build_scene(
+                s={"order": 0, "script": "Hello", "speaker": "A", "duration": 2.5, "image_prompt": "1girl, smile"},
+                storyboard_id=1,
+                characters={"A": {"id": 10, "name": "Haru", "tags": []}},
+                fallback_char_id=None,
+                db=mock_db,
+            )
+
+            assert scene.negative_prompt, "Scene.negative_prompt must not be empty"
 
 
 class TestSendToStudioNullCharacters:
@@ -128,7 +141,6 @@ class TestSendToStudioNullCharacters:
         db_session.add(group)
         db_session.flush()
 
-        # Simulate session where characters is explicitly None
         session = MagicMock()
         session.final_output = {
             "scenes": [
@@ -216,7 +228,6 @@ class TestMonologueCharacterLinkage:
         db_session.add(char)
         db_session.flush()
 
-        # Monologue: character_id set, but characters dict is None
         session = MagicMock()
         session.final_output = {
             "scenes": [
@@ -242,7 +253,6 @@ class TestMonologueCharacterLinkage:
             deep_parse=False,
         )
 
-        # StoryboardCharacter must exist for speaker A
         sc = db_session.query(StoryboardCharacter).filter_by(storyboard_id=result["storyboard_id"], speaker="A").first()
         assert sc is not None, "StoryboardCharacter must be created for monologue"
         assert sc.character_id == char.id
@@ -290,10 +300,10 @@ class TestMonologueCharacterLinkage:
 
 
 class TestSendToStudioIntegration:
-    """send_to_studio with deep_parse=True must use full V3 pipeline."""
+    """send_to_studio with deep_parse=True must use compose_scene_with_style."""
 
-    def test_deep_parse_creates_builder_with_style_loras(self, db_session):
-        """When deep_parse=True, V3Builder is created and style_loras resolved."""
+    def test_deep_parse_resolves_style_loras_and_composes(self, db_session):
+        """When deep_parse=True, style_loras resolved and compose_scene_with_style called."""
         from models import Project
         from models.character import Character
         from models.group import Group
@@ -314,17 +324,15 @@ class TestSendToStudioIntegration:
         )
 
         with (
-            patch("services.prompt.v3_composition.V3PromptBuilder") as MockBuilder,
+            patch(
+                "services.creative_studio.compose_scene_with_style",
+                return_value=("composed", "negative"),
+            ) as mock_compose,
             patch(
                 "services.creative_studio.resolve_style_loras_from_group",
-                return_value=[],
+                return_value=[{"name": "flat_color", "weight": 0.76}],
             ) as mock_lora,
         ):
-            mock_instance = MagicMock()
-            mock_instance.compose_for_character.return_value = "composed"
-            mock_instance.compose.return_value = "composed"
-            MockBuilder.return_value = mock_instance
-
             from services.creative_studio import send_to_studio
 
             result = send_to_studio(
@@ -335,4 +343,5 @@ class TestSendToStudioIntegration:
             )
 
             mock_lora.assert_called_once_with(group.id, db_session)
+            mock_compose.assert_called_once()
             assert result["scene_count"] == 1

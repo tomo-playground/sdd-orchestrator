@@ -32,16 +32,16 @@ class TestPreparePromptFlag:
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation.apply_style_profile_to_prompt")
     def test_pre_composed_skips_v3(self, mock_style, mock_ref):
-        """prompt_pre_composed=True → V3 not called, prompt used as-is."""
+        """prompt_pre_composed=True → compose_scene_with_style not called, prompt used as-is."""
         mock_style.return_value = ("quality, 1girl, standing, <lora:style:0.7>", "bad")
         req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
-        with patch("services.generation.V3PromptService") as mock_v3:
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
             cleaned, warnings, char = _prepare_prompt(req, db)
 
-        mock_v3.assert_not_called()
+        mock_compose.assert_not_called()
         mock_style.assert_called_once()
         # skip_loras should NOT be passed (defaults to False for pre-composed)
         call_kwargs = mock_style.call_args
@@ -49,24 +49,21 @@ class TestPreparePromptFlag:
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras", return_value=[])
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_raw_prompt_runs_v3(self, mock_style, mock_resolve, mock_ref):
-        """prompt_pre_composed=False + character → V3 injects character LoRA."""
-        mock_style.return_value = ("quality, 1girl, standing", "bad")
+    def test_raw_prompt_runs_v3(self, mock_resolve, mock_ref):
+        """prompt_pre_composed=False + character → compose_scene_with_style called."""
         req = _make_request(prompt_pre_composed=False)
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
-        with patch("services.generation.V3PromptService") as mock_v3:
-            mock_v3.return_value.generate_prompt_for_scene.return_value = "v3_composed"
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("v3_composed", "bad")
             cleaned, warnings, char = _prepare_prompt(req, db)
 
-        mock_v3.assert_called_once_with(db)
-        mock_v3.return_value.generate_prompt_for_scene.assert_called_once()
+        mock_compose.assert_called_once()
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["character_id"] == 1
+        assert call_kwargs["storyboard_id"] == 10
         assert cleaned == "v3_composed"
-        # skip_loras=True for raw prompt path
-        call_kwargs = mock_style.call_args
-        assert call_kwargs.kwargs.get("skip_loras") is True
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation.apply_style_profile_to_prompt")
@@ -77,10 +74,10 @@ class TestPreparePromptFlag:
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("services.generation.V3PromptService") as mock_v3:
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
             cleaned, warnings, char = _prepare_prompt(req, db)
 
-        mock_v3.assert_not_called()
+        mock_compose.assert_not_called()
         mock_style.assert_called_once()
         assert char is None
         call_kwargs = mock_style.call_args
@@ -343,12 +340,10 @@ class TestBatchLoraResolution:
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras")
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_batch_ignores_frontend_style_loras(self, mock_style, mock_resolve, mock_ref):
+    def test_batch_ignores_frontend_style_loras(self, mock_resolve, mock_ref):
         """Even when frontend sends style_loras, DB resolution is used (SSOT)."""
-        mock_style.return_value = ("quality, 1girl, standing", "bad")
-        mock_resolve.return_value = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
-        # Frontend sends {lora_id, weight} format (no name/trigger_words)
+        db_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
+        mock_resolve.return_value = db_loras
         req = _make_request(
             prompt_pre_composed=False,
             style_loras=[{"lora_id": 5, "weight": 0.7}],
@@ -356,37 +351,33 @@ class TestBatchLoraResolution:
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
-        with patch("services.generation.V3PromptService") as mock_v3:
-            mock_v3.return_value.generate_prompt_for_scene.return_value = "composed"
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "bad")
             _prepare_prompt(req, db)
 
-        # V3 must receive DB-resolved loras (with name), NOT frontend format
-        call_args = mock_v3.return_value.generate_prompt_for_scene.call_args
-        style_loras_used = call_args.kwargs.get("style_loras", call_args[1].get("style_loras"))
-        assert style_loras_used[0]["name"] == "flat_color"
-        assert "trigger_words" in style_loras_used[0]
+        # compose_scene_with_style must receive DB-resolved loras (with name)
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["style_loras"] == db_loras
+        assert call_kwargs["style_loras"][0]["name"] == "flat_color"
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras")
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_batch_uses_db_even_with_empty_frontend_loras(self, mock_style, mock_resolve, mock_ref):
+    def test_batch_uses_db_even_with_empty_frontend_loras(self, mock_resolve, mock_ref):
         """DB resolution is always used regardless of frontend style_loras."""
-        mock_style.return_value = ("quality, 1girl", "bad")
-        mock_resolve.return_value = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
+        db_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
+        mock_resolve.return_value = db_loras
         req = _make_request(prompt_pre_composed=False, style_loras=[])
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = _make_character()
 
-        with patch("services.generation.V3PromptService") as mock_v3:
-            mock_v3.return_value.generate_prompt_for_scene.return_value = "composed"
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "bad")
             _prepare_prompt(req, db)
 
-        # Even with empty frontend loras, DB is consulted
         mock_resolve.assert_called_once()
-        call_args = mock_v3.return_value.generate_prompt_for_scene.call_args
-        style_loras_used = call_args.kwargs.get("style_loras", call_args[1].get("style_loras"))
-        assert len(style_loras_used) == 1
-        assert style_loras_used[0]["name"] == "flat_color"
+        call_kwargs = mock_compose.call_args.kwargs
+        assert len(call_kwargs["style_loras"]) == 1
+        assert call_kwargs["style_loras"][0]["name"] == "flat_color"
 
 
 # ────────────────────────────────────────────
@@ -395,43 +386,35 @@ class TestBatchLoraResolution:
 
 
 class TestNarratorBackgroundFiltering:
-    """Test Narrator (no_humans) scenes route through V3 background composition."""
+    """Test Narrator (no_humans) scenes route through compose_scene_with_style."""
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras", return_value=[])
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_narrator_no_humans_runs_v3_compose(self, mock_style, mock_resolve, mock_ref):
-        """no_humans + character_id=None → V3 compose() is called."""
-        mock_style.return_value = ("no_humans, bedroom, night, full_body, standing", "bad")
+    def test_narrator_no_humans_uses_compose_scene(self, mock_resolve, mock_ref):
+        """no_humans + character_id=None → compose_scene_with_style called."""
         req = _make_request(character_id=None, prompt="no_humans, bedroom, night, full_body, standing")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("services.prompt.v3_composition.V3PromptBuilder") as mock_builder_cls:
-            mock_builder = mock_builder_cls.return_value
-            mock_builder.compose.return_value = "no_humans, bedroom, night"
-            cleaned, warnings, char = _prepare_prompt(req, db)
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, bedroom, night", "bad")
+            cleaned, _, _ = _prepare_prompt(req, db)
 
-        mock_builder_cls.assert_called_once_with(db)
-        mock_builder.compose.assert_called_once()
+        mock_compose.assert_called_once()
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["character_id"] is None
         assert cleaned == "no_humans, bedroom, night"
-        # skip_loras=True for narrator path
-        call_kwargs = mock_style.call_args
-        assert call_kwargs.kwargs.get("skip_loras") is True
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras", return_value=[])
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_narrator_filters_character_tags(self, mock_style, mock_resolve, mock_ref):
-        """V3 compose() strips full_body, standing from no_humans scenes."""
-        mock_style.return_value = ("no_humans, bedroom, full_body, standing", "bad")
+    def test_narrator_filters_character_tags(self, mock_resolve, mock_ref):
+        """compose_scene_with_style strips character tags from no_humans scenes."""
         req = _make_request(character_id=None, prompt="no_humans, bedroom, full_body, standing")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("services.prompt.v3_composition.V3PromptBuilder") as mock_builder_cls:
-            # Simulate V3 compose stripping character tags
-            mock_builder_cls.return_value.compose.return_value = "no_humans, bedroom"
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, bedroom", "bad")
             cleaned, _, _ = _prepare_prompt(req, db)
 
         assert "full_body" not in cleaned
@@ -439,16 +422,14 @@ class TestNarratorBackgroundFiltering:
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras", return_value=[])
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_narrator_preserves_environment_tags(self, mock_style, mock_resolve, mock_ref):
-        """Environment tags (bedroom, night) are preserved through V3 compose."""
-        mock_style.return_value = ("no_humans, bedroom, night", "bad")
+    def test_narrator_preserves_environment_tags(self, mock_resolve, mock_ref):
+        """Environment tags (bedroom, night) preserved through compose_scene_with_style."""
         req = _make_request(character_id=None, prompt="no_humans, bedroom, night")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("services.prompt.v3_composition.V3PromptBuilder") as mock_builder_cls:
-            mock_builder_cls.return_value.compose.return_value = "no_humans, bedroom, night"
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, bedroom, night", "bad")
             cleaned, _, _ = _prepare_prompt(req, db)
 
         assert "bedroom" in cleaned
@@ -457,36 +438,34 @@ class TestNarratorBackgroundFiltering:
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation._resolve_style_loras")
-    @patch("services.generation.apply_style_profile_to_prompt")
-    def test_narrator_applies_style_loras(self, mock_style, mock_resolve, mock_ref):
-        """style_loras are passed to V3 compose() for Narrator scenes."""
+    def test_narrator_applies_style_loras(self, mock_resolve, mock_ref):
+        """style_loras are passed to compose_scene_with_style for Narrator scenes."""
         style_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
         mock_resolve.return_value = style_loras
-        mock_style.return_value = ("no_humans, bedroom", "bad")
         req = _make_request(character_id=None, prompt="no_humans, bedroom")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("services.prompt.v3_composition.V3PromptBuilder") as mock_builder_cls:
-            mock_builder_cls.return_value.compose.return_value = "no_humans, bedroom, <lora:flat_color:0.7>"
-            cleaned, _, _ = _prepare_prompt(req, db)
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, bedroom, <lora:flat_color:0.7>", "bad")
+            _prepare_prompt(req, db)
 
-        call_kwargs = mock_builder_cls.return_value.compose.call_args
-        assert call_kwargs.kwargs.get("style_loras") == style_loras
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["style_loras"] == style_loras
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation.apply_style_profile_to_prompt")
     def test_non_narrator_no_character_unchanged(self, mock_style, mock_ref):
-        """No no_humans + no character_id → existing path (full style, no V3)."""
+        """No no_humans + no character_id → full style profile, no compose_scene_with_style."""
         mock_style.return_value = ("scenery, sunset, mountain", "bad")
         req = _make_request(character_id=None, prompt="scenery, sunset, mountain")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("services.prompt.v3_composition.V3PromptBuilder") as mock_builder_cls:
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
             cleaned, _, char = _prepare_prompt(req, db)
 
-        mock_builder_cls.assert_not_called()
+        mock_compose.assert_not_called()
         assert char is None
         # skip_loras should NOT be passed (full style profile)
         call_kwargs = mock_style.call_args

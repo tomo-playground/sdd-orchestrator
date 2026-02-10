@@ -317,7 +317,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-7: **14/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
 - Phase 7-1: **17/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- **Backend 테스트**: 1,234개 수집
+- **Backend 테스트**: 1,290개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-10)
 
@@ -352,3 +352,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-09) Background Scene 태그 필터링: `no_humans` 감지 → CHARACTER_ONLY_LAYERS(1-8) 제거 + 캐릭터 카메라 태그 필터. LoRA Weight Cap `STYLE_LORA_WEIGHT_CAP=0.76` 무조건 적용으로 통합
 - (2026-02-09) Creative Lab V2 MVP: 9-Agent 시스템, Phase 1 Concept Debate + Phase 2 Production Pipeline, 6 Jinja2 Templates, Frontend V1/V2 모드 전환
 - (2026-02-10) Creative Lab V2 Phase 3: Multi-Character Dialogue (character_ids 매핑, CharacterPicker 컴포넌트), Sound Designer 에이전트 (BGM 추천), Copyright Reviewer 에이전트, send-to-studio 서비스 추출 (creative_studio.py), QC feedback retry 개선, SSOT presets API 연동, 단위 테스트 14개
+- (2026-02-10) 모듈화 위반 전면 리팩토링 (TDD 22건): `split_prompt_tokens` SSOT 통합, `resolve_style_loras` config cascade 통합, `creative_studio._build_scene` V3 composition 파이프라인 적용 (style_loras + negative_prompt), `lab.py` V3 이중 호출 제거, `controlnet.py` 태그 underscore 포맷 수정, 모놀로그 캐릭터 링크 누락 수정, V3 `_distribute_tags` LoRA 이중 주입 방지

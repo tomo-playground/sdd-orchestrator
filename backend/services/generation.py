@@ -29,7 +29,7 @@ from services.prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
-from services.prompt.v3_service import V3PromptService
+from services.image_generation_core import compose_scene_with_style
 
 
 @contextmanager
@@ -246,43 +246,29 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         cleaned_prompt = request.prompt
         logger.debug("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
     elif request.character_id and character_obj:
-        # Raw prompt → V3 engine composes with character LoRA + style LoRA
-        # Style profile: quality tags + negative only (LoRA/trigger handled by V3)
-        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt,
-            request.negative_prompt or "",
-            request.storyboard_id,
-            db,
-            skip_loras=True,
-        )
-        # Always resolve style_loras from DB (SSOT for LoRA names + trigger_words)
-        # Frontend sends {lora_id, weight} format which lacks name/trigger_words
+        # Raw prompt → compose_scene_with_style (StyleProfile + V3)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
-        lora_names = [l.get("name") for l in style_loras] if style_loras else []
-        logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", lora_names)
-        v3_service = V3PromptService(db)
-        scene_tags = split_prompt_tokens(request.prompt)
-        cleaned_prompt = v3_service.generate_prompt_for_scene(
+        logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [l.get("name") for l in style_loras])
+        cleaned_prompt, request.negative_prompt = compose_scene_with_style(
+            raw_prompt=request.prompt,
+            negative_prompt=request.negative_prompt or "",
             character_id=request.character_id,
-            scene_tags=scene_tags,
+            storyboard_id=request.storyboard_id,
             style_loras=style_loras,
+            db=db,
         )
         logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
     elif "no_humans" in request.prompt.lower().replace(" ", "_"):
-        # Narrator (no_humans) → V3 background composition filters character tags
-        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt,
-            request.negative_prompt or "",
-            request.storyboard_id,
-            db,
-            skip_loras=True,
-        )
+        # Narrator (no_humans) → compose_scene_with_style (StyleProfile + V3 background)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
-        from services.prompt.v3_composition import V3PromptBuilder
-
-        builder = V3PromptBuilder(db)
-        scene_tags = split_prompt_tokens(request.prompt)
-        cleaned_prompt = builder.compose(scene_tags, style_loras=style_loras)
+        cleaned_prompt, request.negative_prompt = compose_scene_with_style(
+            raw_prompt=request.prompt,
+            negative_prompt=request.negative_prompt or "",
+            character_id=None,
+            storyboard_id=request.storyboard_id,
+            style_loras=style_loras,
+            db=db,
+        )
         logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
     else:
         # No character, no no_humans → full style profile, no V3
@@ -327,12 +313,13 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     request.ip_adapter_reference,
                 )
                 style_loras = _resolve_style_loras(request.storyboard_id, db)
-                v3_service = V3PromptService(db)
-                scene_tags = split_prompt_tokens(request.prompt)
-                cleaned_prompt = v3_service.generate_prompt_for_scene(
+                cleaned_prompt, request.negative_prompt = compose_scene_with_style(
+                    raw_prompt=request.prompt,
+                    negative_prompt=request.negative_prompt or "",
                     character_id=request.character_id,
-                    scene_tags=scene_tags,
+                    storyboard_id=request.storyboard_id,
                     style_loras=style_loras,
+                    db=db,
                 )
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)
         # Non-Narrator, non-character: normalize manually (Narrator already via V3 compose)

@@ -10,7 +10,7 @@ from models.scene import Scene
 from models.storyboard import Storyboard
 from models.storyboard_character import StoryboardCharacter
 from services.creative_utils import parse_image_prompt_to_tags
-from services.image_generation_core import resolve_style_loras_from_group
+from services.image_generation_core import compose_scene_with_style, resolve_style_loras_from_group
 
 # ── Shorts Session Creation ─────────────────────────────────
 
@@ -120,33 +120,34 @@ def _link_characters(
 def _build_scene(
     s: dict,
     storyboard_id: int,
-    builder,
     characters: dict[str, dict],
     fallback_char_id: int | None,
-    group_id: int | None = None,
     style_loras: list[dict] | None = None,
+    db: Session | None = None,
 ) -> Scene:
     """Build a single Scene from pipeline output dict.
 
-    Uses V3 composition pipeline with style_loras and negative_prompt.
+    When db is provided (deep_parse=True), applies full composition
+    via compose_scene_with_style (same logic as Studio Direct):
+      StyleProfile (quality/embeddings) → V3 composition.
     """
     image_prompt = s.get("image_prompt", "")
     context_tags = s.get("context_tags")
     negative_prompt = DEFAULT_SCENE_NEGATIVE_PROMPT
 
-    if builder and image_prompt:
+    if db and image_prompt:
         tags = parse_image_prompt_to_tags(image_prompt)
         speaker = s.get("speaker", "A")
         char_id = characters.get(speaker, {}).get("id") or fallback_char_id
 
-        if char_id:
-            image_prompt = builder.compose_for_character(
-                char_id,
-                tags,
-                style_loras=style_loras or [],
-            )
-        else:
-            image_prompt = builder.compose(tags, style_loras=style_loras or [])
+        image_prompt, negative_prompt = compose_scene_with_style(
+            raw_prompt=", ".join(tags),
+            negative_prompt=negative_prompt,
+            character_id=char_id,
+            storyboard_id=storyboard_id,
+            style_loras=style_loras or [],
+            db=db,
+        )
 
         # Narrator scenes: append person-exclusion tags
         is_narrator = "no_humans" in image_prompt.lower().replace(" ", "_")
@@ -202,13 +203,9 @@ def send_to_studio(
     db.add(storyboard)
     db.flush()
 
-    # 2. Optionally build prompt composer + resolve style LoRAs
-    builder = None
+    # 2. Resolve style LoRAs for composition
     style_loras: list[dict] = []
     if deep_parse:
-        from services.prompt.v3_composition import V3PromptBuilder
-
-        builder = V3PromptBuilder(db)
         style_loras = resolve_style_loras_from_group(group_id, db)
 
     # 3. Link characters
@@ -225,16 +222,15 @@ def send_to_studio(
             )
         )
 
-    # 4. Create scenes
+    # 4. Create scenes (db=session enables compose_scene_with_style for deep_parse)
     for s in scenes_data:
         scene = _build_scene(
             s,
             storyboard.id,
-            builder,
             characters,
             session.character_id,
-            group_id=group_id,
             style_loras=style_loras,
+            db=db if deep_parse else None,
         )
         db.add(scene)
 

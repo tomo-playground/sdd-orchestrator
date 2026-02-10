@@ -106,6 +106,8 @@ async def generate_image_with_v3(
             logger.warning(f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs")
 
     # 3. V3 Composition (Character LoRA + Scene Tags + Style LoRAs)
+    # TODO: Refactor to use compose_scene_with_style() for consistent ordering
+    #       (StyleProfile first, then V3) — currently reversed here (V3, then StyleProfile).
     if character_id:
         try:
             builder = V3PromptBuilder(db)
@@ -200,6 +202,50 @@ async def generate_image_with_v3(
                 final_negative_prompt=negative_prompt,
                 warnings=[*warnings, f"SD API failed: {e}"],
             )
+
+
+def compose_scene_with_style(
+    *,
+    raw_prompt: str,
+    negative_prompt: str,
+    character_id: int | None,
+    storyboard_id: int | None,
+    style_loras: list[dict],
+    db: Session,
+) -> tuple[str, str]:
+    """Compose scene prompt: StyleProfile + V3 composition (SSOT).
+
+    Shared by Studio Direct (generation.py) and Creative Lab (creative_studio.py).
+    Flow matches Studio Direct exactly:
+      1. apply_style_profile_to_prompt(skip_loras=True) → quality tags + embeddings
+      2. V3 compose_for_character / compose → character tags + LoRA injection
+
+    Returns: (composed_prompt, modified_negative_prompt)
+    """
+    from services.generation import apply_style_profile_to_prompt
+
+    # 1. Apply style profile quality tags + embedding triggers (LoRAs handled by V3)
+    styled_prompt, modified_negative = apply_style_profile_to_prompt(
+        raw_prompt, negative_prompt, storyboard_id, db, skip_loras=True
+    )
+
+    # 2. V3 composition
+    scene_tags = split_prompt_tokens(styled_prompt)
+    builder = V3PromptBuilder(db)
+
+    if character_id:
+        composed = builder.compose_for_character(character_id, scene_tags, style_loras=style_loras)
+    else:
+        composed = builder.compose(scene_tags, style_loras=style_loras)
+
+    logger.debug(
+        "🎨 [compose_scene_with_style] char_id=%s, storyboard_id=%s, loras=%d",
+        character_id,
+        storyboard_id,
+        len(style_loras),
+    )
+
+    return composed, modified_negative
 
 
 def resolve_style_loras_from_group(group_id: int, db: Session) -> list[dict]:

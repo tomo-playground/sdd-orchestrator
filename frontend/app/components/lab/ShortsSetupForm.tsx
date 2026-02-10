@@ -6,6 +6,8 @@ import { API_BASE } from "../../constants";
 import type { ShortsSessionCreate } from "../../types/creative";
 import CharacterPicker from "./CharacterPicker";
 
+type CharacterOption = { id: number; name: string };
+
 type LangOption = { value: string; label: string };
 type PresetOption = { structure: string; name: string };
 
@@ -27,6 +29,8 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
   const [maxRounds, setMaxRounds] = useState<number>(2);
   const [references, setReferences] = useState("");
   const [characterIds, setCharacterIds] = useState<Record<string, number>>({});
+  const [monoCharId, setMonoCharId] = useState<number | null>(null);
+  const [characters, setCharacters] = useState<CharacterOption[]>([]);
 
   const [structures, setStructures] = useState<PresetOption[]>([
     { structure: "Monologue", name: "Monologue" },
@@ -45,16 +49,25 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data?.presets)) {
-          setStructures(data.presets.map((p: PresetOption) => ({ structure: p.structure, name: p.name })));
+          setStructures(
+            data.presets.map((p: PresetOption) => ({ structure: p.structure, name: p.name }))
+          );
         }
         if (Array.isArray(data?.languages)) setLanguages(data.languages);
         if (Array.isArray(data?.durations)) setDurations(data.durations);
       })
       .catch(() => {});
+    fetch(`${API_BASE}/characters`)
+      .then((res) => res.json())
+      .then((data) => setCharacters(data.items ?? data))
+      .catch(() => {});
   }, []);
 
   const isMultiChar = structure === "Dialogue" || structure === "Narrated Dialogue";
-  const handleCharacterChange = useCallback((ids: Record<string, number>) => setCharacterIds(ids), []);
+  const handleCharacterChange = useCallback(
+    (ids: Record<string, number>) => setCharacterIds(ids),
+    []
+  );
 
   const handleSubmit = () => {
     if (!topic.trim()) return;
@@ -68,6 +81,7 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
       duration,
       structure,
       language,
+      character_id: !isMultiChar && monoCharId ? monoCharId : undefined,
       character_ids: isMultiChar && Object.keys(characterIds).length > 0 ? characterIds : undefined,
       director_mode: directorMode,
       max_rounds: maxRounds,
@@ -153,14 +167,32 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
         </div>
       </div>
 
-      {/* Character Pickers (for Dialogue / Narrated Dialogue) */}
-      {isMultiChar && (
+      {/* Character Selection */}
+      {isMultiChar ? (
         <CharacterPicker
           structure={structure}
           inputClass={INPUT}
           labelClass={LABEL}
           onChange={handleCharacterChange}
         />
+      ) : (
+        characters.length > 0 && (
+          <div>
+            <label className={LABEL}>Character (optional)</label>
+            <select
+              value={monoCharId ?? ""}
+              onChange={(e) => setMonoCharId(e.target.value ? Number(e.target.value) : null)}
+              className={INPUT}
+            >
+              <option value="">None</option>
+              {characters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
       )}
 
       {/* References (optional) */}

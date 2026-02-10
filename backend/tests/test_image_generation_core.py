@@ -13,6 +13,7 @@ from PIL import Image
 
 from services.image_generation_core import (
     ImageGenerationResult,
+    compose_scene_with_style,
     generate_image_with_v3,
     resolve_style_loras_from_group,
     resolve_style_loras_from_storyboard,
@@ -224,6 +225,70 @@ class TestGenerateImageWithV3:
         assert result.seed == 99
         # No character LoRA, but prompt should still work
         assert result.final_prompt is not None
+
+
+class TestComposeSceneWithStyle:
+    """Test compose_scene_with_style() -- shared SSOT for Studio + Creative Lab."""
+
+    def test_calls_style_profile_then_v3(self):
+        """Must call apply_style_profile_to_prompt(skip_loras=True) then V3 compose."""
+        mock_db = MagicMock()
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+        ):
+            mock_apply.return_value = ("high_quality, 1girl, smile", "lowres, bad anatomy")
+            mock_instance = MagicMock()
+            mock_instance.compose_for_character.return_value = "masterpiece, best_quality, high_quality, 1girl"
+            MockBuilder.return_value = mock_instance
+
+            composed, negative = compose_scene_with_style(
+                raw_prompt="1girl, smile",
+                negative_prompt="lowres",
+                character_id=10,
+                storyboard_id=42,
+                style_loras=[{"name": "flat_color", "weight": 0.76}],
+                db=mock_db,
+            )
+
+            # 1. Style profile called with skip_loras=True
+            mock_apply.assert_called_once()
+            call_kwargs = mock_apply.call_args
+            assert call_kwargs[0][2] == 42  # storyboard_id
+            assert call_kwargs[1]["skip_loras"] is True
+
+            # 2. V3 compose_for_character called with styled prompt tags
+            mock_instance.compose_for_character.assert_called_once()
+
+            assert composed == "masterpiece, best_quality, high_quality, 1girl"
+            assert "bad anatomy" in negative
+
+    def test_no_character_uses_generic_compose(self):
+        """When character_id is None, must use builder.compose (not compose_for_character)."""
+        mock_db = MagicMock()
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+        ):
+            mock_apply.return_value = ("no_humans, sunset", "lowres")
+            mock_instance = MagicMock()
+            mock_instance.compose.return_value = "no_humans, sunset, masterpiece"
+            MockBuilder.return_value = mock_instance
+
+            composed, _ = compose_scene_with_style(
+                raw_prompt="no_humans, sunset",
+                negative_prompt="lowres",
+                character_id=None,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+            )
+
+            mock_instance.compose.assert_called_once()
+            mock_instance.compose_for_character.assert_not_called()
+            assert "sunset" in composed
 
 
 class TestResolveStyleLorasFromGroup:
