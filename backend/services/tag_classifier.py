@@ -184,7 +184,7 @@ class TagClassifier:
         if self._rules_cache is None:
             stmt = (
                 select(ClassificationRule)
-                .where(ClassificationRule.active == True)  # noqa: E712
+                .where(ClassificationRule.is_active == True)  # noqa: E712
                 .order_by(ClassificationRule.priority.desc())
             )
             self._rules_cache = list(self.db.execute(stmt).scalars().all())
@@ -272,8 +272,16 @@ class TagClassifier:
         # For granular groups (action, pose, expression, camera, etc.),
         # return the group itself as the category so it matches composition priorities.
         granular_groups = {
-            "expression", "gaze", "pose", "action", "camera",
-            "time_weather", "lighting", "mood", "location_indoor", "location_outdoor"
+            "expression",
+            "gaze",
+            "pose",
+            "action",
+            "camera",
+            "time_weather",
+            "lighting",
+            "mood",
+            "location_indoor",
+            "location_outdoor",
         }
         if group in granular_groups:
             return group
@@ -299,13 +307,15 @@ def migrate_patterns_to_rules(db: Session, patterns: dict[str, list[str]]) -> in
 
     for group_name, pattern_list in patterns.items():
         for pattern in pattern_list:
-            rules_to_insert.append({
-                "rule_type": "exact",
-                "pattern": pattern.lower(),
-                "target_group": group_name,
-                "priority": 0,
-                "active": True,
-            })
+            rules_to_insert.append(
+                {
+                    "rule_type": "exact",
+                    "pattern": pattern.lower(),
+                    "target_group": group_name,
+                    "priority": 0,
+                    "is_active": True,
+                }
+            )
 
     if rules_to_insert:
         # Use ON CONFLICT DO NOTHING to skip duplicates

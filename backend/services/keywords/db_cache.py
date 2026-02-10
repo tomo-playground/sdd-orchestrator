@@ -13,6 +13,7 @@ DB_TO_PROMPT_CATEGORY = {
     "meta": "meta",
 }
 
+
 class TagCategoryCache:
     """In-memory cache for tag -> category mapping from DB."""
 
@@ -75,8 +76,16 @@ class TagCategoryCache:
         """
         # 1. Use group_name for granular categories (expression, pose, action, etc.)
         granular_groups = {
-            "expression", "gaze", "pose", "action", "camera",
-            "time_weather", "lighting", "mood", "location_indoor", "location_outdoor"
+            "expression",
+            "gaze",
+            "pose",
+            "action",
+            "camera",
+            "time_weather",
+            "lighting",
+            "mood",
+            "location_indoor",
+            "location_outdoor",
         }
         if group_name in granular_groups:
             return group_name
@@ -86,6 +95,7 @@ class TagCategoryCache:
             return "scene"
 
         return DB_TO_PROMPT_CATEGORY.get(category, category)
+
 
 class TagAliasCache:
     """In-memory cache for tag aliases (replacements) from DB."""
@@ -100,7 +110,7 @@ class TagAliasCache:
             return
 
         try:
-            aliases = db.query(TagAlias).filter(TagAlias.active).all()
+            aliases = db.query(TagAlias).filter(TagAlias.is_active).all()
 
             count = 0
             for alias in aliases:
@@ -146,23 +156,17 @@ class TagRuleCache:
 
         try:
             from sqlalchemy.orm import aliased
+
             SourceTag = aliased(Tag)
             TargetTag = aliased(Tag)
 
             # Load tag-level conflicts
             tag_rules = (
-                db.query(
-                    SourceTag.name.label("source_name"),
-                    TargetTag.name.label("target_name")
-                )
+                db.query(SourceTag.name.label("source_name"), TargetTag.name.label("target_name"))
                 .select_from(TagRule)
                 .join(SourceTag, TagRule.source_tag_id == SourceTag.id)
                 .join(TargetTag, TagRule.target_tag_id == TargetTag.id)
-                .filter(
-                    TagRule.rule_type == "conflict",
-                    TagRule.active,
-                    TagRule.source_tag_id.isnot(None)
-                )
+                .filter(TagRule.rule_type == "conflict", TagRule.is_active, TagRule.source_tag_id.isnot(None))
                 .all()
             )
 
@@ -179,9 +183,7 @@ class TagRuleCache:
             # Reason: Never used (0/16 rules), logically unnecessary
 
             cls._initialized = True
-            logger.info(
-                f"✅ [TagRuleCache] Loaded {tag_count} tag conflicts into cache"
-            )
+            logger.info(f"✅ [TagRuleCache] Loaded {tag_count} tag conflicts into cache")
         except Exception as e:
             logger.error(f"❌ [TagRuleCache] Failed to initialize: {e}")
 
@@ -206,6 +208,7 @@ class TagRuleCache:
         cls._category_conflicts.clear()
         cls.initialize(db)
 
+
 class LoRATriggerCache:
     """In-memory cache for mapping trigger words to LoRA names."""
 
@@ -220,6 +223,7 @@ class LoRATriggerCache:
 
         try:
             from models.lora import LoRA
+
             loras = db.query(LoRA).all()
 
             count = 0
@@ -265,7 +269,8 @@ class TagFilterCache:
 
         try:
             from models.tag_filter import TagFilter
-            filters = db.query(TagFilter).filter(TagFilter.active).all()
+
+            filters = db.query(TagFilter).filter(TagFilter.is_active).all()
 
             restricted_count = 0
             ignored_count = 0
@@ -280,10 +285,7 @@ class TagFilterCache:
                     ignored_count += 1
 
             cls._initialized = True
-            logger.info(
-                f"✅ [TagFilterCache] Loaded {restricted_count} restricted tags, "
-                f"{ignored_count} ignored tags"
-            )
+            logger.info(f"✅ [TagFilterCache] Loaded {restricted_count} restricted tags, {ignored_count} ignored tags")
         except Exception as e:
             logger.error(f"❌ [TagFilterCache] Failed to initialize: {e}")
 

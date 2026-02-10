@@ -25,7 +25,7 @@ def register_midoriya_alias():
                 source_tag=source_tag,
                 target_tag=target_tag,
                 reason="User manual trigger definition",
-                active=True
+                is_active=True
             ))
 
         db.commit()

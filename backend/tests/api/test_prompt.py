@@ -22,7 +22,7 @@ def seed_prompt_rules():
         for source, target in replacements:
             existing = db.query(TagAlias).filter(TagAlias.source_tag == source).first()
             if not existing:
-                db.add(TagAlias(source_tag=source, target_tag=target, active=True))
+                db.add(TagAlias(source_tag=source, target_tag=target, is_active=True))
 
         db.commit()
 
@@ -214,9 +214,7 @@ def test_auto_replace_request_validation(client: TestClient):
         (["definitely_unknown_tag_abc456", "medium shot"], 2),  # Mixed
     ],
 )
-def test_validate_tags_various_inputs(
-    client: TestClient, tags: list[str], expected_total: int
-):
+def test_validate_tags_various_inputs(client: TestClient, tags: list[str], expected_total: int):
     """Test tag validation with various input combinations."""
     response = client.post(
         "/prompt/validate-tags",

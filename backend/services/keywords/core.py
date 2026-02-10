@@ -24,6 +24,7 @@ def _get_split_prompt_tokens():
     global _split_prompt_tokens
     if _split_prompt_tokens is None:
         from services.prompt import split_prompt_tokens
+
         _split_prompt_tokens = split_prompt_tokens
     return _split_prompt_tokens
 
@@ -32,6 +33,7 @@ def _get_normalize_prompt_tokens():
     global _normalize_prompt_tokens
     if _normalize_prompt_tokens is None:
         from services.prompt import normalize_prompt_tokens
+
         _normalize_prompt_tokens = normalize_prompt_tokens
     return _normalize_prompt_tokens
 
@@ -54,21 +56,17 @@ class TagFilterCache:
             from models import TagFilter
 
             # Load ignore tokens
-            ignore_filters = db.query(TagFilter).filter(
-                TagFilter.filter_type == 'ignore',
-                TagFilter.active
-            ).all()
+            ignore_filters = db.query(TagFilter).filter(TagFilter.filter_type == "ignore", TagFilter.is_active).all()
             cls._ignore_tokens = frozenset(f.tag_name for f in ignore_filters)
 
             # Load skip tags
-            skip_filters = db.query(TagFilter).filter(
-                TagFilter.filter_type == 'skip',
-                TagFilter.active
-            ).all()
+            skip_filters = db.query(TagFilter).filter(TagFilter.filter_type == "skip", TagFilter.is_active).all()
             cls._skip_tags = frozenset(f.tag_name for f in skip_filters)
 
             cls._initialized = True
-            logger.info(f"✅ [TagFilter] Loaded {len(cls._ignore_tokens)} ignore tokens, {len(cls._skip_tags)} skip tags")
+            logger.info(
+                f"✅ [TagFilter] Loaded {len(cls._ignore_tokens)} ignore tokens, {len(cls._skip_tags)} skip tags"
+            )
         except Exception as e:
             logger.error(f"❌ [TagFilter] Failed to initialize: {e}")
             # Fallback to empty sets

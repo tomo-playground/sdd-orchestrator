@@ -157,15 +157,14 @@ System Default < Project Config < Group Config
 
 | 테이블 | 이슈 | 심각도 |
 |--------|------|--------|
-| `tag_rules` | `active` → `is_active` 미변경 | HIGH |
-| `tag_aliases` | `active` → `is_active` 미변경 | HIGH |
-| `tag_filters` | `active` → `is_active` 미변경 | HIGH |
-| `classification_rules` | `active` → `is_active` 미변경 | HIGH |
-| `scenes` | `ip_adapter_reference` String 경로 → media_asset_id FK 미전환 | HIGH |
-| `voice_presets` | `audio_url` @property 별도 세션 생성 안티패턴 | MEDIUM |
-| `music_presets` | `audio_asset` relationship() 누락 | MEDIUM |
-| `classification_rules` | `models/__init__.py` 미export | MEDIUM |
-| 12+ enum 컬럼 | CHECK 제약조건 미적용 | MEDIUM |
+| `scenes` | `ip_adapter_reference` String (캐릭터명) → character_id FK 전환 시 frontend/backend 40+ 참조 리팩터링 필요. 현재 name-based lookup으로 정상 동작 중 | LOW |
+
+### 해결 완료 (2026-02-10)
+- `active` → `is_active` 리네임: tag_rules, tag_aliases, tag_filters, classification_rules (마이그레이션 `22e99aa5ecbd`)
+- CHECK 제약조건 8개 추가: tag_rules, tag_filters, classification_rules, voice_presets, render_presets, embeddings, tags, media_assets (마이그레이션 `3e30b3b1d7cc`)
+- `voice_presets`: `audio_asset` relationship() 추가 + `audio_url` @property 안티패턴 수정
+- `music_presets`: `audio_asset` relationship() 추가
+- `classification_rules`: `models/__init__.py` export 추가
 
 ---
 

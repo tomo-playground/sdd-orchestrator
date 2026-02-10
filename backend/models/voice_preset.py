@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from models.media_asset import MediaAsset
 
 
 class VoicePreset(Base, TimestampMixin):
@@ -25,15 +30,11 @@ class VoicePreset(Base, TimestampMixin):
     voice_seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Relationships
+    audio_asset: Mapped[MediaAsset | None] = relationship("MediaAsset", foreign_keys=[audio_asset_id])
+
     @property
     def audio_url(self) -> str | None:
-        if not self.audio_asset_id:
+        if self.audio_asset is None:
             return None
-        from database import get_db
-        from models.media_asset import MediaAsset
-        db = next(get_db())
-        try:
-            asset = db.get(MediaAsset, self.audio_asset_id)
-            return asset.url if asset else None
-        finally:
-            db.close()
+        return self.audio_asset.url

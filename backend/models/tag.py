@@ -38,9 +38,7 @@ class Tag(Base, TimestampMixin):
     # Deprecation & replacement (15.8)
     is_active: Mapped[bool] = mapped_column(default=True, index=True)
     deprecated_reason: Mapped[str | None] = mapped_column(String(200))
-    replacement_tag_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("tags.id", ondelete="SET NULL")
-    )
+    replacement_tag_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("tags.id", ondelete="SET NULL"))
 
 
 class ClassificationRule(Base, TimestampMixin):
@@ -54,7 +52,7 @@ class ClassificationRule(Base, TimestampMixin):
     pattern: Mapped[str] = mapped_column(String(100))
     target_group: Mapped[str] = mapped_column(String(50))
     priority: Mapped[int] = mapped_column(Integer, default=0)
-    active: Mapped[bool] = mapped_column(default=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
 
 class TagRule(Base, TimestampMixin):
@@ -71,10 +69,16 @@ class TagRule(Base, TimestampMixin):
 
     # Tag-level conflicts (individual tags)
     source_tag_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("tags.id", ondelete="CASCADE"), index=True, nullable=True,
+        Integer,
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
     )
     target_tag_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("tags.id", ondelete="CASCADE"), index=True, nullable=True,
+        Integer,
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
     )
 
     # Removed (Phase 6-4.26): source_category, target_category
@@ -82,20 +86,21 @@ class TagRule(Base, TimestampMixin):
 
     message: Mapped[str | None] = mapped_column(String(200))
     priority: Mapped[int] = mapped_column(Integer, default=0)
-    active: Mapped[bool] = mapped_column(default=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
 
 class TagEffectiveness(Base, TimestampMixin):
     """Per-tag prompt effectiveness tracking (use_count, match_count, ratio)."""
 
     __tablename__ = "tag_effectiveness"
-    __table_args__ = (
-        UniqueConstraint("tag_id", name="uq_tag_effectiveness_tag_id"),
-    )
+    __table_args__ = (UniqueConstraint("tag_id", name="uq_tag_effectiveness_tag_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tag_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     use_count: Mapped[int] = mapped_column(Integer, default=0)
     match_count: Mapped[int] = mapped_column(Integer, default=0)

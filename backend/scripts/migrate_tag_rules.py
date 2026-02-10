@@ -59,7 +59,7 @@ def migrate_rules():
                         target_tag_id=t_tag.id,
                         rule_type='conflict',
                         message='Conflicting tags',
-                        active=True
+                        is_active=True
                     )
                     db.add(rule)
                     count += 1

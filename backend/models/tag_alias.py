@@ -21,4 +21,4 @@ class TagAlias(Base, TimestampMixin):
     source_tag: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     target_tag: Mapped[str | None] = mapped_column(String(100))  # NULL = remove tag
     reason: Mapped[str | None] = mapped_column(String(200))
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)

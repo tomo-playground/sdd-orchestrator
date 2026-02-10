@@ -24,7 +24,7 @@ def register_chibi_rule():
                 source_tag=source_tag,
                 target_tag=target_tag,
                 reason="User manual trigger definition",
-                active=True
+                is_active=True
             ))
 
         db.commit()

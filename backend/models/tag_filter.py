@@ -15,4 +15,4 @@ class TagFilter(Base, TimestampMixin):
     tag_name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     filter_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'ignore' or 'skip'
     reason: Mapped[str | None] = mapped_column(String(200))  # Why this tag is filtered
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)

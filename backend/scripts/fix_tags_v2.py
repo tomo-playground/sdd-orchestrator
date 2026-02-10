@@ -31,7 +31,7 @@ def migrate_patterns_to_rules(db):
                     pattern=pattern,
                     target_group=group_name,
                     priority=0,
-                    active=True
+                    is_active=True
                 )
                 db.add(rule)
                 count += 1

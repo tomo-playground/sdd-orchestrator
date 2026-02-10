@@ -17,7 +17,7 @@ def add_chibi_alias():
                 source_tag="chibi",
                 target_tag="chibi, <lora:blindbox_v1_mix:0.8>",
                 reason="Auto-inject LoRA",
-                active=True
+                is_active=True
             )
             db.add(alias)
 

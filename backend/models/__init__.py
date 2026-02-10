@@ -25,7 +25,7 @@ from models.scene_quality import SceneQualityScore
 from models.sd_model import Embedding, SDModel, StyleProfile
 from models.storyboard import Storyboard
 from models.storyboard_character import StoryboardCharacter
-from models.tag import Tag, TagEffectiveness, TagRule
+from models.tag import ClassificationRule, Tag, TagEffectiveness, TagRule
 from models.tag_alias import TagAlias
 from models.tag_filter import TagFilter
 from models.voice_preset import VoicePreset
@@ -36,6 +36,7 @@ __all__ = [
     "Tag",
     "TagEffectiveness",
     "TagRule",
+    "ClassificationRule",
     "TagFilter",
     "TagAlias",
     "Character",

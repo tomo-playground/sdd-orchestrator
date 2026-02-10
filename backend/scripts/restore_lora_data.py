@@ -55,7 +55,7 @@ def restore_and_fix():
             db.add(TagAlias(
                 source_tag="flat_color",
                 target_tag="flat_color, <lora:flat_color:0.8>",
-                active=True
+                is_active=True
             ))
 
         # 4. Restore Geometric (Alias)
@@ -65,7 +65,7 @@ def restore_and_fix():
             db.add(TagAlias(
                 source_tag="geometric",
                 target_tag="geometric, <lora:Gentle_Cubism_Light:0.8>",
-                active=True
+                is_active=True
             ))
 
         # 5. Restore blindbox (Verify/Ensure)

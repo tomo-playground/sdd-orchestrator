@@ -15,8 +15,10 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 # Pydantic Schemas
 # ============================================================
 
+
 class DeprecateTagRequest(BaseModel):
     """Request schema for deprecating a tag."""
+
     deprecated_reason: str
     replacement_tag_id: int | None = None
 
@@ -32,14 +34,22 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
     # List of conflicting pairs to migrate
     conflicts = [
         # Expression conflicts
-        ('crying', 'laughing'), ('crying', 'happy'), ('crying', 'smile'),
-        ('sad', 'happy'), ('sad', 'smile'), ('sad', 'laughing'),
-        ('angry', 'happy'), ('angry', 'smile'),
+        ("crying", "laughing"),
+        ("crying", "happy"),
+        ("crying", "smile"),
+        ("sad", "happy"),
+        ("sad", "smile"),
+        ("sad", "laughing"),
+        ("angry", "happy"),
+        ("angry", "smile"),
         # Gaze conflicts
-        ('looking_down', 'looking_up'), ('looking_away', 'looking_at_viewer'),
-        ('closed_eyes', 'looking_at_viewer'),
+        ("looking_down", "looking_up"),
+        ("looking_away", "looking_at_viewer"),
+        ("closed_eyes", "looking_at_viewer"),
         # Pose conflicts
-        ('sitting', 'standing'), ('lying', 'standing'), ('lying', 'sitting'),
+        ("sitting", "standing"),
+        ("lying", "standing"),
+        ("lying", "sitting"),
     ]
 
     added = []
@@ -57,27 +67,35 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
                 continue
 
             # Check if rule already exists
-            exists = db.query(TagRule).filter(
-                TagRule.source_tag_id == s_tag.id,
-                TagRule.target_tag_id == t_tag.id,
-                TagRule.rule_type == 'conflict'
-            ).first()
+            exists = (
+                db.query(TagRule)
+                .filter(
+                    TagRule.source_tag_id == s_tag.id,
+                    TagRule.target_tag_id == t_tag.id,
+                    TagRule.rule_type == "conflict",
+                )
+                .first()
+            )
 
             if not exists:
                 # Also check reverse direction
-                reverse_exists = db.query(TagRule).filter(
-                    TagRule.source_tag_id == t_tag.id,
-                    TagRule.target_tag_id == s_tag.id,
-                    TagRule.rule_type == 'conflict'
-                ).first()
+                reverse_exists = (
+                    db.query(TagRule)
+                    .filter(
+                        TagRule.source_tag_id == t_tag.id,
+                        TagRule.target_tag_id == s_tag.id,
+                        TagRule.rule_type == "conflict",
+                    )
+                    .first()
+                )
 
                 if not reverse_exists:
                     rule = TagRule(
                         source_tag_id=s_tag.id,
                         target_tag_id=t_tag.id,
-                        rule_type='conflict',
-                        message='Conflicting tags',
-                        active=True
+                        rule_type="conflict",
+                        message="Conflicting tags",
+                        is_active=True,
                     )
                     db.add(rule)
                     added.append(f"{s_name} <-> {t_name}")
@@ -93,13 +111,7 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
         db.commit()
     except Exception as e:
         db.rollback()
-        return {
-            "success": False,
-            "error": str(e),
-            "added": added,
-            "skipped": skipped,
-            "errors": errors
-        }
+        return {"success": False, "error": str(e), "added": added, "skipped": skipped, "errors": errors}
 
     return {
         "success": True,
@@ -108,7 +120,7 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
         "errors": errors,
         "total_added": len(added),
         "total_skipped": len(skipped),
-        "total_errors": len(errors)
+        "total_errors": len(errors),
     }
 
 
@@ -153,20 +165,15 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
         TagRuleCache.refresh(db)
         LoRATriggerCache.refresh(db)
 
-        return {
-            "success": True,
-            "message": "All caches refreshed successfully"
-        }
+        return {"success": True, "message": "All caches refreshed successfully"}
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 # ============================================================
 # Tag Deprecation Management (Phase 6-4.15.8)
 # ============================================================
+
 
 @router.get("/tags/deprecated")
 async def get_deprecated_tags(db: Session = Depends(get_db)):
@@ -182,31 +189,26 @@ async def get_deprecated_tags(db: Session = Depends(get_db)):
                 replacement = {
                     "id": replacement_tag.id,
                     "name": replacement_tag.name,
-                    "category": replacement_tag.category
+                    "category": replacement_tag.category,
                 }
 
-        result.append({
-            "id": tag.id,
-            "name": tag.name,
-            "category": tag.category,
-            "deprecated_reason": tag.deprecated_reason,
-            "replacement": replacement,
-            "created_at": tag.created_at.isoformat() if tag.created_at else None,
-            "updated_at": tag.updated_at.isoformat() if tag.updated_at else None
-        })
+        result.append(
+            {
+                "id": tag.id,
+                "name": tag.name,
+                "category": tag.category,
+                "deprecated_reason": tag.deprecated_reason,
+                "replacement": replacement,
+                "created_at": tag.created_at.isoformat() if tag.created_at else None,
+                "updated_at": tag.updated_at.isoformat() if tag.updated_at else None,
+            }
+        )
 
-    return {
-        "total": len(result),
-        "tags": result
-    }
+    return {"total": len(result), "tags": result}
 
 
 @router.put("/tags/{tag_id}/deprecate")
-async def deprecate_tag(
-    tag_id: int,
-    request: DeprecateTagRequest,
-    db: Session = Depends(get_db)
-):
+async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session = Depends(get_db)):
     """Deprecate a tag and optionally set a replacement.
 
     Args:
@@ -226,8 +228,7 @@ async def deprecate_tag(
         replacement = db.query(Tag).filter(Tag.id == request.replacement_tag_id).first()
         if not replacement:
             raise HTTPException(
-                status_code=400,
-                detail=f"Replacement tag with id {request.replacement_tag_id} not found"
+                status_code=400, detail=f"Replacement tag with id {request.replacement_tag_id} not found"
             )
         if replacement.id == tag_id:
             raise HTTPException(status_code=400, detail="Cannot replace tag with itself")
@@ -251,8 +252,8 @@ async def deprecate_tag(
             "name": tag.name,
             "is_active": tag.is_active,
             "deprecated_reason": tag.deprecated_reason,
-            "replacement_tag_id": tag.replacement_tag_id
-        }
+            "replacement_tag_id": tag.replacement_tag_id,
+        },
     }
 
 
@@ -283,19 +284,13 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
-    return {
-        "success": True,
-        "tag": {
-            "id": tag.id,
-            "name": tag.name,
-            "is_active": tag.is_active
-        }
-    }
+    return {"success": True, "tag": {"id": tag.id, "name": tag.name, "is_active": tag.is_active}}
 
 
 # ============================================================
 # Media Asset Garbage Collection (Phase 6-7)
 # ============================================================
+
 
 @router.get("/media-assets/orphans")
 async def detect_orphan_assets(db: Session = Depends(get_db)):

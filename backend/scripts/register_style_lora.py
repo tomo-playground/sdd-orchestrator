@@ -37,7 +37,7 @@ def register_style_lora(tag_name: str, lora_name_query: str, weight: float = 0.8
                 source_tag=tag_name,
                 target_tag=target_tag,
                 reason="Auto-inject Style LoRA",
-                active=True
+                is_active=True
             )
             db.add(alias)
 
