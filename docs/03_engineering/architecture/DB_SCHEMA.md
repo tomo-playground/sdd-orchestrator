@@ -779,7 +779,7 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `storyboard_id` | Integer | 스토리보드 ID (인덱스, FK 없음) |
+| `storyboard_id` | Integer | 스토리보드 ID (index-only, 히스토리 보존을 위해 FK 의도적 미설정) |
 | `scene_id` | Integer (FK → scenes, CASCADE) | 씬 ID |
 | `prompt` | Text | 사용된 프롬프트 |
 | `match_rate` | Float | WD14 매치율 |
@@ -801,7 +801,7 @@ Textual Inversion 임베딩.
 | `negative_prompt` | Text | |
 | `steps`, `cfg_scale`, `seed`, `clip_skip` | Integer/Float | SD 파라미터 |
 | `sampler_name` | String | 샘플러 이름 |
-| `character_id` | Integer | (인덱스, FK 없음 — Known Issue) |
+| `character_id` | Integer | (index-only, 스냅샷 보존을 위해 FK 의도적 미설정) |
 | `lora_settings` | JSONB | |
 | `context_tags` | JSONB | |
 | `last_match_rate`, `avg_match_rate` | Float | |

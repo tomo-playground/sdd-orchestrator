@@ -117,10 +117,11 @@ System Default < Project Config < Group Config
 | 참조 (설정) | `SET NULL` | 참조 대상 삭제 시 null 허용 | character→voice_preset |
 | 참조 (필수) | `RESTRICT` | 삭제 차단 | group→storyboard |
 | 로그/이력 | `SET NULL` | 원본 삭제 후에도 로그 보존 | activity_logs→character |
+| 히스토리/통계 | **FK 없음** (index-only) | 스냅샷 데이터, 부모 삭제와 무관하게 보존 | prompt_histories, scene_quality_scores |
 | Association | `CASCADE` | 양쪽 FK 모두 CASCADE | character_tags |
 | Self-ref | `SET NULL` | 자기 참조 삭제 시 null | creative_traces→parent |
 
-**규칙**: 모든 FK 컬럼에는 반드시 DB 레벨 FK 제약조건 필수. index-only FK 금지.
+**규칙**: 콘텐츠/설정 테이블의 FK 컬럼에는 반드시 DB 레벨 FK 제약조건 필수. 단, 히스토리/통계 테이블은 index-only 허용 (스냅샷 보존).
 
 ---
 
@@ -156,8 +157,6 @@ System Default < Project Config < Group Config
 
 | 테이블 | 이슈 | 심각도 |
 |--------|------|--------|
-| `prompt_histories` | `character_id` FK 제약조건 없음 (index-only) | CRITICAL |
-| `scene_quality_scores` | `storyboard_id` FK 제약조건 없음 (index-only) | CRITICAL |
 | `tag_rules` | `active` → `is_active` 미변경 | HIGH |
 | `tag_aliases` | `active` → `is_active` 미변경 | HIGH |
 | `tag_filters` | `active` → `is_active` 미변경 | HIGH |
