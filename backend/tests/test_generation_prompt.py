@@ -471,10 +471,10 @@ class TestNarratorBackgroundFiltering:
 
     @patch("services.generation.load_reference_image", return_value=None)
     @patch("services.generation.apply_style_profile_to_prompt")
-    def test_non_narrator_no_character_unchanged(self, mock_style, mock_ref):
-        """No no_humans + no character_id → full style profile, no compose_scene_with_style."""
-        mock_style.return_value = ("scenery, sunset, mountain", "bad")
-        req = _make_request(character_id=None, prompt="scenery, sunset, mountain")
+    def test_no_character_with_person_tags_uses_style_profile(self, mock_style, mock_ref):
+        """No character_id but person tags (1girl) → style profile only, no no_humans."""
+        mock_style.return_value = ("1girl, standing, cafe", "bad")
+        req = _make_request(character_id=None, prompt="1girl, standing, cafe")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
 
@@ -483,6 +483,22 @@ class TestNarratorBackgroundFiltering:
 
         mock_compose.assert_not_called()
         assert char is None
-        # skip_loras should NOT be passed (full style profile)
-        call_kwargs = mock_style.call_args
-        assert call_kwargs.kwargs.get("skip_loras", False) is False
+        assert "no_humans" not in req.prompt
+
+    @patch("services.generation._resolve_style_loras")
+    @patch("services.generation.load_reference_image", return_value=None)
+    @patch("services.generation.apply_style_profile_to_prompt")
+    def test_no_character_no_person_tags_injects_no_humans(self, mock_style, mock_ref, mock_resolve):
+        """No character_id + no person tags → auto-inject no_humans, use V3 background."""
+        mock_resolve.return_value = []
+        req = _make_request(character_id=None, prompt="scenery, sunset, mountain")
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = None
+
+        with patch("services.generation.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, scenery, sunset, mountain", "bad", [])
+            cleaned, _, char = _prepare_prompt(req, db)
+
+        # no_humans auto-injected → V3 background composition called
+        mock_compose.assert_called_once()
+        assert "no_humans" in req.prompt

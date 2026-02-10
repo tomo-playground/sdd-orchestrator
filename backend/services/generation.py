@@ -31,6 +31,8 @@ from services.prompt import (
     split_prompt_tokens,
 )
 
+_PERSON_INDICATORS = frozenset({"1girl", "1boy", "2girls", "2boys", "3girls", "3boys", "solo", "couple", "group"})
+
 
 @contextmanager
 def get_db_session():
@@ -246,6 +248,14 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
 
     final_warnings: list[str] = []
 
+    # Narrator defense: no character + no person tags → inject no_humans
+    if not request.character_id and not request.prompt_pre_composed:
+        prompt_norm = request.prompt.lower().replace(" ", "_")
+        has_person = any(ind in prompt_norm for ind in _PERSON_INDICATORS)
+        if not has_person and "no_humans" not in prompt_norm:
+            request.prompt = f"no_humans, {request.prompt}"
+            logger.info("🚫 [Narrator] Auto-injected no_humans for background scene")
+
     if request.prompt_pre_composed:
         # Frontend /prompt/compose already ran V3 (character LoRA included)
         # Apply style profile quality tags + embeddings only (skip_loras=True)
@@ -262,7 +272,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
     elif request.character_id and character_obj:
         # Raw prompt → compose_scene_with_style (StyleProfile + V3)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
-        logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [l.get("name") for l in style_loras])
+        logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [lr.get("name") for lr in style_loras])
         cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
             raw_prompt=request.prompt,
             negative_prompt=request.negative_prompt or "",
