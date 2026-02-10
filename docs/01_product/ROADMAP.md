@@ -150,7 +150,7 @@
 | 1 | CI 파이프라인 (GitHub Actions: lint + test) | 인프라 | [x] |
 | 2 | VRT Baseline System | 인프라 | [ ] |
 | 3 | 고아 media_assets GC 시스템 | 인프라 | [x] |
-| 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](FEATURES/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [x] |
+| 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](../99_archive/features/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [x] |
 | 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [x] |
 | 6 | Frontend Trash 탭 (Manage) | Soft Delete | [x] |
 | 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [x] |
@@ -163,7 +163,7 @@
 | 13 | Character Voice Preset (캐릭터 대표 목소리) | Voice | [x] |
 | 14 | Storyboard Narrator Voice (스토리보드 나레이터 목소리) | Voice | [x] |
 | 15 | TTS 파이프라인 speaker→voice 자동 resolve | Voice | [x] |
-| 16 | DB Schema Cleanup: 네이밍(`default_` 제거) + 타입(`Integer→Boolean`, `Text→JSONB`). [명세](FEATURES/SCHEMA_CLEANUP.md) | DB | [x] |
+| 16 | DB Schema Cleanup: 네이밍(`default_` 제거) + 타입(`Integer→Boolean`, `Text→JSONB`). [명세](../99_archive/features/SCHEMA_CLEANUP.md) | DB | [x] |
 
 **DoD**: PR마다 CI 자동 테스트, Soft Delete 3개 모델 적용, 공통 컴포넌트 4개+.
 
@@ -220,7 +220,7 @@
 | 12 | 씬 텍스트 하단 배치 + 드롭섀도우 + Color Grade | 영상 품질 | - | [x] |
 | 13 | Gemini 스크립트 길이 제한 강화 (30자/Korean) | 품질 | - | [x] |
 | 14 | Character Identity Injection (Gemini 스토리보드에 캐릭터 태그/LoRA 주입 + 오토파일럿 overlay 수정) | 품질 | - | [x] |
-| 15 | 좌측 사이드바 네비게이션 + 컨텍스트 전환 버그 수정 (Phase A 버그 6건 + Phase B 사이드바 완료. Phase C ContextBar 정리 보류) | UX | [명세](FEATURES/SIDEBAR_NAVIGATION.md) | [x] |
+| 15 | 좌측 사이드바 네비게이션 + 컨텍스트 전환 버그 수정 (Phase A 버그 6건 + Phase B 사이드바 완료. Phase C ContextBar 정리 보류) | UX | [명세](../99_archive/features/SIDEBAR_NAVIGATION.md) | [x] |
 | 16 | Insights 탭 Studio → Manage 이동 (QualityDashboard + AnalyticsDashboard, 스토리보드 셀렉터) | UX | - | [x] |
 | 17 | YouTube Shorts Upload (OAuth + per-project credential + upload modal) | 기능 | [명세](FEATURES/YOUTUBE_UPLOAD.md) | [x] |
 | 18 | Dialogue & Narrated Dialogue 구조 (2-character + 3-speaker Narrator) | 기능 | - | [x] |
@@ -229,7 +229,7 @@
 | 21 | Narrator Scene 스타일 적용 (image_prompt 백엔드 주입 + ControlNet/IP-Adapter 자동 비활성) | 품질 | - | [x] |
 | 22 | image_url 정합성 강화 (JSONB 저장 방어, base64 전송 방지, stale ID 방어) | 안정성 | - | [x] |
 | 23 | Background Scene 태그 필터링 (no_humans 감지 → 캐릭터 레이어 제거) + LoRA Weight Cap 통합 (0.76) | 품질 | - | [x] |
-| 24 | Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 (9-Agent Pipeline + Studio 연동) | 기능 | [명세](FEATURES/CREATIVE_LAB_V2.md) | [x] |
+| 24 | Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 (9-Agent Pipeline + Studio 연동) | 기능 | [명세](../99_archive/features/CREATIVE_LAB_V2.md) | [x] |
 
 ---
 
@@ -250,7 +250,7 @@
 | Phase 0: Foundation | DB 마이그레이션, CRUD API, FK 연결 | [x] |
 | Phase 1: Core | FK 강화, 캐릭터 프로젝트 스코핑, 렌더 프리셋 분리, 설정 상속 엔진, 그룹 편집 UI | [x] |
 | Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동, Studio UX Polish | [x] |
-| Phase 1.7: Group Defaults | 그룹 cascade 확장 (language, structure, duration, narrator_voice), Manage 그룹 기본값 편집 UI. [명세](FEATURES/GROUP_DEFAULTS.md) | [x] |
+| Phase 1.7: Group Defaults | 그룹 cascade 확장 (language, structure, duration, narrator_voice), Manage 그룹 기본값 편집 UI. [명세](../99_archive/features/GROUP_DEFAULTS.md) | [x] |
 | Phase 2: Differentiation | Channel DNA (톤/세계관 주입), Tag Intelligence, Series Intelligence | [ ] |
 | Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
 
@@ -289,7 +289,7 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Scene Clothing Override (장면별 의상 변경) | [명세](FEATURES/SCENE_CLOTHING_OVERRIDE.md) |
 | Scene 단위 자연어 이미지 편집 | [명세](FEATURES/SCENE_IMAGE_EDIT.md) |
-| ~~AI BGM Generation~~ | ~~[명세](FEATURES/AI_BGM.md)~~ → 6-8 #7-11로 이동 (완료) |
+| ~~AI BGM Generation~~ | ~~[명세](../99_archive/features/AI_BGM.md)~~ → 6-8 #7-11로 이동 (완료) |
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
 | Real-time Prompt Preview (12-Layer) | - |
@@ -317,7 +317,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-7: **14/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
 - Phase 7-1: **17/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- **Backend 테스트**: 1,290개 수집
+- **Backend 테스트**: 1,291개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-10)
 
@@ -353,3 +353,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-09) Creative Lab V2 MVP: 9-Agent 시스템, Phase 1 Concept Debate + Phase 2 Production Pipeline, 6 Jinja2 Templates, Frontend V1/V2 모드 전환
 - (2026-02-10) Creative Lab V2 Phase 3: Multi-Character Dialogue (character_ids 매핑, CharacterPicker 컴포넌트), Sound Designer 에이전트 (BGM 추천), Copyright Reviewer 에이전트, send-to-studio 서비스 추출 (creative_studio.py), QC feedback retry 개선, SSOT presets API 연동, 단위 테스트 14개
 - (2026-02-10) 모듈화 위반 전면 리팩토링 (TDD 22건): `split_prompt_tokens` SSOT 통합, `resolve_style_loras` config cascade 통합, `creative_studio._build_scene` V3 composition 파이프라인 적용 (style_loras + negative_prompt), `lab.py` V3 이중 호출 제거, `controlnet.py` 태그 underscore 포맷 수정, 모놀로그 캐릭터 링크 누락 수정, V3 `_distribute_tags` LoRA 이중 주입 방지
+- (2026-02-10) `compose_scene_with_style` SSOT 추출: Creative Lab/Studio Direct 프롬프트 파이프라인 단일화 (StyleProfile → V3 composition). `generate_image_with_v3`도 통합. `prompt_pre_composed` 경로 LoRA 이중 적용 버그 수정 (`skip_loras=True` + defense-in-depth 중복 방어)

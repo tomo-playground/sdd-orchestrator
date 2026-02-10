@@ -73,7 +73,7 @@ mindmap
 | 4 | 시스템 프리셋 10종 기본 제공 (Lo-fi Chill, Epic Cinematic, Dark Ambient 등) | P1 |
 | 5 | SHA256 캐시로 동일 프롬프트 중복 생성 방지 | P1 |
 
-**기능 명세**: [AI_BGM.md](FEATURES/AI_BGM.md)
+**기능 명세**: [AI_BGM.md](../99_archive/features/AI_BGM.md)
 
 *(기존 상세 내용 유지)*
 ...

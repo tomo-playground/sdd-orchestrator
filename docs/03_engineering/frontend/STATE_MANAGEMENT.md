@@ -58,14 +58,17 @@ interface ContextSlice {
 | 파일 | 역할 |
 |------|------|
 | `autopilotActions.ts` | Compose → Generate → Validate 워크플로우 |
+| `batchActions.ts` | 배치 이미지 생성 |
 | `groupActions.ts` | Group CRUD 및 선택 |
 | `imageActions.ts` | 이미지 생성/저장/후보 관리 |
+| `outputActions.ts` | 렌더링 결과물 관리 |
 | `projectActions.ts` | Project CRUD 및 선택 |
 | `promptActions.ts` | 프롬프트 Compose/Rewrite |
 | `promptHelperActions.ts` | 프롬프트 보조 (split, suggest) |
 | `sceneActions.ts` | 씬 편집/순서 변경 |
 | `storyboardActions.ts` | 스토리보드 CRUD/로드/저장 |
 | `styleProfileActions.ts` | Style Profile 선택/적용 |
+| `youtubeActions.ts` | YouTube OAuth 및 업로드 |
 
 ---
 
@@ -94,6 +97,7 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 | **`useTagClassifier`** | 태그 자동 분류 |
 | **`useTagValidation`** | 태그 충돌/의존성 검증 |
 | **`useTags`** | 태그 목록 조회 및 그룹화 |
+| **`useYouTubeUpload`** | YouTube OAuth 연동 및 영상 업로드 워크플로우 |
 
 ---
 
@@ -118,4 +122,4 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 
 ---
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-10

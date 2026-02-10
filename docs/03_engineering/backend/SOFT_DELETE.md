@@ -1,6 +1,6 @@
 # Soft Delete 기술 설계
 
-> 기능 명세: [FEATURES/SOFT_DELETE.md](../../01_product/FEATURES/SOFT_DELETE.md)
+> 기능 명세: [FEATURES/SOFT_DELETE.md](../../99_archive/features/SOFT_DELETE.md)
 
 ## 1. SoftDeleteMixin
 

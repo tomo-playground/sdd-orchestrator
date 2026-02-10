@@ -2,20 +2,18 @@
 
 > 소규모 UX 개선 태스크를 묶어서 관리
 
-## 간소화 진입점 재설계
+## 간소화 진입점 재설계 (Quick Start Flow)
 
-> 상태: 미착수 | 선행: Phase 6 완료
+> 상태: **완료** (7-1 #1)
 
-### 배경
-기존 SetupPanel 제거 후 Quick Start 진입점 재정의 필요.
-
-### 목표
-- Phase 6 완성된 캐릭터/스타일 시스템 기반으로 간편 시작 플로우 설계
-- 최소 입력(Topic + Character)으로 영상 생성 시작
+### 구현 완료 사항
+- +New Story Lazy Creation: 첫 Save/Generate 시 DB 저장 (불필요한 빈 스토리보드 방지)
+- PlanTab 설정/스토리 재설계
+- 인라인 StyleProfile 셀렉터
 
 ### 수락 기준
-- [ ] 3단계 이내로 영상 생성 시작 가능
-- [ ] 기존 Custom Start와 공존
+- [x] 3단계 이내로 영상 생성 시작 가능
+- [x] 기존 Custom Start와 공존
 
 ---
 

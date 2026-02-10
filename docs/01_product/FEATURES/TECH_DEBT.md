@@ -4,35 +4,23 @@
 
 ## Hook Extraction
 
-> 상태: 부분 완료
+> 상태: **완료** (Phase 6-7 #9)
 
-### 배경
-`useManageState` 등 대형 커스텀 훅이 컴포넌트에 인라인으로 존재.
-
-### 목표
-- 커스텀 훅을 독립 파일로 분리
-- 테스트 가능한 단위로 격리
-
-### 수정 대상
-- `app/manage/` 내 상태 관리 로직 → `hooks/useManageState.ts`
-- 기타 인라인 훅 식별 및 분리
+### 구현 완료 사항
+- Manage 페이지: 5개 탭 커스텀 Hook 분리 (`manage/hooks/` 12파일)
+- Studio: `useStudioInitialization`, `useStudioOnboarding` 등 11개 독립 Hook
+- 테스트 가능한 단위로 격리 완료
 
 ---
 
 ## Common UI Toolkit
 
-> 상태: 미착수
+> 상태: **완료** (Phase 6-7 #7-8)
 
-### 배경
-버튼, 인풋, 모달 등 공통 컴포넌트가 각 페이지에 중복 구현.
-
-### 목표
-- 재사용 가능한 공통 컴포넌트 라이브러리화
+### 구현 완료 사항
+- `app/components/ui/` 디렉토리: Button, Modal, ConfirmDialog, Toast, Badge, Popover, TagAutocomplete 등 16개 공통 컴포넌트
+- z-index 통합 관리 (Tailwind 설정, `constants/index.ts`에서 Z_INDEX 관리)
 - 일관된 디자인 시스템 적용
-
-### 범위
-- Button, Input, Modal, Toast, Badge 등 기본 UI 요소
-- `app/components/ui/` 디렉토리
 
 ---
 

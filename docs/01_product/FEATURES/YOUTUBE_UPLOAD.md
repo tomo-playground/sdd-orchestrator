@@ -1,6 +1,6 @@
 # YouTube Shorts Upload
 
-> 상태: 미착수 | 우선순위: 미정
+> 상태: **Phase 1 완료** (7-1 #17) | 우선순위: 완료
 
 ## 배경
 
@@ -89,10 +89,19 @@ services/youtube/
 - 토큰 Fernet 암호화 저장 (평문 DB 저장 금지)
 - Shorts 제한: 60초 이하, 세로(9:16)
 
-## Phase 분리 (제안)
+## Phase 분리
 
-| Phase | 범위 |
-|-------|------|
-| Phase 1 | OAuth 연동 + 수동 업로드 + 이력 저장 |
-| Phase 2 | Quota 대시보드 + 업로드 큐 |
-| Phase 3 | 예약 업로드 (스케줄링) |
+| Phase | 범위 | 상태 |
+|-------|------|------|
+| Phase 1 | OAuth 연동 + 수동 업로드 + 이력 저장 | **[x] 완료** |
+| Phase 2 | Quota 대시보드 + 업로드 큐 | [ ] |
+| Phase 3 | 예약 업로드 (스케줄링) | [ ] |
+
+### Phase 1 구현 완료 사항
+- `youtube_credentials` 테이블 (Fernet 암호화)
+- `render_history` 테이블에 YouTube 업로드 트래킹 3컬럼
+- `services/youtube/` 패키지 (auth, client, upload)
+- `routers/youtube.py` — 5개 엔드포인트
+- Frontend: YouTube Upload 모달 (메타데이터 편집 + 업로드)
+- per-project OAuth credential 연동
+- `useYouTubeUpload` 훅 + `youtubeActions.ts`

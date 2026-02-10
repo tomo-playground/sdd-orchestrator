@@ -1,8 +1,8 @@
 # Project(Channel) & Group(Story Group) System
 
-**상태**: Phase 0 완료, Phase 1 완료 (설정 상속 엔진 + 그룹 편집 UI 포함)
+**상태**: Phase 0 ~ 1.7 완료 (설정 상속 엔진 + 그룹 편집 UI + Channel→Project 통합 + Group Defaults)
 **우선순위**: P1 (Phase 6-7 이후, 7-1 병렬 가능)
-**최종 갱신**: 2026-02-02
+**최종 갱신**: 2026-02-10
 
 ---
 
@@ -22,10 +22,20 @@
 | Seed 데이터 | Default Project(id=1) + Default Group(id=1) | Alembic 마이그레이션 포함 |
 | Activity Log | `project_id`, `group_id` **없음** | 분석 불가 (Phase 0-1.7 미착수) |
 
-### 없는 것
-- 설정 상속 체계 (Project -> Group -> Storyboard) — Phase 1-1
-- Cmd+K Quick Switcher — Phase 1-2.3
-- `activity_logs` project_id/group_id 컬럼 — Phase 0-1.7
+### 없는 것 (미구현 잔여)
+- Cmd+K Quick Switcher — Phase 1-2.5
+- `activity_logs` project_id/group_id 자동 기록 — Phase 3-3
+- Channel DNA (톤/세계관 자동 주입) — Phase 2-1
+- Tag Intelligence (프로젝트별 태그 추천) — Phase 2-2
+- Series Intelligence (에피소드 연결 학습) — Phase 2-3
+
+### 추가 완료된 것 (Phase 1.5 ~ 1.7)
+- Channel Profile → Project 통합 (profileSlice 삭제)
+- 캐릭터 글로벌화 (`project_id` nullable)
+- `group_config` 분리 테이블 (1:1)
+- Cascading Config 확장: language, structure, duration, narrator_voice_preset_id
+- Manage > Group Defaults 편집 UI
+- 좌측 사이드바 네비게이션 (7-1 #15)
 
 ---
 

@@ -25,8 +25,10 @@ graph TB
             StorySvc["Storyboard Service"]
             PromptSvc["V3 Prompt Engine"]
             ImageSvc["Image Generation Service"]
+            CreativeSvc["Creative Engine (Multi-Agent)"]
             VideoSvc["Video Render Pipeline"]
             TTSSvc["TTS Service (Qwen3-TTS)"]
+            MusicSvc["Music Service (Stable Audio Open)"]
             ValidationSvc["Validation (WD14/Vision)"]
         end
 
@@ -54,12 +56,14 @@ graph TB
     Router --> Services
     
     StorySvc <--> Gemini
+    CreativeSvc <--> Gemini
     PromptSvc --> ImageSvc
     ImageSvc <--> SD
     SD <--> CN
     VideoSvc --> FS
     VideoSvc --> MinIO
     VideoSvc --> Qwen
+    MusicSvc --> FS
     
     ValidationSvc <--> WD14
     ValidationSvc <--> Gemini
@@ -114,7 +118,7 @@ Router (API 엔드포인트)
     → Repository/ORM (데이터 접근)
 ```
 
-**선택 근거**: 현재 서비스 규모(라우터 24개, 서비스 10여개)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
+**선택 근거**: 현재 서비스 규모(라우터 31개, 서비스 37개+)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
 
 **계층별 역할**:
 
@@ -134,20 +138,35 @@ Router (API 엔드포인트)
 
 ```
 backend/
-├── routers/              # API 엔드포인트 (24개)
+├── routers/              # API 엔드포인트 (31개)
 ├── services/
 │   ├── keywords/         # 태그 시스템 (core, db, cache, validation)
 │   ├── prompt/           # V3 12-Layer Prompt Builder
+│   ├── creative_tasks/   # Creative Lab 작업 (character, dialogue, scenario, visual)
+│   ├── video/            # FFmpeg 렌더링 파이프라인 (builder, effects, filters, encoding)
+│   ├── audio/            # TTS + Music 생성 (Stable Audio Open)
+│   ├── youtube/          # YouTube OAuth + 업로드
 │   ├── storyboard.py     # Gemini 연동 스토리보드 생성
-│   ├── image_gen.py      # SD WebUI 이미지 생성
-│   └── video.py          # FFmpeg 렌더링 파이프라인
-├── models/               # SQLAlchemy ORM
+│   ├── image_generation_core.py  # SD WebUI 이미지 생성
+│   ├── creative_*.py     # Creative Engine (agents, debate, studio, pipeline, qc)
+│   └── rendering.py      # 렌더링 오케스트레이션
+├── models/               # SQLAlchemy ORM (30개)
 ├── schemas.py            # Pydantic DTO
 ├── config.py             # SSOT 설정
 └── templates/            # Jinja2 (Gemini 프롬프트)
 ```
 
 **향후 전환 시점**: 멀티 테넌트, 마이크로서비스 분리, 외부 API 어댑터 교체(Gemini→GPT 등)가 빈번해지면 Hexagonal 부분 도입 고려.
+
+**서비스 패키지 구조**:
+```
+services/{domain}/
+├── core.py          # 핵심 로직
+├── db.py            # DB 쿼리
+├── db_cache.py      # 런타임 캐시
+├── validation.py    # 입력 검증
+└── utils.py         # 헬퍼
+```
 
 ### 3.2 Frontend: Component-Based + Zustand Flux
 
@@ -157,7 +176,7 @@ React/Next.js 생태계의 표준 패턴인 **Component-Based Architecture**에 
 User Action → Action (API 호출) → Store 업데이트 → Component 리렌더
 ```
 
-**선택 근거**: 페이지 3개(Home, Studio, Manage), 스토어 슬라이스 5개 규모에서 FSD(Feature-Sliced Design)나 Clean Architecture는 과도. Zustand는 보일러플레이트가 적고, Redux DevTools 호환.
+**선택 근거**: 페이지 3개(Studio, Lab, Manage), 스토어 슬라이스 5개 규모에서 FSD(Feature-Sliced Design)나 Clean Architecture는 과도. Zustand는 보일러플레이트가 적고, Redux DevTools 호환.
 
 **상태 관리 구조**:
 
@@ -179,16 +198,22 @@ components/studio/PlanTab.tsx     ← UI 이벤트 발생
 
 **서버 동기화 패턴** (Custom Hooks, TanStack Query 미사용):
 ```
-hooks/useCharacters.ts  → axios GET → 로컬 state + Store 업데이트
-hooks/useTags.ts        → axios GET → 캐싱 + 필터링
-hooks/useAutopilot.ts   → 단계별 API 호출 조율
+hooks/useCharacters.ts       → axios GET → 로컬 state + Store 업데이트
+hooks/useTags.ts             → axios GET → 캐싱 + 필터링
+hooks/useAutopilot.ts        → 단계별 API 호출 조율
+hooks/useYouTubeUpload.ts    → YouTube OAuth + 업로드 워크플로우
+hooks/useProjectGroups.ts    → Project/Group CRUD + 선택
 ```
 
 ```
 frontend/app/
+├── (app)/
+│   ├── studio/           # 스튜디오 페이지 (메인 워크플로우)
+│   ├── lab/              # Creative Lab & Analytics
+│   └── manage/           # 설정, 프리셋, 에셋 관리
 ├── store/
-│   ├── slices/           # 5개 상태 슬라이스
-│   ├── actions/          # 비동기 액션 (autopilot, image, scene 등)
+│   ├── slices/           # 5개 상태 슬라이스 (plan, scenes, output, meta, context)
+│   ├── actions/          # 비동기 액션 (12개: autopilot, batch, image, youtube 등)
 │   ├── selectors/        # 파생 상태
 │   └── useStudioStore.ts # 통합 Zustand 스토어
 ├── components/
@@ -196,8 +221,11 @@ frontend/app/
 │   ├── storyboard/       # 씬 편집 UI
 │   ├── video/            # 렌더링 설정
 │   ├── setup/            # 캐릭터/스타일 설정
+│   ├── lab/              # Creative Lab 컴포넌트
+│   ├── shell/            # 앱 레이아웃 (Sidebar, AppShell)
+│   ├── context/          # 프로젝트/그룹 관리
 │   └── ui/               # 공통 컴포넌트 (Toast, Modal 등)
-├── hooks/                # 서버 동기화 훅
+├── hooks/                # 서버 동기화 훅 (11개)
 ├── constants/            # 상수 정의
 ├── types/                # TypeScript 타입
 └── utils/                # 유틸리티 함수
@@ -227,13 +255,15 @@ frontend/app/
 - **Backend**: FastAPI, Python 3.12, SQLAlchemy (ORM)
 
 ### AI & Media
-- **LLM/LVM**: Google Gemini 2.0 Flash (Storyboard, Prompt, Vision)
+- **LLM/LVM**: Google Gemini 2.0 Flash (Storyboard, Prompt, Vision), Gemini 2.5 Flash (Image Generation)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus
 - **TTS**: Qwen3-TTS (12Hz-1.7B-VoiceDesign)
+- **Music**: Stable Audio Open 1.0 (AI BGM 생성)
 - **Validation**: WD14 (Waifu Diffusion v1.4) Vit-Tagger-v2 (ONNX)
 - **Video**: FFmpeg (Filter complex, Ken Burns effect)
 
 ### Infrastructure
 - **Database**: PostgreSQL (Relational Data)
 - **Storage**: MinIO (S3 Compatible Object Storage) / Local (개발 모드)
+- **YouTube**: OAuth 2.0 (영상 업로드)
 - **Environment**: Docker, uv (Python Package Manager)
