@@ -69,6 +69,23 @@ def validate_scripts(
             issues.append(f"Scene {i}: Narrated Dialogue expects Narrator/A/B, got '{speaker}'")
     checks["speaker_rule"] = "PASS" if speaker_ok else "FAIL"
 
+    # Speaker distribution check
+    speakers_found = {s.get("speaker", "") for s in scripts}
+    if structure == "Dialogue":
+        missing = {"A", "B"} - speakers_found
+        if missing:
+            checks["speaker_distribution"] = "FAIL"
+            issues.append(f"Dialogue requires both A and B, missing: {', '.join(sorted(missing))}")
+        else:
+            checks["speaker_distribution"] = "PASS"
+    elif structure == "Narrated Dialogue":
+        missing = {"Narrator", "A", "B"} - speakers_found
+        if missing:
+            checks["speaker_distribution"] = "FAIL"
+            issues.append(f"Narrated Dialogue requires Narrator, A, and B, missing: {', '.join(sorted(missing))}")
+        else:
+            checks["speaker_distribution"] = "PASS"
+
     # Duration sum check
     total_dur = sum(s.get("duration", 0) for s in scripts)
     dur_tolerance = duration * 0.3

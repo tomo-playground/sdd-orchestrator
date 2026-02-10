@@ -21,9 +21,14 @@ Name: {{ character_name }}
 - Speaker: Always "A" (single narrator)
 {% elif structure == "Dialogue" %}
 - Speakers: "A" and "B" (two characters in conversation)
+- Distribution: A and B must appear roughly equally. Both MUST have at least 1 scene.
+- Alternation pattern: A → B → A → B (avoid consecutive same-speaker scenes)
 {% elif structure == "Narrated Dialogue" %}
 - Speakers: "Narrator" for narration, "A"/"B" for dialogue
+- Distribution: ~⅓ Narrator, ~⅓ A, ~⅓ B. ALL THREE must appear at least once.
+- Alternation pattern: Narrator → A → B → Narrator → A → B (vary the order, but ensure all three rotate)
 - IMPORTANT: "Narrator" scenes are background/environment description scenes (NO human character on screen). They describe the setting, atmosphere, or situation — NOT a person speaking. Only "A"/"B" scenes show characters.
+- Narrator typically opens (scene 0) to set the stage, and may close the story.
 {% endif %}
 
 ## Script Rules
@@ -46,12 +51,16 @@ Name: {{ character_name }}
 ```json
 {
   "scenes": [
-    {
-      "order": 0,
-      "script": "대사 텍스트",
-      "speaker": "A",
-      "duration": 2.5
-    }
+{% if structure == "Narrated Dialogue" %}
+    {"order": 0, "script": "나레이션 텍스트", "speaker": "Narrator", "duration": 2.5},
+    {"order": 1, "script": "A 대사 텍스트", "speaker": "A", "duration": 3.0},
+    {"order": 2, "script": "B 대사 텍스트", "speaker": "B", "duration": 3.0}
+{% elif structure == "Dialogue" %}
+    {"order": 0, "script": "A 대사 텍스트", "speaker": "A", "duration": 3.0},
+    {"order": 1, "script": "B 대사 텍스트", "speaker": "B", "duration": 3.0}
+{% else %}
+    {"order": 0, "script": "대사 텍스트", "speaker": "A", "duration": 2.5}
+{% endif %}
   ],
   "self_edit_notes": "자가 편집에서 수정한 내용 요약"
 }
