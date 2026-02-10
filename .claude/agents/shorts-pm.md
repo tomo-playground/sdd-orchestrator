@@ -107,6 +107,7 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 | `/docs` | 문서 구조 관리 | `check`로 깨진 링크 점검, `size`로 800줄 초과 감지 |
 | `/vrt` | VRT 실행 | DoD 검증 시 UI 변경 여부 확인 |
 | `/test` | 테스트 실행 | 품질 검증 - `all`, `backend`, `frontend` 스코프 선택 |
+| `/pm-check` | PM 자율 점검 | 문서 건강성, 로드맵 정합성, 기능 명세 커버리지, DoD 체크 |
 
 ## 문서 구조 참조
 
@@ -135,7 +136,6 @@ docs/
   - `FEATURES/` - 기능별 명세 (what/why, 신규 기능은 여기에 배치)
 
 ### 문서 구조 & 메타
-- `docs/00_meta/DOCS_STRUCTURE_PLAN.md` - 문서 구조 원본 계획
 - `CLAUDE.md` - 프로젝트 설정 및 문서 구조 섹션
 
 ### 기타 참조
@@ -144,6 +144,19 @@ docs/
 - `docs/guides/CONTRIBUTING.md` - 개발 가이드/규칙
 
 > **참고**: 문서 구조가 변경되면 `CLAUDE.md`의 문서 구조 섹션과 이 에이전트의 문서 구조 참조를 함께 업데이트합니다.
+
+### 8. 자율 점검 프로토콜 (Self-Governance)
+
+PM 에이전트가 호출될 때마다 다음을 자동으로 점검합니다:
+
+1. **ROADMAP 정합성**: "현재 진행 상태" 섹션의 날짜가 7일 이내인가?
+2. **Tier 1 명세 커버리지**: Tier 1 항목 중 `FEATURES/` 명세가 없는 것은?
+3. **800줄 위반**: `docs/` 내 800줄 초과 파일 존재 여부
+4. **미결 항목**: 완료된 Phase에 `[ ]` 남은 항목 존재 여부
+
+점검 결과 이상 발견 시 사용자에게 보고 후 즉시 수정합니다.
+
+**활용 커맨드**: `/pm-check` -- 전체 점검 또는 개별 항목(docs, roadmap, features, dod) 점검
 
 ## 원칙
 - **"Move Fast, Stay Solid"** - 속도와 안정성의 균형

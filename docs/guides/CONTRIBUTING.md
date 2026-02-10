@@ -19,7 +19,7 @@
 
 ### 4. `API_SPEC.md`는 API 변경 시 즉시 업데이트한다
 *   새 엔드포인트 추가, Request/Response 스키마 변경, 엔드포인트 삭제 시 **해당 PR에 포함**합니다.
-*   프론트엔드-백엔드 계약이므로, 코드와 문서(`docs/specs/API_SPEC.md`)의 불일치는 버그로 취급합니다.
+*   프론트엔드-백엔드 계약이므로, 코드와 문서(`docs/03_engineering/api/REST_API.md`)의 불일치는 버그로 취급합니다.
 
 ### 5. `PRD.md`는 마일스톤 단위로 업데이트한다
 *   Phase 완료 시 **Definition of Done** 체크리스트를 갱신합니다.
@@ -29,10 +29,11 @@
 *   문제 해결 후 **QA Validator**가 검증하고 문서에 기록합니다.
 *   반복되는 이슈는 즉시 추가하여 같은 문제 재발을 방지합니다.
 
-### 7. `CLAUDE.md`는 경량화 상태를 유지한다
-*   **제한**: 50줄 / 2KB 이하 (모든 대화 컨텍스트에 포함되므로)
-*   **필수 정보만**: 아키텍처 요약, 문서 참조, 코드 가이드라인, Agents/Commands 테이블
-*   **상세 정보는 분리**: 진행 상황 → `ROADMAP.md`, 관리 규칙 → `CONTRIBUTING.md`
+### 7. `CLAUDE.md`는 프로젝트 설정의 SSOT
+*   CLAUDE.md는 프로젝트 전체 설정의 Single Source of Truth입니다.
+*   에이전트가 참조할 핵심 원칙(아키텍처, 코드 가이드라인, 태그 규칙, DB 규칙 등)은 CLAUDE.md에 유지합니다.
+*   상세 규칙은 별도 문서로 분리하되, 핵심 원칙의 요약은 CLAUDE.md에 남깁니다.
+*   진행 상황 → `ROADMAP.md`, 관리 규칙 → `CONTRIBUTING.md`
 
 ### 8. Tag 시스템 변경 시 DB 리발란싱 필수
 *   `CATEGORY_PATTERNS` 수정 시 → `POST /keywords/sync-category-patterns?update_existing=true` 실행

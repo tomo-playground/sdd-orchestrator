@@ -148,7 +148,7 @@
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
 | 1 | CI 파이프라인 (GitHub Actions: lint + test) | 인프라 | [x] |
-| 2 | VRT Baseline System | 인프라 | [ ] |
+| 2 | VRT Baseline System | 인프라 | [ ] (→ Tier 3 #8) |
 | 3 | 고아 media_assets GC 시스템 | 인프라 | [x] |
 | 4 | SoftDeleteMixin + Alembic 마이그레이션. [기능 명세](../99_archive/features/SOFT_DELETE.md) · [기술 설계](../03_engineering/backend/SOFT_DELETE.md) | Soft Delete | [x] |
 | 5 | Backend trash/restore/permanent 엔드포인트 | Soft Delete | [x] |
@@ -156,7 +156,7 @@
 | 7 | Common UI Toolkit v1 (Button, Modal, ConfirmDialog). [상세](FEATURES/TECH_DEBT.md) | UI | [x] |
 | 8 | z-index 통합 관리 (Tailwind 설정) | UI | [x] |
 | 9 | Hook Extraction (5개 탭 커스텀 Hook 분리) | Frontend | [x] |
-| 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] |
+| 10 | WD14 Feedback Loop (`tag_effectiveness` 자동 업데이트) | 프롬프트 | [ ] (→ Tier 1 #3) |
 | 11 | Batch Generation API (다수 씬 병렬 생성) | Backend | [x] |
 | 12 | WD14 Validate 매칭 정확도 개선 (부분문자열 오탐 제거, 복합태그 분해, 동의어, skipped/partial 응답) | 프롬프트 | [x] |
 
@@ -165,7 +165,7 @@
 | 15 | TTS 파이프라인 speaker→voice 자동 resolve | Voice | [x] |
 | 16 | DB Schema Cleanup: 네이밍(`default_` 제거) + 타입(`Integer→Boolean`, `Text→JSONB`). [명세](../99_archive/features/SCHEMA_CLEANUP.md) | DB | [x] |
 
-**DoD**: PR마다 CI 자동 테스트, Soft Delete 3개 모델 적용, 공통 컴포넌트 4개+.
+**진척**: 14/14 완료 (2건 Tier 재분류). **DoD**: PR마다 CI 자동 테스트, Soft Delete 3개 모델 적용, 공통 컴포넌트 4개+.
 
 ---
 
@@ -196,6 +196,13 @@
 - Caption 해시태그 추출 기능 추가
 - (2026-02-07) Stable Audio Open AI BGM: `music_presets` 테이블 + Alembic 마이그레이션, CRUD API 8개, 프리셋 미리듣기, `render_presets`에 `bgm_mode`/`music_preset_id` 추가, VideoBuilder `effects.py` BGM 모드 분기 (file/ai), Frontend Music Presets 관리 탭 + BGM AI 모드 토글, 시스템 프리셋 10개 시딩, 테스트 22개 추가
 - (2026-02-08) TTS 품질 강화: Context-Aware Voice Design, 후처리 개선 (무음 압축, 환각 감지/제거), 최소 duration 검증 + seed 변형 자동 재생성, 짧은 대본 반복 발음 방지 (최소 10자 규칙), MPS 최적화
+
+---
+
+## Phase 7-0: ControlNet & Pose Control - ARCHIVED
+
+완료. ControlNet 포즈 제어, IP-Adapter 캐릭터 일관성 시스템 구축.
+- 2026-02-02: thumbs_up 포즈 추가 (28번째 포즈, 포즈 에셋 + synonyms)
 
 ---
 
@@ -230,13 +237,6 @@
 | 22 | image_url 정합성 강화 (JSONB 저장 방어, base64 전송 방지, stale ID 방어) | 안정성 | - | [x] |
 | 23 | Background Scene 태그 필터링 (no_humans 감지 → 캐릭터 레이어 제거) + LoRA Weight Cap 통합 (0.76) | 품질 | - | [x] |
 | 24 | Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 (9-Agent Pipeline + Studio 연동) | 기능 | [명세](../99_archive/features/CREATIVE_LAB_V2.md) | [x] |
-
----
-
-## Phase 7-0: ControlNet & Pose Control - ARCHIVED
-
-완료. ControlNet 포즈 제어, IP-Adapter 캐릭터 일관성 시스템 구축.
-- 2026-02-02: thumbs_up 포즈 추가 (28번째 포즈, 포즈 에셋 + synonyms)
 
 ---
 
@@ -314,7 +314,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 **현재 진행 상태** (2026-02-10):
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
-- Phase 6-7: **14/16** 완료 (잔여: #2 VRT, #10 WD14 Feedback)
+- Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
 - Phase 7-1: **17/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #5 Multi-Char UI, #6 Scene Builder, #7 템플릿, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - **Backend 테스트**: 1,291개 수집
@@ -343,6 +343,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | 9 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
 | 10 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
 | 11 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
+| 12 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
 
 **7-1 최근 완료 (2026-02-05 ~ 02-09)**:
 - Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)
