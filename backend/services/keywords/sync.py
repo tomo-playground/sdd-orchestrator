@@ -12,14 +12,37 @@ from .patterns import CATEGORY_PATTERNS
 
 def sync_lora_triggers_to_tags() -> dict[str, Any]:
     """Sync LoRA trigger words to tags table."""
+
     def classify_trigger(trigger: str, lora_type: str | None) -> tuple[str, str, int]:
         trigger_lower = trigger.lower()
         if "eyes" in trigger_lower:
             return ("eye_color", "character", 4)
         if "hair" in trigger_lower:
-            if any(c in trigger_lower for c in ["black", "blonde", "brown", "red", "blue", "green", "pink", "purple", "white", "silver", "grey", "gray", "orange", "aqua"]):
+            if any(
+                c in trigger_lower
+                for c in [
+                    "black",
+                    "blonde",
+                    "brown",
+                    "red",
+                    "blue",
+                    "green",
+                    "pink",
+                    "purple",
+                    "white",
+                    "silver",
+                    "grey",
+                    "gray",
+                    "orange",
+                    "aqua",
+                ]
+            ):
                 return ("hair_color", "character", 4)
-            return ("hair_length", "character", 4) if any(x in trigger_lower for x in ["short", "long", "medium"]) else ("hair_style", "character", 4)
+            return (
+                ("hair_length", "character", 4)
+                if any(x in trigger_lower for x in ["short", "long", "medium"])
+                else ("hair_style", "character", 4)
+            )
         if lora_type == "style":
             return ("style", "scene", 16)
         if trigger_lower in ["laughing", "crying", "smiling", "eyebrow", "eyebrow_down", "eyebrow_up"]:
@@ -43,19 +66,24 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
                 if not existing_tag:
                     # Classify and add tag
                     cat, category, priority = classify_trigger(trigger_clean, lora.lora_type)
-                    db.add(Tag(
-                        name=trigger_clean,
-                        category=category,
-                        group_name=cat,
-                        priority=priority,
-                        classification_source="lora_sync"
-                    ))
+                    db.add(
+                        Tag(
+                            name=trigger_clean,
+                            category=category,
+                            group_name=cat,
+                            priority=priority,
+                            classification_source="lora_sync",
+                        )
+                    )
                     added.append(trigger_clean)
 
         db.commit()
-        return {"added_tags": len(added), "summary": {"added_count": len(added)}}
-        db.commit()
-        return {"added": added, "updated": updated, "skipped": skipped, "summary": {"added_count": len(added), "updated_count": len(updated), "skipped_count": len(skipped)}}
+        return {
+            "added": added,
+            "updated": updated,
+            "skipped": skipped,
+            "summary": {"added_count": len(added), "updated_count": len(updated), "skipped_count": len(skipped)},
+        }
     finally:
         db.close()
 
@@ -63,14 +91,33 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
 def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, Any]:
     """Sync CATEGORY_PATTERNS to tags table."""
     GROUP_TO_DB_CATEGORY: dict[str, tuple[str, int]] = {
-        "identity": ("character", 3), "hair_color": ("character", 4), "hair_length": ("character", 4),
-        "hair_style": ("character", 4), "hair_accessory": ("character", 4), "eye_color": ("character", 4),
-        "skin_color": ("character", 4), "body_feature": ("character", 4), "appearance": ("character", 4),
-        "clothing": ("character", 5), "quality": ("quality", 1), "subject": ("scene", 2),
-        "expression": ("scene", 6), "gaze": ("scene", 7), "pose": ("scene", 8), "action": ("scene", 9),
-        "camera": ("scene", 10), "location_indoor": ("scene", 11), "location_outdoor": ("scene", 11),
-        "background_type": ("scene", 12), "time_weather": ("scene", 13), "lighting": ("scene", 14),
-        "mood": ("scene", 15), "style": ("scene", 16),
+        "identity": ("character", 3),
+        "hair_color": ("character", 4),
+        "hair_length": ("character", 4),
+        "hair_style": ("character", 4),
+        "hair_accessory": ("character", 4),
+        "eye_color": ("character", 4),
+        "skin_color": ("character", 4),
+        "body_feature": ("character", 4),
+        "appearance": ("character", 4),
+        "clothing": ("character", 5),
+        "quality": ("quality", 1),
+        "subject": ("scene", 2),
+        "expression": ("scene", 6),
+        "gaze": ("scene", 7),
+        "pose": ("scene", 8),
+        "action": ("scene", 9),
+        "camera": ("scene", 10),
+        "location_indoor": ("scene", 11),
+        "location_outdoor": ("scene", 11),
+        "location_indoor_general": ("scene", 12),
+        "location_indoor_specific": ("scene", 11),
+        "environment": ("scene", 11),
+        "background_type": ("scene", 12),
+        "time_weather": ("scene", 13),
+        "lighting": ("scene", 14),
+        "mood": ("scene", 15),
+        "style": ("scene", 16),
     }
 
     db = SessionLocal()
@@ -113,13 +160,30 @@ def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, A
                 elif tag_name in batch_names:
                     skipped.append({"tag": tag_name, "group": group_name, "reason": "duplicate in patterns"})
                 else:
-                    db.add(Tag(name=tag_name, category=db_category, group_name=group_name, priority=priority, exclusive=False))
+                    db.add(
+                        Tag(
+                            name=tag_name,
+                            category=db_category,
+                            group_name=group_name,
+                            priority=priority,
+                        )
+                    )
                     batch_names.add(tag_name)
                     added.append({"tag": tag_name, "group": group_name, "category": db_category, "priority": priority})
 
         db.commit()
         logger.info("[Sync Patterns Complete] added=%d updated=%d skipped=%d", len(added), len(updated), len(skipped))
-        return {"added": added, "updated": updated, "skipped": skipped, "summary": {"added_count": len(added), "updated_count": len(updated), "skipped_count": len(skipped), "by_group": _count_by_group(added)}}
+        return {
+            "added": added,
+            "updated": updated,
+            "skipped": skipped,
+            "summary": {
+                "added_count": len(added),
+                "updated_count": len(updated),
+                "skipped_count": len(skipped),
+                "by_group": _count_by_group(added),
+            },
+        }
     finally:
         db.close()
 

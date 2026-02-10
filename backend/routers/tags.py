@@ -140,6 +140,7 @@ async def search_tags(
 async def get_pending_classifications(
     source: str | None = Query(None, description="Filter by source (danbooru, llm, unknown)"),
     max_confidence: float = Query(0.9, description="Maximum confidence threshold"),
+    include_unclassified: bool = Query(False, description="Include tags with group_name=NULL"),
     limit: int = Query(100, description="Maximum tags to return"),
     db: Session = Depends(get_db),
 ):
@@ -148,6 +149,7 @@ async def get_pending_classifications(
     Returns tags that:
     - Were classified by Danbooru/LLM with confidence below threshold
     - Failed classification (source = 'unknown')
+    - (optional) Have no group_name (unclassified)
 
     Does NOT include:
     - Tags with source = NULL (legacy tags with existing group_name)
@@ -163,17 +165,20 @@ async def get_pending_classifications(
         query = query.filter(Tag.classification_source == source)
     else:
         # Default: show tags needing review
-        # 1. Unknown source (failed to classify)
-        # 2. Danbooru/LLM with low confidence
-        query = query.filter(
-            or_(
-                Tag.classification_source == "unknown",
-                and_(
-                    Tag.classification_source.in_(["danbooru", "llm"]),
-                    Tag.classification_confidence < max_confidence,
-                ),
-            )
-        )
+        conditions = [
+            # 1. Unknown source (failed to classify)
+            Tag.classification_source == "unknown",
+            # 2. Danbooru/LLM with low confidence
+            and_(
+                Tag.classification_source.in_(["danbooru", "llm"]),
+                Tag.classification_confidence < max_confidence,
+            ),
+        ]
+        # 3. Unclassified tags (group_name is NULL)
+        if include_unclassified:
+            conditions.append(Tag.group_name.is_(None))
+
+        query = query.filter(or_(*conditions))
 
     # Order by confidence (nulls first, then low confidence)
     query = query.order_by(
@@ -211,12 +216,28 @@ async def get_tag(tag_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=TagResponse, status_code=201)
 async def create_tag(data: TagCreate, db: Session = Depends(get_db)):
-    """Create a new tag."""
+    """Create a new tag. Auto-classifies if group_name is not provided."""
     existing = db.query(Tag).filter(Tag.name == data.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Tag already exists")
 
-    tag = Tag(**data.model_dump())
+    tag_data = data.model_dump()
+
+    # Auto-classify if group_name not provided
+    if not tag_data.get("group_name"):
+        from services.keywords.patterns import suggest_category_for_tag
+
+        suggested_group, confidence = suggest_category_for_tag(data.name)
+        if suggested_group and suggested_group != "skip" and confidence > 0:
+            tag_data["group_name"] = suggested_group
+            tag_data["classification_source"] = tag_data.get("classification_source") or "pattern"
+            tag_data["classification_confidence"] = confidence
+            # Set category from group if not already set
+            if not tag_data.get("category"):
+                tag_data["category"] = TagClassifier._group_to_category(suggested_group)
+            logger.info("🏷️ [Tags] Auto-classified '%s' → %s (%.0f%%)", data.name, suggested_group, confidence * 100)
+
+    tag = Tag(**tag_data)
     db.add(tag)
     db.commit()
     db.refresh(tag)
@@ -317,9 +338,7 @@ async def migrate_category_patterns(db: Session = Depends(get_db)):
 
 
 @router.post("/approve-classification")
-async def approve_classification(
-    request: ApproveClassificationRequest, db: Session = Depends(get_db)
-):
+async def approve_classification(request: ApproveClassificationRequest, db: Session = Depends(get_db)):
     """Approve or correct a tag's classification.
 
     Sets the classification source to 'manual' and confidence to 1.0.
@@ -360,9 +379,7 @@ async def approve_classification(
 
 
 @router.post("/bulk-approve-classifications")
-async def bulk_approve_classifications(
-    approvals: list[ApproveClassificationRequest], db: Session = Depends(get_db)
-):
+async def bulk_approve_classifications(approvals: list[ApproveClassificationRequest], db: Session = Depends(get_db)):
     """Bulk approve multiple tag classifications."""
     if len(approvals) > 100:
         raise HTTPException(status_code=400, detail="Maximum 100 approvals per request")

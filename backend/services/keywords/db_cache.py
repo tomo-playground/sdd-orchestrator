@@ -74,7 +74,11 @@ class TagCategoryCache:
 
         See: backend/templates/create_storyboard.j2 for Gemini context_tags structure
         """
-        # 1. Use group_name for granular categories (expression, pose, action, etc.)
+        # 1. Normalize location sub-groups to parent group
+        if group_name in ("location_indoor_general", "location_indoor_specific"):
+            return "location_indoor"
+
+        # 2. Use group_name for granular categories (expression, pose, action, etc.)
         granular_groups = {
             "expression",
             "gaze",
@@ -86,11 +90,13 @@ class TagCategoryCache:
             "mood",
             "location_indoor",
             "location_outdoor",
+            "environment",
+            "background_type",
         }
         if group_name in granular_groups:
             return group_name
 
-        # 2. Fallback to category mapping
+        # 3. Fallback to category mapping
         if category == "scene":
             return "scene"
 

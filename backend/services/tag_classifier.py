@@ -269,6 +269,10 @@ class TagClassifier:
         if group in meta_groups:
             return "meta"
 
+        # Normalize location sub-groups to parent group
+        if group in ("location_indoor_general", "location_indoor_specific"):
+            return "location_indoor"
+
         # For granular groups (action, pose, expression, camera, etc.),
         # return the group itself as the category so it matches composition priorities.
         granular_groups = {
@@ -282,10 +286,13 @@ class TagClassifier:
             "mood",
             "location_indoor",
             "location_outdoor",
+            "environment",
+            "background_type",
         }
         if group in granular_groups:
             return group
 
+        # subject, etc. → generic scene
         return "scene"
 
 
