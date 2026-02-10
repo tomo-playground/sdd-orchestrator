@@ -11,6 +11,12 @@ import {
   VoicePreset,
 } from "../../../types";
 
+function getErrorMsg(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) return error.response?.data?.detail ?? error.message;
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 const RESTRICTED_KEYWORDS = [
   "background",
   "kitchen",
@@ -172,7 +178,7 @@ export function useCharacterForm(
       if (res.data.url) setPreviewImageUrl(res.data.url);
     } catch (error) {
       console.error("Failed to generate reference", error);
-      showToast("Failed to generate reference image.", "error");
+      showToast(`Generate failed: ${getErrorMsg(error, "Unknown error")}`, "error");
     } finally {
       setIsGenerating(false);
     }
@@ -192,7 +198,7 @@ export function useCharacterForm(
       if (res.data.url) setPreviewImageUrl(res.data.url);
     } catch (error) {
       console.error("Failed to enhance preview", error);
-      showToast("Failed to enhance preview image.", "error");
+      showToast(`Enhance failed: ${getErrorMsg(error, "Unknown error")}`, "error");
     } finally {
       setIsEnhancing(false);
     }
@@ -212,7 +218,7 @@ export function useCharacterForm(
       }
     } catch (error) {
       console.error("Failed to edit preview", error);
-      showToast("Failed to edit preview image.", "error");
+      showToast(`Edit failed: ${getErrorMsg(error, "Unknown error")}`, "error");
     } finally {
       setIsEditing(false);
     }
@@ -298,8 +304,8 @@ export function useCharacterForm(
       setLocalLoras((prev) =>
         prev.map((l) => (l.id === loraId ? { ...l, lora_type: newType } : l))
       );
-    } catch {
-      showToast("Failed to update LoRA type.", "error");
+    } catch (error) {
+      showToast(`LoRA update failed: ${getErrorMsg(error, "Unknown error")}`, "error");
     }
   };
 
@@ -355,7 +361,7 @@ export function useCharacterForm(
       onClose();
     } catch (error) {
       console.error("Failed to save character", error);
-      showToast("Failed to save changes.", "error");
+      showToast(`Save failed: ${getErrorMsg(error, "Unknown error")}`, "error");
     } finally {
       setIsSaving(false);
     }
