@@ -216,16 +216,18 @@ def compose_scene_with_style(
     scene_tags = split_prompt_tokens(styled_prompt)
     builder = V3PromptBuilder(db)
 
+    character = None
     if character_id:
-        composed = builder.compose_for_character(character_id, scene_tags, style_loras=style_loras)
+        character = db.query(Character).filter(Character.id == character_id).first()
+
+    if character:
+        composed = builder.compose_for_character(character.id, scene_tags, style_loras=style_loras, character=character)
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras)
 
-    # 3. Merge character custom_negative_prompt
-    if character_id:
-        character = db.query(Character).filter(Character.id == character_id).first()
-        if character and character.custom_negative_prompt:
-            modified_negative = f"{modified_negative}, {character.custom_negative_prompt}"
+    # 3. Merge character custom_negative_prompt (reuse loaded character)
+    if character and character.custom_negative_prompt:
+        modified_negative = f"{modified_negative}, {character.custom_negative_prompt}"
 
     # 4. Detect non-Danbooru tags
     unknown = builder.find_unknown_tags(scene_tags)

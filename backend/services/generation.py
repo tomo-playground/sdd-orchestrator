@@ -19,6 +19,7 @@ from services.controlnet import (
     load_pose_reference,
     load_reference_image,
 )
+from services.image_generation_core import compose_scene_with_style
 from services.keywords.core import normalize_prompt_token
 from services.lora_calibration import get_optimal_weights_from_db
 from services.prompt import (
@@ -29,7 +30,6 @@ from services.prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
-from services.image_generation_core import compose_scene_with_style
 
 
 @contextmanager
@@ -244,12 +244,17 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         character_obj is not None,
     )
 
+    final_warnings: list[str] = []
+
     if request.prompt_pre_composed:
         # Frontend /prompt/compose already ran V3 (character LoRA included)
         # Apply style profile quality tags + embeddings only (skip_loras=True)
         # LoRAs are already present from V3 composition or scene-triggered injection
         request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt, request.negative_prompt or "", request.storyboard_id, db,
+            request.prompt,
+            request.negative_prompt or "",
+            request.storyboard_id,
+            db,
             skip_loras=True,
         )
         cleaned_prompt = request.prompt
@@ -258,7 +263,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         # Raw prompt → compose_scene_with_style (StyleProfile + V3)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
         logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [l.get("name") for l in style_loras])
-        cleaned_prompt, request.negative_prompt, _warnings = compose_scene_with_style(
+        cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
             raw_prompt=request.prompt,
             negative_prompt=request.negative_prompt or "",
             character_id=request.character_id,
@@ -266,11 +271,12 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             style_loras=style_loras,
             db=db,
         )
+        final_warnings.extend(compose_warnings)
         logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
     elif "no_humans" in request.prompt.lower().replace(" ", "_"):
         # Narrator (no_humans) → compose_scene_with_style (StyleProfile + V3 background)
         style_loras = _resolve_style_loras(request.storyboard_id, db)
-        cleaned_prompt, request.negative_prompt, _warnings = compose_scene_with_style(
+        cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
             raw_prompt=request.prompt,
             negative_prompt=request.negative_prompt or "",
             character_id=None,
@@ -278,6 +284,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
             style_loras=style_loras,
             db=db,
         )
+        final_warnings.extend(compose_warnings)
         logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
     else:
         # No character, no no_humans → full style profile, no V3
@@ -292,8 +299,6 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
         logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
     else:
         logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
-
-    final_warnings: list[str] = []
 
     # Character Consistency: Auto-apply IP-Adapter if reference exists
     if character_obj and not request.use_ip_adapter:
@@ -322,7 +327,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     request.ip_adapter_reference,
                 )
                 style_loras = _resolve_style_loras(request.storyboard_id, db)
-                cleaned_prompt, request.negative_prompt, _warnings = compose_scene_with_style(
+                cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
                     raw_prompt=request.prompt,
                     negative_prompt=request.negative_prompt or "",
                     character_id=request.character_id,
@@ -330,6 +335,7 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     style_loras=style_loras,
                     db=db,
                 )
+                final_warnings.extend(compose_warnings)
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)
         # Non-Narrator, non-character: normalize manually (Narrator already via V3 compose)
         if not request.character_id and "no_humans" not in request.prompt.lower().replace(" ", "_"):

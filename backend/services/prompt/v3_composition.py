@@ -67,6 +67,7 @@ class V3PromptBuilder:
     def __init__(self, db: Session):
         self.db = db
         self._lora_info_cache: dict[str, tuple[float, str | None]] = {}
+        self._db_tag_names: set[str] | None = None
 
     def get_tag_info(self, tag_names: list[str]) -> dict[str, dict]:
         """Fetches metadata for a list of tags from the DB with pattern-based fallback."""
@@ -77,6 +78,10 @@ class V3PromptBuilder:
         normalized_names = [t.lower().replace(" ", "_").strip() for t in tag_names]
 
         tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
+
+        # Cache DB-found tag names for find_unknown_tags reuse
+        self._db_tag_names = {tag.name for tag in tags}
+
         result = {
             tag.name: {
                 "layer": tag.default_layer,
@@ -118,10 +123,11 @@ class V3PromptBuilder:
         if not normalized:
             return []
 
-        found = {
-            tag.name
-            for tag in self.db.query(Tag.name).filter(Tag.name.in_(normalized)).all()
-        }
+        # Reuse cached DB tags from prior get_tag_info call (same scene_tags)
+        if self._db_tag_names is not None:
+            return [t for t in normalized if t not in self._db_tag_names]
+
+        found = {tag.name for tag in self.db.query(Tag.name).filter(Tag.name.in_(normalized)).all()}
         return [t for t in normalized if t not in found]
 
     @staticmethod
@@ -251,13 +257,15 @@ class V3PromptBuilder:
         character_id: int,
         scene_tags: list[str],
         style_loras: list[dict] | None = None,
+        character: Character | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
         # Background scene: skip character DB lookup entirely
         if self._is_background_scene(scene_tags):
             return self._compose_background_scene(scene_tags, style_loras)
 
-        character = self.db.query(Character).filter(Character.id == character_id).first()
+        if character is None:
+            character = self.db.query(Character).filter(Character.id == character_id).first()
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
 

@@ -233,8 +233,11 @@ class TestComposeSceneWithStyle:
     def test_calls_style_profile_then_v3(self):
         """Must call apply_style_profile_to_prompt(skip_loras=True) then V3 compose."""
         mock_db = MagicMock()
-        # Character query returns None (no custom_negative_prompt merge)
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        # Character query returns mock (no custom_negative_prompt → no merge)
+        mock_char = MagicMock()
+        mock_char.id = 10
+        mock_char.custom_negative_prompt = None
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
             patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
