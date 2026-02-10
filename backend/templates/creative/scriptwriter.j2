@@ -46,6 +46,17 @@ Name: {{ character_name }}
   3. Remove duplicates: No repeated expressions in consecutive scenes
   4. Hook strength: First 1-2 scenes must grab attention
   5. Pacing adjustment: Recalculate duration based on actual script length
+{% if language == "Korean" %}
+  6. **한국어 맞춤법 필수 검증**:
+     - 모든 문장을 소리 내어 읽었을 때 자연스러운지 확인
+     - 흔한 오류 패턴 교정: "먼히"→"멍하니", "쉠없"→"쉼 없", "전여하고"→"전해하고"
+     - 받침 탈락/오탈자 없는지 글자 단위로 점검
+     - 의미 없는 글자 조합(예: "낮반한", "가리타리")이 포함되지 않았는지 확인
+  7. **한국어 문장 품질**:
+     - 같은 문장 구조를 연속 씬에서 반복하지 않기 (예: "~하는 거야" 연속 사용 금지)
+     - 구어체와 문어체 혼용 금지 — 톤을 일관되게 유지
+     - 조사 누락/오용 점검 (은/는, 이/가, 을/를)
+{% endif %}
 
 ## Output Format (JSON)
 ```json

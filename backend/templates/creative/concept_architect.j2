@@ -58,3 +58,11 @@ Respond with a single JSON object:
 
 Focus on {{ focus_instruction }}.
 All text content should be in {{ language }}.
+{% if language == "Korean" %}
+
+## 한국어 품질 규칙
+- title, hook, arc, key_moments의 description 모두 **자연스러운 한국어**로 작성
+- 맞춤법/오탈자 필수 점검: 받침 탈락, 의미 없는 글자 조합 금지
+- 문장을 소리 내어 읽었을 때 어색하지 않아야 함
+- 같은 표현 반복 금지 (key_moments 간 description이 서로 달라야 함)
+{% endif %}
