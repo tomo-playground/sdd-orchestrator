@@ -65,7 +65,7 @@
 | 3 | 접근성 기본 (ARIA, focus trap, keyboard) | UX | - | [x] |
 | 4 | 이미지 생성 Progress (WebSocket/SSE) | 기능 | - | [ ] |
 | 5 | Multi-Character UI (DB 스키마 완료) | 기능 | [명세](FEATURES/MULTI_CHARACTER.md) | [x] |
-| 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
+| 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [x] |
 | 7 | Structure별 전용 Gemini 템플릿 (3종 structure = 3종 템플릿 1:1 매핑 완료) | 기능 | - | [x] |
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
 | 25 | Character Management 독립 페이지 (/characters 목록 + /characters/[id] 상세/편집) | UX | [명세](FEATURES/CHARACTER_PAGE.md) · [와이어프레임](../02_design/wireframes/CHARACTER_PAGE_WIREFRAME.md) | [x] |
@@ -232,7 +232,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
-- Phase 7-1: **24/27** 완료 (잔여: #2 Wizard, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
+- Phase 7-1: **25/27** 완료 (잔여: #2 Wizard, #4 생성 Progress, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - Phase 7-3: **4/6** 완료 (#0~#3, #4~#5 → 7-4로 확장)
 - Phase 7-4: **Phase A+B+C+D 완료** (D-1~D-3 네비·Lab·리다이렉트, D-4~D-5 레거시/호환 레이어 정리)
@@ -252,7 +252,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
 | 5 | ~~7-3 #3~~ | ~~/backgrounds 배경 에셋 페이지~~ | ~~완료 (2026-02-11)~~ |
-| 6 | 7-1 #6 | Scene Builder UI (→ `/backgrounds` 기반) | 씬 표현력 확장 |
+| ~~6~~ | ~~7-1 #6~~ | ~~Scene Builder UI (→ `/backgrounds` 기반)~~ | ~~완료 (2026-02-12)~~ |
 | 7 | 7-1 #8 | Character Builder 위저드 | 캐릭터 AI 에이전트화 선행 |
 
 **Tier 3 — 후순위**

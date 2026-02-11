@@ -34,7 +34,10 @@ export function useCharacterPreview(options: UseCharacterPreviewOptions) {
     setIsGenerating(true);
     try {
       const res = await axios.post(`${API_BASE}/characters/${characterId}/regenerate-reference`);
-      if (res.data.url) setPreviewImageUrl(res.data.url);
+      if (res.data.url) {
+        setPreviewImageUrl(`${res.data.url}?t=${Date.now()}`);
+        showToast("Reference image generated", "success");
+      }
     } catch (error) {
       console.error("Failed to generate reference", error);
       showToast(`Generate failed: ${getErrorMsg(error, "Unknown error")}`, "error");
@@ -54,7 +57,10 @@ export function useCharacterPreview(options: UseCharacterPreviewOptions) {
     setIsEnhancing(true);
     try {
       const res = await axios.post(`${API_BASE}/characters/${characterId}/enhance-preview`);
-      if (res.data.url) setPreviewImageUrl(res.data.url);
+      if (res.data.url) {
+        setPreviewImageUrl(`${res.data.url}?t=${Date.now()}`);
+        showToast(`Enhanced — $${res.data.cost_usd?.toFixed(4) ?? "?"}`, "success");
+      }
     } catch (error) {
       console.error("Failed to enhance preview", error);
       showToast(`Enhance failed: ${getErrorMsg(error, "Unknown error")}`, "error");
@@ -72,8 +78,12 @@ export function useCharacterPreview(options: UseCharacterPreviewOptions) {
         instruction: instruction.trim(),
       });
       if (res.data.url) {
-        setPreviewImageUrl(res.data.url);
+        setPreviewImageUrl(`${res.data.url}?t=${Date.now()}`);
         setGeminiTargetChange("");
+        showToast(
+          `Gemini edit done${res.data.edit_type ? ` (${res.data.edit_type})` : ""} — $${res.data.cost_usd?.toFixed(4) ?? "?"}`,
+          "success"
+        );
       }
     } catch (error) {
       console.error("Failed to edit preview", error);
