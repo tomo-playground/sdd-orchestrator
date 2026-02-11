@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import type { AutoRunStepId } from "../../types";
 import { AUTO_RUN_STEPS } from "../../constants";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 type ResumeConfirmModalProps = {
   resumeStep: AutoRunStepId;
@@ -29,20 +31,36 @@ export default function ResumeConfirmModal({
   onStartFresh,
   onDismiss,
 }: ResumeConfirmModalProps) {
+  const trapRef = useFocusTrap(true);
   const stepIndex = AUTO_RUN_STEPS.findIndex((s) => s.id === resumeStep);
   const stepLabel = AUTO_RUN_STEPS[stepIndex]?.label || resumeStep;
   const completedSteps = AUTO_RUN_STEPS.slice(0, stepIndex).map((s) => s.label);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onDismiss]);
+
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Resume Autopilot"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl outline-none"
+      >
         <div className="mb-4 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Resume Autopilot
         </div>
 
-        <p className="mb-4 text-base font-semibold text-zinc-900">
-          Previous session found
-        </p>
+        <p className="mb-4 text-base font-semibold text-zinc-900">Previous session found</p>
 
         <div className="mb-4 rounded-xl bg-zinc-100 p-4 text-xs">
           <div className="mb-2 flex items-center justify-between">

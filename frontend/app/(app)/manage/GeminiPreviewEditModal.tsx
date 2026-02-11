@@ -1,5 +1,6 @@
 "use client";
 
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useStudioStore } from "../../store/useStudioStore";
 
 const EXAMPLE_INSTRUCTIONS = [
@@ -26,6 +27,8 @@ export default function GeminiPreviewEditModal({
   onClose,
   onSubmit,
 }: Props) {
+  const trapRef = useFocusTrap(true);
+
   const handleClose = () => {
     setGeminiTargetChange("");
     onClose();
@@ -42,14 +45,26 @@ export default function GeminiPreviewEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[var(--z-nested-modal)] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[var(--z-nested-modal)] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gemini-preview-edit-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none"
+      >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-zinc-800">Edit with Gemini</h3>
+          <h3 id="gemini-preview-edit-title" className="text-lg font-semibold text-zinc-800">
+            Edit with Gemini
+          </h3>
           <button
             type="button"
             onClick={handleClose}
+            aria-label="Close dialog"
             className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -77,7 +92,10 @@ export default function GeminiPreviewEditModal({
 
           {/* Instruction */}
           <div>
-            <label className="mb-2 block text-sm font-semibold text-zinc-700">
+            <label
+              htmlFor="gemini-preview-instruction"
+              className="mb-2 block text-sm font-semibold text-zinc-700"
+            >
               How would you like to change this image?
             </label>
             <div className="mb-2 flex flex-wrap gap-2">
@@ -93,6 +111,7 @@ export default function GeminiPreviewEditModal({
               ))}
             </div>
             <textarea
+              id="gemini-preview-instruction"
               value={geminiTargetChange}
               onChange={(e) => setGeminiTargetChange(e.target.value)}
               placeholder="Describe the change in natural language..."

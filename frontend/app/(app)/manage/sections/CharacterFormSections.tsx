@@ -21,20 +21,28 @@ export function BasicInfoSection({
     <>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+          <label
+            htmlFor="char-name"
+            className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase"
+          >
             Name
           </label>
           <input
+            id="char-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+          <label
+            htmlFor="char-gender"
+            className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase"
+          >
             Gender
           </label>
           <select
+            id="char-gender"
             value={gender || "female"}
             onChange={(e) => setGender(e.target.value as ActorGender)}
             className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
@@ -45,10 +53,14 @@ export function BasicInfoSection({
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+        <label
+          htmlFor="char-description"
+          className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase"
+        >
           Description
         </label>
         <textarea
+          id="char-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
@@ -69,10 +81,14 @@ export function PromptModeSection({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+      <label
+        htmlFor="char-prompt-mode"
+        className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase"
+      >
         Prompt Mode
       </label>
       <select
+        id="char-prompt-mode"
         value={promptMode}
         onChange={(e) => setPromptMode(e.target.value as PromptMode)}
         className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
@@ -107,8 +123,11 @@ export function IpAdapterSection({
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-[11px] text-zinc-400">Weight ({ipAdapterWeight})</label>
+          <label htmlFor="char-ip-weight" className="mb-1 block text-[11px] text-zinc-400">
+            Weight ({ipAdapterWeight})
+          </label>
           <input
+            id="char-ip-weight"
             type="range"
             min="0"
             max="1.5"
@@ -119,8 +138,11 @@ export function IpAdapterSection({
           />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] text-zinc-400">Model</label>
+          <label htmlFor="char-ip-model" className="mb-1 block text-[11px] text-zinc-400">
+            Model
+          </label>
           <select
+            id="char-ip-model"
             value={ipAdapterModel}
             onChange={(e) => setIpAdapterModel(e.target.value)}
             className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
@@ -325,10 +347,14 @@ export function VoicePresetSection({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+      <label
+        htmlFor="char-voice-preset"
+        className="mb-1 block text-xs font-semibold tracking-wider text-zinc-500 uppercase"
+      >
         Default Voice Preset
       </label>
       <select
+        id="char-voice-preset"
         value={selectedId ?? ""}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
         className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../../constants";
 import { cx, SECTION_CLASSES } from "../ui/variants";
 
@@ -43,8 +43,6 @@ export default function StoryboardGeneratorPanel({
 }: StoryboardGeneratorPanelProps) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [languages, setLanguages] = useState<LangOption[]>([]);
-  const [sampleTopics, setSampleTopics] = useState<string[]>([]);
-
   // Fetch presets + languages on mount
   useEffect(() => {
     fetch(`${API_BASE}/presets`)
@@ -57,10 +55,10 @@ export default function StoryboardGeneratorPanel({
       .catch(() => setPresets([]));
   }, []);
 
-  // Update sample topics when structure changes
-  useEffect(() => {
+  // Derive sample topics from presets + structure (no cascading render)
+  const sampleTopics = useMemo(() => {
     const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
-    setSampleTopics(preset?.sample_topics ?? []);
+    return preset?.sample_topics ?? [];
   }, [structure, presets]);
 
   // Update duration when structure changes (separate effect to avoid loop)
@@ -86,7 +84,10 @@ export default function StoryboardGeneratorPanel({
       <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <label
+              htmlFor="sb-topic"
+              className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+            >
               Topic
             </label>
             <span
@@ -98,6 +99,7 @@ export default function StoryboardGeneratorPanel({
             </span>
           </div>
           <textarea
+            id="sb-topic"
             data-testid="topic-input"
             value={topic}
             onChange={(e) => setTopic(e.target.value.slice(0, 200))}
@@ -121,7 +123,10 @@ export default function StoryboardGeneratorPanel({
             </div>
           )}
           <div className="mt-3 flex items-center justify-between">
-            <label className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <label
+              htmlFor="sb-description"
+              className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+            >
               Description{" "}
               <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
             </label>
@@ -134,6 +139,7 @@ export default function StoryboardGeneratorPanel({
             </span>
           </div>
           <textarea
+            id="sb-description"
             data-testid="description-input"
             value={description}
             onChange={(e) => setDescription(e.target.value.slice(0, 500))}
@@ -146,10 +152,14 @@ export default function StoryboardGeneratorPanel({
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              <label
+                htmlFor="sb-duration"
+                className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+              >
                 Duration <span className="text-zinc-400">(10-120s)</span>
               </label>
               <input
+                id="sb-duration"
                 type="number"
                 min={10}
                 max={120}
@@ -159,10 +169,14 @@ export default function StoryboardGeneratorPanel({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              <label
+                htmlFor="sb-language"
+                className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+              >
                 Language
               </label>
               <select
+                id="sb-language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
@@ -176,10 +190,14 @@ export default function StoryboardGeneratorPanel({
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <label
+              htmlFor="sb-structure"
+              className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+            >
               Structure
             </label>
             <select
+              id="sb-structure"
               value={structure}
               onChange={(e) => setStructure(e.target.value)}
               className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"

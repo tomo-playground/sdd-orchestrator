@@ -72,10 +72,14 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
 
       <div className="space-y-3 px-5 py-4">
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label
+            htmlFor="project-form-name"
+            className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase"
+          >
             Name *
           </label>
           <input
+            id="project-form-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My Project"
@@ -84,10 +88,14 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label
+            htmlFor="project-form-handle"
+            className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase"
+          >
             Handle
           </label>
           <input
+            id="project-form-handle"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             placeholder="@channel-handle"
@@ -95,10 +103,14 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label
+            htmlFor="project-form-desc"
+            className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase"
+          >
             Description
           </label>
           <input
+            id="project-form-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"

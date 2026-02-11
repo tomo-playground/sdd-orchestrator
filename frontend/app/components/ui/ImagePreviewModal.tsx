@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 type ImagePreviewModalProps = {
   src: string | null;
@@ -9,6 +10,7 @@ type ImagePreviewModalProps = {
 };
 
 export default function ImagePreviewModal({ src, candidates, onClose }: ImagePreviewModalProps) {
+  const trapRef = useFocusTrap(!!src);
   const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -43,7 +45,7 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, currentIndex, candidates]);
 
   if (!currentSrc) return null;
@@ -52,7 +54,12 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
 
   return (
     <div
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 transition-opacity duration-300"
+      ref={trapRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image preview"
+      tabIndex={-1}
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md transition-opacity duration-300 outline-none"
       onClick={onClose}
     >
       <div className="relative flex max-h-[90vh] max-w-[90vw] items-center justify-center">
@@ -63,10 +70,17 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
               e.stopPropagation();
               handlePrev();
             }}
-            className="absolute -left-20 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white/50 backdrop-blur-md transition hover:bg-white/20 hover:text-white hover:scale-110 active:scale-95"
+            className="absolute top-1/2 -left-20 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white/50 backdrop-blur-md transition hover:scale-110 hover:bg-white/20 hover:text-white active:scale-95"
             aria-label="Previous image"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-8 w-8">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
+              stroke="currentColor"
+              className="h-8 w-8"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -87,10 +101,17 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
               e.stopPropagation();
               handleNext();
             }}
-            className="absolute -right-20 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white/50 backdrop-blur-md transition hover:bg-white/20 hover:text-white hover:scale-110 active:scale-95"
+            className="absolute top-1/2 -right-20 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white/50 backdrop-blur-md transition hover:scale-110 hover:bg-white/20 hover:text-white active:scale-95"
             aria-label="Next image"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-8 w-8">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
+              stroke="currentColor"
+              className="h-8 w-8"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -98,12 +119,13 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
 
         {/* Indicator */}
         {showNavigation && (
-          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute -bottom-10 left-1/2 flex -translate-x-1/2 gap-2">
             {candidates?.map((_, idx) => (
               <div
                 key={idx}
-                className={`h-2 w-2 rounded-full transition-all ${idx === currentIndex ? "bg-white w-4" : "bg-white/30 hover:bg-white/50"
-                  }`}
+                className={`h-2 w-2 rounded-full transition-all ${
+                  idx === currentIndex ? "w-4 bg-white" : "bg-white/30 hover:bg-white/50"
+                }`}
               />
             ))}
           </div>
@@ -123,11 +145,7 @@ export default function ImagePreviewModal({ src, candidates, onClose }: ImagePre
             stroke="currentColor"
             className="h-6 w-6"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>

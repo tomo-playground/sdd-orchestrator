@@ -124,10 +124,14 @@ function YouTubeUploadForm({
       <div className="grid gap-4 px-5 py-4">
         {/* Title */}
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
+          <label
+            htmlFor="yt-title"
+            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+          >
             Title
           </label>
           <input
+            id="yt-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -143,10 +147,14 @@ function YouTubeUploadForm({
 
         {/* Description */}
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
+          <label
+            htmlFor="yt-desc"
+            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+          >
             Description
           </label>
           <textarea
+            id="yt-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
@@ -158,10 +166,14 @@ function YouTubeUploadForm({
 
         {/* Tags */}
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
+          <label
+            htmlFor="yt-tags"
+            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+          >
             Tags (comma separated)
           </label>
           <input
+            id="yt-tags"
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
@@ -173,10 +185,14 @@ function YouTubeUploadForm({
 
         {/* Privacy */}
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
+          <label
+            htmlFor="yt-privacy"
+            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+          >
             Privacy
           </label>
           <select
+            id="yt-privacy"
             value={privacy}
             onChange={(e) => setPrivacy(e.target.value)}
             disabled={uploading}

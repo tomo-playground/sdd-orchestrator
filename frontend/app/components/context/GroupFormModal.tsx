@@ -38,15 +38,22 @@ export default function GroupFormModal({ projectId, onSave, onClose }: Props) {
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
         <h2 className="text-sm font-bold text-zinc-900">New Group</h2>
-        <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-600">
+        <button
+          onClick={onClose}
+          aria-label="Close dialog"
+          className="text-xs text-zinc-400 hover:text-zinc-600"
+        >
           x
         </button>
       </Modal.Header>
 
       <div className="space-y-3 px-5 py-4">
         <div>
-          <label className={labelCls}>Name *</label>
+          <label htmlFor="group-form-name" className={labelCls}>
+            Name *
+          </label>
           <input
+            id="group-form-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Series Name"
@@ -55,8 +62,11 @@ export default function GroupFormModal({ projectId, onSave, onClose }: Props) {
           />
         </div>
         <div>
-          <label className={labelCls}>Description</label>
+          <label htmlFor="group-form-desc" className={labelCls}>
+            Description
+          </label>
           <input
+            id="group-form-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"

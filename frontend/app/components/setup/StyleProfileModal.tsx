@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import LoadingSpinner from "../ui/LoadingSpinner";
 
 type StyleProfile = {
@@ -34,6 +35,7 @@ export default function StyleProfileModal({
   onComplete,
   onSkip,
 }: StyleProfileModalProps) {
+  const trapRef = useFocusTrap(true);
   const [profiles, setProfiles] = useState<StyleProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,12 +117,22 @@ export default function StyleProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-2xl rounded-3xl border border-white/20 bg-white p-8 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="style-profile-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="relative w-full max-w-2xl rounded-3xl border border-white/20 bg-white p-8 shadow-2xl outline-none"
+      >
         {/* Close Button */}
         {onSkip && (
           <button
             onClick={onSkip}
+            aria-label="Close dialog"
             className="absolute top-4 right-4 rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
           >
             <svg
@@ -137,7 +149,9 @@ export default function StyleProfileModal({
         )}
         {/* Header */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-zinc-900">스타일 프로필 선택</h2>
+          <h2 id="style-profile-title" className="text-2xl font-bold text-zinc-900">
+            스타일 프로필 선택
+          </h2>
           <p className="mt-2 text-sm text-zinc-500">
             사용할 스타일 프로필을 선택하세요. Model + LoRAs + Embeddings가 세트로 로드됩니다.
           </p>

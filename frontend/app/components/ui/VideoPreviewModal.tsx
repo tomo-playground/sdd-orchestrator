@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 type VideoPreviewModalProps = {
   src: string | null;
@@ -8,6 +9,8 @@ type VideoPreviewModalProps = {
 };
 
 export default function VideoPreviewModal({ src, onClose }: VideoPreviewModalProps) {
+  const trapRef = useFocusTrap(!!src);
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -20,7 +23,12 @@ export default function VideoPreviewModal({ src, onClose }: VideoPreviewModalPro
 
   return (
     <div
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/90 p-4"
+      ref={trapRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Video preview"
+      tabIndex={-1}
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/90 p-4 outline-none"
       onClick={onClose}
     >
       <div className="relative max-h-[90vh] max-w-[90vw]">
@@ -44,11 +52,7 @@ export default function VideoPreviewModal({ src, onClose }: VideoPreviewModalPro
             stroke="currentColor"
             className="h-6 w-6"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>

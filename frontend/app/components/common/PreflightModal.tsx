@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { PreflightResult, AutoRunStepId } from "../../utils/preflight";
 import { estimateTime, getStepsToExecute } from "../../utils/preflight";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface PreflightModalProps {
   isOpen: boolean;
@@ -12,14 +13,13 @@ interface PreflightModalProps {
 }
 
 const STEP_LABELS: Record<AutoRunStepId, string> = {
-  storyboard: "Storyboard",
-  fix: "Auto Fix",
   images: "Images",
   validate: "Validate",
   render: "Render",
 };
 
 export default function PreflightModal({ isOpen, preflight, onClose, onRun }: PreflightModalProps) {
+  const trapRef = useFocusTrap(isOpen);
   // User can override step selection
   const [stepOverrides, setStepOverrides] = useState<Partial<Record<AutoRunStepId, boolean>>>({});
 
@@ -47,16 +47,26 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
   };
 
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
-      <div className="mx-4 max-h-[90vh] w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-gray-800">
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preflight-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="mx-4 max-h-[90vh] w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl outline-none dark:bg-gray-800"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <h2 id="preflight-title" className="flex items-center gap-2 text-lg font-semibold">
             <span>🚀</span>
             <span>AutoRun Pre-flight Check</span>
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
           >
             <svg
@@ -169,11 +179,6 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
               {estimateTime({
                 ...preflight,
                 steps: {
-                  storyboard: {
-                    ...preflight.steps.storyboard,
-                    needed: isStepEnabled("storyboard"),
-                  },
-                  fix: { ...preflight.steps.fix, needed: isStepEnabled("fix") },
                   images: { ...preflight.steps.images, needed: isStepEnabled("images") },
                   validate: { ...preflight.steps.validate, needed: isStepEnabled("validate") },
                   render: { ...preflight.steps.render, needed: isStepEnabled("render") },

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useCharacterForm } from "./hooks/useCharacterForm";
 import PreviewImageSection from "./PreviewImageSection";
 import CharacterTagsEditor from "./CharacterTagsEditor";
@@ -35,6 +36,7 @@ export default function CharacterEditModal({
   onClose,
   onSave,
 }: Props) {
+  const trapRef = useFocusTrap(true);
   const showToast = useStudioStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const form = useCharacterForm({
@@ -70,7 +72,11 @@ export default function CharacterEditModal({
       aria-modal="true"
       aria-labelledby="character-edit-title"
     >
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl outline-none"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 px-6 py-4">
           <h2 id="character-edit-title" className="text-lg font-bold text-zinc-900">

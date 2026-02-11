@@ -1,6 +1,7 @@
 "use client";
 
 import type { Scene, GeminiSuggestion } from "../../types";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 type SceneGeminiModalsProps = {
   scene: Scene;
@@ -100,11 +101,24 @@ function GeminiEditModal({
   onSubmit,
   showToast,
 }: GeminiEditModalProps) {
+  const trapRef = useFocusTrap(true);
+
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gemini-edit-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none"
+      >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-zinc-800">✨ Fix with Gemini Nano Banana</h3>
+          <h3 id="gemini-edit-title" className="text-lg font-semibold text-zinc-800">
+            ✨ Fix with Gemini Nano Banana
+          </h3>
           <CloseButton onClick={onClose} />
         </div>
 
@@ -121,7 +135,10 @@ function GeminiEditModal({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-zinc-700">
+            <label
+              htmlFor="gemini-edit-instruction"
+              className="mb-2 block text-sm font-semibold text-zinc-700"
+            >
               어떻게 바꿀까요? (자연어로 입력하세요)
             </label>
             <div className="mb-2 flex flex-wrap gap-2">
@@ -137,6 +154,7 @@ function GeminiEditModal({
               ))}
             </div>
             <textarea
+              id="gemini-edit-instruction"
               value={geminiTargetChange}
               onChange={(e) => setGeminiTargetChange(e.target.value)}
               placeholder="예: 의자에 앉아서 무릎에 손 올리기 / 환하게 웃으면서 카메라 보기"
@@ -191,11 +209,24 @@ function GeminiSuggestModal({
   onClose,
   onApproveSuggestion,
 }: GeminiSuggestModalProps) {
+  const trapRef = useFocusTrap(true);
+
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gemini-suggest-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none"
+      >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-zinc-800">🤖 Gemini Auto Suggestions</h3>
+          <h3 id="gemini-suggest-title" className="text-lg font-semibold text-zinc-800">
+            🤖 Gemini Auto Suggestions
+          </h3>
           <CloseButton onClick={onClose} />
         </div>
 
@@ -239,6 +270,7 @@ function CloseButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
+      aria-label="Close dialog"
       className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
     >
       <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
