@@ -490,6 +490,28 @@ export type EvaluationSummary = {
 };
 
 // ============================================================
+// Storyboard List Types
+// ============================================================
+
+export type StoryboardCastMember = {
+  id: number;
+  name: string;
+  speaker: string;
+  preview_url: string | null;
+};
+
+export type StoryboardListItem = {
+  id: number;
+  title: string;
+  description: string | null;
+  scene_count: number;
+  image_count: number;
+  cast: StoryboardCastMember[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+// ============================================================
 // Project & Group Types
 // ============================================================
 

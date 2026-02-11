@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Settings, FlaskConical, Users } from "lucide-react";
+import { Home, Settings, FlaskConical, Users, FileText } from "lucide-react";
 import { useStudioStore } from "../../store/useStudioStore";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home, exact: true },
+  { href: "/storyboards", label: "Storyboards", icon: FileText, exact: false },
   { href: "/characters", label: "Characters", icon: Users, exact: false },
   { href: "/lab", label: "Lab", icon: FlaskConical, exact: false },
   { href: "/manage", label: "Manage", icon: Settings, exact: false },
@@ -24,7 +25,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const showSidebar =
     !pathname.startsWith("/manage") &&
     !pathname.startsWith("/lab") &&
-    !pathname.startsWith("/characters");
+    !pathname.startsWith("/characters") &&
+    !pathname.startsWith("/storyboards");
   const toast = useStudioStore((s) => s.toast);
   const connectionStatus = useBackendHealth();
 
