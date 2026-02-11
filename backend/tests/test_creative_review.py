@@ -270,3 +270,77 @@ class TestConcurrentApproveRejected:
         clear_review(db, session)
         pipeline = session.context.get("pipeline", {})
         assert "review" not in pipeline
+
+
+# ── run_step_qc / run_script_qc (Director QC generalization) ─
+
+
+class TestRunStepQC:
+    @patch("services.creative_review.get_provider")
+    @patch("services.creative_review.get_next_sequence", return_value=0)
+    @patch("services.creative_review.record_trace_sync")
+    def test_run_step_qc_returns_parsed_result(self, mock_trace, _mock_seq, mock_provider):
+        from services.creative_review import run_step_qc
+
+        mock_gen = MagicMock()
+
+        async def fake_generate(**_kwargs):
+            return {
+                "content": '{"score": 0.82, "overall_rating": "needs_revision", "issues": [], "strengths": []}',
+                "model_id": "gemini-test",
+                "token_usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+            }
+
+        mock_gen.generate = fake_generate
+        mock_provider.return_value = mock_gen
+
+        db = MagicMock()
+        session = _make_session()
+
+        result = run_step_qc(db, session, "cinematographer", [{"order": 0}], {"title": "Test"}, "Korean")
+
+        assert result["score"] == 0.82
+        assert result["overall_rating"] == "needs_revision"
+        mock_trace.assert_called_once()
+        call_kwargs = mock_trace.call_args[1]
+        assert call_kwargs["agent_role"] == "cinematographer_qc"
+        assert call_kwargs["step_name"] == "cinematographer_qc"
+
+    @patch("services.creative_review.run_step_qc")
+    def test_run_script_qc_delegates_to_step_qc(self, mock_step_qc):
+        from services.creative_review import run_script_qc
+
+        mock_step_qc.return_value = {"score": 0.9}
+        db = MagicMock()
+        session = _make_session()
+
+        result = run_script_qc(db, session, [{"order": 0}], {"title": "T"}, "Korean")
+
+        mock_step_qc.assert_called_once_with(db, session, "scriptwriter", [{"order": 0}], {"title": "T"}, "Korean")
+        assert result["score"] == 0.9
+
+
+# ── should_review with expanded steps ────────────────────────
+
+
+class TestShouldReviewExpanded:
+    @patch("services.creative_review.CREATIVE_REVIEW_ENABLED", True)
+    @patch(
+        "services.creative_review.CREATIVE_REVIEW_STEPS",
+        ["scriptwriter", "cinematographer", "sound_designer", "copyright_reviewer"],
+    )
+    def test_all_steps_reviewable(self):
+        from services.creative_review import should_review
+
+        for step in ["scriptwriter", "cinematographer", "sound_designer", "copyright_reviewer"]:
+            assert should_review(step) is True, f"{step} should be reviewable"
+
+    @patch("services.creative_review.CREATIVE_REVIEW_ENABLED", True)
+    @patch(
+        "services.creative_review.CREATIVE_REVIEW_STEPS",
+        ["scriptwriter", "cinematographer", "sound_designer", "copyright_reviewer"],
+    )
+    def test_unknown_step_not_reviewable(self):
+        from services.creative_review import should_review
+
+        assert should_review("unknown_agent") is False
