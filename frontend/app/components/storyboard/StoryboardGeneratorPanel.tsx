@@ -1,32 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { API_BASE } from "../../constants";
+import { useEffect, useMemo, useRef } from "react";
+import { usePresets, type Preset, type LangOption } from "../../hooks/usePresets";
 import { cx, SECTION_CLASSES } from "../ui/variants";
-
-type Preset = {
-  id: string;
-  name: string;
-  name_ko: string;
-  structure: string;
-  sample_topics: string[];
-  default_duration: number;
-  default_language: string;
-};
-
-type LangOption = { value: string; label: string };
 
 type StoryboardGeneratorPanelProps = {
   topic: string;
   setTopic: (value: string) => void;
-  description: string;
-  setDescription: (value: string) => void;
+  description?: string;
+  setDescription?: (value: string) => void;
   duration: number;
   setDuration: (value: number) => void;
   language: string;
   setLanguage: (value: string) => void;
   structure: string;
   setStructure: (value: string) => void;
+  // External injection (skip internal fetch when provided)
+  presets?: Preset[];
+  languages?: LangOption[];
+  durations?: number[];
 };
 
 export default function StoryboardGeneratorPanel({
@@ -40,28 +32,23 @@ export default function StoryboardGeneratorPanel({
   setLanguage,
   structure,
   setStructure,
+  presets: externalPresets,
+  languages: externalLanguages,
+  durations: externalDurations,
 }: StoryboardGeneratorPanelProps) {
-  const [presets, setPresets] = useState<Preset[]>([]);
-  const [languages, setLanguages] = useState<LangOption[]>([]);
-  // Fetch presets + languages on mount
-  useEffect(() => {
-    fetch(`${API_BASE}/presets`)
-      .then((res) => res.json())
-      .then((data) => {
-        const list = data?.presets ?? data;
-        if (Array.isArray(list)) setPresets(list);
-        if (Array.isArray(data?.languages)) setLanguages(data.languages);
-      })
-      .catch(() => setPresets([]));
-  }, []);
+  const hasExternal = !!(externalPresets && externalLanguages && externalDurations);
+  const internal = usePresets(hasExternal);
+  const presets = externalPresets ?? internal.presets;
+  const languages = externalLanguages ?? internal.languages;
+  const durations = externalDurations ?? internal.durations;
 
-  // Derive sample topics from presets + structure (no cascading render)
+  // Derive sample topics from presets + structure
   const sampleTopics = useMemo(() => {
     const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
     return preset?.sample_topics ?? [];
   }, [structure, presets]);
 
-  // Update duration when structure changes (separate effect to avoid loop)
+  // Update duration when structure changes
   const prevStructureRef = useRef(structure);
   useEffect(() => {
     if (prevStructureRef.current !== structure) {
@@ -122,32 +109,36 @@ export default function StoryboardGeneratorPanel({
               ))}
             </div>
           )}
-          <div className="mt-3 flex items-center justify-between">
-            <label
-              htmlFor="sb-description"
-              className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-            >
-              Description{" "}
-              <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
-            </label>
-            <span
-              className={`text-[12px] font-semibold tracking-[0.1em] ${
-                description.length >= 500 ? "text-rose-500" : "text-zinc-400"
-              }`}
-            >
-              {description.length}/500
-            </span>
-          </div>
-          <textarea
-            id="sb-description"
-            data-testid="description-input"
-            value={description}
-            onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-            rows={3}
-            maxLength={500}
-            className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
-            placeholder="톤, 대상 독자, 강조 포인트 등을 적어주세요"
-          />
+          {setDescription !== undefined && (
+            <>
+              <div className="mt-3 flex items-center justify-between">
+                <label
+                  htmlFor="sb-description"
+                  className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+                >
+                  Description{" "}
+                  <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
+                </label>
+                <span
+                  className={`text-[12px] font-semibold tracking-[0.1em] ${
+                    (description ?? "").length >= 500 ? "text-rose-500" : "text-zinc-400"
+                  }`}
+                >
+                  {(description ?? "").length}/500
+                </span>
+              </div>
+              <textarea
+                id="sb-description"
+                data-testid="description-input"
+                value={description ?? ""}
+                onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+                rows={3}
+                maxLength={500}
+                className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
+                placeholder="톤, 대상 독자, 강조 포인트 등을 적어주세요"
+              />
+            </>
+          )}
         </div>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
@@ -156,17 +147,20 @@ export default function StoryboardGeneratorPanel({
                 htmlFor="sb-duration"
                 className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
               >
-                Duration <span className="text-zinc-400">(10-120s)</span>
+                Duration
               </label>
-              <input
+              <select
                 id="sb-duration"
-                type="number"
-                min={10}
-                max={120}
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
+              >
+                {durations.map((d) => (
+                  <option key={d} value={d}>
+                    {d}s
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-2">
               <label

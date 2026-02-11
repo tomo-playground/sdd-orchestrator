@@ -139,6 +139,7 @@ export type PipelineStatusResponse = {
 
 export type ShortsSessionCreate = {
   topic: string;
+  description?: string;
   duration: number;
   structure: string;
   language: string;
