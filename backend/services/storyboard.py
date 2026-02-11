@@ -736,7 +736,7 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
 
         # Auto-populate character_actions from context_tags (Dialogue/Narrated Dialogue)
         if has_two_characters and (request.character_id or request.character_b_id) and db:
-            from services.character_action_resolver import auto_populate_character_actions
+            from services.characters import auto_populate_character_actions
 
             scenes = auto_populate_character_actions(scenes, request.character_id, request.character_b_id, db)
 
@@ -780,7 +780,7 @@ def _sync_speaker_mappings(
         logger.debug("[SpeakerMapping] Skipping sync (both character_id and character_b_id omitted)")
         return
 
-    from services.speaker_resolver import assign_speakers
+    from services.characters import assign_speakers
 
     speaker_map: dict[str, int] = {}
 
@@ -948,7 +948,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     ]
 
     # Resolve character_id and character_b_id from storyboard_characters
-    from services.speaker_resolver import resolve_speaker_to_character
+    from services.characters import resolve_speaker_to_character
 
     character_id = resolve_speaker_to_character(storyboard.id, SPEAKER_A, db)
     character_b_id = resolve_speaker_to_character(storyboard.id, SPEAKER_B, db)

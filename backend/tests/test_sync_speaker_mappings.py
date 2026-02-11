@@ -318,7 +318,7 @@ class TestTTSWarningOnMissingMapping:
         # The function imports resolve_speaker_to_character inside, so patch the source module
         with (
             patch("services.video.tts_helpers.logger", mock_logger),
-            patch("services.speaker_resolver.resolve_speaker_to_character", return_value=None),
+            patch("services.characters.resolve_speaker_to_character", return_value=None),
             patch("database.get_db", return_value=iter([mock_db])),
         ):
             from services.video.tts_helpers import get_speaker_voice_preset

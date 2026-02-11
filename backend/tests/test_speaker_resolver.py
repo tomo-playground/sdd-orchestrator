@@ -7,7 +7,7 @@ class TestResolveSpeakerToCharacter:
     """Test resolve_speaker_to_character()."""
 
     def test_returns_character_id_for_existing_mapping(self):
-        from services.speaker_resolver import resolve_speaker_to_character
+        from services.characters import resolve_speaker_to_character
 
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.first.return_value = (42,)
@@ -16,7 +16,7 @@ class TestResolveSpeakerToCharacter:
         assert result == 42
 
     def test_returns_none_for_missing_mapping(self):
-        from services.speaker_resolver import resolve_speaker_to_character
+        from services.characters import resolve_speaker_to_character
 
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.first.return_value = None
@@ -29,7 +29,7 @@ class TestResolveAllSpeakers:
     """Test resolve_all_speakers()."""
 
     def test_returns_all_mappings(self):
-        from services.speaker_resolver import resolve_all_speakers
+        from services.characters import resolve_all_speakers
 
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.all.return_value = [
@@ -41,7 +41,7 @@ class TestResolveAllSpeakers:
         assert result == {"A": 10, "B": 20}
 
     def test_returns_empty_dict_for_no_mappings(self):
-        from services.speaker_resolver import resolve_all_speakers
+        from services.characters import resolve_all_speakers
 
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.all.return_value = []
@@ -54,7 +54,7 @@ class TestAssignSpeakers:
     """Test assign_speakers()."""
 
     def test_deletes_existing_and_inserts_new(self):
-        from services.speaker_resolver import assign_speakers
+        from services.characters import assign_speakers
 
         mock_db = MagicMock()
 
@@ -68,7 +68,7 @@ class TestAssignSpeakers:
         mock_db.flush.assert_called_once()
 
     def test_empty_speaker_map_clears_all(self):
-        from services.speaker_resolver import assign_speakers
+        from services.characters import assign_speakers
 
         mock_db = MagicMock()
 

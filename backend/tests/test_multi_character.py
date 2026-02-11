@@ -119,7 +119,7 @@ class TestCharacterActionResolverMulti:
     def test_multi_scene_mode_populates_both_characters(self, db_session):
         """scene_mode='multi' -> both characters get actions."""
         from models.tag import Tag
-        from services.character_action_resolver import auto_populate_character_actions
+        from services.characters import auto_populate_character_actions
 
         tag = Tag(name="smile", default_layer=7)
         db_session.add(tag)
@@ -143,7 +143,7 @@ class TestCharacterActionResolverMulti:
     def test_single_scene_mode_populates_only_speaker(self, db_session):
         """scene_mode='single' -> only speaking character gets actions."""
         from models.tag import Tag
-        from services.character_action_resolver import auto_populate_character_actions
+        from services.characters import auto_populate_character_actions
 
         tag = Tag(name="angry", default_layer=7)
         db_session.add(tag)

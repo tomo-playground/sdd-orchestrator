@@ -2,7 +2,7 @@
 
 from models.tag import Tag
 from schemas import SceneActionSave
-from services.character_action_resolver import auto_populate_character_actions, extract_actions_from_context_tags
+from services.characters import auto_populate_character_actions, extract_actions_from_context_tags
 from services.storyboard import resolve_action_tag_ids
 
 # ── Helpers ──────────────────────────────────────────────────────────

@@ -178,7 +178,7 @@ class TestGetSpeakerVoicePreset:
         mock_resolve.return_value = {"values": {"narrator_voice_preset_id": 99}}
         assert get_speaker_voice_preset(1, "Narrator") == 99
 
-    @patch("services.speaker_resolver.resolve_speaker_to_character")
+    @patch("services.characters.resolve_speaker_to_character")
     @patch("services.config_resolver.resolve_effective_config")
     @patch("database.get_db")
     def test_character_branch(self, mock_get_db, mock_resolve, mock_spkr):

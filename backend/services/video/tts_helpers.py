@@ -192,7 +192,7 @@ def _resolve_narrator_preset(effective: dict) -> int | None:
 def _resolve_character_preset(storyboard_id: int, speaker: str, db) -> int | None:
     """Resolve character speaker to a voice_preset_id via storyboard mapping."""
     from models.character import Character
-    from services.speaker_resolver import resolve_speaker_to_character
+    from services.characters import resolve_speaker_to_character
 
     resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
     if not resolved_char_id:
@@ -228,7 +228,7 @@ def generate_context_aware_voice_prompt(
 
     Analyzes the script and metadata (image prompt, tags) to determine
     the appropriate satisfaction/emotion/tone for the TTS.
-    
+
     If base_prompt is provided (e.g. from a preset), it modifies the base prompt
     to include the new emotional context while keeping the original voice characteristics.
 
@@ -273,26 +273,21 @@ def generate_context_aware_voice_prompt(
                 "Do NOT include the script itself. Keep it under 15 words."
             )
             user_prompt_content = (
-                f"Script (Korean): {script}\n"
-                f"Scene Context: {context_text}\n\n"
-                "Voice Design Prompt (English):"
+                f"Script (Korean): {script}\nScene Context: {context_text}\n\nVoice Design Prompt (English):"
             )
-        
+
         # Use simpler prompt structure for reliability
-        prompt = (
-            f"{system_instruction}\n\n"
-            f"{user_prompt_content}"
-        )
+        prompt = f"{system_instruction}\n\n{user_prompt_content}"
 
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
             contents=prompt,
         )
-        
+
         voice_prompt = res.text.strip()
         # Basic cleanup: remove quotes if present
         voice_prompt = voice_prompt.strip('"').strip("'")
-        
+
         if voice_prompt:
             _CONTEXT_PROMPT_CACHE[cache_key] = voice_prompt
             logger.info(f"[TTS] Generated context prompt: '{voice_prompt}' (for '{script[:20]}...')")
@@ -300,5 +295,5 @@ def generate_context_aware_voice_prompt(
 
     except Exception as e:
         logger.warning(f"[TTS] Failed to generate context-aware prompt: {e}")
-    
+
     return ""
