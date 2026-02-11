@@ -369,10 +369,14 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     from services.prompt.prompt import normalize_and_fix_tags
 
     full_prompt = normalize_and_fix_tags(full_prompt_raw)
+    neg_prompt = character.reference_negative_prompt or ""
+
+    # Release DB connection before long SD WebUI call (~30-60s)
+    db.close()
 
     request = SceneGenerateRequest(
         prompt=full_prompt,
-        negative_prompt=character.reference_negative_prompt or "",
+        negative_prompt=neg_prompt,
         steps=SD_REFERENCE_STEPS,
         cfg_scale=SD_REFERENCE_CFG_SCALE,
         width=512,
@@ -388,6 +392,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     if "image" not in res:
         raise HTTPException(status_code=500, detail="Generation failed")
 
+    # Session auto-reconnects on next use
     from services.asset_service import AssetService
     from services.image import decode_data_url
 
@@ -395,7 +400,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     asset_service = AssetService(db)
     asset = asset_service.save_character_preview(character_id, image_bytes)
 
-    character.preview_image_asset_id = asset.id
+    db.query(Character).filter(Character.id == character_id).update({"preview_image_asset_id": asset.id})
     db.commit()
 
     return {"ok": True, "url": asset.url}
@@ -420,14 +425,18 @@ async def enhance_preview(character_id: int, db: Session = Depends(get_db)):
 
     image_b64 = load_as_data_url(character.preview_image_url)
 
+    # Release DB connection before long Gemini API call
+    db.close()
+
     service = get_imagen_service()
     result = await service.enhance_image(image_b64)
 
+    # Session auto-reconnects on next use
     enhanced_bytes = decode_data_url(f"data:image/png;base64,{result['enhanced_image']}")
     asset_service = AssetService(db)
     asset = asset_service.save_character_preview(character_id, enhanced_bytes)
 
-    character.preview_image_asset_id = asset.id
+    db.query(Character).filter(Character.id == character_id).update({"preview_image_asset_id": asset.id})
     db.commit()
 
     return {"ok": True, "url": asset.url, "cost_usd": result["cost_usd"]}
@@ -464,6 +473,9 @@ async def edit_preview(
     tag_names = [ct.tag.name for ct in character.tags if ct.tag]
     original_prompt = ", ".join(tag_names) if tag_names else ""
 
+    # Release DB connection before long Gemini API call
+    db.close()
+
     service = get_imagen_service()
     result = await service.edit_with_analysis(
         image_b64=image_b64,
@@ -471,11 +483,12 @@ async def edit_preview(
         target_change=instruction,
     )
 
+    # Session auto-reconnects on next use
     edited_bytes = decode_data_url(f"data:image/png;base64,{result['edited_image']}")
     asset_service = AssetService(db)
     asset = asset_service.save_character_preview(character_id, edited_bytes)
 
-    character.preview_image_asset_id = asset.id
+    db.query(Character).filter(Character.id == character_id).update({"preview_image_asset_id": asset.id})
     db.commit()
 
     return {
