@@ -18,7 +18,7 @@ export default function LayoutSelector({
   return (
     <div className={showLabel ? "grid gap-3" : ""}>
       {showLabel && (
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Layout
         </label>
       )}
@@ -48,12 +48,12 @@ export default function LayoutSelector({
           </div>
           <div className="text-center">
             <p className={`text-xs font-semibold ${value === "full" ? "text-zinc-900" : "text-zinc-600"}`}>Full</p>
-            <p className={`text-[10px] ${value === "full" ? "text-zinc-600" : "text-zinc-400"}`}>
+            <p className={`text-[12px] ${value === "full" ? "text-zinc-600" : "text-zinc-400"}`}>
               {isCompact ? "9:16" : "9:16 세로"}
             </p>
           </div>
           {!isCompact && value === "full" && (
-            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">선택됨</span>
+            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[11px] font-semibold text-white">선택됨</span>
           )}
         </button>
 
@@ -79,12 +79,12 @@ export default function LayoutSelector({
           </div>
           <div className="text-center">
             <p className={`text-xs font-semibold ${value === "post" ? "text-zinc-900" : "text-zinc-600"}`}>Post</p>
-            <p className={`text-[10px] ${value === "post" ? "text-zinc-600" : "text-zinc-400"}`}>
+            <p className={`text-[12px] ${value === "post" ? "text-zinc-600" : "text-zinc-400"}`}>
               {isCompact ? "1:1" : "1:1 정사각형"}
             </p>
           </div>
           {!isCompact && value === "post" && (
-            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-white">선택됨</span>
+            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[11px] font-semibold text-white">선택됨</span>
           )}
         </button>
       </div>

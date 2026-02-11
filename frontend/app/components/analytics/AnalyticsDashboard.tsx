@@ -107,7 +107,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
           <button
             onClick={loadAnalytics}
             disabled={isLoading || !storyboardId}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-semibold tracking-wider text-white uppercase transition disabled:bg-zinc-400"
+            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[12px] font-semibold tracking-wider text-white uppercase transition disabled:bg-zinc-400"
           >
             {isLoading ? "Loading..." : "Refresh"}
           </button>
@@ -142,7 +142,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
                             {(combo.avg_success_rate * 100).toFixed(1)}%
                           </span>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${combo.conflict_free ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${combo.conflict_free ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
                           >
                             {combo.conflict_free ? "✓" : "⚠"}
                           </span>
@@ -152,7 +152,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
                         {combo.tags.map((tag, tagIdx) => (
                           <span
                             key={tagIdx}
-                            className={`rounded-full ${getCategoryColor(combo.categories[tagIdx])} bg-opacity-10 border border-current px-3 py-1 text-[10px] font-medium`}
+                            className={`rounded-full ${getCategoryColor(combo.categories[tagIdx])} bg-opacity-10 border border-current px-3 py-1 text-[12px] font-medium`}
                             style={{ color: `var(--${combo.categories[tagIdx]}-color, #666)` }}
                           >
                             {tag}
@@ -179,10 +179,10 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
                         className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-zinc-400">#{idx + 1}</span>
+                          <span className="text-[12px] font-bold text-zinc-400">#{idx + 1}</span>
                           <span className="text-xs font-medium text-zinc-900">{tag.tag}</span>
                         </div>
-                        <div className="flex items-center gap-4 text-[10px]">
+                        <div className="flex items-center gap-4 text-[12px]">
                           <span className="text-emerald-700">
                             {(tag.success_rate * 100).toFixed(0)}%
                           </span>
@@ -209,26 +209,26 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
         {data && data.summary.total_success > 0 ? (
           <div className="grid gap-2">
             <div className="rounded-lg bg-emerald-50 px-3 py-2.5">
-              <p className="text-[10px] font-semibold tracking-wider text-emerald-700 uppercase">
+              <p className="text-[12px] font-semibold tracking-wider text-emerald-700 uppercase">
                 Success
               </p>
               <p className="text-xl font-bold text-emerald-900">{data.summary.total_success}</p>
             </div>
             <div className="rounded-lg bg-blue-50 px-3 py-2.5">
-              <p className="text-[10px] font-semibold tracking-wider text-blue-700 uppercase">
+              <p className="text-[12px] font-semibold tracking-wider text-blue-700 uppercase">
                 Tags
               </p>
               <p className="text-xl font-bold text-blue-900">{data.summary.analyzed_tags}</p>
             </div>
             <div className="rounded-lg bg-purple-50 px-3 py-2.5">
-              <p className="text-[10px] font-semibold tracking-wider text-purple-700 uppercase">
+              <p className="text-[12px] font-semibold tracking-wider text-purple-700 uppercase">
                 Categories
               </p>
               <p className="text-xl font-bold text-purple-900">{data.summary.categories_found}</p>
             </div>
           </div>
         ) : (
-          <p className="text-center text-[10px] text-zinc-400">No data</p>
+          <p className="text-center text-[12px] text-zinc-400">No data</p>
         )}
       </div>
     </div>

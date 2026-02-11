@@ -16,11 +16,11 @@ export default function VoiceCard({ preset, onPlay, onEdit, onDelete }: VoiceCar
       {/* Header row */}
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-zinc-900">{preset.name}</span>
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-medium text-zinc-500">
+        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
           {preset.source_type}
         </span>
         {preset.is_system && (
-          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-medium text-indigo-500">
+          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-500">
             System
           </span>
         )}
@@ -33,14 +33,14 @@ export default function VoiceCard({ preset, onPlay, onEdit, onDelete }: VoiceCar
 
       {/* Voice design prompt summary */}
       {preset.voice_design_prompt && (
-        <p className="line-clamp-1 text-[10px] text-zinc-400 italic">
+        <p className="line-clamp-1 text-[12px] text-zinc-400 italic">
           {preset.voice_design_prompt}
         </p>
       )}
 
       {/* Footer */}
       <div className="mt-auto flex items-center justify-between pt-1">
-        <span className="text-[10px] text-zinc-400">{preset.language}</span>
+        <span className="text-[12px] text-zinc-400">{preset.language}</span>
         <div className="flex items-center gap-1.5">
           {preset.audio_url && (
             <button

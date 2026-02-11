@@ -72,7 +72,7 @@ export default function SetupPanel({
           {/* Voice, BGM, Speed */}
           <div className="grid gap-3 md:grid-cols-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice Style</label>
+              <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">Voice Style</label>
               <input
                 type="text"
                 value={voiceDesignPrompt}
@@ -82,7 +82,7 @@ export default function SetupPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">BGM</label>
+              <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">BGM</label>
               <select
                 value={bgmFile ?? ""}
                 onChange={(e) => setBgmFile(e.target.value || null)}
@@ -95,7 +95,7 @@ export default function SetupPanel({
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+              <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                 Speed ({speedMultiplier.toFixed(1)}x)
               </label>
               <input

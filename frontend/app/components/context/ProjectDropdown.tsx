@@ -22,7 +22,7 @@ function avatarUrl(p: ProjectItem): string | null {
 
 function ProjectAvatar({ project, size = "sm" }: { project: ProjectItem; size?: "sm" | "md" }) {
   const dim = size === "sm" ? "h-5 w-5" : "h-7 w-7";
-  const textSize = size === "sm" ? "text-[8px]" : "text-[10px]";
+  const textSize = size === "sm" ? "text-[8px]" : "text-[12px]";
   const url = avatarUrl(project);
 
   return (
@@ -89,7 +89,7 @@ export default function ProjectDropdown({
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate">{p.name}</span>
                   {p.handle && (
-                    <span className="truncate text-[9px] text-zinc-400">@{p.handle}</span>
+                    <span className="truncate text-[11px] text-zinc-400">@{p.handle}</span>
                   )}
                 </div>
                 {p.id === currentId && (

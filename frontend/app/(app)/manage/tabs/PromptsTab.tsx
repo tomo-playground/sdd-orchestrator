@@ -36,7 +36,7 @@ export default function PromptsTab() {
         <select
           value={promptsFilter}
           onChange={(e) => setPromptsFilter(e.target.value as "all" | "favorites")}
-          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-medium text-zinc-600 shadow-sm transition outline-none focus:border-zinc-400"
+          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[12px] font-medium text-zinc-600 shadow-sm transition outline-none focus:border-zinc-400"
         >
           <option value="all">All Prompts</option>
           <option value="favorites">Favorites Only</option>
@@ -46,7 +46,7 @@ export default function PromptsTab() {
           onChange={(e) =>
             setPromptsCharacterFilter(e.target.value ? Number(e.target.value) : null)
           }
-          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-medium text-zinc-600 shadow-sm transition outline-none focus:border-zinc-400"
+          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[12px] font-medium text-zinc-600 shadow-sm transition outline-none focus:border-zinc-400"
         >
           <option value="">All Characters</option>
           {characters.map((char: Character) => (
@@ -58,7 +58,7 @@ export default function PromptsTab() {
         <select
           value={promptsSort}
           onChange={(e) => setPromptsSort(e.target.value as typeof promptsSort)}
-          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition outline-none focus:border-zinc-400"
+          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm transition outline-none focus:border-zinc-400"
         >
           <option value="created_at">Newest</option>
           <option value="use_count">Most Used</option>
@@ -69,13 +69,13 @@ export default function PromptsTab() {
           onChange={(e) => setPromptsSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && fetchPromptHistories()}
           placeholder="Search prompts..."
-          className="min-w-[140px] flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-[11px] outline-none focus:border-zinc-400"
+          className="min-w-[140px] flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-[13px] outline-none focus:border-zinc-400"
         />
         <button
           type="button"
           onClick={fetchPromptHistories}
           disabled={isPromptsLoading}
-          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition disabled:cursor-not-allowed disabled:text-zinc-400"
+          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-700 uppercase shadow-sm transition disabled:cursor-not-allowed disabled:text-zinc-400"
         >
           {isPromptsLoading ? (
             <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export default function PromptsTab() {
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-12 text-center">
           <div className="mb-3 text-3xl">📝</div>
           <div className="mb-1 text-sm font-medium text-zinc-600">No saved prompts yet</div>
-          <div className="text-[11px] text-zinc-400">
+          <div className="text-[13px] text-zinc-400">
             Save prompts from SceneCard using the &quot;Save&quot; button
           </div>
         </div>
@@ -120,15 +120,15 @@ export default function PromptsTab() {
                     </span>
                     {prompt.is_favorite && <span className="text-xs text-amber-500">★</span>}
                     {prompt.avg_match_rate != null && (
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-medium text-emerald-700">
                         {prompt.avg_match_rate.toFixed(1)}%
                       </span>
                     )}
                   </div>
-                  <p className="mb-2 line-clamp-2 text-[11px] text-zinc-500">
+                  <p className="mb-2 line-clamp-2 text-[13px] text-zinc-500">
                     {prompt.positive_prompt}
                   </p>
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-400">
+                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">
                     <span>Used {prompt.use_count}x</span>
                     {prompt.character_id && (
                       <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-600">
@@ -147,7 +147,7 @@ export default function PromptsTab() {
                   <button
                     type="button"
                     onClick={() => applyPromptHistory(prompt.id)}
-                    className="rounded-full bg-emerald-500 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-600"
+                    className="rounded-full bg-emerald-500 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-emerald-600"
                     title="Apply to current scene"
                   >
                     Apply

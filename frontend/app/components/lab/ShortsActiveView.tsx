@@ -82,7 +82,7 @@ export default function ShortsActiveView({
       return (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
           <p className="text-xs font-semibold text-red-700">Review Load Failed</p>
-          <p className="mt-1 text-[10px] text-red-500">{reviewError}</p>
+          <p className="mt-1 text-[12px] text-red-500">{reviewError}</p>
           <button
             onClick={fetchReview}
             className="mt-3 flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
@@ -124,11 +124,11 @@ export default function ShortsActiveView({
             <ArrowLeft className="h-3.5 w-3.5" /> Back
           </button>
           <StatusBadge status={session.status} />
-          <span className="text-[10px] text-zinc-400">#{session.id} • Shorts</span>
+          <span className="text-[12px] text-zinc-400">#{session.id} • Shorts</span>
           <div className="flex-1" />
           <button
             onClick={() => setShowDebug(!showDebug)}
-            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition ${
+            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[12px] transition ${
               showDebug
                 ? "border-indigo-300 bg-indigo-50 text-indigo-600"
                 : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
@@ -140,7 +140,7 @@ export default function ShortsActiveView({
         </div>
         <p className="text-xs text-zinc-600">{session.objective}</p>
         {ctx.duration ? (
-          <p className="mt-1 text-[10px] text-zinc-400">
+          <p className="mt-1 text-[12px] text-zinc-400">
             {String(ctx.duration)}s • {String(ctx.structure)} • {String(ctx.language)}
           </p>
         ) : null}
@@ -158,7 +158,7 @@ export default function ShortsActiveView({
           <div className="text-center">
             <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
             <p className="text-xs font-semibold text-blue-700">Concept Debate Running...</p>
-            <p className="text-[10px] text-blue-500">3 architects competing</p>
+            <p className="text-[12px] text-blue-500">3 architects competing</p>
           </div>
         </div>
       )}
@@ -225,7 +225,7 @@ export default function ShortsActiveView({
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold text-red-700">Pipeline Failed</p>
-              <p className="mt-1 text-[10px] text-red-500">
+              <p className="mt-1 text-[12px] text-red-500">
                 {(pipelineState?.error as string) ?? "Unknown error"}
               </p>
             </div>

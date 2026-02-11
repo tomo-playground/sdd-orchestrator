@@ -29,7 +29,7 @@ export default function KanbanCard({ item, onClick }: KanbanCardProps) {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="text-[9px] text-zinc-400 tabular-nums">
+          <span className="text-[11px] text-zinc-400 tabular-nums">
             {item.image_count}/{item.scene_count}
           </span>
         </div>
@@ -56,7 +56,7 @@ export default function KanbanCard({ item, onClick }: KanbanCardProps) {
             </div>
           ))}
         </div>
-        {updatedLabel && <span className="text-[9px] text-zinc-400">{updatedLabel}</span>}
+        {updatedLabel && <span className="text-[11px] text-zinc-400">{updatedLabel}</span>}
       </div>
     </button>
   );

@@ -57,7 +57,7 @@ export default function BackgroundsPage() {
 
   const inputCls =
     "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 focus:border-zinc-400 focus:outline-none";
-  const labelCls = "text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
+  const labelCls = "text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
 
   return (
     <div className={`${CONTAINER_CLASSES} py-8`}>

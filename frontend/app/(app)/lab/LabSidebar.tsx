@@ -96,7 +96,7 @@ export default function LabSidebar({
                   {!collapsed && (
                     <div className="min-w-0">
                       <div className="truncate">{item.label}</div>
-                      <div className="truncate text-[10px] text-zinc-400">{item.description}</div>
+                      <div className="truncate text-[12px] text-zinc-400">{item.description}</div>
                     </div>
                   )}
                 </button>

@@ -63,11 +63,11 @@ export default function StoryboardList({ selectedStoryboardId, onSelect }: Story
                 >
                     <span className="text-sm font-medium text-zinc-900">{sb.title}</span>
                     {sb.description && (
-                        <span className="text-[10px] text-zinc-500 line-clamp-1">
+                        <span className="text-[12px] text-zinc-500 line-clamp-1">
                             {sb.description}
                         </span>
                     )}
-                    <span className="text-[9px] text-zinc-400">
+                    <span className="text-[11px] text-zinc-400">
                         {sb.updated_at
                             ? format(new Date(sb.updated_at), "yyyy.MM.dd HH:mm")
                             : "No date"}

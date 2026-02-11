@@ -151,10 +151,10 @@ export default function DeprecatedTagsPanel() {
     <section className="grid gap-4 rounded-2xl border border-orange-200/60 bg-orange-50/30 p-6 text-xs text-zinc-600">
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-orange-600 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-orange-600 uppercase">
             Deprecated Tags
           </span>
-          <p className="mt-1 text-[10px] text-zinc-500">
+          <p className="mt-1 text-[12px] text-zinc-500">
             Tags that have been marked as deprecated and will be auto-replaced in prompts
           </p>
         </div>
@@ -162,7 +162,7 @@ export default function DeprecatedTagsPanel() {
           <button
             type="button"
             onClick={() => setShowForm(!showForm)}
-            className="rounded-full border border-orange-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-orange-600 uppercase hover:bg-orange-50"
+            className="rounded-full border border-orange-300 bg-white px-3 py-1 text-[12px] font-semibold tracking-[0.1em] text-orange-600 uppercase hover:bg-orange-50"
           >
             {showForm ? "Cancel" : "+ Deprecate a Tag"}
           </button>
@@ -170,7 +170,7 @@ export default function DeprecatedTagsPanel() {
             type="button"
             onClick={fetchDeprecatedTags}
             disabled={isLoading}
-            className="rounded-full border border-orange-300 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-orange-600 uppercase hover:bg-orange-50 disabled:opacity-50"
+            className="rounded-full border border-orange-300 bg-white px-3 py-1 text-[12px] font-semibold tracking-[0.2em] text-orange-600 uppercase hover:bg-orange-50 disabled:opacity-50"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
@@ -189,7 +189,7 @@ export default function DeprecatedTagsPanel() {
         <div className="space-y-4 rounded-xl border border-orange-200 bg-white p-4">
           {/* Tag Search */}
           <div>
-            <label className="mb-1 block text-[10px] font-bold text-zinc-500 uppercase">
+            <label className="mb-1 block text-[12px] font-bold text-zinc-500 uppercase">
               Tag to Deprecate
             </label>
             {selectedTag ? (
@@ -203,7 +203,7 @@ export default function DeprecatedTagsPanel() {
                     setSelectedTag(null);
                     setTagQuery("");
                   }}
-                  className="text-[10px] text-zinc-400 hover:text-zinc-600"
+                  className="text-[12px] text-zinc-400 hover:text-zinc-600"
                 >
                   change
                 </button>
@@ -230,11 +230,11 @@ export default function DeprecatedTagsPanel() {
                         }}
                         className="flex w-full items-center gap-2 border-b border-zinc-50 px-3 py-2 text-left last:border-0 hover:bg-zinc-50"
                       >
-                        <span className="font-mono text-[11px] font-semibold text-zinc-700">
+                        <span className="font-mono text-[13px] font-semibold text-zinc-700">
                           {t.name}
                         </span>
                         {t.category && (
-                          <span className="text-[9px] text-zinc-400">{t.category}</span>
+                          <span className="text-[11px] text-zinc-400">{t.category}</span>
                         )}
                       </button>
                     ))}
@@ -246,7 +246,7 @@ export default function DeprecatedTagsPanel() {
 
           {/* Reason */}
           <div>
-            <label className="mb-1 block text-[10px] font-bold text-zinc-500 uppercase">
+            <label className="mb-1 block text-[12px] font-bold text-zinc-500 uppercase">
               Reason
             </label>
             <input
@@ -260,7 +260,7 @@ export default function DeprecatedTagsPanel() {
 
           {/* Replacement Tag (optional) */}
           <div>
-            <label className="mb-1 block text-[10px] font-bold text-zinc-500 uppercase">
+            <label className="mb-1 block text-[12px] font-bold text-zinc-500 uppercase">
               Replacement Tag <span className="text-zinc-400 normal-case">(optional)</span>
             </label>
             {selectedReplacement ? (
@@ -274,7 +274,7 @@ export default function DeprecatedTagsPanel() {
                     setSelectedReplacement(null);
                     setReplacementQuery("");
                   }}
-                  className="text-[10px] text-zinc-400 hover:text-zinc-600"
+                  className="text-[12px] text-zinc-400 hover:text-zinc-600"
                 >
                   remove
                 </button>
@@ -301,11 +301,11 @@ export default function DeprecatedTagsPanel() {
                         }}
                         className="flex w-full items-center gap-2 border-b border-zinc-50 px-3 py-2 text-left last:border-0 hover:bg-zinc-50"
                       >
-                        <span className="font-mono text-[11px] font-semibold text-zinc-700">
+                        <span className="font-mono text-[13px] font-semibold text-zinc-700">
                           {t.name}
                         </span>
                         {t.category && (
-                          <span className="text-[9px] text-zinc-400">{t.category}</span>
+                          <span className="text-[11px] text-zinc-400">{t.category}</span>
                         )}
                       </button>
                     ))}
@@ -320,7 +320,7 @@ export default function DeprecatedTagsPanel() {
             type="button"
             onClick={handleDeprecate}
             disabled={!selectedTag || !reason.trim() || isDeprecating}
-            className="w-full rounded-xl bg-orange-600 px-4 py-2.5 text-[10px] font-bold tracking-widest text-white uppercase transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-xl bg-orange-600 px-4 py-2.5 text-[12px] font-bold tracking-widest text-white uppercase transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isDeprecating ? "Deprecating..." : "Deprecate Tag"}
           </button>
@@ -334,7 +334,7 @@ export default function DeprecatedTagsPanel() {
       {deprecatedTags.length === 0 && !isLoading ? (
         <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-zinc-400">
           <p className="text-sm font-medium">No deprecated tags</p>
-          <p className="mt-1 text-[10px]">All tags are currently active</p>
+          <p className="mt-1 text-[12px]">All tags are currently active</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -349,25 +349,25 @@ export default function DeprecatedTagsPanel() {
                     <span className="rounded-md bg-orange-100 px-2 py-1 font-mono text-xs font-semibold text-orange-700">
                       {tag.name}
                     </span>
-                    <span className="rounded-md bg-zinc-100 px-2 py-1 text-[10px] text-zinc-500">
+                    <span className="rounded-md bg-zinc-100 px-2 py-1 text-[12px] text-zinc-500">
                       {tag.category}
                     </span>
                   </div>
 
                   <div className="mt-3 space-y-2">
                     <div className="flex items-start gap-2">
-                      <span className="text-[10px] font-semibold text-zinc-400 uppercase">
+                      <span className="text-[12px] font-semibold text-zinc-400 uppercase">
                         Reason:
                       </span>
-                      <span className="text-[10px] text-zinc-600">{tag.deprecated_reason}</span>
+                      <span className="text-[12px] text-zinc-600">{tag.deprecated_reason}</span>
                     </div>
 
                     {tag.replacement && (
                       <div className="flex items-start gap-2">
-                        <span className="text-[10px] font-semibold text-zinc-400 uppercase">
+                        <span className="text-[12px] font-semibold text-zinc-400 uppercase">
                           Replacement:
                         </span>
-                        <span className="rounded-md bg-green-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-green-700">
+                        <span className="rounded-md bg-green-100 px-2 py-0.5 font-mono text-[12px] font-semibold text-green-700">
                           {tag.replacement.name}
                         </span>
                       </div>
@@ -378,7 +378,7 @@ export default function DeprecatedTagsPanel() {
                 <button
                   type="button"
                   onClick={() => handleActivateTag(tag.id)}
-                  className="ml-4 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-[10px] font-semibold text-green-700 transition hover:bg-green-100"
+                  className="ml-4 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-[12px] font-semibold text-green-700 transition hover:bg-green-100"
                 >
                   Reactivate
                 </button>

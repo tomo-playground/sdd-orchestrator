@@ -62,11 +62,11 @@ export default function SceneFilmstrip({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] text-zinc-400">
+              <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[12px] text-zinc-400">
                 {idx + 1}
               </div>
             )}
-            <span className="absolute right-0 bottom-0 left-0 bg-black/50 py-0.5 text-center text-[9px] text-white">
+            <span className="absolute right-0 bottom-0 left-0 bg-black/50 py-0.5 text-center text-[11px] text-white">
               Scene {idx + 1}
             </span>
           </button>
@@ -80,7 +80,7 @@ export default function SceneFilmstrip({
       >
         ›
       </button>
-      <span className="rounded-md bg-zinc-100 px-2 py-1 text-[10px] font-semibold text-zinc-600 tabular-nums">
+      <span className="rounded-md bg-zinc-100 px-2 py-1 text-[12px] font-semibold text-zinc-600 tabular-nums">
         {currentSceneIndex + 1} / {scenes.length}
       </span>
     </div>

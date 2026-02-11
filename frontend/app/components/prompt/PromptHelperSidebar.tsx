@@ -43,18 +43,18 @@ export default function PromptHelperSidebar({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+              className="rounded-full border border-zinc-200 px-3 py-1 text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
             >
               Close
             </button>
           </div>
           {copyStatus && (
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               {copyStatus}
             </div>
           )}
           <div className="grid gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Example Prompt
             </label>
             <textarea
@@ -68,7 +68,7 @@ export default function PromptHelperSidebar({
               type="button"
               onClick={onSuggestSplit}
               disabled={isSuggesting || !examplePrompt.trim()}
-              className="rounded-full bg-zinc-900 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="rounded-full bg-zinc-900 px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-white uppercase shadow-md shadow-zinc-900/20 transition disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {isSuggesting ? "Suggesting..." : "Suggest Base/Scene"}
             </button>
@@ -77,13 +77,13 @@ export default function PromptHelperSidebar({
             <div className="grid gap-4">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Suggested Base
                   </label>
                   <button
                     type="button"
                     onClick={() => onCopyText(suggestedBase)}
-                    className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+                    className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                   >
                     Copy
                   </button>
@@ -97,13 +97,13 @@ export default function PromptHelperSidebar({
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                  <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                     Suggested Scene
                   </label>
                   <button
                     type="button"
                     onClick={() => onCopyText(suggestedScene)}
-                    className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+                    className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
                   >
                     Copy
                   </button>
@@ -117,7 +117,7 @@ export default function PromptHelperSidebar({
               </div>
             </div>
           )}
-          <div className="mt-auto text-[10px] text-zinc-400">
+          <div className="mt-auto text-[12px] text-zinc-400">
             Suggestions do not auto-apply. Copy and paste into Base Prompt or Scene Prompt.
           </div>
         </div>

@@ -50,6 +50,6 @@ export default function StudioTimelineView({ storyboardId }: StudioTimelineViewP
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h3 className="mb-3 text-[11px] font-bold tracking-widest text-zinc-400 uppercase">{title}</h3>
+    <h3 className="mb-3 text-[13px] font-bold tracking-widest text-zinc-400 uppercase">{title}</h3>
   );
 }

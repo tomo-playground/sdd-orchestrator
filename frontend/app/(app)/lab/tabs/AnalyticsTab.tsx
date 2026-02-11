@@ -135,7 +135,7 @@ export default function AnalyticsTab() {
           <div>
             <h3 className="text-sm font-semibold text-zinc-800">Tag Effectiveness</h3>
             {report && (
-              <p className="mt-0.5 text-[10px] text-zinc-400">
+              <p className="mt-0.5 text-[12px] text-zinc-400">
                 {report.total_experiments} experiments
                 {report.avg_match_rate != null &&
                   ` / ${(report.avg_match_rate * 100).toFixed(0)}% avg`}
@@ -146,7 +146,7 @@ export default function AnalyticsTab() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {syncing ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -158,7 +158,7 @@ export default function AnalyticsTab() {
             <button
               onClick={loadReport}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -188,7 +188,7 @@ export default function AnalyticsTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-zinc-100 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                <tr className="border-b border-zinc-100 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                   <th className="pr-4 pb-2">Tag</th>
                   <th className="pr-4 pb-2">Uses</th>
                   <th className="pr-4 pb-2">Matches</th>

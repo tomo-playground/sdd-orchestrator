@@ -71,6 +71,13 @@ docs/
 **원칙**: Single Responsibility, 중첩 3단계 이하, 매개변수 4개 이하
 **문서 관리**: 800줄 초과 시 히스토리 추출(Archive) 또는 관심사 분리(Sub-Roadmap) 필수.
 
+## UI Typography Rules (최소 가독성 기준)
+- **최소 폰트 사이즈**: `11px` (text-[11px]). `text-[9px]`, `text-[10px]` 사용 금지.
+- **본문/버튼/탭**: `text-xs` (13px) 이상.
+- **입력 필드/제목**: `text-sm` (15px) 이상.
+- **Tailwind 기본 스케일 사용 권장**: `text-xs` → `text-sm` → `text-base` → `text-lg`.
+- **커스텀 픽셀 사이즈**: `text-[11px]`(배지), `text-[12px]`(라벨), `text-[13px]`(섹션 헤더)만 허용.
+
 ## 사전 요구사항
 - **SD WebUI**: API 모드 실행 (`--api` 옵션)
 - **환경 변수**: `backend/.env` 파일 필수 (`DATABASE_URL`, `GEMINI_API_KEY` 등)

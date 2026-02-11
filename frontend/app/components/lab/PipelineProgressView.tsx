@@ -64,7 +64,7 @@ function ElapsedTicker() {
     const interval = setInterval(() => setElapsed((p) => p + 1), 1000);
     return () => clearInterval(interval);
   }, []);
-  return <span className="text-[10px] text-blue-500">{elapsed}s</span>;
+  return <span className="text-[12px] text-blue-500">{elapsed}s</span>;
 }
 
 function stepCardClass(status: string | undefined): string {
@@ -99,7 +99,7 @@ export default function PipelineProgressView({
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
       <div>
-        <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+        <p className="text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
           Phase 2: Production Pipeline
         </p>
         <p className="mt-1 text-xs text-zinc-600">{topic}</p>
@@ -124,7 +124,7 @@ export default function PipelineProgressView({
                     <p className="text-xs font-semibold text-zinc-700">{step.label}</p>
                     {isActive && <ElapsedTicker />}
                   </div>
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[12px] text-zinc-400">
                     {step.desc}
                     {retryCount > 0 && (
                       <span className="ml-1 text-amber-500">(retry {retryCount})</span>
@@ -133,7 +133,7 @@ export default function PipelineProgressView({
                 </div>
                 {status && (
                   <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusBadgeClass(status)}`}
+                    className={`rounded px-1.5 py-0.5 text-[12px] font-semibold uppercase ${statusBadgeClass(status)}`}
                   >
                     {status}
                   </span>
@@ -150,7 +150,7 @@ export default function PipelineProgressView({
         })}
       </div>
 
-      <p className="text-center text-[10px] text-zinc-400">Pipeline running in background...</p>
+      <p className="text-center text-[12px] text-zinc-400">Pipeline running in background...</p>
     </div>
   );
 }

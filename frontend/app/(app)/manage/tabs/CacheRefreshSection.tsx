@@ -18,14 +18,14 @@ export default function CacheRefreshSection({
     return (
         <div className="grid gap-6">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                     System Caches
                 </span>
                 <button
                     type="button"
                     onClick={handleRefreshCaches}
                     disabled={isRefreshingCaches}
-                    className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                    className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[12px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
                 >
                     {isRefreshingCaches ? "Refreshing..." : "Refresh All Caches"}
                 </button>
@@ -35,7 +35,7 @@ export default function CacheRefreshSection({
                 {CACHE_NAMES.map((name) => (
                     <span
                         key={name}
-                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[10px] font-semibold text-zinc-500"
+                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[12px] font-semibold text-zinc-500"
                     >
                         {name}
                     </span>
@@ -44,7 +44,7 @@ export default function CacheRefreshSection({
 
             {cacheRefreshResult && (
                 <div
-                    className={`rounded-xl border p-3 text-center text-[10px] font-bold uppercase tracking-widest ${
+                    className={`rounded-xl border p-3 text-center text-[12px] font-bold uppercase tracking-widest ${
                         cacheRefreshResult.success
                             ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                             : "border-red-200 bg-red-50 text-red-600"

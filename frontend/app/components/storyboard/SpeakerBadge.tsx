@@ -62,7 +62,7 @@ export default function SpeakerBadge({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.bg} ${style.text} transition hover:opacity-80`}
+        className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${style.bg} ${style.text} transition hover:opacity-80`}
       >
         {displayLabel}
       </button>
@@ -84,7 +84,7 @@ export default function SpeakerBadge({
                 }`}
               >
                 <span
-                  className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${opt.bg} ${opt.text}`}
+                  className={`inline-block rounded-full px-1.5 py-0.5 text-[12px] font-semibold ${opt.bg} ${opt.text}`}
                 >
                   {opt.label}
                 </span>

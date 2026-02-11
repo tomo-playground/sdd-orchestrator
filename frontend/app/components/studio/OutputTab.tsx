@@ -97,7 +97,7 @@ export default function OutputTab() {
   const handleLikesBlur = useCallback(() => flashSaved("likes"), [flashSaved]);
 
   const savedBadge = (
-    <span className="text-[10px] font-medium text-emerald-500 transition-opacity duration-300">
+    <span className="text-[12px] font-medium text-emerald-500 transition-opacity duration-300">
       Saved
     </span>
   );
@@ -130,11 +130,11 @@ export default function OutputTab() {
         {/* Caption */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <label className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+            <label className="text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
               캡션
             </label>
             <span
-              className={`text-[10px] font-bold ${
+              className={`text-[12px] font-bold ${
                 videoCaption.length >= 60
                   ? "text-red-500"
                   : videoCaption.length >= 50
@@ -162,7 +162,7 @@ export default function OutputTab() {
             <button
               onClick={handleExtractCaption}
               disabled={isExtractingCaption}
-              className="mt-1 w-full rounded-lg bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-600 transition hover:bg-indigo-100 disabled:opacity-50"
+              className="mt-1 w-full rounded-lg bg-indigo-50 px-2 py-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-100 disabled:opacity-50"
             >
               {isExtractingCaption ? "요약 중..." : "AI 요약"}
             </button>
@@ -172,7 +172,7 @@ export default function OutputTab() {
         {/* Likes */}
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <label className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+            <label className="text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
               좋아요
             </label>
             {savedField === "likes" && savedBadge}

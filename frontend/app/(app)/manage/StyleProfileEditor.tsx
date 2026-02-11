@@ -18,7 +18,7 @@ type Props = {
   onClose: () => void;
 };
 
-const labelCls = "text-[10px] font-bold tracking-wider text-zinc-400 uppercase";
+const labelCls = "text-[12px] font-bold tracking-wider text-zinc-400 uppercase";
 
 export default function StyleProfileEditor({
   profile,
@@ -46,13 +46,13 @@ export default function StyleProfileEditor({
             onChange={(e) => onUpdateStyle(profile.id, { name: e.target.value })}
             className="bg-transparent text-lg font-black text-indigo-900 focus:outline-none"
           />
-          <p className="mt-1 text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
+          <p className="mt-1 text-[12px] font-bold tracking-widest text-indigo-400 uppercase">
             Editing Style ID #{profile.id}
           </p>
         </div>
         <button
           onClick={onClose}
-          className="rounded-full bg-indigo-50 px-4 py-1.5 text-[10px] font-bold text-indigo-500 hover:bg-indigo-100"
+          className="rounded-full bg-indigo-50 px-4 py-1.5 text-[12px] font-bold text-indigo-500 hover:bg-indigo-100"
         >
           Done
         </button>
@@ -105,7 +105,7 @@ export default function StyleProfileEditor({
         <label className={labelCls}>LoRAs</label>
         <div className="custom-scrollbar max-h-48 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
           {loraEntries.length === 0 && (
-            <p className="text-[10px] text-zinc-400">No LoRAs registered</p>
+            <p className="text-[12px] text-zinc-400">No LoRAs registered</p>
           )}
           {loraEntries.map((lora) => {
             const active = activeLoraIds.has(lora.id!);
@@ -135,7 +135,7 @@ export default function StyleProfileEditor({
                       const w = parseFloat(e.target.value);
                       if (!isNaN(w)) onToggleLora(profile.id, lora.id!, w);
                     }}
-                    className="w-16 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-center text-[10px] font-bold text-zinc-600 outline-none focus:border-indigo-300"
+                    className="w-16 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-center text-[12px] font-bold text-zinc-600 outline-none focus:border-indigo-300"
                   />
                 )}
               </div>
@@ -150,7 +150,7 @@ export default function StyleProfileEditor({
           <label className={labelCls}>Positive Embeddings</label>
           <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {embeddings.length === 0 && (
-              <p className="text-[10px] text-zinc-400">No embeddings registered</p>
+              <p className="text-[12px] text-zinc-400">No embeddings registered</p>
             )}
             {embeddings.map((emb) => (
               <label
@@ -172,7 +172,7 @@ export default function StyleProfileEditor({
           <label className={labelCls}>Negative Embeddings</label>
           <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {embeddings.length === 0 && (
-              <p className="text-[10px] text-zinc-400">No embeddings registered</p>
+              <p className="text-[12px] text-zinc-400">No embeddings registered</p>
             )}
             {embeddings.map((emb) => (
               <label

@@ -74,7 +74,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
         <div>
           <label
             htmlFor="project-form-name"
-            className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase"
           >
             Name *
           </label>
@@ -90,7 +90,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
         <div>
           <label
             htmlFor="project-form-handle"
-            className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase"
           >
             Handle
           </label>
@@ -105,7 +105,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
         <div>
           <label
             htmlFor="project-form-desc"
-            className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase"
           >
             Description
           </label>
@@ -120,7 +120,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
 
         {/* Avatar: Character Selector */}
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Channel Avatar
           </label>
           {charsWithImage.length > 0 ? (
@@ -129,7 +129,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => setAvatarAssetId(null)}
-                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-[10px] font-bold transition ${
+                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-[12px] font-bold transition ${
                   avatarAssetId === null
                     ? "border-zinc-900 bg-zinc-100 text-zinc-600"
                     : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300"
@@ -163,7 +163,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
               })}
             </div>
           ) : (
-            <p className="text-[10px] text-zinc-400">No characters with preview images available</p>
+            <p className="text-[12px] text-zinc-400">No characters with preview images available</p>
           )}
         </div>
       </div>

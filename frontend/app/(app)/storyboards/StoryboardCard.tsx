@@ -20,7 +20,7 @@ export default function StoryboardCard({ sb, onClick, onDelete }: StoryboardCard
     >
       <h3 className="line-clamp-1 text-sm font-semibold text-zinc-900">{sb.title}</h3>
       {sb.description && <p className="line-clamp-2 text-xs text-zinc-500">{sb.description}</p>}
-      <div className="flex items-center gap-3 text-[10px] text-zinc-400">
+      <div className="flex items-center gap-3 text-[12px] text-zinc-400">
         <span>{sb.scene_count} scenes</span>
         <span className={sb.image_count === 0 ? "text-amber-500" : ""}>
           {sb.image_count} images
@@ -95,7 +95,7 @@ export function DraftCard({ onClick }: { onClick: () => void }) {
     >
       <FileText className="h-5 w-5 text-zinc-400" />
       <span className="text-xs font-semibold text-zinc-600">Continue Draft</span>
-      <span className="text-[10px] text-zinc-400">Resume your unsaved work</span>
+      <span className="text-[12px] text-zinc-400">Resume your unsaved work</span>
     </div>
   );
 }

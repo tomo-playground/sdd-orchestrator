@@ -82,17 +82,17 @@ export default function TrashTab() {
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge.color}`}
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-semibold ${badge.color}`}
                   >
                     {badge.label}
                   </span>
                   <span className="truncate text-sm font-medium text-zinc-800">
                     {item.name || "Untitled"}
                   </span>
-                  <span className="shrink-0 text-[11px] text-zinc-400">
+                  <span className="shrink-0 text-[13px] text-zinc-400">
                     {formatDate(item.deleted_at)}
                   </span>
-                  <span className="shrink-0 text-[11px] text-zinc-400">{remaining}d left</span>
+                  <span className="shrink-0 text-[13px] text-zinc-400">{remaining}d left</span>
                 </div>
 
                 <div className="ml-3 flex shrink-0 gap-2">

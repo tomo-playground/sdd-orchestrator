@@ -126,7 +126,7 @@ function YouTubeUploadForm({
         <div>
           <label
             htmlFor="yt-title"
-            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-widest text-zinc-400 uppercase"
           >
             Title
           </label>
@@ -140,7 +140,7 @@ function YouTubeUploadForm({
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-100 disabled:opacity-50"
             placeholder="Video title"
           />
-          <span className="mt-0.5 block text-right text-[10px] text-zinc-300">
+          <span className="mt-0.5 block text-right text-[12px] text-zinc-300">
             {title.length}/100
           </span>
         </div>
@@ -149,7 +149,7 @@ function YouTubeUploadForm({
         <div>
           <label
             htmlFor="yt-desc"
-            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-widest text-zinc-400 uppercase"
           >
             Description
           </label>
@@ -168,7 +168,7 @@ function YouTubeUploadForm({
         <div>
           <label
             htmlFor="yt-tags"
-            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-widest text-zinc-400 uppercase"
           >
             Tags (comma separated)
           </label>
@@ -187,7 +187,7 @@ function YouTubeUploadForm({
         <div>
           <label
             htmlFor="yt-privacy"
-            className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-400 uppercase"
+            className="mb-1 block text-[12px] font-semibold tracking-widest text-zinc-400 uppercase"
           >
             Privacy
           </label>

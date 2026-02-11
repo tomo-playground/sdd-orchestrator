@@ -187,7 +187,7 @@ function GeminiEditModal({
             </button>
           </div>
 
-          <p className="text-[10px] text-zinc-400">
+          <p className="text-[12px] text-zinc-400">
             💡 Gemini가 얼굴/화풍을 유지하면서 포즈/표정/시선만 변경합니다.
           </p>
         </div>
@@ -254,7 +254,7 @@ function GeminiSuggestModal({
             모든 제안 무시
           </button>
 
-          <p className="text-[10px] text-zinc-400">
+          <p className="text-[12px] text-zinc-400">
             💡 제안을 승인하면 Gemini Nano Banana가 이미지를 자동으로 편집합니다.
           </p>
         </div>
@@ -296,7 +296,7 @@ function SuggestionCard({
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 uppercase">
+            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[12px] font-semibold text-indigo-700 uppercase">
               {suggestion.edit_type}
             </span>
             <span className="text-xs font-semibold text-zinc-800">{suggestion.issue}</span>

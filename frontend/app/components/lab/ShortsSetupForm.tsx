@@ -22,7 +22,7 @@ type Props = {
   }>;
 };
 
-const LABEL = "mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase";
+const LABEL = "mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase";
 const INPUT =
   "w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none";
 
@@ -112,7 +112,7 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
       <div className="rounded-lg bg-gradient-to-r from-emerald-500 to-green-400 px-4 py-2.5">
-        <p className="text-[10px] font-bold tracking-wider text-white/70 uppercase">
+        <p className="text-[12px] font-bold tracking-wider text-white/70 uppercase">
           Shorts Pipeline
         </p>
         <p className="text-xs font-semibold text-white">Create a short-form video from a topic</p>
@@ -204,7 +204,7 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
                   className="h-3.5 w-3.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 {step.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                <span className="text-[10px] text-zinc-400">(optional)</span>
+                <span className="text-[12px] text-zinc-400">(optional)</span>
               </label>
             ))}
           </div>
@@ -249,7 +249,7 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
           placeholder="Paste URLs or text references, one per line..."
           className={INPUT}
         />
-        <p className="mt-0.5 text-[10px] text-zinc-400">
+        <p className="mt-0.5 text-[12px] text-zinc-400">
           Reference analyst will extract patterns for concept generation
         </p>
       </div>

@@ -139,7 +139,7 @@ export default function GeminiPreviewEditModal({
             </button>
           </div>
 
-          <p className="text-[10px] text-zinc-400">
+          <p className="text-[12px] text-zinc-400">
             Gemini preserves face and art style while editing pose, expression, and gaze.
           </p>
         </div>

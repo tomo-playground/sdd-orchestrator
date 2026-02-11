@@ -34,7 +34,7 @@ export default function CheckResultCard({ result }: Props) {
         <span className={`text-xs font-semibold ${overall.text}`}>
           Copyright Review: {result.overall}
         </span>
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[12px] text-zinc-400">
           confidence: {(result.confidence * 100).toFixed(0)}%
         </span>
       </div>
@@ -47,10 +47,10 @@ export default function CheckResultCard({ result }: Props) {
             <div key={check.type} className="flex items-start gap-2">
               <Icon className={`mt-0.5 h-3 w-3 shrink-0 ${s.text}`} />
               <div>
-                <span className="text-[10px] font-semibold text-zinc-600">{check.type}</span>
-                {check.detail && <p className="text-[10px] text-zinc-500">{check.detail}</p>}
+                <span className="text-[12px] font-semibold text-zinc-600">{check.type}</span>
+                {check.detail && <p className="text-[12px] text-zinc-500">{check.detail}</p>}
                 {check.suggestion && (
-                  <p className="text-[10px] text-blue-500">Suggestion: {check.suggestion}</p>
+                  <p className="text-[12px] text-blue-500">Suggestion: {check.suggestion}</p>
                 )}
               </div>
             </div>

@@ -17,7 +17,7 @@ export default function WorkingModeHeader() {
       </p>
       <Link
         href="/manage"
-        className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
+        className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
       >
         Manage
       </Link>

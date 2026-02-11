@@ -41,26 +41,26 @@ export default function SessionHistoryTable({
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white">
       <div className="px-5 pt-4 pb-2">
-        <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+        <p className="text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
           Session History
         </p>
       </div>
       <table className="w-full text-xs">
         <thead>
           <tr>
-            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               ID
             </th>
-            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               Objective
             </th>
-            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               Type
             </th>
-            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               Status
             </th>
-            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <th className="border-b border-zinc-100 px-5 py-2 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               Created
             </th>
           </tr>
@@ -72,11 +72,11 @@ export default function SessionHistoryTable({
               onClick={() => onSelect(s.id)}
               className="cursor-pointer border-b border-zinc-50 text-zinc-600 transition hover:bg-zinc-50"
             >
-              <td className="px-5 py-2.5 font-mono text-[10px]">#{s.id}</td>
+              <td className="px-5 py-2.5 font-mono text-[12px]">#{s.id}</td>
               <td className="max-w-xs truncate px-5 py-2.5">{s.objective}</td>
               <td className="px-5 py-2.5">
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                  className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${
                     s.session_type === "shorts"
                       ? "bg-indigo-50 text-indigo-600"
                       : "bg-zinc-100 text-zinc-500"
@@ -88,7 +88,7 @@ export default function SessionHistoryTable({
               <td className="px-5 py-2.5">
                 <StatusBadge status={s.status} />
               </td>
-              <td className="px-5 py-2.5 text-[10px] text-zinc-400">
+              <td className="px-5 py-2.5 text-[12px] text-zinc-400">
                 {formatDate(s.created_at)}
               </td>
             </tr>

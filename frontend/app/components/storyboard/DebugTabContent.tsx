@@ -30,7 +30,7 @@ export default function DebugTabContent({
         type="button"
         onClick={handleGenerate}
         disabled={isGenerating}
-        className="w-full rounded-full border border-zinc-300 bg-white py-2.5 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase transition hover:bg-zinc-50 disabled:opacity-50"
+        className="w-full rounded-full border border-zinc-300 bg-white py-2.5 text-[12px] font-semibold tracking-[0.2em] text-zinc-700 uppercase transition hover:bg-zinc-50 disabled:opacity-50"
       >
         {isGenerating ? "Generating..." : "Generate Debug Info"}
       </button>
@@ -40,7 +40,7 @@ export default function DebugTabContent({
             value={scene.debug_payload}
             readOnly
             rows={8}
-            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-3 pr-16 font-mono text-[10px] text-zinc-600"
+            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-3 pr-16 font-mono text-[12px] text-zinc-600"
           />
           <div className="absolute right-2 top-2">
             <CopyButton text={scene.debug_payload!} variant="label" />

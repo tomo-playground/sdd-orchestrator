@@ -15,7 +15,7 @@ type StoryboardActionsBarProps = {
 };
 
 const base =
-  "rounded-md px-2.5 py-1 text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed";
+  "rounded-md px-2.5 py-1 text-[12px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed";
 
 export default function StoryboardActionsBar({
   onAutoRun,

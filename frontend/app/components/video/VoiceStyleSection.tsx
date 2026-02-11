@@ -34,7 +34,7 @@ export default function VoiceStyleSection({
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
-      <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">Voice</span>
+      <span className="text-[12px] font-bold tracking-wider text-zinc-500 uppercase">Voice</span>
       <div className="grid gap-2">
         {setVoicePresetId && (
           <select
@@ -60,20 +60,20 @@ export default function VoiceStyleSection({
               placeholder="Voice style (e.g. calm 40s female)"
               className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
             />
-            <p className="text-[9px] text-zinc-400">
+            <p className="text-[11px] text-zinc-400">
               프리셋 미선택 시, 스타일 텍스트로 음성을 생성합니다.
             </p>
           </div>
         )}
 
         {voicePresetId && (
-          <p className="text-[9px] text-indigo-500">
+          <p className="text-[11px] text-indigo-500">
             Voice preset selected — all scenes will use the same cloned voice.
           </p>
         )}
 
         <div className="flex items-center gap-2">
-          <span className="text-[9px] whitespace-nowrap text-zinc-500">
+          <span className="text-[11px] whitespace-nowrap text-zinc-500">
             Speed x{speedMultiplier.toFixed(2)}
           </span>
           <input

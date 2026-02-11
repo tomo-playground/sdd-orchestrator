@@ -168,7 +168,7 @@ export default function SceneSidePanel({
                     if (match?.preset?.weight) onIpAdapterWeightChange(match.preset.weight);
                   }
                 }}
-                className={`w-full rounded-lg border bg-white px-2 py-1.5 text-[10px] text-zinc-600 ${
+                className={`w-full rounded-lg border bg-white px-2 py-1.5 text-[12px] text-zinc-600 ${
                   currentSpeaker === "B" ? "border-sky-300" : "border-zinc-200"
                 }`}
               >
@@ -237,7 +237,7 @@ export default function SceneSidePanel({
                       ? `Scene ${index + 1}: ${Math.round(rate)}% match`
                       : `Scene ${index + 1}: not validated`
                   }
-                  className={`flex cursor-pointer flex-col items-center rounded-lg border px-1 py-1.5 text-[9px] leading-tight font-semibold transition-all hover:scale-105 ${colorClass}`}
+                  className={`flex cursor-pointer flex-col items-center rounded-lg border px-1 py-1.5 text-[11px] leading-tight font-semibold transition-all hover:scale-105 ${colorClass}`}
                 >
                   <span>S{index + 1}</span>
                   <span>{hasRate ? `${Math.round(rate)}%` : "--"}</span>
@@ -276,7 +276,7 @@ function OverrideToggleRow({
   return (
     <div className="flex items-center justify-between">
       <span
-        className={`text-[11px] font-medium ${disabled ? "text-zinc-300" : "text-zinc-600"}`}
+        className={`text-[13px] font-medium ${disabled ? "text-zinc-300" : "text-zinc-600"}`}
         title={disabled ? disabledReason : undefined}
       >
         {label}
@@ -339,7 +339,7 @@ function SliderRow({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="h-1 flex-1 accent-zinc-600"
       />
-      <span className="w-8 text-right text-[10px] font-semibold text-zinc-600">
+      <span className="w-8 text-right text-[12px] font-semibold text-zinc-600">
         {value.toFixed(step < 0.1 ? 2 : 1)}
       </span>
     </div>
@@ -366,7 +366,7 @@ function StatBadge({
       className={`flex flex-col items-center rounded-lg border px-2 py-1.5 ${STAT_BADGE_COLORS[color]}`}
     >
       <span className="text-xs font-bold">{count}</span>
-      <span className="text-[9px]">{label}</span>
+      <span className="text-[11px]">{label}</span>
     </div>
   );
 }

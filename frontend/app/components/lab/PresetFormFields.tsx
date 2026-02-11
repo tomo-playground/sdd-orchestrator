@@ -49,11 +49,11 @@ export default function PresetFormFields({
 
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">{title}</p>
+      <p className="text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">{title}</p>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Name
           </label>
           <input
@@ -64,7 +64,7 @@ export default function PresetFormFields({
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Model Provider
           </label>
           <select
@@ -80,7 +80,7 @@ export default function PresetFormFields({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Model Name
           </label>
           <input
@@ -91,7 +91,7 @@ export default function PresetFormFields({
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Temperature ({form.temperature.toFixed(2)})
           </label>
           <input
@@ -108,7 +108,7 @@ export default function PresetFormFields({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Agent Role
           </label>
           <input
@@ -119,7 +119,7 @@ export default function PresetFormFields({
           />
         </div>
         <div>
-          <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Category
           </label>
           <select
@@ -138,7 +138,7 @@ export default function PresetFormFields({
       </div>
 
       <div>
-        <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+        <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
           Role Description
         </label>
         <input
@@ -150,7 +150,7 @@ export default function PresetFormFields({
       </div>
 
       <div>
-        <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+        <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
           System Prompt
         </label>
         <textarea

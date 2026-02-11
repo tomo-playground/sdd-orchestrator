@@ -194,24 +194,24 @@ export default function TagAutocomplete({
                 <div className="flex items-center gap-2">
                   <span className={`font-semibold ${getTagColor(tag.category)}`}>{tag.name}</span>
                   {tag.group_name && (
-                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[12px] text-zinc-500">
                       {tag.group_name}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] tracking-wide text-zinc-400 uppercase">
+                  <span className="text-[12px] tracking-wide text-zinc-400 uppercase">
                     {tag.category}
                   </span>
                   {/* Priority indicator if relevant */}
                   {tag.priority && tag.priority < 5 && (
-                    <span className="text-[10px] text-amber-500">★</span>
+                    <span className="text-[12px] text-amber-500">★</span>
                   )}
                 </div>
               </li>
             ))}
           </ul>
-          <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[10px] text-zinc-400">
+          <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[12px] text-zinc-400">
             Use <kbd className="font-sans">↑</kbd> <kbd className="font-sans">↓</kbd> to navigate,{" "}
             <kbd className="font-sans">Enter</kbd> to select
           </div>

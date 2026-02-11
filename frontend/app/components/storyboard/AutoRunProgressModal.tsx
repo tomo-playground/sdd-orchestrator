@@ -32,7 +32,7 @@ export default function AutoRunProgressModal({
         tabIndex={-1}
         className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl outline-none"
       >
-        <div className="mb-3 flex items-center justify-between text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <div className="mb-3 flex items-center justify-between text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           <div className="flex items-center gap-2">
             <LoadingSpinner size="sm" color="text-zinc-500" />
             <span>Autopilot Running</span>
@@ -50,7 +50,7 @@ export default function AutoRunProgressModal({
         </div>
         <p className="text-base font-semibold text-zinc-900">{autoRunState.message}</p>
         {autoRunLog.length > 0 && (
-          <div className="mt-3 grid max-h-32 gap-1 overflow-y-auto rounded-xl border border-zinc-100 bg-zinc-50 p-3 text-[11px] text-zinc-500">
+          <div className="mt-3 grid max-h-32 gap-1 overflow-y-auto rounded-xl border border-zinc-100 bg-zinc-50 p-3 text-[13px] text-zinc-500">
             {autoRunLog.map((entry, idx) => (
               <span key={`${entry}-${idx}`}>• {entry}</span>
             ))}
@@ -63,7 +63,7 @@ export default function AutoRunProgressModal({
               onCancel();
             }
           }}
-          className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase hover:border-zinc-400 hover:bg-zinc-50"
+          className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-700 uppercase hover:border-zinc-400 hover:bg-zinc-50"
         >
           Cancel Autopilot
         </button>

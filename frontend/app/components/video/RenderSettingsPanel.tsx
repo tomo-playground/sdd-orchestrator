@@ -176,7 +176,7 @@ export function RenderMediaPanel({
               {kenBurnsPreset !== "none" && (
                 <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
                   <span className="text-xs whitespace-nowrap text-zinc-500">Intensity</span>
-                  <span className="text-[10px] text-zinc-400">{kenBurnsIntensity.toFixed(1)}x</span>
+                  <span className="text-[12px] text-zinc-400">{kenBurnsIntensity.toFixed(1)}x</span>
                   <input
                     type="range"
                     min={0.5}
@@ -288,7 +288,7 @@ export function RenderSidePanel({
           <button
             type="button"
             onClick={() => setLayoutStyle("full")}
-            className={`flex-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${
+            className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
               layoutStyle === "full"
                 ? "bg-zinc-900 text-white"
                 : "text-zinc-500 hover:text-zinc-700"
@@ -299,7 +299,7 @@ export function RenderSidePanel({
           <button
             type="button"
             onClick={() => setLayoutStyle("post")}
-            className={`flex-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${
+            className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
               layoutStyle === "post"
                 ? "bg-zinc-900 text-white"
                 : "text-zinc-500 hover:text-zinc-700"
@@ -312,7 +312,7 @@ export function RenderSidePanel({
           <select
             value={frameStyle}
             onChange={(e) => setFrameStyle(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[10px] outline-none focus:border-zinc-400"
+            className="mt-2 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-zinc-400"
           >
             <option value="overlay_minimal.png">Minimal</option>
             <option value="overlay_modern.png">Modern</option>
@@ -341,7 +341,7 @@ export function RenderSidePanel({
                 style={{ width: `${renderProgress.percent}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+            <div className="flex items-center justify-between text-[12px] text-zinc-500">
               <span>
                 {STAGE_LABELS[renderProgress.stage] || renderProgress.stage}
                 {renderProgress.stage_detail ? ` (${renderProgress.stage_detail})` : ""}
@@ -351,11 +351,11 @@ export function RenderSidePanel({
           </div>
         )}
 
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[12px] text-zinc-400">
           Images: {scenesWithImages}/{totalScenes}
         </span>
         {disabledReason && (
-          <p className="rounded-full bg-amber-50 px-2.5 py-1 text-center text-[10px] font-medium text-amber-600">
+          <p className="rounded-full bg-amber-50 px-2.5 py-1 text-center text-[12px] font-medium text-amber-600">
             {disabledReason}
           </p>
         )}
@@ -367,7 +367,7 @@ export function RenderSidePanel({
           <label className={SIDE_PANEL_LABEL}>Preset</label>
           <p className="text-xs font-medium text-indigo-600">{renderPresetName}</p>
           {renderPresetSource && (
-            <p className="text-[9px] text-indigo-400">from {renderPresetSource}</p>
+            <p className="text-[11px] text-indigo-400">from {renderPresetSource}</p>
           )}
         </div>
       )}

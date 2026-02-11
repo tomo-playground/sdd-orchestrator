@@ -53,11 +53,11 @@ export default function ScriptSceneList({
             className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:shadow-sm"
           >
             <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-[12px] font-bold text-white">
                 {scene.order}
               </span>
-              <span className="text-[10px] font-medium text-zinc-400">{scene.speaker}</span>
-              <span className="text-[10px] text-zinc-300">{scene.duration}s</span>
+              <span className="text-[12px] font-medium text-zinc-400">{scene.speaker}</span>
+              <span className="text-[12px] text-zinc-300">{scene.duration}s</span>
               {scene.image_url && (
                 <div className="ml-auto h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-zinc-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -80,7 +80,7 @@ export default function ScriptSceneList({
 
             {/* Image prompt (read-only) */}
             {scene.image_prompt && (
-              <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-zinc-400">
+              <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-zinc-400">
                 {scene.image_prompt}
               </p>
             )}

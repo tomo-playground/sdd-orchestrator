@@ -78,12 +78,12 @@ export default function SceneContextTags({
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+        className="flex items-center justify-between text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
       >
         <span className="flex items-center gap-1.5">
           Scene Tags
           {totalSelected > 0 && (
-            <span className="rounded-full bg-zinc-200 px-1.5 py-0.5 text-[9px] font-bold text-zinc-600">
+            <span className="rounded-full bg-zinc-200 px-1.5 py-0.5 text-[11px] font-bold text-zinc-600">
               {totalSelected}
             </span>
           )}
@@ -107,7 +107,7 @@ export default function SceneContextTags({
 
             return (
               <div key={group} className="grid gap-1.5">
-                <div className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
+                <div className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
                   <span>{GROUP_ICONS[group]}</span>
                   <span>{GROUP_LABELS[group] || group}</span>
                   {isExclusive && (
@@ -122,7 +122,7 @@ export default function SceneContextTags({
                         key={tag.id}
                         type="button"
                         onClick={() => handleTagToggle(group, tag.name)}
-                        className={`rounded-full px-2 py-0.5 text-[10px] transition-all ${
+                        className={`rounded-full px-2 py-0.5 text-[12px] transition-all ${
                           isSelected
                             ? "bg-zinc-800 text-white font-medium"
                             : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"

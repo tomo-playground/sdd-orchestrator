@@ -178,11 +178,11 @@ export default function SceneCard({
             onSpeakerChange={onSpeakerChange}
           />
           {scene.scene_mode === "multi" && (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[12px] font-semibold text-emerald-700">
               Multi
             </span>
           )}
-          <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
             {getSceneStatus(scene)}
           </span>
         </div>
@@ -247,7 +247,7 @@ export default function SceneCard({
           <button
             type="button"
             onClick={() => setShowSettings((v) => !v)}
-            className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
+            className="flex items-center gap-1 text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
           >
             <ChevronDown
               className={`h-3 w-3 transition-transform ${showSettings ? "rotate-180" : ""}`}
@@ -326,7 +326,7 @@ export default function SceneCard({
             <div className="rounded-xl border border-zinc-200 bg-white p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
+                  className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${
                     validationResult.status === "warn"
                       ? "bg-amber-100 text-amber-700"
                       : "bg-rose-100 text-rose-700"
@@ -337,12 +337,12 @@ export default function SceneCard({
                 <button
                   type="button"
                   onClick={onSuggestionToggle}
-                  className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-700"
+                  className="text-[12px] font-semibold text-zinc-500 hover:text-zinc-700"
                 >
                   {suggestionExpanded ? "Hide" : "Fix"}
                 </button>
               </div>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[13px] text-zinc-500">
                 {validationResult.issues[0]?.message ?? ""}
               </p>
               {suggestionExpanded && (

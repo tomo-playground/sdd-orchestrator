@@ -18,14 +18,14 @@ export default function AnalyticsSection({
     return (
         <div className="grid gap-6">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                     Performance Analytics
                 </span>
                 <button
                     type="button"
                     onClick={() => fetchAnalytics(analyticsStoryboardFilter)}
                     disabled={isLoadingAnalytics}
-                    className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                    className="rounded-full bg-white border border-zinc-200 px-4 py-1.5 text-[12px] font-bold text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
                 >
                     {isLoadingAnalytics ? "Loading..." : "Refresh Analytics"}
                 </button>
@@ -40,7 +40,7 @@ export default function AnalyticsSection({
                                 <div className="text-3xl font-black text-zinc-900">{analytics.total_edits}</div>
                                 <div className="text-xs font-bold text-zinc-400">EDITS</div>
                             </div>
-                            <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">Total Auto-Edits</p>
+                            <p className="text-[12px] font-medium text-zinc-400 uppercase tracking-widest">Total Auto-Edits</p>
                         </div>
 
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
@@ -50,7 +50,7 @@ export default function AnalyticsSection({
                                 </div>
                                 <div className="text-xs font-bold text-emerald-400">AVG</div>
                             </div>
-                            <p className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest">Match Rate Boost</p>
+                            <p className="text-[12px] font-medium text-emerald-500 uppercase tracking-widest">Match Rate Boost</p>
                         </div>
 
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
@@ -60,14 +60,14 @@ export default function AnalyticsSection({
                                 </div>
                                 <div className="text-xs font-bold text-amber-400">USD</div>
                             </div>
-                            <p className="text-[10px] font-medium text-amber-500 uppercase tracking-widest">Total Investment</p>
+                            <p className="text-[12px] font-medium text-amber-500 uppercase tracking-widest">Total Investment</p>
                         </div>
                     </div>
 
                     {/* Improvement Range Distribution */}
                     {analytics.by_improvement_range && Object.keys(analytics.by_improvement_range).length > 0 && (
                         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-                            <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                            <h4 className="mb-4 text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                                 Improvement Distribution
                             </h4>
                             <div className="grid gap-3">
@@ -88,7 +88,7 @@ export default function AnalyticsSection({
 
                                         return (
                                             <div key={range} className="grid grid-cols-[120px_1fr_60px] items-center gap-3">
-                                                <span className="text-[10px] font-bold text-zinc-600 uppercase">{range}</span>
+                                                <span className="text-[12px] font-bold text-zinc-600 uppercase">{range}</span>
                                                 <div className="h-6 w-full rounded-full bg-zinc-100 overflow-hidden">
                                                     <div
                                                         className={`h-full ${colorClass} transition-all duration-500`}
@@ -106,13 +106,13 @@ export default function AnalyticsSection({
                     {/* Recent Edits Table */}
                     {analytics.edits && analytics.edits.length > 0 && (
                         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-                            <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                            <h4 className="mb-4 text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                                 Recent Auto-Edits ({analytics.edits.length})
                             </h4>
                             <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                                 <table className="w-full text-xs">
                                     <thead className="sticky top-0 bg-white border-b border-zinc-200">
-                                        <tr className="text-[10px] font-bold text-zinc-400 uppercase">
+                                        <tr className="text-[12px] font-bold text-zinc-400 uppercase">
                                             <th className="pb-2 text-left">Storyboard</th>
                                             <th className="pb-2 text-left">Scene</th>
                                             <th className="pb-2 text-right">Before</th>
@@ -150,7 +150,7 @@ export default function AnalyticsSection({
                                                     <td className="py-2 text-right text-amber-600 font-mono">
                                                         ${edit.cost_usd.toFixed(4)}
                                                     </td>
-                                                    <td className="py-2 text-[10px] text-zinc-400">
+                                                    <td className="py-2 text-[12px] text-zinc-400">
                                                         {new Date(edit.created_at).toLocaleDateString()}
                                                     </td>
                                                 </tr>
@@ -165,7 +165,7 @@ export default function AnalyticsSection({
                     {analytics.total_edits === 0 && (
                         <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-zinc-200 bg-zinc-50/50">
                             <p className="text-sm font-bold text-zinc-500">No auto-edits yet</p>
-                            <p className="text-[10px] text-zinc-400 mt-1">
+                            <p className="text-[12px] text-zinc-400 mt-1">
                                 Enable Auto Edit and start generating scenes to see analytics
                             </p>
                         </div>

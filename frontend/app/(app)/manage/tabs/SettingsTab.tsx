@@ -48,14 +48,14 @@ export default function SettingsTab() {
       {/* Storage Section */}
       <div className="grid gap-6">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+          <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
             Workspace Storage
           </span>
           <button
             type="button"
             onClick={fetchStorageStats}
             disabled={isLoadingStorage}
-            className="rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-50"
+            className="rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[12px] font-bold text-zinc-600 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-50"
           >
             {isLoadingStorage ? "Syncing..." : "Sync Stats"}
           </button>
@@ -70,7 +70,7 @@ export default function SettingsTab() {
                     {storageStats.total_size_mb.toFixed(1)}{" "}
                     <span className="text-sm font-bold text-zinc-400">MB</span>
                   </div>
-                  <p className="mt-1 text-[11px] font-medium tracking-widest text-zinc-400 uppercase">
+                  <p className="mt-1 text-[13px] font-medium tracking-widest text-zinc-400 uppercase">
                     Aggregate Usage
                   </p>
                 </div>
@@ -78,7 +78,7 @@ export default function SettingsTab() {
                   <div className="text-sm font-bold text-indigo-600">
                     {storageStats.total_count}
                   </div>
-                  <p className="text-[10px] font-medium text-zinc-400">TOTAL OBJECTS</p>
+                  <p className="text-[12px] font-medium text-zinc-400">TOTAL OBJECTS</p>
                 </div>
               </div>
 
@@ -120,10 +120,10 @@ export default function SettingsTab() {
                     >
                       <div className={`h-2 w-2 rounded-full ${colors[idx % colors.length]}`} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[10px] font-bold tracking-tighter text-zinc-700 uppercase">
+                        <p className="truncate text-[12px] font-bold tracking-tighter text-zinc-700 uppercase">
                           {name}
                         </p>
-                        <p className="text-[11px] font-medium text-zinc-400">
+                        <p className="text-[13px] font-medium text-zinc-400">
                           {stats.size_mb.toFixed(1)} MB · {stats.count} items
                         </p>
                       </div>
@@ -136,7 +136,7 @@ export default function SettingsTab() {
             {/* Cleanup Matrix */}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-                <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                <h4 className="mb-4 text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                   Retention Policies
                 </h4>
                 <div className="space-y-4">
@@ -152,7 +152,7 @@ export default function SettingsTab() {
                       />
                       <div>
                         <p className="text-xs font-bold text-zinc-700">Video Retention</p>
-                        <p className="text-[10px] text-zinc-400">
+                        <p className="text-[12px] text-zinc-400">
                           Purge old video files from exports
                         </p>
                       </div>
@@ -167,9 +167,9 @@ export default function SettingsTab() {
                             video_max_age_days: Math.max(1, parseInt(e.target.value) || 1),
                           }))
                         }
-                        className="w-8 text-center text-[10px] font-bold text-zinc-700 outline-none"
+                        className="w-8 text-center text-[12px] font-bold text-zinc-700 outline-none"
                       />
-                      <span className="text-[9px] font-bold text-zinc-400">DAYS</span>
+                      <span className="text-[11px] font-bold text-zinc-400">DAYS</span>
                     </div>
                   </div>
 
@@ -185,7 +185,7 @@ export default function SettingsTab() {
                       />
                       <div>
                         <p className="text-xs font-bold text-zinc-700">Cache Expiration</p>
-                        <p className="text-[10px] text-zinc-400">
+                        <p className="text-[12px] text-zinc-400">
                           Wipe transient data and temporary assets
                         </p>
                       </div>
@@ -207,7 +207,7 @@ export default function SettingsTab() {
                       />
                       <div>
                         <p className="text-xs font-bold text-zinc-700">Test Artifacts</p>
-                        <p className="text-[10px] text-zinc-400">
+                        <p className="text-[12px] text-zinc-400">
                           Clean up experiment and test directories
                         </p>
                       </div>
@@ -219,14 +219,14 @@ export default function SettingsTab() {
                   <button
                     onClick={() => handleCleanup(true)}
                     disabled={isCleaningUp}
-                    className="flex-1 rounded-2xl border border-zinc-200 px-4 py-3 text-[10px] font-bold tracking-widest text-zinc-500 uppercase transition-all hover:bg-zinc-50"
+                    className="flex-1 rounded-2xl border border-zinc-200 px-4 py-3 text-[12px] font-bold tracking-widest text-zinc-500 uppercase transition-all hover:bg-zinc-50"
                   >
                     Dry Run
                   </button>
                   <button
                     onClick={() => handleCleanup(false)}
                     disabled={isCleaningUp}
-                    className="flex-1 rounded-2xl bg-zinc-900 px-4 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-zinc-200 transition-all hover:bg-rose-600 disabled:bg-zinc-300"
+                    className="flex-1 rounded-2xl bg-zinc-900 px-4 py-3 text-[12px] font-bold tracking-widest text-white uppercase shadow-lg shadow-zinc-200 transition-all hover:bg-rose-600 disabled:bg-zinc-300"
                   >
                     {isCleaningUp ? "Cleaning..." : "Execute Purge"}
                   </button>
@@ -235,14 +235,14 @@ export default function SettingsTab() {
 
               {/* Cleanup Result Box */}
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-6">
-                <h4 className="mb-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                <h4 className="mb-4 text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                   Operation Result
                 </h4>
                 {cleanupResult ? (
                   <div className="space-y-4">
                     <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                        <span className="text-[12px] font-bold text-zinc-400 uppercase">
                           Space Freed
                         </span>
                         <span className="text-lg font-black text-emerald-600">
@@ -250,7 +250,7 @@ export default function SettingsTab() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                        <span className="text-[12px] font-bold text-zinc-400 uppercase">
                           Objects Removed
                         </span>
                         <span className="text-lg font-black text-indigo-600">
@@ -258,7 +258,7 @@ export default function SettingsTab() {
                         </span>
                       </div>
                       {cleanupResult.dry_run && (
-                        <div className="mt-3 rounded-lg bg-amber-50 p-2 text-center text-[9px] font-bold tracking-tighter text-amber-600 uppercase">
+                        <div className="mt-3 rounded-lg bg-amber-50 p-2 text-center text-[11px] font-bold tracking-tighter text-amber-600 uppercase">
                           Simulated Results (Dry Run)
                         </div>
                       )}
@@ -269,10 +269,10 @@ export default function SettingsTab() {
                           key={dir}
                           className="flex items-center justify-between border-b border-zinc-100 py-1.5 last:border-0"
                         >
-                          <span className="text-[10px] font-bold text-zinc-500 uppercase">
+                          <span className="text-[12px] font-bold text-zinc-500 uppercase">
                             {dir}
                           </span>
-                          <span className="text-[10px] font-medium text-zinc-400">
+                          <span className="text-[12px] font-medium text-zinc-400">
                             -{info.freed_mb.toFixed(1)} MB
                           </span>
                         </div>
@@ -281,7 +281,7 @@ export default function SettingsTab() {
                   </div>
                 ) : (
                   <div className="flex h-full flex-col items-center justify-center py-12 text-center">
-                    <p className="text-[11px] font-medium text-zinc-400">
+                    <p className="text-[13px] font-medium text-zinc-400">
                       Ready for maintenance cycle
                     </p>
                   </div>
@@ -295,14 +295,14 @@ export default function SettingsTab() {
       {/* Gemini Auto Edit Configuration */}
       <div className="grid gap-6">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+          <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
             Gemini Auto Edit
           </span>
           <button
             type="button"
             onClick={fetchAutoEditSettings}
             disabled={isLoadingAutoEdit}
-            className="rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[10px] font-bold text-zinc-600 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-50"
+            className="rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[12px] font-bold text-zinc-600 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-50"
           >
             {isLoadingAutoEdit ? "Loading..." : "Refresh"}
           </button>
@@ -316,16 +316,16 @@ export default function SettingsTab() {
                 <div className="text-2xl font-black text-zinc-900">
                   ${costSummary.today.toFixed(2)}
                 </div>
-                <p className="mt-1 text-[10px] font-medium tracking-widest text-zinc-400 uppercase">
+                <p className="mt-1 text-[12px] font-medium tracking-widest text-zinc-400 uppercase">
                   Today
                 </p>
-                <p className="text-[9px] text-zinc-400">{costSummary.edit_count_today} edits</p>
+                <p className="text-[11px] text-zinc-400">{costSummary.edit_count_today} edits</p>
               </div>
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
                 <div className="text-2xl font-black text-zinc-900">
                   ${costSummary.this_week.toFixed(2)}
                 </div>
-                <p className="mt-1 text-[10px] font-medium tracking-widest text-zinc-400 uppercase">
+                <p className="mt-1 text-[12px] font-medium tracking-widest text-zinc-400 uppercase">
                   This Week
                 </p>
               </div>
@@ -333,16 +333,16 @@ export default function SettingsTab() {
                 <div className="text-2xl font-black text-zinc-900">
                   ${costSummary.this_month.toFixed(2)}
                 </div>
-                <p className="mt-1 text-[10px] font-medium tracking-widest text-zinc-400 uppercase">
+                <p className="mt-1 text-[12px] font-medium tracking-widest text-zinc-400 uppercase">
                   This Month
                 </p>
-                <p className="text-[9px] text-zinc-400">{costSummary.edit_count_month} edits</p>
+                <p className="text-[11px] text-zinc-400">{costSummary.edit_count_month} edits</p>
               </div>
               <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
                 <div className="text-2xl font-black text-indigo-600">
                   ${costSummary.total.toFixed(2)}
                 </div>
-                <p className="mt-1 text-[10px] font-medium tracking-widest text-indigo-500 uppercase">
+                <p className="mt-1 text-[12px] font-medium tracking-widest text-indigo-500 uppercase">
                   Total
                 </p>
               </div>
@@ -354,7 +354,7 @@ export default function SettingsTab() {
                 <div className="flex items-center justify-between rounded-2xl border border-zinc-50 bg-zinc-50/50 p-4">
                   <div>
                     <p className="text-sm font-bold text-zinc-700">Auto Edit Enabled</p>
-                    <p className="mt-1 text-[10px] text-zinc-400">
+                    <p className="mt-1 text-[12px] text-zinc-400">
                       Automatically fix images with low Match Rate
                     </p>
                   </div>
@@ -385,7 +385,7 @@ export default function SettingsTab() {
                     disabled
                     className="h-2 w-full cursor-not-allowed appearance-none rounded-lg bg-zinc-200 accent-indigo-600"
                   />
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[12px] text-zinc-400">
                     Trigger auto-edit when Match Rate &lt;{" "}
                     {(autoEditSettings.threshold * 100).toFixed(0)}%
                   </p>
@@ -405,7 +405,7 @@ export default function SettingsTab() {
                       className="flex-1 cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-zinc-700"
                     />
                   </div>
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[12px] text-zinc-400">
                     Stop auto-editing when storyboard cost exceeds this limit
                   </p>
                 </div>
@@ -421,20 +421,20 @@ export default function SettingsTab() {
                     disabled
                     className="cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-zinc-700"
                   />
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[12px] text-zinc-400">
                     Maximum edit attempts per scene before giving up
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-center">
-                  <p className="mb-1 text-[10px] font-bold tracking-widest text-indigo-600 uppercase">
+                  <p className="mb-1 text-[12px] font-bold tracking-widest text-indigo-600 uppercase">
                     Configuration Source
                   </p>
-                  <p className="text-[11px] text-indigo-700">
+                  <p className="text-[13px] text-indigo-700">
                     These settings are managed in{" "}
                     <code className="rounded bg-indigo-100 px-1 py-0.5 font-mono">.env</code> file
                   </p>
-                  <p className="mt-2 text-[10px] text-indigo-500">
+                  <p className="mt-2 text-[12px] text-indigo-500">
                     Edit{" "}
                     <code className="rounded bg-indigo-100 px-1 py-0.5 font-mono">
                       backend/.env
@@ -478,17 +478,17 @@ export default function SettingsTab() {
 
       {/* Render Settings Link */}
       <div className="grid gap-3 border-t border-zinc-100 pt-4">
-        <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+        <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
           Studio Configuration
         </span>
         <div className="flex flex-wrap items-center gap-4">
-          <p className="max-w-sm text-[11px] text-zinc-500 italic">
+          <p className="max-w-sm text-[13px] text-zinc-500 italic">
             Core rendering parameters and global stylization settings are managed within the main
             studio interface.
           </p>
           <Link
             href="/"
-            className="rounded-full border border-indigo-200 bg-indigo-50/30 px-6 py-2.5 text-[10px] font-bold tracking-[0.1em] text-indigo-600 uppercase transition hover:bg-indigo-100"
+            className="rounded-full border border-indigo-200 bg-indigo-50/30 px-6 py-2.5 text-[12px] font-bold tracking-[0.1em] text-indigo-600 uppercase transition hover:bg-indigo-100"
           >
             Return to Studio
           </Link>

@@ -112,7 +112,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <Suspense>
           <NavBar />
         </Suspense>
-        <kbd className="hidden rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline-block">
+        <kbd className="hidden rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[12px] text-zinc-400 sm:inline-block">
           <span className="text-zinc-300">&#x2318;</span>K
         </kbd>
       </header>

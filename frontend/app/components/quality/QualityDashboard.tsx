@@ -84,7 +84,7 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
           <button
             onClick={loadSummary}
             disabled={loading || !storyboardId}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-semibold tracking-wider text-white uppercase transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            className="rounded-full bg-zinc-900 px-4 py-1.5 text-[12px] font-semibold tracking-wider text-white uppercase transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
             {loading ? (
               <div className="flex items-center gap-2">
@@ -126,18 +126,18 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
                     key={`${score.scene_id}-${idx}`}
                     className="group grid grid-cols-[auto_1fr_auto] items-center gap-6 rounded-2xl border border-zinc-100 bg-white p-4 transition-all duration-300 hover:border-indigo-200 hover:shadow-md"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-100 bg-zinc-50 text-[10px] font-black text-zinc-400 transition-colors group-hover:border-indigo-100 group-hover:bg-indigo-50 group-hover:text-indigo-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-100 bg-zinc-50 text-[12px] font-black text-zinc-400 transition-colors group-hover:border-indigo-100 group-hover:bg-indigo-50 group-hover:text-indigo-400">
                       #{score.scene_id}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex items-center justify-between">
                         <div
-                          className={`flex items-center gap-1.5 rounded-full ${badge.bg} px-2 py-0.5 text-[9px] font-black tracking-wider ${badge.color}`}
+                          className={`flex items-center gap-1.5 rounded-full ${badge.bg} px-2 py-0.5 text-[11px] font-black tracking-wider ${badge.color}`}
                         >
                           <span>{badge.emoji}</span>
                           <span>{badge.label}</span>
                         </div>
-                        <span className="text-[11px] font-black text-zinc-900">
+                        <span className="text-[13px] font-black text-zinc-900">
                           {(score.match_rate * 100).toFixed(0)}%
                         </span>
                       </div>
@@ -149,18 +149,18 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
                       </div>
                       {score.missing_tags.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          <span className="mr-1 text-[9px] font-bold text-zinc-400">MISSING:</span>
+                          <span className="mr-1 text-[11px] font-bold text-zinc-400">MISSING:</span>
                           {score.missing_tags.slice(0, 5).map((tag, i) => (
                             <span
                               key={i}
-                              className="text-[9px] font-medium text-rose-400/80 italic"
+                              className="text-[11px] font-medium text-rose-400/80 italic"
                             >
                               {tag}
                               {i < 4 && i < score.missing_tags.length - 1 ? "," : ""}
                             </span>
                           ))}
                           {score.missing_tags.length > 5 && (
-                            <span className="text-[9px] text-zinc-300">
+                            <span className="text-[11px] text-zinc-300">
                               +{score.missing_tags.length - 5}
                             </span>
                           )}
@@ -168,10 +168,10 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
                       )}
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className="text-[10px] font-bold text-zinc-400">
+                      <div className="text-[12px] font-bold text-zinc-400">
                         {score.matched_tags.length} TAGS
                       </div>
-                      <div className="text-[9px] text-zinc-300">MATCHED</div>
+                      <div className="text-[11px] text-zinc-300">MATCHED</div>
                     </div>
                   </div>
                 );
@@ -195,29 +195,29 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
               <div className="text-3xl font-bold text-zinc-900">
                 {(summary.average_match_rate * 100).toFixed(0)}%
               </div>
-              <div className="mt-1 text-[10px] tracking-wider text-zinc-500 uppercase">
+              <div className="mt-1 text-[12px] tracking-wider text-zinc-500 uppercase">
                 Avg Match Rate
               </div>
             </div>
             <div className="grid gap-2">
               <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2">
-                <span className="text-[10px] text-emerald-600">Excellent</span>
+                <span className="text-[12px] text-emerald-600">Excellent</span>
                 <span className="text-sm font-bold text-emerald-700">
                   {summary.excellent_count}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2">
-                <span className="text-[10px] text-amber-600">Good</span>
+                <span className="text-[12px] text-amber-600">Good</span>
                 <span className="text-sm font-bold text-amber-700">{summary.good_count}</span>
               </div>
               <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2">
-                <span className="text-[10px] text-red-600">Poor</span>
+                <span className="text-[12px] text-red-600">Poor</span>
                 <span className="text-sm font-bold text-red-700">{summary.poor_count}</span>
               </div>
             </div>
           </>
         ) : (
-          <p className="text-center text-[10px] text-zinc-400">No data</p>
+          <p className="text-center text-[12px] text-zinc-400">No data</p>
         )}
       </div>
     </div>

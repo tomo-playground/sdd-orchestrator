@@ -24,19 +24,19 @@ export default function RenderPresetsTab() {
   } = useRenderPresetsTab({ showToast, confirmDialog: confirm });
 
   const inputCls =
-    "w-full rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] text-zinc-800 focus:border-zinc-400 focus:outline-none";
-  const labelCls = "text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
+    "w-full rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-[13px] text-zinc-800 focus:border-zinc-400 focus:outline-none";
+  const labelCls = "text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
 
   return (
     <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-        <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+        <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
           Render Presets ({presets.length})
         </span>
         <button
           onClick={handleCreate}
-          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-zinc-700"
+          className="rounded-full bg-zinc-900 px-4 py-1.5 text-[12px] font-bold text-white shadow transition hover:bg-zinc-700"
         >
           + New Preset
         </button>
@@ -53,12 +53,12 @@ export default function RenderPresetsTab() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-zinc-800">{p.name}</span>
                 {p.is_system && (
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-medium text-zinc-500">
+                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
                     System
                   </span>
                 )}
               </div>
-              <div className="mt-0.5 truncate text-[10px] text-zinc-400">
+              <div className="mt-0.5 truncate text-[12px] text-zinc-400">
                 {[
                   p.layout_style,
                   p.bgm_file ? `BGM: ${p.bgm_file}` : null,
@@ -78,13 +78,13 @@ export default function RenderPresetsTab() {
             <div className="ml-3 flex items-center gap-2">
               <button
                 onClick={() => handleEdit(p)}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-100"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[12px] font-medium text-zinc-600 transition hover:bg-zinc-100"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(p)}
-                className="rounded-full border border-red-200 px-3 py-1 text-[10px] font-medium text-red-500 transition hover:bg-red-50"
+                className="rounded-full border border-red-200 px-3 py-1 text-[12px] font-medium text-red-500 transition hover:bg-red-50"
               >
                 Del
               </button>
@@ -103,7 +103,7 @@ export default function RenderPresetsTab() {
             </span>
             <button
               onClick={handleCancel}
-              className="text-[10px] text-zinc-400 hover:text-zinc-600"
+              className="text-[12px] text-zinc-400 hover:text-zinc-600"
             >
               Cancel
             </button>
@@ -287,7 +287,7 @@ export default function RenderPresetsTab() {
             <button
               onClick={handleSave}
               disabled={saving || !editing.name.trim()}
-              className="rounded-full bg-zinc-900 px-5 py-1.5 text-[10px] font-bold text-white shadow transition hover:bg-zinc-700 disabled:opacity-40"
+              className="rounded-full bg-zinc-900 px-5 py-1.5 text-[12px] font-bold text-white shadow transition hover:bg-zinc-700 disabled:opacity-40"
             >
               {saving ? "Saving..." : editId ? "Save" : "Create"}
             </button>

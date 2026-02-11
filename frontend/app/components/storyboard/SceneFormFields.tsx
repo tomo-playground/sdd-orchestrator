@@ -64,7 +64,7 @@ export default function SceneFormFields({
     <>
       {/* Script */}
       <div className="grid gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Script
         </label>
         <textarea
@@ -78,7 +78,7 @@ export default function SceneFormFields({
       {/* Speaker, Duration, Upload */}
       <div className="grid grid-cols-3 gap-3">
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Speaker
           </label>
           <select
@@ -92,7 +92,7 @@ export default function SceneFormFields({
           </select>
         </div>
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Duration
           </label>
           <input
@@ -105,10 +105,10 @@ export default function SceneFormFields({
           />
         </div>
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Image
           </label>
-          <label className="flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/80 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+          <label className="flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/80 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase">
             Upload
             <input
               type="file"
@@ -122,7 +122,7 @@ export default function SceneFormFields({
 
       {/* Prompt (KO) — always visible */}
       <div className="grid gap-2">
-        <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Prompt (KO)
         </label>
         <TagAutocomplete
@@ -157,7 +157,7 @@ export default function SceneFormFields({
       {/* Positive Prompt */}
       <div className="grid gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Positive Prompt
           </label>
           {scene.image_prompt && <CopyButton text={scene.image_prompt} />}

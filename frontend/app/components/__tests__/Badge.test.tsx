@@ -37,7 +37,7 @@ describe("Badge", () => {
 
   it("applies sm size by default", () => {
     render(<Badge>Small</Badge>);
-    expect(screen.getByText("Small")).toHaveClass("text-[10px]");
+    expect(screen.getByText("Small")).toHaveClass("text-[12px]");
   });
 
   it("applies md size classes", () => {

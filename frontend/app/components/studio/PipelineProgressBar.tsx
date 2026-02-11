@@ -38,7 +38,7 @@ export default function PipelineProgressBar() {
             style={{ width: `${percent}%` }}
           />
         </div>
-        <span className="text-[10px] font-semibold text-zinc-500 tabular-nums">{percent}%</span>
+        <span className="text-[12px] font-semibold text-zinc-500 tabular-nums">{percent}%</span>
       </div>
 
       {/* Steps */}
@@ -51,7 +51,7 @@ export default function PipelineProgressBar() {
             <div key={step.id} className="flex items-center">
               <div className="flex flex-col items-center">
                 <div
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-bold ${
                     done
                       ? "bg-zinc-800 text-white"
                       : inProgress
@@ -62,7 +62,7 @@ export default function PipelineProgressBar() {
                   {done ? "✓" : inProgress ? `${imagesCount}` : i + 1}
                 </div>
                 <span
-                  className={`mt-1 text-[9px] font-medium ${done ? "text-zinc-700" : "text-zinc-400"}`}
+                  className={`mt-1 text-[11px] font-medium ${done ? "text-zinc-700" : "text-zinc-400"}`}
                 >
                   {step.label}
                 </span>

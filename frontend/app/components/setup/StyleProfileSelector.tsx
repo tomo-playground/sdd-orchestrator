@@ -12,7 +12,7 @@ type Props = {
 export default function StyleProfileSelector({ currentProfileName }: Props) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+      <span className="text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
         Style
       </span>
       <span className="text-xs font-bold text-zinc-900">{currentProfileName || "Not set"}</span>

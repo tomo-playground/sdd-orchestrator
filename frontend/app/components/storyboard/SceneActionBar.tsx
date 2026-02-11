@@ -85,7 +85,7 @@ export default function SceneActionBar({
           >
             📌
             {scene.environment_reference_id ? (
-              <span className="ml-0.5 text-[10px]">
+              <span className="ml-0.5 text-[12px]">
                 S{sceneIndex + 1}{pinnedSceneOrder != null ? `→S${pinnedSceneOrder}` : ""}
               </span>
             ) : null}
@@ -94,7 +94,7 @@ export default function SceneActionBar({
 
         {/* Auto pin indicator */}
         {scene._auto_pin_previous && !scene.environment_reference_id && !scene.image_url && (
-          <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] text-blue-600">
+          <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[12px] text-blue-600">
             <span>💡</span>
             <span className="font-medium">자동 핀 활성</span>
           </div>

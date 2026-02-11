@@ -39,7 +39,7 @@ export default function CharacterPicker({ structure, inputClass, labelClass, onC
     setter: (v: number | null) => void
   ) => (
     <div>
-      <p className="mb-0.5 text-[10px] text-zinc-400">{label}</p>
+      <p className="mb-0.5 text-[12px] text-zinc-400">{label}</p>
       <select
         value={value ?? ""}
         onChange={(e) => setter(e.target.value ? Number(e.target.value) : null)}

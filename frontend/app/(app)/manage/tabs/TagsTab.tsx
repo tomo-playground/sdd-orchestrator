@@ -68,14 +68,14 @@ export default function TagsTab() {
       <DeprecatedTagsPanel />
 
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Tag Analysis
         </span>
         <button
           type="button"
           onClick={handleRefresh}
           disabled={isTagsLoading}
-          className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase hover:bg-zinc-50 disabled:opacity-50"
+          className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase hover:bg-zinc-50 disabled:opacity-50"
         >
           {isTagsLoading ? (
             <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function TagsTab() {
 
       {/* Group Statistics Overview */}
       <div className="grid gap-4">
-        <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+        <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
           Scene Tag Groups (7 Categories)
         </span>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
@@ -124,7 +124,7 @@ export default function TagsTab() {
                   {count}
                 </div>
                 <div
-                  className={`text-[9px] font-medium tracking-wider uppercase ${isActive ? "text-indigo-500" : "text-zinc-400"}`}
+                  className={`text-[11px] font-medium tracking-wider uppercase ${isActive ? "text-indigo-500" : "text-zinc-400"}`}
                 >
                   {group}
                 </div>
@@ -136,7 +136,7 @@ export default function TagsTab() {
 
       {/* Character Tag Groups */}
       <div className="grid gap-4">
-        <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+        <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
           Character Tag Groups
         </span>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
@@ -177,7 +177,7 @@ export default function TagsTab() {
                   {count}
                 </div>
                 <div
-                  className={`text-[9px] font-medium tracking-wider uppercase ${isActive ? "text-violet-500" : "text-zinc-400"}`}
+                  className={`text-[11px] font-medium tracking-wider uppercase ${isActive ? "text-violet-500" : "text-zinc-400"}`}
                 >
                   {group}
                 </div>
@@ -188,7 +188,7 @@ export default function TagsTab() {
 
         {/* Meta Tag Groups (Quality, Style) */}
         <div className="grid gap-4">
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
             Meta Tag Groups (Quality & Style)
           </span>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
@@ -229,7 +229,7 @@ export default function TagsTab() {
                     {count}
                   </div>
                   <div
-                    className={`text-[9px] font-medium tracking-wider uppercase ${isActive ? "text-emerald-500" : "text-zinc-400"}`}
+                    className={`text-[11px] font-medium tracking-wider uppercase ${isActive ? "text-emerald-500" : "text-zinc-400"}`}
                   >
                     {group}
                   </div>
@@ -244,11 +244,11 @@ export default function TagsTab() {
       <div className="grid gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-amber-600 uppercase">
+            <span className="text-[12px] font-semibold tracking-[0.2em] text-amber-600 uppercase">
               Pending Classifications
             </span>
             {pendingTags.length > 0 && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700">
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
                 {pendingTags.length}
               </span>
             )}
@@ -257,7 +257,7 @@ export default function TagsTab() {
             <button
               type="button"
               onClick={() => setShowPendingSection(!showPendingSection)}
-              className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-500"
+              className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-500"
             >
               {showPendingSection ? "Hide" : "Show"}
             </button>
@@ -265,7 +265,7 @@ export default function TagsTab() {
               type="button"
               onClick={fetchPendingTags}
               disabled={isPendingLoading}
-              className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-500 disabled:opacity-50"
+              className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-500 disabled:opacity-50"
             >
               {isPendingLoading ? "..." : "Refresh"}
             </button>
@@ -293,16 +293,16 @@ export default function TagsTab() {
                       <div>
                         <span className="text-xs font-semibold text-zinc-700">{tag.name}</span>
                         <div className="mt-0.5 flex items-center gap-2">
-                          <span className="text-[9px] text-zinc-400">
+                          <span className="text-[11px] text-zinc-400">
                             {tag.classification_source || "unknown"}
                           </span>
                           {tag.classification_confidence !== null && (
-                            <span className="text-[9px] text-zinc-400">
+                            <span className="text-[11px] text-zinc-400">
                               ({Math.round(tag.classification_confidence * 100)}%)
                             </span>
                           )}
                           {tag.group_name && (
-                            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] text-zinc-500">
+                            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500">
                               {tag.group_name}
                             </span>
                           )}
@@ -318,7 +318,7 @@ export default function TagsTab() {
                             [tag.id]: e.target.value,
                           }))
                         }
-                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] outline-none focus:border-zinc-400"
+                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[12px] outline-none focus:border-zinc-400"
                       >
                         <option value="">Select group</option>
                         {availableGroups.map((group) => (
@@ -331,7 +331,7 @@ export default function TagsTab() {
                         type="button"
                         onClick={() => handleApprovePendingTag(tag.id)}
                         disabled={!pendingGroupSelection[tag.id] || pendingApproving[tag.id]}
-                        className="rounded-full bg-amber-500 px-3 py-1 text-[9px] font-semibold text-white disabled:bg-zinc-300"
+                        className="rounded-full bg-amber-500 px-3 py-1 text-[11px] font-semibold text-white disabled:bg-zinc-300"
                       >
                         {pendingApproving[tag.id] ? "..." : "Approve"}
                       </button>
@@ -348,7 +348,7 @@ export default function TagsTab() {
       <div className="flex flex-wrap gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <div className="text-center">
           <div className="text-2xl font-bold text-zinc-700">{allTags.length}</div>
-          <div className="text-[9px] font-medium tracking-wider text-zinc-400 uppercase">
+          <div className="text-[11px] font-medium tracking-wider text-zinc-400 uppercase">
             Total Tags
           </div>
         </div>
@@ -356,7 +356,7 @@ export default function TagsTab() {
           <div className="text-2xl font-bold text-indigo-600">
             {allTags.filter((t: Tag) => t.category === "scene").length}
           </div>
-          <div className="text-[9px] font-medium tracking-wider text-zinc-400 uppercase">
+          <div className="text-[11px] font-medium tracking-wider text-zinc-400 uppercase">
             Scene Tags
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function TagsTab() {
           <div className="text-2xl font-bold text-violet-600">
             {allTags.filter((t: Tag) => t.category === "character").length}
           </div>
-          <div className="text-[9px] font-medium tracking-wider text-zinc-400 uppercase">
+          <div className="text-[11px] font-medium tracking-wider text-zinc-400 uppercase">
             Character Tags
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function TagsTab() {
           <div className="text-2xl font-bold text-teal-600">
             {allTags.filter((t: Tag) => t.category === "meta" && t.group_name === "quality").length}
           </div>
-          <div className="text-[9px] font-medium tracking-wider text-zinc-400 uppercase">
+          <div className="text-[11px] font-medium tracking-wider text-zinc-400 uppercase">
             Quality Tags
           </div>
         </div>
@@ -380,7 +380,7 @@ export default function TagsTab() {
           <div className="text-2xl font-bold text-emerald-600">
             {allTags.filter((t: Tag) => t.category === "meta" && t.group_name === "style").length}
           </div>
-          <div className="text-[9px] font-medium tracking-wider text-zinc-400 uppercase">
+          <div className="text-[11px] font-medium tracking-wider text-zinc-400 uppercase">
             Style Tags
           </div>
         </div>
@@ -390,7 +390,7 @@ export default function TagsTab() {
       {(tagGroupFilter || tagCategoryFilter) && (
         <div className="grid gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+            <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
               {tagCategoryFilter} / {tagGroupFilter} ({filteredTags.length} tags)
             </span>
             <button
@@ -399,7 +399,7 @@ export default function TagsTab() {
                 setTagGroupFilter("");
                 setTagCategoryFilter("");
               }}
-              className="text-[10px] text-zinc-400 hover:text-zinc-600"
+              className="text-[12px] text-zinc-400 hover:text-zinc-600"
             >
               Clear Filter
             </button>
@@ -408,7 +408,7 @@ export default function TagsTab() {
             {filteredTags.map((tag: Tag) => (
               <span
                 key={tag.id}
-                className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] text-zinc-600"
+                className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-[12px] text-zinc-600"
                 title={`Priority: ${tag.priority}`}
               >
                 <span className="font-medium">{tag.name}</span>
@@ -426,12 +426,12 @@ export default function TagsTab() {
       {/* All Tags by Group (collapsed by default) */}
       {!tagGroupFilter && !tagCategoryFilter && (
         <div className="grid gap-4">
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
             All Tags by Category
           </span>
           {tagCategories.map((category: string) => (
             <details key={category} className="rounded-xl border border-zinc-200 bg-white">
-              <summary className="cursor-pointer px-4 py-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase hover:bg-zinc-50">
+              <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold tracking-wider text-zinc-500 uppercase hover:bg-zinc-50">
                 {category || "UNCATEGORIZED"} (
                 {allTags.filter((t: Tag) => t.category === category).length} tags)
               </summary>
@@ -443,7 +443,7 @@ export default function TagsTab() {
                     .map((tag: Tag) => (
                       <span
                         key={tag.id}
-                        className="inline-flex items-center gap-1 rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[9px] text-zinc-500"
+                        className="inline-flex items-center gap-1 rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-500"
                       >
                         <span>{tag.name}</span>
                         {tag.group_name && (

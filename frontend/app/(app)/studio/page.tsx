@@ -117,7 +117,7 @@ function StudioContent() {
           <ContextBar title={storyboardTitle || "New Storyboard"} />
           <div className="flex items-center gap-2">
             {scenes.length > 0 && (
-              <span className="text-[10px] text-zinc-400">{scenes.length} scenes</span>
+              <span className="text-[12px] text-zinc-400">{scenes.length} scenes</span>
             )}
             <StoryboardActionsBar
               onAutoRun={() => setMeta({ showPreflightModal: true })}

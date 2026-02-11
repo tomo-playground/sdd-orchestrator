@@ -76,7 +76,7 @@ export default function SessionResultView({
     <div className="space-y-4 rounded-2xl border border-emerald-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-semibold tracking-wider text-emerald-600 uppercase">
+          <p className="text-[12px] font-semibold tracking-wider text-emerald-600 uppercase">
             Complete
           </p>
           <p className="text-xs text-zinc-600">{scenes.length} scenes ready</p>
@@ -88,25 +88,25 @@ export default function SessionResultView({
         <table className="w-full text-xs">
           <thead>
             <tr>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 #
               </th>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Script
               </th>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Speaker
               </th>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Duration
               </th>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Scene (KO)
               </th>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Camera
               </th>
-              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+              <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                 Environment
               </th>
             </tr>
@@ -114,7 +114,7 @@ export default function SessionResultView({
           <tbody>
             {scenes.map((s, i) => (
               <tr key={i} className="border-b border-zinc-50">
-                <td className="px-3 py-2 font-mono text-[10px] text-zinc-400">{s.order}</td>
+                <td className="px-3 py-2 font-mono text-[12px] text-zinc-400">{s.order}</td>
                 <td className="max-w-xs truncate px-3 py-2 text-zinc-700">{s.script}</td>
                 <td className="px-3 py-2 text-zinc-500">{s.speaker}</td>
                 <td className="px-3 py-2 text-zinc-500">{s.duration}s</td>
@@ -135,15 +135,15 @@ export default function SessionResultView({
       {/* Music Recommendation */}
       {musicRecommendation && (
         <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
-          <p className="text-[10px] font-semibold tracking-wider text-purple-700 uppercase">
+          <p className="text-[12px] font-semibold tracking-wider text-purple-700 uppercase">
             BGM Recommendation
           </p>
           <p className="mt-1 text-xs text-purple-800">{musicRecommendation.prompt}</p>
-          <div className="mt-1 flex gap-3 text-[10px] text-purple-600">
+          <div className="mt-1 flex gap-3 text-[12px] text-purple-600">
             <span>Mood: {musicRecommendation.mood}</span>
             <span>{musicRecommendation.duration}s</span>
           </div>
-          <p className="mt-1 text-[10px] text-zinc-500">{musicRecommendation.reasoning}</p>
+          <p className="mt-1 text-[12px] text-zinc-500">{musicRecommendation.reasoning}</p>
         </div>
       )}
 
@@ -154,7 +154,7 @@ export default function SessionResultView({
       {!sent ? (
         <div className="flex items-end gap-3 border-t border-zinc-100 pt-3">
           <div className="flex-1">
-            <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               Group
             </label>
             <select
@@ -174,7 +174,7 @@ export default function SessionResultView({
             </select>
           </div>
           <div className="flex-1">
-            <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+            <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
               Title (optional)
             </label>
             <input
@@ -186,7 +186,7 @@ export default function SessionResultView({
             />
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <label className="flex items-center gap-1.5 text-[10px] text-zinc-500">
+            <label className="flex items-center gap-1.5 text-[12px] text-zinc-500">
               <input
                 type="checkbox"
                 checked={deepParse}

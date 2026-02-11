@@ -19,7 +19,7 @@ export const OVERLAY_CLASSES =
 export const CARD_CLASSES = "rounded-2xl bg-white shadow-xl border border-zinc-200";
 
 /** Small uppercase label used in section headers. */
-export const LABEL_CLASSES = "text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400";
+export const LABEL_CLASSES = "text-[12px] font-semibold uppercase tracking-[0.2em] text-zinc-400";
 
 /** Page-level h1 title for independent list pages. */
 export const PAGE_TITLE_CLASSES = "text-lg font-bold text-zinc-900";
@@ -61,7 +61,7 @@ export const SIDE_PANEL_CLASSES =
 
 /** Section label inside a side panel. */
 export const SIDE_PANEL_LABEL =
-  "mb-2 block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase";
+  "mb-2 block text-[12px] font-semibold tracking-wider text-zinc-500 uppercase";
 
 // ── Content section tokens ─────────────────────────────────
 

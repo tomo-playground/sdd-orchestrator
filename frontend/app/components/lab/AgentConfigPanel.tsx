@@ -287,13 +287,13 @@ export default function AgentConfigPanel() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-zinc-800">{preset.name}</span>
                       {preset.is_system && (
-                        <span className="flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
+                        <span className="flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[12px] font-semibold text-blue-600">
                           <Shield className="h-3 w-3" />
                           System
                         </span>
                       )}
                       {preset.category && categoryLabels[preset.category] && (
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[12px] font-medium text-zinc-500">
                           {categoryLabels[preset.category]}
                         </span>
                       )}
@@ -318,10 +318,10 @@ export default function AgentConfigPanel() {
                     </div>
                   </div>
                   {preset.agent_role && (
-                    <p className="mt-0.5 text-[10px] text-zinc-400">{preset.agent_role}</p>
+                    <p className="mt-0.5 text-[12px] text-zinc-400">{preset.agent_role}</p>
                   )}
                   <p className="mt-1 text-xs text-zinc-500">{preset.role_description}</p>
-                  <div className="mt-2 flex items-center gap-3 text-[10px] text-zinc-400">
+                  <div className="mt-2 flex items-center gap-3 text-[12px] text-zinc-400">
                     <span>
                       {preset.model_provider}/{preset.model_name}
                     </span>

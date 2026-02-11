@@ -37,7 +37,7 @@ function ValidationOverlay({
             onValidate();
           }}
           disabled={isValidating}
-          className="rounded-full bg-white/90 px-4 py-2 text-[10px] font-semibold tracking-[0.15em] uppercase shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-50"
+          className="rounded-full bg-white/90 px-4 py-2 text-[12px] font-semibold tracking-[0.15em] uppercase shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-50"
         >
           {isValidating ? "Validating..." : "Run Validation"}
         </button>
@@ -63,7 +63,7 @@ function ValidationOverlay({
       </div>
 
       {/* Missing / Extra counts */}
-      <div className="flex gap-3 text-[10px] font-semibold tracking-wider">
+      <div className="flex gap-3 text-[12px] font-semibold tracking-wider">
         {missingCount > 0 && <span className="text-red-300">MISSING {missingCount}</span>}
         {extraCount > 0 && <span className="text-amber-300">EXTRA {extraCount}</span>}
         {missingCount === 0 && extraCount === 0 && (
@@ -73,7 +73,7 @@ function ValidationOverlay({
 
       {/* Missing tags preview */}
       {missingCount > 0 && result.missing && (
-        <p className="line-clamp-2 text-[10px] text-white/60">
+        <p className="line-clamp-2 text-[12px] text-white/60">
           {result.missing.slice(0, 5).join(", ")}
           {missingCount > 5 && ` +${missingCount - 5}`}
         </p>
@@ -88,7 +88,7 @@ function ValidationOverlay({
             onValidate();
           }}
           disabled={isValidating}
-          className="rounded-full bg-white/20 px-3 py-1 text-[9px] font-semibold tracking-wider text-white uppercase backdrop-blur transition hover:bg-white/30 disabled:opacity-50"
+          className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold tracking-wider text-white uppercase backdrop-blur transition hover:bg-white/30 disabled:opacity-50"
         >
           {isValidating ? "..." : "Re-validate"}
         </button>
@@ -99,7 +99,7 @@ function ValidationOverlay({
               e.stopPropagation();
               onApplyMissingTags(result.missing!);
             }}
-            className="rounded-full bg-red-500/70 px-3 py-1 text-[9px] font-semibold tracking-wider text-white uppercase backdrop-blur transition hover:bg-red-500/90"
+            className="rounded-full bg-red-500/70 px-3 py-1 text-[11px] font-semibold tracking-wider text-white uppercase backdrop-blur transition hover:bg-red-500/90"
           >
             + Add Missing
           </button>
@@ -164,7 +164,7 @@ export default function SceneImagePanel({
                 Generate Image
               </button>
             ) : (
-              <p className="text-[10px] text-zinc-300">Click Generate or Upload</p>
+              <p className="text-[12px] text-zinc-300">Click Generate or Upload</p>
             )}
           </div>
         )}
@@ -185,7 +185,7 @@ export default function SceneImagePanel({
         {!showOverlay && validationResult && scene.image_url && (
           <div className="absolute top-2 right-2">
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm ${
+              className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${
                 validationResult.match_rate >= 0.8
                   ? "bg-emerald-500 text-white"
                   : validationResult.match_rate >= 0.5

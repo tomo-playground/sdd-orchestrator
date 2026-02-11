@@ -42,7 +42,7 @@ function ScoreBar({ score }: { score: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-[10px] font-semibold text-zinc-600">{score.toFixed(2)}</span>
+      <span className="text-[12px] font-semibold text-zinc-600">{score.toFixed(2)}</span>
     </div>
   );
 }
@@ -76,11 +76,11 @@ function ConceptCard({
       {/* Header */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${colors.badge}`}>
+          <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${colors.badge}`}>
             {label}
           </span>
           {isBest && (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600">
+            <span className="flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
               <Star className="h-3 w-3" /> Recommended
             </span>
           )}
@@ -91,12 +91,12 @@ function ConceptCard({
       {/* Title + Hook */}
       <h4 className="text-sm font-semibold text-zinc-800">{c.title}</h4>
       <p className="mt-1 text-xs text-zinc-600">{c.hook}</p>
-      <p className="mt-1 text-[10px] text-zinc-400">Arc: {c.arc}</p>
+      <p className="mt-1 text-[12px] text-zinc-400">Arc: {c.arc}</p>
 
       {/* Expand/Collapse */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="mt-2 flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-700"
+        className="mt-2 flex items-center gap-1 text-[12px] text-zinc-500 hover:text-zinc-700"
       >
         {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         {expanded ? "Less" : "Details"}
@@ -105,19 +105,19 @@ function ConceptCard({
       {expanded && (
         <div className="mt-2 space-y-2 border-t border-zinc-200 pt-2">
           {c.mood_progression && (
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[12px] text-zinc-500">
               <strong>Mood:</strong> {c.mood_progression}
             </p>
           )}
           {c.pacing_note && (
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[12px] text-zinc-500">
               <strong>Pacing:</strong> {c.pacing_note}
             </p>
           )}
           {c.key_moments && c.key_moments.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-zinc-500">Key Moments:</p>
-              <ul className="mt-0.5 ml-3 list-disc text-[10px] text-zinc-500">
+              <p className="text-[12px] font-semibold text-zinc-500">Key Moments:</p>
+              <ul className="mt-0.5 ml-3 list-disc text-[12px] text-zinc-500">
                 {c.key_moments.map((m, i) => (
                   <li key={i}>
                     <strong>{m.beat}</strong>: {m.description}
@@ -128,7 +128,7 @@ function ConceptCard({
             </div>
           )}
           {candidate.feedback && (
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[12px] text-zinc-500">
               <strong>Feedback:</strong> {candidate.feedback}
             </p>
           )}
@@ -187,7 +187,7 @@ export default function ConceptCompareView({
           </span>
           <button
             onClick={() => onSelect(selectedIndex === 0 ? 1 : 0)}
-            className="rounded border border-blue-300 px-2 py-0.5 text-[10px] font-semibold text-blue-600 hover:bg-blue-100"
+            className="rounded border border-blue-300 px-2 py-0.5 text-[12px] font-semibold text-blue-600 hover:bg-blue-100"
           >
             Override
           </button>

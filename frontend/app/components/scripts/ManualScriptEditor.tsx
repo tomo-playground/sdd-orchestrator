@@ -57,7 +57,7 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
         </h3>
         <div className={isMultiChar ? "grid grid-cols-2 gap-3" : ""}>
           <div>
-            <label className="mb-1 block text-[10px] font-medium text-zinc-400">
+            <label className="mb-1 block text-[12px] font-medium text-zinc-400">
               {isMultiChar ? "Character A" : "Character"}
             </label>
             <select
@@ -77,7 +77,7 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
           </div>
           {isMultiChar && (
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-zinc-400">
+              <label className="mb-1 block text-[12px] font-medium text-zinc-400">
                 Character B
               </label>
               <select

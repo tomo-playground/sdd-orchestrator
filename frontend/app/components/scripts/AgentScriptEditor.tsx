@@ -56,7 +56,7 @@ export default function AgentScriptEditor() {
     <div className="space-y-4">
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
         <p className="text-xs font-semibold text-emerald-800">AI Agent Mode</p>
-        <p className="mt-0.5 text-[10px] text-emerald-600">
+        <p className="mt-0.5 text-[12px] text-emerald-600">
           AI agents collaborate to create an optimized script through concept debate and pipeline
           execution.
         </p>

@@ -109,7 +109,7 @@ export default function PromptTokenPreview({
           return (
             <span
               key={idx}
-              className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-semibold text-violet-700 border border-violet-200"
+              className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-[12px] font-semibold text-violet-700 border border-violet-200"
               title={`LoRA: ${token.loraName} @ ${token.loraWeight}`}
             >
               <span className="text-violet-400">⚡</span>
@@ -124,7 +124,7 @@ export default function PromptTokenPreview({
           return (
             <span
               key={idx}
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 border border-emerald-200"
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[12px] font-semibold text-emerald-700 border border-emerald-200"
               title="Trigger Word"
             >
               <span className="text-emerald-400">★</span>
@@ -136,7 +136,7 @@ export default function PromptTokenPreview({
         return (
           <span
             key={idx}
-            className="rounded-full bg-zinc-100 px-2 py-1 text-[10px] text-zinc-600 border border-zinc-200"
+            className="rounded-full bg-zinc-100 px-2 py-1 text-[12px] text-zinc-600 border border-zinc-200"
           >
             {token.text}
           </span>

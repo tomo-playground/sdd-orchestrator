@@ -58,16 +58,16 @@ function TraceCard({ trace }: { trace: CreativeTrace }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span
-            className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${style.text}`}
+            className={`inline-block rounded px-1.5 py-0.5 text-[12px] font-semibold tracking-wider uppercase ${style.text}`}
           >
             {style.label}
           </span>
           <span className="text-xs font-medium text-zinc-700">{trace.agent_role}</span>
           {trace.target_agent && (
-            <span className="text-[10px] text-zinc-400">→ {trace.target_agent}</span>
+            <span className="text-[12px] text-zinc-400">→ {trace.target_agent}</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-zinc-400">
+        <div className="flex items-center gap-3 text-[12px] text-zinc-400">
           <span className="flex items-center gap-0.5">
             <Cpu className="h-3 w-3" />
             {trace.model_id}
@@ -99,7 +99,7 @@ function TraceCard({ trace }: { trace: CreativeTrace }) {
 
       {/* Feedback row */}
       {trace.feedback && (
-        <p className="mt-2 border-t border-zinc-100 pt-2 text-[10px] text-zinc-500">
+        <p className="mt-2 border-t border-zinc-100 pt-2 text-[12px] text-zinc-500">
           <span className="font-semibold">Feedback:</span> {trace.feedback}
         </p>
       )}
@@ -182,7 +182,7 @@ export default function TraceTimeline({ traces }: Props) {
             </option>
           ))}
         </select>
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[12px] text-zinc-400">
           {filteredTraces.length} trace{filteredTraces.length !== 1 && "s"}
         </span>
       </div>
@@ -190,7 +190,7 @@ export default function TraceTimeline({ traces }: Props) {
       {/* Rounds */}
       {Array.from(groupedByRound.entries()).map(([roundNum, roundTraces]) => (
         <div key={roundNum}>
-          <p className="mb-2 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <p className="mb-2 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Round {roundNum}
           </p>
           <div className="space-y-2">

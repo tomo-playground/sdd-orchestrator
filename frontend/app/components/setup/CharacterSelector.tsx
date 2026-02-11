@@ -23,7 +23,7 @@ function CharacterThumbnail({
   if (!src) {
     return (
       <div
-        className="flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-[10px] font-bold text-zinc-400"
+        className="flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-[12px] font-bold text-zinc-400"
         style={{ width: size, height: size }}
       >
         {name.charAt(0).toUpperCase()}
@@ -84,7 +84,7 @@ export default function CharacterSelector({
 
   return (
     <div ref={ref} className="relative min-w-[200px] flex-1">
-      <label className="mb-1 block text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+      <label className="mb-1 block text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
         {label}
       </label>
 
@@ -127,7 +127,7 @@ export default function CharacterSelector({
         <div className="absolute top-full right-0 left-0 z-[var(--z-popover)] mt-1 max-h-64 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="sticky top-0 border-b border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
+              <div className="sticky top-0 border-b border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[12px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
                 {group.label}
               </div>
               {group.items.map((char) => {

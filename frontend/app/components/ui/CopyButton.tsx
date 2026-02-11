@@ -35,7 +35,7 @@ export default function CopyButton({
       <button
         type="button"
         onClick={handleCopy}
-        className={`flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[10px] font-semibold transition hover:bg-zinc-50 ${iconColor} ${className}`}
+        className={`flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[12px] font-semibold transition hover:bg-zinc-50 ${iconColor} ${className}`}
       >
         <Icon className="h-3 w-3" />
         {copied ? "Copied" : "Copy"}

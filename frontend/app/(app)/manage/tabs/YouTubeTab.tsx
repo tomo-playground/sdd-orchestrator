@@ -68,7 +68,7 @@ export default function YouTubeTab({ projectId }: Props) {
 
       {/* Info */}
       <div className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4">
-        <p className="text-[11px] leading-relaxed text-zinc-400">
+        <p className="text-[13px] leading-relaxed text-zinc-400">
           YouTube connection is per-project. Each project can connect to a different channel.
           Credentials are encrypted and stored securely. Uploads default to &ldquo;Private&rdquo;
           visibility.
@@ -109,7 +109,7 @@ function ConnectedChannelCard({
             <p className="truncate text-sm font-medium text-zinc-900">
               {credential.channel_title || "Connected Channel"}
             </p>
-            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[12px] font-semibold text-emerald-600">
               Connected
             </span>
           </div>
@@ -136,7 +136,7 @@ function ConnectedChannelCard({
               href={`https://www.youtube.com/channel/${credential.channel_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-[11px] text-red-500 transition hover:text-red-600"
+              className="mt-2 inline-flex items-center gap-1 text-[13px] text-red-500 transition hover:text-red-600"
             >
               View on YouTube
               <svg

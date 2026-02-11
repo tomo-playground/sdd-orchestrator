@@ -60,7 +60,7 @@ export default function StepReviewView({
     <div className="space-y-4">
       {/* Header */}
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-        <p className="text-[10px] font-semibold tracking-wider text-amber-600 uppercase">{label}</p>
+        <p className="text-[12px] font-semibold tracking-wider text-amber-600 uppercase">{label}</p>
         <p className="mt-1 text-xs text-amber-800">
           Review the script below and approve or request changes.
         </p>
@@ -68,23 +68,23 @@ export default function StepReviewView({
 
       {/* Scene table */}
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+        <p className="mb-2 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
           Scenes ({scenes.length})
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr>
-                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                   #
                 </th>
-                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                   Script
                 </th>
-                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                   Speaker
                 </th>
-                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                <th className="border-b border-zinc-100 px-3 py-1.5 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                   Duration
                 </th>
               </tr>
@@ -97,7 +97,7 @@ export default function StepReviewView({
                     highlightScene === s.order ? "bg-amber-50 ring-1 ring-amber-300" : ""
                   }`}
                 >
-                  <td className="px-3 py-2 font-mono text-[10px] text-zinc-400">{s.order}</td>
+                  <td className="px-3 py-2 font-mono text-[12px] text-zinc-400">{s.order}</td>
                   <td className="max-w-xs px-3 py-2 text-zinc-700">{s.script}</td>
                   <td className="px-3 py-2 text-zinc-500">{s.speaker}</td>
                   <td className="px-3 py-2 text-zinc-500">{s.duration}s</td>
@@ -118,7 +118,7 @@ export default function StepReviewView({
 
       {/* Chat messages */}
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+        <p className="mb-2 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
           Review Chat
         </p>
         <div className="max-h-60 space-y-2 overflow-y-auto">
@@ -127,7 +127,7 @@ export default function StepReviewView({
               key={i}
               className={`rounded-lg px-3 py-2 text-xs ${ROLE_STYLES[msg.role] ?? "bg-zinc-50"}`}
             >
-              <span className="mr-1 text-[10px] font-bold uppercase opacity-60">{msg.role}</span>
+              <span className="mr-1 text-[12px] font-bold uppercase opacity-60">{msg.role}</span>
               <span>{msg.content}</span>
             </div>
           ))}

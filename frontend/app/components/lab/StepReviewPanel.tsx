@@ -17,9 +17,9 @@ export default function StepReviewPanel({ review, onAction }: Props) {
       {/* QC Score */}
       {qc && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold text-zinc-500">QC Score</span>
+          <span className="text-[12px] font-semibold text-zinc-500">QC Score</span>
           <span
-            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+            className={`rounded px-1.5 py-0.5 text-[12px] font-bold ${
               qc.score >= 0.85
                 ? "bg-emerald-100 text-emerald-700"
                 : qc.score >= 0.6
@@ -30,7 +30,7 @@ export default function StepReviewPanel({ review, onAction }: Props) {
             {(qc.score * 100).toFixed(0)}
           </span>
           <span
-            className={`rounded px-1.5 py-0.5 text-[10px] ${
+            className={`rounded px-1.5 py-0.5 text-[12px] ${
               qc.overall_rating === "good"
                 ? "bg-emerald-100 text-emerald-700"
                 : qc.overall_rating === "needs_revision"
@@ -46,11 +46,11 @@ export default function StepReviewPanel({ review, onAction }: Props) {
       {/* Issues */}
       {qc?.issues && qc.issues.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold text-zinc-500">Issues</p>
+          <p className="text-[12px] font-semibold text-zinc-500">Issues</p>
           {qc.issues.map((issue, i) => (
             <div
               key={i}
-              className={`rounded px-2 py-1 text-[10px] ${
+              className={`rounded px-2 py-1 text-[12px] ${
                 issue.severity === "critical"
                   ? "bg-red-50 text-red-700"
                   : issue.severity === "warning"
@@ -68,9 +68,9 @@ export default function StepReviewPanel({ review, onAction }: Props) {
       {/* Strengths */}
       {qc?.strengths && qc.strengths.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold text-zinc-500">Strengths</p>
+          <p className="text-[12px] font-semibold text-zinc-500">Strengths</p>
           {qc.strengths.map((s, i) => (
-            <p key={i} className="text-[10px] text-emerald-700">
+            <p key={i} className="text-[12px] text-emerald-700">
               {s}
             </p>
           ))}
@@ -85,18 +85,18 @@ export default function StepReviewPanel({ review, onAction }: Props) {
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="피드백을 입력하세요... (optional)"
             rows={2}
-            className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-[10px] text-zinc-800 focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-[12px] text-zinc-800 focus:border-zinc-400 focus:outline-none"
           />
           <div className="flex gap-2">
             <button
               onClick={() => onAction("approve")}
-              className="rounded bg-emerald-600 px-3 py-1 text-[10px] font-semibold text-white hover:bg-emerald-500"
+              className="rounded bg-emerald-600 px-3 py-1 text-[12px] font-semibold text-white hover:bg-emerald-500"
             >
               Approve
             </button>
             <button
               onClick={() => onAction("revise", feedback || undefined)}
-              className="rounded bg-amber-500 px-3 py-1 text-[10px] font-semibold text-white hover:bg-amber-400"
+              className="rounded bg-amber-500 px-3 py-1 text-[12px] font-semibold text-white hover:bg-amber-400"
             >
               Request Revision
             </button>

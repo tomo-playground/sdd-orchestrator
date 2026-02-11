@@ -36,7 +36,7 @@ type Props = {
 // ── Constants ────────────────────────────────────────────────
 const SAMPLERS = ["DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"];
 
-const labelCls = "mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
+const labelCls = "mb-1 block text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
 const inputCls =
   "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none";
 const disabledCls =
@@ -224,7 +224,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
 
           {/* Defaults */}
           <div className="space-y-3 border-t border-zinc-100 pt-3">
-            <p className="text-[10px] font-semibold tracking-wider text-zinc-300 uppercase">
+            <p className="text-[12px] font-semibold tracking-wider text-zinc-300 uppercase">
               Defaults
             </p>
             <SelectField
@@ -250,7 +250,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
 
           {/* SD Generation Settings */}
           <div className="space-y-3 border-t border-zinc-100 pt-3">
-            <p className="text-[10px] font-semibold tracking-wider text-zinc-300 uppercase">
+            <p className="text-[12px] font-semibold tracking-wider text-zinc-300 uppercase">
               SD Generation
             </p>
             <div>

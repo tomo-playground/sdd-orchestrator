@@ -92,7 +92,7 @@ export default function PromptSetupPanel({
       <button
         type="button"
         onClick={() => setPromptOpen((v) => !v)}
-        className="flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
+        className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
       >
         <svg
           className={cx("h-3 w-3 transition-transform", promptOpen && "rotate-90")}
@@ -110,7 +110,7 @@ export default function PromptSetupPanel({
       {promptOpen && (
         <div className="grid gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               {isDialogue ? "Base Prompt (A)" : "Base Prompt"}
             </label>
             <textarea
@@ -120,12 +120,12 @@ export default function PromptSetupPanel({
               className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
               placeholder="1girl, eureka, (black t-shirt:1.2), ... <lora:...:1.0>"
             />
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[12px] text-zinc-500">
               Model tags like &lt;model:...&gt; are ignored. Use the SD Model selector instead.
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               {isDialogue ? "Negative Prompt (A)" : "Negative Prompt"}
             </label>
             <textarea
@@ -139,7 +139,7 @@ export default function PromptSetupPanel({
           {isDialogue && (
             <>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Base Prompt (B)
                 </label>
                 <textarea
@@ -151,7 +151,7 @@ export default function PromptSetupPanel({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                   Negative Prompt (B)
                 </label>
                 <textarea
@@ -167,7 +167,7 @@ export default function PromptSetupPanel({
           <button
             type="button"
             onClick={onOpenPromptHelper}
-            className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
+            className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
           >
             Prompt Helper
           </button>

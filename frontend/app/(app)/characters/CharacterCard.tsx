@@ -41,27 +41,27 @@ export default function CharacterCard({ character: ch }: Props) {
         {/* Badges */}
         <div className="mt-2 flex flex-wrap gap-1">
           {loraCount > 0 && (
-            <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600">
+            <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[12px] font-medium text-indigo-600">
               LoRA x{loraCount}
             </span>
           )}
           {ch.preview_locked && (
-            <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+            <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[12px] font-medium text-amber-600">
               Locked
             </span>
           )}
           {ch.prompt_mode !== "auto" && (
-            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[12px] font-medium text-zinc-500">
               {ch.prompt_mode}
             </span>
           )}
           {!imgSrc && (
-            <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-medium text-rose-400">
+            <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[12px] font-medium text-rose-400">
               No Image
             </span>
           )}
           {tagCount > 0 && (
-            <span className="rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-500">
+            <span className="rounded-full bg-purple-50 px-1.5 py-0.5 text-[12px] font-medium text-purple-500">
               {tagCount} tags
             </span>
           )}

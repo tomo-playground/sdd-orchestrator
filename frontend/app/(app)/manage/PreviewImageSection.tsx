@@ -75,7 +75,7 @@ export default function PreviewImageSection({
         <button
           type="button"
           onClick={() => setPreviewLocked(!previewLocked)}
-          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
+          className={`rounded-full px-2.5 py-0.5 text-[13px] font-semibold transition ${
             previewLocked
               ? "border border-amber-300 bg-amber-100 text-amber-700"
               : "border border-zinc-200 bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
@@ -91,7 +91,7 @@ export default function PreviewImageSection({
           type="button"
           onClick={onGenerate}
           disabled={isCreateMode || previewLocked || anyLoading}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-zinc-600 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isGenerating ? (
             <>
@@ -106,7 +106,7 @@ export default function PreviewImageSection({
           type="button"
           onClick={onEnhance}
           disabled={isCreateMode || previewLocked || !previewImageUrl || anyLoading}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[11px] font-semibold text-indigo-600 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[13px] font-semibold text-indigo-600 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isEnhancing ? (
             <>
@@ -121,7 +121,7 @@ export default function PreviewImageSection({
           type="button"
           onClick={onOpenGeminiEdit}
           disabled={isCreateMode || previewLocked || !previewImageUrl || anyLoading}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-1.5 text-[11px] font-semibold text-purple-600 hover:from-purple-100 hover:to-pink-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-1.5 text-[13px] font-semibold text-purple-600 hover:from-purple-100 hover:to-pink-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isEditing ? (
             <>
@@ -135,7 +135,7 @@ export default function PreviewImageSection({
       </div>
 
       {isCreateMode && (
-        <p className="text-center text-[11px] text-zinc-400">Save first to generate.</p>
+        <p className="text-center text-[13px] text-zinc-400">Save first to generate.</p>
       )}
     </div>
   );

@@ -46,7 +46,7 @@ export default function MusicCard({
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-zinc-900">{preset.name}</span>
         {preset.is_system && (
-          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-medium text-indigo-500">
+          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-500">
             System
           </span>
         )}
@@ -59,12 +59,12 @@ export default function MusicCard({
 
       {/* Prompt */}
       {preset.prompt && (
-        <p className="line-clamp-1 text-[10px] text-zinc-400 italic">{preset.prompt}</p>
+        <p className="line-clamp-1 text-[12px] text-zinc-400 italic">{preset.prompt}</p>
       )}
 
       {/* Footer */}
       <div className="mt-auto flex items-center justify-between pt-1">
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[12px] text-zinc-400">
           {preset.duration ? `${preset.duration}s` : ""}
         </span>
         <div className="flex items-center gap-1.5">
@@ -72,7 +72,7 @@ export default function MusicCard({
           <button
             onClick={() => onPreview(preset)}
             disabled={isGenerating || !preset.prompt?.trim()}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition disabled:opacity-40 ${
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition disabled:opacity-40 ${
               preset.audio_url
                 ? "border-zinc-200 text-zinc-600 hover:bg-zinc-100"
                 : "border-indigo-200 text-indigo-600 hover:bg-indigo-50"

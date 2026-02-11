@@ -262,27 +262,27 @@ export default function ComposedPromptPreview({
       {/* Header with controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Composed Preview
           </span>
           {isLoading && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
               Composing...
             </span>
           )}
           {!isLoading && result && (
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700">
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
               Filtered
             </span>
           )}
           {!isLoading && !result && (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-semibold text-zinc-500">
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-500">
               Raw
             </span>
           )}
           {result && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                 result.effective_mode === "lora"
                   ? "bg-violet-100 text-violet-700"
                   : "bg-zinc-100 text-zinc-600"
@@ -293,7 +293,7 @@ export default function ComposedPromptPreview({
           )}
           {result?.scene_complexity && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                 result.scene_complexity === "complex"
                   ? "bg-red-100 text-red-700"
                   : result.scene_complexity === "moderate"
@@ -310,7 +310,7 @@ export default function ComposedPromptPreview({
           <button
             type="button"
             onClick={() => setShowGrouped(!showGrouped)}
-            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-600 hover:bg-zinc-50"
+            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-50"
           >
             {showGrouped ? "Linear" : "Grouped"}
           </button>
@@ -318,7 +318,7 @@ export default function ComposedPromptPreview({
             type="button"
             onClick={composePrompt}
             disabled={isLoading}
-            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[9px] font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
           >
             {isLoading ? "..." : result ? "Refresh" : "Compose"}
           </button>
@@ -326,7 +326,7 @@ export default function ComposedPromptPreview({
       </div>
 
       {/* Error message */}
-      {error && <div className="rounded-lg bg-red-50 p-2 text-[10px] text-red-600">{error}</div>}
+      {error && <div className="rounded-lg bg-red-50 p-2 text-[12px] text-red-600">{error}</div>}
 
       {/* Token display */}
       {showGrouped ? (
@@ -335,7 +335,7 @@ export default function ComposedPromptPreview({
           {Object.entries(groupedTokens).map(([label, group]) => (
             <div key={label} className="flex items-start gap-2">
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${CATEGORY_COLORS[group.category]?.bg || "bg-zinc-100"} ${CATEGORY_COLORS[group.category]?.text || "text-zinc-600"}`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${CATEGORY_COLORS[group.category]?.bg || "bg-zinc-100"} ${CATEGORY_COLORS[group.category]?.text || "text-zinc-600"}`}
               >
                 {label}
               </span>
@@ -345,7 +345,7 @@ export default function ComposedPromptPreview({
                   return (
                     <span
                       key={`${label}-${idx}`}
-                      className={`rounded-full border px-2 py-0.5 text-[10px] ${style.bg} ${style.text} ${style.border}`}
+                      className={`rounded-full border px-2 py-0.5 text-[12px] ${style.bg} ${style.text} ${style.border}`}
                     >
                       {token.startsWith("<lora:") ? (
                         <>
@@ -370,7 +370,7 @@ export default function ComposedPromptPreview({
             return (
               <span
                 key={idx}
-                className={`rounded-full border px-2 py-0.5 text-[10px] ${style.bg} ${style.text} ${style.border}`}
+                className={`rounded-full border px-2 py-0.5 text-[12px] ${style.bg} ${style.text} ${style.border}`}
                 title={getCategory(token)}
               >
                 {token === "BREAK" ? (
@@ -391,7 +391,7 @@ export default function ComposedPromptPreview({
 
       {/* LoRA weights info */}
       {result?.lora_weights && Object.keys(result.lora_weights).length > 0 && (
-        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+        <div className="flex items-center gap-2 text-[12px] text-zinc-500">
           <span className="font-semibold">LoRA Weights:</span>
           {Object.entries(result.lora_weights).map(([name, weight]) => (
             <span key={name} className="rounded bg-violet-50 px-1.5 py-0.5 text-violet-700">
@@ -403,7 +403,7 @@ export default function ComposedPromptPreview({
 
       {/* Meta info */}
       {result?.meta && (
-        <div className="flex items-center gap-3 text-[9px] text-zinc-400">
+        <div className="flex items-center gap-3 text-[11px] text-zinc-400">
           <span>{result.meta.token_count} tokens</span>
           {result.meta.has_break && <span>with BREAK</span>}
           {result.meta.quality_tags_added && <span>+quality</span>}

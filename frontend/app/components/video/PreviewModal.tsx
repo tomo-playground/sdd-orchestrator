@@ -35,7 +35,7 @@ export default function PreviewModal({ type, src, onClose }: PreviewModalProps) 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             {type === "image" ? "Image Preview" : "Video Preview"}
           </span>
           <button

@@ -91,7 +91,7 @@ export default function StoryboardGeneratorPanel({
               Topic
             </label>
             <span
-              className={`text-[10px] font-semibold tracking-[0.1em] ${
+              className={`text-[12px] font-semibold tracking-[0.1em] ${
                 topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
               }`}
             >
@@ -131,7 +131,7 @@ export default function StoryboardGeneratorPanel({
               <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
             </label>
             <span
-              className={`text-[10px] font-semibold tracking-[0.1em] ${
+              className={`text-[12px] font-semibold tracking-[0.1em] ${
                 description.length >= 500 ? "text-rose-500" : "text-zinc-400"
               }`}
             >
@@ -154,7 +154,7 @@ export default function StoryboardGeneratorPanel({
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="sb-duration"
-                className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+                className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
               >
                 Duration <span className="text-zinc-400">(10-120s)</span>
               </label>
@@ -171,7 +171,7 @@ export default function StoryboardGeneratorPanel({
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="sb-language"
-                className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+                className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
               >
                 Language
               </label>
@@ -192,7 +192,7 @@ export default function StoryboardGeneratorPanel({
           <div className="flex flex-col gap-2">
             <label
               htmlFor="sb-structure"
-              className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+              className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
             >
               Structure
             </label>

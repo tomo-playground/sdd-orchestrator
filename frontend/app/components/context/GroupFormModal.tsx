@@ -32,7 +32,7 @@ export default function GroupFormModal({ projectId, onSave, onClose }: Props) {
 
   const inputCls =
     "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none";
-  const labelCls = "mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
+  const labelCls = "mb-1 block text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
 
   return (
     <Modal open onClose={onClose} size="md">

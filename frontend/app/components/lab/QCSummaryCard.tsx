@@ -49,7 +49,7 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${ratingStyle.bg} ${ratingStyle.text}`}
+            className={`rounded-full px-2 py-0.5 text-[12px] font-bold uppercase ${ratingStyle.bg} ${ratingStyle.text}`}
           >
             {analysis.overall_rating.replace("_", " ")}
           </span>
@@ -63,7 +63,7 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       <div className="grid grid-cols-3 gap-2">
         {Object.entries(analysis.score_breakdown).map(([key, value]) => (
           <div key={key} className="rounded-lg bg-zinc-50 px-2 py-1.5">
-            <p className="text-[10px] text-zinc-400">{SCORE_LABELS[key] ?? key}</p>
+            <p className="text-[12px] text-zinc-400">{SCORE_LABELS[key] ?? key}</p>
             <div className="mt-0.5 flex items-center gap-1.5">
               <div className="h-1.5 flex-1 rounded-full bg-zinc-200">
                 <div
@@ -73,7 +73,7 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
                   style={{ width: `${value * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] font-medium text-zinc-600">
+              <span className="text-[12px] font-medium text-zinc-600">
                 {(value * 100).toFixed(0)}
               </span>
             </div>
@@ -87,12 +87,12 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       {/* Strengths */}
       {analysis.strengths.length > 0 && (
         <div>
-          <p className="mb-1 text-[10px] font-semibold tracking-wider text-emerald-600 uppercase">
+          <p className="mb-1 text-[12px] font-semibold tracking-wider text-emerald-600 uppercase">
             Strengths
           </p>
           <ul className="space-y-0.5">
             {analysis.strengths.map((s, i) => (
-              <li key={i} className="text-[11px] text-zinc-600">
+              <li key={i} className="text-[13px] text-zinc-600">
                 + {s}
               </li>
             ))}
@@ -103,14 +103,14 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       {/* Issues (sorted by severity) */}
       {analysis.issues.length > 0 && (
         <div>
-          <p className="mb-1 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+          <p className="mb-1 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
             Issues ({analysis.issues.length})
           </p>
           <div className="space-y-1">
             {sortedIssues(analysis.issues).map((issue, i) => (
               <div
                 key={i}
-                className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${SEVERITY_STYLES[issue.severity] ?? ""}`}
+                className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[13px] ${SEVERITY_STYLES[issue.severity] ?? ""}`}
               >
                 <span className="font-bold uppercase">{issue.severity[0]}</span>
                 <div className="flex-1">
@@ -118,7 +118,7 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
                 </div>
                 <button
                   onClick={() => onSceneClick?.(issue.scene)}
-                  className="shrink-0 font-mono text-[10px] underline"
+                  className="shrink-0 font-mono text-[12px] underline"
                 >
                   #{issue.scene}
                 </button>

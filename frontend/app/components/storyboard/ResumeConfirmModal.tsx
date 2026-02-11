@@ -56,7 +56,7 @@ export default function ResumeConfirmModal({
         tabIndex={-1}
         className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-6 text-sm text-zinc-700 shadow-2xl outline-none"
       >
-        <div className="mb-4 text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <div className="mb-4 text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Resume Autopilot
         </div>
 
@@ -83,21 +83,21 @@ export default function ResumeConfirmModal({
           <button
             type="button"
             onClick={onResume}
-            className="w-full rounded-full bg-zinc-900 px-4 py-3 text-[10px] font-semibold tracking-[0.2em] text-white uppercase hover:bg-zinc-800"
+            className="w-full rounded-full bg-zinc-900 px-4 py-3 text-[12px] font-semibold tracking-[0.2em] text-white uppercase hover:bg-zinc-800"
           >
             Resume from {stepLabel}
           </button>
           <button
             type="button"
             onClick={onStartFresh}
-            className="w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-zinc-700 uppercase hover:bg-zinc-50"
+            className="w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-700 uppercase hover:bg-zinc-50"
           >
             Start Fresh
           </button>
           <button
             type="button"
             onClick={onDismiss}
-            className="w-full px-4 py-2 text-[10px] font-medium text-zinc-400 hover:text-zinc-600"
+            className="w-full px-4 py-2 text-[12px] font-medium text-zinc-400 hover:text-zinc-600"
           >
             Dismiss
           </button>

@@ -74,12 +74,12 @@ export default function BgmSection(props: BgmSectionProps) {
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">BGM</span>
+        <span className="text-[12px] font-bold tracking-wider text-zinc-500 uppercase">BGM</span>
         <div className="flex rounded-full border border-zinc-200 bg-white p-0.5">
           <button
             type="button"
             onClick={() => setBgmMode("file")}
-            className={`rounded-full px-2.5 py-0.5 text-[9px] font-semibold transition ${
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
               bgmMode === "file" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-700"
             }`}
           >
@@ -88,7 +88,7 @@ export default function BgmSection(props: BgmSectionProps) {
           <button
             type="button"
             onClick={() => setBgmMode("ai")}
-            className={`rounded-full px-2.5 py-0.5 text-[9px] font-semibold transition ${
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
               bgmMode === "ai" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-700"
             }`}
           >
@@ -118,7 +118,7 @@ export default function BgmSection(props: BgmSectionProps) {
               onClick={() => onPreviewBgm()}
               disabled={!bgmFile || bgmFile === "random" || isPreviewingBgm}
               title={bgmFile === "random" ? "Cannot preview random" : "Preview BGM"}
-              className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[10px] text-zinc-600 disabled:text-zinc-400"
+              className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[12px] text-zinc-600 disabled:text-zinc-400"
             >
               ▶
             </button>
@@ -142,7 +142,7 @@ export default function BgmSection(props: BgmSectionProps) {
               onClick={playPresetAudio}
               disabled={!selectedPreset?.audio_url}
               title="Preview music preset"
-              className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[10px] text-zinc-600 disabled:text-zinc-400"
+              className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[12px] text-zinc-600 disabled:text-zinc-400"
             >
               ▶
             </button>
@@ -150,7 +150,7 @@ export default function BgmSection(props: BgmSectionProps) {
         )}
         {hasBgm && (
           <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-            <span className="text-[10px] whitespace-nowrap text-zinc-500">
+            <span className="text-[12px] whitespace-nowrap text-zinc-500">
               {Math.round(bgmVolume * 100)}%
             </span>
             <input
@@ -162,7 +162,7 @@ export default function BgmSection(props: BgmSectionProps) {
               onChange={(e) => setBgmVolume(Number(e.target.value))}
               className="flex-1 accent-zinc-900"
             />
-            <label className="flex items-center gap-1 text-[10px] whitespace-nowrap text-zinc-500">
+            <label className="flex items-center gap-1 text-[12px] whitespace-nowrap text-zinc-500">
               <input
                 type="checkbox"
                 checked={audioDucking}

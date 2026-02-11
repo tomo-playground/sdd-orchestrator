@@ -233,7 +233,7 @@ export default function CommandPalette() {
             placeholder="Search projects, groups, storyboards..."
             className="flex-1 bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
           />
-          <kbd className="hidden shrink-0 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 sm:inline">
+          <kbd className="hidden shrink-0 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[12px] font-medium text-zinc-400 sm:inline">
             ESC
           </kbd>
         </div>
@@ -261,10 +261,10 @@ export default function CommandPalette() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-medium text-zinc-800">{item.label}</div>
                   {item.sublabel && (
-                    <div className="truncate text-[10px] text-zinc-400">{item.sublabel}</div>
+                    <div className="truncate text-[12px] text-zinc-400">{item.sublabel}</div>
                   )}
                 </div>
-                <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400 uppercase">
+                <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-400 uppercase">
                   {item.type}
                 </span>
               </button>
@@ -273,7 +273,7 @@ export default function CommandPalette() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 border-t border-zinc-100 px-4 py-2 text-[10px] text-zinc-400">
+        <div className="flex items-center gap-3 border-t border-zinc-100 px-4 py-2 text-[12px] text-zinc-400">
           <span>
             <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 font-mono">↑↓</kbd>{" "}
             navigate

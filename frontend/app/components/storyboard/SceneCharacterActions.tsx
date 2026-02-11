@@ -45,12 +45,12 @@ function groupByCharacter(
 
 function WeightDisplay({ weight }: { weight: number }) {
   if (weight === 1.0) return null;
-  return <span className="ml-0.5 text-[9px] text-zinc-400">{weight.toFixed(1)}</span>;
+  return <span className="ml-0.5 text-[11px] text-zinc-400">{weight.toFixed(1)}</span>;
 }
 
 function TagPill({ action, onRemove }: { action: SceneCharacterAction; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-2 py-0.5 text-[12px] font-semibold text-zinc-600">
       {action.tag_name || `tag:${action.tag_id}`}
       <WeightDisplay weight={action.weight} />
       <button
@@ -93,7 +93,7 @@ function AddTagInput({
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={handleKeyDown}
       placeholder="Add tag..."
-      className="w-24 rounded-full border border-dashed border-zinc-300 bg-white/80 px-2 py-0.5 text-[10px] outline-none placeholder:text-zinc-300 focus:border-zinc-400"
+      className="w-24 rounded-full border border-dashed border-zinc-300 bg-white/80 px-2 py-0.5 text-[12px] outline-none placeholder:text-zinc-300 focus:border-zinc-400"
     />
   );
 }
@@ -134,12 +134,12 @@ export default function SceneCharacterActions({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
+        className="flex items-center gap-1 text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
       >
         <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
         Character Actions
         {totalCount > 0 && (
-          <span className="ml-1 rounded-full bg-zinc-100 px-1.5 text-[9px] font-medium text-zinc-500">
+          <span className="ml-1 rounded-full bg-zinc-100 px-1.5 text-[11px] font-medium text-zinc-500">
             {totalCount}
           </span>
         )}
@@ -148,7 +148,7 @@ export default function SceneCharacterActions({
       {expanded && (
         <div className="mt-2 space-y-3">
           {groups.length === 0 && (
-            <p className="text-[11px] text-zinc-400">No character actions defined.</p>
+            <p className="text-[13px] text-zinc-400">No character actions defined.</p>
           )}
           {groups.map((group) => (
             <CharacterGroup
@@ -175,7 +175,7 @@ function CharacterGroup({
 }) {
   return (
     <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-2.5">
-      <div className="mb-1.5 text-[10px] font-semibold text-zinc-500">{group.name}</div>
+      <div className="mb-1.5 text-[12px] font-semibold text-zinc-500">{group.name}</div>
       <div className="flex flex-wrap items-center gap-1">
         {group.actions.map((action, idx) => (
           <TagPill key={`${action.tag_id}-${idx}`} action={action} onRemove={() => onRemove(idx)} />

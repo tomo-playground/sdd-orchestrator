@@ -63,7 +63,7 @@ export default function VoicePresetSelector({
 
   return (
     <div>
-      <label className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+      <label className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
         {label}
       </label>
       <div className="flex items-center gap-2">

@@ -46,7 +46,7 @@ export default function RenderedVideosSection({
       </div>
       {recentVideos.length > 0 && (
         <div className="grid gap-3">
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Recent (8)
           </span>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -64,7 +64,7 @@ export default function RenderedVideosSection({
                 >
                   <div className="grid gap-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                      <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                         {item.label}
                       </span>
                       {idx === 0 && (
@@ -78,7 +78,7 @@ export default function RenderedVideosSection({
                         </span>
                       )}
                     </div>
-                    <span className="text-[9px] text-zinc-400">
+                    <span className="text-[11px] text-zinc-400">
                       {new Date(item.createdAt).toLocaleString()}
                     </span>
                   </div>
@@ -102,7 +102,7 @@ export default function RenderedVideosSection({
                       <button
                         type="button"
                         onClick={() => onUploadToYouTube(item.url, item.renderHistoryId)}
-                        className="flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-red-700"
+                        className="flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[12px] font-semibold text-white transition hover:bg-red-700"
                         title="Upload to YouTube"
                       >
                         {YT_ICON}
@@ -114,7 +114,7 @@ export default function RenderedVideosSection({
                         href={`https://studio.youtube.com/video/${ytVideoId}/edit`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-100"
+                        className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-[12px] font-medium text-zinc-600 transition hover:bg-zinc-100"
                       >
                         {YT_ICON}
                         Studio
@@ -123,7 +123,7 @@ export default function RenderedVideosSection({
                     <button
                       type="button"
                       onClick={() => onDeleteRecentVideo(item.url)}
-                      className="ml-auto text-[10px] font-medium text-zinc-400 transition hover:text-rose-500"
+                      className="ml-auto text-[12px] font-medium text-zinc-400 transition hover:text-rose-500"
                     >
                       Delete
                     </button>

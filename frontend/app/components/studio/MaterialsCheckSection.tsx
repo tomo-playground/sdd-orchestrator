@@ -40,7 +40,7 @@ export default function MaterialsCheckSection({ storyboardId }: MaterialsCheckSe
       >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-zinc-800">Materials</span>
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500">
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[12px] text-zinc-500">
             {isLoading ? "..." : `${readyCount}/${MATERIALS.length}`}
           </span>
         </div>
@@ -69,15 +69,15 @@ export default function MaterialsCheckSection({ storyboardId }: MaterialsCheckSe
                 }`}
               >
                 <span className="text-base">{mat.icon}</span>
-                <span className="text-[10px] font-semibold text-zinc-600">{mat.label}</span>
+                <span className="text-[12px] font-semibold text-zinc-600">{mat.label}</span>
                 <span
-                  className={`text-[9px] font-medium ${ready ? "text-emerald-600" : "text-zinc-400"}`}
+                  className={`text-[11px] font-medium ${ready ? "text-emerald-600" : "text-zinc-400"}`}
                 >
                   {ready ? "Ready" : "Missing"}
                 </span>
                 <button
                   onClick={() => router.push(mat.link)}
-                  className="mt-0.5 text-[9px] font-medium text-zinc-400 transition hover:text-zinc-600"
+                  className="mt-0.5 text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
                 >
                   Open →
                 </button>

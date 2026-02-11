@@ -279,7 +279,7 @@ export default function SceneLabTab() {
                 ))
               )}
             </select>
-            <p className="mt-1 text-[10px] text-zinc-400">
+            <p className="mt-1 text-[12px] text-zinc-400">
               Applies Style Profile (LoRAs + Quality Tags) from this Group
             </p>
           </Field>
@@ -428,7 +428,7 @@ export default function SceneLabTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-zinc-100 text-left text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                <tr className="border-b border-zinc-100 text-left text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
                   <th className="pr-4 pb-2">ID</th>
                   <th className="pr-4 pb-2">Description</th>
                   <th className="pr-4 pb-2">Match Rate</th>
@@ -464,7 +464,7 @@ export default function SceneLabTab() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+      <span className="mb-1 block text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
         {label}
       </span>
       {children}
@@ -476,7 +476,7 @@ function MatchBadge({ rate }: { rate: number }) {
   const badge = matchRateBadge(rate);
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold ${badge.bg} ${badge.text}`}
     >
       {badge.label} {(rate * 100).toFixed(0)}%
     </span>
@@ -497,13 +497,13 @@ function TagList({
   if (tags.length === 0) return null;
   return (
     <div>
-      <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-zinc-500">
+      <div className="mb-1 flex items-center gap-1 text-[12px] font-semibold text-zinc-500">
         {icon}
         {label} ({tags.length})
       </div>
       <div className="flex flex-wrap gap-1">
         {tags.map((tag) => (
-          <span key={tag} className={`rounded bg-zinc-50 px-1.5 py-0.5 text-[10px] ${color}`}>
+          <span key={tag} className={`rounded bg-zinc-50 px-1.5 py-0.5 text-[12px] ${color}`}>
             {tag}
           </span>
         ))}
@@ -522,19 +522,19 @@ function ProcessVisualization({
   if (!description) return null;
   return (
     <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-      <div className="mb-2 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+      <div className="mb-2 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
         Translation Pipeline
       </div>
       <div className="space-y-2">
         <div>
-          <span className="text-[10px] font-medium text-zinc-500">Input:</span>
+          <span className="text-[12px] font-medium text-zinc-500">Input:</span>
           <p className="mt-0.5 text-xs text-zinc-700">{description}</p>
         </div>
         <div className="flex justify-center">
           <ArrowRight className="h-3 w-3 text-zinc-300" />
         </div>
         <div>
-          <span className="text-[10px] font-medium text-zinc-500">V3 Composed:</span>
+          <span className="text-[12px] font-medium text-zinc-500">V3 Composed:</span>
           <p className="mt-0.5 text-xs break-all text-zinc-700">{composedPrompt}</p>
         </div>
       </div>

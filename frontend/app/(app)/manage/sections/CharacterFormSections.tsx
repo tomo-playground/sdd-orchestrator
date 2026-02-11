@@ -97,7 +97,7 @@ export function PromptModeSection({
         <option value="standard">Standard (No LoRA)</option>
         <option value="lora">LoRA Only</option>
       </select>
-      <p className="mt-1 text-[11px] text-zinc-400">
+      <p className="mt-1 text-[13px] text-zinc-400">
         Auto: Smart compose. Standard: No LoRA. LoRA: Forces character LoRAs.
       </p>
     </div>
@@ -123,7 +123,7 @@ export function IpAdapterSection({
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label htmlFor="char-ip-weight" className="mb-1 block text-[11px] text-zinc-400">
+          <label htmlFor="char-ip-weight" className="mb-1 block text-[13px] text-zinc-400">
             Weight ({ipAdapterWeight})
           </label>
           <input
@@ -138,7 +138,7 @@ export function IpAdapterSection({
           />
         </div>
         <div>
-          <label htmlFor="char-ip-model" className="mb-1 block text-[11px] text-zinc-400">
+          <label htmlFor="char-ip-model" className="mb-1 block text-[13px] text-zinc-400">
             Model
           </label>
           <select
@@ -192,7 +192,7 @@ export function SceneIdentitySection({
                   return prev;
                 })
               }
-              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[13px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
             >
               + QUALITY
             </button>
@@ -200,7 +200,7 @@ export function SceneIdentitySection({
               <button
                 type="button"
                 onClick={() => onCopyToReference("base")}
-                className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                className="rounded bg-zinc-100 px-1.5 py-0.5 text-[13px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
               >
                 COPY TO REF ↓
               </button>
@@ -215,7 +215,7 @@ export function SceneIdentitySection({
           className={`w-full rounded-xl border ${sceneIdentityWarning ? "border-amber-400" : "border-zinc-200"} resize-none px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400`}
         />
         {sceneIdentityWarning && (
-          <p className="mt-1 text-[11px] font-medium text-amber-600 italic">
+          <p className="mt-1 text-[13px] font-medium text-amber-600 italic">
             {sceneIdentityWarning}
           </p>
         )}
@@ -229,7 +229,7 @@ export function SceneIdentitySection({
             <button
               type="button"
               onClick={() => onCopyToReference("negative")}
-              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[13px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
             >
               COPY TO REF ↓
             </button>
@@ -271,7 +271,7 @@ export function LoRAsSection({
         </label>
         <button
           onClick={onAddLora}
-          className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
+          className="rounded-full bg-indigo-50 px-2 py-1 text-[13px] font-semibold text-indigo-600 hover:text-indigo-700"
         >
           + Add LoRA
         </button>
@@ -299,7 +299,7 @@ export function LoRAsSection({
               <select
                 value={loraInfo?.lora_type || "character"}
                 onChange={(e) => onLoraTypeChange(lora.lora_id, e.target.value)}
-                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[11px] font-semibold outline-none ${
+                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[13px] font-semibold outline-none ${
                   loraInfo?.lora_type === "style"
                     ? "border-violet-200 bg-violet-50 text-violet-600"
                     : "border-zinc-200 bg-white text-zinc-500"
@@ -367,7 +367,7 @@ export function VoicePresetSection({
           </option>
         ))}
       </select>
-      <p className="mt-1 text-[11px] text-zinc-400">
+      <p className="mt-1 text-[13px] text-zinc-400">
         Assigned voice for this character. Overrides the global render preset voice during TTS.
       </p>
     </div>

@@ -52,7 +52,7 @@ export default function ImageSettingsSection() {
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-zinc-800">Image Settings</span>
           {currentStyleProfile && (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500">
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[12px] text-zinc-500">
               {currentStyleProfile.display_name ?? currentStyleProfile.name}
             </span>
           )}
@@ -101,14 +101,14 @@ export default function ImageSettingsSection() {
 
           {/* Options Toggles */}
           <div>
-            <label className="mb-1.5 block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
+            <label className="mb-1.5 block text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
               Options
             </label>
             <div className="flex flex-wrap gap-1.5">
               {TOGGLES.map((t) => (
                 <label
                   key={t.key}
-                  className={`flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
+                  className={`flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition ${
                     t.value
                       ? "border-zinc-900 bg-zinc-900 text-white"
                       : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"

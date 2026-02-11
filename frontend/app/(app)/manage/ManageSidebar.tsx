@@ -144,7 +144,7 @@ export default function ManageSidebar({
                   />
                   {group.label}
                   {group.key === "project" && projectName && (
-                    <span className="ml-auto max-w-[7rem] truncate text-[9px] font-medium text-zinc-400">
+                    <span className="ml-auto max-w-[7rem] truncate text-[11px] font-medium text-zinc-400">
                       {projectName}
                     </span>
                   )}
