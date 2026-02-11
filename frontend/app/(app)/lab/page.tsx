@@ -1,14 +1,13 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LabSidebar, { type LabTab } from "./LabSidebar";
 import TagLabTab from "./tabs/TagLabTab";
 import SceneLabTab from "./tabs/SceneLabTab";
-import CreativeLabTab from "./tabs/CreativeLabTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 
-const VALID_TABS: LabTab[] = ["tag-lab", "scene-lab", "creative", "analytics"];
+const VALID_TABS: LabTab[] = ["tag-lab", "scene-lab", "analytics"];
 
 function isValidTab(v: string | null): v is LabTab {
   return v !== null && VALID_TABS.includes(v as LabTab);
@@ -19,19 +18,10 @@ function LabContent() {
   const searchParams = useSearchParams();
 
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<LabTab>(
-    isValidTab(tabParam) ? tabParam : "tag-lab"
-  );
-
-  useEffect(() => {
-    if (isValidTab(tabParam) && tabParam !== activeTab) {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam]); // eslint-disable-line react-hooks/exhaustive-deps
+  const activeTab: LabTab = isValidTab(tabParam) ? tabParam : "tag-lab";
 
   const handleTabChange = useCallback(
     (tab: LabTab) => {
-      setActiveTab(tab);
       router.replace(`/lab?tab=${tab}`, { scroll: false });
     },
     [router]
@@ -45,7 +35,6 @@ function LabContent() {
         <div className="w-full max-w-6xl px-6 py-6">
           {activeTab === "tag-lab" && <TagLabTab />}
           {activeTab === "scene-lab" && <SceneLabTab />}
-          {activeTab === "creative" && <CreativeLabTab />}
           {activeTab === "analytics" && <AnalyticsTab />}
         </div>
       </main>

@@ -1,20 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Tag,
-  Image,
-  Sparkles,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  type LucideIcon,
-} from "lucide-react";
+import { Tag, Image, BarChart3, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { cx } from "../../components/ui/variants";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type LabTab = "tag-lab" | "scene-lab" | "creative" | "analytics";
+export type LabTab = "tag-lab" | "scene-lab" | "analytics";
 
 type NavItem = {
   id: LabTab;
@@ -39,12 +31,6 @@ const NAV_ITEMS: NavItem[] = [
     description: "Scene translation validation",
   },
   {
-    id: "creative",
-    label: "Creative Lab",
-    icon: Sparkles,
-    description: "Multi-agent creative engine",
-  },
-  {
     id: "analytics",
     label: "Analytics",
     icon: BarChart3,
@@ -66,6 +52,7 @@ export default function LabSidebar({
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe: read localStorage after hydration
     setCollapsed(localStorage.getItem(STORAGE_KEY) === "true");
   }, []);
 
@@ -109,9 +96,7 @@ export default function LabSidebar({
                   {!collapsed && (
                     <div className="min-w-0">
                       <div className="truncate">{item.label}</div>
-                      <div className="truncate text-[10px] text-zinc-400">
-                        {item.description}
-                      </div>
+                      <div className="truncate text-[10px] text-zinc-400">{item.description}</div>
                     </div>
                   )}
                 </button>
@@ -127,11 +112,7 @@ export default function LabSidebar({
         className="flex items-center justify-center border-t border-zinc-100 py-2 text-zinc-400 transition hover:text-zinc-600"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
-        )}
+        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>
     </aside>
   );

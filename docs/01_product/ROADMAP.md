@@ -222,9 +222,9 @@ Phase C 추가 구현 (UI 품질 통일):
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
-| D-1 | 네비게이션 최종 정리 (Home 제거, Script 추가, Studio 최좌측) | UX | [ ] |
-| D-2 | Lab creative 탭 제거 + `/scripts/sessions/*` 라우터 통합 (Creative 세션 이관) | 정리 | [ ] |
-| D-3 | `/storyboards` → `/scripts` 리다이렉트 | 정리 | [ ] |
+| D-1 | 네비게이션 최종 정리 (Home 제거, Studio 최좌측, Stories 제거) | UX | [x] |
+| D-2 | Lab creative 탭 제거 (CreativeLabTab 삭제, LabSidebar/LabPage 정리) | 정리 | [x] |
+| D-3 | `/storyboards` → `/scripts` 리다이렉트, `/` → `/studio` 리다이렉트 | 정리 | [x] |
 | D-4 | deprecated API/호환 레이어 제거 | 정리 | [ ] |
 | D-5 | localStorage 마이그레이션 (기존 store 키 → 신규 키) | 정리 | [ ] |
 
@@ -298,7 +298,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-1: **24/27** 완료 (잔여: #2 Wizard, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - Phase 7-3: **4/6** 완료 (#0~#3, #4~#5 → 7-4로 확장)
-- Phase 7-4: **Phase A+B+C 완료** (Store 분할 + Script 버티컬 + Studio 코디네이터 + UI 토큰 통일 + 접근성), Phase D 미착수
+- Phase 7-4: **Phase A+B+C 완료**, Phase D: 3/5 완료 (D-1~D-3 네비·Lab·리다이렉트 정리, D-4~D-5 별도 세션)
 - **Backend 테스트**: 1,399개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)

@@ -4,11 +4,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  Home,
   Settings,
   FlaskConical,
   Users,
-  FileText,
   Mic,
   Music,
   Image,
@@ -37,17 +35,15 @@ type NavItem = {
 };
 
 const NAV_GROUPS: (NavItem[] | "sep")[] = [
+  [{ href: "/studio", label: "Studio", icon: Clapperboard }],
+  "sep",
   [
-    { href: "/", label: "Home", icon: Home, exact: true },
-    { href: "/storyboards", label: "Stories", icon: FileText },
     { href: "/scripts", label: "Scripts", icon: ScrollText },
     { href: "/characters", label: "Characters", icon: Users },
     { href: "/voices", label: "Voices", icon: Mic },
     { href: "/music", label: "Music", icon: Music },
     { href: "/backgrounds", label: "Backgrounds", icon: Image },
   ],
-  "sep",
-  [{ href: "/studio", label: "Studio", icon: Clapperboard }],
   "sep",
   [
     { href: "/lab", label: "Lab", icon: FlaskConical },
