@@ -56,6 +56,11 @@ Rules:
 - WARN = Minor concerns that should be noted but do not block production
 - FAIL = Significant IP or originality issues that must be addressed
 - overall = FAIL if any check is FAIL, WARN if any check is WARN (and none FAIL), PASS otherwise
+
+CRITICAL: All "detail" and "suggestion" text MUST be written in {{ language }}.
+{% if language == "Korean" %}
+detail과 suggestion은 반드시 한국어로 작성하세요.
+{% endif %}
 {% if feedback %}
 
 ## Previous Attempt Feedback

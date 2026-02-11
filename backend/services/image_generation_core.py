@@ -195,6 +195,7 @@ def compose_scene_with_style(
     scene_id: int | None = None,
     scene_character_actions: list[dict] | None = None,
     character_b_id: int | None = None,
+    background_tags: list[str] | None = None,
 ) -> tuple[str, str, list[str]]:
     """Compose scene prompt: StyleProfile + V3 composition (SSOT).
 
@@ -222,6 +223,11 @@ def compose_scene_with_style(
 
     # 2. V3 composition
     scene_tags = split_prompt_tokens(styled_prompt)
+
+    # Merge background tags into scene tags (V3 _distribute_tags handles categorization)
+    if background_tags:
+        scene_tags.extend(background_tags)
+
     builder = V3PromptBuilder(db)
 
     character = None

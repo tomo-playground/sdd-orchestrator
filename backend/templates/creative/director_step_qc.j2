@@ -105,11 +105,12 @@ Read every word character by character. Can each word be pronounced aloud?
   "overall_rating": "good" | "needs_revision" | "poor",
   "score": 0.0-1.0,
   "score_breakdown": { ... },
-  "summary": "1-2 sentence overall assessment",
+  "summary": "전체 평가 요약 (1-2문장)",
   "issues": [
-    {"severity": "critical"|"warning"|"suggestion", "category": "...", "scene": 0, "description": "..."}
+    {"severity": "critical"|"warning"|"suggestion", "category": "...", "scene": 0, "description": "구체적 문제 설명"}
   ],
-  "strengths": ["What the output does well"],
-  "revision_suggestions": ["Specific actionable improvements"]
+  "strengths": ["잘 된 점"],
+  "revision_suggestions": ["구체적 개선 제안"]
 }
 Respond ONLY with valid JSON. No markdown fences.
+All text content (summary, description, strengths, revision_suggestions) MUST be in {{ language }}.

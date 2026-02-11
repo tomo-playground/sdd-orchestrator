@@ -233,12 +233,37 @@ def _handle_pre_composed(request: SceneGenerateRequest, db) -> tuple[str, list[s
     return request.prompt, []
 
 
+def _resolve_background(request: SceneGenerateRequest, db) -> tuple[list[str] | None, int | None, float | None]:
+    """Resolve background tags and ControlNet reference from background_id.
+
+    Returns: (background_tags, background_image_asset_id, background_weight)
+    """
+    if not request.background_id:
+        return None, None, None
+    from models.background import Background
+
+    bg = db.query(Background).filter(Background.id == request.background_id).first()
+    if not bg:
+        logger.warning("⚠️ [Background] background_id=%d not found", request.background_id)
+        return None, None, None
+
+    bg_tags = bg.tags if bg.tags else None
+    bg_image_asset_id = bg.image_asset_id
+    bg_weight = bg.weight
+    logger.info(
+        "🏠 [Background] Loaded '%s': tags=%s, image_asset_id=%s, weight=%.2f",
+        bg.name, bg_tags, bg_image_asset_id, bg_weight,
+    )
+    return bg_tags, bg_image_asset_id, bg_weight
+
+
 def _handle_character_scene(
     request: SceneGenerateRequest, db, effective_b_id: int | None
 ) -> tuple[str, list[str]]:
     """Handle raw prompt + character: V3 composition with style LoRAs."""
     style_loras = _resolve_style_loras(request.storyboard_id, db)
     logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [lr.get("name") for lr in style_loras])
+    bg_tags, bg_image_asset_id, bg_weight = _resolve_background(request, db)
     cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
         raw_prompt=request.prompt,
         negative_prompt=request.negative_prompt or "",
@@ -248,7 +273,13 @@ def _handle_character_scene(
         db=db,
         scene_id=request.scene_id,
         character_b_id=effective_b_id,
+        background_tags=bg_tags,
     )
+    # Auto-set environment reference from background image
+    if bg_image_asset_id and not request.environment_reference_id:
+        request.environment_reference_id = bg_image_asset_id
+        request.environment_reference_weight = bg_weight or 0.3
+        logger.info("🏠 [Background] Auto-set environment_reference_id=%d (weight=%.2f)", bg_image_asset_id, bg_weight or 0.3)
     logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
     return cleaned_prompt, compose_warnings
 
@@ -256,6 +287,7 @@ def _handle_character_scene(
 def _handle_background_scene(request: SceneGenerateRequest, db) -> tuple[str, list[str]]:
     """Handle narrator (no_humans) scene: V3 background composition."""
     style_loras = _resolve_style_loras(request.storyboard_id, db)
+    bg_tags, _, _ = _resolve_background(request, db)
     cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
         raw_prompt=request.prompt,
         negative_prompt=request.negative_prompt or "",
@@ -264,6 +296,7 @@ def _handle_background_scene(request: SceneGenerateRequest, db) -> tuple[str, li
         style_loras=style_loras,
         db=db,
         scene_id=request.scene_id,
+        background_tags=bg_tags,
     )
     logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
     return cleaned_prompt, compose_warnings

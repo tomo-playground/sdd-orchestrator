@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
 import { API_BASE } from "../../constants";
+import type { Background } from "../../types";
 import SceneFilmstrip from "../storyboard/SceneFilmstrip";
 import SceneListHeader from "../storyboard/SceneListHeader";
 import SceneSidePanel from "../storyboard/SceneSidePanel";
@@ -78,6 +79,7 @@ export default function ScenesTab() {
   const setScenes = useStoryboardStore((s) => s.setScenes);
   const showToast = useUIStore((s) => s.showToast);
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
+  const [backgrounds, setBackgrounds] = useState<Background[]>([]);
 
   const setCurrentSceneIndex = useCallback(
     (idx: number) => sbSet({ currentSceneIndex: idx }),
@@ -93,6 +95,14 @@ export default function ScenesTab() {
           referenceImages: res.data.references || [],
         });
       })
+      .catch(() => {});
+  }, []);
+
+  // Fetch background assets on mount
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/backgrounds`)
+      .then((res) => setBackgrounds(res.data || []))
       .catch(() => {});
   }, []);
 
@@ -296,6 +306,7 @@ export default function ScenesTab() {
             characterAName={selectedCharacterName}
             characterBName={selectedCharacterBName}
             selectedCharacterBId={selectedCharacterBId}
+            backgrounds={backgrounds}
             buildNegativePrompt={buildNegativePrompt}
             buildScenePrompt={buildScenePrompt}
             showToast={showToast}

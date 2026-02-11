@@ -9,6 +9,7 @@ import type {
   FixSuggestion,
   Tag,
   GeminiSuggestion,
+  Background,
 } from "../../types";
 import DebugTabContent from "./DebugTabContent";
 import SceneImagePanel from "./SceneImagePanel";
@@ -74,6 +75,8 @@ type SceneCardProps = {
   characterAName?: string | null;
   characterBName?: string | null;
   selectedCharacterBId?: number | null;
+  // Background picker
+  backgrounds?: Background[];
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
@@ -126,6 +129,7 @@ export default function SceneCard({
   characterAName,
   characterBName,
   selectedCharacterBId,
+  backgrounds = [],
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
@@ -221,6 +225,7 @@ export default function SceneCard({
             characterAName={characterAName}
             characterBName={characterBName}
             selectedCharacterBId={selectedCharacterBId}
+            backgrounds={backgrounds}
           />
 
           {/* ③ Actions */}

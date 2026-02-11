@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, FileText } from "lucide-react";
 import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { usePresets } from "../../hooks/usePresets";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
 import ScriptSceneList from "./ScriptSceneList";
+import EmptyState from "../ui/EmptyState";
 import Button from "../ui/Button";
+import { SECTION_CLASSES } from "../ui/variants";
 
 type Props = {
   storyboardId?: number | null;
@@ -29,59 +31,75 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
     }
   }, [storyboardId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const hasScenes = editor.scenes.length > 0;
+
   return (
     <div className="space-y-6">
-      {/* Story settings */}
-      <StoryboardGeneratorPanel
-        presets={presets}
-        languages={languages}
-        durations={durations}
-        topic={editor.topic}
-        setTopic={(v) => editor.setField("topic", v)}
-        description={editor.description}
-        setDescription={(v) => editor.setField("description", v)}
-        duration={editor.duration}
-        setDuration={(v) => editor.setField("duration", v)}
-        language={editor.language}
-        setLanguage={(v) => editor.setField("language", v)}
-        structure={editor.structure}
-        setStructure={(v) => editor.setField("structure", v)}
-      />
+      {/* Story settings + Characters + Generate — single card */}
+      <section className={SECTION_CLASSES}>
+        <StoryboardGeneratorPanel
+          embedded
+          presets={presets}
+          languages={languages}
+          durations={durations}
+          topic={editor.topic}
+          setTopic={(v) => editor.setField("topic", v)}
+          description={editor.description}
+          setDescription={(v) => editor.setField("description", v)}
+          duration={editor.duration}
+          setDuration={(v) => editor.setField("duration", v)}
+          language={editor.language}
+          setLanguage={(v) => editor.setField("language", v)}
+          structure={editor.structure}
+          setStructure={(v) => editor.setField("structure", v)}
+        />
 
-      {/* Character selection */}
-      <CharacterSelectSection
-        structure={editor.structure}
-        characterId={editor.characterId}
-        characterBId={editor.characterBId}
-        onChangeA={(id) => editor.setField("characterId", id)}
-        onChangeB={(id) => editor.setField("characterBId", id)}
-      />
+        {/* Divider + Characters */}
+        <div className="mt-6 border-t border-zinc-200/60 pt-5">
+          <CharacterSelectSection
+            embedded
+            structure={editor.structure}
+            characterId={editor.characterId}
+            characterBId={editor.characterBId}
+            onChangeA={(id) => editor.setField("characterId", id)}
+            onChangeB={(id) => editor.setField("characterBId", id)}
+          />
+        </div>
 
-      {/* Generate button */}
-      <div className="flex justify-end">
-        <Button
-          size="md"
-          variant="gradient"
-          disabled={!editor.topic.trim() || editor.isGenerating}
-          onClick={editor.generate}
-        >
-          {editor.isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {editor.isGenerating ? "Generating..." : "Generate Script"}
-        </Button>
-      </div>
+        {/* Generate button — card footer */}
+        <div className="mt-5 flex justify-end border-t border-zinc-200/60 pt-5">
+          <Button
+            size="md"
+            variant="gradient"
+            disabled={!editor.topic.trim() || editor.isGenerating}
+            onClick={editor.generate}
+          >
+            {editor.isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {editor.isGenerating ? "Generating..." : "Generate Script"}
+          </Button>
+        </div>
+      </section>
 
-      {/* Scene list */}
-      <ScriptSceneList
-        scenes={editor.scenes}
-        storyboardId={editor.storyboardId}
-        isSaving={editor.isSaving}
-        onUpdateScene={editor.updateScene}
-        onSave={editor.save}
-      />
+      {/* Scene list or empty hint */}
+      {hasScenes ? (
+        <ScriptSceneList
+          scenes={editor.scenes}
+          storyboardId={editor.storyboardId}
+          isSaving={editor.isSaving}
+          onUpdateScene={editor.updateScene}
+          onSave={editor.save}
+        />
+      ) : (
+        <EmptyState
+          icon={FileText}
+          title="아직 생성된 씬이 없습니다"
+          description="Topic을 입력하고 Generate Script를 클릭하세요"
+        />
+      )}
     </div>
   );
 }

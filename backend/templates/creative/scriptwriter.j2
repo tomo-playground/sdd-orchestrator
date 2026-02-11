@@ -77,7 +77,10 @@ Name: {{ character_name }}
 }
 ```
 
-All scripts in {{ language }}.
+CRITICAL: All script text, self_edit_notes, and any prose MUST be written in {{ language }}. Do NOT respond in English.
+{% if language == "Korean" %}
+반드시 모든 대사와 설명을 한국어로 작성하세요. 영어 사용 금지.
+{% endif %}
 {% if feedback %}
 
 ## Previous Attempt Feedback

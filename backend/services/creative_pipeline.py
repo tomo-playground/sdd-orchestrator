@@ -71,7 +71,7 @@ PIPELINE_STEPS: list[StepDef] = [
         validate_fn=lambda extracted, ctx: validate_scripts(
             extracted, ctx.get("structure", "Monologue"), ctx.get("duration", 30), ctx.get("language", "Korean")
         ),
-        system_prompt_fallback="You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
+        system_prompt_fallback="You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly. Always write scripts in the language specified in the prompt.",
     ),
     StepDef(
         name="cinematographer",

@@ -287,6 +287,7 @@ class SceneDetailResponse(BaseModel):
     character_actions: list[SceneActionResponse] = []
     use_reference_only: bool | None = None
     reference_only_weight: float | None = None
+    background_id: int | None = None
     environment_reference_id: int | None = None
     environment_reference_weight: float | None = None
     image_asset_id: int | None = None
@@ -382,6 +383,9 @@ class StoryboardScene(BaseModel):
     # V3 Data Persistence
     tags: list[SceneTagSave] | None = None
     character_actions: list[SceneActionSave] | None = None
+
+    # Background asset reference
+    background_id: int | None = None
 
     # Consistency Enhancements
     use_reference_only: bool | None = None
@@ -532,6 +536,8 @@ class SceneGenerateRequest(BaseModel):
     reference_only_weight: float = 0.5
     environment_reference_id: int | None = None  # For Environment Pinning
     environment_reference_weight: float = 0.3
+    # Background asset reference (auto-inject tags + ControlNet Canny)
+    background_id: int | None = None
     # Scene DB ID for character_actions lookup during V3 composition
     scene_id: int | None = None
     # Explicit V3 composition flag (True when frontend /prompt/compose already ran V3)

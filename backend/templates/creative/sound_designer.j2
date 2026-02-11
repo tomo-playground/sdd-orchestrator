@@ -32,3 +32,8 @@ Fix the issues above in your new recommendation.
   }
 }
 ```
+
+CRITICAL: The "reasoning" field MUST be written in {{ language }}. The "prompt" field must remain in English (for Stable Audio).
+{% if language == "Korean" %}
+reasoning은 반드시 한국어로 작성하세요.
+{% endif %}

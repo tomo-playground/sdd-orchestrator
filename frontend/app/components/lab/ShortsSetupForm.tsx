@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Loader2, Play } from "lucide-react";
 import type { ShortsSessionCreate } from "../../types/creative";
 import { usePresets } from "../../hooks/usePresets";
+import { isMultiCharStructure } from "../../utils/structure";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "../scripts/CharacterSelectSection";
 import Button from "../ui/Button";
 import {
-  cx,
   SECTION_CLASSES,
   FORM_INPUT_CLASSES,
   FORM_TEXTAREA_CLASSES,
@@ -38,34 +38,11 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
   const [directorMode, setDirectorMode] = useState<string>("advisor");
   const [maxRounds, setMaxRounds] = useState<number>(2);
   const [references, setReferences] = useState("");
-  const [characterIds, setCharacterIds] = useState<Record<string, number>>({});
   const [monoCharId, setMonoCharId] = useState<number | null>(null);
   const [speakerBId, setSpeakerBId] = useState<number | null>(null);
 
   const { presets, languages, durations, optionalSteps } = usePresets();
   const [disabledSteps, setDisabledSteps] = useState<Set<string>>(new Set());
-
-  const isMultiChar = structure === "Dialogue" || structure === "Narrated Dialogue";
-
-  const handleCharAChange = useCallback((id: number | null) => {
-    setMonoCharId(id);
-    setCharacterIds((prev) => {
-      const next = { ...prev };
-      if (id !== null) next["A"] = id;
-      else delete next["A"];
-      return next;
-    });
-  }, []);
-
-  const handleCharBChange = useCallback((id: number | null) => {
-    setSpeakerBId(id);
-    setCharacterIds((prev) => {
-      const next = { ...prev };
-      if (id !== null) next["B"] = id;
-      else delete next["B"];
-      return next;
-    });
-  }, []);
 
   const toggleStep = (step: string) => {
     setDisabledSteps((prev) => {
@@ -83,14 +60,21 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
       .map((l) => l.trim())
       .filter(Boolean);
 
+    const multiChar = isMultiCharStructure(structure);
+    const charIds: Record<string, number> = {};
+    if (multiChar) {
+      if (monoCharId !== null) charIds["A"] = monoCharId;
+      if (speakerBId !== null) charIds["B"] = speakerBId;
+    }
+
     onSubmit({
       topic: topic.trim(),
       description: description.trim() || undefined,
       duration,
       structure,
       language,
-      character_id: !isMultiChar && monoCharId ? monoCharId : undefined,
-      character_ids: isMultiChar && Object.keys(characterIds).length > 0 ? characterIds : undefined,
+      character_id: !multiChar && monoCharId ? monoCharId : undefined,
+      character_ids: multiChar && Object.keys(charIds).length > 0 ? charIds : undefined,
       director_mode: directorMode,
       max_rounds: maxRounds,
       references: refs.length > 0 ? refs : undefined,
@@ -99,9 +83,10 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
   };
 
   return (
-    <div className="space-y-6">
-      {/* Shared section: Topic, Description, Sample Topics, Duration, Language, Structure */}
+    <section className={SECTION_CLASSES}>
+      {/* Story (embedded — no card wrapper, no section header) */}
       <StoryboardGeneratorPanel
+        embedded
         presets={presets}
         languages={languages}
         durations={durations}
@@ -117,22 +102,23 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
         setStructure={setStructure}
       />
 
-      {/* Character selection */}
-      <CharacterSelectSection
-        structure={structure}
-        characterId={monoCharId}
-        characterBId={speakerBId}
-        onChangeA={handleCharAChange}
-        onChangeB={handleCharBChange}
-      />
+      {/* Divider + Characters */}
+      <div className="mt-6 border-t border-zinc-200/60 pt-5">
+        <CharacterSelectSection
+          embedded
+          structure={structure}
+          characterId={monoCharId}
+          characterBId={speakerBId}
+          onChangeA={setMonoCharId}
+          onChangeB={setSpeakerBId}
+        />
+      </div>
 
-      {/* Agent-specific settings */}
-      <section className={cx(SECTION_CLASSES, "space-y-4")}>
-        <div>
-          <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Agent Settings
-          </h3>
-        </div>
+      {/* Divider + Agent Settings */}
+      <div className="mt-5 space-y-4 border-t border-zinc-200/60 pt-5">
+        <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          Agent Settings
+        </h3>
 
         {/* Director Mode */}
         <div>
@@ -186,30 +172,32 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
           </p>
         </div>
 
-        {/* Max Rounds + Submit */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <label className={LABEL}>Max Rounds</label>
-            <input
-              type="number"
-              min={1}
-              max={5}
-              value={maxRounds}
-              onChange={(e) => setMaxRounds(Number(e.target.value))}
-              className="w-16 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-1.5 text-sm outline-none focus:border-zinc-400"
-            />
-          </div>
-          <Button
-            size="md"
-            variant="success"
-            disabled={loading || !topic.trim()}
-            onClick={handleSubmit}
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            {loading ? "Starting..." : "Start Pipeline"}
-          </Button>
+        {/* Max Rounds */}
+        <div className="flex items-center gap-2">
+          <label className={LABEL}>Max Rounds</label>
+          <input
+            type="number"
+            min={1}
+            max={5}
+            value={maxRounds}
+            onChange={(e) => setMaxRounds(Number(e.target.value))}
+            className="w-16 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-1.5 text-sm outline-none focus:border-zinc-400"
+          />
         </div>
-      </section>
-    </div>
+      </div>
+
+      {/* Submit footer */}
+      <div className="mt-5 flex justify-end border-t border-zinc-200/60 pt-5">
+        <Button
+          size="md"
+          variant="success"
+          disabled={loading || !topic.trim()}
+          onClick={handleSubmit}
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          {loading ? "Starting..." : "Start Pipeline"}
+        </Button>
+      </div>
+    </section>
   );
 }

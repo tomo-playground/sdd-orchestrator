@@ -16,6 +16,9 @@ const GROUP_LABELS: Record<string, string> = {
   gaze: "Gaze",
   pose: "Pose",
   action: "Action",
+  camera: "Camera",
+  environment: "Environment",
+  mood: "Mood",
 };
 
 const GROUP_ICONS: Record<string, string> = {
@@ -23,6 +26,9 @@ const GROUP_ICONS: Record<string, string> = {
   gaze: "👁️",
   pose: "🧍",
   action: "🏃",
+  camera: "📷",
+  environment: "🏠",
+  mood: "🎭",
 };
 
 export default function SceneContextTags({
@@ -34,12 +40,15 @@ export default function SceneContextTags({
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
+  const EXCLUSIVE_KEYS = new Set<string>(["gaze", "camera"]);
+
   const getSelectedTags = (group: string): string[] => {
     if (!contextTags) return [];
-    if (group === "gaze") {
-      return contextTags.gaze ? [contextTags.gaze] : [];
+    if (EXCLUSIVE_KEYS.has(group)) {
+      const val = contextTags[group as "gaze" | "camera"];
+      return val ? [val] : [];
     }
-    return (contextTags[group as keyof Omit<SceneContextTagsType, "gaze">] as string[] | undefined) || [];
+    return (contextTags[group as keyof SceneContextTagsType] as string[] | undefined) || [];
   };
 
   const handleTagToggle = (group: string, tagName: string) => {
@@ -47,15 +56,12 @@ export default function SceneContextTags({
     const isExclusive = isExclusiveGroup(group);
 
     if (isExclusive) {
-      // Single select: toggle on/off
-      if (current.gaze === tagName) {
-        current.gaze = undefined;
-      } else {
-        current.gaze = tagName;
-      }
+      // Single select: toggle on/off (gaze, camera)
+      const key = group as "gaze" | "camera";
+      current[key] = current[key] === tagName ? undefined : tagName;
     } else {
       // Multi select
-      const key = group as keyof Omit<SceneContextTagsType, "gaze">;
+      const key = group as keyof SceneContextTagsType;
       const existing = (current[key] as string[] | undefined) || [];
       if (existing.includes(tagName)) {
         (current[key] as string[]) = existing.filter((t) => t !== tagName);

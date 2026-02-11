@@ -19,6 +19,8 @@ type StoryboardGeneratorPanelProps = {
   presets?: Preset[];
   languages?: LangOption[];
   durations?: number[];
+  /** When true, render content only without the SECTION_CLASSES card wrapper. */
+  embedded?: boolean;
 };
 
 export default function StoryboardGeneratorPanel({
@@ -35,6 +37,7 @@ export default function StoryboardGeneratorPanel({
   presets: externalPresets,
   languages: externalLanguages,
   durations: externalDurations,
+  embedded = false,
 }: StoryboardGeneratorPanelProps) {
   const hasExternal = !!(externalPresets && externalLanguages && externalDurations);
   const internal = usePresets(hasExternal);
@@ -60,15 +63,17 @@ export default function StoryboardGeneratorPanel({
     }
   }, [structure, presets, setDuration]);
 
-  return (
-    <section className={cx(SECTION_CLASSES, "grid gap-6")}>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Story</h2>
-          <p className="text-xs text-zinc-500">Topic, structure, and generation settings.</p>
+  const inner = (
+    <>
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">Story</h2>
+            <p className="text-xs text-zinc-500">Topic, structure, and generation settings.</p>
+          </div>
         </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
+      )}
+      <div className={cx(!embedded && "mt-6", "grid gap-4 md:grid-cols-[1.5fr_1fr]")}>
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <label
@@ -205,6 +210,10 @@ export default function StoryboardGeneratorPanel({
           </div>
         </div>
       </div>
-    </section>
+    </>
   );
+
+  if (embedded) return inner;
+
+  return <section className={cx(SECTION_CLASSES, "grid gap-6")}>{inner}</section>;
 }

@@ -11,6 +11,7 @@ from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.associations import SceneCharacterAction, SceneTag
+    from models.background import Background
     from models.media_asset import MediaAsset
     from models.storyboard import Storyboard
 
@@ -49,6 +50,14 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     # Consistency Enhancements
     use_reference_only: Mapped[bool] = mapped_column(Boolean, default=True)
     reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)
+    # Background asset reference (auto-inject tags + ControlNet Canny)
+    background_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("backgrounds.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    background: Mapped["Background | None"] = relationship(
+        "Background", foreign_keys=[background_id], viewonly=True
+    )
+
     environment_reference_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id", ondelete="SET NULL"))
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
 

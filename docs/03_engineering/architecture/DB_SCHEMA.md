@@ -1,4 +1,4 @@
-# Database Schema (v3.17)
+# Database Schema (v3.18)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.18 | 2026-02-12 | `scenes`에 `background_id` FK 추가 (Background 에셋 연동, ControlNet Canny + 태그 자동 주입) |
 | v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
 | v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
 | v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정 |
@@ -37,6 +38,7 @@ erDiagram
     storyboards ||--o{ activity_logs : "logged"
     storyboards ||--o{ render_history : "renders"
     
+    scenes }o--o| backgrounds : "uses"
     scenes ||--o{ scene_tags : "has"
     scenes ||--o{ scene_character_actions : "has"
     scenes ||--o{ scene_quality_scores : "evaluated_by"
@@ -172,6 +174,8 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | **Size** | | |
 | `width` | Integer | 이미지 너비 (default: 512) |
 | `height` | Integer | 이미지 높이 (default: 768) |
+| **Background** | | |
+| `background_id` | Integer (FK → backgrounds, SET NULL) | 배경 에셋 참조 (태그 자동 주입 + ControlNet Canny) |
 | **IP-Adapter / Reference** | | |
 | `use_reference_only` | Boolean | IP-Adapter 사용 여부 (default: true) |
 | `reference_only_weight` | Float | IP-Adapter 가중치 (default: 0.5) |

@@ -142,6 +142,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         language: state.language,
         structure: state.structure,
         group_id: groupId,
+        character_id: state.characterId,
+        character_b_id: state.characterBId,
         scenes: state.scenes.map((s) => ({
           script: s.script,
           speaker: s.speaker,
@@ -202,6 +204,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           duration: data.duration ?? 30,
           language: data.language ?? "Korean",
           structure: data.structure ?? "Monologue",
+          characterId: data.character_id ?? null,
+          characterBId: data.character_b_id ?? null,
           scenes,
           storyboardId: id,
         }));

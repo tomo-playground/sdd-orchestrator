@@ -1,6 +1,7 @@
 "use client";
 
 import { useCharacters } from "../../hooks/useCharacters";
+import { isMultiCharStructure } from "../../utils/structure";
 import { cx, SECTION_CLASSES, FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "../ui/variants";
 
 type Props = {
@@ -9,6 +10,8 @@ type Props = {
   characterBId: number | null;
   onChangeA: (id: number | null) => void;
   onChangeB: (id: number | null) => void;
+  /** When true, render content only without the SECTION_CLASSES card wrapper. */
+  embedded?: boolean;
 };
 
 const LABEL = `mb-1 block ${FORM_LABEL_CLASSES}`;
@@ -19,9 +22,10 @@ export default function CharacterSelectSection({
   characterBId,
   onChangeA,
   onChangeB,
+  embedded = false,
 }: Props) {
   const { characters } = useCharacters();
-  const isMultiChar = structure === "Dialogue" || structure === "Narrated Dialogue";
+  const isMultiChar = isMultiCharStructure(structure);
 
   if (characters.length === 0) return null;
 
@@ -47,13 +51,17 @@ export default function CharacterSelectSection({
     </div>
   );
 
-  return (
-    <section className={cx(SECTION_CLASSES, "space-y-3")}>
+  const content = (
+    <>
       <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">Characters</h3>
       <div className={isMultiChar ? "grid grid-cols-2 gap-3" : ""}>
         {renderSelect(isMultiChar ? "Character A" : "Character", characterId, onChangeA)}
         {isMultiChar && renderSelect("Character B", characterBId, onChangeB)}
       </div>
-    </section>
+    </>
   );
+
+  if (embedded) return <div className="space-y-3">{content}</div>;
+
+  return <section className={cx(SECTION_CLASSES, "space-y-3")}>{content}</section>;
 }

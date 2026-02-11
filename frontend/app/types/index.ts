@@ -54,6 +54,8 @@ export type Scene = {
   // Consistency Enhancements
   use_reference_only?: boolean;
   reference_only_weight?: number;
+  // Background asset reference
+  background_id?: number | null;
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
   // Per-scene generation settings override (null = inherit global)
@@ -184,6 +186,8 @@ export type DraftScene = {
   context_tags?: SceneContextTags;
   prompt_history_id?: number;
   activity_log_id?: number;
+  // Background asset reference
+  background_id?: number | null;
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
   // Per-scene generation settings override (null = inherit global)
