@@ -297,11 +297,70 @@
 | 0 | 네비게이션 재구성 (Production/Studio/Tools 그룹, Voices/Music 탑메뉴 승격) | UX | [x] (7-1 #27) |
 | 1 | `/voices` 독립 페이지 (Manage VoicePresetsTab 추출 + 카드 그리드 UI) | UX | [x] (2026-02-11) |
 | 2 | `/music` 독립 페이지 (Manage MusicPresetsTab 추출 + 카드 그리드 UI) | UX | [x] (2026-02-11) |
-| 3 | `/backgrounds` 배경 에셋 페이지 (DB 테이블 + CRUD API + 에셋 관리) | 기능 | [ ] |
-| 4 | Studio "조립 공장" 전환 (Materials 체크리스트 → Preview → Render 3단계) | UX | [ ] |
-| 5 | Zustand Store 분할 (useStudioStore → useStoryboardStore + useContextStore) | 리팩토링 | [ ] |
+| 3 | `/backgrounds` 배경 에셋 페이지 (DB 테이블 + CRUD API + 에셋 관리) | 기능 | [x] (2026-02-11) |
+| 4 | ~~Studio "조립 공장" 전환~~ | ~~UX~~ | → 7-4로 확장 |
+| 5 | ~~Zustand Store 분할~~ | ~~리팩토링~~ | → 7-4 Phase A로 흡수 |
 
 **Backend 영향**: API 이미 리소스별 분리 완료. `/backgrounds` 신규 API만 추가 필요. 기존 파이프라인 변경 없음.
+
+---
+
+## Phase 7-4: Studio Coordinator + Script Vertical
+
+**목표**: Studio를 코디네이터(지휘자)로 전환하고, 대본 작성을 Script 버티컬로 분리. 모든 버티컬의 AI 에이전트화 첫 시험대상.
+**선행**: Phase 7-3 #0~#2 완료 (독립 페이지 패턴 확립), Creative Lab V2 완료.
+**명세**: [STUDIO_VERTICAL_ARCHITECTURE.md](FEATURES/STUDIO_VERTICAL_ARCHITECTURE.md)
+
+**비전**:
+```
+Studio 코디네이터 (/studio)
+├── 미선택: 칸반 뷰 (전체 스토리보드 관리)
+├── 선택: 타임라인 뷰 (Materials → Scenes → Render → Output)
+└── PlanTab 제거, 이미지 설정은 Scenes 영역으로 이동
+
+Script 버티컬 (/scripts)
+├── 스토리보드 목록 (기존 /storyboards 흡수)
+├── Manual 모드 (기존 PlanTab → Gemini 1회 생성)
+└── AI Agent 모드 (기존 Creative Lab → 9-Agent Pipeline)
+```
+
+### Phase A: 기반 준비
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| A-1 | `useContextStore` 추출 (contextSlice → 앱 전역 스토어) | 리팩토링 | [ ] |
+| A-2 | `useUIStore` 추출 (toast, modal → 앱 전역 스토어) | 리팩토링 | [ ] |
+| A-3 | 영속적 컨텍스트 바 (현재 작업 중인 스토리보드 전역 표시) | UX | [ ] |
+
+### Phase B: Script 버티컬 구축
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| B-1 | `/scripts` 페이지 생성 (목록 + 검색 + 필터, `/storyboards` 흡수) | UX | [ ] |
+| B-2 | Manual 모드 (PlanTab 대본 관심사 이동: Topic/Structure/Language/Duration/Characters) | 기능 | [ ] |
+| B-3 | AI Agent 모드 (Creative Lab 흡수: Debate + Pipeline + QC Review) | 기능 | [ ] |
+| B-4 | Backend `services/storyboard.py` God Service 분해 (script/ + storyboard/) | 리팩토링 | [ ] |
+| B-5 | Backend `/scripts/*` 라우터 추가 (generate + sessions) | API | [ ] |
+
+### Phase C: Studio 코디네이터 전환
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| C-1 | Studio 칸반 뷰 (미선택 상태: Draft/InProd/Rendered/Published) | UX | [ ] |
+| C-2 | Studio 타임라인 뷰 + Materials Check + Pipeline Progress | UX | [ ] |
+| C-3 | PlanTab 제거 → Image Settings를 Scenes 영역 상단으로 이동 | 리팩토링 | [ ] |
+| C-4 | `useStoryboardStore` + `useRenderStore` 분리 (호환 레이어 유지) | 리팩토링 | [ ] |
+| C-5 | Autopilot 범위 조정 (Scenes → Render → Output, 대본 생성 제외) | 기능 | [ ] |
+
+### Phase D: 정리
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| D-1 | 네비게이션 최종 정리 (Home 제거, Script 추가, Studio 최좌측) | UX | [ ] |
+| D-2 | Lab creative 탭 제거 (Lab = tag-lab + scene-lab + analytics만 유지) | 정리 | [ ] |
+| D-3 | `/storyboards` → `/scripts` 리다이렉트 | 정리 | [ ] |
+| D-4 | deprecated API/호환 레이어 제거 | 정리 | [ ] |
+| D-5 | localStorage 마이그레이션 (기존 store 키 → 신규 키) | 정리 | [ ] |
 
 ---
 
@@ -315,9 +374,9 @@
 
 Phase 8 이후 또는 우선순위 미정 항목.
 
-### Creative Lab 개선
+### ~~Creative Lab 개선~~ → Phase 7-4 Script 버티컬로 흡수
 
-쇼츠 파이프라인 표준화 완료 (2026-02-10). V1(Free Debate) 코드 전량 제거, category `v2_` prefix 제거, Backend SSOT 전환.
+쇼츠 파이프라인 표준화 완료 (2026-02-10). **전체 완료 후 7-4 Script 버티컬로 이관 예정.**
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
@@ -328,6 +387,8 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | 5 | 에이전트-템플릿 매핑 config.py 중앙화 (`CREATIVE_AGENT_TEMPLATES`) | SSOT | [x] |
 | 6 | Reference Analyst 에이전트 실제 활성화 (이미 구현 확인) | 기능 | [x] |
 | 7 | Script QC Agent + Interactive Review (Pause-Review-Resume 패턴, 스텝별 리뷰 UI, 자동 승인) | 품질 | [x] |
+
+> **향후**: Creative Lab의 creative 탭은 7-4 Phase B-3에서 Script 버티컬 AI Agent 모드로 이동, Phase D-2에서 Lab에서 제거.
 
 ### 일반
 
@@ -359,8 +420,9 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
      P0/P1 Fixes          Refactoring          CI + Soft Delete    TTS/Voice/BGM     Pose Control      New Features
                                                                                                        + Creative Lab
                                                                                                             ↓
-                                          7-2 (Project/Group) → 7-3 (Production Workspace) → 8 (Multi-Style)
-                                           Cascading Config      재료 독립 페이지 + Studio 조립    Future
+                               7-2 (Project/Group) → 7-3 (Production Workspace) → 7-4 (Studio + Script Vertical) → 8 (Multi-Style)
+                                Cascading Config      재료 독립 페이지              Studio 코디네이터 + 대본 버티컬    Future
+                                                                                  AI 에이전트 버티컬 첫 시험대상
 ```
 
 **현재 진행 상태** (2026-02-11):
@@ -369,32 +431,36 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
 - Phase 7-1: **23/27** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- Phase 7-3: **3/6** 완료 (#0 네비게이션, #1 /voices, #2 /music 독립 페이지)
+- Phase 7-3: **4/6** 완료 (#0~#3, #4~#5 → 7-4로 확장)
+- Phase 7-4: **설계 완료**, 미착수
 - **Backend 테스트**: 1,399개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)
 
-**Tier 1 — Production Workspace (새 방향)**
+**Tier 1 — Studio Coordinator + Script Vertical (핵심 방향)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 1 | 7-1 #6 | Scene Builder UI (→ `/backgrounds` 기반) | 씬 표현력 확장, 7-3 #3과 통합 가능 |
-| 2 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
+| 1 | 7-4 A | Store 분할 + 컨텍스트 바 (기반 준비) | 모든 후속 작업의 전제 |
+| 2 | 7-4 B | Script 버티컬 구축 (목록 + Manual + AI Agent) | 가장 큰 중복 해소, 첫 AI 에이전트 버티컬 |
+| 3 | 7-4 C | Studio 코디네이터 전환 (칸반 + 타임라인 + Materials Check) | Workspace 최종 형태 |
+| 4 | 7-4 D | 정리 (Lab creative 제거, 리다이렉트, 레거시 제거) | 기술 부채 해소 |
 
-**Tier 2 — 아키텍처 개선**
+**Tier 2 — Production 재료 확장**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 5 | 7-3 #5 | Store 분할 (Zustand 리팩토링) | 독립 페이지 안정성 |
-| 6 | 7-3 #4 | Studio "조립 공장" 전환 | Workspace 최종 형태 |
-| 7 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
+| 5 | ~~7-3 #3~~ | ~~/backgrounds 배경 에셋 페이지~~ | ~~완료 (2026-02-11)~~ |
+| 6 | 7-1 #6 | Scene Builder UI (→ `/backgrounds` 기반) | 씬 표현력 확장 |
+| 7 | 7-1 #8 | Character Builder 위저드 | 캐릭터 AI 에이전트화 선행 |
 
 **Tier 3 — 후순위**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 8 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능 |
-| 9 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
-| 10 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
-| 11 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
-| 12 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
+| 8 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
+| 9 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능 |
+| 10 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
+| 11 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
+| 12 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
+| 13 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
 
 **7-1 최근 완료 (2026-02-05 ~ 02-11)**:
 - Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)
