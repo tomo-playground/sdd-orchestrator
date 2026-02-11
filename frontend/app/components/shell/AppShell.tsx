@@ -11,6 +11,7 @@ import {
   FileText,
   Mic,
   Music,
+  Image,
   Clapperboard,
 } from "lucide-react";
 import { useStudioStore } from "../../store/useStudioStore";
@@ -37,6 +38,7 @@ const NAV_GROUPS: (NavItem[] | "sep")[] = [
     { href: "/characters", label: "Characters", icon: Users },
     { href: "/voices", label: "Voices", icon: Mic },
     { href: "/music", label: "Music", icon: Music },
+    { href: "/backgrounds", label: "Backgrounds", icon: Image },
   ],
   "sep",
   [{ href: "/studio", label: "Studio", icon: Clapperboard }],
@@ -99,7 +101,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     !pathname.startsWith("/characters") &&
     !pathname.startsWith("/storyboards") &&
     !pathname.startsWith("/voices") &&
-    !pathname.startsWith("/music");
+    !pathname.startsWith("/music") &&
+    !pathname.startsWith("/backgrounds");
   const toast = useStudioStore((s) => s.toast);
   const connectionStatus = useBackendHealth();
 

@@ -40,7 +40,7 @@
 
 ### Domain API -> [REST_API_DOMAIN.md](./REST_API_DOMAIN.md)
 - Tags & Classification, Keywords, ControlNet & IP-Adapter, LoRA Management
-- Avatar, Assets, Prompt, Stable Diffusion, Characters
+- Avatar, Assets, Backgrounds, Prompt, Stable Diffusion, Characters
 
 ### Creative Engine API -> [REST_API_CREATIVE.md](./REST_API_CREATIVE.md)
 - Sessions, Task Types, Agent Presets — AI 멀티 에이전트 토론 기반 창작

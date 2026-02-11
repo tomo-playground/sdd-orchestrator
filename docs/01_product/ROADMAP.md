@@ -295,8 +295,8 @@
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
 | 0 | 네비게이션 재구성 (Production/Studio/Tools 그룹, Voices/Music 탑메뉴 승격) | UX | [x] (7-1 #27) |
-| 1 | `/voices` 독립 페이지 (Manage VoicePresetsTab 추출 + Voice Preview 강화) | UX | [x] |
-| 2 | `/music` 독립 페이지 (Manage MusicPresetsTab 추출 + BGM 라이브러리) | UX | [ ] |
+| 1 | `/voices` 독립 페이지 (Manage VoicePresetsTab 추출 + 카드 그리드 UI) | UX | [x] (2026-02-11) |
+| 2 | `/music` 독립 페이지 (Manage MusicPresetsTab 추출 + 카드 그리드 UI) | UX | [x] (2026-02-11) |
 | 3 | `/backgrounds` 배경 에셋 페이지 (DB 테이블 + CRUD API + 에셋 관리) | 기능 | [ ] |
 | 4 | Studio "조립 공장" 전환 (Materials 체크리스트 → Preview → Render 3단계) | UX | [ ] |
 | 5 | Zustand Store 분할 (useStudioStore → useStoryboardStore + useContextStore) | 리팩토링 | [ ] |
@@ -369,7 +369,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
 - Phase 7-1: **23/27** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- Phase 7-3: **2/6** 완료 (#0 네비게이션, #1 /voices 독립 페이지)
+- Phase 7-3: **3/6** 완료 (#0 네비게이션, #1 /voices, #2 /music 독립 페이지)
 - **Backend 테스트**: 1,399개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)
@@ -377,10 +377,8 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 **Tier 1 — Production Workspace (새 방향)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 1 | 7-3 #1 | `/voices` 독립 페이지 | Manage 탭 추출, 검증 패턴 존재 |
-| 2 | 7-3 #2 | `/music` 독립 페이지 | Voices와 동일 패턴 |
-| 3 | 7-1 #6 | Scene Builder UI (→ `/backgrounds` 기반) | 씬 표현력 확장, 7-3 #3과 통합 가능 |
-| 4 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
+| 1 | 7-1 #6 | Scene Builder UI (→ `/backgrounds` 기반) | 씬 표현력 확장, 7-3 #3과 통합 가능 |
+| 2 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
 
 **Tier 2 — 아키텍처 개선**
 | 순위 | 출처 | 작업 | 근거 |
@@ -418,3 +416,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-11) Storyboards 독립 페이지: `/storyboards` 리스트 (Project/Group select 필터, 검색, ConfirmDialog 삭제), `useStoryboards` 훅 추출 (Zustand 비침습), `StoryboardCard`/`DraftCard` 공유 컴포넌트, Home StoryboardsSection 요약 축소 (최근 3개 + View All), AppShell NAV 추가
 - (2026-02-11) 캐릭터 편집 이탈 경고 (AC#3): `isDirty` JSON 스냅샷 비교, `beforeunload` 브라우저 경고, "← Characters" ConfirmDialog 이탈 확인
 - (2026-02-11) Production Workspace 네비게이션: AppShell NAV_GROUPS 재구성 (Production: Home/Stories/Characters/Voices/Music | Studio | Tools: Lab/Manage), Voices/Music 탑메뉴 승격 (`/manage?tab=voice`, `/manage?tab=music` 임시 연결), `isNavActive` query param 매칭, NavBar Suspense 분리
+- (2026-02-11) `/voices`, `/music` 독립 페이지 분리: Manage VoicePresetsTab·MusicPresetsTab → 독립 카드 그리드 UI 추출, 공유 훅(`useVoicePresets`, `useMusic`) 분리, Manage 중복 탭·훅 제거

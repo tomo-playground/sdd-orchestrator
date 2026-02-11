@@ -89,6 +89,25 @@ class AssetService:
             mime_type="image/png",
         )
 
+    def save_background_image(self, background_id: int, image_bytes: bytes, mime_type: str = "image/png") -> MediaAsset:
+        """Save a background reference image to storage and register it in the DB."""
+        import hashlib
+
+        ext = "png" if "png" in mime_type else "jpg" if "jpeg" in mime_type or "jpg" in mime_type else "webp"
+        digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+        file_name = f"background_{background_id}_{digest}.{ext}"
+        storage_key = f"backgrounds/{background_id}/{file_name}"
+        self._get_storage().save(storage_key, image_bytes, content_type=mime_type)
+        return self.register_asset(
+            file_name=file_name,
+            file_type="image",
+            storage_key=storage_key,
+            owner_type="background",
+            owner_id=background_id,
+            file_size=len(image_bytes),
+            mime_type=mime_type,
+        )
+
     def save_scene_image(
         self, image_bytes: bytes, project_id: int, group_id: int, storyboard_id: int, scene_id: int, file_name: str
     ) -> MediaAsset:

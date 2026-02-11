@@ -5,6 +5,7 @@ from .admin import router as admin_router
 from .analytics import router as analytics_router
 from .assets import router as assets_router
 from .avatar import router as avatar_router
+from .backgrounds import router as backgrounds_router
 from .characters import router as characters_router
 from .cleanup import router as cleanup_router
 from .controlnet import router as controlnet_router
@@ -37,6 +38,7 @@ __all__ = [
     "analytics_router",
     "assets_router",
     "avatar_router",
+    "backgrounds_router",
     "characters_router",
     "cleanup_router",
     "controlnet_router",

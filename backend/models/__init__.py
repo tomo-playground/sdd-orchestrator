@@ -2,6 +2,7 @@
 
 from models.activity_log import ActivityLog
 from models.associations import CharacterTag, SceneCharacterAction, SceneTag
+from models.background import Background
 from models.base import Base
 from models.character import Character
 from models.creative import (
@@ -32,6 +33,7 @@ from models.voice_preset import VoicePreset
 from models.youtube_credential import YouTubeCredential
 
 __all__ = [
+    "Background",
     "Base",
     "Tag",
     "TagEffectiveness",

@@ -1186,6 +1186,42 @@ class MusicPreviewRequest(BaseModel):
 
 
 # ============================================================
+# Background Schemas
+# ============================================================
+
+
+class BackgroundCreate(BaseModel):
+    name: str
+    description: str | None = None
+    tags: list[str] | None = None
+    category: str | None = None
+    weight: float = 0.3
+
+
+class BackgroundUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    tags: list[str] | None = None
+    category: str | None = None
+    weight: float | None = None
+
+
+class BackgroundResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    image_url: str | None = None  # Response-only: derived from @property
+    image_asset_id: int | None = None
+    tags: list[str] | None = None
+    category: str | None = None
+    weight: float
+    is_system: bool
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
 # YouTube Schemas
 # ============================================================
 

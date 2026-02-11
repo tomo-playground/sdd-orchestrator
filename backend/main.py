@@ -13,6 +13,7 @@ from routers import (
     analytics_router,
     assets_router,
     avatar_router,
+    backgrounds_router,
     characters_router,
     cleanup_router,
     controlnet_router,
@@ -125,6 +126,7 @@ app.include_router(admin_router)
 app.include_router(analytics_router)
 app.include_router(assets_router)
 app.include_router(avatar_router)
+app.include_router(backgrounds_router)
 app.include_router(characters_router)
 app.include_router(cleanup_router)
 app.include_router(controlnet_router)

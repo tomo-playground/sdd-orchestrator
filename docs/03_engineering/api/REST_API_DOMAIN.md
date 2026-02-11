@@ -14,9 +14,10 @@ Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Prompt, SD, Characters 관련 
 4. [LoRA Management](#-lora-management) - LoRA 관리
 5. [Avatar](#-avatar-아바타-관리) - 아바타 관리
 6. [Assets](#-assets-에셋-관리) - 에셋 관리
-7. [Prompt](#-prompt-프롬프트-처리) - 프롬프트 처리
-8. [Stable Diffusion](#-stable-diffusion-sd-webui-프록시) - SD WebUI 프록시
-9. [Characters](#-characters-캐릭터-관리) - 캐릭터 관리
+7. [Backgrounds](#-backgrounds-배경-관리) - 배경 관리
+8. [Prompt](#-prompt-프롬프트-처리) - 프롬프트 처리
+9. [Stable Diffusion](#-stable-diffusion-sd-webui-프록시) - SD WebUI 프록시
+10. [Characters](#-characters-캐릭터-관리) - 캐릭터 관리
 
 ---
 
@@ -445,6 +446,23 @@ LoRA의 최적 가중치(optimal weight)를 자동으로 보정합니다.
 폰트 파일을 다운로드합니다 (브라우저 미리보기용).
 
 **Response:** Font file (binary)
+
+---
+
+## Backgrounds (배경 관리)
+
+배경 프리셋 CRUD. ControlNet Canny 참조 이미지 + 환경 태그 관리.
+
+| Method | Path | Description | Response |
+|--------|------|-------------|----------|
+| GET | `/backgrounds` | 목록 (search, category 필터) | `BackgroundResponse[]` |
+| GET | `/backgrounds/categories` | 카테고리 목록 | `string[]` |
+| GET | `/backgrounds/{id}` | 상세 | `BackgroundResponse` |
+| POST | `/backgrounds` | 생성 | `BackgroundResponse` |
+| PUT | `/backgrounds/{id}` | 수정 | `BackgroundResponse` |
+| DELETE | `/backgrounds/{id}` | Soft Delete | `{ok, deleted}` |
+| POST | `/backgrounds/{id}/restore` | 복구 | `BackgroundResponse` |
+| POST | `/backgrounds/{id}/upload-image` | 이미지 업로드 | `BackgroundResponse` |
 
 ---
 

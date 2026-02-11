@@ -380,6 +380,24 @@ WD14 피드백 루프 데이터.
 
 ## 🎨 Asset System
 
+### `backgrounds`
+배경 프리셋. ControlNet Canny 참조 이미지 + 환경 태그 관리.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `name` | String(200) NOT NULL | 배경 이름 |
+| `description` | Text | 설명 |
+| `image_asset_id` | Integer (FK → media_assets, SET NULL) | 참조 이미지 |
+| `tags` | JSONB | 환경 태그 `["classroom", "desk"]` |
+| `category` | String(50) | 분류 (indoor, outdoor, school...) |
+| `weight` | Float (default: 0.3) | ControlNet Canny 기본 가중치 |
+| `is_system` | Boolean (default: false) | 시스템 프리셋 여부 |
+| `created_at`, `updated_at` | DateTime | TimestampMixin |
+| `deleted_at` | DateTime | SoftDeleteMixin |
+
+**Indexes**: `ix_backgrounds_category`, `ix_backgrounds_deleted_at`
+
 ### `media_assets` (V3.1)
 통합 미디어 저장소. S3/Local 스토리지 폴리모픽 참조 시스템.
 

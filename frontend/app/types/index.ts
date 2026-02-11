@@ -571,6 +571,19 @@ export type MusicPreset = {
   created_at: string | null;
 };
 
+export type Background = {
+  id: number;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  image_asset_id: number | null;
+  tags: string[] | null;
+  category: string | null;
+  weight: number;
+  is_system: boolean;
+  created_at: string;
+};
+
 export type GroupItem = {
   id: number;
   project_id: number;
