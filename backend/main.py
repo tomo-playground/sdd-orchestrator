@@ -31,6 +31,7 @@ from routers import (
     quality_router,
     render_presets_router,
     scene_router,
+    scripts_router,
     sd_models_router,
     sd_router,
     settings_router,
@@ -144,6 +145,7 @@ app.include_router(prompt_histories_router)
 app.include_router(quality_router)
 app.include_router(render_presets_router)
 app.include_router(scene_router)
+app.include_router(scripts_router)
 app.include_router(sd_models_router)
 app.include_router(sd_router)
 app.include_router(settings_router)

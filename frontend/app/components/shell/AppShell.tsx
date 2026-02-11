@@ -13,6 +13,7 @@ import {
   Music,
   Image,
   Clapperboard,
+  ScrollText,
 } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
 import { initStoreBridges } from "../../store/bridges/storeBridge";
@@ -40,6 +41,7 @@ const NAV_GROUPS: (NavItem[] | "sep")[] = [
   [
     { href: "/", label: "Home", icon: Home, exact: true },
     { href: "/storyboards", label: "Stories", icon: FileText },
+    { href: "/scripts", label: "Scripts", icon: ScrollText },
     { href: "/characters", label: "Characters", icon: Users },
     { href: "/voices", label: "Voices", icon: Mic },
     { href: "/music", label: "Music", icon: Music },
@@ -105,6 +107,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     !pathname.startsWith("/lab") &&
     !pathname.startsWith("/characters") &&
     !pathname.startsWith("/storyboards") &&
+    !pathname.startsWith("/scripts") &&
     !pathname.startsWith("/voices") &&
     !pathname.startsWith("/music") &&
     !pathname.startsWith("/backgrounds");
@@ -113,6 +116,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-lg focus:bg-zinc-900 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       {/* Header */}
       <header className="flex h-[var(--nav-height)] shrink-0 items-center justify-between border-b border-zinc-200/60 bg-white/80 px-6 backdrop-blur-lg">
         <Suspense>
@@ -128,7 +137,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
         {showSidebar && <Sidebar />}
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        <div id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
+          {children}
+        </div>
       </div>
 
       <CommandPalette />

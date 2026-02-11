@@ -1,0 +1,387 @@
+from __future__ import annotations
+
+import asyncio
+import json
+import re
+
+from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload
+
+from config import (
+    DEFAULT_SCENE_NEGATIVE_PROMPT,
+    GEMINI_TEXT_MODEL,
+    gemini_client,
+    logger,
+    template_env,
+)
+from models.associations import CharacterTag
+from models.character import Character
+from services.keywords import format_keyword_context
+from services.presets import get_preset_by_structure
+from services.storyboard.helpers import (
+    normalize_scene_tags_key,
+    strip_markdown_codeblock,
+    trim_scenes_to_duration,
+)
+
+
+async def _call_gemini_with_retry(contents: str, config) -> object:
+    """Call Gemini API with async + exponential backoff retry (max 2 retries)."""
+    delays = [1, 3]
+    last_exc = None
+    for attempt in range(3):
+        try:
+            res = await gemini_client.aio.models.generate_content(
+                model=GEMINI_TEXT_MODEL,
+                contents=contents,
+                config=config,
+            )
+            return res
+        except Exception as exc:
+            last_exc = exc
+            error_msg = str(exc)
+            is_retryable = "429" in error_msg or "5" in error_msg[:1] and len(error_msg) >= 3
+            if attempt < 2 and is_retryable:
+                delay = delays[attempt]
+                logger.warning("Gemini API retry %d/%d after %ds: %s", attempt + 1, 2, delay, error_msg[:100])
+                await asyncio.sleep(delay)
+            else:
+                raise
+    raise last_exc  # type: ignore[misc]
+
+
+def _load_character_context(character_id: int, db: Session) -> dict | None:
+    """Load character data and classify tags for Gemini template injection."""
+    char = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == character_id)
+        .first()
+    )
+    if not char:
+        logger.warning("Character %d not found, skipping character context", character_id)
+        return None
+
+    identity_tags: list[str] = []
+    costume_tags: list[str] = []
+    for ct in char.tags:
+        tag = ct.tag
+        if not tag:
+            continue
+        layer = tag.default_layer
+        if layer is not None and layer <= 3:
+            identity_tags.append(tag.name)
+        elif layer is not None and 4 <= layer <= 6:
+            costume_tags.append(tag.name)
+
+    lora_triggers: list[str] = []
+    if char.loras:
+        from models.lora import LoRA
+
+        for lora_entry in char.loras:
+            lora_id = lora_entry.get("lora_id")
+            if not lora_id:
+                continue
+            lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
+            if lora and lora.trigger_words:
+                lora_triggers.extend(lora.trigger_words)
+
+    ctx = {
+        "name": char.name,
+        "gender": char.gender or "female",
+        "identity_tags": identity_tags,
+        "costume_tags": costume_tags,
+        "lora_triggers": lora_triggers,
+        "custom_base_prompt": char.custom_base_prompt or "",
+    }
+    logger.info(
+        "[Character Context] %s: identity=%s, costume=%s, lora_triggers=%s",
+        char.name,
+        identity_tags,
+        costume_tags,
+        lora_triggers,
+    )
+    return ctx
+
+
+def _check_multi_character_capable(
+    character_id: int | None,
+    character_b_id: int | None,
+    db: Session,
+) -> bool:
+    """Check if any LoRA across both characters supports multi-character rendering.
+
+    Queries each character's loras JSONB, looks up LoRA rows, and returns True
+    if at least one has is_multi_character_capable=True.
+    """
+    from models.lora import LoRA
+
+    char_ids = [cid for cid in (character_id, character_b_id) if cid]
+    if not char_ids:
+        return False
+
+    chars = db.query(Character).filter(Character.id.in_(char_ids)).all()
+    lora_ids: set[int] = set()
+    for char in chars:
+        for entry in char.loras or []:
+            lid = entry.get("lora_id")
+            if lid:
+                lora_ids.add(lid)
+
+    if not lora_ids:
+        return False
+
+    count = db.query(LoRA.id).filter(LoRA.id.in_(lora_ids), LoRA.is_multi_character_capable.is_(True)).count()
+    return count > 0
+
+
+async def generate_script(request, db: Session | None = None) -> dict:
+    """Generate a storyboard from a topic using Gemini (async)."""
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini key missing")
+    try:
+        structure_lower = request.structure.lower()
+        has_two_characters = structure_lower in ("dialogue", "narrated dialogue")
+
+        # Dialogue validation (structures with two characters)
+        if has_two_characters:
+            if not request.character_id:
+                raise HTTPException(status_code=400, detail="Dialogue requires character_id (Speaker A)")
+            if not request.character_b_id:
+                raise HTTPException(status_code=400, detail="Dialogue requires character_b_id (Speaker B)")
+            if request.character_id == request.character_b_id:
+                raise HTTPException(status_code=400, detail="Speaker A and B must be different characters")
+
+        # Load character context if character_id provided
+        character_context = None
+        if request.character_id and db:
+            character_context = _load_character_context(request.character_id, db)
+
+        # Load character B context for two-character structures
+        character_b_context = None
+        if has_two_characters and request.character_b_id and db:
+            character_b_context = _load_character_context(request.character_b_id, db)
+
+        # Detect multi-character capable LoRA for template injection
+        is_multi_character_capable = False
+        if has_two_characters and db:
+            is_multi_character_capable = _check_multi_character_capable(
+                request.character_id, request.character_b_id, db
+            )
+            if is_multi_character_capable:
+                logger.info("[Storyboard] Multi-character capable LoRA detected")
+
+        # Release DB connection before Gemini API call (10-30s)
+        # DB auto-reconnects when needed later (auto_populate_character_actions)
+        if db:
+            db.close()
+
+        preset = get_preset_by_structure(request.structure)
+        template_name = preset.template if preset else "create_storyboard.j2"
+        extra_fields = preset.extra_fields if preset else {}
+
+        template = template_env.get_template(template_name)
+        system_instruction = (
+            "SYSTEM: You are a professional storyboarder and scriptwriter. "
+            "Write clear, engaging scripts in the requested language. "
+            "STRICT: Each script must be max 30 chars (Korean) / 60 chars (English) to fit 2 lines on screen. "
+            "If a sentence is too long, split it into two scenes. "
+            "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
+            "Do not invent new tags. Return raw JSON only."
+        )
+        rendered = template.render(
+            topic=request.topic,
+            description=request.description or "",
+            duration=request.duration,
+            style=request.style,
+            structure=request.structure,
+            language=request.language,
+            actor_a_gender=request.actor_a_gender,
+            keyword_context=format_keyword_context(),
+            character_context=character_context,
+            character_b_context=character_b_context,
+            is_multi_character_capable=is_multi_character_capable,
+            **extra_fields,
+        )
+        from google.genai import types
+
+        config = types.GenerateContentConfig(
+            safety_settings=[
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HATE_SPEECH",
+                    threshold="BLOCK_NONE",
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="BLOCK_NONE",
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold="BLOCK_NONE",
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HARASSMENT",
+                    threshold="BLOCK_NONE",
+                ),
+            ]
+        )
+        res = await _call_gemini_with_retry(
+            contents=f"{system_instruction}\n\n{rendered}",
+            config=config,
+        )
+        if not res.text:
+            # Check why it failed
+            error_reason = "Unknown error"
+            if res.prompt_feedback and res.prompt_feedback.block_reason:
+                error_reason = f"Blocked by safety filters: {res.prompt_feedback.block_reason}"
+            elif res.candidates and res.candidates[0].finish_reason:
+                error_reason = f"Finished with reason: {res.candidates[0].finish_reason}"
+
+            raise ValueError(f"Gemini returned empty response. Reason: {error_reason}")
+
+        cleaned = strip_markdown_codeblock(res.text)
+        scenes = json.loads(cleaned)
+        scenes = normalize_scene_tags_key(scenes)
+
+        # Guard: trim excess scenes if Gemini exceeded the duration-based limit
+        scenes = trim_scenes_to_duration(scenes, request.duration)
+
+        # Warn if scripts exceed 2-line rendering limit
+        MAX_SCRIPT_CHARS = 35
+        for s in scenes:
+            script = s.get("script", "")
+            if len(script) > MAX_SCRIPT_CHARS:
+                logger.warning(
+                    f"[Scene {s.get('scene_id', '?')}] Script too long for 2 lines: "
+                    f"{len(script)} chars (max {MAX_SCRIPT_CHARS}): '{script[:40]}...'"
+                )
+
+        # Warn if Narrator scene scripts describe character actions (image-script mismatch)
+        _NARRATOR_PERSON_PATTERN = re.compile(r"(그|그녀|그들|두\s*사람|세\s*사람|그가|그녀가|그는|그녀는|서로를|서로)")
+        MAX_NARRATOR_SCRIPT_CHARS = 20
+        for s in scenes:
+            if s.get("speaker") != "Narrator":
+                continue
+            scene_id = s.get("scene_id", "?")
+            script = s.get("script", "")
+            if _NARRATOR_PERSON_PATTERN.search(script):
+                logger.warning(
+                    f"[Scene {scene_id}] Narrator script contains character reference: '{script}' "
+                    f"— should describe environment/mood, not character actions"
+                )
+            if len(script) > MAX_NARRATOR_SCRIPT_CHARS:
+                logger.warning(
+                    f"[Scene {scene_id}] Narrator script too long: "
+                    f"{len(script)} chars (max {MAX_NARRATOR_SCRIPT_CHARS}): '{script[:30]}...'"
+                )
+
+        for scene in scenes:
+            from config import ENABLE_DANBOORU_VALIDATION
+            from services.keywords import filter_prompt_tokens
+            from services.prompt import (
+                normalize_and_fix_tags,
+                normalize_prompt_tokens,
+                validate_tags_with_danbooru,
+            )
+
+            raw_prompt = scene.get("image_prompt", "")
+            if not raw_prompt:
+                continue
+
+            scene_id = scene.get("scene_id", "?")
+            logger.info(f"[Scene {scene_id}] Tag Pipeline Start")
+            logger.info(f"  1\ufe0f\u20e3  Raw Gemini: {raw_prompt}")
+
+            normalized = normalize_and_fix_tags(raw_prompt)
+            logger.info(f"  2\ufe0f\u20e3  Normalized:  {normalized}")
+
+            if ENABLE_DANBOORU_VALIDATION:
+                tags = [t.strip() for t in normalized.split(",") if t.strip()]
+                validated_tags = validate_tags_with_danbooru(tags)
+                normalized = ", ".join(validated_tags)
+                logger.info(f"  3\ufe0f\u20e3  Validated:   {normalized}")
+
+            filtered = filter_prompt_tokens(normalized)
+            if not filtered:
+                logger.warning("No allowed keywords in scene prompt; using normalized original.")
+                filtered = normalize_prompt_tokens(normalized)
+
+            logger.info(f"  4\ufe0f\u20e3  Filtered:    {filtered}")
+            logger.info(f"  \u2705 Final Prompt: {filtered}")
+
+            scene["image_prompt"] = filtered
+
+            if not scene.get("negative_prompt"):
+                logger.info(f"  \U0001f527 Adding default negative prompt to scene {scene_id}")
+                scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+            else:
+                logger.info(
+                    f"  \u2139\ufe0f  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}..."
+                )
+
+        # Auto-pin background based on structure type
+        # For Dialogue/Narrated Dialogue: all scenes (except first) share same background
+        # For Monologue: use environment tag overlap logic
+        is_dialogue_structure = structure_lower in ("dialogue", "narrated dialogue")
+
+        if is_dialogue_structure:
+            logger.info(f"[Storyboard] Auto-pin: {request.structure} structure - all scenes share background")
+            for i, scene in enumerate(scenes):
+                if i == 0:
+                    scene["_auto_pin_previous"] = False
+                    logger.info(f"  Scene {i}: First scene (no auto-pin)")
+                else:
+                    scene["_auto_pin_previous"] = True
+                    logger.info(f"  Scene {i}: Auto-pin to previous (shared background)")
+        else:
+            logger.info("[Storyboard] Auto-pin: Analyzing environment tags for background consistency")
+            previous_env_tags = None
+
+            for i, scene in enumerate(scenes):
+                context_tags = scene.get("context_tags", {})
+                current_env_tags = set(context_tags.get("environment", [])) if context_tags else set()
+
+                if i == 0:
+                    previous_env_tags = current_env_tags
+                    scene["_auto_pin_previous"] = False
+                    logger.info(f"  Scene {i}: First scene, env={list(current_env_tags)}")
+                    continue
+
+                if current_env_tags and previous_env_tags and (current_env_tags & previous_env_tags):
+                    scene["_auto_pin_previous"] = True
+                    logger.info(f"  Scene {i}: Same location {list(current_env_tags)} \u2192 mark for auto-pin")
+                else:
+                    scene["_auto_pin_previous"] = False
+                    logger.info(
+                        f"  Scene {i}: Location changed {list(previous_env_tags)} \u2192 {list(current_env_tags)}, no pin"
+                    )
+
+                previous_env_tags = current_env_tags
+
+        # Auto-populate character_actions from context_tags (Dialogue/Narrated Dialogue)
+        if has_two_characters and (request.character_id or request.character_b_id) and db:
+            from services.characters import auto_populate_character_actions
+
+            scenes = auto_populate_character_actions(scenes, request.character_id, request.character_b_id, db)
+
+        logger.info(f"[Storyboard] Returning {len(scenes)} scenes with negative prompts")
+        for i, s in enumerate(scenes):
+            logger.info(f"  Scene {i + 1} negative: {s.get('negative_prompt', 'NONE')[:80]}")
+        result = {"scenes": scenes}
+        if request.character_id:
+            result["character_id"] = request.character_id
+        if request.character_b_id:
+            result["character_b_id"] = request.character_b_id
+        return result
+    except Exception as exc:
+        # Check if it's a Gemini API quota error
+        error_msg = str(exc)
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            logger.error("Gemini API quota exhausted")
+            raise HTTPException(
+                status_code=429,
+                detail="Gemini API quota exhausted. Please try again later or check your API limits at https://aistudio.google.com/app/apikey",
+            ) from exc
+
+        logger.exception("Storyboard generation failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

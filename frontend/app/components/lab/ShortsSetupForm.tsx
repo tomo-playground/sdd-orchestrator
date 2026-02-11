@@ -14,17 +14,23 @@ type PresetOption = { structure: string; name: string };
 type Props = {
   loading: boolean;
   onSubmit: (data: ShortsSessionCreate) => void;
+  initialValues?: Partial<{
+    topic: string;
+    duration: number;
+    structure: string;
+    language: string;
+  }>;
 };
 
 const LABEL = "mb-1 block text-[10px] font-semibold tracking-wider text-zinc-400 uppercase";
 const INPUT =
   "w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none";
 
-export default function ShortsSetupForm({ loading, onSubmit }: Props) {
-  const [topic, setTopic] = useState("");
-  const [duration, setDuration] = useState<number>(30);
-  const [structure, setStructure] = useState<string>("Monologue");
-  const [language, setLanguage] = useState<string>("Korean");
+export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Props) {
+  const [topic, setTopic] = useState(initialValues?.topic ?? "");
+  const [duration, setDuration] = useState<number>(initialValues?.duration ?? 30);
+  const [structure, setStructure] = useState<string>(initialValues?.structure ?? "Monologue");
+  const [language, setLanguage] = useState<string>(initialValues?.language ?? "Korean");
   const [directorMode, setDirectorMode] = useState<string>("advisor");
   const [maxRounds, setMaxRounds] = useState<number>(2);
   const [references, setReferences] = useState("");

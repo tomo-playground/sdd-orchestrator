@@ -23,6 +23,7 @@ from .prompt_histories import router as prompt_histories_router
 from .quality import router as quality_router
 from .render_presets import router as render_presets_router
 from .scene import router as scene_router
+from .scripts import router as scripts_router
 from .sd import router as sd_router
 from .sd_models import router as sd_models_router
 from .settings import router as settings_router
@@ -52,6 +53,7 @@ __all__ = [
     "prompt_histories_router",
     "quality_router",
     "scene_router",
+    "scripts_router",
     "sd_models_router",
     "sd_router",
     "settings_router",
