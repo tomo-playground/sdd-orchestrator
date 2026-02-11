@@ -119,14 +119,11 @@ class TestClearReview:
     def test_removes_review_data(self):
         from services.creative_review import clear_review
 
-        db = MagicMock()
         session = _make_session(context={"pipeline": {"review": {"step": "scriptwriter"}, "state": {}}})
 
-        clear_review(db, session)
+        clear_review(session)
 
         assert "review" not in session.context["pipeline"]
-        # clear_review does NOT commit — caller commits with status change
-        db.commit.assert_not_called()
 
 
 # ── inject_revision_feedback ─────────────────────────────────
@@ -237,10 +234,8 @@ class TestConcurrentApproveRejected:
 
         from services.creative_review import clear_review
 
-        db = MagicMock()
-
         # First approve succeeds
-        clear_review(db, session)
+        clear_review(session)
         session.status = "phase2_running"
 
         # Second approve: status is no longer step_review
@@ -254,7 +249,6 @@ class TestConcurrentApproveRejected:
         should still work but review data is already gone."""
         from services.creative_review import clear_review
 
-        db = MagicMock()
         session = _make_session(
             status="step_review",
             context={
@@ -267,7 +261,7 @@ class TestConcurrentApproveRejected:
         )
 
         # Approve clears the review
-        clear_review(db, session)
+        clear_review(session)
         pipeline = session.context.get("pipeline", {})
         assert "review" not in pipeline
 

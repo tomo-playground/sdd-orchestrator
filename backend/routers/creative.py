@@ -363,7 +363,7 @@ def api_review_action(
     from services.creative_review import clear_review, format_revision_feedback, inject_revision_feedback
 
     if req.action == "approve":
-        clear_review(db, session)
+        clear_review(session)
         session.status = "phase2_running"
         db.commit()
     else:

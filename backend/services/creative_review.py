@@ -182,7 +182,7 @@ def pause_for_review(
     logger.info("[Review] Session %d paused for %s review", session.id, step_name)
 
 
-def clear_review(db: Session, session: CreativeSession) -> None:
+def clear_review(session: CreativeSession) -> None:
     """Remove review data from context after approval.
 
     NOTE: Does NOT commit — caller is responsible for committing
