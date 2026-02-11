@@ -23,7 +23,13 @@ def mock_storage():
 class TestAssetService:
     def test_register_asset(self, mock_db):
         service = AssetService(mock_db)
-        asset = service.register_asset(file_name="test.png", file_type="image", storage_key="key/path", project_id=1)
+        asset = service.register_asset(
+            file_name="test.png",
+            file_type="image",
+            storage_key="key/path",
+            owner_type="project",
+            owner_id=1,
+        )
 
         assert isinstance(asset, MediaAsset)
         assert asset.owner_type == "project"

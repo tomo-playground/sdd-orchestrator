@@ -69,12 +69,12 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
         media_asset_id = None
         if request.image_url and not request.image_url.startswith("data:"):
             from services.validation import _extract_storage_key
+
             storage_key = _extract_storage_key(request.image_url)
             if storage_key:
                 from models.media_asset import MediaAsset
-                asset = db.query(MediaAsset).filter(
-                    MediaAsset.storage_key == storage_key
-                ).first()
+
+                asset = db.query(MediaAsset).filter(MediaAsset.storage_key == storage_key).first()
                 if asset:
                     media_asset_id = asset.id
 
@@ -82,6 +82,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
         resolved_scene_id = request.scene_id
         if resolved_scene_id is not None:
             from models.scene import Scene
+
             exists = db.query(Scene.id).filter(Scene.id == resolved_scene_id).first()
             if not exists:
                 logger.warning(
@@ -172,12 +173,6 @@ def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: in
     except Exception as exc:
         logger.exception(f"Failed to get logs for storyboard {storyboard_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-
-@router.get("/{storyboard_id}/logs")
-def get_storyboard_logs_v2(storyboard_id: int, status: str | None = None, limit: int = 100, db: Session = Depends(get_db)):
-    """Compatibility alias for get_storyboard_logs."""
-    return get_storyboard_logs(storyboard_id, status, limit, db)
 
 
 @router.patch("/{log_id}/status")
@@ -272,8 +267,14 @@ def analyze_patterns(
             }
 
         # Calculate summary
-        success_logs = [log for log in logs if log.status == "success" or (log.match_rate and log.match_rate >= match_rate_threshold)]
-        fail_logs = [log for log in logs if log.status == "fail" or (log.match_rate and log.match_rate < match_rate_threshold)]
+        success_logs = [
+            log
+            for log in logs
+            if log.status == "success" or (log.match_rate and log.match_rate >= match_rate_threshold)
+        ]
+        fail_logs = [
+            log for log in logs if log.status == "fail" or (log.match_rate and log.match_rate < match_rate_threshold)
+        ]
 
         total_match_rates = [log.match_rate for log in logs if log.match_rate is not None]
         avg_match_rate = sum(total_match_rates) / len(total_match_rates) if total_match_rates else 0
@@ -309,14 +310,16 @@ def analyze_patterns(
             success_rate = counts["success"] / counts["total"] if counts["total"] > 0 else 0
             avg_tag_match_rate = sum(counts["match_rates"]) / len(counts["match_rates"]) if counts["match_rates"] else 0
 
-            tag_stats.append({
-                "tag": tag,
-                "total": counts["total"],
-                "success": counts["success"],
-                "fail": counts["fail"],
-                "success_rate": round(success_rate, 2),
-                "avg_match_rate": round(avg_tag_match_rate, 2),
-            })
+            tag_stats.append(
+                {
+                    "tag": tag,
+                    "total": counts["total"],
+                    "success": counts["success"],
+                    "fail": counts["fail"],
+                    "success_rate": round(success_rate, 2),
+                    "avg_match_rate": round(avg_tag_match_rate, 2),
+                }
+            )
 
         # Sort by success rate (lowest first to find problematic tags)
         tag_stats.sort(key=lambda x: x["success_rate"])
@@ -332,7 +335,7 @@ def analyze_patterns(
 
             # Check all tag pairs
             for i, tag1 in enumerate(log.tags_used):
-                for tag2 in log.tags_used[i+1:]:
+                for tag2 in log.tags_used[i + 1 :]:
                     # Normalize pair (alphabetical order)
                     pair = tuple(sorted([tag1, tag2]))
 
@@ -357,14 +360,16 @@ def analyze_patterns(
 
             # Only include pairs with high fail rate (>= 50%)
             if fail_rate >= 0.5:
-                conflict_candidates.append({
-                    "tag1": tag1,
-                    "tag2": tag2,
-                    "co_occurrence": stats["total"],
-                    "fail_count": stats["fail"],
-                    "fail_rate": round(fail_rate, 2),
-                    "avg_match_rate": round(avg_pair_match_rate, 2),
-                })
+                conflict_candidates.append(
+                    {
+                        "tag1": tag1,
+                        "tag2": tag2,
+                        "co_occurrence": stats["total"],
+                        "fail_count": stats["fail"],
+                        "fail_rate": round(fail_rate, 2),
+                        "avg_match_rate": round(avg_pair_match_rate, 2),
+                    }
+                )
 
         # Sort by fail rate (highest first)
         conflict_candidates.sort(key=lambda x: (-x["fail_rate"], -x["co_occurrence"]))
@@ -458,7 +463,7 @@ def suggest_conflict_rules(
             is_fail = log in fail_logs
 
             for i, tag1 in enumerate(log.tags_used):
-                for tag2 in log.tags_used[i+1:]:
+                for tag2 in log.tags_used[i + 1 :]:
                     pair = tuple(sorted([tag1, tag2]))
 
                     if pair not in tag_pair_stats:
@@ -481,14 +486,16 @@ def suggest_conflict_rules(
             avg_match_rate = sum(stats["match_rates"]) / len(stats["match_rates"]) if stats["match_rates"] else 0
 
             if fail_rate >= fail_rate_threshold:
-                candidates.append({
-                    "tag1": tag1,
-                    "tag2": tag2,
-                    "co_occurrence": stats["total"],
-                    "fail_count": stats["fail"],
-                    "fail_rate": round(fail_rate, 2),
-                    "avg_match_rate": round(avg_match_rate, 2),
-                })
+                candidates.append(
+                    {
+                        "tag1": tag1,
+                        "tag2": tag2,
+                        "co_occurrence": stats["total"],
+                        "fail_count": stats["fail"],
+                        "fail_rate": round(fail_rate, 2),
+                        "avg_match_rate": round(avg_match_rate, 2),
+                    }
+                )
 
         # Get existing conflict rules to filter out duplicates
         existing_rules = db.query(TagRule).filter(TagRule.rule_type == "conflict").all()
@@ -508,8 +515,7 @@ def suggest_conflict_rules(
             pair = tuple(sorted([candidate["tag1"], candidate["tag2"]]))
             if pair not in existing_pairs:
                 candidate["reason"] = (
-                    f"High fail rate ({int(candidate['fail_rate']*100)}%) "
-                    f"in {candidate['co_occurrence']} generations"
+                    f"High fail rate ({int(candidate['fail_rate'] * 100)}%) in {candidate['co_occurrence']} generations"
                 )
                 new_candidates.append(candidate)
 
@@ -595,7 +601,8 @@ def get_success_combinations(
 
         # Filter success logs
         success_logs = [
-            log for log in logs
+            log
+            for log in logs
             if log.status == "success" or (log.match_rate and log.match_rate >= match_rate_threshold)
         ]
 
@@ -661,9 +668,7 @@ def get_success_combinations(
 
         # Sort each category by success_rate and take top N
         for category in combinations_by_category:
-            combinations_by_category[category].sort(
-                key=lambda x: (-x["success_rate"], -x["avg_match_rate"])
-            )
+            combinations_by_category[category].sort(key=lambda x: (-x["success_rate"], -x["avg_match_rate"]))
             combinations_by_category[category] = combinations_by_category[category][:top_n_per_category]
 
         # Get conflict rules
@@ -681,7 +686,9 @@ def get_success_combinations(
         suggested_combinations = []
 
         key_categories = ["expression", "pose", "camera", "environment", "lighting", "mood"]
-        available_categories = {cat: tags for cat, tags in combinations_by_category.items() if cat in key_categories and tags}
+        available_categories = {
+            cat: tags for cat, tags in combinations_by_category.items() if cat in key_categories and tags
+        }
 
         if available_categories:
             # Generate combination from top tags
@@ -697,7 +704,7 @@ def get_success_combinations(
             # Check for conflicts
             has_conflict = False
             for i, tag1 in enumerate(combination_tags):
-                for tag2 in combination_tags[i+1:]:
+                for tag2 in combination_tags[i + 1 :]:
                     pair = tuple(sorted([tag1, tag2]))
                     if pair in conflict_pairs:
                         has_conflict = True
@@ -706,17 +713,24 @@ def get_success_combinations(
                     break
 
             # Calculate average success rate
-            avg_success_rate = sum(
-                next((t["success_rate"] for t in combinations_by_category.get(cat, []) if t["tag"] == tag), 0)
-                for cat, tag in zip(combination_categories, combination_tags, strict=False)
-            ) / len(combination_tags) if combination_tags else 0
+            avg_success_rate = (
+                sum(
+                    next((t["success_rate"] for t in combinations_by_category.get(cat, []) if t["tag"] == tag), 0)
+                    for cat, tag in zip(combination_categories, combination_tags, strict=False)
+                )
+                / len(combination_tags)
+                if combination_tags
+                else 0
+            )
 
-            suggested_combinations.append({
-                "tags": combination_tags,
-                "categories": combination_categories,
-                "avg_success_rate": round(avg_success_rate, 2),
-                "conflict_free": not has_conflict,
-            })
+            suggested_combinations.append(
+                {
+                    "tags": combination_tags,
+                    "categories": combination_categories,
+                    "avg_success_rate": round(avg_success_rate, 2),
+                    "conflict_free": not has_conflict,
+                }
+            )
 
         logger.info(
             f"[Success Combinations] storyboard={storyboard_id}, success_logs={len(success_logs)}, "
@@ -789,29 +803,37 @@ def apply_conflict_rules(request: ApplyConflictRulesRequest, db: Session = Depen
 
             if not tag1 or not tag2:
                 skipped += 1
-                details.append({
-                    "tag1": tag1_name,
-                    "tag2": tag2_name,
-                    "status": "skipped",
-                    "reason": "One or both tags not found in DB",
-                })
+                details.append(
+                    {
+                        "tag1": tag1_name,
+                        "tag2": tag2_name,
+                        "status": "skipped",
+                        "reason": "One or both tags not found in DB",
+                    }
+                )
                 continue
 
             # Check if rule already exists (bidirectional)
-            existing = db.query(TagRule).filter(
-                TagRule.rule_type == "conflict",
-                TagRule.source_tag_id == tag1.id,
-                TagRule.target_tag_id == tag2.id,
-            ).first()
+            existing = (
+                db.query(TagRule)
+                .filter(
+                    TagRule.rule_type == "conflict",
+                    TagRule.source_tag_id == tag1.id,
+                    TagRule.target_tag_id == tag2.id,
+                )
+                .first()
+            )
 
             if existing:
                 skipped += 1
-                details.append({
-                    "tag1": tag1_name,
-                    "tag2": tag2_name,
-                    "status": "skipped",
-                    "reason": "Rule already exists",
-                })
+                details.append(
+                    {
+                        "tag1": tag1_name,
+                        "tag2": tag2_name,
+                        "status": "skipped",
+                        "reason": "Rule already exists",
+                    }
+                )
                 continue
 
             # Create bidirectional conflict rules
@@ -830,17 +852,17 @@ def apply_conflict_rules(request: ApplyConflictRulesRequest, db: Session = Depen
             db.add(rule2)
             applied += 2  # Bidirectional = 2 entries
 
-            details.append({
-                "tag1": tag1_name,
-                "tag2": tag2_name,
-                "status": "applied",
-            })
+            details.append(
+                {
+                    "tag1": tag1_name,
+                    "tag2": tag2_name,
+                    "status": "applied",
+                }
+            )
 
         db.commit()
 
-        logger.info(
-            f"[Apply Conflict Rules] applied={applied}, skipped={skipped}"
-        )
+        logger.info(f"[Apply Conflict Rules] applied={applied}, skipped={skipped}")
 
         return {
             "applied_count": applied,

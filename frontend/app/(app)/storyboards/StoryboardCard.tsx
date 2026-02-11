@@ -73,9 +73,7 @@ export function DraftCard({ onClick }: { onClick: () => void }) {
 
   useEffect(() => {
     try {
-      const stored =
-        localStorage.getItem("shorts-producer:studio:v1") ||
-        localStorage.getItem("shorts-producer:draft:v1");
+      const stored = localStorage.getItem("shorts-producer:draft:v1");
       if (stored) {
         const data = JSON.parse(stored);
         const state = data?.state || data;

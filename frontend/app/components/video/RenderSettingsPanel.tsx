@@ -375,5 +375,4 @@ export function RenderSidePanel({
   );
 }
 
-/* ======== Legacy default export (kept for backwards compat if needed) ======== */
 export default RenderMediaPanel;

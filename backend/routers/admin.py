@@ -124,26 +124,6 @@ async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/migrate-category-rules")
-async def migrate_category_conflict_rules(db: Session = Depends(get_db)):
-    """DEPRECATED (Phase 6-4.26): Category-level conflicts removed.
-
-    Category-level conflict rules were removed because:
-    - Never used (0/16 rules in production)
-    - Logically unnecessary (tag-level conflicts are sufficient)
-    - Group-level conflicts (if needed) should be handled differently
-
-    Use tag-level conflicts instead (/activity-logs/apply-conflict-rules).
-    """
-    return {
-        "success": False,
-        "error": "Category-level conflicts deprecated in Phase 6-4.26",
-        "reason": "Never used (0/16 rules), logically unnecessary",
-        "migration": "Use tag-level conflicts via /activity-logs/apply-conflict-rules",
-        "deprecated_in": "Phase 6-4.26",
-    }
-
-
 @router.post("/refresh-caches")
 async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.

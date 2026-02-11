@@ -34,24 +34,8 @@ class AssetService:
         file_size: int | None = None,
         mime_type: str | None = None,
         checksum: str | None = None,
-        # Backward compatibility args (ignored or mapped)
-        project_id: int | None = None,
-        storyboard_id: int | None = None,
-        scene_id: int | None = None,
     ) -> MediaAsset:
         """Create a MediaAsset record in the database."""
-
-        # Backward compatibility mapping
-        if project_id:
-            owner_type = "project"
-            owner_id = project_id
-        elif storyboard_id:
-            owner_type = "storyboard"
-            owner_id = storyboard_id
-        elif scene_id:
-            owner_type = "scene"
-            owner_id = scene_id
-
         asset = MediaAsset(
             owner_type=owner_type,
             owner_id=owner_id,

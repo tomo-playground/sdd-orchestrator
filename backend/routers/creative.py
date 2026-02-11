@@ -111,7 +111,7 @@ async def api_create_shorts_session(
 
 
 @router.post("/sessions/{session_id}/run-debate", response_model=PipelineStatusResponse, status_code=202)
-async def api_run_debate_v2(
+async def api_run_debate(
     session_id: int,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -125,9 +125,9 @@ async def api_run_debate_v2(
     session.status = "phase1_running"
     db.commit()
 
-    from services.creative_shorts import run_debate_v2
+    from services.creative_shorts import run_debate
 
-    bg.add_task(run_debate_v2, session_id=session_id)
+    bg.add_task(run_debate, session_id=session_id)
     return PipelineStatusResponse(
         status="phase1_running",
         session_type="shorts",

@@ -6,26 +6,99 @@ import {
   saveStoryboard,
   sanitizeCandidatesForDb,
 } from "../storyboardActions";
-import { useStudioStore } from "../../useStudioStore";
+import { useContextStore } from "../../useContextStore";
+import { useStoryboardStore } from "../../useStoryboardStore";
+import { useUIStore } from "../../useUIStore";
+import { useRenderStore } from "../../useRenderStore";
 
 vi.mock("axios");
 
-// Minimal store state factory
-function makeStoreState(overrides: Record<string, unknown> = {}) {
+// Default mock state factories per store
+function makeContextState(overrides: Record<string, unknown> = {}) {
   return {
     storyboardId: null as number | null,
     groupId: 1,
+    setContext: vi.fn(),
+    ...overrides,
+  };
+}
+
+function makeStoryboardState(overrides: Record<string, unknown> = {}) {
+  return {
     scenes: [],
     topic: "Test Topic",
     description: "",
-    videoCaption: null,
-    setMeta: vi.fn(),
-    setScenes: vi.fn(),
-    setCurrentSceneIndex: vi.fn(),
     currentSceneIndex: 0,
+    setScenes: vi.fn(),
+    set: vi.fn(),
+    ...overrides,
+  };
+}
+
+function makeUIState(overrides: Record<string, unknown> = {}) {
+  return {
     showToast: vi.fn(),
     ...overrides,
   };
+}
+
+function makeRenderState(overrides: Record<string, unknown> = {}) {
+  return {
+    videoCaption: null,
+    ...overrides,
+  };
+}
+
+/** Helper to mock all 4 stores at once from a flat overrides object */
+function mockAllStores(overrides: Record<string, unknown> = {}) {
+  const {
+    storyboardId,
+    groupId,
+    setContext,
+    scenes,
+    topic,
+    description,
+    currentSceneIndex,
+    setScenes,
+    setCurrentSceneIndex,
+    showToast,
+    videoCaption,
+    ...rest
+  } = overrides;
+
+  const ctxOverrides: Record<string, unknown> = {};
+  if (storyboardId !== undefined) ctxOverrides.storyboardId = storyboardId;
+  if (groupId !== undefined) ctxOverrides.groupId = groupId;
+  if (setContext !== undefined) ctxOverrides.setContext = setContext;
+
+  const sbOverrides: Record<string, unknown> = {};
+  if (scenes !== undefined) sbOverrides.scenes = scenes;
+  if (topic !== undefined) sbOverrides.topic = topic;
+  if (description !== undefined) sbOverrides.description = description;
+  if (currentSceneIndex !== undefined) sbOverrides.currentSceneIndex = currentSceneIndex;
+  if (setScenes !== undefined) sbOverrides.setScenes = setScenes;
+  if (setCurrentSceneIndex !== undefined) sbOverrides.set = setCurrentSceneIndex;
+
+  const uiOverrides: Record<string, unknown> = {};
+  if (showToast !== undefined) uiOverrides.showToast = showToast;
+
+  const renderOverrides: Record<string, unknown> = {};
+  if (videoCaption !== undefined) renderOverrides.videoCaption = videoCaption;
+
+  // Spread any extra fields into storyboard store for flexibility
+  Object.assign(sbOverrides, rest);
+
+  const ctxState = makeContextState(ctxOverrides);
+  const sbState = makeStoryboardState(sbOverrides);
+  const uiState = makeUIState(uiOverrides);
+  const renderState = makeRenderState(renderOverrides);
+
+  vi.spyOn(useContextStore, "getState").mockReturnValue(ctxState as never);
+  vi.spyOn(useStoryboardStore, "getState").mockReturnValue(sbState as never);
+  vi.spyOn(useUIStore, "getState").mockReturnValue(uiState as never);
+  vi.spyOn(useRenderStore, "getState").mockReturnValue(renderState as never);
+
+  return { ctxState, sbState, uiState, renderState };
 }
 
 describe("mapGeminiScenes", () => {
@@ -113,11 +186,7 @@ describe("mapGeminiScenes", () => {
   });
 
   it("uses 0-indexed order matching backend create_scenes convention", () => {
-    const raw = [
-      { script: "First" },
-      { script: "Second" },
-      { script: "Third" },
-    ];
+    const raw = [{ script: "First" }, { script: "Second" }, { script: "Third" }];
     const result = mapGeminiScenes(raw, "");
 
     // order must be 0-indexed to match backend create_scenes(order=idx)
@@ -164,20 +233,18 @@ describe("persistStoryboard", () => {
   });
 
   it("returns false when no scenes", async () => {
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(makeStoreState({ scenes: [] }) as never);
+    mockAllStores({ scenes: [] });
     expect(await persistStoryboard()).toBe(false);
   });
 
   it("returns false when no groupId", async () => {
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(
-      makeStoreState({ groupId: null, scenes: [{ id: 0 }] }) as never
-    );
+    mockAllStores({ groupId: null, scenes: [{ id: 0 }] });
     expect(await persistStoryboard()).toBe(false);
   });
 
   it("calls PUT when storyboardId exists and updates scene IDs", async () => {
     const setScenes = vi.fn();
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 42,
       setScenes,
       scenes: [
@@ -197,7 +264,6 @@ describe("persistStoryboard", () => {
         },
       ],
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     // PUT now returns scene_ids (scenes are deleted and recreated)
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { scene_ids: [200] },
@@ -217,7 +283,7 @@ describe("persistStoryboard", () => {
   });
 
   it("calls POST when no storyboardId and reassigns scene IDs", async () => {
-    const setMeta = vi.fn();
+    const setContext = vi.fn();
     const setScenes = vi.fn();
     const scenes = [
       {
@@ -234,8 +300,7 @@ describe("persistStoryboard", () => {
         negative_prompt: "",
       },
     ];
-    const state = makeStoreState({ storyboardId: null, scenes, setMeta, setScenes });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
+    mockAllStores({ storyboardId: null, scenes, setContext, setScenes });
     (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { storyboard_id: 99, scene_ids: [501] },
     });
@@ -248,16 +313,15 @@ describe("persistStoryboard", () => {
       expect.objectContaining({ title: "Test Topic" }),
       expect.anything()
     );
-    expect(setMeta).toHaveBeenCalledWith({ storyboardId: 99, storyboardTitle: "Test Topic" });
+    expect(setContext).toHaveBeenCalledWith({ storyboardId: 99, storyboardTitle: "Test Topic" });
     expect(setScenes).toHaveBeenCalledWith([expect.objectContaining({ id: 501 })]);
   });
 
   it("returns false on API error", async () => {
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 1,
       scenes: [{ id: 0 }],
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("Network error")
     );
@@ -274,9 +338,7 @@ describe("saveStoryboard", () => {
 
   it("shows error toast when no scenes", async () => {
     const showToast = vi.fn();
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(
-      makeStoreState({ scenes: [], showToast }) as never
-    );
+    mockAllStores({ scenes: [], showToast });
 
     const result = await saveStoryboard();
 
@@ -286,9 +348,7 @@ describe("saveStoryboard", () => {
 
   it("shows error toast when no groupId", async () => {
     const showToast = vi.fn();
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(
-      makeStoreState({ groupId: null, scenes: [{ id: 0 }], showToast }) as never
-    );
+    mockAllStores({ groupId: null, scenes: [{ id: 0 }], showToast });
 
     const result = await saveStoryboard();
 
@@ -298,12 +358,11 @@ describe("saveStoryboard", () => {
 
   it("shows success toast for update (existing storyboardId)", async () => {
     const showToast = vi.fn();
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 42,
       scenes: [{ id: 0, script: "test" }],
       showToast,
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ data: {} });
 
     const result = await saveStoryboard();
@@ -314,12 +373,11 @@ describe("saveStoryboard", () => {
 
   it("shows success toast for new save (no storyboardId)", async () => {
     const showToast = vi.fn();
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: null,
       scenes: [{ id: 0 }],
       showToast,
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { storyboard_id: 10, scene_ids: [100] },
     });
@@ -332,12 +390,11 @@ describe("saveStoryboard", () => {
 
   it("shows error toast on failure", async () => {
     const showToast = vi.fn();
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 1,
       scenes: [{ id: 0 }],
       showToast,
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("fail"));
 
     const result = await saveStoryboard();
@@ -354,11 +411,9 @@ describe("persistStoryboard scene index preservation", () => {
 
   it("preserves currentSceneIndex after PUT scene ID update (setScenes handles it natively)", async () => {
     const setScenes = vi.fn();
-    const setCurrentSceneIndex = vi.fn();
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 42,
       setScenes,
-      setCurrentSceneIndex,
       currentSceneIndex: 2, // User is viewing scene 3 (0-indexed)
       scenes: [
         { id: 100, order: 0, script: "s1" },
@@ -366,7 +421,6 @@ describe("persistStoryboard scene index preservation", () => {
         { id: 102, order: 2, script: "s3" },
       ],
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { scene_ids: [200, 201, 202] },
     });
@@ -379,26 +433,22 @@ describe("persistStoryboard scene index preservation", () => {
       expect.objectContaining({ id: 201 }),
       expect.objectContaining({ id: 202 }),
     ]);
-    // setScenes now preserves currentSceneIndex natively — no explicit restore needed
-    expect(setCurrentSceneIndex).not.toHaveBeenCalled();
+    // setScenes now preserves currentSceneIndex natively -- no explicit restore needed
   });
 
   it("preserves currentSceneIndex after POST scene ID assignment (setScenes handles it natively)", async () => {
     const setScenes = vi.fn();
-    const setMeta = vi.fn();
-    const setCurrentSceneIndex = vi.fn();
-    const state = makeStoreState({
+    const setContext = vi.fn();
+    mockAllStores({
       storyboardId: null,
       setScenes,
-      setMeta,
-      setCurrentSceneIndex,
+      setContext,
       currentSceneIndex: 1, // User is viewing scene 2
       scenes: [
         { id: 0, order: 0, script: "s1" },
         { id: 1, order: 1, script: "s2" },
       ],
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { storyboard_id: 99, scene_ids: [500, 501] },
     });
@@ -409,8 +459,7 @@ describe("persistStoryboard scene index preservation", () => {
       expect.objectContaining({ id: 500 }),
       expect.objectContaining({ id: 501 }),
     ]);
-    // setScenes now preserves currentSceneIndex natively — no explicit restore needed
-    expect(setCurrentSceneIndex).not.toHaveBeenCalled();
+    // setScenes now preserves currentSceneIndex natively -- no explicit restore needed
   });
 });
 
@@ -489,7 +538,7 @@ describe("sanitizeCandidatesForDb", () => {
   });
 });
 
-describe("persistStoryboard scene ID → image_asset_id mapping", () => {
+describe("persistStoryboard scene ID -> image_asset_id mapping", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -501,12 +550,11 @@ describe("persistStoryboard scene ID → image_asset_id mapping", () => {
       { id: 3582, order: 1, script: "S2", image_asset_id: 200, image_url: "http://img2" },
       { id: 3583, order: 2, script: "S3", image_asset_id: null, image_url: null },
     ];
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 42,
       setScenes,
       scenes,
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { scene_ids: [3590, 3591, 3592] },
     });
@@ -532,12 +580,11 @@ describe("persistStoryboard scene ID → image_asset_id mapping", () => {
       { id: 11, order: 1, script: "B", image_asset_id: null, image_url: null },
       { id: 12, order: 2, script: "C", image_asset_id: 502, image_url: "http://c" },
     ];
-    const state = makeStoreState({
+    mockAllStores({
       storyboardId: 1,
       setScenes: vi.fn(),
       scenes,
     });
-    vi.spyOn(useStudioStore, "getState").mockReturnValue(state as never);
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { scene_ids: [20, 21, 22] },
     });

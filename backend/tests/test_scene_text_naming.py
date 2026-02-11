@@ -21,26 +21,10 @@ class TestSceneTextNaming:
             width=1080,
             height=1920,
             include_scene_text=True,  # NEW NAMING
-            narrator_voice="ko-KR-SunHiNeural"
+            narrator_voice="ko-KR-SunHiNeural",
         )
 
         assert hasattr(request, "include_scene_text")
-        assert request.include_scene_text is True
-
-    def test_backward_compatibility_deprecated_field(self):
-        """Old field name should still work but be deprecated."""
-        # This test documents backward compatibility requirement
-        # We'll add a deprecation warning later
-        request = VideoRequest(
-            scenes=[],
-            layout_style="full",
-            width=1080,
-            height=1920,
-            include_subtitles=True,  # OLD NAMING (deprecated)
-            narrator_voice="ko-KR-SunHiNeural"
-        )
-
-        # Should map to new field
         assert request.include_scene_text is True
 
     def test_post_layout_metrics_naming(self):

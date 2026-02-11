@@ -59,9 +59,7 @@ class TestMigrateTagRules:
         assert data2["total_added"] == 0
         assert data2["total_skipped"] >= added_count
 
-    def test_migrate_tag_rules_full_conflict_set(
-        self, client: TestClient, db_session
-    ):
+    def test_migrate_tag_rules_full_conflict_set(self, client: TestClient, db_session):
         """Migration creates rules for all expression conflicts."""
         # Create all expression tags used in migration
         tags = [
@@ -83,20 +81,6 @@ class TestMigrateTagRules:
         assert data["total_added"] >= 6
 
 
-class TestMigrateCategoryRules:
-    """Test POST /admin/migrate-category-rules (deprecated)."""
-
-    def test_deprecated_endpoint(self, client: TestClient, db_session):
-        """Deprecated endpoint returns failure with explanation."""
-        response = client.post("/admin/migrate-category-rules")
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["success"] is False
-        assert "deprecated" in data["error"].lower()
-        assert data["deprecated_in"] == "Phase 6-4.26"
-
-
 class TestRefreshCaches:
     """Test POST /admin/refresh-caches endpoint.
 
@@ -108,15 +92,12 @@ class TestRefreshCaches:
 
     def test_refresh_caches_success(self, client: TestClient, db_session):
         """Cache refresh succeeds with mocked cache classes."""
-        with patch(
-            "services.keywords.db_cache.TagCategoryCache"
-        ) as mock_cat, patch(
-            "services.keywords.core.TagFilterCache"
-        ) as mock_filter, patch(
-            "services.keywords.db_cache.TagAliasCache"
-        ) as mock_alias, patch(
-            "services.keywords.db_cache.TagRuleCache"
-        ) as mock_rule:
+        with (
+            patch("services.keywords.db_cache.TagCategoryCache") as mock_cat,
+            patch("services.keywords.core.TagFilterCache") as mock_filter,
+            patch("services.keywords.db_cache.TagAliasCache") as mock_alias,
+            patch("services.keywords.db_cache.TagRuleCache") as mock_rule,
+        ):
             response = client.post("/admin/refresh-caches")
             assert response.status_code == 200
             data = response.json()
@@ -132,9 +113,7 @@ class TestRefreshCaches:
 
     def test_refresh_caches_error(self, client: TestClient, db_session):
         """Cache refresh handles errors gracefully."""
-        with patch(
-            "services.keywords.db_cache.TagCategoryCache"
-        ) as mock_cat:
+        with patch("services.keywords.db_cache.TagCategoryCache") as mock_cat:
             mock_cat.refresh.side_effect = RuntimeError("DB connection failed")
 
             response = client.post("/admin/refresh-caches")
@@ -178,9 +157,7 @@ class TestDeprecatedTags:
         assert data["tags"][0]["name"] == "deprecated_tag"
         assert data["tags"][0]["deprecated_reason"] == "Replaced by better tag"
 
-    def test_get_deprecated_tags_with_replacement(
-        self, client: TestClient, db_session
-    ):
+    def test_get_deprecated_tags_with_replacement(self, client: TestClient, db_session):
         """Deprecated tag with replacement shows replacement info."""
         replacement = Tag(name="new_tag", category="test", is_active=True)
         db_session.add(replacement)
@@ -240,9 +217,7 @@ class TestDeprecateTag:
             "replacement_tag_id": replacement.id,
         }
 
-        response = client.put(
-            f"/admin/tags/{target.id}/deprecate", json=request_data
-        )
+        response = client.put(f"/admin/tags/{target.id}/deprecate", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -268,9 +243,7 @@ class TestDeprecateTag:
             "replacement_tag_id": 99999,
         }
 
-        response = client.put(
-            f"/admin/tags/{tag.id}/deprecate", json=request_data
-        )
+        response = client.put(f"/admin/tags/{tag.id}/deprecate", json=request_data)
         assert response.status_code == 400
         assert "not found" in response.json()["detail"].lower()
 
@@ -285,9 +258,7 @@ class TestDeprecateTag:
             "replacement_tag_id": tag.id,
         }
 
-        response = client.put(
-            f"/admin/tags/{tag.id}/deprecate", json=request_data
-        )
+        response = client.put(f"/admin/tags/{tag.id}/deprecate", json=request_data)
         assert response.status_code == 400
         assert "itself" in response.json()["detail"].lower()
 

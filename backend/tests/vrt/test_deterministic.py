@@ -14,7 +14,7 @@ from constants.testing import (
     get_test_seed,
     get_test_views_time,
 )
-from services.rendering import _build_post_meta, render_subtitle_image
+from services.rendering import _build_post_meta, render_scene_text_image
 from tests.vrt.compare import VRTComparison, pil_to_numpy
 
 
@@ -63,12 +63,10 @@ class TestDeterministicSeeds:
 class TestDeterministicRendering:
     """Tests for deterministic rendering output."""
 
-    def test_subtitle_rendering_deterministic(
-        self, vrt: VRTComparison, sample_font_path: Path
-    ):
+    def test_subtitle_rendering_deterministic(self, vrt: VRTComparison, sample_font_path: Path):
         """Verify that subtitle rendering is deterministic."""
         # Render twice with same parameters
-        result1 = render_subtitle_image(
+        result1 = render_scene_text_image(
             lines=["결정론적 테스트"],
             width=1080,
             height=1920,
@@ -77,7 +75,7 @@ class TestDeterministicRendering:
             post_layout_metrics=None,
         )
 
-        result2 = render_subtitle_image(
+        result2 = render_scene_text_image(
             lines=["결정론적 테스트"],
             width=1080,
             height=1920,
@@ -118,6 +116,7 @@ class TestTestModeConfiguration:
     def test_test_mode_is_set(self):
         """Verify that test mode is automatically set in tests."""
         import os
+
         assert os.environ.get("VRT_TEST_MODE") == "1"
 
     def test_is_test_mode_returns_true(self):
@@ -144,12 +143,10 @@ class TestTestModeConfiguration:
 class TestVRTWithFixedSeeds:
     """VRT tests that rely on fixed seeds."""
 
-    def test_vrt_subtitle_fixed_seed(
-        self, vrt: VRTComparison, sample_font_path: Path, fixed_seed: int
-    ):
+    def test_vrt_subtitle_fixed_seed(self, vrt: VRTComparison, sample_font_path: Path, fixed_seed: int):
         """VRT test using fixed seed for subtitle."""
         # Use fixed seed in test name for unique golden master
-        result = render_subtitle_image(
+        result = render_scene_text_image(
             lines=[f"Fixed Seed: {fixed_seed}"],
             width=1080,
             height=1920,
@@ -161,14 +158,12 @@ class TestVRTWithFixedSeeds:
         comparison = vrt.compare("deterministic/subtitle_fixed_seed.png", result)
         assert comparison.passed, f"VRT failed: {comparison.message}"
 
-    def test_multiple_runs_identical(
-        self, vrt: VRTComparison, sample_font_path: Path
-    ):
+    def test_multiple_runs_identical(self, vrt: VRTComparison, sample_font_path: Path):
         """Verify multiple test runs produce identical results."""
         # This test should always pass because seeds are fixed
         results = []
         for _ in range(3):
-            result = render_subtitle_image(
+            result = render_scene_text_image(
                 lines=["반복 테스트"],
                 width=1080,
                 height=1920,

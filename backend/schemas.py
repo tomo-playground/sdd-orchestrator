@@ -457,8 +457,6 @@ class AvatarResolveRequest(BaseModel):
 
 
 class VideoRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)  # Allow alias names
-
     @model_validator(mode="before")
     @classmethod
     def _migrate_edge_to_qwen(cls, values):
@@ -484,9 +482,8 @@ class VideoRequest(BaseModel):
     voice_design_prompt: str | None = None  # For Qwen-TTS VoiceDesign
     voice_preset_id: int | None = None  # Voice preset for TTS
     speed_multiplier: float = 1.0
-    # Scene text (formerly "subtitles") - shows scene script on video
-    include_scene_text: bool = Field(default=True, alias="include_subtitles")
-    scene_text_font: str | None = Field(default=None, alias="subtitle_font")
+    include_scene_text: bool = True
+    scene_text_font: str | None = None
     overlay_settings: OverlaySettings | None = None
     post_card_settings: PostCardSettings | None = None
     audio_ducking: bool = True

@@ -31,7 +31,9 @@ def _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1):
         for i in range(scenes_needed):
             db_session.add(Scene(storyboard_id=storyboard_id, order=len(existing) + i, script=f"s{i}"))
         db_session.flush()
-    scene_ids = [s.id for s in db_session.query(Scene).filter(Scene.storyboard_id == storyboard_id).order_by(Scene.id).all()]
+    scene_ids = [
+        s.id for s in db_session.query(Scene).filter(Scene.storyboard_id == storyboard_id).order_by(Scene.id).all()
+    ]
     return scene_ids
 
 
@@ -74,15 +76,18 @@ class TestCreateActivityLog:
     def test_create_log(self, mock_extract, client: TestClient, db_session):
         """Create a basic activity log."""
         scene_ids = _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
-        resp = client.post("/activity-logs", json={
-            "storyboard_id": 1,
-            "scene_id": scene_ids[0],
-            "prompt": "1girl, smile",
-            "tags": ["1girl", "smile"],
-            "match_rate": 0.85,
-            "status": "success",
-            "image_url": "/outputs/scene_0.png",
-        })
+        resp = client.post(
+            "/activity-logs",
+            json={
+                "storyboard_id": 1,
+                "scene_id": scene_ids[0],
+                "prompt": "1girl, smile",
+                "tags": ["1girl", "smile"],
+                "match_rate": 0.85,
+                "status": "success",
+                "image_url": "/outputs/scene_0.png",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["scene_id"] == scene_ids[0]
@@ -92,9 +97,12 @@ class TestCreateActivityLog:
     def test_create_log_minimal(self, client: TestClient, db_session):
         """Create a log with minimal fields."""
         scene_ids = _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
-        resp = client.post("/activity-logs", json={
-            "scene_id": scene_ids[0],
-        })
+        resp = client.post(
+            "/activity-logs",
+            json={
+                "scene_id": scene_ids[0],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "pending"
@@ -102,12 +110,15 @@ class TestCreateActivityLog:
     def test_create_log_with_nonexistent_scene_id_sets_null(self, client: TestClient, db_session):
         """Scene ID that doesn't exist (e.g. after PUT recreated scenes) is set to NULL, not FK error."""
         _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
-        resp = client.post("/activity-logs", json={
-            "storyboard_id": 1,
-            "scene_id": 99999,  # Non-existent scene (simulates stale ID after PUT)
-            "prompt": "1girl, smile",
-            "status": "pending",
-        })
+        resp = client.post(
+            "/activity-logs",
+            json={
+                "storyboard_id": 1,
+                "scene_id": 99999,  # Non-existent scene (simulates stale ID after PUT)
+                "prompt": "1girl, smile",
+                "status": "pending",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         # scene_id should be NULL (not 99999) since scene doesn't exist
@@ -145,14 +156,6 @@ class TestGetStoryboardLogs:
         data = resp.json()
         assert data["total"] == 1
         assert data["logs"][0]["status"] == "fail"
-
-    def test_get_logs_v2_alias(self, client: TestClient, db_session):
-        """V2 alias endpoint returns same data."""
-        _create_log(db_session, storyboard_id=1)
-        resp = client.get("/activity-logs/1/logs")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["total"] == 1
 
 
 class TestUpdateLogStatus:
@@ -219,10 +222,13 @@ class TestAnalyzePatterns:
                 tags_used=["smile", "crying"],
             )
 
-        resp = client.get("/activity-logs/analyze/patterns", params={
-            "storyboard_id": 1,
-            "min_occurrences": 2,
-        })
+        resp = client.get(
+            "/activity-logs/analyze/patterns",
+            params={
+                "storyboard_id": 1,
+                "min_occurrences": 2,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["summary"]["total_logs"] == 8
@@ -234,9 +240,12 @@ class TestSuggestConflictRules:
 
     def test_suggest_empty(self, client: TestClient, db_session):
         """Return empty suggestions when no logs exist."""
-        resp = client.get("/activity-logs/suggest-conflict-rules", params={
-            "storyboard_id": 999,
-        })
+        resp = client.get(
+            "/activity-logs/suggest-conflict-rules",
+            params={
+                "storyboard_id": 999,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["suggested_rules"] == []
@@ -248,9 +257,12 @@ class TestSuccessCombinations:
 
     def test_success_combinations_empty(self, client: TestClient, db_session):
         """Return empty when no success logs."""
-        resp = client.get("/activity-logs/success-combinations", params={
-            "storyboard_id": 999,
-        })
+        resp = client.get(
+            "/activity-logs/success-combinations",
+            params={
+                "storyboard_id": 999,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["summary"]["total_success"] == 0
@@ -271,10 +283,13 @@ class TestSuccessCombinations:
                 tags_used=["smile", "standing"],
             )
 
-        resp = client.get("/activity-logs/success-combinations", params={
-            "storyboard_id": 1,
-            "min_occurrences": 3,
-        })
+        resp = client.get(
+            "/activity-logs/success-combinations",
+            params={
+                "storyboard_id": 1,
+                "min_occurrences": 3,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["summary"]["total_success"] == 5
@@ -289,18 +304,24 @@ class TestApplyConflictRules:
         _create_tag(db_session, "upper_body")
         _create_tag(db_session, "full_body")
 
-        resp = client.post("/activity-logs/apply-conflict-rules", json={
-            "rules": [{"tag1": "upper_body", "tag2": "full_body"}],
-        })
+        resp = client.post(
+            "/activity-logs/apply-conflict-rules",
+            json={
+                "rules": [{"tag1": "upper_body", "tag2": "full_body"}],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["applied_count"] == 2  # Bidirectional
 
     def test_apply_conflict_rules_tags_not_found(self, client: TestClient, db_session):
         """Skip rules when tags not found in DB."""
-        resp = client.post("/activity-logs/apply-conflict-rules", json={
-            "rules": [{"tag1": "nonexistent_a", "tag2": "nonexistent_b"}],
-        })
+        resp = client.post(
+            "/activity-logs/apply-conflict-rules",
+            json={
+                "rules": [{"tag1": "nonexistent_a", "tag2": "nonexistent_b"}],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["skipped_count"] == 1
@@ -315,9 +336,12 @@ class TestApplyConflictRules:
         db_session.add(rule)
         db_session.commit()
 
-        resp = client.post("/activity-logs/apply-conflict-rules", json={
-            "rules": [{"tag1": "upper_body", "tag2": "full_body"}],
-        })
+        resp = client.post(
+            "/activity-logs/apply-conflict-rules",
+            json={
+                "rules": [{"tag1": "upper_body", "tag2": "full_body"}],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["skipped_count"] == 1

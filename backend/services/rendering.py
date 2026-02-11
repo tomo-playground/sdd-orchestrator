@@ -226,10 +226,6 @@ def resolve_scene_text_font_path(font_name: str | None) -> str:
     return "Arial"  # Final fallback string for PIL
 
 
-# Deprecated alias for backward compatibility
-resolve_subtitle_font_path = resolve_scene_text_font_path
-
-
 def _measure_text_with_fallback(
     draw: ImageDraw.ImageDraw,
     text: str,
@@ -382,10 +378,6 @@ def render_scene_text_image(
             stroke_fill=(0, 0, 0, 255),
         )
     return canvas
-
-
-# Deprecated alias for backward compatibility
-render_subtitle_image = render_scene_text_image
 
 
 # --- Overlay rendering ---

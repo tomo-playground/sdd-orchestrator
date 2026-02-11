@@ -157,7 +157,7 @@ def _record_debate_decision(
 # ── Main orchestrator ──────────────────────────────────────────
 
 
-def run_debate_v2(session_id: int) -> None:
+def run_debate(session_id: int) -> None:
     """Phase 1: Multi-round concept debate. Runs as BackgroundTask."""
     db = SessionLocal()
     loop = asyncio.new_event_loop()

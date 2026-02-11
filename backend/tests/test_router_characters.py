@@ -175,23 +175,6 @@ class TestCharactersRouter:
         assert "char1" in names
         assert "char2" in names
 
-    def test_get_character_full_endpoint(self, client: TestClient, db_session):
-        """Test /full endpoint (alias for get_character)."""
-        # Create test character
-        character = Character(
-            name="full_test",
-            project_id=1,
-        )
-        db_session.add(character)
-        db_session.commit()
-
-        response = client.get(f"/characters/{character.id}/full")
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["id"] == character.id
-        assert data["name"] == "full_test"
-
     def test_create_character_with_loras(self, client: TestClient, db_session):
         """Create character with LoRA configuration."""
         request_data = {"name": "lora_character", "project_id": 1, "loras": [{"lora_id": 1, "weight": 0.7}]}

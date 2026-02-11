@@ -104,15 +104,6 @@ async def permanently_delete_endpoint(character_id: int, db: Session = Depends(g
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.get("/{character_id}/full", response_model=CharacterResponse)
-async def get_character_full_endpoint(character_id: int, db: Session = Depends(get_db)):
-    """Alias for get_character to maintain frontend compatibility."""
-    try:
-        return get_character_or_raise(db, character_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
-
-
 @router.post("/{character_id}/regenerate-reference")
 async def regenerate_reference_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Regenerate the character's reference image using its tags and reference prompts."""

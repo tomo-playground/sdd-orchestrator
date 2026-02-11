@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
-import { useStudioStore, resetStudioStore } from "../store/useStudioStore";
+import { resetAllStores } from "../store/resetAllStores";
+import { useContextStore } from "../store/useContextStore";
+import { useStoryboardStore } from "../store/useStoryboardStore";
+import { useRenderStore } from "../store/useRenderStore";
+import { useUIStore } from "../store/useUIStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { initializeVideoMetadata } from "../store/actions/outputActions";
 import { loadGroupDefaults } from "../store/actions/groupActions";
@@ -15,7 +19,6 @@ import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
  * - Store reset on ?new=true
  * - Storyboard loading from DB on ?id=X
  * - Prompt apply from localStorage
- * - One-time channelProfile → Project migration
  * - Transient data clearing on storyboard ID change
  */
 export function useStudioInitialization() {
@@ -25,9 +28,9 @@ export function useStudioInitialization() {
   const [loadedProfileId, setLoadedProfileId] = useState<number | null>(null);
   const [needsStyleProfile, setNeedsStyleProfile] = useState(false);
 
-  const setMeta = useStudioStore((s) => s.setMeta);
-  const setScenes = useStudioStore((s) => s.setScenes);
-  const setPlan = useStudioStore((s) => s.setPlan);
+  const setContext = useContextStore((s) => s.setContext);
+  const setScenes = useStoryboardStore((s) => s.setScenes);
+  const setPlan = useStoryboardStore((s) => s.set);
 
   // Reset store for ?new=true (DB creation deferred to first save/generate)
   const newHandledRef = useRef(false);
@@ -41,10 +44,10 @@ export function useStudioInitialization() {
     if (newHandledRef.current) return;
     newHandledRef.current = true;
 
-    // Async IIFE to handle resetStudioStore (now async)
+    // Async IIFE to handle resetAllStores (now async)
     (async () => {
-      await resetStudioStore();
-      const { effectiveCharacterId } = useStudioStore.getState();
+      await resetAllStores();
+      const { effectiveCharacterId } = useContextStore.getState();
       if (effectiveCharacterId) {
         setPlan({ selectedCharacterId: effectiveCharacterId });
       }
@@ -65,7 +68,7 @@ export function useStudioInitialization() {
       prevStoryboardIdRef.current &&
       prevStoryboardIdRef.current !== storyboardId
     ) {
-      useStudioStore.getState().setOutput({
+      useRenderStore.getState().set({
         videoUrl: null,
         videoUrlFull: null,
         videoUrlPost: null,
@@ -86,7 +89,7 @@ export function useStudioInitialization() {
       if (data.negative_prompt) plan.baseNegativePromptA = data.negative_prompt;
       setPlan(plan);
 
-      const { scenes: sc, currentSceneIndex: idx, updateScene } = useStudioStore.getState();
+      const { scenes: sc, currentSceneIndex: idx, updateScene } = useStoryboardStore.getState();
       if (sc.length > 0 && sc[idx]) {
         const updates: Partial<Scene> = {};
         if (data.positive_prompt) updates.image_prompt = data.positive_prompt as string;
@@ -96,7 +99,7 @@ export function useStudioInitialization() {
         updateScene(sc[idx].id, updates);
       }
       window.localStorage.removeItem(PROMPT_APPLY_KEY);
-      useStudioStore.getState().showToast("Prompt applied!", "success");
+      useUIStore.getState().showToast("Prompt applied!", "success");
     } catch {
       window.localStorage.removeItem(PROMPT_APPLY_KEY);
     }
@@ -116,7 +119,7 @@ export function useStudioInitialization() {
         // Sync groupId and projectId from storyboard response
         const groupId = data.group_id ?? null;
         const projectId = data.project_id ?? null;
-        setMeta({
+        setContext({
           storyboardId: data.id,
           storyboardTitle: data.title,
           ...(groupId ? { groupId } : {}),
@@ -126,7 +129,7 @@ export function useStudioInitialization() {
         const recentVideos = data.recent_videos || [];
         const latestFull = recentVideos.find((v: { label?: string }) => v.label === "full");
         const latestPost = recentVideos.find((v: { label?: string }) => v.label === "post");
-        useStudioStore.getState().setOutput({
+        useRenderStore.getState().set({
           videoUrl: data.video_url || null,
           videoUrlFull: latestFull?.url || data.video_url || null,
           videoUrlPost: latestPost?.url || null,
@@ -174,19 +177,17 @@ export function useStudioInitialization() {
       })
       .catch(async (err) => {
         if (err?.response?.status === 404) {
-          await resetStudioStore();
-          useStudioStore
-            .getState()
-            .showToast("삭제되었거나 존재하지 않는 스토리보드입니다.", "error");
+          await resetAllStores();
+          useUIStore.getState().showToast("삭제되었거나 존재하지 않는 스토리보드입니다.", "error");
           const url = new URL(window.location.href);
           url.searchParams.delete("id");
           window.history.replaceState({}, "", url.toString());
         } else {
-          setMeta({ storyboardId: null });
+          setContext({ storyboardId: null });
         }
       })
       .finally(() => setIsLoadingDb(false));
-  }, [storyboardId, setMeta, setPlan, setScenes]);
+  }, [storyboardId, setContext, setPlan, setScenes]);
 
   return {
     isLoadingDb,
