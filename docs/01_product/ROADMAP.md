@@ -221,6 +221,7 @@
 | 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
 | 7 | Structure별 전용 Gemini 템플릿 (3종 structure = 3종 템플릿 1:1 매핑 완료) | 기능 | - | [x] |
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
+| 25 | Character Management 독립 페이지 (/characters 목록 + /characters/[id] 상세/편집) | UX | [명세](FEATURES/CHARACTER_PAGE.md) · [와이어프레임](../02_design/wireframes/CHARACTER_PAGE_WIREFRAME.md) | [ ] |
 | 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [x] |
 | 10 | Creative Lab & Engine (Tag Lab + Scene Lab + Multi-Agent Creative) | 기능 | [API](../03_engineering/api/REST_API_CREATIVE.md) | [x] |
 | 11 | Studio UI Polish (Video탭 통합, Global 접기, Save 이동, 캐릭터 프리뷰 확대) | UX | - | [x] |
@@ -291,9 +292,9 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | 1 | category 목록 Backend SSOT 전환 (Frontend 하드코딩 제거) | SSOT | [x] |
 | 2 | ~~V1 프리셋 `agent_role` 컬럼 추가~~ | ~~DB~~ | N/A (V1 제거됨) |
 | 3 | ~~V1 Leader → preset 시스템 이관~~ | ~~리팩토링~~ | N/A (V1 제거됨) |
-| 4 | Pipeline step 활성/비활성 설정 (Sound Designer/Copyright Reviewer optional화) | 기능 | [ ] |
+| 4 | Pipeline step 활성/비활성 설정 (Sound Designer/Copyright Reviewer optional화) | 기능 | [x] |
 | 5 | 에이전트-템플릿 매핑 config.py 중앙화 (`CREATIVE_AGENT_TEMPLATES`) | SSOT | [x] |
-| 6 | Reference Analyst 에이전트 실제 활성화 (현재 DB만 존재, 파이프라인 미연동) | 기능 | [ ] |
+| 6 | Reference Analyst 에이전트 실제 활성화 (이미 구현 확인) | 기능 | [x] |
 | 7 | Script QC Agent + Interactive Review (Pause-Review-Resume 패턴, 스텝별 리뷰 UI, 자동 승인) | 품질 | [x] |
 
 ### 일반
@@ -345,23 +346,24 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 |------|------|------|------|
 | ~~1~~ | ~~7-1 #5~~ | ~~Multi-Character UI~~ | ~~완료 (2026-02-10)~~ |
 | 2 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장, context_tags 활용도 향상 |
-| 3 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선, Multi-Char UI와 시너지 |
+| 3 | 7-1 #25 | Character Management 독립 페이지 | 캐릭터 전용 진입점, Home 경량화, 모달→페이지 전환 |
+| 4 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선, #25 선행 필요 |
 
 **Tier 2 — 자동화/인프라 (중형, 필요 시)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 4 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능, 체감 효과 낮음 |
-| 5 | 6-7 #10 | ~~WD14 Feedback Loop~~ (Phase 1 완료: 자동 갱신 훅) | ~~대량 생산 단계에서 의미~~ → 구현 완료 |
-| 6 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
+| 5 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능, 체감 효과 낮음 |
+| 6 | 6-7 #10 | ~~WD14 Feedback Loop~~ (Phase 1 완료: 자동 갱신 훅) | ~~대량 생산 단계에서 의미~~ → 구현 완료 |
+| 7 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
 
 **Tier 3 — 후순위**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 7 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
-| 8 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
-| 9 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
-| 10 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
-| 11 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
+| 8 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
+| 9 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
+| 10 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
+| 11 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
+| 12 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
 
 **7-1 최근 완료 (2026-02-05 ~ 02-11)**:
 - Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)

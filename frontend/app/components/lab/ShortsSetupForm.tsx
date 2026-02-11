@@ -32,6 +32,9 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
   const [monoCharId, setMonoCharId] = useState<number | null>(null);
   const [characters, setCharacters] = useState<CharacterOption[]>([]);
 
+  const [optionalSteps, setOptionalSteps] = useState<string[]>([]);
+  const [disabledSteps, setDisabledSteps] = useState<Set<string>>(new Set());
+
   const [structures, setStructures] = useState<PresetOption[]>([
     { structure: "Monologue", name: "Monologue" },
     { structure: "Dialogue", name: "Dialogue" },
@@ -55,6 +58,7 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
         }
         if (Array.isArray(data?.languages)) setLanguages(data.languages);
         if (Array.isArray(data?.durations)) setDurations(data.durations);
+        if (Array.isArray(data?.optional_steps)) setOptionalSteps(data.optional_steps);
       })
       .catch(() => {});
     fetch(`${API_BASE}/characters`)
@@ -68,6 +72,15 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
     (ids: Record<string, number>) => setCharacterIds(ids),
     []
   );
+
+  const toggleStep = (step: string) => {
+    setDisabledSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(step)) next.delete(step);
+      else next.add(step);
+      return next;
+    });
+  };
 
   const handleSubmit = () => {
     if (!topic.trim()) return;
@@ -86,6 +99,7 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
       director_mode: directorMode,
       max_rounds: maxRounds,
       references: refs.length > 0 ? refs : undefined,
+      disabled_steps: disabledSteps.size > 0 ? Array.from(disabledSteps) : undefined,
     });
   };
 
@@ -166,6 +180,30 @@ export default function ShortsSetupForm({ loading, onSubmit }: Props) {
           </select>
         </div>
       </div>
+
+      {/* Pipeline Steps (optional) */}
+      {optionalSteps.length > 0 && (
+        <div>
+          <label className={LABEL}>Pipeline Steps</label>
+          <div className="space-y-1.5">
+            {optionalSteps.map((step) => (
+              <label
+                key={step}
+                className="flex cursor-pointer items-center gap-2 text-xs text-zinc-600"
+              >
+                <input
+                  type="checkbox"
+                  checked={!disabledSteps.has(step)}
+                  onChange={() => toggleStep(step)}
+                  className="h-3.5 w-3.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                {step.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                <span className="text-[10px] text-zinc-400">(optional)</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Character Selection */}
       {isMultiChar ? (

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import UTC, datetime
 
-from config import logger
+from config import SCENE_DURATION_RANGE, SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
 from models.creative import CreativeAgentPreset, CreativeSession, CreativeTrace
 from services.prompt.prompt import split_prompt_tokens
 
@@ -261,3 +262,75 @@ def handle_pipeline_failure(db, session_id: int, current_step: str, error: Excep
             db.commit()
     except Exception:
         logger.exception("[Pipeline] Failed to record error state for session %d", session_id)
+
+
+# ── Pipeline helpers (extracted from creative_pipeline.py) ───
+
+
+def pipeline_log(db, session: CreativeSession, step: str, msg: str, level: str = "info") -> None:
+    """Append a timestamped log entry to pipeline context."""
+    ctx = dict(session.context or {})
+    pipeline = dict(ctx.get("pipeline", {}))
+    logs = list(pipeline.get("logs", []))
+    logs.append({"ts": datetime.now(UTC).isoformat(), "step": step, "msg": msg, "level": level})
+    pipeline["logs"] = logs
+    ctx["pipeline"] = pipeline
+    session.context = ctx
+    db.commit()
+
+
+def _script_length_hint(language: str) -> str:
+    """Build human-readable script length hint from config constants."""
+    if language == "Korean":
+        return f"{SCRIPT_LENGTH_KOREAN[0]}-{SCRIPT_LENGTH_KOREAN[1]} characters (Korean)"
+    return f"{SCRIPT_LENGTH_OTHER[0]}-{SCRIPT_LENGTH_OTHER[1]} words (English/other)"
+
+
+def build_template_vars(
+    step_name: str,
+    state: dict,
+    ctx: dict,
+    characters: dict,
+    revision_fb: str | None = None,
+) -> dict:
+    """Build template variables for a pipeline step."""
+    concept = ctx.get("selected_concept", {})
+
+    if step_name == "scriptwriter":
+        return {
+            "concept": concept,
+            "duration": ctx.get("duration", 30),
+            "structure": ctx.get("structure", "Monologue"),
+            "language": ctx.get("language", "Korean"),
+            "character_name": ctx.get("character_name"),
+            "characters": characters or None,
+            "min_scenes": max(4, ctx.get("duration", 30) // 5),
+            "max_scenes": ctx.get("duration", 30) // 2,
+            "script_length_hint": _script_length_hint(ctx.get("language", "Korean")),
+            "scene_duration_hint": f"{SCENE_DURATION_RANGE[0]}-{SCENE_DURATION_RANGE[1]}s",
+            "scene_dur_min": SCENE_DURATION_RANGE[0],
+            "scene_dur_max": SCENE_DURATION_RANGE[1],
+            "feedback": revision_fb,
+        }
+
+    if step_name == "cinematographer":
+        scripts = state.get("scriptwriter_result", {}).get("scenes", [])
+        return {
+            "scenes": scripts,
+            "character_tags": ctx.get("character_tags"),
+            "characters_tags": {sp: info.get("tags", []) for sp, info in characters.items()} if characters else None,
+        }
+
+    if step_name == "sound_designer":
+        cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+        return {
+            "concept": concept,
+            "scenes": cinema_scenes,
+            "duration": ctx.get("duration", 30),
+        }
+
+    if step_name == "copyright_reviewer":
+        cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+        return {"scenes": cinema_scenes}
+
+    return {}

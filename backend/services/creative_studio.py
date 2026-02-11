@@ -9,7 +9,7 @@ from models.creative import CreativeSession
 from models.scene import Scene
 from models.storyboard import Storyboard
 from models.storyboard_character import StoryboardCharacter
-from services.character_action_resolver import extract_actions_from_context_tags
+from services.characters import extract_actions_from_context_tags
 from services.creative_utils import parse_image_prompt_to_tags
 from services.image_generation_core import compose_scene_with_style, resolve_style_loras_from_group
 
@@ -51,6 +51,7 @@ def create_shorts_session(
     references: list[str] | None,
     max_rounds: int,
     director_mode: str | None,
+    disabled_steps: list[str] | None = None,
 ) -> CreativeSession:
     """Create a V2 shorts pipeline session with character resolution."""
     from services.creative_tasks import get_default_criteria
@@ -88,6 +89,7 @@ def create_shorts_session(
             "characters": characters if characters else None,
             "character_name": character_name,
             "character_tags": character_tags,
+            "disabled_steps": disabled_steps or [],
         },
         max_rounds=max_rounds,
         status="created",

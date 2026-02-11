@@ -1330,6 +1330,7 @@ class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
     durations: list[int]
+    optional_steps: list[str] = []
 
 
 class PresetTopicsResponse(BaseModel):

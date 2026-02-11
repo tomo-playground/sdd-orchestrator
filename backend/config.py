@@ -396,7 +396,8 @@ CREATIVE_ZOMBIE_TIMEOUT_SECONDS = int(os.getenv("CREATIVE_ZOMBIE_TIMEOUT_SECONDS
 
 # --- Creative Lab: Interactive Review ---
 CREATIVE_REVIEW_ENABLED = os.getenv("CREATIVE_REVIEW_ENABLED", "true").lower() == "true"
-CREATIVE_REVIEW_STEPS: list[str] = ["scriptwriter"]
+CREATIVE_REVIEW_STEPS: list[str] = ["scriptwriter", "cinematographer", "sound_designer", "copyright_reviewer"]
+CREATIVE_OPTIONAL_STEPS: list[str] = ["sound_designer", "copyright_reviewer"]
 CREATIVE_AUTO_APPROVE_THRESHOLD = float(os.getenv("CREATIVE_AUTO_APPROVE_THRESHOLD", "0.85"))
 
 # Creative Lab: Agent Categories (SSOT for Frontend)

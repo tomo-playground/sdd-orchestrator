@@ -117,7 +117,7 @@ export type DecisionOption = {
 };
 
 export type StepProgress = {
-  status: "pending" | "running" | "done" | "failed" | "review";
+  status: "pending" | "running" | "done" | "failed" | "review" | "skipped";
   retry_count?: number;
   started_at?: string;
 };
@@ -147,6 +147,7 @@ export type ShortsSessionCreate = {
   director_mode: string;
   max_rounds: number;
   references?: string[];
+  disabled_steps?: string[];
 };
 
 export type SendToStudioRequest = {
@@ -210,6 +211,13 @@ export type StepReview = {
 export type ReviewActionRequest = {
   action: "approve" | "revise";
   feedback?: string;
+};
+
+export type PipelineLog = {
+  ts: string;
+  step: string;
+  msg: string;
+  level: string;
 };
 
 export type CreativeSceneSummary = {

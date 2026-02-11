@@ -182,6 +182,7 @@ class ShortsSessionCreate(BaseModel):
     director_mode: str = "advisor"
     max_rounds: int = 2
     references: list[str] | None = None
+    disabled_steps: list[str] | None = None
 
 
 class SelectConceptRequest(BaseModel):

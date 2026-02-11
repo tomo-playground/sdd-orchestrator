@@ -106,6 +106,7 @@ async def api_create_shorts_session(
         references=req.references,
         max_rounds=req.max_rounds,
         director_mode=req.director_mode,
+        disabled_steps=req.disabled_steps,
     )
 
 

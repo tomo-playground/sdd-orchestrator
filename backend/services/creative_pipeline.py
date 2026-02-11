@@ -1,7 +1,7 @@
 """Creative Lab V2 Pipeline — Phase 2 sequential execution with feedback loops.
 
-Runs as a BackgroundTask: Scriptwriter → Cinematographer → Sound Designer → Copyright → Complete.
-Each step commits independently for resumability.
+Runs as a BackgroundTask: Scriptwriter -> Cinematographer -> Sound Designer -> Copyright -> Complete.
+Each step commits independently for resumability. Uses StepDef registry for extensibility.
 """
 
 from __future__ import annotations
@@ -9,7 +9,8 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from datetime import UTC, datetime
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -18,9 +19,6 @@ from config import (
     CREATIVE_AGENT_TEMPLATES,
     CREATIVE_LEADER_MODEL,
     CREATIVE_PIPELINE_MAX_RETRIES,
-    SCENE_DURATION_RANGE,
-    SCRIPT_LENGTH_KOREAN,
-    SCRIPT_LENGTH_OTHER,
     logger,
 )
 from database import SessionLocal
@@ -30,15 +28,17 @@ from services.creative_qc import validate_copyright, validate_music, validate_sc
 from services.creative_review import (
     check_auto_approve,
     pause_for_review,
-    run_script_qc,
+    run_step_qc,
     should_review,
 )
 from services.creative_utils import (
+    build_template_vars,
     finalize_pipeline,
     get_next_sequence,
     handle_pipeline_failure,
     load_preset,
     parse_json_response,
+    pipeline_log,
     record_feedback,
     record_handoff,
     record_quality_report,
@@ -49,18 +49,60 @@ from services.creative_utils import (
 _template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
 
+# ── Step Registry ─────────────────────────────────────────────
+
+
+@dataclass
+class StepDef:
+    """Definition of a single pipeline step."""
+
+    name: str
+    template: str
+    validate_fn: Callable
+    scenes_key: str = "scenes"
+    system_prompt_fallback: str = ""
+    default_temperature: float = 0.8
+
+
+PIPELINE_STEPS: list[StepDef] = [
+    StepDef(
+        name="scriptwriter",
+        template=CREATIVE_AGENT_TEMPLATES["scriptwriter"],
+        validate_fn=lambda extracted, ctx: validate_scripts(
+            extracted, ctx.get("structure", "Monologue"), ctx.get("duration", 30), ctx.get("language", "Korean")
+        ),
+        system_prompt_fallback="You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
+    ),
+    StepDef(
+        name="cinematographer",
+        template=CREATIVE_AGENT_TEMPLATES["cinematographer"],
+        validate_fn=lambda extracted, _ctx: validate_visuals(extracted),
+        system_prompt_fallback="You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
+    ),
+    StepDef(
+        name="sound_designer",
+        template=CREATIVE_AGENT_TEMPLATES["sound_designer"],
+        validate_fn=lambda extracted, _ctx: validate_music(extracted),
+        scenes_key="recommendation",
+        system_prompt_fallback="You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
+    ),
+    StepDef(
+        name="copyright_reviewer",
+        template=CREATIVE_AGENT_TEMPLATES["copyright_reviewer"],
+        validate_fn=lambda extracted, _ctx: validate_copyright(extracted),
+        scenes_key="checks",
+        system_prompt_fallback="You are a Copyright Reviewer. Check for originality issues. Respond only in valid JSON.",
+    ),
+]
+
+
 # ── Helpers ───────────────────────────────────────────────────
-
-
-def _script_length_hint(language: str) -> str:
-    """Build human-readable script length hint from config constants."""
-    if language == "Korean":
-        return f"{SCRIPT_LENGTH_KOREAN[0]}-{SCRIPT_LENGTH_KOREAN[1]} characters (Korean)"
-    return f"{SCRIPT_LENGTH_OTHER[0]}-{SCRIPT_LENGTH_OTHER[1]} words (English/other)"
 
 
 def _commit_step(db, session: CreativeSession, step_name: str, status: str, state: dict) -> None:
     """Atomically commit traces + pipeline progress + state."""
+    from datetime import UTC, datetime
+
     ctx = dict(session.context or {})
     pipeline = dict(ctx.get("pipeline", {}))
     pipeline["current_step"] = step_name
@@ -133,21 +175,18 @@ def _run_step_with_retry(
     db,
     session: CreativeSession,
     state: dict,
-    step_name: str,
-    template_name: str,
+    step: StepDef,
     template_vars: dict,
     system_prompt: str,
-    validate_fn,
+    ctx: dict,
     temperature: float = 0.8,
     agent_preset_id: int | None = None,
-    scenes_key: str = "scenes",
 ) -> list | dict:
     """Generic retry loop for a pipeline step.
 
     Returns the extracted data (list for scenes, dict for recommendation, etc.).
-    On retry, injects QC feedback into template_vars so the LLM can correct.
     """
-    record_handoff(db, session.id, step_name, f"Execute {step_name} step")
+    record_handoff(db, session.id, step.name, f"Execute {step.name} step")
 
     last_trace_id = None
     result_data = None
@@ -157,54 +196,51 @@ def _run_step_with_retry(
             parsed, trace = _run_llm_step(
                 db,
                 session,
-                template_name=template_name,
+                template_name=step.template,
                 template_vars=retry_vars,
                 system_prompt=system_prompt,
-                step_name=step_name,
+                step_name=step.name,
                 temperature=temperature,
                 agent_preset_id=agent_preset_id,
                 retry_count=retry,
                 parent_trace_id=last_trace_id,
             )
         except json.JSONDecodeError as e:
-            logger.warning("[Pipeline] %s JSON error (retry %d): %s", step_name, retry, e)
+            logger.warning("[Pipeline] %s JSON error (retry %d): %s", step.name, retry, e)
             if retry < CREATIVE_PIPELINE_MAX_RETRIES:
-                # NOTE: trace is already recorded in DB by _run_llm_step before parsing,
-                # but we don't have the trace object here since the exception was raised.
                 error_msg = f"JSON Output Error: {e}. Please ensure valid JSON format."
                 retry_vars = {**template_vars, "feedback": error_msg}
                 continue
             else:
-                logger.error("[Pipeline] %s max retries reached with JSON error", step_name)
+                logger.error("[Pipeline] %s max retries reached with JSON error", step.name)
                 raise e
 
-        # If we got here, parsing succeeded
-        extracted = parsed.get(scenes_key, [])
-        qc = validate_fn(extracted)
-        record_quality_report(db, session.id, qc, step_name)
+        extracted = parsed.get(step.scenes_key, [])
+        qc = step.validate_fn(extracted, ctx)
+        record_quality_report(db, session.id, qc, step.name)
 
         if qc["ok"]:
-            state[f"{step_name}_result"] = parsed
+            state[f"{step.name}_result"] = parsed
             return extracted
 
         last_trace_id = trace.id
         result_data = parsed
         if retry < CREATIVE_PIPELINE_MAX_RETRIES:
             feedback_text = "\n".join(f"- {issue}" for issue in qc["issues"])
-            record_feedback(db, session.id, step_name, qc["issues"], parent_trace_id=trace.id)
+            record_feedback(db, session.id, step.name, qc["issues"], parent_trace_id=trace.id)
             retry_vars = {**template_vars, "feedback": feedback_text}
         else:
-            logger.warning("[Pipeline] %s max retries reached, using last result", step_name)
-            state[f"{step_name}_result"] = result_data
+            logger.warning("[Pipeline] %s max retries reached, using last result", step.name)
+            state[f"{step.name}_result"] = result_data
 
-    return result_data.get(scenes_key, []) if result_data else []
+    return result_data.get(step.scenes_key, []) if result_data else []
 
 
 # ── Main orchestrator ──────────────────────────────────────────
 
 
 def run_pipeline(session_id: int) -> None:
-    """Phase 2: Sequential pipeline with per-step commits and retry support."""
+    """Phase 2: Sequential pipeline with StepDef registry, per-step commits and retry."""
     db = SessionLocal()
     current_step = "scriptwriter"
     state: dict = {}
@@ -215,14 +251,12 @@ def run_pipeline(session_id: int) -> None:
             return
 
         ctx = dict(session.context or {})
-        pipeline_state = dict(ctx.get("pipeline", {}).get("state", {}))
-        state = pipeline_state
+        state = dict(ctx.get("pipeline", {}).get("state", {}))
         concept = ctx.get("selected_concept", {})
         characters = resolve_characters_from_context(ctx)
+        disabled_steps = ctx.get("disabled_steps", [])
 
-        # Step 1: Scriptwriter
-        current_step = "scriptwriter"
-        # Inject revision feedback from interactive review (if re-entering after review)
+        # Handle revision feedback (injected during interactive review)
         revision_fb = ctx.get("pipeline", {}).get("revision_feedback")
         if revision_fb:
             pipeline_ctx = dict(ctx.get("pipeline", {}))
@@ -231,129 +265,58 @@ def run_pipeline(session_id: int) -> None:
             session.context = ctx
             db.commit()
 
-        if "scriptwriter_result" not in state:
-            p = load_preset(db, "scriptwriter")
-            scripts = _run_step_with_retry(
+        for step in PIPELINE_STEPS:
+            current_step = step.name
+            result_key = f"{step.name}_result"
+
+            # Skip disabled steps
+            if step.name in disabled_steps:
+                _commit_step(db, session, step.name, "skipped", state)
+                pipeline_log(db, session, step.name, "Skipped (disabled by user)")
+                continue
+
+            # Skip already-completed steps (resumability)
+            if result_key in state:
+                continue
+
+            pipeline_log(db, session, step.name, f"Generating {step.name}...")
+
+            p = load_preset(db, step.name)
+            tv = build_template_vars(
+                step.name,
+                state,
+                ctx,
+                characters,
+                revision_fb=revision_fb if step.name == "scriptwriter" else None,
+            )
+
+            extracted = _run_step_with_retry(
                 db,
                 session,
                 state,
-                step_name="scriptwriter",
-                template_name=CREATIVE_AGENT_TEMPLATES["scriptwriter"],
-                template_vars={
-                    "concept": concept,
-                    "duration": ctx.get("duration", 30),
-                    "structure": ctx.get("structure", "Monologue"),
-                    "language": ctx.get("language", "Korean"),
-                    "character_name": ctx.get("character_name"),
-                    "characters": characters or None,
-                    "min_scenes": max(4, ctx.get("duration", 30) // 5),
-                    "max_scenes": ctx.get("duration", 30) // 2,
-                    "script_length_hint": _script_length_hint(ctx.get("language", "Korean")),
-                    "scene_duration_hint": f"{SCENE_DURATION_RANGE[0]}-{SCENE_DURATION_RANGE[1]}s",
-                    "scene_dur_min": SCENE_DURATION_RANGE[0],
-                    "scene_dur_max": SCENE_DURATION_RANGE[1],
-                    "feedback": revision_fb,
-                },
-                system_prompt=p.system_prompt
-                if p
-                else "You are an expert scriptwriter for short-form video. Follow the 2-pass process strictly.",
-                validate_fn=lambda scenes: validate_scripts(
-                    scenes,
-                    ctx.get("structure", "Monologue"),
-                    ctx.get("duration", 30),
-                    ctx.get("language", "Korean"),
-                ),
-                temperature=p.temperature if p else 0.8,
+                step=step,
+                template_vars=tv,
+                system_prompt=p.system_prompt if p else step.system_prompt_fallback,
+                ctx=ctx,
+                temperature=p.temperature if p else step.default_temperature,
                 agent_preset_id=p.id if p else None,
             )
-            _commit_step(db, session, "scriptwriter", "done", state)
+            _commit_step(db, session, step.name, "done", state)
+            pipeline_log(db, session, step.name, f"{step.name} done")
 
-            # Interactive review: pause for Script QC if enabled
-            if should_review("scriptwriter"):
+            # Director QC: interactive review
+            if should_review(step.name):
                 language = ctx.get("language", "Korean")
-                qc_result = run_script_qc(db, session, scripts, concept, language)
+                qc_result = run_step_qc(db, session, step.name, extracted, concept, language)
                 if not check_auto_approve(qc_result):
-                    pause_for_review(db, session, "scriptwriter", qc_result, state)
+                    pause_for_review(db, session, step.name, qc_result, state)
                     return
                 logger.info(
-                    "[Pipeline] Session %d: script QC auto-approved (%.2f)", session.id, qc_result.get("score", 0)
+                    "[Pipeline] Session %d: %s QC auto-approved (%.2f)",
+                    session.id,
+                    step.name,
+                    qc_result.get("score", 0),
                 )
-        else:
-            scripts = state["scriptwriter_result"].get("scenes", [])
-
-        # Step 2: Cinematographer
-        current_step = "cinematographer"
-        if "cinematographer_result" not in state:
-            p = load_preset(db, "cinematographer")
-            _run_step_with_retry(
-                db,
-                session,
-                state,
-                step_name="cinematographer",
-                template_name=CREATIVE_AGENT_TEMPLATES["cinematographer"],
-                template_vars={
-                    "scenes": scripts,
-                    "character_tags": ctx.get("character_tags"),
-                    "characters_tags": {speaker: info.get("tags", []) for speaker, info in characters.items()}
-                    if characters
-                    else None,
-                },
-                system_prompt=p.system_prompt
-                if p
-                else "You are a cinematographer designing AI-generated visuals. Use only Danbooru tags.",
-                validate_fn=validate_visuals,
-                temperature=p.temperature if p else 0.8,
-                agent_preset_id=p.id if p else None,
-            )
-            _commit_step(db, session, "cinematographer", "done", state)
-
-        # Step 3: Sound Designer
-        current_step = "sound_designer"
-        if "sound_designer_result" not in state:
-            cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
-            p = load_preset(db, "sound_designer")
-            _run_step_with_retry(
-                db,
-                session,
-                state,
-                step_name="sound_designer",
-                template_name=CREATIVE_AGENT_TEMPLATES["sound_designer"],
-                template_vars={
-                    "concept": concept,
-                    "scenes": cinema_scenes,
-                    "duration": ctx.get("duration", 30),
-                },
-                system_prompt=p.system_prompt
-                if p
-                else "You are a Sound Designer. Recommend BGM direction. Respond in valid JSON only.",
-                validate_fn=validate_music,
-                temperature=p.temperature if p else 0.8,
-                agent_preset_id=p.id if p else None,
-                scenes_key="recommendation",
-            )
-            _commit_step(db, session, "sound_designer", "done", state)
-
-        # Step 4: Copyright Reviewer
-        current_step = "copyright_reviewer"
-        if "copyright_reviewer_result" not in state:
-            cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
-            p = load_preset(db, "copyright_reviewer")
-            _run_step_with_retry(
-                db,
-                session,
-                state,
-                step_name="copyright_reviewer",
-                template_name=CREATIVE_AGENT_TEMPLATES["copyright_reviewer"],
-                template_vars={"scenes": cinema_scenes},
-                system_prompt=p.system_prompt
-                if p
-                else "You are a Copyright Reviewer. Check for originality issues. Respond only in valid JSON.",
-                validate_fn=validate_copyright,
-                temperature=p.temperature if p else 0.8,
-                agent_preset_id=p.id if p else None,
-                scenes_key="checks",
-            )
-            _commit_step(db, session, "copyright_reviewer", "done", state)
 
         # Finalize
         finalize_pipeline(db, session, state)

@@ -1,6 +1,6 @@
 """Creative Lab — Interactive Step Review (Pause-Review-Resume).
 
-Handles Script QC analysis, pause/resume state transitions,
+Handles Step QC analysis, pause/resume state transitions,
 and review message processing. Separated from creative_pipeline.py
 to keep the pipeline under the 400-line guideline.
 """
@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 
 from config import (
     BASE_DIR,
-    CREATIVE_AGENT_TEMPLATES,
     CREATIVE_AUTO_APPROVE_THRESHOLD,
     CREATIVE_LEADER_MODEL,
     CREATIVE_REVIEW_ENABLED,
@@ -34,14 +33,15 @@ def should_review(step_name: str) -> bool:
     return CREATIVE_REVIEW_ENABLED and step_name in CREATIVE_REVIEW_STEPS
 
 
-def _build_qc_prompt(scenes: list, concept: dict, language: str) -> str:
-    """Build the QC analysis prompt from template."""
-    template_name = CREATIVE_AGENT_TEMPLATES.get("script_qc", "creative/script_qc.j2")
-    template = _template_env.get_template(template_name)
-    return template.render(scenes=scenes, concept=concept, language=language)
+def _build_step_qc_prompt(step_name: str, step_result, concept: dict, language: str) -> str:
+    """Build the QC analysis prompt from the generalized template."""
+    template = _template_env.get_template("creative/director_step_qc.j2")
+    return template.render(step_name=step_name, step_result=step_result, concept=concept, language=language)
 
 
-def _record_qc_trace(db: Session, session: CreativeSession, prompt: str, result: dict, elapsed_ms: int) -> None:
+def _record_step_qc_trace(
+    db: Session, session: CreativeSession, prompt: str, result: dict, elapsed_ms: int, step_name: str
+) -> None:
     """Record a QC evaluation trace."""
     seq = get_next_sequence(db, session.id)
     record_trace_sync(
@@ -50,7 +50,7 @@ def _record_qc_trace(db: Session, session: CreativeSession, prompt: str, result:
         round_number=0,
         sequence=seq,
         trace_type="evaluation",
-        agent_role="script_qc",
+        agent_role=f"{step_name}_qc",
         input_prompt=prompt,
         output_content=result["content"],
         model_id=result["model_id"],
@@ -58,8 +58,40 @@ def _record_qc_trace(db: Session, session: CreativeSession, prompt: str, result:
         latency_ms=elapsed_ms,
         temperature=0.3,
         phase="production",
-        step_name="script_qc",
+        step_name=f"{step_name}_qc",
     )
+
+
+def run_step_qc(
+    db: Session,
+    session: CreativeSession,
+    step_name: str,
+    step_result,
+    concept: dict,
+    language: str,
+) -> dict:
+    """Run Director QC for any pipeline step (sync)."""
+    import asyncio
+
+    prompt = _build_step_qc_prompt(step_name, step_result, concept, language)
+    provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
+
+    start = time.monotonic()
+    loop = asyncio.new_event_loop()
+    try:
+        result = loop.run_until_complete(
+            provider.generate(
+                prompt=prompt,
+                system_prompt="You are a strict quality reviewer. Respond only in valid JSON.",
+                temperature=0.3,
+            )
+        )
+    finally:
+        loop.close()
+    elapsed_ms = int((time.monotonic() - start) * 1000)
+
+    _record_step_qc_trace(db, session, prompt, result, elapsed_ms, step_name)
+    return parse_json_response(result["content"])
 
 
 def run_script_qc(
@@ -69,27 +101,31 @@ def run_script_qc(
     concept: dict,
     language: str,
 ) -> dict:
-    """Run Script QC Agent (sync — for BackgroundTask pipeline context)."""
-    import asyncio
+    """Backward-compatible wrapper: Run Script QC Agent (sync)."""
+    return run_step_qc(db, session, "scriptwriter", scenes, concept, language)
 
-    prompt = _build_qc_prompt(scenes, concept, language)
+
+async def run_step_qc_async(
+    db: Session,
+    session: CreativeSession,
+    step_name: str,
+    step_result,
+    concept: dict,
+    language: str,
+) -> dict:
+    """Run Director QC for any pipeline step (async)."""
+    prompt = _build_step_qc_prompt(step_name, step_result, concept, language)
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
 
     start = time.monotonic()
-    loop = asyncio.new_event_loop()
-    try:
-        result = loop.run_until_complete(
-            provider.generate(
-                prompt=prompt,
-                system_prompt="You are a strict script quality reviewer. Respond only in valid JSON.",
-                temperature=0.3,
-            )
-        )
-    finally:
-        loop.close()
+    result = await provider.generate(
+        prompt=prompt,
+        system_prompt="You are a strict quality reviewer. Respond only in valid JSON.",
+        temperature=0.3,
+    )
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    _record_qc_trace(db, session, prompt, result, elapsed_ms)
+    _record_step_qc_trace(db, session, prompt, result, elapsed_ms, step_name)
     return parse_json_response(result["content"])
 
 
@@ -100,20 +136,8 @@ async def run_script_qc_async(
     concept: dict,
     language: str,
 ) -> dict:
-    """Run Script QC Agent (async — for async endpoint context)."""
-    prompt = _build_qc_prompt(scenes, concept, language)
-    provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
-
-    start = time.monotonic()
-    result = await provider.generate(
-        prompt=prompt,
-        system_prompt="You are a strict script quality reviewer. Respond only in valid JSON.",
-        temperature=0.3,
-    )
-    elapsed_ms = int((time.monotonic() - start) * 1000)
-
-    _record_qc_trace(db, session, prompt, result, elapsed_ms)
-    return parse_json_response(result["content"])
+    """Backward-compatible async wrapper: Run Script QC Agent."""
+    return await run_step_qc_async(db, session, "scriptwriter", scenes, concept, language)
 
 
 def check_auto_approve(qc_result: dict) -> bool:
@@ -142,7 +166,7 @@ def pause_for_review(
         "messages": [
             {
                 "role": "system",
-                "content": f"Script QC complete. Rating: {qc_result.get('overall_rating', 'unknown')} "
+                "content": f"{step_name} QC complete. Rating: {qc_result.get('overall_rating', 'unknown')} "
                 f"(score: {qc_result.get('score', 0):.2f}). "
                 f"Review the results and approve or request revision.",
                 "timestamp": now_iso,

@@ -8,6 +8,7 @@ import type {
   CreativeSession,
   CopyrightResult,
   MusicRecommendation,
+  PipelineLog,
 } from "../../types/creative";
 import StatusBadge from "./StatusBadge";
 import ConceptCompareView from "./ConceptCompareView";
@@ -102,6 +103,8 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
 
   const pipelineState = ctx.pipeline as Record<string, unknown> | undefined;
   const finalOutput = session.final_output as Record<string, unknown> | null;
+  const pipelineLogs = (pipelineState?.logs ?? []) as PipelineLog[];
+  const disabledSteps = (ctx.disabled_steps ?? []) as string[];
 
   return (
     <div className="space-y-4">
@@ -181,7 +184,18 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
       )}
 
       {session.status === "phase2_running" && (
-        <PipelineProgressView progress={progress} topic={session.objective} />
+        <PipelineProgressView
+          progress={progress}
+          logs={pipelineLogs}
+          disabledSteps={disabledSteps}
+          topic={session.objective}
+          review={
+            review
+              ? { step: review.step, qc_analysis: review.qc_analysis, messages: review.messages }
+              : null
+          }
+          onReviewAction={onReviewAction}
+        />
       )}
 
       {session.status === "step_review" && renderReviewSection()}
