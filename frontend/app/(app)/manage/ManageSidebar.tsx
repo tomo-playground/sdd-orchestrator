@@ -6,8 +6,6 @@ import {
   Palette,
   FileText,
   SlidersHorizontal,
-  Mic,
-  Music2,
   Settings,
   Trash2,
   Upload,
@@ -23,16 +21,7 @@ import { useStudioStore } from "../../store/useStudioStore";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type ManageTab =
-  | "tags"
-  | "style"
-  | "prompts"
-  | "presets"
-  | "voice"
-  | "music"
-  | "youtube"
-  | "settings"
-  | "trash";
+export type ManageTab = "tags" | "style" | "prompts" | "presets" | "youtube" | "settings" | "trash";
 
 type NavItem = {
   id: ManageTab;
@@ -57,8 +46,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "tags", label: "Tags", icon: Tag },
       { id: "style", label: "Styles", icon: Palette },
-      { id: "voice", label: "Voice Presets", icon: Mic },
-      { id: "music", label: "Music Presets", icon: Music2 },
     ],
   },
   {
@@ -157,7 +144,7 @@ export default function ManageSidebar({
                   />
                   {group.label}
                   {group.key === "project" && projectName && (
-                    <span className="ml-auto truncate max-w-[7rem] text-[9px] font-medium text-zinc-400">
+                    <span className="ml-auto max-w-[7rem] truncate text-[9px] font-medium text-zinc-400">
                       {projectName}
                     </span>
                   )}

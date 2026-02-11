@@ -30,16 +30,13 @@ type NavItem = {
   matchTab?: string;
 };
 
-/** Tabs surfaced as top-level nav — excluded from generic Manage active state */
-const PROMOTED_TABS = new Set(["music"]);
-
 const NAV_GROUPS: (NavItem[] | "sep")[] = [
   [
     { href: "/", label: "Home", icon: Home, exact: true },
     { href: "/storyboards", label: "Stories", icon: FileText },
     { href: "/characters", label: "Characters", icon: Users },
     { href: "/voices", label: "Voices", icon: Mic },
-    { href: "/manage?tab=music", label: "Music", icon: Music, matchTab: "music" },
+    { href: "/music", label: "Music", icon: Music },
   ],
   "sep",
   [{ href: "/studio", label: "Studio", icon: Clapperboard }],
@@ -52,8 +49,7 @@ const NAV_GROUPS: (NavItem[] | "sep")[] = [
 
 function isNavActive(item: NavItem, pathname: string, tab: string | null) {
   if (item.matchTab) return pathname === "/manage" && tab === item.matchTab;
-  if (item.href === "/manage")
-    return pathname.startsWith("/manage") && !PROMOTED_TABS.has(tab ?? "");
+  if (item.href === "/manage") return pathname.startsWith("/manage");
   if (item.exact) return pathname === item.href;
   return pathname.startsWith(item.href);
 }
@@ -102,7 +98,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     !pathname.startsWith("/lab") &&
     !pathname.startsWith("/characters") &&
     !pathname.startsWith("/storyboards") &&
-    !pathname.startsWith("/voices");
+    !pathname.startsWith("/voices") &&
+    !pathname.startsWith("/music");
   const toast = useStudioStore((s) => s.toast);
   const connectionStatus = useBackendHealth();
 

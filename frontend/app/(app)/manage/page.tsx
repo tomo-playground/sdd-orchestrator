@@ -9,8 +9,6 @@ import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
 import PromptsTab from "./tabs/PromptsTab";
 import RenderPresetsTab from "./tabs/RenderPresetsTab";
-import VoicePresetsTab from "./tabs/VoicePresetsTab";
-import MusicPresetsTab from "./tabs/MusicPresetsTab";
 import TrashTab from "./tabs/TrashTab";
 import YouTubeTab from "./tabs/YouTubeTab";
 
@@ -19,8 +17,6 @@ const VALID_TABS: ManageTab[] = [
   "style",
   "prompts",
   "presets",
-  "voice",
-  "music",
   "youtube",
   "settings",
   "trash",
@@ -69,8 +65,6 @@ function ManageContent() {
           {manageTab === "style" && <StyleTab />}
           {manageTab === "prompts" && <PromptsTab />}
           {manageTab === "presets" && <RenderPresetsTab />}
-          {manageTab === "voice" && <VoicePresetsTab />}
-          {manageTab === "music" && <MusicPresetsTab />}
           {manageTab === "trash" && <TrashTab />}
           {manageTab === "youtube" && <YouTubeTab projectId={projectId} />}
           {manageTab === "settings" && <SettingsTab />}
@@ -94,8 +88,6 @@ const MOBILE_TABS: { id: ManageTab; label: string }[] = [
   // Library
   { id: "tags", label: "Tags" },
   { id: "style", label: "Styles" },
-  { id: "voice", label: "Voice" },
-  { id: "music", label: "Music" },
   // Project
   { id: "presets", label: "Presets" },
   { id: "youtube", label: "YouTube" },

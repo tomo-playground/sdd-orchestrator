@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
-import type { MusicPreset } from "../../../types";
-
-import type { UiCallbacks } from "./types";
+import { API_BASE } from "../constants";
+import type { MusicPreset } from "../types";
+import type { UiCallbacks } from "../(app)/manage/hooks/types";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -25,8 +24,9 @@ export const EMPTY_MUSIC: EditingMusic = {
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useMusicPresetsTab(ui: UiCallbacks) {
+export function useMusic(ui: UiCallbacks) {
   const [presets, setPresets] = useState<MusicPreset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState<EditingMusic | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -44,6 +44,8 @@ export function useMusicPresetsTab(ui: UiCallbacks) {
       setPresets(res.data);
     } catch {
       console.error("Failed to fetch music presets");
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -228,13 +230,14 @@ export function useMusicPresetsTab(ui: UiCallbacks) {
   );
 
   const set = useCallback(
-    (key: keyof EditingMusic, value: unknown) =>
+    <K extends keyof EditingMusic>(key: K, value: EditingMusic[K]) =>
       setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
     []
   );
 
   return {
     presets,
+    isLoading,
     editing,
     editId,
     saving,

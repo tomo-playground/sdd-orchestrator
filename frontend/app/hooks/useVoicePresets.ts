@@ -2,18 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import type { VoicePreset } from "../types";
-
-// ── Types ──────────────────────────────────────────────
-
-export type UiCallbacks = {
-  showToast: (message: string, type: "success" | "error" | "warning") => void;
-  confirmDialog: (opts: {
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    variant?: "default" | "danger";
-  }) => Promise<boolean>;
-};
+import type { UiCallbacks } from "../(app)/manage/hooks/types";
 
 export type EditingPreset = {
   name: string;
