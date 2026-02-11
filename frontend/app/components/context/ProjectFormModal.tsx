@@ -6,6 +6,7 @@ import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { API_BASE } from "../../constants";
 import type { Character, ProjectItem } from "../../types";
+import { resolveImageUrl } from "../../utils/url";
 
 type Props = {
   project?: ProjectItem;
@@ -125,9 +126,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                 None
               </button>
               {charsWithImage.map((ch) => {
-                const imgUrl = ch.preview_image_url!.startsWith("http")
-                  ? ch.preview_image_url!
-                  : `${API_BASE}${ch.preview_image_url}`;
+                const imgUrl = resolveImageUrl(ch.preview_image_url);
                 const isSelected = avatarAssetId === ch.preview_image_asset_id;
                 return (
                   <button
@@ -143,7 +142,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={imgUrl}
+                      src={imgUrl!}
                       alt={ch.name}
                       className="h-full w-full object-cover object-top"
                     />

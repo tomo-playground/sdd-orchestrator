@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
+import { getErrorMsg } from "../../../utils/error";
+import { useCharacterPreview } from "./useCharacterPreview";
+import { parseRawTagText } from "./parseRawTagText";
 import {
   Character,
   CharacterLoRA,
@@ -11,41 +14,27 @@ import {
   VoicePreset,
 } from "../../../types";
 
-function getErrorMsg(error: unknown, fallback: string): string {
-  if (axios.isAxiosError(error)) return error.response?.data?.detail ?? error.message;
-  if (error instanceof Error) return error.message;
-  return fallback;
-}
-
 const RESTRICTED_KEYWORDS = [
-  "background",
-  "kitchen",
-  "room",
-  "outdoors",
-  "indoors",
-  "scenery",
-  "nature",
-  "mountain",
-  "street",
-  "office",
-  "bedroom",
-  "bathroom",
-  "garden",
+  "background", "kitchen", "room", "outdoors", "indoors", "scenery",
+  "nature", "mountain", "street", "office", "bedroom", "bathroom", "garden",
 ];
 
-export function useCharacterForm(
-  character: Character | undefined,
-  allTags: Tag[],
-  allLoras: LoRA[],
-  onSave: (data: Partial<Character>, id?: number) => Promise<void>,
-  onClose: () => void,
-  showToast: (message: string, type: "success" | "error" | "warning") => void,
+export type UseCharacterFormOptions = {
+  character?: Character;
+  allTags: Tag[];
+  allLoras: LoRA[];
+  onSave: (data: Partial<Character>, id?: number) => Promise<void>;
+  onClose?: () => void;
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
   confirmDialog: (opts: {
     title?: string;
     message?: string;
     confirmLabel?: string;
-  }) => Promise<boolean>
-) {
+  }) => Promise<boolean>;
+};
+
+export function useCharacterForm(options: UseCharacterFormOptions) {
+  const { character, allTags, allLoras, onSave, onClose, showToast, confirmDialog } = options;
   const isCreateMode = !character;
 
   // --- Basic state ---
@@ -57,8 +46,16 @@ export function useCharacterForm(
     character?.custom_negative_prompt || ""
   );
 
-  // --- Preview ---
-  const [previewImageUrl, setPreviewImageUrl] = useState(character?.preview_image_url || "");
+  // --- Preview (delegated to useCharacterPreview) ---
+  const preview = useCharacterPreview({
+    characterId: character?.id,
+    isCreateMode,
+    initialPreviewUrl: character?.preview_image_url || "",
+    showToast,
+    confirmDialog,
+  });
+
+  // --- Prompt settings ---
   const [previewLocked, setPreviewLocked] = useState(character?.preview_locked ?? false);
   const [promptMode, setPromptMode] = useState<PromptMode>(character?.prompt_mode || "auto");
   const [ipAdapterWeight, setIpAdapterWeight] = useState<number>(
@@ -98,10 +95,8 @@ export function useCharacterForm(
   useEffect(() => {
     axios
       .get(`${API_BASE}/voice-presets`)
-      .then((res) => {
-        setVoicePresets(res.data);
-      })
-      .catch(() => {});
+      .then((res) => setVoicePresets(res.data))
+      .catch((err) => console.warn("[useCharacterForm] Failed to load voice presets:", err));
   }, []);
 
   // --- LoRAs ---
@@ -110,30 +105,15 @@ export function useCharacterForm(
 
   // --- Async flags ---
   const [isSaving, setIsSaving] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-
-  // --- Gemini edit ---
-  const [geminiEditOpen, setGeminiEditOpen] = useState(false);
-  const [geminiTargetChange, setGeminiTargetChange] = useState("");
-
-  // --- Preview modal ---
-  const [previewImageOpen, setPreviewImageOpen] = useState(false);
 
   // --- Sync prompt_mode from character ---
   useEffect(() => {
-    if (character?.prompt_mode) {
-      setPromptMode(character.prompt_mode);
-    }
+    if (character?.prompt_mode) setPromptMode(character.prompt_mode);
   }, [character]);
 
   // --- Derived: warnings ---
   const sceneIdentityWarning = useMemo(() => {
-    const tokens = customBasePrompt
-      .toLowerCase()
-      .split(/[,\s]+/)
-      .map((t) => t.trim());
+    const tokens = customBasePrompt.toLowerCase().split(/[,\s]+/).map((t) => t.trim());
     const found = tokens.filter((t) => RESTRICTED_KEYWORDS.includes(t));
     return found.length > 0
       ? `Warning: Background tags detected (${found.join(", ")}). Please remove them for better consistency.`
@@ -169,61 +149,6 @@ export function useCharacterForm(
     return allTags.filter((t) => t.name.toLowerCase().includes(search)).slice(0, 10);
   }, [allTags, tagSearch]);
 
-  // --- Handlers: preview image ---
-  const handleGenerateReference = async () => {
-    if (isCreateMode || !character?.id) return;
-    setIsGenerating(true);
-    try {
-      const res = await axios.post(`${API_BASE}/characters/${character.id}/regenerate-reference`);
-      if (res.data.url) setPreviewImageUrl(res.data.url);
-    } catch (error) {
-      console.error("Failed to generate reference", error);
-      showToast(`Generate failed: ${getErrorMsg(error, "Unknown error")}`, "error");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleEnhancePreview = async () => {
-    if (isCreateMode || !character?.id || !previewImageUrl) return;
-    const ok = await confirmDialog({
-      title: "Enhance Preview",
-      message: "Enhance preview image with Gemini? (~$0.04 cost)",
-      confirmLabel: "Enhance",
-    });
-    if (!ok) return;
-    setIsEnhancing(true);
-    try {
-      const res = await axios.post(`${API_BASE}/characters/${character.id}/enhance-preview`);
-      if (res.data.url) setPreviewImageUrl(res.data.url);
-    } catch (error) {
-      console.error("Failed to enhance preview", error);
-      showToast(`Enhance failed: ${getErrorMsg(error, "Unknown error")}`, "error");
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
-  const handleEditPreview = async (instruction: string) => {
-    if (isCreateMode || !character?.id || !previewImageUrl || !instruction.trim()) return;
-    setIsEditing(true);
-    setGeminiEditOpen(false);
-    try {
-      const res = await axios.post(`${API_BASE}/characters/${character.id}/edit-preview`, {
-        instruction: instruction.trim(),
-      });
-      if (res.data.url) {
-        setPreviewImageUrl(res.data.url);
-        setGeminiTargetChange("");
-      }
-    } catch (error) {
-      console.error("Failed to edit preview", error);
-      showToast(`Edit failed: ${getErrorMsg(error, "Unknown error")}`, "error");
-    } finally {
-      setIsEditing(false);
-    }
-  };
-
   // --- Handlers: tags ---
   const handleAddTag = (tag: Tag) => {
     if (activeTagInput === "identity") {
@@ -244,32 +169,15 @@ export function useCharacterForm(
 
   const toggleRawEdit = (type: "identity" | "clothing") => {
     if (rawEditMode === type) {
-      const parsed = rawEditText
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-      const newIds: number[] = [];
-      const notFound: string[] = [];
-
-      parsed.forEach((tagName) => {
-        let tag = allTags.find((t) => t.name === tagName);
-        if (!tag) tag = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
-        if (tag) {
-          if (!newIds.includes(tag.id)) newIds.push(tag.id);
-        } else {
-          notFound.push(tagName);
-        }
-      });
-
+      const { ids, notFound } = parseRawTagText(rawEditText, allTags);
       if (notFound.length > 0) {
         showToast(
           `Tags not found: ${notFound.join(", ")}. Use the Tag Manager to add new tags.`,
           "warning"
         );
       }
-
-      if (type === "identity") setIdentityTagIds(newIds);
-      else setClothingTagIds(newIds);
+      if (type === "identity") setIdentityTagIds(ids);
+      else setClothingTagIds(ids);
       setRawEditMode(null);
     } else {
       const tags = type === "identity" ? identityTags : clothingTags;
@@ -315,21 +223,13 @@ export function useCharacterForm(
     let finalClothingTagIds = clothingTagIds;
 
     if (rawEditMode) {
-      const parsed = rawEditText
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-      const newIds: number[] = [];
-      parsed.forEach((tagName) => {
-        const tag = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
-        if (tag && !newIds.includes(tag.id)) newIds.push(tag.id);
-      });
+      const { ids } = parseRawTagText(rawEditText, allTags);
       if (rawEditMode === "identity") {
-        finalIdentityTagIds = newIds;
-        setIdentityTagIds(newIds);
+        finalIdentityTagIds = ids;
+        setIdentityTagIds(ids);
       } else {
-        finalClothingTagIds = newIds;
-        setClothingTagIds(newIds);
+        finalClothingTagIds = ids;
+        setClothingTagIds(ids);
       }
       setRawEditMode(null);
     }
@@ -354,11 +254,10 @@ export function useCharacterForm(
       voice_preset_id: defaultVoicePresetId,
     };
 
-    console.log("[CharacterEditModal] Saving character:", payload);
     setIsSaving(true);
     try {
       await onSave(payload, character?.id);
-      onClose();
+      onClose?.();
     } catch (error) {
       console.error("Failed to save character", error);
       showToast(`Save failed: ${getErrorMsg(error, "Unknown error")}`, "error");
@@ -368,81 +267,39 @@ export function useCharacterForm(
   };
 
   return {
-    // Basic
     isCreateMode,
-    name,
-    setName,
-    description,
-    setDescription,
-    gender,
-    setGender,
-    customBasePrompt,
-    setCustomBasePrompt,
-    customNegativePrompt,
-    setCustomNegativePrompt,
-    // Preview
-    previewImageUrl,
-    setPreviewImageUrl,
-    previewLocked,
-    setPreviewLocked,
-    promptMode,
-    setPromptMode,
-    ipAdapterWeight,
-    setIpAdapterWeight,
-    ipAdapterModel,
-    setIpAdapterModel,
+    name, setName,
+    description, setDescription,
+    gender, setGender,
+    customBasePrompt, setCustomBasePrompt,
+    customNegativePrompt, setCustomNegativePrompt,
+    // Preview (spread from useCharacterPreview)
+    ...preview,
+    previewLocked, setPreviewLocked,
+    promptMode, setPromptMode,
+    ipAdapterWeight, setIpAdapterWeight,
+    ipAdapterModel, setIpAdapterModel,
     // Reference
-    referenceBasePrompt,
-    setReferenceBasePrompt,
-    referenceNegativePrompt,
-    setReferenceNegativePrompt,
+    referenceBasePrompt, setReferenceBasePrompt,
+    referenceNegativePrompt, setReferenceNegativePrompt,
     // Tags
-    identityTagIds,
-    clothingTagIds,
-    tagSearch,
-    setTagSearch,
-    activeTagInput,
-    setActiveTagInput,
-    rawEditMode,
-    rawEditText,
-    setRawEditText,
+    identityTagIds, clothingTagIds,
+    tagSearch, setTagSearch,
+    activeTagInput, setActiveTagInput,
+    rawEditMode, rawEditText, setRawEditText,
     // Voice Preset
-    defaultVoicePresetId,
-    setDefaultVoicePresetId,
+    defaultVoicePresetId, setDefaultVoicePresetId,
     voicePresets,
     // LoRAs
-    selectedLoras,
-    localLoras,
+    selectedLoras, localLoras,
     // Async flags
     isSaving,
-    isGenerating,
-    isEnhancing,
-    isEditing,
-    // Gemini edit
-    geminiEditOpen,
-    setGeminiEditOpen,
-    geminiTargetChange,
-    setGeminiTargetChange,
-    // Preview modal
-    previewImageOpen,
-    setPreviewImageOpen,
     // Derived
-    sceneIdentityWarning,
-    referenceProfileWarning,
-    identityTags,
-    clothingTags,
-    filteredTags,
+    sceneIdentityWarning, referenceProfileWarning,
+    identityTags, clothingTags, filteredTags,
     // Handlers
-    handleGenerateReference,
-    handleEnhancePreview,
-    handleEditPreview,
-    handleAddTag,
-    handleRemoveTag,
-    toggleRawEdit,
-    handleAddLora,
-    handleUpdateLora,
-    handleRemoveLora,
-    handleLoraTypeChange,
+    handleAddTag, handleRemoveTag, toggleRawEdit,
+    handleAddLora, handleUpdateLora, handleRemoveLora, handleLoraTypeChange,
     handleSubmit,
   };
 }

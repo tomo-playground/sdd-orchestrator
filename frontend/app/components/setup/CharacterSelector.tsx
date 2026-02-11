@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Character } from "../../types";
-import { API_BASE } from "../../constants";
+import { resolveImageUrl } from "../../utils/url";
 
 type CharacterSelectorProps = {
   label?: string;
@@ -10,11 +10,6 @@ type CharacterSelectorProps = {
   selectedCharacterId: number | null;
   onSelect: (charId: number | null) => void;
 };
-
-function resolveImageUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  return url.startsWith("http") ? url : `${API_BASE}${url}`;
-}
 
 function CharacterThumbnail({
   src,
