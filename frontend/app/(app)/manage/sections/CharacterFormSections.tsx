@@ -200,9 +200,9 @@ export function SceneIdentitySection({
               <button
                 type="button"
                 onClick={() => onCopyToReference("base")}
-                className="text-[11px] text-zinc-500 hover:underline"
+                className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
               >
-                Copy to Ref.
+                COPY TO REF ↓
               </button>
             )}
           </div>
@@ -229,9 +229,9 @@ export function SceneIdentitySection({
             <button
               type="button"
               onClick={() => onCopyToReference("negative")}
-              className="text-[11px] text-zinc-500 hover:underline"
+              className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700"
             >
-              Copy to Ref.
+              COPY TO REF ↓
             </button>
           )}
         </div>

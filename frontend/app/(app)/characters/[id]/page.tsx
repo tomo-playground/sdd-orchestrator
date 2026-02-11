@@ -66,7 +66,7 @@ export default function CharacterDetailPage() {
       }
     };
     load();
-  }, [rawId, isNew, showToast]);
+  }, [rawId, isNew, showToast, router]);
 
   const handleSave = useCallback(
     async (data: Partial<Character>, id?: number) => {
@@ -186,8 +186,8 @@ function CharacterDetailForm({
 
   return (
     <div className={`${CONTAINER_CLASSES} py-6`}>
-      {/* Back link + Actions */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Back link + Title */}
+      <div className="mb-6 flex items-center gap-3">
         <button
           onClick={handleBack}
           className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-700"
@@ -195,22 +195,10 @@ function CharacterDetailForm({
           <ArrowLeft className="h-3.5 w-3.5" />
           Characters
         </button>
-        <div className="flex items-center gap-2">
-          {!isNew && (
-            <Button variant="danger" size="sm" onClick={handleDelete}>
-              Delete
-            </Button>
-          )}
-          <Button size="sm" onClick={form.handleSubmit} loading={form.isSaving}>
-            {form.isSaving ? "Saving..." : isNew ? "Create Character" : "Save Changes"}
-          </Button>
-        </div>
+        <h1 className="text-lg font-bold text-zinc-900">
+          {isNew ? "Create New Character" : `Edit: ${character?.name}`}
+        </h1>
       </div>
-
-      {/* Page title */}
-      <h1 className="mb-6 text-lg font-bold text-zinc-900">
-        {isNew ? "Create New Character" : `Edit: ${character?.name}`}
-      </h1>
 
       {/* Two-column layout */}
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
@@ -229,11 +217,6 @@ function CharacterDetailForm({
             onOpenGeminiEdit={() => form.setGeminiEditOpen(true)}
             onOpenPreview={() => form.setPreviewImageOpen(true)}
           />
-          <VoicePresetSection
-            voicePresets={form.voicePresets}
-            selectedId={form.defaultVoicePresetId}
-            onChange={form.setDefaultVoicePresetId}
-          />
         </div>
 
         {/* Right: Scrollable form sections */}
@@ -249,19 +232,6 @@ function CharacterDetailForm({
                 setDescription={form.setDescription}
               />
             </div>
-          </section>
-
-          <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
-            <PromptModeSection promptMode={form.promptMode} setPromptMode={form.setPromptMode} />
-          </section>
-
-          <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
-            <IpAdapterSection
-              ipAdapterWeight={form.ipAdapterWeight}
-              setIpAdapterWeight={form.setIpAdapterWeight}
-              ipAdapterModel={form.ipAdapterModel}
-              setIpAdapterModel={form.setIpAdapterModel}
-            />
           </section>
 
           <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
@@ -309,6 +279,27 @@ function CharacterDetailForm({
           </section>
 
           <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
+            <PromptModeSection promptMode={form.promptMode} setPromptMode={form.setPromptMode} />
+          </section>
+
+          <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
+            <IpAdapterSection
+              ipAdapterWeight={form.ipAdapterWeight}
+              setIpAdapterWeight={form.setIpAdapterWeight}
+              ipAdapterModel={form.ipAdapterModel}
+              setIpAdapterModel={form.setIpAdapterModel}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
+            <VoicePresetSection
+              voicePresets={form.voicePresets}
+              selectedId={form.defaultVoicePresetId}
+              onChange={form.setDefaultVoicePresetId}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-zinc-200/60 bg-white p-5">
             <ReferencePromptsPanel
               isCreateMode={form.isCreateMode}
               referenceBasePrompt={form.referenceBasePrompt}
@@ -320,6 +311,25 @@ function CharacterDetailForm({
               referenceProfileWarning={form.referenceProfileWarning}
             />
           </section>
+        </div>
+      </div>
+
+      {/* Sticky bottom action bar */}
+      <div className="sticky bottom-0 z-10 -mx-6 mt-6 border-t border-zinc-200 bg-white/95 px-6 py-3 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            {form.isDirty && <span className="text-xs text-amber-500">Unsaved changes</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            {!isNew && (
+              <Button variant="danger" size="sm" onClick={handleDelete}>
+                Delete
+              </Button>
+            )}
+            <Button size="sm" onClick={form.handleSubmit} loading={form.isSaving}>
+              {form.isSaving ? "Saving..." : isNew ? "Create Character" : "Save Changes"}
+            </Button>
+          </div>
         </div>
       </div>
 
