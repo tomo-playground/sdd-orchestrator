@@ -238,6 +238,8 @@
 | 22 | image_url 정합성 강화 (JSONB 저장 방어, base64 전송 방지, stale ID 방어) | 안정성 | - | [x] |
 | 23 | Background Scene 태그 필터링 (no_humans 감지 → 캐릭터 레이어 제거) + LoRA Weight Cap 통합 (0.76) | 품질 | - | [x] |
 | 24 | Creative Lab V2: 쇼츠 멀티에이전트 시나리오 생성기 (9-Agent Pipeline + Studio 연동) | 기능 | [명세](../99_archive/features/CREATIVE_LAB_V2.md) | [x] |
+| 26 | Storyboards 독립 페이지 (/storyboards 리스트 + 필터/검색/삭제, 홈 요약 축소) | UX | - | [x] |
+| 27 | Production Workspace 네비게이션 (재료별 독립 메뉴 그룹핑 + Studio 분리 + Voices/Music 탑메뉴 승격) | UX | - | [x] |
 
 ---
 
@@ -270,6 +272,36 @@
 - Manage > Assets 표시명 개선 (확장자 제거, flex wrap)
 
 상세: [기능 명세](FEATURES/PROJECT_GROUP.md)
+
+---
+
+## Phase 7-3: Production Workspace
+
+**목표**: "재료 준비 → 통합 렌더링" 2단계 워크플로우. 각 재료를 독립 페이지로 분리하고 Studio는 조립 전용으로 전환.
+**선행**: Phase 7-1 (Characters/Storyboards 독립 페이지 패턴 확립).
+
+**비전**:
+```
+재료 준비 (각 독립 페이지)          통합 (Studio)
+├── /storyboards  ✅ 완료           └── 재료 조합 → 렌더링 → 최종 영상
+├── /characters   ✅ 완료
+├── /voices       → Manage 탭 추출
+├── /music        → Manage 탭 추출
+└── /backgrounds  → 신규 (배경 에셋)
+```
+
+**접근 방식**: 점진적 마이그레이션. 기존 기능을 유지하면서 하나씩 독립 페이지로 추출.
+
+| # | 작업 | 분류 | 상태 |
+|---|------|------|------|
+| 0 | 네비게이션 재구성 (Production/Studio/Tools 그룹, Voices/Music 탑메뉴 승격) | UX | [x] (7-1 #27) |
+| 1 | `/voices` 독립 페이지 (Manage VoicePresetsTab 추출 + Voice Preview 강화) | UX | [ ] |
+| 2 | `/music` 독립 페이지 (Manage MusicPresetsTab 추출 + BGM 라이브러리) | UX | [ ] |
+| 3 | `/backgrounds` 배경 에셋 페이지 (DB 테이블 + CRUD API + 에셋 관리) | 기능 | [ ] |
+| 4 | Studio "조립 공장" 전환 (Materials 체크리스트 → Preview → Render 3단계) | UX | [ ] |
+| 5 | Zustand Store 분할 (useStudioStore → useStoryboardStore + useContextStore) | 리팩토링 | [ ] |
+
+**Backend 영향**: API 이미 리소스별 분리 완료. `/backgrounds` 신규 API만 추가 필요. 기존 파이프라인 변경 없음.
 
 ---
 
@@ -327,43 +359,44 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
      P0/P1 Fixes          Refactoring          CI + Soft Delete    TTS/Voice/BGM     Pose Control      New Features
                                                                                                        + Creative Lab
                                                                                                             ↓
-                                                          7-2 (Project/Group) → 8 (Multi-Style)
-                                                           Cascading Config          Future
+                                          7-2 (Project/Group) → 7-3 (Production Workspace) → 8 (Multi-Style)
+                                           Cascading Config      재료 독립 페이지 + Studio 조립    Future
 ```
 
 **현재 진행 상태** (2026-02-11):
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
-- Phase 7-1: **20/25** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
+- Phase 7-1: **23/27** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
+- Phase 7-3: **1/6** 완료 (#0 네비게이션 재구성)
 - **Backend 테스트**: 1,399개 수집
 
-### 잔여 작업 우선순위 (재정리 2026-02-10)
+### 잔여 작업 우선순위 (재정리 2026-02-11)
 
-**Tier 1 — 높은 임팩트 (중형, 3-5일)**
+**Tier 1 — Production Workspace (새 방향)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| ~~1~~ | ~~7-1 #5~~ | ~~Multi-Character UI~~ | ~~완료 (2026-02-10)~~ |
-| 2 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장, context_tags 활용도 향상 |
-| ~~3~~ | ~~7-1 #25~~ | ~~Character Management 독립 페이지~~ | ~~완료 (2026-02-11)~~ |
-| 4 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선, #25 완료 |
+| 1 | 7-3 #1 | `/voices` 독립 페이지 | Manage 탭 추출, 검증 패턴 존재 |
+| 2 | 7-3 #2 | `/music` 독립 페이지 | Voices와 동일 패턴 |
+| 3 | 7-1 #6 | Scene Builder UI (→ `/backgrounds` 기반) | 씬 표현력 확장, 7-3 #3과 통합 가능 |
+| 4 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선 |
 
-**Tier 2 — 자동화/인프라 (중형, 필요 시)**
+**Tier 2 — 아키텍처 개선**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 5 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능, 체감 효과 낮음 |
-| 6 | 6-7 #10 | ~~WD14 Feedback Loop~~ (Phase 1 완료: 자동 갱신 훅) | ~~대량 생산 단계에서 의미~~ → 구현 완료 |
+| 5 | 7-3 #5 | Store 분할 (Zustand 리팩토링) | 독립 페이지 안정성 |
+| 6 | 7-3 #4 | Studio "조립 공장" 전환 | Workspace 최종 형태 |
 | 7 | 7-2 P2 | Channel DNA + Tag Intelligence | 프로젝트 차별화 |
 
 **Tier 3 — 후순위**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 8 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
-| 9 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
-| 10 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
-| 11 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
-| 12 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
+| 8 | 7-1 #4 | 이미지 생성 Progress (SSE) | 배치 카운터로 대체 가능 |
+| 9 | 6-7 #2 | VRT Baseline System | CI 존재, 추가 안정성 |
+| 10 | 7-1 #2 | Setup Wizard (첫 실행 가이드) | 현재 단일 사용자 |
+| 11 | 7-1 #3 | 접근성 기본 (ARIA, focus trap, keyboard) | 중요하나 긴급하지 않음 |
+| 12 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
 
 **7-1 최근 완료 (2026-02-05 ~ 02-11)**:
 - Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)
@@ -382,3 +415,6 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-11) CharacterEditModal P0 UI/UX: `alert()`/`confirm()` 7개 → Toast + ConfirmDialog 교체 (DI 패턴), `text-[9px]`/`text-[10px]` 26개 → `text-[11px]`, 접근성 (`role="dialog"`, `aria-label`, Escape 닫기), `UiCallbacks` 타입 추출
 - (2026-02-11) 캐릭터 Identity Tag 체계: `a_cute_boy`/`a_cute_girl` 태그 등록, 캐릭터별 identity tag 연결 (bishounen 성인화 문제 해결), Voice Preset (지호/수빈) 생성 + 캐릭터 연동
 - (2026-02-11) Character Management 독립 페이지: `/characters` 리스트 (검색+필터+카드 그리드), `/characters/[id]` 상세/편집 (2컬럼 레이아웃), `/characters/new` 생성, CharacterEditModal 6개 섹션 추출 → 공유 컴포넌트, `useCharacterPreview` + `parseRawTagText` 훅 분리, Home CharactersSection 축소 (미니카드 3개 + View All)
+- (2026-02-11) Storyboards 독립 페이지: `/storyboards` 리스트 (Project/Group select 필터, 검색, ConfirmDialog 삭제), `useStoryboards` 훅 추출 (Zustand 비침습), `StoryboardCard`/`DraftCard` 공유 컴포넌트, Home StoryboardsSection 요약 축소 (최근 3개 + View All), AppShell NAV 추가
+- (2026-02-11) 캐릭터 편집 이탈 경고 (AC#3): `isDirty` JSON 스냅샷 비교, `beforeunload` 브라우저 경고, "← Characters" ConfirmDialog 이탈 확인
+- (2026-02-11) Production Workspace 네비게이션: AppShell NAV_GROUPS 재구성 (Production: Home/Stories/Characters/Voices/Music | Studio | Tools: Lab/Manage), Voices/Music 탑메뉴 승격 (`/manage?tab=voice`, `/manage?tab=music` 임시 연결), `isNavActive` query param 매칭, NavBar Suspense 분리
