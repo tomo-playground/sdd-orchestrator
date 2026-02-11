@@ -12,7 +12,6 @@ type Props = {
   onNew: () => void;
   onEdit?: (group: GroupItem) => void;
   onDelete?: (group: GroupItem) => void;
-  collapsed?: boolean;
 };
 
 export default function GroupDropdown({
@@ -22,7 +21,6 @@ export default function GroupDropdown({
   onNew,
   onEdit,
   onDelete,
-  collapsed,
 }: Props) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -54,22 +52,6 @@ export default function GroupDropdown({
       <DropdownFooter onNew={wrapClose<void>(onNew)!} />
     </Popover>
   );
-
-  if (collapsed) {
-    return (
-      <>
-        <button
-          ref={btnRef}
-          onClick={() => (isEmpty ? onNew() : setOpen((v) => !v))}
-          title={current?.name ?? "Groups"}
-          className="flex items-center justify-center rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700"
-        >
-          <FolderOpen className="h-4 w-4" />
-        </button>
-        {popover}
-      </>
-    );
-  }
 
   return (
     <>

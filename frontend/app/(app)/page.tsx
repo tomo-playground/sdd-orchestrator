@@ -10,7 +10,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="w-full max-w-5xl flex-1 space-y-8 px-6 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-8 px-6 py-6">
         <StoryboardsSection projectId={projectId} groupId={groupId} />
         <div className="border-t border-zinc-200" />
         <CharactersSection />

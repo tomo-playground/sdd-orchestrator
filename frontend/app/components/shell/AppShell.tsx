@@ -21,7 +21,6 @@ import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import Toast from "../ui/Toast";
 import ConnectionGuard from "./ConnectionGuard";
-import Sidebar from "./Sidebar";
 import PersistentContextBar from "../context/PersistentContextBar";
 import { useBackendHealth } from "../../hooks/useBackendHealth";
 import type { ReactNode, ComponentType } from "react";
@@ -101,16 +100,6 @@ function NavBar() {
 }
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const showSidebar =
-    !pathname.startsWith("/manage") &&
-    !pathname.startsWith("/lab") &&
-    !pathname.startsWith("/characters") &&
-    !pathname.startsWith("/storyboards") &&
-    !pathname.startsWith("/scripts") &&
-    !pathname.startsWith("/voices") &&
-    !pathname.startsWith("/music") &&
-    !pathname.startsWith("/backgrounds");
   const toast = useUIStore((s) => s.toast);
   const connectionStatus = useBackendHealth();
 
@@ -134,12 +123,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <PersistentContextBar />
 
-      {/* Sidebar + Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {showSidebar && <Sidebar />}
-        <div id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
-          {children}
-        </div>
+      {/* Content */}
+      <div id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
+        {children}
       </div>
 
       <CommandPalette />
