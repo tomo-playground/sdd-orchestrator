@@ -210,6 +210,14 @@ Phase B 추가 구현 (B-1~B-6 기반 통합 품질 개선):
 | C-4 | `useStoryboardStore` + `useRenderStore` 분리 (호환 레이어 유지) | 리팩토링 | [x] |
 | C-5 | Autopilot 범위 조정 (Scenes → Render → Output, 대본 생성 제외) | 기능 | [x] |
 
+Phase C 추가 구현 (UI 품질 통일):
+- 페이지 내 중복 Project/Group 셀렉터 제거 → 글로벌 PersistentContextBar 단일화
+- GroupDropdown "All Groups" 옵션 추가 (`ALL_GROUPS_ID=-1` sentinel)
+- `PAGE_TITLE_CLASSES`, `SEARCH_INPUT_CLASSES` 디자인 토큰 추출 (5개 리스트 페이지 통일)
+- `EmptyState` 공통 컴포넌트 도입 (6개 페이지 통일)
+- `LoadingSpinner` 텍스트 기반 로딩 → 스피너 통일 (6곳)
+- `useFocusTrap` 훅 도입 + 전체 모달 ARIA 접근성 강화
+
 ### Phase D: 정리
 
 | # | 작업 | 분류 | 상태 |
@@ -290,7 +298,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-1: **24/27** 완료 (잔여: #2 Wizard, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - Phase 7-3: **4/6** 완료 (#0~#3, #4~#5 → 7-4로 확장)
-- Phase 7-4: **Phase A+B+C 완료** (Store 분할 + Script 버티컬 + Studio 코디네이터), Phase D 미착수
+- Phase 7-4: **Phase A+B+C 완료** (Store 분할 + Script 버티컬 + Studio 코디네이터 + UI 토큰 통일 + 접근성), Phase D 미착수
 - **Backend 테스트**: 1,399개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)
