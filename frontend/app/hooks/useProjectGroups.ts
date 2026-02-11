@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from "react";
+import { useContextStore } from "../store/useContextStore";
 import { useStudioStore } from "../store/useStudioStore";
 import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
@@ -11,11 +12,11 @@ import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
  * - Auto-selects first item when lists load
  */
 export function useProjectGroups() {
-  const projectId = useStudioStore((s) => s.projectId);
-  const groupId = useStudioStore((s) => s.groupId);
-  const projects = useStudioStore((s) => s.projects);
-  const groups = useStudioStore((s) => s.groups);
-  const setMeta = useStudioStore((s) => s.setMeta);
+  const projectId = useContextStore((s) => s.projectId);
+  const groupId = useContextStore((s) => s.groupId);
+  const projects = useContextStore((s) => s.projects);
+  const groups = useContextStore((s) => s.groups);
+  const setContext = useContextStore((s) => s.setContext);
   const resetScenes = useStudioStore((s) => s.resetScenes);
 
   // Fetch projects on mount
@@ -26,9 +27,9 @@ export function useProjectGroups() {
   // Auto-select first project when projects load and no projectId set
   useEffect(() => {
     if (projects.length > 0 && projectId === null) {
-      setMeta({ projectId: projects[0].id });
+      setContext({ projectId: projects[0].id });
     }
-  }, [projects, projectId, setMeta]);
+  }, [projects, projectId, setContext]);
 
   // Fetch groups when projectId changes
   useEffect(() => {
@@ -38,42 +39,43 @@ export function useProjectGroups() {
   }, [projectId]);
 
   // Recovery: re-fetch groups if lost after transient state reset
+  const isLoadingGroups = useContextStore((s) => s.isLoadingGroups);
   useEffect(() => {
-    if (projectId !== null && groups.length === 0) {
+    if (projectId !== null && groups.length === 0 && !isLoadingGroups) {
       fetchGroups(projectId);
     }
-  }, [projectId, groups.length]);
+  }, [projectId, groups.length, isLoadingGroups]);
 
   // Auto-select first group when groups load and no groupId set
   useEffect(() => {
     if (groups.length > 0 && (groupId === null || !groups.some((g) => g.id === groupId))) {
-      setMeta({ groupId: groups[0].id });
+      setContext({ groupId: groups[0].id });
     }
-  }, [groups, groupId, setMeta]);
+  }, [groups, groupId, setContext]);
 
   // Load group render defaults when groupId changes
   useEffect(() => {
     if (groupId !== null) {
       // Skip content defaults (structure/language/duration) if storyboard is already loaded
-      const { storyboardId } = useStudioStore.getState();
+      const { storyboardId } = useContextStore.getState();
       loadGroupDefaults(groupId, { skipContentDefaults: storyboardId !== null });
     }
   }, [groupId]);
 
   const selectProject = useCallback(
     (id: number) => {
-      setMeta({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
+      setContext({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
       resetScenes();
     },
-    [setMeta, resetScenes]
+    [setContext, resetScenes]
   );
 
   const selectGroup = useCallback(
     (id: number) => {
-      setMeta({ groupId: id, storyboardId: null, storyboardTitle: "" });
+      setContext({ groupId: id, storyboardId: null, storyboardTitle: "" });
       resetScenes();
     },
-    [setMeta, resetScenes]
+    [setContext, resetScenes]
   );
 
   return { projectId, groupId, projects, groups, selectProject, selectGroup };

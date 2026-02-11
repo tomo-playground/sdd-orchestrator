@@ -4,3 +4,4 @@ export { default as GroupDropdown } from "./GroupDropdown";
 export { default as ProjectFormModal } from "./ProjectFormModal";
 export { default as GroupFormModal } from "./GroupFormModal";
 export { default as GroupConfigEditor } from "./GroupConfigEditor";
+export { default as PersistentContextBar } from "./PersistentContextBar";

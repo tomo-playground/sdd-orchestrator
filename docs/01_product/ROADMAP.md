@@ -324,13 +324,16 @@ Script 버티컬 (/scripts)
 └── AI Agent 모드 (기존 Creative Lab → 9-Agent Pipeline)
 ```
 
-### Phase A: 기반 준비
+**의존성**: Phase A 완료 → B/C 착수 가능 (블로커). B와 C는 병렬 가능하나 C-3은 B 완료 후.
+
+### Phase A: 기반 준비 — COMPLETE (2026-02-11)
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
-| A-1 | `useContextStore` 추출 (contextSlice → 앱 전역 스토어) | 리팩토링 | [ ] |
-| A-2 | `useUIStore` 추출 (toast, modal → 앱 전역 스토어) | 리팩토링 | [ ] |
-| A-3 | 영속적 컨텍스트 바 (현재 작업 중인 스토리보드 전역 표시) | UX | [ ] |
+| A-1 | `useUIStore` 추출 (toast → 앱 전역, persist 없음) | 리팩토링 | [x] |
+| A-2 | `useContextStore` 추출 (projectId/groupId/storyboardId → 앱 전역, persist) | 리팩토링 | [x] |
+| A-3 | 영속적 컨텍스트 바 (`PersistentContextBar`: Studio 외 페이지에서 breadcrumb 표시) | UX | [x] |
+| A-4 | Bridge 호환 레이어 (양방향 subscribe 동기화, 기존 32+ 파일 수정 불필요) | 리팩토링 | [x] |
 
 ### Phase B: Script 버티컬 구축
 
@@ -339,16 +342,17 @@ Script 버티컬 (/scripts)
 | B-1 | `/scripts` 페이지 생성 (목록 + 검색 + 필터, `/storyboards` 흡수) | UX | [ ] |
 | B-2 | Manual 모드 (PlanTab 대본 관심사 이동: Topic/Structure/Language/Duration/Characters) | 기능 | [ ] |
 | B-3 | AI Agent 모드 (Creative Lab 흡수: Debate + Pipeline + QC Review) | 기능 | [ ] |
-| B-4 | Backend `services/storyboard.py` God Service 분해 (script/ + storyboard/) | 리팩토링 | [ ] |
-| B-5 | Backend `/scripts/*` 라우터 추가 (generate + sessions) | API | [ ] |
+| B-4 | Backend `services/storyboard.py` 분해 (6단계: CRUD→Helper→Serializer→SceneBuilder→Speaker→Gemini) | 리팩토링 | [ ] |
+| B-5 | Backend `/scripts/generate` 라우터 추가 (기존 `/storyboards/create` deprecated redirect) | API | [ ] |
+| B-6 | Backend Materials Check API (`GET /storyboards/{id}/materials`) | API | [ ] |
 
 ### Phase C: Studio 코디네이터 전환
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
-| C-1 | Studio 칸반 뷰 (미선택 상태: Draft/InProd/Rendered/Published) | UX | [ ] |
+| C-1 | Studio 칸반 뷰 (미선택 상태, 기존 스키마에서 런타임 상태 파생) | UX | [ ] |
 | C-2 | Studio 타임라인 뷰 + Materials Check + Pipeline Progress | UX | [ ] |
-| C-3 | PlanTab 제거 → Image Settings를 Scenes 영역 상단으로 이동 | 리팩토링 | [ ] |
+| C-3 | PlanTab 제거 → Image Settings를 Scenes 영역으로 이동 (**B 완료 후**) | 리팩토링 | [ ] |
 | C-4 | `useStoryboardStore` + `useRenderStore` 분리 (호환 레이어 유지) | 리팩토링 | [ ] |
 | C-5 | Autopilot 범위 조정 (Scenes → Render → Output, 대본 생성 제외) | 기능 | [ ] |
 
@@ -357,7 +361,7 @@ Script 버티컬 (/scripts)
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
 | D-1 | 네비게이션 최종 정리 (Home 제거, Script 추가, Studio 최좌측) | UX | [ ] |
-| D-2 | Lab creative 탭 제거 (Lab = tag-lab + scene-lab + analytics만 유지) | 정리 | [ ] |
+| D-2 | Lab creative 탭 제거 + `/scripts/sessions/*` 라우터 통합 (Creative 세션 이관) | 정리 | [ ] |
 | D-3 | `/storyboards` → `/scripts` 리다이렉트 | 정리 | [ ] |
 | D-4 | deprecated API/호환 레이어 제거 | 정리 | [ ] |
 | D-5 | localStorage 마이그레이션 (기존 store 키 → 신규 키) | 정리 | [ ] |
@@ -374,9 +378,9 @@ Script 버티컬 (/scripts)
 
 Phase 8 이후 또는 우선순위 미정 항목.
 
-### ~~Creative Lab 개선~~ → Phase 7-4 Script 버티컬로 흡수
+### Creative Lab 개선 — 완료, Phase 7-4에서 Script 버티컬로 이관 예정
 
-쇼츠 파이프라인 표준화 완료 (2026-02-10). **전체 완료 후 7-4 Script 버티컬로 이관 예정.**
+쇼츠 파이프라인 표준화 완료 (2026-02-10). **7-4 Phase B-3에서 AI Agent 모드로 통합, Phase D-2에서 Lab에서 제거.**
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
@@ -432,7 +436,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-1: **23/27** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - Phase 7-3: **4/6** 완료 (#0~#3, #4~#5 → 7-4로 확장)
-- Phase 7-4: **설계 완료**, 미착수
+- Phase 7-4: **Phase A 완료** (Store 분할 + Bridge + PersistentContextBar), Phase B 미착수
 - **Backend 테스트**: 1,399개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)
@@ -440,7 +444,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 **Tier 1 — Studio Coordinator + Script Vertical (핵심 방향)**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 1 | 7-4 A | Store 분할 + 컨텍스트 바 (기반 준비) | 모든 후속 작업의 전제 |
+| ~~1~~ | ~~7-4 A~~ | ~~Store 분할 + 컨텍스트 바 (기반 준비)~~ | ~~완료 (2026-02-11)~~ |
 | 2 | 7-4 B | Script 버티컬 구축 (목록 + Manual + AI Agent) | 가장 큰 중복 해소, 첫 AI 에이전트 버티컬 |
 | 3 | 7-4 C | Studio 코디네이터 전환 (칸반 + 타임라인 + Materials Check) | Workspace 최종 형태 |
 | 4 | 7-4 D | 정리 (Lab creative 제거, 리다이렉트, 레거시 제거) | 기술 부채 해소 |

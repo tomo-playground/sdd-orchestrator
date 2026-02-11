@@ -123,12 +123,13 @@ export const useStudioStore = create<StudioState>()(
  */
 export const resetStudioStore = async (options?: { reloadGroupDefaults?: boolean }) => {
   const { reloadGroupDefaults = true } = options ?? {};
-  const state = useStudioStore.getState();
+  const { useContextStore } = await import("./useContextStore");
+  const ctxState = useContextStore.getState();
 
   // Preserve context data before reset
   const preserved = {
-    projectId: state.projectId,
-    groupId: state.groupId,
+    projectId: ctxState.projectId,
+    groupId: ctxState.groupId,
   };
 
   // Clear localStorage to prevent rehydration of old data
@@ -137,12 +138,16 @@ export const resetStudioStore = async (options?: { reloadGroupDefaults?: boolean
   }
 
   // Reset all slices
+  const state = useStudioStore.getState();
   state.resetMeta();
   state.resetPlan();
   state.resetScenes();
   state.resetOutput();
 
-  // Restore preserved data (intentionally persists across storyboards)
+  // Reset storyboard context (preserves projectId/groupId)
+  ctxState.resetContext();
+
+  // Restore preserved data in both stores (bridge syncs them)
   state.setMeta({
     projectId: preserved.projectId,
     groupId: preserved.groupId,

@@ -14,14 +14,19 @@ import {
   Image,
   Clapperboard,
 } from "lucide-react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
+import { initStoreBridges } from "../../store/bridges/storeBridge";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import Toast from "../ui/Toast";
 import ConnectionGuard from "./ConnectionGuard";
 import Sidebar from "./Sidebar";
+import PersistentContextBar from "../context/PersistentContextBar";
 import { useBackendHealth } from "../../hooks/useBackendHealth";
 import type { ReactNode, ComponentType } from "react";
+
+// Initialize store bridges once at module load
+initStoreBridges();
 
 type NavItem = {
   href: string;
@@ -103,7 +108,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     !pathname.startsWith("/voices") &&
     !pathname.startsWith("/music") &&
     !pathname.startsWith("/backgrounds");
-  const toast = useStudioStore((s) => s.toast);
+  const toast = useUIStore((s) => s.toast);
   const connectionStatus = useBackendHealth();
 
   return (
@@ -117,6 +122,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <span className="text-zinc-300">&#x2318;</span>K
         </kbd>
       </header>
+
+      <PersistentContextBar />
 
       {/* Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
