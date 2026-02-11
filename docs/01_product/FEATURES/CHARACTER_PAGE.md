@@ -1,6 +1,6 @@
 # Character Management Page
 
-> 상태: 설계 완료 / 구현 미착수
+> 상태: 구현 완료
 
 ## 배경
 

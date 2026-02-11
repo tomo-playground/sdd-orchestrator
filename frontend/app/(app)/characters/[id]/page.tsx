@@ -144,6 +144,28 @@ function CharacterDetailForm({
     confirmDialog: confirm,
   });
 
+  // --- beforeunload guard ---
+  useEffect(() => {
+    if (!form.isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [form.isDirty]);
+
+  const handleBack = async () => {
+    if (form.isDirty) {
+      const ok = await confirm({
+        title: "Unsaved Changes",
+        message: "You have unsaved changes. Leave without saving?",
+        confirmLabel: "Leave",
+      });
+      if (!ok) return;
+    }
+    router.push("/characters");
+  };
+
   const handleDelete = async () => {
     if (!character?.id) return;
     const ok = await confirm({
@@ -166,13 +188,13 @@ function CharacterDetailForm({
     <div className={`${CONTAINER_CLASSES} py-6`}>
       {/* Back link + Actions */}
       <div className="mb-6 flex items-center justify-between">
-        <Link
-          href="/characters"
+        <button
+          onClick={handleBack}
           className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-700"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Characters
-        </Link>
+        </button>
         <div className="flex items-center gap-2">
           {!isNew && (
             <Button variant="danger" size="sm" onClick={handleDelete}>

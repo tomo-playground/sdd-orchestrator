@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
 import { getErrorMsg } from "../../../utils/error";
@@ -15,8 +15,19 @@ import {
 } from "../../../types";
 
 const RESTRICTED_KEYWORDS = [
-  "background", "kitchen", "room", "outdoors", "indoors", "scenery",
-  "nature", "mountain", "street", "office", "bedroom", "bathroom", "garden",
+  "background",
+  "kitchen",
+  "room",
+  "outdoors",
+  "indoors",
+  "scenery",
+  "nature",
+  "mountain",
+  "street",
+  "office",
+  "bedroom",
+  "bathroom",
+  "garden",
 ];
 
 export type UseCharacterFormOptions = {
@@ -111,9 +122,40 @@ export function useCharacterForm(options: UseCharacterFormOptions) {
     if (character?.prompt_mode) setPromptMode(character.prompt_mode);
   }, [character]);
 
+  // --- Dirty tracking ---
+  const buildSnapshot = (overrides?: { identityTagIds?: number[]; clothingTagIds?: number[] }) =>
+    JSON.stringify({
+      name, description, gender, customBasePrompt, customNegativePrompt,
+      referenceBasePrompt, referenceNegativePrompt, promptMode,
+      ipAdapterWeight, ipAdapterModel, previewLocked,
+      identityTagIds: overrides?.identityTagIds ?? identityTagIds,
+      clothingTagIds: overrides?.clothingTagIds ?? clothingTagIds,
+      selectedLoras, defaultVoicePresetId,
+    });
+
+  const initialSnapshot = useRef<string>("");
+  useEffect(() => {
+    initialSnapshot.current = buildSnapshot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-time only
+
+  const isDirty = useMemo(() => {
+    if (!initialSnapshot.current) return false;
+    return buildSnapshot() !== initialSnapshot.current;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    name, description, gender, customBasePrompt, customNegativePrompt,
+    referenceBasePrompt, referenceNegativePrompt, promptMode,
+    ipAdapterWeight, ipAdapterModel, previewLocked,
+    identityTagIds, clothingTagIds, selectedLoras, defaultVoicePresetId,
+  ]);
+
   // --- Derived: warnings ---
   const sceneIdentityWarning = useMemo(() => {
-    const tokens = customBasePrompt.toLowerCase().split(/[,\s]+/).map((t) => t.trim());
+    const tokens = customBasePrompt
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .map((t) => t.trim());
     const found = tokens.filter((t) => RESTRICTED_KEYWORDS.includes(t));
     return found.length > 0
       ? `Warning: Background tags detected (${found.join(", ")}). Please remove them for better consistency.`
@@ -257,6 +299,10 @@ export function useCharacterForm(options: UseCharacterFormOptions) {
     setIsSaving(true);
     try {
       await onSave(payload, character?.id);
+      initialSnapshot.current = buildSnapshot({
+        identityTagIds: finalIdentityTagIds,
+        clothingTagIds: finalClothingTagIds,
+      });
       onClose?.();
     } catch (error) {
       console.error("Failed to save character", error);
@@ -268,38 +314,65 @@ export function useCharacterForm(options: UseCharacterFormOptions) {
 
   return {
     isCreateMode,
-    name, setName,
-    description, setDescription,
-    gender, setGender,
-    customBasePrompt, setCustomBasePrompt,
-    customNegativePrompt, setCustomNegativePrompt,
+    name,
+    setName,
+    description,
+    setDescription,
+    gender,
+    setGender,
+    customBasePrompt,
+    setCustomBasePrompt,
+    customNegativePrompt,
+    setCustomNegativePrompt,
     // Preview (spread from useCharacterPreview)
     ...preview,
-    previewLocked, setPreviewLocked,
-    promptMode, setPromptMode,
-    ipAdapterWeight, setIpAdapterWeight,
-    ipAdapterModel, setIpAdapterModel,
+    previewLocked,
+    setPreviewLocked,
+    promptMode,
+    setPromptMode,
+    ipAdapterWeight,
+    setIpAdapterWeight,
+    ipAdapterModel,
+    setIpAdapterModel,
     // Reference
-    referenceBasePrompt, setReferenceBasePrompt,
-    referenceNegativePrompt, setReferenceNegativePrompt,
+    referenceBasePrompt,
+    setReferenceBasePrompt,
+    referenceNegativePrompt,
+    setReferenceNegativePrompt,
     // Tags
-    identityTagIds, clothingTagIds,
-    tagSearch, setTagSearch,
-    activeTagInput, setActiveTagInput,
-    rawEditMode, rawEditText, setRawEditText,
+    identityTagIds,
+    clothingTagIds,
+    tagSearch,
+    setTagSearch,
+    activeTagInput,
+    setActiveTagInput,
+    rawEditMode,
+    rawEditText,
+    setRawEditText,
     // Voice Preset
-    defaultVoicePresetId, setDefaultVoicePresetId,
+    defaultVoicePresetId,
+    setDefaultVoicePresetId,
     voicePresets,
     // LoRAs
-    selectedLoras, localLoras,
+    selectedLoras,
+    localLoras,
     // Async flags
     isSaving,
+    isDirty,
     // Derived
-    sceneIdentityWarning, referenceProfileWarning,
-    identityTags, clothingTags, filteredTags,
+    sceneIdentityWarning,
+    referenceProfileWarning,
+    identityTags,
+    clothingTags,
+    filteredTags,
     // Handlers
-    handleAddTag, handleRemoveTag, toggleRawEdit,
-    handleAddLora, handleUpdateLora, handleRemoveLora, handleLoraTypeChange,
+    handleAddTag,
+    handleRemoveTag,
+    toggleRawEdit,
+    handleAddLora,
+    handleUpdateLora,
+    handleRemoveLora,
+    handleLoraTypeChange,
     handleSubmit,
   };
 }
