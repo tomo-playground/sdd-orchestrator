@@ -85,7 +85,7 @@ export function migrateDraft(): void {
         recentVideos: draft.recentVideos ?? [],
 
         // Meta
-        activeTab: "plan",
+        activeTab: "scenes",
       },
       version: 0,
     };

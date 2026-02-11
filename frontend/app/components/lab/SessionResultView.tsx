@@ -22,7 +22,12 @@ type Props = {
   topic: string;
   musicRecommendation?: MusicRecommendation;
   copyrightResult?: CopyrightResult;
-  onSendToStudio: (groupId: number, title?: string, deepParse?: boolean) => Promise<void>;
+  onSendToStudio: (
+    groupId: number,
+    title?: string,
+    deepParse?: boolean
+  ) => Promise<{ storyboard_id?: number } | void>;
+  onStoryboardCreated?: (id: number) => void;
 };
 
 export default function SessionResultView({
@@ -31,6 +36,7 @@ export default function SessionResultView({
   musicRecommendation,
   copyrightResult,
   onSendToStudio,
+  onStoryboardCreated,
 }: Props) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -55,8 +61,12 @@ export default function SessionResultView({
     if (!groupId) return;
     setSending(true);
     try {
-      await onSendToStudio(groupId, title || undefined, deepParse);
+      const result = await onSendToStudio(groupId, title || undefined, deepParse);
       setSent(true);
+      const sbId = result && "storyboard_id" in result ? result.storyboard_id : undefined;
+      if (sbId && onStoryboardCreated) {
+        onStoryboardCreated(sbId);
+      }
     } finally {
       setSending(false);
     }

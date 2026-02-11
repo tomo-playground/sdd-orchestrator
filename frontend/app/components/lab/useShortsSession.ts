@@ -56,11 +56,15 @@ export function useShortsSession(
 
   const handleSendToStudio = useCallback(
     async (groupId: number, title?: string, deepParse?: boolean) => {
-      await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/send-to-studio`, {
-        group_id: groupId,
-        title,
-        deep_parse: deepParse ?? false,
-      });
+      const res = await axios.post(
+        `${API_BASE}/lab/creative/sessions/${session.id}/send-to-studio`,
+        {
+          group_id: groupId,
+          title,
+          deep_parse: deepParse ?? false,
+        }
+      );
+      return res.data as { storyboard_id?: number };
     },
     [session.id]
   );

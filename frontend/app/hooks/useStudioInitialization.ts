@@ -119,7 +119,6 @@ export function useStudioInitialization() {
         setMeta({
           storyboardId: data.id,
           storyboardTitle: data.title,
-          activeTab: "plan",
           ...(groupId ? { groupId } : {}),
           ...(projectId ? { projectId } : {}),
         });

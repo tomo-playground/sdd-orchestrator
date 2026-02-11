@@ -2,11 +2,9 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useStudioStore } from "../../store/useStudioStore";
-import TabBar from "../../components/studio/TabBar";
-import PlanTab from "../../components/studio/PlanTab";
-import ScenesTab from "../../components/studio/ScenesTab";
-import RenderTab from "../../components/studio/RenderTab";
-import OutputTab from "../../components/studio/OutputTab";
+import { useContextStore } from "../../store/useContextStore";
+import StudioKanbanView from "../../components/studio/StudioKanbanView";
+import StudioTimelineView from "../../components/studio/StudioTimelineView";
 
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
@@ -22,7 +20,7 @@ import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
 import { createGroup } from "../../store/actions/groupActions";
 import { SUB_NAV_CLASSES, CONTAINER_CLASSES, cx } from "../../components/ui/variants";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
-import { generateStoryboard, saveStoryboard } from "../../store/actions/storyboardActions";
+import { saveStoryboard } from "../../store/actions/storyboardActions";
 import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
 import { suggestPromptSplit, copyPromptHelperText } from "../../store/actions/promptHelperActions";
 import PreflightModal from "../../components/common/PreflightModal";
@@ -38,9 +36,12 @@ function StudioContent() {
     needsStyleProfile,
   });
 
-  // Store selectors for rendering
-  const activeTab = useStudioStore((s) => s.activeTab);
-  const setActiveTab = useStudioStore((s) => s.setActiveTab);
+  // Routing: storyboardId determines kanban vs timeline
+  const contextStoryboardId = useContextStore((s) => s.storyboardId);
+  const resolvedId = storyboardId ? parseInt(storyboardId, 10) : contextStoryboardId;
+  const hasStoryboard = !!resolvedId && !isNaN(resolvedId as number);
+
+  // Store selectors
   const setMeta = useStudioStore((s) => s.setMeta);
   const scenes = useStudioStore((s) => s.scenes);
   const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
@@ -48,27 +49,12 @@ function StudioContent() {
   const imagePreviewCandidates = useStudioStore((s) => s.imagePreviewCandidates);
   const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
   const showToast = useStudioStore((s) => s.showToast);
-
-  // Preflight modal
   const showPreflightModal = useStudioStore((s) => s.showPreflightModal);
-
-  // Group empty-state
   const groups = useStudioStore((s) => s.groups);
   const projectId = useStudioStore((s) => s.projectId);
-  const topic = useStudioStore((s) => s.topic);
   const isRendering = useStudioStore((s) => s.isRendering);
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const handleGenerate = useCallback(async () => {
-    setIsGenerating(true);
-    try {
-      await generateStoryboard();
-    } finally {
-      setIsGenerating(false);
-    }
-  }, []);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -87,10 +73,9 @@ function StudioContent() {
   const isSuggesting = useStudioStore((s) => s.isSuggesting);
   const copyStatus = useStudioStore((s) => s.copyStatus);
 
-  // Autopilot state (shared across all tabs)
+  // Autopilot
   const autopilot = useAutopilot();
 
-  // Reset autopilot state when switching storyboards (prevents error/done leaking to other stories)
   const isAutoRunningRef = useRef(false);
   isAutoRunningRef.current = autopilot.isAutoRunning;
   useEffect(() => {
@@ -118,6 +103,12 @@ function StudioContent() {
     );
   }
 
+  // Kanban view: no storyboard selected
+  if (!hasStoryboard) {
+    return <StudioKanbanView />;
+  }
+
+  // Timeline view: storyboard selected
   return (
     <>
       {/* Sub-header: context bar + global actions */}
@@ -129,23 +120,17 @@ function StudioContent() {
               <span className="text-[10px] text-zinc-400">{scenes.length} scenes</span>
             )}
             <StoryboardActionsBar
-              onGenerate={handleGenerate}
               onAutoRun={() => setMeta({ showPreflightModal: true })}
               onSave={handleSave}
-              isGenerating={isGenerating}
               isRendering={isRendering}
               isAutoRunning={autopilot.isAutoRunning}
               isSaving={isSaving}
-              topicEmpty={!topic.trim()}
               autoRunStep={autopilot.autoRunState.step}
               showSave={scenes.length > 0}
             />
           </div>
         </div>
       </div>
-
-      {/* Tab Bar */}
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* No-group banner */}
       {groups.length === 0 && (
@@ -162,44 +147,23 @@ function StudioContent() {
         </div>
       )}
 
-      {/* Tab Content */}
-      <main className="w-full max-w-7xl px-6 py-8 pb-32">
-        {autopilot.autoRunState.status !== "idle" && (
-          <div className="mb-4">
-            <AutoRunStatus
-              autoRunState={autopilot.autoRunState}
-              autoRunLog={autopilot.autoRunLog}
-              storyboardTitle={storyboardTitle || undefined}
-              onResume={(step) => runAutoRunFromStep(step, autopilot)}
-              onRestart={() => runAutoRunFromStep("storyboard", autopilot)}
-            />
-          </div>
-        )}
-
-        <div
-          data-testid="tab-content-scenes"
-          style={{ display: activeTab === "scenes" ? "block" : "none" }}
-        >
-          <ScenesTab />
+      {/* AutoRun Status */}
+      {autopilot.autoRunState.status !== "idle" && (
+        <div className="w-full max-w-5xl px-6 pt-3">
+          <AutoRunStatus
+            autoRunState={autopilot.autoRunState}
+            autoRunLog={autopilot.autoRunLog}
+            storyboardTitle={storyboardTitle || undefined}
+            onResume={(step) => runAutoRunFromStep(step, autopilot)}
+            onRestart={() => runAutoRunFromStep("images", autopilot)}
+          />
         </div>
+      )}
 
-        {activeTab === "plan" && (
-          <div data-testid="tab-content-plan">
-            <PlanTab />
-          </div>
-        )}
-        {activeTab === "render" && (
-          <div data-testid="tab-content-render">
-            <RenderTab />
-          </div>
-        )}
-        {activeTab === "output" && (
-          <div data-testid="tab-content-output">
-            <OutputTab />
-          </div>
-        )}
-      </main>
+      {/* Timeline View */}
+      <StudioTimelineView storyboardId={resolvedId as number} />
 
+      {/* Sidebars & Modals */}
       <PromptHelperSidebar
         isOpen={isHelperOpen}
         onClose={() => setMeta({ isHelperOpen: false })}
@@ -221,7 +185,6 @@ function StudioContent() {
 
       <VideoPreviewModal src={videoPreviewSrc} onClose={() => setMeta({ videoPreviewSrc: null })} />
 
-      {/* Group Create Modal (empty-state) */}
       {showGroupModal && projectId && (
         <GroupFormModal
           projectId={projectId}
@@ -233,7 +196,6 @@ function StudioContent() {
         />
       )}
 
-      {/* Style Profile Modal */}
       {showStyleProfileModal && (
         <StyleProfileModal
           defaultProfileId={loadedProfileId}
@@ -247,7 +209,6 @@ function StudioContent() {
         />
       )}
 
-      {/* Preflight Modal */}
       {showPreflightModal && (
         <PreflightModal
           isOpen
@@ -255,7 +216,7 @@ function StudioContent() {
           onClose={() => setMeta({ showPreflightModal: false })}
           onRun={(stepsToRun: AutoRunStepId[]) => {
             setMeta({ showPreflightModal: false });
-            runAutoRunFromStep(stepsToRun[0] || "storyboard", autopilot, stepsToRun);
+            runAutoRunFromStep(stepsToRun[0] || "images", autopilot, stepsToRun);
           }}
         />
       )}

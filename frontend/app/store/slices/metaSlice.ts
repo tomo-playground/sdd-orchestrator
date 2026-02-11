@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { Toast, AutopilotCheckpoint } from "../../types";
 
-export type StudioTab = "plan" | "scenes" | "render" | "output";
+export type StudioTab = "scenes" | "render" | "output";
 
 export interface MetaSlice {
   // Storyboard identity
@@ -45,7 +45,7 @@ const initialMetaState = {
   groupId: null as number | null,
   storyboardId: null as number | null,
   storyboardTitle: "",
-  activeTab: "plan" as StudioTab,
+  activeTab: "scenes" as StudioTab,
   toast: null as Toast,
   imagePreviewSrc: null as string | null,
   imagePreviewCandidates: null as string[] | null,

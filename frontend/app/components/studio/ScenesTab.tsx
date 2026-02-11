@@ -189,13 +189,13 @@ export default function ScenesTab() {
   if (scenes.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-sm text-zinc-400">No scenes yet. Generate a storyboard first.</p>
-        <button
-          onClick={() => useStudioStore.getState().setActiveTab("plan")}
+        <p className="text-sm text-zinc-400">No scenes yet. Create a script first.</p>
+        <a
+          href="/scripts?new=true"
           className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-95"
         >
-          Go to Plan
-        </button>
+          Go to Scripts
+        </a>
       </div>
     );
   }

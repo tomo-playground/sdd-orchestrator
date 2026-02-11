@@ -23,9 +23,15 @@ type Props = {
   session: CreativeSession;
   onBack: () => void;
   onRefresh: (s: CreativeSession) => void;
+  onStoryboardCreated?: (id: number) => void;
 };
 
-export default function ShortsActiveView({ session, onBack, onRefresh }: Props) {
+export default function ShortsActiveView({
+  session,
+  onBack,
+  onRefresh,
+  onStoryboardCreated,
+}: Props) {
   const {
     error,
     showDebug,
@@ -210,6 +216,7 @@ export default function ShortsActiveView({ session, onBack, onRefresh }: Props) 
               ?.copyright_reviewer_result as CopyrightResult | undefined
           }
           onSendToStudio={handleSendToStudio}
+          onStoryboardCreated={onStoryboardCreated}
         />
       )}
 

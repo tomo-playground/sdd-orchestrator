@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_BASE } from "../constants";
+import { API_BASE, SCRIPTS_LIST_REFRESH } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
 import type { Scene } from "../types";
@@ -40,9 +40,15 @@ type ScriptEditorActions = ScriptEditorState & {
   loadStoryboard: (id: number) => Promise<void>;
 };
 
-export function useScriptEditor(): ScriptEditorActions {
+type ScriptEditorOptions = {
+  onSaved?: (id: number) => void;
+};
+
+export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
   const groupId = useContextStore((s) => s.groupId);
   const showToast = useUIStore((s) => s.showToast);
+  const onSavedRef = useRef(options?.onSaved);
+  onSavedRef.current = options?.onSaved;
 
   const [state, setState] = useState<ScriptEditorState>({
     topic: "",
@@ -146,10 +152,22 @@ export function useScriptEditor(): ScriptEditorActions {
       };
       if (state.storyboardId) {
         await axios.put(`${API_BASE}/storyboards/${state.storyboardId}`, body);
+        useContextStore.getState().setContext({
+          storyboardId: state.storyboardId,
+          storyboardTitle: state.topic.trim(),
+        });
+        window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
         showToast("Script saved", "success");
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
-        setState((prev) => ({ ...prev, storyboardId: res.data.id }));
+        const newId = res.data.id;
+        setState((prev) => ({ ...prev, storyboardId: newId }));
+        useContextStore.getState().setContext({
+          storyboardId: newId,
+          storyboardTitle: state.topic.trim(),
+        });
+        window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
+        onSavedRef.current?.(newId);
         showToast("Script created", "success");
       }
     } catch (err) {
@@ -187,6 +205,10 @@ export function useScriptEditor(): ScriptEditorActions {
           scenes,
           storyboardId: id,
         }));
+        useContextStore.getState().setContext({
+          storyboardId: id,
+          storyboardTitle: data.title ?? "",
+        });
       } catch (err) {
         showToast("Failed to load storyboard", "error");
         console.error("[useScriptEditor] loadStoryboard error:", err);

@@ -109,7 +109,7 @@ export type KenBurnsPreset =
   | "pan_zoom_down"
   | "random";
 
-export type AutoRunStepId = "storyboard" | "fix" | "images" | "validate" | "render";
+export type AutoRunStepId = "images" | "validate" | "render";
 
 export type ValidationIssue = { level: "warn" | "error"; message: string };
 

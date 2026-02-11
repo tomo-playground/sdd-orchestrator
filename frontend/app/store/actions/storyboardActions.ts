@@ -118,7 +118,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
 
 /**
  * Manually save or update storyboard (with toast feedback).
- * Used by PlanTab save button.
+ * Used by Studio save button.
  */
 export async function saveStoryboard(): Promise<boolean> {
   const { scenes, groupId, storyboardId, showToast } = useStudioStore.getState();

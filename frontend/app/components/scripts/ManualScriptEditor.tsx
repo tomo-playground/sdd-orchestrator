@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { useCharacters } from "../../hooks/useCharacters";
@@ -17,7 +18,9 @@ const SELECT_CLASSES =
   "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400";
 
 export default function ManualScriptEditor({ storyboardId }: Props) {
-  const editor = useScriptEditor();
+  const router = useRouter();
+  const onSaved = useCallback((id: number) => router.replace(`/scripts?id=${id}`), [router]);
+  const editor = useScriptEditor({ onSaved });
   const { characters } = useCharacters();
   const loadedRef = useRef<number | null>(null);
 

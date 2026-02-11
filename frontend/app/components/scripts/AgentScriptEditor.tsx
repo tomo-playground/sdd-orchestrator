@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE, SCRIPTS_LIST_REFRESH } from "../../constants";
+import { useContextStore } from "../../store/useContextStore";
 import type { CreativeSession, ShortsSessionCreate } from "../../types/creative";
 import ShortsSetupForm from "../lab/ShortsSetupForm";
 import ShortsActiveView from "../lab/ShortsActiveView";
 
 export default function AgentScriptEditor() {
+  const router = useRouter();
   const [session, setSession] = useState<CreativeSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +43,15 @@ export default function AgentScriptEditor() {
     setError(null);
   }, []);
 
+  const handleStoryboardCreated = useCallback(
+    (id: number) => {
+      useContextStore.getState().setContext({ storyboardId: id });
+      window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
+      router.replace(`/scripts?id=${id}`);
+    },
+    [router]
+  );
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
@@ -57,7 +69,12 @@ export default function AgentScriptEditor() {
       )}
 
       {session ? (
-        <ShortsActiveView session={session} onBack={handleBack} onRefresh={setSession} />
+        <ShortsActiveView
+          session={session}
+          onBack={handleBack}
+          onRefresh={setSession}
+          onStoryboardCreated={handleStoryboardCreated}
+        />
       ) : (
         <ShortsSetupForm loading={loading} onSubmit={handleStart} />
       )}

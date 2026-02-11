@@ -50,8 +50,6 @@ export interface PreflightResult {
 
   // Execution steps
   steps: {
-    storyboard: StepCheck;
-    fix: StepCheck;
     images: StepCheck;
     validate: StepCheck;
     render: StepCheck;
@@ -203,34 +201,6 @@ function checkIpAdapter(enabled: boolean, reference: string | null): SettingsChe
 // Step Checks
 // ============================================================
 
-function checkStoryboardStep(scenes: (Scene | DraftScene)[]): StepCheck {
-  if (scenes.length === 0) {
-    return {
-      needed: true,
-      reason: "씬이 없습니다",
-    };
-  }
-  return {
-    needed: false,
-    reason: `${scenes.length}개 씬 존재`,
-  };
-}
-
-function checkFixStep(scenes: (Scene | DraftScene)[]): StepCheck {
-  // Fix step is typically run after storyboard
-  // For now, we'll skip if scenes already exist
-  if (scenes.length === 0) {
-    return {
-      needed: true,
-      reason: "스토리보드 후 실행",
-    };
-  }
-  return {
-    needed: false,
-    reason: "건너뛰기",
-  };
-}
-
 function checkImagesStep(scenes: (Scene | DraftScene)[]): StepCheck {
   if (scenes.length === 0) {
     return {
@@ -358,10 +328,13 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     clipSkip: input.clipSkip,
   };
 
+  // Scenes must exist (script should be created before autopilot)
+  if (input.scenes.length === 0) {
+    errors.push("씬이 없습니다. 먼저 스크립트를 생성하세요.");
+  }
+
   // Check steps
   const steps = {
-    storyboard: checkStoryboardStep(input.scenes),
-    fix: checkFixStep(input.scenes),
     images: checkImagesStep(input.scenes),
     validate: checkValidateStep(input.scenes),
     render: checkRenderStep(input.scenes, input.videoUrl),
@@ -384,13 +357,13 @@ export function runPreflight(input: PreflightInput): PreflightResult {
 // Utility: Get steps to execute
 // ============================================================
 
-export type AutoRunStepId = "storyboard" | "fix" | "images" | "validate" | "render";
+export type AutoRunStepId = "images" | "validate" | "render";
 
 export function getStepsToExecute(
   preflight: PreflightResult,
   userOverrides?: Partial<Record<AutoRunStepId, boolean>>
 ): AutoRunStepId[] {
-  const stepOrder: AutoRunStepId[] = ["storyboard", "fix", "images", "validate", "render"];
+  const stepOrder: AutoRunStepId[] = ["images", "validate", "render"];
 
   return stepOrder.filter((stepId) => {
     // User can force enable/disable
@@ -435,8 +408,6 @@ export function buildPreflightInput(): PreflightInput {
 export function estimateTime(preflight: PreflightResult): string {
   let seconds = 0;
 
-  if (preflight.steps.storyboard.needed) seconds += 10;
-  if (preflight.steps.fix.needed) seconds += 5;
   if (preflight.steps.images.needed) {
     const count = preflight.steps.images.count || 6;
     seconds += count * 15; // ~15s per image

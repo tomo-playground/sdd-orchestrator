@@ -1,17 +1,91 @@
 /**
  * Bridge layer: bi-directional sync between new global stores
- * (useContextStore, useUIStore) and legacy useStudioStore.
+ * (useContextStore, useUIStore, useStoryboardStore, useRenderStore)
+ * and legacy useStudioStore.
  *
- * This allows 32+ existing files to keep using useStudioStore
+ * This allows 52+ existing files to keep using useStudioStore
  * unchanged, while new pages consume the smaller stores directly.
  */
 
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { useStudioStore } from "../useStudioStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useRenderStore } from "../useRenderStore";
 import { migrateContext } from "../migrations/contextMigration";
 
 const SYNCED_CONTEXT_KEYS = ["projectId", "groupId", "storyboardId", "storyboardTitle"] as const;
+
+/** Storyboard store ↔ useStudioStore sync keys (identity + image plan + scenes). */
+const SYNCED_STORYBOARD_KEYS = [
+  "storyboardId",
+  "storyboardTitle",
+  // Image plan fields
+  "selectedCharacterId",
+  "selectedCharacterName",
+  "selectedCharacterBId",
+  "selectedCharacterBName",
+  "characterPromptMode",
+  "loraTriggerWords",
+  "characterLoras",
+  "characterBLoras",
+  "basePromptA",
+  "baseNegativePromptA",
+  "basePromptB",
+  "baseNegativePromptB",
+  "autoComposePrompt",
+  "autoRewritePrompt",
+  "autoReplaceRiskyTags",
+  "hiResEnabled",
+  "veoEnabled",
+  "useControlnet",
+  "controlnetWeight",
+  "useIpAdapter",
+  "ipAdapterReference",
+  "ipAdapterWeight",
+  "ipAdapterReferenceB",
+  "ipAdapterWeightB",
+  // Scenes
+  "scenes",
+  "currentSceneIndex",
+  "isGenerating",
+  "multiGenEnabled",
+  "referenceImages",
+  "validationResults",
+  "validationSummary",
+  "imageValidationResults",
+] as const;
+
+/** Render store ↔ useStudioStore sync keys (output slice fields). */
+const SYNCED_RENDER_KEYS = [
+  "currentStyleProfile",
+  "layoutStyle",
+  "frameStyle",
+  "kenBurnsPreset",
+  "kenBurnsIntensity",
+  "transitionType",
+  "isRendering",
+  "includeSceneText",
+  "bgmFile",
+  "audioDucking",
+  "bgmVolume",
+  "speedMultiplier",
+  "sceneTextFont",
+  "ttsEngine",
+  "voiceDesignPrompt",
+  "voicePresetId",
+  "bgmMode",
+  "musicPresetId",
+  "videoCaption",
+  "videoLikesCount",
+  "overlaySettings",
+  "postCardSettings",
+  "videoUrl",
+  "videoUrlFull",
+  "videoUrlPost",
+  "recentVideos",
+  "renderProgress",
+] as const;
 
 let initialized = false;
 const unsubs: (() => void)[] = [];
@@ -119,11 +193,113 @@ export function initStoreBridges(): void {
     }),
   );
 
-  // --- Initial sync: copy current useStudioStore state → new stores ---
+  // --- Storyboard bridge: useStoryboardStore → useStudioStore ---
+  unsubs.push(
+    useStoryboardStore.subscribe((sb, prev) => {
+      if (syncing) return;
+      syncing = true;
+      try {
+        const metaPatch: Record<string, unknown> = {};
+        const planPatch: Record<string, unknown> = {};
+        const scenesPatch: Record<string, unknown> = {};
+        let metaChanged = false;
+        let planChanged = false;
+        let scenesChanged = false;
+
+        for (const key of SYNCED_STORYBOARD_KEYS) {
+          if (sb[key] === prev[key]) continue;
+          if (key === "storyboardId" || key === "storyboardTitle") {
+            metaPatch[key] = sb[key];
+            metaChanged = true;
+          } else if (key === "scenes" || key === "currentSceneIndex" || key === "isGenerating" || key === "multiGenEnabled" || key === "referenceImages" || key === "validationResults" || key === "validationSummary" || key === "imageValidationResults") {
+            scenesPatch[key] = sb[key];
+            scenesChanged = true;
+          } else {
+            planPatch[key] = sb[key];
+            planChanged = true;
+          }
+        }
+        if (metaChanged) useStudioStore.getState().setMeta(metaPatch);
+        if (planChanged) useStudioStore.getState().setPlan(planPatch);
+        if (scenesChanged) useStudioStore.getState().setScenesState(scenesPatch);
+      } finally {
+        syncing = false;
+      }
+    }),
+  );
+
+  // --- Storyboard bridge: useStudioStore → useStoryboardStore ---
+  unsubs.push(
+    useStudioStore.subscribe((studio, prev) => {
+      if (syncing) return;
+      syncing = true;
+      try {
+        const s = studio as unknown as Record<string, unknown>;
+        const p = prev as unknown as Record<string, unknown>;
+        const patch: Record<string, unknown> = {};
+        let changed = false;
+        for (const key of SYNCED_STORYBOARD_KEYS) {
+          if (s[key] !== p[key]) {
+            patch[key] = s[key];
+            changed = true;
+          }
+        }
+        if (changed) useStoryboardStore.getState().set(patch);
+      } finally {
+        syncing = false;
+      }
+    }),
+  );
+
+  // --- Render bridge: useRenderStore → useStudioStore ---
+  unsubs.push(
+    useRenderStore.subscribe((render, prev) => {
+      if (syncing) return;
+      syncing = true;
+      try {
+        const patch: Record<string, unknown> = {};
+        let changed = false;
+        for (const key of SYNCED_RENDER_KEYS) {
+          if (render[key] !== prev[key]) {
+            patch[key] = render[key];
+            changed = true;
+          }
+        }
+        if (changed) useStudioStore.getState().setOutput(patch);
+      } finally {
+        syncing = false;
+      }
+    }),
+  );
+
+  // --- Render bridge: useStudioStore → useRenderStore ---
+  unsubs.push(
+    useStudioStore.subscribe((studio, prev) => {
+      if (syncing) return;
+      syncing = true;
+      try {
+        const s = studio as unknown as Record<string, unknown>;
+        const p = prev as unknown as Record<string, unknown>;
+        const patch: Record<string, unknown> = {};
+        let changed = false;
+        for (const key of SYNCED_RENDER_KEYS) {
+          if (s[key] !== p[key]) {
+            patch[key] = s[key];
+            changed = true;
+          }
+        }
+        if (changed) useRenderStore.getState().set(patch);
+      } finally {
+        syncing = false;
+      }
+    }),
+  );
+
+  // --- Initial sync: seed new stores from useStudioStore ---
   const initial = useStudioStore.getState();
   const ctxState = useContextStore.getState();
 
-  // Only seed context store if it has no projectId (fresh or first migration)
+  // Context store seeding (existing)
   if (ctxState.projectId === null && initial.projectId !== null) {
     syncing = true;
     try {
@@ -133,6 +309,38 @@ export function initStoreBridges(): void {
         storyboardId: initial.storyboardId,
         storyboardTitle: initial.storyboardTitle,
       });
+    } finally {
+      syncing = false;
+    }
+  }
+
+  // Storyboard store seeding
+  const sbState = useStoryboardStore.getState();
+  if (sbState.storyboardId === null && initial.storyboardId !== null) {
+    syncing = true;
+    try {
+      const src = initial as unknown as Record<string, unknown>;
+      const seed: Record<string, unknown> = {};
+      for (const key of SYNCED_STORYBOARD_KEYS) {
+        seed[key] = src[key];
+      }
+      useStoryboardStore.getState().set(seed);
+    } finally {
+      syncing = false;
+    }
+  }
+
+  // Render store seeding
+  const renderState = useRenderStore.getState();
+  if (renderState.currentStyleProfile === null && initial.currentStyleProfile !== null) {
+    syncing = true;
+    try {
+      const src = initial as unknown as Record<string, unknown>;
+      const seed: Record<string, unknown> = {};
+      for (const key of SYNCED_RENDER_KEYS) {
+        seed[key] = src[key];
+      }
+      useRenderStore.getState().set(seed);
     } finally {
       syncing = false;
     }

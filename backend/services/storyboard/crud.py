@@ -85,6 +85,18 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     return {"status": "success", "storyboard_id": db_storyboard.id, "scene_ids": scene_ids}
 
 
+def _derive_kanban_status(storyboard: Storyboard, image_count: int) -> str:
+    """Derive kanban status from render history and image count."""
+    render_history = storyboard.render_history or []
+    if any(rh.youtube_video_id for rh in render_history):
+        return "published"
+    if render_history:
+        return "rendered"
+    if image_count > 0:
+        return "in_prod"
+    return "draft"
+
+
 def list_storyboards_from_db(
     db: Session,
     group_id: int | None = None,
@@ -99,6 +111,7 @@ def list_storyboards_from_db(
         .options(
             joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
             joinedload(Storyboard.characters).joinedload(StoryboardCharacter.character),
+            joinedload(Storyboard.render_history),
         )
         .filter(Storyboard.deleted_at.is_(None))
     )
@@ -117,6 +130,7 @@ def list_storyboards_from_db(
     result = []
     for s in storyboards:
         scenes = s.scenes or []
+        image_count = sum(1 for sc in scenes if sc.image_url)
         # Extract cast (characters) with preview thumbnails — deduplicate by character id
         cast = []
         seen_char_ids: set[int] = set()
@@ -138,8 +152,9 @@ def list_storyboards_from_db(
                 "title": s.title,
                 "description": s.description,
                 "scene_count": len(scenes),
-                "image_count": sum(1 for sc in scenes if sc.image_url),
+                "image_count": image_count,
                 "cast": cast,
+                "kanban_status": _derive_kanban_status(s, image_count),
                 "created_at": s.created_at.isoformat() if s.created_at else None,
                 "updated_at": s.updated_at.isoformat() if s.updated_at else None,
             }

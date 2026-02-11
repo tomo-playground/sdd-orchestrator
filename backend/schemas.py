@@ -214,6 +214,25 @@ class StoryboardUpdate(BaseModel):
     caption: str | None = None
 
 
+class StoryboardCastMember(BaseModel):
+    id: int
+    name: str
+    speaker: str
+    preview_url: str | None = None
+
+
+class StoryboardListItem(BaseModel):
+    id: int
+    title: str
+    description: str | None = None
+    scene_count: int = 0
+    image_count: int = 0
+    cast: list[StoryboardCastMember] = []
+    kanban_status: str = "draft"  # draft | in_prod | rendered | published
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
 class StoryboardResponse(StoryboardBase):
     id: int
     video_url: str | None = None
@@ -1371,3 +1390,44 @@ class PresetListResponse(BaseModel):
 
 class PresetTopicsResponse(BaseModel):
     topics: list[str]
+
+
+# ============================================================
+# Script Generate Schemas
+# ============================================================
+
+
+class ScriptGenerateSceneItem(BaseModel):
+    script: str = ""
+    speaker: str = "Narrator"
+    duration: float = 3.0
+    image_prompt: str = ""
+    image_prompt_ko: str = ""
+    negative_prompt: str | None = None
+    context_tags: dict | None = None
+
+
+class ScriptGenerateResponse(BaseModel):
+    scenes: list[ScriptGenerateSceneItem]
+    character_id: int | None = None
+    character_b_id: int | None = None
+
+
+# ============================================================
+# Materials Check Schemas
+# ============================================================
+
+
+class VerticalStatus(BaseModel):
+    ready: bool = False
+    count: int | None = None
+    detail: str | None = None
+
+
+class MaterialsCheckResponse(BaseModel):
+    storyboard_id: int
+    script: VerticalStatus
+    characters: VerticalStatus
+    voice: VerticalStatus
+    music: VerticalStatus
+    background: VerticalStatus

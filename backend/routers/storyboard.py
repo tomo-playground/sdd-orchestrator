@@ -9,10 +9,13 @@ from config import logger
 from database import get_db
 from models import Storyboard
 from schemas import (
+    MaterialsCheckResponse,
     StoryboardDetailResponse,
+    StoryboardListItem,
     StoryboardRequest,
     StoryboardSave,
     StoryboardUpdate,
+    VerticalStatus,
 )
 from services.storyboard import (
     create_storyboard,
@@ -60,7 +63,7 @@ def list_trashed_storyboards(db: Session = Depends(get_db)):
     ]
 
 
-@router.get("")
+@router.get("", response_model=list[StoryboardListItem])
 def list_storyboards(group_id: int | None = None, project_id: int | None = None, db: Session = Depends(get_db)):
     return list_storyboards_from_db(db, group_id=group_id, project_id=project_id)
 
@@ -110,6 +113,30 @@ async def restore_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     db.commit()
     logger.info("[Storyboard Restore] id=%d title=%s", storyboard_id, storyboard.title)
     return {"ok": True, "restored": storyboard.title}
+
+
+@router.get("/{storyboard_id}/materials", response_model=MaterialsCheckResponse)
+def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
+    """Check material readiness for a storyboard (lightweight query)."""
+    from sqlalchemy import func
+
+    from models.scene import Scene
+
+    sb = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
+    if not sb:
+        raise HTTPException(status_code=404, detail="Storyboard not found")
+    scene_count = (
+        db.query(func.count(Scene.id)).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).scalar()
+        or 0
+    )
+    return MaterialsCheckResponse(
+        storyboard_id=storyboard_id,
+        script=VerticalStatus(ready=scene_count > 0, count=scene_count),
+        characters=VerticalStatus(ready=sb.character_id is not None),
+        voice=VerticalStatus(ready=True, detail="Check render preset"),
+        music=VerticalStatus(ready=True, detail="Check render preset"),
+        background=VerticalStatus(ready=True, detail="Optional"),
+    )
 
 
 @router.delete("/{storyboard_id}/permanent")

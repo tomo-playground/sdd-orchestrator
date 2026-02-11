@@ -4,19 +4,17 @@ import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import { useStudioStore } from "../useStudioStore";
 import { API_BASE, AUTO_RUN_STEPS } from "../../constants";
 import { computeValidationResults } from "../../utils";
-import { applyAutoFixForScenes } from "./sceneActions";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
 import { getCurrentProject } from "../selectors/projectSelectors";
-import { initializeVideoMetadata } from "./outputActions";
-import { mapGeminiScenes, persistStoryboard } from "./storyboardActions";
+import { persistStoryboard } from "./storyboardActions";
 import { applyAutoPinAfterGeneration } from "../../utils/applyAutoPin";
 import { renderWithProgress } from "../../utils/renderWithProgress";
 
 /**
  * Run the autopilot pipeline from a given step.
- * This orchestrates storyboard → fix → images → validate → render.
+ * This orchestrates images → validate → render.
  */
 export async function runAutoRunFromStep(
   startStep: AutoRunStepId,
@@ -28,13 +26,6 @@ export async function runAutoRunFromStep(
     startStep = stepsToRun[0];
   }
   const {
-    topic,
-    duration,
-    style,
-    language,
-    structure,
-    actorAGender,
-    baseNegativePromptA,
     layoutStyle,
     scenes: initialScenes,
     showToast,
@@ -53,8 +44,8 @@ export async function runAutoRunFromStep(
 
   const allowedSteps = stepsToRun || AUTO_RUN_STEPS.map((s) => s.id as AutoRunStepId);
 
-  if (allowedSteps.includes("storyboard") && !topic.trim()) {
-    showToast("Enter a topic first", "error");
+  if (!initialScenes.length) {
+    showToast("Create a script first", "error");
     return;
   }
 
@@ -74,43 +65,6 @@ export async function runAutoRunFromStep(
       if (!allowedSteps.includes(currentStep)) {
         pushAutoRunLog(`Skipped: ${currentStep}`);
         continue;
-      }
-
-      if (currentStep === "storyboard") {
-        setAutoRunStep("storyboard", "Generating storyboard...");
-        pushAutoRunLog("Storyboard started");
-        const structureLower = structure.toLowerCase();
-        const hasCharacterB =
-          structureLower === "dialogue" || structureLower === "narrated dialogue";
-        const res = await axios.post(`${API_BASE}/storyboards/create`, {
-          topic,
-          duration,
-          style,
-          language,
-          structure,
-          actor_a_gender: actorAGender,
-          description: useStudioStore.getState().description || undefined,
-          character_id: useStudioStore.getState().selectedCharacterId || undefined,
-          character_b_id: hasCharacterB
-            ? useStudioStore.getState().selectedCharacterBId || undefined
-            : undefined,
-        });
-        const incoming = Array.isArray(res.data.scenes) ? res.data.scenes : [];
-        workingScenes = mapGeminiScenes(incoming, baseNegativePromptA);
-        if (!workingScenes.length) throw new Error("Storyboard is empty");
-        setScenes(workingScenes);
-        useStudioStore.getState().setCurrentSceneIndex(0);
-        await initializeVideoMetadata(topic);
-        await persistStoryboard();
-        workingScenes = useStudioStore.getState().scenes;
-        pushAutoRunLog(`Storyboard created (${workingScenes.length} scenes)`);
-      }
-
-      if (currentStep === "fix") {
-        setAutoRunStep("fix", "Auto-fixing scripts and prompts...");
-        workingScenes = applyAutoFixForScenes(workingScenes);
-        setScenes(workingScenes);
-        pushAutoRunLog("Auto-fix applied");
       }
 
       if (currentStep === "images") {
