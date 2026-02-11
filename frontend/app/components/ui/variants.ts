@@ -21,6 +21,13 @@ export const CARD_CLASSES = "rounded-2xl bg-white shadow-xl border border-zinc-2
 /** Small uppercase label used in section headers. */
 export const LABEL_CLASSES = "text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400";
 
+/** Page-level h1 title for independent list pages. */
+export const PAGE_TITLE_CLASSES = "text-lg font-bold text-zinc-900";
+
+/** Search input used in list pages. Add w-full or max-w-sm at the call site. */
+export const SEARCH_INPUT_CLASSES =
+  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400";
+
 // ── Size / Variant maps ──────────────────────────────────────
 
 /** Reusable focus-visible ring. */

@@ -2,10 +2,17 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { UserRound } from "lucide-react";
 import { useCharacters } from "../../hooks/useCharacters";
 import CharacterCard from "./CharacterCard";
 import Button from "../../components/ui/Button";
-import { CONTAINER_CLASSES, LABEL_CLASSES } from "../../components/ui/variants";
+import EmptyState from "../../components/ui/EmptyState";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import {
+  CONTAINER_CLASSES,
+  PAGE_TITLE_CLASSES,
+  SEARCH_INPUT_CLASSES,
+} from "../../components/ui/variants";
 
 type FilterKey = "all" | "has_lora" | "has_preview" | "locked";
 
@@ -47,7 +54,7 @@ export default function CharactersPage() {
     <div className={`${CONTAINER_CLASSES} py-8`}>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-900">
+        <h1 className={PAGE_TITLE_CLASSES}>
           Characters{characters.length > 0 ? ` (${characters.length})` : ""}
         </h1>
         <Link href="/characters/new">
@@ -62,7 +69,7 @@ export default function CharactersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search characters..."
-          className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm transition outline-none focus:border-zinc-400"
+          className={SEARCH_INPUT_CLASSES}
         />
         <div className="flex gap-1.5">
           {FILTERS.map(({ key, label }) => (
@@ -83,40 +90,26 @@ export default function CharactersPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="py-16 text-center">
-          <p className={LABEL_CLASSES}>Loading characters...</p>
+        <div className="flex justify-center py-16">
+          <LoadingSpinner size="md" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <svg
-            className="h-12 w-12 text-zinc-200"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-            />
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-zinc-500">
-              {characters.length === 0 ? "No characters yet" : "No characters match your filter"}
-            </p>
-            <p className="mt-1 text-xs text-zinc-400">
-              {characters.length === 0
-                ? "Characters maintain visual consistency across scenes"
-                : "Try a different search or filter"}
-            </p>
-          </div>
-          {characters.length === 0 && (
-            <Link href="/characters/new">
-              <Button size="md">+ New Character</Button>
-            </Link>
-          )}
-        </div>
+        <EmptyState
+          icon={UserRound}
+          title={characters.length === 0 ? "No characters yet" : "No characters match your filter"}
+          description={
+            characters.length === 0
+              ? "Characters maintain visual consistency across scenes"
+              : "Try a different search or filter"
+          }
+          action={
+            characters.length === 0 ? (
+              <Link href="/characters/new">
+                <Button size="md">+ New Character</Button>
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((ch) => (

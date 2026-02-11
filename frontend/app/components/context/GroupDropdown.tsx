@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback } from "react";
 import { Check, ChevronDown, FolderOpen, Pencil, Trash2 } from "lucide-react";
 import Popover from "../ui/Popover";
+import { ALL_GROUPS_ID } from "../../constants";
 import type { GroupItem } from "../../types";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   onNew: () => void;
   onEdit?: (group: GroupItem) => void;
   onDelete?: (group: GroupItem) => void;
+  showAllOption?: boolean;
 };
 
 export default function GroupDropdown({
@@ -21,10 +23,12 @@ export default function GroupDropdown({
   onNew,
   onEdit,
   onDelete,
+  showAllOption,
 }: Props) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const current = groups.find((g) => g.id === currentId);
+  const isAll = currentId === ALL_GROUPS_ID;
+  const current = isAll ? null : groups.find((g) => g.id === currentId);
 
   const isEmpty = groups.length === 0;
 
@@ -48,6 +52,7 @@ export default function GroupDropdown({
         onSelect={wrapClose<number>(onSelect)!}
         onEdit={wrapClose<GroupItem>(onEdit)}
         onDelete={wrapClose<GroupItem>(onDelete)}
+        showAllOption={showAllOption}
       />
       <DropdownFooter onNew={wrapClose<void>(onNew)!} />
     </Popover>
@@ -65,7 +70,9 @@ export default function GroupDropdown({
         }`}
       >
         <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{isEmpty ? "+ Add Group" : (current?.name ?? "Group")}</span>
+        <span className="truncate">
+          {isEmpty ? "+ Add Group" : isAll ? "All Groups" : (current?.name ?? "Group")}
+        </span>
         {!isEmpty && <ChevronDown className="h-3 w-3 shrink-0 text-zinc-400" />}
       </button>
       {popover}
@@ -79,15 +86,30 @@ function DropdownContent({
   onSelect,
   onEdit,
   onDelete,
+  showAllOption,
 }: {
   groups: GroupItem[];
   currentId: number | null;
   onSelect: (id: number) => void;
   onEdit?: (group: GroupItem) => void;
   onDelete?: (group: GroupItem) => void;
+  showAllOption?: boolean;
 }) {
+  const isAll = currentId === ALL_GROUPS_ID;
   return (
     <div className="max-h-60 overflow-y-auto">
+      {showAllOption && (
+        <button
+          onClick={() => onSelect(ALL_GROUPS_ID)}
+          className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition hover:bg-zinc-50 ${
+            isAll ? "bg-zinc-50 font-semibold text-zinc-900" : "text-zinc-600"
+          }`}
+        >
+          <FolderOpen className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+          <span className="truncate">All Groups</span>
+          {isAll && <Check className="ml-auto h-3 w-3 shrink-0 text-zinc-400" />}
+        </button>
+      )}
       {groups.map((g) => (
         <div
           key={g.id}

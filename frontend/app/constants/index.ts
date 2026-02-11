@@ -18,10 +18,14 @@ export const Z_INDEX = {
   TOAST: 2000,
 } as const;
 
+/** Sentinel value: "All Groups" selected (skip group_id filter in API calls) */
+export const ALL_GROUPS_ID = -1;
+
 export const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
 export const DEFAULT_SCENE_TEXT_FONT = "온글잎 박다현체.ttf";
 export const DEFAULT_STRUCTURE = "Monologue";
 export const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";
+export const SCRIPTS_LIST_REFRESH = "scripts:list-refresh";
 export const PROMPT_APPLY_KEY = "shorts-producer:apply-prompt";
 export const MAX_IMAGE_CACHE_SIZE = 8_000_000;
 
@@ -40,8 +44,6 @@ export const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
 };
 
 export const AUTO_RUN_STEPS = [
-  { id: "storyboard", label: "Storyboard" },
-  { id: "fix", label: "Auto Fix" },
   { id: "images", label: "Images" },
   { id: "validate", label: "Validate" },
   { id: "render", label: "Render" },

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import type { StoryboardListItem } from "../types";
-import { API_BASE } from "../constants";
+import { API_BASE, ALL_GROUPS_ID } from "../constants";
 
 type UseStoryboardsResult = {
   storyboards: StoryboardListItem[];
@@ -32,7 +32,7 @@ export function useStoryboards(
     setIsLoading(true);
     try {
       const params: Record<string, unknown> = { project_id: projectId };
-      if (groupId) params.group_id = groupId;
+      if (groupId !== null && groupId !== ALL_GROUPS_ID) params.group_id = groupId;
       const res = await axios.get<StoryboardListItem[]>(`${API_BASE}/storyboards`, { params });
       setStoryboards(res.data ?? []);
     } catch {

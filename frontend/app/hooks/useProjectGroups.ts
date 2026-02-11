@@ -3,6 +3,7 @@ import { useContextStore } from "../store/useContextStore";
 import { useStudioStore } from "../store/useStudioStore";
 import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
+import { ALL_GROUPS_ID } from "../constants";
 
 /**
  * Manages project/group lifecycle:
@@ -47,15 +48,20 @@ export function useProjectGroups() {
   }, [projectId, groups.length, isLoadingGroups]);
 
   // Auto-select first group when groups load and no groupId set
+  // Skip when "All Groups" (ALL_GROUPS_ID) is explicitly selected
   useEffect(() => {
-    if (groups.length > 0 && (groupId === null || !groups.some((g) => g.id === groupId))) {
+    if (
+      groups.length > 0 &&
+      groupId !== ALL_GROUPS_ID &&
+      (groupId === null || !groups.some((g) => g.id === groupId))
+    ) {
       setContext({ groupId: groups[0].id });
     }
   }, [groups, groupId, setContext]);
 
   // Load group render defaults when groupId changes
   useEffect(() => {
-    if (groupId !== null) {
+    if (groupId !== null && groupId !== ALL_GROUPS_ID) {
       // Skip content defaults (structure/language/duration) if storyboard is already loaded
       const { storyboardId } = useContextStore.getState();
       loadGroupDefaults(groupId, { skipContentDefaults: storyboardId !== null });

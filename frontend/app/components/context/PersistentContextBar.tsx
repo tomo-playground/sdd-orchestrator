@@ -9,6 +9,7 @@ import { useContextStore } from "../../store/useContextStore";
 import { useStudioStore } from "../../store/useStudioStore";
 import { createGroup, deleteGroup } from "../../store/actions/groupActions";
 import { createProject, deleteProject, updateProject } from "../../store/actions/projectActions";
+import { ALL_GROUPS_ID } from "../../constants";
 import ProjectDropdown from "./ProjectDropdown";
 import GroupDropdown from "./GroupDropdown";
 import ProjectFormModal from "./ProjectFormModal";
@@ -110,6 +111,7 @@ export default function PersistentContextBar() {
             onNew={() => setShowGroupModal(true)}
             onEdit={(g) => setConfigGroupId(g.id)}
             onDelete={(g) => handleDeleteGroup(g.id)}
+            showAllOption
           />
 
           {hasStoryboard && (
@@ -127,7 +129,7 @@ export default function PersistentContextBar() {
         </div>
 
         <div className="flex items-center gap-1">
-          {groupId && (
+          {groupId !== null && groupId !== ALL_GROUPS_ID && (
             <button
               onClick={() => setConfigGroupId(groupId)}
               title="Group settings"
@@ -168,7 +170,9 @@ export default function PersistentContextBar() {
 
       {projectModalMode && (
         <ProjectFormModal
-          project={projectModalMode === "edit" ? projects.find((p) => p.id === projectId) : undefined}
+          project={
+            projectModalMode === "edit" ? projects.find((p) => p.id === projectId) : undefined
+          }
           onSave={async (data) => {
             if (projectModalMode === "edit" && projectId) {
               await updateProject(projectId, data);

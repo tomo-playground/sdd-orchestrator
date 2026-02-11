@@ -2,13 +2,20 @@
 
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { Mic } from "lucide-react";
 import { useStudioStore } from "../../store/useStudioStore";
 import { useVoicePresets } from "../../hooks/useVoicePresets";
 import { API_BASE } from "../../constants";
 import VoiceCard from "./VoiceCard";
 import Button from "../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
-import { CONTAINER_CLASSES } from "../../components/ui/variants";
+import EmptyState from "../../components/ui/EmptyState";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import {
+  CONTAINER_CLASSES,
+  PAGE_TITLE_CLASSES,
+  SEARCH_INPUT_CLASSES,
+} from "../../components/ui/variants";
 
 export default function VoicesPage() {
   const showToast = useStudioStore((s) => s.showToast);
@@ -59,7 +66,7 @@ export default function VoicesPage() {
     <div className={`${CONTAINER_CLASSES} py-8`}>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-900">
+        <h1 className={PAGE_TITLE_CLASSES}>
           Voices{presets.length > 0 ? ` (${presets.length})` : ""}
         </h1>
         <Button size="sm" onClick={handleCreate}>
@@ -74,7 +81,7 @@ export default function VoicesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search voices..."
-          className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+          className={SEARCH_INPUT_CLASSES}
         />
       </div>
 
@@ -178,23 +185,26 @@ export default function VoicesPage() {
 
       {/* Card grid */}
       {isLoading ? (
-        <div className="py-16 text-center text-sm text-zinc-400">Loading voices...</div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <p className="text-sm font-medium text-zinc-500">
-            {presets.length === 0 ? "No voice presets yet" : "No voices match your search"}
-          </p>
-          <p className="text-xs text-zinc-400">
-            {presets.length === 0
-              ? "Generate a voice preset to get started"
-              : "Try a different search term"}
-          </p>
-          {presets.length === 0 && (
-            <Button size="sm" onClick={handleCreate}>
-              + Generate Voice
-            </Button>
-          )}
+        <div className="flex justify-center py-16">
+          <LoadingSpinner size="md" />
         </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Mic}
+          title={presets.length === 0 ? "No voice presets yet" : "No voices match your search"}
+          description={
+            presets.length === 0
+              ? "Generate a voice preset to get started"
+              : "Try a different search term"
+          }
+          action={
+            presets.length === 0 ? (
+              <Button size="sm" onClick={handleCreate}>
+                + Generate Voice
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (

@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Image } from "lucide-react";
 import { useStudioStore } from "../../store/useStudioStore";
 import { useBackgrounds } from "../../hooks/useBackgrounds";
 import BackgroundCard from "./BackgroundCard";
 import Button from "../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
-import { CONTAINER_CLASSES } from "../../components/ui/variants";
+import EmptyState from "../../components/ui/EmptyState";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import {
+  CONTAINER_CLASSES,
+  PAGE_TITLE_CLASSES,
+  SEARCH_INPUT_CLASSES,
+} from "../../components/ui/variants";
 
 export default function BackgroundsPage() {
   const showToast = useStudioStore((s) => s.showToast);
@@ -42,7 +49,7 @@ export default function BackgroundsPage() {
         (bg) =>
           bg.name.toLowerCase().includes(q) ||
           bg.description?.toLowerCase().includes(q) ||
-          bg.tags?.some((t) => t.toLowerCase().includes(q)),
+          bg.tags?.some((t) => t.toLowerCase().includes(q))
       );
     }
     return list;
@@ -50,14 +57,13 @@ export default function BackgroundsPage() {
 
   const inputCls =
     "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 focus:border-zinc-400 focus:outline-none";
-  const labelCls =
-    "text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
+  const labelCls = "text-[10px] font-semibold uppercase tracking-wider text-zinc-400";
 
   return (
     <div className={`${CONTAINER_CLASSES} py-8`}>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-900">
+        <h1 className={PAGE_TITLE_CLASSES}>
           Backgrounds
           {backgrounds.length > 0 ? ` (${backgrounds.length})` : ""}
         </h1>
@@ -73,7 +79,7 @@ export default function BackgroundsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search backgrounds..."
-          className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400"
+          className={`${SEARCH_INPUT_CLASSES} max-w-sm`}
         />
         <select
           value={filterCategory}
@@ -96,10 +102,7 @@ export default function BackgroundsPage() {
             <span className="text-sm font-bold text-zinc-700">
               {editId ? "Edit Background" : "New Background"}
             </span>
-            <button
-              onClick={handleCancel}
-              className="text-xs text-zinc-400 hover:text-zinc-600"
-            >
+            <button onClick={handleCancel} className="text-xs text-zinc-400 hover:text-zinc-600">
               Cancel
             </button>
           </div>
@@ -133,9 +136,7 @@ export default function BackgroundsPage() {
               />
             </div>
             <div>
-              <label className={labelCls}>
-                Weight ({editing.weight.toFixed(2)})
-              </label>
+              <label className={labelCls}>Weight ({editing.weight.toFixed(2)})</label>
               <input
                 type="range"
                 min={0}
@@ -172,27 +173,28 @@ export default function BackgroundsPage() {
 
       {/* Card grid */}
       {isLoading ? (
-        <div className="py-16 text-center text-sm text-zinc-400">
-          Loading backgrounds...
+        <div className="flex justify-center py-16">
+          <LoadingSpinner size="md" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <p className="text-sm font-medium text-zinc-500">
-            {backgrounds.length === 0
-              ? "No backgrounds yet"
-              : "No backgrounds match your filters"}
-          </p>
-          <p className="text-xs text-zinc-400">
-            {backgrounds.length === 0
+        <EmptyState
+          icon={Image}
+          title={
+            backgrounds.length === 0 ? "No backgrounds yet" : "No backgrounds match your filters"
+          }
+          description={
+            backgrounds.length === 0
               ? "Add a background reference image to get started"
-              : "Try different search or category"}
-          </p>
-          {backgrounds.length === 0 && (
-            <Button size="sm" onClick={handleCreate}>
-              + Add Background
-            </Button>
-          )}
-        </div>
+              : "Try different search or category"
+          }
+          action={
+            backgrounds.length === 0 ? (
+              <Button size="sm" onClick={handleCreate}>
+                + Add Background
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((bg) => (
