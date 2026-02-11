@@ -40,13 +40,11 @@ export default function SceneContextTags({
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
-  const EXCLUSIVE_KEYS = new Set<string>(["gaze", "camera"]);
-
   const getSelectedTags = (group: string): string[] => {
     if (!contextTags) return [];
-    if (EXCLUSIVE_KEYS.has(group)) {
+    if (isExclusiveGroup(group)) {
       const val = contextTags[group as "gaze" | "camera"];
-      return val ? [val] : [];
+      return typeof val === "string" ? [val] : [];
     }
     return (contextTags[group as keyof SceneContextTagsType] as string[] | undefined) || [];
   };
@@ -117,7 +115,7 @@ export default function SceneContextTags({
                   <span>{GROUP_ICONS[group]}</span>
                   <span>{GROUP_LABELS[group] || group}</span>
                   {isExclusive && (
-                    <span className="text-[8px] text-zinc-300">(single)</span>
+                    <span className="text-[11px] text-zinc-300">(single)</span>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1">

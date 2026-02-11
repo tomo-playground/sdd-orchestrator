@@ -13,17 +13,6 @@ import {
 } from "../../utils/sceneSettingsResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 
-// Debounced save to prevent concurrent requests during batch generation
-let saveTimeout: NodeJS.Timeout | null = null;
-function debouncedSaveStoryboard() {
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(async () => {
-    console.log("[debouncedSave] Executing saveStoryboard...");
-    const saved = await saveStoryboard();
-    console.log("[debouncedSave] saveStoryboard result:", saved);
-  }, 1000); // Wait 1s after last image generation
-}
-
 /** Store a base64 image on the backend and return URL + asset_id */
 export async function storeSceneImage(
   dataUrl: string,
@@ -157,6 +146,7 @@ export async function generateSceneImageFor(
         character_b_id: sbState.selectedCharacterBId || undefined,
         storyboard_id: storyboardId,
         scene_id: scene.id > 0 ? scene.id : undefined,
+        background_id: scene.background_id || undefined,
         prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
       },
       { timeout: API_TIMEOUT.IMAGE_GENERATION }
@@ -409,11 +399,7 @@ export async function handleGenerateImage(scene: Scene) {
         showToast(`Auto-pin: ${autoPinResult.message}`, "success");
       }
 
-      // Auto-save after image generation to persist image_url to DB
-      // Prevents image loss on page refresh
-      // Debounce to prevent concurrent saves during batch generation
-      console.log("[handleGenerateImage] Scheduling saveStoryboard...");
-      debouncedSaveStoryboard();
+      // image_url is already persisted by POST /image/store (Backend commits scene.image_asset_id immediately)
     } else {
       console.warn("[handleGenerateImage] No result from image generation");
     }

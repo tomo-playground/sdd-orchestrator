@@ -181,6 +181,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             context_tags=s_data.context_tags,
             use_reference_only=s_data.use_reference_only if s_data.use_reference_only is not None else True,
             reference_only_weight=s_data.reference_only_weight or 0.5,
+            background_id=getattr(s_data, "background_id", None),
             environment_reference_id=None,  # Deferred — set after asset remap
             environment_reference_weight=s_data.environment_reference_weight or 0.3,
             candidates=candidates_for_db,

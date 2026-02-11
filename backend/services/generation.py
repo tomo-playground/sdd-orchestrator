@@ -287,6 +287,7 @@ def _handle_character_scene(
 def _handle_background_scene(request: SceneGenerateRequest, db) -> tuple[str, list[str]]:
     """Handle narrator (no_humans) scene: V3 background composition."""
     style_loras = _resolve_style_loras(request.storyboard_id, db)
+    # Narrator scenes: only inject tags, skip ControlNet Canny (no_humans skips env pinning in _apply_controlnet)
     bg_tags, _, _ = _resolve_background(request, db)
     cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
         raw_prompt=request.prompt,

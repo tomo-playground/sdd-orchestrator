@@ -823,7 +823,7 @@ Textual Inversion 임베딩.
 
 ---
 
-**Last Updated:** 2026-02-11
-**Schema Version:** v3.17
+**Last Updated:** 2026-02-12
+**Schema Version:** v3.18
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic
