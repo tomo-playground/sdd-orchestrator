@@ -31,14 +31,14 @@ type NavItem = {
 };
 
 /** Tabs surfaced as top-level nav — excluded from generic Manage active state */
-const PROMOTED_TABS = new Set(["voice", "music"]);
+const PROMOTED_TABS = new Set(["music"]);
 
 const NAV_GROUPS: (NavItem[] | "sep")[] = [
   [
     { href: "/", label: "Home", icon: Home, exact: true },
     { href: "/storyboards", label: "Stories", icon: FileText },
     { href: "/characters", label: "Characters", icon: Users },
-    { href: "/manage?tab=voice", label: "Voices", icon: Mic, matchTab: "voice" },
+    { href: "/voices", label: "Voices", icon: Mic },
     { href: "/manage?tab=music", label: "Music", icon: Music, matchTab: "music" },
   ],
   "sep",
@@ -101,7 +101,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     !pathname.startsWith("/manage") &&
     !pathname.startsWith("/lab") &&
     !pathname.startsWith("/characters") &&
-    !pathname.startsWith("/storyboards");
+    !pathname.startsWith("/storyboards") &&
+    !pathname.startsWith("/voices");
   const toast = useStudioStore((s) => s.toast);
   const connectionStatus = useBackendHealth();
 

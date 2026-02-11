@@ -295,7 +295,7 @@
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
 | 0 | 네비게이션 재구성 (Production/Studio/Tools 그룹, Voices/Music 탑메뉴 승격) | UX | [x] (7-1 #27) |
-| 1 | `/voices` 독립 페이지 (Manage VoicePresetsTab 추출 + Voice Preview 강화) | UX | [ ] |
+| 1 | `/voices` 독립 페이지 (Manage VoicePresetsTab 추출 + Voice Preview 강화) | UX | [x] |
 | 2 | `/music` 독립 페이지 (Manage MusicPresetsTab 추출 + BGM 라이브러리) | UX | [ ] |
 | 3 | `/backgrounds` 배경 에셋 페이지 (DB 테이블 + CRUD API + 에셋 관리) | 기능 | [ ] |
 | 4 | Studio "조립 공장" 전환 (Materials 체크리스트 → Preview → Render 3단계) | UX | [ ] |
@@ -369,7 +369,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
 - Phase 7-1: **23/27** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
-- Phase 7-3: **1/6** 완료 (#0 네비게이션 재구성)
+- Phase 7-3: **2/6** 완료 (#0 네비게이션, #1 /voices 독립 페이지)
 - **Backend 테스트**: 1,399개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)
