@@ -1,6 +1,8 @@
 import axios from "axios";
 import type { Scene, FixSuggestion } from "../../types";
-import { useStudioStore } from "../useStudioStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useContextStore } from "../useContextStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE, CAMERA_KEYWORDS, ACTION_KEYWORDS, BACKGROUND_KEYWORDS } from "../../constants";
 import { computeValidationResults, getFixSuggestions } from "../../utils";
 import { buildNegativePrompt } from "./promptActions";
@@ -9,18 +11,18 @@ import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 // --------------- Validation ---------------
 
 export function runValidation() {
-  const { scenes, structure } = useStudioStore.getState();
+  const { scenes, structure } = useStoryboardStore.getState();
   const { results, summary } = computeValidationResults(scenes, structure);
-  useStudioStore.getState().setScenesState({
+  useStoryboardStore.getState().set({
     validationResults: results,
     validationSummary: summary,
   });
 }
 
 export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
-  const { topic, baseNegativePromptA, structure } = useStudioStore.getState();
+  const { topic, baseNegativePromptA, structure } = useStoryboardStore.getState();
   const { results, summary } = computeValidationResults(inputScenes, structure);
-  useStudioStore.getState().setScenesState({
+  useStoryboardStore.getState().set({
     validationResults: results,
     validationSummary: summary,
   });
@@ -82,7 +84,7 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
 }
 
 export function handleAutoFixAll() {
-  const { scenes, setScenes } = useStudioStore.getState();
+  const { scenes, setScenes } = useStoryboardStore.getState();
   const updated = applyAutoFixForScenes(scenes);
   setScenes(updated);
   setTimeout(() => runValidation(), 0);
@@ -91,14 +93,14 @@ export function handleAutoFixAll() {
 // --------------- Scene Status ---------------
 
 export function getSceneStatus(scene: Scene): string {
-  const { imageValidationResults } = useStudioStore.getState();
+  const { imageValidationResults } = useStoryboardStore.getState();
   if (!scene.image_url) return "Need Image";
   if (!imageValidationResults[scene.id]) return "Ready to Validate";
   return "Ready to Render";
 }
 
 export function getSceneFixSuggestions(scene: Scene): FixSuggestion[] {
-  const { validationResults, topic } = useStudioStore.getState();
+  const { validationResults, topic } = useStoryboardStore.getState();
   const validation = validationResults[scene.id];
   if (!validation) return [];
   return getFixSuggestions(scene, validation, topic);
@@ -107,7 +109,7 @@ export function getSceneFixSuggestions(scene: Scene): FixSuggestion[] {
 // --------------- Apply Suggestion ---------------
 
 export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
-  const { updateScene } = useStudioStore.getState();
+  const { updateScene } = useStoryboardStore.getState();
   if (!suggestion.action) return;
 
   if (suggestion.action.type === "set_speaker_a") {
@@ -151,7 +153,8 @@ export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
 // --------------- Apply Missing Tags ---------------
 
 export function applyMissingImageTags(scene: Scene, missingOverride?: string[], limit = 5) {
-  const { imageValidationResults, updateScene, showToast } = useStudioStore.getState();
+  const { imageValidationResults, updateScene } = useStoryboardStore.getState();
+  const { showToast } = useUIStore.getState();
   const missing = missingOverride ?? imageValidationResults[scene.id]?.missing ?? [];
   if (!missing.length) {
     showToast("No missing tags to add", "error");
@@ -181,7 +184,7 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
 // --------------- Speaker Change ---------------
 
 export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
-  const { baseNegativePromptA, baseNegativePromptB, updateScene } = useStudioStore.getState();
+  const { baseNegativePromptA, baseNegativePromptB, updateScene } = useStoryboardStore.getState();
   updateScene(scene.id, {
     speaker,
     negative_prompt: speaker === "B" ? baseNegativePromptB : baseNegativePromptA,
@@ -191,19 +194,18 @@ export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
 // --------------- Image Validation ---------------
 
 export async function handleValidateImage(scene: Scene) {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   if (!scene.image_url) {
     showToast("Upload or generate an image first.", "error");
     return;
   }
-  // Sending data: (base64) in request body causes large payload → Network Error. Use stored URL only.
   if (scene.image_url.startsWith("data:")) {
     showToast("Save the scene first (image must be stored).", "error");
     return;
   }
-  useStudioStore.getState().setScenesState({ validatingSceneId: scene.id });
+  useStoryboardStore.getState().set({ validatingSceneId: scene.id });
   const prompt = scene.debug_prompt || scene.image_prompt;
-  const { storyboardId } = useStudioStore.getState();
+  const { storyboardId } = useContextStore.getState();
 
   try {
     const payload =
@@ -211,8 +213,8 @@ export async function handleValidateImage(scene: Scene) {
         ? { image_url: scene.image_url, prompt, storyboard_id: storyboardId, scene_id: scene.id }
         : { image_b64: scene.image_url, prompt, storyboard_id: storyboardId, scene_id: scene.id };
     const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
-    const prev = useStudioStore.getState().imageValidationResults;
-    useStudioStore.getState().setScenesState({
+    const prev = useStoryboardStore.getState().imageValidationResults;
+    useStoryboardStore.getState().set({
       imageValidationResults: { ...prev, [scene.id]: res.data },
     });
     const matchRate = Math.round((res.data.match_rate || 0) * 100);
@@ -232,19 +234,19 @@ export async function handleValidateImage(scene: Scene) {
   } catch {
     showToast("Image validation failed", "error");
   } finally {
-    useStudioStore.getState().setScenesState({ validatingSceneId: null });
+    useStoryboardStore.getState().set({ validatingSceneId: null });
   }
 }
 
 // --------------- Mark Success / Fail ---------------
 
 export async function handleMarkSuccess(scene: Scene) {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   if (!scene.activity_log_id) {
     showToast("No generation log to mark", "error");
     return;
   }
-  useStudioStore.getState().setScenesState({
+  useStoryboardStore.getState().set({
     markingStatusSceneId: scene.id,
   });
   try {
@@ -255,17 +257,17 @@ export async function handleMarkSuccess(scene: Scene) {
   } catch {
     showToast("Failed to mark status", "error");
   } finally {
-    useStudioStore.getState().setScenesState({ markingStatusSceneId: null });
+    useStoryboardStore.getState().set({ markingStatusSceneId: null });
   }
 }
 
 export async function handleMarkFail(scene: Scene) {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   if (!scene.activity_log_id) {
     showToast("No generation log to mark", "error");
     return;
   }
-  useStudioStore.getState().setScenesState({
+  useStoryboardStore.getState().set({
     markingStatusSceneId: scene.id,
   });
   try {
@@ -276,16 +278,17 @@ export async function handleMarkFail(scene: Scene) {
   } catch {
     showToast("Failed to mark status", "error");
   } finally {
-    useStudioStore.getState().setScenesState({ markingStatusSceneId: null });
+    useStoryboardStore.getState().set({ markingStatusSceneId: null });
   }
 }
 
 // --------------- Save Prompt ---------------
 
 export async function handleSavePrompt(scene: Scene) {
-  const state = useStudioStore.getState();
-  const { characterLoras, showToast } = state;
-  const characterId = resolveCharacterIdForSpeaker(scene.speaker, state);
+  const sbState = useStoryboardStore.getState();
+  const { characterLoras } = sbState;
+  const { showToast } = useUIStore.getState();
+  const characterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
   const name = window.prompt("Enter a name for this prompt:");
   if (!name?.trim()) return;
 

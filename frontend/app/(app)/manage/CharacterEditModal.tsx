@@ -18,7 +18,7 @@ import {
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
 import { Character, Tag, LoRA } from "../../types";
 
 type Props = {
@@ -37,7 +37,7 @@ export default function CharacterEditModal({
   onSave,
 }: Props) {
   const trapRef = useFocusTrap(true);
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const form = useCharacterForm({
     character,

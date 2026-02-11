@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useContextStore } from "../../store/useContextStore";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
 import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
@@ -29,7 +29,7 @@ function isValidTab(v: string | null): v is ManageTab {
 function ManageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const projectId = useStudioStore((s) => s.projectId);
+  const projectId = useContextStore((s) => s.projectId);
 
   // URL-synced tab state
   const tabParam = searchParams.get("tab");

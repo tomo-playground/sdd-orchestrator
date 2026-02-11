@@ -1,9 +1,9 @@
-import { useStudioStore } from "../useStudioStore";
+import { useContextStore } from "../useContextStore";
 import { API_BASE } from "../../constants";
 import type { ProjectItem } from "../../types";
 
 export function getCurrentProject(): ProjectItem | null {
-  const { projects, projectId } = useStudioStore.getState();
+  const { projects, projectId } = useContextStore.getState();
   return projects.find((p) => p.id === projectId) ?? null;
 }
 

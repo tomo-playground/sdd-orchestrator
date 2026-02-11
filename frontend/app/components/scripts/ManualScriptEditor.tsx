@@ -8,14 +8,11 @@ import { useCharacters } from "../../hooks/useCharacters";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import ScriptSceneList from "./ScriptSceneList";
 import Button from "../ui/Button";
-import { SECTION_CLASSES, cx } from "../ui/variants";
+import { SECTION_CLASSES, FORM_INPUT_CLASSES, FORM_LABEL_CLASSES, cx } from "../ui/variants";
 
 type Props = {
   storyboardId?: number | null;
 };
-
-const SELECT_CLASSES =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400";
 
 export default function ManualScriptEditor({ storyboardId }: Props) {
   const router = useRouter();
@@ -57,7 +54,7 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
         </h3>
         <div className={isMultiChar ? "grid grid-cols-2 gap-3" : ""}>
           <div>
-            <label className="mb-1 block text-[12px] font-medium text-zinc-400">
+            <label className={`mb-1 block ${FORM_LABEL_CLASSES}`}>
               {isMultiChar ? "Character A" : "Character"}
             </label>
             <select
@@ -65,7 +62,7 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
               onChange={(e) =>
                 editor.setField("characterId", e.target.value ? Number(e.target.value) : null)
               }
-              className={SELECT_CLASSES}
+              className={FORM_INPUT_CLASSES}
             >
               <option value="">None</option>
               {characters.map((c) => (
@@ -77,15 +74,13 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
           </div>
           {isMultiChar && (
             <div>
-              <label className="mb-1 block text-[12px] font-medium text-zinc-400">
-                Character B
-              </label>
+              <label className={`mb-1 block ${FORM_LABEL_CLASSES}`}>Character B</label>
               <select
                 value={editor.characterBId ?? ""}
                 onChange={(e) =>
                   editor.setField("characterBId", e.target.value ? Number(e.target.value) : null)
                 }
-                className={SELECT_CLASSES}
+                className={FORM_INPUT_CLASSES}
               >
                 <option value="">None</option>
                 {characters.map((c) => (

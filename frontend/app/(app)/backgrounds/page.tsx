@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Image } from "lucide-react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
 import { useBackgrounds } from "../../hooks/useBackgrounds";
 import BackgroundCard from "./BackgroundCard";
 import Button from "../../components/ui/Button";
@@ -16,7 +16,7 @@ import {
 } from "../../components/ui/variants";
 
 export default function BackgroundsPage() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {
     backgrounds,

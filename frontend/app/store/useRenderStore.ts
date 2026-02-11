@@ -14,13 +14,53 @@ import {
   DEFAULT_POST_CARD_SETTINGS,
   DEFAULT_SCENE_TEXT_FONT,
 } from "../constants";
-import type { OutputSlice } from "./slices/outputSlice";
-
-/** Render store = OutputSlice data fields + simplified setters. */
-export type RenderStore = Omit<OutputSlice, "setOutput" | "resetOutput"> & {
+export interface RenderStore {
+  // Style Profile
+  currentStyleProfile: {
+    id: number;
+    name: string;
+    display_name: string | null;
+    sd_model_name: string | null;
+    loras: { name: string; trigger_words: string[]; weight: number }[];
+    negative_embeddings: { name: string; trigger_word: string }[];
+    positive_embeddings: { name: string; trigger_word: string }[];
+    default_positive: string | null;
+    default_negative: string | null;
+  } | null;
+  layoutStyle: "full" | "post";
+  frameStyle: string;
+  kenBurnsPreset: KenBurnsPreset;
+  kenBurnsIntensity: number;
+  transitionType: string;
+  isRendering: boolean;
+  includeSceneText: boolean;
+  bgmList: AudioItem[];
+  bgmFile: string | null;
+  audioDucking: boolean;
+  bgmVolume: number;
+  speedMultiplier: number;
+  fontList: FontItem[];
+  sceneTextFont: string;
+  loadedFonts: Set<string>;
+  ttsEngine: "qwen";
+  voiceDesignPrompt: string;
+  voicePresetId: number | null;
+  bgmMode: "file" | "ai";
+  musicPresetId: number | null;
+  videoCaption: string;
+  videoLikesCount: string;
+  overlaySettings: OverlaySettings;
+  postCardSettings: PostCardSettings;
+  overlayAvatarUrl: string | null;
+  postAvatarUrl: string | null;
+  videoUrl: string | null;
+  videoUrlFull: string | null;
+  videoUrlPost: string | null;
+  recentVideos: RecentVideo[];
+  renderProgress: RenderProgress | null;
   set: (updates: Partial<RenderStore>) => void;
   reset: () => void;
-};
+}
 
 const initialState: Omit<RenderStore, "set" | "reset"> = {
   currentStyleProfile: null,
@@ -57,7 +97,15 @@ const initialState: Omit<RenderStore, "set" | "reset"> = {
   renderProgress: null as RenderProgress | null,
 };
 
-const STORE_KEY = "shorts-producer:render:v1";
+export const RENDER_STORE_KEY = "shorts-producer:render:v1";
+
+// Pre-hydration cleanup: clear localStorage before Zustand hydrates old data
+if (typeof window !== "undefined") {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("new") === "true") {
+    localStorage.removeItem(RENDER_STORE_KEY);
+  }
+}
 
 /** Fields excluded from persistence (transient / runtime-derived). */
 const TRANSIENT_KEYS: (keyof RenderStore)[] = [
@@ -79,7 +127,7 @@ export const useRenderStore = create<RenderStore>()(
       reset: () => set(initialState),
     }),
     {
-      name: STORE_KEY,
+      name: RENDER_STORE_KEY,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => {
         const persisted: Record<string, unknown> = {};
@@ -91,6 +139,6 @@ export const useRenderStore = create<RenderStore>()(
         }
         return persisted as Partial<RenderStore>;
       },
-    },
-  ),
+    }
+  )
 );

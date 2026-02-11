@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cx, LABEL_CLASSES } from "../../components/ui/variants";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useContextStore } from "../../store/useContextStore";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -77,8 +77,8 @@ export default function ManageSidebar({
   activeTab: ManageTab;
   onTabChange: (tab: ManageTab) => void;
 }) {
-  const projectId = useStudioStore((s) => s.projectId);
-  const projects = useStudioStore((s) => s.projects);
+  const projectId = useContextStore((s) => s.projectId);
+  const projects = useContextStore((s) => s.projects);
   const projectName = projects.find((p) => p.id === projectId)?.name ?? null;
 
   const [collapsed, setCollapsed] = useState(false);

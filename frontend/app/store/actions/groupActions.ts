@@ -1,5 +1,8 @@
 import axios from "axios";
-import { useStudioStore } from "../useStudioStore";
+import { useContextStore } from "../useContextStore";
+import { useRenderStore } from "../useRenderStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE } from "../../constants";
 import type { EffectiveConfig, GroupItem } from "../../types";
 import { loadStyleProfileFromId } from "./styleProfileActions";
@@ -15,14 +18,15 @@ export async function loadGroupDefaults(
   groupId: number,
   options?: { skipContentDefaults?: boolean }
 ): Promise<void> {
-  const { setEffectiveDefaults, setEffectivePreset, setEffectiveSdParams } = useStudioStore.getState();
+  const { setEffectiveDefaults, setEffectivePreset, setEffectiveSdParams } =
+    useContextStore.getState();
   setEffectiveDefaults(null, null, false);
 
   try {
     const res = await axios.get<EffectiveConfig>(`${API_BASE}/groups/${groupId}/effective-config`);
     const cfg = res.data;
 
-    // Store effective IDs (contextSlice — survives resetStudioStore)
+    // Store effective IDs (survives store reset)
     setEffectiveDefaults(cfg.style_profile_id ?? null, null, true);
 
     // Store effective SD params for preflight display
@@ -34,7 +38,7 @@ export async function loadGroupDefaults(
     });
 
     // Auto-load style profile if not already loaded
-    if (cfg.style_profile_id && !useStudioStore.getState().currentStyleProfile) {
+    if (cfg.style_profile_id && !useRenderStore.getState().currentStyleProfile) {
       loadStyleProfileFromId(cfg.style_profile_id).catch((err) => {
         console.error("[loadGroupDefaults] Failed to load style profile:", err);
       });
@@ -65,7 +69,7 @@ export async function loadGroupDefaults(
     if (cfg.narrator_voice_preset_id != null) updates.voicePresetId = cfg.narrator_voice_preset_id;
 
     if (Object.keys(updates).length > 0) {
-      useStudioStore.getState().setOutput(updates);
+      useRenderStore.getState().set(updates);
     }
 
     // Apply content defaults to plan slice (skip if loading existing storyboard)
@@ -75,7 +79,7 @@ export async function loadGroupDefaults(
       if (cfg.structure) planUpdates.structure = cfg.structure;
       if (cfg.duration) planUpdates.duration = cfg.duration;
       if (Object.keys(planUpdates).length > 0) {
-        useStudioStore.getState().setPlan(planUpdates);
+        useStoryboardStore.getState().set(planUpdates);
       }
     }
   } catch {
@@ -84,7 +88,7 @@ export async function loadGroupDefaults(
 }
 
 export async function fetchGroups(projectId: number): Promise<void> {
-  const { setContextLoading, setGroups } = useStudioStore.getState();
+  const { setContextLoading, setGroups } = useContextStore.getState();
   setContextLoading({ isLoadingGroups: true });
   try {
     const res = await axios.get<GroupItem[]>(`${API_BASE}/groups`, {
@@ -106,7 +110,8 @@ export async function createGroup(data: {
   style_profile_id?: number;
   narrator_voice_preset_id?: number;
 }): Promise<GroupItem | undefined> {
-  const { showToast, projectId } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
+  const { projectId } = useContextStore.getState();
   try {
     const res = await axios.post<GroupItem>(`${API_BASE}/groups`, data);
     if (projectId) await fetchGroups(projectId);
@@ -123,7 +128,8 @@ export async function updateGroup(
   groupId: number,
   data: Record<string, unknown>
 ): Promise<GroupItem | undefined> {
-  const { showToast, projectId } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
+  const { projectId } = useContextStore.getState();
   try {
     const res = await axios.put<GroupItem>(`${API_BASE}/groups/${groupId}`, data);
     if (projectId) await fetchGroups(projectId);
@@ -137,7 +143,8 @@ export async function updateGroup(
 }
 
 export async function deleteGroup(groupId: number): Promise<boolean> {
-  const { showToast, projectId } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
+  const { projectId } = useContextStore.getState();
   try {
     await axios.delete(`${API_BASE}/groups/${groupId}`);
     if (projectId) await fetchGroups(projectId);

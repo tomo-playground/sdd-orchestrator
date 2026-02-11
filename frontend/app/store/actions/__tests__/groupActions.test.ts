@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
 import { loadGroupDefaults } from "../groupActions";
-import { useStudioStore } from "../../useStudioStore";
+import { useContextStore } from "../../useContextStore";
+import { useRenderStore } from "../../useRenderStore";
+import { useStoryboardStore } from "../../useStoryboardStore";
 
 vi.mock("axios");
+vi.mock("../styleProfileActions", () => ({
+  loadStyleProfileFromId: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("loadGroupDefaults", () => {
   const mockSetOutput = vi.fn();
@@ -14,12 +19,17 @@ describe("loadGroupDefaults", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(useStudioStore, "getState").mockReturnValue({
-      setOutput: mockSetOutput,
-      setPlan: mockSetPlan,
+    vi.spyOn(useContextStore, "getState").mockReturnValue({
       setEffectiveDefaults: mockSetEffectiveDefaults,
       setEffectivePreset: mockSetEffectivePreset,
       setEffectiveSdParams: mockSetEffectiveSdParams,
+    } as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue({
+      set: mockSetOutput,
+      currentStyleProfile: null,
+    } as never);
+    vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
+      set: mockSetPlan,
     } as never);
   });
 

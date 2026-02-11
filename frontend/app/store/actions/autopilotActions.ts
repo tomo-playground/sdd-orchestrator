@@ -1,7 +1,10 @@
 import axios from "axios";
 import type { AutoRunStepId } from "../../types";
 import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
-import { useStudioStore } from "../useStudioStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useContextStore } from "../useContextStore";
+import { useRenderStore } from "../useRenderStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE, AUTO_RUN_STEPS } from "../../constants";
 import { computeValidationResults } from "../../utils";
 import { generateBatchImages } from "./batchActions";
@@ -14,7 +17,7 @@ import { renderWithProgress } from "../../utils/renderWithProgress";
 
 /**
  * Run the autopilot pipeline from a given step.
- * This orchestrates images → validate → render.
+ * This orchestrates images -> validate -> render.
  */
 export async function runAutoRunFromStep(
   startStep: AutoRunStepId,
@@ -25,13 +28,12 @@ export async function runAutoRunFromStep(
   if (stepsToRun?.length) {
     startStep = stepsToRun[0];
   }
-  const {
-    layoutStyle,
-    scenes: initialScenes,
-    showToast,
-    setScenes,
-    setActiveTab,
-  } = useStudioStore.getState();
+
+  const renderStore = useRenderStore.getState();
+  const { layoutStyle } = renderStore;
+  const sbState = useStoryboardStore.getState();
+  const { scenes: initialScenes } = sbState;
+  const { showToast, setActiveTab } = useUIStore.getState();
 
   const {
     startRun,
@@ -50,7 +52,7 @@ export async function runAutoRunFromStep(
   }
 
   startRun();
-  useStudioStore.getState().setMeta({ isAutoRunning: true });
+  useUIStore.getState().set({ isAutoRunning: true });
   let workingScenes = initialScenes;
   let currentStep: AutoRunStepId = startStep;
 
@@ -73,7 +75,7 @@ export async function runAutoRunFromStep(
         assertNotCancelled();
 
         // Split scenes by per-scene multiGen setting
-        const globalState = useStudioStore.getState();
+        const globalState = useStoryboardStore.getState();
         const multiGenScenes = workingScenes.filter(
           (s) => !s.image_url && resolveSceneMultiGen(s, globalState)
         );
@@ -86,26 +88,27 @@ export async function runAutoRunFromStep(
           for (const scene of multiGenScenes) {
             assertNotCancelled();
             const sceneOrder = scene.order;
-            // Fresh lookup: scene IDs may change between iterations (save → ID reassignment)
+            // Fresh lookup: scene IDs may change between iterations (save -> ID reassignment)
             const freshScene =
-              useStudioStore.getState().scenes.find((s) => s.order === sceneOrder) || scene;
-            useStudioStore.getState().updateScene(freshScene.id, { isGenerating: true });
+              useStoryboardStore.getState().scenes.find((s) => s.order === sceneOrder) || scene;
+            useStoryboardStore.getState().updateScene(freshScene.id, { isGenerating: true });
             let result = await generateSceneCandidates(freshScene, true);
             if (!result?.image_url) {
               pushAutoRunLog(`Retry (Scene #${sceneOrder})`);
               const retryScene =
-                useStudioStore.getState().scenes.find((s) => s.order === sceneOrder) || freshScene;
+                useStoryboardStore.getState().scenes.find((s) => s.order === sceneOrder) ||
+                freshScene;
               result = await generateSceneCandidates(retryScene, true);
             }
             // Re-lookup after async: scene IDs may have changed
-            const currentScene = useStudioStore
+            const currentScene = useStoryboardStore
               .getState()
               .scenes.find((s) => s.order === sceneOrder);
             const currentId = currentScene?.id ?? freshScene.id;
-            useStudioStore.getState().updateScene(currentId, { isGenerating: false });
+            useStoryboardStore.getState().updateScene(currentId, { isGenerating: false });
             if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);
-            useStudioStore.getState().updateScene(currentId, result);
-            workingScenes = useStudioStore.getState().scenes;
+            useStoryboardStore.getState().updateScene(currentId, result);
+            workingScenes = useStoryboardStore.getState().scenes;
           }
         }
 
@@ -116,7 +119,7 @@ export async function runAutoRunFromStep(
 
           // Check for scenes that need retry: either batch API failure OR
           // successful generation but failed image store (missing image_asset_id)
-          const freshAfterBatch = useStudioStore.getState().scenes;
+          const freshAfterBatch = useStoryboardStore.getState().scenes;
           const scenesNeedingRetry = singleGenScenes.filter((target) => {
             const fresh = freshAfterBatch.find((s) => s.order === target.order);
             // Retry if: no image_url, or has data URL (store failed), or no asset_id
@@ -134,31 +137,31 @@ export async function runAutoRunFromStep(
               assertNotCancelled();
               const sceneOrder = target.order;
               const freshScene =
-                useStudioStore.getState().scenes.find((s) => s.order === sceneOrder) || target;
-              useStudioStore.getState().updateScene(freshScene.id, { isGenerating: true });
+                useStoryboardStore.getState().scenes.find((s) => s.order === sceneOrder) || target;
+              useStoryboardStore.getState().updateScene(freshScene.id, { isGenerating: true });
               const result = await generateSceneImageFor(freshScene, true);
               // Re-lookup after async: scene IDs may have changed
-              const currentScene = useStudioStore
+              const currentScene = useStoryboardStore
                 .getState()
                 .scenes.find((s) => s.order === sceneOrder);
               const currentId = currentScene?.id ?? freshScene.id;
-              useStudioStore.getState().updateScene(currentId, { isGenerating: false });
+              useStoryboardStore.getState().updateScene(currentId, { isGenerating: false });
               if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);
-              useStudioStore.getState().updateScene(currentId, result);
+              useStoryboardStore.getState().updateScene(currentId, result);
             }
           }
           // Sync workingScenes with store state after batch
-          workingScenes = useStudioStore.getState().scenes;
+          workingScenes = useStoryboardStore.getState().scenes;
         }
 
         // Apply auto-pin for all scenes after image generation
         // Process in scene order so earlier scenes get pinned first
-        const { updateScene } = useStudioStore.getState();
+        const { updateScene } = useStoryboardStore.getState();
         const sortedScenes = [...workingScenes].sort((a, b) => a.order - b.order);
         let autoPinCount = 0;
         for (const scene of sortedScenes) {
           // Re-fetch scenes each iteration to get updated environment_reference_id
-          const currentScenes = useStudioStore.getState().scenes;
+          const currentScenes = useStoryboardStore.getState().scenes;
           const result = applyAutoPinAfterGeneration(currentScenes, scene.id, updateScene);
           if (result?.success) {
             autoPinCount++;
@@ -170,22 +173,23 @@ export async function runAutoRunFromStep(
         }
 
         // Sync workingScenes after auto-pin
-        workingScenes = useStudioStore.getState().scenes;
+        workingScenes = useStoryboardStore.getState().scenes;
         await persistStoryboard();
         // Re-sync after persistStoryboard: scene IDs may have changed
-        workingScenes = useStudioStore.getState().scenes;
+        workingScenes = useStoryboardStore.getState().scenes;
         pushAutoRunLog("Images generated");
       }
 
       if (currentStep === "validate") {
         setAutoRunStep("validate", "Validating images...");
         // Use fresh scenes from store (IDs may have changed after persistStoryboard)
-        const { storyboardId, scenes: freshScenes } = useStudioStore.getState();
+        const { storyboardId } = useContextStore.getState();
+        const freshScenes = useStoryboardStore.getState().scenes;
         workingScenes = freshScenes;
         for (const scene of workingScenes) {
           assertNotCancelled();
           if (!scene.image_url) continue;
-          // Don't send data: (base64) in body — causes large request → Network Error. Use URL or skip.
+          // Don't send data: (base64) in body -- causes large request -> Network Error. Use URL or skip.
           if (scene.image_url.startsWith("data:")) continue;
           try {
             const payload =
@@ -209,9 +213,9 @@ export async function runAutoRunFromStep(
         }
         const { results, summary } = computeValidationResults(
           workingScenes,
-          useStudioStore.getState().structure
+          useStoryboardStore.getState().structure
         );
-        useStudioStore.getState().setScenesState({
+        useStoryboardStore.getState().set({
           validationResults: results,
           validationSummary: summary,
         });
@@ -222,14 +226,14 @@ export async function runAutoRunFromStep(
       if (currentStep === "render") {
         setAutoRunStep("render", `Rendering ${layoutStyle} video...`);
         setActiveTab("render");
-        const { setOutput } = useStudioStore.getState();
-        const renderProjectId = useStudioStore.getState().projectId;
-        const renderGroupId = useStudioStore.getState().groupId;
+        const renderProjectId = useContextStore.getState().projectId;
+        const renderGroupId = useContextStore.getState().groupId;
         if (!renderProjectId || !renderGroupId) {
           throw new Error("Project/Group context required for render");
         }
         const project = getCurrentProject();
-        const store = useStudioStore.getState();
+        const store = useRenderStore.getState();
+        const ctxStore = useContextStore.getState();
         const overlaySettings =
           layoutStyle === "full" && project
             ? {
@@ -252,7 +256,7 @@ export async function runAutoRunFromStep(
         const payload = {
           project_id: renderProjectId,
           group_id: renderGroupId,
-          storyboard_id: store.storyboardId,
+          storyboard_id: ctxStore.storyboardId,
           scenes: workingScenes
             .filter((s) => s.image_url)
             .map((s) => ({
@@ -283,7 +287,7 @@ export async function runAutoRunFromStep(
         const videoUrl = result.video_url;
         if (!videoUrl) throw new Error(`${layoutStyle} render failed`);
         const withTs = `${videoUrl}?t=${Date.now()}`;
-        setOutput({
+        useRenderStore.getState().set({
           videoUrl: withTs,
           ...(layoutStyle === "full" ? { videoUrlFull: withTs } : { videoUrlPost: withTs }),
           recentVideos: [
@@ -293,7 +297,7 @@ export async function runAutoRunFromStep(
               createdAt: Date.now(),
               renderHistoryId: result.render_history_id,
             },
-            ...useStudioStore.getState().recentVideos.slice(0, 9),
+            ...useRenderStore.getState().recentVideos.slice(0, 9),
           ],
         });
         pushAutoRunLog(`${layoutStyle} render complete`);
@@ -310,6 +314,6 @@ export async function runAutoRunFromStep(
       showToast(`Autopilot stopped: ${message}`, "error");
     }
   } finally {
-    useStudioStore.getState().setMeta({ isAutoRunning: false });
+    useUIStore.getState().set({ isAutoRunning: false });
   }
 }

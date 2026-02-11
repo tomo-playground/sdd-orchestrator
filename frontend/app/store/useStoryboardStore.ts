@@ -1,47 +1,81 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Scene, SceneValidation, ImageValidation, ReferenceImage } from "../types";
-import type { PlanSlice } from "./slices/planSlice";
-import type { ScenesSlice } from "./slices/scenesSlice";
+import type {
+  Scene,
+  ActorGender,
+  ReferenceImage,
+  SceneValidation,
+  ImageValidation,
+} from "../types";
+import { DEFAULT_STRUCTURE } from "../constants";
 
-/** Image-related fields extracted from PlanSlice. */
-type ImagePlanFields = Pick<
-  PlanSlice,
-  | "selectedCharacterId"
-  | "selectedCharacterName"
-  | "selectedCharacterBId"
-  | "selectedCharacterBName"
-  | "characterPromptMode"
-  | "loraTriggerWords"
-  | "characterLoras"
-  | "characterBLoras"
-  | "basePromptA"
-  | "baseNegativePromptA"
-  | "basePromptB"
-  | "baseNegativePromptB"
-  | "autoComposePrompt"
-  | "autoRewritePrompt"
-  | "autoReplaceRiskyTags"
-  | "hiResEnabled"
-  | "veoEnabled"
-  | "useControlnet"
-  | "controlnetWeight"
-  | "useIpAdapter"
-  | "ipAdapterReference"
-  | "ipAdapterWeight"
-  | "ipAdapterReferenceB"
-  | "ipAdapterWeightB"
->;
+type LoraEntry = {
+  id: number;
+  name: string;
+  weight?: number;
+  trigger_words?: string[];
+  lora_type?: string;
+  optimal_weight?: number;
+};
 
-/** Scene data fields (without slice setters). */
-type SceneDataFields = Omit<
-  ScenesSlice,
-  "setScenes" | "updateScene" | "removeScene" | "setCurrentSceneIndex" | "setScenesState" | "resetScenes"
->;
+export interface StoryboardStore {
+  // Content plan
+  topic: string;
+  description: string;
+  duration: number;
+  style: string;
+  language: string;
+  structure: string;
+  actorAGender: ActorGender;
 
-export interface StoryboardStore extends ImagePlanFields, SceneDataFields {
-  storyboardId: number | null;
-  storyboardTitle: string;
+  // Character A
+  selectedCharacterId: number | null;
+  selectedCharacterName: string | null;
+  characterPromptMode: "auto" | "standard" | "lora";
+  loraTriggerWords: string[];
+  characterLoras: LoraEntry[];
+
+  // Character B
+  selectedCharacterBId: number | null;
+  selectedCharacterBName: string | null;
+  characterBLoras: LoraEntry[];
+  basePromptB: string;
+  baseNegativePromptB: string;
+
+  // Prompt settings
+  basePromptA: string;
+  baseNegativePromptA: string;
+  autoComposePrompt: boolean;
+  autoRewritePrompt: boolean;
+  autoReplaceRiskyTags: boolean;
+  hiResEnabled: boolean;
+  veoEnabled: boolean;
+
+  // ControlNet / IP-Adapter
+  useControlnet: boolean;
+  controlnetWeight: number;
+  useIpAdapter: boolean;
+  ipAdapterReference: string;
+  ipAdapterWeight: number;
+  ipAdapterReferenceB: string;
+  ipAdapterWeightB: number;
+
+  // Scenes
+  scenes: Scene[];
+  currentSceneIndex: number;
+  isGenerating: boolean;
+  multiGenEnabled: boolean;
+  referenceImages: ReferenceImage[];
+  validationResults: Record<number, SceneValidation>;
+  validationSummary: { ok: number; warn: number; error: number };
+  imageValidationResults: Record<number, ImageValidation>;
+  validatingSceneId: number | null;
+  markingStatusSceneId: number | null;
+  sceneTab: Record<number, "validate" | "debug" | null>;
+  sceneMenuOpen: number | null;
+  advancedExpanded: Record<number, boolean>;
+  suggestionExpanded: Record<number, boolean>;
+  validationExpanded: Record<number, boolean>;
 
   // Setters
   set: (updates: Partial<StoryboardStore>) => void;
@@ -51,9 +85,18 @@ export interface StoryboardStore extends ImagePlanFields, SceneDataFields {
   reset: () => void;
 }
 
-const initialState: Omit<StoryboardStore, "set" | "setScenes" | "updateScene" | "removeScene" | "reset"> = {
-  storyboardId: null,
-  storyboardTitle: "",
+const initialState: Omit<
+  StoryboardStore,
+  "set" | "setScenes" | "updateScene" | "removeScene" | "reset"
+> = {
+  // Content plan fields
+  topic: "",
+  description: "",
+  duration: 30,
+  style: "Anime",
+  language: "Korean",
+  structure: DEFAULT_STRUCTURE,
+  actorAGender: "female" as ActorGender,
   // Image plan fields
   selectedCharacterId: null,
   selectedCharacterName: null,
@@ -97,7 +140,15 @@ const initialState: Omit<StoryboardStore, "set" | "setScenes" | "updateScene" | 
   validationExpanded: {},
 };
 
-const STORE_KEY = "shorts-producer:storyboard:v1";
+export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
+
+// Pre-hydration cleanup: clear localStorage before Zustand hydrates old data
+if (typeof window !== "undefined") {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("new") === "true") {
+    localStorage.removeItem(STORYBOARD_STORE_KEY);
+  }
+}
 
 /** Fields excluded from persistence (transient / runtime-derived). */
 const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
@@ -142,7 +193,7 @@ export const useStoryboardStore = create<StoryboardStore>()(
       reset: () => set(initialState),
     }),
     {
-      name: STORE_KEY,
+      name: STORYBOARD_STORE_KEY,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => {
         const persisted: Record<string, unknown> = {};
@@ -153,6 +204,6 @@ export const useStoryboardStore = create<StoryboardStore>()(
         }
         return persisted as Partial<StoryboardStore>;
       },
-    },
-  ),
+    }
+  )
 );

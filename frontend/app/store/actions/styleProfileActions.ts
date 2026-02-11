@@ -1,7 +1,11 @@
 import axios from "axios";
-import { useStudioStore } from "../useStudioStore";
+import { useRenderStore } from "../useRenderStore";
+import { useContextStore } from "../useContextStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
 import { sanitizeCandidatesForDb } from "./storyboardActions";
+import type { Scene } from "../../types";
 
 /** The subset of style profile fields used in the output slice. */
 interface StyleProfileSelection {
@@ -31,12 +35,13 @@ export async function handleStyleProfileComplete(
   profile: StyleProfileSelection,
   callbacks: StyleProfileCallbacks
 ): Promise<void> {
-  const { setOutput, showToast, setMeta, groupId, setEffectiveDefaults } =
-    useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
+  const { groupId } = useContextStore.getState();
+  const { setEffectiveDefaults } = useContextStore.getState();
 
   // 1. Store profile in output slice
   console.log("[StyleProfileModal] Selected profile:", profile);
-  setOutput({
+  useRenderStore.getState().set({
     currentStyleProfile: {
       id: profile.id,
       name: profile.name,
@@ -66,7 +71,7 @@ export async function handleStyleProfileComplete(
   }
 
   // 3. Create or update storyboard
-  await saveStoryboardWithProfile(profile, setMeta, showToast);
+  await saveStoryboardWithProfile(profile, showToast);
 
   // 4. Change SD model in background
   await changeSdModel(profile, showToast);
@@ -76,25 +81,20 @@ export async function handleStyleProfileComplete(
 
 async function saveStoryboardWithProfile(
   profile: StyleProfileSelection,
-  setMeta: (updates: Record<string, unknown>) => void,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
-  const {
-    storyboardId,
-    scenes,
-    topic,
-    groupId: currentGroupId,
-    structure,
-    selectedCharacterId,
-    selectedCharacterBId,
-  } = useStudioStore.getState();
+  const sbState = useStoryboardStore.getState();
+  const ctxState = useContextStore.getState();
+  const { scenes, topic, structure, selectedCharacterId, selectedCharacterBId, description } =
+    sbState;
+  const { storyboardId, groupId: currentGroupId } = ctxState;
 
   const validId =
     storyboardId && typeof storyboardId === "number" && !isNaN(storyboardId) && storyboardId > 0;
 
   const scenesPayload = buildScenesPayload(scenes);
   const commonPayload = {
-    description: useStudioStore.getState().description || null,
+    description: description || null,
     group_id: currentGroupId,
     structure: structure || DEFAULT_STRUCTURE,
     character_id: selectedCharacterId || undefined,
@@ -105,11 +105,11 @@ async function saveStoryboardWithProfile(
   if (validId) {
     await updateExistingStoryboard(storyboardId, profile, topic, commonPayload, showToast);
   } else {
-    await createNewStoryboard(profile, topic, commonPayload, setMeta, showToast);
+    await createNewStoryboard(profile, topic, commonPayload, showToast);
   }
 }
 
-function buildScenesPayload(scenes: ReturnType<typeof useStudioStore.getState>["scenes"]) {
+function buildScenesPayload(scenes: Scene[]) {
   return scenes.map((s, i) => ({
     scene_id: i,
     script: s.script,
@@ -162,7 +162,6 @@ async function createNewStoryboard(
   profile: StyleProfileSelection,
   topic: string,
   payload: Record<string, unknown>,
-  setMeta: (updates: Record<string, unknown>) => void,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
   try {
@@ -170,7 +169,7 @@ async function createNewStoryboard(
       title: topic || "Draft Storyboard",
       ...payload,
     });
-    setMeta({ storyboardId: res.data.storyboard_id });
+    useContextStore.getState().setContext({ storyboardId: res.data.storyboard_id });
     console.log(
       "[StyleProfileModal] Storyboard created with ID:",
       res.data.storyboard_id,
@@ -189,11 +188,11 @@ async function createNewStoryboard(
  * Shared by useStudioInitialization (DB load) and useStudioOnboarding (cascade default).
  */
 export async function loadStyleProfileFromId(profileId: number): Promise<void> {
-  const { setOutput, showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   const res = await axios.get(`${API_BASE}/style-profiles/${profileId}/full`);
   const profile = res.data;
 
-  setOutput({
+  useRenderStore.getState().set({
     currentStyleProfile: {
       id: profile.id,
       name: profile.name,

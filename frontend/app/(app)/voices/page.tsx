@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Mic } from "lucide-react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
 import { useVoicePresets } from "../../hooks/useVoicePresets";
 import { API_BASE } from "../../constants";
 import VoiceCard from "./VoiceCard";
@@ -18,7 +18,7 @@ import {
 } from "../../components/ui/variants";
 
 export default function VoicesPage() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {
     presets,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ export function useTrashTab(
   const [items, setItems] = useState<TrashItem[]>([]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
 
   const fetchTrash = useCallback(async () => {
     setLoading(true);

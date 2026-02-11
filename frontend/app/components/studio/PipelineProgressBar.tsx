@@ -1,6 +1,7 @@
 "use client";
 
-import { useStudioStore } from "../../store/useStudioStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useRenderStore } from "../../store/useRenderStore";
 
 const PIPELINE_STEPS = [
   { id: "script", label: "Script" },
@@ -10,8 +11,8 @@ const PIPELINE_STEPS = [
 ] as const;
 
 export default function PipelineProgressBar() {
-  const scenes = useStudioStore((s) => s.scenes);
-  const recentVideos = useStudioStore((s) => s.recentVideos);
+  const scenes = useStoryboardStore((s) => s.scenes);
+  const recentVideos = useRenderStore((s) => s.recentVideos);
 
   const hasScenes = scenes.length > 0;
   const imagesCount = scenes.filter((s) => s.image_url).length;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import type { YouTubeCredential } from "../../../types";
 import {
   checkYouTubeConnection,
@@ -20,7 +20,7 @@ type UseYouTubeTabParams = {
 // ── Hook ───────────────────────────────────────────────
 
 export function useYouTubeTab({ projectId, oauthCode, oauthState }: UseYouTubeTabParams) {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const router = useRouter();
 
   const [credential, setCredential] = useState<YouTubeCredential | null>(null);

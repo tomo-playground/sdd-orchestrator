@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect } from "react";
 import axios from "axios";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
 import { API_BASE } from "../../constants";
 import SceneFilmstrip from "../storyboard/SceneFilmstrip";
@@ -41,7 +42,6 @@ export default function ScenesTab() {
   const {
     scenes,
     currentSceneIndex,
-    setCurrentSceneIndex,
     updateScene,
     removeScene,
     validationResults,
@@ -53,10 +53,6 @@ export default function ScenesTab() {
     validatingSceneId,
     markingStatusSceneId,
     multiGenEnabled,
-    setScenesState,
-  } = useStudioStore();
-
-  const {
     autoComposePrompt,
     loraTriggerWords,
     characterLoras,
@@ -75,19 +71,25 @@ export default function ScenesTab() {
     ipAdapterWeight,
     ipAdapterReferenceB,
     ipAdapterWeightB,
-    setPlan,
-  } = useStudioStore();
+    referenceImages,
+  } = useStoryboardStore();
 
-  const referenceImages = useStudioStore((s) => s.referenceImages);
-  const showToast = useStudioStore((s) => s.showToast);
+  const sbSet = useStoryboardStore((s) => s.set);
+  const setScenes = useStoryboardStore((s) => s.setScenes);
+  const showToast = useUIStore((s) => s.showToast);
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
+
+  const setCurrentSceneIndex = useCallback(
+    (idx: number) => sbSet({ currentSceneIndex: idx }),
+    [sbSet]
+  );
 
   // Fetch IP-Adapter reference images on mount
   useEffect(() => {
     axios
       .get(`${API_BASE}/controlnet/ip-adapter/references`)
       .then((res) => {
-        useStudioStore.getState().setScenesState({
+        useStoryboardStore.getState().set({
           referenceImages: res.data.references || [],
         });
       })
@@ -115,7 +117,7 @@ export default function ScenesTab() {
     characterBLoras
   );
 
-  // Resolve pinned scene order for display (environment_reference_id → scene order)
+  // Resolve pinned scene order for display (environment_reference_id -> scene order)
   const pinnedSceneOrder = currentScene?.environment_reference_id
     ? scenes.find((s) => s.image_asset_id === currentScene.environment_reference_id)?.order
     : undefined;
@@ -166,7 +168,7 @@ export default function ScenesTab() {
 
   const handleAddScene = useCallback(() => {
     const newId = scenes.length > 0 ? Math.max(...scenes.map((s) => s.id)) + 1 : 0;
-    const { baseNegativePromptA } = useStudioStore.getState();
+    const { baseNegativePromptA } = useStoryboardStore.getState();
     const newScene = {
       id: newId,
       order: scenes.length,
@@ -182,9 +184,9 @@ export default function ScenesTab() {
       isGenerating: false,
       debug_payload: "",
     };
-    useStudioStore.getState().setScenes([...scenes, newScene]);
+    setScenes([...scenes, newScene]);
     setCurrentSceneIndex(scenes.length);
-  }, [scenes, setCurrentSceneIndex]);
+  }, [scenes, setCurrentSceneIndex, setScenes]);
 
   if (scenes.length === 0) {
     return (
@@ -234,20 +236,20 @@ export default function ScenesTab() {
             }
             sceneTab={sceneTab[currentScene.id] ?? null}
             onSceneTabChange={(tab) =>
-              setScenesState({
+              sbSet({
                 sceneTab: { ...sceneTab, [currentScene.id]: tab },
               })
             }
             sceneMenuOpen={sceneMenuOpen === currentScene.id}
             onSceneMenuToggle={() =>
-              setScenesState({
+              sbSet({
                 sceneMenuOpen: sceneMenuOpen === currentScene.id ? null : currentScene.id,
               })
             }
-            onSceneMenuClose={() => setScenesState({ sceneMenuOpen: null })}
+            onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
             suggestionExpanded={suggestionExpanded[currentScene.id] ?? false}
             onSuggestionToggle={() =>
-              setScenesState({
+              sbSet({
                 suggestionExpanded: {
                   ...suggestionExpanded,
                   [currentScene.id]: !suggestionExpanded[currentScene.id],
@@ -273,7 +275,7 @@ export default function ScenesTab() {
             onValidateImage={() => handleValidateImage(currentScene)}
             onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
             onImagePreview={(src, candidates) =>
-              useStudioStore.getState().setMeta({
+              useUIStore.getState().set({
                 imagePreviewSrc: src,
                 imagePreviewCandidates: candidates || null,
               })
@@ -284,13 +286,13 @@ export default function ScenesTab() {
             isMarkingStatus={markingStatusSceneId === currentScene.id}
             getSceneStatus={getSceneStatus}
             getFixSuggestions={(scene, validation) =>
-              getFixSuggestions(scene, validation, useStudioStore.getState().topic)
+              getFixSuggestions(scene, validation, useStoryboardStore.getState().topic)
             }
             applySuggestion={applySuggestion}
             selectedCharacterId={resolvedCharacterId}
             basePromptA={resolvedBasePrompt}
             characterLoras={resolvedCharacterLoras}
-            structure={useStudioStore.getState().structure}
+            structure={useStoryboardStore.getState().structure}
             characterAName={selectedCharacterName}
             characterBName={selectedCharacterBName}
             selectedCharacterBId={selectedCharacterBId}
@@ -306,15 +308,15 @@ export default function ScenesTab() {
         multiGenEnabled={multiGenEnabled}
         useControlnet={useControlnet}
         controlnetWeight={controlnetWeight}
-        onControlnetWeightChange={(v) => setPlan({ controlnetWeight: v })}
+        onControlnetWeightChange={(v) => sbSet({ controlnetWeight: v })}
         useIpAdapter={useIpAdapter}
         ipAdapterReference={resolvedIpAdapter.reference}
         onIpAdapterReferenceChange={(v) =>
-          setPlan(currentSpeaker === "B" ? { ipAdapterReferenceB: v } : { ipAdapterReference: v })
+          sbSet(currentSpeaker === "B" ? { ipAdapterReferenceB: v } : { ipAdapterReference: v })
         }
         ipAdapterWeight={resolvedIpAdapter.weight}
         onIpAdapterWeightChange={(v) =>
-          setPlan(currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v })
+          sbSet(currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v })
         }
         referenceImages={referenceImages}
         sceneMultiGen={currentScene?.multi_gen_enabled}

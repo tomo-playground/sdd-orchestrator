@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import axios from "axios";
-import { useStudioStore } from "../store/useStudioStore";
+import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useCharacters } from "./useCharacters";
 import { API_BASE } from "../constants";
 
@@ -11,10 +11,10 @@ import { API_BASE } from "../constants";
  * Extracted from PlanTab's useEffects.
  */
 export function useCharacterAutoLoad() {
-  const selectedCharacterId = useStudioStore((s) => s.selectedCharacterId);
-  const selectedCharacterBId = useStudioStore((s) => s.selectedCharacterBId);
-  const referenceImages = useStudioStore((s) => s.referenceImages);
-  const setPlan = useStudioStore((s) => s.setPlan);
+  const selectedCharacterId = useStoryboardStore((s) => s.selectedCharacterId);
+  const selectedCharacterBId = useStoryboardStore((s) => s.selectedCharacterBId);
+  const referenceImages = useStoryboardStore((s) => s.referenceImages);
+  const sbSet = useStoryboardStore((s) => s.set);
 
   const { getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
 
@@ -23,7 +23,7 @@ export function useCharacterAutoLoad() {
     axios
       .get(`${API_BASE}/controlnet/ip-adapter/references`)
       .then((res) => {
-        useStudioStore.getState().setScenesState({
+        useStoryboardStore.getState().set({
           referenceImages: res.data.references || [],
         });
       })
@@ -33,7 +33,7 @@ export function useCharacterAutoLoad() {
   // Auto-load character A LoRA/prompt settings when character changes
   useEffect(() => {
     if (!selectedCharacterId) {
-      setPlan({
+      sbSet({
         loraTriggerWords: [],
         characterLoras: [],
         characterPromptMode: "auto",
@@ -69,7 +69,7 @@ export function useCharacterAutoLoad() {
         referenceImages.length > 0
           ? referenceImages.find((r) => r.character_id === charFull.id)
           : null;
-      setPlan({
+      sbSet({
         selectedCharacterName: charFull.name,
         basePromptA: basePrompt,
         baseNegativePromptA: baseNegative,
@@ -87,13 +87,13 @@ export function useCharacterAutoLoad() {
     getCharacterFull,
     buildCharacterPrompt,
     buildCharacterNegative,
-    setPlan,
+    sbSet,
   ]);
 
   // Auto-load character B data when selectedCharacterBId changes
   useEffect(() => {
     if (!selectedCharacterBId) {
-      setPlan({
+      sbSet({
         characterBLoras: [],
         selectedCharacterBName: null,
         basePromptB: "",
@@ -121,7 +121,7 @@ export function useCharacterAutoLoad() {
           ? referenceImages.find((r) => r.character_id === charFull.id)
           : null;
 
-      setPlan({
+      sbSet({
         selectedCharacterBName: charFull.name,
         basePromptB: basePrompt,
         baseNegativePromptB: baseNegative,
@@ -136,6 +136,6 @@ export function useCharacterAutoLoad() {
     getCharacterFull,
     buildCharacterPrompt,
     buildCharacterNegative,
-    setPlan,
+    sbSet,
   ]);
 }

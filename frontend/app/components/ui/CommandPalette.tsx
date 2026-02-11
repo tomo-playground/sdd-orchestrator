@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { API_BASE } from "../../constants";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useContextStore } from "../../store/useContextStore";
 
 type ResultItem = {
   id: string;
@@ -18,9 +18,9 @@ type ResultItem = {
 /** Self-contained Cmd+K quick switcher. Reads projects/groups from store, fetches storyboards on open. */
 export default function CommandPalette() {
   const router = useRouter();
-  const setMeta = useStudioStore((s) => s.setMeta);
-  const projects = useStudioStore((s) => s.projects);
-  const groups = useStudioStore((s) => s.groups);
+  const setContext = useContextStore((s) => s.setContext);
+  const projects = useContextStore((s) => s.projects);
+  const groups = useContextStore((s) => s.groups);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ResultItem[]>([]);
@@ -70,7 +70,7 @@ export default function CommandPalette() {
             sublabel: p.handle ?? undefined,
             type: "project",
             action: () => {
-              setMeta({ projectId: p.id, groupId: null });
+              setContext({ projectId: p.id, groupId: null });
               router.push("/");
             },
           });
@@ -86,7 +86,7 @@ export default function CommandPalette() {
             sublabel: proj?.name,
             type: "group",
             action: () => {
-              setMeta({
+              setContext({
                 ...(proj ? { projectId: proj.id } : {}),
                 groupId: g.id,
                 storyboardId: null,
@@ -109,7 +109,7 @@ export default function CommandPalette() {
               const group = groups.find((g) => g.id === sb.group_id);
               if (group) {
                 const proj = projects.find((p) => p.id === group.project_id);
-                setMeta({
+                setContext({
                   ...(proj ? { projectId: proj.id } : {}),
                   groupId: group.id,
                   storyboardId: null,
@@ -124,7 +124,7 @@ export default function CommandPalette() {
 
       return items.slice(0, 12);
     },
-    [projects, groups, storyboards, setMeta, router]
+    [projects, groups, storyboards, setContext, router]
   );
 
   useEffect(() => {

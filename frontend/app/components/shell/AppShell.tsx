@@ -14,7 +14,6 @@ import {
   ScrollText,
 } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
-import { initStoreBridges } from "../../store/bridges/storeBridge";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import Toast from "../ui/Toast";
@@ -22,9 +21,6 @@ import ConnectionGuard from "./ConnectionGuard";
 import PersistentContextBar from "../context/PersistentContextBar";
 import { useBackendHealth } from "../../hooks/useBackendHealth";
 import type { ReactNode, ComponentType } from "react";
-
-// Initialize store bridges once at module load
-initStoreBridges();
 
 type NavItem = {
   href: string;

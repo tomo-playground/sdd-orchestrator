@@ -1,6 +1,8 @@
 import axios from "axios";
 import type { Scene, GeminiSuggestion } from "../../types";
-import { useStudioStore } from "../useStudioStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useContextStore } from "../useContextStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE, API_TIMEOUT } from "../../constants";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
@@ -57,7 +59,7 @@ export async function storeSceneImage(
 }
 
 function buildHiResPayload() {
-  const { hiResEnabled } = useStudioStore.getState();
+  const { hiResEnabled } = useStoryboardStore.getState();
   return hiResEnabled
     ? {
         enable_hr: true,
@@ -74,11 +76,13 @@ export async function generateSceneImageFor(
   scene: Scene,
   silent = false
 ): Promise<Partial<Scene> | null> {
-  const state = useStudioStore.getState();
-  const { autoComposePrompt, storyboardId, showToast } = state;
-  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
-  const controlnet = resolveSceneControlnet(scene, state);
-  const ipAdapter = resolveSceneIpAdapter(scene, state);
+  const sbState = useStoryboardStore.getState();
+  const { autoComposePrompt } = sbState;
+  const { storyboardId } = useContextStore.getState();
+  const { showToast } = useUIStore.getState();
+  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
+  const controlnet = resolveSceneControlnet(scene, sbState);
+  const ipAdapter = resolveSceneIpAdapter(scene, sbState);
   // Narrator scenes don't require character selection (no_humans, scenery only)
   if (!selectedCharacterId && scene.speaker !== "Narrator") {
     if (!silent) showToast("Character selection is required", "error");
@@ -141,7 +145,7 @@ export async function generateSceneImageFor(
     ...controlnetPayload,
     ...ipAdapterPayload,
     character_id: selectedCharacterId,
-    style_loras: state.currentStyleProfile?.loras || [],
+    style_loras: sbState.characterLoras || [],
   };
 
   try {
@@ -150,7 +154,7 @@ export async function generateSceneImageFor(
       {
         ...debugPayload,
         character_id: selectedCharacterId,
-        character_b_id: state.selectedCharacterBId || undefined,
+        character_b_id: sbState.selectedCharacterBId || undefined,
         storyboard_id: storyboardId,
         scene_id: scene.id > 0 ? scene.id : undefined,
         prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
@@ -165,7 +169,7 @@ export async function generateSceneImageFor(
     }
 
     if (images.length > 0) {
-      const { projectId, groupId, storyboardId: currentId } = useStudioStore.getState();
+      const { projectId, groupId, storyboardId: currentId } = useContextStore.getState();
 
       if (!projectId || !groupId || !currentId) {
         if (!silent) showToast("Project/Group context required", "error");
@@ -210,13 +214,13 @@ export async function generateSceneImageFor(
       const candidates = sortedCandidates.map((c) => ({
         media_asset_id: c.asset_id!,
         match_rate: c.match_rate ?? undefined,
-        image_url: c.image_url, // UI 표시용으로 유지
+        image_url: c.image_url, // UI display
       }));
 
       // Update validation results cache in store for the best image
       if (bestCandidate.validation) {
-        const { imageValidationResults } = useStudioStore.getState();
-        useStudioStore.getState().setScenesState({
+        const { imageValidationResults } = useStoryboardStore.getState();
+        useStoryboardStore.getState().set({
           imageValidationResults: {
             ...imageValidationResults,
             [scene.id]: bestCandidate.validation,
@@ -227,7 +231,7 @@ export async function generateSceneImageFor(
       // Activity log (log the best image)
       let activityLogId: number | undefined;
       try {
-        const currentStoryboardId = useStudioStore.getState().storyboardId;
+        const currentStoryboardId = useContextStore.getState().storyboardId;
 
         if (!currentStoryboardId) {
           console.warn("[Activity Log] Skipping: storyboardId is required");
@@ -277,7 +281,7 @@ export async function generateSceneImageFor(
 async function validateImageCandidate(imageUrl: string, prompt: string, sceneId?: number) {
   if (!imageUrl || imageUrl.startsWith("data:")) return null;
   try {
-    const { storyboardId } = useStudioStore.getState();
+    const { storyboardId } = useContextStore.getState();
     const payload =
       imageUrl.startsWith("http://") || imageUrl.startsWith("https://")
         ? { image_url: imageUrl, prompt, storyboard_id: storyboardId, scene_id: sceneId }
@@ -294,12 +298,12 @@ export async function generateSceneCandidates(
   scene: Scene,
   silent = false
 ): Promise<Partial<Scene> | null> {
-  const state = useStudioStore.getState();
-  const { autoComposePrompt } = state;
-  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, state);
+  const sbState = useStoryboardStore.getState();
+  const { autoComposePrompt } = sbState;
+  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
   const prompt = await buildScenePrompt(scene);
   if (!prompt) {
-    if (!silent) useStudioStore.getState().showToast("Prompt is required", "error");
+    if (!silent) useUIStore.getState().showToast("Prompt is required", "error");
     return null;
   }
 
@@ -319,7 +323,7 @@ export async function generateSceneCandidates(
     candidates.push({
       media_asset_id: result.image_asset_id,
       match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
-      image_url: result.image_url, // UI 표시용으로 유지
+      image_url: result.image_url, // UI display
     });
   }
   if (!candidates.length) return null;
@@ -329,8 +333,8 @@ export async function generateSceneCandidates(
   if (best?.image_url) {
     const validation = await validateImageCandidate(best.image_url, prompt, scene.id);
     if (validation) {
-      const { imageValidationResults } = useStudioStore.getState();
-      useStudioStore.getState().setScenesState({
+      const { imageValidationResults } = useStoryboardStore.getState();
+      useStoryboardStore.getState().set({
         imageValidationResults: {
           ...imageValidationResults,
           [scene.id]: validation,
@@ -339,7 +343,7 @@ export async function generateSceneCandidates(
     }
   }
 
-  // best의 image_asset_id 찾기
+  // best's image_asset_id
   const bestAssetId = best.media_asset_id;
 
   return {
@@ -354,8 +358,9 @@ export async function generateSceneCandidates(
 
 /** Generate image for a scene (single or multi-gen) and update store */
 export async function handleGenerateImage(scene: Scene) {
-  const { updateScene, showToast, scenes } = useStudioStore.getState();
-  const multiGenEnabled = resolveSceneMultiGen(scene, useStudioStore.getState());
+  const { updateScene, scenes } = useStoryboardStore.getState();
+  const { showToast } = useUIStore.getState();
+  const multiGenEnabled = resolveSceneMultiGen(scene, useStoryboardStore.getState());
 
   // Auto-save storyboard before image generation
   // Ensures activity logs have proper storyboard_id and scene IDs are assigned
@@ -382,12 +387,12 @@ export async function handleGenerateImage(scene: Scene) {
       : await generateSceneImageFor(updatedScene);
     if (result) {
       console.log("[handleGenerateImage] Image generation result:", result);
-      // Scene ID may have changed during generation (concurrent save → ID reassignment).
+      // Scene ID may have changed during generation (concurrent save -> ID reassignment).
       // Look up by order (stable) instead of stale captured ID.
-      const currentScenes = useStudioStore.getState().scenes;
+      const currentScenes = useStoryboardStore.getState().scenes;
       const currentScene = currentScenes.find((s) => s.order === sceneOrder);
       const currentId = currentScene?.id ?? updatedScene.id;
-      const { updateScene: liveUpdateScene } = useStudioStore.getState();
+      const { updateScene: liveUpdateScene } = useStoryboardStore.getState();
 
       // Include isGenerating: false before saveStoryboard to survive ID reassignment
       liveUpdateScene(currentId, { ...result, isGenerating: false });
@@ -395,13 +400,13 @@ export async function handleGenerateImage(scene: Scene) {
       // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
       const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
       const autoPinResult = applyAutoPinAfterGeneration(
-        useStudioStore.getState().scenes,
+        useStoryboardStore.getState().scenes,
         currentId,
         liveUpdateScene
       );
       if (autoPinResult?.success) {
         console.log("[AutoPin]", autoPinResult.message);
-        showToast(`🔗 ${autoPinResult.message}`, "success");
+        showToast(`Auto-pin: ${autoPinResult.message}`, "success");
       }
 
       // Auto-save after image generation to persist image_url to DB
@@ -415,10 +420,10 @@ export async function handleGenerateImage(scene: Scene) {
   } finally {
     // Scene ID may have changed after saveStoryboard (ID reassignment).
     // Look up by order (stable) instead of old ID.
-    const currentScenes = useStudioStore.getState().scenes;
+    const currentScenes = useStoryboardStore.getState().scenes;
     const targetScene = currentScenes.find((s) => s.order === sceneOrder);
     if (targetScene) {
-      useStudioStore.getState().updateScene(targetScene.id, { isGenerating: false });
+      useStoryboardStore.getState().updateScene(targetScene.id, { isGenerating: false });
     }
   }
 }
@@ -429,16 +434,11 @@ export function handleImageUpload(sceneId: number, file?: File) {
   const reader = new FileReader();
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
-    const {
-      projectId,
-      groupId,
-      storyboardId,
-      showToast: toast,
-      scenes,
-      updateScene,
-    } = useStudioStore.getState();
+    const { projectId, groupId, storyboardId } = useContextStore.getState();
+    const { showToast } = useUIStore.getState();
+    const { scenes, updateScene } = useStoryboardStore.getState();
     if (!projectId || !groupId || !storyboardId) {
-      toast("Project/Group context required", "error");
+      showToast("Project/Group context required", "error");
       return;
     }
     const stored = await storeSceneImage(
@@ -460,7 +460,7 @@ export function handleImageUpload(sceneId: number, file?: File) {
     const autoPinResult = applyAutoPinAfterGeneration(scenes, sceneId, updateScene);
     if (autoPinResult?.success) {
       console.log("[AutoPin]", autoPinResult.message);
-      toast(`🔗 ${autoPinResult.message}`, "success");
+      showToast(`Auto-pin: ${autoPinResult.message}`, "success");
     }
 
     // Auto-save after image upload to persist to DB
@@ -471,7 +471,7 @@ export function handleImageUpload(sceneId: number, file?: File) {
 
 /** Edit scene image with Gemini */
 export async function handleEditWithGemini(scene: Scene, targetChange: string) {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   if (!scene.image_url) {
     showToast("No image to edit. Generate one first.", "error");
     return;
@@ -481,12 +481,12 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     return;
   }
   const sceneOrder = scene.order;
-  useStudioStore.getState().updateScene(scene.id, { isGenerating: true });
+  useStoryboardStore.getState().updateScene(scene.id, { isGenerating: true });
   try {
     const prompt = await buildScenePrompt(scene);
     if (!prompt) {
       showToast("Prompt build failed", "error");
-      useStudioStore.getState().updateScene(scene.id, { isGenerating: false });
+      useStoryboardStore.getState().updateScene(scene.id, { isGenerating: false });
       return;
     }
     const payload =
@@ -496,14 +496,14 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     const res = await axios.post(`${API_BASE}/scene/edit-with-gemini`, payload);
     if (res.data.edited_image) {
       const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
-      const { projectId, groupId, storyboardId } = useStudioStore.getState();
+      const { projectId, groupId, storyboardId } = useContextStore.getState();
       if (!projectId || !groupId || !storyboardId) {
         showToast("Project/Group context required", "error");
-        useStudioStore.getState().updateScene(scene.id, { isGenerating: false });
+        useStoryboardStore.getState().updateScene(scene.id, { isGenerating: false });
         return;
       }
       // Re-lookup by order: scene IDs may have changed during Gemini API call
-      const currentScenes = useStudioStore.getState().scenes;
+      const currentScenes = useStoryboardStore.getState().scenes;
       const currentScene = currentScenes.find((s) => s.order === sceneOrder);
       const currentId = currentScene?.id ?? scene.id;
       const stored = await storeSceneImage(
@@ -514,7 +514,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
         currentId,
         `gemini_edit_${currentId}_${Date.now()}.png`
       );
-      useStudioStore.getState().updateScene(currentId, {
+      useStoryboardStore.getState().updateScene(currentId, {
         image_url: stored.url,
         image_asset_id: stored.asset_id ?? null,
         isGenerating: false,
@@ -531,16 +531,16 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     showToast(`Gemini edit failed: ${msg}`, "error");
     // Re-lookup by order for cleanup
-    const currentScenes = useStudioStore.getState().scenes;
+    const currentScenes = useStoryboardStore.getState().scenes;
     const currentScene = currentScenes.find((s) => s.order === sceneOrder);
     const currentId = currentScene?.id ?? scene.id;
-    useStudioStore.getState().updateScene(currentId, { isGenerating: false });
+    useStoryboardStore.getState().updateScene(currentId, { isGenerating: false });
   }
 }
 
 /** Ask Gemini for edit suggestions */
 export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiSuggestion[]> {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   if (!scene.image_url) {
     showToast("No image. Generate one first.", "error");
     return [];

@@ -68,3 +68,17 @@ export const SIDE_PANEL_LABEL =
 /** Glassmorphism card for content sections within the left column. */
 export const SECTION_CLASSES =
   "rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-slate-200/40 backdrop-blur";
+
+// ── Form input tokens ────────────────────────────────────────
+
+/** Form text input / number input / select. */
+export const FORM_INPUT_CLASSES =
+  "w-full rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400";
+
+/** Form textarea with inner shadow. */
+export const FORM_TEXTAREA_CLASSES =
+  "w-full rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400";
+
+/** Form field label (uppercase tracking). */
+export const FORM_LABEL_CLASSES =
+  "text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase";

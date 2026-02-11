@@ -1,11 +1,11 @@
 "use client";
 
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import { useRenderPresetsTab } from "../hooks/useRenderPresetsTab";
 
 export default function RenderPresetsTab() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {
     presets,

@@ -1,7 +1,9 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useRenderStore } from "../../store/useRenderStore";
+import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import StudioKanbanView from "../../components/studio/StudioKanbanView";
 import StudioTimelineView from "../../components/studio/StudioTimelineView";
@@ -41,20 +43,22 @@ function StudioContent() {
   const resolvedId = storyboardId ? parseInt(storyboardId, 10) : contextStoryboardId;
   const hasStoryboard = !!resolvedId && !isNaN(resolvedId as number);
 
-  // Store selectors
-  const setMeta = useStudioStore((s) => s.setMeta);
-  const scenes = useStudioStore((s) => s.scenes);
-  const storyboardTitle = useStudioStore((s) => s.storyboardTitle);
-  const imagePreviewSrc = useStudioStore((s) => s.imagePreviewSrc);
-  const imagePreviewCandidates = useStudioStore((s) => s.imagePreviewCandidates);
-  const videoPreviewSrc = useStudioStore((s) => s.videoPreviewSrc);
-  const showToast = useStudioStore((s) => s.showToast);
-  const showPreflightModal = useStudioStore((s) => s.showPreflightModal);
-  const groups = useStudioStore((s) => s.groups);
-  const projectId = useStudioStore((s) => s.projectId);
-  const isRendering = useStudioStore((s) => s.isRendering);
+  // Store selectors — split stores
+  const setUI = useUIStore((s) => s.set);
+  const scenes = useStoryboardStore((s) => s.scenes);
+  const storyboardTitle = useContextStore((s) => s.storyboardTitle);
+  const imagePreviewSrc = useUIStore((s) => s.imagePreviewSrc);
+  const imagePreviewCandidates = useUIStore((s) => s.imagePreviewCandidates);
+  const videoPreviewSrc = useUIStore((s) => s.videoPreviewSrc);
+  const showToast = useUIStore((s) => s.showToast);
+  const showPreflightModal = useUIStore((s) => s.showPreflightModal);
+  const groups = useContextStore((s) => s.groups);
+  const projectId = useContextStore((s) => s.projectId);
+  const isRendering = useRenderStore((s) => s.isRendering);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const setContext = useContextStore((s) => s.setContext);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -66,12 +70,12 @@ function StudioContent() {
   }, []);
 
   // Prompt Helper state
-  const isHelperOpen = useStudioStore((s) => s.isHelperOpen);
-  const examplePrompt = useStudioStore((s) => s.examplePrompt);
-  const suggestedBase = useStudioStore((s) => s.suggestedBase);
-  const suggestedScene = useStudioStore((s) => s.suggestedScene);
-  const isSuggesting = useStudioStore((s) => s.isSuggesting);
-  const copyStatus = useStudioStore((s) => s.copyStatus);
+  const isHelperOpen = useUIStore((s) => s.isHelperOpen);
+  const examplePrompt = useUIStore((s) => s.examplePrompt);
+  const suggestedBase = useUIStore((s) => s.suggestedBase);
+  const suggestedScene = useUIStore((s) => s.suggestedScene);
+  const isSuggesting = useUIStore((s) => s.isSuggesting);
+  const copyStatus = useUIStore((s) => s.copyStatus);
 
   // Autopilot
   const autopilot = useAutopilot();
@@ -120,7 +124,7 @@ function StudioContent() {
               <span className="text-[12px] text-zinc-400">{scenes.length} scenes</span>
             )}
             <StoryboardActionsBar
-              onAutoRun={() => setMeta({ showPreflightModal: true })}
+              onAutoRun={() => setUI({ showPreflightModal: true })}
               onSave={handleSave}
               isRendering={isRendering}
               isAutoRunning={autopilot.isAutoRunning}
@@ -166,9 +170,9 @@ function StudioContent() {
       {/* Sidebars & Modals */}
       <PromptHelperSidebar
         isOpen={isHelperOpen}
-        onClose={() => setMeta({ isHelperOpen: false })}
+        onClose={() => setUI({ isHelperOpen: false })}
         examplePrompt={examplePrompt}
-        setExamplePrompt={(v) => setMeta({ examplePrompt: v })}
+        setExamplePrompt={(v) => setUI({ examplePrompt: v })}
         onSuggestSplit={suggestPromptSplit}
         isSuggesting={isSuggesting}
         suggestedBase={suggestedBase}
@@ -180,17 +184,17 @@ function StudioContent() {
       <ImagePreviewModal
         src={imagePreviewSrc}
         candidates={imagePreviewCandidates || undefined}
-        onClose={() => setMeta({ imagePreviewSrc: null, imagePreviewCandidates: null })}
+        onClose={() => setUI({ imagePreviewSrc: null, imagePreviewCandidates: null })}
       />
 
-      <VideoPreviewModal src={videoPreviewSrc} onClose={() => setMeta({ videoPreviewSrc: null })} />
+      <VideoPreviewModal src={videoPreviewSrc} onClose={() => setUI({ videoPreviewSrc: null })} />
 
       {showGroupModal && projectId && (
         <GroupFormModal
           projectId={projectId}
           onSave={async (data) => {
             const g = await createGroup(data as Parameters<typeof createGroup>[0]);
-            if (g) setMeta({ groupId: g.id });
+            if (g) setContext({ groupId: g.id });
           }}
           onClose={() => setShowGroupModal(false)}
         />
@@ -213,9 +217,9 @@ function StudioContent() {
         <PreflightModal
           isOpen
           preflight={runPreflight(buildPreflightInput())}
-          onClose={() => setMeta({ showPreflightModal: false })}
+          onClose={() => setUI({ showPreflightModal: false })}
           onRun={(stepsToRun: AutoRunStepId[]) => {
-            setMeta({ showPreflightModal: false });
+            setUI({ showPreflightModal: false });
             runAutoRunFromStep(stepsToRun[0] || "images", autopilot, stepsToRun);
           }}
         />

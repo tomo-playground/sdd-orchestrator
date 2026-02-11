@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_BASE, API_TIMEOUT } from "../../constants";
-import { useStudioStore } from "../useStudioStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useContextStore } from "../useContextStore";
 import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
@@ -26,8 +27,8 @@ interface BatchResponse {
  * Updates each scene's state as results come back.
  */
 export async function generateBatchImages(sceneIds: number[]): Promise<BatchResponse | null> {
-  const state = useStudioStore.getState();
-  const { scenes, updateScene } = state;
+  const sbState = useStoryboardStore.getState();
+  const { scenes, updateScene } = sbState;
 
   // Build requests from scene data
   const targetScenes = sceneIds
@@ -43,8 +44,8 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
 
   try {
     const sceneRequests = targetScenes.map((scene) => {
-      const controlnet = resolveSceneControlnet(scene, state);
-      const ipAdapter = resolveSceneIpAdapter(scene, state);
+      const controlnet = resolveSceneControlnet(scene, sbState);
+      const ipAdapter = resolveSceneIpAdapter(scene, sbState);
       // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
       const isNarrator = scene.speaker === "Narrator";
       return {
@@ -57,9 +58,8 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         width: scene.width || 512,
         height: scene.height || 768,
         clip_skip: 2,
-        character_id: resolveCharacterIdForSpeaker(scene.speaker, state) || 0,
-        storyboard_id: state.storyboardId || undefined,
-        style_loras: state.currentStyleProfile?.loras || [],
+        character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState) || 0,
+        storyboard_id: useContextStore.getState().storyboardId || undefined,
         use_controlnet: controlnet.enabled && !isNarrator,
         controlnet_weight: controlnet.weight,
         use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
@@ -83,7 +83,7 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
     const { results } = res.data;
 
     // Store images in parallel, then update scenes
-    const { projectId, groupId, storyboardId } = useStudioStore.getState();
+    const { projectId, groupId, storyboardId } = useContextStore.getState();
     const canStore = projectId && groupId && storyboardId;
 
     await Promise.all(
@@ -92,7 +92,7 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         if (!originalScene) return;
 
         // Re-lookup by order: IDs may have changed during batch generation
-        const currentScenes = useStudioStore.getState().scenes;
+        const currentScenes = useStoryboardStore.getState().scenes;
         const scene = currentScenes.find((s) => s.order === originalScene.order) || originalScene;
 
         const b64 = result.data?.image;
@@ -117,14 +117,14 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
               `scene_${scene.id}_${Date.now()}_retry.png`
             );
           }
-          useStudioStore.getState().updateScene(scene.id, {
+          useStoryboardStore.getState().updateScene(scene.id, {
             image_url: stored.url,
             image_asset_id: stored.asset_id ?? null,
             image_prompt: result.data?.used_prompt || undefined,
             isGenerating: false,
           });
         } else {
-          useStudioStore.getState().updateScene(scene.id, { isGenerating: false });
+          useStoryboardStore.getState().updateScene(scene.id, { isGenerating: false });
         }
       })
     );
@@ -133,9 +133,9 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
   } catch (error) {
     // Mark all as not generating on error (use fresh IDs)
     for (const scene of targetScenes) {
-      const currentScenes = useStudioStore.getState().scenes;
+      const currentScenes = useStoryboardStore.getState().scenes;
       const fresh = currentScenes.find((s) => s.order === scene.order) || scene;
-      useStudioStore.getState().updateScene(fresh.id, { isGenerating: false });
+      useStoryboardStore.getState().updateScene(fresh.id, { isGenerating: false });
     }
     console.error("Batch generation failed:", error);
     return null;

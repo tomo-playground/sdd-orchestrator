@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useSettingsTab } from "../hooks/useSettingsTab";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import AnalyticsSection from "./AnalyticsSection";
 import CacheRefreshSection from "./CacheRefreshSection";
 import MediaAssetsSection from "./MediaAssetsSection";
 
 export default function SettingsTab() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
 
   const {

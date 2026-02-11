@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { Scene } from "../../types";
-import { useStudioStore } from "../useStudioStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useContextStore } from "../useContextStore";
 import { splitPromptTokens, deduplicatePromptTokens } from "../../utils";
 import { API_BASE } from "../../constants";
 import {
@@ -9,7 +10,8 @@ import {
 } from "../../utils/speakerResolver";
 
 export function buildNegativePrompt(scene: Scene): string {
-  const { autoComposePrompt, baseNegativePromptA, baseNegativePromptB } = useStudioStore.getState();
+  const { autoComposePrompt, baseNegativePromptA, baseNegativePromptB } =
+    useStoryboardStore.getState();
   const base = resolveNegativePromptForSpeaker(
     scene.speaker,
     baseNegativePromptA,
@@ -22,9 +24,10 @@ export function buildNegativePrompt(scene: Scene): string {
 }
 
 export async function buildScenePrompt(scene: Scene): Promise<string | null> {
-  const state = useStudioStore.getState();
-  const { autoComposePrompt } = state;
-  const characterId = resolveCharacterIdForSpeaker(scene.speaker, state);
+  const sbState = useStoryboardStore.getState();
+  const ctxState = useContextStore.getState();
+  const { autoComposePrompt } = sbState;
+  const characterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
 
   const scenePrompt = scene.image_prompt.trim();
   if (!autoComposePrompt) return scenePrompt || null;
@@ -34,12 +37,12 @@ export async function buildScenePrompt(scene: Scene): Promise<string | null> {
   if (sceneTokens.length === 0) return null;
 
   try {
-    // Style LoRAs resolved by Backend from storyboard → group → style_profile (SSOT)
+    // Style LoRAs resolved by Backend from storyboard -> group -> style_profile (SSOT)
     const res = await axios.post(`${API_BASE}/prompt/compose`, {
       tokens: sceneTokens,
       character_id: characterId,
-      character_b_id: state.selectedCharacterBId || undefined,
-      storyboard_id: state.storyboardId || undefined,
+      character_b_id: sbState.selectedCharacterBId || undefined,
+      storyboard_id: ctxState.storyboardId || undefined,
       scene_id: scene.id > 0 ? scene.id : undefined,
       context_tags: scene.context_tags || undefined,
       use_break: false,

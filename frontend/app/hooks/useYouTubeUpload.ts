@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useStudioStore } from "../store/useStudioStore";
+import { useUIStore } from "../store/useUIStore";
 import {
   checkYouTubeConnection,
   fetchYouTubeStatuses,
@@ -8,7 +8,7 @@ import {
 import type { RecentVideo } from "../types";
 
 export function useYouTubeUpload(projectId: number | null, recentVideos: RecentVideo[]) {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
 
   const [ytConnected, setYtConnected] = useState(false);
   const [ytModalOpen, setYtModalOpen] = useState(false);

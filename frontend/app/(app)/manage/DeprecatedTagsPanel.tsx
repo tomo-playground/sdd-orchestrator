@@ -5,7 +5,7 @@ import axios from "axios";
 import { API_BASE } from "../../constants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
 
 interface DeprecatedTag {
   id: number;
@@ -29,7 +29,7 @@ interface TagSearchResult {
 }
 
 export default function DeprecatedTagsPanel() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
 
   const [deprecatedTags, setDeprecatedTags] = useState<DeprecatedTag[]>([]);

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useContextStore } from "../../store/useContextStore";
 
 type Props = {
   title?: string;
 };
 
 export default function ContextBar({ title }: Props) {
-  const setMeta = useStudioStore((s) => s.setMeta);
+  const setContext = useContextStore((s) => s.setContext);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title || "");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,7 +24,7 @@ export default function ContextBar({ title }: Props) {
   const handleSave = () => {
     setIsEditing(false);
     if (editValue.trim() && editValue !== title) {
-      setMeta({ storyboardTitle: editValue.trim() });
+      setContext({ storyboardTitle: editValue.trim() });
     }
   };
 

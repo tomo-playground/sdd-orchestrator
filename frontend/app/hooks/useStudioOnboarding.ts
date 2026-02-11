@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStudioStore } from "../store/useStudioStore";
+import { useRenderStore } from "../store/useRenderStore";
+import { useContextStore } from "../store/useContextStore";
+import { useStoryboardStore } from "../store/useStoryboardStore";
+import { useUIStore } from "../store/useUIStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { hasValidProfile } from "../store/selectors/projectSelectors";
 
@@ -23,9 +26,9 @@ export function useStudioOnboarding({
 }: UseStudioOnboardingOptions) {
   const [showStyleProfileModal, setShowStyleProfileModal] = useState(false);
 
-  const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
-  const effectiveConfigLoaded = useStudioStore((s) => s.effectiveConfigLoaded);
-  const effectiveStyleProfileId = useStudioStore((s) => s.effectiveStyleProfileId);
+  const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
+  const effectiveConfigLoaded = useContextStore((s) => s.effectiveConfigLoaded);
+  const effectiveStyleProfileId = useContextStore((s) => s.effectiveStyleProfileId);
 
   // Style Profile Selection (DB-loaded storyboards only — new ones use inline selector)
   useEffect(() => {
@@ -51,9 +54,7 @@ export function useStudioOnboarding({
       }
 
       // No cascade default — show modal (existing behavior)
-      const styleOnboardingDone = sessionStorage.getItem(
-        "style_onboarding_done"
-      );
+      const styleOnboardingDone = sessionStorage.getItem("style_onboarding_done");
       if (!styleOnboardingDone) {
         setShowStyleProfileModal(true); // eslint-disable-line react-hooks/set-state-in-effect
         sessionStorage.setItem("style_onboarding_done", "true");
@@ -93,24 +94,17 @@ export function useStudioOnboarding({
       )
         return;
 
-      const { scenes: sc, currentSceneIndex: idx } =
-        useStudioStore.getState();
+      const { scenes: sc, currentSceneIndex: idx } = useStoryboardStore.getState();
       if (e.key === "ArrowLeft" && sc.length > 0) {
         e.preventDefault();
-        useStudioStore
-          .getState()
-          .setCurrentSceneIndex(Math.max(0, idx - 1));
+        useStoryboardStore.getState().set({ currentSceneIndex: Math.max(0, idx - 1) });
       }
       if (e.key === "ArrowRight" && sc.length > 0) {
         e.preventDefault();
-        useStudioStore
-          .getState()
-          .setCurrentSceneIndex(Math.min(sc.length - 1, idx + 1));
+        useStoryboardStore.getState().set({ currentSceneIndex: Math.min(sc.length - 1, idx + 1) });
       }
       if (e.key === "Escape") {
-        useStudioStore
-          .getState()
-          .setMeta({ imagePreviewSrc: null, videoPreviewSrc: null });
+        useUIStore.getState().set({ imagePreviewSrc: null, videoPreviewSrc: null });
       }
     };
     window.addEventListener("keydown", handleKeyDown);

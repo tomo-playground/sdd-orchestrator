@@ -1,6 +1,6 @@
 "use client";
 
-import { useStudioStore } from "../../store/useStudioStore";
+import { useContextStore } from "../../store/useContextStore";
 import PipelineProgressBar from "./PipelineProgressBar";
 import MaterialsCheckSection from "./MaterialsCheckSection";
 import ImageSettingsSection from "./ImageSettingsSection";
@@ -14,7 +14,7 @@ interface StudioTimelineViewProps {
 }
 
 export default function StudioTimelineView({ storyboardId }: StudioTimelineViewProps) {
-  const dbStoryboardId = useStudioStore((s) => s.storyboardId);
+  const dbStoryboardId = useContextStore((s) => s.storyboardId);
 
   return (
     <div className={cx(CONTAINER_CLASSES, "space-y-6 py-8 pb-32")}>

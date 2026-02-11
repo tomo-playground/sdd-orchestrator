@@ -6,12 +6,12 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import DeprecatedTagsPanel from "../DeprecatedTagsPanel";
 import { useTagManagement } from "../hooks/useTagManagement";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import type { Tag } from "../../../types";
 
 export default function TagsTab() {
   const { tags: allTags, reload: fetchTagsData } = useTags(null);
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
 
   const {

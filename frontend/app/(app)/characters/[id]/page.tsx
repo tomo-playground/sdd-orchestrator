@@ -6,7 +6,7 @@ import Link from "next/link";
 import axios from "axios";
 import { ArrowLeft } from "lucide-react";
 import { API_BASE } from "../../../constants";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import { useCharacterForm } from "../../manage/hooks/useCharacterForm";
 import PreviewImageSection from "../../manage/PreviewImageSection";
 import CharacterTagsEditor from "../../manage/CharacterTagsEditor";
@@ -30,7 +30,7 @@ import type { Character, Tag, LoRA } from "../../../types";
 export default function CharacterDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
 
   const rawId = params.id as string;
   const isNew = rawId === "new";
@@ -132,7 +132,7 @@ function CharacterDetailForm({
   onSave: (data: Partial<Character>, id?: number) => Promise<void>;
 }) {
   const router = useRouter();
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
 
   const form = useCharacterForm({

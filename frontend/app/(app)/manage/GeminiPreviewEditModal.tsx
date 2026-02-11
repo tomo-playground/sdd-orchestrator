@@ -1,7 +1,7 @@
 "use client";
 
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
 
 const EXAMPLE_INSTRUCTIONS = [
   "Smile brightly, looking at viewer",
@@ -34,7 +34,7 @@ export default function GeminiPreviewEditModal({
     onClose();
   };
 
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
 
   const handleStart = () => {
     if (!geminiTargetChange.trim()) {

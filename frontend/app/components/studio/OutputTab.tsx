@@ -2,7 +2,10 @@
 
 import { useCallback, useState } from "react";
 import axios from "axios";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useRenderStore } from "../../store/useRenderStore";
+import { useUIStore } from "../../store/useUIStore";
+import { useContextStore } from "../../store/useContextStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
 import { useYouTubeUpload } from "../../hooks/useYouTubeUpload";
@@ -11,26 +14,23 @@ import YouTubeUploadModal from "../youtube/YouTubeUploadModal";
 import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 
 export default function OutputTab() {
-  const store = useStudioStore();
-  const { setOutput, showToast, setMeta } = store;
+  const setOutput = useRenderStore((s) => s.set);
+  const showToast = useUIStore((s) => s.showToast);
+  const setUI = useUIStore((s) => s.set);
+  const topic = useStoryboardStore((s) => s.topic);
 
-  const projectId = useStudioStore((s) => s.projectId);
-  const videoUrl = useStudioStore((s) => s.videoUrl);
-  const videoUrlFull = useStudioStore((s) => s.videoUrlFull);
-  const videoUrlPost = useStudioStore((s) => s.videoUrlPost);
-  const recentVideos = useStudioStore((s) => s.recentVideos);
-  const videoCaption = useStudioStore((s) => s.videoCaption);
-  const videoLikesCount = useStudioStore((s) => s.videoLikesCount);
+  const projectId = useContextStore((s) => s.projectId);
+  const videoUrl = useRenderStore((s) => s.videoUrl);
+  const videoUrlFull = useRenderStore((s) => s.videoUrlFull);
+  const videoUrlPost = useRenderStore((s) => s.videoUrlPost);
+  const recentVideos = useRenderStore((s) => s.recentVideos);
+  const videoCaption = useRenderStore((s) => s.videoCaption);
+  const videoLikesCount = useRenderStore((s) => s.videoLikesCount);
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const [savedField, setSavedField] = useState<string | null>(null);
 
-  const {
-    ytModalOpen,
-    ytRenderHistoryId,
-    ytUploaded,
-    handleUploadToYouTube,
-    closeModal,
-  } = useYouTubeUpload(projectId, recentVideos);
+  const { ytModalOpen, ytRenderHistoryId, ytUploaded, handleUploadToYouTube, closeModal } =
+    useYouTubeUpload(projectId, recentVideos);
 
   const handleDeleteRecentVideo = useCallback(
     async (url: string) => {
@@ -46,7 +46,7 @@ export default function OutputTab() {
         showToast("삭제 실패", "error");
       }
     },
-    [recentVideos, setOutput, showToast],
+    [recentVideos, setOutput, showToast]
   );
 
   // Extract caption using LLM
@@ -69,7 +69,7 @@ export default function OutputTab() {
           res.data.fallback
             ? "캡션을 잘라냈습니다"
             : `캡션 요약 완료 (${res.data.original_length} → ${res.data.caption.length}자)`,
-          "success",
+          "success"
         );
       }
     } catch (err: unknown) {
@@ -91,7 +91,7 @@ export default function OutputTab() {
       await updateStoryboardMetadata({ caption: value });
       flashSaved("caption");
     },
-    [flashSaved],
+    [flashSaved]
   );
 
   const handleLikesBlur = useCallback(() => flashSaved("likes"), [flashSaved]);
@@ -114,7 +114,7 @@ export default function OutputTab() {
           videoUrlPost={videoUrlPost}
           recentVideos={recentVideos}
           uploadedMap={ytUploaded}
-          onVideoPreview={(src) => setMeta({ videoPreviewSrc: src })}
+          onVideoPreview={(src) => setUI({ videoPreviewSrc: src })}
           onDeleteRecentVideo={handleDeleteRecentVideo}
           onUploadToYouTube={handleUploadToYouTube}
         />
@@ -150,9 +150,9 @@ export default function OutputTab() {
             value={videoCaption}
             onChange={(e) => setOutput({ videoCaption: e.target.value })}
             onBlur={(e) => handleCaptionBlur(e.target.value)}
-            placeholder={store.topic || "AI 생성 영상"}
+            placeholder={topic || "AI 생성 영상"}
             rows={3}
-            className={`w-full rounded-lg border px-3 py-2 text-xs outline-none transition-colors focus:ring-1 ${
+            className={`w-full rounded-lg border px-3 py-2 text-xs transition-colors outline-none focus:ring-1 ${
               videoCaption.length >= 60
                 ? "border-red-300 bg-red-50/30 focus:ring-red-100"
                 : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"

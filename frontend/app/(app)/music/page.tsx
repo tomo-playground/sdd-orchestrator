@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Music } from "lucide-react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
 import { useMusic } from "../../hooks/useMusic";
 import MusicCard from "./MusicCard";
 import Button from "../../components/ui/Button";
@@ -16,7 +16,7 @@ import {
 } from "../../components/ui/variants";
 
 export default function MusicPage() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {
     presets,

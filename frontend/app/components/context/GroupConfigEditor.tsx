@@ -7,7 +7,8 @@ import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import VoicePresetSelector from "../voice/VoicePresetSelector";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
+import { useContextStore } from "../../store/useContextStore";
 import { fetchGroups } from "../../store/actions/groupActions";
 
 // ── Types ────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ function SelectField({
 
 // ── Component ────────────────────────────────────────────────
 export default function GroupConfigEditor({ groupId, onClose }: Props) {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const [config, setConfig] = useState<GroupConfig | null>(null);
   const [groupName, setGroupName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -147,7 +148,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         }),
         axios.put(`${API_BASE}/groups/${groupId}`, { name: groupName.trim() }),
       ]);
-      const projectId = useStudioStore.getState().projectId;
+      const projectId = useContextStore.getState().projectId;
       if (projectId) fetchGroups(projectId);
       showToast("Group config saved", "success");
       onClose();

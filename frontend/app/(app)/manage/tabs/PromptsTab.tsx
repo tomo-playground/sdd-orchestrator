@@ -3,12 +3,12 @@
 import { useCharacters } from "../../../hooks";
 import { usePromptsTab } from "../hooks/usePromptsTab";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import type { Character } from "../../../types";
 
 export default function PromptsTab() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const { characters } = useCharacters();
   const {

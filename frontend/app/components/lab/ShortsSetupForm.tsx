@@ -5,6 +5,14 @@ import { Loader2, Play } from "lucide-react";
 import { API_BASE } from "../../constants";
 import type { ShortsSessionCreate } from "../../types/creative";
 import CharacterPicker from "./CharacterPicker";
+import Button from "../ui/Button";
+import {
+  cx,
+  SECTION_CLASSES,
+  FORM_INPUT_CLASSES,
+  FORM_TEXTAREA_CLASSES,
+  FORM_LABEL_CLASSES,
+} from "../ui/variants";
 
 type CharacterOption = { id: number; name: string };
 
@@ -22,9 +30,8 @@ type Props = {
   }>;
 };
 
-const LABEL = "mb-1 block text-[12px] font-semibold tracking-wider text-zinc-400 uppercase";
-const INPUT =
-  "w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none";
+const LABEL = `mb-1 block ${FORM_LABEL_CLASSES}`;
+const INPUT = FORM_INPUT_CLASSES;
 
 export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Props) {
   const [topic, setTopic] = useState(initialValues?.topic ?? "");
@@ -110,12 +117,12 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
   };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
-      <div className="rounded-lg bg-gradient-to-r from-emerald-500 to-green-400 px-4 py-2.5">
-        <p className="text-[12px] font-bold tracking-wider text-white/70 uppercase">
-          Shorts Pipeline
+    <div className={cx(SECTION_CLASSES, "space-y-4")}>
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-900">Story</h2>
+        <p className="text-xs text-zinc-500">
+          AI agents create an optimized script through debate and pipeline.
         </p>
-        <p className="text-xs font-semibold text-white">Create a short-form video from a topic</p>
       </div>
 
       {/* Topic */}
@@ -124,10 +131,16 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
         <textarea
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          rows={3}
-          placeholder="Describe your shorts topic..."
-          className={INPUT}
+          rows={4}
+          maxLength={200}
+          placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
+          className={FORM_TEXTAREA_CLASSES}
         />
+        <span
+          className={`text-[12px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"}`}
+        >
+          {topic.length}/200
+        </span>
       </div>
 
       {/* Duration + Structure */}
@@ -247,7 +260,7 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
           onChange={(e) => setReferences(e.target.value)}
           rows={2}
           placeholder="Paste URLs or text references, one per line..."
-          className={INPUT}
+          className={FORM_TEXTAREA_CLASSES}
         />
         <p className="mt-0.5 text-[12px] text-zinc-400">
           Reference analyst will extract patterns for concept generation
@@ -264,21 +277,18 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
             max={5}
             value={maxRounds}
             onChange={(e) => setMaxRounds(Number(e.target.value))}
-            className="w-16 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-800 focus:border-zinc-400 focus:outline-none"
+            className="w-16 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-1.5 text-sm outline-none focus:border-zinc-400"
           />
         </div>
-        <button
-          onClick={handleSubmit}
+        <Button
+          size="md"
+          variant="success"
           disabled={loading || !topic.trim()}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-300"
+          onClick={handleSubmit}
         >
-          {loading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Play className="h-3.5 w-3.5" />
-          )}
-          Start Pipeline
-        </button>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          {loading ? "Starting..." : "Start Pipeline"}
+        </Button>
       </div>
     </div>
   );

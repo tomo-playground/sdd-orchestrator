@@ -8,7 +8,9 @@
  */
 
 import type { Scene, DraftScene } from "../types";
-import { useStudioStore } from "../store/useStudioStore";
+import { useContextStore } from "../store/useContextStore";
+import { useStoryboardStore } from "../store/useStoryboardStore";
+import { useRenderStore } from "../store/useRenderStore";
 
 // ============================================================
 // Types
@@ -380,24 +382,26 @@ export function getStepsToExecute(
 // ============================================================
 
 export function buildPreflightInput(): PreflightInput {
-  const s = useStudioStore.getState();
-  const voiceName = s.voicePresetId ? `Preset #${s.voicePresetId}` : "";
+  const ctx = useContextStore.getState();
+  const sb = useStoryboardStore.getState();
+  const render = useRenderStore.getState();
+  const voiceName = render.voicePresetId ? `Preset #${render.voicePresetId}` : "";
   return {
-    topic: s.topic,
-    characterName: s.selectedCharacterName,
-    characterId: s.selectedCharacterId,
+    topic: sb.topic,
+    characterName: sb.selectedCharacterName,
+    characterId: sb.selectedCharacterId,
     voiceName,
-    bgmFile: s.bgmFile,
-    controlnetEnabled: s.useControlnet,
-    controlnetWeight: s.controlnetWeight,
-    ipAdapterEnabled: s.useIpAdapter,
-    ipAdapterReference: s.ipAdapterReference || null,
-    steps: s.effectiveSdSteps ?? 0,
-    cfgScale: s.effectiveSdCfgScale ?? 0,
-    sampler: s.effectiveSdSamplerName ?? "",
-    clipSkip: s.effectiveSdClipSkip ?? 0,
-    scenes: s.scenes,
-    videoUrl: s.videoUrl,
+    bgmFile: render.bgmFile,
+    controlnetEnabled: sb.useControlnet,
+    controlnetWeight: sb.controlnetWeight,
+    ipAdapterEnabled: sb.useIpAdapter,
+    ipAdapterReference: sb.ipAdapterReference || null,
+    steps: ctx.effectiveSdSteps ?? 0,
+    cfgScale: ctx.effectiveSdCfgScale ?? 0,
+    sampler: ctx.effectiveSdSamplerName ?? "",
+    clipSkip: ctx.effectiveSdClipSkip ?? 0,
+    scenes: sb.scenes,
+    videoUrl: render.videoUrl,
   };
 }
 

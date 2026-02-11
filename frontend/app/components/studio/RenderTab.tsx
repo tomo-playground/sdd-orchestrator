@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useRenderStore } from "../../store/useRenderStore";
+import { useContextStore } from "../../store/useContextStore";
+import { useUIStore } from "../../store/useUIStore";
 import { API_BASE } from "../../constants";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
@@ -10,9 +13,10 @@ import { SIDE_PANEL_LAYOUT } from "../ui/variants";
 import { renderWithProgress } from "../../utils/renderWithProgress";
 
 export default function RenderTab() {
-  const store = useStudioStore();
+  const scenes = useStoryboardStore((s) => s.scenes);
+  const topic = useStoryboardStore((s) => s.topic);
+
   const {
-    scenes,
     layoutStyle,
     frameStyle,
     isRendering,
@@ -34,12 +38,18 @@ export default function RenderTab() {
     musicPresetId,
     recentVideos,
     renderProgress,
-    setOutput,
-    showToast,
-  } = store;
+  } = useRenderStore();
 
-  const videoCaption = useStudioStore((s) => s.videoCaption);
-  const videoLikesCount = useStudioStore((s) => s.videoLikesCount);
+  const setOutput = useRenderStore((s) => s.set);
+  const showToast = useUIStore((s) => s.showToast);
+  const videoCaption = useRenderStore((s) => s.videoCaption);
+  const videoLikesCount = useRenderStore((s) => s.videoLikesCount);
+
+  const projectId = useContextStore((s) => s.projectId);
+  const groupId = useContextStore((s) => s.groupId);
+  const storyboardId = useContextStore((s) => s.storyboardId);
+  const effectivePresetName = useContextStore((s) => s.effectivePresetName);
+  const effectivePresetSource = useContextStore((s) => s.effectivePresetSource);
 
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewTimeoutRef = useRef<number | null>(null);
@@ -124,7 +134,7 @@ export default function RenderTab() {
               }
             : null;
 
-        if (!store.projectId || !store.groupId) {
+        if (!projectId || !groupId) {
           showToast("프로젝트/그룹을 먼저 선택해주세요", "error");
           return;
         }
@@ -136,9 +146,9 @@ export default function RenderTab() {
         }
 
         const payload = {
-          project_id: store.projectId,
-          group_id: store.groupId,
-          storyboard_id: store.storyboardId,
+          project_id: projectId,
+          group_id: groupId,
+          storyboard_id: storyboardId,
           scenes: scenes
             .filter((s) => s.image_url)
             .map((s) => ({
@@ -147,7 +157,7 @@ export default function RenderTab() {
               speaker: s.speaker,
               duration: s.duration,
             })),
-          storyboard_title: store.topic || "my_shorts",
+          storyboard_title: topic || "my_shorts",
           layout_style: mode,
           ken_burns_preset: kenBurnsPreset,
           ken_burns_intensity: kenBurnsIntensity,
@@ -199,7 +209,7 @@ export default function RenderTab() {
     },
     [
       scenes,
-      store.topic,
+      topic,
       kenBurnsPreset,
       kenBurnsIntensity,
       transitionType,
@@ -219,9 +229,9 @@ export default function RenderTab() {
       setOutput,
       showToast,
       frameStyle,
-      store.projectId,
-      store.groupId,
-      store.storyboardId,
+      projectId,
+      groupId,
+      storyboardId,
     ]
   );
 
@@ -295,9 +305,9 @@ export default function RenderTab() {
         setVoicePresetId={async (v) => {
           setOutput({ voicePresetId: v });
           // Persist to Group Config
-          if (store.groupId) {
+          if (groupId) {
             try {
-              await axios.put(`${API_BASE}/groups/${store.groupId}/config`, {
+              await axios.put(`${API_BASE}/groups/${groupId}/config`, {
                 narrator_voice_preset_id: v,
               });
             } catch (err) {
@@ -323,8 +333,8 @@ export default function RenderTab() {
         totalScenes={scenes.length}
         onRender={() => handleRender(layoutStyle)}
         disabledReason={disabledReason}
-        renderPresetName={store.effectivePresetName}
-        renderPresetSource={store.effectivePresetSource}
+        renderPresetName={effectivePresetName}
+        renderPresetSource={effectivePresetSource}
         renderProgress={renderProgress}
       />
     </div>

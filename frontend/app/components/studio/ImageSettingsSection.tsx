@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useUIStore } from "../../store/useUIStore";
+import { useRenderStore } from "../../store/useRenderStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import { useCharacterAutoLoad } from "../../hooks/useCharacterAutoLoad";
 import PromptSetupPanel from "../setup/PromptSetupPanel";
@@ -13,25 +15,23 @@ export default function ImageSettingsSection() {
   // Character auto-load (extracted from PlanTab)
   useCharacterAutoLoad();
 
-  const {
-    actorAGender,
-    selectedCharacterId,
-    selectedCharacterBId,
-    basePromptA,
-    baseNegativePromptA,
-    basePromptB,
-    baseNegativePromptB,
-    autoComposePrompt,
-    autoRewritePrompt,
-    autoReplaceRiskyTags,
-    hiResEnabled,
-    veoEnabled,
-    structure,
-    setPlan,
-  } = useStudioStore();
+  const actorAGender = useStoryboardStore((s) => s.actorAGender);
+  const selectedCharacterId = useStoryboardStore((s) => s.selectedCharacterId);
+  const selectedCharacterBId = useStoryboardStore((s) => s.selectedCharacterBId);
+  const basePromptA = useStoryboardStore((s) => s.basePromptA);
+  const baseNegativePromptA = useStoryboardStore((s) => s.baseNegativePromptA);
+  const basePromptB = useStoryboardStore((s) => s.basePromptB);
+  const baseNegativePromptB = useStoryboardStore((s) => s.baseNegativePromptB);
+  const autoComposePrompt = useStoryboardStore((s) => s.autoComposePrompt);
+  const autoRewritePrompt = useStoryboardStore((s) => s.autoRewritePrompt);
+  const autoReplaceRiskyTags = useStoryboardStore((s) => s.autoReplaceRiskyTags);
+  const hiResEnabled = useStoryboardStore((s) => s.hiResEnabled);
+  const veoEnabled = useStoryboardStore((s) => s.veoEnabled);
+  const structure = useStoryboardStore((s) => s.structure);
+  const setPlan = useStoryboardStore((s) => s.set);
 
-  const setMeta = useStudioStore((s) => s.setMeta);
-  const currentStyleProfile = useStudioStore((s) => s.currentStyleProfile);
+  const setUI = useUIStore((s) => s.set);
+  const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
   const { characters } = useCharacters();
 
   const TOGGLES = [
@@ -83,7 +83,7 @@ export default function ImageSettingsSection() {
             setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
             baseNegativePromptA={baseNegativePromptA}
             setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
-            onOpenPromptHelper={() => setMeta({ isHelperOpen: true })}
+            onOpenPromptHelper={() => setUI({ isHelperOpen: true })}
             characters={characters}
             selectedCharacterId={selectedCharacterId}
             onSelectCharacter={(id) => {

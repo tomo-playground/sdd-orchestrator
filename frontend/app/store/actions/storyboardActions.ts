@@ -1,5 +1,8 @@
 import axios from "axios";
-import { useStudioStore } from "../useStudioStore";
+import { useContextStore } from "../useContextStore";
+import { useStoryboardStore } from "../useStoryboardStore";
+import { useRenderStore } from "../useRenderStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
 import type { Scene } from "../../types";
 
@@ -24,7 +27,11 @@ export function sanitizeCandidatesForDb(
  * @returns storyboard_id if saved successfully, undefined otherwise
  */
 export async function autoSaveStoryboard(): Promise<number | undefined> {
-  const { storyboardId, groupId, scenes, topic, setMeta, showToast } = useStudioStore.getState();
+  const ctxState = useContextStore.getState();
+  const sbState = useStoryboardStore.getState();
+  const { showToast } = useUIStore.getState();
+  const { storyboardId, groupId } = ctxState;
+  const { scenes, topic } = sbState;
 
   // Already saved
   if (storyboardId) {
@@ -42,11 +49,17 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   }
 
   try {
-    const { selectedCharacterId, selectedCharacterBId, structure, duration, language } =
-      useStudioStore.getState();
+    const {
+      selectedCharacterId,
+      selectedCharacterBId,
+      structure,
+      duration,
+      language,
+      description,
+    } = useStoryboardStore.getState();
     const payload = {
       title: topic || "Draft Storyboard",
-      description: useStudioStore.getState().description || null,
+      description: description || null,
       group_id: groupId,
       structure: structure || DEFAULT_STRUCTURE,
       duration: duration || undefined,
@@ -88,14 +101,14 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
     const newStoryboardId = res.data.storyboard_id;
     const sceneIds = res.data.scene_ids || [];
 
-    setMeta({
+    useContextStore.getState().setContext({
       storyboardId: newStoryboardId,
       storyboardTitle: topic || "Draft Storyboard",
     });
 
     // Update scene IDs with DB-assigned IDs
     if (sceneIds.length > 0) {
-      const { scenes: currentScenes, setScenes } = useStudioStore.getState();
+      const { scenes: currentScenes, setScenes } = useStoryboardStore.getState();
       setScenes(currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] || scene.id })));
     }
 
@@ -121,7 +134,9 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
  * Used by Studio save button.
  */
 export async function saveStoryboard(): Promise<boolean> {
-  const { scenes, groupId, storyboardId, showToast } = useStudioStore.getState();
+  const { scenes } = useStoryboardStore.getState();
+  const { groupId, storyboardId } = useContextStore.getState();
+  const { showToast } = useUIStore.getState();
 
   if (scenes.length === 0) {
     showToast("No scenes to save", "error");
@@ -143,7 +158,7 @@ export async function saveStoryboard(): Promise<boolean> {
 
 /**
  * Map raw Gemini API scene response to typed Scene array.
- * Single source of truth for Gemini → Scene mapping.
+ * Single source of truth for Gemini -> Scene mapping.
  */
 export function mapGeminiScenes(
   rawScenes: Record<string, unknown>[],
@@ -181,27 +196,28 @@ export function mapGeminiScenes(
  * PUT if storyboardId exists, POST otherwise (with scene ID reassignment).
  */
 export async function persistStoryboard(): Promise<boolean> {
+  const sbState = useStoryboardStore.getState();
+  const ctxState = useContextStore.getState();
+  const { videoCaption } = useRenderStore.getState();
   const {
-    storyboardId,
-    groupId,
     scenes,
     topic,
-    videoCaption,
     selectedCharacterId,
     selectedCharacterBId,
     structure,
     duration,
     language,
-    setMeta,
+    description,
     setScenes,
-  } = useStudioStore.getState();
+  } = sbState;
+  const { storyboardId, groupId } = ctxState;
 
   if (scenes.length === 0 || !groupId) return false;
 
   try {
     const payload = {
       title: topic || "Untitled",
-      description: useStudioStore.getState().description || null,
+      description: description || null,
       group_id: groupId,
       structure: structure || DEFAULT_STRUCTURE,
       duration: duration || undefined,
@@ -245,7 +261,7 @@ export async function persistStoryboard(): Promise<boolean> {
       });
       const sceneIds: number[] = res.data.scene_ids || [];
       if (sceneIds.length > 0) {
-        const current = useStudioStore.getState().scenes;
+        const current = useStoryboardStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
       }
     } else {
@@ -254,9 +270,9 @@ export async function persistStoryboard(): Promise<boolean> {
       });
       const newId = res.data.storyboard_id;
       const sceneIds: number[] = res.data.scene_ids || [];
-      setMeta({ storyboardId: newId, storyboardTitle: topic });
+      useContextStore.getState().setContext({ storyboardId: newId, storyboardTitle: topic });
       if (sceneIds.length > 0) {
-        const current = useStudioStore.getState().scenes;
+        const current = useStoryboardStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
       }
       // Sync URL with newly created storyboard ID
@@ -281,7 +297,8 @@ export async function updateStoryboardMetadata(updates: {
   description?: string;
   caption?: string | null;
 }): Promise<boolean> {
-  const { storyboardId, showToast } = useStudioStore.getState();
+  const { storyboardId } = useContextStore.getState();
+  const { showToast } = useUIStore.getState();
 
   if (!storyboardId) return false;
 
@@ -300,7 +317,8 @@ export async function updateStoryboardMetadata(updates: {
  * Switches to Scenes tab on success and auto-saves.
  */
 export async function generateStoryboard(): Promise<boolean> {
-  const state = useStudioStore.getState();
+  const sbState = useStoryboardStore.getState();
+  const { showToast, setActiveTab } = useUIStore.getState();
   const {
     topic,
     description,
@@ -313,9 +331,7 @@ export async function generateStoryboard(): Promise<boolean> {
     selectedCharacterBId,
     baseNegativePromptA,
     setScenes,
-    setActiveTab,
-    showToast,
-  } = state;
+  } = sbState;
 
   if (!topic.trim()) {
     showToast("Enter a topic first", "error");
@@ -343,7 +359,7 @@ export async function generateStoryboard(): Promise<boolean> {
     const mapped = mapGeminiScenes(data.scenes, baseNegativePromptA);
 
     setScenes(mapped);
-    useStudioStore.getState().setCurrentSceneIndex(0);
+    useStoryboardStore.getState().set({ currentSceneIndex: 0 });
     setActiveTab("scenes");
     showToast(`Generated ${mapped.length} scenes`, "success");
     saveStoryboard();

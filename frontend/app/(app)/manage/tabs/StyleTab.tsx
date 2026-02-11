@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useStudioStore } from "../../../store/useStudioStore";
+import { useUIStore } from "../../../store/useUIStore";
 import StyleProfileEditor from "../StyleProfileEditor";
 import { useStyleTab } from "../hooks/useStyleTab";
 
 export default function StyleTab() {
-  const showToast = useStudioStore((s) => s.showToast);
+  const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
 
   const {
@@ -460,11 +460,16 @@ export default function StyleTab() {
                     type="checkbox"
                     checked={editingLora.is_multi_character_capable ?? false}
                     onChange={(e) =>
-                      setEditingLora({ ...editingLora, is_multi_character_capable: e.target.checked })
+                      setEditingLora({
+                        ...editingLora,
+                        is_multi_character_capable: e.target.checked,
+                      })
                     }
                     className="h-3.5 w-3.5 rounded accent-emerald-600"
                   />
-                  <span className="text-[13px] font-bold text-zinc-600">Multi-Character Capable</span>
+                  <span className="text-[13px] font-bold text-zinc-600">
+                    Multi-Character Capable
+                  </span>
                 </label>
                 {editingLora.is_multi_character_capable && (
                   <div className="mt-3 grid gap-3">

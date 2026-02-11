@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { useContextStore } from "../store/useContextStore";
-import { useStudioStore } from "../store/useStudioStore";
+import { useStoryboardStore } from "../store/useStoryboardStore";
 import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
 import { ALL_GROUPS_ID } from "../constants";
@@ -18,7 +18,8 @@ export function useProjectGroups() {
   const projects = useContextStore((s) => s.projects);
   const groups = useContextStore((s) => s.groups);
   const setContext = useContextStore((s) => s.setContext);
-  const resetScenes = useStudioStore((s) => s.resetScenes);
+  const setScenes = useStoryboardStore((s) => s.setScenes);
+  const clearScenes = useCallback(() => setScenes([]), [setScenes]);
 
   // Fetch projects on mount
   useEffect(() => {
@@ -71,17 +72,17 @@ export function useProjectGroups() {
   const selectProject = useCallback(
     (id: number) => {
       setContext({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
-      resetScenes();
+      clearScenes();
     },
-    [setContext, resetScenes]
+    [setContext, clearScenes]
   );
 
   const selectGroup = useCallback(
     (id: number) => {
       setContext({ groupId: id, storyboardId: null, storyboardTitle: "" });
-      resetScenes();
+      clearScenes();
     },
-    [setContext, resetScenes]
+    [setContext, clearScenes]
   );
 
   return { projectId, groupId, projects, groups, selectProject, selectGroup };

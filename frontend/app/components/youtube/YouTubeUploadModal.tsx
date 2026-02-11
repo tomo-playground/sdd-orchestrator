@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Modal from "../ui/Modal";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useRenderStore } from "../../store/useRenderStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useUIStore } from "../../store/useUIStore";
 import { pollUploadStatus, startYouTubeUpload } from "../../store/actions/youtubeActions";
 
 type Props = {
@@ -35,9 +37,9 @@ function YouTubeUploadForm({
   renderHistoryId: number;
   projectId: number;
 }) {
-  const videoCaption = useStudioStore((s) => s.videoCaption);
-  const topic = useStudioStore((s) => s.topic);
-  const showToast = useStudioStore((s) => s.showToast);
+  const videoCaption = useRenderStore((s) => s.videoCaption);
+  const topic = useStoryboardStore((s) => s.topic);
+  const showToast = useUIStore((s) => s.showToast);
 
   const [title, setTitle] = useState(topic || "");
   const [description, setDescription] = useState(videoCaption || "");

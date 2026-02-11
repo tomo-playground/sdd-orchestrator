@@ -6,7 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, Clapperboard, Settings, X } from "lucide-react";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { useContextStore } from "../../store/useContextStore";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useUIStore } from "../../store/useUIStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { createGroup, deleteGroup } from "../../store/actions/groupActions";
 import { createProject, deleteProject, updateProject } from "../../store/actions/projectActions";
 import { ALL_GROUPS_ID } from "../../constants";
@@ -32,9 +33,10 @@ export default function PersistentContextBar() {
   const storyboardTitle = useContextStore((s) => s.storyboardTitle);
   const setContext = useContextStore((s) => s.setContext);
   const resetContext = useContextStore((s) => s.resetContext);
-  const isAutoRunning = useStudioStore((s) => s.isAutoRunning);
-  const showToast = useStudioStore((s) => s.showToast);
-  const resetScenes = useStudioStore((s) => s.resetScenes);
+  const isAutoRunning = useUIStore((s) => s.isAutoRunning);
+  const showToast = useUIStore((s) => s.showToast);
+  const setScenes = useStoryboardStore((s) => s.setScenes);
+  const clearScenes = useCallback(() => setScenes([]), [setScenes]);
 
   const { confirm, dialogProps } = useConfirm();
   const [configGroupId, setConfigGroupId] = useState<number | null>(null);
@@ -53,10 +55,10 @@ export default function PersistentContextBar() {
       const deleted = await deleteProject(project.id);
       if (deleted && project.id === projectId) {
         setContext({ projectId: null, groupId: null, storyboardId: null, storyboardTitle: "" });
-        resetScenes();
+        clearScenes();
       }
     },
-    [confirm, projectId, setContext, resetScenes]
+    [confirm, projectId, setContext, clearScenes]
   );
 
   const handleDeleteGroup = useCallback(
@@ -72,10 +74,10 @@ export default function PersistentContextBar() {
       const deleted = await deleteGroup(id);
       if (deleted && id === groupId) {
         setContext({ groupId: null, storyboardId: null, storyboardTitle: "" });
-        resetScenes();
+        clearScenes();
       }
     },
-    [confirm, groups, groupId, setContext, resetScenes]
+    [confirm, groups, groupId, setContext, clearScenes]
   );
 
   const handleGroupSelect = useCallback(

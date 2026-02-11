@@ -1,10 +1,11 @@
 import axios from "axios";
-import { useStudioStore } from "../useStudioStore";
+import { useContextStore } from "../useContextStore";
+import { useUIStore } from "../useUIStore";
 import { API_BASE } from "../../constants";
 import type { ProjectItem } from "../../types";
 
 export async function fetchProjects(): Promise<void> {
-  const { setContextLoading, setProjects } = useStudioStore.getState();
+  const { setContextLoading, setProjects } = useContextStore.getState();
   setContextLoading({ isLoadingProjects: true });
   try {
     const res = await axios.get<ProjectItem[]>(`${API_BASE}/projects`);
@@ -22,7 +23,7 @@ export async function createProject(data: {
   handle?: string;
   avatar_media_asset_id?: number | null;
 }): Promise<ProjectItem | undefined> {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   try {
     const res = await axios.post<ProjectItem>(`${API_BASE}/projects`, data);
     await fetchProjects();
@@ -37,9 +38,14 @@ export async function createProject(data: {
 
 export async function updateProject(
   projectId: number,
-  data: { name?: string; description?: string; handle?: string; avatar_media_asset_id?: number | null }
+  data: {
+    name?: string;
+    description?: string;
+    handle?: string;
+    avatar_media_asset_id?: number | null;
+  }
 ): Promise<ProjectItem | undefined> {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   try {
     const res = await axios.put<ProjectItem>(`${API_BASE}/projects/${projectId}`, data);
     await fetchProjects();
@@ -53,7 +59,7 @@ export async function updateProject(
 }
 
 export async function deleteProject(projectId: number): Promise<boolean> {
-  const { showToast } = useStudioStore.getState();
+  const { showToast } = useUIStore.getState();
   try {
     await axios.delete(`${API_BASE}/projects/${projectId}`);
     await fetchProjects();

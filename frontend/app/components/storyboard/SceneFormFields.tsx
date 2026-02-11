@@ -1,7 +1,7 @@
 "use client";
 
 import type { Scene, Tag } from "../../types";
-import { useStudioStore } from "../../store/useStudioStore";
+import { useContextStore } from "../../store/useContextStore";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
@@ -54,7 +54,7 @@ export default function SceneFormFields({
   characterBName,
   selectedCharacterBId,
 }: SceneFormFieldsProps) {
-  const storyboardId = useStudioStore((s) => s.storyboardId);
+  const storyboardId = useContextStore((s) => s.storyboardId);
   const structureLower = structure?.toLowerCase() || "";
   const isDialogue = structureLower === "dialogue";
   const isNarratedDialogue = structureLower === "narrated dialogue";
