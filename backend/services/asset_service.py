@@ -71,14 +71,26 @@ class AssetService:
         logger.info(f"📊 [Asset Registry] Registered {file_type}: {file_name}{owner_info} ID: {asset.id}")
         return asset
 
+    def save_character_preview(self, character_id: int, image_bytes: bytes) -> MediaAsset:
+        """Save a character preview image to storage and register it in the DB."""
+        import hashlib
+
+        digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+        file_name = f"character_{character_id}_preview_{digest}.png"
+        storage_key = f"characters/{character_id}/preview/{file_name}"
+        self._get_storage().save(storage_key, image_bytes, content_type="image/png")
+        return self.register_asset(
+            file_name=file_name,
+            file_type="image",
+            storage_key=storage_key,
+            owner_type="character",
+            owner_id=character_id,
+            file_size=len(image_bytes),
+            mime_type="image/png",
+        )
+
     def save_scene_image(
-        self,
-        image_bytes: bytes,
-        project_id: int,
-        group_id: int,
-        storyboard_id: int,
-        scene_id: int,
-        file_name: str
+        self, image_bytes: bytes, project_id: int, group_id: int, storyboard_id: int, scene_id: int, file_name: str
     ) -> MediaAsset:
         """Save a scene image to storage and register it in the DB."""
         # Define hierarchical key
@@ -95,16 +107,11 @@ class AssetService:
             owner_type="scene",
             owner_id=scene_id,
             file_size=len(image_bytes),
-            mime_type="image/png"
+            mime_type="image/png",
         )
 
     def save_rendered_video(
-        self,
-        video_path: Path,
-        project_id: int,
-        group_id: int,
-        storyboard_id: int,
-        file_name: str
+        self, video_path: Path, project_id: int, group_id: int, storyboard_id: int, file_name: str
     ) -> MediaAsset:
         """Save a rendered video to storage and register it in the DB."""
         storage_key = f"projects/{project_id}/groups/{group_id}/storyboards/{storyboard_id}/videos/{file_name}"
@@ -120,13 +127,14 @@ class AssetService:
             owner_type="storyboard",
             owner_id=storyboard_id,
             file_size=file_size,
-            mime_type="video/mp4"
+            mime_type="video/mp4",
         )
 
     @staticmethod
     def ensure_shared_assets():
         """Synchronize repository assets (audio, fonts) to centralized storage."""
         from config import ASSETS_DIR, AUDIO_DIR, FONTS_DIR, OVERLAY_DIR
+
         storage = get_storage()
 
         # Mapping: local_dir -> storage_prefix

@@ -40,10 +40,12 @@ def load_image_bytes(source: str) -> bytes:
         # Handle MinIO/S3 URLs: /{bucket_name}/{storage_key}
         # Extract storage_key by removing bucket prefix
         from config import MINIO_BUCKET
+
         if path.startswith(f"/{MINIO_BUCKET}/"):
             storage_key = path.replace(f"/{MINIO_BUCKET}/", "", 1)
             try:
                 from services.storage import get_storage
+
                 storage = get_storage()
                 local_path = storage.get_local_path(storage_key)
                 return local_path.read_bytes()
@@ -57,6 +59,7 @@ def load_image_bytes(source: str) -> bytes:
         storage_key = path.replace("/assets/references/", "shared/references/", 1).lstrip("/")
         try:
             from services.storage import get_storage
+
             return get_storage().get_local_path(storage_key).read_bytes()
         except Exception:
             pass
@@ -64,6 +67,7 @@ def load_image_bytes(source: str) -> bytes:
         storage_key = path.replace("/assets/poses/", "shared/poses/", 1).lstrip("/")
         try:
             from services.storage import get_storage
+
             return get_storage().get_local_path(storage_key).read_bytes()
         except Exception:
             pass
@@ -74,6 +78,7 @@ def load_image_bytes(source: str) -> bytes:
         # 1. Try direct local file first (e.g., if switching storage modes)
         try:
             from config import OUTPUT_DIR
+
             direct_path = OUTPUT_DIR / storage_key
             if direct_path.exists():
                 return direct_path.read_bytes()
@@ -83,6 +88,7 @@ def load_image_bytes(source: str) -> bytes:
         # 2. Try storage service (S3 download or local lookup)
         try:
             from services.storage import get_storage
+
             storage = get_storage()
             local_path = storage.get_local_path(storage_key)
             return local_path.read_bytes()
@@ -93,6 +99,12 @@ def load_image_bytes(source: str) -> bytes:
         return base64.b64decode(source)
     except Exception as exc:
         raise ValueError("Unsupported image source") from exc
+
+
+def load_as_data_url(source: str) -> str:
+    """Load image from source and return as data URL string."""
+    image_bytes = load_image_bytes(source)
+    return f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}"
 
 
 def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> float:
@@ -138,9 +150,7 @@ def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> 
 
 
 def calculate_optimal_scene_text_y(
-    image: Image.Image,
-    default_y_ratio: float = 0.12,
-    layout_style: str = "full"
+    image: Image.Image, default_y_ratio: float = 0.12, layout_style: str = "full"
 ) -> float:
     """Calculate optimal Y position for scene text based on image content.
 
@@ -156,7 +166,7 @@ def calculate_optimal_scene_text_y(
 
     # Thresholds for adjustment (calibrated for std_dev + edge_density metric)
     HIGH_COMPLEXITY = 0.20  # Move scene text up if complexity > 0.20
-    LOW_COMPLEXITY = 0.10   # Move scene text down if complexity < 0.10
+    LOW_COMPLEXITY = 0.10  # Move scene text down if complexity < 0.10
 
     if layout_style == "full":
         # Full layout: scene text is at bottom (68-72% from top)

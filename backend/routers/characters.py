@@ -330,7 +330,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     character = (
         db.query(Character)
         .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
-        .filter(Character.id == character_id)
+        .filter(Character.id == character_id, Character.deleted_at.is_(None))
         .first()
     )
 
@@ -344,7 +344,7 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     tag_names = [t.tag.name for t in character.tags]
     base = character.reference_base_prompt or ""
 
-    # Include LoRAs
+    # Include LoRAs (scale down character LoRAs for reference: face identity only)
     lora_tags = []
     if character.loras:
         for lora_info in character.loras:
@@ -352,8 +352,6 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
             weight = lora_info.get("weight", 0.7)
             lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
             if lora_obj:
-                # Style LoRAs: keep full weight (defines visual style)
-                # Character/pose LoRAs: scale down for reference (face identity only)
                 if lora_obj.lora_type == "style":
                     ref_weight = weight
                 else:
@@ -368,12 +366,10 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
         else f"{', '.join(tag_names)}, {', '.join(lora_tags)}"
     )
 
-    # Normalize to Danbooru standard
     from services.prompt.prompt import normalize_and_fix_tags
 
     full_prompt = normalize_and_fix_tags(full_prompt_raw)
 
-    # Generate image
     request = SceneGenerateRequest(
         prompt=full_prompt,
         negative_prompt=character.reference_negative_prompt or "",
@@ -392,37 +388,13 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     if "image" not in res:
         raise HTTPException(status_code=500, detail="Generation failed")
 
-    # Store image using AssetService
-    import hashlib
-
     from services.asset_service import AssetService
     from services.image import decode_data_url
 
-    image_b64 = f"data:image/png;base64,{res['image']}"
-    image_bytes = decode_data_url(image_b64)
-    digest = hashlib.sha1(image_bytes).hexdigest()[:16]
-    file_name = f"character_{character_id}_preview_{digest}.png"
-    storage_key = f"characters/{character_id}/preview/{file_name}"
-
-    # Use AssetService to save
-    from services.storage import get_storage
-
-    storage = get_storage()
-    storage.save(storage_key, image_bytes, content_type="image/png")
-
-    # Register in DB
+    image_bytes = decode_data_url(f"data:image/png;base64,{res['image']}")
     asset_service = AssetService(db)
-    asset = asset_service.register_asset(
-        file_name=file_name,
-        file_type="image",
-        storage_key=storage_key,
-        owner_type="character",
-        owner_id=character_id,
-        file_size=len(image_bytes),
-        mime_type="image/png",
-    )
+    asset = asset_service.save_character_preview(character_id, image_bytes)
 
-    # Update character
     character.preview_image_asset_id = asset.id
     db.commit()
 
@@ -432,15 +404,11 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
 @router.post("/{character_id}/enhance-preview")
 async def enhance_preview(character_id: int, db: Session = Depends(get_db)):
     """Enhance the character's preview image using Gemini image generation."""
-    import base64
-    import hashlib
-
     from services.asset_service import AssetService
-    from services.image import decode_data_url, load_image_bytes
+    from services.image import decode_data_url, load_as_data_url
     from services.imagen_edit import get_imagen_service
-    from services.storage import get_storage
 
-    character = db.query(Character).filter(Character.id == character_id).first()
+    character = db.query(Character).filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
@@ -450,33 +418,14 @@ async def enhance_preview(character_id: int, db: Session = Depends(get_db)):
     if not character.preview_image_url:
         raise HTTPException(status_code=400, detail="No preview image to enhance")
 
-    # Load current preview image
-    image_bytes = load_image_bytes(character.preview_image_url)
-    image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}"
+    image_b64 = load_as_data_url(character.preview_image_url)
 
-    # Enhance via Gemini
     service = get_imagen_service()
     result = await service.enhance_image(image_b64)
 
-    # Store enhanced image
     enhanced_bytes = decode_data_url(f"data:image/png;base64,{result['enhanced_image']}")
-    digest = hashlib.sha1(enhanced_bytes).hexdigest()[:16]
-    file_name = f"character_{character_id}_preview_{digest}.png"
-    storage_key = f"characters/{character_id}/preview/{file_name}"
-
-    storage = get_storage()
-    storage.save(storage_key, enhanced_bytes, content_type="image/png")
-
     asset_service = AssetService(db)
-    asset = asset_service.register_asset(
-        file_name=file_name,
-        file_type="image",
-        storage_key=storage_key,
-        owner_type="character",
-        owner_id=character_id,
-        file_size=len(enhanced_bytes),
-        mime_type="image/png",
-    )
+    asset = asset_service.save_character_preview(character_id, enhanced_bytes)
 
     character.preview_image_asset_id = asset.id
     db.commit()
@@ -491,15 +440,16 @@ async def edit_preview(
     db: Session = Depends(get_db),
 ):
     """Edit the character's preview image with a natural language instruction via Gemini."""
-    import base64
-    import hashlib
-
     from services.asset_service import AssetService
-    from services.image import decode_data_url, load_image_bytes
+    from services.image import decode_data_url, load_as_data_url
     from services.imagen_edit import get_imagen_service
-    from services.storage import get_storage
 
-    character = db.query(Character).filter(Character.id == character_id).first()
+    character = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == character_id, Character.deleted_at.is_(None))
+        .first()
+    )
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
 
@@ -509,22 +459,11 @@ async def edit_preview(
     if not character.preview_image_url:
         raise HTTPException(status_code=400, detail="No preview image to edit")
 
-    # Load current preview image
-    image_bytes = load_image_bytes(character.preview_image_url)
-    image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}"
+    image_b64 = load_as_data_url(character.preview_image_url)
 
-    # Build original prompt context from character tags
-    tag_names = []
-    if character.tags:
-        from models import CharacterTag as CT
-
-        char_tags = db.query(CT).filter(CT.character_id == character_id).all()
-        for ct in char_tags:
-            if ct.tag:
-                tag_names.append(ct.tag.name)
+    tag_names = [ct.tag.name for ct in character.tags if ct.tag]
     original_prompt = ", ".join(tag_names) if tag_names else ""
 
-    # Edit via Gemini (Vision analysis + image edit)
     service = get_imagen_service()
     result = await service.edit_with_analysis(
         image_b64=image_b64,
@@ -532,25 +471,9 @@ async def edit_preview(
         target_change=instruction,
     )
 
-    # Store edited image
     edited_bytes = decode_data_url(f"data:image/png;base64,{result['edited_image']}")
-    digest = hashlib.sha1(edited_bytes).hexdigest()[:16]
-    file_name = f"character_{character_id}_preview_{digest}.png"
-    storage_key = f"characters/{character_id}/preview/{file_name}"
-
-    storage = get_storage()
-    storage.save(storage_key, edited_bytes, content_type="image/png")
-
     asset_service = AssetService(db)
-    asset = asset_service.register_asset(
-        file_name=file_name,
-        file_type="image",
-        storage_key=storage_key,
-        owner_type="character",
-        owner_id=character_id,
-        file_size=len(edited_bytes),
-        mime_type="image/png",
-    )
+    asset = asset_service.save_character_preview(character_id, edited_bytes)
 
     character.preview_image_asset_id = asset.id
     db.commit()
@@ -566,7 +489,7 @@ async def edit_preview(
 @router.post("/batch-regenerate-references")
 async def batch_regenerate_references(db: Session = Depends(get_db)):
     """Regenerate reference images for ALL characters using latest Hires. fix settings."""
-    characters = db.query(Character).all()
+    characters = db.query(Character).filter(Character.deleted_at.is_(None)).all()
     results = []
 
     for char in characters:

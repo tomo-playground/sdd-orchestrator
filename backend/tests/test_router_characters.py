@@ -12,11 +12,7 @@ class TestCharactersRouter:
     @pytest.fixture
     def sample_tag(self, db_session):
         """Create a sample tag for testing."""
-        tag = Tag(
-            name="brown_hair",
-            category="appearance",
-            default_layer="identity"
-        )
+        tag = Tag(name="brown_hair", category="appearance", default_layer="identity")
         db_session.add(tag)
         db_session.commit()
         return tag
@@ -68,13 +64,7 @@ class TestCharactersRouter:
         request_data = {
             "name": "tagged_character",
             "project_id": 1,
-            "tags": [
-                {
-                    "tag_id": sample_tag.id,
-                    "weight": 1.0,
-                    "is_permanent": True
-                }
-            ]
+            "tags": [{"tag_id": sample_tag.id, "weight": 1.0, "is_permanent": True}],
         }
 
         # Note: Router uses `await get_character()` which may cause issues in sync tests
@@ -124,10 +114,7 @@ class TestCharactersRouter:
         character_id = character.id
 
         # Update
-        update_data = {
-            "description": "Updated description",
-            "gender": "female"
-        }
+        update_data = {"description": "Updated description", "gender": "female"}
 
         response = client.put(f"/characters/{character_id}", json=update_data)
         assert response.status_code == 200
@@ -138,9 +125,7 @@ class TestCharactersRouter:
 
     def test_update_character_not_found(self, client: TestClient):
         """Update non-existent character returns 404."""
-        update_data = {
-            "description": "Updated"
-        }
+        update_data = {"description": "Updated"}
 
         response = client.put("/characters/99999", json=update_data)
         assert response.status_code == 404
@@ -164,9 +149,7 @@ class TestCharactersRouter:
 
         # Verify soft-deleted (deleted_at set, still in DB)
         db_session.expire_all()
-        deleted = db_session.query(Character).filter(
-            Character.id == character_id
-        ).first()
+        deleted = db_session.query(Character).filter(Character.id == character_id).first()
         assert deleted is not None
         assert deleted.deleted_at is not None
 
@@ -211,16 +194,7 @@ class TestCharactersRouter:
 
     def test_create_character_with_loras(self, client: TestClient, db_session):
         """Create character with LoRA configuration."""
-        request_data = {
-            "name": "lora_character",
-            "project_id": 1,
-            "loras": [
-                {
-                    "lora_id": 1,
-                    "weight": 0.7
-                }
-            ]
-        }
+        request_data = {"name": "lora_character", "project_id": 1, "loras": [{"lora_id": 1, "weight": 0.7}]}
 
         response = client.post("/characters", json=request_data)
         assert response.status_code == 201
@@ -258,15 +232,7 @@ class TestCharactersRouter:
         character_id = character.id
 
         # Update with tags
-        update_data = {
-            "tags": [
-                {
-                    "tag_id": sample_tag.id,
-                    "weight": 1.2,
-                    "is_permanent": True
-                }
-            ]
-        }
+        update_data = {"tags": [{"tag_id": sample_tag.id, "weight": 1.2, "is_permanent": True}]}
 
         # Note: Router uses `await get_character()` which may cause issues in sync tests
         try:
@@ -274,3 +240,50 @@ class TestCharactersRouter:
             assert response.status_code in [200, 500], f"Unexpected status: {response.status_code}"
         except Exception:
             pytest.skip("Async endpoint issue in TestClient")
+
+
+class TestSoftDeleteFilters:
+    """Test that soft-deleted characters are excluded by the query patterns used in endpoints.
+
+    These tests verify the DB query filters directly, since the TestClient
+    requires qwen_tts which is not installed in the test environment.
+    """
+
+    @pytest.fixture
+    def setup_characters(self, db_session):
+        """Create one active and one soft-deleted character."""
+        from datetime import UTC, datetime
+
+        active = Character(name="active_char", project_id=1)
+        deleted = Character(name="deleted_char", project_id=1)
+        deleted.deleted_at = datetime.now(UTC)
+        db_session.add_all([active, deleted])
+        db_session.commit()
+        return active, deleted
+
+    def test_soft_delete_filter_excludes_deleted(self, db_session, setup_characters):
+        """Query with deleted_at.is_(None) excludes soft-deleted characters."""
+        active, deleted = setup_characters
+
+        # This is the same filter used in regenerate_reference, enhance_preview, edit_preview
+        result = db_session.query(Character).filter(Character.id == deleted.id, Character.deleted_at.is_(None)).first()
+        assert result is None, "Soft-deleted character should not be found"
+
+    def test_soft_delete_filter_includes_active(self, db_session, setup_characters):
+        """Query with deleted_at.is_(None) includes active characters."""
+        active, _deleted = setup_characters
+
+        result = db_session.query(Character).filter(Character.id == active.id, Character.deleted_at.is_(None)).first()
+        assert result is not None
+        assert result.id == active.id
+
+    def test_batch_query_excludes_soft_deleted(self, db_session, setup_characters):
+        """Batch query (used in batch_regenerate) excludes soft-deleted characters."""
+        active, deleted = setup_characters
+
+        # Same query as batch_regenerate_references
+        characters = db_session.query(Character).filter(Character.deleted_at.is_(None)).all()
+        char_ids = [c.id for c in characters]
+
+        assert active.id in char_ids
+        assert deleted.id not in char_ids
