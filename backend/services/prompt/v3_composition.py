@@ -222,7 +222,7 @@ class V3PromptBuilder:
     @staticmethod
     def _cap_lora_weight(weight: float) -> float:
         """Apply STYLE_LORA_WEIGHT_CAP to prevent LoRA overfitting."""
-        return min(weight, STYLE_LORA_WEIGHT_CAP)
+        return round(min(weight, STYLE_LORA_WEIGHT_CAP), 2)
 
     def _compose_background_scene(
         self,

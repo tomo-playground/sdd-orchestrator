@@ -309,6 +309,8 @@ Phase 8 이후 또는 우선순위 미정 항목.
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
 | v3_composition.py 하드코딩 프롬프트 DB/config 이동 (`_MALE_ENHANCEMENT` 등 10개 frozenset) | - |
+| ~~V3 Compose 태그 중복 제거 (chibi 등 identity/style 태그 2회 주입 방지)~~ | ~~완료 (2026-02-11)~~ |
+| ~~LoRA weight 부동소수점 정밀도 수정 (`0.600000000000001` → `0.6`)~~ | ~~완료 (2026-02-11)~~ |
 | Real-time Prompt Preview (12-Layer) | - |
 | 씬 순서 드래그 앤 드롭 | - |
 | Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화) | - |
@@ -361,7 +363,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | 10 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 장기 |
 | 11 | - | DB_SCHEMA.md 분할 (858줄, 다음 스키마 추가 시 트리거) | 문서 관리 |
 
-**7-1 최근 완료 (2026-02-05 ~ 02-09)**:
+**7-1 최근 완료 (2026-02-05 ~ 02-11)**:
 - Creative Lab & Engine: evaluation 시스템 → Lab 전환, Tag/Scene Lab, Multi-Agent Creative Engine (Director/Writer/Reviewer), Lab V3 통합 (`image_generation_core.py`)
 - Dialogue(2-char) + Narrated Dialogue(3-speaker) 구조 추가, Narrator 씬 전용 처리
 - 렌더링 SSE 진행률, Style LoRA 통합, image_url 정합성 강화
@@ -375,3 +377,5 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-10) Script QC Agent + Interactive Review: Pause-Review-Resume 패턴 (파이프라인 스텝 완료 후 `step_review` 상태 전환 → 사용자 리뷰 → 승인/리비전), Script QC 프롬프트 (`script_qc.j2`, 6가지 가중 평가), `creative_review.py` 모듈 분리, 자동 승인 (`score≥0.85` + critical 0건), 챗봇식 리뷰 UI (QCSummaryCard + StepReviewView), `with_for_update()` 동시성 방어, 단위 테스트 15개
 - (2026-02-10) Multi-Character UI 5-Phase 통합: SceneCharacterAction 타입/스토어, SpeakerBadge 드롭다운, SceneCharacterActions 태그 편집 UI, `auto_populate_character_actions` context_tags→actions 자동 변환, V3 12-Layer scene_character_actions 주입, `resolve_action_tag_ids` tag_name→tag_id 해결, QC 스키마 Gemini 출력 유연화 (500 에러 수정), `NegativePromptToggle` 컴포넌트 분리, 테스트 55개 추가
 - (2026-02-11) Multi-Character LoRA 지원: `loras` 테이블에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`), `scenes.scene_mode` 필드 추가 (`single`/`multi`), Scene Generate/Prompt Compose API에 `character_b_id` 파라미터 지원, 2인 동시 출연 시 LoRA weight 자동 축소
+- (2026-02-11) CharacterEditModal P0 UI/UX: `alert()`/`confirm()` 7개 → Toast + ConfirmDialog 교체 (DI 패턴), `text-[9px]`/`text-[10px]` 26개 → `text-[11px]`, 접근성 (`role="dialog"`, `aria-label`, Escape 닫기), `UiCallbacks` 타입 추출
+- (2026-02-11) 캐릭터 Identity Tag 체계: `a_cute_boy`/`a_cute_girl` 태그 등록, 캐릭터별 identity tag 연결 (bishounen 성인화 문제 해결), Voice Preset (지호/수빈) 생성 + 캐릭터 연동

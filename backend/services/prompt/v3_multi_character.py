@@ -60,7 +60,19 @@ class MultiCharacterComposer:
         scene_flat = self._enforce_wide_framing(scene_flat)
 
         parts = [p for p in [quality, subject, char_a_flat, char_b_flat, scene_flat, lora_str] if p]
-        return ", ".join(parts)
+        raw = ", ".join(parts)
+
+        # Global dedup across characters (e.g. chibi on both chars)
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for token in (t.strip() for t in raw.split(",")):
+            if not token:
+                continue
+            key = V3PromptBuilder._dedup_key(token)
+            if key not in seen:
+                deduped.append(token)
+                seen.add(key)
+        return ", ".join(deduped)
 
     def _build_subject(self, char_a: Character, char_b: Character) -> str:
         """Build subject layer: trigger prompt or gender-based fallback."""
@@ -160,7 +172,7 @@ class MultiCharacterComposer:
             weight = lora_info.get("weight") or self.builder.get_effective_lora_weight(lora_obj)
             # Apply multi_char_weight_scale
             if lora_obj.multi_char_weight_scale is not None:
-                weight = float(weight) * float(lora_obj.multi_char_weight_scale)
+                weight = round(float(weight) * float(lora_obj.multi_char_weight_scale), 2)
             weight = V3PromptBuilder._cap_lora_weight(float(weight))
             injected[lora_obj.name] = f"<lora:{lora_obj.name}:{weight}>"
 
