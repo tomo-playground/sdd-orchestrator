@@ -105,40 +105,44 @@ class TestIPAdapterAutoActivation:
 
 
 class TestLoRAWeightCap:
-    """Test LoRA weight capping applied unconditionally to all scenes.
+    """Test LoRA weight handling in _adjust_parameters.
 
-    Note: V3 composition에서 1차 cap, _adjust_parameters에서 2차 cap (idempotent).
+    V3 composition의 _cap_lora_weight()가 STYLE_LORA_WEIGHT_CAP SSOT.
+    _adjust_parameters()는 calibration DB 값만 적용 (이중 capping 없음).
     """
 
-    STYLE_LORA_WEIGHT_CAP = 0.76
-
-    def test_cap_applied_above_threshold(self):
-        """Weights above 0.76 are capped."""
+    def test_calibration_weights_applied_directly(self):
+        """Calibration weights from DB are applied without additional capping."""
+        prompt = "masterpiece, 1girl, <lora:char_lora:0.8>, <lora:style_lora:0.5>"
         optimal_weights = {"char_lora": 0.89, "style_lora": 0.67}
 
-        if optimal_weights:
-            optimal_weights = {name: min(w, self.STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
+        # calibration-only: weights applied as-is from DB
+        result = apply_optimal_lora_weights(prompt, optimal_weights)
 
-        assert optimal_weights["char_lora"] == 0.76  # Capped
-        assert optimal_weights["style_lora"] == 0.67  # Preserved (below cap)
+        assert "<lora:char_lora:0.89>" in result
+        assert "<lora:style_lora:0.67>" in result
 
-    def test_cap_applied_unconditionally(self):
-        """Cap applies regardless of IP-Adapter or character presence."""
-        optimal_weights = {"char_lora": 0.89}
+    def test_calibration_preserves_uncalibrated_loras(self):
+        """LoRAs not in calibration DB keep their original weight."""
+        prompt = "1girl, <lora:char_lora:0.8>, <lora:unknown:0.5>"
+        optimal_weights = {"char_lora": 0.6}
 
-        if optimal_weights:
-            optimal_weights = {name: min(w, self.STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
+        result = apply_optimal_lora_weights(prompt, optimal_weights)
 
-        assert optimal_weights["char_lora"] == 0.76  # Capped unconditionally
+        assert "<lora:char_lora:0.6>" in result
+        assert "<lora:unknown:0.5>" in result
 
-    def test_narrator_and_character_same_weight(self):
-        """Narrator and character scenes get same cap → visual consistency."""
+    def test_v3_cap_is_ssot(self):
+        """V3 composition's _cap_lora_weight is the single source of truth for capping.
+
+        _adjust_parameters no longer applies STYLE_LORA_WEIGHT_CAP.
+        """
+        # Simulate: V3 already capped at 0.76, calibration returns 0.76
+        prompt = "<lora:flat_color:0.76>"
         optimal_weights = {"flat_color": 0.76}
 
-        if optimal_weights:
-            optimal_weights = {name: min(w, self.STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
-
-        assert optimal_weights["flat_color"] == 0.76  # DB calibrated = cap → unchanged
+        result = apply_optimal_lora_weights(prompt, optimal_weights)
+        assert "<lora:flat_color:0.76>" in result  # No double-capping
 
     def test_apply_capped_weights_to_prompt(self):
         """Capped weights are correctly applied to LoRA tags in prompt."""

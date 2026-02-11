@@ -6,9 +6,8 @@ from contextlib import contextmanager
 
 import httpx
 from fastapi import HTTPException
-from sqlalchemy.orm import joinedload
 
-from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, STYLE_LORA_WEIGHT_CAP, logger
+from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
 from database import SessionLocal
 from schemas import SceneGenerateRequest
 from services.controlnet import (
@@ -48,15 +47,6 @@ def get_db_session():
         db.close()
 
 
-def _resolve_embedding_triggers(embedding_ids: list[int] | None, db) -> list[str]:
-    """Resolve embedding IDs to trigger words."""
-    if not embedding_ids:
-        return []
-    from models.sd_model import Embedding
-
-    embs = db.query(Embedding).filter(Embedding.id.in_(embedding_ids), Embedding.is_active).all()
-    return [e.trigger_word for e in embs if e.trigger_word]
-
 
 def apply_style_profile_to_prompt(
     prompt: str, negative_prompt: str, storyboard_id: int | None, db, *, skip_loras: bool = False
@@ -70,64 +60,26 @@ def apply_style_profile_to_prompt(
         return prompt, negative_prompt
 
     try:
-        from models import LoRA, Storyboard, StyleProfile
-        from models.group import Group
-        from services.config_resolver import resolve_effective_config
+        from services.style_context import resolve_style_context
 
-        # Get storyboard, then resolve style_profile_id via cascade
-        storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
-        if not storyboard:
+        ctx = resolve_style_context(storyboard_id, db)
+        if not ctx:
             return prompt, negative_prompt
 
-        group = (
-            db.query(Group)
-            .options(
-                joinedload(Group.config),
-                joinedload(Group.project),
-            )
-            .filter(Group.id == storyboard.group_id)
-            .first()
-        )
-        if not group:
-            return prompt, negative_prompt
+        logger.info("🎨 [Style Profile] Applying '%s' (ID: %d)", ctx.profile_name, ctx.profile_id)
 
-        cfg = resolve_effective_config(group.project, group)
-        style_profile_id = cfg["values"].get("style_profile_id")
-        if not style_profile_id:
-            return prompt, negative_prompt
-
-        # Get style profile
-        profile = db.query(StyleProfile).filter(StyleProfile.id == style_profile_id).first()
-        if not profile:
-            return prompt, negative_prompt
-
-        logger.info("🎨 [Style Profile] Applying '%s' (ID: %d)", profile.name, profile.id)
-
-        # Build LoRA tags and trigger words
+        # Build LoRA tags and trigger words from StyleContext
         lora_tags = []
         trigger_words = []
 
-        if profile.loras and not skip_loras:
-            for lora_config in profile.loras:
-                lora_id = lora_config.get("lora_id")
-                weight = lora_config.get("weight", 0.7)
+        if ctx.loras and not skip_loras:
+            for lr in ctx.loras:
+                if lr.get("trigger_words"):
+                    trigger_words.extend(lr["trigger_words"])
+                lora_tags.append(f"<lora:{lr['name']}:{lr['weight']}>")
 
-                if not lora_id:
-                    continue
-                lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
-                if not lora_obj:
-                    continue
-
-                # Get trigger words from LoRA model
-                if lora_obj.trigger_words:
-                    trigger_words.extend(lora_obj.trigger_words)
-
-                # Add LoRA tag (resolve name from DB, not JSONB)
-                lora_tags.append(f"<lora:{lora_obj.name}:{weight}>")
-
-        # Resolve embedding trigger words (always applied, independent of skip_loras)
-        pos_emb_triggers = _resolve_embedding_triggers(profile.positive_embeddings, db)
-        neg_emb_triggers = _resolve_embedding_triggers(profile.negative_embeddings, db)
+        pos_emb_triggers = ctx.positive_embeddings
+        neg_emb_triggers = ctx.negative_embeddings
 
         # Compose final prompt — deduplicate default_positive against existing prompt
         existing_normalized = {
@@ -143,10 +95,10 @@ def apply_style_profile_to_prompt(
         parts = []
 
         # 1. Default positive prompt (quality tags), skip tokens already in prompt
-        if profile.default_positive:
+        if ctx.default_positive:
             new_tokens = [
                 t
-                for t in split_prompt_tokens(profile.default_positive)
+                for t in split_prompt_tokens(ctx.default_positive)
                 if normalize_prompt_token(t) not in existing_normalized
             ]
             if new_tokens:
@@ -175,11 +127,11 @@ def apply_style_profile_to_prompt(
         if neg_emb_triggers:
             emb_str = ", ".join(neg_emb_triggers)
             modified_negative = f"{emb_str}, {modified_negative}" if modified_negative else emb_str
-        if profile.default_negative:
+        if ctx.default_negative:
             if modified_negative:
-                modified_negative = f"{modified_negative}, {profile.default_negative}"
+                modified_negative = f"{modified_negative}, {ctx.default_negative}"
             else:
-                modified_negative = profile.default_negative
+                modified_negative = ctx.default_negative
 
         logger.info(
             "✅ [Style Profile] Applied %d LoRAs, %d trigger words, %d pos embeds, %d neg embeds",
@@ -241,116 +193,111 @@ def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> int 
     return None
 
 
-def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], object]:
-    """Prepare the final prompt via style profile + V3 composition.
+def _inject_narrator_defense(request: SceneGenerateRequest) -> None:
+    """Auto-inject no_humans for background scenes without person indicators."""
+    if request.character_id or request.prompt_pre_composed:
+        return
+    prompt_norm = request.prompt.lower().replace(" ", "_")
+    has_person = any(ind in prompt_norm for ind in _PERSON_INDICATORS)
+    if not has_person and "no_humans" not in prompt_norm:
+        request.prompt = f"no_humans, {request.prompt}"
+        logger.info("🚫 [Narrator] Auto-injected no_humans for background scene")
 
-    Routing logic based on explicit ``prompt_pre_composed`` flag:
-    - **pre_composed** (manual w/ V3): Style profile full apply, prompt as-is.
-    - **raw + character** (batch/autopilot): Style profile quality-only (skip_loras),
-      then V3 engine injects character + style LoRAs.
-    - **no_humans narrator**: Style profile quality-only (skip_loras),
-      then V3 compose() filters character tags via background scene defense.
-    - **no character** (other): Style profile full apply, no V3.
 
-    Returns: (cleaned_prompt, final_warnings, character_obj)
-    """
+def _handle_pre_composed(request: SceneGenerateRequest, db) -> tuple[str, list[str]]:
+    """Handle prompt_pre_composed=True: style profile + safety-net LoRA injection."""
+    has_lora_tags = "<lora:" in request.prompt
+    request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+        request.prompt,
+        request.negative_prompt or "",
+        request.storyboard_id,
+        db,
+        skip_loras=has_lora_tags,
+    )
+    # Safety net: if still no LoRA tags, resolve from DB and append
+    if "<lora:" not in request.prompt and request.storyboard_id:
+        style_loras = _resolve_style_loras(request.storyboard_id, db)
+        if style_loras:
+            lora_parts = []
+            for lr in style_loras:
+                lora_parts.append(f"<lora:{lr['name']}:{lr['weight']}>")
+                for tw in lr.get("trigger_words", []):
+                    if tw.lower() not in request.prompt.lower():
+                        lora_parts.append(tw)
+            request.prompt = f"{request.prompt}, {', '.join(lora_parts)}"
+            logger.info(
+                "🔧 [V3 Engine] Injected missing style LoRAs into pre-composed prompt: %s",
+                [lr["name"] for lr in style_loras],
+            )
+    logger.debug("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
+    return request.prompt, []
+
+
+def _handle_character_scene(
+    request: SceneGenerateRequest, db, effective_b_id: int | None
+) -> tuple[str, list[str]]:
+    """Handle raw prompt + character: V3 composition with style LoRAs."""
+    style_loras = _resolve_style_loras(request.storyboard_id, db)
+    logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [lr.get("name") for lr in style_loras])
+    cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
+        raw_prompt=request.prompt,
+        negative_prompt=request.negative_prompt or "",
+        character_id=request.character_id,
+        storyboard_id=request.storyboard_id,
+        style_loras=style_loras,
+        db=db,
+        scene_id=request.scene_id,
+        character_b_id=effective_b_id,
+    )
+    logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
+    return cleaned_prompt, compose_warnings
+
+
+def _handle_background_scene(request: SceneGenerateRequest, db) -> tuple[str, list[str]]:
+    """Handle narrator (no_humans) scene: V3 background composition."""
+    style_loras = _resolve_style_loras(request.storyboard_id, db)
+    cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
+        raw_prompt=request.prompt,
+        negative_prompt=request.negative_prompt or "",
+        character_id=None,
+        storyboard_id=request.storyboard_id,
+        style_loras=style_loras,
+        db=db,
+        scene_id=request.scene_id,
+    )
+    logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
+    return cleaned_prompt, compose_warnings
+
+
+def _handle_fallback(request: SceneGenerateRequest, db) -> tuple[str, list[str]]:
+    """Handle no character, no no_humans: full style profile, no V3."""
+    request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
+        request.prompt, request.negative_prompt or "", request.storyboard_id, db
+    )
+    return request.prompt, []
+
+
+def _dispatch_prompt_route(
+    request: SceneGenerateRequest, db, character_obj, effective_b_id: int | None
+) -> tuple[str, list[str]]:
+    """Route to appropriate prompt handler based on request state."""
+    if request.prompt_pre_composed:
+        return _handle_pre_composed(request, db)
+    elif request.character_id and character_obj:
+        return _handle_character_scene(request, db, effective_b_id)
+    elif "no_humans" in request.prompt.lower().replace(" ", "_"):
+        return _handle_background_scene(request, db)
+    else:
+        return _handle_fallback(request, db)
+
+
+def _handle_ip_adapter_auto(
+    request: SceneGenerateRequest, db, cleaned_prompt: str,
+    final_warnings: list[str], character_obj, effective_b_id: int | None,
+) -> tuple[str, object]:
+    """Auto-apply IP-Adapter and handle IP-Adapter reference character lookup."""
     from models import Character
 
-    character_obj = db.query(Character).filter(Character.id == request.character_id).first()
-
-    logger.debug(
-        "🔀 [Prompt Route] pre_composed=%s, character_id=%s, character_found=%s",
-        request.prompt_pre_composed,
-        request.character_id,
-        character_obj is not None,
-    )
-
-    final_warnings: list[str] = []
-
-    # Resolve character_b_id only for multi scenes (scene_mode="multi")
-    effective_b_id = _resolve_effective_character_b_id(request, db)
-
-    # Narrator defense: no character + no person tags → inject no_humans
-    if not request.character_id and not request.prompt_pre_composed:
-        prompt_norm = request.prompt.lower().replace(" ", "_")
-        has_person = any(ind in prompt_norm for ind in _PERSON_INDICATORS)
-        if not has_person and "no_humans" not in prompt_norm:
-            request.prompt = f"no_humans, {request.prompt}"
-            logger.info("🚫 [Narrator] Auto-injected no_humans for background scene")
-
-    if request.prompt_pre_composed:
-        # Frontend /prompt/compose already ran V3 — apply quality tags + embeddings
-        # Then check if style LoRAs are missing and inject them from DB
-        has_lora_tags = "<lora:" in request.prompt
-        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt,
-            request.negative_prompt or "",
-            request.storyboard_id,
-            db,
-            skip_loras=has_lora_tags,  # skip only if LoRAs already present
-        )
-        # Safety net: if still no LoRA tags, resolve from DB and append
-        if "<lora:" not in request.prompt and request.storyboard_id:
-            style_loras = _resolve_style_loras(request.storyboard_id, db)
-            if style_loras:
-                lora_parts = []
-                for lr in style_loras:
-                    lora_parts.append(f"<lora:{lr['name']}:{lr['weight']}>")
-                    for tw in lr.get("trigger_words", []):
-                        if tw.lower() not in request.prompt.lower():
-                            lora_parts.append(tw)
-                request.prompt = f"{request.prompt}, {', '.join(lora_parts)}"
-                logger.info(
-                    "🔧 [V3 Engine] Injected missing style LoRAs into pre-composed prompt: %s",
-                    [lr["name"] for lr in style_loras],
-                )
-        cleaned_prompt = request.prompt
-        logger.debug("🎨 [V3 Engine] Using pre-composed prompt (prompt_pre_composed=True)")
-    elif request.character_id and character_obj:
-        # Raw prompt → compose_scene_with_style (StyleProfile + V3)
-        style_loras = _resolve_style_loras(request.storyboard_id, db)
-        logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [lr.get("name") for lr in style_loras])
-        cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
-            raw_prompt=request.prompt,
-            negative_prompt=request.negative_prompt or "",
-            character_id=request.character_id,
-            storyboard_id=request.storyboard_id,
-            style_loras=style_loras,
-            db=db,
-            scene_id=request.scene_id,
-            character_b_id=effective_b_id,
-        )
-        final_warnings.extend(compose_warnings)
-        logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
-    elif "no_humans" in request.prompt.lower().replace(" ", "_"):
-        # Narrator (no_humans) → compose_scene_with_style (StyleProfile + V3 background)
-        style_loras = _resolve_style_loras(request.storyboard_id, db)
-        cleaned_prompt, request.negative_prompt, compose_warnings = compose_scene_with_style(
-            raw_prompt=request.prompt,
-            negative_prompt=request.negative_prompt or "",
-            character_id=None,
-            storyboard_id=request.storyboard_id,
-            style_loras=style_loras,
-            db=db,
-            scene_id=request.scene_id,
-        )
-        final_warnings.extend(compose_warnings)
-        logger.debug("🎨 [V3 Engine] Background scene composition for Narrator")
-    else:
-        # No character, no no_humans → full style profile, no V3
-        request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
-            request.prompt, request.negative_prompt or "", request.storyboard_id, db
-        )
-        cleaned_prompt = request.prompt
-
-    # Debug: verify LoRA tags in final prompt
-    lora_tags_found = re.findall(r"<lora:[^>]+>", cleaned_prompt)
-    if lora_tags_found:
-        logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
-    else:
-        logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
-
-    # Character Consistency: Auto-apply IP-Adapter if reference exists
     if character_obj and not request.use_ip_adapter:
         ref_image_test = load_reference_image(character_obj.name, db=db)
         if ref_image_test:
@@ -366,7 +313,6 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                     request.ip_adapter_weight,
                 )
     elif not character_obj:
-        # Auto-populate character_id from IP-Adapter reference
         if request.use_ip_adapter and request.ip_adapter_reference:
             character_obj = db.query(Character).filter(Character.name == request.ip_adapter_reference).first()
             if character_obj:
@@ -389,16 +335,64 @@ def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], 
                 )
                 final_warnings.extend(compose_warnings)
                 logger.info("🎨 [V3 Engine] Composed prompt for auto-populated character %d", request.character_id)
-        # Non-Narrator, non-character: normalize manually (Narrator already via V3 compose)
         if not request.character_id and "no_humans" not in request.prompt.lower().replace(" ", "_"):
             cleaned_prompt = normalize_prompt_tokens(request.prompt)
 
-    # Narrator scenes (no_humans): append person-exclusion tags to negative prompt
-    if "no_humans" in request.prompt:
-        from config import NARRATOR_NEGATIVE_PROMPT_EXTRA
+    return cleaned_prompt, character_obj
 
-        request.negative_prompt = f"{request.negative_prompt}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
-        logger.info("🚫 [Narrator Negative] Appended person-exclusion tags to negative prompt")
+
+def _append_narrator_negative(request: SceneGenerateRequest) -> None:
+    """Append person-exclusion tags to negative prompt for narrator scenes."""
+    if "no_humans" not in request.prompt:
+        return
+    from config import NARRATOR_NEGATIVE_PROMPT_EXTRA
+
+    request.negative_prompt = f"{request.negative_prompt}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
+    logger.info("🚫 [Narrator Negative] Appended person-exclusion tags to negative prompt")
+
+
+def _prepare_prompt(request: SceneGenerateRequest, db) -> tuple[str, list[str], object]:
+    """Orchestrator: prepare the final prompt via style profile + V3 composition.
+
+    Routes to specialized handlers based on request state:
+    - pre_composed: _handle_pre_composed
+    - character scene: _handle_character_scene
+    - background (no_humans): _handle_background_scene
+    - fallback: _handle_fallback
+
+    Returns: (cleaned_prompt, final_warnings, character_obj)
+    """
+    from models import Character
+
+    character_obj = db.query(Character).filter(Character.id == request.character_id).first()
+    effective_b_id = _resolve_effective_character_b_id(request, db)
+
+    logger.debug(
+        "🔀 [Prompt Route] pre_composed=%s, character_id=%s, character_found=%s",
+        request.prompt_pre_composed,
+        request.character_id,
+        character_obj is not None,
+    )
+
+    _inject_narrator_defense(request)
+
+    cleaned_prompt, final_warnings = _dispatch_prompt_route(
+        request, db, character_obj, effective_b_id
+    )
+
+    # Debug: verify LoRA tags in final prompt
+    lora_tags_found = re.findall(r"<lora:[^>]+>", cleaned_prompt)
+    if lora_tags_found:
+        logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
+    else:
+        logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
+
+    cleaned_prompt, character_obj = _handle_ip_adapter_auto(
+        request, db, cleaned_prompt, final_warnings,
+        character_obj, effective_b_id,
+    )
+
+    _append_narrator_negative(request)
 
     return cleaned_prompt, final_warnings, character_obj
 
@@ -421,15 +415,13 @@ def _adjust_parameters(cleaned_prompt: str, request: SceneGenerateRequest, chara
         final_steps = max(final_steps, 25)
 
     # Apply optimal LoRA weights from calibration DB
-    # V3 composition에서 STYLE_LORA_WEIGHT_CAP 이미 적용됨.
-    # 아래 calibration은 tag_effectiveness DB 기반 최적화 → 별도 관심사.
+    # V3 composition의 _cap_lora_weight()가 STYLE_LORA_WEIGHT_CAP SSOT.
+    # 여기서는 calibration DB 기반 최적화만 수행 (이중 capping 제거).
     lora_names = extract_lora_names(cleaned_prompt)
     if lora_names:
         try:
             optimal_weights = get_optimal_weights_from_db(lora_names)
             if optimal_weights:
-                optimal_weights = {name: min(w, STYLE_LORA_WEIGHT_CAP) for name, w in optimal_weights.items()}
-                logger.info("🔧 [LoRA] Capped at %.1f: %s", STYLE_LORA_WEIGHT_CAP, optimal_weights)
                 cleaned_prompt = apply_optimal_lora_weights(cleaned_prompt, optimal_weights)
                 logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
         except Exception as e:

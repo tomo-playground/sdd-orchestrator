@@ -285,51 +285,15 @@ def compose_scene_with_style(
 
 
 def resolve_style_loras_from_group(group_id: int, db: Session) -> list[dict]:
-    """Resolve Style LoRAs from Group Config via resolve_effective_config cascade."""
-    from sqlalchemy.orm import joinedload
+    """Resolve Style LoRAs from Group Config via resolve_effective_config cascade.
 
-    from models import LoRA, StyleProfile
-    from models.group import Group
-    from services.config_resolver import resolve_effective_config
+    Delegates to style_context module (SSOT) for DB cascade + LoRA resolution.
+    """
+    from services.style_context import extract_style_loras, resolve_style_context_from_group
 
-    group = (
-        db.query(Group)
-        .options(joinedload(Group.config), joinedload(Group.project))
-        .filter(Group.id == group_id)
-        .first()
-    )
-    if not group:
-        logger.warning(f"Group {group_id} not found")
-        return []
-
-    cfg = resolve_effective_config(group.project, group)
-    style_profile_id = cfg["values"].get("style_profile_id")
-    if not style_profile_id:
-        logger.warning(f"Group {group_id} has no style_profile_id (cascade)")
-        return []
-
-    profile = db.query(StyleProfile).filter(StyleProfile.id == style_profile_id).first()
-    if not profile or not profile.loras:
-        return []
-
-    result = []
-    for lora_config in profile.loras:
-        lora_id = lora_config.get("lora_id")
-        weight = lora_config.get("weight", 0.7)
-        if not lora_id:
-            continue
-        lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
-        if not lora_obj:
-            continue
-        result.append(
-            {
-                "name": lora_obj.name,
-                "weight": weight,
-                "trigger_words": (list(lora_obj.trigger_words) if lora_obj.trigger_words else []),
-            }
-        )
-
-    logger.debug(f"Resolved {len(result)} Style LoRAs from Group {group_id}")
+    ctx = resolve_style_context_from_group(group_id, db)
+    result = extract_style_loras(ctx)
+    logger.debug("Resolved %d Style LoRAs from Group %d", len(result), group_id)
     return result
 
 
