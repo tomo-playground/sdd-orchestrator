@@ -152,81 +152,18 @@
 
 ---
 
-## Phase 7-4: Studio Coordinator + Script Vertical
+## Phase 7-4: Studio Coordinator + Script Vertical - ARCHIVED
 
-**목표**: Studio를 코디네이터(지휘자)로 전환하고, 대본 작성을 Script 버티컬로 분리. 모든 버티컬의 AI 에이전트화 첫 시험대상.
-**선행**: Phase 7-3 #0~#2 완료 (독립 페이지 패턴 확립), Creative Lab V2 완료.
+Studio를 코디네이터(지휘자)로 전환하고, 대본 작성을 Script 버티컬로 분리. **전체 완료** (2026-02-11).
+
 **명세**: [STUDIO_VERTICAL_ARCHITECTURE.md](FEATURES/STUDIO_VERTICAL_ARCHITECTURE.md)
 
-**비전**:
-```
-Studio 코디네이터 (/studio)
-├── 미선택: 칸반 뷰 (전체 스토리보드 관리)
-├── 선택: 타임라인 뷰 (Materials → Scenes → Render → Output)
-└── PlanTab 제거, 이미지 설정은 Scenes 영역으로 이동
-
-Script 버티컬 (/scripts)
-├── 스토리보드 목록 (기존 /storyboards 흡수)
-├── Manual 모드 (기존 PlanTab → Gemini 1회 생성)
-└── AI Agent 모드 (기존 Creative Lab → 9-Agent Pipeline)
-```
-
-**의존성**: Phase A 완료 → B/C 착수 가능 (블로커). B와 C는 병렬 가능하나 C-3은 B 완료 후.
-
-### Phase A: 기반 준비 — COMPLETE (2026-02-11)
-
-| # | 작업 | 분류 | 상태 |
-|---|------|------|------|
-| A-1 | `useUIStore` 추출 (toast → 앱 전역, persist 없음) | 리팩토링 | [x] |
-| A-2 | `useContextStore` 추출 (projectId/groupId/storyboardId → 앱 전역, persist) | 리팩토링 | [x] |
-| A-3 | 영속적 컨텍스트 바 (`PersistentContextBar`: Studio 외 페이지에서 breadcrumb 표시) | UX | [x] |
-| A-4 | Bridge 호환 레이어 (양방향 subscribe 동기화, 기존 32+ 파일 수정 불필요) | 리팩토링 | [x] |
-
-### Phase B: Script 버티컬 구축 — COMPLETE (2026-02-11)
-
-| # | 작업 | 분류 | 상태 |
-|---|------|------|------|
-| B-1 | `/scripts` 페이지 생성 (목록 + 검색 + 필터, `/storyboards` 흡수) | UX | [x] |
-| B-2 | Manual 모드 (PlanTab 대본 관심사 이동: Topic/Structure/Language/Duration/Characters) | 기능 | [x] |
-| B-3 | AI Agent 모드 (Creative Lab 흡수: Debate + Pipeline + QC Review) | 기능 | [x] |
-| B-4 | Backend `services/storyboard.py` 분해 (4모듈 패키지: crud/helpers/scene_builder/serializer) | 리팩토링 | [x] |
-| B-5 | Backend `/scripts/generate` 라우터 + `response_model` 추가 | API | [x] |
-| B-6 | Backend Materials Check API (`GET /storyboards/{id}/materials`) | API | [x] |
-
-Phase B 추가 구현 (B-1~B-6 기반 통합 품질 개선):
-- `useScriptEditor` 컨텍스트 동기화 (save/load → `useContextStore` + list refresh 이벤트)
-- ManualScriptEditor URL 연동 (`onSaved` → `router.replace`)
-- ScriptListPanel 삭제 기능 (`useConfirm` + ConfirmDialog)
-- Manual/AI Agent 모드 전환 탭 (ScriptEditorPanel 2-탭 바)
-- Agent 파이프라인 결과 → Scripts 연동 (`onStoryboardCreated` 콜백 체인)
-
-### Phase C: Studio 코디네이터 전환 — COMPLETE (2026-02-11)
-
-| # | 작업 | 분류 | 상태 |
-|---|------|------|------|
-| C-1 | Studio 칸반 뷰 (미선택 상태, 기존 스키마에서 런타임 상태 파생) | UX | [x] |
-| C-2 | Studio 타임라인 뷰 + Materials Check + Pipeline Progress | UX | [x] |
-| C-3 | PlanTab 제거 → Image Settings를 Scenes 영역으로 이동 (**B 완료 후**) | 리팩토링 | [x] |
-| C-4 | `useStoryboardStore` + `useRenderStore` 분리 (호환 레이어 유지) | 리팩토링 | [x] |
-| C-5 | Autopilot 범위 조정 (Scenes → Render → Output, 대본 생성 제외) | 기능 | [x] |
-
-Phase C 추가 구현 (UI 품질 통일):
-- 페이지 내 중복 Project/Group 셀렉터 제거 → 글로벌 PersistentContextBar 단일화
-- GroupDropdown "All Groups" 옵션 추가 (`ALL_GROUPS_ID=-1` sentinel)
-- `PAGE_TITLE_CLASSES`, `SEARCH_INPUT_CLASSES` 디자인 토큰 추출 (5개 리스트 페이지 통일)
-- `EmptyState` 공통 컴포넌트 도입 (6개 페이지 통일)
-- `LoadingSpinner` 텍스트 기반 로딩 → 스피너 통일 (6곳)
-- `useFocusTrap` 훅 도입 + 전체 모달 ARIA 접근성 강화
-
-### Phase D: 정리
-
-| # | 작업 | 분류 | 상태 |
-|---|------|------|------|
-| D-1 | 네비게이션 최종 정리 (Home 제거, Studio 최좌측, Stories 제거) | UX | [x] |
-| D-2 | Lab creative 탭 제거 (CreativeLabTab 삭제, LabSidebar/LabPage 정리) | 정리 | [x] |
-| D-3 | `/storyboards` → `/scripts` 리다이렉트, `/` → `/studio` 리다이렉트 | 정리 | [x] |
-| D-4 | deprecated API/호환 레이어 제거 | 정리 | [ ] |
-| D-5 | localStorage 마이그레이션 (기존 store 키 → 신규 키) | 정리 | [ ] |
+| Phase | 핵심 성과 | 상태 |
+|-------|----------|------|
+| A. 기반 준비 | Zustand 4-Store 분할 (useUIStore/useContextStore/useStoryboardStore/useRenderStore), PersistentContextBar | [x] |
+| B. Script 버티컬 | `/scripts` 페이지 (Manual + AI Agent 모드), storyboard.py 4모듈 분해, Materials Check API | [x] |
+| C. Studio 코디네이터 | 칸반/타임라인 뷰, PlanTab 제거, Autopilot 범위 조정, 디자인 토큰/EmptyState/접근성 통일 | [x] |
+| D. 정리 | 네비 정리, Lab creative 제거, 리다이렉트, deprecated API/별칭/호환 레이어/localStorage 레거시 제거 | [x] |
 
 ---
 
@@ -298,8 +235,8 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-1: **24/27** 완료 (잔여: #2 Wizard, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - Phase 7-3: **4/6** 완료 (#0~#3, #4~#5 → 7-4로 확장)
-- Phase 7-4: **Phase A+B+C 완료**, Phase D: 3/5 완료 (D-1~D-3 네비·Lab·리다이렉트 정리, D-4~D-5 별도 세션)
-- **Backend 테스트**: 1,399개 수집
+- Phase 7-4: **Phase A+B+C+D 완료** (D-1~D-3 네비·Lab·리다이렉트, D-4~D-5 레거시/호환 레이어 정리)
+- **Backend 테스트**: 1,404개 수집
 
 ### 잔여 작업 우선순위 (재정리 2026-02-11)
 
@@ -309,7 +246,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | ~~1~~ | ~~7-4 A~~ | ~~Store 분할 + 컨텍스트 바 (기반 준비)~~ | ~~완료 (2026-02-11)~~ |
 | ~~2~~ | ~~7-4 B~~ | ~~Script 버티컬 구축 (목록 + Manual + AI Agent)~~ | ~~완료 (2026-02-11)~~ |
 | ~~3~~ | ~~7-4 C~~ | ~~Studio 코디네이터 전환 (칸반 + 타임라인 + Materials Check)~~ | ~~완료 (2026-02-11)~~ |
-| 4 | 7-4 D | 정리 (Lab creative 제거, 리다이렉트, 레거시 제거) | 기술 부채 해소 |
+| ~~4~~ | ~~7-4 D~~ | ~~정리 (Lab creative 제거, 리다이렉트, 레거시 제거)~~ | ~~완료 (2026-02-11)~~ |
 
 **Tier 2 — Production 재료 확장**
 | 순위 | 출처 | 작업 | 근거 |
