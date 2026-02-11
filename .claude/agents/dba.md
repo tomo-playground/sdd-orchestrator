@@ -139,6 +139,7 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 - `docs/03_engineering/architecture/DB_SCHEMA.md` — DB 스키마 상세
 - `docs/03_engineering/architecture/SCHEMA_SUMMARY.md` — 스키마 요약
 - `docs/03_engineering/backend/SOFT_DELETE.md` — Soft Delete 기술 설계
-- `backend/models/` — SQLAlchemy 모델
+- `backend/models/` — SQLAlchemy 모델 (26개: base, storyboard, scene, character, associations, creative, group, group_config, project, lora, media_asset, tag, tag_alias, tag_filter, voice_preset 등)
 - `backend/alembic/` — 마이그레이션
 - `backend/config.py` — DB URL 및 상수 SSOT
+- `backend/services/config_resolver.py` — Config cascade (Project→Group)

@@ -165,8 +165,13 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 ### 코드 참조
 - `backend/services/prompt/` - V3 프롬프트 엔진
   - `v3_composition.py` - V3 PromptBuilder (12-Layer)
+  - `v3_multi_character.py` - 2인 동시 출연 Multi-Character Composer
   - `v3_service.py` - V3 서비스 레이어
-- `backend/services/keywords/` - 태그 시스템 패키지 (10개 모듈)
+  - `prompt.py` - 프롬프트 유틸 (split, normalize, apply_optimal_lora_weights)
+- `backend/services/keywords/` - 태그 시스템 패키지 (9개 모듈)
+- `backend/services/generation.py` - 이미지 생성 오케스트레이터 (_prepare_prompt 7개 핸들러 분해)
+- `backend/services/image_generation_core.py` - Studio+Lab 공유 생성 코어 (compose_scene_with_style)
+- `backend/services/style_context.py` - StyleContext VO (DB cascade → StyleProfile + LoRA resolve SSOT)
 - `backend/services/controlnet.py` - ControlNet + IP-Adapter
 - `backend/services/danbooru.py` - Danbooru 태그 검색
 - `backend/services/lora_calibration.py` - LoRA 가중치 캘리브레이션

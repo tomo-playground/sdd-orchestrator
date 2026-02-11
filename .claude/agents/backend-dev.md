@@ -57,29 +57,59 @@ backend/
 ├── main.py               # FastAPI app + lifespan
 ├── config.py             # 상수/환경변수 SSOT
 ├── schemas.py            # Pydantic 스키마
-├── routers/
+├── routers/              # API 엔드포인트 (32개)
 │   ├── storyboard.py     # 스토리보드 CRUD + 생성
+│   ├── scene.py          # 씬 이미지 생성/편집
 │   ├── characters.py     # 캐릭터 CRUD
 │   ├── prompt.py         # 프롬프트 compose/preview
 │   ├── controlnet.py     # ControlNet + IP-Adapter
+│   ├── creative.py       # Creative Pipeline (Multi-Agent)
+│   ├── creative_presets.py
+│   ├── lab.py            # Creative Lab
+│   ├── groups.py         # 그룹 CRUD
+│   ├── projects.py       # 프로젝트 CRUD
 │   ├── admin.py          # DB 관리, 캐시 리프레시
-│   └── ...
+│   ├── analytics.py      # 분석 대시보드
+│   ├── youtube.py        # YouTube 업로드
+│   └── ...               # assets, avatar, loras, sd_models, tags 등
 ├── services/
 │   ├── prompt/           # V3 12-Layer Prompt Engine
-│   │   ├── v3_composition.py
-│   │   └── v3_service.py
-│   ├── keywords/         # 태그 시스템 (8개 모듈)
-│   ├── storyboard.py     # Gemini 스토리보드 생성
-│   ├── generation.py     # SD WebUI 이미지 생성
-│   ├── video.py          # FFmpeg 렌더링
-│   ├── evaluation.py     # WD14 + Gemini 검증
-│   └── image.py          # 이미지 처리
-├── models/
-│   ├── base.py           # Base, TimestampMixin
+│   │   ├── v3_composition.py    # V3 PromptBuilder (12-Layer)
+│   │   ├── v3_multi_character.py # 2인 동시 출연 composer
+│   │   ├── v3_service.py        # V3 서비스 레이어
+│   │   └── prompt.py            # 프롬프트 유틸
+│   ├── keywords/         # 태그 시스템 (9개 모듈)
+│   ├── video/            # FFmpeg 렌더링 패키지 (12개 모듈)
+│   │   ├── builder.py           # VideoBuilder 메인 클래스
+│   │   ├── effects.py           # Ken Burns, 전환 효과
+│   │   ├── encoding.py          # 인코딩 설정
+│   │   ├── filters.py           # FFmpeg 필터 체인
+│   │   ├── scene_processing.py  # 씬별 처리
+│   │   ├── tts_helpers.py       # TTS 유틸
+│   │   ├── tts_postprocess.py   # TTS 후처리
+│   │   └── ...                  # progress, upload, utils
+│   ├── generation.py            # SD WebUI 이미지 생성 (오케스트레이터)
+│   ├── image_generation_core.py # Studio+Lab 공유 생성 코어
+│   ├── style_context.py         # StyleContext VO (DB cascade SSOT)
+│   ├── config_resolver.py       # Config cascade (Project→Group)
+│   ├── storyboard.py            # Gemini 스토리보드 생성
+│   ├── image.py                 # 이미지 처리/오버레이
+│   ├── controlnet.py            # ControlNet + IP-Adapter
+│   ├── lora_calibration.py      # LoRA 가중치 캘리브레이션
+│   ├── creative_*.py            # Creative Pipeline (8개 모듈)
+│   ├── lab.py                   # Creative Lab 서비스
+│   ├── storage.py               # MinIO/S3 스토리지
+│   └── ...                      # avatar, danbooru, quality 등
+├── models/               # SQLAlchemy ORM (26개)
+│   ├── base.py           # Base, TimestampMixin, SoftDeleteMixin
 │   ├── storyboard.py
 │   ├── scene.py
 │   ├── character.py
-│   └── associations.py   # V3 relational tags
+│   ├── associations.py   # V3 relational tags
+│   ├── creative.py       # Creative Pipeline 모델
+│   ├── group.py / group_config.py
+│   ├── project.py
+│   └── ...               # lora, media_asset, tag, voice_preset 등
 ├── alembic/              # DB 마이그레이션
 └── tests/                # pytest 테스트
 ```
@@ -107,6 +137,22 @@ backend/
 
 - **설정**: `config.py` SSOT, 하드코딩 금지
 - **캐시**: startup 시 DB 로드, `/admin/refresh-caches`로 갱신
+
+### DB 커넥션 풀 고갈 방지
+- **외부 호출 전 `db.close()` 필수**: SD WebUI, Gemini, FFmpeg, Civitai 등 외부 API 호출 전에 반드시 DB 세션을 닫는다. SQLAlchemy 세션은 `close()` 후 다음 사용 시 자동 재연결.
+  - ❌ DB 세션 점유 상태에서 SD WebUI 호출 (30-60초 커넥션 잠김)
+  - ✅ 필요한 데이터 미리 로드 → `db.close()` → 외부 호출 → DB 재사용
+- **패턴**:
+  ```python
+  character = db.query(Character).filter(...).first()
+  needed_data = character.name  # close 전에 필요한 값 추출
+  db.close()                    # 커넥션 풀에 반환
+  result = await external_api(needed_data)  # 긴 외부 호출
+  db.query(Character).filter(...).update({"field": result})  # 자동 재연결
+  db.commit()
+  ```
+- **풀 설정**: `database.py` — pool_size=5, max_overflow=10 (최대 15). 장시간 점유 시 `QueuePool limit reached` 에러.
+- **`close()` 후 ORM 주의**: lazy-loaded 관계 접근 시 `DetachedInstanceError`. close 전에 로컬 변수로 추출하거나 `joinedload`로 미리 로드.
 
 ---
 

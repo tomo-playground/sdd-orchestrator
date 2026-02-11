@@ -60,9 +60,10 @@ Pass / Fail 판정
 ### 관련 코드
 ```
 backend/services/
-├── evaluation.py     - WD14 + Gemini 검증
+├── quality.py        - 품질 분석 서비스 (WD14 + match rate)
+├── validation.py     - 검증 서비스 (태그 비교)
 ├── image.py          - 이미지 생성/처리
-└── validation 로직    - 태그 비교, match rate
+└── generation.py     - 이미지 생성 오케스트레이터
 
 frontend/app/utils/
 └── validation.ts     - 프론트엔드 검증 유틸
@@ -142,10 +143,8 @@ browser_navigate → browser_snapshot → browser_click → browser_wait_for →
 - `docs/01_product/PRD.md` §4 - DoD 체크리스트
 
 ### 코드 참조
-- `backend/services/evaluation.py` - WD14 + Gemini 검증
-- `backend/services/quality.py` - 품질 분석 서비스
-- `backend/services/validation.py` - 검증 서비스
-- `backend/routers/evaluation.py` - 평가 API
+- `backend/services/quality.py` - 품질 분석 서비스 (WD14 + match rate)
+- `backend/services/validation.py` - 검증 서비스 (태그 비교)
 - `backend/routers/quality.py` - 품질 API
 - `backend/tests/` - Backend 테스트 (conftest.py, test_*.py)
 - `frontend/vitest.config.ts` - Frontend 테스트 설정

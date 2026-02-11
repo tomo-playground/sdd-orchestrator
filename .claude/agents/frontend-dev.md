@@ -58,7 +58,12 @@ frontend/
 │   │   └── studio/                # ScenesTab
 │   ├── store/
 │   │   ├── useStudioStore.ts      # Zustand 메인 스토어
-│   │   └── actions/               # imageActions, promptActions, sceneActions
+│   │   └── actions/               # 13개 액션 모듈
+│   │       ├── imageActions.ts, promptActions.ts, sceneActions.ts
+│   │       ├── storyboardActions.ts, autopilotActions.ts
+│   │       ├── groupActions.ts, projectActions.ts
+│   │       ├── styleProfileActions.ts, youtubeActions.ts
+│   │       └── batchActions.ts, outputActions.ts 등
 │   ├── hooks/                     # useAutopilot 등
 │   ├── types/index.ts             # 타입 정의
 │   ├── utils/                     # 유틸리티

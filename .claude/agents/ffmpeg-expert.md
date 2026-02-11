@@ -51,12 +51,22 @@ BGM + Audio Ducking
 
 ### 관련 코드
 ```
-backend/services/
-├── video.py          - VideoBuilder 클래스
-├── image.py          - 이미지 처리/오버레이
+backend/services/video/        - FFmpeg 렌더링 패키지
+├── builder.py                 - VideoBuilder 메인 클래스
+├── effects.py                 - Ken Burns, 전환 효과
+├── encoding.py                - 인코딩 설정
+├── filters.py                 - FFmpeg 필터 체인
+├── scene_processing.py        - 씬별 처리
+├── tts_helpers.py             - TTS 유틸
+├── tts_postprocess.py         - TTS 후처리
+├── progress.py                - 진행률 추적
+├── upload.py                  - 업로드 처리
+└── utils.py                   - 공통 유틸
+
+backend/services/image.py      - 이미지 처리/오버레이
 
 backend/constants/
-└── layout.py         - 레이아웃 상수 (좌표, 크기, 비율)
+└── layout.py                  - 레이아웃 상수 (좌표, 크기, 비율)
 ```
 
 ---
@@ -95,7 +105,7 @@ zoompan=z='min(zoom+0.001,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=150:
 | `speed_up` | 영상 속도 조절 | 타임랩스 효과, 슬로모션 등 |
 | `extract_audio` | 오디오 트랙 추출 | TTS/BGM 분리, 오디오 분석 |
 
-> 복잡한 필터 체인(Ken Burns, xfade 등)은 MCP가 아닌 `backend/services/video.py`의 VideoBuilder에서 FFmpeg CLI로 직접 처리합니다.
+> 복잡한 필터 체인(Ken Burns, xfade 등)은 MCP가 아닌 `backend/services/video/` 패키지의 VideoBuilder에서 FFmpeg CLI로 직접 처리합니다.
 
 ### Memory (`mcp__memory__*`)
 | 시나리오 | 도구 |
@@ -120,11 +130,11 @@ zoompan=z='min(zoom+0.001,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=150:
 - `docs/01_product/FEATURES/VEO_CLIP.md` - Veo 클립 기능 명세
 
 ### 코드 참조
-- `backend/services/video.py` - VideoBuilder 클래스
+- `backend/services/video/` - FFmpeg 렌더링 패키지 (VideoBuilder, effects, encoding 등 12개 모듈)
 - `backend/services/rendering.py` - 렌더링 서비스
 - `backend/services/motion.py` - 모션/애니메이션 효과
 - `backend/services/image.py` - 이미지 처리/오버레이
 - `backend/constants/layout.py` - 레이아웃 상수 (좌표, 크기, 비율)
 - `backend/constants/transition.py` - 전환 효과 상수
 
-> **참고**: 렌더링 관련 신규 상수는 `backend/constants/`에, 서비스 로직은 `backend/services/`에 배치합니다.
+> **참고**: 렌더링 관련 신규 상수는 `backend/constants/`에, 서비스 로직은 `backend/services/video/`에 배치합니다.

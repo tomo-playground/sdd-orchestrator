@@ -124,6 +124,8 @@ backend/templates/
 - `backend/templates/` - Jinja2 템플릿 (스토리보드 생성)
 - `backend/routers/storyboard.py` - 스토리보드 API
 - `backend/services/storyboard.py` - 스토리보드 서비스 (Gemini 연동)
-- `backend/services/generation.py` - 이미지 생성 서비스 (스토리보드 후속)
+- `backend/services/generation.py` - 이미지 생성 오케스트레이터 (스토리보드 후속)
+- `backend/services/image_generation_core.py` - Studio+Lab 공유 생성 코어
+- `backend/services/speaker_resolver.py` - 화자/캐릭터 해석
 
 > **참고**: 스토리보드 관련 템플릿은 `backend/templates/`에, 신규 Structure 타입은 템플릿 내부 분기로 추가합니다.

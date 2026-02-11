@@ -40,7 +40,7 @@ allowed_tools: ["mcp__memory__*", "mcp__postgres__*"]
 
 ### 3. 파일 업로드 보안
 - MIME 타입 화이트리스트, 파일 크기 제한, Path Traversal 방지, 임시 파일 GC
-- 대상: `routers/controlnet.py`, `routers/video.py`, `routers/youtube.py`
+- 대상: `routers/controlnet.py`, `routers/video.py`, `routers/youtube.py`, `routers/assets.py`, `routers/avatar.py`
 
 ### 4. SQL Injection 방어
 - SQLAlchemy ORM (파라미터 바인딩 자동) + Pydantic 입력 검증
