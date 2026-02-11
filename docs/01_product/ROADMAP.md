@@ -221,7 +221,7 @@
 | 6 | Scene Builder UI (배경/시간/날씨) | 기능 | [명세](FEATURES/SCENE_BUILDER_UI.md) | [ ] |
 | 7 | Structure별 전용 Gemini 템플릿 (3종 structure = 3종 템플릿 1:1 매핑 완료) | 기능 | - | [x] |
 | 8 | Character Builder 위저드 | 기능 | [명세](FEATURES/CHARACTER_BUILDER.md) | [ ] |
-| 25 | Character Management 독립 페이지 (/characters 목록 + /characters/[id] 상세/편집) | UX | [명세](FEATURES/CHARACTER_PAGE.md) · [와이어프레임](../02_design/wireframes/CHARACTER_PAGE_WIREFRAME.md) | [ ] |
+| 25 | Character Management 독립 페이지 (/characters 목록 + /characters/[id] 상세/편집) | UX | [명세](FEATURES/CHARACTER_PAGE.md) · [와이어프레임](../02_design/wireframes/CHARACTER_PAGE_WIREFRAME.md) | [x] |
 | 9 | OutputTab 채널/영상 분리 | UX | [설계](../02_design/UI_PROPOSAL.md) | [x] |
 | 10 | Creative Lab & Engine (Tag Lab + Scene Lab + Multi-Agent Creative) | 기능 | [API](../03_engineering/api/REST_API_CREATIVE.md) | [x] |
 | 11 | Studio UI Polish (Video탭 통합, Global 접기, Save 이동, 캐릭터 프리뷰 확대) | UX | - | [x] |
@@ -335,7 +335,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (2건 Tier 재분류: #2 VRT → Tier 3, #10 WD14 → Tier 1)
-- Phase 7-1: **20/24** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
+- Phase 7-1: **20/25** 완료 (잔여: #2 Wizard, #3 접근성, #4 생성 Progress, #6 Scene Builder, #8 Char Builder)
 - Phase 7-2: Phase 1.7 **완료**, Phase 2-3 대기
 - **Backend 테스트**: 1,399개 수집
 
@@ -346,8 +346,8 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 |------|------|------|------|
 | ~~1~~ | ~~7-1 #5~~ | ~~Multi-Character UI~~ | ~~완료 (2026-02-10)~~ |
 | 2 | 7-1 #6 | Scene Builder UI (배경/시간/날씨) | 씬 표현력 확장, context_tags 활용도 향상 |
-| 3 | 7-1 #25 | Character Management 독립 페이지 | 캐릭터 전용 진입점, Home 경량화, 모달→페이지 전환 |
-| 4 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선, #25 선행 필요 |
+| ~~3~~ | ~~7-1 #25~~ | ~~Character Management 독립 페이지~~ | ~~완료 (2026-02-11)~~ |
+| 4 | 7-1 #8 | Character Builder 위저드 | 캐릭터 생성 UX 개선, #25 완료 |
 
 **Tier 2 — 자동화/인프라 (중형, 필요 시)**
 | 순위 | 출처 | 작업 | 근거 |
@@ -381,3 +381,4 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - (2026-02-11) Multi-Character LoRA 지원: `loras` 테이블에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`), `scenes.scene_mode` 필드 추가 (`single`/`multi`), Scene Generate/Prompt Compose API에 `character_b_id` 파라미터 지원, 2인 동시 출연 시 LoRA weight 자동 축소
 - (2026-02-11) CharacterEditModal P0 UI/UX: `alert()`/`confirm()` 7개 → Toast + ConfirmDialog 교체 (DI 패턴), `text-[9px]`/`text-[10px]` 26개 → `text-[11px]`, 접근성 (`role="dialog"`, `aria-label`, Escape 닫기), `UiCallbacks` 타입 추출
 - (2026-02-11) 캐릭터 Identity Tag 체계: `a_cute_boy`/`a_cute_girl` 태그 등록, 캐릭터별 identity tag 연결 (bishounen 성인화 문제 해결), Voice Preset (지호/수빈) 생성 + 캐릭터 연동
+- (2026-02-11) Character Management 독립 페이지: `/characters` 리스트 (검색+필터+카드 그리드), `/characters/[id]` 상세/편집 (2컬럼 레이아웃), `/characters/new` 생성, CharacterEditModal 6개 섹션 추출 → 공유 컴포넌트, `useCharacterPreview` + `parseRawTagText` 훅 분리, Home CharactersSection 축소 (미니카드 3개 + View All)
