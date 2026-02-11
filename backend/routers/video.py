@@ -73,7 +73,10 @@ def _save_render_history(db: Session, request: VideoRequest, result: dict) -> in
 @router.post("/create")
 async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
     logger.info("[Video Req] %s", scrub_payload(request.model_dump()))
+    # Release DB connection before FFmpeg rendering (30-120s)
+    db.close()
     res = await create_video_task(request)
+    # DB auto-reconnects for render history save
     rh_id = _save_render_history(db, request, res)
     if rh_id is not None:
         res["render_history_id"] = rh_id

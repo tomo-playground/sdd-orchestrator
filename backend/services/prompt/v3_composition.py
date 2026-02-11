@@ -811,6 +811,146 @@ class V3PromptBuilder:
 
         return result
 
+    # ── compose_for_reference ────────────────────────────────────────────
+
+    _REFERENCE_ENV_TAGS = ["white_background", "simple_background"]
+    _REFERENCE_CAMERA_TAGS = ["solo", "looking_at_viewer", "front_view", "straight_on"]
+
+    def compose_for_reference(
+        self,
+        character: Character,
+        reference_extra_tags: list[str] | None = None,
+    ) -> str:
+        """Compose prompt for character reference image generation.
+
+        Differences from compose_for_character:
+        - Character LoRA: weight × REFERENCE_LORA_SCALE (identity hint only)
+        - Style LoRA: full weight (not skipped)
+        - Environment: white_background fixed
+        - No scene_tags (Gemini)
+        """
+        # 1. Collect character tags (DB + custom_base_prompt)
+        char_tags_data = self._collect_character_tags(character)
+
+        # 2. Parse reference_base_prompt for extra correction tags
+        ref_tags = self._parse_reference_tags(character.reference_base_prompt)
+        if reference_extra_tags:
+            ref_tags.extend(reference_extra_tags)
+
+        # 3. Resolve aliases on all tag names
+        all_tag_names = [ct["name"] for ct in char_tags_data] + ref_tags
+        all_tag_names = self._resolve_aliases(all_tag_names)
+
+        # 4. Get tag info for reference tags
+        ref_tag_info = self.get_tag_info(ref_tags) if ref_tags else {}
+
+        # 5. Initialize 12 layers and distribute character tags
+        layers: list[list[str]] = [[] for _ in range(12)]
+        for ct in char_tags_data:
+            name = ct["name"]
+            # Skip if already resolved away by alias
+            if name not in all_tag_names and name not in [n.lower().replace(" ", "_").strip() for n in all_tag_names]:
+                continue
+            token = name
+            if ct["weight"] != 1.0:
+                token = f"({name}:{ct['weight']})"
+            layers[ct["layer"]].append(token)
+
+        # 6. Distribute reference tags into layers by tag_info
+        for tag in ref_tags:
+            norm = tag.lower().replace(" ", "_").strip()
+            info = ref_tag_info.get(norm, {"layer": self._infer_layer_from_pattern(norm)})
+            layer_idx = info if isinstance(info, int) else info.get("layer", LAYER_SUBJECT)
+            layers[layer_idx].append(tag)
+
+        # 7. Inject reference defaults (white_background, camera)
+        self._inject_reference_defaults(layers)
+
+        # 8. Inject LoRAs (character × scale, style full weight)
+        self._inject_loras_for_reference(character, layers)
+
+        # 9. Gender enhancement
+        self._apply_gender_enhancement(character, char_tags_data, layers)
+
+        # 10. Quality tags
+        self._ensure_quality_tags(layers)
+
+        # 11. Flatten with dedup + conflict resolution
+        return self._flatten_layers(layers)
+
+    def _parse_reference_tags(self, prompt: str | None) -> list[str]:
+        """Parse reference_base_prompt into individual tags, filtering restricted ones."""
+        if not prompt:
+            return []
+        TagFilterCache.initialize(self.db)
+        tags = []
+        for token in prompt.split(","):
+            t = token.strip()
+            if t and not TagFilterCache.is_restricted(t):
+                tags.append(t)
+        return tags
+
+    def _inject_reference_defaults(self, layers: list[list[str]]) -> None:
+        """Inject fixed environment and camera tags for reference images."""
+        env_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_ENVIRONMENT]}
+        for tag in self._REFERENCE_ENV_TAGS:
+            if tag not in env_norms:
+                layers[LAYER_ENVIRONMENT].append(tag)
+                env_norms.add(tag)
+
+        cam_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_CAMERA]}
+        for tag in self._REFERENCE_CAMERA_TAGS:
+            if tag not in cam_norms:
+                layers[LAYER_CAMERA].append(tag)
+                cam_norms.add(tag)
+
+    def _inject_loras_for_reference(
+        self,
+        character: Character,
+        layers: list[list[str]],
+    ) -> None:
+        """Inject LoRAs for reference: character LoRA × REFERENCE_LORA_SCALE, style LoRA full weight.
+
+        Uses batch query to avoid N+1.
+        """
+        from config import REFERENCE_LORA_SCALE
+
+        if not character.loras:
+            return
+
+        # Batch query all LoRA objects (N+1 prevention)
+        lora_ids = [entry.get("lora_id") for entry in character.loras if entry.get("lora_id")]
+        if not lora_ids:
+            return
+        lora_objs = self.db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+        lora_map = {lora.id: lora for lora in lora_objs}
+
+        for lora_entry in character.loras:
+            lora_id = lora_entry.get("lora_id")
+            if not lora_id:
+                continue
+            lora_obj = lora_map.get(lora_id)
+            if not lora_obj:
+                continue
+
+            base_weight = lora_entry.get("weight")
+            if base_weight is None:
+                base_weight = self.get_effective_lora_weight(lora_obj)
+
+            if lora_obj.lora_type == "style":
+                # Style LoRA: full weight for reference
+                weight = self._cap_lora_weight(base_weight)
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_obj.name}:{weight}>")
+            else:
+                # Character LoRA: scaled down for identity hint
+                weight = round(base_weight * REFERENCE_LORA_SCALE, 2)
+                weight = self._cap_lora_weight(weight)
+                layers[LAYER_IDENTITY].append(f"<lora:{lora_obj.name}:{weight}>")
+                # Add trigger words for character LoRAs only
+                for trigger in lora_obj.trigger_words or []:
+                    if trigger not in layers[LAYER_IDENTITY]:
+                        layers[LAYER_IDENTITY].append(trigger)
+
 
 def get_v3_prompt_builder():
     db = SessionLocal()

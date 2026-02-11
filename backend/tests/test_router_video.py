@@ -62,17 +62,19 @@ class TestCreateVideo:
         db_session.add_all([sb, old_asset, new_asset])
         db_session.commit()
         sb_id = sb.id
+        old_asset_id = old_asset.id
+        new_asset_id = new_asset.id
 
         # Pre-insert an existing render_history row
         old_rh = RenderHistory(
             storyboard_id=sb_id,
-            media_asset_id=old_asset.id,
+            media_asset_id=old_asset_id,
             label="post",
         )
         db_session.add(old_rh)
         db_session.commit()
 
-        mock_task.return_value = {"video_url": "/videos/new.mp4", "media_asset_id": new_asset.id, "ok": True}
+        mock_task.return_value = {"video_url": "/videos/new.mp4", "media_asset_id": new_asset_id, "ok": True}
 
         request_data = {
             "scenes": [
@@ -87,8 +89,8 @@ class TestCreateVideo:
         rows = db_session.query(RenderHistory).filter(RenderHistory.storyboard_id == sb_id).all()
         assert len(rows) == 2
         asset_ids = {r.media_asset_id for r in rows}
-        assert old_asset.id in asset_ids
-        assert new_asset.id in asset_ids
+        assert old_asset_id in asset_ids
+        assert new_asset_id in asset_ids
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
     def test_create_video_with_all_options(self, mock_task, client: TestClient, db_session):

@@ -228,6 +228,9 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     # === 모든 체크 통과 → 자동 편집 실행 ===
     logger.info(f"🔍 [Auto Edit] Triggered (match_rate={match_rate:.2f} < {GEMINI_AUTO_EDIT_THRESHOLD})")
 
+    # Release DB connection before Gemini API call (10-30s)
+    db.close()
+
     try:
         import base64
 

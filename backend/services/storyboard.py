@@ -507,11 +507,7 @@ def _check_multi_character_capable(
     if not lora_ids:
         return False
 
-    count = (
-        db.query(LoRA.id)
-        .filter(LoRA.id.in_(lora_ids), LoRA.is_multi_character_capable.is_(True))
-        .count()
-    )
+    count = db.query(LoRA.id).filter(LoRA.id.in_(lora_ids), LoRA.is_multi_character_capable.is_(True)).count()
     return count > 0
 
 
@@ -550,6 +546,11 @@ async def create_storyboard(request: StoryboardRequest, db: Session | None = Non
             )
             if is_multi_character_capable:
                 logger.info("[Storyboard] Multi-character capable LoRA detected")
+
+        # Release DB connection before Gemini API call (10-30s)
+        # DB auto-reconnects when needed later (auto_populate_character_actions)
+        if db:
+            db.close()
 
         preset = get_preset_by_structure(request.structure)
         template_name = preset.template if preset else "create_storyboard.j2"

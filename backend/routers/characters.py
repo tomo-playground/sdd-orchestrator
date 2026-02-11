@@ -340,36 +340,12 @@ async def regenerate_reference(character_id: int, db: Session = Depends(get_db))
     if character.preview_locked:
         raise HTTPException(status_code=400, detail="Preview image is locked")
 
-    # Build prompt from reference_base_prompt + character tags + LoRAs
-    tag_names = [t.tag.name for t in character.tags]
-    base = character.reference_base_prompt or ""
+    # Build prompt using V3 12-Layer system
+    from services.prompt.v3_composition import V3PromptBuilder
 
-    # Include LoRAs (scale down character LoRAs for reference: face identity only)
-    lora_tags = []
-    if character.loras:
-        for lora_info in character.loras:
-            lora_id = lora_info.get("lora_id")
-            weight = lora_info.get("weight", 0.7)
-            lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
-            if lora_obj:
-                if lora_obj.lora_type == "style":
-                    ref_weight = weight
-                else:
-                    ref_weight = round(weight * 0.25, 2)
-                lora_tags.append(f"<lora:{lora_obj.name}:{ref_weight}>")
-                if lora_obj.trigger_words:
-                    tag_names.extend(lora_obj.trigger_words)
-
-    full_prompt_raw = (
-        f"{base}, {', '.join(tag_names)}, {', '.join(lora_tags)}"
-        if base
-        else f"{', '.join(tag_names)}, {', '.join(lora_tags)}"
-    )
-
-    from services.prompt.prompt import normalize_and_fix_tags
-
-    full_prompt = normalize_and_fix_tags(full_prompt_raw)
-    neg_prompt = character.reference_negative_prompt or ""
+    builder = V3PromptBuilder(db)
+    full_prompt = builder.compose_for_reference(character)
+    neg_prompt = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
 
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()

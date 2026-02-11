@@ -138,6 +138,8 @@ SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
 SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "9.0"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
+# Character LoRA weight multiplier for reference images (identity hint only)
+REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.25"))
 
 # --- External API ---
 DANBOORU_API_BASE = os.getenv("DANBOORU_API_BASE", "https://danbooru.donmai.us")

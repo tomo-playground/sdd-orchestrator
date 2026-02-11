@@ -21,13 +21,12 @@ from config import (
     CONTROLNET_DETECT_TIMEOUT,
     CONTROLNET_GENERATE_TIMEOUT,
     DEFAULT_CHARACTER_PRESET,
-    DEFAULT_REFERENCE_BASE_PROMPT,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     SD_BASE_URL,
     SD_TXT2IMG_URL,
     logger,
 )
-from models import Character, LoRA
+from models import Character
 from services.image import load_image_bytes
 
 # Dynamic import to avoid initialization order issues
@@ -675,41 +674,15 @@ async def generate_reference_for_character(
     Returns:
         Saved filename
     """
-    # 1. Build prompt from tags (keep Danbooru underscore format)
-    tag_list = [char_tag.tag.name for char_tag in character.tags]
+    # Build prompt using V3 12-Layer system (alias/conflict resolution, batch LoRA query)
+    from services.prompt.v3_composition import V3PromptBuilder
 
-    # 2. Build LoRA prompt
-    lora_prompt_parts = []
-    if character.loras:
-        for lora_entry in character.loras:
-            lora_obj = db.query(LoRA).filter(LoRA.id == lora_entry["lora_id"]).first()
-            if lora_obj:
-                weight = lora_entry.get("weight", 1.0)
-                lora_prompt_parts.append(f"<lora:{lora_obj.name}:{weight}>")
-                if lora_obj.trigger_words:
-                    tag_list.extend(lora_obj.trigger_words)
+    builder = V3PromptBuilder(db)
+    full_prompt = builder.compose_for_reference(character)
 
-    # 3. Construct prompt
-    # Use character's reference_base_prompt or fallback to default
-    base_positive = character.reference_base_prompt or DEFAULT_REFERENCE_BASE_PROMPT
-
-    # Remove duplicate tags (simple set)
-    unique_tags = list(dict.fromkeys(tag_list))
-
-    # Build full prompt (only add tags/loras if they exist)
-    prompt_parts = [base_positive]
-    if unique_tags:
-        prompt_parts.append(", ".join(unique_tags))
-    if lora_prompt_parts:
-        prompt_parts.append(" ".join(lora_prompt_parts))
-    full_prompt = ", ".join(prompt_parts)
-
-    # 4. Construct negative prompt
-    # Use character's reference_negative_prompt or fallback to default
+    # Construct negative prompt
     base_negative = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
-
     if character.recommended_negative:
-        # Append recommended negative if not already in base
         extras = [n for n in character.recommended_negative if n not in base_negative]
         if extras:
             base_negative += ", " + ", ".join(extras)
