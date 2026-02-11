@@ -208,6 +208,8 @@ export type StepReview = {
   messages: ReviewMessage[];
 };
 
+export type StepReviewData = Omit<StepReview, "result">;
+
 export type ReviewActionRequest = {
   action: "approve" | "revise";
   feedback?: string;

@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { QCAnalysis, ReviewMessage } from "../../types/creative";
-
-type StepReviewData = {
-  step: string;
-  qc_analysis: QCAnalysis | null;
-  messages: ReviewMessage[];
-};
+import type { StepReviewData } from "../../types/creative";
 
 type Props = {
   review: StepReviewData;

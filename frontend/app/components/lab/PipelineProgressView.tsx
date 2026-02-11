@@ -12,18 +12,11 @@ import {
 import type {
   PipelineLog,
   PipelineProgress,
-  QCAnalysis,
-  ReviewMessage,
   StepProgress,
+  StepReviewData,
 } from "../../types/creative";
 import StepLogs from "./StepLogs";
 import StepReviewPanel from "./StepReviewPanel";
-
-type StepReviewData = {
-  step: string;
-  qc_analysis: QCAnalysis | null;
-  messages: ReviewMessage[];
-};
 
 type Props = {
   progress: PipelineProgress | null;
