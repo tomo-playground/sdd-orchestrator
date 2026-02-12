@@ -117,11 +117,13 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
 
   const sortedCandidates = validationResults.sort((a, b) => b.match_rate - a.match_rate);
   const bestCandidate = sortedCandidates[0];
-  const candidates = sortedCandidates.map((c) => ({
-    media_asset_id: c.asset_id!,
-    match_rate: c.match_rate ?? undefined,
-    image_url: c.image_url,
-  }));
+  const candidates = sortedCandidates
+    .filter((c): c is typeof c & { asset_id: number } => c.asset_id != null)
+    .map((c) => ({
+      media_asset_id: c.asset_id,
+      match_rate: c.match_rate ?? undefined,
+      image_url: c.image_url,
+    }));
 
   if (bestCandidate.validation) {
     const { imageValidationResults } = useStoryboardStore.getState();

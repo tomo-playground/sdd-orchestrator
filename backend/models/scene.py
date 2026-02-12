@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,11 +21,12 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     """A single scene/shot in a storyboard."""
 
     __tablename__ = "scenes"
+    __table_args__ = (
+        Index("ix_scenes_client_id", "client_id", unique=True, postgresql_where=text("deleted_at IS NULL")),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    client_id: Mapped[str] = mapped_column(
-        String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid4())
-    )
+    client_id: Mapped[str] = mapped_column(String(36), nullable=False, default=lambda: str(uuid4()))
     storyboard_id: Mapped[int] = mapped_column(Integer, ForeignKey("storyboards.id", ondelete="CASCADE"), index=True)
     order: Mapped[int] = mapped_column(Integer, default=0)
 

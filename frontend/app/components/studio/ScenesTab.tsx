@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
-import axios from "axios";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
-import { API_BASE } from "../../constants";
-import type { Background } from "../../types";
-import { generateSceneClientId } from "../../utils/uuid";
 import SceneFilmstrip from "../storyboard/SceneFilmstrip";
 import SceneListHeader from "../storyboard/SceneListHeader";
 import SceneSidePanel from "../storyboard/SceneSidePanel";
@@ -41,15 +36,14 @@ import {
   handleSavePrompt,
 } from "../../store/actions/sceneActions";
 import { getFixSuggestions } from "../../utils";
+import { useSceneActions } from "../../hooks/useSceneActions";
 
 export default function ScenesTab() {
   // Scene data
-  const { scenes, currentSceneIndex, updateScene, removeScene } = useStoryboardStore(
+  const { scenes, currentSceneIndex } = useStoryboardStore(
     useShallow((s) => ({
       scenes: s.scenes,
       currentSceneIndex: s.currentSceneIndex,
-      updateScene: s.updateScene,
-      removeScene: s.removeScene,
     }))
   );
 
@@ -64,7 +58,6 @@ export default function ScenesTab() {
 
   // UI state
   const {
-    sceneTab,
     sceneMenuOpen,
     suggestionExpanded,
     validatingSceneId,
@@ -72,7 +65,6 @@ export default function ScenesTab() {
     imageGenProgress,
   } = useStoryboardStore(
     useShallow((s) => ({
-      sceneTab: s.sceneTab,
       sceneMenuOpen: s.sceneMenuOpen,
       suggestionExpanded: s.suggestionExpanded,
       validatingSceneId: s.validatingSceneId,
@@ -128,37 +120,20 @@ export default function ScenesTab() {
     }))
   );
 
-  const { confirm, dialogProps } = useConfirm();
   const sbSet = useStoryboardStore((s) => s.set);
-  const setScenes = useStoryboardStore((s) => s.setScenes);
   const showToast = useUIStore((s) => s.showToast);
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
-  const [backgrounds, setBackgrounds] = useState<Background[]>([]);
 
-  const setCurrentSceneIndex = useCallback(
-    (idx: number) => sbSet({ currentSceneIndex: idx }),
-    [sbSet]
-  );
-
-  // Fetch IP-Adapter reference images on mount
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/controlnet/ip-adapter/references`)
-      .then((res) => {
-        useStoryboardStore.getState().set({
-          referenceImages: res.data.references || [],
-        });
-      })
-      .catch(() => {});
-  }, []);
-
-  // Fetch background assets on mount
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/backgrounds`)
-      .then((res) => setBackgrounds(res.data || []))
-      .catch(() => {});
-  }, []);
+  const {
+    backgrounds,
+    setCurrentSceneIndex,
+    handleUpdateScene,
+    handlePinToggle,
+    handleRemoveScene,
+    handleAddScene,
+    confirm,
+    dialogProps,
+  } = useSceneActions();
 
   const currentScene = scenes[currentSceneIndex];
   const currentSpeaker = currentScene?.speaker ?? "A";
@@ -169,7 +144,6 @@ export default function ScenesTab() {
     ipAdapterWeightB,
   });
 
-  // Resolve character settings based on current speaker
   const resolvedCharacterId = resolveCharacterIdForSpeaker(currentSpeaker, {
     selectedCharacterId,
     selectedCharacterBId,
@@ -181,82 +155,9 @@ export default function ScenesTab() {
     characterBLoras
   );
 
-  // Resolve pinned scene order for display (environment_reference_id -> scene order)
   const pinnedSceneOrder = currentScene?.environment_reference_id
     ? scenes.find((s) => s.image_asset_id === currentScene.environment_reference_id)?.order
     : undefined;
-
-  const handleUpdateScene = useCallback(
-    (updates: Partial<(typeof scenes)[0]>) => {
-      if (currentScene) updateScene(currentScene.client_id, updates);
-    },
-    [currentScene, updateScene]
-  );
-
-  const handlePinToggle = useCallback(async () => {
-    if (!currentScene) return;
-
-    if (currentScene.environment_reference_id) {
-      updateScene(currentScene.client_id, { environment_reference_id: null });
-      return;
-    }
-
-    const currentIdx = scenes.findIndex((s) => s.client_id === currentScene.client_id);
-    let referenceScene = null;
-
-    for (let i = currentIdx - 1; i >= 0; i--) {
-      if (scenes[i].image_asset_id) {
-        referenceScene = scenes[i];
-        break;
-      }
-    }
-
-    if (!referenceScene) {
-      showToast("이전 씬에 고정할 배경 이미지가 없습니다.", "error");
-      return;
-    }
-
-    updateScene(currentScene.client_id, {
-      environment_reference_id: referenceScene.image_asset_id,
-      environment_reference_weight: 0.3,
-    });
-    showToast(`Scene ${referenceScene.order}의 배경을 참조로 설정했습니다.`, "success");
-  }, [currentScene, scenes, updateScene, showToast]);
-
-  const handleRemoveScene = useCallback(
-    async (clientId: string) => {
-      const ok = await confirm({
-        title: "Remove Scene",
-        message: "Remove this scene?",
-        confirmLabel: "Remove",
-        variant: "danger",
-      });
-      if (ok) removeScene(clientId);
-    },
-    [removeScene, confirm]
-  );
-
-  const handleAddScene = useCallback(() => {
-    const { baseNegativePromptA } = useStoryboardStore.getState();
-    const newScene = {
-      id: 0,
-      client_id: generateSceneClientId(),
-      order: scenes.length,
-      script: "",
-      speaker: "Narrator" as const,
-      duration: 3,
-      image_prompt: "",
-      image_prompt_ko: "",
-      image_url: null,
-      width: 512,
-      height: 768,
-      negative_prompt: baseNegativePromptA,
-      isGenerating: false,
-      debug_payload: "",
-    };
-    setScenes([...scenes, newScene]);
-    setCurrentSceneIndex(scenes.length);
-  }, [scenes, setCurrentSceneIndex, setScenes]);
 
   if (scenes.length === 0) {
     return (
@@ -396,27 +297,45 @@ export default function ScenesTab() {
         referenceImages={referenceImages}
         sceneMultiGen={currentScene?.multi_gen_enabled}
         onSceneMultiGenChange={(v) => {
-          if (currentScene) updateScene(currentScene.client_id, { multi_gen_enabled: v });
+          if (currentScene)
+            useStoryboardStore
+              .getState()
+              .updateScene(currentScene.client_id, { multi_gen_enabled: v });
         }}
         sceneControlnet={currentScene?.use_controlnet}
         onSceneControlnetChange={(v) => {
-          if (currentScene) updateScene(currentScene.client_id, { use_controlnet: v });
+          if (currentScene)
+            useStoryboardStore
+              .getState()
+              .updateScene(currentScene.client_id, { use_controlnet: v });
         }}
         sceneControlnetWeight={currentScene?.controlnet_weight}
         onSceneControlnetWeightChange={(v) => {
-          if (currentScene) updateScene(currentScene.client_id, { controlnet_weight: v });
+          if (currentScene)
+            useStoryboardStore
+              .getState()
+              .updateScene(currentScene.client_id, { controlnet_weight: v });
         }}
         sceneIpAdapter={currentScene?.use_ip_adapter}
         onSceneIpAdapterChange={(v) => {
-          if (currentScene) updateScene(currentScene.client_id, { use_ip_adapter: v });
+          if (currentScene)
+            useStoryboardStore
+              .getState()
+              .updateScene(currentScene.client_id, { use_ip_adapter: v });
         }}
         sceneIpAdapterReference={currentScene?.ip_adapter_reference}
         onSceneIpAdapterReferenceChange={(v) => {
-          if (currentScene) updateScene(currentScene.client_id, { ip_adapter_reference: v });
+          if (currentScene)
+            useStoryboardStore
+              .getState()
+              .updateScene(currentScene.client_id, { ip_adapter_reference: v });
         }}
         sceneIpAdapterWeight={currentScene?.ip_adapter_weight}
         onSceneIpAdapterWeightChange={(v) => {
-          if (currentScene) updateScene(currentScene.client_id, { ip_adapter_weight: v });
+          if (currentScene)
+            useStoryboardStore
+              .getState()
+              .updateScene(currentScene.client_id, { ip_adapter_weight: v });
         }}
         currentSpeaker={currentSpeaker}
         validationSummary={validationSummary}

@@ -640,7 +640,7 @@ export type RenderProgress = {
   task_id: string;
   stage: RenderStage;
   percent: number;
-  stage_detail: string;
+  message: string;
   encode_percent: number;
   current_scene: number;
   total_scenes: number;

@@ -273,7 +273,7 @@ export async function runAutoRunFromStep(
           post_card_settings: postCardSettings,
         };
         const result = await renderWithProgress(payload, (p) => {
-          pushAutoRunLog(`Rendering... ${p.percent}% (${p.stage_detail || p.stage})`);
+          pushAutoRunLog(`Rendering... ${p.percent}% (${p.message || p.stage})`);
         });
         const videoUrl = result.video_url;
         if (!videoUrl) throw new Error(`${layoutStyle} render failed`);

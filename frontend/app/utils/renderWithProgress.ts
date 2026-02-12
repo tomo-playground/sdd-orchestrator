@@ -64,7 +64,7 @@ export async function renderWithProgress(
             task_id: taskId,
             stage: "queued",
             percent: 0,
-            stage_detail: `재연결 중... (${retryCount}/${MAX_RETRIES})`,
+            message: `재연결 중... (${retryCount}/${MAX_RETRIES})`,
             encode_percent: 0,
             current_scene: 0,
             total_scenes: 0,

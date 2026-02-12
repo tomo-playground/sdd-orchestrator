@@ -408,7 +408,7 @@ SSE(Server-Sent Events) 스트림으로 렌더링 진행 상황을 실시간 전
   "task_id": "abc123def456",
   "stage": "process_scenes",
   "percent": 25,
-  "stage_detail": "Scene 3/10 TTS",
+  "message": "Scene 3/10 TTS",
   "encode_percent": 0,
   "current_scene": 3,
   "total_scenes": 10,

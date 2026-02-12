@@ -34,7 +34,13 @@ def upgrade() -> None:
 
     # 3. Set NOT NULL + unique index
     op.alter_column("scenes", "client_id", nullable=False)
-    op.create_index("ix_scenes_client_id", "scenes", ["client_id"], unique=True)
+    op.create_index(
+        "ix_scenes_client_id",
+        "scenes",
+        ["client_id"],
+        unique=True,
+        postgresql_where=sa.text("deleted_at IS NULL"),
+    )
 
 
 def downgrade() -> None:

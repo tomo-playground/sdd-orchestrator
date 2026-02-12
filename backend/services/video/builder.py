@@ -150,7 +150,7 @@ class VideoBuilder:
         if not self._progress:
             return
         self._progress.stage = stage
-        self._progress.stage_detail = detail
+        self._progress.message = detail
         self._progress.percent = calc_overall_percent(self._progress)
         self._progress.notify()
 

@@ -60,7 +60,7 @@ class TaskProgress:
     task_id: str
     stage: RenderStage = RenderStage.QUEUED
     percent: int = 0
-    stage_detail: str = ""
+    message: str = ""
     encode_percent: int = 0
     total_scenes: int = 0
     current_scene: int = 0

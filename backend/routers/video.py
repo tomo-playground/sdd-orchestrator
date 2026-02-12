@@ -152,7 +152,7 @@ async def _event_generator(task_id: str) -> AsyncGenerator[str]:
             task_id=task.task_id,
             stage=task.stage.value,
             percent=pct,
-            stage_detail=task.stage_detail,
+            message=task.message,
             encode_percent=task.encode_percent,
             current_scene=task.current_scene,
             total_scenes=task.total_scenes,

@@ -344,7 +344,7 @@ export function RenderSidePanel({
             <div className="flex items-center justify-between text-[12px] text-zinc-500">
               <span>
                 {STAGE_LABELS[renderProgress.stage] || renderProgress.stage}
-                {renderProgress.stage_detail ? ` (${renderProgress.stage_detail})` : ""}
+                {renderProgress.message ? ` (${renderProgress.message})` : ""}
               </span>
               <span className="font-medium">{renderProgress.percent}%</span>
             </div>

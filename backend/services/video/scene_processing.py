@@ -57,7 +57,7 @@ async def process_scenes(builder: VideoBuilder) -> None:
     for i, scene in enumerate(builder.request.scenes):
         if builder._progress:
             builder._progress.current_scene = i + 1
-            builder._progress.stage_detail = f"Scene {i + 1}/{builder.num_scenes} TTS"
+            builder._progress.message = f"Scene {i + 1}/{builder.num_scenes} TTS"
             builder._progress.percent = calc_overall_percent(builder._progress)
             builder._progress.notify()
 
