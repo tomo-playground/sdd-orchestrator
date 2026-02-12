@@ -95,9 +95,9 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 # Gemini Image Generation Model (Nano Banana = gemini-2.5-flash-image)
 # Optimized for speed and cost. Alternative: gemini-3-pro-image-preview (Nano Banana Pro)
 GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
-# Gemini Text/Vision Model (Standard = gemini-2.0-flash)
+# Gemini Text/Vision Model (Standard = gemini-2.5-flash)
 # Used for storyboard generation, prompt rewriting, and vision analysis
-GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
 
 template_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
@@ -128,6 +128,9 @@ STYLE_LORA_WEIGHT_CAP = float(os.getenv("STYLE_LORA_WEIGHT_CAP", "0.76"))
 # --- SD API Timeouts (lightweight operations) ---
 SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
 
+# --- Environment Pinning ---
+LOCATION_KEYWORDS = ("kitchen", "beach", "forest", "room", "office", "street", "indoors", "outdoors")
+
 # --- ControlNet Timeouts ---
 CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))
 CONTROLNET_GENERATE_TIMEOUT = float(os.getenv("CONTROLNET_GENERATE_TIMEOUT", "180"))
@@ -139,7 +142,8 @@ SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "9.0"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
 # Character LoRA weight multiplier for reference images (identity hint only)
-REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.25"))
+# 0.4: balanced between character identity and pose freedom (reviewed 2026-02)
+REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
 
 # --- External API ---
 DANBOORU_API_BASE = os.getenv("DANBOORU_API_BASE", "https://danbooru.donmai.us")
@@ -381,7 +385,7 @@ LAB_BATCH_MAX_SIZE = int(os.getenv("LAB_BATCH_MAX_SIZE", "20"))
 
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
-CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.0-flash")
+CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-flash")
 CREATIVE_URL_FETCH_TIMEOUT = int(os.getenv("CREATIVE_URL_FETCH_TIMEOUT", "15"))
 CREATIVE_URL_MAX_CONTENT_LENGTH = int(os.getenv("CREATIVE_URL_MAX_CONTENT_LENGTH", "5000"))
 CREATIVE_URL_MAX_FETCH_COUNT = int(os.getenv("CREATIVE_URL_MAX_FETCH_COUNT", "3"))

@@ -113,7 +113,7 @@ class TestReferenceEnvironmentTags:
 
 
 class TestReferenceCharacterLoRA:
-    """Character LoRAs should be scaled by REFERENCE_LORA_SCALE (0.25)."""
+    """Character LoRAs should be scaled by REFERENCE_LORA_SCALE (0.4)."""
 
     @patch("services.prompt.v3_composition.TagRuleCache")
     @patch("services.prompt.v3_composition.TagFilterCache")
@@ -139,8 +139,8 @@ class TestReferenceCharacterLoRA:
         char = _make_character(loras=[{"lora_id": 1, "weight": 0.8}])
         result = builder.compose_for_reference(char)
 
-        # 0.8 * 0.25 = 0.2
-        assert "<lora:midoriya_lora:0.2>" in result
+        # 0.8 * 0.4 = 0.32 (REFERENCE_LORA_SCALE=0.4)
+        assert "<lora:midoriya_lora:0.32>" in result
         # Trigger word should be included
         assert "Midoriya_Izuku" in result
 

@@ -343,6 +343,7 @@ class V3PromptBuilder:
                     "name": tag.name,
                     "layer": tag.default_layer,
                     "weight": char_tag.weight,
+                    "is_permanent": char_tag.is_permanent,
                 }
             )
 
@@ -382,11 +383,18 @@ class V3PromptBuilder:
         already occupied by the character are dropped.
         Returns the set of occupied exclusive groups.
         """
-        # 5. Distribute character tags
+        # 5. Distribute character tags (with identity/clothing weight boost)
         for ct in char_tags_data:
             token = ct["name"]
-            if ct["weight"] != 1.0:
-                token = f"({token}:{ct['weight']})"
+            weight = ct["weight"]
+            # Boost permanent identity/clothing tags (skip custom-weighted tags)
+            if ct.get("is_permanent", False) and weight == 1.0:
+                if ct["layer"] in (LAYER_IDENTITY, LAYER_BODY, LAYER_MAIN_CLOTH):
+                    weight = 1.15
+                elif ct["layer"] in (LAYER_DETAIL_CLOTH, LAYER_ACCESSORY):
+                    weight = 1.1
+            if weight != 1.0:
+                token = f"({token}:{weight})"
             layers[ct["layer"]].append(token)
 
         # 5b. Build character-occupied exclusive groups
@@ -489,19 +497,44 @@ class V3PromptBuilder:
             target_layer = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
             layers[target_layer].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
 
-        # Style LoRAs (explicit overrides)
-        if style_loras:
-            for lora_info in style_loras:
+        # Style LoRAs (explicit overrides or character fallback)
+        effective_style_loras = style_loras
+        if not effective_style_loras and character.loras and character.prompt_mode != "standard":
+            # Fallback: use character's style LoRAs when no StyleProfile
+            effective_style_loras = self._extract_character_style_loras(character)
+
+        if effective_style_loras:
+            is_fallback = not style_loras
+            for lora_info in effective_style_loras:
                 name: str = lora_info.get("name", "")
                 if name in active_loras:
                     continue  # Already injected via scene-triggered detection
                 weight = lora_info.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(name)
+                # Fallback style LoRAs: cap at 0.5 to avoid interference with character LoRA
+                if is_fallback:
+                    weight = min(weight, 0.5)
                 for trigger in lora_info.get("trigger_words", []):
                     if trigger not in layers[LAYER_ATMOSPHERE]:
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
+
+    def _extract_character_style_loras(self, character: Character) -> list[dict]:
+        """Extract style LoRAs from character's loras JSONB for fallback use."""
+        result = []
+        for lora_info in character.loras or []:
+            lora_id = lora_info.get("lora_id")
+            lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
+            if lora_obj and lora_obj.lora_type == "style":
+                result.append(
+                    {
+                        "name": lora_obj.name,
+                        "weight": lora_info.get("weight") or self.get_effective_lora_weight(lora_obj),
+                        "trigger_words": lora_obj.trigger_words or [],
+                    }
+                )
+        return result
 
     @staticmethod
     def _ensure_quality_tags(layers: list[list[str]]) -> None:

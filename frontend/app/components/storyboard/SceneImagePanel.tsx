@@ -47,7 +47,7 @@ function ValidationOverlay({
     );
   }
 
-  const rate = Math.round(result.match_rate * 100);
+  const rate = Math.round((result.match_rate ?? 0) * 100);
   const missingCount = result.missing?.length ?? 0;
   const extraCount = result.extra?.length ?? 0;
   const rateColor =
@@ -194,21 +194,25 @@ export default function SceneImagePanel({
         )}
 
         {/* Small badge when not hovered (if validated) */}
-        {!showOverlay && validationResult && scene.image_url && (
-          <div className="absolute top-2 right-2">
-            <span
-              className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${
-                validationResult.match_rate >= 0.8
-                  ? "bg-emerald-500 text-white"
-                  : validationResult.match_rate >= 0.5
-                    ? "bg-amber-500 text-white"
-                    : "bg-red-500 text-white"
-              }`}
-            >
-              {Math.round(validationResult.match_rate * 100)}%
-            </span>
-          </div>
-        )}
+        {!showOverlay &&
+          validationResult &&
+          typeof validationResult.match_rate === "number" &&
+          !isNaN(validationResult.match_rate) &&
+          scene.image_url && (
+            <div className="absolute top-2 right-2">
+              <span
+                className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${
+                  validationResult.match_rate >= 0.8
+                    ? "bg-emerald-500 text-white"
+                    : validationResult.match_rate >= 0.5
+                      ? "bg-amber-500 text-white"
+                      : "bg-red-500 text-white"
+                }`}
+              >
+                {Math.round(validationResult.match_rate * 100)}%
+              </span>
+            </div>
+          )}
       </div>
 
       {/* Candidates */}

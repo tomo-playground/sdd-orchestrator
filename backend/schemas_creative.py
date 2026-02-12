@@ -33,7 +33,7 @@ class AgentPresetCreate(BaseModel):
     role_description: str
     system_prompt: str
     model_provider: str = "gemini"
-    model_name: str = "gemini-2.0-flash"
+    model_name: str = "gemini-2.5-flash"
     temperature: float = 0.9
     is_system: bool = False
     agent_role: str | None = None

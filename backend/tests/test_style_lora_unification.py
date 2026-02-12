@@ -372,13 +372,17 @@ class TestComposeForCharacterSkipsStyleLoRA:
             scene_tags=["standing", "smile"],
         )
 
-        # Assert
+        # Assert: Character LoRA always injected
         assert f"<lora:{character_lora_a.name}:" in result, "Character LoRA should be injected"
-        assert f"<lora:{style_lora.name}:" not in result, (
-            "Style LoRA from character.loras should be SKIPPED (StyleProfile is SSOT)"
-        )
         assert "char_a_trigger" in result, "Character LoRA trigger words should be included"
-        assert "flat_color" not in result, "Style LoRA trigger words should NOT be included"
+        # Style LoRA fallback: when no style_loras param, character's style LoRA is applied
+        # with weight capped at 0.5 (Bug 1 fix: fallback path)
+        assert f"<lora:{style_lora.name}:" in result, (
+            "Style LoRA from character.loras should be applied as FALLBACK when no StyleProfile"
+        )
+        assert f"<lora:{style_lora.name}:0.5>" in result, (
+            "Fallback style LoRA weight should be capped at 0.5"
+        )
 
     def test_style_lora_still_applied_via_style_loras_param(
         self, db_session: Session, style_lora: LoRA, character_lora_a: LoRA

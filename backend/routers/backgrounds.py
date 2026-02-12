@@ -5,29 +5,28 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.background import Background
-from models.media_asset import MediaAsset
 from schemas import BackgroundCreate, BackgroundResponse, BackgroundUpdate
 from services.asset_service import AssetService
 
 router = APIRouter(prefix="/backgrounds", tags=["backgrounds"])
 
 
-def _bg_to_response(bg: Background, db: Session) -> dict:
-    """Build response dict with computed image_url."""
-    image_url = None
-    if bg.image_asset_id:
-        asset = db.get(MediaAsset, bg.image_asset_id)
-        if asset:
-            image_url = asset.url
+def _base_bg_query(db: Session):
+    """Shared query with eager-loaded image_asset to avoid N+1."""
+    return db.query(Background).options(joinedload(Background.image_asset))
+
+
+def _bg_to_response(bg: Background) -> dict:
+    """Build response dict using eager-loaded image_asset relationship."""
     return {
         "id": bg.id,
         "name": bg.name,
         "description": bg.description,
-        "image_url": image_url,
+        "image_url": bg.image_url,
         "image_asset_id": bg.image_asset_id,
         "tags": bg.tags,
         "category": bg.category,
@@ -57,22 +56,22 @@ def list_backgrounds(
     db: Session = Depends(get_db),
 ):
     """List backgrounds with optional search and category filter."""
-    q = db.query(Background).filter(Background.deleted_at.is_(None))
+    q = _base_bg_query(db).filter(Background.deleted_at.is_(None))
     if category:
         q = q.filter(Background.category == category)
     if search:
         pattern = f"%{search}%"
         q = q.filter(Background.name.ilike(pattern))
     backgrounds = q.order_by(Background.id.desc()).all()
-    return [_bg_to_response(bg, db) for bg in backgrounds]
+    return [_bg_to_response(bg) for bg in backgrounds]
 
 
 @router.get("/{background_id}", response_model=BackgroundResponse)
 def get_background(background_id: int, db: Session = Depends(get_db)):
-    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
+    bg = _base_bg_query(db).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
-    return _bg_to_response(bg, db)
+    return _bg_to_response(bg)
 
 
 @router.post("", response_model=BackgroundResponse, status_code=201)
@@ -81,7 +80,7 @@ def create_background(body: BackgroundCreate, db: Session = Depends(get_db)):
     db.add(bg)
     db.commit()
     db.refresh(bg)
-    return _bg_to_response(bg, db)
+    return _bg_to_response(bg)
 
 
 @router.put("/{background_id}", response_model=BackgroundResponse)
@@ -90,14 +89,14 @@ def update_background(
     body: BackgroundUpdate,
     db: Session = Depends(get_db),
 ):
-    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
+    bg = _base_bg_query(db).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(bg, key, value)
     db.commit()
     db.refresh(bg)
-    return _bg_to_response(bg, db)
+    return _bg_to_response(bg)
 
 
 @router.delete("/{background_id}")
@@ -114,13 +113,13 @@ def delete_background(background_id: int, db: Session = Depends(get_db)):
 @router.post("/{background_id}/restore", response_model=BackgroundResponse)
 def restore_background(background_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted background."""
-    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.isnot(None)).first()
+    bg = _base_bg_query(db).filter(Background.id == background_id, Background.deleted_at.isnot(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found or not deleted")
     bg.deleted_at = None
     db.commit()
     db.refresh(bg)
-    return _bg_to_response(bg, db)
+    return _bg_to_response(bg)
 
 
 @router.post("/{background_id}/upload-image", response_model=BackgroundResponse)
@@ -130,7 +129,7 @@ async def upload_background_image(
     db: Session = Depends(get_db),
 ):
     """Upload a reference image for a background."""
-    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
+    bg = _base_bg_query(db).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
 
@@ -143,4 +142,4 @@ async def upload_background_image(
     bg.image_asset_id = asset.id
     db.commit()
     db.refresh(bg)
-    return _bg_to_response(bg, db)
+    return _bg_to_response(bg)

@@ -216,13 +216,15 @@ export async function handleValidateImage(scene: Scene) {
         ? { image_url: scene.image_url, prompt, storyboard_id: storyboardId, scene_id: scene.id }
         : { image_b64: scene.image_url, prompt, storyboard_id: storyboardId, scene_id: scene.id };
     const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
+    // validate-and-auto-edit returns nested { validation_result: {...}, auto_edit_triggered }
+    const validation = res.data.validation_result ?? res.data;
     const prev = useStoryboardStore.getState().imageValidationResults;
     useStoryboardStore.getState().set({
-      imageValidationResults: { ...prev, [scene.client_id]: res.data },
+      imageValidationResults: { ...prev, [scene.client_id]: validation },
     });
-    const matchRate = Math.round((res.data.match_rate || 0) * 100);
+    const matchRate = Math.round((validation.match_rate || 0) * 100);
 
-    if (scene.prompt_history_id && res.data.match_rate != null) {
+    if (scene.prompt_history_id && validation.match_rate != null) {
       axios
         .post(
           `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
