@@ -15,6 +15,7 @@ async def get_audio_list():
     logger.info("📥 [Audio List]")
     from config import STORAGE_MODE
     from services.storage import get_storage
+
     storage = get_storage()
 
     files = []
@@ -39,6 +40,7 @@ async def get_audio_list():
 async def list_fonts():
     from config import STORAGE_MODE
     from services.storage import get_storage
+
     storage = get_storage()
 
     fonts = []
@@ -67,20 +69,28 @@ async def get_font_file(filename: str):
     """Serve font file for browser preview."""
     from config import STORAGE_MODE
     from services.storage import get_storage
+
     storage = get_storage()
 
+    from pathlib import Path
+
+    from services.path_security import safe_resolve_path
+
     if STORAGE_MODE == "s3":
-        storage_key = f"shared/fonts/{filename}"
+        safe_name = Path(filename).name
+        storage_key = f"shared/fonts/{safe_name}"
         if not storage.exists(storage_key):
             raise HTTPException(status_code=404, detail="Font not found in storage")
         # Proxy via local cache to avoid CORS issues with FontFace.load()
         local_path = storage.get_local_path(storage_key)
         ext = local_path.suffix.lower()
-        ct = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2"}.get(ext, "application/octet-stream")
+        ct = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2"}.get(
+            ext, "application/octet-stream"
+        )
         return FileResponse(local_path, media_type=ct)
 
     fonts_dir = ASSETS_DIR / "fonts"
-    font_path = fonts_dir / filename
+    font_path = safe_resolve_path(fonts_dir, filename)
     if not font_path.exists() or not font_path.is_file():
         raise HTTPException(status_code=404, detail="Font not found")
     # Determine content type
@@ -99,6 +109,7 @@ async def list_overlays():
     """List available overlay frame styles."""
     from config import STORAGE_MODE
     from services.storage import get_storage
+
     storage = get_storage()
 
     overlays = []
@@ -108,23 +119,23 @@ async def list_overlays():
         for key in all_keys:
             if key.lower().endswith((".png", ".jpg", ".jpeg")):
                 filename = key.replace(prefix, "", 1)
-                name = filename.replace("overlay_", "").replace(".png", "").replace(".jpg", "").replace("_", " ").title()
-                overlays.append({
-                    "id": filename,
-                    "name": name,
-                    "url": storage.get_url(key)
-                })
+                name = (
+                    filename.replace("overlay_", "").replace(".png", "").replace(".jpg", "").replace("_", " ").title()
+                )
+                overlays.append({"id": filename, "name": name, "url": storage.get_url(key)})
     else:
         overlay_dir = ASSETS_DIR / "overlay"
         if not overlay_dir.exists():
             return {"overlays": []}
         for ext in ("*.png", "*.PNG", "*.jpg", "*.JPG", "*.jpeg", "*.JPEG"):
             for path in overlay_dir.glob(ext):
-                overlays.append({
-                    "id": path.name,
-                    "name": path.stem.replace("overlay_", "").replace("_", " ").title(),
-                    "url": f"{API_PUBLIC_URL}/assets/overlay/{path.name}"
-                })
+                overlays.append(
+                    {
+                        "id": path.name,
+                        "name": path.stem.replace("overlay_", "").replace("_", " ").title(),
+                        "url": f"{API_PUBLIC_URL}/assets/overlay/{path.name}",
+                    }
+                )
     return {"overlays": sorted(overlays, key=lambda x: x["name"])}
 
 
@@ -133,17 +144,24 @@ async def get_overlay_file(filename: str):
     """Serve overlay frame image."""
     from config import STORAGE_MODE
     from services.storage import get_storage
+
     storage = get_storage()
 
+    from pathlib import Path
+
+    from services.path_security import safe_resolve_path
+
     if STORAGE_MODE == "s3":
-        storage_key = f"shared/overlay/{filename}"
+        safe_name = Path(filename).name
+        storage_key = f"shared/overlay/{safe_name}"
         if not storage.exists(storage_key):
             raise HTTPException(status_code=404, detail="Overlay not found in storage")
         from fastapi.responses import RedirectResponse
+
         return RedirectResponse(storage.get_url(storage_key))
 
     overlay_dir = ASSETS_DIR / "overlay"
-    overlay_path = overlay_dir / filename
+    overlay_path = safe_resolve_path(overlay_dir, filename)
     if not overlay_path.exists() or not overlay_path.is_file():
         raise HTTPException(status_code=404, detail="Overlay not found")
     return FileResponse(overlay_path, media_type="image/png")

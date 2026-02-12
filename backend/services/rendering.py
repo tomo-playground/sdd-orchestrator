@@ -49,8 +49,9 @@ def load_avatar_image(filename: str | None) -> Image.Image | None:
 
     # Fallback for legacy filenames (none-storage keys)
     from config import AVATAR_DIR
+    from services.path_security import safe_storage_path
 
-    candidate = AVATAR_DIR / filename
+    candidate = safe_storage_path(AVATAR_DIR, filename)
     if candidate.exists():
         try:
             return Image.open(candidate).convert("RGBA")

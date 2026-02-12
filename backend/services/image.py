@@ -78,8 +78,9 @@ def load_image_bytes(source: str) -> bytes:
         # 1. Try direct local file first (e.g., if switching storage modes)
         try:
             from config import OUTPUT_DIR
+            from services.path_security import safe_storage_path
 
-            direct_path = OUTPUT_DIR / storage_key
+            direct_path = safe_storage_path(OUTPUT_DIR, storage_key)
             if direct_path.exists():
                 return direct_path.read_bytes()
         except Exception:

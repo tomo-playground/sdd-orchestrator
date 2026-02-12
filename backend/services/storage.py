@@ -50,7 +50,9 @@ class BaseStorage(ABC):
 class S3Storage(BaseStorage):
     """S3 compatible storage driver (MinIO, AWS S3)."""
 
-    def __init__(self, endpoint_url: str, access_key: str, secret_key: str, bucket_name: str, public_url: str, cache_dir: Path):
+    def __init__(
+        self, endpoint_url: str, access_key: str, secret_key: str, bucket_name: str, public_url: str, cache_dir: Path
+    ):
         try:
             import boto3
         except ImportError:
@@ -78,6 +80,7 @@ class S3Storage(BaseStorage):
 
     def save(self, key: str, body: bytes | BinaryIO, content_type: str | None = None) -> str:
         from botocore.exceptions import ClientError
+
         extra_args = {}
         if content_type:
             extra_args["ContentType"] = content_type
@@ -100,6 +103,7 @@ class S3Storage(BaseStorage):
     def get_local_path(self, key: str) -> Path:
         """Ensure the file is in local cache for FFmpeg processing."""
         from botocore.exceptions import ClientError
+
         local_path = self.cache_dir / key
         if local_path.exists():
             return local_path
@@ -114,6 +118,7 @@ class S3Storage(BaseStorage):
 
     def exists(self, key: str) -> bool:
         from botocore.exceptions import ClientError
+
         try:
             self.s3.head_object(Bucket=self.bucket_name, Key=key)
             return True
@@ -122,6 +127,7 @@ class S3Storage(BaseStorage):
 
     def delete(self, key: str) -> bool:
         from botocore.exceptions import ClientError
+
         try:
             self.s3.delete_object(Bucket=self.bucket_name, Key=key)
             return True
@@ -132,6 +138,7 @@ class S3Storage(BaseStorage):
     def list_prefix(self, prefix: str) -> list[str]:
         """List all keys under a given prefix in S3."""
         from botocore.exceptions import ClientError
+
         try:
             paginator = self.s3.get_paginator("list_objects_v2")
             keys = []
@@ -159,7 +166,9 @@ class LocalStorage(BaseStorage):
         return self._base_dir
 
     def save(self, key: str, body: bytes | BinaryIO, content_type: str | None = None) -> str:
-        file_path = self.base_dir / key
+        from services.path_security import safe_storage_path
+
+        file_path = safe_storage_path(self.base_dir, key)
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         data = body.read() if hasattr(body, "read") else body
@@ -180,13 +189,19 @@ class LocalStorage(BaseStorage):
         return f"{base}/outputs/{key.lstrip('/')}"
 
     def get_local_path(self, key: str) -> Path:
-        return self.base_dir / key
+        from services.path_security import safe_storage_path
+
+        return safe_storage_path(self.base_dir, key)
 
     def exists(self, key: str) -> bool:
-        return (self.base_dir / key).exists()
+        from services.path_security import safe_storage_path
+
+        return safe_storage_path(self.base_dir, key).exists()
 
     def delete(self, key: str) -> bool:
-        file_path = self.base_dir / key
+        from services.path_security import safe_storage_path
+
+        file_path = safe_storage_path(self.base_dir, key)
         if file_path.exists():
             file_path.unlink()
             return True
@@ -235,6 +250,7 @@ def initialize_storage():
 
     if STORAGE_MODE == "s3":
         from config import S3_CACHE_DIR
+
         storage = S3Storage(
             endpoint_url=MINIO_ENDPOINT,
             access_key=MINIO_ACCESS_KEY,

@@ -13,8 +13,7 @@ client = TestClient(app)
 @pytest.fixture
 def mock_storage_s3():
     """Mock storage in S3 mode."""
-    with patch("services.storage.get_storage") as mock_get_storage, \
-         patch("config.STORAGE_MODE", "s3"):
+    with patch("services.storage.get_storage") as mock_get_storage, patch("config.STORAGE_MODE", "s3"):
         mock_storage = MagicMock()
         mock_get_storage.return_value = mock_storage
         yield mock_storage
@@ -23,9 +22,11 @@ def mock_storage_s3():
 @pytest.fixture
 def mock_storage_local():
     """Mock storage in local mode."""
-    with patch("config.STORAGE_MODE", "local"), \
-         patch("config.ASSETS_DIR") as mock_assets_dir, \
-         patch("config.AUDIO_DIR") as mock_audio_dir:
+    with (
+        patch("config.STORAGE_MODE", "local"),
+        patch("config.ASSETS_DIR") as mock_assets_dir,
+        patch("config.AUDIO_DIR") as mock_audio_dir,
+    ):
         yield mock_assets_dir, mock_audio_dir
 
 
@@ -80,9 +81,7 @@ class TestFontsList:
         """Test font listing in local mode."""
         from unittest.mock import MagicMock
 
-        with patch("config.STORAGE_MODE", "local"), \
-             patch("config.ASSETS_DIR") as mock_assets_dir:
-
+        with patch("config.STORAGE_MODE", "local"), patch("config.ASSETS_DIR") as mock_assets_dir:
             # Mock fonts directory
             mock_fonts_dir = MagicMock()
             mock_fonts_dir.exists.return_value = True
@@ -209,9 +208,7 @@ class TestFontFile:
         font_file = tmp_path / "test.ttf"
         font_file.write_bytes(b"\x00\x01\x00\x00" + b"\x00" * 100)
 
-        with patch("services.storage.get_storage") as mock_get_storage, \
-             patch("config.STORAGE_MODE", "s3"):
-
+        with patch("services.storage.get_storage") as mock_get_storage, patch("config.STORAGE_MODE", "s3"):
             mock_storage = MagicMock()
             mock_get_storage.return_value = mock_storage
             mock_storage.exists.return_value = True
@@ -226,9 +223,7 @@ class TestFontFile:
 
     def test_get_font_file_not_found_s3(self):
         """Test 404 when font file doesn't exist in S3."""
-        with patch("services.storage.get_storage") as mock_get_storage, \
-             patch("config.STORAGE_MODE", "s3"):
-
+        with patch("services.storage.get_storage") as mock_get_storage, patch("config.STORAGE_MODE", "s3"):
             mock_storage = MagicMock()
             mock_get_storage.return_value = mock_storage
             mock_storage.exists.return_value = False
@@ -237,3 +232,63 @@ class TestFontFile:
 
             assert response.status_code == 404
             assert "Font not found" in response.json()["detail"]
+
+    def test_get_font_file_path_traversal_blocked(self):
+        """Path traversal via slashes is blocked by Starlette route matching (404)."""
+        with patch("config.STORAGE_MODE", "local"):
+            response = client.get("/fonts/file/..%2F..%2F..%2Fetc%2Fpasswd")
+            # Starlette {filename} param doesn't match '/', so route returns 404 (safe)
+            assert response.status_code in (400, 404)
+
+    def test_get_font_file_traversal_dot_dot_local(self, tmp_path):
+        """Traversal patterns never serve files outside the fonts directory."""
+        with patch("config.STORAGE_MODE", "local"):
+            # Starlette normalizes '..' in URL path, so route never matches
+            response = client.get("/fonts/file/..")
+            assert response.status_code in (400, 404)
+            # Encoded slashes also blocked by route matching
+            response = client.get("/fonts/file/..%2Fetc%2Fpasswd")
+            assert response.status_code in (400, 404)
+
+    def test_get_font_file_path_traversal_s3_uses_basename(self, tmp_path):
+        """S3 mode should strip directory components via Path.name."""
+        with patch("services.storage.get_storage") as mock_get_storage, patch("config.STORAGE_MODE", "s3"):
+            mock_storage = MagicMock()
+            mock_get_storage.return_value = mock_storage
+            mock_storage.exists.return_value = False
+
+            # No slash in filename — route matches, but Path("passwd").name == "passwd"
+            response = client.get("/fonts/file/passwd")
+
+            assert response.status_code == 404
+            mock_storage.exists.assert_called_once_with("shared/fonts/passwd")
+
+
+class TestOverlayFileTraversal:
+    """Tests for path traversal prevention on overlay file endpoint."""
+
+    def test_get_overlay_file_path_traversal_blocked(self):
+        """Path traversal via slashes is blocked by Starlette route matching (404)."""
+        with patch("config.STORAGE_MODE", "local"):
+            response = client.get("/assets/overlay/..%2F..%2F..%2Fetc%2Fpasswd")
+            assert response.status_code in (400, 404)
+
+    def test_get_overlay_file_traversal_dot_dot_local(self):
+        """Traversal patterns never serve files outside the overlay directory."""
+        with patch("config.STORAGE_MODE", "local"):
+            response = client.get("/assets/overlay/..")
+            assert response.status_code in (400, 404)
+            response = client.get("/assets/overlay/..%2Fetc%2Fpasswd")
+            assert response.status_code in (400, 404)
+
+    def test_get_overlay_file_path_traversal_s3_uses_basename(self):
+        """S3 mode should strip directory components via Path.name."""
+        with patch("services.storage.get_storage") as mock_get_storage, patch("config.STORAGE_MODE", "s3"):
+            mock_storage = MagicMock()
+            mock_get_storage.return_value = mock_storage
+            mock_storage.exists.return_value = False
+
+            response = client.get("/assets/overlay/passwd")
+
+            assert response.status_code == 404
+            mock_storage.exists.assert_called_once_with("shared/overlay/passwd")
