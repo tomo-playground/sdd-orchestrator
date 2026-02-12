@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 import type {
   Scene,
@@ -19,6 +19,7 @@ import SceneActionBar from "./SceneActionBar";
 import SceneFormFields from "./SceneFormFields";
 import SceneGeminiModals from "./SceneGeminiModals";
 import SpeakerBadge from "./SpeakerBadge";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 
 type SceneCardProps = {
   scene: Scene;
@@ -137,6 +138,7 @@ export default function SceneCard({
   buildScenePrompt,
   showToast,
 }: SceneCardProps) {
+  const { confirm, dialogProps } = useConfirm();
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
@@ -161,6 +163,16 @@ export default function SceneCard({
       setIsLoadingSuggestions(false);
     }
   };
+
+  const handleRemoveScene = useCallback(async () => {
+    const ok = await confirm({
+      title: "Remove Scene",
+      message: `Scene ${sceneIndex + 1}을(를) 삭제하시겠습니까?`,
+      confirmLabel: "Remove",
+      variant: "danger",
+    });
+    if (ok) onRemoveScene();
+  }, [confirm, sceneIndex, onRemoveScene]);
 
   // Handle suggestion approval
   const handleApproveSuggestion = (suggestion: { target_change: string }) => {
@@ -193,11 +205,7 @@ export default function SceneCard({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            if (window.confirm(`Scene ${sceneIndex + 1}을(를) 삭제하시겠습니까?`)) {
-              onRemoveScene();
-            }
-          }}
+          onClick={handleRemoveScene}
           className="text-rose-500 hover:bg-rose-50 hover:text-rose-600"
         >
           Remove
@@ -380,6 +388,8 @@ export default function SceneCard({
         setGeminiSuggestions={setGeminiSuggestions}
         onApproveSuggestion={handleApproveSuggestion}
       />
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ScriptListPanel from "../../components/scripts/ScriptListPanel";
 import ScriptEditorPanel from "../../components/scripts/ScriptEditorPanel";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
 function ScriptsContent() {
   const searchParams = useSearchParams();
@@ -29,7 +30,13 @@ function ScriptsContent() {
 
 export default function ScriptsPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="md" />
+        </div>
+      }
+    >
       <ScriptsContent />
     </Suspense>
   );

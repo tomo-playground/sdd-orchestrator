@@ -1,6 +1,7 @@
 "use client";
 
 import type { StyleProfileFull, SDModelEntry, LoRA, Embedding } from "../../types";
+import { FORM_LABEL_COMPACT_CLASSES } from "../../components/ui/variants";
 
 type Props = {
   profile: StyleProfileFull;
@@ -18,7 +19,7 @@ type Props = {
   onClose: () => void;
 };
 
-const labelCls = "text-[12px] font-bold tracking-wider text-zinc-400 uppercase";
+const labelCls = FORM_LABEL_COMPACT_CLASSES;
 
 export default function StyleProfileEditor({
   profile,

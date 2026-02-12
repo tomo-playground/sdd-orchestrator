@@ -22,7 +22,7 @@ function avatarUrl(p: ProjectItem): string | null {
 
 function ProjectAvatar({ project, size = "sm" }: { project: ProjectItem; size?: "sm" | "md" }) {
   const dim = size === "sm" ? "h-5 w-5" : "h-7 w-7";
-  const textSize = size === "sm" ? "text-[8px]" : "text-[12px]";
+  const textSize = size === "sm" ? "text-[11px]" : "text-[12px]";
   const url = avatarUrl(project);
 
   return (

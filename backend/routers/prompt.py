@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -270,8 +270,9 @@ async def compose_prompt(
         }
 
     except Exception as e:
-        logger.exception("❌ [Prompt Compose Error]")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("prompt_compose", e)
 
 
 class ValidateTagsRequest(BaseModel):

@@ -47,12 +47,15 @@ from routers import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize resources on startup and clean up on shutdown."""
-    from config import logger
+    # Validate storage credentials before initialization
+    from config import logger, validate_storage_config
     from database import engine, get_db
     from models.base import Base
     from services.keywords.core import TagFilterCache
     from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache
     from services.storage import initialize_storage
+
+    validate_storage_config()
 
     # Initialize Storage Service
     initialize_storage()

@@ -89,15 +89,18 @@ function StudioContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyboardId]);
 
-  // Warn before refresh/close during render or autopilot
+  // Dirty state guard
+  const isDirty = useStoryboardStore((s) => s.isDirty);
+
+  // Warn before refresh/close during render, autopilot, or unsaved changes
   useEffect(() => {
-    if (!isRendering && !autopilot.isAutoRunning) return;
+    if (!isRendering && !autopilot.isAutoRunning && !isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isRendering, autopilot.isAutoRunning]);
+  }, [isRendering, autopilot.isAutoRunning, isDirty]);
 
   if (isLoadingDb) {
     return (

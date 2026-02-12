@@ -4,12 +4,10 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { API_BASE, API_TIMEOUT } from "../../constants";
+import { getErrorMsg } from "../../utils/error";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
-import {
-  resolveSceneControlnet,
-  resolveSceneIpAdapter,
-} from "../../utils/sceneSettingsResolver";
+import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
 
 /** Store a base64 image on the backend and return URL + asset_id */
 export async function storeSceneImage(
@@ -260,8 +258,8 @@ export async function generateSceneImageFor(
       debug_prompt: prompt,
       debug_payload: JSON.stringify(debugPayload, null, 2),
     } as Partial<Scene>;
-  } catch {
-    if (!silent) showToast("Scene image generation failed", "error");
+  } catch (error) {
+    if (!silent) showToast(getErrorMsg(error, "이미지 생성 실패"), "error");
     return null;
   }
 }

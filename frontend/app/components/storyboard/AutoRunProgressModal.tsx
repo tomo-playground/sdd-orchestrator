@@ -4,6 +4,7 @@ import type { AutoRunState } from "../../types";
 import { AUTO_RUN_STEPS } from "../../constants";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import LoadingSpinner from "../ui/LoadingSpinner";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 
 type AutoRunProgressModalProps = {
   autoRunState: AutoRunState;
@@ -19,6 +20,7 @@ export default function AutoRunProgressModal({
   onCancel,
 }: AutoRunProgressModalProps) {
   const trapRef = useFocusTrap(true);
+  const { confirm, dialogProps } = useConfirm();
 
   return (
     <div
@@ -58,15 +60,20 @@ export default function AutoRunProgressModal({
         )}
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm("Autopilot을 취소하시겠습니까?")) {
-              onCancel();
-            }
+          onClick={async () => {
+            const ok = await confirm({
+              title: "Cancel Autopilot",
+              message: "Autopilot을 취소하시겠습니까?",
+              confirmLabel: "Cancel",
+              variant: "danger",
+            });
+            if (ok) onCancel();
           }}
           className="mt-5 w-full rounded-full border border-zinc-300 bg-white px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-700 uppercase hover:border-zinc-400 hover:bg-zinc-50"
         >
           Cancel Autopilot
         </button>
+        <ConfirmDialog {...dialogProps} />
       </div>
     </div>
   );

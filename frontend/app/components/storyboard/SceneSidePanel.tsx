@@ -287,7 +287,7 @@ function OverrideToggleRow({
               e.stopPropagation();
               onReset();
             }}
-            className="ml-1 inline-flex items-center rounded bg-blue-100 px-1 text-[8px] font-bold text-blue-600 hover:bg-blue-200"
+            className="ml-1 inline-flex items-center rounded bg-blue-100 px-1 text-[11px] font-bold text-blue-600 hover:bg-blue-200"
             title="씬 오버라이드 활성. 클릭하면 글로벌 값으로 복원"
           >
             Scene

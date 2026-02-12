@@ -8,7 +8,7 @@ type ConfirmDialogFn = (opts: {
   title?: string;
   message?: string;
   confirmLabel?: string;
-}) => Promise<boolean>;
+}) => Promise<boolean | string>;
 
 export type UseCharacterPreviewOptions = {
   characterId?: number;

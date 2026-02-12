@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import axios from "axios";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useUIStore } from "../../store/useUIStore";
@@ -40,19 +42,39 @@ import {
 import { getFixSuggestions } from "../../utils";
 
 export default function ScenesTab() {
+  // Scene data
+  const { scenes, currentSceneIndex, updateScene, removeScene } = useStoryboardStore(
+    useShallow((s) => ({
+      scenes: s.scenes,
+      currentSceneIndex: s.currentSceneIndex,
+      updateScene: s.updateScene,
+      removeScene: s.removeScene,
+    }))
+  );
+
+  // Validation state
+  const { validationResults, validationSummary, imageValidationResults } = useStoryboardStore(
+    useShallow((s) => ({
+      validationResults: s.validationResults,
+      validationSummary: s.validationSummary,
+      imageValidationResults: s.imageValidationResults,
+    }))
+  );
+
+  // UI state
+  const { sceneTab, sceneMenuOpen, suggestionExpanded, validatingSceneId, markingStatusSceneId } =
+    useStoryboardStore(
+      useShallow((s) => ({
+        sceneTab: s.sceneTab,
+        sceneMenuOpen: s.sceneMenuOpen,
+        suggestionExpanded: s.suggestionExpanded,
+        validatingSceneId: s.validatingSceneId,
+        markingStatusSceneId: s.markingStatusSceneId,
+      }))
+    );
+
+  // Character & generation settings
   const {
-    scenes,
-    currentSceneIndex,
-    updateScene,
-    removeScene,
-    validationResults,
-    validationSummary,
-    imageValidationResults,
-    sceneTab,
-    sceneMenuOpen,
-    suggestionExpanded,
-    validatingSceneId,
-    markingStatusSceneId,
     multiGenEnabled,
     autoComposePrompt,
     loraTriggerWords,
@@ -73,8 +95,32 @@ export default function ScenesTab() {
     ipAdapterReferenceB,
     ipAdapterWeightB,
     referenceImages,
-  } = useStoryboardStore();
+  } = useStoryboardStore(
+    useShallow((s) => ({
+      multiGenEnabled: s.multiGenEnabled,
+      autoComposePrompt: s.autoComposePrompt,
+      loraTriggerWords: s.loraTriggerWords,
+      characterLoras: s.characterLoras,
+      characterBLoras: s.characterBLoras,
+      characterPromptMode: s.characterPromptMode,
+      selectedCharacterId: s.selectedCharacterId,
+      selectedCharacterBId: s.selectedCharacterBId,
+      selectedCharacterName: s.selectedCharacterName,
+      selectedCharacterBName: s.selectedCharacterBName,
+      basePromptA: s.basePromptA,
+      basePromptB: s.basePromptB,
+      useControlnet: s.useControlnet,
+      controlnetWeight: s.controlnetWeight,
+      useIpAdapter: s.useIpAdapter,
+      ipAdapterReference: s.ipAdapterReference,
+      ipAdapterWeight: s.ipAdapterWeight,
+      ipAdapterReferenceB: s.ipAdapterReferenceB,
+      ipAdapterWeightB: s.ipAdapterWeightB,
+      referenceImages: s.referenceImages,
+    }))
+  );
 
+  const { confirm, dialogProps } = useConfirm();
   const sbSet = useStoryboardStore((s) => s.set);
   const setScenes = useStoryboardStore((s) => s.setScenes);
   const showToast = useUIStore((s) => s.showToast);
@@ -170,10 +216,16 @@ export default function ScenesTab() {
   }, [currentScene, scenes, updateScene, showToast]);
 
   const handleRemoveScene = useCallback(
-    (sceneId: number) => {
-      if (confirm("Remove this scene?")) removeScene(sceneId);
+    async (sceneId: number) => {
+      const ok = await confirm({
+        title: "Remove Scene",
+        message: "Remove this scene?",
+        confirmLabel: "Remove",
+        variant: "danger",
+      });
+      if (ok) removeScene(sceneId);
     },
-    [removeScene]
+    [removeScene, confirm]
   );
 
   const handleAddScene = useCallback(() => {
@@ -290,7 +342,16 @@ export default function ScenesTab() {
                 imagePreviewCandidates: candidates || null,
               })
             }
-            onSavePrompt={() => handleSavePrompt(currentScene)}
+            onSavePrompt={async () => {
+              const result = await confirm({
+                title: "Save Prompt",
+                message: "Enter a name for this prompt:",
+                confirmLabel: "Save",
+                inputField: { label: "Name", placeholder: "Enter prompt name..." },
+              });
+              if (result === false) return;
+              handleSavePrompt(currentScene, result as string);
+            }}
             onMarkSuccess={() => handleMarkSuccess(currentScene)}
             onMarkFail={() => handleMarkFail(currentScene)}
             isMarkingStatus={markingStatusSceneId === currentScene.id}
@@ -360,6 +421,8 @@ export default function ScenesTab() {
         scenes={scenes.map((s, i) => ({ id: s.id, order: i }))}
         onSceneSelect={setCurrentSceneIndex}
       />
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

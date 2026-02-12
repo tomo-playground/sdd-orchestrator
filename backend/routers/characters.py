@@ -112,7 +112,9 @@ async def regenerate_reference_endpoint(character_id: int, db: Session = Depends
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
     except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e)) from None
+        from services.error_responses import raise_user_error
+
+        raise_user_error("character_update", e)
 
 
 @router.post("/{character_id}/enhance-preview")

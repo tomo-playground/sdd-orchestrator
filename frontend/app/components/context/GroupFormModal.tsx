@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import { FORM_INPUT_COMPACT_CLASSES, FORM_LABEL_COMPACT_CLASSES } from "../ui/variants";
 
 type Props = {
   projectId: number;
@@ -30,9 +31,8 @@ export default function GroupFormModal({ projectId, onSave, onClose }: Props) {
     }
   };
 
-  const inputCls =
-    "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none";
-  const labelCls = "mb-1 block text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
+  const inputCls = FORM_INPUT_COMPACT_CLASSES;
+  const labelCls = FORM_LABEL_COMPACT_CLASSES;
 
   return (
     <Modal open onClose={onClose} size="md">

@@ -21,8 +21,8 @@ load_dotenv(BASE_DIR / ".env")
 # --- Storage Configuration ---
 STORAGE_MODE = os.getenv("STORAGE_MODE", "s3")  # 's3' or 'local'
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "admin")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "password123")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", "shorts-producer")
 # Public URL for S3/MinIO assets (if different from API_PUBLIC_URL)
 STORAGE_PUBLIC_URL = os.getenv("STORAGE_PUBLIC_URL", "http://localhost:9000")
@@ -428,3 +428,29 @@ CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
 OLLAMA_DEFAULT_MODEL = os.getenv("OLLAMA_DEFAULT_MODEL", "exaone3.5:7.8b")
+
+# --- Upload Limits ---
+MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(10 * 1024 * 1024)))  # 10MB
+
+# --- Storage Credential Minimum Length ---
+MINIO_SECRET_KEY_MIN_LENGTH = 12
+
+
+def validate_storage_config() -> None:
+    """Validate storage credentials at startup (S3 mode only).
+
+    Raises ValueError if STORAGE_MODE is 's3' and credentials are empty.
+    Logs a warning if the secret key is shorter than the minimum length.
+    """
+    if STORAGE_MODE != "s3":
+        return
+
+    if not MINIO_ACCESS_KEY or not MINIO_SECRET_KEY:
+        raise ValueError("MINIO_ACCESS_KEY 및 MINIO_SECRET_KEY 환경 변수가 필요합니다. backend/.env 파일에 설정하세요.")
+
+    if len(MINIO_SECRET_KEY) < MINIO_SECRET_KEY_MIN_LENGTH:
+        logger.warning(
+            "MINIO_SECRET_KEY가 %d자 미만입니다. 보안을 위해 %d자 이상을 권장합니다.",
+            MINIO_SECRET_KEY_MIN_LENGTH,
+            MINIO_SECRET_KEY_MIN_LENGTH,
+        )

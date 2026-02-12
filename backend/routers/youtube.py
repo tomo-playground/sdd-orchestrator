@@ -33,7 +33,9 @@ def authorize(project_id: int):
         auth_url = generate_auth_url(project_id)
         return YouTubeAuthURLResponse(auth_url=auth_url)
     except YouTubeAuthError as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("youtube_auth", e)
 
 
 @router.post("/callback", response_model=YouTubeCredentialResponse)

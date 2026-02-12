@@ -190,7 +190,7 @@ export default function StyleProfileModal({
                           {profile.display_name || profile.name}
                         </h3>
                         {profile.is_default && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-bold tracking-wider text-emerald-600 uppercase">
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold tracking-wider text-emerald-600 uppercase">
                             Default
                           </span>
                         )}

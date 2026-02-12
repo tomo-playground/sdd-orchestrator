@@ -22,7 +22,7 @@ export function useTrashTab(
     message?: string;
     confirmLabel?: string;
     variant?: "default" | "danger";
-  }) => Promise<boolean>
+  }) => Promise<boolean | string>
 ) {
   const [items, setItems] = useState<TrashItem[]>([]);
   const [filter, setFilter] = useState<FilterType>("all");

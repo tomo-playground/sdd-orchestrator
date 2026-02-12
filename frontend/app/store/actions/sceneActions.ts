@@ -4,6 +4,7 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { API_BASE, CAMERA_KEYWORDS, ACTION_KEYWORDS, BACKGROUND_KEYWORDS } from "../../constants";
+import { getErrorMsg } from "../../utils/error";
 import { computeValidationResults, getFixSuggestions } from "../../utils";
 import { buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
@@ -231,8 +232,8 @@ export async function handleValidateImage(scene: Scene) {
     } else {
       showToast(`Match ${matchRate}% - check missing tags`, "error");
     }
-  } catch {
-    showToast("Image validation failed", "error");
+  } catch (error) {
+    showToast(getErrorMsg(error, "이미지 검증 실패"), "error");
   } finally {
     useStoryboardStore.getState().set({ validatingSceneId: null });
   }
@@ -284,13 +285,12 @@ export async function handleMarkFail(scene: Scene) {
 
 // --------------- Save Prompt ---------------
 
-export async function handleSavePrompt(scene: Scene) {
+export async function handleSavePrompt(scene: Scene, name: string) {
   const sbState = useStoryboardStore.getState();
   const { characterLoras } = sbState;
   const { showToast } = useUIStore.getState();
   const characterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
-  const name = window.prompt("Enter a name for this prompt:");
-  if (!name?.trim()) return;
+  if (!name.trim()) return;
 
   try {
     const payload: Record<string, unknown> = {

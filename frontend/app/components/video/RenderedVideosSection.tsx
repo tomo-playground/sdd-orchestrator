@@ -39,9 +39,7 @@ export default function RenderedVideosSection({
       <div>
         <h2 className="text-lg font-semibold text-zinc-900">Preview</h2>
         <p className="text-xs text-zinc-500">
-          {videoUrlFull || videoUrlPost
-            ? "Compare full and post renders."
-            : "Latest render."}
+          {videoUrlFull || videoUrlPost ? "Compare full and post renders." : "Latest render."}
         </p>
       </div>
       {recentVideos.length > 0 && (
@@ -68,12 +66,12 @@ export default function RenderedVideosSection({
                         {item.label}
                       </span>
                       {idx === 0 && (
-                        <span className="rounded-full bg-emerald-50 px-1.5 py-px text-[8px] font-bold text-emerald-600 uppercase">
+                        <span className="rounded-full bg-emerald-50 px-1.5 py-px text-[11px] font-bold text-emerald-600 uppercase">
                           New
                         </span>
                       )}
                       {isUploaded && (
-                        <span className="rounded-full bg-red-50 px-1.5 py-px text-[8px] font-bold text-red-500">
+                        <span className="rounded-full bg-red-50 px-1.5 py-px text-[11px] font-bold text-red-500">
                           YT
                         </span>
                       )}

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContextStore } from "../../store/useContextStore";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
@@ -76,7 +77,13 @@ function ManageContent() {
 
 export default function ManagePage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="md" />
+        </div>
+      }
+    >
       <ManageContent />
     </Suspense>
   );

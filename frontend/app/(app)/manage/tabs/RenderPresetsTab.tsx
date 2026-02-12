@@ -3,6 +3,10 @@
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 import { useUIStore } from "../../../store/useUIStore";
 import { useRenderPresetsTab } from "../hooks/useRenderPresetsTab";
+import {
+  FORM_INPUT_COMPACT_CLASSES,
+  FORM_LABEL_COMPACT_CLASSES,
+} from "../../../components/ui/variants";
 
 export default function RenderPresetsTab() {
   const showToast = useUIStore((s) => s.showToast);
@@ -23,9 +27,8 @@ export default function RenderPresetsTab() {
     set,
   } = useRenderPresetsTab({ showToast, confirmDialog: confirm });
 
-  const inputCls =
-    "w-full rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-[13px] text-zinc-800 focus:border-zinc-400 focus:outline-none";
-  const labelCls = "text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
+  const inputCls = FORM_INPUT_COMPACT_CLASSES;
+  const labelCls = FORM_LABEL_COMPACT_CLASSES;
 
   return (
     <section className="grid gap-6 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">

@@ -13,6 +13,8 @@ import {
   CONTAINER_CLASSES,
   PAGE_TITLE_CLASSES,
   SEARCH_INPUT_CLASSES,
+  FORM_INPUT_COMPACT_CLASSES,
+  FORM_LABEL_COMPACT_CLASSES,
 } from "../../components/ui/variants";
 
 export default function BackgroundsPage() {
@@ -55,9 +57,8 @@ export default function BackgroundsPage() {
     return list;
   }, [backgrounds, search, filterCategory]);
 
-  const inputCls =
-    "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 focus:border-zinc-400 focus:outline-none";
-  const labelCls = "text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
+  const inputCls = FORM_INPUT_COMPACT_CLASSES;
+  const labelCls = FORM_LABEL_COMPACT_CLASSES;
 
   return (
     <div className={`${CONTAINER_CLASSES} py-8`}>

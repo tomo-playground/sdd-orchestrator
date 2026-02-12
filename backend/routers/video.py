@@ -144,14 +144,20 @@ async def _event_generator(task_id: str) -> AsyncGenerator[str]:
             yield _sse_event(RenderProgressEvent(task_id=task_id, stage="failed", error="Task expired"))
             return
 
+        pct = task.percent
+        elapsed = time.time() - task.created_at
+        eta = (elapsed / pct * (100 - pct)) if pct > 5 else None
+
         event = RenderProgressEvent(
             task_id=task.task_id,
             stage=task.stage.value,
-            percent=task.percent,
+            percent=pct,
             stage_detail=task.stage_detail,
             encode_percent=task.encode_percent,
             current_scene=task.current_scene,
             total_scenes=task.total_scenes,
+            elapsed_seconds=round(elapsed, 1),
+            estimated_remaining_seconds=round(eta, 1) if eta is not None else None,
             video_url=task.result.get("video_url") if task.result else None,
             media_asset_id=task.result.get("media_asset_id") if task.result else None,
             render_history_id=task.result.get("render_history_id") if task.result else None,
@@ -230,9 +236,10 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
         return {"ok": False, "deleted": False, "reason": "not_found"}
 
     except Exception as exc:
-        logger.exception("Video delete failed")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("video_delete", exc)
 
 
 @router.get("/exists")

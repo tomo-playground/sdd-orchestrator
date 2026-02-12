@@ -58,8 +58,14 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
   // ── Style CRUD ─────────────────────────────────────
 
   const handleCreateStyle = useCallback(async () => {
-    const name = ui.promptDialog("New Style Name:");
-    if (!name) return;
+    const result = await ui.promptDialog({
+      title: "New Style",
+      message: "Enter a name for the new style profile:",
+      inputField: { label: "Name", placeholder: "Enter style name..." },
+    });
+    if (result === false) return;
+    const name = result as string;
+    if (!name.trim()) return;
     try {
       await axios.post(`${API_BASE}/style-profiles/`, { name });
       await fetchStyles();

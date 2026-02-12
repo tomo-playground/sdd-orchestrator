@@ -4,6 +4,7 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
 import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
+import { getErrorMsg } from "../../utils/error";
 import type { Scene } from "../../types";
 
 /**
@@ -282,6 +283,8 @@ export async function persistStoryboard(): Promise<boolean> {
         window.history.replaceState({}, "", url.toString());
       }
     }
+    // Clear dirty flag after successful save
+    useStoryboardStore.getState().set({ isDirty: false });
     return true;
   } catch (error) {
     console.error("[persistStoryboard] Failed:", error);
@@ -314,12 +317,14 @@ export async function updateStoryboardMetadata(updates: {
 
 /**
  * Generate storyboard via Gemini API and populate scenes.
- * Switches to Scenes tab on success and auto-saves.
+ * Returns "needs_confirm" if existing scenes would be replaced (caller should confirm).
+ * Pass force=true to skip the check.
  */
-export async function generateStoryboard(): Promise<boolean> {
+export async function generateStoryboard(force = false): Promise<boolean | "needs_confirm"> {
   const sbState = useStoryboardStore.getState();
   const { showToast, setActiveTab } = useUIStore.getState();
   const {
+    scenes: existingScenes,
     topic,
     description,
     duration,
@@ -336,6 +341,10 @@ export async function generateStoryboard(): Promise<boolean> {
   if (!topic.trim()) {
     showToast("Enter a topic first", "error");
     return false;
+  }
+
+  if (!force && existingScenes.length > 0) {
+    return "needs_confirm";
   }
 
   try {
@@ -364,8 +373,8 @@ export async function generateStoryboard(): Promise<boolean> {
     showToast(`Generated ${mapped.length} scenes`, "success");
     saveStoryboard();
     return true;
-  } catch {
-    showToast("Failed to generate storyboard", "error");
+  } catch (error) {
+    showToast(getErrorMsg(error, "스토리보드 생성 실패"), "error");
     return false;
   }
 }

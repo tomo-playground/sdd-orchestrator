@@ -82,3 +82,10 @@ export const FORM_TEXTAREA_CLASSES =
 /** Form field label (uppercase tracking). */
 export const FORM_LABEL_CLASSES =
   "text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase";
+
+/** Compact form input (no border-radius-2xl, used in config editors). */
+export const FORM_INPUT_COMPACT_CLASSES =
+  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400";
+
+/** Compact form label (block, smaller tracking). */
+export const FORM_LABEL_COMPACT_CLASSES = "block text-xs font-semibold text-zinc-500";

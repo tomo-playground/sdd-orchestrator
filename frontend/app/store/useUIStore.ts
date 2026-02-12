@@ -1,11 +1,23 @@
 import { create } from "zustand";
-import type { Toast, AutopilotCheckpoint } from "../types";
+import type { ToastItem, AutopilotCheckpoint } from "../types";
 
 export type StudioTab = "scenes" | "render" | "output";
 
+const MAX_TOASTS = 3;
+
+// Module-scope timer map (not in Zustand state — avoids serialization issues)
+// SSR-safe: Map works in Node.js, but guard prevents timer leaks during SSR
+const _timerIds =
+  typeof window !== "undefined" ? new Map<string, ReturnType<typeof setTimeout>>() : null;
+
+/** Safe accessor — returns no-op stubs during SSR */
+function timerMap() {
+  return _timerIds ?? new Map<string, ReturnType<typeof setTimeout>>();
+}
+
 export interface UIState {
-  // Toast
-  toast: Toast;
+  // Toast queue
+  toasts: ToastItem[];
 
   // Navigation
   activeTab: StudioTab;
@@ -33,11 +45,15 @@ export interface UIState {
   set: (updates: Partial<UIState>) => void;
   setActiveTab: (tab: StudioTab) => void;
   showToast: (message: string, type: "success" | "error" | "warning") => void;
+  dismissToast: (id: string) => void;
   resetUI: () => void;
 }
 
-const initialState: Omit<UIState, "set" | "setActiveTab" | "showToast" | "resetUI"> = {
-  toast: null,
+const initialState: Omit<
+  UIState,
+  "set" | "setActiveTab" | "showToast" | "dismissToast" | "resetUI"
+> = {
+  toasts: [],
   activeTab: "scenes",
   imagePreviewSrc: null,
   imagePreviewCandidates: null,
@@ -58,9 +74,46 @@ export const useUIStore = create<UIState>((set) => ({
   ...initialState,
   set: (updates) => set((state) => ({ ...state, ...updates })),
   setActiveTab: (tab) => set({ activeTab: tab }),
+
   showToast: (message, type) => {
-    set({ toast: { message, type } });
-    setTimeout(() => set({ toast: null }), 3000);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const item: ToastItem = { id, message, type };
+
+    set((state) => {
+      let next = [...state.toasts];
+
+      // Evict oldest if at capacity
+      if (next.length >= MAX_TOASTS) {
+        const oldest = next[0];
+        const oldTimer = timerMap().get(oldest.id);
+        if (oldTimer) clearTimeout(oldTimer);
+        timerMap().delete(oldest.id);
+        next = next.slice(1);
+      }
+
+      return { toasts: [...next, item] };
+    });
+
+    // Auto-dismiss after 3s
+    const timer = setTimeout(() => {
+      timerMap().delete(id);
+      set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
+    }, 3000);
+    timerMap().set(id, timer);
   },
-  resetUI: () => set(initialState),
+
+  dismissToast: (id) => {
+    const timer = timerMap().get(id);
+    if (timer) clearTimeout(timer);
+    timerMap().delete(id);
+    set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
+  },
+
+  resetUI: () => {
+    // Clear all pending timers
+    const timers = timerMap();
+    for (const timer of timers.values()) clearTimeout(timer);
+    timers.clear();
+    set(initialState);
+  },
 }));

@@ -41,7 +41,7 @@ export type UseCharacterFormOptions = {
     title?: string;
     message?: string;
     confirmLabel?: string;
-  }) => Promise<boolean>;
+  }) => Promise<boolean | string>;
 };
 
 export function useCharacterForm(options: UseCharacterFormOptions) {
@@ -125,12 +125,21 @@ export function useCharacterForm(options: UseCharacterFormOptions) {
   // --- Dirty tracking ---
   const buildSnapshot = (overrides?: { identityTagIds?: number[]; clothingTagIds?: number[] }) =>
     JSON.stringify({
-      name, description, gender, customBasePrompt, customNegativePrompt,
-      referenceBasePrompt, referenceNegativePrompt, promptMode,
-      ipAdapterWeight, ipAdapterModel, previewLocked,
+      name,
+      description,
+      gender,
+      customBasePrompt,
+      customNegativePrompt,
+      referenceBasePrompt,
+      referenceNegativePrompt,
+      promptMode,
+      ipAdapterWeight,
+      ipAdapterModel,
+      previewLocked,
       identityTagIds: overrides?.identityTagIds ?? identityTagIds,
       clothingTagIds: overrides?.clothingTagIds ?? clothingTagIds,
-      selectedLoras, defaultVoicePresetId,
+      selectedLoras,
+      defaultVoicePresetId,
     });
 
   const initialSnapshot = useRef<string>("");
@@ -144,10 +153,21 @@ export function useCharacterForm(options: UseCharacterFormOptions) {
     return buildSnapshot() !== initialSnapshot.current;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    name, description, gender, customBasePrompt, customNegativePrompt,
-    referenceBasePrompt, referenceNegativePrompt, promptMode,
-    ipAdapterWeight, ipAdapterModel, previewLocked,
-    identityTagIds, clothingTagIds, selectedLoras, defaultVoicePresetId,
+    name,
+    description,
+    gender,
+    customBasePrompt,
+    customNegativePrompt,
+    referenceBasePrompt,
+    referenceNegativePrompt,
+    promptMode,
+    ipAdapterWeight,
+    ipAdapterModel,
+    previewLocked,
+    identityTagIds,
+    clothingTagIds,
+    selectedLoras,
+    defaultVoicePresetId,
   ]);
 
   // --- Derived: warnings ---

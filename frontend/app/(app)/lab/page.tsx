@@ -3,6 +3,7 @@
 import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LabSidebar, { type LabTab } from "./LabSidebar";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import TagLabTab from "./tabs/TagLabTab";
 import SceneLabTab from "./tabs/SceneLabTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
@@ -44,7 +45,13 @@ function LabContent() {
 
 export default function LabPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="md" />
+        </div>
+      }
+    >
       <LabContent />
     </Suspense>
   );

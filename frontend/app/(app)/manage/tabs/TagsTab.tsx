@@ -413,7 +413,7 @@ export default function TagsTab() {
               >
                 <span className="font-medium">{tag.name}</span>
                 {tag.group_name && (
-                  <span className="border-l border-zinc-100 pl-1.5 text-[8px] font-normal text-zinc-300 uppercase">
+                  <span className="border-l border-zinc-100 pl-1.5 text-[11px] font-normal text-zinc-300 uppercase">
                     {tag.group_name}
                   </span>
                 )}

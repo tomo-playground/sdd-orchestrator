@@ -41,7 +41,7 @@ export default function StyleTab() {
   } = useStyleTab({
     showToast,
     confirmDialog: confirm,
-    promptDialog: (msg: string) => prompt(msg),
+    promptDialog: confirm,
   });
 
   // Escape key: close Edit LoRA modal (guard for ConfirmDialog)

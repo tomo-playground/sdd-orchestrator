@@ -11,6 +11,7 @@ import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel"
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
 import { SIDE_PANEL_LAYOUT } from "../ui/variants";
 import { renderWithProgress } from "../../utils/renderWithProgress";
+import { getErrorMsg } from "../../utils/error";
 
 export default function RenderTab() {
   const scenes = useStoryboardStore((s) => s.scenes);
@@ -201,8 +202,8 @@ export default function RenderTab() {
           });
         }
         showToast("Video rendered", "success");
-      } catch {
-        showToast("Render failed", "error");
+      } catch (err) {
+        showToast(`Render failed: ${getErrorMsg(err, "Unknown error")}`, "error");
       } finally {
         setOutput({ isRendering: false, renderProgress: null });
       }

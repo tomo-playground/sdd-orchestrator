@@ -193,10 +193,10 @@ class EffectiveConfigResponse(BaseModel):
 
 
 class StoryboardBase(BaseModel):
-    title: str
-    description: str | None = None
+    title: str = Field(max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
     group_id: int | None = None
-    caption: str | None = None
+    caption: str | None = Field(default=None, max_length=500)
     structure: str = DEFAULT_STRUCTURE
     duration: int | None = None
     language: str | None = None
@@ -339,8 +339,8 @@ class StoryboardDetailResponse(BaseModel):
 
 
 class StoryboardRequest(BaseModel):
-    topic: str
-    description: str | None = None
+    topic: str = Field(max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
     duration: int = 10
     style: str = "Anime"
     language: str = "Korean"
@@ -361,11 +361,11 @@ class SceneCandidate(BaseModel):
 
 class StoryboardScene(BaseModel):
     scene_id: int
-    script: str
+    script: str = Field(max_length=1000)
     speaker: str = DEFAULT_SPEAKER
     duration: float = 3
     scene_mode: Literal["single", "multi"] = "single"
-    image_prompt: str = ""
+    image_prompt: str = Field(default="", max_length=2000)
     image_prompt_ko: str = ""
     # Input-only: triggers _link_media_asset, not stored directly
     image_url: str | None = None
@@ -374,7 +374,7 @@ class StoryboardScene(BaseModel):
     height: int = 768
 
     # SD Generation Params
-    negative_prompt: str | None = None
+    negative_prompt: str | None = Field(default=None, max_length=2000)
     context_tags: dict | None = None
 
     # Candidate images (media_asset_id based)
@@ -502,8 +502,8 @@ class VideoDeleteRequest(BaseModel):
 
 
 class SceneGenerateRequest(BaseModel):
-    prompt: str
-    negative_prompt: str = ""
+    prompt: str = Field(max_length=4000)
+    negative_prompt: str = Field(default="", max_length=2000)
     steps: int = SD_DEFAULT_STEPS
     cfg_scale: float = SD_DEFAULT_CFG_SCALE
     sampler_name: str = SD_DEFAULT_SAMPLER
@@ -1312,6 +1312,25 @@ class VideoCreateAccepted(BaseModel):
     task_id: str
 
 
+class ImageGenAccepted(BaseModel):
+    """202 response for async image generation."""
+
+    task_id: str
+
+
+class ImageProgressEvent(BaseModel):
+    """SSE event payload for image generation progress."""
+
+    task_id: str
+    stage: str
+    percent: int = 0
+    stage_detail: str = ""
+    image: str | None = None  # Base64 result on completion
+    used_prompt: str | None = None
+    warnings: list[str] = []
+    error: str | None = None
+
+
 class TextExtractRequest(BaseModel):
     """Request body for caption/hashtag extraction endpoints."""
 
@@ -1344,6 +1363,8 @@ class RenderProgressEvent(BaseModel):
     encode_percent: int = 0
     current_scene: int = 0
     total_scenes: int = 0
+    elapsed_seconds: float | None = None
+    estimated_remaining_seconds: float | None = None
     video_url: str | None = None
     media_asset_id: int | None = None
     render_history_id: int | None = None

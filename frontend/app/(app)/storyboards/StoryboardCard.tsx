@@ -44,7 +44,7 @@ export default function StoryboardCard({ sb, onClick, onDelete }: StoryboardCard
                   className="h-full w-full object-cover object-top"
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-[8px] text-zinc-400">
+                <span className="flex h-full w-full items-center justify-center text-[11px] text-zinc-400">
                   {c.speaker}
                 </span>
               )}

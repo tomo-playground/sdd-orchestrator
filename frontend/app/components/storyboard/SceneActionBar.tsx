@@ -2,6 +2,7 @@
 
 import type { Scene } from "../../types";
 import Button from "../ui/Button";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 
 type SceneActionBarProps = {
   scene: Scene;
@@ -86,7 +87,8 @@ export default function SceneActionBar({
             📌
             {scene.environment_reference_id ? (
               <span className="ml-0.5 text-[12px]">
-                S{sceneIndex + 1}{pinnedSceneOrder != null ? `→S${pinnedSceneOrder}` : ""}
+                S{sceneIndex + 1}
+                {pinnedSceneOrder != null ? `→S${pinnedSceneOrder}` : ""}
               </span>
             ) : null}
           </Button>
@@ -201,6 +203,8 @@ function DropdownMenu({
   onSavePrompt,
   showToast,
 }: DropdownMenuProps) {
+  const { confirm, dialogProps } = useConfirm();
+
   return (
     <div className="relative">
       <Button variant="outline" size="sm" icon onClick={onSceneMenuToggle}>
@@ -236,11 +240,15 @@ function DropdownMenu({
           <hr className="my-1 border-zinc-100" />
           <button
             type="button"
-            onClick={() => {
-              if (confirm("이 씬을 삭제하시겠습니까?")) {
-                onRemoveScene();
-              }
+            onClick={async () => {
               onSceneMenuClose();
+              const ok = await confirm({
+                title: "Delete Scene",
+                message: "이 씬을 삭제하시겠습니까?",
+                confirmLabel: "Delete",
+                variant: "danger",
+              });
+              if (ok) onRemoveScene();
             }}
             className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50"
           >
@@ -248,6 +256,7 @@ function DropdownMenu({
           </button>
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

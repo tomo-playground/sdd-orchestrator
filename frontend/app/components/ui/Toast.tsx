@@ -1,4 +1,8 @@
+"use client";
+
 import { useEffect, useState } from "react";
+import { useUIStore } from "../../store/useUIStore";
+import type { ToastItem } from "../../types";
 
 type ToastType = "success" | "error" | "info" | "warning";
 
@@ -9,13 +13,13 @@ type ToastProps = {
   duration?: number;
 };
 
-export default function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
+function SingleToast({ message, type, onClose, duration = 3000 }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => onClose?.(), 300); // Wait for fade out animation
+      setTimeout(() => onClose?.(), 300);
     }, duration);
 
     return () => clearTimeout(timer);
@@ -73,7 +77,7 @@ export default function Toast({ message, type, onClose, duration = 3000 }: Toast
       role={isUrgent ? "alert" : "status"}
       aria-live={isUrgent ? "assertive" : "polite"}
       aria-atomic="true"
-      className={`fixed bottom-6 left-1/2 z-[var(--z-toast)] flex -translate-x-1/2 items-center gap-3 rounded-full px-6 py-3 text-sm font-medium shadow-lg transition-all duration-300 ${
+      className={`flex items-center gap-3 rounded-full px-6 py-3 text-sm font-medium shadow-lg transition-all duration-300 ${
         styles[type]
       } ${isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
     >
@@ -101,3 +105,27 @@ export default function Toast({ message, type, onClose, duration = 3000 }: Toast
     </div>
   );
 }
+
+/** Renders the toast queue from useUIStore. Place once in AppShell. */
+export function ToastContainer() {
+  const toasts = useUIStore((s) => s.toasts);
+  const dismissToast = useUIStore((s) => s.dismissToast);
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 z-[var(--z-toast)] flex -translate-x-1/2 flex-col-reverse items-center gap-2">
+      {toasts.map((t: ToastItem) => (
+        <SingleToast
+          key={t.id}
+          message={t.message}
+          type={t.type}
+          onClose={() => dismissToast(t.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Default export kept for backward compat with tests
+export default SingleToast;

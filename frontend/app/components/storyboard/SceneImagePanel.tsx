@@ -211,7 +211,7 @@ export default function SceneImagePanel({
                   key={`${scene.id}-candidate-${idx}`}
                   type="button"
                   onClick={() => onCandidateSelect(candidate.image_url!)}
-                  className={`overflow-hidden rounded-xl border ${
+                  className={`relative overflow-hidden rounded-xl border ${
                     isSelected ? "border-zinc-900" : "border-zinc-200"
                   }`}
                 >
@@ -222,6 +222,11 @@ export default function SceneImagePanel({
                     loading="lazy"
                     className="h-full w-full object-cover"
                   />
+                  {candidate.match_rate != null && (
+                    <span className="absolute top-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[11px] font-bold text-white">
+                      {Math.round(candidate.match_rate * 100)}%
+                    </span>
+                  )}
                 </button>
               );
             })}

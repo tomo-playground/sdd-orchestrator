@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import json
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from config import logger
@@ -16,6 +20,8 @@ from schemas import (
     GeminiEditResponse,
     GeminiSuggestRequest,
     GeminiSuggestResponse,
+    ImageGenAccepted,
+    ImageProgressEvent,
     ImageStoreRequest,
     SceneGenerateRequest,
     SceneGenerateResponse,
@@ -24,6 +30,12 @@ from schemas import (
 from services.asset_service import AssetService
 from services.generation import generate_scene_image
 from services.image import decode_data_url, load_image_bytes
+from services.image_progress import (
+    ImageGenStage,
+    calc_percent,
+    create_image_task,
+    get_image_task,
+)
 from services.imagen_edit import get_imagen_service
 from services.utils import scrub_payload
 from services.validation import validate_scene_image
@@ -48,7 +60,6 @@ async def generate_scene_image_endpoint(request: SceneGenerateRequest):
 @router.post("/scene/generate-batch", response_model=BatchSceneResponse)
 async def generate_batch_images(request: BatchSceneRequest):
     """Generate images for multiple scenes concurrently with semaphore-based throttling."""
-    import asyncio
 
     from config import SD_BATCH_CONCURRENCY
 
@@ -117,8 +128,9 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         logger.info("💾 [Image Store] Saved: %s", asset.storage_key)
         return {"url": url, "asset_id": asset.id}
     except Exception as e:
-        logger.exception("❌ [Image Store] Failed")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("image_store", e)
 
 
 @router.post("/scene/validate_image")
@@ -341,8 +353,9 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
         )
 
     except Exception as e:
-        logger.error("❌ [Gemini Edit] Failed: %s", str(e))
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("image_edit", e)
 
 
 @router.post("/scene/suggest-edit", response_model=GeminiSuggestResponse)
@@ -423,5 +436,108 @@ async def suggest_edit_for_scene(request: GeminiSuggestRequest):
         )
 
     except Exception as e:
-        logger.error("❌ [Gemini Suggest] Failed: %s", str(e))
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("image_suggest", e)
+
+
+# ------------------------------------------------------------------
+# Async image generation + SSE progress stream
+# ------------------------------------------------------------------
+
+
+@router.post("/scene/generate-async", response_model=ImageGenAccepted, status_code=202)
+async def generate_scene_async(request: SceneGenerateRequest):
+    """Start async image generation and return task_id for SSE polling."""
+    logger.info("[Scene Gen Async] %s", scrub_payload(request.model_dump()))
+    task = create_image_task()
+    asyncio.create_task(_run_image_gen(task.task_id, request))
+    return ImageGenAccepted(task_id=task.task_id)
+
+
+async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
+    """Background coroutine: generate image with progress updates."""
+    task = get_image_task(task_id)
+    if not task:
+        return
+
+    try:
+        # Stage: composing
+        task.stage = ImageGenStage.COMPOSING
+        task.percent = calc_percent(task)
+        task.stage_detail = "프롬프트 조합 중..."
+        task.notify()
+
+        # Stage: generating (start SD progress polling)
+        task.stage = ImageGenStage.GENERATING
+        task.percent = calc_percent(task)
+        task.stage_detail = "이미지 생성 중..."
+        task.notify()
+
+        from services.sd_progress_poller import poll_sd_progress
+
+        poller = asyncio.create_task(poll_sd_progress(task))
+        try:
+            result = await generate_scene_image(request)
+        finally:
+            task.stage = ImageGenStage.STORING
+            task.percent = calc_percent(task)
+            task.stage_detail = "저장 중..."
+            task.notify()
+            poller.cancel()
+
+        # Stage: completed
+        task.stage = ImageGenStage.COMPLETED
+        task.percent = 100
+        task.result = result
+        task.stage_detail = "완료"
+        task.notify()
+
+    except Exception as exc:
+        logger.exception("[Scene Gen Async] Failed for task %s", task_id)
+        task.stage = ImageGenStage.FAILED
+        task.error = str(exc)
+        task.notify()
+
+
+@router.get("/scene/progress/{task_id}")
+async def stream_image_progress(task_id: str):
+    """SSE stream for image generation progress."""
+    task = get_image_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return StreamingResponse(
+        _image_event_generator(task_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
+    """Yield SSE events until the image task completes or fails."""
+    while True:
+        task = get_image_task(task_id)
+        if not task:
+            event = ImageProgressEvent(task_id=task_id, stage="failed", error="Task expired")
+            yield f"data: {json.dumps(event.model_dump())}\n\n"
+            return
+
+        event = ImageProgressEvent(
+            task_id=task.task_id,
+            stage=task.stage.value,
+            percent=task.percent,
+            stage_detail=task.stage_detail,
+            image=task.result.get("image") if task.result else None,
+            used_prompt=task.result.get("used_prompt") if task.result else None,
+            warnings=task.result.get("warnings", []) if task.result else [],
+            error=task.error,
+        )
+        yield f"data: {json.dumps(event.model_dump())}\n\n"
+
+        if task.stage in (ImageGenStage.COMPLETED, ImageGenStage.FAILED):
+            return
+
+        version = task._version
+        updated = await task.wait_for_update(version, timeout=10.0)
+        if not updated:
+            yield ": keep-alive\n\n"

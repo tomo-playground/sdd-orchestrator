@@ -162,10 +162,14 @@ export type RecentVideo = {
   renderHistoryId?: number;
 };
 
-export type Toast = {
+export type ToastItem = {
+  id: string;
   message: string;
   type: "success" | "error" | "warning";
-} | null;
+};
+
+// Backward compat alias
+export type Toast = ToastItem | null;
 
 export type DraftScene = {
   id: number;
@@ -638,6 +642,8 @@ export type RenderProgress = {
   encode_percent: number;
   current_scene: number;
   total_scenes: number;
+  elapsed_seconds?: number;
+  estimated_remaining_seconds?: number;
   video_url?: string;
   media_asset_id?: number;
   render_history_id?: number;

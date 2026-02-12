@@ -348,6 +348,12 @@ export function RenderSidePanel({
               </span>
               <span className="font-medium">{renderProgress.percent}%</span>
             </div>
+            {renderProgress.estimated_remaining_seconds != null &&
+              renderProgress.estimated_remaining_seconds > 0 && (
+                <p className="text-[11px] text-zinc-400">
+                  남은 시간: ~{Math.ceil(renderProgress.estimated_remaining_seconds)}초
+                </p>
+              )}
           </div>
         )}
 

@@ -41,7 +41,7 @@ export default function KanbanCard({ item, onClick }: KanbanCardProps) {
           {item.cast.slice(0, 3).map((c) => (
             <div
               key={c.id}
-              className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500"
+              className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[11px] font-bold text-zinc-500"
               title={c.name}
             >
               {c.preview_url ? (

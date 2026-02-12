@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, FileText } from "lucide-react";
 import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { usePresets } from "../../hooks/usePresets";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
 import ScriptSceneList from "./ScriptSceneList";
@@ -21,6 +22,7 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
   const onSaved = useCallback((id: number) => router.replace(`/scripts?id=${id}`), [router]);
   const editor = useScriptEditor({ onSaved });
   const { presets, languages, durations } = usePresets();
+  const { confirm, dialogProps } = useConfirm();
   const loadedRef = useRef<number | null>(null);
 
   // Load existing storyboard
@@ -72,7 +74,18 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
             size="md"
             variant="gradient"
             disabled={!editor.topic.trim() || editor.isGenerating}
-            onClick={editor.generate}
+            onClick={async () => {
+              if (editor.scenes.length > 0) {
+                const ok = await confirm({
+                  title: "스크립트 재생성",
+                  message: `기존 ${editor.scenes.length}개 씬이 교체됩니다. 계속하시겠습니까?`,
+                  confirmLabel: "재생성",
+                  variant: "danger",
+                });
+                if (!ok) return;
+              }
+              editor.generate();
+            }}
           >
             {editor.isGenerating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -100,6 +113,8 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
           description="Topic을 입력하고 Generate Script를 클릭하세요"
         />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

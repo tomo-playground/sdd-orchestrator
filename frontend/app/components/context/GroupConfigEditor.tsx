@@ -10,6 +10,7 @@ import VoicePresetSelector from "../voice/VoicePresetSelector";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { fetchGroups } from "../../store/actions/groupActions";
+import { FORM_INPUT_COMPACT_CLASSES, FORM_LABEL_COMPACT_CLASSES } from "../ui/variants";
 
 // ── Types ────────────────────────────────────────────────────
 type GroupConfig = {
@@ -37,9 +38,8 @@ type Props = {
 // ── Constants ────────────────────────────────────────────────
 const SAMPLERS = ["DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"];
 
-const labelCls = "mb-1 block text-[12px] font-semibold uppercase tracking-wider text-zinc-400";
-const inputCls =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none";
+const labelCls = FORM_LABEL_COMPACT_CLASSES;
+const inputCls = FORM_INPUT_COMPACT_CLASSES;
 const disabledCls =
   "w-full rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-400 cursor-not-allowed";
 

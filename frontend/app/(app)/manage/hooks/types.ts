@@ -7,9 +7,13 @@ export type UiCallbacks = {
     message?: string;
     confirmLabel?: string;
     variant?: "default" | "danger";
-  }) => Promise<boolean>;
+  }) => Promise<boolean | string>;
 };
 
 export type UiCallbacksWithPrompt = UiCallbacks & {
-  promptDialog: (msg: string) => string | null;
+  promptDialog: (opts: {
+    title: string;
+    message?: string;
+    inputField: { label: string; placeholder?: string; defaultValue?: string };
+  }) => Promise<boolean | string>;
 };

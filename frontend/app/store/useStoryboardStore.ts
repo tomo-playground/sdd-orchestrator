@@ -77,6 +77,9 @@ export interface StoryboardStore {
   suggestionExpanded: Record<number, boolean>;
   validationExpanded: Record<number, boolean>;
 
+  // Dirty flag
+  isDirty: boolean;
+
   // Setters
   set: (updates: Partial<StoryboardStore>) => void;
   setScenes: (scenes: Scene[]) => void;
@@ -87,7 +90,7 @@ export interface StoryboardStore {
 
 const initialState: Omit<
   StoryboardStore,
-  "set" | "setScenes" | "updateScene" | "removeScene" | "reset"
+  "set" | "setScenes" | "updateScene" | "removeScene" | "reset" | "isDirty"
 > = {
   // Content plan fields
   topic: "",
@@ -152,6 +155,7 @@ if (typeof window !== "undefined") {
 
 /** Fields excluded from persistence (transient / runtime-derived). */
 const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
+  "isDirty",
   "isGenerating",
   "validatingSceneId",
   "markingStatusSceneId",
@@ -172,25 +176,29 @@ export const useStoryboardStore = create<StoryboardStore>()(
   persist(
     (set) => ({
       ...initialState,
+      isDirty: false,
       set: (updates) => set((state) => ({ ...state, ...updates })),
       setScenes: (scenes) =>
         set((state) => ({
           scenes,
+          isDirty: true,
           currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, scenes.length - 1)),
         })),
       updateScene: (sceneId, updates) =>
         set((state) => ({
           scenes: state.scenes.map((s) => (s.id === sceneId ? { ...s, ...updates } : s)),
+          isDirty: true,
         })),
       removeScene: (sceneId) =>
         set((state) => {
           const newScenes = state.scenes.filter((s) => s.id !== sceneId);
           return {
             scenes: newScenes,
+            isDirty: true,
             currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, newScenes.length - 1)),
           };
         }),
-      reset: () => set(initialState),
+      reset: () => set({ ...initialState, isDirty: false }),
     }),
     {
       name: STORYBOARD_STORE_KEY,

@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { Scene, Tag, Background } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useContextStore } from "../../store/useContextStore";
+import useTagValidation from "../../hooks/useTagValidation";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
+import TagValidationWarning from "../prompt/TagValidationWarning";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
 import NegativePromptToggle from "./NegativePromptToggle";
@@ -63,6 +66,42 @@ export default function SceneFormFields({
   const isNarratedDialogue = structure?.toLowerCase() === "narrated dialogue";
   const selectedBackground = backgrounds.find((bg) => bg.id === scene.background_id);
 
+  // Tag validation
+  const { validationResult, validateTags, autoReplaceTags, clearValidation } = useTagValidation();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const prompt = scene.image_prompt;
+    if (!prompt || !prompt.trim()) {
+      clearValidation();
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      const tags = prompt
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      if (tags.length > 0) validateTags(tags);
+    }, 800);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [scene.image_prompt, validateTags, clearValidation]);
+
+  const handleAutoReplace = async () => {
+    const prompt = scene.image_prompt;
+    if (!prompt) return;
+    const tags = prompt
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const replaced = await autoReplaceTags(tags);
+    if (replaced) {
+      onUpdateScene({ image_prompt: replaced.join(", ") });
+    }
+  };
+
   return (
     <>
       {/* Script */}
@@ -103,7 +142,14 @@ export default function SceneFormFields({
             min={1}
             max={10}
             value={scene.duration}
-            onChange={(e) => onUpdateScene({ duration: Number(e.target.value) })}
+            onChange={(e) => {
+              const num = Number(e.target.value);
+              if (Number.isNaN(num)) return;
+              onUpdateScene({ duration: Math.min(10, Math.max(1, Math.round(num))) });
+            }}
+            onBlur={(e) => {
+              if (!e.target.value.trim()) onUpdateScene({ duration: 3 });
+            }}
             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           />
         </div>
@@ -140,7 +186,8 @@ export default function SceneFormFields({
             <option value="">None</option>
             {backgrounds.map((bg) => (
               <option key={bg.id} value={bg.id}>
-                {bg.name}{bg.category ? ` (${bg.category})` : ""}
+                {bg.name}
+                {bg.category ? ` (${bg.category})` : ""}
               </option>
             ))}
           </select>
@@ -206,6 +253,11 @@ export default function SceneFormFields({
           onChange={(value) => onUpdateScene({ image_prompt: value })}
           rows={2}
           className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+        />
+        <TagValidationWarning
+          result={validationResult}
+          onAutoReplace={handleAutoReplace}
+          onDismiss={clearValidation}
         />
         {scene.image_prompt && (
           <>

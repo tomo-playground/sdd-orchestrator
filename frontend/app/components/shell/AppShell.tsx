@@ -16,7 +16,7 @@ import {
 import { useUIStore } from "../../store/useUIStore";
 import { cx } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
-import Toast from "../ui/Toast";
+import { ToastContainer } from "../ui/Toast";
 import ConnectionGuard from "./ConnectionGuard";
 import PersistentContextBar from "../context/PersistentContextBar";
 import { useBackendHealth } from "../../hooks/useBackendHealth";
@@ -92,7 +92,7 @@ function NavBar() {
 }
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  const toast = useUIStore((s) => s.toast);
+  const hasToasts = useUIStore((s) => s.toasts.length > 0);
   const connectionStatus = useBackendHealth();
 
   return (
@@ -121,7 +121,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <CommandPalette />
-      {toast && <Toast message={toast.message} type={toast.type} />}
+      {hasToasts && <ToastContainer />}
       <ConnectionGuard status={connectionStatus} />
     </div>
   );

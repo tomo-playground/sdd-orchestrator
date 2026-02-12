@@ -69,11 +69,7 @@ def list_backgrounds(
 
 @router.get("/{background_id}", response_model=BackgroundResponse)
 def get_background(background_id: int, db: Session = Depends(get_db)):
-    bg = (
-        db.query(Background)
-        .filter(Background.id == background_id, Background.deleted_at.is_(None))
-        .first()
-    )
+    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
     return _bg_to_response(bg, db)
@@ -94,11 +90,7 @@ def update_background(
     body: BackgroundUpdate,
     db: Session = Depends(get_db),
 ):
-    bg = (
-        db.query(Background)
-        .filter(Background.id == background_id, Background.deleted_at.is_(None))
-        .first()
-    )
+    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -111,11 +103,7 @@ def update_background(
 @router.delete("/{background_id}")
 def delete_background(background_id: int, db: Session = Depends(get_db)):
     """Soft delete a background."""
-    bg = (
-        db.query(Background)
-        .filter(Background.id == background_id, Background.deleted_at.is_(None))
-        .first()
-    )
+    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
     bg.deleted_at = datetime.now(UTC)
@@ -126,11 +114,7 @@ def delete_background(background_id: int, db: Session = Depends(get_db)):
 @router.post("/{background_id}/restore", response_model=BackgroundResponse)
 def restore_background(background_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted background."""
-    bg = (
-        db.query(Background)
-        .filter(Background.id == background_id, Background.deleted_at.isnot(None))
-        .first()
-    )
+    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.isnot(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found or not deleted")
     bg.deleted_at = None
@@ -146,15 +130,13 @@ async def upload_background_image(
     db: Session = Depends(get_db),
 ):
     """Upload a reference image for a background."""
-    bg = (
-        db.query(Background)
-        .filter(Background.id == background_id, Background.deleted_at.is_(None))
-        .first()
-    )
+    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
 
-    image_bytes = await file.read()
+    from services.upload_validation import validate_image_upload
+
+    image_bytes = await validate_image_upload(file)
     mime = file.content_type or "image/png"
     svc = AssetService(db)
     asset = svc.save_background_image(bg.id, image_bytes, mime)
