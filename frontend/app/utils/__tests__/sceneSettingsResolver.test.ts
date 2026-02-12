@@ -9,6 +9,7 @@ import type { Scene } from "../../types";
 function makeScene(overrides: Partial<Scene> = {}): Scene {
   return {
     id: 1,
+    client_id: overrides.client_id ?? "scene-1",
     order: 1,
     script: "",
     speaker: "A",

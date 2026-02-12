@@ -5,6 +5,7 @@ import type { Scene } from "../../types";
 // Helper to create a valid base scene
 const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   id: 1,
+  client_id: overrides.client_id ?? "scene-1",
   order: 0,
   script: "Test script",
   speaker: "A",

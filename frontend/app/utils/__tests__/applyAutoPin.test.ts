@@ -4,6 +4,7 @@ import type { Scene } from "../../types";
 
 const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   id: overrides.id ?? 1,
+  client_id: overrides.client_id ?? `scene-${overrides.id ?? 1}`,
   order: overrides.order ?? 0,
   script: "Test",
   speaker: "A",
@@ -29,7 +30,7 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    applyAutoPinAfterGeneration(scenes, 1, updateScene);
+    applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
     expect(updateScene).not.toHaveBeenCalled();
   });
@@ -47,7 +48,7 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    applyAutoPinAfterGeneration(scenes, 1, updateScene);
+    applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
     expect(updateScene).not.toHaveBeenCalled();
   });
@@ -59,9 +60,9 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    applyAutoPinAfterGeneration(scenes, 1, updateScene);
+    applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
-    expect(updateScene).toHaveBeenCalledWith(1, {
+    expect(updateScene).toHaveBeenCalledWith("scene-1", {
       environment_reference_id: 100,
       environment_reference_weight: 0.3,
     });
@@ -74,7 +75,7 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    applyAutoPinAfterGeneration(scenes, 1, updateScene);
+    applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
     expect(updateScene).not.toHaveBeenCalled();
   });
@@ -87,9 +88,9 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    applyAutoPinAfterGeneration(scenes, 2, updateScene);
+    applyAutoPinAfterGeneration(scenes, "scene-2", updateScene);
 
-    expect(updateScene).toHaveBeenCalledWith(2, {
+    expect(updateScene).toHaveBeenCalledWith("scene-2", {
       environment_reference_id: 100, // Skip scene 1, use scene 0
       environment_reference_weight: 0.3,
     });
@@ -101,7 +102,7 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    applyAutoPinAfterGeneration(scenes, 0, updateScene);
+    applyAutoPinAfterGeneration(scenes, "scene-0", updateScene);
 
     expect(updateScene).not.toHaveBeenCalled();
   });
@@ -113,7 +114,7 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    const result = applyAutoPinAfterGeneration(scenes, 1, updateScene);
+    const result = applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
     expect(result).toEqual({
       success: true,
@@ -128,7 +129,7 @@ describe("applyAutoPinAfterGeneration", () => {
     ];
     const updateScene = vi.fn();
 
-    const result = applyAutoPinAfterGeneration(scenes, 1, updateScene);
+    const result = applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
     expect(result).toBeNull();
   });

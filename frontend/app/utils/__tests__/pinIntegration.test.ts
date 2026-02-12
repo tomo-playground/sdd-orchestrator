@@ -4,6 +4,7 @@ import type { Scene } from "../../types";
 
 const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   id: overrides.id ?? 1,
+  client_id: overrides.client_id ?? `scene-${overrides.id ?? 1}`,
   order: overrides.order ?? 0,
   script: "Test",
   speaker: "A",
@@ -37,7 +38,7 @@ describe("Pin Integration Tests", () => {
       ];
       const updateScene = vi.fn();
 
-      applyAutoPinAfterGeneration(scenes, 2, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-2", updateScene);
 
       // Should NOT update because already pinned
       expect(updateScene).not.toHaveBeenCalled();
@@ -57,10 +58,10 @@ describe("Pin Integration Tests", () => {
       ];
       const updateScene = vi.fn();
 
-      applyAutoPinAfterGeneration(scenes, 2, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-2", updateScene);
 
       // Should apply auto-pin to scene 1
-      expect(updateScene).toHaveBeenCalledWith(2, {
+      expect(updateScene).toHaveBeenCalledWith("scene-2", {
         environment_reference_id: 101,
         environment_reference_weight: 0.3,
       });
@@ -81,7 +82,7 @@ describe("Pin Integration Tests", () => {
       ];
       const updateScene = vi.fn();
 
-      applyAutoPinAfterGeneration(scenes, 3, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-3", updateScene);
 
       expect(updateScene).not.toHaveBeenCalled();
       expect(scenes[3].environment_reference_id).toBe(100); // Manual pin preserved
@@ -94,7 +95,7 @@ describe("Pin Integration Tests", () => {
 
       // Scene 0: no pin (first scene)
       const scenes0 = [createScene({ id: 0, order: 0, image_asset_id: 100 })];
-      applyAutoPinAfterGeneration(scenes0, 0, updateScene);
+      applyAutoPinAfterGeneration(scenes0, "scene-0", updateScene);
       expect(updateScene).not.toHaveBeenCalled(); // No previous scene
 
       // Scene 1: auto-pin to Scene 0
@@ -103,8 +104,8 @@ describe("Pin Integration Tests", () => {
         createScene({ id: 1, order: 1, image_asset_id: 101, _auto_pin_previous: true }),
       ];
       updateScene.mockClear();
-      applyAutoPinAfterGeneration(scenes1, 1, updateScene);
-      expect(updateScene).toHaveBeenCalledWith(1, {
+      applyAutoPinAfterGeneration(scenes1, "scene-1", updateScene);
+      expect(updateScene).toHaveBeenCalledWith("scene-1", {
         environment_reference_id: 100,
         environment_reference_weight: 0.3,
       });
@@ -116,8 +117,8 @@ describe("Pin Integration Tests", () => {
         createScene({ id: 2, order: 2, image_asset_id: 102, _auto_pin_previous: true }),
       ];
       updateScene.mockClear();
-      applyAutoPinAfterGeneration(scenes2, 2, updateScene);
-      expect(updateScene).toHaveBeenCalledWith(2, {
+      applyAutoPinAfterGeneration(scenes2, "scene-2", updateScene);
+      expect(updateScene).toHaveBeenCalledWith("scene-2", {
         environment_reference_id: 101,
         environment_reference_weight: 0.3,
       });
@@ -130,8 +131,8 @@ describe("Pin Integration Tests", () => {
         createScene({ id: 3, order: 3, image_asset_id: 103, _auto_pin_previous: true }),
       ];
       updateScene.mockClear();
-      applyAutoPinAfterGeneration(scenes3, 3, updateScene);
-      expect(updateScene).toHaveBeenCalledWith(3, {
+      applyAutoPinAfterGeneration(scenes3, "scene-3", updateScene);
+      expect(updateScene).toHaveBeenCalledWith("scene-3", {
         environment_reference_id: 102,
         environment_reference_weight: 0.3,
       });
@@ -147,13 +148,13 @@ describe("Pin Integration Tests", () => {
       const updateScene = vi.fn();
 
       // Scene 2: no auto-pin (location changed)
-      applyAutoPinAfterGeneration(scenes, 2, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-2", updateScene);
       expect(updateScene).not.toHaveBeenCalled();
 
       // Scene 3: auto-pin to Scene 2 (new location chain starts)
       updateScene.mockClear();
-      applyAutoPinAfterGeneration(scenes, 3, updateScene);
-      expect(updateScene).toHaveBeenCalledWith(3, {
+      applyAutoPinAfterGeneration(scenes, "scene-3", updateScene);
+      expect(updateScene).toHaveBeenCalledWith("scene-3", {
         environment_reference_id: 102,
         environment_reference_weight: 0.3,
       });
@@ -174,10 +175,10 @@ describe("Pin Integration Tests", () => {
       ];
       const updateScene = vi.fn();
 
-      applyAutoPinAfterGeneration(scenes, 2, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-2", updateScene);
 
       // Should skip scene 1 and pin to scene 0
-      expect(updateScene).toHaveBeenCalledWith(2, {
+      expect(updateScene).toHaveBeenCalledWith("scene-2", {
         environment_reference_id: 100,
         environment_reference_weight: 0.3,
       });
@@ -191,7 +192,7 @@ describe("Pin Integration Tests", () => {
       ];
       const updateScene = vi.fn();
 
-      applyAutoPinAfterGeneration(scenes, 2, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-2", updateScene);
 
       // No previous scene with asset_id
       expect(updateScene).not.toHaveBeenCalled();
@@ -211,7 +212,7 @@ describe("Pin Integration Tests", () => {
       const updateScene = vi.fn();
 
       // Regenerate scene 1
-      applyAutoPinAfterGeneration(scenes, 1, updateScene);
+      applyAutoPinAfterGeneration(scenes, "scene-1", updateScene);
 
       // Should not re-pin (already pinned)
       expect(updateScene).not.toHaveBeenCalled();

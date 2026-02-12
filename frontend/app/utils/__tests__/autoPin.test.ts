@@ -5,6 +5,7 @@ import type { Scene } from "../../types";
 // Helper to create a scene
 const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   id: overrides.id ?? 1,
+  client_id: overrides.client_id ?? `scene-${overrides.id ?? 1}`,
   order: overrides.order ?? 0,
   script: "Test script",
   speaker: "A",
@@ -59,7 +60,7 @@ describe("autoPin utilities", () => {
         createScene({ id: 2, order: 2, image_asset_id: undefined, image_url: null }),
       ];
 
-      const result = findPreviousSceneWithImage(scenes, 2);
+      const result = findPreviousSceneWithImage(scenes, "scene-2");
       expect(result).toEqual(scenes[0]);
       expect(result?.image_asset_id).toBe(100);
     });
@@ -71,7 +72,7 @@ describe("autoPin utilities", () => {
         createScene({ id: 2, order: 2, image_asset_id: undefined, image_url: null }),
       ];
 
-      const result = findPreviousSceneWithImage(scenes, 2);
+      const result = findPreviousSceneWithImage(scenes, "scene-2");
       expect(result).toEqual(scenes[1]);
       expect(result?.image_asset_id).toBe(101);
     });
@@ -79,7 +80,7 @@ describe("autoPin utilities", () => {
     it("should return null if no previous scenes", () => {
       const scenes = [createScene({ id: 0, order: 0, image_asset_id: undefined, image_url: null })];
 
-      const result = findPreviousSceneWithImage(scenes, 0);
+      const result = findPreviousSceneWithImage(scenes, "scene-0");
       expect(result).toBeNull();
     });
 
@@ -90,7 +91,7 @@ describe("autoPin utilities", () => {
         createScene({ id: 2, order: 2, image_asset_id: undefined, image_url: null }),
       ];
 
-      const result = findPreviousSceneWithImage(scenes, 2);
+      const result = findPreviousSceneWithImage(scenes, "scene-2");
       expect(result).toBeNull();
     });
 
@@ -106,7 +107,7 @@ describe("autoPin utilities", () => {
         createScene({ id: 2, order: 2, image_asset_id: undefined, image_url: null }),
       ];
 
-      const result = findPreviousSceneWithImage(scenes, 2);
+      const result = findPreviousSceneWithImage(scenes, "scene-2");
       expect(result).toEqual(scenes[0]); // Skip scene 1, return scene 0
       expect(result?.image_asset_id).toBe(100);
     });
@@ -116,12 +117,12 @@ describe("autoPin utilities", () => {
         createScene({ id: 0, order: 0, image_asset_id: 100, image_url: "http://test.com/0.png" }),
       ];
 
-      const result = findPreviousSceneWithImage(scenes, 999);
+      const result = findPreviousSceneWithImage(scenes, "scene-999");
       expect(result).toBeNull();
     });
 
     it("should handle empty scenes array", () => {
-      const result = findPreviousSceneWithImage([], 0);
+      const result = findPreviousSceneWithImage([], "scene-0");
       expect(result).toBeNull();
     });
   });

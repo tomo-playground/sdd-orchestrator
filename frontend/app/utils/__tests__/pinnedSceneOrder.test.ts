@@ -9,6 +9,7 @@ import type { Scene } from "../../types";
 
 const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   id: overrides.id ?? 1,
+  client_id: overrides.client_id ?? `scene-${overrides.id ?? 1}`,
   order: overrides.order ?? 1,
   script: "Test",
   speaker: "A",

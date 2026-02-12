@@ -76,7 +76,6 @@ export default function ScenesTab() {
   // Character & generation settings
   const {
     multiGenEnabled,
-    autoComposePrompt,
     loraTriggerWords,
     characterLoras,
     characterBLoras,
@@ -98,7 +97,6 @@ export default function ScenesTab() {
   } = useStoryboardStore(
     useShallow((s) => ({
       multiGenEnabled: s.multiGenEnabled,
-      autoComposePrompt: s.autoComposePrompt,
       loraTriggerWords: s.loraTriggerWords,
       characterLoras: s.characterLoras,
       characterBLoras: s.characterBLoras,
