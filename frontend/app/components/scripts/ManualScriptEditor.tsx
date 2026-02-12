@@ -1,39 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, FileText } from "lucide-react";
-import { useScriptEditor } from "../../hooks/useScriptEditor";
+import { Loader2, Sparkles } from "lucide-react";
 import { usePresets } from "../../hooks/usePresets";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
-import ScriptSceneList from "./ScriptSceneList";
-import EmptyState from "../ui/EmptyState";
 import Button from "../ui/Button";
 import { SECTION_CLASSES } from "../ui/variants";
+import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 
 type Props = {
-  storyboardId?: number | null;
+  editor: ScriptEditorActions;
 };
 
-export default function ManualScriptEditor({ storyboardId }: Props) {
-  const router = useRouter();
-  const onSaved = useCallback((id: number) => router.replace(`/scripts?id=${id}`), [router]);
-  const editor = useScriptEditor({ onSaved });
+export default function ManualScriptEditor({ editor }: Props) {
   const { presets, languages, durations } = usePresets();
   const { confirm, dialogProps } = useConfirm();
-  const loadedRef = useRef<number | null>(null);
-
-  // Load existing storyboard
-  useEffect(() => {
-    if (storyboardId && loadedRef.current !== storyboardId) {
-      loadedRef.current = storyboardId;
-      editor.loadStoryboard(storyboardId);
-    }
-  }, [storyboardId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const hasScenes = editor.scenes.length > 0;
 
   return (
     <div className="space-y-6">
@@ -96,23 +78,6 @@ export default function ManualScriptEditor({ storyboardId }: Props) {
           </Button>
         </div>
       </section>
-
-      {/* Scene list or empty hint */}
-      {hasScenes ? (
-        <ScriptSceneList
-          scenes={editor.scenes}
-          storyboardId={editor.storyboardId}
-          isSaving={editor.isSaving}
-          onUpdateScene={editor.updateScene}
-          onSave={editor.save}
-        />
-      ) : (
-        <EmptyState
-          icon={FileText}
-          title="아직 생성된 씬이 없습니다"
-          description="Topic을 입력하고 Generate Script를 클릭하세요"
-        />
-      )}
 
       <ConfirmDialog {...dialogProps} />
     </div>

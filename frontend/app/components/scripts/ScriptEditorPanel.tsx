@@ -1,9 +1,15 @@
 "use client";
 
+import { useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FileText } from "lucide-react";
+import { useScriptEditor } from "../../hooks/useScriptEditor";
+import { useContextStore } from "../../store/useContextStore";
+import { SCRIPTS_LIST_REFRESH } from "../../constants";
 import ManualScriptEditor from "./ManualScriptEditor";
 import AgentScriptEditor from "./AgentScriptEditor";
+import ScriptSceneList from "./ScriptSceneList";
+import EmptyState from "../ui/EmptyState";
 
 const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 const TAB_ACTIVE = `${TAB_BASE} bg-zinc-900 text-white`;
@@ -19,6 +25,42 @@ export default function ScriptEditorPanel() {
   const isAgent = mode === "agent";
 
   const hasEditor = isNew || storyboardId !== null;
+
+  // Lifted: useScriptEditor at panel level (shared by Manual & Agent)
+  const onSaved = useCallback(
+    (id: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("id", String(id));
+      params.delete("new");
+      router.replace(`/scripts?${params.toString()}`);
+    },
+    [router, searchParams]
+  );
+  const editor = useScriptEditor({ onSaved });
+
+  // Load storyboard when URL id changes
+  const loadedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (storyboardId && loadedRef.current !== storyboardId) {
+      loadedRef.current = storyboardId;
+      editor.loadStoryboard(storyboardId);
+    } else if (!storyboardId && loadedRef.current !== null) {
+      loadedRef.current = null;
+      editor.reset();
+    }
+  }, [storyboardId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Agent completion: keep mode=agent, add id
+  const handleStoryboardCreated = useCallback(
+    (id: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("id", String(id));
+      router.replace(`/scripts?${params.toString()}`);
+      useContextStore.getState().setContext({ storyboardId: id });
+      window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
+    },
+    [router, searchParams]
+  );
 
   if (!hasEditor) {
     return (
@@ -59,14 +101,29 @@ export default function ScriptEditorPanel() {
         </button>
       </div>
 
-      {/* Editor content */}
+      {/* Mode-specific top area */}
       {isAgent ? (
-        <AgentScriptEditor />
-      ) : storyboardId ? (
-        <ManualScriptEditor key={storyboardId} storyboardId={storyboardId} />
+        <AgentScriptEditor onStoryboardCreated={handleStoryboardCreated} />
       ) : (
-        <ManualScriptEditor />
+        <ManualScriptEditor editor={editor} />
       )}
+
+      {/* Shared scene list (always visible) */}
+      {editor.scenes.length > 0 ? (
+        <ScriptSceneList
+          scenes={editor.scenes}
+          storyboardId={editor.storyboardId}
+          isSaving={editor.isSaving}
+          onUpdateScene={editor.updateScene}
+          onSave={editor.save}
+        />
+      ) : hasEditor && !isAgent ? (
+        <EmptyState
+          icon={FileText}
+          title="아직 생성된 씬이 없습니다"
+          description="Topic을 입력하고 Generate Script를 클릭하세요"
+        />
+      ) : null}
     </div>
   );
 }

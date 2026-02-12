@@ -32,12 +32,13 @@ export type ScriptEditorState = {
   isSaving: boolean;
 };
 
-type ScriptEditorActions = ScriptEditorState & {
+export type ScriptEditorActions = ScriptEditorState & {
   setField: <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => void;
   updateScene: (index: number, patch: Partial<SceneItem>) => void;
   generate: () => Promise<void>;
   save: () => Promise<void>;
   loadStoryboard: (id: number) => Promise<void>;
+  reset: () => void;
 };
 
 type ScriptEditorOptions = {
@@ -221,5 +222,21 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     [showToast]
   );
 
-  return { ...state, setField, updateScene, generate, save, loadStoryboard };
+  const reset = useCallback(() => {
+    setState({
+      topic: "",
+      description: "",
+      duration: 30,
+      language: "Korean",
+      structure: "Monologue",
+      characterId: null,
+      characterBId: null,
+      scenes: [],
+      isGenerating: false,
+      storyboardId: null,
+      isSaving: false,
+    });
+  }, []);
+
+  return { ...state, setField, updateScene, generate, save, loadStoryboard, reset };
 }

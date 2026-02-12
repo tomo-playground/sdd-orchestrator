@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import axios from "axios";
-import { API_BASE, SCRIPTS_LIST_REFRESH } from "../../constants";
-import { useContextStore } from "../../store/useContextStore";
+import { API_BASE } from "../../constants";
 import type { CreativeSession, ShortsSessionCreate } from "../../types/creative";
 import ShortsSetupForm from "../lab/ShortsSetupForm";
 import ShortsActiveView from "../lab/ShortsActiveView";
 
-export default function AgentScriptEditor() {
-  const router = useRouter();
+type Props = {
+  onStoryboardCreated: (id: number) => void;
+};
+
+export default function AgentScriptEditor({ onStoryboardCreated }: Props) {
   const [session, setSession] = useState<CreativeSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,19 +44,8 @@ export default function AgentScriptEditor() {
     setError(null);
   }, []);
 
-  const handleStoryboardCreated = useCallback(
-    (id: number) => {
-      useContextStore.getState().setContext({ storyboardId: id });
-      window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
-      router.replace(`/scripts?id=${id}`);
-    },
-    [router]
-  );
-
   return (
     <div className="space-y-4">
-      {/* Agent mode indicator is shown in ShortsSetupForm section header */}
-
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
           {error}
@@ -67,7 +57,7 @@ export default function AgentScriptEditor() {
           session={session}
           onBack={handleBack}
           onRefresh={setSession}
-          onStoryboardCreated={handleStoryboardCreated}
+          onStoryboardCreated={onStoryboardCreated}
         />
       ) : (
         <ShortsSetupForm loading={loading} onSubmit={handleStart} />
