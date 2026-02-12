@@ -2,6 +2,7 @@
 
 import { useTrashTab, type TrashItem, type FilterType } from "../hooks/useTrashTab";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
+import { FILTER_PILL_ACTIVE } from "../../../components/ui/variants";
 
 const RETENTION_DAYS = 30;
 
@@ -52,7 +53,7 @@ export default function TrashTab() {
               onClick={() => setFilter(f)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                 filter === f
-                  ? "bg-zinc-900 text-white"
+                  ? FILTER_PILL_ACTIVE
                   : "border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
               }`}
             >

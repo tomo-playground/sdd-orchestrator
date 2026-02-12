@@ -14,7 +14,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
-import { cx } from "../ui/variants";
+import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import { ToastContainer } from "../ui/Toast";
 import ConnectionGuard from "./ConnectionGuard";
@@ -75,9 +75,7 @@ function NavBar() {
                 href={item.href}
                 className={cx(
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-                  active
-                    ? "bg-zinc-900 text-white"
-                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+                  active ? TAB_ACTIVE : TAB_INACTIVE
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />

@@ -10,10 +10,9 @@ import ManualScriptEditor from "./ManualScriptEditor";
 import AgentScriptEditor from "./AgentScriptEditor";
 import ScriptSceneList from "./ScriptSceneList";
 import EmptyState from "../ui/EmptyState";
+import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 
 const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
-const TAB_ACTIVE = `${TAB_BASE} bg-zinc-900 text-white`;
-const TAB_INACTIVE = `${TAB_BASE} text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100`;
 
 export default function ScriptEditorPanel() {
   const searchParams = useSearchParams();
@@ -91,12 +90,15 @@ export default function ScriptEditorPanel() {
       {/* Mode tabs */}
       <div className="flex gap-1 rounded-xl bg-zinc-50 p-1">
         <button
-          className={isAgent ? TAB_INACTIVE : TAB_ACTIVE}
+          className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
           onClick={() => toggleMode("manual")}
         >
           Manual
         </button>
-        <button className={isAgent ? TAB_ACTIVE : TAB_INACTIVE} onClick={() => toggleMode("agent")}>
+        <button
+          className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
+          onClick={() => toggleMode("agent")}
+        >
           AI Agent
         </button>
       </div>

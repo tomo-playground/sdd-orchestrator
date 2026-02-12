@@ -5,13 +5,16 @@ import Link from "next/link";
 import { UserRound } from "lucide-react";
 import { useCharacters } from "../../hooks/useCharacters";
 import CharacterCard from "./CharacterCard";
+import CharacterCardSkeleton from "./CharacterCardSkeleton";
 import Button from "../../components/ui/Button";
 import EmptyState from "../../components/ui/EmptyState";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { SkeletonGrid } from "../../components/ui/Skeleton";
 import {
   CONTAINER_CLASSES,
   PAGE_TITLE_CLASSES,
   SEARCH_INPUT_CLASSES,
+  FILTER_PILL_ACTIVE,
+  FILTER_PILL_INACTIVE,
 } from "../../components/ui/variants";
 
 type FilterKey = "all" | "has_lora" | "has_preview" | "locked";
@@ -77,9 +80,7 @@ export default function CharactersPage() {
               key={key}
               onClick={() => setFilter(key)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                filter === key
-                  ? "bg-zinc-900 text-white"
-                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                filter === key ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
               }`}
             >
               {label}
@@ -90,9 +91,7 @@ export default function CharactersPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner size="md" />
-        </div>
+        <SkeletonGrid>{(i) => <CharacterCardSkeleton key={i} />}</SkeletonGrid>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={UserRound}

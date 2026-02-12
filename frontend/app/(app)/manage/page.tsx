@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useContextStore } from "../../store/useContextStore";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { TAB_ACTIVE, TAB_INACTIVE } from "../../components/ui/variants";
 import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
@@ -121,7 +122,7 @@ function MobileTabBar({
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              active ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-700"
+              active ? TAB_ACTIVE : TAB_INACTIVE
             }`}
           >
             {tab.label}

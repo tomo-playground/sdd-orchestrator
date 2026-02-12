@@ -89,3 +89,21 @@ export const FORM_INPUT_COMPACT_CLASSES =
 
 /** Compact form label (block, smaller tracking). */
 export const FORM_LABEL_COMPACT_CLASSES = "block text-xs font-semibold text-zinc-500";
+
+// ── Interactive state tokens ──────────────────────────────────
+
+/** Tab/toggle active state (filled pill). */
+export const TAB_ACTIVE = "bg-zinc-900 text-white";
+/** Tab/toggle inactive state. */
+export const TAB_INACTIVE = "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100";
+
+/** Filter pill active state (rounded-full context). */
+export const FILTER_PILL_ACTIVE = "bg-zinc-900 text-white";
+/** Filter pill inactive state. */
+export const FILTER_PILL_INACTIVE = "bg-zinc-100 text-zinc-500 hover:bg-zinc-200";
+
+/** Sidebar nav item active state. */
+export const SIDEBAR_ACTIVE =
+  "border-l-2 border-zinc-900 bg-zinc-100 pl-2 font-medium text-zinc-900";
+/** Sidebar nav item inactive state. */
+export const SIDEBAR_INACTIVE = "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700";

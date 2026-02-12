@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Tag, Image, BarChart3, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
-import { cx } from "../../components/ui/variants";
+import { cx, SIDEBAR_ACTIVE, SIDEBAR_INACTIVE } from "../../components/ui/variants";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -86,9 +86,7 @@ export default function LabSidebar({
                   title={collapsed ? item.label : undefined}
                   className={cx(
                     "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition",
-                    active
-                      ? "border-l-2 border-zinc-900 bg-zinc-100 pl-2 font-medium text-zinc-900"
-                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700",
+                    active ? SIDEBAR_ACTIVE : SIDEBAR_INACTIVE,
                     collapsed && "justify-center px-0"
                   )}
                 >

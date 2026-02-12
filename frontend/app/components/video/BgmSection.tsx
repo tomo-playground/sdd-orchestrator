@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import type { AudioItem, MusicPreset } from "../../types";
+import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 
 /** Truncate string with ellipsis if too long */
 const truncate = (str: string | undefined, maxLen: number) =>
@@ -80,7 +81,7 @@ export default function BgmSection(props: BgmSectionProps) {
             type="button"
             onClick={() => setBgmMode("file")}
             className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
-              bgmMode === "file" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-700"
+              bgmMode === "file" ? TAB_ACTIVE : TAB_INACTIVE
             }`}
           >
             File
@@ -89,7 +90,7 @@ export default function BgmSection(props: BgmSectionProps) {
             type="button"
             onClick={() => setBgmMode("ai")}
             className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
-              bgmMode === "ai" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-700"
+              bgmMode === "ai" ? TAB_ACTIVE : TAB_INACTIVE
             }`}
           >
             AI

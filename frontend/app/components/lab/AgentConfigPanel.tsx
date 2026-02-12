@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Loader2, Plus, Trash2, Shield, X, Pencil } from "lucide-react";
 import { API_BASE } from "../../constants";
+import { FILTER_PILL_ACTIVE, FILTER_PILL_INACTIVE } from "../ui/variants";
 import PresetFormFields from "./PresetFormFields";
 
 // ── Types ────────────────────────────────────────────────────
@@ -215,9 +216,7 @@ export default function AgentConfigPanel() {
         <button
           onClick={() => setCategoryFilter(null)}
           className={`rounded-lg px-3 py-1 text-xs transition ${
-            categoryFilter === null
-              ? "bg-zinc-900 text-white"
-              : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+            categoryFilter === null ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
           }`}
         >
           All
@@ -227,9 +226,7 @@ export default function AgentConfigPanel() {
             key={cat.value}
             onClick={() => setCategoryFilter(cat.value)}
             className={`rounded-lg px-3 py-1 text-xs transition ${
-              categoryFilter === cat.value
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              categoryFilter === cat.value ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
             }`}
           >
             {cat.label}

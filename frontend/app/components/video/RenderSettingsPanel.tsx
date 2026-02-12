@@ -1,7 +1,7 @@
 "use client";
 
 import type { AudioItem, FontItem, KenBurnsPreset, RenderProgress, RenderStage } from "../../types";
-import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../ui/variants";
+import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import VoiceStyleSection from "./VoiceStyleSection";
 import BgmSection from "./BgmSection";
 
@@ -289,9 +289,7 @@ export function RenderSidePanel({
             type="button"
             onClick={() => setLayoutStyle("full")}
             className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
-              layoutStyle === "full"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-500 hover:text-zinc-700"
+              layoutStyle === "full" ? TAB_ACTIVE : TAB_INACTIVE
             }`}
           >
             Full 9:16
@@ -300,9 +298,7 @@ export function RenderSidePanel({
             type="button"
             onClick={() => setLayoutStyle("post")}
             className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
-              layoutStyle === "post"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-500 hover:text-zinc-700"
+              layoutStyle === "post" ? TAB_ACTIVE : TAB_INACTIVE
             }`}
           >
             Post 1:1
