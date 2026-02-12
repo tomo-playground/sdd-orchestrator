@@ -82,6 +82,9 @@ export interface StoryboardStore {
   // Image generation progress (SSE)
   imageGenProgress: Record<string, ImageGenProgress>;
 
+  // Optimistic locking
+  storyboardVersion: number | null;
+
   // Dirty flag
   isDirty: boolean;
 
@@ -147,6 +150,7 @@ const initialState: Omit<
   suggestionExpanded: {},
   validationExpanded: {},
   imageGenProgress: {},
+  storyboardVersion: null,
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";

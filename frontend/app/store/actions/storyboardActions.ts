@@ -109,6 +109,9 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       storyboardTitle: topic || "Draft Storyboard",
     });
 
+    // Save version from response
+    useStoryboardStore.getState().set({ storyboardVersion: res.data.version ?? 1 });
+
     // Update scene IDs with DB-assigned IDs
     if (sceneIds.length > 0) {
       const { scenes: currentScenes, setScenes } = useStoryboardStore.getState();
@@ -229,6 +232,7 @@ export async function persistStoryboard(): Promise<boolean> {
       caption: videoCaption || null,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,
+      version: sbState.storyboardVersion ?? undefined,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         client_id: s.client_id,
@@ -269,6 +273,8 @@ export async function persistStoryboard(): Promise<boolean> {
         const current = useStoryboardStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
       }
+      // Update version from response
+      useStoryboardStore.getState().set({ storyboardVersion: res.data.version });
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload, {
         timeout: API_TIMEOUT.STORYBOARD_SAVE,
@@ -280,6 +286,8 @@ export async function persistStoryboard(): Promise<boolean> {
         const current = useStoryboardStore.getState().scenes;
         setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
       }
+      // Save version from response
+      useStoryboardStore.getState().set({ storyboardVersion: res.data.version ?? 1 });
       // Sync URL with newly created storyboard ID
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
@@ -291,6 +299,12 @@ export async function persistStoryboard(): Promise<boolean> {
     useStoryboardStore.getState().set({ isDirty: false });
     return true;
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 409) {
+      useUIStore
+        .getState()
+        .showToast("다른 탭에서 수정되었습니다. 페이지를 새로고침해주세요.", "error");
+      return false;
+    }
     console.error("[persistStoryboard] Failed:", error);
     return false;
   }
@@ -306,13 +320,25 @@ export async function updateStoryboardMetadata(updates: {
 }): Promise<boolean> {
   const { storyboardId } = useContextStore.getState();
   const { showToast } = useUIStore.getState();
+  const { storyboardVersion } = useStoryboardStore.getState();
 
   if (!storyboardId) return false;
 
   try {
-    await axios.patch(`${API_BASE}/storyboards/${storyboardId}/metadata`, updates);
+    const res = await axios.patch(`${API_BASE}/storyboards/${storyboardId}/metadata`, {
+      ...updates,
+      version: storyboardVersion ?? undefined,
+    });
+    // Update version from response
+    if (res.data?.version != null) {
+      useStoryboardStore.getState().set({ storyboardVersion: res.data.version });
+    }
     return true;
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 409) {
+      showToast("다른 탭에서 수정되었습니다. 페이지를 새로고침해주세요.", "error");
+      return false;
+    }
     console.error("[updateStoryboardMetadata] Failed:", error);
     showToast("Failed to update metadata", "error");
     return false;

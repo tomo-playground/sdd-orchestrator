@@ -205,6 +205,7 @@ class StoryboardBase(BaseModel):
 class StoryboardSave(StoryboardBase):
     character_id: int | None = None
     character_b_id: int | None = None
+    version: int | None = None  # Optimistic locking: current version from client
     scenes: list[StoryboardScene]
 
 
@@ -215,12 +216,14 @@ class StoryboardSaveResponse(BaseModel):
     storyboard_id: int
     scene_ids: list[int]
     client_ids: list[str]
+    version: int = 1  # Current version after save
 
 
 class StoryboardUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     caption: str | None = None
+    version: int | None = None  # Optimistic locking: current version from client
 
 
 class StoryboardCastMember(BaseModel):
@@ -335,6 +338,7 @@ class StoryboardDetailResponse(BaseModel):
     structure: str = DEFAULT_STRUCTURE
     duration: int | None = None
     language: str | None = None
+    version: int = 1  # Optimistic locking version
     character_id: int | None = None
     character_b_id: int | None = None
     style_profile_id: int | None = None

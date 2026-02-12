@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.19) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.20) 참조.
 
-> **Last Synced:** 2026-02-12 (DB_SCHEMA v3.19 기준)
+> **Last Synced:** 2026-02-12 (DB_SCHEMA v3.20 기준)
 
 ---
 
@@ -30,6 +30,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `id` (PK), `group_id` (FK → groups), `title`, `description`
 - `caption`, `structure` (String, default: `"Monologue"`)
 - `duration` (Integer, nullable), `language` (String(20), nullable) — GroupConfig에서 상속 가능
+- `version` (Integer, NOT NULL, default 1) — Optimistic Locking. PUT/PATCH 시 검증, 성공 시 +1
 - `deleted_at` (Soft Delete)
 
 ### `scenes` — 스토리보드 내 개별 씬

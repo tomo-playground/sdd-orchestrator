@@ -1,4 +1,4 @@
-# Database Schema (v3.19)
+# Database Schema (v3.20)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.20 | 2026-02-12 | `storyboards`에 `version` (Integer, NOT NULL, default 1) 추가 — Optimistic Locking |
 | v3.19 | 2026-02-12 | `scenes`에 `client_id` (UUID) 추가 — Frontend 안정 식별자, UNIQUE + NOT NULL |
 | v3.18 | 2026-02-12 | `scenes`에 `background_id` FK 추가 (Background 에셋 연동, ControlNet Canny + 태그 자동 주입) |
 | v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
@@ -149,6 +150,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `structure` | String(50) | 구조 설정 (default: `"Monologue"`, config에서 상속) |
 | `duration` | Integer | 목표 길이 (초), GroupConfig에서 상속 가능 |
 | `language` | String(20) | 언어 설정, GroupConfig에서 상속 가능 |
+| `version` | Integer, NOT NULL, default 1 | Optimistic Locking 버전. PUT/PATCH 시 검증, 성공 시 +1 증분. 불일치 시 409 Conflict |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -826,6 +828,6 @@ Textual Inversion 임베딩.
 ---
 
 **Last Updated:** 2026-02-12
-**Schema Version:** v3.19
+**Schema Version:** v3.20
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

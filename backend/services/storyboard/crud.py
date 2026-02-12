@@ -84,7 +84,13 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     scene_ids = [scene.id for scene in scenes_sorted]
     client_ids = [scene.client_id for scene in scenes_sorted]
 
-    return {"status": "success", "storyboard_id": db_storyboard.id, "scene_ids": scene_ids, "client_ids": client_ids}
+    return {
+        "status": "success",
+        "storyboard_id": db_storyboard.id,
+        "scene_ids": scene_ids,
+        "client_ids": client_ids,
+        "version": db_storyboard.version,
+    }
 
 
 def _derive_kanban_status(storyboard: Storyboard, image_count: int) -> str:
@@ -263,6 +269,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "caption": storyboard.caption,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
+        "version": storyboard.version,
         "characters": characters_list,
         "scenes": [serialize_scene(sc, asset_url_map, auto_pin_flags.get(sc.id, False)) for sc in scenes],
     }
@@ -280,6 +287,13 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     )
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
+
+    # Optimistic locking: verify version if client provides one
+    if request.version is not None and storyboard.version != request.version:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Conflict: expected version {request.version}, current is {storyboard.version}",
+        )
 
     safe_title = truncate_title(request.title)
     logger.info("\u270f\ufe0f [Storyboard Update] id=%d title=%s", storyboard_id, safe_title)
@@ -350,6 +364,9 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     # Update speaker→character mappings (Dialogue)
     _sync_speaker_mappings(db, storyboard_id, request.character_id, request.character_b_id)
 
+    # Increment version (optimistic locking)
+    storyboard.version += 1
+
     db.commit()
     db.refresh(storyboard)
 
@@ -359,7 +376,13 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     scene_ids = [scene.id for scene in scenes_sorted]
     client_ids = [scene.client_id for scene in scenes_sorted]
 
-    return {"status": "success", "storyboard_id": storyboard.id, "scene_ids": scene_ids, "client_ids": client_ids}
+    return {
+        "status": "success",
+        "storyboard_id": storyboard.id,
+        "scene_ids": scene_ids,
+        "client_ids": client_ids,
+        "version": storyboard.version,
+    }
 
 
 def update_storyboard_metadata(db: Session, storyboard_id: int, request: StoryboardUpdate) -> dict:
@@ -367,6 +390,13 @@ def update_storyboard_metadata(db: Session, storyboard_id: int, request: Storybo
     storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
+
+    # Optimistic locking: verify version if client provides one
+    if request.version is not None and storyboard.version != request.version:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Conflict: expected version {request.version}, current is {storyboard.version}",
+        )
 
     logger.info("\U0001f4dd [Storyboard Metadata Update] id=%d", storyboard_id)
 
@@ -377,8 +407,11 @@ def update_storyboard_metadata(db: Session, storyboard_id: int, request: Storybo
     if request.caption is not None:
         storyboard.caption = request.caption
 
+    # Increment version (optimistic locking)
+    storyboard.version += 1
+
     db.commit()
-    return {"status": "success", "storyboard_id": storyboard.id}
+    return {"status": "success", "storyboard_id": storyboard.id, "version": storyboard.version}
 
 
 def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:

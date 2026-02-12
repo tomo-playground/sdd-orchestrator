@@ -31,6 +31,7 @@ export type ScriptEditorState = {
   scenes: SceneItem[];
   isGenerating: boolean;
   storyboardId: number | null;
+  storyboardVersion: number | null;
   isSaving: boolean;
 };
 
@@ -64,6 +65,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     scenes: [],
     isGenerating: false,
     storyboardId: null,
+    storyboardVersion: null,
     isSaving: false,
   });
 
@@ -148,6 +150,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         group_id: groupId,
         character_id: state.characterId,
         character_b_id: state.characterBId,
+        version: state.storyboardVersion ?? undefined,
         scenes: state.scenes.map((s, i) => ({
           scene_id: i,
           client_id: s.client_id,
@@ -159,7 +162,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         })),
       };
       if (state.storyboardId) {
-        await axios.put(`${API_BASE}/storyboards/${state.storyboardId}`, body);
+        const res = await axios.put(`${API_BASE}/storyboards/${state.storyboardId}`, body);
+        setState((prev) => ({ ...prev, storyboardVersion: res.data.version }));
         useContextStore.getState().setContext({
           storyboardId: state.storyboardId,
           storyboardTitle: state.topic.trim(),
@@ -168,8 +172,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast("Script saved", "success");
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
-        const newId = res.data.id;
-        setState((prev) => ({ ...prev, storyboardId: newId }));
+        const newId = res.data.storyboard_id;
+        setState((prev) => ({
+          ...prev,
+          storyboardId: newId,
+          storyboardVersion: res.data.version ?? 1,
+        }));
         useContextStore.getState().setContext({
           storyboardId: newId,
           storyboardTitle: state.topic.trim(),
@@ -179,10 +187,14 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast("Script created", "success");
       }
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.detail ?? err.message)
-        : "Save failed";
-      showToast(String(msg), "error");
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        showToast("다른 탭에서 수정되었습니다. 페이지를 새로고침해주세요.", "error");
+      } else {
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.detail ?? err.message)
+          : "Save failed";
+        showToast(String(msg), "error");
+      }
     } finally {
       setState((prev) => ({ ...prev, isSaving: false }));
     }
@@ -215,6 +227,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           characterBId: data.character_b_id ?? null,
           scenes,
           storyboardId: id,
+          storyboardVersion: data.version ?? null,
         }));
         useContextStore.getState().setContext({
           storyboardId: id,
@@ -240,6 +253,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       scenes: [],
       isGenerating: false,
       storyboardId: null,
+      storyboardVersion: null,
       isSaving: false,
     });
   }, []);
