@@ -30,7 +30,7 @@ async def poll_sd_progress(task: ImageTaskProgress) -> None:
                     task.percent = calc_percent(task)
                     eta_text = data.get("textinfo", "")
                     if eta_text:
-                        task.stage_detail = eta_text
+                        task.message = eta_text
                     task.notify()
             except Exception:
                 logger.debug("[SD Poll] Progress fetch failed (SD WebUI may be busy)")

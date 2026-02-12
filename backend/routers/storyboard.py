@@ -14,6 +14,7 @@ from schemas import (
     StoryboardListItem,
     StoryboardRequest,
     StoryboardSave,
+    StoryboardSaveResponse,
     StoryboardUpdate,
     VerticalStatus,
 )
@@ -37,7 +38,7 @@ async def create_storyboard_endpoint(request: StoryboardRequest, db: Session = D
     return await create_storyboard(request, db)
 
 
-@router.post("")
+@router.post("", response_model=StoryboardSaveResponse)
 async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)):
     return save_storyboard_to_db(db, request)
 
@@ -73,7 +74,7 @@ def get_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     return get_storyboard_by_id(db, storyboard_id)
 
 
-@router.put("/{storyboard_id}")
+@router.put("/{storyboard_id}", response_model=StoryboardSaveResponse)
 async def update_storyboard(storyboard_id: int, request: StoryboardSave, db: Session = Depends(get_db)):
     return update_storyboard_in_db(db, storyboard_id, request)
 

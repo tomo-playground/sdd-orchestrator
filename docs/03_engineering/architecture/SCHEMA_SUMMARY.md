@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.16) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.19) 참조.
 
-> **Last Synced:** 2026-02-10 (DB_SCHEMA v3.16 기준)
+> **Last Synced:** 2026-02-12 (DB_SCHEMA v3.19 기준)
 
 ---
 
@@ -33,12 +33,14 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `deleted_at` (Soft Delete)
 
 ### `scenes` — 스토리보드 내 개별 씬
-- `id` (PK), `storyboard_id` (FK), `order`, `script`, `description`, `speaker`, `duration`
+- `id` (PK), `client_id` (String(36), UNIQUE, NOT NULL — Frontend UUID 안정 식별자)
+- `storyboard_id` (FK), `order`, `script`, `description`, `speaker`, `duration`
 - **Prompt**: `image_prompt`, `image_prompt_ko`, `negative_prompt`, `context_tags` (JSONB)
 - **Size**: `width`, `height`
+- **Background**: `background_id` (FK → backgrounds, SET NULL)
 - **IP-Adapter/Ref**: `use_reference_only`, `reference_only_weight`, `environment_reference_id` (FK), `environment_reference_weight`, `use_ip_adapter`, `ip_adapter_reference`, `ip_adapter_weight`
 - **ControlNet**: `use_controlnet`, `controlnet_weight`
-- **Generation**: `multi_gen_enabled`, `image_asset_id` (FK), `candidates` (JSONB)
+- **Generation**: `scene_mode` (`single`/`multi`), `multi_gen_enabled`, `image_asset_id` (FK), `candidates` (JSONB)
 - `deleted_at` (Soft Delete)
 
 ---

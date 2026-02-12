@@ -465,13 +465,13 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         # Stage: composing
         task.stage = ImageGenStage.COMPOSING
         task.percent = calc_percent(task)
-        task.stage_detail = "프롬프트 조합 중..."
+        task.message = "프롬프트 조합 중..."
         task.notify()
 
         # Stage: generating (start SD progress polling)
         task.stage = ImageGenStage.GENERATING
         task.percent = calc_percent(task)
-        task.stage_detail = "이미지 생성 중..."
+        task.message = "이미지 생성 중..."
         task.notify()
 
         from services.sd_progress_poller import poll_sd_progress
@@ -482,7 +482,7 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         finally:
             task.stage = ImageGenStage.STORING
             task.percent = calc_percent(task)
-            task.stage_detail = "저장 중..."
+            task.message = "저장 중..."
             task.notify()
             poller.cancel()
 
@@ -490,7 +490,7 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         task.stage = ImageGenStage.COMPLETED
         task.percent = 100
         task.result = result
-        task.stage_detail = "완료"
+        task.message = "완료"
         task.notify()
 
     except Exception as exc:
@@ -526,7 +526,7 @@ async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
             task_id=task.task_id,
             stage=task.stage.value,
             percent=task.percent,
-            stage_detail=task.stage_detail,
+            message=task.message,
             image=task.result.get("image") if task.result else None,
             used_prompt=task.result.get("used_prompt") if task.result else None,
             warnings=task.result.get("warnings", []) if task.result else [],

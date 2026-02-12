@@ -43,7 +43,7 @@ class ImageTaskProgress:
     task_id: str
     stage: ImageGenStage = ImageGenStage.QUEUED
     percent: int = 0
-    stage_detail: str = ""
+    message: str = ""
     sd_progress: float = 0.0  # 0.0 ~ 1.0 from SD WebUI
     result: dict | None = None
     error: str | None = None
