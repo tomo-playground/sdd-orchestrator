@@ -26,20 +26,20 @@ interface BatchResponse {
  * Generate images for multiple scenes in a single batch API call.
  * Updates each scene's state as results come back.
  */
-export async function generateBatchImages(sceneIds: number[]): Promise<BatchResponse | null> {
+export async function generateBatchImages(sceneClientIds: string[]): Promise<BatchResponse | null> {
   const sbState = useStoryboardStore.getState();
   const { scenes, updateScene } = sbState;
 
   // Build requests from scene data
-  const targetScenes = sceneIds
-    .map((id) => scenes.find((s) => s.id === id))
+  const targetScenes = sceneClientIds
+    .map((clientId) => scenes.find((s) => s.client_id === clientId))
     .filter((s): s is Scene => s !== undefined);
 
   if (targetScenes.length === 0) return null;
 
   // Mark all as generating
   for (const scene of targetScenes) {
-    updateScene(scene.id, { isGenerating: true });
+    updateScene(scene.client_id, { isGenerating: true });
   }
 
   try {
@@ -91,9 +91,10 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
         const originalScene = targetScenes[result.index];
         if (!originalScene) return;
 
-        // Re-lookup by order: IDs may have changed during batch generation
+        // Re-lookup by client_id (stable across save/ID reassignment)
         const currentScenes = useStoryboardStore.getState().scenes;
-        const scene = currentScenes.find((s) => s.order === originalScene.order) || originalScene;
+        const scene =
+          currentScenes.find((s) => s.client_id === originalScene.client_id) || originalScene;
 
         const b64 = result.data?.image;
         if (result.status === "success" && b64 && canStore) {
@@ -117,25 +118,23 @@ export async function generateBatchImages(sceneIds: number[]): Promise<BatchResp
               `scene_${scene.id}_${Date.now()}_retry.png`
             );
           }
-          useStoryboardStore.getState().updateScene(scene.id, {
+          useStoryboardStore.getState().updateScene(scene.client_id, {
             image_url: stored.url,
             image_asset_id: stored.asset_id ?? null,
             image_prompt: result.data?.used_prompt || undefined,
             isGenerating: false,
           });
         } else {
-          useStoryboardStore.getState().updateScene(scene.id, { isGenerating: false });
+          useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
         }
       })
     );
 
     return res.data;
   } catch (error) {
-    // Mark all as not generating on error (use fresh IDs)
+    // Mark all as not generating on error
     for (const scene of targetScenes) {
-      const currentScenes = useStoryboardStore.getState().scenes;
-      const fresh = currentScenes.find((s) => s.order === scene.order) || scene;
-      useStoryboardStore.getState().updateScene(fresh.id, { isGenerating: false });
+      useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
     }
     console.error("Batch generation failed:", error);
     return null;

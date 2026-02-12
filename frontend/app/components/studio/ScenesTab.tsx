@@ -9,6 +9,7 @@ import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
 import { API_BASE } from "../../constants";
 import type { Background } from "../../types";
+import { generateSceneClientId } from "../../utils/uuid";
 import SceneFilmstrip from "../storyboard/SceneFilmstrip";
 import SceneListHeader from "../storyboard/SceneListHeader";
 import SceneSidePanel from "../storyboard/SceneSidePanel";
@@ -62,16 +63,23 @@ export default function ScenesTab() {
   );
 
   // UI state
-  const { sceneTab, sceneMenuOpen, suggestionExpanded, validatingSceneId, markingStatusSceneId } =
-    useStoryboardStore(
-      useShallow((s) => ({
-        sceneTab: s.sceneTab,
-        sceneMenuOpen: s.sceneMenuOpen,
-        suggestionExpanded: s.suggestionExpanded,
-        validatingSceneId: s.validatingSceneId,
-        markingStatusSceneId: s.markingStatusSceneId,
-      }))
-    );
+  const {
+    sceneTab,
+    sceneMenuOpen,
+    suggestionExpanded,
+    validatingSceneId,
+    markingStatusSceneId,
+    imageGenProgress,
+  } = useStoryboardStore(
+    useShallow((s) => ({
+      sceneTab: s.sceneTab,
+      sceneMenuOpen: s.sceneMenuOpen,
+      suggestionExpanded: s.suggestionExpanded,
+      validatingSceneId: s.validatingSceneId,
+      markingStatusSceneId: s.markingStatusSceneId,
+      imageGenProgress: s.imageGenProgress,
+    }))
+  );
 
   // Character & generation settings
   const {
@@ -180,7 +188,7 @@ export default function ScenesTab() {
 
   const handleUpdateScene = useCallback(
     (updates: Partial<(typeof scenes)[0]>) => {
-      if (currentScene) updateScene(currentScene.id, updates);
+      if (currentScene) updateScene(currentScene.client_id, updates);
     },
     [currentScene, updateScene]
   );
@@ -189,11 +197,11 @@ export default function ScenesTab() {
     if (!currentScene) return;
 
     if (currentScene.environment_reference_id) {
-      updateScene(currentScene.id, { environment_reference_id: null });
+      updateScene(currentScene.client_id, { environment_reference_id: null });
       return;
     }
 
-    const currentIdx = scenes.findIndex((s) => s.id === currentScene.id);
+    const currentIdx = scenes.findIndex((s) => s.client_id === currentScene.client_id);
     let referenceScene = null;
 
     for (let i = currentIdx - 1; i >= 0; i--) {
@@ -208,7 +216,7 @@ export default function ScenesTab() {
       return;
     }
 
-    updateScene(currentScene.id, {
+    updateScene(currentScene.client_id, {
       environment_reference_id: referenceScene.image_asset_id,
       environment_reference_weight: 0.3,
     });
@@ -216,23 +224,23 @@ export default function ScenesTab() {
   }, [currentScene, scenes, updateScene, showToast]);
 
   const handleRemoveScene = useCallback(
-    async (sceneId: number) => {
+    async (clientId: string) => {
       const ok = await confirm({
         title: "Remove Scene",
         message: "Remove this scene?",
         confirmLabel: "Remove",
         variant: "danger",
       });
-      if (ok) removeScene(sceneId);
+      if (ok) removeScene(clientId);
     },
     [removeScene, confirm]
   );
 
   const handleAddScene = useCallback(() => {
-    const newId = scenes.length > 0 ? Math.max(...scenes.map((s) => s.id)) + 1 : 0;
     const { baseNegativePromptA } = useStoryboardStore.getState();
     const newScene = {
-      id: newId,
+      id: 0,
+      client_id: generateSceneClientId(),
       order: scenes.length,
       script: "",
       speaker: "Narrator" as const,
@@ -283,43 +291,37 @@ export default function ScenesTab() {
 
         {currentScene && (
           <SceneCard
-            key={currentScene.id}
+            key={currentScene.client_id}
             scene={currentScene}
             sceneIndex={currentSceneIndex}
-            validationResult={validationResults[currentScene.id]}
-            imageValidationResult={imageValidationResults[currentScene.id]}
+            validationResult={validationResults[currentScene.client_id]}
+            imageValidationResult={imageValidationResults[currentScene.client_id]}
             qualityScore={
-              imageValidationResults[currentScene.id]
+              imageValidationResults[currentScene.client_id]
                 ? {
-                    match_rate: imageValidationResults[currentScene.id].match_rate ?? 0,
-                    missing_tags: imageValidationResults[currentScene.id].missing ?? [],
+                    match_rate: imageValidationResults[currentScene.client_id].match_rate ?? 0,
+                    missing_tags: imageValidationResults[currentScene.client_id].missing ?? [],
                   }
                 : null
             }
-            sceneTab={sceneTab[currentScene.id] ?? null}
-            onSceneTabChange={(tab) =>
-              sbSet({
-                sceneTab: { ...sceneTab, [currentScene.id]: tab },
-              })
-            }
-            sceneMenuOpen={sceneMenuOpen === currentScene.id}
+            sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
             onSceneMenuToggle={() =>
               sbSet({
-                sceneMenuOpen: sceneMenuOpen === currentScene.id ? null : currentScene.id,
+                sceneMenuOpen:
+                  sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
               })
             }
             onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
-            suggestionExpanded={suggestionExpanded[currentScene.id] ?? false}
+            suggestionExpanded={suggestionExpanded[currentScene.client_id] ?? false}
             onSuggestionToggle={() =>
               sbSet({
                 suggestionExpanded: {
                   ...suggestionExpanded,
-                  [currentScene.id]: !suggestionExpanded[currentScene.id],
+                  [currentScene.client_id]: !suggestionExpanded[currentScene.client_id],
                 },
               })
             }
             validatingSceneId={validatingSceneId}
-            autoComposePrompt={autoComposePrompt}
             loraTriggerWords={loraTriggerWords}
             promptMode={characterPromptMode}
             tagsByGroup={tagsByGroup}
@@ -328,9 +330,9 @@ export default function ScenesTab() {
             onUpdateScene={handleUpdateScene}
             onPinToggle={handlePinToggle}
             pinnedSceneOrder={pinnedSceneOrder}
-            onRemoveScene={() => handleRemoveScene(currentScene.id)}
+            onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
             onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
-            onImageUpload={(file) => handleImageUpload(currentScene.id, file)}
+            onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
             onGenerateImage={() => handleGenerateImage(currentScene)}
             onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
             onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
@@ -354,7 +356,7 @@ export default function ScenesTab() {
             }}
             onMarkSuccess={() => handleMarkSuccess(currentScene)}
             onMarkFail={() => handleMarkFail(currentScene)}
-            isMarkingStatus={markingStatusSceneId === currentScene.id}
+            isMarkingStatus={markingStatusSceneId === currentScene.client_id}
             getSceneStatus={getSceneStatus}
             getFixSuggestions={(scene, validation) =>
               getFixSuggestions(scene, validation, useStoryboardStore.getState().topic)
@@ -368,6 +370,7 @@ export default function ScenesTab() {
             characterBName={selectedCharacterBName}
             selectedCharacterBId={selectedCharacterBId}
             backgrounds={backgrounds}
+            genProgress={imageGenProgress[currentScene.client_id] ?? null}
             buildNegativePrompt={buildNegativePrompt}
             buildScenePrompt={buildScenePrompt}
             showToast={showToast}
@@ -393,32 +396,32 @@ export default function ScenesTab() {
         referenceImages={referenceImages}
         sceneMultiGen={currentScene?.multi_gen_enabled}
         onSceneMultiGenChange={(v) => {
-          if (currentScene) updateScene(currentScene.id, { multi_gen_enabled: v });
+          if (currentScene) updateScene(currentScene.client_id, { multi_gen_enabled: v });
         }}
         sceneControlnet={currentScene?.use_controlnet}
         onSceneControlnetChange={(v) => {
-          if (currentScene) updateScene(currentScene.id, { use_controlnet: v });
+          if (currentScene) updateScene(currentScene.client_id, { use_controlnet: v });
         }}
         sceneControlnetWeight={currentScene?.controlnet_weight}
         onSceneControlnetWeightChange={(v) => {
-          if (currentScene) updateScene(currentScene.id, { controlnet_weight: v });
+          if (currentScene) updateScene(currentScene.client_id, { controlnet_weight: v });
         }}
         sceneIpAdapter={currentScene?.use_ip_adapter}
         onSceneIpAdapterChange={(v) => {
-          if (currentScene) updateScene(currentScene.id, { use_ip_adapter: v });
+          if (currentScene) updateScene(currentScene.client_id, { use_ip_adapter: v });
         }}
         sceneIpAdapterReference={currentScene?.ip_adapter_reference}
         onSceneIpAdapterReferenceChange={(v) => {
-          if (currentScene) updateScene(currentScene.id, { ip_adapter_reference: v });
+          if (currentScene) updateScene(currentScene.client_id, { ip_adapter_reference: v });
         }}
         sceneIpAdapterWeight={currentScene?.ip_adapter_weight}
         onSceneIpAdapterWeightChange={(v) => {
-          if (currentScene) updateScene(currentScene.id, { ip_adapter_weight: v });
+          if (currentScene) updateScene(currentScene.client_id, { ip_adapter_weight: v });
         }}
         currentSpeaker={currentSpeaker}
         validationSummary={validationSummary}
         imageValidationResults={imageValidationResults}
-        scenes={scenes.map((s, i) => ({ id: s.id, order: i }))}
+        scenes={scenes.map((s, i) => ({ id: s.id, client_id: s.client_id, order: i }))}
         onSceneSelect={setCurrentSceneIndex}
       />
 

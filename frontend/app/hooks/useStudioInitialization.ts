@@ -13,6 +13,7 @@ import { initializeVideoMetadata } from "../store/actions/outputActions";
 import { loadGroupDefaults } from "../store/actions/groupActions";
 import type { Scene } from "../types";
 import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
+import { generateSceneClientId } from "../utils/uuid";
 
 /**
  * Handles all studio initialization logic:
@@ -96,7 +97,7 @@ export function useStudioInitialization() {
         if (data.negative_prompt) updates.negative_prompt = data.negative_prompt as string;
         if (data.context_tags) updates.context_tags = data.context_tags as Record<string, string[]>;
         if (data.id) updates.prompt_history_id = data.id as number;
-        updateScene(sc[idx].id, updates);
+        updateScene(sc[idx].client_id, updates);
       }
       window.localStorage.removeItem(PROMPT_APPLY_KEY);
       useUIStore.getState().showToast("Prompt applied!", "success");
@@ -259,6 +260,7 @@ function loadCharacterBData(
 function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
   return dbScenes.map((s, i) => ({
     id: (s.id as number) || i,
+    client_id: (s.client_id as string) || generateSceneClientId(),
     order: (s.order as number) ?? (s.scene_id as number) ?? i,
     script: (s.script as string) || "",
     speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],

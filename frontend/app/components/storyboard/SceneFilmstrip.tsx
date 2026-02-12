@@ -41,7 +41,7 @@ export default function SceneFilmstrip({
       <div ref={scrollRef} className="flex flex-1 gap-2 overflow-x-auto py-2">
         {scenes.map((s, idx) => (
           <button
-            key={s.id}
+            key={s.client_id}
             ref={(el) => {
               itemRefs.current[idx] = el;
             }}

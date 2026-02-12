@@ -3,10 +3,9 @@
 from fastapi.testclient import TestClient
 
 
-def test_create_storyboard_long_title_no_error(client: TestClient):
+def test_create_storyboard_long_title_rejected(client: TestClient):
     """
-    Test that a storyboard title longer than 200 characters does NOT raise 500 error.
-    Success (200 OK) implies truncation worked and DB insert succeeded.
+    Test that a storyboard title longer than 200 characters is rejected by Pydantic.
     """
     long_title = "A" * 250
     payload = {
@@ -15,7 +14,26 @@ def test_create_storyboard_long_title_no_error(client: TestClient):
         "group_id": 1,
         "character_id": None,
         "style_profile_id": None,
-        "scenes": []
+        "scenes": [],
+    }
+
+    response = client.post("/storyboards", json=payload)
+    assert response.status_code == 422  # Pydantic max_length validation
+
+
+def test_create_storyboard_title_at_limit_truncated(client: TestClient):
+    """
+    Test that a title within Pydantic limit but above truncation limit is truncated.
+    200 chars passes Pydantic (max_length=200) but is truncated to 190 in service.
+    """
+    long_title = "A" * 200
+    payload = {
+        "title": long_title,
+        "description": "Test description",
+        "group_id": 1,
+        "character_id": None,
+        "style_profile_id": None,
+        "scenes": [],
     }
 
     response = client.post("/storyboards", json=payload)
@@ -24,33 +42,28 @@ def test_create_storyboard_long_title_no_error(client: TestClient):
     assert "storyboard_id" in data
 
 
-def test_create_storyboard_update_long_title_no_error(client: TestClient):
+def test_create_storyboard_update_long_title_rejected(client: TestClient):
     """
-    Test that updating text with long title returns 200 OK (no DB error).
+    Test that updating with a title exceeding max_length is rejected by Pydantic.
     """
     # 1. Create
-    payload = {
-        "title": "Initial Title",
-        "description": "Initial Desc",
-        "group_id": 1,
-        "scenes": []
-    }
+    payload = {"title": "Initial Title", "description": "Initial Desc", "group_id": 1, "scenes": []}
     create_res = client.post("/storyboards", json=payload)
     assert create_res.status_code == 200
     sb_id = create_res.json()["storyboard_id"]
 
-    # 2. Update
+    # 2. Update with oversized title
     long_title = "B" * 300
     update_payload = {
         "title": long_title,
         "description": "Updated Desc",
         "character_id": None,
         "style_profile_id": None,
-        "scenes": []
+        "scenes": [],
     }
 
     update_res = client.put(f"/storyboards/{sb_id}", json=update_payload)
-    assert update_res.status_code == 200
+    assert update_res.status_code == 422  # Pydantic max_length validation
 
 
 def test_scene_boolean_type_casting_no_error(client: TestClient):
@@ -63,19 +76,9 @@ def test_scene_boolean_type_casting_no_error(client: TestClient):
         "description": "Testing boolean casting",
         "group_id": 1,
         "scenes": [
-            {
-                "scene_id": 1,
-                "script": "Scene 1",
-                "use_reference_only": True,
-                "reference_only_weight": 0.8
-            },
-            {
-                "scene_id": 2,
-                "script": "Scene 2",
-                "use_reference_only": False,
-                "reference_only_weight": 0.2
-            }
-        ]
+            {"scene_id": 1, "script": "Scene 1", "use_reference_only": True, "reference_only_weight": 0.8},
+            {"scene_id": 2, "script": "Scene 2", "use_reference_only": False, "reference_only_weight": 0.2},
+        ],
     }
 
     response = client.post("/storyboards", json=payload)

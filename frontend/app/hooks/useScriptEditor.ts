@@ -6,9 +6,11 @@ import { API_BASE, SCRIPTS_LIST_REFRESH } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
 import type { Scene } from "../types";
+import { generateSceneClientId } from "../utils/uuid";
 
 export type SceneItem = {
   id: number;
+  client_id: string;
   order: number;
   script: string;
   speaker: string;
@@ -99,6 +101,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       const data = res.data;
       const scenes: SceneItem[] = (data.scenes ?? []).map((s: Scene, i: number) => ({
         id: s.id ?? i + 1,
+        client_id: generateSceneClientId(),
         order: s.order ?? i + 1,
         script: s.script ?? "",
         speaker: s.speaker ?? "Narrator",
@@ -145,7 +148,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         group_id: groupId,
         character_id: state.characterId,
         character_b_id: state.characterBId,
-        scenes: state.scenes.map((s) => ({
+        scenes: state.scenes.map((s, i) => ({
+          scene_id: i,
+          client_id: s.client_id,
           script: s.script,
           speaker: s.speaker,
           duration: s.duration,
@@ -190,6 +195,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         const data = res.data;
         const scenes: SceneItem[] = (data.scenes ?? []).map((s: Scene, i: number) => ({
           id: s.id ?? i + 1,
+          client_id: s.client_id ?? generateSceneClientId(),
           order: s.order ?? i + 1,
           script: s.script ?? "",
           speaker: s.speaker ?? "Narrator",

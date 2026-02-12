@@ -26,7 +26,7 @@ const getValidSpeakers = (structure?: string): Scene["speaker"][] => {
  * Returns validation status and issues for each scene.
  */
 export const computeValidationResults = (inputScenes: Scene[], structure?: string) => {
-  const results: Record<number, SceneValidation> = {};
+  const results: Record<string, SceneValidation> = {};
   let ok = 0;
   let warn = 0;
   let error = 0;
@@ -87,7 +87,7 @@ export const computeValidationResults = (inputScenes: Scene[], structure?: strin
         ? "warn"
         : "ok";
 
-    results[scene.id] = { status, issues };
+    results[scene.client_id] = { status, issues };
     if (status === "ok") ok += 1;
     if (status === "warn") warn += 1;
     if (status === "error") error += 1;

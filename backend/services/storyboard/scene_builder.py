@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
@@ -73,6 +74,7 @@ def serialize_scene(
 
     return {
         "id": scene.id,
+        "client_id": scene.client_id,
         "scene_id": scene.order,
         "script": scene.script,
         "speaker": scene.speaker,
@@ -167,6 +169,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
 
         db_scene = Scene(
             storyboard_id=storyboard_id,
+            client_id=getattr(s_data, "client_id", None) or str(uuid4()),
             order=idx,
             script=s_data.script,
             speaker=s_data.speaker,

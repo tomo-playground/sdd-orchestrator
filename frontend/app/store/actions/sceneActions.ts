@@ -30,7 +30,7 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
 
   let updated = [...inputScenes];
   updated.forEach((scene) => {
-    const validation = results[scene.id];
+    const validation = results[scene.client_id];
     if (!validation || validation.status === "ok") return;
     const suggestions = getFixSuggestions(scene, validation, topic);
     suggestions
@@ -39,7 +39,7 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
         if (!s.action) return;
         if (s.action.type === "set_speaker_a") {
           updated = updated.map((t) =>
-            t.id === scene.id
+            t.client_id === scene.client_id
               ? {
                   ...t,
                   speaker: "A" as const,
@@ -51,7 +51,7 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
           const tokens = s.action.tokens ?? [];
           if (!tokens.length) return;
           updated = updated.map((t) => {
-            if (t.id !== scene.id) return t;
+            if (t.client_id !== scene.client_id) return t;
             const existing = t.image_prompt
               .split(",")
               .map((x) => x.trim())
@@ -66,11 +66,13 @@ export function applyAutoFixForScenes(inputScenes: Scene[]): Scene[] {
         } else if (s.action.type === "fill_script" || s.action.type === "trim_script") {
           const value = s.action.value?.trim() || "";
           if (!value) return;
-          updated = updated.map((t) => (t.id === scene.id ? { ...t, script: value } : t));
+          updated = updated.map((t) =>
+            t.client_id === scene.client_id ? { ...t, script: value } : t
+          );
         } else if (s.action.type === "remove_negative_scene") {
           const kws = [...CAMERA_KEYWORDS, ...ACTION_KEYWORDS, ...BACKGROUND_KEYWORDS];
           updated = updated.map((t) => {
-            if (t.id !== scene.id) return t;
+            if (t.client_id !== scene.client_id) return t;
             const filtered = t.negative_prompt
               .split(",")
               .map((x) => x.trim())
@@ -96,13 +98,13 @@ export function handleAutoFixAll() {
 export function getSceneStatus(scene: Scene): string {
   const { imageValidationResults } = useStoryboardStore.getState();
   if (!scene.image_url) return "Need Image";
-  if (!imageValidationResults[scene.id]) return "Ready to Validate";
+  if (!imageValidationResults[scene.client_id]) return "Ready to Validate";
   return "Ready to Render";
 }
 
 export function getSceneFixSuggestions(scene: Scene): FixSuggestion[] {
   const { validationResults, topic } = useStoryboardStore.getState();
-  const validation = validationResults[scene.id];
+  const validation = validationResults[scene.client_id];
   if (!validation) return [];
   return getFixSuggestions(scene, validation, topic);
 }
@@ -138,7 +140,7 @@ export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
         if (!existingSet.has(t.toLowerCase())) next.push(t);
       });
     }
-    updateScene(scene.id, { image_prompt: next.join(", ") });
+    updateScene(scene.client_id, { image_prompt: next.join(", ") });
     return;
   }
 
@@ -147,7 +149,7 @@ export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
     const filtered = splitTokens(scene.negative_prompt).filter(
       (tok) => !kws.some((kw) => tok.toLowerCase().includes(kw))
     );
-    updateScene(scene.id, { negative_prompt: filtered.join(", ") });
+    updateScene(scene.client_id, { negative_prompt: filtered.join(", ") });
   }
 }
 
@@ -156,7 +158,7 @@ export function applySuggestion(scene: Scene, suggestion: FixSuggestion) {
 export function applyMissingImageTags(scene: Scene, missingOverride?: string[], limit = 5) {
   const { imageValidationResults, updateScene } = useStoryboardStore.getState();
   const { showToast } = useUIStore.getState();
-  const missing = missingOverride ?? imageValidationResults[scene.id]?.missing ?? [];
+  const missing = missingOverride ?? imageValidationResults[scene.client_id]?.missing ?? [];
   if (!missing.length) {
     showToast("No missing tags to add", "error");
     return;
@@ -175,7 +177,7 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
     }
   });
   if (addedCount > 0) {
-    updateScene(scene.id, { image_prompt: next.join(", ") });
+    updateScene(scene.client_id, { image_prompt: next.join(", ") });
     showToast(`Added ${addedCount} tags to prompt`, "success");
   } else {
     showToast("All tags already in prompt", "error");
@@ -186,7 +188,7 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
 
 export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
   const { baseNegativePromptA, baseNegativePromptB, updateScene } = useStoryboardStore.getState();
-  updateScene(scene.id, {
+  updateScene(scene.client_id, {
     speaker,
     negative_prompt: speaker === "B" ? baseNegativePromptB : baseNegativePromptA,
   });
@@ -204,7 +206,7 @@ export async function handleValidateImage(scene: Scene) {
     showToast("Save the scene first (image must be stored).", "error");
     return;
   }
-  useStoryboardStore.getState().set({ validatingSceneId: scene.id });
+  useStoryboardStore.getState().set({ validatingSceneId: scene.client_id });
   const prompt = scene.debug_prompt || scene.image_prompt;
   const { storyboardId } = useContextStore.getState();
 
@@ -216,7 +218,7 @@ export async function handleValidateImage(scene: Scene) {
     const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
     const prev = useStoryboardStore.getState().imageValidationResults;
     useStoryboardStore.getState().set({
-      imageValidationResults: { ...prev, [scene.id]: res.data },
+      imageValidationResults: { ...prev, [scene.client_id]: res.data },
     });
     const matchRate = Math.round((res.data.match_rate || 0) * 100);
 
@@ -248,7 +250,7 @@ export async function handleMarkSuccess(scene: Scene) {
     return;
   }
   useStoryboardStore.getState().set({
-    markingStatusSceneId: scene.id,
+    markingStatusSceneId: scene.client_id,
   });
   try {
     await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
@@ -269,7 +271,7 @@ export async function handleMarkFail(scene: Scene) {
     return;
   }
   useStoryboardStore.getState().set({
-    markingStatusSceneId: scene.id,
+    markingStatusSceneId: scene.client_id,
   });
   try {
     await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {

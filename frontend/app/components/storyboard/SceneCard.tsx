@@ -6,6 +6,7 @@ import type {
   Scene,
   SceneValidation,
   ImageValidation,
+  ImageGenProgress,
   FixSuggestion,
   Tag,
   GeminiSuggestion,
@@ -27,15 +28,12 @@ type SceneCardProps = {
   validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
-  sceneTab?: "validate" | "debug" | null;
-  onSceneTabChange?: (tab: "validate" | "debug" | null) => void;
   sceneMenuOpen: boolean;
   onSceneMenuToggle: () => void;
   onSceneMenuClose: () => void;
   suggestionExpanded: boolean;
   onSuggestionToggle: () => void;
-  validatingSceneId: number | null;
-  autoComposePrompt: boolean;
+  validatingSceneId: string | null;
   // LoRA trigger words for highlighting
   loraTriggerWords?: string[];
   // LoRA info for composition
@@ -78,6 +76,8 @@ type SceneCardProps = {
   selectedCharacterBId?: number | null;
   // Background picker
   backgrounds?: Background[];
+  // SSE progress
+  genProgress?: ImageGenProgress | null;
   // Utility functions
   getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
@@ -93,15 +93,12 @@ export default function SceneCard({
   validationResult,
   imageValidationResult,
   qualityScore,
-  sceneTab,
-  onSceneTabChange,
   sceneMenuOpen,
   onSceneMenuToggle,
   onSceneMenuClose,
   suggestionExpanded,
   onSuggestionToggle,
   validatingSceneId,
-  autoComposePrompt,
   loraTriggerWords = [],
   characterLoras = [],
   promptMode = "auto",
@@ -131,6 +128,7 @@ export default function SceneCard({
   characterBName,
   selectedCharacterBId,
   backgrounds = [],
+  genProgress,
   getSceneStatus,
   getFixSuggestions,
   applySuggestion,
@@ -305,9 +303,10 @@ export default function SceneCard({
             onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}
             onGenerateImage={onGenerateImage}
             validationResult={imageValidationResult}
-            isValidating={validatingSceneId === scene.id}
+            isValidating={validatingSceneId === scene.client_id}
             onValidate={onValidateImage}
             onApplyMissingTags={onApplyMissingTags}
+            genProgress={genProgress}
           />
 
           {/* Mark Success / Fail */}

@@ -27,6 +27,7 @@ export type SceneMode = "single" | "multi";
 
 export type Scene = {
   id: number;
+  client_id: string;
   order: number; // 씬 순서 (1, 2, 3...)
   script: string;
   speaker: "Narrator" | "A" | "B";
@@ -173,6 +174,7 @@ export type Toast = ToastItem | null;
 
 export type DraftScene = {
   id: number;
+  client_id: string;
   script: string;
   speaker: Scene["speaker"];
   duration: number;
@@ -647,6 +649,32 @@ export type RenderProgress = {
   video_url?: string;
   media_asset_id?: number;
   render_history_id?: number;
+  error?: string;
+};
+
+// ============================================================
+// Image Generation Progress (SSE) Types
+// ============================================================
+
+export type ImageGenStage =
+  | "queued"
+  | "composing"
+  | "generating"
+  | "storing"
+  | "completed"
+  | "failed";
+
+export type ImageGenProgress = {
+  task_id: string;
+  stage: ImageGenStage;
+  percent: number;
+  message: string;
+  elapsed_seconds?: number;
+  estimated_remaining_seconds?: number;
+  // Flat fields from Backend SSE completed event
+  image?: string; // Base64 result on completion
+  used_prompt?: string;
+  warnings?: string[];
   error?: string;
 };
 

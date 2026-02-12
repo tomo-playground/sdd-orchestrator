@@ -208,6 +208,15 @@ class StoryboardSave(StoryboardBase):
     scenes: list[StoryboardScene]
 
 
+class StoryboardSaveResponse(BaseModel):
+    """Response for POST/PUT /storyboards."""
+
+    status: str
+    storyboard_id: int
+    scene_ids: list[int]
+    client_ids: list[str]
+
+
 class StoryboardUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
@@ -269,6 +278,7 @@ class SceneDetailResponse(BaseModel):
     """Full scene detail returned from GET /storyboards/{id}."""
 
     id: int
+    client_id: str
     scene_id: int
     script: str | None = ""
     speaker: str | None = ""
@@ -361,6 +371,7 @@ class SceneCandidate(BaseModel):
 
 class StoryboardScene(BaseModel):
     scene_id: int
+    client_id: str | None = None
     script: str = Field(max_length=1000)
     speaker: str = DEFAULT_SPEAKER
     duration: float = 3
@@ -1324,7 +1335,7 @@ class ImageProgressEvent(BaseModel):
     task_id: str
     stage: str
     percent: int = 0
-    stage_detail: str = ""
+    message: str = ""
     image: str | None = None  # Base64 result on completion
     used_prompt: str | None = None
     warnings: list[str] = []

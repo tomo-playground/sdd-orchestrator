@@ -18,12 +18,7 @@ class TestStoryboardRouter:
 
     def test_create_storyboard_minimal(self, client: TestClient, db_session):
         """Create storyboard with minimal required fields."""
-        request_data = {
-            "title": "Test Storyboard",
-            "description": "Test description",
-            "group_id": 1,
-            "scenes": []
-        }
+        request_data = {"title": "Test Storyboard", "description": "Test description", "group_id": 1, "scenes": []}
 
         response = client.post("/storyboards", json=request_data)
         assert response.status_code == 200
@@ -35,9 +30,7 @@ class TestStoryboardRouter:
         assert isinstance(data["scene_ids"], list)
 
         # Verify in DB
-        storyboard = db_session.query(Storyboard).filter(
-            Storyboard.id == data["storyboard_id"]
-        ).first()
+        storyboard = db_session.query(Storyboard).filter(Storyboard.id == data["storyboard_id"]).first()
         assert storyboard is not None
         assert storyboard.title == "Test Storyboard"
         assert storyboard.description == "Test description"
@@ -70,9 +63,9 @@ class TestStoryboardRouter:
                     "character_actions": [],
                     "use_reference_only": True,
                     "reference_only_weight": 0.5,
-                    "candidates": None
+                    "candidates": None,
                 }
-            ]
+            ],
         }
 
         response = client.post("/storyboards", json=request_data)
@@ -122,11 +115,7 @@ class TestStoryboardRouter:
         storyboard_id = storyboard.id
 
         # Update
-        update_data = {
-            "title": "Updated Title",
-            "description": "Updated description",
-            "scenes": []
-        }
+        update_data = {"title": "Updated Title", "description": "Updated description", "scenes": []}
 
         response = client.put(f"/storyboards/{storyboard_id}", json=update_data)
         assert response.status_code == 200
@@ -142,11 +131,7 @@ class TestStoryboardRouter:
 
     def test_update_storyboard_not_found(self, client: TestClient):
         """Update non-existent storyboard returns 404."""
-        update_data = {
-            "title": "Updated",
-            "description": "Test",
-            "scenes": []
-        }
+        update_data = {"title": "Updated", "description": "Test", "scenes": []}
 
         response = client.put("/storyboards/99999", json=update_data)
         assert response.status_code == 404
@@ -170,9 +155,7 @@ class TestStoryboardRouter:
 
         # Verify soft-deleted (deleted_at set, still in DB)
         db_session.expire_all()
-        deleted = db_session.query(Storyboard).filter(
-            Storyboard.id == storyboard_id
-        ).first()
+        deleted = db_session.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
         assert deleted is not None
         assert deleted.deleted_at is not None
 
@@ -210,21 +193,14 @@ class TestStoryboardRouter:
 
     def test_title_truncation(self, client: TestClient, db_session):
         """Very long titles are truncated."""
-        long_title = "A" * 250  # Exceeds 190 char limit
-        request_data = {
-            "title": long_title,
-            "description": "Test",
-            "group_id": 1,
-            "scenes": []
-        }
+        long_title = "A" * 200  # Exceeds 190 char truncation limit (within 200 max_length)
+        request_data = {"title": long_title, "description": "Test", "group_id": 1, "scenes": []}
 
         response = client.post("/storyboards", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
         # Verify title was truncated
-        storyboard = db_session.query(Storyboard).filter(
-            Storyboard.id == data["storyboard_id"]
-        ).first()
+        storyboard = db_session.query(Storyboard).filter(Storyboard.id == data["storyboard_id"]).first()
         assert len(storyboard.title) <= 193  # 190 + "..."
         assert storyboard.title.endswith("...")

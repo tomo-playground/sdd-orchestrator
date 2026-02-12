@@ -1,6 +1,7 @@
 """Scene and Storyboard models."""
 
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -22,6 +23,9 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "scenes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    client_id: Mapped[str] = mapped_column(
+        String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid4())
+    )
     storyboard_id: Mapped[int] = mapped_column(Integer, ForeignKey("storyboards.id", ondelete="CASCADE"), index=True)
     order: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -54,9 +58,7 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     background_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("backgrounds.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    background: Mapped["Background | None"] = relationship(
-        "Background", foreign_keys=[background_id], viewonly=True
-    )
+    background: Mapped["Background | None"] = relationship("Background", foreign_keys=[background_id], viewonly=True)
 
     environment_reference_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id", ondelete="SET NULL"))
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)

@@ -49,7 +49,7 @@ export default function ScriptSceneList({
       <div className="space-y-2">
         {scenes.map((scene, idx) => (
           <div
-            key={scene.id}
+            key={scene.client_id ?? scene.id}
             className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:shadow-sm"
           >
             <div className="mb-2 flex items-center gap-2">

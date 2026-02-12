@@ -1,7 +1,7 @@
-import type { Scene } from '../types';
-import { shouldAutoPin, findPreviousSceneWithImage } from './autoPin';
+import type { Scene } from "../types";
+import { shouldAutoPin, findPreviousSceneWithImage } from "./autoPin";
 
-type UpdateSceneFn = (sceneId: number, updates: Partial<Scene>) => void;
+type UpdateSceneFn = (clientId: string, updates: Partial<Scene>) => void;
 
 type AutoPinResult = {
   success: boolean;
@@ -11,27 +11,27 @@ type AutoPinResult = {
 /**
  * Apply auto-pin after image generation if scene has _auto_pin_previous flag
  * @param scenes - All scenes
- * @param currentSceneId - The scene that just got its image generated
+ * @param currentClientId - The scene's client_id that just got its image generated
  * @param updateScene - Function to update scene state
  * @returns Result with success message, or null if no action taken
  */
 export function applyAutoPinAfterGeneration(
   scenes: Scene[],
-  currentSceneId: number,
+  currentClientId: string,
   updateScene: UpdateSceneFn
 ): AutoPinResult {
-  const currentScene = scenes.find((s) => s.id === currentSceneId);
+  const currentScene = scenes.find((s) => s.client_id === currentClientId);
   if (!currentScene) return null;
 
   // Check if auto-pin should be applied
   if (!shouldAutoPin(currentScene)) return null;
 
   // Find previous scene with image
-  const referenceScene = findPreviousSceneWithImage(scenes, currentSceneId);
+  const referenceScene = findPreviousSceneWithImage(scenes, currentClientId);
   if (!referenceScene || !referenceScene.image_asset_id) return null;
 
   // Apply pin
-  updateScene(currentSceneId, {
+  updateScene(currentClientId, {
     environment_reference_id: referenceScene.image_asset_id,
     environment_reference_weight: 0.3,
   });

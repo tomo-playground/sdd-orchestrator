@@ -1,4 +1,4 @@
-# Database Schema (v3.18)
+# Database Schema (v3.19)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.19 | 2026-02-12 | `scenes`에 `client_id` (UUID) 추가 — Frontend 안정 식별자, UNIQUE + NOT NULL |
 | v3.18 | 2026-02-12 | `scenes`에 `background_id` FK 추가 (Background 에셋 연동, ControlNet Canny + 태그 자동 주입) |
 | v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
 | v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
@@ -160,6 +161,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
+| `client_id` | String(36), UNIQUE, NOT NULL | Client-side UUID (생성 시 확정, 불변). Frontend 안정 식별자 |
 | `storyboard_id` | Integer (FK → storyboards) | 소속 스토리보드 |
 | `order` | Integer | 씬 순서 (0-based) |
 | `script` | Text | 나레이션/Scene Text |
@@ -824,6 +826,6 @@ Textual Inversion 임베딩.
 ---
 
 **Last Updated:** 2026-02-12
-**Schema Version:** v3.18
+**Schema Version:** v3.19
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

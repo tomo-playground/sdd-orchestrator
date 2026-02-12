@@ -49,8 +49,8 @@ type SceneSidePanelProps = {
   // Validation
   validationSummary: ValidationSummary;
   // Match rates
-  imageValidationResults?: Record<number, SceneMatchRate>;
-  scenes?: { id: number; order?: number }[];
+  imageValidationResults?: Record<string, SceneMatchRate>;
+  scenes?: { id: number; client_id: string; order?: number }[];
   onSceneSelect?: (index: number) => void;
 };
 
@@ -216,7 +216,7 @@ export default function SceneSidePanel({
           <label className={SIDE_PANEL_LABEL}>Match Rates</label>
           <div className="grid grid-cols-3 gap-1.5">
             {scenesInfo!.map((scene, index) => {
-              const result = imageValidationResults![scene.id];
+              const result = imageValidationResults![scene.client_id];
               const rate = result?.match_rate;
               const hasRate = rate !== undefined && rate !== null;
               const colorClass = !hasRate
@@ -229,7 +229,7 @@ export default function SceneSidePanel({
 
               return (
                 <button
-                  key={scene.id}
+                  key={scene.client_id}
                   type="button"
                   onClick={() => onSceneSelect?.(index)}
                   title={

@@ -6,8 +6,10 @@ import type {
   ReferenceImage,
   SceneValidation,
   ImageValidation,
+  ImageGenProgress,
 } from "../types";
 import { DEFAULT_STRUCTURE } from "../constants";
+import { generateSceneClientId } from "../utils/uuid";
 
 type LoraEntry = {
   id: number;
@@ -66,16 +68,19 @@ export interface StoryboardStore {
   isGenerating: boolean;
   multiGenEnabled: boolean;
   referenceImages: ReferenceImage[];
-  validationResults: Record<number, SceneValidation>;
+  validationResults: Record<string, SceneValidation>;
   validationSummary: { ok: number; warn: number; error: number };
-  imageValidationResults: Record<number, ImageValidation>;
-  validatingSceneId: number | null;
-  markingStatusSceneId: number | null;
-  sceneTab: Record<number, "validate" | "debug" | null>;
-  sceneMenuOpen: number | null;
-  advancedExpanded: Record<number, boolean>;
-  suggestionExpanded: Record<number, boolean>;
-  validationExpanded: Record<number, boolean>;
+  imageValidationResults: Record<string, ImageValidation>;
+  validatingSceneId: string | null;
+  markingStatusSceneId: string | null;
+  sceneTab: Record<string, "validate" | "debug" | null>;
+  sceneMenuOpen: string | null;
+  advancedExpanded: Record<string, boolean>;
+  suggestionExpanded: Record<string, boolean>;
+  validationExpanded: Record<string, boolean>;
+
+  // Image generation progress (SSE)
+  imageGenProgress: Record<string, ImageGenProgress>;
 
   // Dirty flag
   isDirty: boolean;
@@ -83,8 +88,8 @@ export interface StoryboardStore {
   // Setters
   set: (updates: Partial<StoryboardStore>) => void;
   setScenes: (scenes: Scene[]) => void;
-  updateScene: (sceneId: number, updates: Partial<Scene>) => void;
-  removeScene: (sceneId: number) => void;
+  updateScene: (clientId: string, updates: Partial<Scene>) => void;
+  removeScene: (clientId: string) => void;
   reset: () => void;
 }
 
@@ -141,6 +146,7 @@ const initialState: Omit<
   advancedExpanded: {},
   suggestionExpanded: {},
   validationExpanded: {},
+  imageGenProgress: {},
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
@@ -167,6 +173,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "validationResults",
   "validationSummary",
   "imageValidationResults",
+  "imageGenProgress",
   "loraTriggerWords",
   "characterLoras",
   "characterPromptMode",
@@ -184,14 +191,14 @@ export const useStoryboardStore = create<StoryboardStore>()(
           isDirty: true,
           currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, scenes.length - 1)),
         })),
-      updateScene: (sceneId, updates) =>
+      updateScene: (clientId, updates) =>
         set((state) => ({
-          scenes: state.scenes.map((s) => (s.id === sceneId ? { ...s, ...updates } : s)),
+          scenes: state.scenes.map((s) => (s.client_id === clientId ? { ...s, ...updates } : s)),
           isDirty: true,
         })),
-      removeScene: (sceneId) =>
+      removeScene: (clientId) =>
         set((state) => {
-          const newScenes = state.scenes.filter((s) => s.id !== sceneId);
+          const newScenes = state.scenes.filter((s) => s.client_id !== clientId);
           return {
             scenes: newScenes,
             isDirty: true,
@@ -211,6 +218,16 @@ export const useStoryboardStore = create<StoryboardStore>()(
           persisted[key] = value;
         }
         return persisted as Partial<StoryboardStore>;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state?.scenes) {
+          const needsMigration = state.scenes.some((s) => !s.client_id);
+          if (needsMigration) {
+            state.scenes = state.scenes.map((s) =>
+              s.client_id ? s : { ...s, client_id: generateSceneClientId() }
+            );
+          }
+        }
       },
     }
   )

@@ -6,6 +6,7 @@ import { useUIStore } from "../useUIStore";
 import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import type { Scene } from "../../types";
+import { generateSceneClientId } from "../../utils/uuid";
 
 /**
  * Sanitize candidates for DB storage.
@@ -69,6 +70,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       character_b_id: selectedCharacterBId || undefined,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
+        client_id: s.client_id,
         script: s.script,
         speaker: s.speaker,
         duration: s.duration,
@@ -170,7 +172,8 @@ export function mapGeminiScenes(
     const combined = [baseNegative, sceneNegative].filter(Boolean).join(", ").trim();
 
     return {
-      id: i,
+      id: 0,
+      client_id: generateSceneClientId(),
       order: i,
       script: (s.script as string) || "",
       speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
@@ -228,6 +231,7 @@ export async function persistStoryboard(): Promise<boolean> {
       character_b_id: selectedCharacterBId || undefined,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
+        client_id: s.client_id,
         script: s.script,
         speaker: s.speaker,
         duration: s.duration,

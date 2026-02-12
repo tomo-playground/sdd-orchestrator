@@ -87,41 +87,36 @@ export async function runAutoRunFromStep(
         if (multiGenScenes.length > 0) {
           for (const scene of multiGenScenes) {
             assertNotCancelled();
-            const sceneOrder = scene.order;
-            // Fresh lookup: scene IDs may change between iterations (save -> ID reassignment)
+            // Fresh lookup by client_id (stable across save/ID reassignment)
             const freshScene =
-              useStoryboardStore.getState().scenes.find((s) => s.order === sceneOrder) || scene;
-            useStoryboardStore.getState().updateScene(freshScene.id, { isGenerating: true });
+              useStoryboardStore.getState().scenes.find((s) => s.client_id === scene.client_id) ||
+              scene;
+            useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: true });
             let result = await generateSceneCandidates(freshScene, true);
             if (!result?.image_url) {
-              pushAutoRunLog(`Retry (Scene #${sceneOrder})`);
+              pushAutoRunLog(`Retry (Scene #${scene.order})`);
               const retryScene =
-                useStoryboardStore.getState().scenes.find((s) => s.order === sceneOrder) ||
+                useStoryboardStore.getState().scenes.find((s) => s.client_id === scene.client_id) ||
                 freshScene;
               result = await generateSceneCandidates(retryScene, true);
             }
-            // Re-lookup after async: scene IDs may have changed
-            const currentScene = useStoryboardStore
-              .getState()
-              .scenes.find((s) => s.order === sceneOrder);
-            const currentId = currentScene?.id ?? freshScene.id;
-            useStoryboardStore.getState().updateScene(currentId, { isGenerating: false });
-            if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);
-            useStoryboardStore.getState().updateScene(currentId, result);
+            useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
+            if (!result?.image_url) throw new Error(`Image failed for Scene #${scene.order}`);
+            useStoryboardStore.getState().updateScene(scene.client_id, result);
             workingScenes = useStoryboardStore.getState().scenes;
           }
         }
 
         // Single-gen scenes: batch mode with server-side throttling
         if (singleGenScenes.length > 0) {
-          const sceneIds = singleGenScenes.map((s) => s.id);
-          const batchResult = await generateBatchImages(sceneIds);
+          const sceneClientIds = singleGenScenes.map((s) => s.client_id);
+          const batchResult = await generateBatchImages(sceneClientIds);
 
           // Check for scenes that need retry: either batch API failure OR
           // successful generation but failed image store (missing image_asset_id)
           const freshAfterBatch = useStoryboardStore.getState().scenes;
           const scenesNeedingRetry = singleGenScenes.filter((target) => {
-            const fresh = freshAfterBatch.find((s) => s.order === target.order);
+            const fresh = freshAfterBatch.find((s) => s.client_id === target.client_id);
             // Retry if: no image_url, or has data URL (store failed), or no asset_id
             return !fresh?.image_url || !fresh?.image_asset_id;
           });
@@ -129,25 +124,21 @@ export async function runAutoRunFromStep(
           const batchFailed = !batchResult || batchResult.failed > 0;
           if (batchFailed || scenesNeedingRetry.length > 0) {
             const reason = batchFailed
-              ? `Batch: ${batchResult?.failed ?? sceneIds.length} scene(s) failed`
+              ? `Batch: ${batchResult?.failed ?? sceneClientIds.length} scene(s) failed`
               : `${scenesNeedingRetry.length} scene(s) missing stored image`;
             pushAutoRunLog(`${reason}, retrying individually`);
             // Retry scenes that are missing images (use fresh store, not stale workingScenes)
             for (const target of scenesNeedingRetry) {
               assertNotCancelled();
-              const sceneOrder = target.order;
               const freshScene =
-                useStoryboardStore.getState().scenes.find((s) => s.order === sceneOrder) || target;
-              useStoryboardStore.getState().updateScene(freshScene.id, { isGenerating: true });
+                useStoryboardStore
+                  .getState()
+                  .scenes.find((s) => s.client_id === target.client_id) || target;
+              useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: true });
               const result = await generateSceneImageFor(freshScene, true);
-              // Re-lookup after async: scene IDs may have changed
-              const currentScene = useStoryboardStore
-                .getState()
-                .scenes.find((s) => s.order === sceneOrder);
-              const currentId = currentScene?.id ?? freshScene.id;
-              useStoryboardStore.getState().updateScene(currentId, { isGenerating: false });
-              if (!result?.image_url) throw new Error(`Image failed for Scene #${sceneOrder}`);
-              useStoryboardStore.getState().updateScene(currentId, result);
+              useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: false });
+              if (!result?.image_url) throw new Error(`Image failed for Scene #${target.order}`);
+              useStoryboardStore.getState().updateScene(target.client_id, result);
             }
           }
           // Sync workingScenes with store state after batch
@@ -162,7 +153,7 @@ export async function runAutoRunFromStep(
         for (const scene of sortedScenes) {
           // Re-fetch scenes each iteration to get updated environment_reference_id
           const currentScenes = useStoryboardStore.getState().scenes;
-          const result = applyAutoPinAfterGeneration(currentScenes, scene.id, updateScene);
+          const result = applyAutoPinAfterGeneration(currentScenes, scene.client_id, updateScene);
           if (result?.success) {
             autoPinCount++;
             pushAutoRunLog(`AutoPin: Scene ${scene.order} - ${result.message}`);

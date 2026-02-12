@@ -80,9 +80,11 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     db.commit()
     db.refresh(db_storyboard)
 
-    scene_ids = [scene.id for scene in sorted(db_storyboard.scenes, key=lambda s: s.order)]
+    scenes_sorted = sorted(db_storyboard.scenes, key=lambda s: s.order)
+    scene_ids = [scene.id for scene in scenes_sorted]
+    client_ids = [scene.client_id for scene in scenes_sorted]
 
-    return {"status": "success", "storyboard_id": db_storyboard.id, "scene_ids": scene_ids}
+    return {"status": "success", "storyboard_id": db_storyboard.id, "scene_ids": scene_ids, "client_ids": client_ids}
 
 
 def _derive_kanban_status(storyboard: Storyboard, image_count: int) -> str:
@@ -353,9 +355,11 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
     # Return new scene IDs ordered by scene.order (relationship now has order_by,
     # but explicit sort as belt-and-suspenders to prevent ID/order mismatch on frontend)
-    scene_ids = [scene.id for scene in sorted(storyboard.scenes, key=lambda s: s.order)]
+    scenes_sorted = sorted(storyboard.scenes, key=lambda s: s.order)
+    scene_ids = [scene.id for scene in scenes_sorted]
+    client_ids = [scene.client_id for scene in scenes_sorted]
 
-    return {"status": "success", "storyboard_id": storyboard.id, "scene_ids": scene_ids}
+    return {"status": "success", "storyboard_id": storyboard.id, "scene_ids": scene_ids, "client_ids": client_ids}
 
 
 def update_storyboard_metadata(db: Session, storyboard_id: int, request: StoryboardUpdate) -> dict:

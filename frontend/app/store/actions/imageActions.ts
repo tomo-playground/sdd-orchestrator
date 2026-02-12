@@ -7,11 +7,7 @@ import { API_BASE } from "../../constants";
 import { buildScenePrompt } from "./promptActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
-import {
-  storeSceneImage,
-  generateSceneImageFor,
-  generateSceneCandidates,
-} from "./imageGeneration";
+import { storeSceneImage, generateSceneImageFor, generateSceneCandidates } from "./imageGeneration";
 
 // Re-export for existing consumers
 export { storeSceneImage, generateSceneImageFor, generateSceneCandidates };
@@ -30,38 +26,30 @@ export async function handleGenerateImage(scene: Scene) {
     return;
   }
 
-  // Get updated scene with DB-assigned ID
-  const updatedScene = scenes.find(
-    (s) => s.id === scene.id || (s.script === scene.script && s.order === scene.order)
-  );
+  // Get updated scene with DB-assigned ID (client_id is stable across saves)
+  const updatedScene = scenes.find((s) => s.client_id === scene.client_id);
   if (!updatedScene) {
     showToast("Scene not found after save", "error");
     return;
   }
 
-  const sceneOrder = updatedScene.order;
-  updateScene(updatedScene.id, { isGenerating: true });
+  updateScene(scene.client_id, { isGenerating: true });
   try {
     const result = multiGenEnabled
       ? await generateSceneCandidates(updatedScene)
       : await generateSceneImageFor(updatedScene);
     if (result) {
       console.log("[handleGenerateImage] Image generation result:", result);
-      // Scene ID may have changed during generation (concurrent save -> ID reassignment).
-      // Look up by order (stable) instead of stale captured ID.
-      const currentScenes = useStoryboardStore.getState().scenes;
-      const currentScene = currentScenes.find((s) => s.order === sceneOrder);
-      const currentId = currentScene?.id ?? updatedScene.id;
       const { updateScene: liveUpdateScene } = useStoryboardStore.getState();
 
       // Include isGenerating: false before saveStoryboard to survive ID reassignment
-      liveUpdateScene(currentId, { ...result, isGenerating: false });
+      liveUpdateScene(scene.client_id, { ...result, isGenerating: false });
 
       // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
       const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
       const autoPinResult = applyAutoPinAfterGeneration(
         useStoryboardStore.getState().scenes,
-        currentId,
+        scene.client_id,
         liveUpdateScene
       );
       if (autoPinResult?.success) {
@@ -74,18 +62,12 @@ export async function handleGenerateImage(scene: Scene) {
       console.warn("[handleGenerateImage] No result from image generation");
     }
   } finally {
-    // Scene ID may have changed after saveStoryboard (ID reassignment).
-    // Look up by order (stable) instead of old ID.
-    const currentScenes = useStoryboardStore.getState().scenes;
-    const targetScene = currentScenes.find((s) => s.order === sceneOrder);
-    if (targetScene) {
-      useStoryboardStore.getState().updateScene(targetScene.id, { isGenerating: false });
-    }
+    useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
   }
 }
 
 /** Upload a local file as a scene image */
-export function handleImageUpload(sceneId: number, file?: File) {
+export function handleImageUpload(clientId: string, file?: File) {
   if (!file) return;
   const reader = new FileReader();
   reader.onloadend = async () => {
@@ -97,15 +79,17 @@ export function handleImageUpload(sceneId: number, file?: File) {
       showToast("Project/Group context required", "error");
       return;
     }
+    const scene = scenes.find((s) => s.client_id === clientId);
+    const dbSceneId = scene?.id ?? 0;
     const stored = await storeSceneImage(
       dataUrl,
       projectId,
       groupId,
       storyboardId,
-      sceneId,
-      `upload_${sceneId}_${Date.now()}.png`
+      dbSceneId,
+      `upload_${dbSceneId}_${Date.now()}.png`
     );
-    updateScene(sceneId, {
+    updateScene(clientId, {
       image_url: stored.url,
       image_asset_id: stored.asset_id ?? null,
       candidates: [],
@@ -113,7 +97,7 @@ export function handleImageUpload(sceneId: number, file?: File) {
 
     // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
     const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
-    const autoPinResult = applyAutoPinAfterGeneration(scenes, sceneId, updateScene);
+    const autoPinResult = applyAutoPinAfterGeneration(scenes, clientId, updateScene);
     if (autoPinResult?.success) {
       console.log("[AutoPin]", autoPinResult.message);
       showToast(`Auto-pin: ${autoPinResult.message}`, "success");
@@ -136,13 +120,12 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     showToast("Save the scene first (image must be stored).", "error");
     return;
   }
-  const sceneOrder = scene.order;
-  useStoryboardStore.getState().updateScene(scene.id, { isGenerating: true });
+  useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: true });
   try {
     const prompt = await buildScenePrompt(scene);
     if (!prompt) {
       showToast("Prompt build failed", "error");
-      useStoryboardStore.getState().updateScene(scene.id, { isGenerating: false });
+      useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
       return;
     }
     const payload =
@@ -155,22 +138,23 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
       const { projectId, groupId, storyboardId } = useContextStore.getState();
       if (!projectId || !groupId || !storyboardId) {
         showToast("Project/Group context required", "error");
-        useStoryboardStore.getState().updateScene(scene.id, { isGenerating: false });
+        useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
         return;
       }
-      // Re-lookup by order: scene IDs may have changed during Gemini API call
-      const currentScenes = useStoryboardStore.getState().scenes;
-      const currentScene = currentScenes.find((s) => s.order === sceneOrder);
-      const currentId = currentScene?.id ?? scene.id;
+      // Use client_id for stable scene lookup (DB id may change during API call)
+      const currentScene = useStoryboardStore
+        .getState()
+        .scenes.find((s) => s.client_id === scene.client_id);
+      const dbId = currentScene?.id ?? scene.id;
       const stored = await storeSceneImage(
         dataUrl,
         projectId,
         groupId,
         storyboardId,
-        currentId,
-        `gemini_edit_${currentId}_${Date.now()}.png`
+        dbId,
+        `gemini_edit_${dbId}_${Date.now()}.png`
       );
-      useStoryboardStore.getState().updateScene(currentId, {
+      useStoryboardStore.getState().updateScene(scene.client_id, {
         image_url: stored.url,
         image_asset_id: stored.asset_id ?? null,
         isGenerating: false,
@@ -186,11 +170,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     showToast(`Gemini edit failed: ${msg}`, "error");
-    // Re-lookup by order for cleanup
-    const currentScenes = useStoryboardStore.getState().scenes;
-    const currentScene = currentScenes.find((s) => s.order === sceneOrder);
-    const currentId = currentScene?.id ?? scene.id;
-    useStoryboardStore.getState().updateScene(currentId, { isGenerating: false });
+    useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
   }
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Scene, ImageValidation } from "../../types";
+import type { Scene, ImageValidation, ImageGenProgress } from "../../types";
 
 type SceneImagePanelProps = {
   scene: Scene;
@@ -14,6 +14,8 @@ type SceneImagePanelProps = {
   isValidating?: boolean;
   onValidate?: () => void;
   onApplyMissingTags?: (tags: string[]) => void;
+  // SSE progress
+  genProgress?: ImageGenProgress | null;
 };
 
 function ValidationOverlay({
@@ -118,6 +120,7 @@ export default function SceneImagePanel({
   isValidating = false,
   onValidate,
   onApplyMissingTags,
+  genProgress,
 }: SceneImagePanelProps) {
   const [hovered, setHovered] = useState(false);
   const showOverlay = hovered && scene.image_url && !scene.isGenerating && onValidate;
@@ -129,17 +132,26 @@ export default function SceneImagePanel({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* Generating spinner */}
+        {/* Generating spinner with SSE progress */}
         {scene.isGenerating && (
           <div className="absolute inset-0 z-[var(--z-dropdown)] flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-200 border-t-indigo-500" />
-            <p className="text-sm font-semibold text-zinc-700">이미지 생성 중...</p>
-            <div className="h-1 w-32 overflow-hidden rounded-full bg-zinc-200">
+            <p className="text-sm font-semibold text-zinc-700">
+              {genProgress?.message || "이미지 생성 중..."}
+            </p>
+            <div className="h-1.5 w-32 overflow-hidden rounded-full bg-zinc-200">
               <div
-                className="h-full animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                style={{ width: "100%" }}
+                className={`h-full rounded-full transition-all duration-300 ease-out ${
+                  genProgress
+                    ? "bg-indigo-500"
+                    : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                }`}
+                style={{ width: genProgress ? `${genProgress.percent}%` : "100%" }}
               />
             </div>
+            {genProgress && (
+              <span className="text-[12px] font-medium text-zinc-500">{genProgress.percent}%</span>
+            )}
           </div>
         )}
 
@@ -208,7 +220,7 @@ export default function SceneImagePanel({
               const isSelected = candidate.image_url === scene.image_url;
               return (
                 <button
-                  key={`${scene.id}-candidate-${idx}`}
+                  key={`${scene.client_id}-candidate-${idx}`}
                   type="button"
                   onClick={() => onCandidateSelect(candidate.image_url!)}
                   className={`relative overflow-hidden rounded-xl border ${

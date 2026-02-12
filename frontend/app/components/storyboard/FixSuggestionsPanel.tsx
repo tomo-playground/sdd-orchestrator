@@ -38,7 +38,7 @@ export default function FixSuggestionsPanel({
           <ul className="mt-2 grid gap-2 text-[13px]">
             {suggestions.map((item) => (
               <li
-                key={`${scene.id}-${item.id}`}
+                key={`${scene.client_id}-${item.id}`}
                 className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white/70 px-3 py-2"
               >
                 <span className="text-zinc-600">{item.message}</span>

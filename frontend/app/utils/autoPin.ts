@@ -1,4 +1,4 @@
-import type { Scene } from '../types';
+import type { Scene } from "../types";
 
 /**
  * Check if a scene should have auto-pin applied
@@ -14,14 +14,11 @@ export function shouldAutoPin(scene: Scene): boolean {
 /**
  * Find the previous scene with an image_asset_id
  * @param scenes - All scenes in order
- * @param currentSceneId - The current scene's id
+ * @param currentClientId - The current scene's client_id
  * @returns The previous scene with image, or null if none found
  */
-export function findPreviousSceneWithImage(
-  scenes: Scene[],
-  currentSceneId: number
-): Scene | null {
-  const currentIndex = scenes.findIndex((s) => s.id === currentSceneId);
+export function findPreviousSceneWithImage(scenes: Scene[], currentClientId: string): Scene | null {
+  const currentIndex = scenes.findIndex((s) => s.client_id === currentClientId);
 
   if (currentIndex <= 0) return null; // No previous scenes or not found
 
