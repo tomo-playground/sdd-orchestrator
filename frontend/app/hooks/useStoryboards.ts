@@ -33,8 +33,10 @@ export function useStoryboards(
     try {
       const params: Record<string, unknown> = { project_id: projectId };
       if (groupId !== null && groupId !== ALL_GROUPS_ID) params.group_id = groupId;
-      const res = await axios.get<StoryboardListItem[]>(`${API_BASE}/storyboards`, { params });
-      setStoryboards(res.data ?? []);
+      const res = await axios.get<{ items: StoryboardListItem[] }>(`${API_BASE}/storyboards`, {
+        params,
+      });
+      setStoryboards(res.data.items ?? []);
     } catch {
       setStoryboards([]);
     } finally {

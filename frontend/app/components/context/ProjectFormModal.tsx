@@ -33,10 +33,11 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
   // Fetch characters for avatar selector
   useEffect(() => {
     axios
-      .get<Character[]>(`${API_BASE}/characters`)
+      .get<{ items: Character[] }>(`${API_BASE}/characters`)
       .then((r) => {
-        console.log("[ProjectFormModal] characters loaded:", r.data.length);
-        setCharacters(r.data);
+        const items = r.data.items ?? [];
+        console.log("[ProjectFormModal] characters loaded:", items.length);
+        setCharacters(items);
       })
       .catch((err) => console.error("[ProjectFormModal] failed to load characters:", err));
   }, []);

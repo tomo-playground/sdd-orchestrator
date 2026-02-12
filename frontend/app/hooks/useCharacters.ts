@@ -31,8 +31,8 @@ export function useCharacters(projectId?: number | null): UseCharactersResult {
     try {
       const params: Record<string, unknown> = {};
       if (projectId != null) params.project_id = projectId;
-      const res = await axios.get(`${API_BASE}/characters`, { params });
-      setCharacters(res.data || []);
+      const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`, { params });
+      setCharacters(res.data.items ?? []);
     } catch (err) {
       console.error("[useCharacters] Error:", err);
       setError("Failed to load characters");

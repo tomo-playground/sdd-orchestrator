@@ -188,7 +188,16 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       }
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        showToast("다른 탭에서 수정되었습니다. 페이지를 새로고침해주세요.", "error");
+        showToast("다른 탭에서 수정되었습니다. 다시 저장해주세요.", "error");
+        // Sync version from server so next save uses correct version
+        if (state.storyboardId) {
+          try {
+            const fresh = await axios.get(`${API_BASE}/storyboards/${state.storyboardId}`);
+            setState((prev) => ({ ...prev, storyboardVersion: fresh.data.version ?? null }));
+          } catch {
+            /* silent */
+          }
+        }
       } else {
         const msg = axios.isAxiosError(err)
           ? (err.response?.data?.detail ?? err.message)

@@ -22,8 +22,10 @@ class TestCharactersRouter:
         response = client.get("/characters")
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) == 0
+        assert "items" in data
+        assert "total" in data
+        assert data["total"] == 0
+        assert len(data["items"]) == 0
 
     def test_create_character_minimal(self, client: TestClient, db_session):
         """Create character with minimal required fields."""
@@ -170,8 +172,10 @@ class TestCharactersRouter:
         assert response.status_code == 200
         data = response.json()
 
-        assert len(data) == 2
-        names = [item["name"] for item in data]
+        assert data["total"] == 2
+        items = data["items"]
+        assert len(items) == 2
+        names = [item["name"] for item in items]
         assert "char1" in names
         assert "char2" in names
 

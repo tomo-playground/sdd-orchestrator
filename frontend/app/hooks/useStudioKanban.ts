@@ -37,8 +37,10 @@ export function useStudioKanban() {
       const params = new URLSearchParams();
       params.set("project_id", String(projectId));
       if (groupId && groupId > 0) params.set("group_id", String(groupId));
-      const res = await axios.get(`${API_BASE}/storyboards?${params}`);
-      setItems(res.data);
+      const res = await axios.get<{ items: StoryboardListItem[] }>(
+        `${API_BASE}/storyboards?${params}`
+      );
+      setItems(res.data.items ?? []);
     } catch {
       setItems([]);
     } finally {

@@ -49,8 +49,10 @@ export default function CommandPalette() {
       setQuery(""); // eslint-disable-line react-hooks/set-state-in-effect
       setSelectedIdx(0);
       axios
-        .get(`${API_BASE}/storyboards`)
-        .then((r) => setStoryboards(r.data))
+        .get<{ items: { id: number; title: string; group_id: number }[] }>(
+          `${API_BASE}/storyboards`
+        )
+        .then((r) => setStoryboards(r.data.items ?? []))
         .catch(() => {});
       setTimeout(() => inputRef.current?.focus(), 50);
     }

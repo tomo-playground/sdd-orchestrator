@@ -22,8 +22,12 @@ from schemas import (
     RenderHistoryLookupResponse,
     RenderProgressEvent,
     TextExtractRequest,
+    TransitionsResponse,
     VideoCreateAccepted,
+    VideoCreateResponse,
     VideoDeleteRequest,
+    VideoDeleteResponse,
+    VideoExistsResponse,
     VideoRequest,
     YouTubeStatusesRequest,
     YouTubeStatusesResponse,
@@ -71,7 +75,7 @@ def _save_render_history(db: Session, request: VideoRequest, result: dict) -> in
 # ------------------------------------------------------------------
 
 
-@router.post("/create")
+@router.post("/create", response_model=VideoCreateResponse)
 async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
     logger.info("[Video Req] %s", scrub_payload(request.model_dump()))
     # Release DB connection before FFmpeg rendering (30-120s)
@@ -185,7 +189,7 @@ def _sse_event(event: RenderProgressEvent) -> str:
 # ------------------------------------------------------------------
 
 
-@router.post("/delete")
+@router.post("/delete", response_model=VideoDeleteResponse)
 async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db)):
     """Delete video from storage, database, and render_history references.
 
@@ -243,7 +247,7 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
         raise_user_error("video_delete", exc)
 
 
-@router.get("/exists")
+@router.get("/exists", response_model=VideoExistsResponse)
 async def video_exists(filename: str = Query(..., min_length=1)):
     name = os.path.basename(filename)
     if not name.endswith(".mp4"):
@@ -297,7 +301,7 @@ async def lookup_render_history(video_url: str = Query(..., min_length=1), db: S
     return RenderHistoryLookupResponse(render_history_id=rh.id)
 
 
-@router.get("/transitions")
+@router.get("/transitions", response_model=TransitionsResponse)
 async def get_transitions():
     """Get list of available scene transition effects."""
     from constants.transition import get_transition_list

@@ -23,9 +23,11 @@ from schemas import (
     ImageGenAccepted,
     ImageProgressEvent,
     ImageStoreRequest,
+    ImageStoreResponse,
     SceneGenerateRequest,
     SceneGenerateResponse,
     SceneValidateRequest,
+    SceneValidationResponse,
 )
 from services.asset_service import AssetService
 from services.generation import generate_scene_image
@@ -88,7 +90,7 @@ async def generate_batch_images(request: BatchSceneRequest):
     }
 
 
-@router.post("/image/store")
+@router.post("/image/store", response_model=ImageStoreResponse)
 def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db)):
     try:
         image_bytes = decode_data_url(request.image_b64)
@@ -133,7 +135,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         raise_user_error("image_store", e)
 
 
-@router.post("/scene/validate_image")
+@router.post("/scene/validate_image", response_model=SceneValidationResponse)
 async def validate_scene_image_endpoint(request: SceneValidateRequest, db: Session = Depends(get_db)):
     logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
     return validate_scene_image(request, db=db)

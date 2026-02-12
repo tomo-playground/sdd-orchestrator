@@ -5,10 +5,11 @@ import { Image } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
 import { useBackgrounds } from "../../hooks/useBackgrounds";
 import BackgroundCard from "./BackgroundCard";
+import BackgroundCardSkeleton from "./BackgroundCardSkeleton";
 import Button from "../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import EmptyState from "../../components/ui/EmptyState";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { SkeletonGrid } from "../../components/ui/Skeleton";
 import {
   CONTAINER_CLASSES,
   PAGE_TITLE_CLASSES,
@@ -174,9 +175,7 @@ export default function BackgroundsPage() {
 
       {/* Card grid */}
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner size="md" />
-        </div>
+        <SkeletonGrid>{(i) => <BackgroundCardSkeleton key={i} />}</SkeletonGrid>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Image}

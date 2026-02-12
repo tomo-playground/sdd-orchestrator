@@ -55,7 +55,10 @@ export async function mockStudioApis(page: Page) {
   await page.route("**/storyboards", (route) => {
     if (route.request().method() === "GET") {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      return route.fulfill({ json: MOCK_STORYBOARDS.map(({ scenes: _s, ...rest }) => rest) });
+      const items = MOCK_STORYBOARDS.map(({ scenes: _s, ...rest }) => rest);
+      return route.fulfill({
+        json: { items, total: items.length, offset: 0, limit: 50 },
+      });
     }
     return route.continue();
   });
@@ -83,7 +86,9 @@ export async function mockStudioApis(page: Page) {
   // Characters
   await page.route("**/characters", (route) => {
     if (route.request().method() === "GET") {
-      return route.fulfill({ json: MOCK_CHARACTERS });
+      return route.fulfill({
+        json: { items: MOCK_CHARACTERS, total: MOCK_CHARACTERS.length, offset: 0, limit: 50 },
+      });
     }
     return route.continue();
   });

@@ -6,6 +6,7 @@ from services.storyboard.crud import (
     get_storyboard_by_id,
     list_storyboards_from_db,
     permanent_delete_storyboard,
+    restore_storyboard_from_db,
     save_storyboard_to_db,
     update_storyboard_in_db,
     update_storyboard_metadata,
@@ -73,5 +74,6 @@ __all__ = [
     "update_storyboard_in_db",
     "update_storyboard_metadata",
     "delete_storyboard_from_db",
+    "restore_storyboard_from_db",
     "permanent_delete_storyboard",
 ]

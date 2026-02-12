@@ -79,12 +79,28 @@ def _save_tag_links(db: Session, character_id: int, tags: list) -> None:
 # ---------------------------------------------------------------------------
 
 
-def list_characters(db: Session, project_id: int | None = None) -> list[Character]:
-    """List all characters with tags and enriched LoRA metadata."""
-    query = _base_character_query(db).filter(Character.deleted_at.is_(None))
+def list_characters(
+    db: Session,
+    project_id: int | None = None,
+    offset: int = 0,
+    limit: int = 50,
+) -> dict:
+    """List characters with tags and enriched LoRA metadata (paginated)."""
+    from sqlalchemy import func
+
+    base = db.query(Character).filter(Character.deleted_at.is_(None))
     if project_id is not None:
-        query = query.filter(Character.project_id == project_id)
-    characters = query.order_by(Character.name).all()
+        base = base.filter(Character.project_id == project_id)
+
+    total = base.with_entities(func.count(Character.id)).scalar() or 0
+
+    characters = (
+        base.options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .order_by(Character.name)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     # Pre-fetch all LoRAs to avoid N+1
     all_loras = db.query(LoRA).all()
@@ -95,7 +111,7 @@ def list_characters(db: Session, project_id: int | None = None) -> list[Characte
         if char.loras:
             char.loras = enrich_with_lora_map(char.loras, lora_map)
 
-    return characters
+    return {"items": characters, "total": total, "offset": offset, "limit": limit}
 
 
 def get_character_or_raise(db: Session, character_id: int) -> Character:
@@ -113,11 +129,7 @@ def get_character_or_raise(db: Session, character_id: int) -> Character:
 
 def create_character(db: Session, data: CharacterCreate) -> Character:
     """Create a character with tags, LoRA enrichment, and default prompts."""
-    existing = (
-        db.query(Character)
-        .filter(Character.name == data.name, Character.deleted_at.is_(None))
-        .first()
-    )
+    existing = db.query(Character).filter(Character.name == data.name, Character.deleted_at.is_(None)).first()
     if existing:
         raise ConflictError("Character name already exists")
 

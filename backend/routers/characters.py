@@ -8,7 +8,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from schemas import CharacterCreate, CharacterResponse, CharacterUpdate
+from schemas import CharacterCreate, CharacterResponse, CharacterUpdate, PaginatedCharacterList
 from services.characters import (
     ConflictError,
     batch_regenerate_references,
@@ -34,13 +34,15 @@ async def list_trashed_characters_endpoint(db: Session = Depends(get_db)):
     return list_trashed_characters(db)
 
 
-@router.get("", response_model=list[CharacterResponse])
+@router.get("", response_model=PaginatedCharacterList)
 async def list_characters_endpoint(
     project_id: int | None = None,
+    offset: int = 0,
+    limit: int = 50,
     db: Session = Depends(get_db),
 ):
     """List all characters with their tags and tag metadata."""
-    return list_characters(db, project_id)
+    return list_characters(db, project_id, offset=offset, limit=limit)
 
 
 @router.get("/{character_id}", response_model=CharacterResponse)

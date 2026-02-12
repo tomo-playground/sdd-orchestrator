@@ -109,30 +109,37 @@ def list_storyboards_from_db(
     db: Session,
     group_id: int | None = None,
     project_id: int | None = None,
-) -> list[dict]:
-    """List all storyboards with scene/image counts."""
+    offset: int = 0,
+    limit: int = 50,
+) -> dict:
+    """List storyboards with scene/image counts (paginated)."""
+    from sqlalchemy import func
+
     from models.group import Group
     from models.storyboard_character import StoryboardCharacter
 
-    query = (
-        db.query(Storyboard)
-        .options(
-            joinedload(Storyboard.scenes).joinedload(Scene.image_asset),
-            joinedload(Storyboard.characters).joinedload(StoryboardCharacter.character),
-            joinedload(Storyboard.render_history),
-        )
-        .filter(Storyboard.deleted_at.is_(None))
-    )
+    base_filter = db.query(Storyboard).filter(Storyboard.deleted_at.is_(None))
     if group_id is not None:
-        query = query.filter(Storyboard.group_id == group_id)
+        base_filter = base_filter.filter(Storyboard.group_id == group_id)
     elif project_id is not None:
         group_ids = [g.id for g in db.query(Group.id).filter(Group.project_id == project_id).all()]
         if group_ids:
-            query = query.filter(Storyboard.group_id.in_(group_ids))
+            base_filter = base_filter.filter(Storyboard.group_id.in_(group_ids))
         else:
-            return []
-    # Sort by updated_at DESC (most recently edited first)
-    query = query.order_by(Storyboard.updated_at.desc())
+            return {"items": [], "total": 0, "offset": offset, "limit": limit}
+
+    total = base_filter.with_entities(func.count(Storyboard.id)).scalar() or 0
+
+    query = (
+        base_filter.options(
+            selectinload(Storyboard.scenes).joinedload(Scene.image_asset),
+            selectinload(Storyboard.characters).joinedload(StoryboardCharacter.character),
+            selectinload(Storyboard.render_history),
+        )
+        .order_by(Storyboard.updated_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
     storyboards = query.all()
 
     result = []
@@ -167,7 +174,7 @@ def list_storyboards_from_db(
                 "updated_at": s.updated_at.isoformat() if s.updated_at else None,
             }
         )
-    return result
+    return {"items": result, "total": total, "offset": offset, "limit": limit}
 
 
 def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
@@ -439,6 +446,35 @@ def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
     ).update({Scene.deleted_at: now}, synchronize_session=False)
     db.commit()
     return {"status": "success"}
+
+
+def restore_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
+    """Restore a soft-deleted storyboard and only batch-deleted scenes.
+
+    Uses timestamp matching: only scenes whose deleted_at matches the
+    storyboard's deleted_at are restored. Scenes deleted individually
+    before the storyboard deletion are left untouched.
+    """
+    storyboard = (
+        db.query(Storyboard)
+        .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.isnot(None))
+        .first()
+    )
+    if not storyboard:
+        raise HTTPException(status_code=404, detail="Trashed storyboard not found")
+
+    batch_ts = storyboard.deleted_at
+    storyboard.deleted_at = None
+
+    # Only restore scenes deleted in the same batch (matching timestamp)
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id,
+        Scene.deleted_at == batch_ts,
+    ).update({Scene.deleted_at: None}, synchronize_session=False)
+
+    db.commit()
+    logger.info("[Storyboard Restore] id=%d title=%s", storyboard_id, storyboard.title)
+    return {"ok": True, "restored": storyboard.title}
 
 
 def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:

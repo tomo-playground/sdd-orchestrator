@@ -5,10 +5,11 @@ import { Music } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
 import { useMusic } from "../../hooks/useMusic";
 import MusicCard from "./MusicCard";
+import MusicCardSkeleton from "./MusicCardSkeleton";
 import Button from "../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import EmptyState from "../../components/ui/EmptyState";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { SkeletonGrid } from "../../components/ui/Skeleton";
 import {
   CONTAINER_CLASSES,
   PAGE_TITLE_CLASSES,
@@ -165,9 +166,7 @@ export default function MusicPage() {
 
       {/* Card grid */}
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner size="md" />
-        </div>
+        <SkeletonGrid>{(i) => <MusicCardSkeleton key={i} />}</SkeletonGrid>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Music}

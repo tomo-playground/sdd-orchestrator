@@ -6,6 +6,7 @@ export { default as ConfirmDialog, useConfirm } from "./ConfirmDialog";
 
 // ── Existing components (re-export for convenience) ──────────
 export { default as LoadingSpinner } from "./LoadingSpinner";
+export { default as Skeleton, SkeletonGrid } from "./Skeleton";
 export { default as ErrorMessage } from "./ErrorMessage";
 export { default as SectionDivider } from "./SectionDivider";
 export { default as Toast } from "./Toast";

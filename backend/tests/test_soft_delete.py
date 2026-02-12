@@ -30,7 +30,7 @@ class TestStoryboardSoftDelete:
         # Should not appear in list
         resp = client.get("/storyboards?group_id=1")
         assert resp.status_code == 200
-        ids = [s["id"] for s in resp.json()]
+        ids = [s["id"] for s in resp.json()["items"]]
         assert sb_id not in ids
 
     def test_soft_delete_excludes_from_get(self, client):
@@ -68,7 +68,7 @@ class TestStoryboardSoftDelete:
 
         # Should appear in list again
         resp = client.get("/storyboards?group_id=1")
-        ids = [s["id"] for s in resp.json()]
+        ids = [s["id"] for s in resp.json()["items"]]
         assert sb_id in ids
 
         # Should not be in trash
@@ -133,6 +133,107 @@ class TestStoryboardSoftDelete:
         resp = client.delete(f"/storyboards/{sb_id}")
         assert resp.status_code == 404
 
+    def test_restore_only_batch_deleted_scenes(self, client, db_session):
+        """Restore should only recover scenes deleted with the storyboard, not individually deleted scenes."""
+        import time
+        from datetime import UTC, datetime
+
+        from models.scene import Scene
+
+        scenes = [
+            {
+                "scene_id": 0,
+                "script": "Scene A",
+                "speaker": "Narrator",
+                "duration": 3.0,
+                "image_prompt": "a",
+                "image_prompt_ko": "a",
+                "negative_prompt": "",
+                "width": 512,
+                "height": 768,
+            },
+            {
+                "scene_id": 0,
+                "script": "Scene B",
+                "speaker": "Narrator",
+                "duration": 3.0,
+                "image_prompt": "b",
+                "image_prompt_ko": "b",
+                "negative_prompt": "",
+                "width": 512,
+                "height": 768,
+            },
+        ]
+        data = create_test_storyboard(client, title="Batch Test", scenes=scenes)
+        sb_id = data["storyboard_id"]
+        scene_ids = data["scene_ids"]
+        assert len(scene_ids) == 2
+
+        # Individually soft-delete Scene A (earlier, separate timestamp)
+        scene_a = db_session.query(Scene).filter(Scene.id == scene_ids[0]).first()
+        scene_a.deleted_at = datetime(2020, 1, 1, tzinfo=UTC)
+        db_session.commit()
+
+        # Small delay so storyboard gets a different timestamp
+        time.sleep(0.01)
+
+        # Now soft-delete the storyboard (cascade deletes Scene B)
+        resp = client.delete(f"/storyboards/{sb_id}")
+        assert resp.status_code == 200
+
+        # Verify: both scenes have deleted_at set but with different timestamps
+        db_session.expire_all()
+        scene_a = db_session.query(Scene).filter(Scene.id == scene_ids[0]).first()
+        scene_b = db_session.query(Scene).filter(Scene.id == scene_ids[1]).first()
+        assert scene_a.deleted_at is not None
+        assert scene_b.deleted_at is not None
+        assert scene_a.deleted_at != scene_b.deleted_at  # Different timestamps
+
+        # Restore storyboard
+        resp = client.post(f"/storyboards/{sb_id}/restore")
+        assert resp.status_code == 200
+
+        # Scene B (batch-deleted) should be restored
+        db_session.expire_all()
+        scene_b = db_session.query(Scene).filter(Scene.id == scene_ids[1]).first()
+        assert scene_b.deleted_at is None, "Batch-deleted scene should be restored"
+
+        # Scene A (individually deleted) should remain deleted
+        scene_a = db_session.query(Scene).filter(Scene.id == scene_ids[0]).first()
+        assert scene_a.deleted_at is not None, "Individually deleted scene should stay deleted"
+
+    def test_scenes_soft_deleted_with_same_timestamp(self, client, db_session):
+        """Storyboard soft-delete should set same deleted_at on parent and child scenes."""
+        from models.scene import Scene
+        from models.storyboard import Storyboard
+
+        scenes = [
+            {
+                "scene_id": 0,
+                "script": "Test",
+                "speaker": "N",
+                "duration": 3.0,
+                "image_prompt": "x",
+                "image_prompt_ko": "x",
+                "negative_prompt": "",
+                "width": 512,
+                "height": 768,
+            },
+        ]
+        data = create_test_storyboard(client, title="Timestamp Test", scenes=scenes)
+        sb_id = data["storyboard_id"]
+        scene_id = data["scene_ids"][0]
+
+        client.delete(f"/storyboards/{sb_id}")
+
+        db_session.expire_all()
+        sb = db_session.query(Storyboard).filter(Storyboard.id == sb_id).first()
+        scene = db_session.query(Scene).filter(Scene.id == scene_id).first()
+
+        assert sb.deleted_at is not None
+        assert scene.deleted_at is not None
+        assert sb.deleted_at == scene.deleted_at, "Parent and child should share same timestamp"
+
 
 # ============================================================
 # Character Soft Delete
@@ -151,7 +252,7 @@ class TestCharacterSoftDelete:
 
         resp = client.get("/characters")
         assert resp.status_code == 200
-        ids = [c["id"] for c in resp.json()]
+        ids = [c["id"] for c in resp.json()["items"]]
         assert cid not in ids
 
     def test_soft_delete_excludes_from_get(self, client):
@@ -178,7 +279,7 @@ class TestCharacterSoftDelete:
         assert resp.status_code == 200
 
         resp = client.get("/characters")
-        ids = [c["id"] for c in resp.json()]
+        ids = [c["id"] for c in resp.json()["items"]]
         assert cid in ids
 
     def test_permanent_delete_removes(self, client):

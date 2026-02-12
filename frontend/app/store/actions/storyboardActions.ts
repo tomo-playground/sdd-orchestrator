@@ -9,6 +9,21 @@ import type { Scene } from "../../types";
 import { generateSceneClientId } from "../../utils/uuid";
 
 /**
+ * Sync storyboard version from server after 409 Conflict.
+ * Fetches latest version so next save attempt uses correct version.
+ */
+async function syncVersionAfterConflict(): Promise<void> {
+  const { storyboardId } = useContextStore.getState();
+  if (!storyboardId) return;
+  try {
+    const res = await axios.get(`${API_BASE}/storyboards/${storyboardId}`);
+    useStoryboardStore.getState().set({ storyboardVersion: res.data.version ?? null });
+  } catch {
+    // Silently fail — user already sees conflict toast
+  }
+}
+
+/**
  * Sanitize candidates for DB storage.
  * Removes image_url (stored via media_asset_id, backend resolves URL on GET)
  */
@@ -300,9 +315,8 @@ export async function persistStoryboard(): Promise<boolean> {
     return true;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 409) {
-      useUIStore
-        .getState()
-        .showToast("다른 탭에서 수정되었습니다. 페이지를 새로고침해주세요.", "error");
+      useUIStore.getState().showToast("다른 탭에서 수정되었습니다. 다시 저장해주세요.", "error");
+      await syncVersionAfterConflict();
       return false;
     }
     console.error("[persistStoryboard] Failed:", error);
@@ -336,7 +350,8 @@ export async function updateStoryboardMetadata(updates: {
     return true;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 409) {
-      showToast("다른 탭에서 수정되었습니다. 페이지를 새로고침해주세요.", "error");
+      showToast("다른 탭에서 수정되었습니다. 다시 저장해주세요.", "error");
+      await syncVersionAfterConflict();
       return false;
     }
     console.error("[updateStoryboardMetadata] Failed:", error);

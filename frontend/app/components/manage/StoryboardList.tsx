@@ -27,7 +27,7 @@ export default function StoryboardList({ selectedStoryboardId, onSelect }: Story
                 const res = await fetch("http://127.0.0.1:8000/storyboards");
                 if (!res.ok) throw new Error("Failed to fetch storyboards");
                 const data = await res.json();
-                setStoryboards(data);
+                setStoryboards(data.items ?? []);
             } catch (err) {
                 console.error(err);
                 setError("Failed to load storyboards");

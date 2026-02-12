@@ -10,9 +10,9 @@ from database import get_db
 from models import Storyboard
 from schemas import (
     MaterialsCheckResponse,
+    PaginatedStoryboardList,
     StatusResponse,
     StoryboardDetailResponse,
-    StoryboardListItem,
     StoryboardMetadataUpdateResponse,
     StoryboardRequest,
     StoryboardRestoreResponse,
@@ -68,9 +68,15 @@ def list_trashed_storyboards(db: Session = Depends(get_db)):
     ]
 
 
-@router.get("", response_model=list[StoryboardListItem])
-def list_storyboards(group_id: int | None = None, project_id: int | None = None, db: Session = Depends(get_db)):
-    return list_storyboards_from_db(db, group_id=group_id, project_id=project_id)
+@router.get("", response_model=PaginatedStoryboardList)
+def list_storyboards(
+    group_id: int | None = None,
+    project_id: int | None = None,
+    offset: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    return list_storyboards_from_db(db, group_id=group_id, project_id=project_id, offset=offset, limit=limit)
 
 
 @router.get("/{storyboard_id}", response_model=StoryboardDetailResponse)
@@ -97,27 +103,9 @@ async def delete_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
 @router.post("/{storyboard_id}/restore", response_model=StoryboardRestoreResponse)
 async def restore_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted storyboard."""
-    storyboard = (
-        db.query(Storyboard)
-        .filter(
-            Storyboard.id == storyboard_id,
-            Storyboard.deleted_at.isnot(None),
-        )
-        .first()
-    )
-    if not storyboard:
-        raise HTTPException(status_code=404, detail="Trashed storyboard not found")
-    storyboard.deleted_at = None
-    # Cascade restore to child scenes
-    from models.scene import Scene
+    from services.storyboard import restore_storyboard_from_db
 
-    db.query(Scene).filter(
-        Scene.storyboard_id == storyboard_id,
-        Scene.deleted_at.isnot(None),
-    ).update({Scene.deleted_at: None}, synchronize_session=False)
-    db.commit()
-    logger.info("[Storyboard Restore] id=%d title=%s", storyboard_id, storyboard.title)
-    return {"ok": True, "restored": storyboard.title}
+    return restore_storyboard_from_db(db, storyboard_id)
 
 
 @router.get("/{storyboard_id}/materials", response_model=MaterialsCheckResponse)

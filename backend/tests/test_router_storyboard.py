@@ -13,8 +13,10 @@ class TestStoryboardRouter:
         response = client.get("/storyboards")
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) == 0
+        assert "items" in data
+        assert "total" in data
+        assert data["total"] == 0
+        assert len(data["items"]) == 0
 
     def test_create_storyboard_minimal(self, client: TestClient, db_session):
         """Create storyboard with minimal required fields."""
@@ -176,13 +178,15 @@ class TestStoryboardRouter:
         assert response.status_code == 200
         data = response.json()
 
-        assert len(data) == 2
-        titles = [item["title"] for item in data]
+        assert data["total"] == 2
+        items = data["items"]
+        assert len(items) == 2
+        titles = [item["title"] for item in items]
         assert "Storyboard 1" in titles
         assert "Storyboard 2" in titles
 
         # Check structure
-        for item in data:
+        for item in items:
             assert "id" in item
             assert "title" in item
             assert "description" in item

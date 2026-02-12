@@ -226,6 +226,14 @@ class StoryboardUpdate(BaseModel):
     version: int | None = None  # Optimistic locking: current version from client
 
 
+class StoryboardMetadataUpdateResponse(BaseModel):
+    """Response for PATCH /storyboards/{id}/metadata."""
+
+    status: str
+    storyboard_id: int
+    version: int
+
+
 class StoryboardCastMember(BaseModel):
     id: int
     name: str
@@ -1470,3 +1478,106 @@ class MaterialsCheckResponse(BaseModel):
     voice: VerticalStatus
     music: VerticalStatus
     background: VerticalStatus
+
+
+# ============================================================
+# Generic / Shared Response Schemas
+# ============================================================
+
+
+class PaginatedStoryboardList(BaseModel):
+    """Paginated response for GET /storyboards."""
+
+    items: list[StoryboardListItem]
+    total: int
+    offset: int = 0
+    limit: int = 50
+
+
+class PaginatedCharacterList(BaseModel):
+    """Paginated response for GET /characters."""
+
+    items: list[CharacterResponse]
+    total: int
+    offset: int = 0
+    limit: int = 50
+
+
+class StatusResponse(BaseModel):
+    """Generic status response for simple operations (delete, restore, etc)."""
+
+    status: str
+
+
+class TrashedStoryboardItem(BaseModel):
+    """Item in the trashed storyboards list."""
+
+    id: int
+    title: str | None = None
+    deleted_at: str | None = None
+
+
+class StoryboardRestoreResponse(BaseModel):
+    """Response for POST /storyboards/{id}/restore."""
+
+    ok: bool
+    restored: str | None = None
+
+
+class ImageStoreResponse(BaseModel):
+    """Response for POST /image/store."""
+
+    url: str
+    asset_id: int
+
+
+class SceneValidationResponse(BaseModel):
+    """Response for POST /scene/validate_image."""
+
+    mode: str = "wd14"
+    match_rate: float = 0.0
+    matched: list[str] = []
+    missing: list[str] = []
+    extra: list[str] = []
+    skipped: list[str] = []
+    partial_matched: list[str] = []
+    tags: list[str] = []
+
+
+class VideoCreateResponse(BaseModel):
+    """Response for POST /video/create (sync)."""
+
+    video_url: str
+    media_asset_id: int | None = None
+    render_history_id: int | None = None
+
+
+class VideoDeleteResponse(BaseModel):
+    """Response for POST /video/delete."""
+
+    ok: bool
+    deleted: bool = False
+    asset_id: int | None = None
+    legacy: bool | None = None
+    reason: str | None = None
+
+
+class VideoExistsResponse(BaseModel):
+    """Response for GET /video/exists."""
+
+    exists: bool
+
+
+class TransitionItem(BaseModel):
+    """A scene transition effect."""
+
+    value: str
+    label: str
+    description: str = ""
+    visual: str = ""
+
+
+class TransitionsResponse(BaseModel):
+    """Response for GET /video/transitions."""
+
+    transitions: list[TransitionItem]

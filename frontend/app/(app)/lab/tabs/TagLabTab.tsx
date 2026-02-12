@@ -87,8 +87,8 @@ export default function TagLabTab() {
   // ── Fetch characters and groups on mount ──────────────────
   useEffect(() => {
     axios
-      .get<Character[]>(`${API_BASE}/characters`)
-      .then((res) => setCharacters(res.data))
+      .get<{ items: Character[] }>(`${API_BASE}/characters`)
+      .then((res) => setCharacters(res.data.items ?? []))
       .catch(() => setCharacters([]));
 
     axios
