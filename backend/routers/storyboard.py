@@ -10,12 +10,16 @@ from database import get_db
 from models import Storyboard
 from schemas import (
     MaterialsCheckResponse,
+    StatusResponse,
     StoryboardDetailResponse,
     StoryboardListItem,
+    StoryboardMetadataUpdateResponse,
     StoryboardRequest,
+    StoryboardRestoreResponse,
     StoryboardSave,
     StoryboardSaveResponse,
     StoryboardUpdate,
+    TrashedStoryboardItem,
     VerticalStatus,
 )
 from services.storyboard import (
@@ -43,7 +47,7 @@ async def save_storyboard(request: StoryboardSave, db: Session = Depends(get_db)
     return save_storyboard_to_db(db, request)
 
 
-@router.get("/trash")
+@router.get("/trash", response_model=list[TrashedStoryboardItem])
 def list_trashed_storyboards(db: Session = Depends(get_db)):
     """List soft-deleted storyboards."""
     items = (
@@ -79,18 +83,18 @@ async def update_storyboard(storyboard_id: int, request: StoryboardSave, db: Ses
     return update_storyboard_in_db(db, storyboard_id, request)
 
 
-@router.patch("/{storyboard_id}/metadata")
+@router.patch("/{storyboard_id}/metadata", response_model=StoryboardMetadataUpdateResponse)
 async def patch_storyboard_metadata(storyboard_id: int, request: StoryboardUpdate, db: Session = Depends(get_db)):
     """Partially update storyboard metadata (title, caption, etc)."""
     return update_storyboard_metadata(db, storyboard_id, request)
 
 
-@router.delete("/{storyboard_id}")
+@router.delete("/{storyboard_id}", response_model=StatusResponse)
 async def delete_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     return delete_storyboard_from_db(db, storyboard_id)
 
 
-@router.post("/{storyboard_id}/restore")
+@router.post("/{storyboard_id}/restore", response_model=StoryboardRestoreResponse)
 async def restore_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted storyboard."""
     storyboard = (
@@ -118,29 +122,48 @@ async def restore_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{storyboard_id}/materials", response_model=MaterialsCheckResponse)
 def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
-    """Check material readiness for a storyboard (lightweight query)."""
+    """Check material readiness for a storyboard."""
     from sqlalchemy import func
 
+    from models.group_config import GroupConfig
     from models.scene import Scene
+    from models.storyboard_character import StoryboardCharacter
 
     sb = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
     if not sb:
         raise HTTPException(status_code=404, detail="Storyboard not found")
+
     scene_count = (
         db.query(func.count(Scene.id)).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).scalar()
         or 0
     )
+
+    char_count = (
+        db.query(func.count(StoryboardCharacter.id)).filter(StoryboardCharacter.storyboard_id == storyboard_id).scalar()
+        or 0
+    )
+
+    voice_ready = False
+    music_ready = False
+    if sb.group_id:
+        config = db.query(GroupConfig).filter(GroupConfig.group_id == sb.group_id).first()
+        if config:
+            voice_ready = config.narrator_voice_preset_id is not None
+            if config.render_preset:
+                rp = config.render_preset
+                music_ready = bool(rp.bgm_file) or bool(rp.music_preset_id)
+
     return MaterialsCheckResponse(
         storyboard_id=storyboard_id,
         script=VerticalStatus(ready=scene_count > 0, count=scene_count),
-        characters=VerticalStatus(ready=sb.character_id is not None),
-        voice=VerticalStatus(ready=True, detail="Check render preset"),
-        music=VerticalStatus(ready=True, detail="Check render preset"),
+        characters=VerticalStatus(ready=char_count > 0, count=char_count),
+        voice=VerticalStatus(ready=voice_ready),
+        music=VerticalStatus(ready=music_ready),
         background=VerticalStatus(ready=True, detail="Optional"),
     )
 
 
-@router.delete("/{storyboard_id}/permanent")
+@router.delete("/{storyboard_id}/permanent", response_model=StatusResponse)
 async def permanently_delete_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     """Permanently delete a storyboard and all associated assets."""
     return permanent_delete_storyboard(db, storyboard_id)
