@@ -216,7 +216,7 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "render") {
         setAutoRunStep("render", `Rendering ${layoutStyle} video...`);
-        setActiveTab("render");
+        setActiveTab("publish");
         const renderProjectId = useContextStore.getState().projectId;
         const renderGroupId = useContextStore.getState().groupId;
         if (!renderProjectId || !renderGroupId) {
@@ -296,7 +296,7 @@ export async function runAutoRunFromStep(
     }
 
     setAutoRunDone();
-    setActiveTab("output");
+    setActiveTab("publish");
     showToast("Auto Run complete!", "success");
   } catch (err) {
     const message = err instanceof Error ? err.message : "Autopilot failed";

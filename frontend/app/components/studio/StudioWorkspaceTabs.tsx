@@ -9,19 +9,23 @@ function useTabBadges(): Record<StudioTab, string | null> {
   const recentVideos = useRenderStore((s) => s.recentVideos);
   const renderProgress = useRenderStore((s) => s.renderProgress);
 
+  const publishBadge = renderProgress
+    ? `${renderProgress.percent}%`
+    : recentVideos.length > 0
+      ? `${recentVideos.length}`
+      : null;
+
   return {
     script: null,
     edit: scenesCount > 0 ? `${scenesCount}` : null,
-    render: renderProgress ? `${renderProgress.percent}%` : null,
-    output: recentVideos.length > 0 ? `${recentVideos.length}` : null,
+    publish: publishBadge,
   };
 }
 
 const TABS: { key: StudioTab; label: string }[] = [
   { key: "script", label: "Script" },
   { key: "edit", label: "Edit" },
-  { key: "render", label: "Render" },
-  { key: "output", label: "Output" },
+  { key: "publish", label: "Publish" },
 ];
 
 export default function StudioWorkspaceTabs() {

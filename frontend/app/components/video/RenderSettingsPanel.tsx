@@ -1,7 +1,7 @@
 "use client";
 
 import type { AudioItem, FontItem, KenBurnsPreset, RenderProgress, RenderStage } from "../../types";
-import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
+import { SIDE_PANEL_LABEL, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import VoiceStyleSection from "./VoiceStyleSection";
 import BgmSection from "./BgmSection";
 
@@ -280,7 +280,7 @@ export function RenderSidePanel({
   renderProgress,
 }: RenderSidePanelProps) {
   return (
-    <div className={SIDE_PANEL_CLASSES}>
+    <>
       {/* Layout */}
       <div>
         <label className={SIDE_PANEL_LABEL}>Layout</label>
@@ -373,7 +373,7 @@ export function RenderSidePanel({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 

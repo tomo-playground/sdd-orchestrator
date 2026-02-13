@@ -3,8 +3,7 @@
 import { useUIStore } from "../../store/useUIStore";
 import ScriptTab from "./ScriptTab";
 import ScenesTab from "./ScenesTab";
-import RenderTab from "./RenderTab";
-import OutputTab from "./OutputTab";
+import PublishTab from "./PublishTab";
 
 export default function StudioWorkspace() {
   const activeTab = useUIStore((s) => s.activeTab);
@@ -19,15 +18,9 @@ export default function StudioWorkspace() {
 
       {activeTab === "edit" && <ScenesTab />}
 
-      {activeTab === "render" && (
+      {activeTab === "publish" && (
         <div className="mx-auto h-full w-full max-w-7xl overflow-y-auto px-6 py-8">
-          <RenderTab />
-        </div>
-      )}
-
-      {activeTab === "output" && (
-        <div className="mx-auto h-full w-full max-w-7xl overflow-y-auto px-6 py-8">
-          <OutputTab />
+          <PublishTab />
         </div>
       )}
     </div>
