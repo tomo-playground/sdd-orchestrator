@@ -93,12 +93,13 @@ export interface StoryboardStore {
   setScenes: (scenes: Scene[]) => void;
   updateScene: (clientId: string, updates: Partial<Scene>) => void;
   removeScene: (clientId: string) => void;
+  reorderScenes: (fromIndex: number, toIndex: number) => void;
   reset: () => void;
 }
 
 const initialState: Omit<
   StoryboardStore,
-  "set" | "setScenes" | "updateScene" | "removeScene" | "reset" | "isDirty"
+  "set" | "setScenes" | "updateScene" | "removeScene" | "reorderScenes" | "reset" | "isDirty"
 > = {
   // Content plan fields
   topic: "",
@@ -207,6 +208,23 @@ export const useStoryboardStore = create<StoryboardStore>()(
             scenes: newScenes,
             isDirty: true,
             currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, newScenes.length - 1)),
+          };
+        }),
+      reorderScenes: (fromIndex, toIndex) =>
+        set((state) => {
+          if (fromIndex < 0 || fromIndex >= state.scenes.length) return state;
+          if (toIndex < 0 || toIndex >= state.scenes.length) return state;
+          if (fromIndex === toIndex) return state;
+          const scenes = [...state.scenes];
+          const [moved] = scenes.splice(fromIndex, 1);
+          scenes.splice(toIndex, 0, moved);
+          const reordered = scenes.map((s, i) => ({ ...s, order: i }));
+          const selectedCid = state.scenes[state.currentSceneIndex]?.client_id;
+          const newIndex = reordered.findIndex((s) => s.client_id === selectedCid);
+          return {
+            scenes: reordered,
+            currentSceneIndex: Math.max(0, newIndex),
+            isDirty: true,
           };
         }),
       reset: () => set({ ...initialState, isDirty: false }),

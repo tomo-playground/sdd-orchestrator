@@ -1,6 +1,6 @@
 /**
  * Scene completion utilities.
- * Shared between SceneFilmstrip (dots) and SceneSidePanel (insights).
+ * Shared between SceneListPanel (dots) and SceneSidePanel (insights).
  */
 
 /** Checks whether a scene has at least one generated/uploaded image. */

@@ -47,13 +47,27 @@ export const NAV_CLASSES =
 export const SUB_NAV_CLASSES =
   "sticky top-0 z-[var(--z-sub-nav)] border-b border-zinc-100 bg-white/90 backdrop-blur-md";
 
-/** Max-width content container, left-aligned within sidebar layout. */
+/** Max-width content container for list pages (characters, backgrounds, etc.). */
 export const CONTAINER_CLASSES = "w-full max-w-5xl px-6";
+
+/** Wide container for Studio page (3-column scene editor). */
+export const STUDIO_CONTAINER_CLASSES = "mx-auto w-full max-w-7xl px-4";
 
 // ── Side-panel tokens ──────────────────────────────────────
 
 /** Two-column grid: main content + 220px side panel. */
 export const SIDE_PANEL_LAYOUT = "grid gap-6 md:grid-cols-[1fr_220px]";
+
+// ── Studio 3-column layout ─────────────────────────────────
+
+/** 3-column grid: left scene list + center editor + right tools. */
+export const STUDIO_3COL_LAYOUT =
+  "grid grid-cols-[280px_1fr_300px] gap-0 h-[calc(100vh-120px)] min-h-[600px] overflow-hidden";
+export const LEFT_PANEL_CLASSES =
+  "flex flex-col border-r border-zinc-200 bg-zinc-50/50 overflow-y-auto";
+export const RIGHT_PANEL_CLASSES =
+  "flex flex-col border-l border-zinc-200 bg-zinc-50/50 overflow-y-auto p-4 space-y-4";
+export const CENTER_PANEL_CLASSES = "flex flex-col overflow-y-auto";
 
 /** Sticky floating card for the right-side panel. */
 export const SIDE_PANEL_CLASSES =

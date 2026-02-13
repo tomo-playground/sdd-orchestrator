@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import type {
   Scene,
   SceneValidation,
@@ -12,19 +11,31 @@ import type {
   GeminiSuggestion,
   Background,
 } from "../../types";
-import DebugTabContent from "./DebugTabContent";
+import { isMultiCharStructure } from "../../utils/structure";
+import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import SceneImagePanel from "./SceneImagePanel";
 import Button from "../ui/Button";
-import FixSuggestionsPanel from "./FixSuggestionsPanel";
 import SceneActionBar from "./SceneActionBar";
-import SceneFormFields from "./SceneFormFields";
+import SceneScriptFields from "./SceneScriptFields";
+import ScenePromptFields from "./ScenePromptFields";
+import SceneSettingsFields from "./SceneSettingsFields";
 import SceneGeminiModals from "./SceneGeminiModals";
-import SpeakerBadge from "./SpeakerBadge";
-import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
+
+export type SceneEditTab = "script" | "visual" | "settings";
+
+const TAB_BASE = "px-3 py-1.5 text-xs font-semibold rounded-lg transition";
+
+const TABS: { key: SceneEditTab; label: string }[] = [
+  { key: "script", label: "대본" },
+  { key: "visual", label: "비주얼" },
+  { key: "settings", label: "설정" },
+];
 
 type SceneCardProps = {
   scene: Scene;
-  sceneIndex: number; // 씬 순서 (0-based, 표시는 +1)
+  sceneIndex: number;
+  activeTab: SceneEditTab;
+  onTabChange: (tab: SceneEditTab) => void;
   validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
@@ -34,9 +45,7 @@ type SceneCardProps = {
   suggestionExpanded: boolean;
   onSuggestionToggle: () => void;
   validatingSceneId: string | null;
-  // LoRA trigger words for highlighting
   loraTriggerWords?: string[];
-  // LoRA info for composition
   characterLoras?: Array<{
     name: string;
     weight?: number;
@@ -45,11 +54,9 @@ type SceneCardProps = {
     optimal_weight?: number;
   }>;
   promptMode?: "auto" | "standard" | "lora";
-  // Scene Context Tags
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
   isExclusiveGroup: (groupName: string) => boolean;
-  // Scene update handlers
   onUpdateScene: (updates: Partial<Scene>) => void;
   onRemoveScene: () => void;
   onSpeakerChange: (speaker: Scene["speaker"]) => void;
@@ -66,20 +73,14 @@ type SceneCardProps = {
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   isMarkingStatus?: boolean;
-  // V3 prompt integration
   selectedCharacterId?: number | null;
   basePromptA?: string;
   structure?: string;
-  // Multi-character
   characterAName?: string | null;
   characterBName?: string | null;
   selectedCharacterBId?: number | null;
-  // Background picker
   backgrounds?: Background[];
-  // SSE progress
   genProgress?: ImageGenProgress | null;
-  // Utility functions
-  getSceneStatus: (scene: Scene) => string;
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
   applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
   buildNegativePrompt: (scene: Scene) => string;
@@ -90,6 +91,8 @@ type SceneCardProps = {
 export default function SceneCard({
   scene,
   sceneIndex,
+  activeTab,
+  onTabChange,
   validationResult,
   imageValidationResult,
   qualityScore,
@@ -129,24 +132,21 @@ export default function SceneCard({
   selectedCharacterBId,
   backgrounds = [],
   genProgress,
-  getSceneStatus,
   getFixSuggestions,
   applySuggestion,
   buildNegativePrompt,
   buildScenePrompt,
   showToast,
 }: SceneCardProps) {
-  const { confirm, dialogProps } = useConfirm();
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
   const [geminiSuggestions, setGeminiSuggestions] = useState<GeminiSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
 
   const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
+  const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
 
-  // Gemini auto-suggest handler
   const handleAutoSuggest = async () => {
     setIsLoadingSuggestions(true);
     try {
@@ -162,17 +162,6 @@ export default function SceneCard({
     }
   };
 
-  const handleRemoveScene = useCallback(async () => {
-    const ok = await confirm({
-      title: "Remove Scene",
-      message: `Scene ${sceneIndex + 1}을(를) 삭제하시겠습니까?`,
-      confirmLabel: "Remove",
-      variant: "danger",
-    });
-    if (ok) onRemoveScene();
-  }, [confirm, sceneIndex, onRemoveScene]);
-
-  // Handle suggestion approval
   const handleApproveSuggestion = (suggestion: { target_change: string }) => {
     setGeminiSuggestionsOpen(false);
     onEditWithGemini(suggestion.target_change);
@@ -180,118 +169,37 @@ export default function SceneCard({
 
   return (
     <div className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-zinc-800">Scene {sceneIndex + 1}</h3>
-          <SpeakerBadge
-            speaker={scene.speaker}
-            structure={structure}
-            characterAName={characterAName}
-            characterBName={characterBName}
-            onSpeakerChange={onSpeakerChange}
-          />
-          {scene.scene_mode === "multi" && (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[12px] font-semibold text-emerald-700">
-              Multi
-            </span>
-          )}
-          <span className="text-[12px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
-            {getSceneStatus(scene)}
-          </span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRemoveScene}
-          className="text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-        >
-          Remove
-        </Button>
+      {/* Tab Bar */}
+      <div className="flex gap-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onTabChange(tab.key)}
+            className={`${TAB_BASE} ${activeTab === tab.key ? TAB_ACTIVE : TAB_INACTIVE}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-        {/* Left: ① Content + ② Prompt + ③ Actions + ④ Details */}
+      {/* ── 대본 Tab ── */}
+      {activeTab === "script" && (
         <div className="grid gap-3">
-          <SceneFormFields
+          <SceneScriptFields
             scene={scene}
-            loraTriggerWords={loraTriggerWords}
-            characterLoras={characterLoras}
-            promptMode={promptMode}
-            selectedCharacterId={selectedCharacterId}
-            basePromptA={basePromptA}
             structure={structure}
-            tagsByGroup={tagsByGroup}
-            sceneTagGroups={sceneTagGroups}
-            isExclusiveGroup={isExclusiveGroup}
             onUpdateScene={onUpdateScene}
             onSpeakerChange={onSpeakerChange}
             onImageUpload={onImageUpload}
-            characterAName={characterAName}
-            characterBName={characterBName}
-            selectedCharacterBId={selectedCharacterBId}
             backgrounds={backgrounds}
           />
-
-          {/* ③ Actions */}
-          <SceneActionBar
-            scene={scene}
-            sceneIndex={sceneIndex}
-            qualityScore={qualityScore}
-            sceneMenuOpen={sceneMenuOpen}
-            isLoadingSuggestions={isLoadingSuggestions}
-            pinnedSceneOrder={pinnedSceneOrder}
-            onGenerateImage={onGenerateImage}
-            onGeminiEditOpen={() => setGeminiEditOpen(true)}
-            onAutoSuggest={handleAutoSuggest}
-            onPinToggle={onPinToggle}
-            onSceneMenuToggle={onSceneMenuToggle}
-            onSceneMenuClose={onSceneMenuClose}
-            onUpdateScene={onUpdateScene}
-            onRemoveScene={onRemoveScene}
-            onSavePrompt={onSavePrompt}
-            showToast={showToast}
-          />
-
-          {/* ④ Details Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowSettings((v) => !v)}
-            className="flex items-center gap-1 text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase transition hover:text-zinc-600"
-          >
-            <ChevronDown
-              className={`h-3 w-3 transition-transform ${showSettings ? "rotate-180" : ""}`}
-            />
-            Details
-          </button>
-
-          {showSettings && (
-            <DebugTabContent
-              scene={scene}
-              onGenerateDebug={async () => {
-                const prompt = await buildScenePrompt(scene);
-                if (!prompt) {
-                  showToast("프롬프트 생성 실패", "error");
-                  return;
-                }
-                const payload = {
-                  prompt,
-                  negative_prompt: buildNegativePrompt(scene),
-                  width: 512,
-                  height: 768,
-                };
-                onUpdateScene({
-                  debug_payload: JSON.stringify(payload, null, 2),
-                  debug_prompt: payload.prompt,
-                });
-              }}
-            />
-          )}
         </div>
+      )}
 
-        {/* Right: ⑤ Result + QA */}
-        <div className="sticky top-4 space-y-3 self-start">
+      {/* ── 비주얼 Tab ── */}
+      {activeTab === "visual" && (
+        <div className="grid gap-3">
           <SceneImagePanel
             scene={scene}
             onImageClick={(url) =>
@@ -333,43 +241,60 @@ export default function SceneCard({
             </div>
           )}
 
-          {/* Script Validation + Fix Suggestions */}
-          {validationResult && validationResult.status !== "ok" && (
-            <div className="rounded-xl border border-zinc-200 bg-white p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${
-                    validationResult.status === "warn"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-rose-100 text-rose-700"
-                  }`}
-                >
-                  {validationResult.status}
-                </span>
-                <button
-                  type="button"
-                  onClick={onSuggestionToggle}
-                  className="text-[12px] font-semibold text-zinc-500 hover:text-zinc-700"
-                >
-                  {suggestionExpanded ? "Hide" : "Fix"}
-                </button>
-              </div>
-              <p className="text-[13px] text-zinc-500">
-                {validationResult.issues[0]?.message ?? ""}
-              </p>
-              {suggestionExpanded && (
-                <div className="mt-2 border-t border-zinc-100 pt-2">
-                  <FixSuggestionsPanel
-                    scene={scene}
-                    suggestions={suggestions}
-                    applySuggestion={applySuggestion}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <ScenePromptFields
+            scene={scene}
+            loraTriggerWords={loraTriggerWords}
+            characterLoras={characterLoras}
+            promptMode={promptMode}
+            selectedCharacterId={selectedCharacterId}
+            basePromptA={basePromptA}
+            onUpdateScene={onUpdateScene}
+          />
+
+          <SceneActionBar
+            scene={scene}
+            sceneIndex={sceneIndex}
+            qualityScore={qualityScore}
+            sceneMenuOpen={sceneMenuOpen}
+            isLoadingSuggestions={isLoadingSuggestions}
+            pinnedSceneOrder={pinnedSceneOrder}
+            onGenerateImage={onGenerateImage}
+            onGeminiEditOpen={() => setGeminiEditOpen(true)}
+            onAutoSuggest={handleAutoSuggest}
+            onPinToggle={onPinToggle}
+            onSceneMenuToggle={onSceneMenuToggle}
+            onSceneMenuClose={onSceneMenuClose}
+            onUpdateScene={onUpdateScene}
+            onRemoveScene={onRemoveScene}
+            onSavePrompt={onSavePrompt}
+            showToast={showToast}
+          />
         </div>
-      </div>
+      )}
+
+      {/* ── 설정 Tab ── */}
+      {activeTab === "settings" && (
+        <SceneSettingsFields
+          scene={scene}
+          hasMultipleSpeakers={hasMultipleSpeakers}
+          tagsByGroup={tagsByGroup}
+          sceneTagGroups={sceneTagGroups}
+          isExclusiveGroup={isExclusiveGroup}
+          onUpdateScene={onUpdateScene}
+          characterAName={characterAName}
+          characterBName={characterBName}
+          selectedCharacterId={selectedCharacterId}
+          selectedCharacterBId={selectedCharacterBId}
+          validationResult={validationResult}
+          suggestions={suggestions}
+          suggestionExpanded={suggestionExpanded}
+          onSuggestionToggle={onSuggestionToggle}
+          applySuggestion={applySuggestion}
+          buildNegativePrompt={buildNegativePrompt}
+          buildScenePrompt={buildScenePrompt}
+          showToast={showToast}
+        />
+      )}
 
       {/* Gemini Modals */}
       <SceneGeminiModals
@@ -387,8 +312,6 @@ export default function SceneCard({
         setGeminiSuggestions={setGeminiSuggestions}
         onApproveSuggestion={handleApproveSuggestion}
       />
-
-      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

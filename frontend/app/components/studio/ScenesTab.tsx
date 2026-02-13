@@ -1,15 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
-import SceneFilmstrip from "../storyboard/SceneFilmstrip";
-import SceneListHeader from "../storyboard/SceneListHeader";
+import SceneListPanel from "../storyboard/SceneListPanel";
 import SceneSidePanel from "../storyboard/SceneSidePanel";
-import SceneCard from "../storyboard/SceneCard";
-import { SIDE_PANEL_LAYOUT } from "../ui/variants";
+import SceneCard, { type SceneEditTab } from "../storyboard/SceneCard";
+import { STUDIO_3COL_LAYOUT, CENTER_PANEL_CLASSES } from "../ui/variants";
+import SceneNavHeader from "./SceneNavHeader";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
 import {
   resolveIpAdapterForSpeaker,
@@ -26,7 +27,6 @@ import {
 import {
   runValidation,
   handleAutoFixAll,
-  getSceneStatus,
   applySuggestion,
   applyMissingImageTags,
   handleSpeakerChange,
@@ -39,15 +39,12 @@ import { getFixSuggestions } from "../../utils";
 import { useSceneActions } from "../../hooks/useSceneActions";
 
 export default function ScenesTab() {
-  // Scene data
+  const [sceneEditTab, setSceneEditTab] = useState<SceneEditTab>("script");
+
   const { scenes, currentSceneIndex } = useStoryboardStore(
-    useShallow((s) => ({
-      scenes: s.scenes,
-      currentSceneIndex: s.currentSceneIndex,
-    }))
+    useShallow((s) => ({ scenes: s.scenes, currentSceneIndex: s.currentSceneIndex }))
   );
 
-  // Validation state
   const { validationResults, validationSummary, imageValidationResults } = useStoryboardStore(
     useShallow((s) => ({
       validationResults: s.validationResults,
@@ -56,7 +53,6 @@ export default function ScenesTab() {
     }))
   );
 
-  // UI state
   const {
     sceneMenuOpen,
     suggestionExpanded,
@@ -73,7 +69,6 @@ export default function ScenesTab() {
     }))
   );
 
-  // Character & generation settings
   const {
     multiGenEnabled,
     loraTriggerWords,
@@ -118,6 +113,7 @@ export default function ScenesTab() {
     }))
   );
 
+  const reorderScenes = useStoryboardStore((s) => s.reorderScenes);
   const sbSet = useStoryboardStore((s) => s.set);
   const showToast = useUIStore((s) => s.showToast);
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
@@ -141,7 +137,6 @@ export default function ScenesTab() {
     ipAdapterReferenceB,
     ipAdapterWeightB,
   });
-
   const resolvedCharacterId = resolveCharacterIdForSpeaker(currentSpeaker, {
     selectedCharacterId,
     selectedCharacterBId,
@@ -152,7 +147,6 @@ export default function ScenesTab() {
     characterLoras,
     characterBLoras
   );
-
   const pinnedSceneOrder = currentScene?.environment_reference_id
     ? scenes.find((s) => s.image_asset_id === currentScene.environment_reference_id)?.order
     : undefined;
@@ -172,113 +166,122 @@ export default function ScenesTab() {
   }
 
   return (
-    <div className={SIDE_PANEL_LAYOUT}>
-      {/* Left: Scene Editor */}
-      <section className="min-w-0 space-y-4">
-        <SceneListHeader
-          onValidate={runValidation}
-          onAutoFixAll={handleAutoFixAll}
-          onAddScene={handleAddScene}
-          scenesCount={scenes.length}
-        />
+    <div className={STUDIO_3COL_LAYOUT}>
+      {/* Left: Scene List */}
+      <SceneListPanel
+        scenes={scenes}
+        currentSceneIndex={currentSceneIndex}
+        onSceneSelect={setCurrentSceneIndex}
+        onAddScene={handleAddScene}
+        onRemoveScene={(idx) => handleRemoveScene(scenes[idx].client_id)}
+        onReorderScene={reorderScenes}
+        imageValidationResults={imageValidationResults}
+      />
 
-        <SceneFilmstrip
-          scenes={scenes}
-          currentSceneIndex={currentSceneIndex}
-          onSceneSelect={setCurrentSceneIndex}
-          imageValidationResults={imageValidationResults}
+      {/* Center: Scene Editor */}
+      <main className={CENTER_PANEL_CLASSES}>
+        <SceneNavHeader
+          currentIndex={currentSceneIndex}
+          total={scenes.length}
+          duration={currentScene?.duration}
+          onPrev={() => setCurrentSceneIndex(Math.max(0, currentSceneIndex - 1))}
+          onNext={() => setCurrentSceneIndex(Math.min(scenes.length - 1, currentSceneIndex + 1))}
+          onRemove={() => handleRemoveScene(currentScene.client_id)}
         />
 
         {currentScene && (
-          <SceneCard
-            key={currentScene.client_id}
-            scene={currentScene}
-            sceneIndex={currentSceneIndex}
-            validationResult={validationResults[currentScene.client_id]}
-            imageValidationResult={imageValidationResults[currentScene.client_id]}
-            qualityScore={
-              imageValidationResults[currentScene.client_id]
-                ? {
-                    match_rate: imageValidationResults[currentScene.client_id].match_rate ?? 0,
-                    missing_tags: imageValidationResults[currentScene.client_id].missing ?? [],
-                  }
-                : null
-            }
-            sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
-            onSceneMenuToggle={() =>
-              sbSet({
-                sceneMenuOpen:
-                  sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
-              })
-            }
-            onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
-            suggestionExpanded={suggestionExpanded[currentScene.client_id] ?? false}
-            onSuggestionToggle={() =>
-              sbSet({
-                suggestionExpanded: {
-                  ...suggestionExpanded,
-                  [currentScene.client_id]: !suggestionExpanded[currentScene.client_id],
-                },
-              })
-            }
-            validatingSceneId={validatingSceneId}
-            loraTriggerWords={loraTriggerWords}
-            promptMode={characterPromptMode}
-            tagsByGroup={tagsByGroup}
-            sceneTagGroups={sceneTagGroups}
-            isExclusiveGroup={isExclusiveGroup}
-            onUpdateScene={handleUpdateScene}
-            onPinToggle={handlePinToggle}
-            pinnedSceneOrder={pinnedSceneOrder}
-            onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
-            onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
-            onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
-            onGenerateImage={() => handleGenerateImage(currentScene)}
-            onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
-            onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
-            onValidateImage={() => handleValidateImage(currentScene)}
-            onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
-            onImagePreview={(src, candidates) =>
-              useUIStore.getState().set({
-                imagePreviewSrc: src,
-                imagePreviewCandidates: candidates || null,
-              })
-            }
-            onSavePrompt={async () => {
-              const result = await confirm({
-                title: "Save Prompt",
-                message: "Enter a name for this prompt:",
-                confirmLabel: "Save",
-                inputField: { label: "Name", placeholder: "Enter prompt name..." },
-              });
-              if (result === false) return;
-              handleSavePrompt(currentScene, result as string);
-            }}
-            onMarkSuccess={() => handleMarkSuccess(currentScene)}
-            onMarkFail={() => handleMarkFail(currentScene)}
-            isMarkingStatus={markingStatusSceneId === currentScene.client_id}
-            getSceneStatus={getSceneStatus}
-            getFixSuggestions={(scene, validation) =>
-              getFixSuggestions(scene, validation, useStoryboardStore.getState().topic)
-            }
-            applySuggestion={applySuggestion}
-            selectedCharacterId={resolvedCharacterId}
-            basePromptA={resolvedBasePrompt}
-            characterLoras={resolvedCharacterLoras}
-            structure={useStoryboardStore.getState().structure}
-            characterAName={selectedCharacterName}
-            characterBName={selectedCharacterBName}
-            selectedCharacterBId={selectedCharacterBId}
-            backgrounds={backgrounds}
-            genProgress={imageGenProgress[currentScene.client_id] ?? null}
-            buildNegativePrompt={buildNegativePrompt}
-            buildScenePrompt={buildScenePrompt}
-            showToast={showToast}
-          />
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <SceneCard
+              key={currentScene.client_id}
+              scene={currentScene}
+              sceneIndex={currentSceneIndex}
+              activeTab={sceneEditTab}
+              onTabChange={setSceneEditTab}
+              validationResult={validationResults[currentScene.client_id]}
+              imageValidationResult={imageValidationResults[currentScene.client_id]}
+              qualityScore={
+                imageValidationResults[currentScene.client_id]
+                  ? {
+                      match_rate: imageValidationResults[currentScene.client_id].match_rate ?? 0,
+                      missing_tags: imageValidationResults[currentScene.client_id].missing ?? [],
+                    }
+                  : null
+              }
+              sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
+              onSceneMenuToggle={() =>
+                sbSet({
+                  sceneMenuOpen:
+                    sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
+                })
+              }
+              onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
+              suggestionExpanded={suggestionExpanded[currentScene.client_id] ?? false}
+              onSuggestionToggle={() =>
+                sbSet({
+                  suggestionExpanded: {
+                    ...suggestionExpanded,
+                    [currentScene.client_id]: !suggestionExpanded[currentScene.client_id],
+                  },
+                })
+              }
+              validatingSceneId={validatingSceneId}
+              loraTriggerWords={loraTriggerWords}
+              promptMode={characterPromptMode}
+              tagsByGroup={tagsByGroup}
+              sceneTagGroups={sceneTagGroups}
+              isExclusiveGroup={isExclusiveGroup}
+              onUpdateScene={handleUpdateScene}
+              onPinToggle={handlePinToggle}
+              pinnedSceneOrder={pinnedSceneOrder}
+              onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
+              onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
+              onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
+              onGenerateImage={() => handleGenerateImage(currentScene)}
+              onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
+              onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
+              onValidateImage={() => handleValidateImage(currentScene)}
+              onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
+              onImagePreview={(src, candidates) =>
+                useUIStore.getState().set({
+                  imagePreviewSrc: src,
+                  imagePreviewCandidates: candidates || null,
+                })
+              }
+              onSavePrompt={async () => {
+                const result = await confirm({
+                  title: "Save Prompt",
+                  message: "Enter a name for this prompt:",
+                  confirmLabel: "Save",
+                  inputField: { label: "Name", placeholder: "Enter prompt name..." },
+                });
+                if (result === false) return;
+                handleSavePrompt(currentScene, result as string);
+              }}
+              onMarkSuccess={() => handleMarkSuccess(currentScene)}
+              onMarkFail={() => handleMarkFail(currentScene)}
+              isMarkingStatus={markingStatusSceneId === currentScene.client_id}
+              getFixSuggestions={(scene, validation) =>
+                getFixSuggestions(scene, validation, useStoryboardStore.getState().topic)
+              }
+              applySuggestion={applySuggestion}
+              selectedCharacterId={resolvedCharacterId}
+              basePromptA={resolvedBasePrompt}
+              characterLoras={resolvedCharacterLoras}
+              structure={useStoryboardStore.getState().structure}
+              characterAName={selectedCharacterName}
+              characterBName={selectedCharacterBName}
+              selectedCharacterBId={selectedCharacterBId}
+              backgrounds={backgrounds}
+              genProgress={imageGenProgress[currentScene.client_id] ?? null}
+              buildNegativePrompt={buildNegativePrompt}
+              buildScenePrompt={buildScenePrompt}
+              showToast={showToast}
+            />
+          </div>
         )}
-      </section>
+      </main>
 
-      {/* Right: Settings & Status (sticky) */}
+      {/* Right: Tools Panel */}
       <SceneSidePanel
         multiGenEnabled={multiGenEnabled}
         useControlnet={useControlnet}
@@ -342,6 +345,9 @@ export default function ScenesTab() {
         scenes={scenes.map((s, i) => ({ id: s.id, client_id: s.client_id, order: i }))}
         onSceneSelect={setCurrentSceneIndex}
         fullScenes={scenes}
+        onValidate={runValidation}
+        onAutoFixAll={handleAutoFixAll}
+        scenesCount={scenes.length}
       />
 
       <ConfirmDialog {...dialogProps} />
