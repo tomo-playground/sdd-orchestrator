@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useUIStore, type RightPanelTab } from "../../store/useUIStore";
 import { RIGHT_PANEL_CLASSES } from "../ui/variants";
 
-type TabKey = "image" | "tools" | "insight";
-
-const TABS: { key: TabKey; label: string }[] = [
+const TABS: { key: RightPanelTab; label: string }[] = [
   { key: "image", label: "Image" },
   { key: "tools", label: "Tools" },
   { key: "insight", label: "Insight" },
@@ -22,7 +21,8 @@ export default function RightPanelTabs({
   toolsContent,
   insightContent,
 }: RightPanelTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("tools");
+  const activeTab = useUIStore((s) => s.rightPanelTab);
+  const setTab = useUIStore((s) => s.set);
 
   return (
     <aside className={RIGHT_PANEL_CLASSES}>
@@ -33,7 +33,7 @@ export default function RightPanelTabs({
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => setTab({ rightPanelTab: tab.key })}
               className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition ${
                 active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
               }`}

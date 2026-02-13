@@ -1,115 +1,102 @@
 "use client";
 
+import { useShallow } from "zustand/react/shallow";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
+import { runValidation, handleAutoFixAll } from "../../store/actions/sceneActions";
 import { OverrideToggleRow, SliderRow, StatBadge } from "../storyboard/SidePanelControls";
 import { SIDE_PANEL_LABEL } from "../ui/variants";
 
-type ReferenceImage = {
-  character_key: string;
-  filename: string;
-  preset?: { weight: number; model: string; description?: string };
-};
+export default function SceneToolsContent() {
+  const {
+    scenes,
+    currentSceneIndex,
+    multiGenEnabled,
+    useControlnet,
+    controlnetWeight,
+    useIpAdapter,
+    ipAdapterReference,
+    ipAdapterWeight,
+    ipAdapterReferenceB,
+    ipAdapterWeightB,
+    referenceImages,
+    validationSummary,
+  } = useStoryboardStore(
+    useShallow((s) => ({
+      scenes: s.scenes,
+      currentSceneIndex: s.currentSceneIndex,
+      multiGenEnabled: s.multiGenEnabled,
+      useControlnet: s.useControlnet,
+      controlnetWeight: s.controlnetWeight,
+      useIpAdapter: s.useIpAdapter,
+      ipAdapterReference: s.ipAdapterReference,
+      ipAdapterWeight: s.ipAdapterWeight,
+      ipAdapterReferenceB: s.ipAdapterReferenceB,
+      ipAdapterWeightB: s.ipAdapterWeightB,
+      referenceImages: s.referenceImages,
+      validationSummary: s.validationSummary,
+    }))
+  );
 
-type ValidationSummary = {
-  ok: number;
-  warn: number;
-  error: number;
-};
+  const sbSet = useStoryboardStore((s) => s.set);
+  const updateScene = useStoryboardStore((s) => s.updateScene);
 
-type SceneToolsContentProps = {
-  multiGenEnabled: boolean;
-  useControlnet: boolean;
-  controlnetWeight: number;
-  onControlnetWeightChange: (weight: number) => void;
-  useIpAdapter: boolean;
-  ipAdapterReference: string;
-  onIpAdapterReferenceChange: (ref: string) => void;
-  ipAdapterWeight: number;
-  onIpAdapterWeightChange: (weight: number) => void;
-  referenceImages: ReferenceImage[];
-  sceneMultiGen: boolean | null | undefined;
-  onSceneMultiGenChange: (v: boolean | null) => void;
-  sceneControlnet: boolean | null | undefined;
-  onSceneControlnetChange: (v: boolean | null) => void;
-  sceneControlnetWeight: number | null | undefined;
-  onSceneControlnetWeightChange: (v: number | null) => void;
-  sceneIpAdapter: boolean | null | undefined;
-  onSceneIpAdapterChange: (v: boolean | null) => void;
-  sceneIpAdapterReference: string | null | undefined;
-  onSceneIpAdapterReferenceChange: (v: string | null) => void;
-  sceneIpAdapterWeight: number | null | undefined;
-  onSceneIpAdapterWeightChange: (v: number | null) => void;
-  currentSpeaker?: "Narrator" | "A" | "B";
-  validationSummary: ValidationSummary;
-  onValidate?: () => void;
-  onAutoFixAll?: () => void;
-  scenesCount?: number;
-};
-
-export default function SceneToolsContent({
-  multiGenEnabled,
-  useControlnet,
-  controlnetWeight,
-  onControlnetWeightChange,
-  useIpAdapter,
-  ipAdapterReference,
-  onIpAdapterReferenceChange,
-  ipAdapterWeight,
-  onIpAdapterWeightChange,
-  referenceImages,
-  sceneMultiGen,
-  onSceneMultiGenChange,
-  sceneControlnet,
-  onSceneControlnetChange,
-  sceneControlnetWeight,
-  onSceneControlnetWeightChange,
-  sceneIpAdapter,
-  onSceneIpAdapterChange,
-  sceneIpAdapterReference,
-  onSceneIpAdapterReferenceChange,
-  sceneIpAdapterWeight,
-  onSceneIpAdapterWeightChange,
-  currentSpeaker,
-  validationSummary,
-  onValidate,
-  onAutoFixAll,
-  scenesCount = 0,
-}: SceneToolsContentProps) {
+  const currentScene = scenes[currentSceneIndex];
+  const currentSpeaker = currentScene?.speaker ?? "A";
   const isNarrator = currentSpeaker === "Narrator";
-  const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
+
+  const resolvedIpAdapter = resolveIpAdapterForSpeaker(currentSpeaker, {
+    ipAdapterReference,
+    ipAdapterWeight,
+    ipAdapterReferenceB,
+    ipAdapterWeightB,
+  });
+
+  // Scene-level overrides (null = inherit global)
+  const sceneMultiGen = currentScene?.multi_gen_enabled;
+  const sceneControlnet = currentScene?.use_controlnet;
+  const sceneControlnetWeight = currentScene?.controlnet_weight;
+  const sceneIpAdapter = currentScene?.use_ip_adapter;
+  const sceneIpAdapterRef = currentScene?.ip_adapter_reference;
+  const sceneIpAdapterWeight = currentScene?.ip_adapter_weight;
 
   const effectiveMultiGen = sceneMultiGen ?? multiGenEnabled;
   const effectiveControlnet = sceneControlnet ?? useControlnet;
   const effectiveControlnetWeight = sceneControlnetWeight ?? controlnetWeight;
   const effectiveIpAdapter = sceneIpAdapter ?? useIpAdapter;
-  const effectiveIpAdapterRef = sceneIpAdapterReference ?? ipAdapterReference;
-  const effectiveIpAdapterWeight = sceneIpAdapterWeight ?? ipAdapterWeight;
+  const effectiveIpAdapterRef = sceneIpAdapterRef ?? resolvedIpAdapter.reference;
+  const effectiveIpAdapterWeight = sceneIpAdapterWeight ?? resolvedIpAdapter.weight;
 
   const hasMultiGenOverride = sceneMultiGen != null;
   const hasControlnetOverride = sceneControlnet != null;
   const hasIpAdapterOverride = sceneIpAdapter != null;
 
+  const setSceneField = (field: string, value: unknown) => {
+    if (currentScene) updateScene(currentScene.client_id, { [field]: value });
+  };
+
+  const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
+
   return (
     <div className="space-y-4">
       {/* Validate / Fix All */}
-      {onValidate && onAutoFixAll && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onValidate}
-            className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white shadow transition hover:bg-zinc-800"
-          >
-            Validate
-          </button>
-          <button
-            type="button"
-            onClick={onAutoFixAll}
-            disabled={scenesCount === 0}
-            className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Fix All
-          </button>
-        </div>
-      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={runValidation}
+          className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white shadow transition hover:bg-zinc-800"
+        >
+          Validate
+        </button>
+        <button
+          type="button"
+          onClick={handleAutoFixAll}
+          disabled={scenes.length === 0}
+          className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Fix All
+        </button>
+      </div>
 
       {/* Generation Settings */}
       <div className="pb-3">
@@ -119,15 +106,15 @@ export default function SceneToolsContent({
             label="3x Candidates"
             checked={effectiveMultiGen}
             hasOverride={hasMultiGenOverride}
-            onChange={(v) => onSceneMultiGenChange(v)}
-            onReset={() => onSceneMultiGenChange(null)}
+            onChange={(v) => setSceneField("multi_gen_enabled", v)}
+            onReset={() => setSceneField("multi_gen_enabled", null)}
           />
           <OverrideToggleRow
             label="ControlNet"
             checked={effectiveControlnet}
             hasOverride={hasControlnetOverride}
-            onChange={(v) => onSceneControlnetChange(v)}
-            onReset={() => onSceneControlnetChange(null)}
+            onChange={(v) => setSceneField("use_controlnet", v)}
+            onReset={() => setSceneField("use_controlnet", null)}
             accent="violet"
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"
@@ -137,9 +124,9 @@ export default function SceneToolsContent({
               value={effectiveControlnetWeight}
               onChange={(v) => {
                 if (hasControlnetOverride) {
-                  onSceneControlnetWeightChange(v);
+                  setSceneField("controlnet_weight", v);
                 } else {
-                  onControlnetWeightChange(v);
+                  sbSet({ controlnetWeight: v });
                 }
               }}
               min={0.3}
@@ -152,8 +139,8 @@ export default function SceneToolsContent({
             label={currentSpeaker === "B" ? "IP-Adapter (B)" : "IP-Adapter"}
             checked={effectiveIpAdapter}
             hasOverride={hasIpAdapterOverride}
-            onChange={(v) => onSceneIpAdapterChange(v)}
-            onReset={() => onSceneIpAdapterChange(null)}
+            onChange={(v) => setSceneField("use_ip_adapter", v)}
+            onReset={() => setSceneField("use_ip_adapter", null)}
             accent={currentSpeaker === "B" ? "sky" : "amber"}
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"
@@ -165,13 +152,24 @@ export default function SceneToolsContent({
                 onChange={(e) => {
                   const key = e.target.value;
                   if (hasIpAdapterOverride) {
-                    onSceneIpAdapterReferenceChange(key || null);
+                    setSceneField("ip_adapter_reference", key || null);
                     const match = referenceImages.find((r) => r.character_key === key);
-                    if (match?.preset?.weight) onSceneIpAdapterWeightChange(match.preset.weight);
+                    if (match?.preset?.weight)
+                      setSceneField("ip_adapter_weight", match.preset.weight);
                   } else {
-                    onIpAdapterReferenceChange(key);
+                    sbSet(
+                      currentSpeaker === "B"
+                        ? { ipAdapterReferenceB: key }
+                        : { ipAdapterReference: key }
+                    );
                     const match = referenceImages.find((r) => r.character_key === key);
-                    if (match?.preset?.weight) onIpAdapterWeightChange(match.preset.weight);
+                    if (match?.preset?.weight) {
+                      sbSet(
+                        currentSpeaker === "B"
+                          ? { ipAdapterWeightB: match.preset.weight }
+                          : { ipAdapterWeight: match.preset.weight }
+                      );
+                    }
                   }
                 }}
                 className={`w-full rounded-lg border bg-white px-2 py-1.5 text-[12px] text-zinc-600 ${
@@ -189,9 +187,11 @@ export default function SceneToolsContent({
                 value={effectiveIpAdapterWeight}
                 onChange={(v) => {
                   if (hasIpAdapterOverride) {
-                    onSceneIpAdapterWeightChange(v);
+                    setSceneField("ip_adapter_weight", v);
                   } else {
-                    onIpAdapterWeightChange(v);
+                    sbSet(
+                      currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v }
+                    );
                   }
                 }}
                 min={0.3}

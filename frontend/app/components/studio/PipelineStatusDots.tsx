@@ -14,6 +14,8 @@ const STEPS = [
 export default function PipelineStatusDots() {
   const scenes = useStoryboardStore((s) => s.scenes);
   const recentVideos = useRenderStore((s) => s.recentVideos);
+  const isRendering = useRenderStore((s) => s.isRendering);
+  const renderProgress = useRenderStore((s) => s.renderProgress);
   const [tooltip, setTooltip] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -25,9 +27,15 @@ export default function PipelineStatusDots() {
   const status: Record<string, "done" | "progress" | "idle"> = {
     script: hasScenes ? "done" : "idle",
     images: hasAllImages ? "done" : hasScenes && imagesCount > 0 ? "progress" : "idle",
-    render: hasVideos ? "done" : "idle",
+    render: hasVideos ? "done" : isRendering ? "progress" : "idle",
     video: hasVideos ? "done" : "idle",
   };
+
+  const renderTooltip = isRendering
+    ? `Render: ${renderProgress ? `${renderProgress.percent}%` : "in progress"}`
+    : hasVideos
+      ? "Render: complete"
+      : "Render: not started";
 
   const tooltipText: Record<string, string> = {
     script: hasScenes ? `Script: ${scenes.length} scenes` : "Script: not started",
@@ -36,7 +44,7 @@ export default function PipelineStatusDots() {
       : imagesCount > 0
         ? `Images: ${imagesCount}/${scenes.length}`
         : "Images: not started",
-    render: hasVideos ? "Render: complete" : "Render: not started",
+    render: renderTooltip,
     video: hasVideos ? `Video: ${recentVideos.length} rendered` : "Video: not started",
   };
 

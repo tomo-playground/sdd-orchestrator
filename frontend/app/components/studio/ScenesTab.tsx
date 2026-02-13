@@ -28,8 +28,6 @@ import {
   handleSuggestEditWithGemini,
 } from "../../store/actions/imageActions";
 import {
-  runValidation,
-  handleAutoFixAll,
   applySuggestion,
   applyMissingImageTags,
   handleSpeakerChange,
@@ -48,10 +46,9 @@ export default function ScenesTab() {
     useShallow((s) => ({ scenes: s.scenes, currentSceneIndex: s.currentSceneIndex }))
   );
 
-  const { validationResults, validationSummary, imageValidationResults } = useStoryboardStore(
+  const { validationResults, imageValidationResults } = useStoryboardStore(
     useShallow((s) => ({
       validationResults: s.validationResults,
-      validationSummary: s.validationSummary,
       imageValidationResults: s.imageValidationResults,
     }))
   );
@@ -73,7 +70,6 @@ export default function ScenesTab() {
   );
 
   const {
-    multiGenEnabled,
     loraTriggerWords,
     characterLoras,
     characterBLoras,
@@ -84,17 +80,12 @@ export default function ScenesTab() {
     selectedCharacterBName,
     basePromptA,
     basePromptB,
-    useControlnet,
-    controlnetWeight,
-    useIpAdapter,
     ipAdapterReference,
     ipAdapterWeight,
     ipAdapterReferenceB,
     ipAdapterWeightB,
-    referenceImages,
   } = useStoryboardStore(
     useShallow((s) => ({
-      multiGenEnabled: s.multiGenEnabled,
       loraTriggerWords: s.loraTriggerWords,
       characterLoras: s.characterLoras,
       characterBLoras: s.characterBLoras,
@@ -105,14 +96,10 @@ export default function ScenesTab() {
       selectedCharacterBName: s.selectedCharacterBName,
       basePromptA: s.basePromptA,
       basePromptB: s.basePromptB,
-      useControlnet: s.useControlnet,
-      controlnetWeight: s.controlnetWeight,
-      useIpAdapter: s.useIpAdapter,
       ipAdapterReference: s.ipAdapterReference,
       ipAdapterWeight: s.ipAdapterWeight,
       ipAdapterReferenceB: s.ipAdapterReferenceB,
       ipAdapterWeightB: s.ipAdapterWeightB,
-      referenceImages: s.referenceImages,
     }))
   );
 
@@ -287,71 +274,7 @@ export default function ScenesTab() {
       {/* Right: Tabbed Panel */}
       <RightPanelTabs
         imageContent={<ImageSettingsContent />}
-        toolsContent={
-          <SceneToolsContent
-            multiGenEnabled={multiGenEnabled}
-            useControlnet={useControlnet}
-            controlnetWeight={controlnetWeight}
-            onControlnetWeightChange={(v) => sbSet({ controlnetWeight: v })}
-            useIpAdapter={useIpAdapter}
-            ipAdapterReference={resolvedIpAdapter.reference}
-            onIpAdapterReferenceChange={(v) =>
-              sbSet(currentSpeaker === "B" ? { ipAdapterReferenceB: v } : { ipAdapterReference: v })
-            }
-            ipAdapterWeight={resolvedIpAdapter.weight}
-            onIpAdapterWeightChange={(v) =>
-              sbSet(currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v })
-            }
-            referenceImages={referenceImages}
-            sceneMultiGen={currentScene?.multi_gen_enabled}
-            onSceneMultiGenChange={(v) => {
-              if (currentScene)
-                useStoryboardStore
-                  .getState()
-                  .updateScene(currentScene.client_id, { multi_gen_enabled: v });
-            }}
-            sceneControlnet={currentScene?.use_controlnet}
-            onSceneControlnetChange={(v) => {
-              if (currentScene)
-                useStoryboardStore
-                  .getState()
-                  .updateScene(currentScene.client_id, { use_controlnet: v });
-            }}
-            sceneControlnetWeight={currentScene?.controlnet_weight}
-            onSceneControlnetWeightChange={(v) => {
-              if (currentScene)
-                useStoryboardStore
-                  .getState()
-                  .updateScene(currentScene.client_id, { controlnet_weight: v });
-            }}
-            sceneIpAdapter={currentScene?.use_ip_adapter}
-            onSceneIpAdapterChange={(v) => {
-              if (currentScene)
-                useStoryboardStore
-                  .getState()
-                  .updateScene(currentScene.client_id, { use_ip_adapter: v });
-            }}
-            sceneIpAdapterReference={currentScene?.ip_adapter_reference}
-            onSceneIpAdapterReferenceChange={(v) => {
-              if (currentScene)
-                useStoryboardStore
-                  .getState()
-                  .updateScene(currentScene.client_id, { ip_adapter_reference: v });
-            }}
-            sceneIpAdapterWeight={currentScene?.ip_adapter_weight}
-            onSceneIpAdapterWeightChange={(v) => {
-              if (currentScene)
-                useStoryboardStore
-                  .getState()
-                  .updateScene(currentScene.client_id, { ip_adapter_weight: v });
-            }}
-            currentSpeaker={currentSpeaker}
-            validationSummary={validationSummary}
-            onValidate={runValidation}
-            onAutoFixAll={handleAutoFixAll}
-            scenesCount={scenes.length}
-          />
-        }
+        toolsContent={<SceneToolsContent />}
         insightContent={
           <SceneInsightsContent
             imageValidationResults={imageValidationResults}

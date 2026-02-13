@@ -128,7 +128,7 @@ export default function SceneImagePanel({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="group relative aspect-square w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white/70"
+        className="group relative aspect-square w-full max-w-[320px] overflow-hidden rounded-2xl border border-zinc-200 bg-white/70"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >

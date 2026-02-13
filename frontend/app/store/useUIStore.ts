@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ToastItem, AutopilotCheckpoint } from "../types";
 
 export type StudioTab = "edit" | "render" | "output";
+export type RightPanelTab = "image" | "tools" | "insight";
 
 const MAX_TOASTS = 3;
 
@@ -21,6 +22,7 @@ export interface UIState {
 
   // Navigation
   activeTab: StudioTab;
+  rightPanelTab: RightPanelTab;
 
   // Modals / Previews
   imagePreviewSrc: string | null;
@@ -55,6 +57,7 @@ const initialState: Omit<
 > = {
   toasts: [],
   activeTab: "edit",
+  rightPanelTab: "tools" as RightPanelTab,
   imagePreviewSrc: null,
   imagePreviewCandidates: null,
   videoPreviewSrc: null,
