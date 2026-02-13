@@ -4,7 +4,13 @@ import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LibrarySidebar, { type LibraryTab } from "./LibrarySidebar";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { TAB_ACTIVE, TAB_INACTIVE } from "../../components/ui/variants";
+import {
+  TAB_ACTIVE,
+  TAB_INACTIVE,
+  PAGE_2COL_LAYOUT,
+  SECONDARY_PANEL_CLASSES,
+} from "../../components/ui/variants";
+import LibrarySecondaryPanel from "./LibrarySecondaryPanel";
 import { CharactersContent } from "../characters/page";
 import { VoicesContent } from "../voices/page";
 import { MusicContent } from "../music/page";
@@ -37,11 +43,18 @@ function LibraryContent() {
       {/* Mobile tab bar */}
       <MobileTabBar activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <main className="flex-1 overflow-y-auto">
-        {activeTab === "characters" && <CharactersContent />}
-        {activeTab === "voices" && <VoicesContent />}
-        {activeTab === "music" && <MusicContent />}
-        {activeTab === "backgrounds" && <BackgroundsContent />}
+      <main className="flex-1 overflow-y-auto px-6">
+        <div className={PAGE_2COL_LAYOUT}>
+          <div className="min-w-0">
+            {activeTab === "characters" && <CharactersContent />}
+            {activeTab === "voices" && <VoicesContent />}
+            {activeTab === "music" && <MusicContent />}
+            {activeTab === "backgrounds" && <BackgroundsContent />}
+          </div>
+          <div className={SECONDARY_PANEL_CLASSES}>
+            <LibrarySecondaryPanel activeTab={activeTab} />
+          </div>
+        </div>
       </main>
     </div>
   );

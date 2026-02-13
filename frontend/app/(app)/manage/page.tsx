@@ -5,7 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useContextStore } from "../../store/useContextStore";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { TAB_ACTIVE, TAB_INACTIVE } from "../../components/ui/variants";
+import {
+  TAB_ACTIVE,
+  TAB_INACTIVE,
+  PAGE_2COL_LAYOUT,
+  SECONDARY_PANEL_CLASSES,
+} from "../../components/ui/variants";
+import ManageSecondaryPanel from "./ManageSecondaryPanel";
 import SettingsTab from "./tabs/SettingsTab";
 import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
@@ -53,15 +59,20 @@ function ManageContent() {
       <MobileTabBar activeTab={manageTab} onTabChange={handleTabChange} />
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-7xl px-6 py-6">
-          {manageTab === "tags" && <TagsTab />}
-          {manageTab === "style" && <StyleTab />}
-          {manageTab === "prompts" && <PromptsTab />}
-          {manageTab === "presets" && <RenderPresetsTab />}
-          {manageTab === "trash" && <TrashTab />}
-          {manageTab === "youtube" && <YouTubeTab projectId={projectId} />}
-          {manageTab === "settings" && <SettingsTab />}
+      <main className="flex-1 overflow-y-auto px-6 py-6">
+        <div className={PAGE_2COL_LAYOUT}>
+          <div className="min-w-0">
+            {manageTab === "tags" && <TagsTab />}
+            {manageTab === "style" && <StyleTab />}
+            {manageTab === "prompts" && <PromptsTab />}
+            {manageTab === "presets" && <RenderPresetsTab />}
+            {manageTab === "trash" && <TrashTab />}
+            {manageTab === "youtube" && <YouTubeTab projectId={projectId} />}
+            {manageTab === "settings" && <SettingsTab />}
+          </div>
+          <div className={SECONDARY_PANEL_CLASSES}>
+            <ManageSecondaryPanel activeTab={manageTab} />
+          </div>
         </div>
       </main>
     </div>

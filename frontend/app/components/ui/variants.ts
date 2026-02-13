@@ -52,8 +52,14 @@ export const CONTAINER_CLASSES = "mx-auto w-full max-w-7xl px-6";
 
 // ── Side-panel tokens ──────────────────────────────────────
 
-/** Two-column grid: main content + 220px side panel. */
-export const SIDE_PANEL_LAYOUT = "grid gap-6 md:grid-cols-[1fr_220px]";
+/** Two-column grid: main content + 280px side panel. */
+export const SIDE_PANEL_LAYOUT = "grid gap-6 md:grid-cols-[1fr_280px]";
+
+/** Page-level 2-column grid: primary content + secondary panel (xl+). */
+export const PAGE_2COL_LAYOUT = "grid gap-6 xl:grid-cols-[1fr_var(--secondary-panel-width)]";
+
+/** Secondary panel container: hidden until xl, sticky top. */
+export const SECONDARY_PANEL_CLASSES = "hidden xl:block sticky top-4 self-start space-y-4";
 
 // ── Studio 3-column layout ─────────────────────────────────
 

@@ -12,7 +12,6 @@ import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonGrid } from "../../components/ui/Skeleton";
 import {
-  CONTAINER_CLASSES,
   PAGE_TITLE_CLASSES,
   SEARCH_INPUT_CLASSES,
   FORM_INPUT_COMPACT_CLASSES,
@@ -72,7 +71,7 @@ export function BackgroundsContent() {
   const labelCls = FORM_LABEL_COMPACT_CLASSES;
 
   return (
-    <div className={`${CONTAINER_CLASSES} py-8`}>
+    <div className="py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className={PAGE_TITLE_CLASSES}>

@@ -4,8 +4,9 @@
   --background: #f9f6ef;
   --foreground: #18181b;
   --nav-height: 45px;
-  --sidebar-width: 256px;
-  --sidebar-collapsed-width: 64px;
+  --sidebar-width: 208px;
+  --sidebar-collapsed-width: 56px;
+  --secondary-panel-width: 280px;
 }
 
 @theme inline {

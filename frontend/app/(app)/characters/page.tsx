@@ -11,7 +11,6 @@ import Button from "../../components/ui/Button";
 import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonGrid } from "../../components/ui/Skeleton";
 import {
-  CONTAINER_CLASSES,
   PAGE_TITLE_CLASSES,
   SEARCH_INPUT_CLASSES,
   FILTER_PILL_ACTIVE,
@@ -64,7 +63,7 @@ export function CharactersContent() {
   }, [characters, search, filter]);
 
   return (
-    <div className={`${CONTAINER_CLASSES} py-8`}>
+    <div className="py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className={PAGE_TITLE_CLASSES}>

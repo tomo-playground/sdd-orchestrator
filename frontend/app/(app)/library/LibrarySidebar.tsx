@@ -38,7 +38,9 @@ export default function LibrarySidebar({
     });
   }, []);
 
-  const sidebarWidth = collapsed ? "w-14" : "w-48";
+  const sidebarWidth = collapsed
+    ? "w-[var(--sidebar-collapsed-width)]"
+    : "w-[var(--sidebar-width)]";
 
   return (
     <aside
