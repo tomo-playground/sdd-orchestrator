@@ -110,14 +110,12 @@ export default function ScriptEditorPanel() {
         <ManualScriptEditor editor={editor} />
       )}
 
-      {/* Shared scene list (always visible) */}
+      {/* Shared scene list (read-only review) */}
       {editor.scenes.length > 0 ? (
         <ScriptSceneList
           scenes={editor.scenes}
-          storyboardId={editor.storyboardId}
           isSaving={editor.isSaving}
-          onUpdateScene={editor.updateScene}
-          onSave={editor.save}
+          onApprove={editor.save}
         />
       ) : hasEditor && !isAgent ? (
         <EmptyState

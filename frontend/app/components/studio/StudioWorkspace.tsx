@@ -11,7 +11,7 @@ export default function StudioWorkspace() {
   return (
     <div className="min-h-0 flex-1 overflow-hidden">
       {activeTab === "script" && (
-        <div className="mx-auto h-full w-full max-w-7xl overflow-y-auto px-6 py-8">
+        <div className="h-full w-full overflow-y-auto px-6 py-8">
           <ScriptTab />
         </div>
       )}
@@ -19,7 +19,7 @@ export default function StudioWorkspace() {
       {activeTab === "edit" && <ScenesTab />}
 
       {activeTab === "publish" && (
-        <div className="mx-auto h-full w-full max-w-7xl overflow-y-auto px-6 py-8">
+        <div className="h-full w-full overflow-y-auto px-6 py-8">
           <PublishTab />
         </div>
       )}

@@ -11,7 +11,8 @@ import ManualScriptEditor from "../scripts/ManualScriptEditor";
 import AgentScriptEditor from "../scripts/AgentScriptEditor";
 import ScriptSceneList from "../scripts/ScriptSceneList";
 import EmptyState from "../ui/EmptyState";
-import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
+import { TAB_ACTIVE, TAB_INACTIVE, SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
+import ScriptSidePanel from "./ScriptSidePanel";
 
 const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 
@@ -65,46 +66,53 @@ export default function ScriptTab() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Mode tabs */}
-      <div className="flex gap-1 rounded-xl bg-zinc-50 p-1">
-        <button
-          className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
-          onClick={() => toggleMode("manual")}
-        >
-          Manual
-        </button>
-        <button
-          className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
-          onClick={() => toggleMode("agent")}
-        >
-          AI Agent
-        </button>
+    <div className={SIDE_PANEL_LAYOUT}>
+      {/* Left: Script content */}
+      <div className="space-y-4">
+        {/* Mode tabs */}
+        <div className="flex gap-1 rounded-xl bg-zinc-50 p-1">
+          <button
+            className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
+            onClick={() => toggleMode("manual")}
+          >
+            Manual
+          </button>
+          <button
+            className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
+            onClick={() => toggleMode("agent")}
+          >
+            AI Agent
+          </button>
+        </div>
+
+        {/* Mode-specific editor */}
+        {isAgent ? (
+          <AgentScriptEditor onStoryboardCreated={handleStoryboardCreated} />
+        ) : (
+          <ManualScriptEditor editor={editor} />
+        )}
+
+        {/* Shared scene list (read-only review) */}
+        {editor.scenes.length > 0 ? (
+          <ScriptSceneList
+            scenes={editor.scenes}
+            isSaving={editor.isSaving}
+            approveLabel="Approve & Edit"
+            onApprove={editor.save}
+          />
+        ) : !isAgent ? (
+          <EmptyState
+            icon={FileText}
+            title="No scenes generated yet"
+            description="Enter a topic and click Generate Script"
+          />
+        ) : null}
       </div>
 
-      {/* Mode-specific editor */}
-      {isAgent ? (
-        <AgentScriptEditor onStoryboardCreated={handleStoryboardCreated} />
-      ) : (
-        <ManualScriptEditor editor={editor} />
-      )}
-
-      {/* Shared scene list */}
-      {editor.scenes.length > 0 ? (
-        <ScriptSceneList
-          scenes={editor.scenes}
-          storyboardId={editor.storyboardId}
-          isSaving={editor.isSaving}
-          onUpdateScene={editor.updateScene}
-          onSave={editor.save}
-        />
-      ) : !isAgent ? (
-        <EmptyState
-          icon={FileText}
-          title="No scenes generated yet"
-          description="Enter a topic and click Generate Script"
-        />
-      ) : null}
+      {/* Right: Side panel */}
+      <div className={SIDE_PANEL_CLASSES}>
+        <ScriptSidePanel scenesCount={editor.scenes.length} isAgent={isAgent} />
+      </div>
     </div>
   );
 }

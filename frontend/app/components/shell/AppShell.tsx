@@ -100,7 +100,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <PersistentContextBar />
 
       {/* Content */}
-      <div id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
+      <div
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 overflow-x-hidden overflow-y-auto outline-none"
+      >
         {children}
       </div>
 
