@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { ToastItem, AutopilotCheckpoint } from "../types";
 
-export type StudioTab = "scenes" | "render" | "output";
+export type StudioTab = "edit" | "render" | "output";
 
 const MAX_TOASTS = 3;
 
@@ -54,7 +54,7 @@ const initialState: Omit<
   "set" | "setActiveTab" | "showToast" | "dismissToast" | "resetUI"
 > = {
   toasts: [],
-  activeTab: "scenes",
+  activeTab: "edit",
   imagePreviewSrc: null,
   imagePreviewCandidates: null,
   videoPreviewSrc: null,

@@ -1,18 +1,12 @@
 "use client";
 
-import { RIGHT_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../ui/variants";
-import StoryboardInsights, { type InsightScene } from "./StoryboardInsights";
-import { OverrideToggleRow, SliderRow, StatBadge } from "./SidePanelControls";
+import { OverrideToggleRow, SliderRow, StatBadge } from "../storyboard/SidePanelControls";
+import { SIDE_PANEL_LABEL } from "../ui/variants";
 
 type ReferenceImage = {
   character_key: string;
   filename: string;
   preset?: { weight: number; model: string; description?: string };
-};
-
-type SceneMatchRate = {
-  match_rate?: number;
-  missing?: string[];
 };
 
 type ValidationSummary = {
@@ -21,8 +15,7 @@ type ValidationSummary = {
   error: number;
 };
 
-type SceneSidePanelProps = {
-  // Global settings (default values)
+type SceneToolsContentProps = {
   multiGenEnabled: boolean;
   useControlnet: boolean;
   controlnetWeight: number;
@@ -33,7 +26,6 @@ type SceneSidePanelProps = {
   ipAdapterWeight: number;
   onIpAdapterWeightChange: (weight: number) => void;
   referenceImages: ReferenceImage[];
-  // Per-scene override values (null = inherit global)
   sceneMultiGen: boolean | null | undefined;
   onSceneMultiGenChange: (v: boolean | null) => void;
   sceneControlnet: boolean | null | undefined;
@@ -46,23 +38,14 @@ type SceneSidePanelProps = {
   onSceneIpAdapterReferenceChange: (v: string | null) => void;
   sceneIpAdapterWeight: number | null | undefined;
   onSceneIpAdapterWeightChange: (v: number | null) => void;
-  // Current speaker context for IP-Adapter display
   currentSpeaker?: "Narrator" | "A" | "B";
-  // Validation
   validationSummary: ValidationSummary;
-  // Match rates
-  imageValidationResults?: Record<string, SceneMatchRate>;
-  scenes?: { id: number; client_id: string; order?: number }[];
-  onSceneSelect?: (index: number) => void;
-  // Insight panel data
-  fullScenes?: InsightScene[];
-  // Validate / Fix actions (moved from SceneListHeader)
   onValidate?: () => void;
   onAutoFixAll?: () => void;
   scenesCount?: number;
 };
 
-export default function SceneSidePanel({
+export default function SceneToolsContent({
   multiGenEnabled,
   useControlnet,
   controlnetWeight,
@@ -87,23 +70,13 @@ export default function SceneSidePanel({
   onSceneIpAdapterWeightChange,
   currentSpeaker,
   validationSummary,
-  imageValidationResults,
-  scenes: scenesInfo,
-  onSceneSelect,
-  fullScenes,
   onValidate,
   onAutoFixAll,
   scenesCount = 0,
-}: SceneSidePanelProps) {
+}: SceneToolsContentProps) {
   const isNarrator = currentSpeaker === "Narrator";
   const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
-  const hasMatchRateGrid =
-    scenesInfo &&
-    scenesInfo.length > 0 &&
-    imageValidationResults &&
-    Object.keys(imageValidationResults).length > 0;
 
-  // Effective values (scene override ?? global)
   const effectiveMultiGen = sceneMultiGen ?? multiGenEnabled;
   const effectiveControlnet = sceneControlnet ?? useControlnet;
   const effectiveControlnetWeight = sceneControlnetWeight ?? controlnetWeight;
@@ -116,12 +89,7 @@ export default function SceneSidePanel({
   const hasIpAdapterOverride = sceneIpAdapter != null;
 
   return (
-    <aside className={RIGHT_PANEL_CLASSES}>
-      {/* Storyboard Insights */}
-      {fullScenes && fullScenes.length > 0 && (
-        <StoryboardInsights scenes={fullScenes} imageValidationResults={imageValidationResults} />
-      )}
-
+    <div className="space-y-4">
       {/* Validate / Fix All */}
       {onValidate && onAutoFixAll && (
         <div className="flex gap-2">
@@ -247,44 +215,6 @@ export default function SceneSidePanel({
           </div>
         </div>
       )}
-
-      {/* Match Rate Grid */}
-      {hasMatchRateGrid && (
-        <div className="border-t border-zinc-100 pt-3">
-          <label className={SIDE_PANEL_LABEL}>Match Rates</label>
-          <div className="grid grid-cols-3 gap-1.5">
-            {scenesInfo!.map((scene, index) => {
-              const result = imageValidationResults![scene.client_id];
-              const rate = result?.match_rate;
-              const hasRate = rate !== undefined && rate !== null;
-              const colorClass = !hasRate
-                ? "border-zinc-200 bg-zinc-50 text-zinc-400"
-                : rate >= 80
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : rate >= 60
-                    ? "border-amber-200 bg-amber-50 text-amber-700"
-                    : "border-rose-200 bg-rose-50 text-rose-700";
-
-              return (
-                <button
-                  key={scene.client_id}
-                  type="button"
-                  onClick={() => onSceneSelect?.(index)}
-                  title={
-                    hasRate
-                      ? `Scene ${index + 1}: ${Math.round(rate)}% match`
-                      : `Scene ${index + 1}: not validated`
-                  }
-                  className={`flex cursor-pointer flex-col items-center rounded-lg border px-1 py-1.5 text-[11px] leading-tight font-semibold transition-all hover:scale-105 ${colorClass}`}
-                >
-                  <span>S{index + 1}</span>
-                  <span>{hasRate ? `${Math.round(rate)}%` : "--"}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </aside>
+    </div>
   );
 }

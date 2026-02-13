@@ -59,7 +59,7 @@ export const SIDE_PANEL_LAYOUT = "grid gap-6 md:grid-cols-[1fr_220px]";
 
 /** 3-column grid: left scene list + center editor + right tools. */
 export const STUDIO_3COL_LAYOUT =
-  "grid grid-cols-[280px_1fr_300px] gap-0 h-[calc(100vh-120px)] min-h-[600px] overflow-hidden";
+  "grid grid-cols-[280px_1fr_300px] gap-0 h-full min-h-[600px] overflow-hidden";
 export const LEFT_PANEL_CLASSES =
   "flex flex-col border-r border-zinc-200 bg-zinc-50/50 overflow-y-auto";
 export const RIGHT_PANEL_CLASSES =

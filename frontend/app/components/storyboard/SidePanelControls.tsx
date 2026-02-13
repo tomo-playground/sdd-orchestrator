@@ -1,6 +1,6 @@
 "use client";
 
-/** Reusable sub-components for SceneSidePanel. */
+/** Reusable sub-components for SceneToolsContent right panel. */
 
 /* ---- OverrideToggleRow ---- */
 

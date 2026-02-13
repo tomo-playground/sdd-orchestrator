@@ -71,7 +71,7 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "images") {
         setAutoRunStep("images", "Generating scene images...");
-        setActiveTab("scenes");
+        setActiveTab("edit");
         assertNotCancelled();
 
         // Split scenes by per-scene multiGen setting
@@ -296,6 +296,7 @@ export async function runAutoRunFromStep(
     }
 
     setAutoRunDone();
+    setActiveTab("output");
     showToast("Auto Run complete!", "success");
   } catch (err) {
     const message = err instanceof Error ? err.message : "Autopilot failed";

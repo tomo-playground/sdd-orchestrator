@@ -6,7 +6,10 @@ import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import StudioKanbanView from "../../components/studio/StudioKanbanView";
-import StudioTimelineView from "../../components/studio/StudioTimelineView";
+import StudioWorkspace from "../../components/studio/StudioWorkspace";
+import StudioWorkspaceTabs from "../../components/studio/StudioWorkspaceTabs";
+import PipelineStatusDots from "../../components/studio/PipelineStatusDots";
+import MaterialsPopover from "../../components/studio/MaterialsPopover";
 
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
@@ -79,6 +82,7 @@ function StudioContent() {
 
   // Autopilot
   const autopilot = useAutopilot();
+  const showAutoRun = autopilot.autoRunState.status !== "idle";
 
   const isAutoRunningRef = useRef(false);
   isAutoRunningRef.current = autopilot.isAutoRunning;
@@ -117,31 +121,38 @@ function StudioContent() {
 
   // Timeline view: storyboard selected
   return (
-    <>
-      {/* Sub-header: context bar + global actions */}
+    <div className="flex h-[calc(100vh-56px)] flex-col">
+      {/* Sub-Nav: 3-zone layout — [Title] | [Pipeline · Materials · Tabs] | [Actions] */}
       <div className={SUB_NAV_CLASSES}>
         <div className={`${CONTAINER_CLASSES} flex items-center justify-between py-2`}>
+          {/* Left: Title */}
           <ContextBar title={storyboardTitle || "New Storyboard"} />
-          <div className="flex items-center gap-2">
-            {scenes.length > 0 && (
-              <span className="text-[12px] text-zinc-400">{scenes.length} scenes</span>
-            )}
-            <StoryboardActionsBar
-              onAutoRun={() => setUI({ showPreflightModal: true })}
-              onSave={handleSave}
-              isRendering={isRendering}
-              isAutoRunning={autopilot.isAutoRunning}
-              isSaving={isSaving}
-              autoRunStep={autopilot.autoRunState.step}
-              showSave={scenes.length > 0}
-            />
+
+          {/* Center: Status + Tabs */}
+          <div className="flex items-center gap-3">
+            <PipelineStatusDots />
+            <div className="h-4 w-px bg-zinc-200" />
+            <MaterialsPopover />
+            <div className="h-4 w-px bg-zinc-200" />
+            <StudioWorkspaceTabs />
           </div>
+
+          {/* Right: Actions */}
+          <StoryboardActionsBar
+            onAutoRun={() => setUI({ showPreflightModal: true })}
+            onSave={handleSave}
+            isRendering={isRendering}
+            isAutoRunning={autopilot.isAutoRunning}
+            isSaving={isSaving}
+            autoRunStep={autopilot.autoRunState.step}
+            showSave={scenes.length > 0}
+          />
         </div>
       </div>
 
-      {/* No-group banner */}
+      {/* No-group banner — inside flex column, before workspace */}
       {groups.length === 0 && (
-        <div className={`${CONTAINER_CLASSES} pt-3`}>
+        <div className={`${CONTAINER_CLASSES} shrink-0 pt-3`}>
           <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-xs text-amber-800">Create a group to start saving storyboards.</p>
             <button
@@ -154,9 +165,9 @@ function StudioContent() {
         </div>
       )}
 
-      {/* AutoRun Status */}
-      {autopilot.autoRunState.status !== "idle" && (
-        <div className={`${CONTAINER_CLASSES} pt-3`}>
+      {/* AutoRun Status — inside flex column, before workspace */}
+      {showAutoRun && (
+        <div className={`${CONTAINER_CLASSES} shrink-0 pt-3`}>
           <AutoRunStatus
             autoRunState={autopilot.autoRunState}
             autoRunLog={autopilot.autoRunLog}
@@ -167,8 +178,8 @@ function StudioContent() {
         </div>
       )}
 
-      {/* Timeline View */}
-      <StudioTimelineView storyboardId={resolvedId as number} />
+      {/* Workspace: fills remaining height */}
+      <StudioWorkspace />
 
       {/* Sidebars & Modals */}
       <PromptHelperSidebar
@@ -227,7 +238,7 @@ function StudioContent() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 
