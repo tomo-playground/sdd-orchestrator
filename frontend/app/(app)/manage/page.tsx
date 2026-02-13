@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContextStore } from "../../store/useContextStore";
 import ManageSidebar, { type ManageTab } from "./ManageSidebar";
@@ -33,20 +33,12 @@ function ManageContent() {
   const searchParams = useSearchParams();
   const projectId = useContextStore((s) => s.projectId);
 
-  // URL-synced tab state
+  // Derive tab directly from URL (no redundant state)
   const tabParam = searchParams.get("tab");
-  const [manageTab, setManageTab] = useState<ManageTab>(isValidTab(tabParam) ? tabParam : "tags");
-
-  // Sync state when URL changes externally
-  useEffect(() => {
-    if (isValidTab(tabParam) && tabParam !== manageTab) {
-      setManageTab(tabParam);
-    }
-  }, [tabParam]); // eslint-disable-line react-hooks/exhaustive-deps
+  const manageTab: ManageTab = isValidTab(tabParam) ? tabParam : "tags";
 
   const handleTabChange = useCallback(
     (tab: ManageTab) => {
-      setManageTab(tab);
       router.replace(`/manage?tab=${tab}`, { scroll: false });
     },
     [router]
