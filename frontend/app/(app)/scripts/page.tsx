@@ -1,29 +1,30 @@
 "use client";
 
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import ScriptListPanel from "../../components/scripts/ScriptListPanel";
-import ScriptEditorPanel from "../../components/scripts/ScriptEditorPanel";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
-function ScriptsContent() {
+function ScriptsRedirect() {
   const searchParams = useSearchParams();
-  const idParam = searchParams.get("id");
-  const selectedId = idParam ? Number(idParam) : null;
+  const router = useRouter();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const isNew = searchParams.get("new") === "true";
+
+    if (id) {
+      router.replace(`/studio?id=${id}`);
+    } else if (isNew) {
+      router.replace("/studio?new=true");
+    } else {
+      router.replace("/");
+    }
+  }, [searchParams, router]);
 
   return (
-    <div className="flex h-full">
-      {/* Left: list panel */}
-      <div className="w-[360px] shrink-0">
-        <ScriptListPanel selectedId={selectedId} />
-      </div>
-
-      {/* Right: editor panel */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-7xl">
-          <ScriptEditorPanel />
-        </div>
-      </div>
+    <div className="flex h-64 items-center justify-center">
+      <LoadingSpinner size="md" />
     </div>
   );
 }
@@ -37,7 +38,7 @@ export default function ScriptsPage() {
         </div>
       }
     >
-      <ScriptsContent />
+      <ScriptsRedirect />
     </Suspense>
   );
 }

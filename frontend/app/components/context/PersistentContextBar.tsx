@@ -22,11 +22,8 @@ export default function PersistentContextBar() {
   const pathname = usePathname();
   const router = useRouter();
   const isStudio = pathname.startsWith("/studio");
-  const isAssetPage =
-    pathname.startsWith("/characters/") ||
-    pathname.startsWith("/backgrounds/") ||
-    pathname.startsWith("/voices/") ||
-    pathname.startsWith("/music/");
+  const isHome = pathname === "/";
+  const isAssetPage = pathname.startsWith("/library") || pathname.startsWith("/characters/");
 
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
   const storyboardId = useContextStore((s) => s.storyboardId);
@@ -91,7 +88,7 @@ export default function PersistentContextBar() {
     [selectGroup, isAutoRunning, showToast]
   );
 
-  const hasStoryboard = storyboardId !== null && !isStudio && !isAssetPage;
+  const hasStoryboard = storyboardId !== null && !isStudio && !isHome && !isAssetPage;
 
   return (
     <>

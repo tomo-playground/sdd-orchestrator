@@ -57,7 +57,7 @@ export default function CharacterDetailPage() {
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           showToast("Character not found or deleted", "error");
-          router.push("/characters");
+          router.push("/library?tab=characters");
           return;
         }
         showToast("Failed to load character data", "error");
@@ -97,7 +97,7 @@ export default function CharacterDetailPage() {
       <div className={`${CONTAINER_CLASSES} py-16 text-center`}>
         <p className="text-sm text-zinc-500">Character not found</p>
         <Link
-          href="/characters"
+          href="/library?tab=characters"
           className="mt-2 inline-block text-xs text-zinc-400 hover:underline"
         >
           Back to Characters
@@ -163,7 +163,7 @@ function CharacterDetailForm({
       });
       if (!ok) return;
     }
-    router.push("/characters");
+    router.push("/library?tab=characters");
   };
 
   const handleDelete = async () => {
@@ -178,7 +178,7 @@ function CharacterDetailForm({
     try {
       await axios.delete(`${API_BASE}/characters/${character.id}`);
       showToast("Character deleted", "success");
-      router.push("/characters");
+      router.push("/library?tab=characters");
     } catch {
       showToast("Failed to delete character", "error");
     }

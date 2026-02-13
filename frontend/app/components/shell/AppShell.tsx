@@ -3,16 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import {
-  Settings,
-  FlaskConical,
-  Users,
-  Mic,
-  Music,
-  Image,
-  Clapperboard,
-  ScrollText,
-} from "lucide-react";
+import { Settings, FlaskConical, Home, Library } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
 import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
@@ -31,14 +22,9 @@ type NavItem = {
 };
 
 const NAV_GROUPS: (NavItem[] | "sep")[] = [
-  [{ href: "/studio", label: "Studio", icon: Clapperboard }],
-  "sep",
   [
-    { href: "/scripts", label: "Scripts", icon: ScrollText },
-    { href: "/characters", label: "Characters", icon: Users },
-    { href: "/voices", label: "Voices", icon: Mic },
-    { href: "/music", label: "Music", icon: Music },
-    { href: "/backgrounds", label: "Backgrounds", icon: Image },
+    { href: "/", label: "Home", icon: Home, exact: true },
+    { href: "/library", label: "Library", icon: Library },
   ],
   "sep",
   [

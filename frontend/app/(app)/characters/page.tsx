@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { UserRound } from "lucide-react";
 import { useCharacters } from "../../hooks/useCharacters";
 import CharacterCard from "./CharacterCard";
@@ -26,7 +27,16 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "locked", label: "Locked" },
 ];
 
+/** Redirect /characters → /library?tab=characters */
 export default function CharactersPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/library?tab=characters");
+  }, [router]);
+  return null;
+}
+
+export function CharactersContent() {
   const { characters, isLoading } = useCharacters();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");

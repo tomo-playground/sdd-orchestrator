@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Mic } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
@@ -20,7 +21,16 @@ import {
   FORM_LABEL_COMPACT_CLASSES,
 } from "../../components/ui/variants";
 
+/** Redirect /voices → /library?tab=voices */
 export default function VoicesPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/library?tab=voices");
+  }, [router]);
+  return null;
+}
+
+export function VoicesContent() {
   const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {

@@ -19,7 +19,7 @@ export default function StudioKanbanView() {
   };
 
   const handleNewShorts = () => {
-    router.push("/scripts?new=true");
+    router.push("/studio?new=true");
   };
 
   if (!projectId) {

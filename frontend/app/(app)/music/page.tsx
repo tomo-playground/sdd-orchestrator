@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Music } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
 import { useMusic } from "../../hooks/useMusic";
@@ -18,7 +19,16 @@ import {
   FORM_LABEL_COMPACT_CLASSES,
 } from "../../components/ui/variants";
 
+/** Redirect /music → /library?tab=music */
 export default function MusicPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/library?tab=music");
+  }, [router]);
+  return null;
+}
+
+export function MusicContent() {
   const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {

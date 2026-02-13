@@ -141,16 +141,18 @@ export default function ScenesTab() {
     ? scenes.find((s) => s.image_asset_id === currentScene.environment_reference_id)?.order
     : undefined;
 
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
+
   if (scenes.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
         <p className="text-sm text-zinc-400">No scenes yet. Create a script first.</p>
-        <a
-          href="/scripts?new=true"
+        <button
+          onClick={() => setActiveTab("script")}
           className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-95"
         >
-          Go to Scripts
-        </a>
+          Go to Script
+        </button>
       </div>
     );
   }

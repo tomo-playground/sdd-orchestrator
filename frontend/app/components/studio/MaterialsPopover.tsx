@@ -3,22 +3,32 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useContextStore } from "../../store/useContextStore";
+import { useUIStore } from "../../store/useUIStore";
 import { useMaterialsCheck } from "../../hooks/useMaterialsCheck";
 
 type MaterialKey = "script" | "characters" | "voice" | "music" | "background";
 
-const MATERIALS: Array<{ key: MaterialKey; label: string; icon: string; link: string }> = [
-  { key: "script", label: "Script", icon: "S", link: "/scripts" },
-  { key: "characters", label: "Characters", icon: "C", link: "/manage?tab=characters" },
-  { key: "voice", label: "Voice", icon: "V", link: "/manage?tab=voice" },
-  { key: "music", label: "Music", icon: "M", link: "/manage?tab=music" },
-  { key: "background", label: "BG", icon: "B", link: "/backgrounds" },
+type MaterialItem = {
+  key: MaterialKey;
+  label: string;
+  icon: string;
+  link?: string;
+  action?: "script-tab";
+};
+
+const MATERIALS: MaterialItem[] = [
+  { key: "script", label: "Script", icon: "S", action: "script-tab" },
+  { key: "characters", label: "Characters", icon: "C", link: "/library?tab=characters" },
+  { key: "voice", label: "Voice", icon: "V", link: "/library?tab=voices" },
+  { key: "music", label: "Music", icon: "M", link: "/library?tab=music" },
+  { key: "background", label: "BG", icon: "B", link: "/library?tab=backgrounds" },
 ];
 
 export default function MaterialsPopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
   const storyboardId = useContextStore((s) => s.storyboardId);
   const { data, isLoading } = useMaterialsCheck(storyboardId);
 
@@ -58,7 +68,11 @@ export default function MaterialsPopover() {
                 <button
                   key={mat.key}
                   onClick={() => {
-                    router.push(mat.link);
+                    if (mat.action === "script-tab") {
+                      setActiveTab("script");
+                    } else if (mat.link) {
+                      router.push(mat.link);
+                    }
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition ${

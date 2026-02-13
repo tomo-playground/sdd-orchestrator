@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { ToastItem, AutopilotCheckpoint } from "../types";
 
-export type StudioTab = "edit" | "render" | "output";
+export type StudioTab = "script" | "edit" | "render" | "output";
 export type RightPanelTab = "image" | "tools" | "insight";
 
 const MAX_TOASTS = 3;

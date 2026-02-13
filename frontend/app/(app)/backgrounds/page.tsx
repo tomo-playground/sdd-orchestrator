@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Image } from "lucide-react";
 import { useUIStore } from "../../store/useUIStore";
 import { useBackgrounds } from "../../hooks/useBackgrounds";
@@ -18,7 +19,16 @@ import {
   FORM_LABEL_COMPACT_CLASSES,
 } from "../../components/ui/variants";
 
+/** Redirect /backgrounds → /library?tab=backgrounds */
 export default function BackgroundsPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/library?tab=backgrounds");
+  }, [router]);
+  return null;
+}
+
+export function BackgroundsContent() {
   const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const {
