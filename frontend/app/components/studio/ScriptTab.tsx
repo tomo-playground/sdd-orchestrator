@@ -6,7 +6,6 @@ import { FileText } from "lucide-react";
 import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
-import { SCRIPTS_LIST_REFRESH } from "../../constants";
 import ManualScriptEditor from "../scripts/ManualScriptEditor";
 import AgentScriptEditor from "../scripts/AgentScriptEditor";
 import ScriptSceneList from "../scripts/ScriptSceneList";
@@ -52,7 +51,6 @@ export default function ScriptTab() {
     (id: number) => {
       router.replace(`/studio?id=${id}`);
       useContextStore.getState().setContext({ storyboardId: id });
-      window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
     },
     [router]
   );

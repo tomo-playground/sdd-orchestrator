@@ -39,7 +39,6 @@ export async function handleGenerateImage(scene: Scene) {
       ? await generateSceneCandidates(updatedScene)
       : await generateSceneImageFor(updatedScene);
     if (result) {
-      console.log("[handleGenerateImage] Image generation result:", result);
       const { updateScene: liveUpdateScene } = useStoryboardStore.getState();
 
       // Include isGenerating: false before saveStoryboard to survive ID reassignment

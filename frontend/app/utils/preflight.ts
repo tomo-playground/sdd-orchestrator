@@ -271,7 +271,7 @@ function checkRenderStep(scenes: (Scene | DraftScene)[], videoUrl: string | null
     };
   }
 
-  // TODO: Add content hash comparison to detect changes
+  // Render check
   return {
     needed: false,
     reason: "영상 존재",

@@ -36,7 +36,6 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
       .get<{ items: Character[] }>(`${API_BASE}/characters`)
       .then((r) => {
         const items = r.data.items ?? [];
-        console.log("[ProjectFormModal] characters loaded:", items.length);
         setCharacters(items);
       })
       .catch((err) => console.error("[ProjectFormModal] failed to load characters:", err));
@@ -130,11 +129,10 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => setAvatarAssetId(null)}
-                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-[12px] font-bold transition ${
-                  avatarAssetId === null
+                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-[12px] font-bold transition ${avatarAssetId === null
                     ? "border-zinc-900 bg-zinc-100 text-zinc-600"
                     : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300"
-                }`}
+                  }`}
               >
                 None
               </button>
@@ -147,11 +145,10 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                     type="button"
                     onClick={() => setAvatarAssetId(ch.preview_image_asset_id!)}
                     title={ch.name}
-                    className={`h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 transition ${
-                      isSelected
+                    className={`h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 transition ${isSelected
                         ? "border-zinc-900 ring-2 ring-zinc-300"
                         : "border-zinc-200 hover:border-zinc-400"
-                    }`}
+                      }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

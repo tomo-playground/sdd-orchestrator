@@ -40,7 +40,6 @@ export async function handleStyleProfileComplete(
   const { setEffectiveDefaults } = useContextStore.getState();
 
   // 1. Store profile in output slice
-  console.log("[StyleProfileModal] Selected profile:", profile);
   useRenderStore.getState().set({
     currentStyleProfile: {
       id: profile.id,
@@ -63,7 +62,6 @@ export async function handleStyleProfileComplete(
         style_profile_id: profile.id,
       });
       setEffectiveDefaults(profile.id, null, true);
-      console.log("[StyleProfile] GroupConfig updated with style_profile_id:", profile.id);
     } catch (err) {
       console.error("[StyleProfile] Failed to update GroupConfig:", err);
       showToast("Style saved locally but GroupConfig update failed", "error");
@@ -150,7 +148,6 @@ async function updateExistingStoryboard(
       title: topic || "Untitled",
       ...payload,
     });
-    console.log("[StyleProfileModal] Storyboard updated with profile ID:", profile.id);
     showToast("Storyboard updated", "success");
   } catch (err) {
     console.error("[StyleProfileModal] Failed to update storyboard:", err);
@@ -170,12 +167,6 @@ async function createNewStoryboard(
       ...payload,
     });
     useContextStore.getState().setContext({ storyboardId: res.data.storyboard_id });
-    console.log(
-      "[StyleProfileModal] Storyboard created with ID:",
-      res.data.storyboard_id,
-      "profile ID:",
-      profile.id
-    );
     showToast("Storyboard created", "success");
   } catch (err) {
     console.error("[StyleProfileModal] Failed to create storyboard:", err);
@@ -238,9 +229,9 @@ async function changeSdModel(
       });
       showToast(
         `Style profile "${profile.display_name || profile.name}" loaded\n` +
-          `Model: ${profile.sd_model_name}\n` +
-          `LoRAs: ${profile.loras?.length || 0}\n` +
-          `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
+        `Model: ${profile.sd_model_name}\n` +
+        `LoRAs: ${profile.loras?.length || 0}\n` +
+        `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
         "success"
       );
     } catch (err) {

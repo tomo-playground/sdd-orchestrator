@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_BASE, SCRIPTS_LIST_REFRESH } from "../constants";
+import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
 import type { Scene } from "../types";
@@ -168,7 +168,6 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardId: state.storyboardId,
           storyboardTitle: state.topic.trim(),
         });
-        window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
         showToast("Script saved", "success");
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
@@ -182,7 +181,6 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardId: newId,
           storyboardTitle: state.topic.trim(),
         });
-        window.dispatchEvent(new CustomEvent(SCRIPTS_LIST_REFRESH));
         onSavedRef.current?.(newId);
         showToast("Script created", "success");
       }
