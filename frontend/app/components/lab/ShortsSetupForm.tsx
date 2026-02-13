@@ -162,19 +162,38 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
           </div>
         )}
 
-        {/* References (optional) */}
+        {/* Source Materials & References */}
         <div>
-          <label className={LABEL}>References (optional)</label>
+          <label className={LABEL}>Source Materials & References</label>
           <textarea
             value={references}
             onChange={(e) => setReferences(e.target.value)}
-            rows={2}
-            placeholder="Paste URLs or text references, one per line..."
+            rows={3}
+            placeholder={
+              "https://example.com/article\nhttps://youtube.com/watch?v=...\n참고할 텍스트 메모 (URL이 아닌 줄은 텍스트 레퍼런스로 사용)"
+            }
             className={FORM_TEXTAREA_CLASSES}
           />
-          <p className="mt-0.5 text-[12px] text-zinc-400">
-            URLs are auto-fetched and analyzed. Text lines are used as reference guidelines.
-          </p>
+          {(() => {
+            const lines = references.split("\n").filter((l) => l.trim());
+            const urlCount = lines.filter((l) => /^https?:\/\//i.test(l.trim())).length;
+            const textCount = lines.length - urlCount;
+            if (lines.length === 0) return null;
+            return (
+              <div className="mt-1.5 flex gap-2">
+                {urlCount > 0 && (
+                  <span className="rounded bg-blue-50 px-2 py-0.5 text-[12px] font-medium text-blue-600">
+                    URL {urlCount}개 — 자동 수집 & AI 분석
+                  </span>
+                )}
+                {textCount > 0 && (
+                  <span className="rounded bg-zinc-100 px-2 py-0.5 text-[12px] font-medium text-zinc-500">
+                    텍스트 {textCount}개 — 레퍼런스 가이드
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Max Rounds */}
