@@ -186,6 +186,7 @@ export default function ScenesTab() {
           scenes={scenes}
           currentSceneIndex={currentSceneIndex}
           onSceneSelect={setCurrentSceneIndex}
+          imageValidationResults={imageValidationResults}
         />
 
         {currentScene && (
@@ -340,6 +341,7 @@ export default function ScenesTab() {
         imageValidationResults={imageValidationResults}
         scenes={scenes.map((s, i) => ({ id: s.id, client_id: s.client_id, order: i }))}
         onSceneSelect={setCurrentSceneIndex}
+        fullScenes={scenes}
       />
 
       <ConfirmDialog {...dialogProps} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../ui/variants";
+import StoryboardInsights, { type InsightScene } from "./StoryboardInsights";
 
 type ReferenceImage = {
   character_key: string;
@@ -52,6 +53,8 @@ type SceneSidePanelProps = {
   imageValidationResults?: Record<string, SceneMatchRate>;
   scenes?: { id: number; client_id: string; order?: number }[];
   onSceneSelect?: (index: number) => void;
+  // Insight panel data
+  fullScenes?: InsightScene[];
 };
 
 export default function SceneSidePanel({
@@ -82,6 +85,7 @@ export default function SceneSidePanel({
   imageValidationResults,
   scenes: scenesInfo,
   onSceneSelect,
+  fullScenes,
 }: SceneSidePanelProps) {
   const isNarrator = currentSpeaker === "Narrator";
   const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
@@ -105,6 +109,11 @@ export default function SceneSidePanel({
 
   return (
     <div className={SIDE_PANEL_CLASSES}>
+      {/* Storyboard Insights */}
+      {fullScenes && fullScenes.length > 0 && (
+        <StoryboardInsights scenes={fullScenes} imageValidationResults={imageValidationResults} />
+      )}
+
       {/* Generation Settings */}
       <div className="pb-3">
         <label className={SIDE_PANEL_LABEL}>Settings</label>
@@ -370,3 +379,4 @@ function StatBadge({
     </div>
   );
 }
+

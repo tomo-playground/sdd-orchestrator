@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { Scene, Tag, Background } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useContextStore } from "../../store/useContextStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import useTagValidation from "../../hooks/useTagValidation";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
@@ -115,6 +116,7 @@ export default function SceneFormFields({
           rows={3}
           className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
         />
+        <ScriptMeta script={scene.script} />
       </div>
 
       {/* Speaker, Duration, Upload */}
@@ -286,5 +288,53 @@ export default function SceneFormFields({
         onChange={(value) => onUpdateScene({ negative_prompt: value })}
       />
     </>
+  );
+}
+
+/* ---- Script Meta (character count + reading time) ---- */
+
+type LangConfig = { cps: number; min: number; max: number; unit: string };
+
+const LANG_CONFIG: Record<string, LangConfig> = {
+  Korean: { cps: 4, min: 15, max: 30, unit: "자" },
+  Japanese: { cps: 5, min: 12, max: 25, unit: "字" },
+  English: { cps: 2.5, min: 8, max: 15, unit: "words" },
+};
+const DEFAULT_CPS = 2.5;
+
+function ScriptMeta({ script }: { script: string }) {
+  const language = useStoryboardStore((s) => s.language);
+  const text = script.trim();
+  if (!text) return null;
+
+  const cfg = LANG_CONFIG[language];
+  const charCount = text.replace(/\s/g, "").length;
+  const wordCount = text.split(/\s+/).length;
+  const count = cfg ? charCount : wordCount;
+  const readTime = cfg ? charCount / cfg.cps : wordCount / DEFAULT_CPS;
+  const unit = cfg?.unit ?? "words";
+  const range = cfg ? { min: cfg.min, max: cfg.max } : null;
+
+  const isOver = range != null && count > range.max;
+  const isUnder = range != null && count < range.min;
+
+  return (
+    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+      <span>
+        {count}
+        {unit}
+      </span>
+      <span>·</span>
+      <span>읽기 {readTime.toFixed(1)}초</span>
+      {(isOver || isUnder) && range && (
+        <>
+          <span>·</span>
+          <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-600">
+            {isOver ? "권장 초과" : "권장 미만"} ({range.min}~{range.max}
+            {unit})
+          </span>
+        </>
+      )}
+    </div>
   );
 }
