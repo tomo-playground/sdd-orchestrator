@@ -33,7 +33,7 @@ function LabContent() {
       <LabSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="w-full max-w-6xl px-6 py-6">
+        <div className="mx-auto w-full max-w-7xl px-6 py-6">
           {activeTab === "tag-lab" && <TagLabTab />}
           {activeTab === "scene-lab" && <SceneLabTab />}
           {activeTab === "analytics" && <AnalyticsTab />}

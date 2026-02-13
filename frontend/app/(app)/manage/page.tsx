@@ -62,7 +62,7 @@ function ManageContent() {
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="w-full max-w-5xl px-6 py-6">
+        <div className="mx-auto w-full max-w-7xl px-6 py-6">
           {manageTab === "tags" && <TagsTab />}
           {manageTab === "style" && <StyleTab />}
           {manageTab === "prompts" && <PromptsTab />}

@@ -20,7 +20,7 @@ import { useAutopilot } from "../../hooks/useAutopilot";
 import { useStudioInitialization } from "../../hooks/useStudioInitialization";
 import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
 import { createGroup } from "../../store/actions/groupActions";
-import { SUB_NAV_CLASSES, STUDIO_CONTAINER_CLASSES } from "../../components/ui/variants";
+import { SUB_NAV_CLASSES, CONTAINER_CLASSES } from "../../components/ui/variants";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { saveStoryboard } from "../../store/actions/storyboardActions";
 import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
@@ -120,7 +120,7 @@ function StudioContent() {
     <>
       {/* Sub-header: context bar + global actions */}
       <div className={SUB_NAV_CLASSES}>
-        <div className={`${STUDIO_CONTAINER_CLASSES} flex items-center justify-between py-2`}>
+        <div className={`${CONTAINER_CLASSES} flex items-center justify-between py-2`}>
           <ContextBar title={storyboardTitle || "New Storyboard"} />
           <div className="flex items-center gap-2">
             {scenes.length > 0 && (
@@ -141,7 +141,7 @@ function StudioContent() {
 
       {/* No-group banner */}
       {groups.length === 0 && (
-        <div className={`${STUDIO_CONTAINER_CLASSES} pt-3`}>
+        <div className={`${CONTAINER_CLASSES} pt-3`}>
           <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-xs text-amber-800">Create a group to start saving storyboards.</p>
             <button
@@ -156,7 +156,7 @@ function StudioContent() {
 
       {/* AutoRun Status */}
       {autopilot.autoRunState.status !== "idle" && (
-        <div className={`${STUDIO_CONTAINER_CLASSES} pt-3`}>
+        <div className={`${CONTAINER_CLASSES} pt-3`}>
           <AutoRunStatus
             autoRunState={autopilot.autoRunState}
             autoRunLog={autopilot.autoRunLog}

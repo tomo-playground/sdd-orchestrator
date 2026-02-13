@@ -20,7 +20,7 @@ function ScriptsContent() {
 
       {/* Right: editor panel */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl">
+        <div className="max-w-7xl">
           <ScriptEditorPanel />
         </div>
       </div>

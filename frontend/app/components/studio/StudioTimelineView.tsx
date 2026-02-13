@@ -7,7 +7,7 @@ import ImageSettingsSection from "./ImageSettingsSection";
 import ScenesTab from "./ScenesTab";
 import RenderTab from "./RenderTab";
 import OutputTab from "./OutputTab";
-import { STUDIO_CONTAINER_CLASSES } from "../ui/variants";
+import { CONTAINER_CLASSES } from "../ui/variants";
 
 interface StudioTimelineViewProps {
   storyboardId: number;
@@ -17,7 +17,7 @@ export default function StudioTimelineView({ storyboardId }: StudioTimelineViewP
   const dbStoryboardId = useContextStore((s) => s.storyboardId);
 
   return (
-    <div className={`${STUDIO_CONTAINER_CLASSES} space-y-6 py-8 pb-32`}>
+    <div className={`${CONTAINER_CLASSES} space-y-6 py-8 pb-32`}>
       {/* 1. Pipeline Progress */}
       <PipelineProgressBar />
 

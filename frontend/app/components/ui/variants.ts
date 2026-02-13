@@ -47,11 +47,8 @@ export const NAV_CLASSES =
 export const SUB_NAV_CLASSES =
   "sticky top-0 z-[var(--z-sub-nav)] border-b border-zinc-100 bg-white/90 backdrop-blur-md";
 
-/** Max-width content container for list pages (characters, backgrounds, etc.). */
-export const CONTAINER_CLASSES = "w-full max-w-5xl px-6";
-
-/** Wide container for Studio page (3-column scene editor). */
-export const STUDIO_CONTAINER_CLASSES = "mx-auto w-full max-w-7xl px-4";
+/** App-wide max-width content container (SSOT). */
+export const CONTAINER_CLASSES = "mx-auto w-full max-w-7xl px-6";
 
 // ── Side-panel tokens ──────────────────────────────────────
 
