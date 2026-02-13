@@ -133,12 +133,14 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       setScenes(currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] || scene.id })));
     }
 
-    // Sync URL with newly created storyboard ID
+    // Sync URL with newly created storyboard ID & clear new mode
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
+      url.searchParams.delete("new");
       url.searchParams.set("id", String(newStoryboardId));
       window.history.replaceState({}, "", url.toString());
     }
+    useUIStore.getState().set({ isNewStoryboardMode: false });
 
     showToast("Storyboard auto-saved", "success");
 
@@ -303,12 +305,14 @@ export async function persistStoryboard(): Promise<boolean> {
       }
       // Save version from response
       useStoryboardStore.getState().set({ storyboardVersion: res.data.version ?? 1 });
-      // Sync URL with newly created storyboard ID
+      // Sync URL with newly created storyboard ID & clear new mode
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
+        url.searchParams.delete("new");
         url.searchParams.set("id", String(newId));
         window.history.replaceState({}, "", url.toString());
       }
+      useUIStore.getState().set({ isNewStoryboardMode: false });
     }
     // Clear dirty flag after successful save
     useStoryboardStore.getState().set({ isDirty: false });

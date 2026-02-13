@@ -48,6 +48,9 @@ export function useStudioInitialization() {
     // Async IIFE to handle resetAllStores (now async)
     (async () => {
       await resetAllStores();
+      // Set store flag before URL cleanup (URL-independent new mode)
+      useUIStore.getState().set({ isNewStoryboardMode: true });
+
       const { effectiveCharacterId } = useContextStore.getState();
       if (effectiveCharacterId) {
         setPlan({ selectedCharacterId: effectiveCharacterId });

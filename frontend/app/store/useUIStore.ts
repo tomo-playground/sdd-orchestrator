@@ -40,6 +40,9 @@ export interface UIState {
   isSuggesting: boolean;
   copyStatus: string;
 
+  // New storyboard mode (URL-independent flag for ?new=true)
+  isNewStoryboardMode: boolean;
+
   // Autopilot lock
   isAutoRunning: boolean;
 
@@ -70,6 +73,7 @@ const initialState: Omit<
   suggestedScene: "",
   isSuggesting: false,
   copyStatus: "",
+  isNewStoryboardMode: false,
   isAutoRunning: false,
 };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
@@ -42,18 +41,17 @@ function StudioContent() {
     needsStyleProfile,
   });
 
-  // Routing: storyboardId or ?new=true determines kanban vs editor
-  const searchParams = useSearchParams();
-  const isNew = searchParams.get("new") === "true";
+  // Routing: storyboardId or isNewStoryboardMode determines kanban vs editor
+  const isNewMode = useUIStore((s) => s.isNewStoryboardMode);
   const contextStoryboardId = useContextStore((s) => s.storyboardId);
   const resolvedId = storyboardId ? parseInt(storyboardId, 10) : contextStoryboardId;
-  const hasStoryboard = (!!resolvedId && !isNaN(resolvedId as number)) || isNew;
+  const hasStoryboard = (!!resolvedId && !isNaN(resolvedId as number)) || isNewMode;
 
   // Auto-activate Script tab for new storyboards
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   useEffect(() => {
-    if (isNew) setActiveTab("script");
-  }, [isNew, setActiveTab]);
+    if (isNewMode) setActiveTab("script");
+  }, [isNewMode, setActiveTab]);
 
   // Store selectors — split stores
   const setUI = useUIStore((s) => s.set);
