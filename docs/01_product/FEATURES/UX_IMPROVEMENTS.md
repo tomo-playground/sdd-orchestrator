@@ -17,18 +17,12 @@
 
 ---
 
-## Setup Wizard
+## ~~Setup Wizard~~ — N/A (2026-02-13)
 
-> 상태: 미착수
+> 상태: **취소** — 기존 기능으로 대체됨
 
-### 배경
-초기 설정(SD WebUI 연결, 모델 확인, 에셋 상태)을 안내하는 UI 부재.
-
-### 목표
-- 첫 실행 시 필수 설정 가이드 제공
-- SD WebUI 연결, 모델/LoRA 존재 확인, DB 상태 점검
-
-### 수락 기준
-- [ ] 첫 실행 시 Wizard 자동 표시
-- [ ] SD WebUI 연결 상태 확인
-- [ ] 필수 에셋 존재 여부 점검
+후속 개발에서 개별적으로 더 나은 형태로 구현 완료:
+- **ConnectionGuard** (7-5): Backend 연결 끊기면 전면 차단 UI
+- **MaterialsCheck + Preflight** (7-5): 렌더 전 5개 항목 자동 검증
+- **Style Profile Onboarding** (7-1): 새 스토리보드 진입 시 자동 안내
+- 남은 갭(SD WebUI 상태 표시)은 Feature Backlog 소항목으로 이동
