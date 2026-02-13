@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { mockStudioApis, MOCK_STORYBOARDS } from "../helpers/mockApi";
+import { mockGlobalApis, mockStudioApis, MOCK_STORYBOARDS } from "../helpers/mockApi";
 
 test.describe("Studio Page", () => {
   test.beforeEach(async ({ page }) => {
+    await mockGlobalApis(page);
     await mockStudioApis(page);
   });
 
@@ -183,6 +184,7 @@ test.describe("Studio Page", () => {
 // ── Home button ─────────────────────────────────────────────────
 
 test("Home button navigates back to /", async ({ page }) => {
+  await mockGlobalApis(page);
   await mockStudioApis(page);
   await page.goto("/studio");
   await page.getByTestId("studio-home-btn").click();

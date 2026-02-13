@@ -13,7 +13,8 @@ E2E (Playwright)          ← 유저 플로우 검증
 |------|------|------|----------|
 | **Unit** | pytest / vitest | 서비스 함수, 유틸, 훅 | Mock, 인메모리 |
 | **Integration** | pytest + TestClient | API 라우터 + DB | SQLite 인메모리 |
-| **VRT** | pytest + SSIM | 이미지 렌더링 (자막, 오버레이, 프레임) | Golden Master 비교 |
+| **VRT (Backend)** | pytest + SSIM | 이미지 렌더링 (자막, 오버레이, 프레임) | Golden Master 비교 |
+| **VRT (Frontend)** | Playwright `toHaveScreenshot()` | 페이지별 스크린샷 (8페이지, 24장) | Mock API + baseline PNG |
 | **E2E** | Playwright | Studio/Manage 페이지 유저 플로우 | Mock API 응답 |
 
 ---
@@ -59,8 +60,14 @@ E2E (Playwright)          ← 유저 플로우 검증
 
 **Playwright 설정**:
 - Snapshot: `tests/vrt/__snapshots__/`
-- Max diff pixels: 100, threshold: 0.2
+- Max diff pixels: 100, threshold: 0.2, animations: disabled
 - Retry: CI 2회, 로컬 0회
+
+**Frontend VRT** (상세: `VRT_GUIDE.md`):
+- 8개 스펙 파일, 24개 스크린샷 (list + empty 상태)
+- Mock: `tests/helpers/mockApi.ts` (페이지별 API 인터셉터)
+- Fixtures: `tests/helpers/fixtures/` (Mock 데이터 분리)
+- Utils: `tests/helpers/vrtUtils.ts` (waitForPageReady, hideAnimations, clearLocalStorage)
 
 ---
 
@@ -91,6 +98,15 @@ cd frontend && npm test
 
 # Frontend E2E
 npx playwright test
+
+# Frontend VRT (baseline 비교)
+cd frontend && npm run test:vrt
+
+# Frontend VRT (baseline 갱신)
+npm run test:vrt:update
+
+# Frontend VRT (UI 모드)
+npm run test:vrt:ui
 ```
 
 ---
@@ -101,7 +117,8 @@ npx playwright test
 |------|------|------|
 | Backend Unit + Integration | 830 tests (60 files) | 80% line coverage |
 | Frontend Unit | 118 tests (10 files) | 70% line coverage |
-| VRT | 36 tests (4 files) | 주요 레이아웃 100% |
+| VRT (Backend) | 36 tests (4 files) | 주요 레이아웃 100% |
+| VRT (Frontend) | 24 screenshots (8 specs) | 전체 페이지 커버 |
 | E2E | 3 specs | 핵심 플로우 커버 |
 
 **총 테스트**: 948개 (Backend 830 + Frontend 118)

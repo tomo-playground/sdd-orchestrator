@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { mockStudioApis } from "../helpers/mockApi";
+import { mockGlobalApis, mockStudioApis } from "../helpers/mockApi";
 
 test.describe("Manage Page", () => {
   test.beforeEach(async ({ page }) => {
+    await mockGlobalApis(page);
     await mockStudioApis(page);
     // Mock manage-specific APIs
     await page.route("**/tags/groups**", (route) => route.fulfill({ json: [] }));
