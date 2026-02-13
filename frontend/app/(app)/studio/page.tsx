@@ -39,6 +39,7 @@ function StudioContent() {
     isLoadingDb,
     storyboardId,
     needsStyleProfile,
+    loadedProfileId,
   });
 
   // Routing: storyboardId or isNewStoryboardMode determines kanban vs editor

@@ -12,6 +12,7 @@ interface UseStudioOnboardingOptions {
   isLoadingDb: boolean;
   storyboardId: string | null;
   needsStyleProfile: boolean;
+  loadedProfileId: number | null;
 }
 
 /**
@@ -23,6 +24,7 @@ export function useStudioOnboarding({
   isLoadingDb,
   storyboardId,
   needsStyleProfile,
+  loadedProfileId,
 }: UseStudioOnboardingOptions) {
   const [showStyleProfileModal, setShowStyleProfileModal] = useState(false);
 
@@ -41,6 +43,9 @@ export function useStudioOnboarding({
 
     // New storyboard (no storyboardId) uses inline StyleProfileSelector — skip modal
     if (!storyboardId) return;
+
+    // Already loaded by useStudioInitialization — skip to avoid duplicate toast
+    if (loadedProfileId) return;
 
     // Show modal if profile exists but no style profile selected
     if (hasProfile && !currentStyleProfile) {
@@ -66,6 +71,7 @@ export function useStudioOnboarding({
     storyboardId,
     effectiveConfigLoaded,
     effectiveStyleProfileId,
+    loadedProfileId,
   ]);
 
   // DB-loaded storyboard without style profile — try cascade first
