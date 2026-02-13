@@ -22,6 +22,15 @@ Name: {{ character_name }}
 {{ reference_guidelines }}
 {% endif %}
 
+{% if research_brief %}
+## Research Brief (from Source Materials)
+Topic Summary: {{ research_brief.topic_summary | default("N/A", true) }}
+Recommended Angle: {{ research_brief.recommended_angle | default("N/A", true) }}
+Key Elements: {{ research_brief.key_elements | default([]) | join(", ") }}
+Emotional Arc: {{ research_brief.emotional_arc_suggestion | default("N/A", true) }}
+Audience Hook: {{ research_brief.audience_hook | default("N/A", true) }}
+{% endif %}
+
 {% if prev_concept %}
 ## Your Previous Concept (Improve This)
 {{ prev_concept }}

@@ -419,6 +419,7 @@ CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
     "devils_advocate": "creative/devils_advocate.j2",
     "creative_director": "creative/director_evaluate.j2",
     "reference_analyst": "creative/reference_analyst.j2",
+    "material_analyst": "creative/material_analyst.j2",
     # Production Phase
     "scriptwriter": "creative/scriptwriter.j2",
     "cinematographer": "creative/cinematographer.j2",

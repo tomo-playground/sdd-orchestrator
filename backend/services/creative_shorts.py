@@ -198,7 +198,21 @@ def run_debate(session_id: int) -> None:
         )
         db.commit()
 
-        # Phase 0: Reference Analyst (optional)
+        # Phase 0: Material Agent (URLs) or Reference Analyst (text)
+        material_urls = session_ctx.get("material_urls", [])
+        if material_urls:
+            from services.creative_material import run_material_agent
+
+            brief = loop.run_until_complete(
+                run_material_agent(
+                    db, session, material_urls, duration=ctx.duration, structure=ctx.structure, language=ctx.language
+                )
+            )
+            if brief:
+                ctx.research_brief = brief
+                logger.info("[Shorts] Material Agent produced research brief")
+            db.commit()
+
         if session_ctx.get("references"):
             ref_result = loop.run_until_complete(run_reference_analyst(db, session, ctx))
             if ref_result:

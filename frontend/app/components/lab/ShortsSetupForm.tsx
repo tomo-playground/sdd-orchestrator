@@ -55,10 +55,14 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
 
   const handleSubmit = () => {
     if (!topic.trim()) return;
-    const refs = references
+    const lines = references
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
+
+    // Auto-classify: URLs vs text references
+    const urls = lines.filter((l) => /^https?:\/\//i.test(l));
+    const textRefs = lines.filter((l) => !/^https?:\/\//i.test(l));
 
     const multiChar = isMultiCharStructure(structure);
     const charIds: Record<string, number> = {};
@@ -77,7 +81,8 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
       character_ids: multiChar && Object.keys(charIds).length > 0 ? charIds : undefined,
       director_mode: directorMode,
       max_rounds: maxRounds,
-      references: refs.length > 0 ? refs : undefined,
+      references: textRefs.length > 0 ? textRefs : undefined,
+      material_urls: urls.length > 0 ? urls : undefined,
       disabled_steps: disabledSteps.size > 0 ? Array.from(disabledSteps) : undefined,
     });
   };
@@ -168,7 +173,7 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
             className={FORM_TEXTAREA_CLASSES}
           />
           <p className="mt-0.5 text-[12px] text-zinc-400">
-            Reference analyst will extract patterns for concept generation
+            URLs are auto-fetched and analyzed. Text lines are used as reference guidelines.
           </p>
         </div>
 

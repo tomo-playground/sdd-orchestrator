@@ -148,6 +148,7 @@ export type ShortsSessionCreate = {
   director_mode: string;
   max_rounds: number;
   references?: string[];
+  material_urls?: string[];
   disabled_steps?: string[];
 };
 

@@ -54,6 +54,7 @@ class DebateContext:
     max_rounds: int
     character_name: str | None = None
     reference_guidelines: str | None = None
+    research_brief: dict | None = None
     prev_concepts: dict | None = None
     director_feedback: str | None = None
     critic_feedback: dict | None = None
@@ -153,6 +154,7 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             structure=ctx.structure,
             character_name=ctx.character_name,
             reference_guidelines=ctx.reference_guidelines,
+            research_brief=ctx.research_brief,
             prev_concept=json.dumps(prev_concept, ensure_ascii=False) if prev_concept else None,
             director_feedback=ctx.director_feedback,
             critic_feedback=arch_critic,
