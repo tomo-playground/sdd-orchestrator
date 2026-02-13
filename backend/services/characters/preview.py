@@ -18,8 +18,8 @@ from config import (
     SD_REFERENCE_STEPS,
     logger,
 )
-from models import Character, CharacterTag
-from schemas import SceneGenerateRequest
+from models import Character, CharacterTag, Tag
+from schemas import AssignPreviewRequest, CharacterPreviewRequest, SceneGenerateRequest
 
 
 def _get_character_for_preview(db: Session, character_id: int, *, with_tags: bool = False) -> Character:
@@ -35,15 +35,15 @@ def _get_character_for_preview(db: Session, character_id: int, *, with_tags: boo
     return character
 
 
-def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> str:
-    """Save image bytes as a preview asset and update the character. Returns URL."""
+def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> tuple[str, int]:
+    """Save image bytes as a preview asset and update the character. Returns (url, asset_id)."""
     from services.asset_service import AssetService
 
     asset_service = AssetService(db)
     asset = asset_service.save_character_preview(character_id, image_bytes)
     db.query(Character).filter(Character.id == character_id).update({"preview_image_asset_id": asset.id})
     db.commit()
-    return asset.url
+    return asset.url, asset.id
 
 
 async def regenerate_reference(db: Session, character_id: int) -> dict:
@@ -81,7 +81,7 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
 
     # Session auto-reconnects on next use
     image_bytes = decode_data_url(f"data:image/png;base64,{res['image']}")
-    url = _save_preview_asset(db, character_id, image_bytes)
+    url, _ = _save_preview_asset(db, character_id, image_bytes)
     return {"ok": True, "url": url}
 
 
@@ -104,7 +104,7 @@ async def enhance_preview(db: Session, character_id: int) -> dict:
 
     # Session auto-reconnects on next use
     enhanced_bytes = decode_data_url(f"data:image/png;base64,{result['enhanced_image']}")
-    url = _save_preview_asset(db, character_id, enhanced_bytes)
+    url, _ = _save_preview_asset(db, character_id, enhanced_bytes)
     return {"ok": True, "url": url, "cost_usd": result["cost_usd"]}
 
 
@@ -133,7 +133,7 @@ async def edit_preview(db: Session, character_id: int, instruction: str) -> dict
 
     # Session auto-reconnects on next use
     edited_bytes = decode_data_url(f"data:image/png;base64,{result['edited_image']}")
-    url = _save_preview_asset(db, character_id, edited_bytes)
+    url, _ = _save_preview_asset(db, character_id, edited_bytes)
     return {
         "ok": True,
         "url": url,
@@ -157,3 +157,87 @@ async def batch_regenerate_references(db: Session) -> dict:
             results.append({"id": char.id, "name": char.name, "status": "failed", "error": str(e)})
 
     return {"ok": True, "results": results}
+
+
+async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest) -> dict:
+    """Generate a temporary preview image for the wizard (no DB save).
+
+    Builds an in-memory Character from tag_ids + loras, composes a
+    V3 12-Layer reference prompt, and calls SD WebUI.
+    """
+    from services.generation import generate_scene_image
+    from services.prompt.v3_composition import V3PromptBuilder
+
+    # 1. Validate tag_ids exist
+    tags_db: list[Tag] = []
+    if request.tag_ids:
+        tags_db = db.query(Tag).filter(Tag.id.in_(request.tag_ids)).all()
+        found_ids = {t.id for t in tags_db}
+        missing = set(request.tag_ids) - found_ids
+        if missing:
+            raise ValueError(f"Tags not found: {missing}")
+
+    # 2. Build in-memory Character (not persisted)
+    temp_char = Character(
+        name="__wizard_preview__",
+        gender=request.gender,
+        loras=[{"lora_id": lr.lora_id, "weight": lr.weight} for lr in (request.loras or [])],
+    )
+    # Attach tag associations in-memory
+    for tag in tags_db:
+        ct = CharacterTag(tag_id=tag.id, weight=1.0, is_permanent=True)
+        ct.tag = tag  # Populate relationship for V3PromptBuilder
+        temp_char.tags.append(ct)
+
+    # 3. Compose prompt
+    builder = V3PromptBuilder(db)
+    full_prompt = builder.compose_for_reference(temp_char)
+    neg_prompt = DEFAULT_REFERENCE_NEGATIVE_PROMPT
+
+    # Release DB connection before long SD call
+    db.close()
+
+    sd_request = SceneGenerateRequest(
+        prompt=full_prompt,
+        negative_prompt=neg_prompt,
+        steps=SD_REFERENCE_STEPS,
+        cfg_scale=SD_REFERENCE_CFG_SCALE,
+        width=512,
+        height=768,
+        seed=-1,
+        enable_hr=True,
+        hr_scale=1.5,
+        hr_upscaler=SD_REFERENCE_HR_UPSCALER,
+        denoising_strength=SD_REFERENCE_DENOISING,
+    )
+
+    res = await generate_scene_image(sd_request)
+    if "image" not in res:
+        raise RuntimeError("Generation failed: no image in response")
+
+    return {
+        "image": res["image"],
+        "used_prompt": full_prompt,
+        "seed": res.get("info", {}).get("seed", -1) if isinstance(res.get("info"), dict) else -1,
+        "warnings": res.get("warnings", []),
+    }
+
+
+async def assign_wizard_preview(db: Session, character_id: int, request: AssignPreviewRequest) -> dict:
+    """Save a wizard-generated preview image to an existing character."""
+    import base64
+
+    _get_character_for_preview(db, character_id, with_tags=False)  # Validates existence + not locked
+
+    # Decode base64
+    try:
+        image_bytes = base64.b64decode(request.image_base64)
+    except Exception as exc:
+        raise ValueError(f"Invalid base64 image data: {exc}") from exc
+
+    url, asset_id = _save_preview_asset(db, character_id, image_bytes)
+
+    return {
+        "preview_image_url": url,
+        "asset_id": asset_id,
+    }

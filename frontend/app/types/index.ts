@@ -218,6 +218,7 @@ export type Tag = {
   group_name: string | null;
   priority: number;
   exclusive: boolean;
+  wd14_count?: number;
 };
 
 export type LoRA = {
@@ -678,6 +679,13 @@ export type ImageGenProgress = {
   error?: string;
 };
 
+export type ChannelDNA = {
+  tone: string | null;
+  target_audience: string | null;
+  worldview: string | null;
+  guidelines: string | null;
+};
+
 export type EffectiveConfig = {
   render_preset_id: number | null;
   style_profile_id: number | null;
@@ -689,6 +697,7 @@ export type EffectiveConfig = {
   sd_cfg_scale: number | null;
   sd_sampler_name: string | null;
   sd_clip_skip: number | null;
+  channel_dna: ChannelDNA | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;
 };

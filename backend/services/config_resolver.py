@@ -45,7 +45,12 @@ def resolve_effective_config(
                 values[field] = val
                 sources[field] = "group"
 
-    return {"values": values, "sources": sources}
+    # JSONB fields: extracted directly (not in CASCADING_FIELDS)
+    channel_dna = None
+    if group_config is not None:
+        channel_dna = getattr(group_config, "channel_dna", None)
+
+    return {"values": values, "sources": sources, "channel_dna": channel_dna}
 
 
 def _get_group_config(group: Any | None) -> Any | None:

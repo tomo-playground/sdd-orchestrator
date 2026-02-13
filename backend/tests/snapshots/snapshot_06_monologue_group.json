@@ -1,0 +1,63 @@
+{
+  "description": "Monologue 한국어 — group_id 포함 (Channel DNA 주입 대상)",
+  "request": {
+    "topic": "오늘의 요리",
+    "description": "간단한 파스타 레시피를 소개하는 쿠킹 쇼츠",
+    "duration": 10,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Monologue",
+    "actor_a_gender": "female",
+    "character_id": 1,
+    "character_b_id": null,
+    "group_id": 5
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "오늘은 까르보나라를 만들어볼게",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, kitchen, apron, cooking, ingredients, table, indoor",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["kitchen", "indoor"],
+          "mood": ["cheerful"],
+          "camera": ["medium_shot"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "면은 알덴테가 핵심이야",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, kitchen, cooking, pot, steam, stirring, focused",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["kitchen", "indoor"],
+          "mood": ["focused"],
+          "camera": ["close-up"]
+        },
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "완성! 맛있겠지?",
+        "speaker": "Narrator",
+        "duration": 4.0,
+        "image_prompt": "1girl, kitchen, plate, pasta, presenting, smile, sparkle",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["kitchen", "indoor"],
+          "mood": ["proud", "happy"],
+          "camera": ["cowboy_shot"]
+        },
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": 1,
+    "character_b_id": null
+  }
+}

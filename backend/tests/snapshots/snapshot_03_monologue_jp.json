@@ -1,0 +1,49 @@
+{
+  "description": "Monologue Japanese — 5초 짧은 영상",
+  "request": {
+    "topic": "桜の下で",
+    "description": "桜の木の下で春を感じる少女",
+    "duration": 5,
+    "style": "Anime",
+    "language": "Japanese",
+    "structure": "Monologue",
+    "actor_a_gender": "female",
+    "character_id": null,
+    "character_b_id": null,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "桜が綺麗だなぁ",
+        "speaker": "Narrator",
+        "duration": 2.5,
+        "image_prompt": "1girl, cherry_blossoms, standing, looking_up, spring, petals, blue_sky",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["outdoor", "cherry_blossoms", "spring"],
+          "mood": ["peaceful"],
+          "camera": ["from_below"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "来年も来よう",
+        "speaker": "Narrator",
+        "duration": 2.5,
+        "image_prompt": "1girl, cherry_blossoms, smiling, wind, hair_blowing, petals_falling",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["outdoor", "cherry_blossoms", "spring"],
+          "mood": ["happy", "hopeful"],
+          "camera": ["close-up"]
+        },
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": null,
+    "character_b_id": null
+  }
+}

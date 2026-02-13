@@ -182,6 +182,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         sd_cfg_scale=result["values"].get("sd_cfg_scale"),
         sd_sampler_name=result["values"].get("sd_sampler_name"),
         sd_clip_skip=result["values"].get("sd_clip_skip"),
+        channel_dna=result.get("channel_dna"),
         sources=result["sources"],
     )
 

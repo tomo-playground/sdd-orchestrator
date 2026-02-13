@@ -16,7 +16,7 @@ import { loadStyleProfileFromId } from "./styleProfileActions";
  */
 export async function loadGroupDefaults(
   groupId: number,
-  options?: { skipContentDefaults?: boolean }
+  options?: { skipContentDefaults?: boolean; skipStyleProfile?: boolean }
 ): Promise<void> {
   const { setEffectiveDefaults, setEffectivePreset, setEffectiveSdParams } =
     useContextStore.getState();
@@ -37,8 +37,12 @@ export async function loadGroupDefaults(
       clipSkip: cfg.sd_clip_skip ?? null,
     });
 
-    // Auto-load style profile if not already loaded
-    if (cfg.style_profile_id && !useRenderStore.getState().currentStyleProfile) {
+    // Auto-load style profile if not already loaded (skip if caller already loaded it)
+    if (
+      cfg.style_profile_id &&
+      !options?.skipStyleProfile &&
+      !useRenderStore.getState().currentStyleProfile
+    ) {
       loadStyleProfileFromId(cfg.style_profile_id).catch((err) => {
         console.error("[loadGroupDefaults] Failed to load style profile:", err);
       });

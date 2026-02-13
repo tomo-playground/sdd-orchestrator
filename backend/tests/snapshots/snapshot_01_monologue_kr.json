@@ -1,0 +1,63 @@
+{
+  "description": "기본 Monologue 한국어 — 캐릭터 없음, 10초",
+  "request": {
+    "topic": "비 오는 날의 카페",
+    "description": "혼자 카페에서 창밖을 바라보며 회상하는 장면",
+    "duration": 10,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Monologue",
+    "actor_a_gender": "female",
+    "character_id": null,
+    "character_b_id": null,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "빗소리가 좋아서 여기 왔어",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, sitting, cafe, window, rain, looking_out_window, cup, table, indoor",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["cafe", "indoor", "rain"],
+          "mood": ["melancholy", "calm"],
+          "camera": ["medium_shot"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "이 자리에서 너를 처음 만났지",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, sitting, cafe, window, rain, chin_rest, reminiscing, warm_lighting",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["cafe", "indoor", "rain"],
+          "mood": ["nostalgic"],
+          "camera": ["close-up"]
+        },
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "그때로 돌아갈 수 있다면",
+        "speaker": "Narrator",
+        "duration": 4.0,
+        "image_prompt": "1girl, standing, cafe, door, rain, umbrella, looking_back, sunset",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["cafe", "outdoor", "rain", "sunset"],
+          "mood": ["longing"],
+          "camera": ["full_body"]
+        },
+        "_auto_pin_previous": false
+      }
+    ],
+    "character_id": null,
+    "character_b_id": null
+  }
+}

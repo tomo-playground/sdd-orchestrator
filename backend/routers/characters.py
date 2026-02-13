@@ -8,13 +8,24 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from schemas import CharacterCreate, CharacterResponse, CharacterUpdate, PaginatedCharacterList
+from schemas import (
+    AssignPreviewRequest,
+    AssignPreviewResponse,
+    CharacterCreate,
+    CharacterPreviewRequest,
+    CharacterPreviewResponse,
+    CharacterResponse,
+    CharacterUpdate,
+    PaginatedCharacterList,
+)
 from services.characters import (
     ConflictError,
+    assign_wizard_preview,
     batch_regenerate_references,
     create_character,
     edit_preview,
     enhance_preview,
+    generate_wizard_preview,
     get_character_or_raise,
     list_characters,
     list_trashed_characters,
@@ -52,6 +63,22 @@ async def get_character_endpoint(character_id: int, db: Session = Depends(get_db
         return get_character_or_raise(db, character_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
+
+
+@router.post("/preview", response_model=CharacterPreviewResponse)
+async def preview_character_endpoint(
+    data: CharacterPreviewRequest,
+    db: Session = Depends(get_db),
+):
+    """Generate a temporary preview image for the wizard (no DB save)."""
+    try:
+        return await generate_wizard_preview(db, data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except RuntimeError as e:
+        from services.error_responses import raise_user_error
+
+        raise_user_error("character_preview", e)
 
 
 @router.post("", response_model=CharacterResponse, status_code=201)
@@ -137,6 +164,19 @@ async def edit_preview_endpoint(
     """Edit the character's preview image with a natural language instruction via Gemini."""
     try:
         return await edit_preview(db, character_id, instruction)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)
+async def assign_preview_endpoint(
+    character_id: int,
+    data: AssignPreviewRequest,
+    db: Session = Depends(get_db),
+):
+    """Assign a wizard-generated preview image to an existing character."""
+    try:
+        return await assign_wizard_preview(db, character_id, data)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 

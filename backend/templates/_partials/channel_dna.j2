@@ -1,0 +1,13 @@
+{% if channel_dna %}
+
+[CHANNEL IDENTITY]
+{% if channel_dna.tone %}Tone: {{ channel_dna.tone }}
+{% endif %}{% if channel_dna.target_audience %}Audience: {{ channel_dna.target_audience }}
+{% endif %}{% if channel_dna.worldview %}
+[SERIES WORLD]
+{{ channel_dna.worldview }}
+{% endif %}{% if channel_dna.guidelines %}
+[CONTENT GUIDELINES]
+{{ channel_dna.guidelines }}
+{% endif %}
+{% endif %}

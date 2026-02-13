@@ -14,17 +14,24 @@ from services.prompt.prompt import split_prompt_tokens
 def _strip_preamble(text: str) -> str | None:
     """Strip preamble text before first '{' (Gemini sometimes adds 'Okay, ...' before JSON)."""
     brace_idx = text.find("{")
-    return text[brace_idx:] if brace_idx > 0 else None
+    return text[brace_idx:] if brace_idx >= 0 else None
 
 
 def parse_json_response(raw: str) -> dict:
     """Extract JSON from LLM output (strip markdown fences, preamble, fix escapes)."""
+    if not raw:
+        raise ValueError("Empty LLM response received")
+
     cleaned = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip())
     cleaned = re.sub(r"\n?```\s*$", "", cleaned.strip())
+
     # Try each strategy: raw → stripped → escape-fixed(stripped) → escape-fixed(raw)
-    for text in [cleaned, _strip_preamble(cleaned)]:
-        if text is None:
-            continue
+    candidates = [cleaned]
+    stripped = _strip_preamble(cleaned)
+    if stripped and stripped != cleaned:
+        candidates.append(stripped)
+
+    for text in candidates:
         try:
             return json.loads(text)
         except json.JSONDecodeError:
@@ -32,6 +39,7 @@ def parse_json_response(raw: str) -> dict:
                 return json.loads(_fix_json_escapes(text))
             except json.JSONDecodeError:
                 continue
+
     # Final fallback — will raise if all strategies fail
     return json.loads(_fix_json_escapes(cleaned))
 

@@ -1,0 +1,49 @@
+{
+  "description": "Monologue 한국어 — 짧은 5초 영상, 씬 2개",
+  "request": {
+    "topic": "깜짝 선물",
+    "description": "생일 선물을 받고 놀라는 모습",
+    "duration": 5,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Monologue",
+    "actor_a_gender": "female",
+    "character_id": null,
+    "character_b_id": null,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "이게 뭐야?",
+        "speaker": "Narrator",
+        "duration": 2.0,
+        "image_prompt": "1girl, gift_box, surprised, hands_on_cheeks, indoor, birthday",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["indoor", "room"],
+          "mood": ["surprised"],
+          "camera": ["close-up"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "최고의 생일이야!",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, hugging_stuffed_toy, happy, tears_of_joy, sparkling_eyes",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["indoor", "room"],
+          "mood": ["overjoyed"],
+          "camera": ["medium_shot"]
+        },
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": null,
+    "character_b_id": null
+  }
+}

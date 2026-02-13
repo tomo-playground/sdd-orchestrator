@@ -1,0 +1,63 @@
+{
+  "description": "Monologue English — 캐릭터 있음, 10초",
+  "request": {
+    "topic": "First day at a new school",
+    "description": "A shy girl navigating her first day at a new school",
+    "duration": 10,
+    "style": "Anime",
+    "language": "English",
+    "structure": "Monologue",
+    "actor_a_gender": "female",
+    "character_id": 1,
+    "character_b_id": null,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "I can do this. Just breathe.",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, school_uniform, standing, school_gate, morning, nervous, clutching_bag",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "outdoor", "morning"],
+          "mood": ["anxious"],
+          "camera": ["cowboy_shot"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "Everyone's staring at me.",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, school_uniform, walking, hallway, crowd, looking_down, shy",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "indoor", "hallway"],
+          "mood": ["nervous"],
+          "camera": ["medium_shot"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "Maybe this won't be so bad.",
+        "speaker": "Narrator",
+        "duration": 4.0,
+        "image_prompt": "1girl, school_uniform, sitting, classroom, window_seat, smile, sunlight",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "indoor", "classroom"],
+          "mood": ["hopeful"],
+          "camera": ["close-up"]
+        },
+        "_auto_pin_previous": false
+      }
+    ],
+    "character_id": 1,
+    "character_b_id": null
+  }
+}

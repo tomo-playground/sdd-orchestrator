@@ -21,9 +21,11 @@ from .crud import (
 )
 from .lora_enrichment import enrich_character_loras
 from .preview import (
+    assign_wizard_preview,
     batch_regenerate_references,
     edit_preview,
     enhance_preview,
+    generate_wizard_preview,
     regenerate_reference,
 )
 from .speaker_resolver import (
@@ -46,9 +48,11 @@ __all__ = [
     # lora
     "enrich_character_loras",
     # preview
+    "assign_wizard_preview",
     "batch_regenerate_references",
     "edit_preview",
     "enhance_preview",
+    "generate_wizard_preview",
     "regenerate_reference",
     # action_resolver
     "auto_populate_character_actions",

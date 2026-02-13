@@ -118,9 +118,13 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
               `scene_${scene.id}_${Date.now()}_retry.png`
             );
           }
+          const candidates = stored.asset_id
+            ? [{ media_asset_id: stored.asset_id, image_url: stored.url }]
+            : undefined;
           useStoryboardStore.getState().updateScene(scene.client_id, {
             image_url: stored.url,
             image_asset_id: stored.asset_id ?? null,
+            candidates,
             image_prompt: result.data?.used_prompt || undefined,
             isGenerating: false,
           });

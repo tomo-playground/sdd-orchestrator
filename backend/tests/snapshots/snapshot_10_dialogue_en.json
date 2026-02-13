@@ -1,0 +1,74 @@
+{
+  "description": "Dialogue English — 2캐릭터 영어 대화, 10초",
+  "request": {
+    "topic": "Rival chefs",
+    "description": "Two rival chefs competing in a cooking contest",
+    "duration": 10,
+    "style": "Anime",
+    "language": "English",
+    "structure": "Dialogue",
+    "actor_a_gender": "male",
+    "character_id": 5,
+    "character_b_id": 6,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "You think you can beat me?",
+        "speaker": "A",
+        "duration": 3.0,
+        "image_prompt": "1boy, chef_uniform, kitchen, confident, smirk, crossing_arms",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["kitchen", "indoor", "contest"],
+          "mood": ["competitive"],
+          "camera": ["medium_shot"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["confident", "crossing_arms"]},
+          {"character": "B", "action_tags": ["glaring"]}
+        ],
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "Watch and learn.",
+        "speaker": "B",
+        "duration": 3.0,
+        "image_prompt": "1girl, chef_uniform, kitchen, focused, chopping, knife, vegetables",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["kitchen", "indoor", "contest"],
+          "mood": ["determined"],
+          "camera": ["close-up"]
+        },
+        "character_actions": [
+          {"character": "B", "action_tags": ["focused", "chopping"]}
+        ],
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "Not bad... for a rookie.",
+        "speaker": "A",
+        "duration": 4.0,
+        "image_prompt": "2people, chef_uniform, kitchen, tasting, surprised, respect",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["kitchen", "indoor", "contest"],
+          "mood": ["surprised", "respectful"],
+          "camera": ["cowboy_shot"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["tasting", "surprised"]},
+          {"character": "B", "action_tags": ["smiling", "proud"]}
+        ],
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": 5,
+    "character_b_id": 6
+  }
+}

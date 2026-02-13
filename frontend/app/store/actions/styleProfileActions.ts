@@ -186,33 +186,43 @@ async function createNewStoryboard(
 /**
  * Load a style profile by ID and apply it to the store.
  * Shared by useStudioInitialization (DB load) and useStudioOnboarding (cascade default).
+ * Deduplicates concurrent calls for the same profileId (async race condition guard).
  */
+let _loadingProfileId: number | null = null;
+
 export async function loadStyleProfileFromId(profileId: number): Promise<void> {
-  const { showToast } = useUIStore.getState();
-  const res = await axios.get(`${API_BASE}/style-profiles/${profileId}/full`);
-  const profile = res.data;
+  if (_loadingProfileId === profileId) return;
+  _loadingProfileId = profileId;
 
-  useRenderStore.getState().set({
-    currentStyleProfile: {
-      id: profile.id,
-      name: profile.name,
-      display_name: profile.display_name,
-      sd_model_name: profile.sd_model?.name || profile.sd_model?.display_name || null,
-      loras: profile.loras || [],
-      negative_embeddings: profile.negative_embeddings || [],
-      positive_embeddings: profile.positive_embeddings || [],
-      default_positive: profile.default_positive,
-      default_negative: profile.default_negative,
-    },
-  });
+  try {
+    const { showToast } = useUIStore.getState();
+    const res = await axios.get(`${API_BASE}/style-profiles/${profileId}/full`);
+    const profile = res.data;
 
-  await changeSdModel(
-    {
-      ...profile,
-      sd_model_name: profile.sd_model?.name || null,
-    },
-    showToast
-  );
+    useRenderStore.getState().set({
+      currentStyleProfile: {
+        id: profile.id,
+        name: profile.name,
+        display_name: profile.display_name,
+        sd_model_name: profile.sd_model?.name || profile.sd_model?.display_name || null,
+        loras: profile.loras || [],
+        negative_embeddings: profile.negative_embeddings || [],
+        positive_embeddings: profile.positive_embeddings || [],
+        default_positive: profile.default_positive,
+        default_negative: profile.default_negative,
+      },
+    });
+
+    await changeSdModel(
+      {
+        ...profile,
+        sd_model_name: profile.sd_model?.name || null,
+      },
+      showToast
+    );
+  } finally {
+    _loadingProfileId = null;
+  }
 }
 
 // --- Helper: Change SD model in background ---

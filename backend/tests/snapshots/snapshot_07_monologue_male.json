@@ -1,0 +1,63 @@
+{
+  "description": "Monologue 한국어 — male 캐릭터, 10초",
+  "request": {
+    "topic": "밤하늘 별 관측",
+    "description": "산 정상에서 별을 관측하는 남자",
+    "duration": 10,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Monologue",
+    "actor_a_gender": "male",
+    "character_id": 3,
+    "character_b_id": null,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "여기까지 올라온 보람이 있네",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1boy, mountain, night, stars, standing, backpack, looking_up",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["mountain", "outdoor", "night"],
+          "mood": ["awe"],
+          "camera": ["full_body"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "은하수가 이렇게 선명하다니",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1boy, sitting, mountain_top, milky_way, night_sky, telescope",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["mountain", "outdoor", "night"],
+          "mood": ["wonder"],
+          "camera": ["from_behind"]
+        },
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "이 순간을 영원히 기억할게",
+        "speaker": "Narrator",
+        "duration": 4.0,
+        "image_prompt": "1boy, lying_down, grass, night_sky, shooting_star, peaceful, smile",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["mountain", "outdoor", "night"],
+          "mood": ["peaceful", "grateful"],
+          "camera": ["from_above"]
+        },
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": 3,
+    "character_b_id": null
+  }
+}

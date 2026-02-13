@@ -164,7 +164,13 @@ def _run_llm_step(
         parent_trace_id=parent_trace_id,
     )
 
-    parsed = parse_json_response(result["content"])
+    parsed = None
+    try:
+        parsed = parse_json_response(result["content"])
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error("[Pipeline] JSON parse failed. Content preview: %s", result["content"][:500])
+        raise e
+
     return parsed, trace
 
 
@@ -205,10 +211,10 @@ def _run_step_with_retry(
                 retry_count=retry,
                 parent_trace_id=last_trace_id,
             )
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, ValueError) as e:
             logger.warning("[Pipeline] %s JSON error (retry %d): %s", step.name, retry, e)
             if retry < CREATIVE_PIPELINE_MAX_RETRIES:
-                error_msg = f"JSON Output Error: {e}. Please ensure valid JSON format."
+                error_msg = f"JSON Output Error: {e}. Respond ONLY in valid JSON."
                 retry_vars = {**template_vars, "feedback": error_msg}
                 continue
             else:

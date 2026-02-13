@@ -95,11 +95,17 @@ async def lifespan(app: FastAPI):
     get_qwen_model()
     logger.info("[TTS] Qwen3-TTS model loaded successfully")
 
+    # Initialize LangGraph Checkpointer
+    from services.agent.checkpointer import close_checkpointer, get_checkpointer
+
+    await get_checkpointer()
+
     logger.info("🚀 [Startup] Application started successfully")
 
     yield
 
-    # Shutdown logic (if any)
+    # Shutdown logic
+    await close_checkpointer()
     logger.info("🛑 [Shutdown] Application execution finished")
 
 

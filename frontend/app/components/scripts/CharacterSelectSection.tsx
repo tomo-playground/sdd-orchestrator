@@ -2,7 +2,13 @@
 
 import { useCharacters } from "../../hooks/useCharacters";
 import { isMultiCharStructure } from "../../utils/structure";
-import { cx, SECTION_CLASSES, FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "../ui/variants";
+import {
+  cx,
+  SECTION_CLASSES,
+  SECTION_HEADER_CLASSES,
+  FORM_INPUT_CLASSES,
+  FORM_LABEL_CLASSES,
+} from "../ui/variants";
 
 type Props = {
   structure: string;
@@ -35,7 +41,7 @@ export default function CharacterSelectSection({
     onChange: (id: number | null) => void
   ) => (
     <div>
-      <label className={LABEL}>{label}</label>
+      {label && <label className={LABEL}>{label}</label>}
       <select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
@@ -53,9 +59,9 @@ export default function CharacterSelectSection({
 
   const content = (
     <>
-      <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">Characters</h3>
+      <h3 className={SECTION_HEADER_CLASSES}>Characters</h3>
       <div className={isMultiChar ? "grid grid-cols-2 gap-3" : ""}>
-        {renderSelect(isMultiChar ? "Character A" : "Character", characterId, onChangeA)}
+        {renderSelect(isMultiChar ? "Character A" : "", characterId, onChangeA)}
         {isMultiChar && renderSelect("Character B", characterBId, onChangeB)}
       </div>
     </>

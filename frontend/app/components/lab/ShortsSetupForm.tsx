@@ -10,6 +10,7 @@ import CharacterSelectSection from "../scripts/CharacterSelectSection";
 import Button from "../ui/Button";
 import {
   SECTION_CLASSES,
+  SECTION_HEADER_CLASSES,
   FORM_INPUT_CLASSES,
   FORM_TEXTAREA_CLASSES,
   FORM_LABEL_CLASSES,
@@ -121,9 +122,7 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
 
       {/* Divider + Agent Settings */}
       <div className="mt-5 space-y-4 border-t border-zinc-200/60 pt-5">
-        <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Agent Settings
-        </h3>
+        <h3 className={SECTION_HEADER_CLASSES}>Agent Settings</h3>
 
         {/* Director Mode */}
         <div>

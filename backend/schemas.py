@@ -140,6 +140,15 @@ class GroupResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ChannelDNA(BaseModel):
+    """Channel identity: tone, audience, worldview, guidelines."""
+
+    tone: str | None = None
+    target_audience: str | None = None
+    worldview: str | None = None
+    guidelines: str | None = None
+
+
 class GroupConfigUpdate(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
@@ -151,6 +160,7 @@ class GroupConfigUpdate(BaseModel):
     sd_cfg_scale: float | None = None
     sd_sampler_name: str | None = None
     sd_clip_skip: int | None = None
+    channel_dna: ChannelDNA | None = None
 
 
 class GroupConfigResponse(BaseModel):
@@ -166,6 +176,7 @@ class GroupConfigResponse(BaseModel):
     sd_cfg_scale: float | None = None
     sd_sampler_name: str | None = None
     sd_clip_skip: int | None = None
+    channel_dna: ChannelDNA | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -184,6 +195,7 @@ class EffectiveConfigResponse(BaseModel):
     sd_cfg_scale: float | None = None
     sd_sampler_name: str | None = None
     sd_clip_skip: int | None = None
+    channel_dna: ChannelDNA | None = None
     sources: dict[str, str] = {}  # field -> "project" | "group" | "storyboard"
 
 
@@ -370,6 +382,7 @@ class StoryboardRequest(BaseModel):
     actor_a_gender: str = "female"
     character_id: int | None = None
     character_b_id: int | None = None
+    group_id: int | None = None
 
 
 class SceneCandidate(BaseModel):
@@ -848,6 +861,34 @@ class CharacterResponse(CharacterBase):
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CharacterPreviewRequest(BaseModel):
+    """Wizard preview: generate temp image without DB save."""
+
+    gender: str = "female"
+    tag_ids: list[int] = []
+    loras: list[CharacterLoRA] | None = None
+
+
+class CharacterPreviewResponse(BaseModel):
+    """Response-only: temp preview image data."""
+
+    image: str  # Base64 PNG
+    used_prompt: str
+    seed: int
+    warnings: list[str] = []
+
+
+class AssignPreviewRequest(BaseModel):
+    """Assign wizard-generated preview to saved character."""
+
+    image_base64: str = Field(max_length=10_000_000)  # Raw base64, ~7.5 MB decoded limit
+
+
+class AssignPreviewResponse(BaseModel):
+    preview_image_url: str
+    asset_id: int
 
 
 # ============================================================

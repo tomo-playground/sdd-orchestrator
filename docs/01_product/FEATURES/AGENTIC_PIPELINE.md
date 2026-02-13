@@ -51,25 +51,51 @@
 
 두 시스템이 같은 목적(대본 생성)이지만 **완전히 분리된 코드 경로**를 가짐.
 
+### 1-5. Script 탭 Manual/AI Agent 이중 모드
+
+1-4의 Backend 이원화가 Frontend UI에도 그대로 노출:
+
+| | Manual 모드 | AI Agent 모드 |
+|---|---|---|
+| API | `POST /scripts/generate` | `POST /lab/creative/sessions/{id}/run-debate` |
+| 코드 경로 | `gemini_generator.py` | `creative_shorts.py` + `creative_pipeline.py` |
+| Frontend 훅 | `useScriptEditor` | `useShortsSession` |
+| 소요 시간 | ~30초 (Gemini 1회) | ~5-15분 (Debate + Pipeline) |
+
+**문제**: 사용자가 "같은 목적, 다른 탭"을 선택해야 하는 혼란. 두 모드의 출력 포맷도 상이.
+
+**해결 방향** (Phase 1): Manual 탭 제거 → 단일 AI 모드 + Quick/Full 선택.
+- **Quick**: 기존 Manual과 동일 (Gemini 1회, ~30초) — Graph 2노드 (Draft→Finalize)
+- **Full**: 기존 AI Agent Debate + Pipeline (~5-15분) — Phase 1.5에서 Graph 확장 노드로 전환
+
 ---
 
 ## 2. 목표 (To-Be)
 
-### 2-1. 비전
+### 2-1. 비전: 제어 스펙트럼 (Control Spectrum)
+
+사용자가 **단계별로 AI 개입 수준을 독립 설정**하는 유연한 파이프라인.
 
 ```
-Topic + Context
-    ↓
-[Research Node] ← Memory Store (과거 성공 패턴, 사용자 선호)
-    ↓
-[Draft Node] → [Review Node] → (품질 < 기준?) → [Revise Node] ↺
-    ↓                                ↓
-[Human Review] ← interrupt()     [Checkpoint] ← PostgreSQL Saver
-    ↓
-[Finalize Node] → 최종 대본
-    ↓
-[Learn Node] → Memory Store 업데이트
+Manual                 Assisted                Delegated
+  │                      │                       │
+  사람이 직접 작성        AI가 초안 → 사람이 검토    사람이 목표만 설정
+  AI는 검증/제안만        핵심 결정은 사람            AI가 실행 + 자체 검토
+                                                  확신 낮을 때만 질문
 ```
+
+#### 단계별 제어 매핑
+
+| 단계 | Manual | Assisted | Delegated |
+|------|--------|----------|-----------|
+| **컨셉/주제** | 사람이 직접 입력 | AI가 3안 제시 → 사람 선택 | AI가 자동 선택 |
+| **대본 작성** | 사람이 씬별 직접 작성 | AI 초안 → 사람 씬별 수정 | AI 작성 + 자체 리뷰 |
+| **이미지 프롬프트** | 사람이 태그 직접 편집 | AI 제안 → 사람 미세 조정 | AI 생성 + 품질 자동 검증 |
+| **이미지 생성** | 사람이 씬별 수동 생성 | 일괄 생성 → 사람이 골라냄 | AI 생성 + match_rate 자동 재생성 |
+| **렌더링** | 설정 직접 조정 | AI 추천 설정 → 사람 확인 | 원클릭 렌더 |
+
+> **핵심 원칙**: "AI 서포트를 통해 사람이 훌륭한 작품을 만든다." AI는 도구이며, 사람이 창작의 주체.
+> 사람은 자신이 집중하고 싶은 단계는 Manual/Assisted로, 반복 작업은 Delegated로 위임할 수 있다.
 
 ### 2-2. 핵심 가치
 
@@ -80,25 +106,74 @@ Topic + Context
 | **Checkpoint** | 어디서든 중단/재개 가능. 네트워크 끊김에도 안전 |
 | **Human-in-the-loop** | 핵심 결정 포인트에서 사용자 승인/수정 개입 |
 | **파이프라인 통합** | Script Generation과 Creative Lab을 하나의 그래프로 통합 |
+| **제어 스펙트럼** | 단계별 Manual/Assisted/Delegated 독립 설정. 사람이 창작 주체 |
 
 ---
 
-## 3. 아키텍처 설계 (논의 필요)
+## 3. 아키텍처 설계 (결정: 2026-02-13)
 
 ### 3-1. 기술 스택
 
-| 컴포넌트 | 후보 | 논의 포인트 |
-|----------|------|------------|
-| **워크플로우 엔진** | LangGraph | LangChain 의존성 범위? 최소 설치 가능? |
-| **LLM Provider** | Gemini (기존) | LangChain Gemini wrapper vs 직접 호출 유지? |
-| **Checkpointer** | `PostgresSaver` (langgraph-checkpoint-postgres) | 기존 PostgreSQL 활용, 별도 테이블 |
-| **Memory Store** | `PostgresStore` (langgraph-store) | 키-값 기반 장기 메모리 |
-| **메시지 큐** | 미정 | BackgroundTask 유지? Celery? Redis Queue? |
+| 컴포넌트 | 선택 | 비고 |
+|----------|------|------|
+| **워크플로우 엔진** | LangGraph (`langgraph` + `langchain-core` 자동 포함) | 풀 LangChain 불필요, LangGraph만 최소 설치 |
+| **LLM Provider** | Gemini — 기존 `google-genai` 유지 | 노드 안에서 기존 호출 래핑. LangChain wrapper 전환 불필요 |
+| **Checkpointer** | `AsyncPostgresSaver` (langgraph-checkpoint-postgres) | 기존 PostgreSQL 활용, `setup()` 자동 테이블 생성 |
+| **Memory Store** | `AsyncPostgresStore` (langgraph-store-postgres) | 키-값 기반 장기 메모리. Phase 1: 키 조회, Phase 2: 벡터 검색(pgvector) |
+| **Observability** | LangFuse (셀프호스팅, Docker) | Phase 0에서 도입. 전용 PostgreSQL DB 분리, `docker-compose.langfuse.yml` |
+| **Frontend 연동** | SSE (기존 패턴 재활용) | LangGraph `astream` → SSE 변환. Human-in-the-loop 재개는 POST |
+| **메시지 큐** | Phase 0-1: 불필요 (asyncio 충분) | Phase 4 분산 실행 시 Redis/Celery 검토 |
+
+### 3-2. 인프라 결정 사항
+
+| # | 질문 | 결정 | 근거 |
+|---|------|------|------|
+| D1 | LangFuse DB | **별도 PostgreSQL** | LangFuse 자체 마이그레이션 실행 → 비즈니스 DB와 분리. LangGraph Checkpoint/Store는 기존 DB 공유 |
+| D2 | Docker Compose | **별도 `docker-compose.langfuse.yml`** | 독립 서비스, 필요 시에만 기동 |
+| D3 | DB 커넥션 풀 | **기본 `max_connections=100`** | SQLAlchemy 풀 5 + LangGraph 풀 5 + LangFuse = 여유. 로컬 개발 환경 충분 |
+
+### 3-3. Phase 1 설계 결정 사항
+
+| # | 질문 | 결정 | 근거 |
+|---|------|------|------|
+| D4 | Review 노드 평가 | **규칙 + Gemini 혼합**: 규칙 기반(길이/태그/구조) 먼저 → 통과 시 Gemini 스킵, 실패 시 Gemini 평가 | 비용 절감 (대부분 규칙만으로 충분) |
+| D5 | 제어 모드 | **단계별 3모드**: Manual (사람 직접) / Assisted (AI 초안→사람 검토) / Delegated (AI 자동, 확신 낮을 때만 interrupt). 단계별 독립 설정 | 전역 quick/full 이분법 → 단계별 세분화 |
+| D6 | Jinja2 템플릿 | **기존 유지** (노드에서 `render_template()` 호출) | 검증된 템플릿 6종 재활용, 전환 리스크 제거 |
+| D7 | API 호환 전략 | **기존 `/scripts/generate` 내부를 Graph로 교체** (request/response 계약 유지) | Frontend 변경 최소화 |
+| D8 | Thread ID | **`storyboard_id`를 thread_id로 사용** | 자연스러운 매핑, 별도 ID 관리 불필요 |
+| D9 | Graph 실행 모드 | **`astream` SSE** (stream_mode=`["custom", "updates"]`) | 기존 SSE 패턴 재활용, 노드 진행 실시간 표시 |
+| D10 | Script 탭 모드 통합 | **Manual 탭 제거 → Quick/Full 단일 모드**. Quick=Graph 2노드(Draft→Finalize), Full=Phase 1.5 확장 노드. `useScriptEditor` 제거, `useShortsSession` 통합 | UI 이원화 해소, "항상 Graph" 원칙(Q5) 실현 |
+
+### 3-4. 스트리밍 전략
+
+| 레벨 | 구현 | UX | Phase |
+|------|------|-----|-------|
+| **노드 진행률** | `get_stream_writer()` + SSE ("Research → Draft(3/5) → Review") | 어떤 단계 실행 중인지 실시간 표시 | **Phase 1** |
+| **씬 단위** | JSON 파싱 후 씬마다 emit | 씬이 하나씩 카드에 나타남 | Phase 1 후반 검토 |
+| ~~토큰 스트리밍~~ | ~~`generate_content_stream`~~ | ~~부분 JSON 표시 불가~~ | **불채택** (구조화 JSON 출력이라 UX 가치 없음) |
+
+> **근거**: Gemini 응답이 구조화 JSON (씬 배열 + 태그)이므로 토큰 단위 스트리밍은 의미 없음. 노드 진행률 스트리밍이 실용적.
+
+### 3-5. 제어 분기 로직
+
+각 단계(concept/script/prompts/images/render)에서 `PipelineControl` 값에 따라 분기:
+
+- **Manual**: `interrupt()` → 빈 템플릿/편집 UI 제공 → 사람이 직접 작성/수정
+- **Assisted**: AI가 초안 생성 → `interrupt()` → 사람이 검토/승인/수정
+- **Delegated**: AI가 생성 + 자체 리뷰 → `quality_score ≥ auto_review_threshold`면 자동 통과, 미달 시 자동 Revise (최대 `MAX_REVISIONS`회). 모든 자동 수정 실패 시 fallback으로 `interrupt()`
+
+> **Pause / Take Over**: Delegated 실행 중에도 사람이 언제든 개입 가능 (`interrupt` 강제 트리거).
 
 ### 3-2. State 설계 (초안)
 
 ```python
-# 논의 필요: 어떤 필드가 State에 들어가야 하는지
+class PipelineControl(TypedDict):
+    concept: Literal["manual", "assisted", "delegated"]
+    script: Literal["manual", "assisted", "delegated"]
+    prompts: Literal["manual", "assisted", "delegated"]
+    images: Literal["manual", "assisted", "delegated"]
+    render: Literal["manual", "assisted", "delegated"]
+
 class ScriptState(TypedDict):
     # 입력
     topic: str
@@ -107,14 +182,19 @@ class ScriptState(TypedDict):
     language: str
     character_ids: list[int]
 
+    # 제어 스펙트럼
+    control: PipelineControl          # 단계별 개입 수준
+    current_phase: str                # 현재 실행 단계
+    auto_review_threshold: float      # 0.7 — Delegated 자동 통과 기준
+
     # 중간 상태
-    research_brief: str | None        # Research 노드 결과
-    draft_scenes: list[dict] | None   # Draft 노드 결과
-    review_feedback: str | None       # Review 노드 피드백
-    revision_count: int               # 수정 횟수
+    research_brief: str | None
+    draft_scenes: list[dict] | None
+    review_feedback: str | None
+    revision_count: int               # 최대 MAX_REVISIONS=2
 
     # 메모리 참조
-    memory_context: list[dict]        # 장기 메모리에서 가져온 관련 경험
+    memory_context: list[dict]
 
     # 최종
     final_scenes: list[dict] | None
@@ -173,133 +253,179 @@ class ScriptState(TypedDict):
 
 ## 4. 단계별 마이그레이션 계획
 
-### Phase 0: Foundation (인프라 준비)
+> **원칙**: "동등 전환 먼저, 기능 확장은 안정화 후." Phase 1은 기존 파이프라인과 동일한 출력을 보장하는 것이 유일한 목표.
 
-| # | 작업 | 논의 포인트 | 상태 |
-|---|------|------------|------|
-| 1 | LangGraph + langgraph-checkpoint-postgres 의존성 추가 | 버전 고정, 기존 의존성 충돌 확인 | [ ] |
-| 2 | PostgresSaver 설정 (기존 DB 연결 재사용) | 별도 DB? 기존 DB 내 테이블? | [ ] |
-| 3 | PostgresStore 설정 (장기 메모리 테이블) | 메모리 네임스페이스 설계 | [ ] |
-| 4 | 최소 PoC: 단순 2-노드 그래프 (Draft → Review) 동작 확인 | - | [ ] |
+### Phase 0: Foundation (1-2일)
 
-**논의 필요**:
-- [ ] LangGraph 버전: 최신 안정판 기준? (현재 0.3.x)
-- [ ] 기존 `creative_sessions` / `creative_traces` 테이블과의 관계 — 병행? 마이그레이션?
-- [ ] Gemini 호출: LangChain `ChatGoogleGenerativeAI` wrapper vs 기존 `google-genai` 직접 호출 유지?
+**목표**: "LangGraph가 기존 코드 위에서 동작하는가?" 검증.
 
-### Phase 1: Script Generation Graph (핵심 파이프라인 전환)
+| # | 작업 | 비고 | 상태 |
+|---|------|------|------|
+| 1 | `langgraph` + `langgraph-checkpoint-postgres` + `psycopg[binary]` 의존성 추가 | psycopg2와 공존 (별도 네임스페이스). **Store/LangFuse는 제외** | [x] |
+| 2 | AsyncPostgresSaver 설정 (기존 DATABASE_URL 재사용, `setup()` 자동 테이블) | Alembic autogenerate에서 LangGraph 테이블 exclude. DB 테이블 4개 생성 확인 | [x] |
+| 3 | 기존 `/scripts/generate` 입출력 스냅샷 10건 확보 | `tests/snapshots/` 10건 (3구조×3언어×다양한 파라미터). 회귀 테스트 23건 PASS | [x] |
+| 4 | 최소 PoC: 2-노드 그래프 (Draft → Finalize) + Checkpoint 재개 확인 | 단위 3건 + Integration 1건 PASS. FastAPI lifespan 초기화 완료 | [x] |
 
-| # | 작업 | 논의 포인트 | 상태 |
-|---|------|------------|------|
-| 1 | `ScriptState` TypedDict 확정 | 위 초안 기반 필드 논의 | [ ] |
-| 2 | Research 노드 구현 (Memory Store 조회 + 캐릭터 컨텍스트 로드) | 기존 `_load_character_context` 재활용 | [ ] |
-| 3 | Draft 노드 구현 (기존 Gemini 호출 래핑) | Jinja2 템플릿 유지? LangGraph prompt로 전환? | [ ] |
-| 4 | Review 노드 구현 (자동 품질 평가) | 평가 기준: match_rate? 별도 Gemini 평가? 규칙 기반? | [ ] |
-| 5 | Revise 노드 구현 (피드백 기반 재생성) | Review 결과를 Draft 프롬프트에 주입 | [ ] |
-| 6 | Human Gate (interrupt) 구현 | Frontend SSE 연동 방식 | [ ] |
-| 7 | Finalize 노드 (태그 후처리 파이프라인 이동) | 기존 후처리 로직 그대로 재활용 | [ ] |
-| 8 | `/scripts/generate` 엔드포인트를 Graph 실행으로 교체 | 기존 API 계약 유지 (하위 호환) | [ ] |
+**Phase 0 DoD**: PoC 그래프가 기존 Gemini 호출을 래핑하여 동일 JSON 출력 생성. Checkpoint로 중단/재개 동작.
 
-**논의 필요**:
-- [ ] Review 노드의 평가 방법 — Gemini 자체 평가? 규칙 기반? WD14 검증 연계?
-- [ ] 수정 최대 횟수 (max_revisions) — 비용 vs 품질 트레이드오프
-- [ ] Human Gate 범위 — 항상? 품질 낮을 때만? 설정 가능?
-- [ ] Jinja2 템플릿 유지 여부 — LangGraph의 프롬프트 관리와 공존?
+**Phase 0에서 제외** (PM 판단):
+- ~~AsyncPostgresStore~~ → Phase 2 Memory와 함께
+- ~~LangFuse Docker~~ → Phase 2 Observability와 함께. Phase 0-1은 Python `logging` + `time.perf_counter()`로 충분
 
-### Phase 2: Memory Layer (학습 시스템)
+### Phase 1: 동등 전환 (3-5일)
 
-| # | 작업 | 논의 포인트 | 상태 |
-|---|------|------------|------|
-| 1 | Memory 네임스페이스 설계 | `character:{id}`, `style:{profile}`, `user:preferences` 등 | [ ] |
-| 2 | Learn 노드 구현 (결과 + 피드백 → Memory 저장) | 어떤 정보를 기억할지 | [ ] |
-| 3 | Research 노드에 Memory 조회 연결 | 유사도 검색? 키 기반? | [ ] |
-| 4 | 사용자 피드백 수집 UI (Frontend) | 생성 결과에 좋아요/수정/코멘트 | [ ] |
-| 5 | Memory 관리 API (조회/삭제/초기화) | Admin 페이지? 설정 페이지? | [ ] |
+**목표**: "기존 Autopilot과 동일하게 동작한다." 새 기능 없음. 기존 API 계약 100% 유지.
 
-**논의 필요**:
-- [ ] 메모리에 저장할 데이터 범위
-  - 선택지 A: 최소 — 성공/실패 프롬프트 패턴만
-  - 선택지 B: 중간 — + 캐릭터별 선호 스타일, 사용자 수정 이력
-  - 선택지 C: 최대 — + 에피소드 기억 (시나리오 흐름, 감정 곡선 패턴)
-- [ ] 메모리 만료 정책 — 무제한? TTL? 용량 제한?
-- [ ] 기존 `activity_logs` 데이터를 초기 메모리로 마이그레이션?
+| # | 작업 | 비고 | 상태 |
+|---|------|------|------|
+| 1 | `ScriptState` TypedDict 확정 (최소 필드만) | `mode: "quick"` 단일 모드로 시작. PipelineControl 5단계는 Phase 1.5 | [ ] |
+| 2 | Draft 노드 (`gemini_generator.py` 래핑) | **기존 Jinja2 템플릿 유지**, `render_template()` 호출 | [ ] |
+| 3 | Review 노드 (**규칙 기반만**: 길이/태그/구조 검증) | Gemini 평가는 Phase 1.5. 규칙 통과 시 자동 진행 | [ ] |
+| 4 | Finalize 노드 (태그 후처리) | 기존 후처리 로직 그대로 재활용 | [ ] |
+| 5 | `/scripts/generate` 내부를 Graph로 교체 | **API 계약 유지** (request/response 동일), `storyboard_id` = thread_id | [ ] |
+| 6 | SSE 노드 진행률 스트리밍 | `get_stream_writer()` + `astream(stream_mode=["custom","updates"])` | [ ] |
+| 7 | 스냅샷 10건 회귀 테스트 통과 | 동일 입력 → 동일 출력 구조 자동 검증 | [ ] |
+| 8 | Script 탭 모드 통합 (Manual 탭 제거 → Quick 단일 모드) | `useScriptEditor` 제거, `useShortsSession` 통합. Manual/AI Agent 탭 분리 제거 → Quick 모드 단일 UI. Full 모드 UI는 Phase 1.5 | [ ] |
 
-### Phase 3: Creative Pipeline 통합 (선택)
+**Phase 1 DoD**: 기존 Autopilot 동작이 LangGraph 위에서 동일하게 작동. 스냅샷 회귀 테스트 전량 통과. Script 탭 Manual 모드 제거 → Quick 단일 모드 (SSE 진행률 추가).
 
-| # | 작업 | 논의 포인트 | 상태 |
-|---|------|------------|------|
-| 1 | Creative Lab 토론을 LangGraph 서브그래프로 전환 | 기존 `creative_shorts.py` 대체 | [ ] |
-| 2 | Production Pipeline을 LangGraph 서브그래프로 전환 | 기존 `creative_pipeline.py` 대체 | [ ] |
-| 3 | Script Generation Graph와 Creative Graph 통합 | 단일 진입점, 모드 분기 | [ ] |
-| 4 | 기존 커스텀 코드 제거 | creative_shorts.py, creative_pipeline.py deprecated | [ ] |
+**Phase 1에서 제외** (PM 판단):
+- ~~Research 노드~~ → Memory Store 없이 의미 없음 → Phase 2
+- ~~Revise 노드~~ → 반복 루프는 Phase 1.5
+- ~~Human Gate (interrupt)~~ → Assisted/Manual 모드는 Phase 1.5
+- ~~PipelineControl 5단계~~ → YAGNI. Phase 1.5에서 Preset 3개로 시작
 
-**논의 필요**:
-- [ ] Creative Lab을 별도 유지할지, Script Generation에 흡수할지?
-- [ ] 9-Agent 토론 구조를 LangGraph 서브그래프로 그대로 옮길지, 재설계할지?
-- [ ] Phase 3는 Phase 1-2 안정화 후 진행? 동시 진행?
+---
+
+### Phase 1.5: 기능 확장 — 반복 개선 + 제어 스펙트럼 (2-3일)
+
+**목표**: 동등 전환 안정화 후, 새 기능 추가. "AI가 자동 수정" + "사람이 검토" 패턴 도입.
+
+| # | 작업 | 비고 | 상태 |
+|---|------|------|------|
+| 1 | Revise 노드 + Review → Revise → Draft 루프 | `MAX_REVISIONS=2`, 규칙 + Gemini 혼합 평가 | [ ] |
+| 2 | Human Gate (`interrupt`) — Assisted 모드 | `mode:"full"` = interrupt, `mode:"quick"` = 기존 동작 | [ ] |
+| 3 | Full 모드 Graph 확장 (기존 Creative Lab Debate→Pipeline 흡수) | Quick(2노드) + Full(7노드: Research→Debate→Draft→Review→Revise→Finalize→Learn) | [ ] |
+| 4 | Preset 3개 Backend: Full Auto / Creator / Manual | `mode` 파라미터 1개로 시작. 5단계 세분화는 각 단계 Graph화 시 추가 | [ ] |
+| 5 | reasoning 필드 추가 (Gemini 출력에 `narrative_function`, `why`, `alternatives`) | Jinja2 템플릿 수정만. 추가 Gemini 호출 없음 | [ ] |
+| 6 | Frontend: Quick/Full 모드 선택 UI + 승인/수정 + [왜?] 읽기 전용 표시 | Script 탭에 모드 토글 + reasoning 패널 | [ ] |
+| 7 | Frontend: Preset 선택 드롭다운 | Script Generator에 preset 선택 추가 | [ ] |
+
+**Phase 1.5 DoD**: Quick/Full 모드 선택 가능. Full 모드에서 Review→Revise 루프 + Human Gate 동작. [왜?] 버튼으로 씬별 AI 판단 근거 확인 가능.
+
+**Phase 1.5에서 제외**:
+- ~~Explain Node (대화형 Q&A)~~ → 범위 제외. 1단계(읽기 전용 reasoning)만 포함
+- ~~PipelineControl 5단계 커스텀~~ → Preset 3개로 시작, 커스텀은 향후 필요 시
+
+### Phase 2: Memory + Observability (3-5일)
+
+**목표**: 세션 간 학습 + 실행 추적 인프라.
+
+| # | 작업 | 비고 | 상태 |
+|---|------|------|------|
+| 1 | `langgraph-store-postgres` 의존성 + AsyncPostgresStore 설정 | 키-값 기반 장기 메모리 | [ ] |
+| 2 | LangFuse Docker 셀프호스팅 + LangGraph 콜백 연동 | 별도 `docker-compose.langfuse.yml`, 전용 PostgreSQL | [ ] |
+| 3 | Memory 네임스페이스 설계 + Research 노드 (Memory 조회) | `("character", id)`, `("user", "preferences")` 등 | [ ] |
+| 4 | Learn 노드 (결과 + 사용자 피드백 → Memory 저장) | 최소 범위: 성공/실패 패턴 + 사용자 수정 이력 | [ ] |
+| 5 | 피드백 수집 UI (생성 결과에 좋아요/수정) | Frontend | [ ] |
+| 6 | Memory 관리 API (조회/삭제) | Manage 페이지 | [ ] |
+
+**Phase 2 DoD**: 10회 이상 생성 후 Memory 기반 품질 향상 확인. LangFuse에서 노드별 실행 트레이스 조회 가능.
+
+### Phase 3: Creative 재평가 (Phase 2 완료 후 결정)
+
+**목표**: 데이터 기반으로 Creative Lab 향후 방향 결정. "전환"이 아닌 "재평가".
+
+Phase 2 완료 시점에 아래 질문에 답한 후 결정:
+- Creative Lab이 실제로 사용되고 있는가? (`activity_logs` 기준)
+- Script Generation Graph만으로 충분하지 않은가?
+- 전환 비용 (10파일 2,651줄 재작성) 대비 레거시 유지 비용이 높은가?
+
+| 선택지 | 조건 |
+|--------|------|
+| **A: Graph 서브그래프 전환** | Creative Lab 활발 사용 + Script Graph로 불충분 |
+| **B: 레거시 유지** | 사용 빈도 낮지만 삭제 리스크 있음 |
+| **C: 폐기** | 사용 빈도 매우 낮음 + Script Graph로 대체 가능 |
 
 ### Phase 4: 고도화 (장기)
 
 | # | 작업 | 상태 |
 |---|------|------|
-| 1 | 멀티에이전트 병렬 실행 (LangGraph `Send` API) | [ ] |
-| 2 | Streaming 출력 (LangGraph `astream_events`) | [ ] |
-| 3 | 분산 실행 (Redis/Celery 큐 연동) | [ ] |
-| 4 | A/B 테스트 (그래프 버전 분기) | [ ] |
-| 5 | Self-improving 에이전트 (메모리 기반 프롬프트 자동 최적화) | [ ] |
+| 1 | 5단계 PipelineControl 커스텀 UI (Preset → 단계별 세분화) | [ ] |
+| 2 | Explain Node — 대화형 씬 Q&A (reasoning 기반 멀티턴) | [ ] |
+| 3 | 멀티에이전트 병렬 실행 (LangGraph `Send` API) | [ ] |
+| 4 | 분산 실행 (Redis/Celery 큐 연동) | [ ] |
+| 5 | A/B 테스트 (그래프 버전 분기) | [ ] |
+| 6 | Self-improving 에이전트 (메모리 기반 프롬프트 자동 최적화) | [ ] |
 
 ---
 
-## 5. 미결정 사항 (Open Questions)
+## 5. 아키텍처 결정 사항 (Decided: 2026-02-13)
 
 ### 아키텍처 레벨
 
-| # | 질문 | 선택지 | 결정 |
-|---|------|--------|------|
-| Q1 | LangChain 의존성 범위 | A: LangGraph만 (최소) / B: LangChain Core 포함 / C: 풀 LangChain | 미정 |
-| Q2 | Gemini 호출 방식 | A: 기존 `google-genai` 유지 / B: LangChain wrapper 전환 | 미정 |
-| Q3 | 기존 Creative 테이블 처리 | A: 병행 운영 / B: LangGraph 체크포인트로 마이그레이션 / C: 점진적 deprecated | 미정 |
-| Q4 | Frontend 연동 | A: SSE (기존 패턴) / B: WebSocket / C: Polling | 미정 |
-| Q5 | 단일 대본 생성도 Graph 경유? | A: 항상 / B: "Quick" 모드는 기존 단일 호출 유지 | 미정 |
+| # | 질문 | 결정 | 근거 |
+|---|------|------|------|
+| Q1 | LangChain 의존성 범위 | **A: LangGraph만** | `langchain-core`는 자동 포함. 풀 LangChain 체인/에이전트 추상화 불필요 |
+| Q2 | Gemini 호출 방식 | **A: google-genai 유지** | 기존 Jinja2 템플릿 6종 + 후처리 재활용. 노드에서 래핑만 |
+| Q3 | 기존 Creative 테이블 | **C: 점진적 deprecated** | Phase 0-2는 병행, Phase 3에서 Graph 서브그래프로 통합 |
+| Q4 | Frontend 연동 | **A: SSE** | 기존 렌더링/이미지 SSE 패턴 재활용. 양방향 불필요 |
+| Q5 | 단일 생성도 Graph? | **A: 항상 Graph** | 이원화 방지. quick 모드는 Graph 내 조건 분기 (Review/Revise 스킵) |
+| Q9 | Observability | **LangFuse (셀프호스팅)** | 로컬 인프라 원칙 유지. **Phase 2에서 도입** (Phase 0-1은 Python logging) |
 
 ### 비용/성능 레벨
 
-| # | 질문 | 논의 |
-|---|------|------|
-| Q6 | 반복 개선 시 Gemini 호출 증가 비용 | 현재 1회 → 최대 3-4회로 증가. 허용 범위? |
-| Q7 | Checkpoint 저장 빈도 | 노드마다? 핵심 노드만? |
-| Q8 | Memory Store 쿼리 지연 | 매 생성마다 메모리 조회 시 latency 증가 |
+| # | 질문 | 결정 | 근거 |
+|---|------|------|------|
+| Q6 | Gemini 호출 증가 | **최대 3회** (Draft 1 + Revise 2) | `MAX_REVISIONS=2`. 쇼츠 렌더링 대비 Gemini 비용 미미 |
+| Q7 | Checkpoint 빈도 | **매 노드** (기본값) | 노드당 DB write 1회, 오버헤드 무시 가능 |
+| Q8 | Memory 쿼리 지연 | **Phase 1: 키 기반** (< 10ms) → **Phase 2: 벡터 검색** | pgvector는 필요 시 도입 |
 
 ---
 
 ## 6. 영향 범위
 
-### Backend 변경
+### Phase별 영향 범위
+
+**Phase 0-1 (동등 전환)**:
 
 | 파일/모듈 | 변경 내용 |
 |-----------|----------|
-| `requirements.txt` | `langgraph`, `langgraph-checkpoint-postgres` 추가 |
-| `services/script/` | Graph 기반으로 재구성 |
-| `services/creative_*.py` | Phase 3에서 Graph 서브그래프로 전환 |
-| `routers/scripts.py` | Graph 실행 엔드포인트로 교체 |
-| `models/` | Memory Store 테이블 (langgraph 자동 생성 또는 커스텀) |
-| `config.py` | LangGraph 관련 상수 추가 |
+| `pyproject.toml` | `langgraph`, `langgraph-checkpoint-postgres`, `psycopg[binary]` 추가 |
+| `services/agent/` (신규) | `graph_manager.py`, `script_graph.py`, `nodes/draft.py`, `nodes/review.py`, `nodes/finalize.py` |
+| `services/script/gemini_generator.py` | Draft 노드에서 래핑 (기존 코드 유지, 노드가 호출) |
+| `routers/scripts.py` | 내부를 Graph 실행으로 교체 (API 계약 유지) |
+| `config.py` | LangGraph 관련 상수 (`MAX_REVISIONS`, `AUTO_REVIEW_THRESHOLD` 등) |
+| Alembic `env.py` | LangGraph 자동 생성 테이블 exclude 처리 |
+| Frontend Script 탭 | Manual/AI Agent 탭 분리 제거 → Quick 단일 모드 UI. `useScriptEditor` 제거, `useShortsSession` 통합. SSE 진행률 추가 |
 
-### Frontend 변경
+**Phase 1.5 (기능 확장)**:
 
 | 파일/모듈 | 변경 내용 |
 |-----------|----------|
-| Scripts 페이지 | Human-in-the-loop 리뷰 UI |
-| SSE/WebSocket | Graph 실행 상태 스트리밍 |
-| 피드백 UI | 생성 결과 평가 (Learn 노드 입력) |
+| `services/agent/nodes/revise.py` (신규) | Revise 노드 + Review→Revise 루프 |
+| `services/agent/nodes/human_gate.py` (신규) | `interrupt()` 기반 Human-in-the-loop |
+| `services/agent/nodes/debate.py` (신규) | Creative Lab Debate 로직 Graph 노드화 (Full 모드 전용) |
+| Jinja2 템플릿 | `reasoning` 필드 출력 지시 추가 |
+| Frontend Script 탭 | Quick/Full 모드 토글 + 승인/수정 UI + [왜?] 읽기 전용 패널 + Preset 드롭다운 |
+
+**Phase 2 (Memory + Observability)**:
+
+| 파일/모듈 | 변경 내용 |
+|-----------|----------|
+| `pyproject.toml` | `langgraph-store-postgres`, `langfuse` 추가 |
+| `docker-compose.langfuse.yml` (신규) | LangFuse + 전용 PostgreSQL |
+| `services/agent/nodes/research.py` (신규) | Memory Store 조회 |
+| `services/agent/nodes/learn.py` (신규) | Memory Store 저장 |
+| Frontend | 피드백 수집 UI (좋아요/수정) |
 
 ### DB 변경
 
-| 테이블 | 변경 |
-|--------|------|
-| `langgraph_checkpoints` (자동) | LangGraph PostgresSaver가 생성 |
-| `langgraph_store` (자동) | LangGraph PostgresStore가 생성 |
-| `creative_sessions` | Phase 3까지 병행, 이후 deprecated 검토 |
+| 테이블 | Phase | 비고 |
+|--------|-------|------|
+| `langgraph_checkpoints` (자동) | Phase 0 | AsyncPostgresSaver `setup()` 시 생성 |
+| `langgraph_store` (자동) | Phase 2 | AsyncPostgresStore `setup()` 시 생성 |
+| `creative_sessions` | Phase 3 재평가 | Phase 2까지 병행 |
 
 ---
 
@@ -309,3 +435,5 @@ class ScriptState(TypedDict):
 - [LangGraph Persistence](https://langchain-ai.github.io/langgraph/concepts/persistence/)
 - [LangGraph Memory Store](https://langchain-ai.github.io/langgraph/concepts/memory/)
 - [LangGraph Human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/)
+- [LangFuse Self-Hosting](https://langfuse.com/docs/deployment/self-host)
+- [LangFuse + LangGraph Integration](https://langfuse.com/docs/integrations/langchain/tracing)

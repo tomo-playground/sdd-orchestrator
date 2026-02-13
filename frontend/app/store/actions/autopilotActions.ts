@@ -74,6 +74,9 @@ export async function runAutoRunFromStep(
         setActiveTab("edit");
         assertNotCancelled();
 
+        // Track failed scenes to save progress before throwing
+        const failedSceneOrders: number[] = [];
+
         // Split scenes by per-scene multiGen setting
         const globalState = useStoryboardStore.getState();
         const multiGenScenes = workingScenes.filter(
@@ -101,8 +104,12 @@ export async function runAutoRunFromStep(
               result = await generateSceneCandidates(retryScene, true);
             }
             useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
-            if (!result?.image_url) throw new Error(`Image failed for Scene #${scene.order}`);
-            useStoryboardStore.getState().updateScene(scene.client_id, result);
+            if (!result?.image_url) {
+              failedSceneOrders.push(scene.order);
+              pushAutoRunLog(`Image failed for Scene #${scene.order}`);
+            } else {
+              useStoryboardStore.getState().updateScene(scene.client_id, result);
+            }
             workingScenes = useStoryboardStore.getState().scenes;
           }
         }
@@ -137,8 +144,12 @@ export async function runAutoRunFromStep(
               useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: true });
               const result = await generateSceneImageFor(freshScene, true);
               useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: false });
-              if (!result?.image_url) throw new Error(`Image failed for Scene #${target.order}`);
-              useStoryboardStore.getState().updateScene(target.client_id, result);
+              if (!result?.image_url) {
+                failedSceneOrders.push(target.order);
+                pushAutoRunLog(`Image failed for Scene #${target.order}`);
+              } else {
+                useStoryboardStore.getState().updateScene(target.client_id, result);
+              }
             }
           }
           // Sync workingScenes with store state after batch
@@ -165,10 +176,18 @@ export async function runAutoRunFromStep(
 
         // Sync workingScenes after auto-pin
         workingScenes = useStoryboardStore.getState().scenes;
+        // Always save progress — even if some scenes failed
         await persistStoryboard();
         // Re-sync after persistStoryboard: scene IDs may have changed
         workingScenes = useStoryboardStore.getState().scenes;
         pushAutoRunLog("Images generated");
+
+        // Throw after saving so successful images are preserved
+        if (failedSceneOrders.length > 0) {
+          throw new Error(
+            `Image failed for Scene #${failedSceneOrders.join(", #")} (${workingScenes.length - failedSceneOrders.length} saved)`
+          );
+        }
       }
 
       if (currentStep === "validate") {

@@ -1,0 +1,91 @@
+{
+  "description": "Monologue 한국어 — 긴 15초 영상, 씬 5개",
+  "request": {
+    "topic": "새벽 러닝",
+    "description": "새벽에 혼자 달리며 자신을 다독이는 이야기",
+    "duration": 15,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Monologue",
+    "actor_a_gender": "female",
+    "character_id": 1,
+    "character_b_id": null,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "알람이 울렸다",
+        "speaker": "Narrator",
+        "duration": 2.0,
+        "image_prompt": "1girl, bedroom, alarm_clock, dark_room, early_morning, sleepy",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["bedroom", "indoor", "dawn"],
+          "mood": ["reluctant"],
+          "camera": ["close-up"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "포기하고 싶지만",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, sportswear, stretching, doorway, dark_sky, determined",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["outdoor", "residential", "dawn"],
+          "mood": ["determined"],
+          "camera": ["full_body"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "한 발짝만 더",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, running, street, dawn, streetlights, focused, sweat",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["street", "outdoor", "dawn"],
+          "mood": ["struggling"],
+          "camera": ["from_side"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "해가 뜨기 시작했어",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "1girl, running, riverside, sunrise, orange_sky, wind, hair_blowing",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["riverside", "outdoor", "sunrise"],
+          "mood": ["uplifted"],
+          "camera": ["wide_shot"]
+        },
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "오늘도 해냈다",
+        "speaker": "Narrator",
+        "duration": 4.0,
+        "image_prompt": "1girl, standing, riverside, sunrise, smiling, hands_on_hips, victorious",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["riverside", "outdoor", "sunrise"],
+          "mood": ["proud", "accomplished"],
+          "camera": ["cowboy_shot"]
+        },
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": 1,
+    "character_b_id": null
+  }
+}

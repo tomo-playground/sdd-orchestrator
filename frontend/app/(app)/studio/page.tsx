@@ -21,6 +21,7 @@ import PromptHelperSidebar from "../../components/prompt/PromptHelperSidebar";
 import { ContextBar, GroupFormModal } from "../../components/context";
 import { useAutopilot } from "../../hooks/useAutopilot";
 import { useStudioInitialization } from "../../hooks/useStudioInitialization";
+import { useCharacterAutoLoad } from "../../hooks/useCharacterAutoLoad";
 import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
 import { createGroup } from "../../store/actions/groupActions";
 import { SUB_NAV_CLASSES } from "../../components/ui/variants";
@@ -35,6 +36,7 @@ import type { AutoRunStepId } from "../../utils/preflight";
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
     useStudioInitialization();
+  useCharacterAutoLoad();
   const { showStyleProfileModal, setShowStyleProfileModal } = useStudioOnboarding({
     isLoadingDb,
     storyboardId,

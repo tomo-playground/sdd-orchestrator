@@ -33,7 +33,6 @@ export default function CharacterDetailPage() {
   const showToast = useUIStore((s) => s.showToast);
 
   const rawId = params.id as string;
-  const isNew = rawId === "new";
 
   const [character, setCharacter] = useState<Character | undefined>(undefined);
   const [allTags, setAllTags] = useState<Tag[]>([]);
@@ -43,17 +42,14 @@ export default function CharacterDetailPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [tagsRes, lorasRes] = await Promise.all([
+        const [tagsRes, lorasRes, charRes] = await Promise.all([
           axios.get(`${API_BASE}/tags`),
           axios.get(`${API_BASE}/loras`),
+          axios.get(`${API_BASE}/characters/${rawId}`),
         ]);
         setAllTags(tagsRes.data);
         setAllLoras(lorasRes.data);
-
-        if (!isNew) {
-          const charRes = await axios.get(`${API_BASE}/characters/${rawId}`);
-          setCharacter(charRes.data);
-        }
+        setCharacter(charRes.data);
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           showToast("Character not found or deleted", "error");
@@ -66,7 +62,7 @@ export default function CharacterDetailPage() {
       }
     };
     load();
-  }, [rawId, isNew, showToast, router]);
+  }, [rawId, showToast, router]);
 
   const handleSave = useCallback(
     async (data: Partial<Character>, id?: number) => {
@@ -92,7 +88,7 @@ export default function CharacterDetailPage() {
     );
   }
 
-  if (!isNew && !character) {
+  if (!character) {
     return (
       <div className={`${CONTAINER_CLASSES} py-16 text-center`}>
         <p className="text-sm text-zinc-500">Character not found</p>
@@ -111,14 +107,14 @@ export default function CharacterDetailPage() {
       character={character}
       allTags={allTags}
       allLoras={allLoras}
-      isNew={isNew}
+      isNew={false}
       onSave={handleSave}
     />
   );
 }
 
 /** Inner form — only mounts after data is loaded so useState gets correct initial values */
-function CharacterDetailForm({
+export function CharacterDetailForm({
   character,
   allTags,
   allLoras,

@@ -13,6 +13,15 @@ import { fetchGroups } from "../../store/actions/groupActions";
 import { FORM_INPUT_COMPACT_CLASSES, FORM_LABEL_COMPACT_CLASSES } from "../ui/variants";
 
 // ── Types ────────────────────────────────────────────────────
+import type { ChannelDNA } from "../../types";
+
+const EMPTY_CHANNEL_DNA: ChannelDNA = {
+  tone: null,
+  target_audience: null,
+  worldview: null,
+  guidelines: null,
+};
+
 type GroupConfig = {
   id: number;
   group_id: number;
@@ -26,6 +35,7 @@ type GroupConfig = {
   sd_cfg_scale: number | null;
   sd_sampler_name: string | null;
   sd_clip_skip: number | null;
+  channel_dna: ChannelDNA | null;
 };
 
 type OptionItem = { id: number; name: string };
@@ -75,6 +85,24 @@ function SelectField({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+// ── Channel DNA helpers ──────────────────────────────────────
+type DnaFieldDef = { field: keyof ChannelDNA; label: string; placeholder: string; rows: number };
+const DNA_FIELDS: DnaFieldDef[] = [
+  { field: "tone", label: "Tone", placeholder: "e.g. warm and nostalgic, dark humor", rows: 2 },
+  { field: "target_audience", label: "Target Audience", placeholder: "e.g. teens 13-18, anime fans", rows: 2 },
+  { field: "worldview", label: "Worldview", placeholder: "e.g. A fantasy world where magic and technology coexist", rows: 3 },
+  { field: "guidelines", label: "Guidelines", placeholder: "e.g. No violence, keep stories under 60s", rows: 3 },
+];
+
+function DnaField({ label, value, placeholder, rows, onChange }: Omit<DnaFieldDef, "field"> & { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} className={inputCls} />
     </div>
   );
 }
@@ -133,6 +161,11 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
     if (!config) return;
     setSaving(true);
     try {
+      // Normalize: if all DNA fields are null, send null instead of empty object
+      const dna = config.channel_dna;
+      const channelDna =
+        dna && (dna.tone || dna.target_audience || dna.worldview || dna.guidelines) ? dna : null;
+
       await Promise.all([
         axios.put(`${API_BASE}/groups/${groupId}/config`, {
           render_preset_id: config.render_preset_id,
@@ -145,6 +178,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           sd_cfg_scale: config.sd_cfg_scale,
           sd_sampler_name: config.sd_sampler_name,
           sd_clip_skip: config.sd_clip_skip,
+          channel_dna: channelDna,
         }),
         axios.put(`${API_BASE}/groups/${groupId}`, { name: groupName.trim() }),
       ]);
@@ -247,6 +281,34 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               onChange={(v) => updateField("narrator_voice_preset_id", v)}
               label="Narrator Voice"
             />
+          </div>
+
+          {/* Channel DNA */}
+          <div className="space-y-3 border-t border-zinc-100 pt-3">
+            <p className="text-[12px] font-semibold tracking-wider text-zinc-300 uppercase">
+              Channel DNA
+            </p>
+            {DNA_FIELDS.map((f) => (
+              <DnaField
+                key={f.field}
+                {...f}
+                value={config.channel_dna?.[f.field] ?? ""}
+                onChange={(v) =>
+                  setConfig((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          channel_dna: {
+                            ...EMPTY_CHANNEL_DNA,
+                            ...prev.channel_dna,
+                            [f.field]: v || null,
+                          },
+                        }
+                      : prev
+                  )
+                }
+              />
+            ))}
           </div>
 
           {/* SD Generation Settings */}

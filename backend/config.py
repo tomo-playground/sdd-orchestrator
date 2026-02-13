@@ -429,6 +429,9 @@ CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
     "script_qc": "creative/script_qc.j2",
 }
 
+# --- LangGraph ---
+LANGGRAPH_MAX_REVISIONS = int(os.getenv("LANGGRAPH_MAX_REVISIONS", "2"))
+
 # --- Ollama (Local LLM) Configuration ---
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))

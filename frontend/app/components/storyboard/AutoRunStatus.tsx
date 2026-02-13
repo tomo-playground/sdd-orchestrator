@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { AutoRunState, AutoRunStepId } from "../../types";
 import { AUTO_RUN_STEPS } from "../../constants";
 
@@ -18,9 +19,18 @@ export default function AutoRunStatus({
   onResume,
   onRestart,
 }: AutoRunStatusProps) {
+  const [isLogCollapsed, setIsLogCollapsed] = useState(false);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [autoRunLog.length]);
+
   if (autoRunState.status === "idle") {
     return null;
   }
+
+  const isError = autoRunState.status === "error";
 
   return (
     <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-xs text-zinc-600">
@@ -35,9 +45,21 @@ export default function AutoRunStatus({
             </span>
           )}
         </div>
-        <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          {autoRunState.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            {autoRunState.status}
+          </span>
+          {autoRunLog.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsLogCollapsed((v) => !v)}
+              className="rounded-md px-1.5 py-0.5 text-[11px] text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600"
+              title={isLogCollapsed ? "Show log" : "Hide log"}
+            >
+              {isLogCollapsed ? "▶ Log" : "▼ Log"}
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {AUTO_RUN_STEPS.map((step) => {
@@ -46,7 +68,6 @@ export default function AutoRunStatus({
             autoRunState.status !== "idle" &&
             AUTO_RUN_STEPS.findIndex((item) => item.id === step.id) <
               AUTO_RUN_STEPS.findIndex((item) => item.id === autoRunState.step);
-          const isError = autoRunState.status === "error";
           const baseClass = `rounded-full px-3 py-1 text-[12px] font-semibold tracking-[0.2em] uppercase ${
             isActive
               ? "bg-zinc-900 text-white"
@@ -75,7 +96,7 @@ export default function AutoRunStatus({
       </div>
       <p>{autoRunState.message}</p>
       {autoRunState.error && <p className="text-red-500">{autoRunState.error}</p>}
-      {autoRunState.status === "error" && autoRunState.step !== "idle" && (
+      {isError && autoRunState.step !== "idle" && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[12px] text-zinc-400">Click a step to resume from</span>
           <button
@@ -87,11 +108,14 @@ export default function AutoRunStatus({
           </button>
         </div>
       )}
-      {autoRunLog.length > 0 && (
-        <div className="grid gap-1 text-[13px] text-zinc-500">
-          {autoRunLog.map((entry, idx) => (
-            <span key={`${entry}-${idx}`}>• {entry}</span>
-          ))}
+      {autoRunLog.length > 0 && !isLogCollapsed && (
+        <div className="max-h-32 overflow-y-auto rounded-lg bg-zinc-50 p-2">
+          <div className="grid gap-1 text-[13px] text-zinc-500">
+            {autoRunLog.map((entry, idx) => (
+              <span key={`${entry}-${idx}`}>• {entry}</span>
+            ))}
+            <div ref={logEndRef} />
+          </div>
         </div>
       )}
     </div>

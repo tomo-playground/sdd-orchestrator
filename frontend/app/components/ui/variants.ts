@@ -78,7 +78,11 @@ export const SIDE_PANEL_CLASSES =
 
 /** Section label inside a side panel. */
 export const SIDE_PANEL_LABEL =
-  "mb-2 block text-[12px] font-semibold tracking-wider text-zinc-500 uppercase";
+  "mb-2 block text-[12px] font-medium tracking-wider text-zinc-400 uppercase";
+
+/** Section header inside a form card (e.g., "Characters", "Agent Settings"). */
+export const SECTION_HEADER_CLASSES =
+  "text-xs font-semibold tracking-[0.2em] text-zinc-700 uppercase";
 
 // ── Content section tokens ─────────────────────────────────
 

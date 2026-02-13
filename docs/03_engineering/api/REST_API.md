@@ -6,6 +6,7 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.8 | 2026-02-13 | Storyboard Optimistic Locking (`version`), Partial Metadata Update (`PATCH`), Material Check (`/materials`), Scene Async Generation (`/scene/generate-async`) |
 | v3.7 | 2026-02-11 | Multi-Character LoRA 지원: Scene Generate/Prompt Compose에 `character_b_id` 추가, Scene 응답에 `scene_mode` 추가, LoRA API에 멀티캐릭터 필드 3개 추가 |
 | v3.6 | 2026-02-10 | Storyboard Soft Delete 엔드포인트 (trash/restore/permanent), Scene 편집 엔드포인트 (validate-and-auto-edit, edit-with-gemini, suggest-edit), Video 유틸리티 (extract-caption, extract-hashtags, transitions), Storyboard `duration`/`language` 필드 추가 |
 | v3.5 | 2026-02-07 | Creative Engine API 추가 (`/lab/creative/sessions`, `/lab/creative/agent-presets`) - AI 멀티 에이전트 토론 기반 창작 |
@@ -97,7 +98,10 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
   "style_profile_id": 1,
   "caption": "좋아요 6만개\n15분 전",
   "duration": 10,
+  "caption": "좋아요 6만개\n15분 전",
+  "duration": 10,
   "language": "Korean",
+  "version": 1,
   "scenes": [
     {
       "scene_id": 1,
@@ -117,7 +121,40 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 
 **Response:**
 ```json
-{"status": "success", "storyboard_id": 1}
+{"status": "success", "storyboard_id": 1, "version": 1}
+```
+
+### `GET /storyboards/{storyboard_id}/materials`
+스토리보드의 모든 씬 이미지가 생성되었는지 확인합니다 (Video 생성 전제조건).
+
+**Response:**
+```json
+{
+  "ready": true,
+  "total": 10,
+  "completed": 10,
+  "missing_indices": []
+}
+```
+
+### `PATCH /storyboards/{storyboard_id}/metadata`
+스토리보드 메타데이터(제목, 설명, 캡션 등)를 부분 업데이트합니다. Optimistic Locking을 위해 `version` 필드가 필수입니다.
+
+**Request:** `StoryboardUpdate`
+```json
+{
+  "title": "새로운 제목",
+  "version": 1
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "title": "새로운 제목",
+  "version": 2
+}
 ```
 
 ### `PUT /storyboards/{storyboard_id}`
@@ -156,11 +193,13 @@ Soft Delete된 스토리보드를 복원합니다.
 
 **Response:**
 ```json
+```json
 [
   {
     "id": 1,
     "title": "커피숍 일상",
     "description": "카페에서의 하루",
+    "version": 1,
     "created_at": "2026-01-30T12:00:00",
     "updated_at": "2026-01-30T12:00:00"
   }
@@ -204,6 +243,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 {
   "image": "base64_encoded_string...",
   "images": ["base64_1...", "base64_2..."],
+  "scene_mode": "single",
   "controlnet_pose": "base64_or_null",
   "ip_adapter_reference": "base64_or_null",
   "warnings": ["unpinned tag: xyz"],
@@ -256,6 +296,34 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
   "url": "http://localhost:8000/outputs/images/stored/scene_abc123.png"
 }
 ```
+
+### `POST /scene/generate-async` (NEW)
+씬 이미지를 비동기로 생성합니다. 배치를 처리하거나 무거운 렌더링 시 사용합니다.
+
+**Request:** `SceneGenerateRequest` (`POST /scene/generate`와 동일)
+
+**Response (202 Accepted):**
+```json
+{
+  "task_id": "scene_gen_abc123"
+}
+```
+
+### `GET /scene/progress/{task_id}`
+씬 생성 작업의 진행 상황을 조회합니다.
+
+**Response:**
+```json
+{
+  "task_id": "scene_gen_abc123",
+  "status": "processing",
+  "progress": 50,
+  "result": null,
+  "error": null
+}
+```
+- `status`: `pending`, `processing`, `completed`, `failed`
+- `result`: 완료 시 `SceneGenerateResponse` 객체 포함
 
 ### `POST /scene/validate-and-auto-edit`
 WD14 검증 + 조건부 Gemini 자동 편집. 매치율이 낮으면 Gemini가 프롬프트를 자동 수정합니다.

@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { usePresets, type Preset, type LangOption } from "../../hooks/usePresets";
-import { cx, SECTION_CLASSES } from "../ui/variants";
+import {
+  cx,
+  SECTION_CLASSES,
+  FORM_LABEL_CLASSES,
+  FORM_TEXTAREA_CLASSES,
+  FORM_INPUT_CLASSES,
+} from "../ui/variants";
 
 type StoryboardGeneratorPanelProps = {
   topic: string;
@@ -76,10 +82,7 @@ export default function StoryboardGeneratorPanel({
       <div className={cx(!embedded && "mt-6", "grid gap-4 md:grid-cols-[1.5fr_1fr]")}>
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label
-              htmlFor="sb-topic"
-              className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-            >
+            <label htmlFor="sb-topic" className={FORM_LABEL_CLASSES}>
               Topic
             </label>
             <span
@@ -97,7 +100,7 @@ export default function StoryboardGeneratorPanel({
             onChange={(e) => setTopic(e.target.value.slice(0, 200))}
             rows={4}
             maxLength={200}
-            className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
+            className={FORM_TEXTAREA_CLASSES}
             placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
           />
           {sampleTopics.length > 0 && (
@@ -117,10 +120,7 @@ export default function StoryboardGeneratorPanel({
           {setDescription !== undefined && (
             <>
               <div className="mt-3 flex items-center justify-between">
-                <label
-                  htmlFor="sb-description"
-                  className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-                >
+                <label htmlFor="sb-description" className={FORM_LABEL_CLASSES}>
                   Description{" "}
                   <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
                 </label>
@@ -137,9 +137,9 @@ export default function StoryboardGeneratorPanel({
                 data-testid="description-input"
                 value={description ?? ""}
                 onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-                rows={3}
+                rows={2}
                 maxLength={500}
-                className="rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400"
+                className={FORM_TEXTAREA_CLASSES}
                 placeholder="톤, 대상 독자, 강조 포인트 등을 적어주세요"
               />
             </>
@@ -148,17 +148,14 @@ export default function StoryboardGeneratorPanel({
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="sb-duration"
-                className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-              >
+              <label htmlFor="sb-duration" className={FORM_LABEL_CLASSES}>
                 Duration
               </label>
               <select
                 id="sb-duration"
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                className={FORM_INPUT_CLASSES}
               >
                 {durations.map((d) => (
                   <option key={d} value={d}>
@@ -168,17 +165,14 @@ export default function StoryboardGeneratorPanel({
               </select>
             </div>
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="sb-language"
-                className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-              >
+              <label htmlFor="sb-language" className={FORM_LABEL_CLASSES}>
                 Language
               </label>
               <select
                 id="sb-language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                className={FORM_INPUT_CLASSES}
               >
                 {languages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
@@ -189,17 +183,14 @@ export default function StoryboardGeneratorPanel({
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <label
-              htmlFor="sb-structure"
-              className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase"
-            >
+            <label htmlFor="sb-structure" className={FORM_LABEL_CLASSES}>
               Structure
             </label>
             <select
               id="sb-structure"
               value={structure}
               onChange={(e) => setStructure(e.target.value)}
-              className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+              className={FORM_INPUT_CLASSES}
             >
               {presets.map((p) => (
                 <option key={p.structure} value={p.structure}>

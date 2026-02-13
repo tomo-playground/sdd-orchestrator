@@ -9,8 +9,6 @@ import PromptSetupPanel from "../setup/PromptSetupPanel";
 import StyleProfileSelector from "../setup/StyleProfileSelector";
 
 export default function ImageSettingsContent() {
-  useCharacterAutoLoad();
-
   const actorAGender = useStoryboardStore((s) => s.actorAGender);
   const selectedCharacterId = useStoryboardStore((s) => s.selectedCharacterId);
   const selectedCharacterBId = useStoryboardStore((s) => s.selectedCharacterBId);
@@ -76,11 +74,10 @@ export default function ImageSettingsContent() {
           {TOGGLES.map((t) => (
             <label
               key={t.key}
-              className={`flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition ${
-                t.value
+              className={`flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition ${t.value
                   ? "border-zinc-900 bg-zinc-900 text-white"
                   : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
-              }`}
+                }`}
             >
               <input
                 type="checkbox"

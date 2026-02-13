@@ -81,6 +81,21 @@ class GeminiProvider:
             raise RuntimeError(msg) from e
 
         content = res.text or ""
+        if not content:
+            # Enhanced logging for empty responses (likely safety filter)
+            candidates = getattr(res, "candidates", [])
+            if candidates:
+                cand = candidates[0]
+                finish_reason = getattr(cand, "finish_reason", "UNKNOWN")
+                safety_ratings = getattr(cand, "safety_ratings", [])
+                logger.warning(
+                    "[Gemini] Empty content. Finish reason: %s. Safety: %s",
+                    finish_reason,
+                    safety_ratings,
+                )
+            else:
+                logger.warning("[Gemini] Empty content and no candidates returned.")
+
         usage = getattr(res, "usage_metadata", None)
         token_usage = {
             "prompt_tokens": getattr(usage, "prompt_token_count", 0) if usage else 0,

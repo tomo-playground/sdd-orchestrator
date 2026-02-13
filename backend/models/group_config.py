@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -55,6 +56,9 @@ class GroupConfig(Base, TimestampMixin):
     sd_cfg_scale: Mapped[float | None] = mapped_column(Float)
     sd_sampler_name: Mapped[str | None] = mapped_column(String(50))
     sd_clip_skip: Mapped[int | None] = mapped_column(Integer)
+
+    # Channel DNA (tone, audience, worldview, guidelines)
+    channel_dna: Mapped[dict | None] = mapped_column(JSONB)
 
     # Relationships
     group: Mapped[Group] = relationship(

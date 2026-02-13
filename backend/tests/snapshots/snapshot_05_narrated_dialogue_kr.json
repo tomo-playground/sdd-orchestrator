@@ -1,0 +1,103 @@
+{
+  "description": "Narrated Dialogue 한국어 — 3-speaker (A, B, Narrator), 15초",
+  "request": {
+    "topic": "첫 고백",
+    "description": "학교 옥상에서 고백하는 장면, 내레이터가 상황 설명",
+    "duration": 15,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Narrated Dialogue",
+    "actor_a_gender": "male",
+    "character_id": 3,
+    "character_b_id": 4,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "평범한 방과후였다",
+        "speaker": "Narrator",
+        "duration": 3.0,
+        "image_prompt": "school, rooftop, afternoon, sky, clouds, fence, no_humans",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "rooftop", "afternoon"],
+          "mood": ["calm"],
+          "camera": ["wide_shot"]
+        },
+        "character_actions": [],
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "할 말이 있어",
+        "speaker": "A",
+        "duration": 3.0,
+        "image_prompt": "1boy, school_uniform, rooftop, nervous, looking_away, afternoon",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "rooftop", "afternoon"],
+          "mood": ["tense", "nervous"],
+          "camera": ["medium_shot"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["nervous", "looking_away"]},
+          {"character": "B", "action_tags": ["curious", "waiting"]}
+        ],
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "뭔데?",
+        "speaker": "B",
+        "duration": 2.0,
+        "image_prompt": "1girl, school_uniform, rooftop, tilting_head, curious, afternoon",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "rooftop", "afternoon"],
+          "mood": ["curious"],
+          "camera": ["close-up"]
+        },
+        "character_actions": [
+          {"character": "B", "action_tags": ["tilting_head", "curious"]}
+        ],
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "좋아해",
+        "speaker": "A",
+        "duration": 3.0,
+        "image_prompt": "1boy, school_uniform, rooftop, blushing, looking_at_viewer, sunset",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "rooftop", "sunset"],
+          "mood": ["romantic", "brave"],
+          "camera": ["close-up"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["blushing", "looking_at_viewer"]}
+        ],
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "그렇게 두 사람의 이야기가 시작됐다",
+        "speaker": "Narrator",
+        "duration": 4.0,
+        "image_prompt": "school, rooftop, sunset, sky, orange_sky, no_humans, scenery",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["school", "rooftop", "sunset"],
+          "mood": ["warm", "hopeful"],
+          "camera": ["wide_shot"]
+        },
+        "character_actions": [],
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": 3,
+    "character_b_id": 4
+  }
+}

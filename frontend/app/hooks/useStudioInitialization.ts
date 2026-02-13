@@ -176,8 +176,12 @@ export function useStudioInitialization() {
 
         // Load group render defaults (bgmFile, speedMultiplier, voicePresetId, etc.)
         // Skip content defaults (structure/language/duration) since storyboard already has them
+        // Skip style profile if storyboard already has one (prevents duplicate toast)
         if (groupId) {
-          loadGroupDefaults(groupId, { skipContentDefaults: true });
+          loadGroupDefaults(groupId, {
+            skipContentDefaults: true,
+            skipStyleProfile: !!data.style_profile_id,
+          });
         }
       })
       .catch(async (err) => {
@@ -232,10 +236,12 @@ async function loadCharacterForRole(
   try {
     const charRes = await axios.get(`${API_BASE}/characters/${characterId}`);
     const char = charRes.data;
+    const nameField = fields.basePrompt === "basePromptA" ? "selectedCharacterName" : "selectedCharacterBName";
     const updates: Record<string, unknown> = {
       [fields.loras]: char.loras || [],
       [fields.basePrompt]: char.base_prompt || "",
       [fields.baseNegative]: char.base_negative || "",
+      [nameField]: char.name || null,
     };
     if (fields.promptMode) {
       updates[fields.promptMode] = char.prompt_mode || "auto";

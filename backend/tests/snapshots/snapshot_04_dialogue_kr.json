@@ -1,0 +1,75 @@
+{
+  "description": "Dialogue 한국어 — 2캐릭터 대화, 10초",
+  "request": {
+    "topic": "우연한 재회",
+    "description": "오랜만에 거리에서 마주친 두 친구",
+    "duration": 10,
+    "style": "Anime",
+    "language": "Korean",
+    "structure": "Dialogue",
+    "actor_a_gender": "female",
+    "character_id": 1,
+    "character_b_id": 2,
+    "group_id": null
+  },
+  "response": {
+    "scenes": [
+      {
+        "script": "어? 너 혹시...?",
+        "speaker": "A",
+        "duration": 3.0,
+        "image_prompt": "2girls, street, surprised, pointing, daytime, urban",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["street", "outdoor", "daytime"],
+          "mood": ["surprised"],
+          "camera": ["medium_shot"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["surprised", "pointing"]},
+          {"character": "B", "action_tags": ["turning_around"]}
+        ],
+        "_auto_pin_previous": false
+      },
+      {
+        "script": "세상에, 5년 만이야!",
+        "speaker": "B",
+        "duration": 3.0,
+        "image_prompt": "2girls, street, hugging, happy, tears, daytime",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["street", "outdoor", "daytime"],
+          "mood": ["joyful", "emotional"],
+          "camera": ["close-up"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["hugging", "crying"]},
+          {"character": "B", "action_tags": ["hugging", "smiling"]}
+        ],
+        "_auto_pin_previous": true
+      },
+      {
+        "script": "커피 한 잔 할까?",
+        "speaker": "A",
+        "duration": 4.0,
+        "image_prompt": "2girls, street, walking_together, smiling, sunset, urban",
+        "image_prompt_ko": "",
+        "negative_prompt": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+        "context_tags": {
+          "environment": ["street", "outdoor", "sunset"],
+          "mood": ["warm", "nostalgic"],
+          "camera": ["full_body"]
+        },
+        "character_actions": [
+          {"character": "A", "action_tags": ["walking", "smiling"]},
+          {"character": "B", "action_tags": ["walking", "nodding"]}
+        ],
+        "_auto_pin_previous": true
+      }
+    ],
+    "character_id": 1,
+    "character_b_id": 2
+  }
+}
