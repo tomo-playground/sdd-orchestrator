@@ -1,10 +1,11 @@
-"""TTS audio post-processing: trimming, hallucination detection, silence compression.
+"""TTS audio post-processing: trimming, hallucination detection, silence compression, normalization.
 
-Provides a 4-step pipeline for cleaning Qwen-TTS output:
+Provides a 5-step pipeline for cleaning Qwen-TTS output:
 1. Leading/trailing silence removal (librosa.effects.trim)
 2. Trailing hallucination detection (energy decay→re-rise pattern)
 3. Internal silence compression (cap gaps at TTS_SILENCE_MAX_MS)
 4. Fade-in/out (smooth click artifacts)
+5. Audio normalization (RMS-based dBFS targeting)
 """
 
 from __future__ import annotations
@@ -80,8 +81,58 @@ def _compress_internal_silence(wav: np.ndarray, sr: int) -> np.ndarray:
     return result
 
 
-def trim_tts_audio(wav: np.ndarray, sr: int) -> np.ndarray:
-    """Trim silence/artifacts, compress internal gaps, apply fade."""
+def normalize_audio(wav: np.ndarray, target_dbfs: float = -20.0) -> np.ndarray:
+    """Normalize audio to target dBFS level.
+
+    Args:
+        wav: Audio waveform (numpy array, float32, [-1, 1])
+        target_dbfs: Target dBFS level (default: -20.0)
+
+    Returns:
+        Normalized audio waveform
+    """
+    # Calculate current RMS
+    rms = np.sqrt(np.mean(wav**2))
+
+    if rms < 1e-6:  # Silence or near-silence
+        logger.warning("[TTS] Audio normalization skipped: RMS too low (%.6f)", rms)
+        return wav
+
+    # Convert RMS to dBFS
+    # dBFS = 20 * log10(rms / 1.0)
+    current_dbfs = 20 * np.log10(rms)
+
+    # Calculate gain
+    gain_db = target_dbfs - current_dbfs
+    gain_linear = 10 ** (gain_db / 20)
+
+    # Apply gain
+    normalized = wav * gain_linear
+
+    # Clip to prevent clipping
+    normalized = np.clip(normalized, -1.0, 1.0)
+
+    logger.info(
+        "[TTS] Audio normalized: %.1f dBFS → %.1f dBFS (gain: %.1f dB)",
+        current_dbfs,
+        target_dbfs,
+        gain_db,
+    )
+
+    return normalized
+
+
+def trim_tts_audio(wav: np.ndarray, sr: int, normalize: bool = True) -> np.ndarray:
+    """Trim silence/artifacts, compress internal gaps, apply fade, and normalize.
+
+    Args:
+        wav: Audio waveform
+        sr: Sample rate
+        normalize: Whether to normalize audio (default: True)
+
+    Returns:
+        Processed audio waveform
+    """
     import librosa
 
     # Step 1: trim leading/trailing silence
@@ -99,6 +150,11 @@ def trim_tts_audio(wav: np.ndarray, sr: int) -> np.ndarray:
     if len(trimmed) > fade_samples * 2:
         trimmed[:fade_samples] *= np.linspace(0, 1, fade_samples)
         trimmed[-fade_samples:] *= np.linspace(1, 0, fade_samples)
+
+    # Step 5: normalize audio
+    if normalize:
+        trimmed = normalize_audio(trimmed)
+
     return trimmed
 
 
