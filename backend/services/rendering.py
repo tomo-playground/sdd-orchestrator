@@ -1076,14 +1076,29 @@ def compose_post_frame(
     card.putalpha(mask)
     background.alpha_composite(card, (card_x, card_y))
 
-    # Dynamic cropping strategy:
-    # If image is significantly taller than square (aspect ratio < 0.9), use TOP alignment (0.5, 0.0) to preserve head.
-    # Otherwise (square or landscape), use CENTER alignment (0.5, 0.5).
-    img_w, img_h = image_rgb.size
-    aspect_ratio = img_w / img_h
-    centering = (0.5, 0.0) if aspect_ratio < 0.85 else (0.5, 0.5)
 
-    inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS, centering=centering).convert("RGBA")
+    # Smart crop with face detection
+    from services.image import detect_face, calculate_face_centered_crop
+
+    img_w, img_h = image_rgb.size
+    face_rect = detect_face(image_rgb)
+
+    if face_rect:
+        # Face detected: use smart crop centered on face
+        crop_box = calculate_face_centered_crop(
+            img_w, img_h, face_rect, target_aspect_ratio=1.0  # Square aspect ratio
+        )
+        x, y, w, h = crop_box
+        cropped = image_rgb.crop((x, y, x + w, y + h))
+        inner = cropped.resize((image_area, image_area), Image.LANCZOS).convert("RGBA")
+    else:
+        # No face detected: use original dynamic cropping strategy
+        # If image is significantly taller than square (aspect ratio < 0.9), use TOP alignment to preserve head.
+        # Otherwise (square or landscape), use CENTER alignment.
+        aspect_ratio = img_w / img_h
+        centering = (0.5, 0.0) if aspect_ratio < 0.85 else (0.5, 0.5)
+        inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS, centering=centering).convert("RGBA")
+
     background.alpha_composite(inner, (image_x, image_y))
 
     draw = ImageDraw.Draw(background)

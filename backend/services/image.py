@@ -233,3 +233,88 @@ def analyze_text_region_brightness(image: Image.Image, text_y_ratio: float) -> f
     avg_brightness = sum(pixels) / len(pixels) if pixels else 128
 
     return avg_brightness
+
+
+def detect_face(image: Image.Image) -> tuple[int, int, int, int] | None:
+    """Detect face in image using OpenCV Haar Cascade.
+
+    Args:
+        image: PIL Image to analyze
+
+    Returns:
+        (x, y, width, height) of largest face, or None if no face detected
+    """
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        # OpenCV not available, return None
+        return None
+
+    try:
+        # Convert PIL Image to OpenCV format
+        img_array = np.array(image.convert("RGB"))
+        img_cv = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+        # Load Haar Cascade classifier
+        face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+
+        # Detect faces
+        faces = face_cascade.detectMultiScale(
+            gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)
+        )
+
+        if len(faces) == 0:
+            return None
+
+        # Return largest face
+        largest_face = max(faces, key=lambda f: f[2] * f[3])
+        return tuple(largest_face)
+    except Exception:
+        # Face detection failed, return None
+        return None
+
+
+def calculate_face_centered_crop(
+    image_width: int,
+    image_height: int,
+    face_rect: tuple[int, int, int, int],
+    target_aspect_ratio: float = 1.0,
+) -> tuple[int, int, int, int]:
+    """Calculate crop box centered on face.
+
+    Args:
+        image_width: Original image width
+        image_height: Original image height
+        face_rect: (x, y, width, height) of detected face
+        target_aspect_ratio: Target aspect ratio (width/height)
+
+    Returns:
+        (x, y, width, height) crop box
+    """
+    face_x, face_y, face_w, face_h = face_rect
+    face_center_x = face_x + face_w // 2
+    face_center_y = face_y + face_h // 2
+
+    # Calculate crop dimensions
+    if image_width / image_height > target_aspect_ratio:
+        # Image is wider than target
+        crop_height = image_height
+        crop_width = int(crop_height * target_aspect_ratio)
+    else:
+        # Image is taller than target
+        crop_width = image_width
+        crop_height = int(crop_width / target_aspect_ratio)
+
+    # Center crop on face
+    crop_x = face_center_x - crop_width // 2
+    crop_y = face_center_y - crop_height // 2
+
+    # Clamp to image boundaries
+    crop_x = max(0, min(crop_x, image_width - crop_width))
+    crop_y = max(0, min(crop_y, image_height - crop_height))
+
+    return (crop_x, crop_y, crop_width, crop_height)
