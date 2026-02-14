@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { Film } from "lucide-react";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import EmptyState from "../ui/EmptyState";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
@@ -145,15 +147,19 @@ export default function ScenesTab() {
 
   if (scenes.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-sm text-zinc-400">No scenes yet. Create a script first.</p>
-        <button
-          onClick={() => setActiveTab("script")}
-          className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-95"
-        >
-          Go to Script
-        </button>
-      </div>
+      <EmptyState
+        icon={Film}
+        title="No scenes yet"
+        description="Create a script first to get started with your storyboard."
+        action={
+          <button
+            onClick={() => setActiveTab("script")}
+            className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-95"
+          >
+            Go to Script
+          </button>
+        }
+      />
     );
   }
 
@@ -194,9 +200,9 @@ export default function ScenesTab() {
               qualityScore={
                 imageValidationResults[currentScene.client_id]
                   ? {
-                      match_rate: imageValidationResults[currentScene.client_id].match_rate ?? 0,
-                      missing_tags: imageValidationResults[currentScene.client_id].missing ?? [],
-                    }
+                    match_rate: imageValidationResults[currentScene.client_id].match_rate ?? 0,
+                    missing_tags: imageValidationResults[currentScene.client_id].missing ?? [],
+                  }
                   : null
               }
               sceneMenuOpen={sceneMenuOpen === currentScene.client_id}

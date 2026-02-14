@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useContextStore } from "../../store/useContextStore";
+import { Tooltip } from "../ui";
 
 type Props = {
   title?: string;
@@ -45,14 +46,19 @@ export default function ContextBar({ title }: Props) {
           }}
           className="max-w-xs min-w-[120px] border-b border-zinc-300 bg-transparent px-0 py-0.5 text-sm font-bold text-zinc-900 outline-none"
         />
+
+
+        // ... (inside component)
+
       ) : (
-        <button
-          onClick={() => setIsEditing(true)}
-          className="max-w-[200px] truncate text-sm font-bold text-zinc-900 transition hover:text-zinc-700 md:max-w-sm"
-          title="Click to edit title"
-        >
-          {title || "New Storyboard"}
-        </button>
+        <Tooltip content="Click to edit title" position="bottom">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="max-w-[200px] truncate text-sm font-bold text-zinc-900 transition hover:text-zinc-700 md:max-w-sm"
+          >
+            {title || "New Storyboard"}
+          </button>
+        </Tooltip>
       )}
     </div>
   );

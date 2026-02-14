@@ -138,6 +138,16 @@ const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function Sc
         {index + 1}
       </span>
 
+      {/* Thumbnail */}
+      {scene.image_url ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={scene.image_url}
+          alt={`Scene ${index + 1}`}
+          className="h-9 w-9 flex-shrink-0 rounded-md bg-zinc-100 object-cover"
+        />
+      ) : null}
+
       {/* Content */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-zinc-700">{scriptPreview}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Skeleton } from "../ui";
 import type { Scene, ImageValidation, ImageGenProgress } from "../../types";
 
 type SceneImagePanelProps = {
@@ -111,6 +112,8 @@ function ValidationOverlay({
   );
 }
 
+
+
 export default function SceneImagePanel({
   scene,
   onImageClick,
@@ -123,6 +126,7 @@ export default function SceneImagePanel({
   genProgress,
 }: SceneImagePanelProps) {
   const [hovered, setHovered] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
   const showOverlay = hovered && scene.image_url && !scene.isGenerating && onValidate;
 
   return (
@@ -141,11 +145,10 @@ export default function SceneImagePanel({
             </p>
             <div className="h-1.5 w-32 overflow-hidden rounded-full bg-zinc-200">
               <div
-                className={`h-full rounded-full transition-all duration-300 ease-out ${
-                  genProgress
-                    ? "bg-indigo-500"
-                    : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                }`}
+                className={`h-full rounded-full transition-all duration-300 ease-out ${genProgress
+                  ? "bg-indigo-500"
+                  : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                  }`}
                 style={{ width: genProgress ? `${genProgress.percent}%` : "100%" }}
               />
             </div>
@@ -157,13 +160,18 @@ export default function SceneImagePanel({
 
         {/* Image or placeholder */}
         {scene.image_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={scene.image_url}
-            alt={`Scene ${scene.id}`}
-            onClick={() => onImageClick(scene.image_url)}
-            className="h-full w-full cursor-pointer object-cover object-top"
-          />
+          <>
+            {isImageLoading && <Skeleton className="absolute inset-0 h-full w-full bg-zinc-100" />}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={scene.image_url}
+              alt={`Scene ${scene.id}`}
+              onClick={() => onImageClick(scene.image_url)}
+              onLoad={() => setIsImageLoading(false)}
+              className={`h-full w-full cursor-pointer object-cover object-top ${isImageLoading ? "opacity-0" : "opacity-100"
+                }`}
+            />
+          </>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-xs text-zinc-400">No image</p>
@@ -201,13 +209,12 @@ export default function SceneImagePanel({
           scene.image_url && (
             <div className="absolute top-2 right-2">
               <span
-                className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${
-                  validationResult.match_rate >= 0.8
-                    ? "bg-emerald-500 text-white"
-                    : validationResult.match_rate >= 0.5
-                      ? "bg-amber-500 text-white"
-                      : "bg-red-500 text-white"
-                }`}
+                className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${validationResult.match_rate >= 0.8
+                  ? "bg-emerald-500 text-white"
+                  : validationResult.match_rate >= 0.5
+                    ? "bg-amber-500 text-white"
+                    : "bg-red-500 text-white"
+                  }`}
               >
                 {Math.round(validationResult.match_rate * 100)}%
               </span>
@@ -227,9 +234,8 @@ export default function SceneImagePanel({
                   key={`${scene.client_id}-candidate-${idx}`}
                   type="button"
                   onClick={() => onCandidateSelect(candidate.image_url!)}
-                  className={`relative overflow-hidden rounded-xl border ${
-                    isSelected ? "border-zinc-900" : "border-zinc-200"
-                  }`}
+                  className={`relative overflow-hidden rounded-xl border ${isSelected ? "border-zinc-900" : "border-zinc-200"
+                    }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

@@ -18,6 +18,7 @@ import StepReviewView from "./StepReviewView";
 import DebugSlideOver from "./DebugSlideOver";
 import { useShortsSession } from "./useShortsSession";
 import { useStepReview } from "../../hooks/useStepReview";
+import { usePresets } from "../../hooks/usePresets";
 
 type Props = {
   session: CreativeSession;
@@ -56,6 +57,8 @@ export default function ShortsActiveView({
     handleReviewMessage,
     handleReviewAction,
   } = useStepReview(session.id, session.status);
+
+  const { pipelineMetadata } = usePresets();
 
   const onReviewAction = async (action: "approve" | "revise", feedback?: string) => {
     await handleReviewAction(action, feedback);
@@ -128,11 +131,10 @@ export default function ShortsActiveView({
           <div className="flex-1" />
           <button
             onClick={() => setShowDebug(!showDebug)}
-            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[12px] transition ${
-              showDebug
-                ? "border-indigo-300 bg-indigo-50 text-indigo-600"
-                : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
-            }`}
+            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[12px] transition ${showDebug
+              ? "border-indigo-300 bg-indigo-50 text-indigo-600"
+              : "border-zinc-200 text-zinc-400 hover:bg-zinc-50"
+              }`}
           >
             <Wrench className="h-3 w-3" />
             Debug
@@ -195,6 +197,7 @@ export default function ShortsActiveView({
           logs={pipelineLogs}
           disabledSteps={disabledSteps}
           topic={session.objective}
+          steps={pipelineMetadata}
           review={
             review
               ? { step: review.step, qc_analysis: review.qc_analysis, messages: review.messages }

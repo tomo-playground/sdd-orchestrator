@@ -165,6 +165,13 @@ def _build_scene(
 
         context_tags = {"original_tags": tags, "composed": True}
 
+    # TTS & Pacing data from pipeline
+    tts_data = s.get("tts_design", {})
+    voice_design_prompt = tts_data.get("voice_design_prompt")
+    pacing = tts_data.get("pacing", {})
+    head_padding = pacing.get("head_padding", 0.0)
+    tail_padding = pacing.get("tail_padding", 0.0)
+
     return Scene(
         storyboard_id=storyboard_id,
         order=s.get("order", 0),
@@ -175,6 +182,9 @@ def _build_scene(
         image_prompt_ko=s.get("image_prompt_ko", ""),
         negative_prompt=negative_prompt,
         context_tags=context_tags,
+        voice_design_prompt=voice_design_prompt,
+        head_padding=head_padding,
+        tail_padding=tail_padding,
     )
 
 
@@ -234,9 +244,18 @@ def send_to_studio(
         )
 
     # 4. Create scenes (db=session enables compose_scene_with_style for deep_parse)
-    for s in scenes_data:
+    tts_designs = final.get("tts_designs", [])
+    for i, s in enumerate(scenes_data):
+        # Attach matching tts_design if available
+        # (Assuming scene_id 1 matches order 0, or just use index)
+        matching_tts = next((td for td in tts_designs if td.get("scene_id") == i + 1), {})
+        if not matching_tts and i < len(tts_designs):
+            matching_tts = tts_designs[i]
+        
+        s_with_tts = {**s, "tts_design": matching_tts}
+        
         scene = _build_scene(
-            s,
+            s_with_tts,
             storyboard.id,
             characters,
             session.character_id,

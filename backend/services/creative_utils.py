@@ -220,8 +220,8 @@ def record_quality_report(db, session_id: int, qc_result: dict, step_name: str) 
 def calculate_total_tokens(db, session_id: int) -> dict:
     """Sum token usage across all traces in a session."""
     traces = db.query(CreativeTrace).filter(CreativeTrace.session_id == session_id).all()
-    total_prompt = sum((t.token_usage or {}).get("prompt_tokens", 0) for t in traces)
-    total_completion = sum((t.token_usage or {}).get("completion_tokens", 0) for t in traces)
+    total_prompt = sum((t.token_usage or {}).get("prompt_tokens") or 0 for t in traces)
+    total_completion = sum((t.token_usage or {}).get("completion_tokens") or 0 for t in traces)
     return {
         "prompt_tokens": total_prompt,
         "completion_tokens": total_completion,
@@ -233,9 +233,11 @@ def finalize_pipeline(db, session: CreativeSession, state: dict) -> None:
     """Store final output, record completion trace, calculate tokens."""
     final_scenes = state.get("cinematographer_result", {}).get("scenes", [])
     music_rec = state.get("sound_designer_result", {}).get("recommendation")
+    tts_designs = state.get("tts_designer_result", {}).get("tts_designs", [])
     session.final_output = {
         "scenes": final_scenes,
         "music_recommendation": music_rec,
+        "tts_designs": tts_designs,
         "source": "creative_lab_v2",
     }
     session.status = "completed"
@@ -341,6 +343,15 @@ def build_template_vars(
             "scenes": scripts,
             "character_tags": ctx.get("character_tags"),
             "characters_tags": {sp: info.get("tags", []) for sp, info in characters.items()} if characters else None,
+        }
+
+    if step_name == "tts_designer":
+        cinema_scenes = state.get("cinematographer_result", {}).get("scenes", [])
+        return {
+            "concept": concept,
+            "scenes": cinema_scenes,
+            "language": ctx.get("language", "Korean"),
+            "feedback": revision_fb,
         }
 
     if step_name == "sound_designer":

@@ -25,6 +25,7 @@
   --z-modal-close: 1010;
   --z-nested-modal: 1100;
   --z-command-palette: 1200;
+  --z-tooltip: 1500;
   --z-toast: 2000;
 }
 

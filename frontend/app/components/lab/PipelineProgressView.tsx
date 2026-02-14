@@ -15,6 +15,7 @@ import type {
   StepProgress,
   StepReviewData,
 } from "../../types/creative";
+import type { StepMetadata } from "../../hooks/usePresets";
 import StepLogs from "./StepLogs";
 import StepReviewPanel from "./StepReviewPanel";
 
@@ -23,16 +24,18 @@ type Props = {
   logs: PipelineLog[];
   disabledSteps: string[];
   topic: string;
+  steps: StepMetadata[];
   review?: StepReviewData | null;
   onReviewAction?: (action: "approve" | "revise", feedback?: string) => void;
 };
 
-const STEPS = [
+const FALLBACK_STEPS: StepMetadata[] = [
   { key: "scriptwriter", label: "Scriptwriter", desc: "Scene scripts" },
   { key: "cinematographer", label: "Cinematographer", desc: "Visual design" },
+  { key: "tts_designer", label: "TTS Designer", desc: "Voice & Pacing" },
   { key: "sound_designer", label: "Sound Designer", desc: "BGM direction" },
   { key: "copyright_reviewer", label: "Copyright", desc: "Originality check" },
-] as const;
+];
 
 function resolveStatus(
   value: StepProgress | string | undefined,
@@ -90,11 +93,13 @@ export default function PipelineProgressView({
   logs,
   disabledSteps,
   topic,
+  steps,
   review,
   onReviewAction,
 }: Props) {
   const p = progress ?? {};
   const disabledSet = new Set(disabledSteps);
+  const activeSteps = steps.length > 0 ? steps : FALLBACK_STEPS;
 
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
@@ -106,7 +111,7 @@ export default function PipelineProgressView({
       </div>
 
       <div className="space-y-3">
-        {STEPS.map((step) => {
+        {activeSteps.map((step) => {
           const raw = p[step.key as keyof PipelineProgress];
           const status = resolveStatus(raw, disabledSet.has(step.key));
           const retryCount = resolveRetry(raw);

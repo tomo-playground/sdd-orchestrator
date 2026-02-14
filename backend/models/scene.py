@@ -45,6 +45,11 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     image_prompt_ko: Mapped[str | None] = mapped_column(Text)
     negative_prompt: Mapped[str | None] = mapped_column(Text)
 
+    # TTS & Pacing (Context-Aware TTS Designer output)
+    voice_design_prompt: Mapped[str | None] = mapped_column(Text)
+    head_padding: Mapped[float | None] = mapped_column(Float, default=0.0)
+    tail_padding: Mapped[float | None] = mapped_column(Float, default=0.0)
+
     # Image Generation Params (Optional overrides)
     width: Mapped[int] = mapped_column(Integer, default=512)
     height: Mapped[int] = mapped_column(Integer, default=768)

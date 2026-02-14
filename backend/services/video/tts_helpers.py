@@ -254,7 +254,7 @@ def generate_context_aware_voice_prompt(
                 "You are an expert voice director. Your task is to MODIFY the provided 'Base Voice Description' "
                 "to match the emotional 'Scene Context' and 'Script'.\n"
                 "Keep the speaker's original age, gender, and core characteristics from the Base Description, "
-                "but adjust the TONE and EMOTION to fit the scene.\n"
+                "but adjust the TONE and EMOTION to fit the scene. Prioritize natural, authentic delivery.\n"
                 "Output ONLY the modified English description (e.g., 'A calm male voice' -> 'A male voice shouting angrily').\n"
                 "Keep it under 20 words."
             )

@@ -30,8 +30,24 @@ def api_list_presets(category: str | None = None, db: Session = Depends(get_db))
     if category:
         query = query.filter(CreativeAgentPreset.category == category)
     presets = query.order_by(CreativeAgentPreset.id).all()
+    
+    from config import BASE_DIR, CREATIVE_AGENT_TEMPLATES
+
+    # Attach template content for informational purposes in UI
+    results = []
+    for p in presets:
+        data = AgentPresetResponse.model_validate(p)
+        if p.agent_role and p.agent_role in CREATIVE_AGENT_TEMPLATES:
+            tpl_path = BASE_DIR / "templates" / CREATIVE_AGENT_TEMPLATES[p.agent_role]
+            if tpl_path.exists():
+                try:
+                    data.template_content = tpl_path.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+        results.append(data)
+
     categories = [CategoryOption(**c) for c in CREATIVE_AGENT_CATEGORIES]
-    return AgentPresetsListResponse(presets=presets, categories=categories)
+    return AgentPresetsListResponse(presets=results, categories=categories)
 
 
 @router.post("/agent-presets", response_model=AgentPresetResponse)

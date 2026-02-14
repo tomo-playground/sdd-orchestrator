@@ -3,6 +3,7 @@
 import type { Scene, Background } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { Input, Textarea } from "../ui";
 
 type SceneScriptFieldsProps = {
   scene: Scene;
@@ -28,15 +29,16 @@ export default function SceneScriptFields({
   return (
     <>
       {/* Script */}
+      {/* Script */}
       <div className="grid gap-2">
         <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Script
         </label>
-        <textarea
+        <Textarea
           value={scene.script}
           onChange={(e) => onUpdateScene({ script: e.target.value })}
           rows={3}
-          className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+          className="text-sm"
         />
         <ScriptMeta script={scene.script} />
       </div>
@@ -61,7 +63,7 @@ export default function SceneScriptFields({
           <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Duration
           </label>
-          <input
+          <Input
             type="number"
             min={1}
             max={10}
@@ -74,7 +76,7 @@ export default function SceneScriptFields({
             onBlur={(e) => {
               if (!e.target.value.trim()) onUpdateScene({ duration: 3 });
             }}
-            className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+            className="text-sm"
           />
         </div>
         <div className="flex flex-col gap-2">

@@ -68,6 +68,12 @@ class GeminiProvider:
         config = GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=temperature,
+            safety_settings=[
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ],
         )
         try:
             res = await asyncio.to_thread(
@@ -98,9 +104,9 @@ class GeminiProvider:
 
         usage = getattr(res, "usage_metadata", None)
         token_usage = {
-            "prompt_tokens": getattr(usage, "prompt_token_count", 0) if usage else 0,
-            "completion_tokens": getattr(usage, "candidates_token_count", 0) if usage else 0,
-            "total_tokens": getattr(usage, "total_token_count", 0) if usage else 0,
+            "prompt_tokens": int(getattr(usage, "prompt_token_count", 0) or 0) if usage else 0,
+            "completion_tokens": int(getattr(usage, "candidates_token_count", 0) or 0) if usage else 0,
+            "total_tokens": int(getattr(usage, "total_token_count", 0) or 0) if usage else 0,
         }
         return {
             "content": content,

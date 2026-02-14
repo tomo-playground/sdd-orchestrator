@@ -187,18 +187,16 @@ async def api_run_pipeline(
     session.status = "phase2_running"
     db.commit()
 
-    from services.creative_pipeline import run_pipeline
+    from services.creative_pipeline import PIPELINE_STEPS, run_pipeline
+
+    # Build initial progress dict dynamically from StepDefs
+    initial_progress = {s.name: "pending" for s in PIPELINE_STEPS}
 
     bg.add_task(run_pipeline, session_id=session_id)
     return PipelineStatusResponse(
         status="phase2_running",
         session_type="shorts",
-        progress={
-            "scriptwriter": "pending",
-            "cinematographer": "pending",
-            "sound_designer": "pending",
-            "copyright_reviewer": "pending",
-        },
+        progress=initial_progress,
     )
 
 

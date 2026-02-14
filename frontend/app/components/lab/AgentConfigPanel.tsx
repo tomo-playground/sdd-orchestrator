@@ -26,6 +26,7 @@ type AgentPreset = {
   agent_role: string | null;
   category: string | null;
   agent_metadata: Record<string, unknown> | null;
+  template_content: string | null;
   created_at: string | null;
 };
 
@@ -215,9 +216,8 @@ export default function AgentConfigPanel() {
       <div className="flex gap-1">
         <button
           onClick={() => setCategoryFilter(null)}
-          className={`rounded-lg px-3 py-1 text-xs transition ${
-            categoryFilter === null ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
-          }`}
+          className={`rounded-lg px-3 py-1 text-xs transition ${categoryFilter === null ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
+            }`}
         >
           All
         </button>
@@ -225,9 +225,8 @@ export default function AgentConfigPanel() {
           <button
             key={cat.value}
             onClick={() => setCategoryFilter(cat.value)}
-            className={`rounded-lg px-3 py-1 text-xs transition ${
-              categoryFilter === cat.value ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
-            }`}
+            className={`rounded-lg px-3 py-1 text-xs transition ${categoryFilter === cat.value ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
+              }`}
           >
             {cat.label}
           </button>
@@ -324,6 +323,23 @@ export default function AgentConfigPanel() {
                     </span>
                     <span>temp: {preset.temperature}</span>
                   </div>
+
+                  {/* Template Content (Read-only) */}
+                  {preset.template_content && (
+                    <div className="mt-4 space-y-1">
+                      <p className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
+                        Core Task Instructions (Read-only Template)
+                      </p>
+                      <div className="max-h-60 overflow-y-auto rounded-lg border border-zinc-100 bg-zinc-50/50 p-3">
+                        <pre className="whitespace-pre-wrap font-mono text-[11px] text-zinc-500 leading-relaxed">
+                          {preset.template_content}
+                        </pre>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 italic">
+                        * 이 지시사항은 서버의 템플릿 파일(.j2)에서 관리되며, 시스템 프롬프트와 결합되어 LLM에게 전달됩니다.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>

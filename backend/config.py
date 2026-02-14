@@ -332,7 +332,7 @@ TTS_AUDIO_TRIM_TOP_DB = int(
     os.getenv("TTS_AUDIO_TRIM_TOP_DB", "60")
 )  # librosa.effects.trim threshold (removes trailing silence/hallucination)
 TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))  # Fade-in/out ms (removes click artifacts)
-TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "300"))  # Internal silence max length (ms)
+TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "500"))  # Internal silence max length (ms)
 
 # --- TTS Quality Validation & Retry ---
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
@@ -400,8 +400,15 @@ CREATIVE_ZOMBIE_TIMEOUT_SECONDS = int(os.getenv("CREATIVE_ZOMBIE_TIMEOUT_SECONDS
 
 # --- Creative Lab: Interactive Review ---
 CREATIVE_REVIEW_ENABLED = os.getenv("CREATIVE_REVIEW_ENABLED", "true").lower() == "true"
-CREATIVE_REVIEW_STEPS: list[str] = ["scriptwriter", "cinematographer", "sound_designer", "copyright_reviewer"]
-CREATIVE_OPTIONAL_STEPS: list[str] = ["sound_designer", "copyright_reviewer"]
+CREATIVE_REVIEW_STEPS: list[str] = ["scriptwriter", "cinematographer", "tts_designer", "sound_designer", "copyright_reviewer"]
+CREATIVE_OPTIONAL_STEPS: list[str] = ["tts_designer", "sound_designer", "copyright_reviewer"]
+CREATIVE_PIPELINE_METADATA = [
+    {"key": "scriptwriter", "label": "Scriptwriter", "desc": "Scene scripts"},
+    {"key": "cinematographer", "label": "Cinematographer", "desc": "Visual design"},
+    {"key": "tts_designer", "label": "TTS Designer", "desc": "Voice & Pacing"},
+    {"key": "sound_designer", "label": "Sound Designer", "desc": "BGM direction"},
+    {"key": "copyright_reviewer", "label": "Copyright", "desc": "Originality check"},
+]
 CREATIVE_AUTO_APPROVE_THRESHOLD = float(os.getenv("CREATIVE_AUTO_APPROVE_THRESHOLD", "0.85"))
 
 # Creative Lab: Agent Categories (SSOT for Frontend)
@@ -423,6 +430,7 @@ CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
     # Production Phase
     "scriptwriter": "creative/scriptwriter.j2",
     "cinematographer": "creative/cinematographer.j2",
+    "tts_designer": "creative/tts_designer.j2",
     "sound_designer": "creative/sound_designer.j2",
     "copyright_reviewer": "creative/copyright_reviewer.j2",
     # QC Agents

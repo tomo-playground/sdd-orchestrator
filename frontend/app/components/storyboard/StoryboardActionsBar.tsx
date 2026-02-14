@@ -1,8 +1,9 @@
 "use client";
 
-import type { AutoRunStepId } from "../../types";
+import type { AutoRunStepId, Scene } from "../../types";
 import { AUTO_RUN_STEPS } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
+import { Tooltip } from "../ui";
 
 type StoryboardActionsBarProps = {
   onAutoRun: () => void;
@@ -30,28 +31,32 @@ export default function StoryboardActionsBar({
 
   return (
     <div className="flex items-center gap-1.5">
-      <button
-        onClick={onAutoRun}
-        disabled={isRendering || isAutoRunning}
-        className={`${base} bg-zinc-900 text-white hover:bg-zinc-800`}
-      >
-        {isAutoRunning ? (
-          <span className="flex items-center gap-1.5">
-            <LoadingSpinner size="sm" color="text-white/70" />
-            {currentStepLabel}...
-          </span>
-        ) : (
-          "Auto Run"
-        )}
-      </button>
-      {showSave && onSave && (
+      <Tooltip content="Automatically generate assets (Cmd+Enter)" position="bottom">
         <button
-          onClick={onSave}
-          disabled={isSaving}
-          className={`${base} bg-emerald-500 text-white hover:bg-emerald-600`}
+          onClick={onAutoRun}
+          disabled={isRendering || isAutoRunning}
+          className={`${base} bg-zinc-900 text-white hover:bg-zinc-800`}
         >
-          {isSaving ? "Saving..." : "Save"}
+          {isAutoRunning ? (
+            <span className="flex items-center gap-1.5">
+              <LoadingSpinner size="sm" color="text-white/70" />
+              {currentStepLabel}...
+            </span>
+          ) : (
+            "Auto Run"
+          )}
         </button>
+      </Tooltip>
+      {showSave && onSave && (
+        <Tooltip content="Save storyboard (Cmd+S)" position="bottom">
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className={`${base} bg-emerald-500 text-white hover:bg-emerald-600`}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </Tooltip>
       )}
     </div>
   );

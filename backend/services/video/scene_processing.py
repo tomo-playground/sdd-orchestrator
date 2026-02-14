@@ -315,30 +315,9 @@ async def generate_tts(
                 resolved_preset_id,
             )
 
-        voice_design = scene_req.voice_design_prompt or builder.request.voice_design_prompt
-
-        # --- NEW: Context-Aware Voice Design (Auto-Generation) ---
-        # Only apply context-aware generation if:
-        # 1. No explicit voice design prompt in request (global or scene)
-        # 2. Speaker is NOT the default narrator (Narrator should be consistent)
-        speaker = scene_req.speaker or DEFAULT_SPEAKER
-        is_narrator = speaker == DEFAULT_SPEAKER
-
-        if not voice_design and not is_narrator:
-            # Prefer Korean prompt (usually richer context) > English prompt > Tags
-            context_text = getattr(scene_req, "image_prompt_ko", "") or getattr(scene_req, "image_prompt", "") or ""
-            if context_text:
-                # Merge: preset_voice_design (Base) + context -> Final Prompt
-                voice_design = generate_context_aware_voice_prompt(
-                    clean_script, context_text, base_prompt=preset_voice_design
-                )
-                if voice_design:
-                    logger.info(f"Scene {i}: Auto-generated voice design (Character={speaker}): '{voice_design}'")
-
-        # Fallback to preset if still empty
-        if not voice_design:
-            voice_design = preset_voice_design
-
+        voice_design = _get_voice_design_for_scene(
+            builder, scene_req, preset_voice_design, clean_script, i
+        )
         voice_design = translate_voice_prompt(voice_design or "")
 
         # Seed: preset seed > hash-based fallback
@@ -445,3 +424,54 @@ async def generate_tts(
         error_msg = f"TTS generation error (Qwen) for scene {i}: {e}"
         logger.error(error_msg)
         raise RuntimeError(error_msg) from e
+
+
+def _get_voice_design_for_scene(
+    builder: VideoBuilder,
+    scene_req: VideoScene,
+    preset_voice_design: str | None,
+    clean_script: str,
+    scene_idx: int = 0,
+) -> str | None:
+    """Resolve the voice design prompt following the priority logic.
+
+    Priority:
+    1. Scene-specific voice design prompt (explicit)
+    2. Global voice design prompt from request (explicit)
+    3. Auto-generated context-aware prompt (only for non-narrators)
+    4. Fallback to preset base prompt
+    """
+    from config import DEFAULT_SPEAKER
+
+    # 1. Explicit prompts (Scene > Global)
+    voice_design = getattr(scene_req, "voice_design_prompt", None) or getattr(
+        builder.request, "voice_design_prompt", None
+    )
+
+    # 2. Context-Aware Auto-Generation
+    speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
+    is_narrator = speaker == DEFAULT_SPEAKER
+
+    if not voice_design:
+        # Prefer Korean prompt > English prompt
+        context_text = (
+            getattr(scene_req, "image_prompt_ko", "")
+            or getattr(scene_req, "image_prompt", "")
+            or ""
+        )
+        if context_text:
+            # For Narrators, we also want context-aware delivery if the scene has strong emotional signals
+            # logic: if context_text exists, we try to generate a specific tone
+            voice_design = generate_context_aware_voice_prompt(
+                clean_script, context_text, base_prompt=preset_voice_design
+            )
+            if voice_design:
+                logger.info(
+                    f"Scene {scene_idx}: Auto-generated voice design (Speaker={speaker}): '{voice_design}'"
+                )
+
+    # 3. Fallback to preset
+    if not voice_design:
+        voice_design = preset_voice_design
+
+    return voice_design

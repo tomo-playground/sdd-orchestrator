@@ -437,6 +437,9 @@ class StoryboardScene(BaseModel):
     ip_adapter_reference: str | None = None
     ip_adapter_weight: float | None = None
     multi_gen_enabled: bool | None = None
+    voice_design_prompt: str | None = None
+    head_padding: float | None = None
+    tail_padding: float | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -468,6 +471,8 @@ class VideoScene(BaseModel):
     # Per-scene voice override
     narrator_voice: str | None = None
     voice_design_prompt: str | None = None
+    head_padding: float = 0.0
+    tail_padding: float = 0.0
 
     model_config = ConfigDict(extra="allow")
 

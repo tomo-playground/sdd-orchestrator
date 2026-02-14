@@ -132,9 +132,18 @@ def calculate_scene_durations(
     """
     durations: list[float] = []
     for i, scene in enumerate(scenes):
-        base_duration = (scene.duration or 3) / speed_multiplier
+        base_duration = (getattr(scene, "duration", 3) or 3) / speed_multiplier
+        
+        # New: Use agent-designed padding if available
+        h_pad = getattr(scene, "head_padding", 0.0) or 0.0
+        t_pad = getattr(scene, "tail_padding", 0.0) or 0.0
+        
         if tts_valid[i] and tts_durations[i] > 0:
-            base_duration = max(base_duration, tts_durations[i] + tts_padding)
+            # Duration = Head Padding + TTS Duration + Tail Padding
+            # We also ensure it meets the minimum base_duration
+            total_tts_dur = h_pad + tts_durations[i] + t_pad + tts_padding
+            base_duration = max(base_duration, total_tts_dur)
+            
         durations.append(base_duration)
     return durations
 

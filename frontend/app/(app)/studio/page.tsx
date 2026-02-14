@@ -32,6 +32,7 @@ import { suggestPromptSplit, copyPromptHelperText } from "../../store/actions/pr
 import PreflightModal from "../../components/common/PreflightModal";
 import { runPreflight, buildPreflightInput } from "../../utils/preflight";
 import type { AutoRunStepId } from "../../utils/preflight";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
@@ -115,6 +116,29 @@ function StudioContent() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isRendering, autopilot.isAutoRunning, isDirty]);
+
+  // Keyboard Shortcuts
+  useKeyboardShortcuts([
+    {
+      key: "s",
+      metaKey: true,
+      ctrlKey: true,
+      action: () => {
+        if (scenes.length > 0) handleSave();
+      },
+      preventDefault: true,
+    },
+    {
+      key: "Enter",
+      metaKey: true,
+      action: () => {
+        if (!isRendering && !autopilot.isAutoRunning) {
+          setUI({ showPreflightModal: true });
+        }
+      },
+      preventDefault: true,
+    },
+  ]);
 
   if (isLoadingDb) {
     return (

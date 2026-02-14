@@ -194,3 +194,37 @@ def validate_music(recommendation: list[dict] | dict) -> dict:
     if issues:
         logger.info("[CreativeQC] Music issues: %s", issues)
     return {"ok": len(issues) == 0, "issues": issues, "checks": {"music_recommendation": status}}
+def validate_tts_design(tts_designs: list[dict]) -> dict:
+    """Validate tts designer output for emotional design quality.
+
+    Returns: {"ok": bool, "issues": [str], "checks": {name: "PASS"|"FAIL"}}
+    """
+    issues: list[str] = []
+    checks: dict[str, str] = {}
+
+    if not tts_designs:
+        issues.append("No TTS designs provided")
+        checks["tts_design_present"] = "FAIL"
+        return {"ok": False, "issues": issues, "checks": checks}
+
+    # Prompt presence and pacing range
+    prompt_ok = True
+    pacing_ok = True
+    for i, d in enumerate(tts_designs):
+        if not d.get("voice_design_prompt"):
+            prompt_ok = False
+            issues.append(f"Scene {i}: missing voice_design_prompt")
+        
+        pacing = d.get("pacing", {})
+        head = pacing.get("head_padding", 0)
+        tail = pacing.get("tail_padding", 0)
+        if not (0 <= head <= 1.0) or not (0 <= tail <= 2.0):
+            pacing_ok = False
+            issues.append(f"Scene {i}: pacing values out of normal range (head={head}, tail={tail})")
+
+    checks["tts_design_present"] = "PASS"
+    checks["tts_prompt_present"] = "PASS" if prompt_ok else "FAIL"
+    checks["tts_pacing_valid"] = "PASS" if pacing_ok else "WARN"
+
+    has_fail = any(v == "FAIL" for v in checks.values())
+    return {"ok": not has_fail, "issues": issues, "checks": checks}

@@ -88,9 +88,8 @@ export function CharactersContent() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                filter === key ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
-              }`}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${filter === key ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
+                }`}
             >
               {label}
             </button>

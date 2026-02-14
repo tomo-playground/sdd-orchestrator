@@ -65,6 +65,7 @@ class AgentPresetResponse(BaseModel):
     agent_role: str | None = None
     category: str | None = None
     agent_metadata: dict[str, Any] | None = None
+    template_content: str | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

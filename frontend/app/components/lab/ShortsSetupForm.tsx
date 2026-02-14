@@ -42,8 +42,11 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
   const [monoCharId, setMonoCharId] = useState<number | null>(null);
   const [speakerBId, setSpeakerBId] = useState<number | null>(null);
 
-  const { presets, languages, durations, optionalSteps } = usePresets();
+  const { presets, languages, durations, optionalSteps, pipelineMetadata } = usePresets();
   const [disabledSteps, setDisabledSteps] = useState<Set<string>>(new Set());
+
+  // Map optional steps to metadata
+  const optionalStepConfigs = pipelineMetadata.filter((m) => optionalSteps.includes(m.key));
 
   const toggleStep = (step: string) => {
     setDisabledSteps((prev) => {
@@ -138,23 +141,28 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
         </div>
 
         {/* Pipeline Steps (optional) */}
-        {optionalSteps.length > 0 && (
+        {optionalStepConfigs.length > 0 && (
           <div>
             <label className={LABEL}>Pipeline Steps</label>
-            <div className="space-y-1.5">
-              {optionalSteps.map((step) => (
+            <div className="space-y-2">
+              {optionalStepConfigs.map((step) => (
                 <label
-                  key={step}
-                  className="flex cursor-pointer items-center gap-2 text-xs text-zinc-600"
+                  key={step.key}
+                  className="flex cursor-pointer items-start gap-2 text-xs text-zinc-600 group"
                 >
                   <input
                     type="checkbox"
-                    checked={!disabledSteps.has(step)}
-                    onChange={() => toggleStep(step)}
-                    className="h-3.5 w-3.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                    checked={!disabledSteps.has(step.key)}
+                    onChange={() => toggleStep(step.key)}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                   />
-                  {step.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                  <span className="text-[12px] text-zinc-400">(optional)</span>
+                  <div className="flex flex-col">
+                    <span className="font-medium group-hover:text-zinc-900 transition-colors">
+                      {step.label}
+                      <span className="ml-1.5 text-[10px] text-zinc-400 font-normal">(optional)</span>
+                    </span>
+                    <span className="text-[10px] text-zinc-400 leading-tight">{step.desc}</span>
+                  </div>
                 </label>
               ))}
             </div>

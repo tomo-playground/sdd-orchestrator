@@ -112,6 +112,9 @@ def serialize_scene(
         "ip_adapter_reference": scene.ip_adapter_reference,
         "ip_adapter_weight": scene.ip_adapter_weight,
         "multi_gen_enabled": scene.multi_gen_enabled,
+        "voice_design_prompt": scene.voice_design_prompt,
+        "head_padding": scene.head_padding,
+        "tail_padding": scene.tail_padding,
     }
 
 
@@ -195,6 +198,9 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             ip_adapter_reference=getattr(s_data, "ip_adapter_reference", None),
             ip_adapter_weight=getattr(s_data, "ip_adapter_weight", None),
             multi_gen_enabled=getattr(s_data, "multi_gen_enabled", None),
+            voice_design_prompt=getattr(s_data, "voice_design_prompt", None),
+            head_padding=getattr(s_data, "head_padding", 0.0) or 0.0,
+            tail_padding=getattr(s_data, "tail_padding", 0.0) or 0.0,
         )
         db.add(db_scene)
         db.flush()

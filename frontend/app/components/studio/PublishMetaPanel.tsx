@@ -11,6 +11,7 @@ import { updateStoryboardMetadata } from "../../store/actions/storyboardActions"
 import { useYouTubeUpload } from "../../hooks/useYouTubeUpload";
 import RenderedVideosSection from "../video/RenderedVideosSection";
 import YouTubeUploadModal from "../youtube/YouTubeUploadModal";
+import { Input, Textarea } from "../ui";
 
 /**
  * Caption/Likes/YouTube section for the Publish tab.
@@ -134,29 +135,29 @@ export function PublishCaptionLikes() {
             캡션
           </label>
           <span
-            className={`text-[12px] font-bold ${
-              videoCaption.length >= 60
-                ? "text-red-500"
-                : videoCaption.length >= 50
-                  ? "text-amber-500"
-                  : "text-zinc-400"
-            }`}
+            className={`text-[12px] font-bold ${videoCaption.length >= 60
+              ? "text-red-500"
+              : videoCaption.length >= 50
+                ? "text-amber-500"
+                : "text-zinc-400"
+              }`}
           >
             {videoCaption.length}/60
           </span>
           {savedField === "caption" && savedBadge}
         </div>
-        <textarea
+
+
+        // ... (top of file)
+
+        <Textarea
           value={videoCaption}
           onChange={(e) => setOutput({ videoCaption: e.target.value })}
           onBlur={(e) => handleCaptionBlur(e.target.value)}
           placeholder={topic || "AI 생성 영상"}
           rows={3}
-          className={`w-full rounded-lg border px-3 py-2 text-xs transition-colors outline-none focus:ring-1 ${
-            videoCaption.length >= 60
-              ? "border-red-300 bg-red-50/30 focus:ring-red-100"
-              : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100"
-          }`}
+          error={videoCaption.length >= 60}
+          className="text-xs"
         />
         {videoCaption.length > 60 && (
           <button
@@ -177,13 +178,13 @@ export function PublishCaptionLikes() {
           </label>
           {savedField === "likes" && savedBadge}
         </div>
-        <input
+        <Input
           type="text"
           value={videoLikesCount}
           onChange={(e) => setOutput({ videoLikesCount: e.target.value })}
-          onBlur={handleLikesBlur}
+          onBlur={() => handleLikesBlur()}
           placeholder="1.2K"
-          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-xs outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-100"
+          className="text-xs"
         />
       </div>
     </>
