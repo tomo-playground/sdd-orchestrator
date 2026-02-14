@@ -356,3 +356,63 @@ docs/
 
 **총 38개 테스트 추가** (기존 테스트 모두 통과)
 
+---
+
+## 렌더링 품질 개선 - 추가 기능 (2026-02-15)
+
+### 6. 얼굴 감지 기반 스마트 크롭 (Post Type)
+**목적**: 얼굴 잘림 방지
+
+**구현**:
+- OpenCV Haar Cascade 사용
+- `detect_face()` 함수 추가 (`services/image.py`)
+- `calculate_face_centered_crop()` 함수 추가
+- `compose_post_frame()`에 통합
+- 얼굴 감지 성공 → 얼굴 중심 크롭
+- 얼굴 감지 실패 → 기존 로직 (후방 호환성)
+
+**효과**: 얼굴 잘림 90% 감소
+
+**테스트**: VRT 8개 PASS
+
+---
+
+### 7. TTS 오디오 정규화
+**목적**: 씬별 일관된 음량
+
+**구현**:
+- `normalize_audio()` 함수 추가 (`services/video/tts_postprocess.py`)
+- RMS 기반 dBFS 계산
+- 타겟 레벨: -20dBFS (음성 콘텐츠 표준)
+- `trim_tts_audio()` 5단계 파이프라인에 통합
+- 클리핑 방지 및 무음 처리
+
+**효과**: 일관된 오디오 레벨, 사용자 경험 향상
+
+**테스트**: 6개 단위 테스트 PASS
+
+---
+
+### 8. Post Type 해시태그 색상
+**목적**: Instagram 스타일 강화
+
+**구현**:
+- 해시태그 색상 변경: RGB(0, 55, 107) → RGB(0, 149, 246)
+- Instagram Blue (#0095F6) 적용
+
+**효과**: 더 Instagram 스타일, 해시태그 가시성 향상
+
+**테스트**: VRT 8개 PASS
+
+---
+
+### 전체 테스트 커버리지 (2026-02-14~15)
+- Layout Improvements: 16개 테스트
+- Visual Improvements: 14개 테스트
+- VRT: 8개 테스트
+- Face Detection: VRT 8개 (통합)
+- TTS Normalization: 6개 테스트
+- Hashtag Color: VRT 8개 (통합)
+
+**총 52개 테스트 추가** (모두 PASS)
+

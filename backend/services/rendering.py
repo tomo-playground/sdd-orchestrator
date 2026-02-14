@@ -1225,7 +1225,7 @@ def compose_post_frame(
             cap_y += int(caption_font_size * 1.4)
 
     if hashtags_line:
-        draw.text((cap_x, cap_y), hashtags_line, fill=(0, 55, 107), font=meta_font)
+        draw.text((cap_x, cap_y), hashtags_line, fill=(0, 149, 246), font=meta_font)  # Instagram Blue #0095F6
         cap_y += int(meta_font_size * 1.6)
 
     time_y = card_y + card_height - card_padding - int(meta_font_size * 1.2)
