@@ -275,7 +275,41 @@ def _draw_text_with_fallback(
         cursor_x += bbox[2] - bbox[0]
 
 
+
 # --- Subtitle rendering ---
+def calculate_optimal_font_size(
+    text: str,
+    base_font_size: int,
+    min_font_size: int = 32,
+    max_font_size: int = 48,
+) -> int:
+    """Calculate optimal font size based on text length.
+
+    Args:
+        text: Text to render
+        base_font_size: Base font size (from height ratio)
+        min_font_size: Minimum font size
+        max_font_size: Maximum font size
+
+    Returns:
+        Optimal font size
+    """
+    char_count = len(text.strip())
+
+    # Clamp base size to min/max range first
+    clamped_base = max(min_font_size, min(base_font_size, max_font_size))
+
+    if char_count < 20:
+        return max_font_size  # Short text: large font
+    elif char_count > 60:
+        return min_font_size  # Long text: small font
+    else:
+        # Linear interpolation: 20-60 chars
+        ratio = (char_count - 20) / 40
+        font_size = max_font_size - (max_font_size - min_font_size) * ratio
+        return int(font_size)
+
+
 def render_scene_text_image(
     lines: list[str],
     width: int,
@@ -285,6 +319,7 @@ def render_scene_text_image(
     post_layout_metrics: dict[str, int] | None,
     font_size_override: int | None = None,
     scene_text_y_ratio: float | None = None,
+    background_image: Image.Image | None = None,
 ) -> Image.Image:
     """Render subtitle text as transparent image.
 
@@ -297,6 +332,7 @@ def render_scene_text_image(
         post_layout_metrics: Layout metrics for post mode.
         font_size_override: Optional font size to use instead of calculated size.
         scene_text_y_ratio: Optional Y position ratio (0-1). If provided, overrides default positioning.
+        background_image: Optional background image for adaptive text color.
     """
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
@@ -336,7 +372,16 @@ def render_scene_text_image(
         return canvas
 
     # Full layout - 하단 배치 (피사체 보호 및 Safe Zone 확보)
-    subtitle_size = font_size_override if font_size_override else int(height * 0.042)
+    base_subtitle_size = font_size_override if font_size_override else int(height * 0.042)
+    
+    # Apply dynamic font sizing based on text length (if not overridden)
+    if font_size_override is None and lines:
+        # Use first line for font size calculation
+        combined_text = " ".join(lines)
+        subtitle_size = calculate_optimal_font_size(combined_text, base_subtitle_size)
+    else:
+        subtitle_size = base_subtitle_size
+    
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
     line_height = int(subtitle_size * 1.45)
@@ -352,31 +397,49 @@ def render_scene_text_image(
     # Drop shadow offset (3px down-right)
     shadow_offset = max(2, subtitle_size // 20)
 
+    # Adaptive text color based on background brightness (Full layout only)
+    text_color = (255, 255, 255, 255)  # Default: white
+    stroke_color = (0, 0, 0, 255)  # Default: black stroke
+    shadow_color = (0, 0, 0, 120)  # Default: black shadow
+    
+    if background_image is not None:
+        from services.image import analyze_text_region_brightness
+        
+        # Analyze brightness at text position
+        y_ratio = scene_text_y_ratio if scene_text_y_ratio is not None else 0.70
+        brightness = analyze_text_region_brightness(background_image, y_ratio)
+        
+        # Bright background (>180) → black text with white stroke
+        if brightness > 180:
+            text_color = (0, 0, 0, 255)  # Black text
+            stroke_color = (255, 255, 255, 255)  # White stroke
+            shadow_color = (255, 255, 255, 120)  # White shadow
+
     for idx, line in enumerate(lines[:2]):
         line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
         text_x = max(0, int((width - line_w) / 2))
         y = text_y_pos + idx * line_height
-        # Shadow layer (semi-transparent black, offset)
+        # Shadow layer (semi-transparent, offset)
         _draw_text_with_fallback(
             draw,
             (text_x + shadow_offset, y + shadow_offset),
             line,
             font,
             emoji_font,
-            (0, 0, 0, 120),
+            shadow_color,
             stroke_width=3,
-            stroke_fill=(0, 0, 0, 80),
+            stroke_fill=(shadow_color[0], shadow_color[1], shadow_color[2], 80),
         )
-        # Main text (white + black stroke)
+        # Main text (adaptive color + stroke)
         _draw_text_with_fallback(
             draw,
             (text_x, y),
             line,
             font,
             emoji_font,
-            (255, 255, 255, 255),
+            text_color,
             stroke_width=5,
-            stroke_fill=(0, 0, 0, 255),
+            stroke_fill=stroke_color,
         )
     return canvas
 
@@ -891,18 +954,51 @@ def resolve_overlay_frame(
     create_overlay_image(settings, width, height, output_path, layout_style)
 
 
-def calculate_post_layout_metrics(width: int, height: int) -> dict[str, int]:
+def calculate_scene_text_area_height(subtitle_text: str, card_height: int) -> int:
+    """Calculate dynamic scene text area height based on text length.
+
+    Args:
+        subtitle_text: Scene text content
+        card_height: Card height in pixels
+
+    Returns:
+        Scene text area height (12-25% of card height)
+    """
+    if not subtitle_text:
+        return int(card_height * 0.12)  # Minimum height for empty text
+
+    line_count = len(subtitle_text.split("\n"))
+    char_count = len(subtitle_text.strip())
+
+    # Text length based height calculation
+    if char_count < 20:
+        ratio = 0.12  # Short text: 12%
+    elif char_count > 60 or line_count > 2:
+        ratio = 0.25  # Long text or multi-line: 25%
+    else:
+        # Linear interpolation: 20-60 chars → 12-18%
+        ratio = 0.12 + (char_count - 20) * (0.18 - 0.12) / 40
+
+    return int(card_height * ratio)
+
+
+def calculate_post_layout_metrics(width: int, height: int, subtitle_text: str = "") -> dict[str, int]:
     """Calculate layout metrics for post-style frames.
 
     Shared between compose_post_frame and video filter building.
     Returns a dict with all positioning and sizing values.
+
+    Args:
+        width: Frame width in pixels
+        height: Frame height in pixels
+        subtitle_text: Scene text content for dynamic height calculation
     """
     card_offset_y = int(height * 0.04)
     card_width = int(width * 0.88)
     card_height = int(height * 0.86)
     card_padding = int(card_width * 0.04)
     header_height = int(card_height * 0.055)
-    scene_text_area_height = int(card_height * 0.18)
+    scene_text_area_height = calculate_scene_text_area_height(subtitle_text, card_height)
     action_bar_height = int(card_height * 0.045)
     caption_height = int(card_height * 0.13)
 
@@ -952,7 +1048,7 @@ def compose_post_frame(
 ) -> Image.Image:
     """Compose Instagram-style post frame."""
     # Get layout metrics from shared function
-    metrics = calculate_post_layout_metrics(width, height)
+    metrics = calculate_post_layout_metrics(width, height, subtitle_text)
     card_width = metrics["card_width"]
     card_height = metrics["card_height"]
     card_padding = metrics["card_padding"]
@@ -967,7 +1063,9 @@ def compose_post_frame(
     image = Image.open(io.BytesIO(image_bytes))
     image_rgb = image.convert("RGB")
     background = ImageOps.fit(image_rgb, (width, height), Image.LANCZOS)
-    background = background.filter(ImageFilter.GaussianBlur(radius=30)).convert("RGBA")
+    # Improved blur: Box Blur + Gaussian Blur for smoother effect
+    background = background.filter(ImageFilter.BoxBlur(radius=15))
+    background = background.filter(ImageFilter.GaussianBlur(radius=20)).convert("RGBA")
     background.alpha_composite(Image.new("RGBA", (width, height), (0, 0, 0, 20)))
 
     radius = int(card_width * 0.06)
@@ -1083,9 +1181,9 @@ def compose_post_frame(
     for icon in icons_right:
         draw.text((bookmark_x, action_y), icon, fill=(50, 50, 50), font=meta_font)
 
-    # Caption area
+    # Caption area (increased spacing from action bar)
     cap_x = card_x + card_padding
-    cap_y = action_y + int(action_bar_height * 1.2)
+    cap_y = action_y + int(action_bar_height * 2.5)  # Increased from 1.2 to 2.5 for better spacing
 
     likes_text = f"좋아요 {views}개"
     likes_font = _get_font_from_path(font_path, int(meta_font_size * 1.0))

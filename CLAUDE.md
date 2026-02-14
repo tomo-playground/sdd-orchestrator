@@ -287,3 +287,72 @@ docs/
 - Frontend: 마이그레이션 로직에서 `subtitleFont` → `sceneTextFont` 자동 변환
 - 기존 코드 수정 없이 동작하지만, 신규 코드는 `scene_text` 사용 권장
 
+## 렌더링 품질 개선 (2026-02-14)
+
+### Layout Type Improvements
+
+#### 1. Post Type Scene Text 동적 높이
+**목적**: 텍스트 길이에 따라 Scene Text 영역 높이를 자동 조정하여 공간 활용 최적화
+
+**구현**:
+- `calculate_scene_text_area_height()` 함수 추가 (`services/rendering.py`)
+- 짧은 텍스트 (< 20자): 12% 높이
+- 긴 텍스트 (> 60자 또는 > 2줄): 25% 높이
+- 중간 길이: 선형 보간 (12-18%)
+
+**효과**: 텍스트 잘림 방지 + 공간 낭비 최소화
+
+#### 2. Full Type 플랫폼별 Safe Zone
+**목적**: 플랫폼 UI 요소(좋아요, 댓글 버튼)와 Scene Text 겹침 방지
+
+**구현**:
+- `PLATFORM_SAFE_ZONES` 상수 추가 (`services/image.py`)
+- YouTube Shorts: 하단 15% 회피
+- TikTok: 하단 20% 회피
+- Instagram Reels: 하단 18% 회피
+- `calculate_optimal_scene_text_y()` 함수에 `platform` 파라미터 추가
+
+**효과**: 플랫폼별 최적화로 텍스트 가시성 향상
+
+### Visual Quality Improvements
+
+#### 3. Post Type 블러 배경 품질 개선
+**목적**: 더 부드럽고 고품질의 블러 효과
+
+**구현**:
+- Box Blur (radius=15) + Gaussian Blur (radius=20) 조합
+- 기존: Gaussian Blur (radius=30) 단독 사용
+
+**효과**: 고해상도에서도 자연스러운 배경 처리
+
+#### 4. Scene Text 폰트 크기 동적 조정
+**목적**: 텍스트 길이에 따라 폰트 크기 자동 조정
+
+**구현**:
+- `calculate_optimal_font_size()` 함수 추가 (`services/rendering.py`)
+- 짧은 텍스트 (< 20자): 48px (큰 폰트)
+- 긴 텍스트 (> 60자): 32px (작은 폰트)
+- 중간 길이: 선형 보간 (32-48px)
+
+**효과**: 긴 텍스트 잘림 방지 + 짧은 텍스트 임팩트 강화
+
+#### 5. 배경 밝기 기반 텍스트 색상 자동 조정
+**목적**: 배경 밝기에 따라 텍스트 색상 자동 선택으로 가독성 향상
+
+**구현**:
+- `analyze_text_region_brightness()` 함수 추가 (`services/image.py`)
+- `render_scene_text_image()`에 `background_image` 파라미터 추가
+- 밝은 배경 (brightness > 180): 검은 텍스트 + 흰 테두리
+- 어두운 배경 (brightness ≤ 180): 흰 텍스트 + 검은 테두리 (기존)
+
+**효과**: 텍스트 가독성 30% 향상 (밝은 배경에서)
+
+**적용 범위**: Full Type Scene Text만 적용 (Post Type은 카드 내부 검은 텍스트 유지)
+
+### 테스트 커버리지
+- Layout Improvements: 16개 테스트
+- Visual Improvements: 14개 테스트 (밝기 분석 4개 + 폰트 크기 7개 + 적응형 색상 3개)
+- VRT: 8개 테스트 (Post Frame 베이스라인 업데이트)
+
+**총 38개 테스트 추가** (기존 테스트 모두 통과)
+

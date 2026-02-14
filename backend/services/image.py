@@ -8,6 +8,15 @@ from urllib.parse import urlparse
 import numpy as np
 from PIL import Image
 
+# Platform-specific safe zones (bottom margin to avoid UI overlap)
+# Values represent the bottom percentage of the screen to avoid
+PLATFORM_SAFE_ZONES = {
+    "youtube_shorts": 0.15,  # Bottom 15% (like button, comments, share)
+    "tiktok": 0.20,  # Bottom 20% (more UI elements)
+    "instagram_reels": 0.18,  # Bottom 18% (action buttons)
+    "default": 0.15,  # Default fallback
+}
+
 
 def decode_data_url(data_url: str) -> bytes:
     """Decode a base64 data URL to bytes."""
@@ -151,7 +160,10 @@ def analyze_bottom_complexity(image: Image.Image, region_ratio: float = 0.2) -> 
 
 
 def calculate_optimal_scene_text_y(
-    image: Image.Image, default_y_ratio: float = 0.12, layout_style: str = "full"
+    image: Image.Image,
+    default_y_ratio: float = 0.12,
+    layout_style: str = "full",
+    platform: str = "default",
 ) -> float:
     """Calculate optimal Y position for scene text based on image content.
 
@@ -159,6 +171,7 @@ def calculate_optimal_scene_text_y(
         image: PIL Image to analyze
         default_y_ratio: Default Y position ratio (0.68 = bottom 68%)
         layout_style: "full" or "post" layout
+        platform: Target platform ("youtube_shorts", "tiktok", "instagram_reels", "default")
 
     Returns:
         Optimal Y position ratio (0.0 to 1.0)
@@ -172,12 +185,20 @@ def calculate_optimal_scene_text_y(
     if layout_style == "full":
         # Full layout: scene text is at bottom (68-72% from top)
         # Dynamic adjustment within bottom region to avoid platform UI / image detail
+
+        # Apply platform-specific safe zone
+        safe_zone = PLATFORM_SAFE_ZONES.get(platform, 0.15)
+        max_y = 1.0 - safe_zone  # e.g., 0.85 for 15% bottom margin
+
         if complexity > HIGH_COMPLEXITY:
-            return 0.65  # Move slightly higher to avoid complex bottom
+            y_pos = 0.65  # Move slightly higher to avoid complex bottom
         elif complexity < LOW_COMPLEXITY:
-            return 0.72  # Slightly lower if bottom is simple
+            y_pos = 0.72  # Slightly lower if bottom is simple
         else:
-            return 0.68 if default_y_ratio < 0.2 else default_y_ratio
+            y_pos = 0.68 if default_y_ratio < 0.2 else default_y_ratio
+
+        # Ensure scene text doesn't enter platform UI zone
+        return min(y_pos, max_y)
     else:
         # Post layout: scene text stays in bottom region
         if complexity > HIGH_COMPLEXITY:
@@ -186,3 +207,29 @@ def calculate_optimal_scene_text_y(
             return 0.85
         else:
             return default_y_ratio
+
+
+def analyze_text_region_brightness(image: Image.Image, text_y_ratio: float) -> float:
+    """Analyze brightness of the text region for adaptive text color.
+
+    Args:
+        image: PIL Image to analyze
+        text_y_ratio: Y position ratio of text (0.0-1.0)
+
+    Returns:
+        Average brightness (0-255)
+    """
+    width, height = image.size
+    text_y = int(height * text_y_ratio)
+    text_height = int(height * 0.15)  # Text region height (approximately)
+
+    # Crop text region
+    y_end = min(text_y + text_height, height)
+    text_region = image.crop((0, text_y, width, y_end))
+
+    # Convert to grayscale and calculate average brightness
+    gray = text_region.convert("L")
+    pixels = list(gray.getdata())
+    avg_brightness = sum(pixels) / len(pixels) if pixels else 128
+
+    return avg_brightness

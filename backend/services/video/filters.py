@@ -57,6 +57,14 @@ def add_scene_text_inputs(builder: VideoBuilder) -> None:
         # Calculate dynamic subtitle position based on image content
         scene_img_path = builder.temp_dir / f"scene_{i}.png"
         subtitle_y_ratio = _calc_subtitle_y(builder, scene_img_path, i)
+        
+        # Load scene image for adaptive text color (Full layout only)
+        scene_img = None
+        if not builder.use_post_layout and scene_img_path.exists():
+            try:
+                scene_img = Image.open(scene_img_path)
+            except Exception as e:
+                logger.warning(f"Scene {i}: failed to load image for adaptive text color: {e}")
 
         subtitle_img = builder._render_scene_text_image(
             builder.subtitle_lines[i],
@@ -67,6 +75,7 @@ def add_scene_text_inputs(builder: VideoBuilder) -> None:
             builder.post_layout_metrics,
             font_size,
             subtitle_y_ratio,
+            scene_img,  # Pass background image for adaptive text color
         )
         subtitle_img.save(subtitle_path, "PNG")
         logger.info(f"  - Subtitle image saved: {subtitle_path}")
