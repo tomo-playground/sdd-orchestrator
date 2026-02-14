@@ -33,3 +33,6 @@
 - **Typography**: Pretendard / Inter (Sans-serif) 기반의 가독성 높은 레이아웃.
 - **Micro-interactions**: Framer Motion을 활용한 씬 전환 및 버튼 호버 효과.
 - **Glassmorphism**: 패널 및 모달 배경에 절제된 블러 효과 적용.
+
+## 4. UI Components
+공통 컴포넌트(`Input`, `Textarea`, `Tooltip`, `Skeleton`, `EmptyState` 등)의 상세 사용법은 [UI Components Guide](UI_COMPONENTS.md)를 참조하세요.

@@ -122,6 +122,7 @@ describe("mapGeminiScenes", () => {
     expect(result[0]).toEqual({
       id: 0,
       order: 0,
+      client_id: expect.any(String),
       script: "Hello world",
       speaker: "A",
       duration: 5,
@@ -132,6 +133,8 @@ describe("mapGeminiScenes", () => {
       width: 512,
       height: 768,
       negative_prompt: "lowres, blurry, bad hands",
+      context_tags: undefined,
+      character_actions: undefined,
       isGenerating: false,
       debug_payload: "",
       _auto_pin_previous: true,
@@ -300,7 +303,7 @@ describe("persistStoryboard", () => {
         negative_prompt: "",
       },
     ];
-    mockAllStores({ storyboardId: null, scenes, setContext, setScenes });
+    mockAllStores({ storyboardId: null, scenes, setContext, setScenes, groupId: 1 });
     (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { storyboard_id: 99, scene_ids: [501] },
     });
@@ -376,6 +379,7 @@ describe("saveStoryboard", () => {
     mockAllStores({
       storyboardId: null,
       scenes: [{ id: 0 }],
+      groupId: 1,
       showToast,
     });
     (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({

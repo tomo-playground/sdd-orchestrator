@@ -97,25 +97,37 @@ if [ ! -d "backend" ]; then
 else
   cd backend
 
-  if [ ! -d "venv" ]; then
-    echo -e "${YELLOW}⚠ No venv found. Run: python -m venv venv && source venv/bin/activate && pip install -r requirements.txt${NC}"
-    BACKEND_RESULT="${YELLOW}⚠ SKIPPED (no venv)${NC}"
-    cd ..
-  else
-    # Activate venv and run tests
-    source venv/bin/activate
-
-    echo "Running pytest (excluding VRT)..."
-    if pytest --ignore=tests/vrt -v; then
+  if command -v uv &> /dev/null; then
+    echo "Running pytest with uv..."
+    if uv run pytest --ignore=tests/vrt -v; then
       print_result 0 "Backend Tests"
       BACKEND_RESULT="${GREEN}✓ PASSED${NC}"
     else
       print_result 1 "Backend Tests"
       BACKEND_RESULT="${RED}✗ FAILED${NC}"
     fi
-
-    deactivate
     cd ..
+  else
+    if [ ! -d "venv" ]; then
+      echo -e "${YELLOW}⚠ No venv found and uv not installed.${NC}"
+      BACKEND_RESULT="${YELLOW}⚠ SKIPPED (no venv/uv)${NC}"
+      cd ..
+    else
+      # Activate venv and run tests
+      source venv/bin/activate
+
+      echo "Running pytest (excluding VRT)..."
+      if pytest --ignore=tests/vrt -v; then
+        print_result 0 "Backend Tests"
+        BACKEND_RESULT="${GREEN}✓ PASSED${NC}"
+      else
+        print_result 1 "Backend Tests"
+        BACKEND_RESULT="${RED}✗ FAILED${NC}"
+      fi
+
+      deactivate
+      cd ..
+    fi
   fi
 fi
 

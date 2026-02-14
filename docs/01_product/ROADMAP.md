@@ -470,6 +470,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 7-4: **Phase A+B+C+D 완료** (ARCHIVED)
 - Phase 7-5: **30/30 완료** (Phase A 9건 + Phase B 11건 + Phase C 10건)
 - **Phase 7-6**: Scene UX Enhancement **완료** (Phase A~G: 씬 편집 탭/DnD/3-Column/Workspace 탭/네비 재설계/Publish 통합/레이아웃 통일/Script 읽기전용+칸반 반응형+Home Recently Updated)
+- **Phase 7-X**: UI Polish & Standardization **완료** (2026-02-14). 공통 컴포넌트(`Input`, `Textarea`, `Tooltip`, `Skeleton`, `EmptyState`) 도입, 씬 리스트 썸네일, 단축키(`Cmd+S`, `Cmd+Enter`), 빌드 오류 수정. [가이드](../02_design/UI_COMPONENTS.md)
 - **Phase 9**: Agentic AI Pipeline — **Phase 0 Foundation 완료** (2026-02-13). LangGraph + AsyncPostgresSaver + psycopg v3, 2-노드 PoC(draft→finalize), DB 테이블 4개 + lifespan 초기화, 스냅샷 10건 fixture + 회귀 테스트 23건 + Integration 1건 = **27건 PASS**. Phase 1 동등 전환 착수 예정. [명세](FEATURES/AGENTIC_PIPELINE.md)
 - **VRT Baseline**: 24개 스크린샷, 8개 스펙 완료 (6-7 #2)
 - **Backend 테스트**: 1,456개 수집
