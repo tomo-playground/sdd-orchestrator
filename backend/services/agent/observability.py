@@ -6,11 +6,15 @@ LangGraph 파이프라인에 영향을 주지 않는다.
 
 from __future__ import annotations
 
+import uuid
+from datetime import UTC, datetime
+
 from config import logger
 from config_pipelines import (
     LANGFUSE_BASE_URL,
     LANGFUSE_ENABLED,
     LANGFUSE_PUBLIC_KEY,
+    LANGFUSE_SECRET_KEY,
 )
 
 _handler = None
@@ -47,24 +51,53 @@ def get_langfuse_handler():
 def update_trace_on_interrupt(interrupt_data: dict) -> None:
     """GraphInterrupt 시 Langfuse 트레이스에 중간 결과를 기록한다.
 
-    human_gate interrupt는 정상 동작이므로 output을 채워
-    ERROR(output=null) 상태를 방지한다.
+    human_gate interrupt는 정상 동작이므로 trace output/metadata를 채워
+    output=null(undefined) 상태를 방지한다.
+    Langfuse v3 SDK는 OTel 기반이라 trace 직접 업데이트가 불가하여
+    REST ingestion API를 사용한다.
     """
-    if _handler is None or _langfuse_client is None:
+    if _handler is None:
+        return
+
+    trace_id = getattr(_handler, "last_trace_id", None)
+    if not trace_id:
+        logger.debug("[LangFuse] trace_id 없음, interrupt 기록 건너뜀")
         return
 
     try:
-        trace_id = _handler.get_trace_id()
-        if not trace_id:
-            return
+        import httpx
 
-        _langfuse_client.trace(
-            id=trace_id,
-            output=interrupt_data,
-            metadata={"interrupted": True, "interrupt_node": "human_gate"},
+        now = datetime.now(UTC).isoformat()
+        resp = httpx.post(
+            f"{LANGFUSE_BASE_URL}/api/public/ingestion",
+            auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY),
+            json={
+                "batch": [
+                    {
+                        "id": str(uuid.uuid4()),
+                        "type": "trace-create",
+                        "timestamp": now,
+                        "body": {
+                            "id": trace_id,
+                            "timestamp": now,
+                            "output": interrupt_data,
+                            "metadata": {
+                                "interrupted": True,
+                                "interrupt_node": "human_gate",
+                            },
+                        },
+                    },
+                ],
+            },
+            timeout=5.0,
         )
-        _langfuse_client.flush()
-        logger.info("[LangFuse] interrupt 중간 결과 기록 (trace=%s)", trace_id[:16])
+        errors = resp.json().get("errors", [])
+        if errors:
+            logger.warning("[LangFuse] ingestion 오류: %s", errors)
+        else:
+            logger.info(
+                "[LangFuse] interrupt 중간 결과 기록 (trace=%s)", trace_id[:16]
+            )
     except Exception as e:
         logger.warning("[LangFuse] interrupt 트레이스 업데이트 실패: %s", e)
 

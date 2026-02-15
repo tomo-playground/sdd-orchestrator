@@ -184,6 +184,7 @@ async def _stream_graph_events(
     graph = await get_compiled_graph()
     char_ids: list[int | None] = [None, None]
 
+    interrupted = False
     try:
         async for event in graph.astream(graph_input, config, stream_mode="updates"):
             for node_name, node_output in event.items():
@@ -194,21 +195,7 @@ async def _stream_graph_events(
 
     except Exception as e:
         if _is_graph_interrupt(e):
-            result = await _read_interrupt_state(graph, config)
-            payload: dict = {
-                "node": "human_gate",
-                "label": "승인 대기",
-                "percent": 85,
-                "status": "waiting_for_input",
-                "thread_id": thread_id,
-            }
-            if result:
-                payload["result"] = result
-
-            # Langfuse 트레이스에 중간 결과 기록 (output=null 방지)
-            update_trace_on_interrupt(result or {"status": "waiting_for_input"})
-
-            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            interrupted = True
         else:
             logger.error("[SSE] %s error: %s", label, e)
             error_payload = {
@@ -219,6 +206,31 @@ async def _stream_graph_events(
                 "error": str(e),
             }
             yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
+
+    # astream은 interrupt 시 예외 없이 스트림만 종료할 수 있음 — 상태로 감지
+    if not interrupted:
+        try:
+            snapshot = await graph.aget_state(config)
+            if snapshot.next:
+                interrupted = True
+        except Exception:
+            pass
+
+    if interrupted:
+        result = await _read_interrupt_state(graph, config)
+        payload_interrupt: dict = {
+            "node": "human_gate",
+            "label": "승인 대기",
+            "percent": 85,
+            "status": "waiting_for_input",
+            "thread_id": thread_id,
+        }
+        if result:
+            payload_interrupt["result"] = result
+
+        update_trace_on_interrupt(result or {"status": "waiting_for_input"})
+
+        yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
 
 
 @router.post("/generate-stream")
