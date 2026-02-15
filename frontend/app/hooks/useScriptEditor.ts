@@ -5,7 +5,7 @@ import axios from "axios";
 import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
-import type { Scene } from "../types";
+import type { Scene, ScriptStreamEvent } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
 
 export type SceneItem = {
@@ -20,6 +20,12 @@ export type SceneItem = {
   image_url: string | null;
 };
 
+export type ScriptProgress = {
+  node: string;
+  label: string;
+  percent: number;
+};
+
 export type ScriptEditorState = {
   topic: string;
   description: string;
@@ -30,6 +36,7 @@ export type ScriptEditorState = {
   characterBId: number | null;
   scenes: SceneItem[];
   isGenerating: boolean;
+  progress: ScriptProgress | null;
   storyboardId: number | null;
   storyboardVersion: number | null;
   isSaving: boolean;
@@ -48,6 +55,27 @@ type ScriptEditorOptions = {
   onSaved?: (id: number) => void;
 };
 
+async function parseSSEStream(
+  response: Response,
+  onEvent: (event: ScriptStreamEvent) => void
+): Promise<void> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() || "";
+    for (const part of parts) {
+      if (part.startsWith("data: ")) {
+        onEvent(JSON.parse(part.slice(6)));
+      }
+    }
+  }
+}
+
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
   const groupId = useContextStore((s) => s.groupId);
   const showToast = useUIStore((s) => s.showToast);
@@ -64,6 +92,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     characterBId: null,
     scenes: [],
     isGenerating: false,
+    progress: null,
     storyboardId: null,
     storyboardVersion: null,
     isSaving: false,
@@ -86,45 +115,74 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
 
   const generate = useCallback(async () => {
     if (!state.topic.trim()) return;
-    setState((prev) => ({ ...prev, isGenerating: true }));
-    try {
-      const body: Record<string, unknown> = {
-        topic: state.topic.trim(),
-        description: state.description.trim() || undefined,
-        duration: state.duration,
-        language: state.language,
-        structure: state.structure,
-        group_id: groupId,
-      };
-      if (state.characterId) body.character_id = state.characterId;
-      if (state.characterBId) body.character_b_id = state.characterBId;
+    setState((prev) => ({ ...prev, isGenerating: true, progress: null }));
 
-      const res = await axios.post(`${API_BASE}/scripts/generate`, body);
-      const data = res.data;
-      const scenes: SceneItem[] = (data.scenes ?? []).map((s: Scene, i: number) => ({
-        id: s.id ?? i + 1,
-        client_id: generateSceneClientId(),
-        order: s.order ?? i + 1,
-        script: s.script ?? "",
-        speaker: s.speaker ?? "Narrator",
-        duration: s.duration ?? 3,
-        image_prompt: s.image_prompt ?? "",
-        image_prompt_ko: s.image_prompt_ko ?? "",
-        image_url: s.image_url ?? null,
-      }));
-      setState((prev) => ({
-        ...prev,
-        scenes,
-        storyboardId: data.id ?? prev.storyboardId,
-        isGenerating: false,
-      }));
-      showToast("Script generated", "success");
+    const body: Record<string, unknown> = {
+      topic: state.topic.trim(),
+      description: state.description.trim() || undefined,
+      duration: state.duration,
+      language: state.language,
+      structure: state.structure,
+      group_id: groupId,
+    };
+    if (state.characterId) body.character_id = state.characterId;
+    if (state.characterBId) body.character_b_id = state.characterBId;
+
+    try {
+      const response = await fetch(`${API_BASE}/scripts/generate-stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail ?? `HTTP ${response.status}`);
+      }
+
+      let finalScenes: SceneItem[] | null = null;
+
+      await parseSSEStream(response, (event: ScriptStreamEvent) => {
+        setState((prev) => ({
+          ...prev,
+          progress: { node: event.node, label: event.label, percent: event.percent },
+        }));
+
+        if (event.status === "completed" && event.result?.scenes) {
+          finalScenes = event.result.scenes.map((s: Scene, i: number) => ({
+            id: s.id ?? i + 1,
+            client_id: generateSceneClientId(),
+            order: s.order ?? i + 1,
+            script: s.script ?? "",
+            speaker: s.speaker ?? "Narrator",
+            duration: s.duration ?? 3,
+            image_prompt: s.image_prompt ?? "",
+            image_prompt_ko: s.image_prompt_ko ?? "",
+            image_url: s.image_url ?? null,
+          }));
+        }
+
+        if (event.status === "error") {
+          throw new Error(event.error ?? "Generation failed");
+        }
+      });
+
+      if (finalScenes) {
+        setState((prev) => ({
+          ...prev,
+          scenes: finalScenes!,
+          isGenerating: false,
+          progress: null,
+        }));
+        showToast("Script generated", "success");
+      } else {
+        setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
+        showToast("No scenes returned", "warning");
+      }
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.detail ?? err.message)
-        : "Generation failed";
+      const msg = err instanceof Error ? err.message : "Generation failed";
       showToast(String(msg), "error");
-      setState((prev) => ({ ...prev, isGenerating: false }));
+      setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
     }
   }, [
     state.topic,
@@ -259,6 +317,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       characterBId: null,
       scenes: [],
       isGenerating: false,
+      progress: null,
       storyboardId: null,
       storyboardVersion: null,
       isSaving: false,

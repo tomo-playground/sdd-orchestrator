@@ -26,9 +26,7 @@ export default function ScriptTab() {
 
   const onSaved = useCallback(
     (id: number) => {
-      // Update URL to reflect saved storyboard
       router.replace(`/studio?id=${id}`);
-      // Switch to Edit tab
       useUIStore.getState().setActiveTab("edit");
     },
     [router]
@@ -56,10 +54,13 @@ export default function ScriptTab() {
     [router]
   );
 
-  const toggleMode = (target: "manual" | "agent") => {
-    const params = new URLSearchParams();
-    if (storyboardId) params.set("id", String(storyboardId));
-    if (target === "agent") params.set("mode", "agent");
+  const toggleMode = (target: "quick" | "agent") => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (target === "agent") {
+      params.set("mode", "agent");
+    } else {
+      params.delete("mode");
+    }
     const qs = params.toString();
     router.replace(qs ? `/studio?${qs}` : "/studio");
   };
@@ -77,7 +78,7 @@ export default function ScriptTab() {
               isSaving={editor.isSaving}
               approveLabel="Approve & Edit"
               onApprove={editor.save}
-              compact // Add a compact prop if needed for narrower width
+              compact
             />
           </div>
         ) : (
@@ -94,9 +95,9 @@ export default function ScriptTab() {
             <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
               <button
                 className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
-                onClick={() => toggleMode("manual")}
+                onClick={() => toggleMode("quick")}
               >
-                Manual
+                Quick
               </button>
               <button
                 className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
@@ -114,7 +115,7 @@ export default function ScriptTab() {
             <ManualScriptEditor editor={editor} />
           )}
 
-          {!isAgent && editor.scenes.length === 0 && (
+          {!isAgent && editor.scenes.length === 0 && !editor.isGenerating && (
             <div className="mt-12">
               <EmptyState
                 icon={FileText}

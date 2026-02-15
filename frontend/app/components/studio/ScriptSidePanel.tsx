@@ -8,7 +8,7 @@ type Props = {
   isAgent: boolean;
 };
 
-const MANUAL_TIPS = [
+const QUICK_TIPS = [
   "Write a topic that hooks in the first 3 seconds",
   "Keep duration between 30-60s for best engagement",
   "Use Narrated Dialogue for character-driven stories",
@@ -23,7 +23,7 @@ const AGENT_TIPS = [
 ];
 
 export default function ScriptSidePanel({ scenesCount, isAgent }: Props) {
-  const tips = isAgent ? AGENT_TIPS : MANUAL_TIPS;
+  const tips = isAgent ? AGENT_TIPS : QUICK_TIPS;
 
   return (
     <>
@@ -36,7 +36,7 @@ export default function ScriptSidePanel({ scenesCount, isAgent }: Props) {
         <div className="mt-2 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-500">Mode</span>
-            <span className="font-medium text-zinc-700">{isAgent ? "AI Agent" : "Manual"}</span>
+            <span className="font-medium text-zinc-700">{isAgent ? "AI Agent" : "Quick"}</span>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-500">Scenes</span>

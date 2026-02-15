@@ -1,3 +1,23 @@
+// ── Shared UI Callback Types ──────────────────────────
+
+export type UiCallbacks = {
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
+  confirmDialog: (opts: {
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    variant?: "default" | "danger";
+  }) => Promise<boolean | string>;
+};
+
+export type UiCallbacksWithPrompt = UiCallbacks & {
+  promptDialog: (opts: {
+    title: string;
+    message?: string;
+    inputField: { label: string; placeholder?: string; defaultValue?: string };
+  }) => Promise<boolean | string>;
+};
+
 export type GeminiSuggestion = {
   edit_type: string;
   issue: string;
@@ -161,6 +181,23 @@ export type RecentVideo = {
   label: "full" | "post" | "single";
   createdAt: number;
   renderHistoryId?: number;
+  projectId?: number;
+  projectName?: string;
+  groupId?: number;
+  groupName?: string;
+};
+
+export type RenderHistoryItem = {
+  id: number;
+  label: string;
+  url: string;
+  created_at: string;
+  storyboard_id: number;
+  storyboard_title: string | null;
+  project_id: number | null;
+  project_name: string | null;
+  group_id: number | null;
+  group_name: string | null;
 };
 
 export type ToastItem = {
@@ -676,6 +713,23 @@ export type ImageGenProgress = {
   image?: string; // Base64 result on completion
   used_prompt?: string;
   warnings?: string[];
+  error?: string;
+};
+
+// ============================================================
+// Script Generation SSE Types
+// ============================================================
+
+export type ScriptStreamEvent = {
+  node: string;
+  label: string;
+  percent: number;
+  status: "running" | "completed" | "error";
+  result?: {
+    scenes: Scene[];
+    character_id: number | null;
+    character_b_id: number | null;
+  };
   error?: string;
 };
 
