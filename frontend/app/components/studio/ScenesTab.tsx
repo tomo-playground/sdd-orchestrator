@@ -1,5 +1,7 @@
 "use client";
 
+import Button from "../ui/Button";
+
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Film } from "lucide-react";
@@ -13,7 +15,7 @@ import RightPanelTabs from "./RightPanelTabs";
 import ImageSettingsContent from "./ImageSettingsContent";
 import SceneToolsContent from "./SceneToolsContent";
 import SceneInsightsContent from "./SceneInsightsContent";
-import SceneCard, { type SceneEditTab } from "../storyboard/SceneCard";
+import SceneCard from "../storyboard/SceneCard";
 import { STUDIO_3COL_LAYOUT, CENTER_PANEL_CLASSES } from "../ui/variants";
 import SceneNavHeader from "./SceneNavHeader";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
@@ -42,7 +44,7 @@ import { getFixSuggestions } from "../../utils";
 import { useSceneActions } from "../../hooks/useSceneActions";
 
 export default function ScenesTab() {
-  const [sceneEditTab, setSceneEditTab] = useState<SceneEditTab>("script");
+
 
   const { scenes, currentSceneIndex } = useStoryboardStore(
     useShallow((s) => ({ scenes: s.scenes, currentSceneIndex: s.currentSceneIndex }))
@@ -152,12 +154,9 @@ export default function ScenesTab() {
         title="No scenes yet"
         description="Create a script first to get started with your storyboard."
         action={
-          <button
-            onClick={() => setActiveTab("script")}
-            className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-95"
-          >
+          <Button onClick={() => setActiveTab("script")} size="lg">
             Go to Script
-          </button>
+          </Button>
         }
       />
     );
@@ -193,8 +192,7 @@ export default function ScenesTab() {
               key={currentScene.client_id}
               scene={currentScene}
               sceneIndex={currentSceneIndex}
-              activeTab={sceneEditTab}
-              onTabChange={setSceneEditTab}
+
               validationResult={validationResults[currentScene.client_id]}
               imageValidationResult={imageValidationResults[currentScene.client_id]}
               qualityScore={

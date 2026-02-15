@@ -24,7 +24,11 @@ type SceneActionBarProps = {
   onRemoveScene: () => void;
   onSavePrompt?: () => void;
   showToast: (message: string, type: "success" | "error") => void;
+  compact?: boolean;
 };
+
+import { useRef } from "react";
+import Popover from "../ui/Popover";
 
 export default function SceneActionBar({
   scene,
@@ -46,10 +50,14 @@ export default function SceneActionBar({
   onRemoveScene,
   onSavePrompt,
   showToast,
+  compact = false,
 }: SceneActionBarProps) {
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const { confirm, dialogProps } = useConfirm();
+
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
+    <div className={`flex items-center justify-between ${compact ? "flex-wrap gap-y-2" : ""}`}>
+      <div className={`flex items-center gap-2 ${compact ? "flex-wrap" : ""}`}>
         {/* Generate Image button */}
         <Button
           onClick={onGenerateImage}
@@ -165,55 +173,27 @@ export default function SceneActionBar({
         )}
       </div>
 
-      {/* Dropdown menu */}
-      <DropdownMenu
-        scene={scene}
-        sceneMenuOpen={sceneMenuOpen}
-        onSceneMenuToggle={onSceneMenuToggle}
-        onSceneMenuClose={onSceneMenuClose}
-        onUpdateScene={onUpdateScene}
-        onRemoveScene={onRemoveScene}
-        onSavePrompt={onSavePrompt}
-        showToast={showToast}
-      />
-    </div>
-  );
-}
+      {/* Menu Button & Popover */}
+      <div className="relative">
+        <Button
+          ref={menuButtonRef}
+          variant="outline"
+          size="sm"
+          icon
+          onClick={onSceneMenuToggle}
+        >
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </Button>
 
-/* ---- Dropdown sub-component ---- */
-
-type DropdownMenuProps = {
-  scene: Scene;
-  sceneMenuOpen: boolean;
-  onSceneMenuToggle: () => void;
-  onSceneMenuClose: () => void;
-  onUpdateScene: (updates: Partial<Scene>) => void;
-  onRemoveScene: () => void;
-  onSavePrompt?: () => void;
-  showToast: (message: string, type: "success" | "error") => void;
-};
-
-function DropdownMenu({
-  scene,
-  sceneMenuOpen,
-  onSceneMenuToggle,
-  onSceneMenuClose,
-  onUpdateScene,
-  onRemoveScene,
-  onSavePrompt,
-  showToast,
-}: DropdownMenuProps) {
-  const { confirm, dialogProps } = useConfirm();
-
-  return (
-    <div className="relative">
-      <Button variant="outline" size="sm" icon onClick={onSceneMenuToggle}>
-        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </Button>
-      {sceneMenuOpen && (
-        <div className="absolute right-0 z-[var(--z-dropdown)] mt-1 w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+        <Popover
+          anchorRef={menuButtonRef}
+          open={sceneMenuOpen}
+          onClose={onSceneMenuClose}
+          align="right"
+          className="w-40"
+        >
           <button
             type="button"
             onClick={() => {
@@ -225,6 +205,7 @@ function DropdownMenu({
           >
             Copy Prompt
           </button>
+
           {onSavePrompt && scene.image_url && (
             <button
               type="button"
@@ -237,7 +218,9 @@ function DropdownMenu({
               Save Prompt
             </button>
           )}
+
           <hr className="my-1 border-zinc-100" />
+
           <button
             type="button"
             onClick={async () => {
@@ -254,8 +237,9 @@ function DropdownMenu({
           >
             Delete Scene
           </button>
-        </div>
-      )}
+        </Popover>
+      </div>
+
       <ConfirmDialog {...dialogProps} />
     </div>
   );

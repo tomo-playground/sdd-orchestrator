@@ -7,6 +7,7 @@ import DebugTabContent from "./DebugTabContent";
 import FixSuggestionsPanel from "./FixSuggestionsPanel";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
+import { WARNING_BG, WARNING_TEXT, ERROR_BG, ERROR_TEXT } from "../ui/variants";
 
 type SceneSettingsFieldsProps = {
   scene: Scene;
@@ -82,11 +83,10 @@ export default function SceneSettingsFields({
         <div className="rounded-xl border border-zinc-200 bg-white p-3">
           <div className="mb-2 flex items-center justify-between">
             <span
-              className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${
-                validationResult.status === "warn"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-rose-100 text-rose-700"
-              }`}
+              className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${validationResult.status === "warn"
+                ? `${WARNING_BG} ${WARNING_TEXT}`
+                : `${ERROR_BG} ${ERROR_TEXT}`
+                }`}
             >
               {validationResult.status}
             </span>

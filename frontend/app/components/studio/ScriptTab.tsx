@@ -10,8 +10,9 @@ import ManualScriptEditor from "../scripts/ManualScriptEditor";
 import AgentScriptEditor from "../scripts/AgentScriptEditor";
 import ScriptSceneList from "../scripts/ScriptSceneList";
 import EmptyState from "../ui/EmptyState";
-import { TAB_ACTIVE, TAB_INACTIVE, SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
+import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import ScriptSidePanel from "./ScriptSidePanel";
+import StudioThreeColumnLayout from "./StudioThreeColumnLayout";
 
 const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 
@@ -64,53 +65,67 @@ export default function ScriptTab() {
   };
 
   return (
-    <div className={SIDE_PANEL_LAYOUT}>
-      {/* Left: Script content */}
-      <div className="space-y-4">
-        {/* Mode tabs */}
-        <div className="flex gap-1 rounded-xl bg-zinc-50 p-1">
-          <button
-            className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
-            onClick={() => toggleMode("manual")}
-          >
-            Manual
-          </button>
-          <button
-            className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
-            onClick={() => toggleMode("agent")}
-          >
-            AI Agent
-          </button>
-        </div>
-
-        {/* Mode-specific editor */}
-        {isAgent ? (
-          <AgentScriptEditor onStoryboardCreated={handleStoryboardCreated} />
+    <StudioThreeColumnLayout
+      leftPanel={
+        editor.scenes.length > 0 ? (
+          <div className="h-full overflow-y-auto p-4">
+            <h3 className="mb-4 text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+              Scene Outline
+            </h3>
+            <ScriptSceneList
+              scenes={editor.scenes}
+              isSaving={editor.isSaving}
+              approveLabel="Approve & Edit"
+              onApprove={editor.save}
+              compact // Add a compact prop if needed for narrower width
+            />
+          </div>
         ) : (
-          <ManualScriptEditor editor={editor} />
-        )}
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center text-zinc-400">
+            <FileText className="mb-2 h-8 w-8 opacity-20" />
+            <p className="text-xs">No scenes yet</p>
+          </div>
+        )
+      }
+      centerPanel={
+        <div className="mx-auto w-full max-w-3xl px-8 py-8">
+          {/* Mode tabs */}
+          <div className="mb-6 flex justify-center">
+            <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
+              <button
+                className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
+                onClick={() => toggleMode("manual")}
+              >
+                Manual
+              </button>
+              <button
+                className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
+                onClick={() => toggleMode("agent")}
+              >
+                AI Agent
+              </button>
+            </div>
+          </div>
 
-        {/* Shared scene list (read-only review) */}
-        {editor.scenes.length > 0 ? (
-          <ScriptSceneList
-            scenes={editor.scenes}
-            isSaving={editor.isSaving}
-            approveLabel="Approve & Edit"
-            onApprove={editor.save}
-          />
-        ) : !isAgent ? (
-          <EmptyState
-            icon={FileText}
-            title="No scenes generated yet"
-            description="Enter a topic and click Generate Script"
-          />
-        ) : null}
-      </div>
+          {/* Mode-specific editor */}
+          {isAgent ? (
+            <AgentScriptEditor onStoryboardCreated={handleStoryboardCreated} />
+          ) : (
+            <ManualScriptEditor editor={editor} />
+          )}
 
-      {/* Right: Side panel */}
-      <div className={SIDE_PANEL_CLASSES}>
-        <ScriptSidePanel scenesCount={editor.scenes.length} isAgent={isAgent} />
-      </div>
-    </div>
+          {!isAgent && editor.scenes.length === 0 && (
+            <div className="mt-12">
+              <EmptyState
+                icon={FileText}
+                title="Start Writing"
+                description="Enter a topic and click Generate Script, or write your own scenes manually."
+              />
+            </div>
+          )}
+        </div>
+      }
+      rightPanel={<ScriptSidePanel scenesCount={editor.scenes.length} isAgent={isAgent} />}
+    />
   );
 }

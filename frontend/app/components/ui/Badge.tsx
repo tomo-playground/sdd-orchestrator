@@ -1,10 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cx } from "./variants";
+import {
+  cx,
+  SUCCESS_BG, SUCCESS_TEXT,
+  WARNING_BG, WARNING_TEXT,
+  ERROR_BG, ERROR_TEXT,
+  INFO_BG, INFO_TEXT
+} from "./variants";
 
 // ── Types ────────────────────────────────────────────────────
-export type BadgeVariant = "success" | "warning" | "error" | "info" | "default";
+export type BadgeVariant = "success" | "warning" | "error" | "info" | "default" | "secondary" | "outline" | "destructive";
 export type BadgeSize = "sm" | "md";
 
 export type BadgeProps = {
@@ -16,11 +22,14 @@ export type BadgeProps = {
 
 // ── Variant / size maps ──────────────────────────────────────
 const variantClasses: Record<BadgeVariant, string> = {
-  success: "bg-emerald-100 text-emerald-700",
-  warning: "bg-amber-100 text-amber-700",
-  error: "bg-rose-100 text-rose-700",
-  info: "bg-blue-100 text-blue-700",
-  default: "bg-zinc-100 text-zinc-600",
+  default: "bg-zinc-900 text-white hover:bg-zinc-800",
+  secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
+  outline: "text-zinc-900 border border-zinc-200 hover:bg-zinc-100",
+  destructive: "bg-rose-500 text-white hover:bg-rose-600",
+  success: `${SUCCESS_BG} ${SUCCESS_TEXT}`,
+  warning: `${WARNING_BG} ${WARNING_TEXT}`,
+  error: `${ERROR_BG} ${ERROR_TEXT}`,
+  info: `${INFO_BG} ${INFO_TEXT}`,
 };
 
 const sizeClasses: Record<BadgeSize, string> = {

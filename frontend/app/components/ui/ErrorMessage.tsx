@@ -1,10 +1,12 @@
+import { AlertTriangle, XCircle } from "lucide-react";
 import React from "react";
+import { ERROR_BG, ERROR_BORDER, ERROR_TEXT, ERROR_ICON } from "./variants";
 
 type ErrorMessageProps = {
   title?: string;
   message: string;
-  onRetry?: () => void;
   className?: string;
+  onRetry?: () => void;
 };
 
 export default function ErrorMessage({
@@ -13,33 +15,25 @@ export default function ErrorMessage({
   onRetry,
   className = "",
 }: ErrorMessageProps) {
+  if (!message) return null;
+
   return (
     <div
-      className={`flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 ${className}`}
+      className={`flex items-start gap-3 rounded-2xl border ${ERROR_BORDER} ${ERROR_BG} p-4 text-sm ${ERROR_TEXT} ${className}`}
     >
-      <svg
-        className="mt-0.5 h-5 w-5 shrink-0 text-rose-500"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-        />
-      </svg>
+      <XCircle className={`mt-0.5 h-5 w-5 shrink-0 ${ERROR_ICON}`} />
       <div className="flex-1">
-        <h4 className="font-semibold text-rose-800">{title}</h4>
-        <p className="mt-1 text-rose-600 opacity-90">{message}</p>
-        {onRetry && (
-          <button
-            onClick={onRetry}
-            className="mt-3 rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200"
-          >
-            Try Again
-          </button>
+        <h4 className={`font-semibold ${ERROR_TEXT}`}>{title}</h4>
+        <p className={`mt-1 ${ERROR_TEXT} opacity-90`}>{message}</p>
+        {(message.includes("Network") || onRetry) && (
+          <div className="mt-2">
+            <button
+              onClick={onRetry || (() => window.location.reload())}
+              className={`mt-3 rounded-lg bg-white/50 px-3 py-1.5 text-xs font-medium ${ERROR_TEXT} hover:bg-white/80`}
+            >
+              {onRetry ? "Try Again" : "Reload Page"}
+            </button>
+          </div>
         )}
       </div>
     </div>

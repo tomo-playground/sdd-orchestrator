@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type { PreflightResult, AutoRunStepId } from "../../utils/preflight";
 import { estimateTime, getStepsToExecute } from "../../utils/preflight";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { SUCCESS_ICON, ERROR_ICON } from "../ui/variants";
 
 interface PreflightModalProps {
   isOpen: boolean;
@@ -56,10 +57,10 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
       <div
         ref={trapRef}
         tabIndex={-1}
-        className="mx-4 max-h-[90vh] w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl outline-none dark:bg-gray-800"
+        className="mx-4 max-h-[90vh] w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl outline-none dark:bg-zinc-800"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <h2 id="preflight-title" className="flex items-center gap-2 text-lg font-semibold">
             <span>🚀</span>
             <span>AutoRun Pre-flight Check</span>
@@ -67,7 +68,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+            className="rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -111,10 +112,10 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
 
           {/* Settings Section */}
           <div>
-            <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+            <h3 className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
               📋 설정 검증
             </h3>
-            <div className="divide-y divide-gray-200 rounded-lg bg-gray-50 dark:divide-gray-600 dark:bg-gray-700/50">
+            <div className="divide-y divide-zinc-200 rounded-lg bg-zinc-50 dark:divide-zinc-600 dark:bg-zinc-700/50">
               <SettingRow label="Character" check={preflight.settings.character} />
               <SettingRow label="Topic" check={preflight.settings.topic} />
               <SettingRow label="Voice" check={preflight.settings.voice} />
@@ -126,26 +127,26 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
 
           {/* SD Parameters Section */}
           <div>
-            <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+            <h3 className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
               🔧 SD 파라미터
             </h3>
-            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
+            <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-700/50">
               <div className="flex flex-wrap gap-3 text-sm">
-                <span className="rounded bg-white px-2 py-1 dark:bg-gray-600">
+                <span className="rounded bg-white px-2 py-1 dark:bg-zinc-600">
                   Steps: {preflight.sdParams.steps}
                 </span>
-                <span className="rounded bg-white px-2 py-1 dark:bg-gray-600">
+                <span className="rounded bg-white px-2 py-1 dark:bg-zinc-600">
                   CFG: {preflight.sdParams.cfgScale}
                 </span>
-                <span className="rounded bg-white px-2 py-1 dark:bg-gray-600">
+                <span className="rounded bg-white px-2 py-1 dark:bg-zinc-600">
                   Sampler: {preflight.sdParams.sampler}
                 </span>
                 {preflight.sdParams.seed != null && (
-                  <span className="rounded bg-white px-2 py-1 dark:bg-gray-600">
+                  <span className="rounded bg-white px-2 py-1 dark:bg-zinc-600">
                     Seed: {preflight.sdParams.seed === -1 ? "랜덤" : preflight.sdParams.seed}
                   </span>
                 )}
-                <span className="rounded bg-white px-2 py-1 dark:bg-gray-600">
+                <span className="rounded bg-white px-2 py-1 dark:bg-zinc-600">
                   Clip Skip: {preflight.sdParams.clipSkip}
                 </span>
               </div>
@@ -154,10 +155,10 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
 
           {/* Steps Section */}
           <div>
-            <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+            <h3 className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
               📌 실행 단계
             </h3>
-            <div className="divide-y divide-gray-200 rounded-lg bg-gray-50 dark:divide-gray-600 dark:bg-gray-700/50">
+            <div className="divide-y divide-zinc-200 rounded-lg bg-zinc-50 dark:divide-zinc-600 dark:bg-zinc-700/50">
               {(Object.keys(STEP_LABELS) as AutoRunStepId[]).map((stepId) => (
                 <StepRow
                   key={stepId}
@@ -174,7 +175,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
 
           {/* Estimated Time */}
           {hasStepsToRun && preflight.canRun && (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-zinc-500 dark:text-zinc-400">
               예상 시간:{" "}
               {estimateTime({
                 ...preflight,
@@ -189,21 +190,20 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div className="flex justify-end gap-3 border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="rounded-lg px-4 py-2 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
           >
             취소
           </button>
           <button
             onClick={handleRun}
             disabled={!preflight.canRun || !hasStepsToRun}
-            className={`flex items-center gap-2 rounded-lg px-6 py-2 font-medium transition-colors ${
-              preflight.canRun && hasStepsToRun
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-600"
-            }`}
+            className={`flex items-center gap-2 rounded-lg px-6 py-2 font-medium transition-colors ${preflight.canRun && hasStepsToRun
+              ? "bg-blue-600 text-white hover:bg-blue-700"
+              : "cursor-not-allowed bg-zinc-300 text-zinc-500 dark:bg-zinc-600"
+              }`}
           >
             <span>▶</span>
             <span>실행 ({stepsToRun.length}단계)</span>
@@ -227,18 +227,18 @@ function SettingRow({
 }) {
   const icon = check.valid ? "✓" : check.required ? "❌" : "⚠";
   const iconColor = check.valid
-    ? "text-green-500"
+    ? SUCCESS_ICON
     : check.required
-      ? "text-red-500"
+      ? ERROR_ICON
       : "text-yellow-500";
 
   return (
     <div className="flex items-center justify-between px-3 py-2 text-sm">
       <div className="flex items-center gap-2">
         <span className={iconColor}>{icon}</span>
-        <span className="text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
       </div>
-      <div className="text-right text-gray-500 dark:text-gray-400">
+      <div className="text-right text-zinc-500 dark:text-zinc-400">
         {check.value || check.message || "-"}
       </div>
     </div>
@@ -267,9 +267,9 @@ function StepRow({
           checked={enabled}
           onChange={onToggle}
           disabled={disabled}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+          className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
         />
-        <span className="text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
       </div>
       <div className="flex items-center gap-2">
         {check.count !== undefined && (
@@ -278,9 +278,8 @@ function StepRow({
           </span>
         )}
         <span
-          className={`text-xs ${
-            check.needed ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-          }`}
+          className={`text-xs ${check.needed ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
+            }`}
         >
           {check.needed ? check.reason : `✓ ${check.reason}`}
         </span>

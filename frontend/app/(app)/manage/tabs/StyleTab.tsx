@@ -6,6 +6,7 @@ import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog"
 import { useUIStore } from "../../../store/useUIStore";
 import StyleProfileEditor from "../StyleProfileEditor";
 import { useStyleTab } from "../hooks/useStyleTab";
+import { ERROR_BG, ERROR_ICON } from "../../../components/ui/variants";
 
 export default function StyleTab() {
   const showToast = useUIStore((s) => s.showToast);
@@ -81,11 +82,10 @@ export default function StyleTab() {
             {styleProfiles.map((style) => (
               <div
                 key={style.id}
-                className={`flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:shadow-md ${
-                  selectedProfile?.id === style.id
-                    ? "border-indigo-300 bg-indigo-50/10"
-                    : "border-zinc-200 bg-white"
-                }`}
+                className={`flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:shadow-md ${selectedProfile?.id === style.id
+                  ? "border-indigo-300 bg-indigo-50/10"
+                  : "border-zinc-200 bg-white"
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-zinc-700">{style.name}</span>
@@ -111,7 +111,7 @@ export default function StyleTab() {
                     </button>
                     <button
                       onClick={() => handleDeleteStyle(style.id)}
-                      className="rounded p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-500"
+                      className="rounded p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-500"
                       title="Delete"
                     >
                       <svg

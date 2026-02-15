@@ -1,7 +1,15 @@
 "use client";
 
 import { forwardRef, type InputHTMLAttributes } from "react";
-import { cx, FORM_INPUT_CLASSES, FOCUS_RING, DISABLED_CLASSES } from "./variants";
+import {
+    cx,
+    FORM_INPUT_CLASSES,
+    FOCUS_RING,
+    DISABLED_CLASSES,
+    ERROR_INPUT_BORDER,
+    ERROR_BG,
+    ERROR_INPUT_FOCUS
+} from "./variants";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     error?: boolean;
@@ -16,7 +24,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                     FORM_INPUT_CLASSES,
                     FOCUS_RING,
                     DISABLED_CLASSES,
-                    error && "border-rose-500 focus:border-rose-500 bg-rose-50/50",
+                    error && `${ERROR_INPUT_BORDER} ${ERROR_INPUT_FOCUS} ${ERROR_BG}/50`,
                     className
                 )}
                 {...props}

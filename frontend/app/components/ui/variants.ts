@@ -128,3 +128,36 @@ export const SIDEBAR_ACTIVE =
   "border-l-2 border-zinc-900 bg-zinc-100 pl-2 font-medium text-zinc-900";
 /** Sidebar nav item inactive state. */
 export const SIDEBAR_INACTIVE = "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700";
+
+// ── Semantic color tokens ────────────────────────────────────
+
+/** Success state colors (standardized to emerald). */
+export const SUCCESS_BG = "bg-emerald-50";
+export const SUCCESS_TEXT = "text-emerald-700";
+export const SUCCESS_BORDER = "border-emerald-200";
+export const SUCCESS_BUTTON = "bg-emerald-600 hover:bg-emerald-500";
+export const SUCCESS_ICON = "text-emerald-500";
+
+/** Error state colors (standardized to red). */
+export const ERROR_BG = "bg-red-50";
+export const ERROR_TEXT = "text-red-700";
+export const ERROR_BORDER = "border-red-200";
+export const ERROR_BUTTON = "bg-red-600 hover:bg-red-700";
+export const ERROR_ICON = "text-red-500";
+export const ERROR_INPUT_BORDER = "border-red-500";
+export const ERROR_INPUT_FOCUS = "focus:border-red-500 focus:ring-red-500";
+
+/** Warning state colors. */
+export const WARNING_BG = "bg-amber-50";
+export const WARNING_TEXT = "text-amber-700";
+export const WARNING_BORDER = "border-amber-200";
+export const WARNING_BUTTON = "bg-amber-600 hover:bg-amber-700";
+export const WARNING_ICON = "text-amber-500";
+
+/** Info state colors. */
+export const INFO_BG = "bg-indigo-50";
+export const INFO_TEXT = "text-indigo-700";
+export const INFO_BORDER = "border-indigo-200";
+export const INFO_BUTTON = "bg-indigo-600 hover:bg-indigo-700";
+export const INFO_ICON = "text-indigo-500";
+

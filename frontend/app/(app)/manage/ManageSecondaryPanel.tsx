@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../../components/ui/variants";
-import type { ManageTab } from "./ManageSidebar";
+import type { ManageTab } from "./types";
 
 type TabHelp = {
   icon: LucideIcon;

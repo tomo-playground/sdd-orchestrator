@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useTags } from "../../../hooks";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import Button from "../../../components/ui/Button";
 import DeprecatedTagsPanel from "../DeprecatedTagsPanel";
 import { useTagManagement } from "../hooks/useTagManagement";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
@@ -71,21 +72,16 @@ export default function TagsTab() {
         <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Tag Analysis
         </span>
-        <button
-          type="button"
+        <Button
           onClick={handleRefresh}
           disabled={isTagsLoading}
-          className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase hover:bg-zinc-50 disabled:opacity-50"
+          loading={isTagsLoading}
+          variant="outline"
+          size="sm"
+          className="rounded-full tracking-[0.2em] uppercase"
         >
-          {isTagsLoading ? (
-            <div className="flex items-center gap-2">
-              <LoadingSpinner size="sm" color="text-zinc-400" />
-              <span>Loading...</span>
-            </div>
-          ) : (
-            "Refresh"
-          )}
-        </button>
+          Refresh
+        </Button>
       </div>
 
       {/* Group Statistics Overview */}
@@ -112,11 +108,10 @@ export default function TagsTab() {
                     setTagCategoryFilter("scene");
                   }
                 }}
-                className={`rounded-xl border p-3 text-center transition ${
-                  isActive
-                    ? "border-indigo-300 bg-indigo-50"
-                    : "border-zinc-200 bg-white hover:border-zinc-300"
-                }`}
+                className={`rounded-xl border p-3 text-center transition ${isActive
+                  ? "border-indigo-300 bg-indigo-50"
+                  : "border-zinc-200 bg-white hover:border-zinc-300"
+                  }`}
               >
                 <div
                   className={`text-lg font-bold ${isActive ? "text-indigo-600" : "text-zinc-700"}`}
@@ -165,11 +160,10 @@ export default function TagsTab() {
                     setTagCategoryFilter("character");
                   }
                 }}
-                className={`rounded-xl border p-3 text-center transition ${
-                  isActive
-                    ? "border-violet-300 bg-violet-50"
-                    : "border-zinc-200 bg-white hover:border-zinc-300"
-                }`}
+                className={`rounded-xl border p-3 text-center transition ${isActive
+                  ? "border-violet-300 bg-violet-50"
+                  : "border-zinc-200 bg-white hover:border-zinc-300"
+                  }`}
               >
                 <div
                   className={`text-lg font-bold ${isActive ? "text-violet-600" : "text-zinc-700"}`}
@@ -217,11 +211,10 @@ export default function TagsTab() {
                       setTagCategoryFilter("meta");
                     }
                   }}
-                  className={`rounded-xl border p-3 text-center transition ${
-                    isActive
-                      ? "border-emerald-300 bg-emerald-50"
-                      : "border-zinc-200 bg-white hover:border-zinc-300"
-                  }`}
+                  className={`rounded-xl border p-3 text-center transition ${isActive
+                    ? "border-emerald-300 bg-emerald-50"
+                    : "border-zinc-200 bg-white hover:border-zinc-300"
+                    }`}
                 >
                   <div
                     className={`text-lg font-bold ${isActive ? "text-emerald-600" : "text-zinc-700"}`}
@@ -327,14 +320,16 @@ export default function TagsTab() {
                           </option>
                         ))}
                       </select>
-                      <button
-                        type="button"
+                      <Button
                         onClick={() => handleApprovePendingTag(tag.id)}
                         disabled={!pendingGroupSelection[tag.id] || pendingApproving[tag.id]}
-                        className="rounded-full bg-amber-500 px-3 py-1 text-[11px] font-semibold text-white disabled:bg-zinc-300"
+                        loading={pendingApproving[tag.id]}
+                        variant="warning"
+                        size="sm"
+                        className="rounded-full px-3 py-1 text-[11px]"
                       >
-                        {pendingApproving[tag.id] ? "..." : "Approve"}
-                      </button>
+                        Approve
+                      </Button>
                     </div>
                   </div>
                 ))}

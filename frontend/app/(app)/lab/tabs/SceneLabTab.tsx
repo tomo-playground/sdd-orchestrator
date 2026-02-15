@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import { Play, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowRight } from "lucide-react";
 import { API_BASE } from "../../../constants";
+import Button from "../../../components/ui/Button";
 
 // -- Types -------------------------------------------------------------------
 
@@ -50,10 +51,17 @@ type HistoryItem = {
 
 // -- Helpers -----------------------------------------------------------------
 
+import {
+  SUCCESS_BG, SUCCESS_TEXT,
+  WARNING_BG, WARNING_TEXT,
+  ERROR_BG, ERROR_TEXT,
+  SUCCESS_ICON, ERROR_ICON, WARNING_ICON
+} from "../../../components/ui/variants";
+
 function matchRateBadge(rate: number) {
-  if (rate > 0.8) return { label: "HIGH", bg: "bg-emerald-50", text: "text-emerald-700" };
-  if (rate > 0.5) return { label: "MED", bg: "bg-amber-50", text: "text-amber-700" };
-  return { label: "LOW", bg: "bg-rose-50", text: "text-rose-700" };
+  if (rate > 0.8) return { label: "HIGH", bg: SUCCESS_BG, text: SUCCESS_TEXT };
+  if (rate > 0.5) return { label: "MED", bg: WARNING_BG, text: WARNING_TEXT };
+  return { label: "LOW", bg: ERROR_BG, text: ERROR_TEXT };
 }
 
 function formatDate(iso: string | null): string {
@@ -107,9 +115,9 @@ export default function SceneLabTab() {
   // Filter groups when character changes
   const availableGroups = characterId
     ? groups.filter((g) => {
-        const char = characters.find((c) => c.id === characterId);
-        return char ? g.project_id === char.project_id : true;
-      })
+      const char = characters.find((c) => c.id === characterId);
+      return char ? g.project_id === char.project_id : true;
+    })
     : groups;
 
   // Update groupId when character changes and current group is invalid
@@ -327,21 +335,18 @@ export default function SceneLabTab() {
             />
           </Field>
 
-          <button
+          <Button
             onClick={handleRun}
             disabled={loading || !sceneDescription.trim() || !characterId || !groupId}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            loading={loading}
+            className="w-full flex justify-center gap-2"
           >
-            {loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Play className="h-3.5 w-3.5" />
-            )}
+            {!loading && <Play className="h-3.5 w-3.5" />}
             {loading ? "Composing & Generating..." : "Compose & Run"}
-          </button>
+          </Button>
 
           {error && (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{error}</p>
+            <p className={`rounded-lg px-3 py-2 text-xs ${ERROR_BG} ${ERROR_TEXT}`}>{error}</p>
           )}
         </div>
 
@@ -392,22 +397,22 @@ export default function SceneLabTab() {
               {wd14 && (
                 <div className="space-y-2">
                   <TagList
-                    icon={<CheckCircle className="h-3 w-3 text-emerald-500" />}
+                    icon={<CheckCircle className={`h-3 w-3 ${SUCCESS_ICON}`} />}
                     label="Matched"
                     tags={wd14.matched_tags}
-                    color="text-emerald-700"
+                    color={SUCCESS_TEXT}
                   />
                   <TagList
-                    icon={<XCircle className="h-3 w-3 text-rose-500" />}
+                    icon={<XCircle className={`h-3 w-3 ${ERROR_ICON}`} />}
                     label="Missing"
                     tags={wd14.missing_tags}
-                    color="text-rose-700"
+                    color={ERROR_TEXT}
                   />
                   <TagList
-                    icon={<AlertTriangle className="h-3 w-3 text-amber-500" />}
+                    icon={<AlertTriangle className={`h-3 w-3 ${WARNING_ICON}`} />}
                     label="Extra"
                     tags={wd14.extra_tags}
-                    color="text-amber-700"
+                    color={WARNING_TEXT}
                   />
                 </div>
               )}

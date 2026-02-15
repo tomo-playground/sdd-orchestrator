@@ -1,7 +1,12 @@
 "use client";
 
 import StoryboardInsights, { type InsightScene } from "../storyboard/StoryboardInsights";
-import { SIDE_PANEL_LABEL } from "../ui/variants";
+import {
+  SIDE_PANEL_LABEL,
+  SUCCESS_BG, SUCCESS_TEXT, SUCCESS_BORDER,
+  WARNING_BG, WARNING_TEXT, WARNING_BORDER,
+  ERROR_BG, ERROR_TEXT, ERROR_BORDER
+} from "../ui/variants";
 
 type SceneMatchRate = {
   match_rate?: number;
@@ -45,11 +50,11 @@ export default function SceneInsightsContent({
               const hasRate = rate !== undefined && rate !== null;
               const colorClass = !hasRate
                 ? "border-zinc-200 bg-zinc-50 text-zinc-400"
-                : rate >= 80
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : rate >= 60
-                    ? "border-amber-200 bg-amber-50 text-amber-700"
-                    : "border-rose-200 bg-rose-50 text-rose-700";
+                : rate >= 90
+                  ? `${SUCCESS_BORDER} ${SUCCESS_BG} ${SUCCESS_TEXT}`
+                  : rate >= 70
+                    ? `${WARNING_BORDER} ${WARNING_BG} ${WARNING_TEXT}`
+                    : `${ERROR_BORDER} ${ERROR_BG} ${ERROR_TEXT}`;
 
               return (
                 <button

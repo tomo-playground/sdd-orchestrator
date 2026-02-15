@@ -3,7 +3,12 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import type { Scene, ImageValidation } from "../../types";
 import { hasSceneImage } from "../../utils/sceneCompletion";
-import { LEFT_PANEL_CLASSES, cx } from "../ui/variants";
+import {
+  LEFT_PANEL_CLASSES, cx,
+  SUCCESS_BG,
+  WARNING_BG,
+  ERROR_BG
+} from "../ui/variants";
 import Button from "../ui/Button";
 
 type SceneListPanelProps = {
@@ -164,7 +169,7 @@ const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function Sc
           e.stopPropagation();
           onRemove();
         }}
-        className="shrink-0 rounded p-0.5 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-rose-500"
+        className="shrink-0 rounded p-0.5 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600"
         title="삭제"
       >
         <TrashIcon />
@@ -176,9 +181,9 @@ const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function Sc
 /* ---- CompletionDots (ported from SceneFilmstrip) ---- */
 
 const DOT_COLORS = {
-  green: "bg-emerald-400",
-  amber: "bg-amber-400",
-  red: "bg-rose-400",
+  green: SUCCESS_BG,
+  amber: WARNING_BG,
+  red: ERROR_BG,
   gray: "bg-zinc-300",
 } as const;
 

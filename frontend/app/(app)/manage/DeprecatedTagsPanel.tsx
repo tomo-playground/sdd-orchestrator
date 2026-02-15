@@ -6,6 +6,13 @@ import { API_BASE } from "../../constants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useUIStore } from "../../store/useUIStore";
+import {
+  SUCCESS_BG,
+  SUCCESS_TEXT,
+  SUCCESS_BORDER,
+  SUCCESS_ICON,
+  ERROR_ICON
+} from "../../components/ui/variants";
 
 interface DeprecatedTag {
   id: number;
@@ -367,7 +374,7 @@ export default function DeprecatedTagsPanel() {
                         <span className="text-[12px] font-semibold text-zinc-400 uppercase">
                           Replacement:
                         </span>
-                        <span className="rounded-md bg-green-100 px-2 py-0.5 font-mono text-[12px] font-semibold text-green-700">
+                        <span className={`rounded-md ${SUCCESS_BG} px-2 py-0.5 font-mono text-[12px] font-semibold ${SUCCESS_TEXT}`}>
                           {tag.replacement.name}
                         </span>
                       </div>
@@ -378,7 +385,7 @@ export default function DeprecatedTagsPanel() {
                 <button
                   type="button"
                   onClick={() => handleActivateTag(tag.id)}
-                  className="ml-4 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-[12px] font-semibold text-green-700 transition hover:bg-green-100"
+                  className={`ml-4 rounded-lg border ${SUCCESS_BORDER} ${SUCCESS_BG} px-3 py-1.5 text-[12px] font-semibold ${SUCCESS_TEXT} transition hover:bg-emerald-100`}
                 >
                   Reactivate
                 </button>

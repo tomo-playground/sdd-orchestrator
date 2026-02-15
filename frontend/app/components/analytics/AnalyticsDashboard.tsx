@@ -84,7 +84,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
     expression: "bg-pink-500",
     pose: "bg-blue-500",
     camera: "bg-purple-500",
-    environment: "bg-green-500",
+    environment: "bg-emerald-500",
     lighting: "bg-yellow-500",
     mood: "bg-indigo-500",
     clothing: "bg-red-500",
@@ -92,7 +92,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
   };
 
   const getCategoryColor = (category: string) => {
-    return categoryColors[category] || "bg-gray-500";
+    return categoryColors[category] || "bg-zinc-500";
   };
 
   return (

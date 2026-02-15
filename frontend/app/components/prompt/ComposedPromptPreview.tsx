@@ -4,6 +4,12 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { API_BASE } from "../../constants";
 import { useTagClassifier } from "../../hooks";
 import CopyButton from "../ui/CopyButton";
+import {
+  SUCCESS_BG, SUCCESS_TEXT,
+  WARNING_BG, WARNING_TEXT,
+  ERROR_BG, ERROR_TEXT,
+  INFO_BG, INFO_TEXT
+} from "../ui/variants";
 
 type LoRAInfo = {
   name: string;
@@ -271,7 +277,7 @@ export default function ComposedPromptPreview({
             </span>
           )}
           {!isLoading && result && (
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${SUCCESS_BG} ${SUCCESS_TEXT}`}>
               Filtered
             </span>
           )}
@@ -282,24 +288,22 @@ export default function ComposedPromptPreview({
           )}
           {result && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                result.effective_mode === "lora"
-                  ? "bg-violet-100 text-violet-700"
-                  : "bg-zinc-100 text-zinc-600"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${result.effective_mode === "lora"
+                ? `${INFO_BG} ${INFO_TEXT}`
+                : "bg-zinc-100 text-zinc-600"
+                }`}
             >
               {result.effective_mode.toUpperCase()}
             </span>
           )}
           {result?.scene_complexity && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                result.scene_complexity === "complex"
-                  ? "bg-red-100 text-red-700"
-                  : result.scene_complexity === "moderate"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-emerald-100 text-emerald-700"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${result.scene_complexity === "complex"
+                ? `${ERROR_BG} ${ERROR_TEXT}`
+                : result.scene_complexity === "moderate"
+                  ? `${WARNING_BG} ${WARNING_TEXT}`
+                  : `${SUCCESS_BG} ${SUCCESS_TEXT}`
+                }`}
             >
               {result.scene_complexity}
             </span>

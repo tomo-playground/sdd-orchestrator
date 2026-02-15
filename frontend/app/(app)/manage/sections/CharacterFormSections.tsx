@@ -1,5 +1,6 @@
 import React from "react";
 import type { ActorGender, PromptMode, LoRA, VoicePreset } from "../../../types";
+import { ERROR_TEXT, WARNING_BORDER, WARNING_TEXT } from "../../../components/ui/variants";
 
 // --- Basic Info ---
 export function BasicInfoSection({
@@ -212,10 +213,10 @@ export function SceneIdentitySection({
           onChange={(e) => setCustomBasePrompt(e.target.value)}
           rows={3}
           placeholder="Tags that define character's core look (e.g. hair style, eye color, unique traits). NO BACKGROUND TAGS."
-          className={`w-full rounded-xl border ${sceneIdentityWarning ? "border-amber-400" : "border-zinc-200"} resize-none px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400`}
+          className={`w-full rounded-xl border ${sceneIdentityWarning ? WARNING_BORDER : "border-zinc-200"} resize-none px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400`}
         />
         {sceneIdentityWarning && (
-          <p className="mt-1 text-[13px] font-medium text-amber-600 italic">
+          <p className={`mt-1 text-[13px] font-medium italic ${WARNING_TEXT}`}>
             {sceneIdentityWarning}
           </p>
         )}
@@ -299,11 +300,10 @@ export function LoRAsSection({
               <select
                 value={loraInfo?.lora_type || "character"}
                 onChange={(e) => onLoraTypeChange(lora.lora_id, e.target.value)}
-                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[13px] font-semibold outline-none ${
-                  loraInfo?.lora_type === "style"
-                    ? "border-violet-200 bg-violet-50 text-violet-600"
-                    : "border-zinc-200 bg-white text-zinc-500"
-                }`}
+                className={`w-20 rounded-lg border px-1.5 py-1.5 text-[13px] font-semibold outline-none ${loraInfo?.lora_type === "style"
+                  ? "border-violet-200 bg-violet-50 text-violet-600"
+                  : "border-zinc-200 bg-white text-zinc-500"
+                  }`}
               >
                 <option value="character">character</option>
                 <option value="style">style</option>
@@ -320,7 +320,7 @@ export function LoRAsSection({
               />
               <button
                 onClick={() => onRemoveLora(index)}
-                className="px-1 text-rose-400 hover:text-rose-600"
+                className={`px-1 ${ERROR_TEXT} hover:text-rose-600`}
               >
                 x
               </button>

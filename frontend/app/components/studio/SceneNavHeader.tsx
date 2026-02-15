@@ -1,6 +1,8 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import Button from "../ui/Button";
+import { ERROR_ICON, ERROR_BG } from "../ui/variants";
 
 type SceneNavHeaderProps = {
   currentIndex: number;
@@ -48,14 +50,15 @@ export default function SceneNavHeader({
         <h3 className="text-sm font-semibold text-zinc-800">씬 {currentIndex + 1}</h3>
         {duration != null && <span className="text-xs text-zinc-400">{duration}초</span>}
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onRemove}
-        className="text-rose-500 hover:bg-rose-50"
-      >
-        삭제
-      </Button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onRemove}
+          className={`rounded-lg p-2 transition-colors ${ERROR_ICON} hover:${ERROR_BG}`}
+          title="Delete Scene"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     </div>
   );
 }

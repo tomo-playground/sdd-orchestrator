@@ -8,6 +8,7 @@ import {
   FORM_LABEL_CLASSES,
   FORM_TEXTAREA_CLASSES,
   FORM_INPUT_CLASSES,
+  ERROR_ICON
 } from "../ui/variants";
 
 type StoryboardGeneratorPanelProps = {
@@ -86,9 +87,8 @@ export default function StoryboardGeneratorPanel({
               Topic
             </label>
             <span
-              className={`text-[12px] font-semibold tracking-[0.1em] ${
-                topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
-              }`}
+              className={`text-[12px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
+                }`}
             >
               {topic.length}/200
             </span>
@@ -125,9 +125,8 @@ export default function StoryboardGeneratorPanel({
                   <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
                 </label>
                 <span
-                  className={`text-[12px] font-semibold tracking-[0.1em] ${
-                    (description ?? "").length >= 500 ? "text-rose-500" : "text-zinc-400"
-                  }`}
+                  className={`text-[12px] font-semibold tracking-[0.1em] ${(description ?? "").length >= 500 ? ERROR_ICON : "text-zinc-400"
+                    }`}
                 >
                   {(description ?? "").length}/500
                 </span>

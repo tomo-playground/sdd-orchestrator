@@ -1,7 +1,7 @@
 "use client";
 
 import type { RecentVideo } from "../../types";
-import { cx, SECTION_CLASSES } from "../ui/variants";
+import { cx, SECTION_CLASSES, ERROR_ICON } from "../ui/variants";
 
 type RenderedVideosSectionProps = {
   videoUrl: string | null;
@@ -12,6 +12,7 @@ type RenderedVideosSectionProps = {
   onVideoPreview: (url: string) => void;
   onDeleteRecentVideo: (url: string) => void;
   onUploadToYouTube?: (videoUrl: string, renderHistoryId?: number) => void;
+  compact?: boolean;
 };
 
 const YT_ICON = (
@@ -29,36 +30,38 @@ export default function RenderedVideosSection({
   onVideoPreview,
   onDeleteRecentVideo,
   onUploadToYouTube,
+  compact = false,
 }: RenderedVideosSectionProps) {
   if (!videoUrl && !videoUrlFull && !videoUrlPost && recentVideos.length === 0) {
     return null;
   }
 
   return (
-    <section className={cx(SECTION_CLASSES, "grid gap-4")}>
-      <div>
-        <h2 className="text-lg font-semibold text-zinc-900">Preview</h2>
-        <p className="text-xs text-zinc-500">
-          {videoUrlFull || videoUrlPost ? "Compare full and post renders." : "Latest render."}
-        </p>
-      </div>
+    <section className={cx(compact ? "" : SECTION_CLASSES, "grid gap-4")}>
+      {!compact && (
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-900">Preview</h2>
+          <p className="text-xs text-zinc-500">
+            {videoUrlFull || videoUrlPost ? "Compare full and post renders." : "Latest render."}
+          </p>
+        </div>
+      )}
       {recentVideos.length > 0 && (
         <div className="grid gap-3">
           <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Recent (8)
+            Recent ({recentVideos.length})
           </span>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className={compact ? "grid gap-4 grid-cols-1" : "grid gap-4 md:grid-cols-2 lg:grid-cols-4"}>
             {recentVideos.map((item, idx) => {
               const ytVideoId = uploadedMap?.get(item.url);
               const isUploaded = !!ytVideoId;
               return (
                 <div
                   key={`${item.url}-${item.createdAt}`}
-                  className={`group grid gap-2 rounded-2xl border bg-white/70 p-3 shadow-sm ${
-                    idx === 0
-                      ? "border-zinc-900/40 bg-white shadow-lg ring-2 shadow-zinc-900/10 ring-zinc-900/10"
-                      : "border-zinc-200"
-                  }`}
+                  className={`group grid gap-2 rounded-2xl border bg-white/70 p-3 shadow-sm ${idx === 0
+                    ? "border-zinc-900/40 bg-white shadow-lg ring-2 shadow-zinc-900/10 ring-zinc-900/10"
+                    : "border-zinc-200"
+                    }`}
                 >
                   <div className="grid gap-1">
                     <div className="flex items-center gap-1.5">
@@ -121,7 +124,7 @@ export default function RenderedVideosSection({
                     <button
                       type="button"
                       onClick={() => onDeleteRecentVideo(item.url)}
-                      className="ml-auto text-[12px] font-medium text-zinc-400 transition hover:text-rose-500"
+                      className={`ml-auto text-[12px] font-medium text-zinc-400 transition hover:${ERROR_ICON}`}
                     >
                       Delete
                     </button>

@@ -6,6 +6,7 @@ import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog"
 import { useUIStore } from "../../../store/useUIStore";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import type { Character } from "../../../types";
+import { ERROR_BG, ERROR_ICON } from "../../../components/ui/variants";
 
 export default function PromptsTab() {
   const showToast = useUIStore((s) => s.showToast);
@@ -155,11 +156,10 @@ export default function PromptsTab() {
                   <button
                     type="button"
                     onClick={() => togglePromptFavorite(prompt.id)}
-                    className={`rounded-full p-2 text-xs transition ${
-                      prompt.is_favorite
-                        ? "bg-amber-50 text-amber-500 hover:bg-amber-100"
-                        : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100"
-                    }`}
+                    className={`rounded-full p-2 text-xs transition ${prompt.is_favorite
+                      ? "bg-amber-50 text-amber-500 hover:bg-amber-100"
+                      : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100"
+                      }`}
                     title={prompt.is_favorite ? "Remove from favorites" : "Add to favorites"}
                   >
                     {prompt.is_favorite ? "★" : "☆"}
@@ -168,7 +168,7 @@ export default function PromptsTab() {
                     type="button"
                     onClick={() => deletePromptHistory(prompt.id)}
                     disabled={deletingPromptId === prompt.id}
-                    className="rounded-full bg-rose-50 p-2 text-xs text-rose-500 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`rounded-full ${ERROR_BG} p-2 text-xs ${ERROR_ICON} transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50`}
                     title="Delete"
                   >
                     ✕

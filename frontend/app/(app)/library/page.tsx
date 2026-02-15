@@ -2,25 +2,38 @@
 
 import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import LibrarySidebar, { type LibraryTab } from "./LibrarySidebar";
+import { Users, Mic, Music, Image } from "lucide-react";
+
+import AppSidebar, { type NavItem } from "../../components/layout/AppSidebar";
+import AppMobileTabBar from "../../components/layout/AppMobileTabBar";
+import AppThreeColumnLayout from "../../components/layout/AppThreeColumnLayout";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import {
-  TAB_ACTIVE,
-  TAB_INACTIVE,
-  PAGE_2COL_LAYOUT,
-  SECONDARY_PANEL_CLASSES,
-} from "../../components/ui/variants";
 import LibrarySecondaryPanel from "./LibrarySecondaryPanel";
 import { CharactersContent } from "../characters/page";
 import { VoicesContent } from "../voices/page";
 import { MusicContent } from "../music/page";
 import { BackgroundsContent } from "../backgrounds/page";
+import { type LibraryTab } from "./types";
 
 const VALID_TABS: LibraryTab[] = ["characters", "voices", "music", "backgrounds"];
 
 function isValidTab(v: string | null): v is LibraryTab {
   return v !== null && VALID_TABS.includes(v as LibraryTab);
 }
+
+const NAV_ITEMS: NavItem[] = [
+  { id: "characters", label: "Characters", icon: Users },
+  { id: "voices", label: "Voices", icon: Mic },
+  { id: "music", label: "Music", icon: Music },
+  { id: "backgrounds", label: "Backgrounds", icon: Image },
+];
+
+const MOBILE_TABS = [
+  { id: "characters", label: "Characters" },
+  { id: "voices", label: "Voices" },
+  { id: "music", label: "Music" },
+  { id: "backgrounds", label: "Backgrounds" },
+];
 
 function LibraryContent() {
   const router = useRouter();
@@ -37,26 +50,33 @@ function LibraryContent() {
   );
 
   return (
-    <div className="flex h-full">
-      <LibrarySidebar activeTab={activeTab} onTabChange={handleTabChange} />
-
-      {/* Mobile tab bar */}
-      <MobileTabBar activeTab={activeTab} onTabChange={handleTabChange} />
-
-      <main className="flex-1 overflow-y-auto px-6">
-        <div className={PAGE_2COL_LAYOUT}>
-          <div className="min-w-0">
+    <AppThreeColumnLayout
+      left={
+        <AppSidebar
+          items={NAV_ITEMS}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          collapsedKey="librarySidebarCollapsed"
+        />
+      }
+      center={
+        <>
+          {/* Mobile tab bar */}
+          <AppMobileTabBar
+            tabs={MOBILE_TABS}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
+          <div className="px-6 py-6 min-w-0">
             {activeTab === "characters" && <CharactersContent />}
             {activeTab === "voices" && <VoicesContent />}
             {activeTab === "music" && <MusicContent />}
             {activeTab === "backgrounds" && <BackgroundsContent />}
           </div>
-          <div className={SECONDARY_PANEL_CLASSES}>
-            <LibrarySecondaryPanel activeTab={activeTab} />
-          </div>
-        </div>
-      </main>
-    </div>
+        </>
+      }
+      right={<LibrarySecondaryPanel activeTab={activeTab} />}
+    />
   );
 }
 
@@ -71,42 +91,5 @@ export default function LibraryPage() {
     >
       <LibraryContent />
     </Suspense>
-  );
-}
-
-// -- Mobile tab bar (< lg) --
-
-const MOBILE_TABS: { id: LibraryTab; label: string }[] = [
-  { id: "characters", label: "Characters" },
-  { id: "voices", label: "Voices" },
-  { id: "music", label: "Music" },
-  { id: "backgrounds", label: "Backgrounds" },
-];
-
-function MobileTabBar({
-  activeTab,
-  onTabChange,
-}: {
-  activeTab: LibraryTab;
-  onTabChange: (tab: LibraryTab) => void;
-}) {
-  return (
-    <div className="fixed top-[var(--nav-height)] right-0 left-0 z-[var(--z-sticky)] flex gap-1 overflow-x-auto border-b border-zinc-200 bg-white/90 px-4 py-1.5 backdrop-blur-md lg:hidden">
-      {MOBILE_TABS.map((tab) => {
-        const active = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onTabChange(tab.id)}
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              active ? TAB_ACTIVE : TAB_INACTIVE
-            }`}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }

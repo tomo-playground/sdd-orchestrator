@@ -10,9 +10,9 @@ import { API_BASE } from "../../constants";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
 import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
 import { PublishVideosSection, PublishCaptionLikes } from "./PublishMetaPanel";
-import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 import { renderWithProgress } from "../../utils/renderWithProgress";
 import { getErrorMsg } from "../../utils/error";
+import StudioThreeColumnLayout from "./StudioThreeColumnLayout";
 
 export default function PublishTab() {
   const scenes = useStoryboardStore((s) => s.scenes);
@@ -61,11 +61,11 @@ export default function PublishTab() {
     axios
       .get(`${API_BASE}/audio/list`)
       .then((r) => setOutput({ bgmList: r.data.audios || [] }))
-      .catch(() => {});
+      .catch(() => { });
     axios
       .get(`${API_BASE}/fonts/list`)
       .then((r) => setOutput({ fontList: r.data.fonts || [] }))
-      .catch(() => {});
+      .catch(() => { });
   }, [setOutput]);
 
   // --- Load selected font dynamically ---
@@ -121,20 +121,20 @@ export default function PublishTab() {
         const overlaySettings =
           mode === "full" && project
             ? {
-                channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
-                frame_style: frameStyle,
-                caption: videoCaption,
-                likes_count: videoLikesCount,
-              }
+              channel_name: project.name,
+              avatar_key: project.avatar_key || project.handle || project.name,
+              frame_style: frameStyle,
+              caption: videoCaption,
+              likes_count: videoLikesCount,
+            }
             : null;
         const postCardSettings =
           mode === "post" && project
             ? {
-                channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
-                caption: videoCaption,
-              }
+              channel_name: project.name,
+              avatar_key: project.avatar_key || project.handle || project.name,
+              caption: videoCaption,
+            }
             : null;
 
         const payload = {
@@ -230,88 +230,93 @@ export default function PublishTab() {
   }
 
   return (
-    <div className={SIDE_PANEL_LAYOUT}>
-      {/* Left: Settings + Results */}
-      <div className="space-y-6">
-        {disabledReason && (
-          <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <span className="text-xl">⚠</span>
-            <div>
-              <p className="text-sm font-semibold text-amber-800">{disabledReason}</p>
-              <p className="mt-0.5 text-xs text-amber-600">
-                렌더링 설정은 아래에서 미리 구성할 수 있습니다.
-              </p>
+
+    <StudioThreeColumnLayout
+      leftPanel={
+        <div className="h-full overflow-y-auto p-4">
+          <PublishVideosSection compact />
+        </div>
+      }
+      centerPanel={
+        <div className="mx-auto w-full max-w-3xl px-6 py-8 space-y-6">
+          {disabledReason && (
+            <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+              <span className="text-xl">⚠</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">{disabledReason}</p>
+                <p className="mt-0.5 text-xs text-amber-600">
+                  렌더링 설정은 아래에서 미리 구성할 수 있습니다.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <RenderMediaPanel
-          includeSceneText={includeSceneText}
-          setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
-          sceneTextFont={sceneTextFont}
-          setSubtitleFont={(v) => setOutput({ sceneTextFont: v })}
-          fontList={fontList}
-          loadedFonts={loadedFonts}
-          kenBurnsPreset={kenBurnsPreset}
-          setKenBurnsPreset={(v) => setOutput({ kenBurnsPreset: v })}
-          kenBurnsIntensity={kenBurnsIntensity}
-          setKenBurnsIntensity={(v) => setOutput({ kenBurnsIntensity: v })}
-          transitionType={transitionType}
-          setTransitionType={(v) => setOutput({ transitionType: v })}
-          speedMultiplier={speedMultiplier}
-          setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
-          bgmFile={bgmFile}
-          setBgmFile={(v) => setOutput({ bgmFile: v })}
-          bgmList={bgmList}
-          onPreviewBgm={handlePreviewBgm}
-          isPreviewingBgm={isPreviewingBgm}
-          audioDucking={audioDucking}
-          setAudioDucking={(v) => setOutput({ audioDucking: v })}
-          bgmVolume={bgmVolume}
-          setBgmVolume={(v) => setOutput({ bgmVolume: v })}
-          voiceDesignPrompt={voiceDesignPrompt}
-          setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
-          voicePresetId={voicePresetId}
-          setVoicePresetId={async (v) => {
-            setOutput({ voicePresetId: v });
-            if (groupId) {
-              try {
-                await axios.put(`${API_BASE}/groups/${groupId}/config`, {
-                  narrator_voice_preset_id: v,
-                });
-              } catch (err) {
-                console.error("[setVoicePresetId] Failed to update group config:", err);
+          <RenderMediaPanel
+            includeSceneText={includeSceneText}
+            setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
+            sceneTextFont={sceneTextFont}
+            setSubtitleFont={(v) => setOutput({ sceneTextFont: v })}
+            fontList={fontList}
+            loadedFonts={loadedFonts}
+            kenBurnsPreset={kenBurnsPreset}
+            setKenBurnsPreset={(v) => setOutput({ kenBurnsPreset: v })}
+            kenBurnsIntensity={kenBurnsIntensity}
+            setKenBurnsIntensity={(v) => setOutput({ kenBurnsIntensity: v })}
+            transitionType={transitionType}
+            setTransitionType={(v) => setOutput({ transitionType: v })}
+            speedMultiplier={speedMultiplier}
+            setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
+            bgmFile={bgmFile}
+            setBgmFile={(v) => setOutput({ bgmFile: v })}
+            bgmList={bgmList}
+            onPreviewBgm={handlePreviewBgm}
+            isPreviewingBgm={isPreviewingBgm}
+            audioDucking={audioDucking}
+            setAudioDucking={(v) => setOutput({ audioDucking: v })}
+            bgmVolume={bgmVolume}
+            setBgmVolume={(v) => setOutput({ bgmVolume: v })}
+            voiceDesignPrompt={voiceDesignPrompt}
+            setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
+            voicePresetId={voicePresetId}
+            setVoicePresetId={async (v) => {
+              setOutput({ voicePresetId: v });
+              if (groupId) {
+                try {
+                  await axios.put(`${API_BASE}/groups/${groupId}/config`, {
+                    narrator_voice_preset_id: v,
+                  });
+                } catch (err) {
+                  console.error("[setVoicePresetId] Failed to update group config:", err);
+                }
               }
-            }
-          }}
-          bgmMode={bgmMode}
-          setBgmMode={(v) => setOutput({ bgmMode: v })}
-          musicPresetId={musicPresetId}
-          setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
-        />
-
-        <PublishVideosSection />
-      </div>
-
-      {/* Right: Action + Caption/Likes (sticky) */}
-      <div className={SIDE_PANEL_CLASSES}>
-        <RenderSidePanel
-          layoutStyle={layoutStyle}
-          setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
-          frameStyle={frameStyle}
-          setFrameStyle={(v) => setOutput({ frameStyle: v })}
-          canRender={canRender}
-          isRendering={isRendering}
-          scenesWithImages={scenes.filter((s) => !!s.image_url).length}
-          totalScenes={scenes.length}
-          onRender={() => handleRender(layoutStyle)}
-          disabledReason={disabledReason}
-          renderPresetName={effectivePresetName}
-          renderPresetSource={effectivePresetSource}
-          renderProgress={renderProgress}
-        />
-        <PublishCaptionLikes />
-      </div>
-    </div>
+            }}
+            bgmMode={bgmMode}
+            setBgmMode={(v) => setOutput({ bgmMode: v })}
+            musicPresetId={musicPresetId}
+            setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
+          />
+        </div>
+      }
+      rightPanel={
+        <div className="space-y-4">
+          <RenderSidePanel
+            layoutStyle={layoutStyle}
+            setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
+            frameStyle={frameStyle}
+            setFrameStyle={(v) => setOutput({ frameStyle: v })}
+            canRender={canRender}
+            isRendering={isRendering}
+            scenesWithImages={scenes.filter((s) => !!s.image_url).length}
+            totalScenes={scenes.length}
+            onRender={() => handleRender(layoutStyle)}
+            disabledReason={disabledReason}
+            renderPresetName={effectivePresetName}
+            renderPresetSource={effectivePresetSource}
+            renderProgress={renderProgress}
+          />
+          <PublishCaptionLikes />
+        </div>
+      }
+    />
   );
 }

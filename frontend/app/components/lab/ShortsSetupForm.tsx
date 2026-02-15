@@ -159,9 +159,9 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
                   <div className="flex flex-col">
                     <span className="font-medium group-hover:text-zinc-900 transition-colors">
                       {step.label}
-                      <span className="ml-1.5 text-[10px] text-zinc-400 font-normal">(optional)</span>
+                      <span className="ml-1.5 text-[11px] text-zinc-400 font-normal">(optional)</span>
                     </span>
-                    <span className="text-[10px] text-zinc-400 leading-tight">{step.desc}</span>
+                    <span className="text-[11px] text-zinc-400 leading-tight">{step.desc}</span>
                   </div>
                 </label>
               ))}

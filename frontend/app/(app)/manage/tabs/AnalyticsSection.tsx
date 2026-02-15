@@ -1,6 +1,7 @@
 "use client";
 
 import type { EditAnalytics } from "../hooks/useSettingsTab";
+import { ERROR_TEXT } from "../../../components/ui/variants";
 
 type Props = {
     analytics: EditAnalytics | null;
@@ -138,7 +139,7 @@ export default function AnalyticsSection({
                                                 <tr key={edit.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                                                     <td className="py-2 font-semibold">#{edit.storyboard_id}</td>
                                                     <td className="py-2">Scene {edit.scene_id}</td>
-                                                    <td className="py-2 text-right text-rose-600 font-mono">
+                                                    <td className={`py-2 text-right ${ERROR_TEXT} font-mono`}>
                                                         {(edit.original_match_rate * 100).toFixed(0)}%
                                                     </td>
                                                     <td className="py-2 text-right text-emerald-600 font-mono font-bold">

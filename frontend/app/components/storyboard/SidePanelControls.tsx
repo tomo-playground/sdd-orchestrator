@@ -1,5 +1,9 @@
 "use client";
-
+import {
+  SUCCESS_BG, SUCCESS_TEXT, SUCCESS_BORDER,
+  WARNING_BG, WARNING_TEXT, WARNING_BORDER,
+  ERROR_BG, ERROR_TEXT, ERROR_BORDER
+} from "../ui/variants";
 /** Reusable sub-components for SceneToolsContent right panel. */
 
 /* ---- OverrideToggleRow ---- */
@@ -50,14 +54,12 @@ export function OverrideToggleRow({
         aria-checked={isOn}
         onClick={() => !disabled && onChange(!isOn)}
         disabled={disabled}
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
-          disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
-        } ${isOn ? "bg-zinc-900" : "bg-zinc-200"}`}
+        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
+          } ${isOn ? "bg-zinc-900" : "bg-zinc-200"}`}
       >
         <span
-          className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${
-            isOn ? "translate-x-3.5" : "translate-x-0.5"
-          }`}
+          className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${isOn ? "translate-x-3.5" : "translate-x-0.5"
+            }`}
         />
       </button>
     </div>
@@ -101,9 +103,9 @@ export function SliderRow({
 /* ---- StatBadge ---- */
 
 const STAT_BADGE_COLORS = {
-  emerald: "border-emerald-200 bg-emerald-50 text-emerald-700 [&>:last-child]:text-emerald-500",
-  amber: "border-amber-200 bg-amber-50 text-amber-700 [&>:last-child]:text-amber-500",
-  rose: "border-rose-200 bg-rose-50 text-rose-700 [&>:last-child]:text-rose-500",
+  emerald: `${SUCCESS_BORDER} ${SUCCESS_BG} ${SUCCESS_TEXT} [&>:last-child]:${SUCCESS_TEXT}`,
+  amber: `${WARNING_BORDER} ${WARNING_BG} ${WARNING_TEXT} [&>:last-child]:${WARNING_TEXT}`,
+  rose: `${ERROR_BORDER} ${ERROR_BG} ${ERROR_TEXT} [&>:last-child]:${ERROR_TEXT}`,
 } as const;
 
 export function StatBadge({

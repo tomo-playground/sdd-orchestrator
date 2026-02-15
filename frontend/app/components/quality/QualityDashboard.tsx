@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
+import {
+  SIDE_PANEL_LAYOUT,
+  SIDE_PANEL_CLASSES,
+  SUCCESS_BG, SUCCESS_TEXT,
+  WARNING_BG, WARNING_TEXT,
+  ERROR_BG, ERROR_TEXT, ERROR_BORDER
+} from "../ui/variants";
 
 type QualityScore = {
   scene_id: number;
@@ -60,16 +66,16 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
 
   const getScoreBadge = (rate: number) => {
     if (rate >= 0.8)
-      return { emoji: "✨", label: "EXCELLENT", color: "text-emerald-500", bg: "bg-emerald-50" };
+      return { emoji: "✨", label: "EXCELLENT", color: SUCCESS_TEXT, bg: SUCCESS_BG };
     if (rate >= 0.7)
-      return { emoji: "⚡", label: "STABLE", color: "text-amber-500", bg: "bg-amber-50" };
-    return { emoji: "🔥", label: "RETRY", color: "text-rose-500", bg: "bg-rose-50" };
+      return { emoji: "⚡", label: "STABLE", color: WARNING_TEXT, bg: WARNING_BG };
+    return { emoji: "🔥", label: "RETRY", color: ERROR_TEXT, bg: ERROR_BG };
   };
 
   const getBarColor = (rate: number) => {
     if (rate >= 0.8) return "bg-emerald-500";
     if (rate >= 0.7) return "bg-amber-500";
-    return "bg-rose-500";
+    return "bg-red-500";
   };
 
   return (
@@ -98,7 +104,7 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
         </div>
 
         {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className={`rounded-2xl p-4 text-sm ${ERROR_BORDER} ${ERROR_BG} ${ERROR_TEXT}`}>
             {error}
           </div>
         )}
@@ -153,7 +159,7 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
                           {score.missing_tags.slice(0, 5).map((tag, i) => (
                             <span
                               key={i}
-                              className="text-[11px] font-medium text-rose-400/80 italic"
+                              className="text-[11px] font-medium text-red-400/80 italic"
                             >
                               {tag}
                               {i < 4 && i < score.missing_tags.length - 1 ? "," : ""}
@@ -210,9 +216,9 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
                 <span className="text-[12px] text-amber-600">Good</span>
                 <span className="text-sm font-bold text-amber-700">{summary.good_count}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2">
-                <span className="text-[12px] text-red-600">Poor</span>
-                <span className="text-sm font-bold text-red-700">{summary.poor_count}</span>
+              <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${ERROR_BG}`}>
+                <span className={`text-[12px] ${ERROR_TEXT}`}>Poor</span>
+                <span className={`text-sm font-bold ${ERROR_TEXT}`}>{summary.poor_count}</span>
               </div>
             </div>
           </>

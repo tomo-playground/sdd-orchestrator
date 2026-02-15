@@ -17,7 +17,7 @@ import { Input, Textarea } from "../ui";
  * Caption/Likes/YouTube section for the Publish tab.
  * Renders: rendered videos (left column), caption+likes (right column), YouTube modal.
  */
-export function PublishVideosSection() {
+export function PublishVideosSection({ compact = false }: { compact?: boolean }) {
   const setOutput = useRenderStore((s) => s.set);
   const showToast = useUIStore((s) => s.showToast);
   const setUI = useUIStore((s) => s.set);
@@ -61,6 +61,7 @@ export function PublishVideosSection() {
         onVideoPreview={(src) => setUI({ videoPreviewSrc: src })}
         onDeleteRecentVideo={handleDeleteRecentVideo}
         onUploadToYouTube={handleUploadToYouTube}
+        compact={compact}
       />
       <YouTubeUploadModal
         open={ytModalOpen}
@@ -148,7 +149,7 @@ export function PublishCaptionLikes() {
         </div>
 
 
-        // ... (top of file)
+
 
         <Textarea
           value={videoCaption}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Character } from "../../types";
 import { resolveImageUrl } from "../../utils/url";
+import { ERROR_BG, ERROR_TEXT } from "../../components/ui/variants";
 
 type Props = {
   character: Character;
@@ -56,7 +57,7 @@ export default function CharacterCard({ character: ch }: Props) {
             </span>
           )}
           {!imgSrc && (
-            <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[12px] font-medium text-rose-400">
+            <span className={`rounded-full ${ERROR_BG} px-1.5 py-0.5 text-[12px] font-medium ${ERROR_TEXT}`}>
               No Image
             </span>
           )}

@@ -2,7 +2,7 @@
 
 import { useTrashTab, type TrashItem, type FilterType } from "../hooks/useTrashTab";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { FILTER_PILL_ACTIVE } from "../../../components/ui/variants";
+import Button from "../../../components/ui/Button";
 
 const RETENTION_DAYS = 30;
 
@@ -48,17 +48,15 @@ export default function TrashTab() {
           };
           const count = f === "all" ? items.length : items.filter((i) => i.type === f).length;
           return (
-            <button
+            <Button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                filter === f
-                  ? FILTER_PILL_ACTIVE
-                  : "border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
-              }`}
+              variant={filter === f ? "primary" : "outline"}
+              size="sm"
+              className="rounded-full"
             >
               {labels[f]} ({count})
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -97,18 +95,22 @@ export default function TrashTab() {
                 </div>
 
                 <div className="ml-3 flex shrink-0 gap-2">
-                  <button
+                  <Button
                     onClick={() => handleRestore(item)}
-                    className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg py-1.5"
                   >
                     Restore
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handlePermanentDelete(item)}
-                    className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100"
+                    variant="danger"
+                    size="sm"
+                    className="rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border-none py-1.5"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

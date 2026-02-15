@@ -9,6 +9,7 @@ type Props = {
   isSaving: boolean;
   approveLabel?: string;
   onApprove: () => void;
+  compact?: boolean;
 };
 
 export default function ScriptSceneList({
@@ -16,6 +17,7 @@ export default function ScriptSceneList({
   isSaving,
   approveLabel = "Save",
   onApprove,
+  compact = false,
 }: Props) {
   if (scenes.length === 0) return null;
 
@@ -23,12 +25,12 @@ export default function ScriptSceneList({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className={`flex items-center justify-between ${compact ? "flex-col gap-2 items-start" : ""}`}>
         <div className="flex items-baseline gap-2">
           <h3 className="text-sm font-semibold text-zinc-900">Scenes ({scenes.length})</h3>
           <span className="text-[12px] text-zinc-400">{totalDuration}s</span>
         </div>
-        <Button size="sm" loading={isSaving} onClick={onApprove}>
+        <Button size="sm" loading={isSaving} onClick={onApprove} className={compact ? "w-full" : ""}>
           {approveLabel === "Save" ? (
             <Save className="h-3.5 w-3.5" />
           ) : (

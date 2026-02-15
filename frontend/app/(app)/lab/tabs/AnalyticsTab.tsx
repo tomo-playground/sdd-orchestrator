@@ -5,6 +5,10 @@ import axios from "axios";
 import { RefreshCw, Loader2, ArrowUpRight } from "lucide-react";
 import { API_BASE } from "../../../constants";
 import QualityDashboard from "../../../components/quality/QualityDashboard";
+import Button from "../../../components/ui/Button";
+import {
+  SUCCESS_TEXT, WARNING_TEXT, ERROR_TEXT, ERROR_BG
+} from "../../../components/ui/variants";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -63,9 +67,9 @@ export default function AnalyticsTab() {
   }, [loadReport]);
 
   const effectivenessColor = (ratio: number) => {
-    if (ratio >= 0.8) return "text-emerald-600";
-    if (ratio >= 0.5) return "text-amber-600";
-    return "text-rose-600";
+    if (ratio >= 0.8) return SUCCESS_TEXT;
+    if (ratio >= 0.5) return WARNING_TEXT;
+    return ERROR_TEXT;
   };
 
   return (
@@ -143,35 +147,31 @@ export default function AnalyticsTab() {
             )}
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={syncing}
+              variant="outline"
+              size="sm"
             >
-              {syncing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <ArrowUpRight className="h-3 w-3" />
-              )}
+              {!syncing && <ArrowUpRight className="h-3 w-3" />}
               Sync to Studio
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={loadReport}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={loading}
+              variant="outline"
+              size="sm"
             >
-              {loading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
-              )}
+              {!loading && <RefreshCw className="h-3 w-3" />}
               Refresh
-            </button>
+            </Button>
           </div>
         </div>
 
         {error && (
-          <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{error}</p>
+          <p className={`mb-3 rounded-lg px-3 py-2 text-xs ${ERROR_BG} ${ERROR_TEXT}`}>{error}</p>
         )}
 
         {!report && !loading && !error && (

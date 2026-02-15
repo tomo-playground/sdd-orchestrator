@@ -335,7 +335,7 @@ export default function AgentConfigPanel() {
                           {preset.template_content}
                         </pre>
                       </div>
-                      <p className="text-[10px] text-zinc-400 italic">
+                      <p className="text-[11px] text-zinc-400 italic">
                         * 이 지시사항은 서버의 템플릿 파일(.j2)에서 관리되며, 시스템 프롬프트와 결합되어 LLM에게 전달됩니다.
                       </p>
                     </div>

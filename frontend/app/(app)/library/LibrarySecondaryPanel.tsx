@@ -2,7 +2,7 @@
 
 import { Users, Mic, Music, Image, type LucideIcon } from "lucide-react";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../../components/ui/variants";
-import type { LibraryTab } from "./LibrarySidebar";
+import type { LibraryTab } from "./types";
 
 type TabGuide = {
   icon: LucideIcon;

@@ -59,7 +59,7 @@ export function VoicesContent() {
       .then((res) => {
         if (Array.isArray(res.data?.languages)) setLanguages(res.data.languages);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const filtered = useMemo(() => {
@@ -103,9 +103,9 @@ export function VoicesContent() {
             <span className="text-sm font-bold text-zinc-700">
               {editId ? "Edit Voice Preset" : "Generate Voice Preset"}
             </span>
-            <button onClick={handleCancel} className="text-xs text-zinc-400 hover:text-zinc-600">
+            <Button onClick={handleCancel} variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-600 hover:bg-transparent px-0">
               Cancel
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

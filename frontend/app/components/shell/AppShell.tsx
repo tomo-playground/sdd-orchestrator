@@ -45,6 +45,7 @@ function NavBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab");
+  const showLabMenu = useUIStore((s) => s.showLabMenu);
 
   return (
     <nav className="flex items-center gap-1">
@@ -52,23 +53,25 @@ function NavBar() {
         group === "sep" ? (
           <div key={`sep-${gi}`} className="mx-1 h-4 w-px bg-zinc-200" />
         ) : (
-          group.map((item) => {
-            const Icon = item.icon;
-            const active = isNavActive(item, pathname, currentTab);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cx(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-                  active ? TAB_ACTIVE : TAB_INACTIVE
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
-              </Link>
-            );
-          })
+          group
+            .filter((item) => item.label !== "Lab" || showLabMenu)
+            .map((item) => {
+              const Icon = item.icon;
+              const active = isNavActive(item, pathname, currentTab);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cx(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                    active ? TAB_ACTIVE : TAB_INACTIVE
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </Link>
+              );
+            })
         )
       )}
     </nav>

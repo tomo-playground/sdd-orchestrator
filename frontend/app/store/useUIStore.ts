@@ -46,7 +46,12 @@ export interface UIState {
   // Autopilot lock
   isAutoRunning: boolean;
 
-  // Actions
+  // Preferences
+  showAdvancedSettings: boolean;
+  toggleAdvancedSettings: () => void;
+  showLabMenu: boolean;
+  toggleLabMenu: () => void;
+
   set: (updates: Partial<UIState>) => void;
   setActiveTab: (tab: StudioTab) => void;
   showToast: (message: string, type: "success" | "error" | "warning") => void;
@@ -56,11 +61,20 @@ export interface UIState {
 
 const initialState: Omit<
   UIState,
-  "set" | "setActiveTab" | "showToast" | "dismissToast" | "resetUI"
+  | "set"
+  | "setActiveTab"
+  | "showToast"
+  | "dismissToast"
+  | "resetUI"
+  | "resetUI"
+  | "toggleAdvancedSettings"
+  | "toggleLabMenu"
 > = {
   toasts: [],
   activeTab: "edit",
   rightPanelTab: "tools" as RightPanelTab,
+  showAdvancedSettings: false, // Default closed
+  showLabMenu: false,
   imagePreviewSrc: null,
   imagePreviewCandidates: null,
   videoPreviewSrc: null,
@@ -80,6 +94,8 @@ const initialState: Omit<
 export const useUIStore = create<UIState>((set) => ({
   ...initialState,
   set: (updates) => set((state) => ({ ...state, ...updates })),
+  toggleAdvancedSettings: () => set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
+  toggleLabMenu: () => set((state) => ({ showLabMenu: !state.showLabMenu })),
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   showToast: (message, type) => {

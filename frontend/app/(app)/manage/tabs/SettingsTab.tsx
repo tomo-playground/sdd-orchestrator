@@ -45,6 +45,34 @@ export default function SettingsTab() {
 
   return (
     <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
+      {/* Interface Settings */}
+      <div className="grid gap-6">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+            Interface Settings
+          </span>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-zinc-900">Show Lab Menu</p>
+              <p className="text-[12px] text-zinc-400">
+                Enable experimental features and analytics.
+              </p>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={useUIStore((s) => s.showLabMenu)}
+                onChange={useUIStore((s) => s.toggleLabMenu)}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-zinc-200 peer-checked:bg-indigo-600 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-zinc-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Storage Section */}
       <div className="grid gap-6">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">

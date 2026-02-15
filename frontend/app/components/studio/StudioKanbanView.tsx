@@ -6,6 +6,7 @@ import { useContextStore } from "../../store/useContextStore";
 import KanbanColumn from "./KanbanColumn";
 import HomeSecondaryPanel from "./HomeSecondaryPanel";
 import LoadingSpinner from "../ui/LoadingSpinner";
+import Button from "../ui/Button";
 import { PAGE_2COL_LAYOUT, SECONDARY_PANEL_CLASSES } from "../ui/variants";
 
 const COLUMNS = ["draft", "in_prod", "rendered", "published"] as const;
@@ -44,12 +45,9 @@ export default function StudioKanbanView() {
                 {isLoading ? "Loading..." : `${total} storyboard${total !== 1 ? "s" : ""}`}
               </p>
             </div>
-            <button
-              onClick={handleNewShorts}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800"
-            >
+            <Button onClick={handleNewShorts} size="md">
               + New Shorts
-            </button>
+            </Button>
           </div>
 
           {/* Kanban Grid */}

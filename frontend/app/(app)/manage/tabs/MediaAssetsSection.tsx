@@ -1,6 +1,7 @@
 "use client";
 
 import type { MediaStats, OrphanReport, MediaCleanupResult } from "../hooks/useSettingsTab";
+import { ERROR_BG, ERROR_TEXT } from "../../../components/ui/variants";
 
 type Props = {
     mediaStats: MediaStats | null;
@@ -149,15 +150,15 @@ export default function MediaAssetsSection({
                                     {/* Storage errors */}
                                     {[...mediaCleanupResult.orphans.storage_errors, ...mediaCleanupResult.expired_temp.storage_errors]
                                         .length > 0 && (
-                                        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] text-red-600">
-                                            <p className="font-bold mb-1">Storage Errors:</p>
-                                            {[...mediaCleanupResult.orphans.storage_errors, ...mediaCleanupResult.expired_temp.storage_errors].map(
-                                                (err, i) => (
-                                                    <p key={i} className="truncate">{err}</p>
-                                                ),
-                                            )}
-                                        </div>
-                                    )}
+                                            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] text-red-600">
+                                                <p className="font-bold mb-1">Storage Errors:</p>
+                                                {[...mediaCleanupResult.orphans.storage_errors, ...mediaCleanupResult.expired_temp.storage_errors].map(
+                                                    (err, i) => (
+                                                        <p key={i} className="truncate">{err}</p>
+                                                    ),
+                                                )}
+                                            </div>
+                                        )}
                                 </div>
                             )}
                         </div>
@@ -170,7 +171,7 @@ export default function MediaAssetsSection({
 
 const STAT_COLORS: Record<string, { border: string; bg: string; text: string }> = {
     amber: { border: "border-amber-200", bg: "bg-amber-50", text: "text-amber-600" },
-    rose: { border: "border-rose-200", bg: "bg-rose-50", text: "text-rose-600" },
+    rose: { border: "border-rose-200", bg: ERROR_BG, text: ERROR_TEXT },
     red: { border: "border-red-200", bg: "bg-red-50", text: "text-red-600" },
 };
 

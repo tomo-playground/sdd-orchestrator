@@ -12,30 +12,23 @@ import type {
   Background,
 } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
-import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
+import { useContextStore } from "../../store/useContextStore";
+import { useUIStore } from "../../store/useUIStore";
 import SceneImagePanel from "./SceneImagePanel";
 import Button from "../ui/Button";
 import SceneActionBar from "./SceneActionBar";
-import SceneScriptFields from "./SceneScriptFields";
 import ScenePromptFields from "./ScenePromptFields";
 import SceneSettingsFields from "./SceneSettingsFields";
 import SceneGeminiModals from "./SceneGeminiModals";
+import CollapsibleSection from "../ui/CollapsibleSection";
+import SceneEssentialFields from "./SceneEssentialFields";
+import SceneBackgroundField from "./SceneBackgroundField";
 
-export type SceneEditTab = "script" | "visual" | "settings";
-
-const TAB_BASE = "px-3 py-1.5 text-xs font-semibold rounded-lg transition";
-
-const TABS: { key: SceneEditTab; label: string }[] = [
-  { key: "script", label: "대본" },
-  { key: "visual", label: "비주얼" },
-  { key: "settings", label: "설정" },
-];
+export type SceneEditTab = "script" | "visual" | "settings"; // Keep for compatibility if needed, but unused in logic
 
 type SceneCardProps = {
   scene: Scene;
   sceneIndex: number;
-  activeTab: SceneEditTab;
-  onTabChange: (tab: SceneEditTab) => void;
   validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
@@ -91,8 +84,6 @@ type SceneCardProps = {
 export default function SceneCard({
   scene,
   sceneIndex,
-  activeTab,
-  onTabChange,
   validationResult,
   imageValidationResult,
   qualityScore,
@@ -142,7 +133,9 @@ export default function SceneCard({
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
   const [geminiSuggestions, setGeminiSuggestions] = useState<GeminiSuggestion[]>([]);
+
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
 
   const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
@@ -168,38 +161,11 @@ export default function SceneCard({
   };
 
   return (
-    <div className="grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30">
-      {/* Tab Bar */}
-      <div className="flex gap-1">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange(tab.key)}
-            className={`${TAB_BASE} ${activeTab === tab.key ? TAB_ACTIVE : TAB_INACTIVE}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── 대본 Tab ── */}
-      {activeTab === "script" && (
-        <div className="grid gap-3">
-          <SceneScriptFields
-            scene={scene}
-            structure={structure}
-            onUpdateScene={onUpdateScene}
-            onSpeakerChange={onSpeakerChange}
-            onImageUpload={onImageUpload}
-            backgrounds={backgrounds}
-          />
-        </div>
-      )}
-
-      {/* ── 비주얼 Tab ── */}
-      {activeTab === "visual" && (
-        <div className="grid gap-3">
+    <div className="group relative grid gap-2 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30 transition hover:border-zinc-300">
+      {/* ── Tier 1: Essential (Image + Script + Basic Info) ── */}
+      <div className="relative z-20 grid gap-6 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr]">
+        {/* Left: Visuals */}
+        <div className="relative z-30 flex flex-col gap-3">
           <SceneImagePanel
             scene={scene}
             onImageClick={(url) =>
@@ -216,10 +182,89 @@ export default function SceneCard({
             onApplyMissingTags={onApplyMissingTags}
             genProgress={genProgress}
           />
+          {/* Action Bar (Buttons) moved here for easy access */}
+          <SceneActionBar
+            scene={scene}
+            sceneIndex={sceneIndex}
+            qualityScore={qualityScore}
+            sceneMenuOpen={sceneMenuOpen}
+            isLoadingSuggestions={isLoadingSuggestions}
+            pinnedSceneOrder={pinnedSceneOrder}
+            onGenerateImage={onGenerateImage}
+            onGeminiEditOpen={() => setGeminiEditOpen(true)}
+            onAutoSuggest={handleAutoSuggest}
+            onPinToggle={onPinToggle}
+            onSceneMenuToggle={onSceneMenuToggle}
+            onSceneMenuClose={onSceneMenuClose}
+            onUpdateScene={onUpdateScene}
+            onRemoveScene={onRemoveScene}
+            onSavePrompt={onSavePrompt}
+            showToast={showToast}
+            compact={true} // Hint to make it smaller if needed
+          />
+        </div>
 
-          {/* Mark Success / Fail */}
+        {/* Right: Script & Details */}
+        <div className="relative z-20 flex flex-col gap-4">
+          <SceneEssentialFields
+            scene={scene}
+            structure={structure}
+            onUpdateScene={onUpdateScene}
+            onSpeakerChange={onSpeakerChange}
+            onImageUpload={onImageUpload}
+          />
+        </div>
+      </div>
+
+      {/* ── Tier 2: Customize (Collapsible, Default Open) ── */}
+      <div className="relative z-10">
+        <CollapsibleSection title="Customize" defaultOpen className="mt-2">
+          <div className="grid gap-4">
+            {/* Prompt + Background */}
+            <ScenePromptFields
+              scene={scene}
+              loraTriggerWords={loraTriggerWords}
+              characterLoras={characterLoras}
+              promptMode={promptMode}
+              selectedCharacterId={selectedCharacterId}
+              basePromptA={basePromptA}
+              onUpdateScene={onUpdateScene}
+            />
+            <SceneBackgroundField
+              scene={scene}
+              backgrounds={backgrounds}
+              onUpdateScene={onUpdateScene}
+            />
+          </div>
+        </CollapsibleSection>
+      </div>
+
+      {/* ── Tier 3: Advanced (Collapsible, Default Closed) ── */}
+      <div className="relative z-0">
+        <CollapsibleSection title="Advanced" defaultOpen={showAdvancedSettings}>
+          <SceneSettingsFields
+            scene={scene}
+            hasMultipleSpeakers={hasMultipleSpeakers}
+            tagsByGroup={tagsByGroup}
+            sceneTagGroups={sceneTagGroups}
+            isExclusiveGroup={isExclusiveGroup}
+            onUpdateScene={onUpdateScene}
+            characterAName={characterAName}
+            characterBName={characterBName}
+            selectedCharacterId={selectedCharacterId}
+            selectedCharacterBId={selectedCharacterBId}
+            validationResult={validationResult}
+            suggestions={suggestions}
+            suggestionExpanded={suggestionExpanded}
+            onSuggestionToggle={onSuggestionToggle}
+            applySuggestion={applySuggestion}
+            buildNegativePrompt={buildNegativePrompt}
+            buildScenePrompt={buildScenePrompt}
+            showToast={showToast}
+          />
+          {/* Success/Fail Buttons for Review Mode */}
           {scene.activity_log_id && onMarkSuccess && onMarkFail && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
               <Button
                 variant="success"
                 size="sm"
@@ -240,61 +285,9 @@ export default function SceneCard({
               </Button>
             </div>
           )}
+        </CollapsibleSection>
 
-          <ScenePromptFields
-            scene={scene}
-            loraTriggerWords={loraTriggerWords}
-            characterLoras={characterLoras}
-            promptMode={promptMode}
-            selectedCharacterId={selectedCharacterId}
-            basePromptA={basePromptA}
-            onUpdateScene={onUpdateScene}
-          />
-
-          <SceneActionBar
-            scene={scene}
-            sceneIndex={sceneIndex}
-            qualityScore={qualityScore}
-            sceneMenuOpen={sceneMenuOpen}
-            isLoadingSuggestions={isLoadingSuggestions}
-            pinnedSceneOrder={pinnedSceneOrder}
-            onGenerateImage={onGenerateImage}
-            onGeminiEditOpen={() => setGeminiEditOpen(true)}
-            onAutoSuggest={handleAutoSuggest}
-            onPinToggle={onPinToggle}
-            onSceneMenuToggle={onSceneMenuToggle}
-            onSceneMenuClose={onSceneMenuClose}
-            onUpdateScene={onUpdateScene}
-            onRemoveScene={onRemoveScene}
-            onSavePrompt={onSavePrompt}
-            showToast={showToast}
-          />
-        </div>
-      )}
-
-      {/* ── 설정 Tab ── */}
-      {activeTab === "settings" && (
-        <SceneSettingsFields
-          scene={scene}
-          hasMultipleSpeakers={hasMultipleSpeakers}
-          tagsByGroup={tagsByGroup}
-          sceneTagGroups={sceneTagGroups}
-          isExclusiveGroup={isExclusiveGroup}
-          onUpdateScene={onUpdateScene}
-          characterAName={characterAName}
-          characterBName={characterBName}
-          selectedCharacterId={selectedCharacterId}
-          selectedCharacterBId={selectedCharacterBId}
-          validationResult={validationResult}
-          suggestions={suggestions}
-          suggestionExpanded={suggestionExpanded}
-          onSuggestionToggle={onSuggestionToggle}
-          applySuggestion={applySuggestion}
-          buildNegativePrompt={buildNegativePrompt}
-          buildScenePrompt={buildScenePrompt}
-          showToast={showToast}
-        />
-      )}
+      </div>
 
       {/* Gemini Modals */}
       <SceneGeminiModals

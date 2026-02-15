@@ -1,7 +1,7 @@
 "use client";
 
 import type { StyleProfileFull, SDModelEntry, LoRA, Embedding } from "../../types";
-import { FORM_LABEL_COMPACT_CLASSES } from "../../components/ui/variants";
+import { FORM_LABEL_COMPACT_CLASSES, ERROR_TEXT } from "../../components/ui/variants";
 
 type Props = {
   profile: StyleProfileFull;
@@ -184,7 +184,7 @@ export default function StyleProfileEditor({
                   type="checkbox"
                   checked={negEmbIds.has(emb.id)}
                   onChange={() => onToggleEmbedding(profile.id, emb.id, "negative")}
-                  className="h-3.5 w-3.5 rounded border-zinc-300 text-rose-600 focus:ring-rose-500"
+                  className={`h-3.5 w-3.5 rounded border-zinc-300 ${ERROR_TEXT} focus:ring-red-500`}
                 />
                 <span className="text-xs text-zinc-700">{emb.display_name || emb.name}</span>
               </label>

@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Clock, Cpu, ChevronDown, ChevronRight, Filter } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { CreativeTrace } from "../../types/creative";
+import { ERROR_BG, ERROR_TEXT } from "../ui/variants";
 
 type Props = {
   traces: CreativeTrace[];
@@ -19,7 +20,7 @@ const TRACE_STYLES: Record<string, { bg: string; text: string; label: string }> 
   // V2 trace types
   decision: { bg: "bg-orange-50", text: "text-orange-700", label: "Decision" },
   handoff: { bg: "bg-sky-50", text: "text-sky-700", label: "Handoff" },
-  feedback: { bg: "bg-rose-50", text: "text-rose-700", label: "Feedback" },
+  feedback: { bg: ERROR_BG, text: ERROR_TEXT, label: "Feedback" },
   quality_report: { bg: "bg-teal-50", text: "text-teal-700", label: "QC Report" },
 };
 

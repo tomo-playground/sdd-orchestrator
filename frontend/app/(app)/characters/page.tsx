@@ -85,14 +85,15 @@ export function CharactersContent() {
         />
         <div className="flex gap-1.5">
           {FILTERS.map(({ key, label }) => (
-            <button
+            <Button
               key={key}
               onClick={() => setFilter(key)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${filter === key ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
-                }`}
+              variant={filter === key ? "primary" : "outline"}
+              size="sm"
+              className="rounded-full"
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

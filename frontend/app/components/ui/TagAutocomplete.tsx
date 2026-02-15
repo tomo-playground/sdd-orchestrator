@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import type { Tag } from "../../types";
+import { ERROR_TEXT } from "../ui/variants";
 
 type TagAutocompleteProps = {
   value: string;
@@ -24,7 +25,7 @@ const getTagColor = (category: string) => {
     case "copyright":
       return "text-purple-600";
     case "artist":
-      return "text-rose-600";
+      return ERROR_TEXT;
     case "meta":
       return "text-orange-600";
     case "scene":
@@ -187,9 +188,8 @@ export default function TagAutocomplete({
                 key={tag.id}
                 onClick={() => selectTag(tag)}
                 onMouseEnter={() => setHighlightedIndex(index)}
-                className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition ${
-                  index === highlightedIndex ? "bg-zinc-100" : "hover:bg-zinc-50"
-                }`}
+                className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition ${index === highlightedIndex ? "bg-zinc-100" : "hover:bg-zinc-50"
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className={`font-semibold ${getTagColor(tag.category)}`}>{tag.name}</span>
