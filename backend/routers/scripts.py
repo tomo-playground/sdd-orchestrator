@@ -187,6 +187,8 @@ async def _stream_graph_events(
     try:
         async for event in graph.astream(graph_input, config, stream_mode="updates"):
             for node_name, node_output in event.items():
+                if not isinstance(node_output, dict):
+                    continue
                 payload = _build_node_payload(node_name, thread_id, node_output, char_ids)
                 yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
