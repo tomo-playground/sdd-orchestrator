@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Clapperboard, Loader2, Play, Sparkles } from "lucide-react";
 import type { ProjectItem, RenderHistoryItem } from "../../types";
 import { useUIStore } from "../../store/useUIStore";
@@ -8,6 +9,7 @@ import { useUIStore } from "../../store/useUIStore";
 const PAGE_SIZE = 12;
 
 export default function ShowcaseSection() {
+  const router = useRouter();
   const [items, setItems] = useState<RenderHistoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -109,7 +111,7 @@ export default function ShowcaseSection() {
         <button
           onClick={() => {
             if (projects.length > 0) {
-              window.location.href = "/studio";
+              router.push("/studio");
             } else {
               useUIStore.getState().set({ showSetupWizard: true, setupWizardInitialStep: 1 });
             }
