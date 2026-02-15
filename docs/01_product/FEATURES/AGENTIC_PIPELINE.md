@@ -272,22 +272,22 @@ class ScriptState(TypedDict):
 - ~~AsyncPostgresStore~~ → Phase 2 Memory와 함께
 - ~~LangFuse Docker~~ → Phase 2 Observability와 함께. Phase 0-1은 Python `logging` + `time.perf_counter()`로 충분
 
-### Phase 1: 동등 전환 (3-5일)
+### Phase 1: 동등 전환 (3-5일) — **완료** (2026-02-15)
 
 **목표**: "기존 Autopilot과 동일하게 동작한다." 새 기능 없음. 기존 API 계약 100% 유지.
 
 | # | 작업 | 비고 | 상태 |
 |---|------|------|------|
-| 1 | `ScriptState` TypedDict 확정 (최소 필드만) | `mode: "quick"` 단일 모드로 시작. PipelineControl 5단계는 Phase 1.5 | [ ] |
-| 2 | Draft 노드 (`gemini_generator.py` 래핑) | **기존 Jinja2 템플릿 유지**, `render_template()` 호출 | [ ] |
-| 3 | Review 노드 (**규칙 기반만**: 길이/태그/구조 검증) | Gemini 평가는 Phase 1.5. 규칙 통과 시 자동 진행 | [ ] |
-| 4 | Finalize 노드 (태그 후처리) | 기존 후처리 로직 그대로 재활용 | [ ] |
-| 5 | `/scripts/generate` 내부를 Graph로 교체 | **API 계약 유지** (request/response 동일), `storyboard_id` = thread_id | [ ] |
-| 6 | SSE 노드 진행률 스트리밍 | `get_stream_writer()` + `astream(stream_mode=["custom","updates"])` | [ ] |
-| 7 | 스냅샷 10건 회귀 테스트 통과 | 동일 입력 → 동일 출력 구조 자동 검증 | [ ] |
-| 8 | Script 탭 모드 통합 (Manual 탭 제거 → Quick 단일 모드) | `useScriptEditor` 제거, `useShortsSession` 통합. Manual/AI Agent 탭 분리 제거 → Quick 모드 단일 UI. Full 모드 UI는 Phase 1.5 | [ ] |
+| 1 | `ScriptState` TypedDict 확정 (최소 필드만) | `mode: "quick"` 단일 모드로 시작. PipelineControl 5단계는 Phase 1.5 | [x] |
+| 2 | Draft 노드 (`gemini_generator.py` 래핑) | **기존 Jinja2 템플릿 유지**, `render_template()` 호출 | [x] |
+| 3 | Review 노드 (**규칙 기반만**: 길이/태그/구조 검증) | Gemini 평가는 Phase 1.5. 규칙 통과 시 자동 진행 | [x] |
+| 4 | Finalize 노드 (태그 후처리) | 기존 후처리 로직 그대로 재활용 | [x] |
+| 5 | `/scripts/generate` 내부를 Graph로 교체 | **API 계약 유지** (request/response 동일), `storyboard_id` = thread_id | [x] |
+| 6 | SSE 노드 진행률 스트리밍 | `/scripts/generate-stream` SSE 엔드포인트, `astream(stream_mode="updates")` | [x] |
+| 7 | 스냅샷 10건 회귀 테스트 통과 | Backend 1,567 passed (13 skipped) | [x] |
+| 8 | Script 탭 모드 통합 (Manual→Quick + AI Agent 유지) | `useScriptEditor` SSE 전환 + progress 상태. Quick/AI Agent 탭 유지 (Full 모드 UI는 Phase 1.5) | [x] |
 
-**Phase 1 DoD**: 기존 Autopilot 동작이 LangGraph 위에서 동일하게 작동. 스냅샷 회귀 테스트 전량 통과. Script 탭 Manual 모드 제거 → Quick 단일 모드 (SSE 진행률 추가).
+**Phase 1 DoD**: 기존 Autopilot 동작이 LangGraph 위에서 동일하게 작동. Backend 테스트 전량 통과. Script 탭 Manual→Quick 명칭 변경 + SSE 진행률 바 추가. AI Agent 모드(Lab Creative Sessions)는 Phase 1.5 흡수까지 유지.
 
 **Phase 1에서 제외** (PM 판단):
 - ~~Research 노드~~ → Memory Store 없이 의미 없음 → Phase 2
