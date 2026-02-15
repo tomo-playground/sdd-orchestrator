@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from langgraph.store.base import BaseStore
 from sqlalchemy.orm import Session
 
 from config import LANGGRAPH_DEFAULT_MODE, LANGGRAPH_PRESETS, logger
@@ -21,7 +22,6 @@ from schemas import (
     ScriptResumeRequest,
     StoryboardRequest,
 )
-from langgraph.store.base import BaseStore
 from services.agent.script_graph import get_compiled_graph
 from services.agent.state import ScriptState
 
@@ -78,7 +78,7 @@ def _resolve_thread_id() -> str:
 
 def _build_config(thread_id: str) -> dict:
     """LangGraph config를 구성한다. LangFuse 콜백이 있으면 주입."""
-    from services.agent.observability import get_langfuse_handler
+    from services.agent.observability import get_langfuse_handler  # noqa: PLC0415
 
     cfg: dict = {"configurable": {"thread_id": thread_id}}
     handler = get_langfuse_handler()
@@ -118,7 +118,10 @@ def _is_graph_interrupt(exc: Exception) -> bool:
 
 
 def _build_node_payload(
-    node_name: str, thread_id: str, node_output: dict, char_ids: list[int | None],
+    node_name: str,
+    thread_id: str,
+    node_output: dict,
+    char_ids: list[int | None],
 ) -> dict:
     """노드 이벤트를 SSE payload dict로 변환한다 (공통 로직)."""
     meta = _NODE_META.get(node_name, {"label": node_name, "percent": 50})
@@ -151,10 +154,33 @@ def _build_node_payload(
     return payload
 
 
+async def _read_interrupt_state(graph, config: dict) -> dict:  # noqa: ANN001
+    """GraphInterrupt 후 checkpoint에서 draft 데이터를 읽는다."""
+    try:
+        snapshot = await graph.aget_state(config)
+        vals = snapshot.values or {}
+        result: dict = {}
+        for key, out_key in [
+            ("draft_scenes", "scenes"),
+            ("review_result", "review_result"),
+            ("scene_reasoning", "scene_reasoning"),
+        ]:
+            if vals.get(key):
+                result[out_key] = vals[key]
+        return result
+    except Exception:
+        logger.warning("[SSE] Failed to read checkpoint for human_gate")
+        return {}
+
+
 async def _stream_graph_events(
-    graph_input: object, config: dict, thread_id: str, label: str,
+    graph_input: object,
+    config: dict,
+    thread_id: str,
+    label: str,
 ) -> AsyncGenerator[str]:
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
+    from services.agent.observability import update_trace_on_interrupt  # noqa: PLC0415
     graph = await get_compiled_graph()
     char_ids: list[int | None] = [None, None]
 
@@ -166,13 +192,20 @@ async def _stream_graph_events(
 
     except Exception as e:
         if _is_graph_interrupt(e):
-            payload = {
+            result = await _read_interrupt_state(graph, config)
+            payload: dict = {
                 "node": "human_gate",
                 "label": "승인 대기",
                 "percent": 85,
                 "status": "waiting_for_input",
                 "thread_id": thread_id,
             }
+            if result:
+                payload["result"] = result
+
+            # Langfuse 트레이스에 중간 결과 기록 (output=null 방지)
+            update_trace_on_interrupt(result or {"status": "waiting_for_input"})
+
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
         else:
             logger.error("[SSE] %s error: %s", label, e)
