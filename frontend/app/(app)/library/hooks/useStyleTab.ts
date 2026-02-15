@@ -8,7 +8,7 @@ import { useLoraManagement } from "./useLoraManagement";
 // Re-export for consumers that import CivitaiResult from useStyleTab
 export type { CivitaiResult } from "./useCivitai";
 
-import type { UiCallbacksWithPrompt } from "./types";
+import type { UiCallbacksWithPrompt } from "../../../types";
 
 // ── Hook ───────────────────────────────────────────────
 

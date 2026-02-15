@@ -72,14 +72,17 @@ def snapshot(request):
 
 
 @pytest.mark.asyncio
+@patch("services.agent.nodes.revise.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.revise.get_db_session")
 @patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.SessionLocal")
+@patch("services.agent.nodes.draft.get_db_session")
 async def test_graph_output_matches_snapshot_structure(
-    mock_session_cls, mock_gen_script, snapshot
+    mock_draft_db_ctx, mock_draft_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
 ):
     """Graph 실행 결과가 스냅샷 response와 구조적으로 일치하는지 검증."""
     expected = snapshot["response"]
-    mock_gen_script.return_value = expected
+    mock_draft_gen.return_value = expected
+    mock_revise_gen.return_value = expected
 
     graph = build_script_graph().compile()
     input_state = _build_state_from_request(snapshot["request"])
@@ -88,7 +91,7 @@ async def test_graph_output_matches_snapshot_structure(
     # 1. final_scenes 존재
     assert result["final_scenes"] is not None, "final_scenes is None"
 
-    # 2. 씬 개수 일치
+    # 2. 씬 개수 일치 (review→revise 루프 후에도 같은 mock 데이터)
     assert len(result["final_scenes"]) == len(expected["scenes"]), (
         f"Scene count mismatch: {len(result['final_scenes'])} vs {len(expected['scenes'])}"
     )
@@ -106,11 +109,16 @@ async def test_graph_output_matches_snapshot_structure(
 
 
 @pytest.mark.asyncio
+@patch("services.agent.nodes.revise.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.revise.get_db_session")
 @patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.SessionLocal")
-async def test_graph_passthrough_preserves_scenes(mock_session_cls, mock_gen_script, snapshot):
-    """Phase 0 패스스루: draft_scenes == final_scenes (데이터 손실 없음)."""
-    mock_gen_script.return_value = snapshot["response"]
+@patch("services.agent.nodes.draft.get_db_session")
+async def test_graph_passthrough_preserves_scenes(
+    mock_draft_db_ctx, mock_draft_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
+):
+    """draft → review → (revise 루프 포함) → finalize: 최종 씬 데이터 보존."""
+    mock_draft_gen.return_value = snapshot["response"]
+    mock_revise_gen.return_value = snapshot["response"]
 
     graph = build_script_graph().compile()
     input_state = _build_state_from_request(snapshot["request"])

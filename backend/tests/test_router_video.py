@@ -308,3 +308,115 @@ class TestExtractCaption:
         """Missing text field returns 422 (Pydantic validation)."""
         response = client.post("/video/extract-caption", json={})
         assert response.status_code == 422
+
+
+class TestRenderHistory:
+    """Test GET /video/render-history endpoint."""
+
+    _counter = 0
+
+    def _create_render_history(self, db_session, count=1, project_name="Test Project", group_name="Test Series"):
+        """Helper: create Project → Group → Storyboard → MediaAsset → RenderHistory rows."""
+        from models.group import Group
+        from models.project import Project
+
+        project = Project(name=project_name)
+        db_session.add(project)
+        db_session.flush()
+        group = Group(project_id=project.id, name=group_name)
+        db_session.add(group)
+        db_session.flush()
+
+        rh_ids = []
+        for _i in range(count):
+            TestRenderHistory._counter += 1
+            n = TestRenderHistory._counter
+            sb = Storyboard(title=f"SB {n}", description="test", group_id=group.id)
+            asset = MediaAsset(file_type="video", storage_key=f"videos/v{n}.mp4", file_name=f"v{n}.mp4")
+            db_session.add_all([sb, asset])
+            db_session.flush()
+            rh = RenderHistory(storyboard_id=sb.id, media_asset_id=asset.id, label="full")
+            db_session.add(rh)
+            db_session.flush()
+            rh_ids.append(rh.id)
+
+        db_session.commit()
+        return project, group, rh_ids
+
+    @patch("services.storage.get_storage")
+    def test_render_history_list_empty(self, mock_storage, client: TestClient, db_session):
+        """Empty DB returns empty items and total=0."""
+        mock_store = MagicMock()
+        mock_store.get_url.return_value = "http://test/video.mp4"
+        mock_storage.return_value = mock_store
+
+        response = client.get("/video/render-history")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["offset"] == 0
+        assert data["limit"] == 12
+
+    @patch("services.storage.get_storage")
+    def test_render_history_list_paginated(self, mock_storage, client: TestClient, db_session):
+        """Pagination returns correct items and total."""
+        mock_store = MagicMock()
+        mock_store.get_url.return_value = "http://test/video.mp4"
+        mock_storage.return_value = mock_store
+
+        self._create_render_history(db_session, count=5)
+
+        # First page
+        response = client.get("/video/render-history?limit=2&offset=0")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["items"]) == 2
+        assert data["total"] == 5
+        # Verify newest first (descending created_at)
+        assert data["items"][0]["id"] >= data["items"][1]["id"]
+
+        # Second page
+        response = client.get("/video/render-history?limit=2&offset=2")
+        data2 = response.json()
+        assert len(data2["items"]) == 2
+        assert data2["total"] == 5
+
+    @patch("services.storage.get_storage")
+    def test_render_history_filter_by_project(self, mock_storage, client: TestClient, db_session):
+        """project_id filter returns only matching project's renders."""
+        mock_store = MagicMock()
+        mock_store.get_url.return_value = "http://test/video.mp4"
+        mock_storage.return_value = mock_store
+
+        proj_a, _, _ = self._create_render_history(db_session, count=3, project_name="Project A")
+        self._create_render_history(db_session, count=2, project_name="Project B")
+
+        response = client.get(f"/video/render-history?project_id={proj_a.id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 3
+        assert all(item["project_id"] == proj_a.id for item in data["items"])
+
+    @patch("services.storage.get_storage")
+    def test_render_history_excludes_soft_deleted(self, mock_storage, client: TestClient, db_session):
+        """Soft-deleted storyboards are excluded from results."""
+        from datetime import datetime
+
+        mock_store = MagicMock()
+        mock_store.get_url.return_value = "http://test/video.mp4"
+        mock_storage.return_value = mock_store
+
+        _, _, rh_ids = self._create_render_history(db_session, count=2)
+
+        # Soft-delete the first storyboard
+        first_rh = db_session.query(RenderHistory).get(rh_ids[0])
+        sb = first_rh.storyboard
+        sb.deleted_at = datetime.now()
+        db_session.commit()
+
+        response = client.get("/video/render-history")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["items"][0]["id"] == rh_ids[1]

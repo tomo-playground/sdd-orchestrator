@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Settings, FlaskConical, Home, Library } from "lucide-react";
+import { Settings, FlaskConical, Home, Library, Clapperboard } from "lucide-react";
+
 import { useUIStore } from "../../store/useUIStore";
 import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
@@ -24,18 +25,19 @@ type NavItem = {
 const NAV_GROUPS: (NavItem[] | "sep")[] = [
   [
     { href: "/", label: "Home", icon: Home, exact: true },
+    { href: "/studio", label: "Studio", icon: Clapperboard },
     { href: "/library", label: "Library", icon: Library },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
-  "sep",
-  [
-    { href: "/lab", label: "Lab", icon: FlaskConical },
-    { href: "/manage", label: "Manage", icon: Settings },
-  ],
+  //   "sep",
+  //   [
+  //     { href: "/lab", label: "Lab", icon: FlaskConical },
+  //   ], 
 ];
 
 function isNavActive(item: NavItem, pathname: string, tab: string | null) {
-  if (item.matchTab) return pathname === "/manage" && tab === item.matchTab;
-  if (item.href === "/manage") return pathname.startsWith("/manage");
+  if (item.href === "/settings") return pathname.startsWith("/settings");
+  if (item.href === "/studio") return pathname.startsWith("/studio");
   if (item.exact) return pathname === item.href;
   return pathname.startsWith(item.href);
 }

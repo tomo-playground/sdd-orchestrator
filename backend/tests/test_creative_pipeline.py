@@ -48,16 +48,16 @@ def _base_context(disabled_steps: list[str] | None = None) -> dict:
 
 
 class TestStepDefRegistry:
-    def test_pipeline_steps_has_four_entries(self):
+    def test_pipeline_steps_has_five_entries(self):
         from services.creative_pipeline import PIPELINE_STEPS
 
-        assert len(PIPELINE_STEPS) == 4
+        assert len(PIPELINE_STEPS) == 5
 
     def test_step_names_match_expected_order(self):
         from services.creative_pipeline import PIPELINE_STEPS
 
         names = [s.name for s in PIPELINE_STEPS]
-        assert names == ["scriptwriter", "cinematographer", "sound_designer", "copyright_reviewer"]
+        assert names == ["scriptwriter", "cinematographer", "tts_designer", "sound_designer", "copyright_reviewer"]
 
     def test_each_step_has_required_fields(self):
         from services.creative_pipeline import PIPELINE_STEPS
@@ -74,6 +74,7 @@ class TestStepDefRegistry:
         keys = {s.name: s.scenes_key for s in PIPELINE_STEPS}
         assert keys["scriptwriter"] == "scenes"
         assert keys["cinematographer"] == "scenes"
+        assert keys["tts_designer"] == "tts_designs"
         assert keys["sound_designer"] == "recommendation"
         assert keys["copyright_reviewer"] == "checks"
 
@@ -144,9 +145,9 @@ class TestDisabledStepsInPipeline:
 
         # Verify non-disabled steps ran
         done_calls = [c for c in mock_commit.call_args_list if c[0][3] == "done"]
-        assert len(done_calls) == 2
+        assert len(done_calls) == 3
         done_names = {c[0][2] for c in done_calls}
-        assert done_names == {"scriptwriter", "cinematographer"}
+        assert done_names == {"scriptwriter", "cinematographer", "tts_designer"}
 
     @patch("services.creative_pipeline.SessionLocal")
     @patch("services.creative_pipeline.finalize_pipeline")
@@ -198,9 +199,9 @@ class TestDisabledStepsInPipeline:
 
         run_pipeline(1)
 
-        # All 4 steps should be "done" (no skipped)
+        # All 5 steps should be "done" (no skipped)
         done_calls = [c for c in mock_commit.call_args_list if c[0][3] == "done"]
-        assert len(done_calls) == 4
+        assert len(done_calls) == 5
 
         skip_calls = [c for c in mock_commit.call_args_list if c[0][3] == "skipped"]
         assert len(skip_calls) == 0
@@ -246,9 +247,9 @@ class TestDirectorQCInPipeline:
 
         run_pipeline(1)
 
-        # All 4 steps completed + finalize called
+        # All 5 steps completed + finalize called
         done_calls = [c for c in mock_commit.call_args_list if c[0][3] == "done"]
-        assert len(done_calls) == 4
+        assert len(done_calls) == 5
         mock_finalize.assert_called_once()
 
     @patch("services.creative_pipeline.SessionLocal")
@@ -330,10 +331,10 @@ class TestDirectorQCInPipeline:
 
         run_pipeline(1)
 
-        # QC should be called for 3 steps (not sound_designer)
+        # QC should be called for 4 steps (not sound_designer)
         qc_step_names = [c[0][2] for c in mock_qc.call_args_list]
         assert "sound_designer" not in qc_step_names
-        assert len(qc_step_names) == 3
+        assert len(qc_step_names) == 4
 
 
 # ── Resumability: already-completed steps ─────────────────────
@@ -364,7 +365,7 @@ class TestPipelineResumability:
 
         run_pipeline(1)
 
-        # Only 3 steps should run (scriptwriter skipped because already in state)
-        assert mock_retry.call_count == 3
+        # Only 4 steps should run (scriptwriter skipped because already in state)
+        assert mock_retry.call_count == 4
         run_step_names = [c[1]["step"].name for c in mock_retry.call_args_list]
         assert "scriptwriter" not in run_step_names

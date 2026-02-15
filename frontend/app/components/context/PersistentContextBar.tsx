@@ -8,14 +8,14 @@ import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { useContextStore } from "../../store/useContextStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { createGroup, deleteGroup } from "../../store/actions/groupActions";
-import { createProject, deleteProject, updateProject } from "../../store/actions/projectActions";
+import { deleteGroup } from "../../store/actions/groupActions";
+import { deleteProject, updateProject } from "../../store/actions/projectActions";
 import { ALL_GROUPS_ID } from "../../constants";
 import ProjectDropdown from "./ProjectDropdown";
 import GroupDropdown from "./GroupDropdown";
 import ProjectFormModal from "./ProjectFormModal";
-import GroupFormModal from "./GroupFormModal";
 import GroupConfigEditor from "./GroupConfigEditor";
+import SetupWizard from "./SetupWizard";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 
 export default function PersistentContextBar() {
@@ -37,8 +37,10 @@ export default function PersistentContextBar() {
 
   const { confirm, dialogProps } = useConfirm();
   const [configGroupId, setConfigGroupId] = useState<number | null>(null);
-  const [projectModalMode, setProjectModalMode] = useState<"new" | "edit" | null>(null);
-  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [projectModalMode, setProjectModalMode] = useState<"edit" | null>(null);
+  const showSetupWizard = useUIStore((s) => s.showSetupWizard);
+  const setupWizardInitialStep = useUIStore((s) => s.setupWizardInitialStep);
+  const setUI = useUIStore((s) => s.set);
 
   const handleDeleteProject = useCallback(
     async (project: { id: number; name: string }) => {
@@ -90,6 +92,16 @@ export default function PersistentContextBar() {
 
   const hasStoryboard = storyboardId !== null && !isStudio && !isHome && !isAssetPage;
 
+  // Hide context bar on Home page — but still render wizard if triggered
+  if (isHome) {
+    return showSetupWizard ? (
+      <SetupWizard
+        initialStep={setupWizardInitialStep}
+        onClose={() => setUI({ showSetupWizard: false })}
+      />
+    ) : null;
+  }
+
   return (
     <>
       <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 text-xs text-zinc-500">
@@ -101,7 +113,7 @@ export default function PersistentContextBar() {
               selectProject(id);
               if (isStudio) router.push("/");
             }}
-            onNew={() => setProjectModalMode("new")}
+            onNew={() => setUI({ showSetupWizard: true, setupWizardInitialStep: 1 })}
             onEdit={() => setProjectModalMode("edit")}
             onDelete={handleDeleteProject}
           />
@@ -112,7 +124,7 @@ export default function PersistentContextBar() {
             groups={groups}
             currentId={groupId}
             onSelect={handleGroupSelect}
-            onNew={() => setShowGroupModal(true)}
+            onNew={() => setUI({ showSetupWizard: true, setupWizardInitialStep: 2 })}
             onEdit={(g) => setConfigGroupId(g.id)}
             onDelete={(g) => handleDeleteGroup(g.id)}
             showAllOption
@@ -158,34 +170,21 @@ export default function PersistentContextBar() {
         <GroupConfigEditor groupId={configGroupId} onClose={() => setConfigGroupId(null)} />
       )}
 
-      {showGroupModal && projectId && (
-        <GroupFormModal
-          projectId={projectId}
+      {projectModalMode === "edit" && projectId && (
+        <ProjectFormModal
+          project={projects.find((p) => p.id === projectId)}
           onSave={async (data) => {
-            const g = await createGroup(data as Parameters<typeof createGroup>[0]);
-            if (g) {
-              selectGroup(g.id);
-              setConfigGroupId(g.id);
-            }
+            await updateProject(projectId, data);
           }}
-          onClose={() => setShowGroupModal(false)}
+          onClose={() => setProjectModalMode(null)}
         />
       )}
 
-      {projectModalMode && (
-        <ProjectFormModal
-          project={
-            projectModalMode === "edit" ? projects.find((p) => p.id === projectId) : undefined
-          }
-          onSave={async (data) => {
-            if (projectModalMode === "edit" && projectId) {
-              await updateProject(projectId, data);
-            } else {
-              const p = await createProject(data);
-              if (p) selectProject(p.id);
-            }
-          }}
-          onClose={() => setProjectModalMode(null)}
+      {showSetupWizard && (
+        <SetupWizard
+          initialStep={setupWizardInitialStep}
+          existingProjectId={setupWizardInitialStep === 2 ? (projectId ?? undefined) : undefined}
+          onClose={() => setUI({ showSetupWizard: false })}
         />
       )}
 

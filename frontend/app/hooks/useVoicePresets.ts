@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import type { VoicePreset } from "../types";
-import type { UiCallbacks } from "../(app)/manage/hooks/types";
+import type { UiCallbacks } from "../types";
 
 export type EditingPreset = {
   name: string;
@@ -178,7 +178,7 @@ export function useVoicePresets(ui: UiCallbacks) {
   const set = useCallback(
     <K extends keyof EditingPreset>(key: K, value: EditingPreset[K]) =>
       setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
-    [],
+    []
   );
 
   return {

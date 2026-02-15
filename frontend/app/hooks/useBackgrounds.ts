@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import type { Background } from "../types";
-import type { UiCallbacks } from "../(app)/manage/hooks/types";
+import type { UiCallbacks } from "../types";
 
 export type EditingBackground = {
   name: string;
@@ -44,9 +44,7 @@ export function useBackgrounds(ui: UiCallbacks) {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await axios.get<string[]>(
-        `${API_BASE}/backgrounds/categories`,
-      );
+      const res = await axios.get<string[]>(`${API_BASE}/backgrounds/categories`);
       setCategories(res.data);
     } catch {
       console.error("Failed to fetch categories");
@@ -94,7 +92,7 @@ export function useBackgrounds(ui: UiCallbacks) {
         ui.showToast(`Delete failed: ${msg}`, "error");
       }
     },
-    [fetchBackgrounds, fetchCategories, ui],
+    [fetchBackgrounds, fetchCategories, ui]
   );
 
   const handleSave = useCallback(async () => {
@@ -142,10 +140,7 @@ export function useBackgrounds(ui: UiCallbacks) {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        await axios.post(
-          `${API_BASE}/backgrounds/${bgId}/upload-image`,
-          formData,
-        );
+        await axios.post(`${API_BASE}/backgrounds/${bgId}/upload-image`, formData);
         await fetchBackgrounds();
         ui.showToast("Image uploaded", "success");
       } catch (error) {
@@ -157,15 +152,13 @@ export function useBackgrounds(ui: UiCallbacks) {
         setUploading(null);
       }
     },
-    [fetchBackgrounds, ui],
+    [fetchBackgrounds, ui]
   );
 
   const set = useCallback(
-    <K extends keyof EditingBackground>(
-      key: K,
-      value: EditingBackground[K],
-    ) => setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
-    [],
+    <K extends keyof EditingBackground>(key: K, value: EditingBackground[K]) =>
+      setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
+    []
   );
 
   return {

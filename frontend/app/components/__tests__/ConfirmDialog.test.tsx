@@ -71,7 +71,7 @@ describe("ConfirmDialog", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
-      "bg-rose-500",
+      "bg-red-600",
     );
   });
 

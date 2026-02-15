@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useStudioKanban } from "../../hooks/useStudioKanban";
 import { useContextStore } from "../../store/useContextStore";
+import { useUIStore } from "../../store/useUIStore";
 import KanbanColumn from "./KanbanColumn";
 import HomeSecondaryPanel from "./HomeSecondaryPanel";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -27,7 +28,15 @@ export default function StudioKanbanView() {
   if (!projectId) {
     return (
       <div className="px-6 py-16 text-center">
-        <p className="text-sm text-zinc-400">Select a project to view storyboards.</p>
+        <p className="mb-2 text-sm text-zinc-500">영상을 만들려면 채널이 필요합니다.</p>
+        <Button
+          size="sm"
+          onClick={() =>
+            useUIStore.getState().set({ showSetupWizard: true, setupWizardInitialStep: 1 })
+          }
+        >
+          채널 만들기
+        </Button>
       </div>
     );
   }
@@ -40,7 +49,7 @@ export default function StudioKanbanView() {
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-zinc-800">Studio</h2>
+              <h2 className="text-lg font-bold text-zinc-800">Projects</h2>
               <p className="text-xs text-zinc-400">
                 {isLoading ? "Loading..." : `${total} storyboard${total !== 1 ? "s" : ""}`}
               </p>

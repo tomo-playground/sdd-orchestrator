@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import type { MusicPreset } from "../types";
-import type { UiCallbacks } from "../(app)/manage/hooks/types";
+import type { UiCallbacks } from "../types";
 
 // ── Types ──────────────────────────────────────────────
 

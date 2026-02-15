@@ -13,7 +13,7 @@ export type PendingTag = {
   classification_confidence: number | null;
 };
 
-import type { UiCallbacks } from "./types";
+import type { UiCallbacks } from "../../../types";
 
 // ── Hook ───────────────────────────────────────────────
 

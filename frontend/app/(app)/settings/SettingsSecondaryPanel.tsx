@@ -1,9 +1,6 @@
 "use client";
 
 import {
-  Tag,
-  Palette,
-  FileText,
   SlidersHorizontal,
   Upload,
   Settings,
@@ -11,7 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../../components/ui/variants";
-import type { ManageTab } from "./types";
+import type { SettingsTab } from "./types";
 
 type TabHelp = {
   icon: LucideIcon;
@@ -20,35 +17,15 @@ type TabHelp = {
   notes: string[];
 };
 
-const HELP: Record<ManageTab, TabHelp> = {
-  tags: {
-    icon: Tag,
-    title: "Tags",
-    description: "Manage Danbooru-standard tags for prompt generation.",
+const HELP: Record<SettingsTab, TabHelp> = {
+  general: {
+    icon: Settings,
+    title: "Settings",
+    description: "General project and system settings.",
     notes: [
-      "Tags use underscore format (brown_hair)",
-      "Check pending tags for review",
-      "Tag rules resolve conflicts automatically",
-    ],
-  },
-  style: {
-    icon: Palette,
-    title: "Styles",
-    description: "Configure SD models, samplers, and generation settings.",
-    notes: [
-      "SD WebUI must be running with --api",
-      "Refresh to sync available models",
-      "Styles are project-scoped",
-    ],
-  },
-  prompts: {
-    icon: FileText,
-    title: "Prompts",
-    description: "View and manage prompt templates.",
-    notes: [
-      "Templates use Jinja2 syntax",
-      "12-Layer Builder composes final prompts",
-      "Test with Prompt Validate command",
+      "API keys are stored in .env",
+      "Refresh caches after config changes",
+      "Check system health periodically",
     ],
   },
   presets: {
@@ -71,16 +48,6 @@ const HELP: Record<ManageTab, TabHelp> = {
       "Schedule uploads for optimal timing",
     ],
   },
-  settings: {
-    icon: Settings,
-    title: "Settings",
-    description: "General project and system settings.",
-    notes: [
-      "API keys are stored in .env",
-      "Refresh caches after config changes",
-      "Check system health periodically",
-    ],
-  },
   trash: {
     icon: Trash2,
     title: "Trash",
@@ -93,7 +60,7 @@ const HELP: Record<ManageTab, TabHelp> = {
   },
 };
 
-export default function ManageSecondaryPanel({ activeTab }: { activeTab: ManageTab }) {
+export default function SettingsSecondaryPanel({ activeTab }: { activeTab: SettingsTab }) {
   const help = HELP[activeTab];
   const Icon = help.icon;
 

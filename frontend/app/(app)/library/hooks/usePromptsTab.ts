@@ -4,7 +4,7 @@ import axios from "axios";
 import { API_BASE, PROMPT_APPLY_KEY } from "../../../constants";
 import type { PromptHistory } from "../../../types";
 
-import type { UiCallbacks } from "./types";
+import type { UiCallbacks } from "../../../types";
 
 // ── Hook ───────────────────────────────────────────────
 

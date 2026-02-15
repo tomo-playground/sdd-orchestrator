@@ -12,7 +12,7 @@ export type CivitaiResult = {
   civitai_url: string;
 };
 
-import type { UiCallbacks } from "./types";
+import type { UiCallbacks } from "../../../types";
 
 export function useCivitai(ui: UiCallbacks) {
   const [civitaiSearch, setCivitaiSearch] = useState("");

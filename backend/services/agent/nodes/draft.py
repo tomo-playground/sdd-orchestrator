@@ -3,17 +3,35 @@
 from __future__ import annotations
 
 from config import logger
-from database import SessionLocal
+from database import get_db_session
 from schemas import StoryboardRequest
 from services.agent.state import ScriptState
 from services.script.gemini_generator import generate_script
 
 
+def _extract_reasoning(scenes: list[dict]) -> list[dict]:
+    """각 씬에서 reasoning 필드를 추출한다. 없으면 빈 리스트."""
+    reasoning = []
+    for scene in scenes:
+        r = scene.pop("reasoning", None)
+        if isinstance(r, dict):
+            reasoning.append(r)
+        else:
+            reasoning.append({})
+    return reasoning
+
+
 async def draft_node(state: ScriptState) -> dict:
     """StoryboardRequest를 생성하고 기존 generate_script를 호출한다."""
+    # revision_feedback가 있으면 description에 주입
+    desc = state.get("description", "")
+    feedback = state.get("revision_feedback")
+    if feedback:
+        desc = f"{desc}\n\n[수정 요청] {feedback}".strip()
+
     request = StoryboardRequest(
         topic=state["topic"],
-        description=state.get("description", ""),
+        description=desc,
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),
         language=state.get("language", "Korean"),
@@ -24,17 +42,18 @@ async def draft_node(state: ScriptState) -> dict:
         group_id=state.get("group_id"),
     )
 
-    db = SessionLocal()
-    try:
-        result = await generate_script(request, db)
-        logger.info("[LangGraph] Draft 노드 완료: %d scenes", len(result.get("scenes", [])))
-        return {
-            "draft_scenes": result.get("scenes"),
-            "draft_character_id": result.get("character_id"),
-            "draft_character_b_id": result.get("character_b_id"),
-        }
-    except Exception as e:
-        logger.error("[LangGraph] Draft 노드 실패: %s", e)
-        return {"error": str(e)}
-    finally:
-        db.close()
+    with get_db_session() as db:
+        try:
+            result = await generate_script(request, db)
+            scenes = result.get("scenes", [])
+            scene_reasoning = _extract_reasoning(scenes)
+            logger.info("[LangGraph] Draft 노드 완료: %d scenes", len(scenes))
+            return {
+                "draft_scenes": scenes,
+                "draft_character_id": result.get("character_id"),
+                "draft_character_b_id": result.get("character_b_id"),
+                "scene_reasoning": scene_reasoning or None,
+            }
+        except Exception as e:
+            logger.error("[LangGraph] Draft 노드 실패: %s", e)
+            return {"error": str(e)}

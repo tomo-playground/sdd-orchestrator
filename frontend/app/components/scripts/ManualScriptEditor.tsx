@@ -5,6 +5,7 @@ import { usePresets } from "../../hooks/usePresets";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
+import ReviewApprovalPanel from "./ReviewApprovalPanel";
 import Button from "../ui/Button";
 import { SECTION_CLASSES } from "../ui/variants";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
@@ -50,6 +51,21 @@ export default function ManualScriptEditor({ editor }: Props) {
           />
         </div>
 
+        {/* Preset selector — Full mode only */}
+        {editor.mode === "full" && (
+          <div className="mt-4 border-t border-zinc-200/60 pt-4">
+            <label className="mb-1 block text-xs font-medium text-zinc-500">Preset</label>
+            <select
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800"
+              value={editor.preset ?? "full_auto"}
+              onChange={(e) => editor.setField("preset", e.target.value)}
+            >
+              <option value="full_auto">풀 오토 -- AI 자동 생성 후 승인</option>
+              <option value="creator">크리에이터 -- AI 초안 + 사용자 결정</option>
+            </select>
+          </div>
+        )}
+
         {/* Generate button — card footer */}
         <div className="mt-5 flex justify-end border-t border-zinc-200/60 pt-5">
           <Button
@@ -94,6 +110,15 @@ export default function ManualScriptEditor({ editor }: Props) {
           </div>
         )}
       </section>
+
+      {/* Review approval panel — shown when waiting for user input */}
+      {editor.isWaitingForInput && (
+        <ReviewApprovalPanel
+          scenes={editor.scenes}
+          onApprove={() => editor.resume("approve")}
+          onRevise={(feedback) => editor.resume("revise", feedback)}
+        />
+      )}
 
       <ConfirmDialog {...dialogProps} />
     </div>

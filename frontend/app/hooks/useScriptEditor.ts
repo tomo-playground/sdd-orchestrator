@@ -40,12 +40,17 @@ export type ScriptEditorState = {
   storyboardId: number | null;
   storyboardVersion: number | null;
   isSaving: boolean;
+  mode: "quick" | "full";
+  preset: string | null;
+  threadId: string | null;
+  isWaitingForInput: boolean;
 };
 
 export type ScriptEditorActions = ScriptEditorState & {
   setField: <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => void;
   updateScene: (index: number, patch: Partial<SceneItem>) => void;
   generate: () => Promise<void>;
+  resume: (action: "approve" | "revise", feedback?: string) => Promise<void>;
   save: () => Promise<void>;
   loadStoryboard: (id: number) => Promise<void>;
   reset: () => void;
@@ -54,6 +59,20 @@ export type ScriptEditorActions = ScriptEditorState & {
 type ScriptEditorOptions = {
   onSaved?: (id: number) => void;
 };
+
+function mapEventScenes(scenes: Scene[]): SceneItem[] {
+  return scenes.map((s, i) => ({
+    id: s.id ?? i + 1,
+    client_id: generateSceneClientId(),
+    order: s.order ?? i + 1,
+    script: s.script ?? "",
+    speaker: s.speaker ?? "Narrator",
+    duration: s.duration ?? 3,
+    image_prompt: s.image_prompt ?? "",
+    image_prompt_ko: s.image_prompt_ko ?? "",
+    image_url: s.image_url ?? null,
+  }));
+}
 
 async function parseSSEStream(
   response: Response,
@@ -96,6 +115,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     storyboardId: null,
     storyboardVersion: null,
     isSaving: false,
+    mode: "quick",
+    preset: null,
+    threadId: null,
+    isWaitingForInput: false,
   });
 
   const setField = useCallback(
@@ -124,7 +147,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       language: state.language,
       structure: state.structure,
       group_id: groupId,
+      mode: state.mode,
     };
+    if (state.preset) body.preset = state.preset;
     if (state.characterId) body.character_id = state.characterId;
     if (state.characterBId) body.character_b_id = state.characterBId;
 
@@ -148,17 +173,19 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           progress: { node: event.node, label: event.label, percent: event.percent },
         }));
 
+        if (event.thread_id) {
+          setState((prev) => ({ ...prev, threadId: event.thread_id! }));
+        }
+
         if (event.status === "completed" && event.result?.scenes) {
-          finalScenes = event.result.scenes.map((s: Scene, i: number) => ({
-            id: s.id ?? i + 1,
-            client_id: generateSceneClientId(),
-            order: s.order ?? i + 1,
-            script: s.script ?? "",
-            speaker: s.speaker ?? "Narrator",
-            duration: s.duration ?? 3,
-            image_prompt: s.image_prompt ?? "",
-            image_prompt_ko: s.image_prompt_ko ?? "",
-            image_url: s.image_url ?? null,
+          finalScenes = mapEventScenes(event.result.scenes);
+        }
+
+        if (event.status === "waiting_for_input") {
+          setState((prev) => ({
+            ...prev,
+            isGenerating: false,
+            isWaitingForInput: true,
           }));
         }
 
@@ -192,9 +219,90 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     state.structure,
     state.characterId,
     state.characterBId,
+    state.mode,
+    state.preset,
     groupId,
     showToast,
   ]);
+
+  const resume = useCallback(
+    async (action: "approve" | "revise", feedback?: string) => {
+      if (!state.threadId) return;
+      setState((prev) => ({
+        ...prev,
+        isGenerating: true,
+        isWaitingForInput: false,
+        progress: null,
+      }));
+      try {
+        const response = await fetch(`${API_BASE}/scripts/resume`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            thread_id: state.threadId,
+            action,
+            feedback,
+          }),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        let finalScenes: SceneItem[] | null = null;
+
+        await parseSSEStream(response, (event: ScriptStreamEvent) => {
+          setState((prev) => ({
+            ...prev,
+            progress: {
+              node: event.node,
+              label: event.label,
+              percent: event.percent,
+            },
+          }));
+
+          if (event.status === "completed" && event.result?.scenes) {
+            finalScenes = mapEventScenes(event.result.scenes);
+          }
+
+          if (event.status === "waiting_for_input") {
+            setState((prev) => ({
+              ...prev,
+              isGenerating: false,
+              isWaitingForInput: true,
+            }));
+          }
+
+          if (event.status === "error") {
+            throw new Error(event.error ?? "Resume failed");
+          }
+        });
+
+        if (finalScenes) {
+          setState((prev) => ({
+            ...prev,
+            scenes: finalScenes!,
+            isGenerating: false,
+            progress: null,
+            isWaitingForInput: false,
+          }));
+          showToast("Script generated", "success");
+        } else {
+          setState((prev) => ({
+            ...prev,
+            isGenerating: false,
+            progress: null,
+          }));
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Resume failed";
+        showToast(String(msg), "error");
+        setState((prev) => ({
+          ...prev,
+          isGenerating: false,
+          progress: null,
+        }));
+      }
+    },
+    [state.threadId, showToast]
+  );
 
   const save = useCallback(async () => {
     setState((prev) => ({ ...prev, isSaving: true }));
@@ -321,8 +429,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       storyboardId: null,
       storyboardVersion: null,
       isSaving: false,
+      mode: "quick",
+      preset: null,
+      threadId: null,
+      isWaitingForInput: false,
     });
   }, []);
 
-  return { ...state, setField, updateScene, generate, save, loadStoryboard, reset };
+  return { ...state, setField, updateScene, generate, resume, save, loadStoryboard, reset };
 }

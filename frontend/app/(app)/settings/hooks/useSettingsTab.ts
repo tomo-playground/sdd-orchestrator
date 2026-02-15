@@ -92,7 +92,7 @@ export type CacheRefreshResult = {
   error?: string;
 };
 
-import type { UiCallbacks } from "./types";
+import type { UiCallbacks } from "../../../types";
 
 // ── Hook ───────────────────────────────────────────────
 

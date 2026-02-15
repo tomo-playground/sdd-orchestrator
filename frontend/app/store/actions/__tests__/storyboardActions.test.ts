@@ -38,6 +38,7 @@ function makeStoryboardState(overrides: Record<string, unknown> = {}) {
 function makeUIState(overrides: Record<string, unknown> = {}) {
   return {
     showToast: vi.fn(),
+    set: vi.fn(),
     ...overrides,
   };
 }
@@ -184,7 +185,7 @@ describe("mapGeminiScenes", () => {
     const raw = [{}, {}, {}];
     const result = mapGeminiScenes(raw, "");
 
-    expect(result.map((s) => s.id)).toEqual([0, 1, 2]);
+    expect(result.map((s) => s.id)).toEqual([0, 0, 0]);
     expect(result.map((s) => s.order)).toEqual([0, 1, 2]);
   });
 

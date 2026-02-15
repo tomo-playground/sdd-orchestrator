@@ -63,6 +63,43 @@ class TestDedupKey:
         # No colon → not weight syntax → keep as-is (with strip)
         assert result == "(smile)"
 
+    def test_space_underscore_normalized(self):
+        """LoRA trigger word 'flat color' and tag 'flat_color' must produce same key."""
+        assert V3PromptBuilder._dedup_key("flat color") == V3PromptBuilder._dedup_key("flat_color")
+        assert V3PromptBuilder._dedup_key("flat color") == "flat_color"
+
+    def test_space_underscore_multi_word(self):
+        """Multi-word trigger words normalize to underscore."""
+        assert V3PromptBuilder._dedup_key("anime coloring") == "anime_coloring"
+        assert V3PromptBuilder._dedup_key("anime_coloring") == "anime_coloring"
+
+
+class TestTriggerExistsInLayers:
+    """Test _trigger_exists_in_layers cross-layer normalized check."""
+
+    def test_exact_match(self):
+        layers = [["flat_color"], [], []]
+        assert V3PromptBuilder._trigger_exists_in_layers("flat_color", layers) is True
+
+    def test_space_vs_underscore(self):
+        """Trigger 'flat color' should match existing tag 'flat_color'."""
+        layers = [["flat_color"], [], []]
+        assert V3PromptBuilder._trigger_exists_in_layers("flat color", layers) is True
+
+    def test_cross_layer(self):
+        """Should search across all layers, not just target."""
+        layers = [[], ["anime_coloring"], []]
+        assert V3PromptBuilder._trigger_exists_in_layers("anime coloring", layers) is True
+
+    def test_weighted_tag_match(self):
+        """Trigger should match weighted tags like (flat_color:1.15)."""
+        layers = [["(flat_color:1.15)"], [], []]
+        assert V3PromptBuilder._trigger_exists_in_layers("flat color", layers) is True
+
+    def test_no_match(self):
+        layers = [["1girl"], ["smile"], []]
+        assert V3PromptBuilder._trigger_exists_in_layers("flat color", layers) is False
+
 
 # ────────────────────────────────────────────
 # _flatten_layers tests
@@ -114,6 +151,18 @@ class TestFlattenLayers:
         result = builder._flatten_layers(layers)
         lora_count = result.count("<lora:flat_color:")
         assert lora_count == 1, f"Expected 1 flat_color LoRA, got {lora_count}: {result}"
+
+    def test_trigger_word_tag_dedup(self, builder):
+        """LoRA trigger 'flat color' and tag 'flat_color' → keep only first (tag)."""
+        layers = [[] for _ in range(12)]
+        layers[LAYER_SUBJECT] = ["flat_color"]  # Danbooru tag (underscore)
+        layers[LAYER_ATMOSPHERE] = ["flat color", "<lora:flat_color:0.4>"]  # Trigger (space)
+
+        result = builder._flatten_layers(layers)
+        # "flat_color" tag survives (first occurrence), "flat color" trigger is deduped
+        assert "flat_color" in result
+        assert ", flat color," not in result  # Trigger word should be deduped
+        assert "<lora:flat_color:0.4>" in result  # LoRA tag itself is different
 
     def test_no_break_in_single_context(self, builder):
         """BREAK is never inserted - single context for better scene control."""

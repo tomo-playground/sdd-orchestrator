@@ -483,7 +483,7 @@ class V3PromptBuilder:
                         weight = self.get_effective_lora_weight(lora_obj)
                     active_loras[lora_obj.name] = (weight, lora_obj.lora_type)
                     for trigger in lora_obj.trigger_words or []:
-                        if trigger not in layers[LAYER_IDENTITY]:
+                        if not self._trigger_exists_in_layers(trigger, layers):
                             layers[LAYER_IDENTITY].append(trigger)
 
         # Scene-triggered LoRAs
@@ -516,7 +516,7 @@ class V3PromptBuilder:
                 if is_fallback:
                     weight = min(weight, 0.5)
                 for trigger in lora_info.get("trigger_words", []):
-                    if trigger not in layers[LAYER_ATMOSPHERE]:
+                    if not self._trigger_exists_in_layers(trigger, layers):
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
 
@@ -576,7 +576,7 @@ class V3PromptBuilder:
                     continue
 
                 for trigger in lora.get("trigger_words", []):
-                    if trigger not in layers[LAYER_IDENTITY]:
+                    if not self._trigger_exists_in_layers(trigger, layers):
                         layers[LAYER_IDENTITY].append(trigger)
 
                 weight = lora.get("weight")
@@ -603,7 +603,7 @@ class V3PromptBuilder:
                 if lora_name in injected_lora_names:
                     continue
                 for trigger in lora.get("trigger_words", []):
-                    if trigger not in layers[LAYER_ATMOSPHERE]:
+                    if not self._trigger_exists_in_layers(trigger, layers):
                         layers[LAYER_ATMOSPHERE].append(trigger)
                     _style_trigger_words.add(trigger)
 
@@ -675,10 +675,11 @@ class V3PromptBuilder:
 
     @staticmethod
     def _dedup_key(token: str) -> str:
-        """Normalize token for dedup: strip weights for comparison.
+        """Normalize token for dedup: strip weights and unify format.
 
         - (1boy:1.3) → 1boy
         - <lora:flat_color:0.76> → <lora:flat_color> (ignore weight)
+        - "flat color" → "flat_color" (space→underscore, Danbooru 표준 정규화)
         """
         t = token.strip().lower()
         if t.startswith("<lora:") and t.endswith(">"):
@@ -686,7 +687,23 @@ class V3PromptBuilder:
             return f"<lora:{name}>"
         if t.startswith("(") and ":" in t and t.endswith(")"):
             t = t[1:].split(":")[0]
+        # LoRA trigger word("flat color")와 tag("flat_color") 동일시
+        t = t.replace(" ", "_")
         return t
+
+    @staticmethod
+    def _trigger_exists_in_layers(trigger: str, layers: list[list[str]]) -> bool:
+        """Check if a LoRA trigger word already exists in any layer (normalized).
+
+        Uses _dedup_key for consistency with _flatten_layers dedup logic,
+        so weighted tags like (flat_color:1.15) are also matched.
+        """
+        norm = V3PromptBuilder._dedup_key(trigger)
+        for layer_tokens in layers:
+            for t in layer_tokens:
+                if V3PromptBuilder._dedup_key(t) == norm:
+                    return True
+        return False
 
     def _flatten_layers(self, layers: list[list[str]]) -> str:
         """Flattens 12 layers into a final string with global deduplication and conflict resolution."""
@@ -981,7 +998,7 @@ class V3PromptBuilder:
                 layers[LAYER_IDENTITY].append(f"<lora:{lora_obj.name}:{weight}>")
                 # Add trigger words for character LoRAs only
                 for trigger in lora_obj.trigger_words or []:
-                    if trigger not in layers[LAYER_IDENTITY]:
+                    if not self._trigger_exists_in_layers(trigger, layers):
                         layers[LAYER_IDENTITY].append(trigger)
 
 

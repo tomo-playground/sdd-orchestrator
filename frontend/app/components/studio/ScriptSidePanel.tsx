@@ -5,7 +5,7 @@ import { SIDE_PANEL_LABEL } from "../ui/variants";
 
 type Props = {
   scenesCount: number;
-  isAgent: boolean;
+  isFull: boolean;
 };
 
 const QUICK_TIPS = [
@@ -15,15 +15,15 @@ const QUICK_TIPS = [
   "Add a description to guide the AI tone and style",
 ];
 
-const AGENT_TIPS = [
-  "The AI agent generates script, images, and audio",
-  "Review generated scenes before rendering",
-  "You can edit individual scenes after generation",
-  "Agent mode works best with clear, specific topics",
+const FULL_TIPS = [
+  "AI가 컨셉 토론 후 대본을 생성합니다",
+  "검토 결과를 확인한 후 승인하세요",
+  "수정 요청 시 피드백을 구체적으로 작성하세요",
+  "Preset으로 자동 승인 / 수동 승인을 선택할 수 있습니다",
 ];
 
-export default function ScriptSidePanel({ scenesCount, isAgent }: Props) {
-  const tips = isAgent ? AGENT_TIPS : QUICK_TIPS;
+export default function ScriptSidePanel({ scenesCount, isFull }: Props) {
+  const tips = isFull ? FULL_TIPS : QUICK_TIPS;
 
   return (
     <>
@@ -36,7 +36,7 @@ export default function ScriptSidePanel({ scenesCount, isAgent }: Props) {
         <div className="mt-2 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-500">Mode</span>
-            <span className="font-medium text-zinc-700">{isAgent ? "AI Agent" : "Quick"}</span>
+            <span className="font-medium text-zinc-700">{isFull ? "Full" : "Quick"}</span>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-500">Scenes</span>

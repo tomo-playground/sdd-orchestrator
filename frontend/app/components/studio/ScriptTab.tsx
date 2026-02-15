@@ -5,9 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { FileText } from "lucide-react";
 import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { useUIStore } from "../../store/useUIStore";
-import { useContextStore } from "../../store/useContextStore";
 import ManualScriptEditor from "../scripts/ManualScriptEditor";
-import AgentScriptEditor from "../scripts/AgentScriptEditor";
 import ScriptSceneList from "../scripts/ScriptSceneList";
 import EmptyState from "../ui/EmptyState";
 import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
@@ -22,7 +20,7 @@ export default function ScriptTab() {
   const idParam = searchParams.get("id");
   const mode = searchParams.get("mode");
   const storyboardId = idParam ? Number(idParam) : null;
-  const isAgent = mode === "agent";
+  const isFull = mode === "full";
 
   const onSaved = useCallback(
     (id: number) => {
@@ -45,22 +43,14 @@ export default function ScriptTab() {
     }
   }, [storyboardId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Agent completion handler
-  const handleStoryboardCreated = useCallback(
-    (id: number) => {
-      router.replace(`/studio?id=${id}`);
-      useContextStore.getState().setContext({ storyboardId: id });
-    },
-    [router]
-  );
-
-  const toggleMode = (target: "quick" | "agent") => {
+  const toggleMode = (target: "quick" | "full") => {
     const params = new URLSearchParams(searchParams.toString());
-    if (target === "agent") {
-      params.set("mode", "agent");
+    if (target === "full") {
+      params.set("mode", "full");
     } else {
       params.delete("mode");
     }
+    editor.setField("mode", target);
     const qs = params.toString();
     router.replace(qs ? `/studio?${qs}` : "/studio");
   };
@@ -94,28 +84,24 @@ export default function ScriptTab() {
           <div className="mb-6 flex justify-center">
             <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
               <button
-                className={`${TAB_BASE} ${isAgent ? TAB_INACTIVE : TAB_ACTIVE}`}
+                className={`${TAB_BASE} ${isFull ? TAB_INACTIVE : TAB_ACTIVE}`}
                 onClick={() => toggleMode("quick")}
               >
                 Quick
               </button>
               <button
-                className={`${TAB_BASE} ${isAgent ? TAB_ACTIVE : TAB_INACTIVE}`}
-                onClick={() => toggleMode("agent")}
+                className={`${TAB_BASE} ${isFull ? TAB_ACTIVE : TAB_INACTIVE}`}
+                onClick={() => toggleMode("full")}
               >
-                AI Agent
+                Full
               </button>
             </div>
           </div>
 
-          {/* Mode-specific editor */}
-          {isAgent ? (
-            <AgentScriptEditor onStoryboardCreated={handleStoryboardCreated} />
-          ) : (
-            <ManualScriptEditor editor={editor} />
-          )}
+          {/* Editor — both modes use ManualScriptEditor */}
+          <ManualScriptEditor editor={editor} />
 
-          {!isAgent && editor.scenes.length === 0 && !editor.isGenerating && (
+          {editor.scenes.length === 0 && !editor.isGenerating && !editor.isWaitingForInput && (
             <div className="mt-12">
               <EmptyState
                 icon={FileText}
@@ -126,7 +112,7 @@ export default function ScriptTab() {
           )}
         </div>
       }
-      rightPanel={<ScriptSidePanel scenesCount={editor.scenes.length} isAgent={isAgent} />}
+      rightPanel={<ScriptSidePanel scenesCount={editor.scenes.length} isFull={isFull} />}
     />
   );
 }

@@ -64,10 +64,16 @@ export default function RenderedVideosSection({
                     }`}
                 >
                   <div className="grid gap-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
                         {item.label}
                       </span>
+                      {/* Project Badge */}
+                      {item.projectName && (
+                        <span className="max-w-[120px] truncate rounded-full border border-zinc-200 bg-zinc-50 px-1.5 py-px text-[10px] font-medium text-zinc-600" title={`Project: ${item.projectName}`}>
+                          {item.projectName}
+                        </span>
+                      )}
                       {idx === 0 && (
                         <span className="rounded-full bg-emerald-50 px-1.5 py-px text-[11px] font-bold text-emerald-600 uppercase">
                           New

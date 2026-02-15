@@ -720,17 +720,33 @@ export type ImageGenProgress = {
 // Script Generation SSE Types
 // ============================================================
 
+export type SceneReasoning = {
+  narrative_function: string;
+  why: string;
+  alternatives: string[];
+};
+
 export type ScriptStreamEvent = {
   node: string;
   label: string;
   percent: number;
-  status: "running" | "completed" | "error";
+  status: "running" | "completed" | "error" | "waiting_for_input";
   result?: {
     scenes: Scene[];
     character_id: number | null;
     character_b_id: number | null;
   };
   error?: string;
+  thread_id?: string;
+};
+
+export type ScriptPreset = {
+  id: string;
+  name: string;
+  name_ko: string;
+  description: string;
+  mode: string;
+  auto_approve: boolean;
 };
 
 export type ChannelDNA = {

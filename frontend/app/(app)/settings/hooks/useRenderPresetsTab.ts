@@ -3,7 +3,7 @@ import axios from "axios";
 import { API_BASE } from "../../../constants";
 import type { RenderPreset } from "../../../types";
 
-import type { UiCallbacks } from "./types";
+import type { UiCallbacks } from "../../../types";
 
 // ── Types ──────────────────────────────────────────────
 

@@ -25,16 +25,16 @@ describe("computeValidationResults", () => {
       const scenes = [createScene({ script: "Hello world" })];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("ok");
-      expect(results[1].issues).toHaveLength(0);
+      expect(results["scene-1"].status).toBe("ok");
+      expect(results["scene-1"].issues).toHaveLength(0);
     });
 
     it("should error on empty script", () => {
       const scenes = [createScene({ script: "" })];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("error");
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].status).toBe("error");
+      expect(results["scene-1"].issues).toContainEqual({
         level: "error",
         message: "Script is empty.",
       });
@@ -46,8 +46,8 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("warn");
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].status).toBe("warn");
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Script is longer than 40 characters.",
       });
@@ -59,39 +59,39 @@ describe("computeValidationResults", () => {
       const scenes = [createScene({ speaker: "A" })];
       const { results } = computeValidationResults(scenes, "Monologue");
 
-      expect(results[1].status).toBe("ok");
+      expect(results["scene-1"].status).toBe("ok");
     });
 
     it("should error for Narrator speaker in Monologue", () => {
       const scenes = [createScene({ speaker: "Narrator" })];
       const { results } = computeValidationResults(scenes, "Monologue");
 
-      expect(results[1].status).toBe("error");
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].status).toBe("error");
+      expect(results["scene-1"].issues).toContainEqual({
         level: "error",
         message: 'Speaker "Narrator" is not valid for Monologue.',
       });
     });
 
     it("should pass for Speaker A and B in Dialogue", () => {
-      const scenes = [createScene({ speaker: "A" }), createScene({ id: 2, speaker: "B" })];
+      const scenes = [createScene({ speaker: "A" }), createScene({ id: 2, client_id: "scene-2", speaker: "B" })];
       const { results } = computeValidationResults(scenes, "Dialogue");
 
-      expect(results[1].status).toBe("ok");
-      expect(results[2].status).toBe("ok");
+      expect(results["scene-1"].status).toBe("ok");
+      expect(results["scene-2"].status).toBe("ok");
     });
 
     it("should pass for Narrator, A, B in Narrated Dialogue", () => {
       const scenes = [
         createScene({ speaker: "Narrator" }),
-        createScene({ id: 2, speaker: "A" }),
-        createScene({ id: 3, speaker: "B" }),
+        createScene({ id: 2, client_id: "scene-2", speaker: "A" }),
+        createScene({ id: 3, client_id: "scene-3", speaker: "B" }),
       ];
       const { results } = computeValidationResults(scenes, "Narrated Dialogue");
 
-      expect(results[1].status).toBe("ok");
-      expect(results[2].status).toBe("ok");
-      expect(results[3].status).toBe("ok");
+      expect(results["scene-1"].status).toBe("ok");
+      expect(results["scene-2"].status).toBe("ok");
+      expect(results["scene-3"].status).toBe("ok");
     });
   });
 
@@ -100,8 +100,8 @@ describe("computeValidationResults", () => {
       const scenes = [createScene({ image_prompt: "" })];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("error");
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].status).toBe("error");
+      expect(results["scene-1"].issues).toContainEqual({
         level: "error",
         message: "Positive Prompt is empty.",
       });
@@ -111,8 +111,8 @@ describe("computeValidationResults", () => {
       const scenes = [createScene({ image_prompt: "1girl, smile" })];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("warn");
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].status).toBe("warn");
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Prompt is too short; add more visual details.",
       });
@@ -126,7 +126,7 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Missing camera/shot keywords.",
       });
@@ -140,7 +140,7 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Missing action/pose keywords.",
       });
@@ -154,7 +154,7 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Missing background/setting keywords.",
       });
@@ -168,7 +168,7 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Missing lighting/mood keywords.",
       });
@@ -182,8 +182,8 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("ok");
-      expect(results[1].issues).toHaveLength(0);
+      expect(results["scene-1"].status).toBe("ok");
+      expect(results["scene-1"].issues).toHaveLength(0);
     });
 
     it("should pass with LoRA trigger words (space format exception)", () => {
@@ -197,8 +197,8 @@ describe("computeValidationResults", () => {
 
       // Should pass: "flat color" is a LoRA trigger, not a Danbooru tag
       // Validation checks CAMERA/ACTION/BACKGROUND/LIGHTING keywords only
-      expect(results[1].status).toBe("ok");
-      expect(results[1].issues).toHaveLength(0);
+      expect(results["scene-1"].status).toBe("ok");
+      expect(results["scene-1"].issues).toHaveLength(0);
     });
 
     it("should pass with character trigger words (underscore format)", () => {
@@ -210,8 +210,8 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("ok");
-      expect(results[1].issues).toHaveLength(0);
+      expect(results["scene-1"].status).toBe("ok");
+      expect(results["scene-1"].issues).toHaveLength(0);
     });
   });
 
@@ -224,8 +224,8 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("warn");
-      expect(results[1].issues).toContainEqual({
+      expect(results["scene-1"].status).toBe("warn");
+      expect(results["scene-1"].issues).toContainEqual({
         level: "warn",
         message: "Negative Prompt contains scene keywords.",
       });
@@ -239,7 +239,7 @@ describe("computeValidationResults", () => {
       ];
       const { results } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("ok");
+      expect(results["scene-1"].status).toBe("ok");
     });
   });
 
@@ -249,9 +249,10 @@ describe("computeValidationResults", () => {
         createScene({ id: 1, script: "OK scene" }),
         createScene({
           id: 2,
+          client_id: "scene-2",
           script: "This is a very long script that exceeds 40 characters limit",
         }),
-        createScene({ id: 3, script: "" }),
+        createScene({ id: 3, client_id: "scene-3", script: "" }),
       ];
       const { summary } = computeValidationResults(scenes);
 
@@ -269,7 +270,7 @@ describe("computeValidationResults", () => {
       ];
       const { results, summary } = computeValidationResults(scenes);
 
-      expect(results[1].status).toBe("error");
+      expect(results["scene-1"].status).toBe("error");
       expect(summary.error).toBe(1);
       expect(summary.warn).toBe(0);
     });

@@ -40,6 +40,10 @@ export interface UIState {
   isSuggesting: boolean;
   copyStatus: string;
 
+  // Setup wizard
+  showSetupWizard: boolean;
+  setupWizardInitialStep: 1 | 2;
+
   // New storyboard mode (URL-independent flag for ?new=true)
   isNewStoryboardMode: boolean;
 
@@ -87,6 +91,8 @@ const initialState: Omit<
   suggestedScene: "",
   isSuggesting: false,
   copyStatus: "",
+  showSetupWizard: false,
+  setupWizardInitialStep: 1 as 1 | 2,
   isNewStoryboardMode: false,
   isAutoRunning: false,
 };
@@ -94,7 +100,8 @@ const initialState: Omit<
 export const useUIStore = create<UIState>((set) => ({
   ...initialState,
   set: (updates) => set((state) => ({ ...state, ...updates })),
-  toggleAdvancedSettings: () => set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
+  toggleAdvancedSettings: () =>
+    set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
   toggleLabMenu: () => set((state) => ({ showLabMenu: !state.showLabMenu })),
   setActiveTab: (tab) => set({ activeTab: tab }),
 

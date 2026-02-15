@@ -205,17 +205,17 @@ export async function runAutoRunFromStep(
             const payload =
               scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
                 ? {
-                    image_url: scene.image_url,
-                    prompt: scene.debug_prompt || scene.image_prompt,
-                    storyboard_id: storyboardId,
-                    scene_id: scene.id,
-                  }
+                  image_url: scene.image_url,
+                  prompt: scene.debug_prompt || scene.image_prompt,
+                  storyboard_id: storyboardId,
+                  scene_id: scene.id,
+                }
                 : {
-                    image_b64: scene.image_url,
-                    prompt: scene.debug_prompt || scene.image_prompt,
-                    storyboard_id: storyboardId,
-                    scene_id: scene.id,
-                  };
+                  image_b64: scene.image_url,
+                  prompt: scene.debug_prompt || scene.image_prompt,
+                  storyboard_id: storyboardId,
+                  scene_id: scene.id,
+                };
             await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
           } catch {
             // non-critical
@@ -247,20 +247,20 @@ export async function runAutoRunFromStep(
         const overlaySettings =
           layoutStyle === "full" && project
             ? {
-                channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
-                frame_style: store.frameStyle,
-                caption: store.videoCaption,
-                likes_count: store.videoLikesCount,
-              }
+              channel_name: project.name,
+              avatar_key: project.avatar_key || project.handle || project.name,
+              frame_style: store.frameStyle,
+              caption: store.videoCaption,
+              likes_count: store.videoLikesCount,
+            }
             : null;
         const postCardSettings =
           layoutStyle === "post" && project
             ? {
-                channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
-                caption: store.videoCaption,
-              }
+              channel_name: project.name,
+              avatar_key: project.avatar_key || project.handle || project.name,
+              caption: store.videoCaption,
+            }
             : null;
 
         const payload = {
@@ -297,6 +297,10 @@ export async function runAutoRunFromStep(
         const videoUrl = result.video_url;
         if (!videoUrl) throw new Error(`${layoutStyle} render failed`);
         const withTs = `${videoUrl}?t=${Date.now()}`;
+        const currentProject = getCurrentProject();
+        const currentGroupId = renderGroupId;
+        const currentGroup = ctxStore.groups.find((g) => g.id === currentGroupId);
+
         useRenderStore.getState().set({
           videoUrl: withTs,
           ...(layoutStyle === "full" ? { videoUrlFull: withTs } : { videoUrlPost: withTs }),
@@ -306,6 +310,10 @@ export async function runAutoRunFromStep(
               label: layoutStyle,
               createdAt: Date.now(),
               renderHistoryId: result.render_history_id,
+              projectId: renderProjectId,
+              projectName: currentProject?.name,
+              groupId: renderGroupId,
+              groupName: currentGroup?.name,
             },
             ...useRenderStore.getState().recentVideos.slice(0, 9),
           ],

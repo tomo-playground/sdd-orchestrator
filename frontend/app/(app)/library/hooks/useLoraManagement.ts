@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
 import type { LoRA } from "../../../types";
-import type { UiCallbacks } from "./types";
+import type { UiCallbacks } from "../../../types";
 
 export function useLoraManagement(ui: UiCallbacks) {
   const [loraEntries, setLoraEntries] = useState<LoRA[]>([]);

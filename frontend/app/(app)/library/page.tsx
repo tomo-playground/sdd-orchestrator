@@ -2,9 +2,9 @@
 
 import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Users, Mic, Music, Image } from "lucide-react";
+import { Users, Mic, Music, Image, Tag, Palette, FileText } from "lucide-react";
 
-import AppSidebar, { type NavItem } from "../../components/layout/AppSidebar";
+import AppSidebar, { type NavGroup } from "../../components/layout/AppSidebar";
 import AppMobileTabBar from "../../components/layout/AppMobileTabBar";
 import AppThreeColumnLayout from "../../components/layout/AppThreeColumnLayout";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
@@ -13,19 +13,51 @@ import { CharactersContent } from "../characters/page";
 import { VoicesContent } from "../voices/page";
 import { MusicContent } from "../music/page";
 import { BackgroundsContent } from "../backgrounds/page";
+import TagsTab from "./tabs/TagsTab";
+import StyleTab from "./tabs/StyleTab";
+import PromptsTab from "./tabs/PromptsTab";
 import { type LibraryTab } from "./types";
 
-const VALID_TABS: LibraryTab[] = ["characters", "voices", "music", "backgrounds"];
+const VALID_TABS: LibraryTab[] = [
+  "characters",
+  "voices",
+  "music",
+  "backgrounds",
+  "tags",
+  "style",
+  "prompts",
+];
 
 function isValidTab(v: string | null): v is LibraryTab {
   return v !== null && VALID_TABS.includes(v as LibraryTab);
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { id: "characters", label: "Characters", icon: Users },
-  { id: "voices", label: "Voices", icon: Mic },
-  { id: "music", label: "Music", icon: Music },
-  { id: "backgrounds", label: "Backgrounds", icon: Image },
+const NAV_GROUPS: NavGroup[] = [
+  {
+    key: "visuals",
+    label: "Visuals",
+    items: [
+      { id: "characters", label: "Characters", icon: Users },
+      { id: "backgrounds", label: "Backgrounds", icon: Image },
+      { id: "style", label: "Styles", icon: Palette },
+    ],
+  },
+  {
+    key: "audio",
+    label: "Audio",
+    items: [
+      { id: "voices", label: "Voices", icon: Mic },
+      { id: "music", label: "Music", icon: Music },
+    ],
+  },
+  {
+    key: "text",
+    label: "Text & Meta",
+    items: [
+      { id: "prompts", label: "Prompts", icon: FileText },
+      { id: "tags", label: "Tags", icon: Tag },
+    ],
+  },
 ];
 
 const MOBILE_TABS = [
@@ -33,6 +65,9 @@ const MOBILE_TABS = [
   { id: "voices", label: "Voices" },
   { id: "music", label: "Music" },
   { id: "backgrounds", label: "Backgrounds" },
+  { id: "style", label: "Styles" },
+  { id: "prompts", label: "Prompts" },
+  { id: "tags", label: "Tags" },
 ];
 
 function LibraryContent() {
@@ -53,10 +88,11 @@ function LibraryContent() {
     <AppThreeColumnLayout
       left={
         <AppSidebar
-          items={NAV_ITEMS}
+          groups={NAV_GROUPS}
           activeTab={activeTab}
           onTabChange={handleTabChange}
           collapsedKey="librarySidebarCollapsed"
+          collapsedGroupsKey="librarySidebarCollapsedGroups"
         />
       }
       center={
@@ -67,11 +103,14 @@ function LibraryContent() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
           />
-          <div className="px-6 py-6 min-w-0">
+          <div className="min-w-0 px-6 py-6">
             {activeTab === "characters" && <CharactersContent />}
             {activeTab === "voices" && <VoicesContent />}
             {activeTab === "music" && <MusicContent />}
             {activeTab === "backgrounds" && <BackgroundsContent />}
+            {activeTab === "tags" && <TagsTab />}
+            {activeTab === "style" && <StyleTab />}
+            {activeTab === "prompts" && <PromptsTab />}
           </div>
         </>
       }

@@ -16,9 +16,11 @@ from config import VIDEO_DIR, logger
 from database import SessionLocal, get_db
 from models.media_asset import MediaAsset
 from models.render_history import RenderHistory
-from schemas import (
+from schemas import (  # noqa: F401
     CaptionExtractResponse,
     HashtagExtractResponse,
+    PaginatedRenderHistoryList,
+    RenderHistoryItem,
     RenderHistoryLookupResponse,
     RenderProgressEvent,
     TextExtractRequest,
@@ -279,6 +281,54 @@ async def batch_youtube_statuses(body: YouTubeStatusesRequest, db: Session = Dep
             }
 
     return {"statuses": statuses}
+
+
+@router.get("/render-history", response_model=PaginatedRenderHistoryList)
+async def list_render_history(
+    project_id: int | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(12, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """List render history for the gallery (newest first)."""
+    from models.group import Group
+    from models.project import Project
+    from models.storyboard import Storyboard
+
+    query = (
+        db.query(RenderHistory)
+        .join(RenderHistory.storyboard)
+        .join(Storyboard.group)
+        .join(Group.project)
+        .join(RenderHistory.media_asset)
+        .filter(Storyboard.deleted_at.is_(None))
+    )
+    if project_id is not None:
+        query = query.filter(Project.id == project_id)
+
+    total = query.count()
+    rows = query.order_by(RenderHistory.created_at.desc(), RenderHistory.id.desc()).offset(offset).limit(limit).all()
+
+    items = []
+    for rh in rows:
+        sb = rh.storyboard
+        grp = sb.group
+        proj = grp.project
+        items.append(
+            RenderHistoryItem(
+                id=rh.id,
+                label=rh.label,
+                url=rh.media_asset.url,
+                created_at=rh.created_at,
+                storyboard_id=sb.id,
+                storyboard_title=sb.title,
+                project_id=proj.id,
+                project_name=proj.name,
+                group_id=grp.id,
+                group_name=grp.name,
+            )
+        )
+    return PaginatedRenderHistoryList(items=items, total=total, offset=offset, limit=limit)
 
 
 @router.get("/render-history-lookup", response_model=RenderHistoryLookupResponse)

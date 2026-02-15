@@ -28,10 +28,13 @@ def testcreate_test_storyboard(client: TestClient):
 
 
 def test_list_storyboards(client: TestClient):
-    """Test listing storyboards."""
+    """Test listing storyboards (paginated response)."""
     response = client.get("/storyboards")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    body = response.json()
+    assert "items" in body
+    assert isinstance(body["items"], list)
+    assert "total" in body
 
 
 def test_list_with_scene_count(client: TestClient):
@@ -40,7 +43,7 @@ def test_list_with_scene_count(client: TestClient):
     create_test_storyboard(client, scenes=scenes)
 
     resp = client.get("/storyboards")
-    items = resp.json()
+    items = resp.json()["items"]
     assert len(items) >= 1
     item = items[-1]
     assert item["scene_count"] == 2

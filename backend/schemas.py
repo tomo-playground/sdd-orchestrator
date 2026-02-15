@@ -383,6 +383,8 @@ class StoryboardRequest(BaseModel):
     character_id: int | None = None
     character_b_id: int | None = None
     group_id: int | None = None
+    mode: str = "quick"  # "quick" | "full"
+    preset: str | None = None  # "quick" | "full_auto" | "creator"
 
 
 class SceneCandidate(BaseModel):
@@ -1506,6 +1508,50 @@ class ScriptGenerateResponse(BaseModel):
     character_b_id: int | None = None
 
 
+class ScriptProgressEvent(BaseModel):
+    """SSE 스트리밍 진행률 이벤트 (문서화용)."""
+
+    node: str
+    label: str
+    percent: int
+    status: str  # "running" | "completed" | "error" | "waiting_for_input"
+    result: ScriptGenerateResponse | None = None
+    error: str | None = None
+
+
+class SceneReasoningItem(BaseModel):
+    """씬별 창작 근거."""
+
+    narrative_function: str = ""
+    why: str = ""
+    alternatives: list[str] = Field(default_factory=list)
+
+
+class ScriptResumeRequest(BaseModel):
+    """Human Gate 재개 요청."""
+
+    thread_id: str
+    action: str = "approve"  # "approve" | "revise"
+    feedback: str | None = None
+
+
+class ScriptPresetItem(BaseModel):
+    """Preset 목록 아이템."""
+
+    id: str
+    name: str
+    name_ko: str
+    description: str
+    mode: str
+    auto_approve: bool = False
+
+
+class ScriptPresetsResponse(BaseModel):
+    """Preset 목록 응답."""
+
+    presets: list[ScriptPresetItem]
+
+
 # ============================================================
 # Materials Check Schemas
 # ============================================================
@@ -1547,6 +1593,30 @@ class PaginatedCharacterList(BaseModel):
     total: int
     offset: int = 0
     limit: int = 50
+
+
+class RenderHistoryItem(BaseModel):
+    """Single item in the render history gallery."""
+
+    id: int
+    label: str
+    url: str  # Response-only: derived from media_asset.url
+    created_at: datetime
+    storyboard_id: int
+    storyboard_title: str | None = None
+    project_id: int | None = None
+    project_name: str | None = None
+    group_id: int | None = None
+    group_name: str | None = None
+
+
+class PaginatedRenderHistoryList(BaseModel):
+    """Paginated response for GET /video/render-history."""
+
+    items: list[RenderHistoryItem]
+    total: int
+    offset: int = 0
+    limit: int = 12
 
 
 class StatusResponse(BaseModel):

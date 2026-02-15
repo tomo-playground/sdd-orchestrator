@@ -1,25 +1,73 @@
-"""Script Generation Graph — START → draft → finalize → END.
+"""Script Generation Graph — 8노드 조건 분기 그래프.
 
-Phase 0: 2-노드 PoC (기존 generate_script 래핑).
+Quick: START → draft → review → [passed→finalize / failed→revise] → learn → END
+Full:  START → research → debate → draft → review →
+       [passed→human_gate / failed→revise] → finalize → learn → END
 """
 
 from __future__ import annotations
 
 from langgraph.graph import END, START, StateGraph
 
+from services.agent.nodes.debate import debate_node
 from services.agent.nodes.draft import draft_node
 from services.agent.nodes.finalize import finalize_node
+from services.agent.nodes.human_gate import human_gate_node
+from services.agent.nodes.learn import learn_node
+from services.agent.nodes.research import research_node
+from services.agent.nodes.review import review_node
+from services.agent.nodes.revise import revise_node
+from services.agent.routing import (
+    route_after_human_gate,
+    route_after_review,
+    route_after_start,
+)
 from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """8노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     graph = StateGraph(ScriptState)
+
+    # 노드 등록
+    graph.add_node("research", research_node)
+    graph.add_node("debate", debate_node)
     graph.add_node("draft", draft_node)
+    graph.add_node("review", review_node)
+    graph.add_node("revise", revise_node)
+    graph.add_node("human_gate", human_gate_node)
     graph.add_node("finalize", finalize_node)
-    graph.add_edge(START, "draft")
-    graph.add_edge("draft", "finalize")
-    graph.add_edge("finalize", END)
+    graph.add_node("learn", learn_node)
+
+    # START → mode 분기 (quick→draft, full→research)
+    graph.add_conditional_edges(START, route_after_start, ["research", "draft"])
+
+    # research → debate → draft → review
+    graph.add_edge("research", "debate")
+    graph.add_edge("debate", "draft")
+    graph.add_edge("draft", "review")
+
+    # review → finalize | human_gate | revise (통합 라우팅)
+    graph.add_conditional_edges(
+        "review",
+        route_after_review,
+        ["finalize", "human_gate", "revise"],
+    )
+
+    # revise → review (루프)
+    graph.add_edge("revise", "review")
+
+    # human_gate → finalize | revise
+    graph.add_conditional_edges(
+        "human_gate",
+        route_after_human_gate,
+        ["finalize", "revise"],
+    )
+
+    # finalize → learn → END
+    graph.add_edge("finalize", "learn")
+    graph.add_edge("learn", END)
+
     return graph
 
 

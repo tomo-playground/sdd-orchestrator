@@ -1,15 +1,16 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
-import StudioKanbanView from "../../components/studio/StudioKanbanView";
 import StudioWorkspace from "../../components/studio/StudioWorkspace";
 import StudioWorkspaceTabs from "../../components/studio/StudioWorkspaceTabs";
 import PipelineStatusDots from "../../components/studio/PipelineStatusDots";
 import MaterialsPopover from "../../components/studio/MaterialsPopover";
+import StudioKanbanView from "../../components/studio/StudioKanbanView";
 
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
@@ -46,7 +47,8 @@ function StudioContent() {
   });
 
   // Routing: storyboardId or isNewStoryboardMode determines kanban vs editor
-  const isNewMode = useUIStore((s) => s.isNewStoryboardMode);
+  const searchParams = useSearchParams();
+  const isNewMode = useUIStore((s) => s.isNewStoryboardMode) || searchParams.get("new") === "true";
   const contextStoryboardId = useContextStore((s) => s.storyboardId);
   const resolvedId = storyboardId ? parseInt(storyboardId, 10) : contextStoryboardId;
   const hasStoryboard = (!!resolvedId && !isNaN(resolvedId as number)) || isNewMode;
@@ -140,6 +142,16 @@ function StudioContent() {
     },
   ]);
 
+  // Redirect to Home if no storyboard selected -> CHANGED: Show Kanban View instead
+  const router = useRouter();
+  /* 
+  useEffect(() => {
+    if (!isLoadingDb && !hasStoryboard) {
+      router.replace("/");
+    }
+  }, [isLoadingDb, hasStoryboard, router]);
+  */
+
   if (isLoadingDb) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -148,7 +160,7 @@ function StudioContent() {
     );
   }
 
-  // Kanban view: no storyboard selected
+  // If no storyboard selected, show the Project List (Kanban)
   if (!hasStoryboard) {
     return <StudioKanbanView />;
   }
