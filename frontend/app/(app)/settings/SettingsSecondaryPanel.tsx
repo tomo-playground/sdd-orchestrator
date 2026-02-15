@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  SlidersHorizontal,
-  Upload,
-  Settings,
-  Trash2,
-  type LucideIcon,
-} from "lucide-react";
+import { Brain, SlidersHorizontal, Upload, Settings, Trash2, type LucideIcon } from "lucide-react";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../../components/ui/variants";
 import type { SettingsTab } from "./types";
 
@@ -56,6 +50,16 @@ const HELP: Record<SettingsTab, TabHelp> = {
       "Items are soft-deleted (recoverable)",
       "Permanent deletion after 30 days",
       "Restore to original location",
+    ],
+  },
+  memory: {
+    icon: Brain,
+    title: "AI Memory",
+    description: "AI agent memory store management.",
+    notes: [
+      "Character, topic, user memories",
+      "Delete individual items or namespaces",
+      "Memory is used for context-aware generation",
     ],
   },
 };

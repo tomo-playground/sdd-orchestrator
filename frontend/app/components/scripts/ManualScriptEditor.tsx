@@ -6,6 +6,7 @@ import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
 import ReviewApprovalPanel from "./ReviewApprovalPanel";
+import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
 import { SECTION_CLASSES } from "../ui/variants";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
@@ -118,6 +119,11 @@ export default function ManualScriptEditor({ editor }: Props) {
           onApprove={() => editor.resume("approve")}
           onRevise={(feedback) => editor.resume("revise", feedback)}
         />
+      )}
+
+      {/* Feedback widget — shown after generation completes */}
+      {editor.scenes.length > 0 && !editor.isGenerating && !editor.feedbackSubmitted && (
+        <ScriptFeedbackWidget onSubmit={editor.submitFeedback} />
       )}
 
       <ConfirmDialog {...dialogProps} />

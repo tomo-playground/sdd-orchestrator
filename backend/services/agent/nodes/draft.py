@@ -23,8 +23,13 @@ def _extract_reasoning(scenes: list[dict]) -> list[dict]:
 
 async def draft_node(state: ScriptState) -> dict:
     """StoryboardRequest를 생성하고 기존 generate_script를 호출한다."""
-    # revision_feedback가 있으면 description에 주입
+    # research_brief가 있으면 description에 컨텍스트 추가
     desc = state.get("description", "")
+    research_brief = state.get("research_brief")
+    if research_brief:
+        desc = f"{desc}\n\n[참고 정보]\n{research_brief}".strip()
+
+    # revision_feedback가 있으면 description에 주입
     feedback = state.get("revision_feedback")
     if feedback:
         desc = f"{desc}\n\n[수정 요청] {feedback}".strip()

@@ -41,6 +41,7 @@ dependencies = [
     "torchsde>=0.2.6",
     "langgraph>=0.3.0",
     "langgraph-checkpoint-postgres>=2.0.0",
+    "langfuse>=3.0.0",
     "psycopg[binary]>=3.1.0",
 ]
 

@@ -44,6 +44,7 @@ export type ScriptEditorState = {
   preset: string | null;
   threadId: string | null;
   isWaitingForInput: boolean;
+  feedbackSubmitted: boolean;
 };
 
 export type ScriptEditorActions = ScriptEditorState & {
@@ -51,6 +52,7 @@ export type ScriptEditorActions = ScriptEditorState & {
   updateScene: (index: number, patch: Partial<SceneItem>) => void;
   generate: () => Promise<void>;
   resume: (action: "approve" | "revise", feedback?: string) => Promise<void>;
+  submitFeedback: (rating: "positive" | "negative", feedbackText?: string) => Promise<void>;
   save: () => Promise<void>;
   loadStoryboard: (id: number) => Promise<void>;
   reset: () => void;
@@ -119,6 +121,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     preset: null,
     threadId: null,
     isWaitingForInput: false,
+    feedbackSubmitted: false,
   });
 
   const setField = useCallback(
@@ -304,6 +307,28 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     [state.threadId, showToast]
   );
 
+  const submitFeedback = useCallback(
+    async (rating: "positive" | "negative", feedbackText?: string) => {
+      try {
+        await fetch(`${API_BASE}/scripts/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            thread_id: state.threadId,
+            storyboard_id: state.storyboardId,
+            rating,
+            feedback_text: feedbackText || undefined,
+          }),
+        });
+        setState((prev) => ({ ...prev, feedbackSubmitted: true }));
+        showToast("피드백이 저장되었습니다", "success");
+      } catch {
+        showToast("피드백 저장 실패", "error");
+      }
+    },
+    [state.threadId, state.storyboardId, showToast]
+  );
+
   const save = useCallback(async () => {
     setState((prev) => ({ ...prev, isSaving: true }));
     try {
@@ -433,8 +458,19 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       preset: null,
       threadId: null,
       isWaitingForInput: false,
+      feedbackSubmitted: false,
     });
   }, []);
 
-  return { ...state, setField, updateScene, generate, resume, save, loadStoryboard, reset };
+  return {
+    ...state,
+    setField,
+    updateScene,
+    generate,
+    resume,
+    submitFeedback,
+    save,
+    loadStoryboard,
+    reset,
+  };
 }

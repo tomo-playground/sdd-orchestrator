@@ -24,7 +24,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # LangGraph 자동생성 테이블을 Alembic autogenerate에서 제외
-LANGGRAPH_TABLES = {"checkpoints", "checkpoint_blobs", "checkpoint_writes", "checkpoint_migrations"}
+LANGGRAPH_TABLES = {"checkpoints", "checkpoint_blobs", "checkpoint_writes", "checkpoint_migrations", "store"}
 
 
 def include_name(name, type_, parent_names):

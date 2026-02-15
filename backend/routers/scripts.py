@@ -13,12 +13,15 @@ from sqlalchemy.orm import Session
 from config import LANGGRAPH_DEFAULT_MODE, LANGGRAPH_PRESETS, logger
 from database import get_db
 from schemas import (
+    ScriptFeedbackRequest,
+    ScriptFeedbackResponse,
     ScriptGenerateResponse,
     ScriptPresetItem,
     ScriptPresetsResponse,
     ScriptResumeRequest,
     StoryboardRequest,
 )
+from langgraph.store.base import BaseStore
 from services.agent.script_graph import get_compiled_graph
 from services.agent.state import ScriptState
 
@@ -73,6 +76,17 @@ def _resolve_thread_id() -> str:
     return f"script-{uuid.uuid4().hex[:12]}"
 
 
+def _build_config(thread_id: str) -> dict:
+    """LangGraph config를 구성한다. LangFuse 콜백이 있으면 주입."""
+    from services.agent.observability import get_langfuse_handler
+
+    cfg: dict = {"configurable": {"thread_id": thread_id}}
+    handler = get_langfuse_handler()
+    if handler is not None:
+        cfg["callbacks"] = [handler]
+    return cfg
+
+
 def _state_to_response(result: dict) -> dict:
     """Graph 결과 → API 응답 dict 변환."""
     return {
@@ -91,7 +105,7 @@ async def generate_script_endpoint(
     logger.info("📝 [Script Generate] %s", request.model_dump())
     graph = await get_compiled_graph()
     state = _request_to_state(request)
-    config = {"configurable": {"thread_id": _resolve_thread_id()}}
+    config = _build_config(_resolve_thread_id())
     result = await graph.ainvoke(state, config)
     if result.get("error"):
         raise HTTPException(status_code=500, detail=result["error"])
@@ -181,7 +195,7 @@ async def generate_script_stream(
     logger.info("📝 [Script Generate Stream] %s", request.model_dump())
     state = _request_to_state(request)
     thread_id = _resolve_thread_id()
-    config = {"configurable": {"thread_id": thread_id}}
+    config = _build_config(thread_id)
     return StreamingResponse(
         _stream_graph_events(state, config, thread_id, "Stream"),
         media_type="text/event-stream",
@@ -197,7 +211,7 @@ async def generate_script_stream(
 async def resume_script(request: ScriptResumeRequest):
     """Human Gate 재개 — thread_id로 interrupt된 그래프를 재개한다."""
     logger.info("📝 [Script Resume] thread=%s, action=%s", request.thread_id, request.action)
-    config = {"configurable": {"thread_id": request.thread_id}}
+    config = _build_config(request.thread_id)
     resume_value = {"action": request.action, "feedback": request.feedback}
     return StreamingResponse(
         _stream_graph_events(Command(resume=resume_value), config, request.thread_id, "Resume"),
@@ -225,3 +239,61 @@ async def get_script_presets():
         for p in LANGGRAPH_PRESETS.values()
     ]
     return ScriptPresetsResponse(presets=items)
+
+
+@router.post("/feedback", response_model=ScriptFeedbackResponse)
+async def submit_script_feedback(request: ScriptFeedbackRequest):
+    """스크립트 생성 피드백을 수집하여 Memory Store에 저장한다."""
+    from datetime import UTC, datetime
+
+    from services.agent.store import get_store
+
+    store = await get_store()
+
+    # 1) 피드백 저장
+    fb_ns = ("feedback", request.thread_id)
+    fb_key = str(uuid.uuid4())
+    await store.aput(
+        fb_ns,
+        fb_key,
+        {
+            "rating": request.rating,
+            "feedback_text": request.feedback_text,
+            "storyboard_id": request.storyboard_id,
+            "created_at": datetime.now(UTC).isoformat(),
+        },
+    )
+
+    # 2) user preferences 업데이트 (긍정 비율 재계산)
+    await _update_user_preferences(store, request.rating)
+
+    logger.info("[Feedback] %s 피드백 저장: thread=%s", request.rating, request.thread_id)
+    return ScriptFeedbackResponse(success=True, message="피드백이 저장되었습니다")
+
+
+async def _update_user_preferences(store: BaseStore, rating: str) -> None:
+    """user preferences의 피드백 카운트를 갱신한다."""
+    user_ns = ("user", "preferences")
+    existing = await store.asearch(user_ns)
+    is_positive = 1 if rating == "positive" else 0
+
+    if existing:
+        prefs = existing[0].value
+        total = prefs.get("total_feedback", 0) + 1
+        positive = prefs.get("positive_count", 0) + is_positive
+        prefs["total_feedback"] = total
+        prefs["positive_count"] = positive
+        prefs["positive_ratio"] = round(positive / total, 2) if total > 0 else 0
+        await store.aput(user_ns, existing[0].key, prefs)
+    else:
+        await store.aput(
+            user_ns,
+            str(uuid.uuid4()),
+            {
+                "total_generations": 0,
+                "total_feedback": 1,
+                "positive_count": is_positive,
+                "positive_ratio": float(is_positive),
+                "feedback_themes": [],
+            },
+        )

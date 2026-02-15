@@ -23,7 +23,7 @@ def _build_debate_context(state: ScriptState) -> DebateContext:
         language=state.get("language", "Korean"),
         max_rounds=CREATIVE_MAX_ROUNDS,
         character_name=None,
-        research_brief=None,
+        research_brief={"brief": state["research_brief"]} if state.get("research_brief") else None,
     )
 
 

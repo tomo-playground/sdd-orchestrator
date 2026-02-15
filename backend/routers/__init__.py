@@ -15,6 +15,7 @@ from .groups import router as groups_router
 from .keywords import router as keywords_router
 from .lab import router as lab_router
 from .loras import router as loras_router
+from .memory import router as memory_router
 from .music_presets import router as music_presets_router
 from .presets import router as presets_router
 from .projects import router as projects_router
@@ -48,6 +49,7 @@ __all__ = [
     "keywords_router",
     "lab_router",
     "loras_router",
+    "memory_router",
     "presets_router",
     "prompt_router",
     "prompt_histories_router",

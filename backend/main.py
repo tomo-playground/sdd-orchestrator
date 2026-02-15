@@ -23,6 +23,7 @@ from routers import (
     keywords_router,
     lab_router,
     loras_router,
+    memory_router,
     music_presets_router,
     presets_router,
     projects_router,
@@ -95,16 +96,22 @@ async def lifespan(app: FastAPI):
     get_qwen_model()
     logger.info("[TTS] Qwen3-TTS model loaded successfully")
 
-    # Initialize LangGraph Checkpointer
+    # Initialize LangGraph Checkpointer + Store
     from services.agent.checkpointer import close_checkpointer, get_checkpointer
+    from services.agent.store import close_store, get_store
 
     await get_checkpointer()
+    await get_store()
 
     logger.info("🚀 [Startup] Application started successfully")
 
     yield
 
     # Shutdown logic
+    from services.agent.observability import flush_langfuse
+
+    flush_langfuse()
+    await close_store()
     await close_checkpointer()
     logger.info("🛑 [Shutdown] Application execution finished")
 
@@ -148,6 +155,7 @@ app.include_router(lab_router)
 app.include_router(creative_router)
 app.include_router(creative_presets_router)
 app.include_router(loras_router)
+app.include_router(memory_router)
 app.include_router(presets_router)
 app.include_router(prompt_router)
 app.include_router(prompt_histories_router)

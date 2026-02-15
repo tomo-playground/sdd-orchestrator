@@ -1553,6 +1553,23 @@ class ScriptPresetsResponse(BaseModel):
 
 
 # ============================================================
+# Script Feedback Schemas
+# ============================================================
+
+
+class ScriptFeedbackRequest(BaseModel):
+    thread_id: str
+    storyboard_id: int | None = None
+    rating: Literal["positive", "negative"]
+    feedback_text: str | None = None
+
+
+class ScriptFeedbackResponse(BaseModel):
+    success: bool
+    message: str
+
+
+# ============================================================
 # Materials Check Schemas
 # ============================================================
 
@@ -1697,3 +1714,31 @@ class TransitionsResponse(BaseModel):
     """Response for GET /video/transitions."""
 
     transitions: list[TransitionItem]
+
+
+# ============================================================
+# Memory Store Schemas
+# ============================================================
+
+
+class MemoryItem(BaseModel):
+    namespace: list[str]
+    key: str
+    value: dict
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class MemoryDeleteResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class MemoryListResponse(BaseModel):
+    namespace: str
+    items: list[MemoryItem]
+
+
+class MemoryStatsResponse(BaseModel):
+    total: int
+    by_namespace: dict[str, int]
