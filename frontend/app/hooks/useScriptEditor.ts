@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
+import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
 import type { Scene, ScriptStreamEvent } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
@@ -33,7 +34,9 @@ export type ScriptEditorState = {
   language: string;
   structure: string;
   characterId: number | null;
+  characterName: string | null;
   characterBId: number | null;
+  characterBName: string | null;
   scenes: SceneItem[];
   isGenerating: boolean;
   progress: ScriptProgress | null;
@@ -76,6 +79,45 @@ function mapEventScenes(scenes: Scene[]): SceneItem[] {
   }));
 }
 
+type SyncMeta = {
+  topic: string;
+  description: string;
+  duration: number;
+  language: string;
+  structure: string;
+  characterId?: number | null;
+  characterName?: string | null;
+  characterBId?: number | null;
+  characterBName?: string | null;
+};
+
+/** Map local SceneItem[] → global Scene[] and sync to useStoryboardStore. */
+function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
+  const mapped = scenes.map((s, i) => ({
+    id: s.id ?? i + 1,
+    client_id: s.client_id,
+    order: s.order ?? i + 1,
+    script: s.script,
+    speaker: s.speaker as Scene["speaker"],
+    duration: s.duration,
+    image_prompt: s.image_prompt,
+    image_prompt_ko: s.image_prompt_ko,
+    image_url: s.image_url,
+    negative_prompt: "",
+    isGenerating: false,
+    debug_payload: "",
+  }));
+  useStoryboardStore.getState().setScenes(mapped);
+  const { characterId, characterName, characterBId, characterBName, ...rest } = meta;
+  useStoryboardStore.getState().set({
+    ...rest,
+    selectedCharacterId: characterId ?? null,
+    selectedCharacterName: characterName ?? null,
+    selectedCharacterBId: characterBId ?? null,
+    selectedCharacterBName: characterBName ?? null,
+  });
+}
+
 async function parseSSEStream(
   response: Response,
   onEvent: (event: ScriptStreamEvent) => void
@@ -97,6 +139,50 @@ async function parseSSEStream(
   }
 }
 
+type StreamResult = { finalScenes: SceneItem[] | null; isWaiting: boolean };
+
+/** Common SSE stream processing for generate & resume. */
+async function processSSEStream(
+  response: Response,
+  setState: React.Dispatch<React.SetStateAction<ScriptEditorState>>,
+  options?: { trackThreadId?: boolean }
+): Promise<StreamResult> {
+  let finalScenes: SceneItem[] | null = null;
+  let isWaiting = false;
+
+  await parseSSEStream(response, (event: ScriptStreamEvent) => {
+    setState((prev) => ({
+      ...prev,
+      progress: { node: event.node, label: event.label, percent: event.percent },
+    }));
+
+    if (options?.trackThreadId && event.thread_id) {
+      setState((prev) => ({ ...prev, threadId: event.thread_id! }));
+    }
+
+    if (event.status === "completed" && event.result?.scenes) {
+      finalScenes = mapEventScenes(event.result.scenes);
+    }
+
+    if (event.status === "waiting_for_input") {
+      isWaiting = true;
+      const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];
+      setState((prev) => ({
+        ...prev,
+        scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
+        isGenerating: false,
+        isWaitingForInput: true,
+      }));
+    }
+
+    if (event.status === "error") {
+      throw new Error(event.error ?? "Stream failed");
+    }
+  });
+
+  return { finalScenes, isWaiting };
+}
+
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
   const groupId = useContextStore((s) => s.groupId);
   const showToast = useUIStore((s) => s.showToast);
@@ -110,7 +196,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     language: "Korean",
     structure: "Monologue",
     characterId: null,
+    characterName: null,
     characterBId: null,
+    characterBName: null,
     scenes: [],
     isGenerating: false,
     progress: null,
@@ -168,42 +256,31 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         throw new Error(errorData?.detail ?? `HTTP ${response.status}`);
       }
 
-      let finalScenes: SceneItem[] | null = null;
-
-      await parseSSEStream(response, (event: ScriptStreamEvent) => {
-        setState((prev) => ({
-          ...prev,
-          progress: { node: event.node, label: event.label, percent: event.percent },
-        }));
-
-        if (event.thread_id) {
-          setState((prev) => ({ ...prev, threadId: event.thread_id! }));
-        }
-
-        if (event.status === "completed" && event.result?.scenes) {
-          finalScenes = mapEventScenes(event.result.scenes);
-        }
-
-        if (event.status === "waiting_for_input") {
-          setState((prev) => ({
-            ...prev,
-            isGenerating: false,
-            isWaitingForInput: true,
-          }));
-        }
-
-        if (event.status === "error") {
-          throw new Error(event.error ?? "Generation failed");
-        }
+      const { finalScenes, isWaiting } = await processSSEStream(response, setState, {
+        trackThreadId: true,
       });
 
-      if (finalScenes) {
+      if (isWaiting) {
+        // Human gate active — keep isWaitingForInput, don't show toast
+      } else if (finalScenes) {
         setState((prev) => ({
           ...prev,
-          scenes: finalScenes!,
+          scenes: finalScenes,
           isGenerating: false,
           progress: null,
         }));
+        // Sync to global store so AutoRun preflight sees scenes immediately
+        syncToGlobalStore(finalScenes, {
+          topic: state.topic.trim(),
+          description: state.description.trim(),
+          duration: state.duration,
+          language: state.language,
+          structure: state.structure,
+          characterId: state.characterId,
+          characterName: state.characterName,
+          characterBId: state.characterBId,
+          characterBName: state.characterBName,
+        });
         showToast("Script generated", "success");
       } else {
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
@@ -249,43 +326,29 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        let finalScenes: SceneItem[] | null = null;
+        const { finalScenes, isWaiting } = await processSSEStream(response, setState);
 
-        await parseSSEStream(response, (event: ScriptStreamEvent) => {
+        if (isWaiting) {
+          // Human gate active — keep isWaitingForInput
+        } else if (finalScenes) {
           setState((prev) => ({
             ...prev,
-            progress: {
-              node: event.node,
-              label: event.label,
-              percent: event.percent,
-            },
-          }));
-
-          if (event.status === "completed" && event.result?.scenes) {
-            finalScenes = mapEventScenes(event.result.scenes);
-          }
-
-          if (event.status === "waiting_for_input") {
-            setState((prev) => ({
-              ...prev,
-              isGenerating: false,
-              isWaitingForInput: true,
-            }));
-          }
-
-          if (event.status === "error") {
-            throw new Error(event.error ?? "Resume failed");
-          }
-        });
-
-        if (finalScenes) {
-          setState((prev) => ({
-            ...prev,
-            scenes: finalScenes!,
+            scenes: finalScenes,
             isGenerating: false,
             progress: null,
             isWaitingForInput: false,
           }));
+          syncToGlobalStore(finalScenes, {
+            topic: state.topic.trim(),
+            description: state.description.trim(),
+            duration: state.duration,
+            language: state.language,
+            structure: state.structure,
+            characterId: state.characterId,
+            characterName: state.characterName,
+            characterBId: state.characterBId,
+            characterBName: state.characterBName,
+          });
           showToast("Script generated", "success");
         } else {
           setState((prev) => ({
@@ -352,6 +415,18 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           image_prompt_ko: s.image_prompt_ko,
         })),
       };
+      const storeMeta: SyncMeta = {
+        topic: state.topic.trim(),
+        description: state.description.trim(),
+        duration: state.duration,
+        language: state.language,
+        structure: state.structure,
+        characterId: state.characterId,
+        characterName: state.characterName,
+        characterBId: state.characterBId,
+        characterBName: state.characterBName,
+      };
+
       if (state.storyboardId) {
         const res = await axios.put(`${API_BASE}/storyboards/${state.storyboardId}`, body);
         setState((prev) => ({ ...prev, storyboardVersion: res.data.version }));
@@ -359,6 +434,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardId: state.storyboardId,
           storyboardTitle: state.topic.trim(),
         });
+        syncToGlobalStore(state.scenes, storeMeta);
         showToast("Script saved", "success");
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
@@ -372,6 +448,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardId: newId,
           storyboardTitle: state.topic.trim(),
         });
+        syncToGlobalStore(state.scenes, storeMeta);
         onSavedRef.current?.(newId);
         showToast("Script created", "success");
       }
@@ -422,7 +499,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           language: data.language ?? "Korean",
           structure: data.structure ?? "Monologue",
           characterId: data.character_id ?? null,
+          characterName: data.character_name ?? null,
           characterBId: data.character_b_id ?? null,
+          characterBName: data.character_b_name ?? null,
           scenes,
           storyboardId: id,
           storyboardVersion: data.version ?? null,
@@ -447,7 +526,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       language: "Korean",
       structure: "Monologue",
       characterId: null,
+      characterName: null,
       characterBId: null,
+      characterBName: null,
       scenes: [],
       isGenerating: false,
       progress: null,
