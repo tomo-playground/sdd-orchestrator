@@ -43,8 +43,12 @@ def _build_feedback(state: ScriptState) -> str:
         parts.append(f"[수정 지시] {rf}")
     if df := state.get("director_feedback"):
         parts.append(f"[디렉터 피드백] {df}")
-    if errs := (state.get("review_result") or {}).get("errors"):
+    review = state.get("review_result") or {}
+    if errs := review.get("errors"):
         parts.append(f"[검증 오류] {'; '.join(errs)}")
+    if ns := review.get("narrative_score"):
+        if ns_fb := ns.get("feedback"):
+            parts.append(f"[서사 품질 피드백] {ns_fb}")
     return "\n".join(parts)
 
 

@@ -1,7 +1,8 @@
-"""Review 노드 — 규칙 기반 검증 + Gemini 혼합 평가.
+"""Review 노드 — 규칙 기반 검증 + 서사 품질 평가 + Gemini 혼합 평가.
 
 Draft 씬의 구조적 유효성을 규칙으로 검증하고,
 규칙 실패 시에만 Gemini 평가를 추가 호출한다 (DD-4: 비용 절감).
+Full 모드에서 규칙 통과 시 서사 품질(NarrativeScore)을 추가 평가한다.
 """
 
 from __future__ import annotations
@@ -16,13 +17,16 @@ from config import (
     logger,
     template_env,
 )
-from services.agent.state import ReviewResult, ScriptState
+from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD
+from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 
 VALID_SPEAKERS = {"Narrator", "A", "B"}
 
 
 def _validate_single_scene(
-    scene: dict, idx: int, language: str,
+    scene: dict,
+    idx: int,
+    language: str,
 ) -> tuple[list[str], list[str]]:
     """단일 씬을 검증하고 (errors, warnings) 튜플을 반환한다."""
     errors: list[str] = []
@@ -115,28 +119,109 @@ async def _gemini_evaluate(
         return None
 
 
+_NARRATIVE_WEIGHTS = {
+    "hook": 0.4,
+    "emotional_arc": 0.25,
+    "twist_payoff": 0.2,
+    "speaker_tone": 0.1,
+    "script_image_sync": 0.05,
+}
+
+
+def _parse_narrative_score(raw: str) -> NarrativeScore | None:
+    """Gemini 응답에서 NarrativeScore를 파싱한다. 실패 시 None."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+    scores: dict[str, float] = {}
+    for key in _NARRATIVE_WEIGHTS:
+        val = data.get(key)
+        if isinstance(val, int | float):
+            scores[key] = float(max(0.0, min(1.0, val)))
+
+    feedback = data.get("feedback")
+    overall = round(sum(scores.get(k, 0.0) * w for k, w in _NARRATIVE_WEIGHTS.items()), 3)
+
+    score = NarrativeScore(**scores, overall=overall)
+    if isinstance(feedback, str):
+        score["feedback"] = feedback
+    return score
+
+
+async def _narrative_evaluate(
+    scenes: list[dict],
+    topic: str,
+    language: str,
+) -> NarrativeScore | None:
+    """서사 품질을 Gemini로 평가한다. 에러 시 None (graceful degradation)."""
+    from config import GEMINI_TEXT_MODEL, gemini_client
+
+    if not gemini_client:
+        logger.warning("[LangGraph] Narrative: Gemini 클라이언트 없음, 건너뜀")
+        return None
+
+    try:
+        tmpl = template_env.get_template("creative/narrative_review.j2")
+        prompt = tmpl.render(
+            scenes=json.dumps(scenes, ensure_ascii=False),
+            topic=topic,
+            language=language,
+            threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
+        )
+        response = await gemini_client.aio.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=prompt,
+        )
+        return _parse_narrative_score(response.text or "")
+    except Exception as e:
+        logger.warning("[LangGraph] Narrative 평가 실패: %s", e)
+        return None
+
+
 async def review_node(state: ScriptState) -> dict:
-    """Draft 씬을 검증하고 review_result를 state에 기록한다."""
+    """Draft 씬을 검증하고 review_result를 state에 기록한다.
+
+    3-tier 검증 (Full 모드):
+      1. 규칙 기반 검증
+      2. 규칙 실패 → Gemini 피드백
+      3. 규칙 통과 → 서사 품질 평가 (NarrativeScore)
+    """
     scenes = state.get("draft_scenes") or []
     duration = state.get("duration", 10)
     language = state.get("language", "Korean")
     structure = state.get("structure", "Monologue")
     topic = state.get("topic", "")
+    is_full = state.get("mode") == "full"
 
     result = _validate_scenes(scenes, duration, language, structure)
 
-    # DD-4: 규칙 실패 시에만 Gemini 호출
+    # Tier 2: 규칙 실패 + Full → Gemini 피드백
     gemini_feedback = None
-    if not result.get("passed") and state.get("mode") == "full":
+    if not result.get("passed") and is_full:
         gemini_feedback = await _gemini_evaluate(scenes, topic, language)
         result["gemini_feedback"] = gemini_feedback
 
+    # Tier 3: 규칙 통과 + Full → 서사 품질 평가
+    narrative_score: NarrativeScore | None = None
+    if result.get("passed") and is_full:
+        narrative_score = await _narrative_evaluate(scenes, topic, language)
+        if narrative_score:
+            result["narrative_score"] = narrative_score
+            if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
+                result["passed"] = False
+
     logger.info(
-        "[LangGraph] Review 노드: passed=%s, errors=%d, warnings=%d, gemini=%s",
+        "[LangGraph] Review 노드: passed=%s, errors=%d, warnings=%d, gemini=%s, narrative=%.2f",
         result.get("passed"),
         len(result.get("errors", [])),
         len(result.get("warnings", [])),
         "호출" if gemini_feedback else "건너뜀",
+        narrative_score.get("overall", -1) if narrative_score else -1,
     )
 
     return {"review_result": result}

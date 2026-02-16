@@ -17,6 +17,18 @@ class SceneReasoning(TypedDict, total=False):
     alternatives: list[str]
 
 
+class NarrativeScore(TypedDict, total=False):
+    """서사 품질 평가 결과 (Full 모드 전용)."""
+
+    hook: float  # 0.0-1.0
+    emotional_arc: float
+    twist_payoff: float
+    speaker_tone: float
+    script_image_sync: float
+    overall: float  # 가중 평균
+    feedback: str  # 개선 제안 (한국어)
+
+
 class ReviewResult(TypedDict, total=False):
     """Review 노드의 검증 결과."""
 
@@ -24,6 +36,7 @@ class ReviewResult(TypedDict, total=False):
     errors: list[str]
     warnings: list[str]
     gemini_feedback: str | None
+    narrative_score: NarrativeScore | None
 
 
 class ScriptState(TypedDict, total=False):

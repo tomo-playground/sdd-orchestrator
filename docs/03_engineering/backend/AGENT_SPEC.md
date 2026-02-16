@@ -1,7 +1,7 @@
 # Agent Spec — LangGraph 에이전트 아키텍처
 
-**상태**: Active (v1.1)
-**최종 업데이트**: 2026-02-16
+**상태**: Active (v1.2)
+**최종 업데이트**: 2026-02-17
 **관련 문서**: `docs/01_product/FEATURES/AGENTIC_PIPELINE.md` (마이그레이션 계획)
 
 ---
@@ -50,6 +50,14 @@ Agentic AI 기준으로 노드를 3종류로 분류한다.
 | 12 | `human_gate` | 승인 게이트 — `interrupt()` 기반 사용자 대기 | 승인/수정 결정 → `human_action` |
 | 13 | `finalize` | 최종화 — Production 결과 병합 | cinematographer + tts + sound + copyright → `final_scenes` |
 | 14 | `learn` | 학습 — Memory Store 저장 | 생성 결과 + 히스토리 업데이트 |
+
+### 2-4. 계획 중 (Phase 9-5)
+
+| # | 노드명 | 분류 | 역할 | Phase |
+|---|--------|------|------|-------|
+| 15 | `concept_gate` | System | 컨셉 선택 게이트 — Critic 3컨셉을 사용자에게 노출 (Creator: interrupt, Full Auto: pass-through) | 5B |
+
+**Review 노드 확장** (Phase 5A): 기존 구조 검증에 서사 품질 평가 추가. `NarrativeScore` (Hook 40% + 감정 25% + 반전 20% + 톤 10% + 정합성 5%).
 
 ---
 
@@ -123,6 +131,18 @@ finalize → explain → learn → END
 - Gemini 7-10회 호출 (~5-15분)
 - **tts/sound/copyright 3개 노드 병렬 실행** (LangGraph fan-out/fan-in)
 - Production chain + Director 통합 검증 + 창작 설명
+
+### 4-2b. Full 모드 Phase 5 예정 (15노드)
+
+```
+START → research → critic → concept_gate → writer → review(+narrative) → [revise] →
+                               ↑                        ↑
+                    Creator: interrupt          서사 품질 평가 추가
+                    Full Auto: pass-through
+```
+
+- `concept_gate` 추가: Critic→Writer 사이에 삽입 (14→15노드)
+- Review 노드에 서사 품질 평가 추가 (노드 수 변경 없음, 로직 확장)
 
 ### 4-3. 조건 분기 (라우팅)
 

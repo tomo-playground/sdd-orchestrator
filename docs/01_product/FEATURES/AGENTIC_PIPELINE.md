@@ -347,16 +347,37 @@ Phase 2 완료 시점에 아래 질문에 답한 후 결정:
 | **B: 레거시 유지** | 사용 빈도 낮지만 삭제 리스크 있음 |
 | **C: 폐기** | 사용 빈도 매우 낮음 + Script Graph로 대체 가능 |
 
-### Phase 4: 고도화 (장기)
+### Phase 4: 고도화 (잔여)
 
 | # | 작업 | 상태 |
 |---|------|------|
 | 1 | 5단계 PipelineControl 커스텀 UI (Preset → 단계별 세분화) | [ ] |
-| 2 | Explain Node — 대화형 씬 Q&A (reasoning 기반 멀티턴) | [ ] |
-| 3 | 멀티에이전트 병렬 실행 (LangGraph `Send` API) | [ ] |
-| 4 | 분산 실행 (Redis/Celery 큐 연동) | [ ] |
-| 5 | A/B 테스트 (그래프 버전 분기) | [ ] |
-| 6 | Self-improving 에이전트 (메모리 기반 프롬프트 자동 최적화) | [ ] |
+| 2 | 분산 실행 (Redis/Celery 큐 연동) | [ ] |
+| 3 | A/B 테스트 (그래프 버전 분기) | [ ] |
+| 4 | Self-improving 에이전트 (메모리 기반 프롬프트 자동 최적화) | [ ] |
+
+### Phase 5: Script Quality & AI Transparency (설계 완료: 2026-02-17)
+
+**목표**: 대본 품질을 높이고, AI 생성 과정을 투명하게 만들어 사용자가 효과적으로 피드백할 수 있게 한다.
+**설계 근거**: 4-Agent 크로스 분석 합의 — Multi-draft(3x) 반대, Concept Gate 방식 채택.
+**명세**: [SCRIPT_QUALITY_UX.md](SCRIPT_QUALITY_UX.md)
+
+| Sub-Phase | 핵심 | 주요 작업 | 상태 |
+|-----------|------|----------|------|
+| **5A. Narrative Quality** | 서사 품질 | Hook 구조 가이드(템플릿), `NarrativeScore` 평가(Review 확장), 서사 피드백→Revise 주입. Hook(40%)+감정(25%)+반전(20%)+톤(10%)+정합성(5%) | [ ] |
+| **5B. Concept Gate** | 컨셉 선택 | Critic 3컨셉 사용자 노출, `concept_gate` 노드(Creator: interrupt, Full Auto: pass-through), Writer가 선택된 컨셉으로 생성. 14→15노드 | [ ] |
+| **5C. AI Transparency** | 투명성 UX | Pipeline Stepper(노드별 진행 시각화), Agent Reasoning 확장 패널, Narrative Score 바 차트, Explain 결과 표시 개선 | [ ] |
+| **5D. Interactive Feedback** | 피드백 | Human Gate 프리셋 피드백 버튼 5종(후킹 강화/더 극적으로/톤 변경/짧게 줄이기/직접 수정), Concept Gate 피드백(선택/재생성/직접입력) | [ ] |
+
+**Phase 5 설계 결정 사항** (2026-02-17):
+
+| # | 질문 | 결정 | 근거 |
+|---|------|------|------|
+| D11 | Multi-draft vs Concept Gate | **Concept Gate** | 같은 템플릿에서 3개 뽑아도 다양성 부족. 비용/지연 3배. 컨셉(1-2줄) 비교가 전체 대본 비교보다 효율적 |
+| D12 | 서사 평가 위치 | **Review 노드 확장** (별도 노드 X) | 기존 규칙 검증 후 서사 평가 순차 실행. 노드 수 증가 최소화 |
+| D13 | 서사 평가 대상 모드 | **Full 모드만** | Quick 모드는 비용 절감 목적이므로 추가 Gemini 호출 배제 |
+| D14 | 피드백 방식 | **프리셋 우선 + 자유 입력 보조** | 사용자가 "뭘 수정할지 모르는" 문제 해결. 원클릭으로 structured feedback 주입 |
+| D15 | Concept Gate 적용 범위 | **Creator만 interrupt, Full Auto는 자동** | Full Auto의 "완전 자동" 약속 유지 |
 
 ---
 
