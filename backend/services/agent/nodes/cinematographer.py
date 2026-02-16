@@ -33,6 +33,8 @@ async def cinematographer_node(state: ScriptState) -> dict:
     character_tags = _load_character_tags(state.get("character_id"))
 
     template_vars = {"scenes": scenes, "character_tags": character_tags}
+    if director_feedback := state.get("director_feedback"):
+        template_vars["feedback"] = director_feedback
     try:
         result = await run_production_step(
             template_name="creative/cinematographer.j2",

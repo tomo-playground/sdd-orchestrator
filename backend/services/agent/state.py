@@ -81,6 +81,9 @@ class ScriptState(TypedDict, total=False):
     director_feedback: str | None
     director_revision_count: int
 
+    # Explain 결과 (Full 모드)
+    explanation_result: dict | None
+
     # 최종 출력
     final_scenes: list[dict] | None
     error: str | None

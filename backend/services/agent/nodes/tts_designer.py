@@ -7,6 +7,8 @@ from services.agent.nodes._production_utils import run_production_step
 from services.agent.state import ScriptState
 from services.creative_qc import validate_tts_design
 
+_FALLBACK_TTS = {"tts_designs": []}
+
 
 async def tts_designer_node(state: ScriptState) -> dict:
     """cinematographer_result의 씬을 기반으로 TTS 디자인을 생성한다."""
@@ -15,6 +17,8 @@ async def tts_designer_node(state: ScriptState) -> dict:
     concept = state.get("critic_result") or {}
 
     template_vars = {"scenes": scenes, "concept": concept}
+    if director_feedback := state.get("director_feedback"):
+        template_vars["feedback"] = director_feedback
     try:
         result = await run_production_step(
             template_name="creative/tts_designer.j2",
@@ -26,5 +30,5 @@ async def tts_designer_node(state: ScriptState) -> dict:
         logger.info("[LangGraph] TTS Designer 완료: %d designs", len(result.get("tts_designs", [])))
         return {"tts_designer_result": result}
     except Exception as e:
-        logger.error("[LangGraph] TTS Designer 실패: %s", e)
-        return {"error": f"TTS Designer failed: {e}"}
+        logger.warning("[LangGraph] TTS Designer 실패, fallback: %s", e)
+        return {"tts_designer_result": _FALLBACK_TTS}

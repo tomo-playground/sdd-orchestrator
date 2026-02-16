@@ -7,6 +7,8 @@ from services.agent.nodes._production_utils import run_production_step
 from services.agent.state import ScriptState
 from services.creative_qc import validate_music
 
+_FALLBACK_SOUND = {"recommendation": {"prompt": "", "mood": "neutral", "duration": 30}}
+
 
 async def sound_designer_node(state: ScriptState) -> dict:
     """cinematographer_result의 씬을 기반으로 BGM 추천을 생성한다."""
@@ -16,6 +18,8 @@ async def sound_designer_node(state: ScriptState) -> dict:
     duration = state.get("duration", 30)
 
     template_vars = {"scenes": scenes, "concept": concept, "duration": duration}
+    if director_feedback := state.get("director_feedback"):
+        template_vars["feedback"] = director_feedback
     try:
         result = await run_production_step(
             template_name="creative/sound_designer.j2",
@@ -27,5 +31,5 @@ async def sound_designer_node(state: ScriptState) -> dict:
         logger.info("[LangGraph] Sound Designer 완료")
         return {"sound_designer_result": result}
     except Exception as e:
-        logger.error("[LangGraph] Sound Designer 실패: %s", e)
-        return {"error": f"Sound Designer failed: {e}"}
+        logger.warning("[LangGraph] Sound Designer 실패, fallback: %s", e)
+        return {"sound_designer_result": _FALLBACK_SOUND}

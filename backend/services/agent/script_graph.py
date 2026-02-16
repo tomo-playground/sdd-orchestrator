@@ -1,10 +1,11 @@
-"""Script Generation Graph — 13노드 조건 분기 그래프 (에러 short-circuit 포함).
+"""Script Generation Graph — 14노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick: START → writer → review → [passed→finalize / failed→revise] → learn → END
 Full:  START → research → critic → writer → review →
        [passed→cinematographer / failed→revise] →
-       tts_designer → sound_designer → copyright_reviewer →
-       director → [approve→human_gate / revise→해당 노드] → finalize → learn → END
+       ┌→ tts_designer ────┐
+       ├→ sound_designer ──┤→ director → [human_gate] → finalize → explain → learn → END
+       └→ copyright_reviewer┘
 
 에러 발생 시: 어떤 노드든 error 설정 → 다음 분기에서 finalize로 short-circuit.
 """
@@ -17,6 +18,7 @@ from services.agent.nodes.cinematographer import cinematographer_node
 from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
 from services.agent.nodes.critic import critic_node
 from services.agent.nodes.director import director_node
+from services.agent.nodes.explain import explain_node
 from services.agent.nodes.finalize import finalize_node
 from services.agent.nodes.human_gate import human_gate_node
 from services.agent.nodes.learn import learn_node
@@ -27,19 +29,19 @@ from services.agent.nodes.sound_designer import sound_designer_node
 from services.agent.nodes.tts_designer import tts_designer_node
 from services.agent.nodes.writer import writer_node
 from services.agent.routing import (
-    route_after_copyright,
+    route_after_cinematographer,
     route_after_director,
+    route_after_finalize,
     route_after_human_gate,
     route_after_review,
     route_after_start,
     route_after_writer,
-    route_production_step,
 )
 from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """13노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """14노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     graph = StateGraph(ScriptState)
 
     # 노드 등록
@@ -55,6 +57,7 @@ def build_script_graph() -> StateGraph:
     graph.add_node("director", director_node)
     graph.add_node("human_gate", human_gate_node)
     graph.add_node("finalize", finalize_node)
+    graph.add_node("explain", explain_node)
     graph.add_node("learn", learn_node)
 
     # START → mode 분기 (quick→writer, full→research)
@@ -77,29 +80,17 @@ def build_script_graph() -> StateGraph:
     # revise → review (루프)
     graph.add_edge("revise", "review")
 
-    # Production chain (에러 시 finalize로 short-circuit)
+    # Production fan-out: cinematographer → [tts, sound, copyright] 병렬
     graph.add_conditional_edges(
         "cinematographer",
-        route_production_step("tts_designer"),
-        ["tts_designer", "finalize"],
-    )
-    graph.add_conditional_edges(
-        "tts_designer",
-        route_production_step("sound_designer"),
-        ["sound_designer", "finalize"],
-    )
-    graph.add_conditional_edges(
-        "sound_designer",
-        route_production_step("copyright_reviewer"),
-        ["copyright_reviewer", "finalize"],
+        route_after_cinematographer,
+        ["tts_designer", "sound_designer", "copyright_reviewer", "finalize"],
     )
 
-    # copyright → director (통합 검증)
-    graph.add_conditional_edges(
-        "copyright_reviewer",
-        route_after_copyright,
-        ["director", "finalize"],
-    )
+    # Fan-in: 3개 → director (LangGraph가 모두 완료될 때까지 자동 대기)
+    graph.add_edge("tts_designer", "director")
+    graph.add_edge("sound_designer", "director")
+    graph.add_edge("copyright_reviewer", "director")
 
     # director → human_gate | finalize | production 노드 재실행 | revise
     graph.add_conditional_edges(
@@ -115,8 +106,15 @@ def build_script_graph() -> StateGraph:
         ["finalize", "revise"],
     )
 
-    # finalize → learn → END
-    graph.add_edge("finalize", "learn")
+    # finalize → [explain(full) | learn(quick)]
+    graph.add_conditional_edges(
+        "finalize",
+        route_after_finalize,
+        ["explain", "learn"],
+    )
+
+    # explain → learn → END
+    graph.add_edge("explain", "learn")
     graph.add_edge("learn", END)
 
     return graph

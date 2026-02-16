@@ -21,12 +21,14 @@ def cinema_result(mock_scenes):
     """cinematographer 출력용 enriched scenes."""
     enriched = []
     for s in mock_scenes:
-        enriched.append({
-            **s,
-            "camera": "close-up",
-            "environment": "classroom",
-            "image_prompt": f"{s['image_prompt']}, 1girl, brown_hair, indoors",
-        })
+        enriched.append(
+            {
+                **s,
+                "camera": "close-up",
+                "environment": "classroom",
+                "image_prompt": f"{s['image_prompt']}, 1girl, brown_hair, indoors",
+            }
+        )
     return {"scenes": enriched}
 
 
@@ -285,17 +287,159 @@ def test_route_after_review_full():
     assert route_after_review(state) == "cinematographer"
 
 
-def test_route_after_copyright_to_director():
-    """copyright_reviewer 이후 → director로 라우팅."""
-    from services.agent.routing import route_after_copyright
+def test_route_after_cinematographer_fanout():
+    """cinematographer 이후 → 3개 병렬 fan-out."""
+    from services.agent.routing import route_after_cinematographer
 
-    state = {"auto_approve": True}
-    assert route_after_copyright(state) == "director"
+    state = {"mode": "full"}
+    result = route_after_cinematographer(state)
+    assert isinstance(result, list)
+    assert set(result) == {"tts_designer", "sound_designer", "copyright_reviewer"}
 
 
-def test_route_after_copyright_error():
-    """copyright_reviewer 에러 → finalize."""
-    from services.agent.routing import route_after_copyright
+def test_route_after_cinematographer_error():
+    """cinematographer 에러 → finalize."""
+    from services.agent.routing import route_after_cinematographer
 
-    state = {"error": "copyright 실패"}
-    assert route_after_copyright(state) == "finalize"
+    state = {"error": "Cinematographer 실패"}
+    assert route_after_cinematographer(state) == "finalize"
+
+
+# -- Director Feedback 전달 테스트 --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.cinematographer.run_production_step", new_callable=AsyncMock)
+async def test_cinematographer_passes_director_feedback(mock_step, mock_scenes):
+    """Cinematographer가 director_feedback을 template_vars에 전달한다."""
+    from services.agent.nodes.cinematographer import cinematographer_node
+
+    mock_step.return_value = {"scenes": mock_scenes}
+    state = {"draft_scenes": mock_scenes, "director_feedback": "카메라 다양성 부족"}
+    await cinematographer_node(state)
+    call_vars = mock_step.call_args[1]["template_vars"]
+    assert call_vars["feedback"] == "카메라 다양성 부족"
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.tts_designer.run_production_step", new_callable=AsyncMock)
+async def test_tts_designer_passes_director_feedback(mock_step, cinema_result):
+    """TTS Designer가 director_feedback을 template_vars에 전달한다."""
+    from services.agent.nodes.tts_designer import tts_designer_node
+
+    mock_step.return_value = {"tts_designs": []}
+    state = {"cinematographer_result": cinema_result, "critic_result": {}, "director_feedback": "감정 부족"}
+    await tts_designer_node(state)
+    call_vars = mock_step.call_args[1]["template_vars"]
+    assert call_vars["feedback"] == "감정 부족"
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.sound_designer.run_production_step", new_callable=AsyncMock)
+async def test_sound_designer_passes_director_feedback(mock_step, cinema_result):
+    """Sound Designer가 director_feedback을 template_vars에 전달한다."""
+    from services.agent.nodes.sound_designer import sound_designer_node
+
+    mock_step.return_value = {"recommendation": {"prompt": "test", "mood": "calm", "duration": 30}}
+    state = {
+        "cinematographer_result": cinema_result,
+        "critic_result": {},
+        "duration": 30,
+        "director_feedback": "BGM 부적절",
+    }
+    await sound_designer_node(state)
+    call_vars = mock_step.call_args[1]["template_vars"]
+    assert call_vars["feedback"] == "BGM 부적절"
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.copyright_reviewer.run_production_step", new_callable=AsyncMock)
+async def test_copyright_reviewer_passes_director_feedback(mock_step, cinema_result):
+    """Copyright Reviewer가 director_feedback을 template_vars에 전달한다."""
+    from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
+
+    mock_step.return_value = {"overall": "PASS", "checks": []}
+    state = {"cinematographer_result": cinema_result, "director_feedback": "IP 재검토 필요"}
+    await copyright_reviewer_node(state)
+    call_vars = mock_step.call_args[1]["template_vars"]
+    assert call_vars["feedback"] == "IP 재검토 필요"
+
+
+# -- Fallback 패턴 테스트 --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.tts_designer.run_production_step", new_callable=AsyncMock)
+async def test_tts_designer_fallback(mock_step):
+    """TTS Designer 실패 시 fallback 빈 결과를 반환한다."""
+    from services.agent.nodes.tts_designer import tts_designer_node
+
+    mock_step.side_effect = RuntimeError("API error")
+    state = {"cinematographer_result": {"scenes": []}, "critic_result": {}}
+    result = await tts_designer_node(state)
+    assert "tts_designer_result" in result
+    assert "error" not in result
+    assert result["tts_designer_result"]["tts_designs"] == []
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.sound_designer.run_production_step", new_callable=AsyncMock)
+async def test_sound_designer_fallback(mock_step):
+    """Sound Designer 실패 시 fallback 결과를 반환한다."""
+    from services.agent.nodes.sound_designer import sound_designer_node
+
+    mock_step.side_effect = RuntimeError("API error")
+    state = {"cinematographer_result": {"scenes": []}, "critic_result": {}, "duration": 30}
+    result = await sound_designer_node(state)
+    assert "sound_designer_result" in result
+    assert "error" not in result
+    assert result["sound_designer_result"]["recommendation"]["mood"] == "neutral"
+
+
+# -- Explain Node 테스트 --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.explain.run_production_step", new_callable=AsyncMock)
+async def test_explain_node_success(mock_step):
+    """Explain 노드가 정상 결과를 반환한다."""
+    from services.agent.nodes.explain import explain_node
+
+    explain_result = {
+        "explanation": {
+            "visual_strategy": "테스트 전략",
+            "audio_strategy": "테스트 오디오",
+            "quality_tradeoffs": "없음",
+            "overall_coherence": "좋음",
+            "key_decisions": ["결정1", "결정2"],
+        },
+    }
+    mock_step.return_value = explain_result
+    state = {"final_scenes": [{"scene_id": 1}], "mode": "full"}
+    result = await explain_node(state)
+    assert "explanation_result" in result
+    assert result["explanation_result"]["explanation"]["visual_strategy"] == "테스트 전략"
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.explain.run_production_step", new_callable=AsyncMock)
+async def test_explain_node_error_returns_none(mock_step):
+    """Explain 노드 실패 시 None을 반환하고 파이프라인을 차단하지 않는다."""
+    from services.agent.nodes.explain import explain_node
+
+    mock_step.side_effect = RuntimeError("API error")
+    state = {"final_scenes": [], "mode": "full"}
+    result = await explain_node(state)
+    assert result["explanation_result"] is None
+
+
+# -- Revise _build_feedback 테스트 --
+
+
+def test_build_feedback_includes_director_feedback():
+    """_build_feedback이 director_feedback을 포함한다."""
+    from services.agent.nodes.revise import _build_feedback
+
+    state = {"director_feedback": "전체적으로 개선 필요"}
+    feedback = _build_feedback(state)
+    assert "[디렉터 피드백] 전체적으로 개선 필요" in feedback

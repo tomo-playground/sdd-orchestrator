@@ -20,6 +20,8 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
     scenes = cinema.get("scenes", [])
 
     template_vars = {"scenes": scenes}
+    if director_feedback := state.get("director_feedback"):
+        template_vars["feedback"] = director_feedback
     try:
         result = await run_production_step(
             template_name="creative/copyright_reviewer.j2",

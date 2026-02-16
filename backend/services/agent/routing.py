@@ -5,8 +5,6 @@ script_graph.py의 파일 크기를 줄이기 위해 분리.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from config import LANGGRAPH_MAX_REVISIONS, logger
 from config_pipelines import LANGGRAPH_MAX_DIRECTOR_REVISIONS
 from services.agent.state import ScriptState
@@ -70,27 +68,11 @@ def route_after_review(state: ScriptState) -> str:
     return "cinematographer"
 
 
-def route_production_step(next_node: str) -> Callable[[ScriptState], str]:
-    """Production chain 에러 가드 팩토리. 에러 → finalize, 정상 → next_node."""
-
-    def route(state: ScriptState) -> str:
-        if _has_error(state):
-            logger.warning(
-                "[LangGraph] production chain 에러, finalize로 short-circuit (→%s 스킵)",
-                next_node,
-            )
-            return "finalize"
-        return next_node
-
-    route.__name__ = f"route_to_{next_node}"
-    return route
-
-
-def route_after_copyright(state: ScriptState) -> str:
-    """copyright_reviewer 이후: 에러 → finalize, 정상 → director."""
+def route_after_cinematographer(state: ScriptState) -> list[str] | str:
+    """cinematographer 이후: 에러 → finalize, 정상 → 3개 병렬 fan-out."""
     if _has_error(state):
         return "finalize"
-    return "director"
+    return ["tts_designer", "sound_designer", "copyright_reviewer"]
 
 
 def route_after_director(state: ScriptState) -> str:
@@ -120,3 +102,10 @@ def route_after_human_gate(state: ScriptState) -> str:
     if action == "revise":
         return "revise"
     return "finalize"
+
+
+def route_after_finalize(state: ScriptState) -> str:
+    """finalize 이후: Full → explain, Quick → learn."""
+    if state.get("mode", "quick") == "full":
+        return "explain"
+    return "learn"

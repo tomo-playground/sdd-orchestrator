@@ -1,10 +1,10 @@
 """LangGraph Script Graph 단위 테스트.
 
 generate_script를 mock하여 Graph 구조와 State 전파를 검증한다.
-13노드 그래프 (에러 short-circuit 포함):
+14노드 그래프 (에러 short-circuit + 병렬 fan-out):
   research → critic → writer → review → [revise] →
-  cinematographer → tts_designer → sound_designer → copyright_reviewer →
-  director → [human_gate] → finalize → learn
+  cinematographer → [tts/sound/copyright 병렬] →
+  director → [human_gate] → finalize → [explain] → learn
 """
 
 from __future__ import annotations
@@ -60,14 +60,25 @@ def mock_scenes():
 
 
 def test_graph_structure():
-    """13노드가 모두 Graph에 존재하는지 확인한다."""
+    """14노드가 모두 Graph에 존재하는지 확인한다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
     expected = (
-        "research", "critic", "writer", "review", "revise",
-        "cinematographer", "tts_designer", "sound_designer", "copyright_reviewer",
-        "director", "human_gate", "finalize", "learn",
+        "research",
+        "critic",
+        "writer",
+        "review",
+        "revise",
+        "cinematographer",
+        "tts_designer",
+        "sound_designer",
+        "copyright_reviewer",
+        "director",
+        "human_gate",
+        "finalize",
+        "explain",
+        "learn",
     )
     for node in expected:
         assert node in node_names, f"'{node}' 노드가 그래프에 없음"
@@ -147,14 +158,15 @@ async def test_graph_error_short_circuit_writer(mock_db_ctx, mock_gen_script):
     assert result.get("review_result") is None
 
 
-def test_routing_error_short_circuit_production():
-    """Production chain 에러 상태 → route_production_step이 finalize 반환."""
-    from services.agent.routing import route_production_step
+def test_routing_fanout_after_cinematographer():
+    """cinematographer 이후 → 3개 병렬 fan-out, 에러 시 finalize."""
+    from services.agent.routing import route_after_cinematographer
 
-    route_to_tts = route_production_step("tts_designer")
+    result = route_after_cinematographer({"mode": "full"})
+    assert isinstance(result, list)
+    assert set(result) == {"tts_designer", "sound_designer", "copyright_reviewer"}
 
-    assert route_to_tts({"mode": "full"}) == "tts_designer"
-    assert route_to_tts({"mode": "full", "error": "Cinematographer 실패"}) == "finalize"
+    assert route_after_cinematographer({"mode": "full", "error": "실패"}) == "finalize"
 
 
 def test_routing_error_short_circuit_writer():
@@ -253,3 +265,30 @@ def test_route_after_director_error():
 
     state = {"error": "이전 노드 에러", "director_decision": "approve"}
     assert route_after_director(state) == "finalize"
+
+
+# -- Explain / Finalize 라우팅 테스트 --
+
+
+def test_route_after_finalize_full():
+    """Full 모드: finalize → explain."""
+    from services.agent.routing import route_after_finalize
+
+    assert route_after_finalize({"mode": "full"}) == "explain"
+
+
+def test_route_after_finalize_quick():
+    """Quick 모드: finalize → learn (explain 스킵)."""
+    from services.agent.routing import route_after_finalize
+
+    assert route_after_finalize({"mode": "quick"}) == "learn"
+    assert route_after_finalize({}) == "learn"  # 기본값 quick
+
+
+def test_graph_14_nodes():
+    """14노드가 모두 등록되어 있다."""
+    graph = build_script_graph()
+    compiled = graph.compile()
+    node_names = set(compiled.get_graph().nodes.keys())
+    assert "explain" in node_names
+    assert len(node_names - {"__start__", "__end__"}) == 14

@@ -40,13 +40,14 @@ _NODE_META: dict[str, dict] = {
     "writer": {"label": "대본 생성", "percent": 40},
     "review": {"label": "구조 검증", "percent": 55},
     "revise": {"label": "수정 중", "percent": 58},
-    "cinematographer": {"label": "비주얼 디자인", "percent": 65},
+    "cinematographer": {"label": "비주얼 디자인", "percent": 60},
     "tts_designer": {"label": "음성 디자인", "percent": 75},
-    "sound_designer": {"label": "BGM 설계", "percent": 82},
-    "copyright_reviewer": {"label": "저작권 검토", "percent": 88},
-    "director": {"label": "통합 검증", "percent": 92},
-    "human_gate": {"label": "승인 대기", "percent": 95},
-    "finalize": {"label": "최종화", "percent": 97},
+    "sound_designer": {"label": "BGM 설계", "percent": 75},
+    "copyright_reviewer": {"label": "저작권 검토", "percent": 75},
+    "director": {"label": "통합 검증", "percent": 90},
+    "human_gate": {"label": "승인 대기", "percent": 93},
+    "finalize": {"label": "최종화", "percent": 95},
+    "explain": {"label": "결정 설명", "percent": 98},
     "learn": {"label": "완료", "percent": 100},
 }
 
@@ -94,11 +95,14 @@ def _build_config(thread_id: str) -> dict:
 
 def _state_to_response(result: dict) -> dict:
     """Graph 결과 → API 응답 dict 변환."""
-    return {
+    resp = {
         "scenes": result.get("final_scenes") or [],
         "character_id": result.get("draft_character_id"),
         "character_b_id": result.get("draft_character_b_id"),
     }
+    if result.get("explanation_result"):
+        resp["explanation"] = result["explanation_result"]
+    return resp
 
 
 @router.post("/generate", response_model=ScriptGenerateResponse)
