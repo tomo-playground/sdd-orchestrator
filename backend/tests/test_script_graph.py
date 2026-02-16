@@ -1,7 +1,9 @@
 """LangGraph Script Graph 단위 테스트.
 
 generate_script를 mock하여 Graph 구조와 State 전파를 검증한다.
-8노드 그래프: research → debate → draft → review → revise/human_gate → finalize → learn
+12노드 그래프: research → debate → draft → review → [revise] →
+  cinematographer → tts_designer → sound_designer → copyright_reviewer →
+  [human_gate] → finalize → learn
 """
 
 from __future__ import annotations
@@ -57,11 +59,16 @@ def mock_scenes():
 
 
 def test_graph_structure():
-    """8노드가 모두 Graph에 존재하는지 확인한다."""
+    """12노드가 모두 Graph에 존재하는지 확인한다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
-    for node in ("research", "debate", "draft", "review", "revise", "human_gate", "finalize", "learn"):
+    expected = (
+        "research", "debate", "draft", "review", "revise",
+        "cinematographer", "tts_designer", "sound_designer", "copyright_reviewer",
+        "human_gate", "finalize", "learn",
+    )
+    for node in expected:
         assert node in node_names, f"'{node}' 노드가 그래프에 없음"
 
 

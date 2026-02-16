@@ -5,8 +5,6 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from config import (
-    CREATIVE_OPTIONAL_STEPS,
-    CREATIVE_PIPELINE_METADATA,
     SHORTS_DURATIONS,
     STORYBOARD_LANGUAGES,
 )
@@ -26,8 +24,8 @@ async def list_presets():
         "presets": get_all_presets(),
         "languages": STORYBOARD_LANGUAGES,
         "durations": SHORTS_DURATIONS,
-        "optional_steps": CREATIVE_OPTIONAL_STEPS,
-        "pipeline_metadata": CREATIVE_PIPELINE_METADATA,
+        "optional_steps": [],
+        "pipeline_metadata": [],
     }
 
 

@@ -27,36 +27,7 @@ LAB_BATCH_MAX_SIZE = int(os.getenv("LAB_BATCH_MAX_SIZE", "20"))
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
 CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-flash")
-CREATIVE_URL_FETCH_TIMEOUT = int(os.getenv("CREATIVE_URL_FETCH_TIMEOUT", "15"))
-CREATIVE_URL_MAX_CONTENT_LENGTH = int(os.getenv("CREATIVE_URL_MAX_CONTENT_LENGTH", "5000"))
-CREATIVE_URL_MAX_FETCH_COUNT = int(os.getenv("CREATIVE_URL_MAX_FETCH_COUNT", "3"))
-CREATIVE_URL_MAX_RESPONSE_BYTES = int(os.getenv("CREATIVE_URL_MAX_RESPONSE_BYTES", str(1024 * 1024)))
-
-# --- Creative Lab V2 Configuration ---
-CREATIVE_DIRECTOR_SCORE_GAP_THRESHOLD = float(os.getenv("CREATIVE_DIRECTOR_SCORE_GAP_THRESHOLD", "0.15"))
 CREATIVE_PIPELINE_MAX_RETRIES = int(os.getenv("CREATIVE_PIPELINE_MAX_RETRIES", "2"))
-CREATIVE_MIN_CONCEPT_SCORE = float(os.getenv("CREATIVE_MIN_CONCEPT_SCORE", "0.6"))
-CREATIVE_PIPELINE_POLL_INTERVAL_MS = int(os.getenv("CREATIVE_PIPELINE_POLL_INTERVAL_MS", "2000"))
-CREATIVE_ZOMBIE_TIMEOUT_SECONDS = int(os.getenv("CREATIVE_ZOMBIE_TIMEOUT_SECONDS", "300"))
-
-# --- Creative Lab: Interactive Review ---
-CREATIVE_REVIEW_ENABLED = os.getenv("CREATIVE_REVIEW_ENABLED", "true").lower() == "true"
-CREATIVE_REVIEW_STEPS: list[str] = [
-    "scriptwriter",
-    "cinematographer",
-    "tts_designer",
-    "sound_designer",
-    "copyright_reviewer",
-]
-CREATIVE_OPTIONAL_STEPS: list[str] = ["tts_designer", "sound_designer", "copyright_reviewer"]
-CREATIVE_PIPELINE_METADATA = [
-    {"key": "scriptwriter", "label": "Scriptwriter", "desc": "Scene scripts"},
-    {"key": "cinematographer", "label": "Cinematographer", "desc": "Visual design"},
-    {"key": "tts_designer", "label": "TTS Designer", "desc": "Voice & Pacing"},
-    {"key": "sound_designer", "label": "Sound Designer", "desc": "BGM direction"},
-    {"key": "copyright_reviewer", "label": "Copyright", "desc": "Originality check"},
-]
-CREATIVE_AUTO_APPROVE_THRESHOLD = float(os.getenv("CREATIVE_AUTO_APPROVE_THRESHOLD", "0.85"))
 
 # Creative Lab: Agent Categories (SSOT for Frontend)
 CREATIVE_AGENT_CATEGORIES = [

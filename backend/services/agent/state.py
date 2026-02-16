@@ -70,6 +70,12 @@ class ScriptState(TypedDict, total=False):
     # Review 결과
     review_result: ReviewResult | None
 
+    # Production 결과 (Full 모드)
+    cinematographer_result: dict | None
+    tts_designer_result: dict | None
+    sound_designer_result: dict | None
+    copyright_reviewer_result: dict | None
+
     # 최종 출력
     final_scenes: list[dict] | None
     error: str | None

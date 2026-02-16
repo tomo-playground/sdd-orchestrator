@@ -18,9 +18,9 @@ def route_after_start(state: ScriptState) -> str:
 
 
 def route_after_review(state: ScriptState) -> str:
-    """review 이후: passed/max_revision → finalize|human_gate, failed → revise.
+    """review 이후: passed → cinematographer(full)/finalize(quick), failed → revise.
 
-    Quick → finalize 직행, Full → human_gate (auto_approve이면 finalize).
+    Quick → finalize 직행, Full → cinematographer (Production chain 시작).
     """
     result = state.get("review_result")
     passed = result.get("passed") if result else False
@@ -35,9 +35,16 @@ def route_after_review(state: ScriptState) -> str:
             LANGGRAPH_MAX_REVISIONS,
         )
 
-    # passed 또는 max_revision 도달 → finalize/human_gate 분기
+    # passed 또는 max_revision 도달 → Quick: finalize / Full: cinematographer
     mode = state.get("mode", "quick")
-    if mode != "full" or state.get("auto_approve"):
+    if mode != "full":
+        return "finalize"
+    return "cinematographer"
+
+
+def route_after_copyright(state: ScriptState) -> str:
+    """copyright_reviewer 이후: auto_approve → finalize, else → human_gate."""
+    if state.get("auto_approve"):
         return "finalize"
     return "human_gate"
 
