@@ -1,4 +1,4 @@
-"""Draft 노드 — 기존 generate_script를 래핑하여 초안을 생성한다."""
+"""Writer 노드 — 기존 generate_script를 래핑하여 초안을 생성한다."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def _extract_reasoning(scenes: list[dict]) -> list[dict]:
     return reasoning
 
 
-async def draft_node(state: ScriptState) -> dict:
+async def writer_node(state: ScriptState) -> dict:
     """StoryboardRequest를 생성하고 기존 generate_script를 호출한다."""
     # research_brief가 있으면 description에 컨텍스트 추가
     desc = state.get("description", "")
@@ -52,7 +52,7 @@ async def draft_node(state: ScriptState) -> dict:
             result = await generate_script(request, db)
             scenes = result.get("scenes", [])
             scene_reasoning = _extract_reasoning(scenes)
-            logger.info("[LangGraph] Draft 노드 완료: %d scenes", len(scenes))
+            logger.info("[LangGraph] Writer 노드 완료: %d scenes", len(scenes))
             return {
                 "draft_scenes": scenes,
                 "draft_character_id": result.get("character_id"),
@@ -60,5 +60,5 @@ async def draft_node(state: ScriptState) -> dict:
                 "scene_reasoning": scene_reasoning or None,
             }
         except Exception as e:
-            logger.error("[LangGraph] Draft 노드 실패: %s", e)
+            logger.error("[LangGraph] Writer 노드 실패: %s", e)
             return {"error": str(e)}

@@ -114,7 +114,7 @@ async def test_tts_designer_node(mock_step, cinema_result):
 
     tts_result = {"tts_designs": [{"scene_id": 1, "voice_design_prompt": "calm"}]}
     mock_step.return_value = tts_result
-    state = {"cinematographer_result": cinema_result, "debate_result": {}, "mode": "full"}
+    state = {"cinematographer_result": cinema_result, "critic_result": {}, "mode": "full"}
     result = await tts_designer_node(state)
     assert "tts_designer_result" in result
 
@@ -130,7 +130,7 @@ async def test_sound_designer_node(mock_step, cinema_result):
 
     sound_result = {"recommendation": {"prompt": "soft piano", "mood": "calm", "duration": 30}}
     mock_step.return_value = sound_result
-    state = {"cinematographer_result": cinema_result, "debate_result": {}, "duration": 30, "mode": "full"}
+    state = {"cinematographer_result": cinema_result, "critic_result": {}, "duration": 30, "mode": "full"}
     result = await sound_designer_node(state)
     assert "sound_designer_result" in result
 
@@ -162,6 +162,73 @@ async def test_copyright_reviewer_fallback(mock_step, cinema_result):
     result = await copyright_reviewer_node(state)
     assert result["copyright_reviewer_result"]["overall"] == "PASS"
     assert result["copyright_reviewer_result"]["confidence"] == 0.0
+
+
+# -- Director Node --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_node_approve(mock_step):
+    """Director 노드가 approve 결과를 반환한다."""
+    from services.agent.nodes.director import director_node
+
+    mock_step.return_value = {
+        "decision": "approve",
+        "feedback": "모든 요소가 잘 조화됩니다.",
+    }
+    state = {
+        "cinematographer_result": {"scenes": []},
+        "tts_designer_result": {"tts_designs": []},
+        "sound_designer_result": {"recommendation": {}},
+        "copyright_reviewer_result": {"overall": "PASS"},
+        "director_revision_count": 0,
+    }
+    result = await director_node(state)
+    assert result["director_decision"] == "approve"
+    assert result["director_feedback"] == "모든 요소가 잘 조화됩니다."
+    assert result["director_revision_count"] == 1
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_node_revise(mock_step):
+    """Director 노드가 revision 요청을 반환한다."""
+    from services.agent.nodes.director import director_node
+
+    mock_step.return_value = {
+        "decision": "revise_cinematographer",
+        "feedback": "카메라 앵글이 단조롭습니다.",
+    }
+    state = {
+        "cinematographer_result": {"scenes": []},
+        "tts_designer_result": {"tts_designs": []},
+        "sound_designer_result": {"recommendation": {}},
+        "copyright_reviewer_result": {"overall": "PASS"},
+        "director_revision_count": 0,
+    }
+    result = await director_node(state)
+    assert result["director_decision"] == "revise_cinematographer"
+    assert result["director_revision_count"] == 1
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_node_error_fallback(mock_step):
+    """Director 노드 실패 시 approve fallback."""
+    from services.agent.nodes.director import director_node
+
+    mock_step.side_effect = RuntimeError("API error")
+    state = {
+        "cinematographer_result": {"scenes": []},
+        "tts_designer_result": {},
+        "sound_designer_result": {},
+        "copyright_reviewer_result": {},
+        "director_revision_count": 0,
+    }
+    result = await director_node(state)
+    assert result["director_decision"] == "approve"
+    assert result["director_revision_count"] == 1
 
 
 # -- Finalize Node --
@@ -218,17 +285,17 @@ def test_route_after_review_full():
     assert route_after_review(state) == "cinematographer"
 
 
-def test_route_after_copyright_auto():
-    """auto_approve → finalize."""
+def test_route_after_copyright_to_director():
+    """copyright_reviewer 이후 → director로 라우팅."""
     from services.agent.routing import route_after_copyright
 
     state = {"auto_approve": True}
-    assert route_after_copyright(state) == "finalize"
+    assert route_after_copyright(state) == "director"
 
 
-def test_route_after_copyright_manual():
-    """auto_approve=False → human_gate."""
+def test_route_after_copyright_error():
+    """copyright_reviewer 에러 → finalize."""
     from services.agent.routing import route_after_copyright
 
-    state = {"auto_approve": False}
-    assert route_after_copyright(state) == "human_gate"
+    state = {"error": "copyright 실패"}
+    assert route_after_copyright(state) == "finalize"

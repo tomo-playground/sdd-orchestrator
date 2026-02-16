@@ -74,14 +74,14 @@ def snapshot(request):
 @pytest.mark.asyncio
 @patch("services.agent.nodes.revise.generate_script", new_callable=AsyncMock)
 @patch("services.agent.nodes.revise.get_db_session")
-@patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.get_db_session")
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
 async def test_graph_output_matches_snapshot_structure(
-    mock_draft_db_ctx, mock_draft_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
+    mock_writer_db_ctx, mock_writer_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
 ):
     """Graph 실행 결과가 스냅샷 response와 구조적으로 일치하는지 검증."""
     expected = snapshot["response"]
-    mock_draft_gen.return_value = expected
+    mock_writer_gen.return_value = expected
     mock_revise_gen.return_value = expected
 
     graph = build_script_graph().compile()
@@ -111,13 +111,13 @@ async def test_graph_output_matches_snapshot_structure(
 @pytest.mark.asyncio
 @patch("services.agent.nodes.revise.generate_script", new_callable=AsyncMock)
 @patch("services.agent.nodes.revise.get_db_session")
-@patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.get_db_session")
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
 async def test_graph_passthrough_preserves_scenes(
-    mock_draft_db_ctx, mock_draft_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
+    mock_writer_db_ctx, mock_writer_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
 ):
-    """draft → review → (revise 루프 포함) → finalize: 최종 씬 데이터 보존."""
-    mock_draft_gen.return_value = snapshot["response"]
+    """writer → review → (revise 루프 포함) → finalize: 최종 씬 데이터 보존."""
+    mock_writer_gen.return_value = snapshot["response"]
     mock_revise_gen.return_value = snapshot["response"]
 
     graph = build_script_graph().compile()

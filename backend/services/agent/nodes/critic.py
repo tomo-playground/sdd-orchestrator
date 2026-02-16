@@ -1,4 +1,4 @@
-"""Debate 노드 — Architects → Devil's Advocate → Director 파이프라인 래핑."""
+"""Critic 노드 — Architects → Devil's Advocate → Director 파이프라인 래핑."""
 
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ def _build_debate_context(state: ScriptState) -> DebateContext:
 def _create_temp_session(db, state: ScriptState) -> CreativeSession:
     """트레이스 기록용 임시 CreativeSession을 DB에 생성한다."""
     session = CreativeSession(
-        objective=state.get("topic", "LangGraph debate"),
-        evaluation_criteria={"source": "langgraph_debate"},
+        objective=state.get("topic", "LangGraph critic"),
+        evaluation_criteria={"source": "langgraph_critic"},
         context={"mode": state.get("mode", "full")},
         max_rounds=CREATIVE_MAX_ROUNDS,
         status="debating",
@@ -53,8 +53,8 @@ def _extract_winner(concepts: list[dict], evaluation: dict) -> dict:
     return concepts[0] if concepts else {}
 
 
-async def debate_node(state: ScriptState) -> dict:
-    """Debate 파이프라인을 실행하고 결과를 state에 기록한다."""
+async def critic_node(state: ScriptState) -> dict:
+    """Critic 파이프라인을 실행하고 결과를 state에 기록한다."""
     with get_db_session() as db:
         try:
             ctx = _build_debate_context(state)
@@ -64,13 +64,13 @@ async def debate_node(state: ScriptState) -> dict:
             # 1) Architects: 3인 병렬 컨셉 생성
             concepts = await run_architects(db, session, round_number, ctx)
             if not concepts:
-                logger.warning("[LangGraph] Debate: Architects가 컨셉을 생성하지 못함")
-                return {"error": "Debate architects produced no concepts"}
+                logger.warning("[LangGraph] Critic: Architects가 컨셉을 생성하지 못함")
+                return {"error": "Critic architects produced no concepts"}
 
             # 2) Devil's Advocate: 비판적 검토
-            critic = await run_devils_advocate(db, session, round_number, concepts, ctx)
-            if critic:
-                ctx.critic_feedback = critic
+            advocate = await run_devils_advocate(db, session, round_number, concepts, ctx)
+            if advocate:
+                ctx.critic_feedback = advocate
 
             # 3) Director Evaluate: 최종 평가
             evaluation = await run_director_evaluate(db, session, round_number, concepts, ctx)
@@ -80,13 +80,13 @@ async def debate_node(state: ScriptState) -> dict:
             db.commit()
 
             logger.info(
-                "[LangGraph] Debate 노드 완료: winner=%s, score=%.2f",
+                "[LangGraph] Critic 노드 완료: winner=%s, score=%.2f",
                 evaluation.get("best_agent_role", "unknown"),
                 evaluation.get("best_score", 0),
             )
 
             return {
-                "debate_result": {
+                "critic_result": {
                     "selected_concept": winner,
                     "candidates": concepts,
                     "evaluation": evaluation,
@@ -94,5 +94,5 @@ async def debate_node(state: ScriptState) -> dict:
             }
 
         except Exception as e:
-            logger.error("[LangGraph] Debate 노드 실패: %s", e)
-            return {"error": f"Debate failed: {e}"}
+            logger.error("[LangGraph] Critic 노드 실패: %s", e)
+            return {"error": f"Critic failed: {e}"}

@@ -36,15 +36,16 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 # -- 노드별 SSE 메타데이터 --
 _NODE_META: dict[str, dict] = {
     "research": {"label": "리서치", "percent": 5},
-    "debate": {"label": "컨셉 토론", "percent": 15},
-    "draft": {"label": "대본 생성", "percent": 40},
+    "critic": {"label": "컨셉 토론", "percent": 15},
+    "writer": {"label": "대본 생성", "percent": 40},
     "review": {"label": "구조 검증", "percent": 55},
     "revise": {"label": "수정 중", "percent": 58},
     "cinematographer": {"label": "비주얼 디자인", "percent": 65},
     "tts_designer": {"label": "음성 디자인", "percent": 75},
     "sound_designer": {"label": "BGM 설계", "percent": 82},
     "copyright_reviewer": {"label": "저작권 검토", "percent": 88},
-    "human_gate": {"label": "승인 대기", "percent": 92},
+    "director": {"label": "통합 검증", "percent": 92},
+    "human_gate": {"label": "승인 대기", "percent": 95},
     "finalize": {"label": "최종화", "percent": 97},
     "learn": {"label": "완료", "percent": 100},
 }
@@ -137,7 +138,7 @@ def _build_node_payload(
         "thread_id": thread_id,
     }
 
-    if node_name == "draft":
+    if node_name == "writer":
         char_ids[0] = node_output.get("draft_character_id")
         char_ids[1] = node_output.get("draft_character_b_id")
 

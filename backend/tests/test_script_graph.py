@@ -1,9 +1,10 @@
 """LangGraph Script Graph 단위 테스트.
 
 generate_script를 mock하여 Graph 구조와 State 전파를 검증한다.
-12노드 그래프: research → debate → draft → review → [revise] →
+13노드 그래프 (에러 short-circuit 포함):
+  research → critic → writer → review → [revise] →
   cinematographer → tts_designer → sound_designer → copyright_reviewer →
-  [human_gate] → finalize → learn
+  director → [human_gate] → finalize → learn
 """
 
 from __future__ import annotations
@@ -59,24 +60,24 @@ def mock_scenes():
 
 
 def test_graph_structure():
-    """12노드가 모두 Graph에 존재하는지 확인한다."""
+    """13노드가 모두 Graph에 존재하는지 확인한다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
     expected = (
-        "research", "debate", "draft", "review", "revise",
+        "research", "critic", "writer", "review", "revise",
         "cinematographer", "tts_designer", "sound_designer", "copyright_reviewer",
-        "human_gate", "finalize", "learn",
+        "director", "human_gate", "finalize", "learn",
     )
     for node in expected:
         assert node in node_names, f"'{node}' 노드가 그래프에 없음"
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.get_db_session")
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
 async def test_graph_quick_mode(mock_db_ctx, mock_gen_script, mock_scenes):
-    """Quick 모드: draft → review(pass) → finalize → learn → END."""
+    """Quick 모드: writer → review(pass) → finalize → learn → END."""
     mock_gen_script.return_value = {"scenes": mock_scenes, "character_id": 42}
 
     graph = build_script_graph().compile()
@@ -94,8 +95,8 @@ async def test_graph_quick_mode(mock_db_ctx, mock_gen_script, mock_scenes):
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.get_db_session")
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
 async def test_graph_state_propagation(mock_db_ctx, mock_gen_script, mock_scenes):
     """draft_scenes == final_scenes (review 통과 시 패스스루)를 확인한다."""
     mock_gen_script.return_value = {"scenes": mock_scenes}
@@ -110,21 +111,18 @@ async def test_graph_state_propagation(mock_db_ctx, mock_gen_script, mock_scenes
 @pytest.mark.asyncio
 @patch("services.agent.nodes.revise.generate_script", new_callable=AsyncMock)
 @patch("services.agent.nodes.revise.get_db_session")
-@patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock)
-@patch("services.agent.nodes.draft.get_db_session")
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
 async def test_graph_revise_loop(
-    mock_draft_db_ctx,
-    mock_draft_gen,
+    mock_writer_db_ctx,
+    mock_writer_gen,
     mock_revise_db_ctx,
     mock_revise_gen,
     mock_scenes,
 ):
     """Review 실패 → Revise → Review 통과 루프를 검증한다."""
-    # draft: 불완전한 씬 반환 → review 실패
     bad_scenes = [{"script": "짧", "speaker": "A", "duration": 0, "image_prompt": ""}]
-    mock_draft_gen.return_value = {"scenes": bad_scenes}
-
-    # revise: 유효한 씬 반환 → review 통과
+    mock_writer_gen.return_value = {"scenes": bad_scenes}
     mock_revise_gen.return_value = {"scenes": mock_scenes}
 
     graph = build_script_graph().compile()
@@ -132,3 +130,126 @@ async def test_graph_revise_loop(
 
     assert result["final_scenes"] is not None
     assert result["revision_count"] >= 1
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
+async def test_graph_error_short_circuit_writer(mock_db_ctx, mock_gen_script):
+    """writer 에러 → review 스킵, finalize로 즉시 short-circuit."""
+    mock_gen_script.side_effect = Exception("Gemini API 실패")
+
+    graph = build_script_graph().compile()
+    result = await graph.ainvoke({"topic": "에러 테스트", "mode": "quick", "duration": 10})
+
+    assert result.get("error") is not None
+    assert "Gemini API 실패" in result["error"]
+    assert result.get("review_result") is None
+
+
+def test_routing_error_short_circuit_production():
+    """Production chain 에러 상태 → route_production_step이 finalize 반환."""
+    from services.agent.routing import route_production_step
+
+    route_to_tts = route_production_step("tts_designer")
+
+    assert route_to_tts({"mode": "full"}) == "tts_designer"
+    assert route_to_tts({"mode": "full", "error": "Cinematographer 실패"}) == "finalize"
+
+
+def test_routing_error_short_circuit_writer():
+    """writer 에러 → route_after_writer가 finalize 반환."""
+    from services.agent.routing import route_after_writer
+
+    assert route_after_writer({"mode": "quick"}) == "review"
+    assert route_after_writer({"mode": "quick", "error": "Gemini API 실패"}) == "finalize"
+
+
+def test_routing_error_short_circuit_review():
+    """review 진입 시 에러 → finalize로 short-circuit."""
+    from services.agent.routing import route_after_review
+
+    assert route_after_review({"error": "이전 노드 에러", "mode": "quick"}) == "finalize"
+    assert route_after_review({"error": "이전 노드 에러", "mode": "full"}) == "finalize"
+
+
+# -- Director 라우팅 테스트 --
+
+
+def test_route_after_director_approve_auto():
+    """Director approve + auto_approve → finalize."""
+    from services.agent.routing import route_after_director
+
+    state = {"director_decision": "approve", "auto_approve": True}
+    assert route_after_director(state) == "finalize"
+
+
+def test_route_after_director_approve_manual():
+    """Director approve + auto_approve=False → human_gate."""
+    from services.agent.routing import route_after_director
+
+    state = {"director_decision": "approve", "auto_approve": False}
+    assert route_after_director(state) == "human_gate"
+
+
+def test_route_after_director_revise_cinematographer():
+    """Director가 cinematographer 수정을 요청한다."""
+    from services.agent.routing import route_after_director
+
+    state = {
+        "director_decision": "revise_cinematographer",
+        "director_revision_count": 0,
+    }
+    assert route_after_director(state) == "cinematographer"
+
+
+def test_route_after_director_revise_tts():
+    """Director가 tts_designer 수정을 요청한다."""
+    from services.agent.routing import route_after_director
+
+    state = {
+        "director_decision": "revise_tts",
+        "director_revision_count": 0,
+    }
+    assert route_after_director(state) == "tts_designer"
+
+
+def test_route_after_director_revise_sound():
+    """Director가 sound_designer 수정을 요청한다."""
+    from services.agent.routing import route_after_director
+
+    state = {
+        "director_decision": "revise_sound",
+        "director_revision_count": 0,
+    }
+    assert route_after_director(state) == "sound_designer"
+
+
+def test_route_after_director_revise_script():
+    """Director가 스크립트 수정을 요청한다 → revise."""
+    from services.agent.routing import route_after_director
+
+    state = {
+        "director_decision": "revise_script",
+        "director_revision_count": 0,
+    }
+    assert route_after_director(state) == "revise"
+
+
+def test_route_after_director_max_revisions():
+    """Director revision 최대 횟수 도달 시 human_gate로 강제 통과."""
+    from services.agent.routing import route_after_director
+
+    state = {
+        "director_decision": "revise_cinematographer",
+        "director_revision_count": 1,
+    }
+    assert route_after_director(state) == "human_gate"
+
+
+def test_route_after_director_error():
+    """에러 상태에서는 finalize로 short-circuit."""
+    from services.agent.routing import route_after_director
+
+    state = {"error": "이전 노드 에러", "director_decision": "approve"}
+    assert route_after_director(state) == "finalize"

@@ -51,8 +51,8 @@ class ScriptState(TypedDict, total=False):
     draft_character_id: int | None
     draft_character_b_id: int | None
 
-    # Debate 결과 (Full 모드)
-    debate_result: dict | None
+    # Critic 결과 (Full 모드)
+    critic_result: dict | None
     scene_reasoning: list[SceneReasoning] | None
 
     # Revision 상태
@@ -75,6 +75,11 @@ class ScriptState(TypedDict, total=False):
     tts_designer_result: dict | None
     sound_designer_result: dict | None
     copyright_reviewer_result: dict | None
+
+    # Director 결과 (Full 모드)
+    director_decision: str | None
+    director_feedback: str | None
+    director_revision_count: int
 
     # 최종 출력
     final_scenes: list[dict] | None

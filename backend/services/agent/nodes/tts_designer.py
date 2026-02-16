@@ -12,7 +12,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
     """cinematographer_result의 씬을 기반으로 TTS 디자인을 생성한다."""
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
-    concept = state.get("debate_result") or {}
+    concept = state.get("critic_result") or {}
 
     template_vars = {"scenes": scenes, "concept": concept}
     try:
