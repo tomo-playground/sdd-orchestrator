@@ -726,15 +726,31 @@ export type SceneReasoning = {
   alternatives: string[];
 };
 
+export type ConceptCandidate = {
+  agent_role: string;
+  title: string;
+  concept: string;
+  strengths?: string[];
+  weaknesses?: string[];
+};
+
 export type ScriptStreamEvent = {
   node: string;
   label: string;
   percent: number;
   status: "running" | "completed" | "error" | "waiting_for_input";
   result?: {
-    scenes: Scene[];
-    character_id: number | null;
-    character_b_id: number | null;
+    scenes?: Scene[];
+    character_id?: number | null;
+    character_b_id?: number | null;
+    // concept_gate
+    type?: "concept_selection";
+    candidates?: ConceptCandidate[];
+    selected_concept?: ConceptCandidate;
+    evaluation?: Record<string, unknown>;
+    // human_gate
+    review_result?: Record<string, unknown>;
+    scene_reasoning?: Record<string, unknown>[];
   };
   error?: string;
   thread_id?: string;

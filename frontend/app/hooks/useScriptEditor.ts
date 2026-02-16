@@ -6,7 +6,7 @@ import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
-import type { Scene, ScriptStreamEvent } from "../types";
+import type { ConceptCandidate, Scene, ScriptStreamEvent } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
 
 export type SceneItem = {
@@ -47,6 +47,9 @@ export type ScriptEditorState = {
   preset: string | null;
   threadId: string | null;
   isWaitingForInput: boolean;
+  isWaitingForConcept: boolean;
+  concepts: ConceptCandidate[] | null;
+  recommendedConceptId: number | null;
   feedbackSubmitted: boolean;
   justGenerated: boolean;
 };
@@ -55,7 +58,11 @@ export type ScriptEditorActions = ScriptEditorState & {
   setField: <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => void;
   updateScene: (index: number, patch: Partial<SceneItem>) => void;
   generate: () => Promise<void>;
-  resume: (action: "approve" | "revise", feedback?: string) => Promise<void>;
+  resume: (
+    action: "approve" | "revise" | "select",
+    feedback?: string,
+    conceptId?: number
+  ) => Promise<void>;
   submitFeedback: (rating: "positive" | "negative", feedbackText?: string) => Promise<void>;
   save: () => Promise<void>;
   loadStoryboard: (id: number) => Promise<void>;
@@ -167,13 +174,30 @@ async function processSSEStream(
 
     if (event.status === "waiting_for_input") {
       isWaiting = true;
-      const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];
-      setState((prev) => ({
-        ...prev,
-        scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
-        isGenerating: false,
-        isWaitingForInput: true,
-      }));
+      if (event.node === "concept_gate" && event.result?.candidates) {
+        // 컨셉 선택 대기
+        const candidates = event.result.candidates;
+        const selected = event.result.selected_concept;
+        const recIdx = selected
+          ? candidates.findIndex((c) => c.agent_role === selected.agent_role)
+          : 0;
+        setState((prev) => ({
+          ...prev,
+          concepts: candidates,
+          recommendedConceptId: recIdx >= 0 ? recIdx : 0,
+          isGenerating: false,
+          isWaitingForConcept: true,
+        }));
+      } else {
+        // 기존 human_gate 리뷰 승인 대기
+        const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];
+        setState((prev) => ({
+          ...prev,
+          scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
+          isGenerating: false,
+          isWaitingForInput: true,
+        }));
+      }
     }
 
     if (event.status === "error") {
@@ -210,6 +234,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     preset: null,
     threadId: null,
     isWaitingForInput: false,
+    isWaitingForConcept: false,
+    concepts: null,
+    recommendedConceptId: null,
     feedbackSubmitted: false,
     justGenerated: false,
   });
@@ -309,23 +336,28 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   ]);
 
   const resume = useCallback(
-    async (action: "approve" | "revise", feedback?: string) => {
+    async (action: "approve" | "revise" | "select", feedback?: string, conceptId?: number) => {
       if (!state.threadId) return;
       setState((prev) => ({
         ...prev,
         isGenerating: true,
         isWaitingForInput: false,
+        isWaitingForConcept: false,
+        concepts: null,
+        recommendedConceptId: null,
         progress: null,
       }));
       try {
+        const body: Record<string, unknown> = {
+          thread_id: state.threadId,
+          action,
+          feedback,
+        };
+        if (conceptId !== undefined) body.concept_id = conceptId;
         const response = await fetch(`${API_BASE}/scripts/resume`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            thread_id: state.threadId,
-            action,
-            feedback,
-          }),
+          body: JSON.stringify(body),
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -543,6 +575,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       preset: null,
       threadId: null,
       isWaitingForInput: false,
+      isWaitingForConcept: false,
+      concepts: null,
+      recommendedConceptId: null,
       feedbackSubmitted: false,
       justGenerated: false,
     });

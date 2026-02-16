@@ -1,7 +1,7 @@
-"""Script Generation Graph — 14노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
+"""Script Generation Graph — 15노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick: START → writer → review → [passed→finalize / failed→revise] → learn → END
-Full:  START → research → critic → writer → review →
+Full:  START → research → critic → concept_gate → writer → review →
        [passed→cinematographer / failed→revise] →
        ┌→ tts_designer ────┐
        ├→ sound_designer ──┤→ director → [human_gate] → finalize → explain → learn → END
@@ -15,6 +15,7 @@ from __future__ import annotations
 from langgraph.graph import END, START, StateGraph
 
 from services.agent.nodes.cinematographer import cinematographer_node
+from services.agent.nodes.concept_gate import concept_gate_node
 from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
 from services.agent.nodes.critic import critic_node
 from services.agent.nodes.director import director_node
@@ -41,12 +42,13 @@ from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """14노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """15노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     graph = StateGraph(ScriptState)
 
     # 노드 등록
     graph.add_node("research", research_node)
     graph.add_node("critic", critic_node)
+    graph.add_node("concept_gate", concept_gate_node)
     graph.add_node("writer", writer_node)
     graph.add_node("review", review_node)
     graph.add_node("revise", revise_node)
@@ -63,9 +65,10 @@ def build_script_graph() -> StateGraph:
     # START → mode 분기 (quick→writer, full→research)
     graph.add_conditional_edges(START, route_after_start, ["research", "writer"])
 
-    # research → critic → writer (critic 실패 시 graceful degradation: writer는 실행)
+    # research → critic → concept_gate → writer
     graph.add_edge("research", "critic")
-    graph.add_edge("critic", "writer")
+    graph.add_edge("critic", "concept_gate")
+    graph.add_edge("concept_gate", "writer")
 
     # writer → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])

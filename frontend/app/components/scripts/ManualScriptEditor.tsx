@@ -6,6 +6,7 @@ import { usePresets } from "../../hooks/usePresets";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
+import ConceptSelectionPanel from "./ConceptSelectionPanel";
 import ReviewApprovalPanel from "./ReviewApprovalPanel";
 import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
@@ -136,8 +137,17 @@ export default function ManualScriptEditor({ editor }: Props) {
         )}
       </section>
 
+      {/* Concept selection panel — shown after critic in creator mode */}
+      {editor.isWaitingForConcept && editor.concepts && (
+        <ConceptSelectionPanel
+          candidates={editor.concepts}
+          recommendedId={editor.recommendedConceptId}
+          onSelect={(id) => editor.resume("select", undefined, id)}
+        />
+      )}
+
       {/* Review approval panel — shown when waiting for user input */}
-      {editor.isWaitingForInput && (
+      {editor.isWaitingForInput && !editor.isWaitingForConcept && (
         <ReviewApprovalPanel
           scenes={editor.scenes}
           onApprove={() => editor.resume("approve")}

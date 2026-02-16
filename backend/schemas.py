@@ -1528,11 +1528,12 @@ class SceneReasoningItem(BaseModel):
 
 
 class ScriptResumeRequest(BaseModel):
-    """Human Gate 재개 요청."""
+    """Human Gate / Concept Gate 재개 요청."""
 
     thread_id: str
-    action: str = "approve"  # "approve" | "revise"
+    action: str = "approve"  # "approve" | "revise" | "select"
     feedback: str | None = None
+    concept_id: int | None = None  # concept_gate용: 선택한 컨셉 인덱스 (0-2)
 
 
 class ScriptPresetItem(BaseModel):

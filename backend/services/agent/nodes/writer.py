@@ -29,6 +29,15 @@ async def writer_node(state: ScriptState) -> dict:
     if research_brief:
         desc = f"{desc}\n\n[참고 정보]\n{research_brief}".strip()
 
+    # critic에서 선정된 컨셉이 있으면 description에 주입
+    critic_result = state.get("critic_result")
+    if critic_result:
+        selected = critic_result.get("selected_concept", {})
+        if selected:
+            title = selected.get("title", "")
+            concept = selected.get("concept", "")
+            desc = f"{desc}\n\n[선정 컨셉]\n제목: {title}\n{concept}".strip()
+
     # revision_feedback가 있으면 description에 주입
     feedback = state.get("revision_feedback")
     if feedback:

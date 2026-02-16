@@ -37,6 +37,7 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 _NODE_META: dict[str, dict] = {
     "research": {"label": "리서치", "percent": 5},
     "critic": {"label": "컨셉 토론", "percent": 15},
+    "concept_gate": {"label": "컨셉 선택", "percent": 20},
     "writer": {"label": "대본 생성", "percent": 40},
     "review": {"label": "구조 검증", "percent": 55},
     "revise": {"label": "수정 중", "percent": 58},
@@ -163,23 +164,36 @@ def _build_node_payload(
     return payload
 
 
-async def _read_interrupt_state(graph, config: dict) -> dict:  # noqa: ANN001
-    """GraphInterrupt 후 checkpoint에서 draft 데이터를 읽는다."""
+async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noqa: ANN001
+    """GraphInterrupt 후 checkpoint에서 interrupt 노드와 데이터를 읽는다."""
     try:
         snapshot = await graph.aget_state(config)
         vals = snapshot.values or {}
+        pending = snapshot.next or ()
+        interrupt_node = pending[0] if pending else "unknown"
+
         result: dict = {}
-        for key, out_key in [
-            ("draft_scenes", "scenes"),
-            ("review_result", "review_result"),
-            ("scene_reasoning", "scene_reasoning"),
-        ]:
-            if vals.get(key):
-                result[out_key] = vals[key]
-        return result
+        if interrupt_node == "concept_gate":
+            critic_result = vals.get("critic_result", {})
+            result = {
+                "type": "concept_selection",
+                "candidates": critic_result.get("candidates", []),
+                "selected_concept": critic_result.get("selected_concept"),
+                "evaluation": critic_result.get("evaluation"),
+            }
+        else:  # human_gate or others
+            for key, out_key in [
+                ("draft_scenes", "scenes"),
+                ("review_result", "review_result"),
+                ("scene_reasoning", "scene_reasoning"),
+            ]:
+                if vals.get(key):
+                    result[out_key] = vals[key]
+
+        return interrupt_node, result
     except Exception:
-        logger.warning("[SSE] Failed to read checkpoint for human_gate")
-        return {}
+        logger.warning("[SSE] Failed to read checkpoint for interrupt")
+        return "unknown", {}
 
 
 async def _stream_graph_events(
@@ -227,11 +241,12 @@ async def _stream_graph_events(
             pass
 
     if interrupted:
-        result = await _read_interrupt_state(graph, config)
+        interrupt_node, result = await _read_interrupt_state(graph, config)
+        meta = _NODE_META.get(interrupt_node, {"label": "대기", "percent": 50})
         payload_interrupt: dict = {
-            "node": "human_gate",
-            "label": "승인 대기",
-            "percent": 85,
+            "node": interrupt_node,
+            "label": meta["label"],
+            "percent": meta["percent"],
             "status": "waiting_for_input",
             "thread_id": thread_id,
         }
@@ -269,7 +284,9 @@ async def resume_script(request: ScriptResumeRequest):
     """Human Gate 재개 — thread_id로 interrupt된 그래프를 재개한다."""
     logger.info("📝 [Script Resume] thread=%s, action=%s", request.thread_id, request.action)
     config = _build_config(request.thread_id)
-    resume_value = {"action": request.action, "feedback": request.feedback}
+    resume_value: dict = {"action": request.action, "feedback": request.feedback}
+    if request.concept_id is not None:
+        resume_value["concept_id"] = request.concept_id
     return StreamingResponse(
         _stream_graph_events(Command(resume=resume_value), config, request.thread_id, "Resume"),
         media_type="text/event-stream",
