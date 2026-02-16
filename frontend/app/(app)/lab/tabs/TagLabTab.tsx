@@ -51,10 +51,15 @@ type HistoryItem = {
 
 // ... imports ...
 import {
-  SUCCESS_BG, SUCCESS_TEXT,
-  WARNING_BG, WARNING_TEXT,
-  ERROR_BG, ERROR_TEXT,
-  SUCCESS_ICON, ERROR_ICON, WARNING_ICON
+  SUCCESS_BG,
+  SUCCESS_TEXT,
+  WARNING_BG,
+  WARNING_TEXT,
+  ERROR_BG,
+  ERROR_TEXT,
+  SUCCESS_ICON,
+  ERROR_ICON,
+  WARNING_ICON,
 } from "../../../components/ui/variants";
 
 // ... existing code ...
@@ -66,7 +71,6 @@ function matchRateBadge(rate: number) {
 }
 
 // ... TagList ...
-
 
 function formatDate(iso: string | null): string {
   if (!iso) return "-";
@@ -120,9 +124,9 @@ export default function TagLabTab() {
   // ── Filter groups when character changes ───────────────────
   const availableGroups = characterId
     ? groups.filter((g) => {
-      const char = characters.find((c) => c.id === characterId);
-      return char ? g.project_id === char.project_id : true;
-    })
+        const char = characters.find((c) => c.id === characterId);
+        return char ? g.project_id === char.project_id : true;
+      })
     : groups;
 
   // Update groupId when character changes and current group is invalid
@@ -232,7 +236,7 @@ export default function TagLabTab() {
               </span>
             </div>
             <div>
-              <strong className="text-zinc-700">⚡ Quick Tips:</strong>
+              <strong className="text-zinc-700">⚡ 빠른 팁:</strong>
               <ul className="mt-1 ml-4 list-disc space-y-0.5 text-zinc-600">
                 <li>Seed 고정(-1 제외)하면 재현성 확보</li>
                 <li>Steps 28, CFG 7이 기본 최적값</li>
@@ -342,7 +346,7 @@ export default function TagLabTab() {
             onClick={handleRun}
             disabled={loading || !tags.trim() || !groupId}
             loading={loading}
-            className="w-full flex justify-center gap-2"
+            className="flex w-full justify-center gap-2"
           >
             {!loading && <Play className="h-3.5 w-3.5" />}
             Run Experiment
@@ -413,7 +417,6 @@ export default function TagLabTab() {
                   />
                 </div>
               )}
-
             </>
           )}
         </div>

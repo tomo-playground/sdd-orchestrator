@@ -9,10 +9,10 @@ type Props = {
 };
 
 const QUICK_TIPS = [
-  "Write a topic that hooks in the first 3 seconds",
-  "Keep duration between 30-60s for best engagement",
-  "Use Narrated Dialogue for character-driven stories",
-  "Add a description to guide the AI tone and style",
+  "첫 3초 안에 시선을 끄는 주제를 작성하세요",
+  "30~60초 길이가 참여율에 가장 효과적입니다",
+  "캐릭터 중심 스토리에는 Narrated Dialogue를 사용하세요",
+  "설명을 추가하면 AI 톤과 스타일을 유도할 수 있습니다",
 ];
 
 const FULL_TIPS = [

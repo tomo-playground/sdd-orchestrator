@@ -6,9 +6,7 @@ import { RefreshCw, Loader2, ArrowUpRight } from "lucide-react";
 import { API_BASE } from "../../../constants";
 import QualityDashboard from "../../../components/quality/QualityDashboard";
 import Button from "../../../components/ui/Button";
-import {
-  SUCCESS_TEXT, WARNING_TEXT, ERROR_TEXT, ERROR_BG
-} from "../../../components/ui/variants";
+import { SUCCESS_TEXT, WARNING_TEXT, ERROR_TEXT, ERROR_BG } from "../../../components/ui/variants";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -78,12 +76,12 @@ export default function AnalyticsTab() {
       <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-5">
         <h2 className="mb-2 text-base font-bold text-zinc-800">Analytics</h2>
         <p className="text-xs leading-relaxed text-zinc-600">
-          <strong className="text-zinc-700">목표:</strong> 이미지 생성 품질과 태그
-          효과성을 데이터 기반으로 분석합니다.
+          <strong className="text-zinc-700">목표:</strong> 이미지 생성 품질과 태그 효과성을 데이터
+          기반으로 분석합니다.
         </p>
         <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-          Lab 실험 결과를 집계하여 어떤 태그가 높은 Match Rate를 보이는지, 프롬프트 패턴별
-          성공률 등을 시각화합니다. 데이터 기반 프롬프트 최적화를 지원합니다.
+          Lab 실험 결과를 집계하여 어떤 태그가 높은 Match Rate를 보이는지, 프롬프트 패턴별 성공률
+          등을 시각화합니다. 데이터 기반 프롬프트 최적화를 지원합니다.
         </p>
 
         {/* Collapsible Details */}
@@ -94,7 +92,7 @@ export default function AnalyticsTab() {
           <div className="mt-3 space-y-3 rounded-lg border border-amber-100 bg-white p-3 text-xs">
             <div>
               <strong className="text-zinc-700">💡 사용 시나리오:</strong>
-              <ul className="ml-4 mt-1 list-disc space-y-0.5 text-zinc-600">
+              <ul className="mt-1 ml-4 list-disc space-y-0.5 text-zinc-600">
                 <li>어떤 태그가 가장 안정적으로 렌더링되는지 데이터 확인</li>
                 <li>Match Rate 낮은 태그 패턴 분석 및 개선</li>
                 <li>프롬프트 구성 전략 수립 (효과적인 태그 우선 배치)</li>
@@ -120,8 +118,8 @@ export default function AnalyticsTab() {
               </span>
             </div>
             <div>
-              <strong className="text-zinc-700">⚡ Quick Tips:</strong>
-              <ul className="ml-4 mt-1 list-disc space-y-0.5 text-zinc-600">
+              <strong className="text-zinc-700">⚡ 빠른 팁:</strong>
+              <ul className="mt-1 ml-4 list-disc space-y-0.5 text-zinc-600">
                 <li>Sync 버튼으로 최신 실험 결과 반영</li>
                 <li>Low Effectiveness 태그는 프롬프트에서 제외 고려</li>
               </ul>

@@ -52,10 +52,15 @@ type HistoryItem = {
 // -- Helpers -----------------------------------------------------------------
 
 import {
-  SUCCESS_BG, SUCCESS_TEXT,
-  WARNING_BG, WARNING_TEXT,
-  ERROR_BG, ERROR_TEXT,
-  SUCCESS_ICON, ERROR_ICON, WARNING_ICON
+  SUCCESS_BG,
+  SUCCESS_TEXT,
+  WARNING_BG,
+  WARNING_TEXT,
+  ERROR_BG,
+  ERROR_TEXT,
+  SUCCESS_ICON,
+  ERROR_ICON,
+  WARNING_ICON,
 } from "../../../components/ui/variants";
 
 function matchRateBadge(rate: number) {
@@ -115,9 +120,9 @@ export default function SceneLabTab() {
   // Filter groups when character changes
   const availableGroups = characterId
     ? groups.filter((g) => {
-      const char = characters.find((c) => c.id === characterId);
-      return char ? g.project_id === char.project_id : true;
-    })
+        const char = characters.find((c) => c.id === characterId);
+        return char ? g.project_id === char.project_id : true;
+      })
     : groups;
 
   // Update groupId when character changes and current group is invalid
@@ -229,7 +234,7 @@ export default function SceneLabTab() {
               </span>
             </div>
             <div>
-              <strong className="text-zinc-700">⚡ Quick Tips:</strong>
+              <strong className="text-zinc-700">⚡ 빠른 팁:</strong>
               <ul className="mt-1 ml-4 list-disc space-y-0.5 text-zinc-600">
                 <li>Character 선택 시 LoRA 자동 적용</li>
                 <li>한글 묘사를 구체적으로 작성할수록 정확도 향상</li>
@@ -339,7 +344,7 @@ export default function SceneLabTab() {
             onClick={handleRun}
             disabled={loading || !sceneDescription.trim() || !characterId || !groupId}
             loading={loading}
-            className="w-full flex justify-center gap-2"
+            className="flex w-full justify-center gap-2"
           >
             {!loading && <Play className="h-3.5 w-3.5" />}
             {loading ? "Composing & Generating..." : "Compose & Run"}
