@@ -48,6 +48,7 @@ export type ScriptEditorState = {
   threadId: string | null;
   isWaitingForInput: boolean;
   feedbackSubmitted: boolean;
+  justGenerated: boolean;
 };
 
 export type ScriptEditorActions = ScriptEditorState & {
@@ -210,6 +211,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     threadId: null,
     isWaitingForInput: false,
     feedbackSubmitted: false,
+    justGenerated: false,
   });
 
   const setField = useCallback(
@@ -229,7 +231,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
 
   const generate = useCallback(async () => {
     if (!state.topic.trim()) return;
-    setState((prev) => ({ ...prev, isGenerating: true, progress: null }));
+    setState((prev) => ({ ...prev, isGenerating: true, progress: null, justGenerated: false }));
 
     const body: Record<string, unknown> = {
       topic: state.topic.trim(),
@@ -268,6 +270,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           scenes: finalScenes,
           isGenerating: false,
           progress: null,
+          justGenerated: true,
         }));
         // Sync to global store so AutoRun preflight sees scenes immediately
         syncToGlobalStore(finalScenes, {
@@ -337,6 +340,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
             isGenerating: false,
             progress: null,
             isWaitingForInput: false,
+            justGenerated: true,
           }));
           syncToGlobalStore(finalScenes, {
             topic: state.topic.trim(),
@@ -540,6 +544,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       threadId: null,
       isWaitingForInput: false,
       feedbackSubmitted: false,
+      justGenerated: false,
     });
   }, []);
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Sparkles, Play, PenLine } from "lucide-react";
 import { usePresets } from "../../hooks/usePresets";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
@@ -9,6 +10,8 @@ import ReviewApprovalPanel from "./ReviewApprovalPanel";
 import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
 import { SECTION_CLASSES } from "../ui/variants";
+import { useUIStore } from "../../store/useUIStore";
+import { persistStoryboard } from "../../store/actions/storyboardActions";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 
 type Props = {
@@ -18,6 +21,21 @@ type Props = {
 export default function ManualScriptEditor({ editor }: Props) {
   const { presets, languages, durations } = usePresets();
   const { confirm, dialogProps } = useConfirm();
+  const [isStarting, setIsStarting] = useState(false);
+
+  const handleStartProduction = async () => {
+    setIsStarting(true);
+    try {
+      const saved = await persistStoryboard();
+      if (saved) {
+        useUIStore.getState().setPendingAutoRun(true);
+      } else {
+        useUIStore.getState().showToast("저장에 실패했습니다. 다시 시도해주세요.", "error");
+      }
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -125,6 +143,38 @@ export default function ManualScriptEditor({ editor }: Props) {
           onApprove={() => editor.resume("approve")}
           onRevise={(feedback) => editor.resume("revise", feedback)}
         />
+      )}
+
+      {/* Post-generation CTA — shown only after fresh generation */}
+      {editor.justGenerated && !editor.isGenerating && !editor.isWaitingForInput && (
+        <section className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+          <div>
+            <p className="text-sm font-medium text-emerald-900">
+              스크립트 생성 완료 ({editor.scenes.length}개 씬)
+            </p>
+            <p className="mt-0.5 text-xs text-emerald-600">
+              바로 영상을 제작하거나, 씬을 편집할 수 있습니다
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => useUIStore.getState().setActiveTab("edit")}
+            >
+              <PenLine className="h-3.5 w-3.5" />씬 편집하기
+            </Button>
+            <Button
+              size="sm"
+              variant="success"
+              loading={isStarting}
+              onClick={handleStartProduction}
+            >
+              <Play className="h-3.5 w-3.5" />
+              영상 제작 시작
+            </Button>
+          </div>
+        </section>
       )}
 
       {/* Feedback widget — shown after generation completes */}

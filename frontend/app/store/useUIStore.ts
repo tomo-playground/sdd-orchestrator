@@ -50,6 +50,10 @@ export interface UIState {
   // Autopilot lock
   isAutoRunning: boolean;
 
+  // Script → AutoRun chain signal
+  pendingAutoRun: boolean;
+  setPendingAutoRun: (v: boolean) => void;
+
   // Preferences
   showAdvancedSettings: boolean;
   toggleAdvancedSettings: () => void;
@@ -73,6 +77,7 @@ const initialState: Omit<
   | "resetUI"
   | "toggleAdvancedSettings"
   | "toggleLabMenu"
+  | "setPendingAutoRun"
 > = {
   toasts: [],
   activeTab: "edit",
@@ -95,6 +100,7 @@ const initialState: Omit<
   setupWizardInitialStep: 1 as 1 | 2,
   isNewStoryboardMode: false,
   isAutoRunning: false,
+  pendingAutoRun: false,
 };
 
 export const useUIStore = create<UIState>((set) => ({
@@ -103,6 +109,7 @@ export const useUIStore = create<UIState>((set) => ({
   toggleAdvancedSettings: () =>
     set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
   toggleLabMenu: () => set((state) => ({ showLabMenu: !state.showLabMenu })),
+  setPendingAutoRun: (v) => set({ pendingAutoRun: v }),
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   showToast: (message, type) => {

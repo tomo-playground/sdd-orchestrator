@@ -105,6 +105,19 @@ function StudioContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyboardId]);
 
+  // Script → AutoRun chain: pendingAutoRun signal
+  const pendingAutoRun = useUIStore((s) => s.pendingAutoRun);
+  useEffect(() => {
+    if (!pendingAutoRun) return;
+    useUIStore.getState().setPendingAutoRun(false);
+    const preflight = runPreflight(buildPreflightInput());
+    if (preflight.errors.length > 0) {
+      setUI({ showPreflightModal: true });
+    } else {
+      runAutoRunFromStep("images", autopilot);
+    }
+  }, [pendingAutoRun, autopilot, setUI]);
+
   // Dirty state guard
   const isDirty = useStoryboardStore((s) => s.isDirty);
 
