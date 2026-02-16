@@ -4,10 +4,10 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import type { Scene, ImageValidation } from "../../types";
 import { hasSceneImage } from "../../utils/sceneCompletion";
 import {
-  LEFT_PANEL_CLASSES, cx,
+  cx,
   SUCCESS_BG,
   WARNING_BG,
-  ERROR_BG
+  ERROR_BG,
 } from "../ui/variants";
 import Button from "../ui/Button";
 
@@ -40,11 +40,11 @@ export default function SceneListPanel({
   const totalDuration = scenes.reduce((sum, s) => sum + (s.duration ?? 0), 0);
 
   return (
-    <aside className={LEFT_PANEL_CLASSES}>
+    <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-zinc-200 px-4 py-3">
-        <h2 className="text-sm font-bold text-zinc-800">Scenes</h2>
-        <p className="text-xs text-zinc-400">
+        <h2 className="text-[12px] font-medium tracking-wider text-zinc-400 uppercase">Scenes</h2>
+        <p className="mt-0.5 text-[11px] text-zinc-400">
           {scenes.length}개 씬 &middot; 총 {totalDuration}초
         </p>
       </div>
@@ -82,7 +82,7 @@ export default function SceneListPanel({
           + 씬 추가
         </Button>
       </div>
-    </aside>
+    </div>
   );
 }
 

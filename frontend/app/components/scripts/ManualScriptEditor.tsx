@@ -47,8 +47,14 @@ export default function ManualScriptEditor({ editor }: Props) {
             structure={editor.structure}
             characterId={editor.characterId}
             characterBId={editor.characterBId}
-            onChangeA={(id) => editor.setField("characterId", id)}
-            onChangeB={(id) => editor.setField("characterBId", id)}
+            onChangeA={(id, name) => {
+              editor.setField("characterId", id);
+              editor.setField("characterName", name);
+            }}
+            onChangeB={(id, name) => {
+              editor.setField("characterBId", id);
+              editor.setField("characterBName", name);
+            }}
           />
         </div>
 

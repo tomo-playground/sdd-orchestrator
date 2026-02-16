@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
@@ -46,12 +46,11 @@ function StudioContent() {
     loadedProfileId,
   });
 
-  // Routing: storyboardId or isNewStoryboardMode determines kanban vs editor
+  // Routing: URL params (?id=X or ?new=true) determine kanban vs editor
+  // contextStoryboardId (localStorage) is NOT used — URL is the single source of truth
   const searchParams = useSearchParams();
   const isNewMode = useUIStore((s) => s.isNewStoryboardMode) || searchParams.get("new") === "true";
-  const contextStoryboardId = useContextStore((s) => s.storyboardId);
-  const resolvedId = storyboardId ? parseInt(storyboardId, 10) : contextStoryboardId;
-  const hasStoryboard = (!!resolvedId && !isNaN(resolvedId as number)) || isNewMode;
+  const hasStoryboard = !!storyboardId || isNewMode;
 
   // Auto-activate Script tab for new storyboards
   const setActiveTab = useUIStore((s) => s.setActiveTab);
@@ -141,16 +140,6 @@ function StudioContent() {
       preventDefault: true,
     },
   ]);
-
-  // Redirect to Home if no storyboard selected -> CHANGED: Show Kanban View instead
-  const router = useRouter();
-  /* 
-  useEffect(() => {
-    if (!isLoadingDb && !hasStoryboard) {
-      router.replace("/");
-    }
-  }, [isLoadingDb, hasStoryboard, router]);
-  */
 
   if (isLoadingDb) {
     return (

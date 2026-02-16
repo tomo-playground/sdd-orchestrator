@@ -108,6 +108,13 @@
         "@modelcontextprotocol/server-postgres",
         "postgresql://shorts_app:1234@127.0.0.1:5432/shorts_producer"
       ]
+    },
+    "langfuse": {
+      "type": "http",
+      "url": "http://localhost:3001/api/public/mcp",
+      "headers": {
+        "Authorization": "Basic cGstbGYtY2YyZjQyNmUtZTcyZS00MWMxLTg4ZjYtNjE5NTI3M2NmMGI3OnNrLWxmLWQ1Y2NlZWNmLTAwOWUtNGMxNi1iODVmLWU1OTY5YzM1ZTc2NQ=="
+      }
     }
   }
 }

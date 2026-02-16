@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart3, Clock } from "lucide-react";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../ui/variants";
+import { formatRelativeTime } from "../../utils/format";
 
 type Props = {
   columns: Record<string, { id: number; title: string; updated_at: string | null }[]>;
@@ -23,17 +24,6 @@ const STATUS_META: Record<string, { label: string; color: string; dot: string }>
 };
 
 const MAX_RECENT = 3;
-
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 export default function HomeSecondaryPanel({ columns, total, isLoading }: Props) {
   const router = useRouter();

@@ -1,7 +1,6 @@
 """Unit tests for TTS audio normalization."""
 
 import numpy as np
-import pytest
 
 from services.video.tts_postprocess import normalize_audio, trim_tts_audio
 
@@ -54,10 +53,9 @@ class TestAudioNormalization:
     def test_trim_tts_audio_with_normalization(self):
         """Test trim_tts_audio with normalization enabled."""
         sr = 22050
-        duration = 1.0
 
-        # Create test audio with silence padding
-        signal = np.random.randn(int(sr * 0.5)).astype(np.float32) * 0.1
+        # Create quiet audio (RMS ~0.01, -40 dBFS) so normalization to -20 dBFS is clear
+        signal = np.random.randn(int(sr * 0.5)).astype(np.float32) * 0.01
         silence = np.zeros(int(sr * 0.25), dtype=np.float32)
         wav = np.concatenate([silence, signal, silence])
 
@@ -75,7 +73,6 @@ class TestAudioNormalization:
     def test_trim_tts_audio_without_normalization(self):
         """Test trim_tts_audio with normalization disabled."""
         sr = 22050
-        duration = 1.0
 
         # Create test audio
         signal = np.random.randn(int(sr * 0.5)).astype(np.float32) * 0.1

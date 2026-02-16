@@ -14,8 +14,8 @@ type Props = {
   structure: string;
   characterId: number | null;
   characterBId: number | null;
-  onChangeA: (id: number | null) => void;
-  onChangeB: (id: number | null) => void;
+  onChangeA: (id: number | null, name: string | null) => void;
+  onChangeB: (id: number | null, name: string | null) => void;
   /** When true, render content only without the SECTION_CLASSES card wrapper. */
   embedded?: boolean;
 };
@@ -38,13 +38,17 @@ export default function CharacterSelectSection({
   const renderSelect = (
     label: string,
     value: number | null,
-    onChange: (id: number | null) => void
+    onChange: (id: number | null, name: string | null) => void
   ) => (
     <div>
       {label && <label className={LABEL}>{label}</label>}
       <select
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+        onChange={(e) => {
+          const id = e.target.value ? Number(e.target.value) : null;
+          const name = id ? characters.find((c) => c.id === id)?.name ?? null : null;
+          onChange(id, name);
+        }}
         className={FORM_INPUT_CLASSES}
       >
         <option value="">None</option>

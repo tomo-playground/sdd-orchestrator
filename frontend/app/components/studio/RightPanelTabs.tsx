@@ -2,8 +2,6 @@
 
 import type { ReactNode } from "react";
 import { useUIStore, type RightPanelTab } from "../../store/useUIStore";
-import { RIGHT_PANEL_CLASSES } from "../ui/variants";
-
 const TABS: { key: RightPanelTab; label: string }[] = [
   { key: "image", label: "Image" },
   { key: "tools", label: "Tools" },
@@ -25,7 +23,7 @@ export default function RightPanelTabs({
   const setTab = useUIStore((s) => s.set);
 
   return (
-    <aside className={RIGHT_PANEL_CLASSES}>
+    <div className="space-y-4">
       {/* Tab Bar */}
       <div className="flex gap-1 rounded-lg bg-zinc-100 p-0.5">
         {TABS.map((tab) => {
@@ -48,6 +46,6 @@ export default function RightPanelTabs({
       {activeTab === "image" && imageContent}
       {activeTab === "tools" && toolsContent}
       {activeTab === "insight" && insightContent}
-    </aside>
+    </div>
   );
 }

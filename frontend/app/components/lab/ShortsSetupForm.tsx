@@ -118,8 +118,8 @@ export default function ShortsSetupForm({ loading, onSubmit, initialValues }: Pr
           structure={structure}
           characterId={monoCharId}
           characterBId={speakerBId}
-          onChangeA={setMonoCharId}
-          onChangeB={setSpeakerBId}
+          onChangeA={(id) => setMonoCharId(id)}
+          onChangeB={(id) => setSpeakerBId(id)}
         />
       </div>
 

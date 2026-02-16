@@ -67,7 +67,7 @@ export default function ImageSettingsContent() {
 
       {/* Options Toggles */}
       <div>
-        <label className="mb-1.5 block text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
+        <label className="mb-2 block text-[12px] font-medium tracking-wider text-zinc-400 uppercase">
           Options
         </label>
         <div className="flex flex-wrap gap-1.5">

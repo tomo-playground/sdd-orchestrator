@@ -71,7 +71,38 @@ npm run build
 npm run start
 ```
 
-## 5. 지속적 유지보수
+## 5. LangFuse Observability (선택)
+
+LangGraph Agentic Pipeline의 트레이스를 수집/분석하는 셀프호스팅 옵저빌리티 스택입니다.
+
+```bash
+# 시작 (6개 서비스: PostgreSQL + ClickHouse + Redis + MinIO + Web + Worker)
+docker compose -f docker-compose.langfuse.yml up -d
+
+# Web UI 접속 → 회원가입 → API 키 발급
+open http://localhost:3001
+```
+
+**환경 변수** (`backend/.env`):
+```
+LANGFUSE_ENABLED=true
+LANGFUSE_PUBLIC_KEY=pk-lf-xxx
+LANGFUSE_SECRET_KEY=sk-lf-xxx
+LANGFUSE_BASE_URL=http://localhost:3001
+```
+
+**비활성화**: `LANGFUSE_ENABLED=false` (기본값) — 서비스 정상 동작에 영향 없음.
+
+**포트 매핑**:
+
+| 서비스 | 포트 | 용도 |
+|--------|------|------|
+| langfuse-web | 3001 | Web UI |
+| langfuse-db | 5433 | LangFuse 전용 PostgreSQL (앱 DB와 별도) |
+| langfuse-redis | 6380 | 캐시 |
+| langfuse-minio | 9002 (API) / 9091 (콘솔) | 미디어 저장 |
+
+## 6. 지속적 유지보수
 
 -   **포즈 데이터 보강**: [Pose Maintenance](POSE_MAINTENANCE.md)
 -   **에셋 관리 정책**: [Storage Policy](STORAGE_POLICY.md)

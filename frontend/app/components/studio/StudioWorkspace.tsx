@@ -10,11 +10,12 @@ export default function StudioWorkspace() {
 
   return (
     <div className="min-h-0 flex-1 overflow-hidden">
-      {activeTab === "script" && (
-        <div className="h-full w-full overflow-y-auto px-6 py-8">
-          <ScriptTab />
-        </div>
-      )}
+      {/* ScriptTab uses local useState — keep mounted to preserve state across tab switches */}
+      <div
+        className={`h-full w-full overflow-y-auto px-6 py-8 ${activeTab !== "script" ? "hidden" : ""}`}
+      >
+        <ScriptTab />
+      </div>
 
       {activeTab === "edit" && <ScenesTab />}
 

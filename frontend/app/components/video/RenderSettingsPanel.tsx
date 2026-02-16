@@ -75,6 +75,7 @@ export type RenderMediaPanelProps = {
   setBgmMode: (value: "file" | "ai") => void;
   musicPresetId: number | null;
   setMusicPresetId: (value: number | null) => void;
+  defaultOpen?: boolean;
 };
 
 export function RenderMediaPanel({
@@ -109,6 +110,7 @@ export function RenderMediaPanel({
   setBgmMode,
   musicPresetId,
   setMusicPresetId,
+  defaultOpen = true,
 }: RenderMediaPanelProps) {
   return (
     <div className="space-y-4">
@@ -117,7 +119,10 @@ export function RenderMediaPanel({
         <p className="text-xs text-zinc-500">Layout, audio, and output settings.</p>
       </div>
 
-      <details open className="group rounded-2xl border border-zinc-200 bg-white">
+      <details
+        open={defaultOpen || undefined}
+        className="group rounded-2xl border border-zinc-200 bg-white"
+      >
         <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
           Media
           <span className="text-zinc-400 transition group-open:rotate-180">{"\u25BC"}</span>

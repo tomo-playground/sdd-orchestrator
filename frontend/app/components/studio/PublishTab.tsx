@@ -1,244 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import axios from "axios";
-import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { useRenderStore } from "../../store/useRenderStore";
-import { useContextStore } from "../../store/useContextStore";
 import { useUIStore } from "../../store/useUIStore";
-import { API_BASE } from "../../constants";
+import { useContextStore } from "../../store/useContextStore";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
-import { getCurrentProject, hasValidProfile } from "../../store/selectors/projectSelectors";
+import VideoPreviewHero from "../video/VideoPreviewHero";
 import { PublishVideosSection, PublishCaptionLikes } from "./PublishMetaPanel";
-import { renderWithProgress } from "../../utils/renderWithProgress";
-import { getErrorMsg } from "../../utils/error";
 import StudioThreeColumnLayout from "./StudioThreeColumnLayout";
+import { usePublishRender } from "../../hooks/usePublishRender";
 
 export default function PublishTab() {
-  const scenes = useStoryboardStore((s) => s.scenes);
-  const topic = useStoryboardStore((s) => s.topic);
-
-  const {
-    layoutStyle,
-    frameStyle,
-    isRendering,
-    includeSceneText,
-    sceneTextFont,
-    fontList,
-    loadedFonts,
-    kenBurnsPreset,
-    kenBurnsIntensity,
-    transitionType,
-    speedMultiplier,
-    bgmFile,
-    bgmList,
-    audioDucking,
-    bgmVolume,
-    voiceDesignPrompt,
-    voicePresetId,
-    bgmMode,
-    musicPresetId,
-    recentVideos,
-    renderProgress,
-    videoCaption,
-    videoLikesCount,
-  } = useRenderStore();
-
-  const setOutput = useRenderStore((s) => s.set);
-  const showToast = useUIStore((s) => s.showToast);
-  const projectId = useContextStore((s) => s.projectId);
-  const groupId = useContextStore((s) => s.groupId);
-  const storyboardId = useContextStore((s) => s.storyboardId);
+  const setUI = useUIStore((s) => s.set);
   const effectivePresetName = useContextStore((s) => s.effectivePresetName);
   const effectivePresetSource = useContextStore((s) => s.effectivePresetSource);
 
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-  const previewTimeoutRef = useRef<number | null>(null);
-  const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
-
-  // --- Load lists on mount ---
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/audio/list`)
-      .then((r) => setOutput({ bgmList: r.data.audios || [] }))
-      .catch(() => { });
-    axios
-      .get(`${API_BASE}/fonts/list`)
-      .then((r) => setOutput({ fontList: r.data.fonts || [] }))
-      .catch(() => { });
-  }, [setOutput]);
-
-  // --- Load selected font dynamically ---
-  useEffect(() => {
-    if (!sceneTextFont || loadedFonts.has(sceneTextFont)) return;
-    const fontFace = new FontFace(
-      sceneTextFont,
-      `url(${API_BASE}/fonts/file/${encodeURIComponent(sceneTextFont)})`
-    );
-    fontFace
-      .load()
-      .then((loaded) => {
-        document.fonts.add(loaded);
-        setOutput({ loadedFonts: new Set([...loadedFonts, sceneTextFont]) });
-      })
-      .catch(() => {
-        setOutput({ loadedFonts: new Set([...loadedFonts, sceneTextFont]) });
-      });
-  }, [sceneTextFont, loadedFonts, setOutput]);
-
-  // --- Cleanup audio on unmount ---
-  useEffect(() => () => stopBgmPreview(), []);
-
-  // --- Disabled reason ---
-  const canRender = scenes.filter((s) => !!s.image_url).length > 0;
-  const getDisabledReason = (): string | null => {
-    if (scenes.length === 0) return "스토리보드를 먼저 생성하세요";
-    if (!hasValidProfile()) return "프로젝트를 먼저 선택하세요";
-    if (!canRender) return "이미지가 있는 씬이 필요합니다";
-    return null;
-  };
-  const disabledReason = getDisabledReason();
-
-  // --- Render ---
-  const handleRender = useCallback(
-    async (mode: "full" | "post") => {
-      if (!hasValidProfile()) {
-        showToast("프로젝트를 먼저 선택해주세요", "error");
-        return;
-      }
-      if (!projectId || !groupId) {
-        showToast("프로젝트/그룹을 먼저 선택해주세요", "error");
-        return;
-      }
-      if (scenes.some((s) => s.image_url?.startsWith("data:"))) {
-        showToast("이미지를 저장한 뒤 렌더해주세요 (data URL은 전송할 수 없습니다)", "error");
-        return;
-      }
-
-      setOutput({ isRendering: true, renderProgress: null });
-      try {
-        const project = getCurrentProject();
-        const overlaySettings =
-          mode === "full" && project
-            ? {
-              channel_name: project.name,
-              avatar_key: project.avatar_key || project.handle || project.name,
-              frame_style: frameStyle,
-              caption: videoCaption,
-              likes_count: videoLikesCount,
-            }
-            : null;
-        const postCardSettings =
-          mode === "post" && project
-            ? {
-              channel_name: project.name,
-              avatar_key: project.avatar_key || project.handle || project.name,
-              caption: videoCaption,
-            }
-            : null;
-
-        const payload = {
-          project_id: projectId,
-          group_id: groupId,
-          storyboard_id: storyboardId,
-          scenes: scenes
-            .filter((s) => s.image_url)
-            .map((s) => ({
-              image_url: s.image_url!,
-              script: s.script,
-              speaker: s.speaker,
-              duration: s.duration,
-            })),
-          storyboard_title: topic || "my_shorts",
-          layout_style: mode,
-          ken_burns_preset: kenBurnsPreset,
-          ken_burns_intensity: kenBurnsIntensity,
-          transition_type: transitionType,
-          include_scene_text: includeSceneText,
-          scene_text_font: sceneTextFont,
-          tts_engine: "qwen",
-          voice_design_prompt: voiceDesignPrompt,
-          voice_preset_id: voicePresetId || null,
-          speed_multiplier: speedMultiplier,
-          bgm_file: bgmFile,
-          bgm_mode: bgmMode,
-          music_preset_id: musicPresetId || null,
-          audio_ducking: audioDucking,
-          bgm_volume: bgmVolume,
-          overlay_settings: overlaySettings,
-          post_card_settings: postCardSettings,
-        };
-
-        const result = await renderWithProgress(payload, (p) => {
-          setOutput({ renderProgress: p });
-        });
-        const url = result.video_url;
-        if (url) {
-          if (mode === "full") setOutput({ videoUrlFull: url, videoUrl: url });
-          else setOutput({ videoUrlPost: url, videoUrl: url });
-          setOutput({
-            recentVideos: [
-              {
-                url,
-                label: mode,
-                createdAt: Date.now(),
-                renderHistoryId: result.render_history_id,
-              },
-              ...recentVideos.slice(0, 9),
-            ],
-          });
-        }
-        showToast("Video rendered", "success");
-      } catch (err) {
-        showToast(`Render failed: ${getErrorMsg(err, "Unknown error")}`, "error");
-      } finally {
-        setOutput({ isRendering: false, renderProgress: null });
-      }
-    },
-    [
-      scenes, topic, kenBurnsPreset, kenBurnsIntensity, transitionType,
-      includeSceneText, sceneTextFont, speedMultiplier, bgmFile, bgmMode,
-      musicPresetId, audioDucking, bgmVolume, voiceDesignPrompt, voicePresetId,
-      videoCaption, videoLikesCount, recentVideos, setOutput, showToast,
-      frameStyle, projectId, groupId, storyboardId,
-    ]
-  );
-
-  // --- BGM Preview ---
-  function stopBgmPreview() {
-    if (previewTimeoutRef.current) {
-      window.clearTimeout(previewTimeoutRef.current);
-      previewTimeoutRef.current = null;
-    }
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.currentTime = 0;
-    }
-    setIsPreviewingBgm(false);
-  }
-
-  function handlePreviewBgm() {
-    const sourceUrl = bgmList.find((b) => b.name === bgmFile)?.url ?? "";
-    if (!sourceUrl) return;
-    stopBgmPreview();
-    const audio = new Audio(sourceUrl);
-    audio.onerror = () => stopBgmPreview();
-    previewAudioRef.current = audio;
-    setIsPreviewingBgm(true);
-    audio.play().catch(() => stopBgmPreview());
-    previewTimeoutRef.current = window.setTimeout(() => stopBgmPreview(), 10000);
-  }
+  const {
+    scenes,
+    store,
+    setOutput,
+    canRender,
+    disabledReason,
+    handleRender,
+    isPreviewingBgm,
+    handlePreviewBgm,
+    handleSetVoicePresetId,
+  } = usePublishRender();
 
   return (
-
     <StudioThreeColumnLayout
       leftPanel={
-        <div className="h-full overflow-y-auto p-4">
-          <PublishVideosSection compact />
+        <div className="h-full space-y-4 overflow-y-auto p-4">
+          <RenderSidePanel
+            layoutStyle={store.layoutStyle}
+            setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
+            frameStyle={store.frameStyle}
+            setFrameStyle={(v) => setOutput({ frameStyle: v })}
+            canRender={canRender}
+            isRendering={store.isRendering}
+            scenesWithImages={scenes.filter((s) => !!s.image_url).length}
+            totalScenes={scenes.length}
+            onRender={() => handleRender(store.layoutStyle)}
+            disabledReason={disabledReason}
+            renderPresetName={effectivePresetName}
+            renderPresetSource={effectivePresetSource}
+            renderProgress={store.renderProgress}
+          />
         </div>
       }
       centerPanel={
-        <div className="mx-auto w-full max-w-3xl px-6 py-8 space-y-6">
+        <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-8">
           {disabledReason && (
             <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
               <span className="text-xl">⚠</span>
@@ -251,70 +60,51 @@ export default function PublishTab() {
             </div>
           )}
 
+          <VideoPreviewHero
+            videoUrl={store.videoUrl}
+            onClickFullscreen={(url) => setUI({ videoPreviewSrc: url })}
+          />
+
           <RenderMediaPanel
-            includeSceneText={includeSceneText}
+            includeSceneText={store.includeSceneText}
             setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
-            sceneTextFont={sceneTextFont}
+            sceneTextFont={store.sceneTextFont}
             setSubtitleFont={(v) => setOutput({ sceneTextFont: v })}
-            fontList={fontList}
-            loadedFonts={loadedFonts}
-            kenBurnsPreset={kenBurnsPreset}
+            fontList={store.fontList}
+            loadedFonts={store.loadedFonts}
+            kenBurnsPreset={store.kenBurnsPreset}
             setKenBurnsPreset={(v) => setOutput({ kenBurnsPreset: v })}
-            kenBurnsIntensity={kenBurnsIntensity}
+            kenBurnsIntensity={store.kenBurnsIntensity}
             setKenBurnsIntensity={(v) => setOutput({ kenBurnsIntensity: v })}
-            transitionType={transitionType}
+            transitionType={store.transitionType}
             setTransitionType={(v) => setOutput({ transitionType: v })}
-            speedMultiplier={speedMultiplier}
+            speedMultiplier={store.speedMultiplier}
             setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
-            bgmFile={bgmFile}
+            bgmFile={store.bgmFile}
             setBgmFile={(v) => setOutput({ bgmFile: v })}
-            bgmList={bgmList}
+            bgmList={store.bgmList}
             onPreviewBgm={handlePreviewBgm}
             isPreviewingBgm={isPreviewingBgm}
-            audioDucking={audioDucking}
+            audioDucking={store.audioDucking}
             setAudioDucking={(v) => setOutput({ audioDucking: v })}
-            bgmVolume={bgmVolume}
+            bgmVolume={store.bgmVolume}
             setBgmVolume={(v) => setOutput({ bgmVolume: v })}
-            voiceDesignPrompt={voiceDesignPrompt}
+            voiceDesignPrompt={store.voiceDesignPrompt}
             setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
-            voicePresetId={voicePresetId}
-            setVoicePresetId={async (v) => {
-              setOutput({ voicePresetId: v });
-              if (groupId) {
-                try {
-                  await axios.put(`${API_BASE}/groups/${groupId}/config`, {
-                    narrator_voice_preset_id: v,
-                  });
-                } catch (err) {
-                  console.error("[setVoicePresetId] Failed to update group config:", err);
-                }
-              }
-            }}
-            bgmMode={bgmMode}
+            voicePresetId={store.voicePresetId}
+            setVoicePresetId={handleSetVoicePresetId}
+            bgmMode={store.bgmMode}
             setBgmMode={(v) => setOutput({ bgmMode: v })}
-            musicPresetId={musicPresetId}
+            musicPresetId={store.musicPresetId}
             setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
+            defaultOpen={false}
           />
         </div>
       }
       rightPanel={
         <div className="space-y-4">
-          <RenderSidePanel
-            layoutStyle={layoutStyle}
-            setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
-            frameStyle={frameStyle}
-            setFrameStyle={(v) => setOutput({ frameStyle: v })}
-            canRender={canRender}
-            isRendering={isRendering}
-            scenesWithImages={scenes.filter((s) => !!s.image_url).length}
-            totalScenes={scenes.length}
-            onRender={() => handleRender(layoutStyle)}
-            disabledReason={disabledReason}
-            renderPresetName={effectivePresetName}
-            renderPresetSource={effectivePresetSource}
-            renderProgress={renderProgress}
-          />
           <PublishCaptionLikes />
+          <PublishVideosSection variant="list" />
         </div>
       }
     />

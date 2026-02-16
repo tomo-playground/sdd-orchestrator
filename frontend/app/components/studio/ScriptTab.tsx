@@ -60,7 +60,7 @@ export default function ScriptTab() {
       leftPanel={
         editor.scenes.length > 0 ? (
           <div className="h-full overflow-y-auto p-4">
-            <h3 className="mb-4 text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            <h3 className="mb-4 block text-[12px] font-medium tracking-wider text-zinc-400 uppercase">
               Scene Outline
             </h3>
             <ScriptSceneList
@@ -79,7 +79,7 @@ export default function ScriptTab() {
         )
       }
       centerPanel={
-        <div className="mx-auto w-full max-w-3xl px-8 py-8">
+        <div className="mx-auto w-full max-w-3xl px-6 py-8">
           {/* Mode tabs */}
           <div className="mb-6 flex justify-center">
             <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">

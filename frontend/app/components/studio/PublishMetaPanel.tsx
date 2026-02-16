@@ -17,7 +17,13 @@ import { Input, Textarea } from "../ui";
  * Caption/Likes/YouTube section for the Publish tab.
  * Renders: rendered videos (left column), caption+likes (right column), YouTube modal.
  */
-export function PublishVideosSection({ compact = false }: { compact?: boolean }) {
+export function PublishVideosSection({
+  compact = false,
+  variant = "card",
+}: {
+  compact?: boolean;
+  variant?: "card" | "list";
+}) {
   const setOutput = useRenderStore((s) => s.set);
   const showToast = useUIStore((s) => s.showToast);
   const setUI = useUIStore((s) => s.set);
@@ -62,6 +68,7 @@ export function PublishVideosSection({ compact = false }: { compact?: boolean })
         onDeleteRecentVideo={handleDeleteRecentVideo}
         onUploadToYouTube={handleUploadToYouTube}
         compact={compact}
+        variant={variant}
       />
       <YouTubeUploadModal
         open={ytModalOpen}
@@ -136,20 +143,18 @@ export function PublishCaptionLikes() {
             캡션
           </label>
           <span
-            className={`text-[12px] font-bold ${videoCaption.length >= 60
-              ? "text-red-500"
-              : videoCaption.length >= 50
-                ? "text-amber-500"
-                : "text-zinc-400"
-              }`}
+            className={`text-[12px] font-bold ${
+              videoCaption.length >= 60
+                ? "text-red-500"
+                : videoCaption.length >= 50
+                  ? "text-amber-500"
+                  : "text-zinc-400"
+            }`}
           >
             {videoCaption.length}/60
           </span>
           {savedField === "caption" && savedBadge}
         </div>
-
-
-
 
         <Textarea
           value={videoCaption}

@@ -35,13 +35,26 @@ export function useStudioInitialization() {
 
   // Reset store for ?new=true (DB creation deferred to first save/generate)
   const newHandledRef = useRef(false);
+  const isMountRef = useRef(true);
 
   useEffect(() => {
     const isNewStoryboard = searchParams.get("new") === "true";
     if (!isNewStoryboard) {
-      newHandledRef.current = false;
+      // After ?new=true URL cleanup, skip one re-render to preserve isNewStoryboardMode
+      if (newHandledRef.current) {
+        newHandledRef.current = false;
+        isMountRef.current = false;
+        return;
+      }
+      // Only on fresh mount (page entry): clear stale isNewStoryboardMode
+      // Skips URL changes within session (e.g. ?mode=full toggle)
+      if (isMountRef.current && !searchParams.get("id")) {
+        useUIStore.getState().set({ isNewStoryboardMode: false });
+      }
+      isMountRef.current = false;
       return;
     }
+    isMountRef.current = false;
     if (newHandledRef.current) return;
     newHandledRef.current = true;
 
@@ -236,7 +249,8 @@ async function loadCharacterForRole(
   try {
     const charRes = await axios.get(`${API_BASE}/characters/${characterId}`);
     const char = charRes.data;
-    const nameField = fields.basePrompt === "basePromptA" ? "selectedCharacterName" : "selectedCharacterBName";
+    const nameField =
+      fields.basePrompt === "basePromptA" ? "selectedCharacterName" : "selectedCharacterBName";
     const updates: Record<string, unknown> = {
       [fields.loras]: char.loras || [],
       [fields.basePrompt]: char.base_prompt || "",
