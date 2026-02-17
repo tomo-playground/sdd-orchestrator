@@ -216,9 +216,9 @@ Manage→Library+Settings 분리, 공유 레이아웃 시스템(AppThreeColumnLa
 | **4C. Pipeline 고도화** | 품질 | Director feedback→타겟 노드 주입 (W-2 수정), Production Chain 병렬화 (LangGraph fan-out: tts/sound/copyright 동시 실행), Explain Node (Full 모드 창작 결정 설명), fallback 패턴 (병렬 안전). 13→**14노드** 파이프라인 | [x] (2026-02-16) |
 | **4. 고도화 (잔여)** | 장기 | PipelineControl 커스텀, 분산 큐 | [ ] |
 | **5A. Narrative Quality** | 서사 품질 | Hook 구조 가이드 + 서사 품질 평가 (Review 노드 확장) + NarrativeScore | [x] (2026-02-17) |
-| **5B. Concept Gate** | 컨셉 선택 | Critic 3컨셉 사용자 노출 + concept_gate 노드 + Creator interrupt | [ ] |
-| **5C. AI Transparency** | 투명성 UX | Pipeline Stepper + Agent Reasoning 패널 + Narrative Score 시각화 | [ ] |
-| **5D. Interactive Feedback** | 피드백 | 프리셋 피드백 버튼 5종 + Concept Gate 피드백 + LLM 번역 | [ ] |
+| **5B. Concept Gate** | 컨셉 선택 | Critic 3컨셉 사용자 노출 + concept_gate 노드 + Creator interrupt | [x] (2026-02-17) |
+| **5C. AI Transparency** | 투명성 UX | Pipeline Stepper + Agent Reasoning 패널 + Narrative Score 시각화 | [x] (2026-02-17) |
+| **5D. Interactive Feedback** | 피드백 | 프리셋 피드백 버튼 4종 + Concept Gate 재생성/직접입력 + 파라미터 피드백 | [x] (2026-02-17) |
 
 ---
 
@@ -304,13 +304,16 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - **Phase 7-6**: Scene UX Enhancement **완료** (Phase A~G)
 - **Phase 7-X**: UI Polish & Standardization **완료** (2026-02-14). [가이드](../02_design/UI_COMPONENTS.md)
 - **Phase 7-Y**: Layout Standardization **완료** (2026-02-15). Manage→Library+Settings 분리, 공유 레이아웃(AppThreeColumnLayout/AppSidebar/AppMobileTabBar), Home 리디자인(HomeVideoFeed), 네비 4탭(Home/Studio/Library/Settings), Lab 비활성화, 캐릭터 편집 임시 비활성. 테스트 동기화 39건 수정 완료. **Unified Setup Wizard** 추가 (채널→시리즈 2-step, 5곳 트리거)
-- **렌더링 품질 개선** (2026-02-14~15): Post Type Scene Text 동적 높이, Full Type Safe Zone, 블러 배경 품질, 폰트 크기 동적 조정, 배경 밝기 기반 텍스트 색상, 얼굴 감지 스마트 크롭, TTS 오디오 정규화, Post Type 해시태그 Instagram Blue. 총 52개 테스트 추가
+- **렌더링 품질 개선** (2026-02-14~17): Post Type Scene Text 동적 높이, Full Type Safe Zone, 블러 배경 품질, 폰트 크기 동적 조정, 배경 밝기 기반 텍스트 색상, 얼굴 감지 스마트 크롭, TTS 오디오 정규화, Post Type 해시태그 Instagram Blue. **얼굴 감지 개선** (02-17): anime cascade 우선 + 오감지 검증 강화(최소 크기 8%+하단 30% 필터, 표준 cascade minNeighbors 5→8). 총 52개 테스트 추가
 - **Phase 7-Z**: Home Dashboard & Publish UX Redesign — **Phase A+C 완료** (2026-02-15). Home 2-Column 대시보드 + Continue Working + Gallery 캐러셀 + QuickActions/Stats 사이드바 컴팩트화 + `formatRelativeTime` 공통 유틸 추출(+10 테스트). **Phase C**: Publish 3-Column 재배치(VideoPreviewHero 센터, 설정 접힘, Recent Videos 리스트), `usePublishRender` 훅 추출(349→112줄) + `useShallow` 선택적 구독 최적화(30→21필드, `getState()` 콜백 패턴), 3탭 UI 일관성 통일(패딩/헤더/max-width). Phase B/D 미착수
 - **Phase 9**: Agentic AI Pipeline — **Phase 0~4C 완료** (2026-02-15~16). **14-노드** 조건 분기 그래프 (Quick 6노드 / Full 14노드), Quick/Full 모드 + Preset 3종, Revise 루프 + Human Gate, reasoning [왜?] 패널. **Phase 2**: AsyncPostgresStore Memory, LangFuse v3 Docker Observability, Research/Learn 노드 구현, 피드백 수집 API+UI, Memory 관리 Settings 탭. **AsyncPostgresStore 싱글턴 버그 수정** (from_conn_string async context manager → 직접 AsyncConnection 패턴). **LangFuse v3 Docker 인프라 완전 가동** (2026-02-16): docker-compose 6서비스(PG+ClickHouse+Redis+MinIO+Web+Worker), MinIO 버킷 생성(langfuse-events/langfuse-media), S3 Region 설정, observability.py SDK v3 API 대응(`Langfuse()` 전역 초기화 + `CallbackHandler`), langchain 의존성 추가, LangGraph 대본 생성 트레이스 기록 확인 완료. **human_gate interrupt 시 중간 결과 기록** (2026-02-16): `update_trace_on_interrupt()`로 트레이스 output=null → draft_scenes/review_result 기록, ERROR 상태 방지. **Phase 3 Creative 재평가 완료** (2026-02-16): 선택지 C(폐기) 결정 — Creative Lab UI/라우터/파이프라인은 Phase 7-4 D에서 이미 삭제됨. 잔여 서비스(debate_agents, creative_qc)는 LangGraph Production 노드로 흡수. creative_utils.py V2 데드 코드 258줄 정리. **Phase 4B Agent Spec + Director 완료** (2026-02-16): Agentic AI 기준 분류 체계(AI Agent 7 / Hybrid 2 / System 4), 네이밍 통일(debate→critic, draft→writer), Director Agent 신규(Production chain 통합 검증 + revision 루프), `_DIRECTOR_DECISION_MAP` 명시적 라우팅, AGENT_SPEC.md 엔지니어링 스펙. **Phase 4C Pipeline 고도화 완료** (2026-02-16): Director feedback→타겟 노드 주입(cinematographer/tts/sound/copyright/revise), Production Chain 병렬화(LangGraph fan-out: tts/sound/copyright 동시 실행), Explain Node(Full 모드 창작 결정 설명), fallback 패턴(tts/sound 에러 시 빈 결과 반환, 병렬 안전). 13→14노드, AGENT_SPEC.md v1.1. **Phase 5 설계 완료** (2026-02-17): 4-Agent 크로스 분석 합의 — Multi-draft(3x) 반대, Concept Gate 방식 채택. 5A 서사 품질 평가(Hook 40%+감정 25%+반전 20%+톤 10%+정합성 5%), 5B Concept Gate(Critic 3컨셉 사용자 선택), 5C AI 투명성 UX(Pipeline Stepper+Reasoning 패널+Score 시각화), 5D 프리셋 피드백 버튼. [명세](FEATURES/SCRIPT_QUALITY_UX.md) [Agent 스펙](../03_engineering/backend/AGENT_SPEC.md)
 - **VRT Baseline**: 24개 스크린샷, 8개 스펙 완료 (6-7 #2)
 - **안정성 수정** (2026-02-16): Script 탭 unmount 시 scenes 소실 버그 수정 (save() 후 useStoryboardStore 즉시 동기화), ScenesTab 리팩터링 잔여 데드코드 제거 (resolvedIpAdapter), TTS normalization 플레이키 테스트 수정, **Edit→Script 탭 전환 시 대본 소실 수정** (StudioWorkspace 조건부 렌더링 → CSS hidden으로 ScriptTab 상태 유지), **Character Preset 동기화 수정** (useScriptEditor 로컬 state의 characterId/Name을 syncToGlobalStore로 useStoryboardStore에 전파 → AutoRun Preflight에서 캐릭터 인식)
 - **Phase 9-5A Narrative Quality 완료** (2026-02-17): `create_storyboard.j2`에 Hook/Rising/Climax/Resolution 구조 가이드 추가. Review 노드 3-tier 검증(규칙→Gemini 피드백→서사 품질 평가). `NarrativeScore` TypedDict(Hook 40%+감정 25%+반전 20%+톤 10%+정합성 5%), `narrative_review.j2` 템플릿, `LANGGRAPH_NARRATIVE_THRESHOLD=0.6` 임계값, Revise 노드 narrative feedback 주입. Quick 모드 스킵, Gemini 에러 시 graceful degradation. 10개 테스트 추가
-- **테스트**: Backend 1,550 passed + Frontend 309 passed = **총 1,859개** (Phase 5A narrative review 테스트 10개 추가)
+- **Phase 9-5B Concept Gate 완료** (2026-02-17): concept_gate 노드 삽입(critic↔writer 사이), Creator 모드 interrupt()로 3컨셉 사용자 선택, Full Auto pass-through. Writer가 selected_concept를 description에 주입. SSE 일반화(_read_interrupt_state → tuple[str, dict] 반환, 동적 interrupt 노드명). ConceptSelectionPanel UI(AI 추천 뱃지, 카드 선택). 14→**15노드** 파이프라인. 10개 테스트 추가
+- **Phase 9-5D Interactive Feedback 완료** (2026-02-17): FEEDBACK_PRESETS 4종(hook_boost/more_dramatic/tone_change/shorten) config SSOT, concept_gate 3-action 분기(select/regenerate/custom_concept), route_after_concept_gate 조건 라우팅(concept_gate→writer|critic), MAX_CONCEPT_REGEN=2 제한. FeedbackPresetButtons UI(파라미터 chip 선택), ConceptSelectionPanel 재생성/직접입력 폼, ReviewApprovalPanel 프리셋 통합, useScriptEditor resume 확장(ResumeOptions). _update_user_preferences → services/agent/feedback.py 추출. 10개 테스트 추가
+- **Phase 9-5C AI Transparency UX 완료** (2026-02-17): Backend `_build_node_payload()` → `_extract_node_result()` 매핑 딕셔너리로 critic/review/director/explain의 reasoning 데이터를 `node_result` SSE 필드로 전달. Frontend `pipelineSteps.ts` 순수 함수(15노드→7/3 논리 스텝 매핑), `PipelineStepper` 수평 멀티스텝 인디케이터(done/running/idle/error 상태 + pulse 애니메이션), `NarrativeScoreChart` 5메트릭 바 차트(compact/full 모드), `AgentReasoningPanel` 아코디언(Critic/Review/Director/Explain 섹션, `reasoning/ReasoningSections.tsx` 분리), ReviewApprovalPanel NarrativeScore compact 내장, ManualScriptEditor Progress bar→PipelineStepper 교체 + AgentReasoningPanel 통합. `isNarrativeScore()` 타입 가드로 런타임 안전성 강화. 10개 pipelineSteps 단위 테스트 추가
+- **테스트**: Backend 1,570 passed + Frontend 319 passed = **총 1,889개** (Phase 5C pipelineSteps 10개 추가)
 
 ### 잔여 작업 우선순위 (재정리 2026-02-15)
 
@@ -320,9 +323,9 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | 순위 | 출처 | 작업 | 기간 | 근거 |
 |------|------|------|------|------|
 | ~~1~~ | ~~9 P5A~~ | ~~Narrative Quality: Hook 구조 가이드 + 서사 품질 평가 + NarrativeScore~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
-| 2 | 9 P5B | Concept Gate: Critic 3컨셉 노출 + concept_gate 노드 + Creator interrupt | 2-3일 | 사용자 방향 선택 참여. 14→15노드 |
-| 3 | 9 P5D | Interactive Feedback: 프리셋 피드백 5종 + Concept Gate 피드백 | 1-2일 | 피드백 진입 장벽 해소. 원클릭 UX |
-| 4 | 9 P5C | AI Transparency UX: Pipeline Stepper + Reasoning 패널 + Score 시각화 | 2-3일 | 과정 투명화. Frontend 중심 |
+| ~~2~~ | ~~9 P5B~~ | ~~Concept Gate: Critic 3컨셉 노출 + concept_gate 노드 + Creator interrupt~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
+| ~~3~~ | ~~9 P5D~~ | ~~Interactive Feedback: 프리셋 피드백 4종 + Concept Gate 피드백~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
+| ~~4~~ | ~~9 P5C~~ | ~~AI Transparency UX: Pipeline Stepper + Reasoning 패널 + Score 시각화~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
 
 **Tier 1 — Home & Publish UX (신규 사용자)**
 | 순위 | 출처 | 작업 | 기간 | 근거 |
