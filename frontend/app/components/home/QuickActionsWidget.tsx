@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Clapperboard, UserRound, Palette, Mic } from "lucide-react";
-import { useUIStore } from "../../store/useUIStore";
+import { PenLine, UserRound, Palette, Mic } from "lucide-react";
 
 type QuickAction = {
   id: string;
@@ -17,11 +16,10 @@ export default function QuickActionsWidget() {
 
   const actions: QuickAction[] = [
     {
-      id: "new-project",
-      label: "New Project",
-      icon: Clapperboard,
-      onClick: () =>
-        useUIStore.getState().set({ showSetupWizard: true, setupWizardInitialStep: 1 }),
+      id: "create-story",
+      label: "Create Story",
+      icon: PenLine,
+      href: "/studio?new=true",
     },
     {
       id: "create-character",

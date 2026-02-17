@@ -59,6 +59,7 @@ export type ScriptEditorState = {
   recommendedConceptId: number | null;
   feedbackSubmitted: boolean;
   justGenerated: boolean;
+  references: string;
   feedbackPresets: FeedbackPreset[] | null;
   pipelineSteps: PipelineStep[];
   nodeResults: Record<string, Record<string, unknown>>;
@@ -272,6 +273,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     isWaitingForConcept: false,
     concepts: null,
     recommendedConceptId: null,
+    references: "",
     feedbackSubmitted: false,
     justGenerated: false,
     feedbackPresets: null,
@@ -337,6 +339,13 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     if (state.preset) body.preset = state.preset;
     if (state.characterId) body.character_id = state.characterId;
     if (state.characterBId) body.character_b_id = state.characterBId;
+    const refs = state.references.trim();
+    if (refs) {
+      body.references = refs
+        .split("\n")
+        .map((r) => r.trim())
+        .filter(Boolean);
+    }
 
     try {
       const response = await fetch(`${API_BASE}/scripts/generate-stream`, {
@@ -394,6 +403,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     state.structure,
     state.characterId,
     state.characterBId,
+    state.references,
     state.mode,
     state.preset,
     groupId,
@@ -653,6 +663,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       isWaitingForConcept: false,
       concepts: null,
       recommendedConceptId: null,
+      references: "",
       feedbackSubmitted: false,
       justGenerated: false,
       feedbackPresets: null,

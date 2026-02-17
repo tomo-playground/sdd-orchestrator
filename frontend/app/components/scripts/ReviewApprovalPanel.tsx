@@ -3,15 +3,32 @@
 import { useState } from "react";
 import { CheckCircle, Edit3 } from "lucide-react";
 import Button from "../ui/Button";
+import FeedbackPresetButtons from "./FeedbackPresetButtons";
+import NarrativeScoreChart from "./NarrativeScoreChart";
 import type { SceneItem } from "../../hooks/useScriptEditor";
+import type { FeedbackPreset, NarrativeScore } from "../../types";
+
+function isNarrativeScore(v: unknown): v is NarrativeScore {
+  return typeof v === "object" && v !== null && "overall" in v;
+}
 
 type Props = {
   scenes: SceneItem[];
   onApprove: () => void;
   onRevise: (feedback: string) => void;
+  feedbackPresets?: FeedbackPreset[];
+  onPresetRevise?: (presetId: string, params?: Record<string, string>) => void;
+  reviewResult?: Record<string, unknown>;
 };
 
-export default function ReviewApprovalPanel({ scenes, onApprove, onRevise }: Props) {
+export default function ReviewApprovalPanel({
+  scenes,
+  onApprove,
+  onRevise,
+  feedbackPresets,
+  onPresetRevise,
+  reviewResult,
+}: Props) {
   const [feedback, setFeedback] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
 
@@ -21,6 +38,13 @@ export default function ReviewApprovalPanel({ scenes, onApprove, onRevise }: Pro
       <p className="mb-4 text-xs text-amber-700">
         AI가 {scenes.length}개 씬을 생성했습니다. 승인하거나 수정을 요청하세요.
       </p>
+
+      {/* Narrative score compact */}
+      {isNarrativeScore(reviewResult?.narrative_score) && (
+        <div className="mb-3">
+          <NarrativeScoreChart score={reviewResult.narrative_score} compact />
+        </div>
+      )}
 
       {/* Scene preview */}
       <div className="mb-4 max-h-40 space-y-2 overflow-y-auto">
@@ -33,6 +57,17 @@ export default function ReviewApprovalPanel({ scenes, onApprove, onRevise }: Pro
           </div>
         ))}
       </div>
+
+      {/* Feedback preset buttons */}
+      {feedbackPresets && feedbackPresets.length > 0 && onPresetRevise && (
+        <div className="mb-4">
+          <FeedbackPresetButtons
+            presets={feedbackPresets}
+            onPresetSelect={onPresetRevise}
+            onCustom={() => setShowFeedback(true)}
+          />
+        </div>
+      )}
 
       {/* Feedback input */}
       {showFeedback && (

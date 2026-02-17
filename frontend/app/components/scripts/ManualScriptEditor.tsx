@@ -8,9 +8,11 @@ import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
 import ConceptSelectionPanel from "./ConceptSelectionPanel";
 import ReviewApprovalPanel from "./ReviewApprovalPanel";
+import PipelineStepper from "./PipelineStepper";
+import AgentReasoningPanel from "./AgentReasoningPanel";
 import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
-import { SECTION_CLASSES } from "../ui/variants";
+import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES } from "../ui/variants";
 import { useUIStore } from "../../store/useUIStore";
 import { persistStoryboard } from "../../store/actions/storyboardActions";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
@@ -23,6 +25,7 @@ export default function ManualScriptEditor({ editor }: Props) {
   const { presets, languages, durations } = usePresets();
   const { confirm, dialogProps } = useConfirm();
   const [isStarting, setIsStarting] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   const handleStartProduction = async () => {
     setIsStarting(true);
@@ -92,6 +95,30 @@ export default function ManualScriptEditor({ editor }: Props) {
           </div>
         )}
 
+        {/* References — Full mode only */}
+        {editor.mode === "full" && (
+          <details className="mt-4 border-t border-zinc-200/60 pt-4">
+            <summary className="cursor-pointer text-xs font-medium text-zinc-500">
+              References <span className="text-zinc-400">(optional)</span>
+            </summary>
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={editor.references}
+                onChange={(e) => editor.setField("references", e.target.value)}
+                rows={3}
+                maxLength={2000}
+                className={FORM_TEXTAREA_CLASSES}
+                placeholder={
+                  "참고 URL 또는 소재 텍스트를 입력하세요\nhttps://example.com/article\n또는 직접 소재 텍스트를 입력..."
+                }
+              />
+              <p className="text-[11px] text-zinc-400">
+                줄바꿈으로 구분 (URL + 텍스트 혼합 가능, 최대 5개)
+              </p>
+            </div>
+          </details>
+        )}
+
         {/* Generate button — card footer */}
         <div className="mt-5 flex justify-end border-t border-zinc-200/60 pt-5">
           <Button
@@ -120,22 +147,26 @@ export default function ManualScriptEditor({ editor }: Props) {
           </Button>
         </div>
 
-        {/* Progress bar */}
-        {editor.progress && (
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-xs text-zinc-500">
-              <span>{editor.progress.label}</span>
-              <span>{editor.progress.percent}%</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
-              <div
-                className="h-full rounded-full bg-zinc-900 transition-all duration-500"
-                style={{ width: `${editor.progress.percent}%` }}
-              />
-            </div>
-          </div>
+        {/* Pipeline stepper */}
+        {editor.pipelineSteps.length > 0 && (
+          <PipelineStepper
+            steps={editor.pipelineSteps}
+            currentNode={editor.progress?.node}
+            percent={editor.progress?.percent}
+            onStepClick={(id) => setExpandedStep((prev) => (prev === id ? null : id))}
+          />
         )}
       </section>
+
+      {/* Agent reasoning panel — shown when nodeResults available */}
+      {Object.keys(editor.nodeResults).length > 0 && (
+        <AgentReasoningPanel
+          nodeResults={editor.nodeResults}
+          expandedStep={expandedStep}
+          onToggle={setExpandedStep}
+          mode={editor.mode}
+        />
+      )}
 
       {/* Concept selection panel — shown after critic in creator mode */}
       {editor.isWaitingForConcept && editor.concepts && (
@@ -143,6 +174,10 @@ export default function ManualScriptEditor({ editor }: Props) {
           candidates={editor.concepts}
           recommendedId={editor.recommendedConceptId}
           onSelect={(id) => editor.resume("select", undefined, id)}
+          onRegenerate={() => editor.resume("regenerate")}
+          onCustomConcept={(concept) =>
+            editor.resume("custom_concept", undefined, undefined, { customConcept: concept })
+          }
         />
       )}
 
@@ -152,10 +187,18 @@ export default function ManualScriptEditor({ editor }: Props) {
           scenes={editor.scenes}
           onApprove={() => editor.resume("approve")}
           onRevise={(feedback) => editor.resume("revise", feedback)}
+          feedbackPresets={editor.feedbackPresets ?? undefined}
+          onPresetRevise={(presetId, params) =>
+            editor.resume("revise", undefined, undefined, {
+              feedbackPreset: presetId,
+              feedbackPresetParams: params,
+            })
+          }
+          reviewResult={editor.nodeResults.review}
         />
       )}
 
-      {/* Post-generation CTA — shown only after fresh generation */}
+      {/* Post-generation CTA */}
       {editor.justGenerated && !editor.isGenerating && !editor.isWaitingForInput && (
         <section className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
           <div>

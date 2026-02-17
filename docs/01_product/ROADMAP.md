@@ -155,28 +155,12 @@ Manage→Library+Settings 분리, 공유 레이아웃 시스템(AppThreeColumnLa
 | 2 | "Continue Working" 섹션 (최근 수정 스토리보드 2-3개, 워크플로우 단계 표시 Script/Edit/Publish, Continue CTA) | UX | [x] 2026-02-15 |
 | 3 | Video Gallery 컴팩트화 (그리드 → 수평 스크롤 캐러셀, 카드 높이 400px→220px, "모두 보기" 링크) | UX | [x] 2026-02-15 |
 
-### Phase B: Home 개인화 + 신규 사용자
-
-| # | 작업 | 분류 | 상태 |
-|---|------|------|------|
-| 4 | 신규 사용자 Quick Start 위젯 (프로젝트 0개 시 인라인 토픽 입력 + 예시 칩, Canva 패턴) | UX | [ ] |
-| 5 | 워크플로우 파이프라인 현황 (`Script(3) → Edit(5) → Publish(2) → Done(12)` 병목 시각화) | UX | [ ] |
-| 6 | 컨텍스트 인식형 "What's Next" 액션 (사용자 상태 기반 동적 추천: draft SB→"이어쓰기", 이미지 미생성→"이미지 생성") | UX | [ ] |
-
-### Phase C: Publish 탭 레이아웃 재설계
+### Phase B: Publish 탭 레이아웃 재설계
 
 | # | 작업 | 분류 | 상태 |
 |---|------|------|------|
 | 7 | Publish 3-Column 재배치: LEFT(Layout 선택+Render 버튼+Progress) / CENTER(비디오 프리뷰 크게+설정 접힘) / RIGHT(Caption/Likes+Recent Videos 리스트) | UX | [x] 2026-02-15 |
 | 8 | Render Settings `<details>` 래핑 (기본 접힘 상태, 설정보다 결과물 우선) | UX | [x] 2026-02-15 |
-
-### Phase D: 보완 (선택)
-
-| # | 작업 | 분류 | 상태 |
-|---|------|------|------|
-| 9 | 시간대 인사말 헤더 ("좋은 오후예요. 프로젝트 3개 / 영상 24개") | UX | [ ] |
-| 10 | Library Health 위젯 (SD WebUI 연결 상태, LoRA 없는 캐릭터 수 등 시스템 건강성) | UX | [ ] |
-| 11 | 최근 활동 타임라인 (ActivityLog 기반 이미지 생성/렌더링/대본 생성 이력 피드) | UX | [ ] |
 
 ---
 
@@ -305,7 +289,7 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - **Phase 7-X**: UI Polish & Standardization **완료** (2026-02-14). [가이드](../02_design/UI_COMPONENTS.md)
 - **Phase 7-Y**: Layout Standardization **완료** (2026-02-15). Manage→Library+Settings 분리, 공유 레이아웃(AppThreeColumnLayout/AppSidebar/AppMobileTabBar), Home 리디자인(HomeVideoFeed), 네비 4탭(Home/Studio/Library/Settings), Lab 비활성화. 테스트 동기화 39건 수정 완료. **Unified Setup Wizard** 추가 (채널→시리즈 2-step, 5곳 트리거). **캐릭터 편집 UX 통일** (02-17): 위자드(AppearanceStep/LoraStep) 재활용으로 편집 페이지 태그/LoRA 편집 활성화, `useTagData` 훅 + `tagUtils` 순수함수 추출로 중복 ~90줄 제거, Gender/PromptMode pill 스타일 통일, Input/Textarea 컴포넌트 통일
 - **렌더링 품질 개선** (2026-02-14~17): Post Type Scene Text 동적 높이, Full Type Safe Zone, 블러 배경 품질, 폰트 크기 동적 조정, 배경 밝기 기반 텍스트 색상, 얼굴 감지 스마트 크롭, TTS 오디오 정규화, Post Type 해시태그 Instagram Blue. **얼굴 감지 개선** (02-17): anime cascade 우선 + 오감지 검증 강화(최소 크기 8%+하단 30% 필터, 표준 cascade minNeighbors 5→8). SB426 검증: OLD 7감지(오감지 3건)→NEW 4감지(오감지 0건). 총 52개 테스트 추가
-- **Phase 7-Z**: Home Dashboard & Publish UX Redesign — **Phase A+C 완료** (2026-02-15). Home 2-Column 대시보드 + Continue Working + Gallery 캐러셀 + QuickActions/Stats 사이드바 컴팩트화 + `formatRelativeTime` 공통 유틸 추출(+10 테스트). **Phase C**: Publish 3-Column 재배치(VideoPreviewHero 센터, 설정 접힘, Recent Videos 리스트), `usePublishRender` 훅 추출(349→112줄) + `useShallow` 선택적 구독 최적화(30→21필드, `getState()` 콜백 패턴), 3탭 UI 일관성 통일(패딩/헤더/max-width). Phase B/D 미착수
+- **Phase 7-Z**: Home Dashboard & Publish UX Redesign — **Phase A+C 완료** (2026-02-15). Home 2-Column 대시보드 + Continue Working + Gallery 캐러셀 + QuickActions/Stats 사이드바 컴팩트화 + `formatRelativeTime` 공통 유틸 추출(+10 테스트). **Phase C**: Publish 3-Column 재배치(VideoPreviewHero 센터, 설정 접힘, Recent Videos 리스트), `usePublishRender` 훅 추출(349→112줄) + `useShallow` 선택적 구독 최적화(30→21필드, `getState()` 콜백 패턴), 3탭 UI 일관성 통일(패딩/헤더/max-width). **Quick Actions 개선** (02-17): New Project→Create Story 교체(`/studio?new=true` 직행, useUIStore 의존 제거). **Phase A+B 완료** (Phase B/D 불필요 항목 제거)
 - **Phase 9**: Agentic AI Pipeline — **Phase 0~4C 완료** (2026-02-15~16). **14-노드** 조건 분기 그래프 (Quick 6노드 / Full 14노드), Quick/Full 모드 + Preset 3종, Revise 루프 + Human Gate, reasoning [왜?] 패널. **Phase 2**: AsyncPostgresStore Memory, LangFuse v3 Docker Observability, Research/Learn 노드 구현, 피드백 수집 API+UI, Memory 관리 Settings 탭. **AsyncPostgresStore 싱글턴 버그 수정** (from_conn_string async context manager → 직접 AsyncConnection 패턴). **LangFuse v3 Docker 인프라 완전 가동** (2026-02-16): docker-compose 6서비스(PG+ClickHouse+Redis+MinIO+Web+Worker), MinIO 버킷 생성(langfuse-events/langfuse-media), S3 Region 설정, observability.py SDK v3 API 대응(`Langfuse()` 전역 초기화 + `CallbackHandler`), langchain 의존성 추가, LangGraph 대본 생성 트레이스 기록 확인 완료. **human_gate interrupt 시 중간 결과 기록** (2026-02-16): `update_trace_on_interrupt()`로 트레이스 output=null → draft_scenes/review_result 기록, ERROR 상태 방지. **Phase 3 Creative 재평가 완료** (2026-02-16): 선택지 C(폐기) 결정 — Creative Lab UI/라우터/파이프라인은 Phase 7-4 D에서 이미 삭제됨. 잔여 서비스(debate_agents, creative_qc)는 LangGraph Production 노드로 흡수. creative_utils.py V2 데드 코드 258줄 정리. **Phase 4B Agent Spec + Director 완료** (2026-02-16): Agentic AI 기준 분류 체계(AI Agent 7 / Hybrid 2 / System 4), 네이밍 통일(debate→critic, draft→writer), Director Agent 신규(Production chain 통합 검증 + revision 루프), `_DIRECTOR_DECISION_MAP` 명시적 라우팅, AGENT_SPEC.md 엔지니어링 스펙. **Phase 4C Pipeline 고도화 완료** (2026-02-16): Director feedback→타겟 노드 주입(cinematographer/tts/sound/copyright/revise), Production Chain 병렬화(LangGraph fan-out: tts/sound/copyright 동시 실행), Explain Node(Full 모드 창작 결정 설명), fallback 패턴(tts/sound 에러 시 빈 결과 반환, 병렬 안전). 13→14노드, AGENT_SPEC.md v1.1. **Phase 5 설계 완료** (2026-02-17): 4-Agent 크로스 분석 합의 — Multi-draft(3x) 반대, Concept Gate 방식 채택. 5A 서사 품질 평가(Hook 40%+감정 25%+반전 20%+톤 10%+정합성 5%), 5B Concept Gate(Critic 3컨셉 사용자 선택), 5C AI 투명성 UX(Pipeline Stepper+Reasoning 패널+Score 시각화), 5D 프리셋 피드백 버튼. [명세](FEATURES/SCRIPT_QUALITY_UX.md) [Agent 스펙](../03_engineering/backend/AGENT_SPEC.md)
 - **VRT Baseline**: 24개 스크린샷, 8개 스펙 완료 (6-7 #2)
 - **안정성 수정** (2026-02-16): Script 탭 unmount 시 scenes 소실 버그 수정 (save() 후 useStoryboardStore 즉시 동기화), ScenesTab 리팩터링 잔여 데드코드 제거 (resolvedIpAdapter), TTS normalization 플레이키 테스트 수정, **Edit→Script 탭 전환 시 대본 소실 수정** (StudioWorkspace 조건부 렌더링 → CSS hidden으로 ScriptTab 상태 유지), **Character Preset 동기화 수정** (useScriptEditor 로컬 state의 characterId/Name을 syncToGlobalStore로 useStoryboardStore에 전파 → AutoRun Preflight에서 캐릭터 인식)
@@ -327,11 +311,6 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 | ~~2~~ | ~~9 P5B~~ | ~~Concept Gate: Critic 3컨셉 노출 + concept_gate 노드 + Creator interrupt~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
 | ~~3~~ | ~~9 P5D~~ | ~~Interactive Feedback: 프리셋 피드백 4종 + Concept Gate 피드백~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
 | ~~4~~ | ~~9 P5C~~ | ~~AI Transparency UX: Pipeline Stepper + Reasoning 패널 + Score 시각화~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
-
-**Tier 1 — Home & Publish UX (신규 사용자)**
-| 순위 | 출처 | 작업 | 기간 | 근거 |
-|------|------|------|------|------|
-| 5 | 7-Z B | Quick Start + 워크플로우 파이프라인 + What's Next 동적 추천 | 2-3일 | 신규 사용자 온보딩 + 복귀 사용자 행동 유도 |
 
 **Tier 3 — 장기**
 | 순위 | 출처 | 작업 | 근거 |
