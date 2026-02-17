@@ -133,25 +133,52 @@ def calculate_scene_durations(
     durations: list[float] = []
     for i, scene in enumerate(scenes):
         base_duration = (getattr(scene, "duration", 3) or 3) / speed_multiplier
-        
+
         # New: Use agent-designed padding if available
         h_pad = getattr(scene, "head_padding", 0.0) or 0.0
         t_pad = getattr(scene, "tail_padding", 0.0) or 0.0
-        
+
         if tts_valid[i] and tts_durations[i] > 0:
             # Duration = Head Padding + TTS Duration + Tail Padding
             # We also ensure it meets the minimum base_duration
             total_tts_dur = h_pad + tts_durations[i] + t_pad + tts_padding
             base_duration = max(base_duration, total_tts_dur)
-            
+
         durations.append(base_duration)
     return durations
+
+
+def _strip_non_speech(text: str) -> str:
+    """Remove stage directions, meta tags, and hashtags from script.
+
+    Keeps actual spoken text only. Parenthetical/bracket content is treated
+    as non-speech (stage directions, sound effects, visual cues).
+
+    Examples:
+        "(한숨) 힘들다..."          → "힘들다..."
+        "[BGM 시작] 안녕하세요"     → "안녕하세요"
+        "오늘 #일상 #직장인"        → "오늘"
+        "(조용히) 괜찮아. (미소)"   → "괜찮아."
+        "아... 그랬구나"            → "아... 그랬구나"  (감탄사 유지)
+    """
+    # 1. Remove [...] blocks (meta/visual cues)
+    text = re.sub(r"\[.*?\]", "", text)
+    # 2. Remove (...) blocks (stage directions/SFX)
+    text = re.sub(r"\(.*?\)", "", text)
+    # 3. Remove #hashtags
+    text = re.sub(r"#\w+", "", text)
+    # 4. Remove *markers* (markdown emphasis used as SFX)
+    text = re.sub(r"\*[^*]+\*", "", text)
+    # 5. Collapse leftover whitespace
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
 
 def clean_script_for_tts(raw_script: str) -> str:
     """Clean script text for TTS generation.
 
-    Removes special characters and normalizes text for natural TTS reading.
+    Removes non-speech content (stage directions, meta tags) and
+    normalizes special characters for natural TTS reading.
 
     Args:
         raw_script: Raw script text
@@ -161,11 +188,14 @@ def clean_script_for_tts(raw_script: str) -> str:
     """
     text = raw_script
 
+    # Strip non-speech content (stage directions, hashtags, etc.)
+    text = _strip_non_speech(text)
+
     # Normalize Unicode characters
     text = text.replace("\u2026", "...")  # Ellipsis to periods
-    text = text.replace("\u2014", ", ")   # Em-dash to comma
-    text = text.replace("\u2013", ", ")   # En-dash to comma
-    text = text.replace("\u300c", "")     # Japanese quotes
+    text = text.replace("\u2014", ", ")  # Em-dash to comma
+    text = text.replace("\u2013", ", ")  # En-dash to comma
+    text = text.replace("\u300c", "")  # Japanese quotes
     text = text.replace("\u300d", "")
     text = text.replace("\u300e", "")
     text = text.replace("\u300f", "")
@@ -178,10 +208,10 @@ def clean_script_for_tts(raw_script: str) -> str:
     )
 
     # Normalize repeated punctuation
-    text = re.sub(r"\.{2,}", ".", text)      # ... -> .
-    text = re.sub(r"!{2,}", "!", text)       # !!! -> !
-    text = re.sub(r"\?{2,}", "?", text)      # ??? -> ?
-    text = re.sub(r"\s+", " ", text)         # Multiple spaces -> single
+    text = re.sub(r"\.{2,}", ".", text)  # ... -> .
+    text = re.sub(r"!{2,}", "!", text)  # !!! -> !
+    text = re.sub(r"\?{2,}", "?", text)  # ??? -> ?
+    text = re.sub(r"\s+", " ", text)  # Multiple spaces -> single
 
     # Convert number+Korean unit to spoken Korean (prevents TTS hang)
     text = _expand_korean_numbers(text)
@@ -195,8 +225,16 @@ def _expand_korean_numbers(text: str) -> str:
     e.g. '3만원' -> '삼만원', '100개' -> '백개', '25일' -> '이십오일'
     """
     sino_digits = {
-        "0": "영", "1": "일", "2": "이", "3": "삼", "4": "사",
-        "5": "오", "6": "육", "7": "칠", "8": "팔", "9": "구",
+        "0": "영",
+        "1": "일",
+        "2": "이",
+        "3": "삼",
+        "4": "사",
+        "5": "오",
+        "6": "육",
+        "7": "칠",
+        "8": "팔",
+        "9": "구",
     }
     sino_units = ["", "십", "백", "천"]
     large_units = ["", "만", "억", "조"]

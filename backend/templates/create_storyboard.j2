@@ -94,7 +94,13 @@ Instructions:
    d) VERIFY: Do the environment tags match the script? If not, revise.
 4. Each scene must include:
    - scene_id (starting at 1)
-   - script: spoken line in {{ language }}.
+   - script: spoken line in {{ language }}. TTS reads this text directly.
+     * SPEECH ONLY — write ONLY what the speaker actually says out loud.
+     * ❌ NEVER include: stage directions (한숨), (놀라며), sound effects [문 닫히는 소리],
+       hashtags (#일상), visual cues [카메라 줌인], or any non-speech content.
+     * ❌ BAD: "(한숨) 힘들다..." → TTS reads "한숨" literally
+     * ✅ GOOD: "힘들다..." → clean speech, emotions go in image_prompt
+     * Interjections are OK without parentheses: "아... 그랬구나", "하..."
      * STRICT LENGTH RULE: 10–30 characters (Korean) / 20–60 characters (English).
      * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen (~15 chars per line for Korean).
