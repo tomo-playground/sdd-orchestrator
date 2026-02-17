@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useReducer, useEffect, useCallback, useRef } from "react";
+import { useReducer, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
@@ -11,10 +11,11 @@ import { getErrorMsg } from "../../../utils/error";
 import { CONTAINER_CLASSES } from "../../../components/ui/variants";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import type { Tag, LoRA, CharacterTagLink } from "../../../types";
+import type { Tag, CharacterTagLink } from "../../../types";
 import type { WizardTag } from "./steps/AppearanceStep";
 import type { WizardCategory, WizardTemplate } from "./wizardTemplates";
 import { WIZARD_CATEGORIES, GENDER_IDENTITY_TAGS } from "./wizardTemplates";
+import { useTagData } from "../shared/useTagData";
 import { wizardReducer, INITIAL_WIZARD_STATE, type WizardStep } from "./wizardReducer";
 import WizardNavBar from "./components/WizardNavBar";
 import WizardPreviewPanel from "./WizardPreviewPanel";
@@ -31,62 +32,16 @@ export default function CharacterWizard() {
   const { confirm, dialogProps } = useConfirm();
   const [state, dispatch] = useReducer(wizardReducer, INITIAL_WIZARD_STATE);
 
-  // Tag data
-  const [tagsByGroup, setTagsByGroup] = useState<Record<string, Tag[]>>({});
-  const [allTagsFlat, setAllTagsFlat] = useState<Tag[]>([]);
-  const [allLoras, setAllLoras] = useState<LoRA[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Search
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Tag[]>([]);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Data fetching ────────────────────────────────────────
-  useEffect(() => {
-    const groups = WIZARD_CATEGORIES.map((c) => c.groupName);
-    const tagFetches = groups.map((g) =>
-      axios.get<Tag[]>(`${API_BASE}/tags`, { params: { group_name: g } })
-    );
-    const loraFetch = axios.get<LoRA[]>(`${API_BASE}/loras`);
-
-    Promise.all([Promise.all(tagFetches), loraFetch])
-      .then(([tagResponses, loraRes]) => {
-        const grouped: Record<string, Tag[]> = {};
-        const flat: Tag[] = [];
-        tagResponses.forEach((res, i) => {
-          grouped[groups[i]] = res.data;
-          flat.push(...res.data);
-        });
-        setTagsByGroup(grouped);
-        setAllTagsFlat(flat);
-        setAllLoras(loraRes.data);
-      })
-      .catch(() => showToast("Failed to load data", "error"))
-      .finally(() => setIsLoading(false));
-  }, [showToast]);
-
-  // ── Search debounce ──────────────────────────────────────
-  useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    searchTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await axios.get<Tag[]>(`${API_BASE}/tags/search`, {
-          params: { q: searchQuery },
-        });
-        setSearchResults(res.data.slice(0, 20));
-      } catch {
-        setSearchResults([]);
-      }
-    }, 300);
-    return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    };
-  }, [searchQuery]);
+  // Shared tag/LoRA data + search
+  const {
+    tagsByGroup,
+    allTagsFlat,
+    allLoras,
+    isLoading,
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+  } = useTagData();
 
   // ── beforeunload guard ───────────────────────────────────
   const isDirty =

@@ -50,6 +50,8 @@ const BASE_CHARACTER: CharacterFull = {
   recommended_negative: [],
   custom_base_prompt: null,
   custom_negative_prompt: null,
+  reference_base_prompt: null,
+  reference_negative_prompt: null,
   preview_image_url: null,
   prompt_mode: "auto",
   ip_adapter_weight: null,

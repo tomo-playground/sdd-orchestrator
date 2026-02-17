@@ -1,6 +1,7 @@
 import type { ActorGender } from "../../../types";
 import type { WizardTag } from "./steps/AppearanceStep";
 import type { WizardCategory } from "./wizardTemplates";
+import { applyTagToggle, applyFreeTagToggle } from "../shared/tagUtils";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -58,34 +59,10 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         selectedTags: action.tags,
         gender: action.gender,
       };
-    case "TOGGLE_TAG": {
-      const { tag, category } = action;
-      const exists = state.selectedTags.some((t) => t.tagId === tag.tagId);
-      if (exists) {
-        return { ...state, selectedTags: state.selectedTags.filter((t) => t.tagId !== tag.tagId) };
-      }
-      if (category.selectMode === "single") {
-        const filtered = state.selectedTags.filter((t) => t.groupName !== category.groupName);
-        return { ...state, selectedTags: [...filtered, tag] };
-      }
-      if (category.maxSelect) {
-        const groupCount = state.selectedTags.filter(
-          (t) => t.groupName === category.groupName
-        ).length;
-        if (groupCount >= category.maxSelect) return state;
-      }
-      return { ...state, selectedTags: [...state.selectedTags, tag] };
-    }
-    case "ADD_TAG": {
-      const exists = state.selectedTags.some((t) => t.tagId === action.tag.tagId);
-      if (exists) {
-        return {
-          ...state,
-          selectedTags: state.selectedTags.filter((t) => t.tagId !== action.tag.tagId),
-        };
-      }
-      return { ...state, selectedTags: [...state.selectedTags, action.tag] };
-    }
+    case "TOGGLE_TAG":
+      return { ...state, selectedTags: applyTagToggle(state.selectedTags, action.tag, action.category) };
+    case "ADD_TAG":
+      return { ...state, selectedTags: applyFreeTagToggle(state.selectedTags, action.tag) };
     case "SET_SAVING":
       return { ...state, isSaving: action.isSaving };
     case "TOGGLE_LORA": {

@@ -36,10 +36,11 @@ def _base_character_query(db: Session):
 
 
 def _populate_tag_metadata(character: Character) -> None:
-    """Copy tag.name / tag.default_layer onto CharacterTag for serialization."""
+    """Copy tag.name / tag.default_layer / tag.group_name onto CharacterTag for serialization."""
     for char_tag in character.tags:
         char_tag.name = char_tag.tag.name
         char_tag.layer = char_tag.tag.default_layer
+        char_tag.group_name = char_tag.tag.group_name
 
 
 def _merge_tags(data) -> list:

@@ -4,11 +4,9 @@ import type { ActorGender } from "../../../../types";
 import type { WizardTemplate } from "../wizardTemplates";
 import TemplateCard from "../components/TemplateCard";
 import { WIZARD_TEMPLATES } from "../wizardTemplates";
-import {
-  FORM_INPUT_CLASSES,
-  FORM_LABEL_CLASSES,
-  FORM_TEXTAREA_CLASSES,
-} from "../../../../components/ui/variants";
+import { FORM_LABEL_CLASSES } from "../../../../components/ui/variants";
+import Input from "../../../../components/ui/Input";
+import Textarea from "../../../../components/ui/Textarea";
 
 type BasicInfoStepProps = {
   name: string;
@@ -51,12 +49,10 @@ export default function BasicInfoStep({
       {/* Name */}
       <section>
         <label className={`${FORM_LABEL_CLASSES} mb-1 block`}>Name *</label>
-        <input
-          type="text"
+        <Input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Character name (2+ characters)"
-          className={FORM_INPUT_CLASSES}
           maxLength={50}
           autoFocus
         />
@@ -85,11 +81,10 @@ export default function BasicInfoStep({
       {/* Description */}
       <section>
         <label className={`${FORM_LABEL_CLASSES} mb-1 block`}>Description</label>
-        <textarea
+        <Textarea
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
           placeholder="Brief character description (optional)"
-          className={FORM_TEXTAREA_CLASSES}
           rows={3}
           maxLength={500}
         />
