@@ -1,13 +1,20 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
-import type { ConceptCandidate, Scene, ScriptStreamEvent } from "../types";
+import type {
+  ConceptCandidate,
+  FeedbackPreset,
+  PipelineStep,
+  Scene,
+  ScriptStreamEvent,
+} from "../types";
 import { generateSceneClientId } from "../utils/uuid";
+import { getInitialSteps, updatePipelineSteps } from "../utils/pipelineSteps";
 
 export type SceneItem = {
   id: number;
@@ -52,6 +59,16 @@ export type ScriptEditorState = {
   recommendedConceptId: number | null;
   feedbackSubmitted: boolean;
   justGenerated: boolean;
+  feedbackPresets: FeedbackPreset[] | null;
+  pipelineSteps: PipelineStep[];
+  nodeResults: Record<string, Record<string, unknown>>;
+  traceId: string | null;
+};
+
+export type ResumeOptions = {
+  feedbackPreset?: string;
+  feedbackPresetParams?: Record<string, string>;
+  customConcept?: { title: string; concept: string };
 };
 
 export type ScriptEditorActions = ScriptEditorState & {
@@ -59,9 +76,10 @@ export type ScriptEditorActions = ScriptEditorState & {
   updateScene: (index: number, patch: Partial<SceneItem>) => void;
   generate: () => Promise<void>;
   resume: (
-    action: "approve" | "revise" | "select",
+    action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
     feedback?: string,
-    conceptId?: number
+    conceptId?: number,
+    options?: ResumeOptions
   ) => Promise<void>;
   submitFeedback: (rating: "positive" | "negative", feedbackText?: string) => Promise<void>;
   save: () => Promise<void>;
@@ -159,13 +177,24 @@ async function processSSEStream(
   let isWaiting = false;
 
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
-    setState((prev) => ({
-      ...prev,
-      progress: { node: event.node, label: event.label, percent: event.percent },
-    }));
+    setState((prev) => {
+      const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.mode);
+      const nextNodeResults = event.node_result
+        ? { ...prev.nodeResults, [event.node]: event.node_result as Record<string, unknown> }
+        : prev.nodeResults;
+      return {
+        ...prev,
+        progress: { node: event.node, label: event.label, percent: event.percent },
+        pipelineSteps: nextSteps,
+        nodeResults: nextNodeResults,
+      };
+    });
 
     if (options?.trackThreadId && event.thread_id) {
       setState((prev) => ({ ...prev, threadId: event.thread_id! }));
+    }
+    if (event.trace_id) {
+      setState((prev) => ({ ...prev, traceId: event.trace_id! }));
     }
 
     if (event.status === "completed" && event.result?.scenes) {
@@ -189,14 +218,20 @@ async function processSSEStream(
           isWaitingForConcept: true,
         }));
       } else {
-        // 기존 human_gate 리뷰 승인 대기
+        // human_gate 리뷰 승인 대기 — review_result도 nodeResults에 저장
         const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];
-        setState((prev) => ({
-          ...prev,
-          scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
-          isGenerating: false,
-          isWaitingForInput: true,
-        }));
+        setState((prev) => {
+          const nr = event.result?.review_result
+            ? { ...prev.nodeResults, review: event.result.review_result as Record<string, unknown> }
+            : prev.nodeResults;
+          return {
+            ...prev,
+            scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
+            isGenerating: false,
+            isWaitingForInput: true,
+            nodeResults: nr,
+          };
+        });
       }
     }
 
@@ -239,7 +274,30 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     recommendedConceptId: null,
     feedbackSubmitted: false,
     justGenerated: false,
+    feedbackPresets: null,
+    pipelineSteps: [],
+    nodeResults: {},
+    traceId: null,
   });
+
+  // Lazy-fetch feedback presets when waiting for input
+  useEffect(() => {
+    if (!state.isWaitingForInput || state.feedbackPresets) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/scripts/feedback-presets`);
+        if (!cancelled) {
+          setState((prev) => ({ ...prev, feedbackPresets: res.data.presets }));
+        }
+      } catch {
+        // silent — presets are optional enhancement
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.isWaitingForInput, state.feedbackPresets]);
 
   const setField = useCallback(
     <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => {
@@ -258,7 +316,14 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
 
   const generate = useCallback(async () => {
     if (!state.topic.trim()) return;
-    setState((prev) => ({ ...prev, isGenerating: true, progress: null, justGenerated: false }));
+    setState((prev) => ({
+      ...prev,
+      isGenerating: true,
+      progress: null,
+      justGenerated: false,
+      pipelineSteps: getInitialSteps(prev.mode),
+      nodeResults: {},
+    }));
 
     const body: Record<string, unknown> = {
       topic: state.topic.trim(),
@@ -336,7 +401,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   ]);
 
   const resume = useCallback(
-    async (action: "approve" | "revise" | "select", feedback?: string, conceptId?: number) => {
+    async (
+      action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
+      feedback?: string,
+      conceptId?: number,
+      options?: ResumeOptions
+    ) => {
       if (!state.threadId) return;
       setState((prev) => ({
         ...prev,
@@ -352,8 +422,13 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           thread_id: state.threadId,
           action,
           feedback,
+          trace_id: state.traceId || undefined,
         };
         if (conceptId !== undefined) body.concept_id = conceptId;
+        if (options?.feedbackPreset) body.feedback_preset = options.feedbackPreset;
+        if (options?.feedbackPresetParams)
+          body.feedback_preset_params = options.feedbackPresetParams;
+        if (options?.customConcept) body.custom_concept = options.customConcept;
         const response = await fetch(`${API_BASE}/scripts/resume`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -403,7 +478,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         }));
       }
     },
-    [state.threadId, showToast]
+    [state.threadId, state.traceId, showToast]
   );
 
   const submitFeedback = useCallback(
@@ -580,6 +655,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       recommendedConceptId: null,
       feedbackSubmitted: false,
       justGenerated: false,
+      feedbackPresets: null,
+      pipelineSteps: [],
+      nodeResults: {},
+      traceId: null,
     });
   }, []);
 

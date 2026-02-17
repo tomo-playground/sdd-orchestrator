@@ -298,6 +298,7 @@ export type CharacterLoRA = {
 export type CharacterTagLink = {
   tag_id: number;
   name?: string;
+  group_name?: string;
   layer?: number;
   weight: number;
   is_permanent: boolean;
@@ -394,6 +395,8 @@ export type CharacterFull = {
   recommended_negative: string[];
   custom_base_prompt: string | null;
   custom_negative_prompt: string | null;
+  reference_base_prompt: string | null;
+  reference_negative_prompt: string | null;
   preview_image_url: string | null;
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
@@ -734,11 +737,28 @@ export type ConceptCandidate = {
   weaknesses?: string[];
 };
 
+export type NarrativeScore = {
+  hook: number;
+  emotional_arc: number;
+  twist_payoff: number;
+  speaker_tone: number;
+  script_image_sync: number;
+  overall: number;
+  feedback?: string;
+};
+
+export type PipelineStep = {
+  id: string;
+  label: string;
+  status: "idle" | "running" | "done" | "error";
+};
+
 export type ScriptStreamEvent = {
   node: string;
   label: string;
   percent: number;
   status: "running" | "completed" | "error" | "waiting_for_input";
+  node_result?: Record<string, unknown>;
   result?: {
     scenes?: Scene[];
     character_id?: number | null;
@@ -754,6 +774,7 @@ export type ScriptStreamEvent = {
   };
   error?: string;
   thread_id?: string;
+  trace_id?: string;
 };
 
 export type ScriptPreset = {
@@ -770,6 +791,14 @@ export type ChannelDNA = {
   target_audience: string | null;
   worldview: string | null;
   guidelines: string | null;
+};
+
+export type FeedbackPreset = {
+  id: string;
+  label: string;
+  icon: string;
+  has_params?: boolean;
+  param_options?: Record<string, string[]>;
 };
 
 export type EffectiveConfig = {

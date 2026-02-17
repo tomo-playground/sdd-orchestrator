@@ -8,12 +8,13 @@ from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from langgraph.store.base import BaseStore
 from sqlalchemy.orm import Session
 
 from config import LANGGRAPH_DEFAULT_MODE, LANGGRAPH_PRESETS, logger
 from database import get_db
 from schemas import (
+    FeedbackPresetOption,
+    FeedbackPresetsResponse,
     ScriptFeedbackRequest,
     ScriptFeedbackResponse,
     ScriptGenerateResponse,
@@ -83,14 +84,18 @@ def _resolve_thread_id() -> str:
     return f"script-{uuid.uuid4().hex[:12]}"
 
 
-def _build_config(thread_id: str) -> dict:
-    """LangGraph config를 구성한다. LangFuse 콜백이 있으면 주입."""
-    from services.agent.observability import get_langfuse_handler  # noqa: PLC0415
+def _build_config(thread_id: str, *, trace_id: str | None = None) -> dict:
+    """LangGraph config를 구성한다. 요청별 LangFuse 핸들러를 생성하여 주입.
+
+    trace_id가 주어지면 (resume) 기존 trace에 이어서 기록한다.
+    """
+    from services.agent.observability import create_langfuse_handler  # noqa: PLC0415
 
     cfg: dict = {"configurable": {"thread_id": thread_id}}
-    handler = get_langfuse_handler()
+    handler = create_langfuse_handler(trace_id=trace_id, session_id=thread_id)
     if handler is not None:
         cfg["callbacks"] = [handler]
+        cfg["metadata"] = {"langfuse_session_id": thread_id}
     return cfg
 
 
@@ -127,6 +132,26 @@ def _is_graph_interrupt(exc: Exception) -> bool:
     return type(exc).__name__ == "GraphInterrupt"
 
 
+# AI Transparency: 노드별 reasoning 데이터 추출 매핑
+_NODE_RESULT_KEYS: dict[str, str | list[str]] = {
+    "critic": "critic_result",
+    "review": "review_result",
+    "director": ["director_decision", "director_feedback"],
+    "explain": "explanation_result",
+}
+
+
+def _extract_node_result(node_name: str, node_output: dict) -> dict | None:
+    """노드 출력에서 reasoning 데이터를 추출한다."""
+    keys = _NODE_RESULT_KEYS.get(node_name)
+    if keys is None:
+        return None
+    if isinstance(keys, list):
+        result = {k.removeprefix("director_"): node_output.get(k) for k in keys}
+        return result if any(result.values()) else None
+    return node_output.get(keys) or None
+
+
 def _build_node_payload(
     node_name: str,
     thread_id: str,
@@ -156,6 +181,11 @@ def _build_node_payload(
                 "character_id": char_ids[0],
                 "character_b_id": char_ids[1],
             }
+
+    # AI Transparency: 특정 노드의 reasoning 데이터를 node_result로 전달
+    nr = _extract_node_result(node_name, node_output)
+    if nr is not None:
+        payload["node_result"] = nr
 
     if node_output.get("error"):
         payload["status"] = "error"
@@ -250,6 +280,12 @@ async def _stream_graph_events(
             "status": "waiting_for_input",
             "thread_id": thread_id,
         }
+        # config의 요청별 handler에서 trace_id 추출 (싱글턴 미참조 → 동시성 안전)
+        callbacks = config.get("callbacks", [])
+        if callbacks:
+            handler_trace_id = getattr(callbacks[0], "last_trace_id", None)
+            if handler_trace_id:
+                payload_interrupt["trace_id"] = handler_trace_id
         if result:
             payload_interrupt["result"] = result
 
@@ -279,14 +315,36 @@ async def generate_script_stream(
     )
 
 
+def _resolve_feedback_preset(preset_id: str, params: dict[str, str] | None) -> str:
+    """피드백 프리셋 ID → 피드백 텍스트로 변환. 파라미터가 있으면 치환."""
+    from config_pipelines import FEEDBACK_PRESETS  # noqa: PLC0415
+
+    preset = FEEDBACK_PRESETS.get(preset_id)
+    if not preset:
+        return ""
+    feedback = preset["feedback"]
+    if params:
+        for key, value in params.items():
+            feedback = feedback.replace(f"{{{key}}}", value)
+    return feedback
+
+
 @router.post("/resume")
 async def resume_script(request: ScriptResumeRequest):
-    """Human Gate 재개 — thread_id로 interrupt된 그래프를 재개한다."""
+    """Human Gate / Concept Gate 재개 — thread_id로 interrupt된 그래프를 재개한다."""
     logger.info("📝 [Script Resume] thread=%s, action=%s", request.thread_id, request.action)
-    config = _build_config(request.thread_id)
-    resume_value: dict = {"action": request.action, "feedback": request.feedback}
+    config = _build_config(request.thread_id, trace_id=request.trace_id)
+
+    # 피드백 프리셋 해석
+    feedback = request.feedback
+    if request.feedback_preset:
+        feedback = _resolve_feedback_preset(request.feedback_preset, request.feedback_preset_params)
+
+    resume_value: dict = {"action": request.action, "feedback": feedback}
     if request.concept_id is not None:
         resume_value["concept_id"] = request.concept_id
+    if request.custom_concept is not None:
+        resume_value["custom_concept"] = request.custom_concept
     return StreamingResponse(
         _stream_graph_events(Command(resume=resume_value), config, request.thread_id, "Resume"),
         media_type="text/event-stream",
@@ -315,6 +373,15 @@ async def get_script_presets():
     return ScriptPresetsResponse(presets=items)
 
 
+@router.get("/feedback-presets", response_model=FeedbackPresetsResponse)
+async def get_feedback_presets():
+    """사용 가능한 피드백 프리셋 목록을 반환한다."""
+    from config_pipelines import FEEDBACK_PRESETS  # noqa: PLC0415
+
+    items = [FeedbackPresetOption(**p) for p in FEEDBACK_PRESETS.values()]
+    return FeedbackPresetsResponse(presets=items)
+
+
 @router.post("/feedback", response_model=ScriptFeedbackResponse)
 async def submit_script_feedback(request: ScriptFeedbackRequest):
     """스크립트 생성 피드백을 수집하여 Memory Store에 저장한다."""
@@ -339,35 +406,9 @@ async def submit_script_feedback(request: ScriptFeedbackRequest):
     )
 
     # 2) user preferences 업데이트 (긍정 비율 재계산)
-    await _update_user_preferences(store, request.rating)
+    from services.agent.feedback import update_user_preferences  # noqa: PLC0415
+
+    await update_user_preferences(store, request.rating)
 
     logger.info("[Feedback] %s 피드백 저장: thread=%s", request.rating, request.thread_id)
     return ScriptFeedbackResponse(success=True, message="피드백이 저장되었습니다")
-
-
-async def _update_user_preferences(store: BaseStore, rating: str) -> None:
-    """user preferences의 피드백 카운트를 갱신한다."""
-    user_ns = ("user", "preferences")
-    existing = await store.asearch(user_ns)
-    is_positive = 1 if rating == "positive" else 0
-
-    if existing:
-        prefs = existing[0].value
-        total = prefs.get("total_feedback", 0) + 1
-        positive = prefs.get("positive_count", 0) + is_positive
-        prefs["total_feedback"] = total
-        prefs["positive_count"] = positive
-        prefs["positive_ratio"] = round(positive / total, 2) if total > 0 else 0
-        await store.aput(user_ns, existing[0].key, prefs)
-    else:
-        await store.aput(
-            user_ns,
-            str(uuid.uuid4()),
-            {
-                "total_generations": 0,
-                "total_feedback": 1,
-                "positive_count": is_positive,
-                "positive_ratio": float(is_positive),
-                "feedback_themes": [],
-            },
-        )

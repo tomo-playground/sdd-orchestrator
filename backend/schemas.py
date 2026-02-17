@@ -803,6 +803,7 @@ class LoRAResponse(LoRABase):
 class CharacterTagLink(BaseModel):
     tag_id: int
     name: str | None = None  # Tag name for display
+    group_name: str | None = None  # Tag group_name for wizard category
     layer: int | None = None  # Tag default_layer
     weight: float = 1.0
     is_permanent: bool = True
@@ -1515,6 +1516,7 @@ class ScriptProgressEvent(BaseModel):
     label: str
     percent: int
     status: str  # "running" | "completed" | "error" | "waiting_for_input"
+    node_result: dict | None = None
     result: ScriptGenerateResponse | None = None
     error: str | None = None
 
@@ -1531,9 +1533,13 @@ class ScriptResumeRequest(BaseModel):
     """Human Gate / Concept Gate 재개 요청."""
 
     thread_id: str
-    action: str = "approve"  # "approve" | "revise" | "select"
+    action: str = "approve"  # "approve"|"revise"|"select"|"regenerate"|"custom_concept"
     feedback: str | None = None
     concept_id: int | None = None  # concept_gate용: 선택한 컨셉 인덱스 (0-2)
+    feedback_preset: str | None = None  # 피드백 프리셋 ID
+    feedback_preset_params: dict[str, str] | None = None  # 프리셋 파라미터
+    custom_concept: dict | None = None  # 사용자 직접 입력 컨셉
+    trace_id: str | None = None  # Langfuse trace 연결용 (generate 시 받은 값)
 
 
 class ScriptPresetItem(BaseModel):
@@ -1551,6 +1557,23 @@ class ScriptPresetsResponse(BaseModel):
     """Preset 목록 응답."""
 
     presets: list[ScriptPresetItem]
+
+
+class FeedbackPresetOption(BaseModel):
+    """개별 피드백 프리셋."""
+
+    id: str
+    label: str
+    icon: str
+    feedback: str
+    has_params: bool = False
+    param_options: dict[str, list[str]] | None = None
+
+
+class FeedbackPresetsResponse(BaseModel):
+    """피드백 프리셋 목록 응답."""
+
+    presets: list[FeedbackPresetOption]
 
 
 # ============================================================
