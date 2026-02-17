@@ -101,6 +101,14 @@ Instructions:
      * ❌ BAD: "(한숨) 힘들다..." → TTS reads "한숨" literally
      * ✅ GOOD: "힘들다..." → clean speech, emotions go in image_prompt
      * Interjections are OK without parentheses: "아... 그랬구나", "하..."
+     * ❌ NO SILENT SCENES: Every scene MUST have real spoken text.
+       - "...", "... ...", or punctuation-only scripts are FORBIDDEN (TTS produces defective audio).
+       - If a moment needs "silence" or "wordless reaction", use Narrator to describe it instead:
+         ❌ BAD: speaker="A", script="..." (empty — TTS fails)
+         ❌ BAD: speaker="A", script="... ..." (only dots — TTS fails)
+         ✅ GOOD: speaker="Narrator", script="그녀는 아무 말도 하지 못했다." (narration)
+         ✅ GOOD: speaker="A", script="아... 진짜 이런 건가." (actual speech with emotion)
+       - If there are too many silent moments, MERGE them into fewer scenes with narration.
      * STRICT LENGTH RULE: 10–30 characters (Korean) / 20–60 characters (English).
      * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen (~15 chars per line for Korean).

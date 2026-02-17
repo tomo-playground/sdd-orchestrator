@@ -46,7 +46,12 @@ def _validate_single_scene(
         errors.append(f"씬 {idx}: duration이 0 이하 ({scene_dur})")
 
     script = scene.get("script", "")
-    if isinstance(script, str) and script:
+    if isinstance(script, str):
+        stripped = script.replace(".", "").replace(" ", "").strip()
+        if not stripped:
+            errors.append(f"씬 {idx}: 빈 스크립트 ('{script}' — TTS 생성 불가, 내레이션으로 대체 필요)")
+        elif len(stripped) < 5:
+            warnings.append(f"씬 {idx}: 스크립트 너무 짧음 ({len(script)}자 — TTS 결함 가능)")
         max_len = SCRIPT_LENGTH_KOREAN[1] if language == "Korean" else REVIEW_SCRIPT_MAX_CHARS_OTHER
         if len(script) > max_len:
             warnings.append(f"씬 {idx}: 스크립트 길이 초과 ({len(script)}자 > {max_len}자)")
