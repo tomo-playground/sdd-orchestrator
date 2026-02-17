@@ -178,64 +178,66 @@ async function processSSEStream(
   let isWaiting = false;
 
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
+    // Single setState per event to avoid race conditions between renders
     setState((prev) => {
       const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.mode);
       const nextNodeResults = event.node_result
         ? { ...prev.nodeResults, [event.node]: event.node_result as Record<string, unknown> }
         : prev.nodeResults;
-      return {
+
+      const base = {
         ...prev,
         progress: { node: event.node, label: event.label, percent: event.percent },
         pipelineSteps: nextSteps,
         nodeResults: nextNodeResults,
+        threadId: options?.trackThreadId && event.thread_id ? event.thread_id : prev.threadId,
+        traceId: event.trace_id ?? prev.traceId,
       };
-    });
 
-    if (options?.trackThreadId && event.thread_id) {
-      setState((prev) => ({ ...prev, threadId: event.thread_id! }));
-    }
-    if (event.trace_id) {
-      setState((prev) => ({ ...prev, traceId: event.trace_id! }));
-    }
-
-    if (event.status === "completed" && event.result?.scenes) {
-      finalScenes = mapEventScenes(event.result.scenes);
-    }
-
-    if (event.status === "waiting_for_input") {
-      isWaiting = true;
-      if (event.node === "concept_gate" && event.result?.candidates) {
-        // 컨셉 선택 대기
+      // Concept gate interrupt
+      if (
+        event.status === "waiting_for_input" &&
+        event.node === "concept_gate" &&
+        event.result?.candidates
+      ) {
         const candidates = event.result.candidates;
         const selected = event.result.selected_concept;
         const recIdx = selected
           ? candidates.findIndex((c) => c.agent_role === selected.agent_role)
           : 0;
-        setState((prev) => ({
-          ...prev,
+        return {
+          ...base,
           concepts: candidates,
           recommendedConceptId: recIdx >= 0 ? recIdx : 0,
           isGenerating: false,
           isWaitingForConcept: true,
-        }));
-      } else {
-        // human_gate 리뷰 승인 대기 — review_result도 nodeResults에 저장
-        const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];
-        setState((prev) => {
-          const nr = event.result?.review_result
-            ? { ...prev.nodeResults, review: event.result.review_result as Record<string, unknown> }
-            : prev.nodeResults;
-          return {
-            ...prev,
-            scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
-            isGenerating: false,
-            isWaitingForInput: true,
-            nodeResults: nr,
-          };
-        });
+        };
       }
-    }
 
+      // Human gate interrupt (review approval)
+      if (event.status === "waiting_for_input") {
+        const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];
+        const nr = event.result?.review_result
+          ? { ...base.nodeResults, review: event.result.review_result as Record<string, unknown> }
+          : base.nodeResults;
+        return {
+          ...base,
+          scenes: draftScenes.length > 0 ? draftScenes : prev.scenes,
+          isGenerating: false,
+          isWaitingForInput: true,
+          nodeResults: nr,
+        };
+      }
+
+      return base;
+    });
+
+    if (event.status === "completed" && event.result?.scenes) {
+      finalScenes = mapEventScenes(event.result.scenes);
+    }
+    if (event.status === "waiting_for_input") {
+      isWaiting = true;
+    }
     if (event.status === "error") {
       throw new Error(event.error ?? "Stream failed");
     }
