@@ -52,6 +52,17 @@ def _build_feedback(state: ScriptState) -> str:
     return "\n".join(parts)
 
 
+def _summarize_scenes(scenes: list[dict]) -> str:
+    """현재 대본을 요약하여 Gemini에 컨텍스트로 전달한다."""
+    if not scenes:
+        return ""
+    lines = ["--- 현재 대본 (수정 기준) ---"]
+    for i, s in enumerate(scenes, 1):
+        script = s.get("script", "")
+        lines.append(f"씬 {i}: {script}")
+    return "\n".join(lines)
+
+
 def _make_request(state: ScriptState, desc: str) -> StoryboardRequest:
     """state에서 StoryboardRequest를 생성한다."""
     return StoryboardRequest(
@@ -82,10 +93,18 @@ async def revise_node(state: ScriptState) -> dict:
         logger.info("[LangGraph] Revise 규칙 수정 완료 (revision=%d)", count + 1)
         return {"draft_scenes": scenes, "revision_count": count + 1}
 
-    # 복잡 오류: 피드백 주입 후 재생성
+    # 복잡 오류: 피드백 + 현재 대본 주입 후 재생성
     feedback = _build_feedback(state)
     desc = state.get("description", "")
-    desc = f"{desc}\n\n--- 수정 요청 ---\n{feedback}" if desc and feedback else (feedback or desc)
+
+    # 현재 대본을 컨텍스트로 포함하여 Gemini가 수정할 수 있게 한다
+    current_script = _summarize_scenes(scenes)
+    parts = [p for p in [desc, current_script] if p]
+    if feedback:
+        parts.append(f"--- 수정 요청 ---\n{feedback}")
+    desc = "\n\n".join(parts)
+    if len(desc) > 1900:
+        desc = desc[:1900]
 
     with get_db_session() as db:
         try:

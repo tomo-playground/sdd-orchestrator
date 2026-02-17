@@ -17,7 +17,13 @@ async def human_gate_node(state: ScriptState) -> dict:
             "scene_reasoning": state.get("scene_reasoning"),
         }
     )
-    return {
-        "human_action": user_input.get("action", "approve"),
+    action = user_input.get("action", "approve")
+    result: dict = {
+        "human_action": action,
         "human_feedback": user_input.get("feedback"),
     }
+    # 사용자 수정 요청 시 자동 revision 카운터를 리셋하여
+    # 빠른 수정이 차단되지 않도록 한다
+    if action == "revise":
+        result["revision_count"] = 0
+    return result
