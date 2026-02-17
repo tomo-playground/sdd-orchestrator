@@ -343,7 +343,7 @@ async def generate_tts(
         best_dur = 0.0
 
         for attempt in range(1 + TTS_MAX_RETRIES):
-            attempt_seed = voice_seed + attempt
+            attempt_seed = voice_seed + attempt * 7919
 
             # --- Simplification Logic ---
             # If initial attempt fails, try simplifying or stripping the prompt
@@ -418,16 +418,12 @@ async def generate_tts(
             logger.warning(f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)")
             return True, tts_duration
 
-        # All retries failed and no usable fallback found
-        error_msg = f"Qwen-TTS generation failed for scene {i} after all retries."
-        logger.error(error_msg)
-        raise RuntimeError(error_msg)
+        # All retries failed — fall back to silent scene instead of crashing build
+        logger.warning(f"[TTS] Scene {i}: all retries exhausted with no usable audio, falling back to silent scene")
+        return False, 0.0
     except Exception as e:
-        if isinstance(e, RuntimeError):
-            raise
-        error_msg = f"TTS generation error (Qwen) for scene {i}: {e}"
-        logger.error(error_msg)
-        raise RuntimeError(error_msg) from e
+        logger.warning(f"[TTS] Scene {i}: unexpected error ({e}), falling back to silent scene")
+        return False, 0.0
 
 
 def _get_voice_design_for_scene(
