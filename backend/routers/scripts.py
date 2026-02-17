@@ -281,16 +281,21 @@ async def _stream_graph_events(
             "status": "waiting_for_input",
             "thread_id": thread_id,
         }
-        # config의 요청별 handler에서 trace_id 추출 (싱글턴 미참조 → 동시성 안전)
+        # config의 요청별 handler에서 trace_id 추출 (v3: trace_context dict)
+        handler_trace_id = None
         callbacks = config.get("callbacks", [])
         if callbacks:
-            handler_trace_id = getattr(callbacks[0], "last_trace_id", None)
+            ctx = getattr(callbacks[0], "trace_context", None)
+            handler_trace_id = ctx.get("trace_id") if ctx else None
             if handler_trace_id:
                 payload_interrupt["trace_id"] = handler_trace_id
         if result:
             payload_interrupt["result"] = result
 
-        update_trace_on_interrupt(result or {"status": "waiting_for_input"})
+        update_trace_on_interrupt(
+            result or {"status": "waiting_for_input"},
+            trace_id=handler_trace_id,
+        )
 
         yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
 

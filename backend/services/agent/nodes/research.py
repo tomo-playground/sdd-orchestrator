@@ -26,6 +26,7 @@ from config import (
     logger,
     template_env,
 )
+from services.agent.observability import trace_llm_call  # noqa: E402
 from services.agent.state import ScriptState
 
 
@@ -163,10 +164,12 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
             logger.warning("[Research] Gemini 클라이언트 없음 — 원문 fallback")
             return _fallback_brief(materials)
 
-        response = gemini_client.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=prompt,
-        )
+        async with trace_llm_call(name="research_analyze_references", input_text=prompt[:2000]) as llm:
+            response = await gemini_client.aio.models.generate_content(
+                model=GEMINI_TEXT_MODEL,
+                contents=prompt,
+            )
+            llm.record(response)
         raw = response.text or ""
 
         # JSON 파싱
