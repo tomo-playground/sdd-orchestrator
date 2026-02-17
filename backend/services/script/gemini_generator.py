@@ -25,17 +25,25 @@ from services.storyboard.helpers import (
 )
 
 
-async def _call_gemini_with_retry(contents: str, config) -> object:
+async def _call_gemini_with_retry(
+    contents: str,
+    config,
+    trace_name: str = "gemini",
+) -> object:
     """Call Gemini API with async + exponential backoff retry (max 2 retries)."""
+    from services.agent.observability import trace_llm_call
+
     delays = [1, 3]
     last_exc = None
     for attempt in range(3):
         try:
-            res = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=contents,
-                config=config,
-            )
+            async with trace_llm_call(name=trace_name, input_text=contents[:2000]) as llm:
+                res = await gemini_client.aio.models.generate_content(
+                    model=GEMINI_TEXT_MODEL,
+                    contents=contents,
+                    config=config,
+                )
+                llm.record(res)
             return res
         except Exception as exc:
             last_exc = exc
@@ -238,6 +246,7 @@ async def generate_script(request, db: Session | None = None) -> dict:
         res = await _call_gemini_with_retry(
             contents=f"{system_instruction}\n\n{rendered}",
             config=config,
+            trace_name="writer",
         )
         if not res.text:
             # Check why it failed

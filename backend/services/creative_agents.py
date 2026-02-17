@@ -76,12 +76,20 @@ class GeminiProvider:
             ],
         )
         try:
-            res = await asyncio.to_thread(
-                client.models.generate_content,
+            from services.agent.observability import trace_llm_call
+
+            async with trace_llm_call(
+                name="creative_agent",
                 model=self.model_name,
-                contents=prompt,
-                config=config,
-            )
+                input_text=prompt[:2000],
+            ) as llm:
+                res = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=self.model_name,
+                    contents=prompt,
+                    config=config,
+                )
+                llm.record(res)
         except Exception as e:
             msg = f"Gemini API error: {e}"
             raise RuntimeError(msg) from e

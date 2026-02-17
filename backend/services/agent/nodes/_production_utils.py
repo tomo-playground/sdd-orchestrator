@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from config import GEMINI_TEXT_MODEL, gemini_client, logger, template_env
 from config_pipelines import CREATIVE_PIPELINE_MAX_RETRIES
+from services.agent.observability import trace_llm_call
 from services.creative_utils import parse_json_response
 
 
@@ -30,10 +31,12 @@ async def run_production_step(
     for retry in range(CREATIVE_PIPELINE_MAX_RETRIES + 1):
         prompt = tmpl.render(**retry_vars)
         try:
-            response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=prompt,
-            )
+            async with trace_llm_call(name=step_name, input_text=prompt[:2000]) as llm:
+                response = await gemini_client.aio.models.generate_content(
+                    model=GEMINI_TEXT_MODEL,
+                    contents=prompt,
+                )
+                llm.record(response)
             raw_text = response.text or ""
             parsed = parse_json_response(raw_text)
         except Exception as e:

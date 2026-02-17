@@ -18,6 +18,7 @@ from config import (
     template_env,
 )
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD
+from services.agent.observability import trace_llm_call
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 
 VALID_SPEAKERS = {"Narrator", "A", "B"}
@@ -109,10 +110,12 @@ async def _gemini_evaluate(
             language=language,
             threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
         )
-        response = await gemini_client.aio.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=prompt,
-        )
+        async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt[:2000]) as llm:
+            response = await gemini_client.aio.models.generate_content(
+                model=GEMINI_TEXT_MODEL,
+                contents=prompt,
+            )
+            llm.record(response)
         return response.text
     except Exception as e:
         logger.warning("[LangGraph] Review Gemini 평가 실패: %s", e)
@@ -173,10 +176,12 @@ async def _narrative_evaluate(
             language=language,
             threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
-        response = await gemini_client.aio.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=prompt,
-        )
+        async with trace_llm_call(name="review_narrative_evaluate", input_text=prompt[:2000]) as llm:
+            response = await gemini_client.aio.models.generate_content(
+                model=GEMINI_TEXT_MODEL,
+                contents=prompt,
+            )
+            llm.record(response)
         return _parse_narrative_score(response.text or "")
     except Exception as e:
         logger.warning("[LangGraph] Narrative 평가 실패: %s", e)
