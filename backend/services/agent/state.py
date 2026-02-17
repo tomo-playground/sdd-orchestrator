@@ -69,6 +69,10 @@ class ScriptState(TypedDict, total=False):
     critic_result: dict | None
     scene_reasoning: list[SceneReasoning] | None
 
+    # Concept Gate 상태
+    concept_action: str | None  # "select" | "regenerate"
+    concept_regen_count: int  # 컨셉 재생성 횟수
+
     # Revision 상태
     revision_count: int
     revision_feedback: str | None

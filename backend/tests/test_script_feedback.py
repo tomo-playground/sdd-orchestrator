@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from langgraph.store.memory import InMemoryStore
 
-from routers.scripts import _update_user_preferences
+from services.agent.feedback import update_user_preferences as _update_user_preferences
 
 
 @pytest.fixture

@@ -96,6 +96,13 @@ def route_after_director(state: ScriptState) -> str:
     return _DIRECTOR_DECISION_MAP.get(decision, "human_gate")
 
 
+def route_after_concept_gate(state: ScriptState) -> str:
+    """Concept Gate 이후: regenerate → critic (재생성), 그 외 → writer."""
+    if state.get("concept_action") == "regenerate":
+        return "critic"
+    return "writer"
+
+
 def route_after_human_gate(state: ScriptState) -> str:
     """Human Gate 이후: approve → finalize, revise → revise."""
     action = state.get("human_action", "approve")

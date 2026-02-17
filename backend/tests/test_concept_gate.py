@@ -56,7 +56,7 @@ async def test_concept_gate_auto_approve_passthrough(sample_critic_result):
 
     state = {"auto_approve": True, "critic_result": sample_critic_result}
     result = await concept_gate_node(state)
-    assert result == {}
+    assert result == {"concept_action": "select"}
 
 
 @pytest.mark.asyncio

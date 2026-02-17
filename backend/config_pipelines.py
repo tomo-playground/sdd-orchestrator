@@ -67,6 +67,37 @@ LANGGRAPH_DEFAULT_MODE = os.getenv("LANGGRAPH_DEFAULT_MODE", "quick")
 LANGGRAPH_AUTO_REVIEW_THRESHOLD = float(os.getenv("LANGGRAPH_AUTO_REVIEW_THRESHOLD", "0.7"))
 LANGGRAPH_NARRATIVE_THRESHOLD = float(os.getenv("LANGGRAPH_NARRATIVE_THRESHOLD", "0.6"))
 LANGGRAPH_MAX_DIRECTOR_REVISIONS = int(os.getenv("LANGGRAPH_MAX_DIRECTOR_REVISIONS", "1"))
+LANGGRAPH_MAX_CONCEPT_REGEN = int(os.getenv("LANGGRAPH_MAX_CONCEPT_REGEN", "2"))
+
+# --- Feedback Presets (Interactive Feedback) ---
+FEEDBACK_PRESETS: dict[str, dict] = {
+    "hook_boost": {
+        "id": "hook_boost",
+        "label": "후킹 강화",
+        "icon": "zap",
+        "feedback": "첫 씬의 Hook을 더 강렬하게 수정. 질문형/충격형/감정형 중 하나로 변경",
+    },
+    "more_dramatic": {
+        "id": "more_dramatic",
+        "label": "더 극적으로",
+        "icon": "flame",
+        "feedback": "전체 감정 곡선의 진폭을 키우고 클라이맥스를 더 강렬하게",
+    },
+    "tone_change": {
+        "id": "tone_change",
+        "label": "톤 변경",
+        "icon": "mic",
+        "feedback": "화자의 톤을 {tone}(으)로 변경. 전체 대사의 어조와 문체를 통일",
+        "has_params": True,
+        "param_options": {"tone": ["유머러스", "진지한", "감동적", "공포", "냉소적"]},
+    },
+    "shorten": {
+        "id": "shorten",
+        "label": "짧게 줄이기",
+        "icon": "scissors",
+        "feedback": "불필요한 씬을 제거하고 핵심만 남기기",
+    },
+}
 
 LANGGRAPH_PRESETS: dict[str, dict] = {
     "quick": {

@@ -31,6 +31,7 @@ from services.agent.nodes.tts_designer import tts_designer_node
 from services.agent.nodes.writer import writer_node
 from services.agent.routing import (
     route_after_cinematographer,
+    route_after_concept_gate,
     route_after_director,
     route_after_finalize,
     route_after_human_gate,
@@ -65,10 +66,10 @@ def build_script_graph() -> StateGraph:
     # START → mode 분기 (quick→writer, full→research)
     graph.add_conditional_edges(START, route_after_start, ["research", "writer"])
 
-    # research → critic → concept_gate → writer
+    # research → critic → concept_gate → [writer | critic (regenerate)]
     graph.add_edge("research", "critic")
     graph.add_edge("critic", "concept_gate")
-    graph.add_edge("concept_gate", "writer")
+    graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["writer", "critic"])
 
     # writer → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])
