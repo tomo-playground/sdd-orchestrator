@@ -2,10 +2,13 @@
 
 LANGFUSE_ENABLED=false(기본)이면 None을 반환하여
 LangGraph 파이프라인에 영향을 주지 않는다.
+
+요청별 trace_id는 contextvars로 전파하여 동시성을 보장한다.
 """
 
 from __future__ import annotations
 
+import contextvars
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -20,16 +23,23 @@ from config_pipelines import (
     LANGFUSE_SECRET_KEY,
 )
 
-_handler = None
 _langfuse_client = None
 _initialized = False
+
+# 요청별 trace_id를 전파하는 contextvar (asyncio 태스크별 자동 분리)
+_current_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("langfuse_trace_id", default=None)
+
+
+def _to_hex32(trace_id: str) -> str:
+    """UUID 형식 trace_id를 Langfuse v3가 요구하는 32자 hex로 변환한다."""
+    return trace_id.replace("-", "")
 
 
 def _ensure_initialized() -> bool:
     """Langfuse 클라이언트를 초기화한다. 성공 시 True 반환."""
-    global _handler, _langfuse_client, _initialized
+    global _langfuse_client, _initialized
     if _initialized:
-        return _handler is not None
+        return _langfuse_client is not None
 
     _initialized = True
 
@@ -39,28 +49,25 @@ def _ensure_initialized() -> bool:
 
     try:
         from langfuse import Langfuse
-        from langfuse.langchain import CallbackHandler
 
         _langfuse_client = Langfuse()
-        _handler = CallbackHandler(public_key=LANGFUSE_PUBLIC_KEY)
-        logger.info("[LangFuse] 콜백 핸들러 초기화 완료 (host=%s)", LANGFUSE_BASE_URL)
+        logger.info("[LangFuse] 클라이언트 초기화 완료 (host=%s)", LANGFUSE_BASE_URL)
         return True
     except Exception as e:
         logger.warning("[LangFuse] 초기화 실패 (서비스는 정상 동작): %s", e)
-        _handler = None
         return False
 
 
-def get_langfuse_handler():
-    """LangFuse CallbackHandler 싱글턴. 비활성 시 None 반환."""
-    _ensure_initialized()
-    return _handler
-
-
 def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | None = None):
-    """요청별 CallbackHandler를 생성한다.
+    """요청별 CallbackHandler를 생성하고 trace_id를 contextvar에 설정한다.
 
-    trace_id가 주어지면 기존 trace에 이어서 기록한다 (resume용).
+    trace_id가 없으면 새로 생성한다 (fresh generate).
+    생성된 trace_id는 동일 asyncio 태스크 내 trace_llm_call()에서 자동 참조된다.
+
+    Langfuse v3 SDK는 trace_context TypedDict를 사용한다:
+      - trace_id: 트레이스 식별자
+      - parent_span_id: (선택) 부모 span
+    session_id는 v3 CallbackHandler에서 미지원하므로 metadata에 포함.
     """
     if not _ensure_initialized():
         return None
@@ -68,32 +75,36 @@ def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | No
     try:
         from langfuse.langchain import CallbackHandler
 
-        kwargs: dict[str, Any] = {"public_key": LANGFUSE_PUBLIC_KEY}
-        if trace_id:
-            kwargs["trace_id"] = trace_id
-        if session_id:
-            kwargs["session_id"] = session_id
-        return CallbackHandler(**kwargs)
+        if not trace_id:
+            trace_id = uuid.uuid4().hex
+        else:
+            trace_id = _to_hex32(trace_id)
+        _current_trace_id.set(trace_id)
+
+        trace_ctx: dict[str, str] = {"trace_id": trace_id}
+        handler = CallbackHandler(trace_context=trace_ctx)
+        logger.debug("[LangFuse] 핸들러 생성 (trace=%s, session=%s)", trace_id[:16], session_id)
+        return handler
     except Exception as e:
         logger.warning("[LangFuse] 요청별 핸들러 생성 실패: %s", e)
         return None
 
 
-def update_trace_on_interrupt(interrupt_data: dict) -> None:
+def update_trace_on_interrupt(interrupt_data: dict, *, trace_id: str | None = None) -> None:
     """GraphInterrupt 시 Langfuse 트레이스에 중간 결과를 기록한다.
 
-    human_gate interrupt는 정상 동작이므로 trace output/metadata를 채워
-    output=null(undefined) 상태를 방지한다.
+    trace_id를 명시적으로 전달받거나, contextvar에서 읽는다.
     Langfuse v3 SDK는 OTel 기반이라 trace 직접 업데이트가 불가하여
     REST ingestion API를 사용한다.
     """
-    if _handler is None:
+    if _langfuse_client is None:
         return
 
-    trace_id = getattr(_handler, "last_trace_id", None)
-    if not trace_id:
+    raw_id = trace_id or _current_trace_id.get()
+    if not raw_id:
         logger.debug("[LangFuse] trace_id 없음, interrupt 기록 건너뜀")
         return
+    resolved_trace_id = _to_hex32(raw_id)
 
     try:
         import httpx
@@ -105,11 +116,11 @@ def update_trace_on_interrupt(interrupt_data: dict) -> None:
             json={
                 "batch": [
                     {
-                        "id": str(uuid.uuid4()),
+                        "id": uuid.uuid4().hex,
                         "type": "trace-create",
                         "timestamp": now,
                         "body": {
-                            "id": trace_id,
+                            "id": resolved_trace_id,
                             "timestamp": now,
                             "output": interrupt_data,
                             "metadata": {
@@ -126,7 +137,7 @@ def update_trace_on_interrupt(interrupt_data: dict) -> None:
         if errors:
             logger.warning("[LangFuse] ingestion 오류: %s", errors)
         else:
-            logger.info("[LangFuse] interrupt 중간 결과 기록 (trace=%s)", trace_id[:16])
+            logger.info("[LangFuse] interrupt 중간 결과 기록 (trace=%s)", resolved_trace_id[:16])
     except Exception as e:
         logger.warning("[LangFuse] interrupt 트레이스 업데이트 실패: %s", e)
 
@@ -172,14 +183,15 @@ async def trace_llm_call(
 ):
     """Gemini 호출을 LangFuse GENERATION으로 추적한다.
 
+    contextvar에서 요청별 trace_id를 읽어 동일 trace 트리에 연결한다.
     LangFuse 비활성 시 no-op으로 동작한다 (graceful degradation).
     """
     if _langfuse_client is None:
         yield LLMCallResult()
         return
 
-    trace_id = getattr(_handler, "last_trace_id", None)
-    trace_ctx = {"trace_id": trace_id} if trace_id else None
+    raw_trace_id = _current_trace_id.get()
+    trace_ctx = {"trace_id": _to_hex32(raw_trace_id)} if raw_trace_id else None
     generation = _langfuse_client.start_generation(
         trace_context=trace_ctx,
         name=name,
