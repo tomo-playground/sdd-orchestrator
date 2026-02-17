@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 from urllib.parse import urlparse
 
 import numpy as np
@@ -235,8 +236,29 @@ def analyze_text_region_brightness(image: Image.Image, text_y_ratio: float) -> f
     return avg_brightness
 
 
+def _pick_best_face(faces, img_w: int, img_h: int) -> tuple[int, int, int, int] | None:
+    """감지 결과에서 유효한 최대 얼굴을 선택한다. 검증 실패 시 None."""
+    if len(faces) == 0:
+        return None
+    largest = max(faces, key=lambda f: f[2] * f[3])
+    x, y, w, h = int(largest[0]), int(largest[1]), int(largest[2]), int(largest[3])
+
+    # 검증 1: 최소 크기 — 이미지 너비의 8% 이상
+    if w < img_w * 0.08:
+        return None
+
+    # 검증 2: 세로 위치 — 이미지 하단 30%에서 감지된 경우 무시
+    #   (full_body 캐릭터의 발/바닥 영역 오감지 방지)
+    if y + h / 2 > img_h * 0.70:
+        return None
+
+    return (x, y, w, h)
+
+
 def detect_face(image: Image.Image) -> tuple[int, int, int, int] | None:
-    """Detect face in image using OpenCV Haar Cascade.
+    """Detect face in image using cascades (anime → standard fallback).
+
+    3단계 감지: anime cascade 우선 → 표준 cascade fallback → 결과 검증.
 
     Args:
         image: PIL Image to analyze
@@ -248,7 +270,6 @@ def detect_face(image: Image.Image) -> tuple[int, int, int, int] | None:
         import cv2
         import numpy as np
     except ImportError:
-        # OpenCV not available, return None
         return None
 
     try:
@@ -256,25 +277,22 @@ def detect_face(image: Image.Image) -> tuple[int, int, int, int] | None:
         img_array = np.array(image.convert("RGB"))
         img_cv = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+        img_h, img_w = gray.shape[:2]
 
-        # Load Haar Cascade classifier
-        face_cascade = cv2.CascadeClassifier(
-            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        )
+        # 1단계: anime cascade 시도
+        anime_cascade_path = Path(__file__).parent.parent / "data" / "lbpcascade_animeface.xml"
+        if anime_cascade_path.exists():
+            anime_cascade = cv2.CascadeClassifier(str(anime_cascade_path))
+            anime_faces = anime_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
+            result = _pick_best_face(anime_faces, img_w, img_h)
+            if result:
+                return result
 
-        # Detect faces
-        faces = face_cascade.detectMultiScale(
-            gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)
-        )
-
-        if len(faces) == 0:
-            return None
-
-        # Return largest face
-        largest_face = max(faces, key=lambda f: f[2] * f[3])
-        return tuple(largest_face)
+        # 2단계: 표준 cascade fallback (더 엄격한 파라미터)
+        std_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        std_faces = std_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=8, minSize=(50, 50))
+        return _pick_best_face(std_faces, img_w, img_h)
     except Exception:
-        # Face detection failed, return None
         return None
 
 
