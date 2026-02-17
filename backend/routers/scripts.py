@@ -72,6 +72,7 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         character_id=request.character_id,
         character_b_id=request.character_b_id,
         group_id=request.group_id,
+        references=request.references,
         mode=mode,
         preset=request.preset,
         auto_approve=preset_data.get("auto_approve", False),

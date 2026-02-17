@@ -53,6 +53,7 @@ class ScriptState(TypedDict, total=False):
     character_id: int | None
     character_b_id: int | None
     group_id: int | None
+    references: list[str] | None  # 소재 URL/텍스트 목록
 
     # Graph 설정
     mode: str  # "quick" | "full"

@@ -385,6 +385,7 @@ class StoryboardRequest(BaseModel):
     group_id: int | None = None
     mode: str = "quick"  # "quick" | "full"
     preset: str | None = None  # "quick" | "full_auto" | "creator"
+    references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
 
 
 class SceneCandidate(BaseModel):
