@@ -315,9 +315,7 @@ async def generate_tts(
                 resolved_preset_id,
             )
 
-        voice_design = _get_voice_design_for_scene(
-            builder, scene_req, preset_voice_design, clean_script, i
-        )
+        voice_design = _get_voice_design_for_scene(builder, scene_req, preset_voice_design, clean_script, i)
         voice_design = translate_voice_prompt(voice_design or "")
 
         # Seed: preset seed > hash-based fallback
@@ -382,6 +380,12 @@ async def generate_tts(
                 logger.warning(
                     f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
                     f"timed out ({TTS_TIMEOUT_SECONDS}s), seed={attempt_seed}"
+                )
+                continue
+            except (RuntimeError, ValueError) as gen_err:
+                logger.warning(
+                    f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
+                    f"model error: {gen_err}, seed={attempt_seed}"
                 )
                 continue
 
@@ -454,11 +458,7 @@ def _get_voice_design_for_scene(
 
     if not voice_design:
         # Prefer Korean prompt > English prompt
-        context_text = (
-            getattr(scene_req, "image_prompt_ko", "")
-            or getattr(scene_req, "image_prompt", "")
-            or ""
-        )
+        context_text = getattr(scene_req, "image_prompt_ko", "") or getattr(scene_req, "image_prompt", "") or ""
         if context_text:
             # For Narrators, we also want context-aware delivery if the scene has strong emotional signals
             # logic: if context_text exists, we try to generate a specific tone
@@ -466,9 +466,7 @@ def _get_voice_design_for_scene(
                 clean_script, context_text, base_prompt=preset_voice_design
             )
             if voice_design:
-                logger.info(
-                    f"Scene {scene_idx}: Auto-generated voice design (Speaker={speaker}): '{voice_design}'"
-                )
+                logger.info(f"Scene {scene_idx}: Auto-generated voice design (Speaker={speaker}): '{voice_design}'")
 
     # 3. Fallback to preset
     if not voice_design:
