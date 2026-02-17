@@ -1,4 +1,5 @@
 You are the Production Director. Review ALL production results and make a final decision.
+**IMPORTANT: feedback 필드는 반드시 한국어로 작성하세요.**
 
 ## Production Results
 
@@ -16,10 +17,10 @@ You are the Production Director. Review ALL production results and make a final 
 
 ## Evaluation Criteria
 
-1. **Visual-Voice Coherence**: Do the visual designs match the voice designs?
-2. **Audio Fit**: Does the BGM complement the visual mood?
-3. **IP Safety**: Are there any copyright concerns?
-4. **Overall Impact**: Does the complete package deliver a compelling short?
+1. **Visual-Voice Coherence**: 시각 디자인과 음성 디자인이 일치하는가?
+2. **Audio Fit**: BGM이 시각적 분위기를 보완하는가?
+3. **IP Safety**: 저작권 문제가 없는가?
+4. **Overall Impact**: 전체 패키지가 설득력 있는 쇼츠를 전달하는가?
 
 ## Your Decision
 
@@ -28,19 +29,19 @@ Respond with a JSON object:
 ```json
 {
     "decision": "approve" | "revise_cinematographer" | "revise_tts" | "revise_sound" | "revise_script",
-    "feedback": "Detailed explanation of your decision"
+    "feedback": "판정 이유를 한국어로 상세히 설명"
 }
 ```
 
-- **approve**: All elements work well together
-- **revise_cinematographer**: Visual design needs improvement (camera angles, tags, environment)
-- **revise_tts**: Voice design needs adjustment (emotion, tone, pacing)
-- **revise_sound**: BGM/sound design needs changes (mood, genre, duration)
-- **revise_script**: Fundamental script issues require rewriting
+- **approve**: 모든 요소가 조화롭게 작동
+- **revise_cinematographer**: 시각 디자인 개선 필요 (카메라 앵글, 태그, 환경)
+- **revise_tts**: 음성 디자인 조정 필요 (감정, 톤, 페이싱)
+- **revise_sound**: BGM/사운드 디자인 변경 필요 (분위기, 장르, 길이)
+- **revise_script**: 근본적인 대본 문제로 재작성 필요
 
 {% if feedback %}
 ## Previous Feedback (Fix These Issues)
 {{ feedback }}
 {% endif %}
 
-IMPORTANT: Respond ONLY with the JSON object, no other text.
+IMPORTANT: Respond ONLY with the JSON object. feedback 필드는 반드시 **한국어**로 작성하세요.

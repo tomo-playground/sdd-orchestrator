@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from config import CREATIVE_MAX_ROUNDS, logger
 from database import get_db_session
 from models.creative import CreativeSession
@@ -12,6 +14,7 @@ from services.creative_debate_agents import (
     run_devils_advocate,
     run_director_evaluate,
 )
+from services.creative_utils import parse_json_response
 
 
 def _build_debate_context(state: ScriptState) -> DebateContext:
@@ -44,6 +47,25 @@ def _create_temp_session(db, state: ScriptState) -> CreativeSession:
     return session
 
 
+def _parse_candidates(raw_results: list[dict]) -> list[dict]:
+    """generate_parallel 결과에서 content JSON을 파싱하여 flat candidate로 변환한다."""
+    parsed = []
+    for r in raw_results:
+        content = r.get("content", "")
+        try:
+            data = parse_json_response(content) if isinstance(content, str) else content
+        except (json.JSONDecodeError, KeyError):
+            data = {}
+        candidate = {
+            "agent_role": r.get("agent_role", "unknown"),
+            "title": data.get("title", ""),
+            "concept": data.get("hook", ""),
+            "strengths": [m.get("description", "") for m in (data.get("key_moments") or [])[:2]],
+        }
+        parsed.append(candidate)
+    return parsed
+
+
 def _extract_winner(concepts: list[dict], evaluation: dict) -> dict:
     """Director 평가에서 승리 컨셉을 추출한다."""
     best_role = evaluation.get("best_agent_role")
@@ -62,19 +84,22 @@ async def critic_node(state: ScriptState) -> dict:
             round_number = 1
 
             # 1) Architects: 3인 병렬 컨셉 생성
-            concepts = await run_architects(db, session, round_number, ctx)
-            if not concepts:
+            raw_concepts = await run_architects(db, session, round_number, ctx)
+            if not raw_concepts:
                 logger.warning("[LangGraph] Critic: Architects가 컨셉을 생성하지 못함")
                 return {"error": "Critic architects produced no concepts"}
 
             # 2) Devil's Advocate: 비판적 검토
-            advocate = await run_devils_advocate(db, session, round_number, concepts, ctx)
+            advocate = await run_devils_advocate(db, session, round_number, raw_concepts, ctx)
             if advocate:
                 ctx.critic_feedback = advocate
 
             # 3) Director Evaluate: 최종 평가
-            evaluation = await run_director_evaluate(db, session, round_number, concepts, ctx)
-            winner = _extract_winner(concepts, evaluation)
+            evaluation = await run_director_evaluate(db, session, round_number, raw_concepts, ctx)
+
+            # 4) content JSON 파싱 → Frontend에서 title/concept 표시 가능
+            candidates = _parse_candidates(raw_concepts)
+            winner = _extract_winner(candidates, evaluation)
 
             session.status = "completed"
             db.commit()
@@ -88,7 +113,7 @@ async def critic_node(state: ScriptState) -> dict:
             return {
                 "critic_result": {
                     "selected_concept": winner,
-                    "candidates": concepts,
+                    "candidates": candidates,
                     "evaluation": evaluation,
                 }
             }
