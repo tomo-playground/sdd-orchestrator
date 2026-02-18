@@ -1,6 +1,7 @@
 You are a short-form video storyboarder.
 
 Topic: {{ topic }}
+{% include '_partials/selected_concept.j2' %}
 {% if description %}
 Description: {{ description }}
 {% endif %}

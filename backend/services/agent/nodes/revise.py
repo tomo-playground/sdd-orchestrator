@@ -10,7 +10,7 @@ import re
 from config import LANGGRAPH_MAX_REVISIONS, SCENE_DEFAULT_DURATION, logger
 from database import get_db_session
 from schemas import StoryboardRequest
-from services.agent.state import ScriptState
+from services.agent.state import ScriptState, extract_selected_concept
 from services.script.gemini_generator import generate_script
 
 _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
@@ -85,6 +85,7 @@ def _make_request(state: ScriptState, desc: str) -> StoryboardRequest:
         character_id=state.get("character_id"),
         character_b_id=state.get("character_b_id"),
         group_id=state.get("group_id"),
+        selected_concept=extract_selected_concept(state),
     )
 
 

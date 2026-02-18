@@ -14,7 +14,7 @@ from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
 from schemas import StoryboardRequest
 from services.agent.observability import trace_llm_call
-from services.agent.state import ScriptState, WriterPlan
+from services.agent.state import ScriptState, WriterPlan, extract_selected_concept
 from services.script.gemini_generator import generate_script
 
 
@@ -30,7 +30,7 @@ def _extract_reasoning(scenes: list[dict]) -> list[dict]:
     return reasoning
 
 
-async def _create_plan(state: ScriptState) -> WriterPlan | None:
+async def _create_plan(state: ScriptState, selected_concept: dict | None = None) -> WriterPlan | None:
     """Writer Planning Step을 수행한다 (Phase 10-A).
 
     Hook 전략, 감정 곡선, 씬 배분 계획을 Gemini로 생성한다.
@@ -48,6 +48,7 @@ async def _create_plan(state: ScriptState) -> WriterPlan | None:
             duration=state.get("duration", 10),
             language=state.get("language", "Korean"),
             structure=state.get("structure", "Monologue"),
+            selected_concept=selected_concept,
         )
 
         async with trace_llm_call(name="writer_planning", input_text=prompt[:2000]) as llm:
@@ -92,9 +93,12 @@ async def writer_node(state: ScriptState) -> dict:
     is_full = state.get("mode") == "full"
     plan: WriterPlan | None = None
 
+    # critic에서 선정된 컨셉 추출 (별도 변수로 템플릿에 전달)
+    selected_concept = extract_selected_concept(state)
+
     # Phase 10-A: Planning Step (Full 모드 + PLANNING_ENABLED)
     if is_full and LANGGRAPH_PLANNING_ENABLED:
-        plan = await _create_plan(state)
+        plan = await _create_plan(state, selected_concept=selected_concept)
 
     # research_brief가 있으면 description에 컨텍스트 추가
     desc = state.get("description", "")
@@ -102,21 +106,12 @@ async def writer_node(state: ScriptState) -> dict:
     if research_brief:
         desc = f"{desc}\n\n[참고 정보]\n{research_brief}".strip()
 
-    # critic에서 선정된 컨셉이 있으면 description에 주입
-    critic_result = state.get("critic_result")
-    if critic_result:
-        selected = critic_result.get("selected_concept", {})
-        if selected:
-            title = selected.get("title", "")
-            concept = selected.get("concept", "")
-            desc = f"{desc}\n\n[선정 컨셉]\n제목: {title}\n{concept}".strip()
-
     # Phase 10-A: Planning 결과를 description에 주입
     if plan:
         plan_text = f"""[Writer Plan]
-Hook 전략: {plan['hook_strategy']}
-감정 곡선: {', '.join(plan['emotional_arc'])}
-씬 배분: intro={plan['scene_distribution'].get('intro', 0)}, rising={plan['scene_distribution'].get('rising', 0)}, climax={plan['scene_distribution'].get('climax', 0)}, resolution={plan['scene_distribution'].get('resolution', 0)}
+Hook 전략: {plan["hook_strategy"]}
+감정 곡선: {", ".join(plan["emotional_arc"])}
+씬 배분: intro={plan["scene_distribution"].get("intro", 0)}, rising={plan["scene_distribution"].get("rising", 0)}, climax={plan["scene_distribution"].get("climax", 0)}, resolution={plan["scene_distribution"].get("resolution", 0)}
 
 이 계획을 기반으로 대본을 작성하세요."""
         desc = f"{desc}\n\n{plan_text}".strip()
@@ -137,6 +132,7 @@ Hook 전략: {plan['hook_strategy']}
         character_id=state.get("character_id"),
         character_b_id=state.get("character_b_id"),
         group_id=state.get("group_id"),
+        selected_concept=selected_concept,
     )
 
     with get_db_session() as db:

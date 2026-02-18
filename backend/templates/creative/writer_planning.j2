@@ -7,6 +7,16 @@ You are a Script Planning Specialist. Before generating the actual script, creat
 **Duration**: {{ duration }} seconds
 **Language**: {{ language }}
 **Structure**: {{ structure }}
+{% if selected_concept %}
+
+=== SELECTED CONCEPT (MANDATORY) ===
+Title: {{ selected_concept.title }}
+Concept: {{ selected_concept.concept }}
+
+Your Hook strategy and Emotional Arc MUST serve this concept.
+Do NOT plan a different story or angle — align every planning decision with the concept above.
+=== END SELECTED CONCEPT ===
+{% endif %}
 
 ## Planning Framework (Phase 10-A)
 

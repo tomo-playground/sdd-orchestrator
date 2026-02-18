@@ -111,7 +111,7 @@ async def test_concept_gate_invalid_id_fallback(mock_interrupt, sample_critic_re
 @patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
 @patch("services.agent.nodes.writer.get_db_session")
 async def test_writer_injects_selected_concept(mock_db_ctx, mock_gen_script, sample_critic_result):
-    """writer가 선정 컨셉을 description에 주입."""
+    """writer가 선정 컨셉을 selected_concept 필드로 전달."""
     mock_gen_script.return_value = {"scenes": [{"script": "test", "speaker": "A", "duration": 3}]}
     from services.agent.nodes.writer import writer_node
 
@@ -125,15 +125,18 @@ async def test_writer_injects_selected_concept(mock_db_ctx, mock_gen_script, sam
 
     call_args = mock_gen_script.call_args
     request = call_args[0][0]
-    assert "[선정 컨셉]" in request.description
-    assert "잃어버린 기억" in request.description
+    # description에 혼합되지 않고 별도 필드로 전달
+    assert request.selected_concept is not None
+    assert request.selected_concept["title"] == "잃어버린 기억"
+    assert request.selected_concept["concept"] == "주인공이 기억을 되찾아가는 여정"
+    assert "[선정 컨셉]" not in request.description
 
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
 @patch("services.agent.nodes.writer.get_db_session")
 async def test_writer_no_concept_no_injection(mock_db_ctx, mock_gen_script):
-    """critic_result 없으면 주입 스킵."""
+    """critic_result 없으면 selected_concept은 None."""
     mock_gen_script.return_value = {"scenes": [{"script": "test", "speaker": "A", "duration": 3}]}
     from services.agent.nodes.writer import writer_node
 
@@ -142,7 +145,46 @@ async def test_writer_no_concept_no_injection(mock_db_ctx, mock_gen_script):
 
     call_args = mock_gen_script.call_args
     request = call_args[0][0]
-    assert "[선정 컨셉]" not in request.description
+    assert request.selected_concept is None
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.revise.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.revise.get_db_session")
+async def test_revise_preserves_selected_concept(mock_db_ctx, mock_gen_script, sample_critic_result):
+    """revise 재생성 시 selected_concept이 보존된다."""
+    mock_gen_script.return_value = {"scenes": [{"script": "revised", "speaker": "A", "duration": 3}]}
+    from services.agent.nodes.revise import revise_node
+
+    state = {
+        "topic": "테스트",
+        "description": "원본 설명",
+        "duration": 10,
+        "draft_scenes": [{"script": "old", "speaker": "A", "duration": 3}],
+        "review_result": {"errors": ["복잡한 오류: 서사 구조 불일치"]},
+        "revision_count": 0,
+        "critic_result": sample_critic_result,
+    }
+    await revise_node(state)
+
+    call_args = mock_gen_script.call_args
+    request = call_args[0][0]
+    assert request.selected_concept is not None
+    assert request.selected_concept["title"] == "잃어버린 기억"
+
+
+def test_storyboard_request_selected_concept_optional():
+    """StoryboardRequest의 selected_concept은 Optional."""
+    from schemas import StoryboardRequest
+
+    # selected_concept 없이 생성
+    req = StoryboardRequest(topic="테스트")
+    assert req.selected_concept is None
+
+    # selected_concept과 함께 생성
+    concept = {"title": "테스트 컨셉", "concept": "테스트 설명"}
+    req2 = StoryboardRequest(topic="테스트", selected_concept=concept)
+    assert req2.selected_concept == concept
 
 
 # -- 그래프 구조 테스트 --

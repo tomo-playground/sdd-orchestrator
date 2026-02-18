@@ -142,3 +142,12 @@ class ScriptState(TypedDict, total=False):
     # 최종 출력
     final_scenes: list[dict] | None
     error: str | None
+
+
+def extract_selected_concept(state: ScriptState) -> dict | None:
+    """critic_result에서 selected_concept를 추출한다. 없으면 None."""
+    critic_result = state.get("critic_result")
+    if not critic_result:
+        return None
+    selected = critic_result.get("selected_concept")
+    return selected if selected else None

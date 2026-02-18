@@ -219,6 +219,7 @@ async def generate_script(request, db: Session | None = None) -> dict:
             character_b_context=character_b_context,
             is_multi_character_capable=is_multi_character_capable,
             channel_dna=channel_dna,
+            selected_concept=request.selected_concept,
             **extra_fields,
         )
         from google.genai import types
@@ -287,7 +288,9 @@ async def generate_script(request, db: Session | None = None) -> dict:
             suggestion_text = " / ".join(suggestions[:2]) if suggestions else ""
             logger.error(
                 "[Gemini Error] %s | Reason: %s | Suggestions: %s",
-                user_message, error_reason, " | ".join(suggestions),
+                user_message,
+                error_reason,
+                " | ".join(suggestions),
             )
             raise ValueError(f"{user_message} ({suggestion_text})" if suggestion_text else user_message)
 
