@@ -1,0 +1,121 @@
+{
+  "version": "1.0",
+  "description": "Phase 10 True Agentic Architecture A/B 테스트용 벤치마크 샘플",
+  "samples": [
+    {
+      "id": "BM-01",
+      "topic": "오늘 하루 있었던 일",
+      "structure": "Monologue",
+      "language": "Korean",
+      "duration": 30,
+      "preset": "full_auto",
+      "target": "Phase A — Writer Planning이 Hook 구조를 개선하는지 검증",
+      "difficulty": "easy"
+    },
+    {
+      "id": "BM-02",
+      "topic": "처음 요리를 해본 날",
+      "description": "실패를 겪고 결국 성공하는 감정 곡선. 코믹하면서도 따뜻한 톤",
+      "structure": "Monologue",
+      "language": "Korean",
+      "duration": 30,
+      "preset": "full_auto",
+      "target": "Phase A — Review Reflection이 감정 곡선 피드백을 정확히 주는지 검증",
+      "difficulty": "medium"
+    },
+    {
+      "id": "BM-03",
+      "topic": "10년간 키운 반려동물과의 이별",
+      "description": "슬프지만 감사한 마음. 반전: 새로운 만남의 암시",
+      "structure": "Monologue",
+      "language": "Korean",
+      "duration": 45,
+      "preset": "full_auto",
+      "target": "Phase A — Director ReAct가 감정 톤 일관성을 다각도로 검증하는지",
+      "difficulty": "hard"
+    },
+    {
+      "id": "BM-04",
+      "topic": "한국의 카페 문화가 세계적으로 주목받는 이유",
+      "references": [
+        "한국 카페 시장 규모 15조원 돌파, 1인당 커피 소비량 세계 4위",
+        "스타벅스 매장 수 세계 3위, 개인 카페 비중 65%"
+      ],
+      "structure": "Monologue",
+      "language": "Korean",
+      "duration": 30,
+      "preset": "full_auto",
+      "target": "Phase B — Research Agent가 참고 소재를 분석하여 대본에 반영하는지",
+      "difficulty": "medium"
+    },
+    {
+      "id": "BM-05",
+      "topic": "첫 만남에서 어색한 대화",
+      "structure": "Dialogue",
+      "language": "Korean",
+      "duration": 30,
+      "preset": "full_auto",
+      "target": "Phase A — Planning이 Speaker A/B 캐릭터성을 사전 설계하는지",
+      "difficulty": "medium"
+    },
+    {
+      "id": "BM-06",
+      "topic": "A job interview gone hilariously wrong",
+      "description": "Comedy tone. Interviewer is serious, candidate is nervous and funny",
+      "structure": "Dialogue",
+      "language": "English",
+      "duration": 30,
+      "preset": "full_auto",
+      "target": "Phase A — 영어에서도 Planning/Reflection이 정상 동작하는지",
+      "difficulty": "medium"
+    },
+    {
+      "id": "BM-07",
+      "topic": "桜の下で再会した二人",
+      "description": "春の雰囲気、穏やかだけど切ない再会",
+      "structure": "Dialogue",
+      "language": "Japanese",
+      "duration": 30,
+      "preset": "full_auto",
+      "target": "Phase A — 일본어에서도 Planning/Reflection이 정상 동작하는지",
+      "difficulty": "medium"
+    },
+    {
+      "id": "BM-08",
+      "topic": "퇴사 전날 사수와의 대화",
+      "description": "표면적으로 담담하지만 속마음은 복잡. 마지막에 서로의 진심이 드러남",
+      "structure": "Narrated Dialogue",
+      "language": "Korean",
+      "duration": 45,
+      "preset": "full_auto",
+      "target": "Phase C — Critic 토론이 서사 깊이를 향상시키는지",
+      "difficulty": "hard"
+    },
+    {
+      "id": "BM-09",
+      "topic": "面接官が見抜いた応募者の秘密",
+      "description": "緊張感のある面接シーン。最後に意外な展開",
+      "structure": "Narrated Dialogue",
+      "language": "Japanese",
+      "duration": 45,
+      "preset": "creator",
+      "target": "Phase A+C — Director가 반전 타이밍/임팩트를 다각도로 검증하는지",
+      "difficulty": "hard"
+    },
+    {
+      "id": "BM-10",
+      "topic": "Why Gen-Z is quitting social media",
+      "description": "Documentary style. Data-driven but emotional personal stories",
+      "references": [
+        "40% of Gen-Z have taken a social media break in 2025",
+        "Average screen time decreased from 7h to 5h among 18-24 year olds"
+      ],
+      "structure": "Narrated Dialogue",
+      "language": "English",
+      "duration": 45,
+      "preset": "full_auto",
+      "target": "Phase A+B+C 전체 — 복합 시나리오에서 Agentic 파이프라인의 종합 효과",
+      "difficulty": "hard"
+    }
+  ]
+}

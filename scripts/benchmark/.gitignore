@@ -1,0 +1,6 @@
+# 벤치마크 실행 결과
+results/
+
+# Python cache
+__pycache__/
+*.pyc
