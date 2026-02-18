@@ -106,7 +106,7 @@ def create_cinematographer_executors(
             normalized_tag = tag.strip().lower().replace(" ", "_")
 
             stmt = select(Tag).where(Tag.name == normalized_tag)
-            result = await db.execute(stmt)
+            result = await db.execute(stmt) if isinstance(db, AsyncSession) else db.execute(stmt)
             tag_obj = result.scalar_one_or_none()
 
             if tag_obj:
@@ -153,7 +153,7 @@ def create_cinematographer_executors(
             from models.character import Character
 
             stmt = select(Character).where(Character.id == character_id)
-            result = await db.execute(stmt)
+            result = await db.execute(stmt) if isinstance(db, AsyncSession) else db.execute(stmt)
             char = result.scalar_one_or_none()
 
             if not char:
@@ -180,11 +180,11 @@ def create_cinematographer_executors(
 
             # 태그 이름 → ID 변환
             stmt_a = select(Tag.id).where(Tag.name == tag_a.strip().lower().replace(" ", "_"))
-            result_a = await db.execute(stmt_a)
+            result_a = await db.execute(stmt_a) if isinstance(db, AsyncSession) else db.execute(stmt_a)
             tag_a_id = result_a.scalar_one_or_none()
 
             stmt_b = select(Tag.id).where(Tag.name == tag_b.strip().lower().replace(" ", "_"))
-            result_b = await db.execute(stmt_b)
+            result_b = await db.execute(stmt_b) if isinstance(db, AsyncSession) else db.execute(stmt_b)
             tag_b_id = result_b.scalar_one_or_none()
 
             if not tag_a_id or not tag_b_id:
@@ -204,7 +204,7 @@ def create_cinematographer_executors(
                     | ((TagRule.source_tag_id == tag_b_id) & (TagRule.target_tag_id == tag_a_id))
                 ),
             )
-            result = await db.execute(stmt)
+            result = await db.execute(stmt) if isinstance(db, AsyncSession) else db.execute(stmt)
             rule = result.scalar_one_or_none()
 
             if rule:

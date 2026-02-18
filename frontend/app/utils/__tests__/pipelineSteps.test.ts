@@ -81,4 +81,25 @@ describe("updatePipelineSteps", () => {
       expect(updated[4].status).toBe("running"); // production
     }
   });
+
+  it("노드 에러 후 finalize 이벤트가 이전 에러 스텝을 done으로 복구", () => {
+    let steps = getInitialSteps("full");
+    // cinematographer 에러 → production error
+    steps = updatePipelineSteps(steps, makeEvent("cinematographer", "error"), "full");
+    expect(steps[4].status).toBe("error"); // production
+
+    // finalize 완료 → production 포함 이전 스텝 모두 done
+    steps = updatePipelineSteps(steps, makeEvent("finalize", "completed"), "full");
+    expect(steps[4].status).toBe("done"); // production 복구
+    expect(steps[5].status).toBe("done"); // director
+    expect(steps[6].status).toBe("done"); // complete
+  });
+
+  it("production 에러 후 learn 이벤트로도 complete 스텝 done", () => {
+    let steps = getInitialSteps("full");
+    steps = updatePipelineSteps(steps, makeEvent("cinematographer", "error"), "full");
+    steps = updatePipelineSteps(steps, makeEvent("learn"), "full");
+    expect(steps[4].status).toBe("done"); // production 복구
+    expect(steps[6].status).toBe("done"); // complete
+  });
 });

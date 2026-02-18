@@ -104,6 +104,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
             json_text = match.group(1) if match else response
 
             result_data = json.loads(json_text)
+            if not isinstance(result_data, dict):
+                raise ValueError(f"Expected dict, got {type(result_data).__name__}")
             scenes_output = result_data.get("scenes", [])
 
             # QC 검증
@@ -122,7 +124,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                 "cinematographer_tool_logs": tool_logs,
             }
 
-        except (json.JSONDecodeError, ValueError) as e:
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
             logger.error("[Cinematographer] JSON 파싱 실패: %s", e)
             return {
                 "error": f"JSON parsing failed: {e}",

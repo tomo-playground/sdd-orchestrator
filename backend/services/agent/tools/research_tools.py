@@ -184,7 +184,10 @@ def create_research_executors(
             from models import GroupConfig
 
             stmt = select(GroupConfig.channel_dna).where(GroupConfig.id == group_id)
-            result_proxy = await db.execute(stmt)
+            if isinstance(db, AsyncSession):
+                result_proxy = await db.execute(stmt)
+            else:
+                result_proxy = db.execute(stmt)
             row = result_proxy.scalar_one_or_none()
             if row:
                 dna = row

@@ -11,22 +11,49 @@ function isNarrativeScore(v: unknown): v is NarrativeScore {
 type SectionProps = { data: Record<string, unknown> };
 
 export function CriticSection({ data }: SectionProps) {
-  const candidates = (data.candidates ?? []) as Array<Record<string, unknown>>;
-  const evaluation = data.evaluation as Record<string, unknown> | undefined;
+  // SSE payload: { critic_result: { candidates, evaluation, selected_concept }, debate_log }
+  const cr = (data.critic_result ?? data) as Record<string, unknown>;
+  const candidates = (cr.candidates ?? []) as Array<Record<string, unknown>>;
+  const evaluation = cr.evaluation as Record<string, unknown> | undefined;
+  const selected = cr.selected_concept as Record<string, unknown> | undefined;
+  const debateLog = (data.debate_log ?? []) as Array<Record<string, unknown>>;
 
   return (
     <div className="space-y-2">
       {candidates.length > 0 && (
         <div className="space-y-1">
           <p className="text-[11px] font-medium text-zinc-500">후보 컨셉</p>
-          {candidates.map((c, i) => (
-            <div key={i} className="rounded-lg bg-zinc-50 px-3 py-2">
-              <p className="text-xs font-medium text-zinc-700">
-                {String(c.agent_role ?? "")} — {String(c.title ?? "")}
-              </p>
-              <p className="mt-0.5 text-[11px] text-zinc-500">{String(c.concept ?? "")}</p>
-            </div>
-          ))}
+          {candidates.map((c, i) => {
+            const isWinner =
+              selected && String(c.agent_role ?? "") === String(selected.agent_role ?? "");
+            return (
+              <div
+                key={i}
+                className={`rounded-lg px-3 py-2 ${isWinner ? "bg-emerald-50 ring-1 ring-emerald-200" : "bg-zinc-50"}`}
+              >
+                <div className="flex items-center gap-1.5">
+                  {isWinner && (
+                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">
+                      채택
+                    </span>
+                  )}
+                  <p className="text-xs font-medium text-zinc-700">
+                    {String(c.agent_role ?? "")} — {String(c.title ?? "")}
+                  </p>
+                </div>
+                <p className="mt-0.5 text-[11px] text-zinc-500">{String(c.concept ?? "")}</p>
+                {Array.isArray(c.strengths) && c.strengths.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {(c.strengths as string[]).map((s, j) => (
+                      <li key={j} className="text-[11px] text-zinc-400">
+                        · {s}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       {evaluation && (
@@ -36,6 +63,16 @@ export function CriticSection({ data }: SectionProps) {
             {String(evaluation.best_agent_role ?? "")}
           </span>
         </p>
+      )}
+      {debateLog.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[11px] font-medium text-zinc-500">토론 과정</p>
+          {debateLog.map((round, i) => (
+            <p key={i} className="text-[11px] text-zinc-400">
+              R{String(round.round ?? i + 1)}: {String(round.action ?? "")}
+            </p>
+          ))}
+        </div>
       )}
     </div>
   );
