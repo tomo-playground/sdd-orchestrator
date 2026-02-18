@@ -193,6 +193,69 @@ async def _narrative_evaluate(
         return None
 
 
+async def _self_reflect(
+    review_result: ReviewResult,
+    topic: str,
+    language: str,
+    structure: str,
+) -> str | None:
+    """Review 실패 시 Self-Reflection을 수행한다 (Phase 10-A).
+
+    근본 원인 분석 + 구체적 수정 전략을 Gemini에 요청한다.
+    실패 시 None 반환 (graceful degradation).
+    """
+    from config import GEMINI_TEXT_MODEL, gemini_client
+
+    if not gemini_client:
+        logger.warning("[LangGraph] Self-Reflection: Gemini 클라이언트 없음, 건너뜀")
+        return None
+
+    try:
+        tmpl = template_env.get_template("creative/review_reflection.j2")
+        prompt = tmpl.render(
+            topic=topic,
+            language=language,
+            structure=structure,
+            errors=review_result.get("errors", []),
+            warnings=review_result.get("warnings", []),
+            gemini_feedback=review_result.get("gemini_feedback"),
+            narrative_score=review_result.get("narrative_score"),
+            narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
+        )
+        async with trace_llm_call(name="review_self_reflect", input_text=prompt[:2000]) as llm:
+            response = await gemini_client.aio.models.generate_content(
+                model=GEMINI_TEXT_MODEL,
+                contents=prompt,
+            )
+            llm.record(response)
+
+        # JSON 파싱
+        text = (response.text or "").strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
+        data = json.loads(text)
+
+        # 구조화된 reflection 텍스트 생성
+        reflection = f"""[근본 원인]
+{data.get('root_cause', '')}
+
+[영향 평가]
+{data.get('impact', '')}
+
+[수정 전략]
+{data.get('strategy', '')}
+
+[기대 결과]
+{data.get('expected_outcome', '')}"""
+
+        logger.info("[LangGraph] Self-Reflection 완료 (근본 원인: %s...)", data.get("root_cause", "")[:50])
+        return reflection
+
+    except Exception as e:
+        logger.warning("[LangGraph] Self-Reflection 실패: %s", e)
+        return None
+
+
 async def review_node(state: ScriptState) -> dict:
     """Draft 씬을 검증하고 review_result를 state에 기록한다.
 
@@ -200,6 +263,9 @@ async def review_node(state: ScriptState) -> dict:
       1. 규칙 기반 검증
       2. 규칙 실패 → Gemini 피드백
       3. 규칙 통과 → 서사 품질 평가 (NarrativeScore)
+
+    Phase 10-A:
+      4. 실패 시 → Self-Reflection (근본 원인 분석 + 수정 전략)
     """
     scenes = state.get("draft_scenes") or []
     duration = state.get("duration", 10)
@@ -225,13 +291,19 @@ async def review_node(state: ScriptState) -> dict:
             if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
                 result["passed"] = False
 
+    # Phase 10-A: Self-Reflection (실패 시 원인 분석 + 수정 전략)
+    reflection: str | None = None
+    if not result.get("passed") and is_full:
+        reflection = await _self_reflect(result, topic, language, structure)
+
     logger.info(
-        "[LangGraph] Review 노드: passed=%s, errors=%d, warnings=%d, gemini=%s, narrative=%.2f",
+        "[LangGraph] Review 노드: passed=%s, errors=%d, warnings=%d, gemini=%s, narrative=%.2f, reflection=%s",
         result.get("passed"),
         len(result.get("errors", [])),
         len(result.get("warnings", [])),
         "호출" if gemini_feedback else "건너뜀",
         narrative_score.get("overall", -1) if narrative_score else -1,
+        "생성" if reflection else "건너뜀",
     )
 
-    return {"review_result": result}
+    return {"review_result": result, "review_reflection": reflection}

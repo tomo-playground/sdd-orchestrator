@@ -35,7 +35,10 @@ def _try_rule_fix(scenes: list[dict], errors: list[str]) -> bool:
 
 
 def _build_feedback(state: ScriptState) -> str:
-    """human_feedback, revision_feedback, review errors를 결합."""
+    """human_feedback, revision_feedback, review errors, reflection을 결합.
+
+    Phase 10-A: review_reflection (Self-Reflection 근본 원인 분석 + 수정 전략) 추가.
+    """
     parts: list[str] = []
     if fb := state.get("human_feedback"):
         parts.append(f"[사용자 피드백] {fb}")
@@ -43,12 +46,18 @@ def _build_feedback(state: ScriptState) -> str:
         parts.append(f"[수정 지시] {rf}")
     if df := state.get("director_feedback"):
         parts.append(f"[디렉터 피드백] {df}")
+
+    # Phase 10-A: Self-Reflection 우선 배치 (근본 원인 분석 → 구체적 수정 전략)
+    if reflection := state.get("review_reflection"):
+        parts.append(f"[Review Self-Reflection]\n{reflection}")
+
     review = state.get("review_result") or {}
     if errs := review.get("errors"):
         parts.append(f"[검증 오류] {'; '.join(errs)}")
     if ns := review.get("narrative_score"):
         if ns_fb := ns.get("feedback"):
             parts.append(f"[서사 품질 피드백] {ns_fb}")
+
     return "\n".join(parts)
 
 

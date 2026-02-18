@@ -69,6 +69,16 @@ LANGGRAPH_NARRATIVE_THRESHOLD = float(os.getenv("LANGGRAPH_NARRATIVE_THRESHOLD",
 LANGGRAPH_MAX_DIRECTOR_REVISIONS = int(os.getenv("LANGGRAPH_MAX_DIRECTOR_REVISIONS", "1"))
 LANGGRAPH_MAX_CONCEPT_REGEN = int(os.getenv("LANGGRAPH_MAX_CONCEPT_REGEN", "2"))
 
+# --- Phase 10-A: True Agentic Architecture ---
+# Director ReAct Loop
+LANGGRAPH_MAX_REACT_STEPS = int(os.getenv("LANGGRAPH_MAX_REACT_STEPS", "3"))
+
+# Review Self-Reflection
+LANGGRAPH_REFLECTION_ENABLED = os.getenv("LANGGRAPH_REFLECTION_ENABLED", "true").lower() == "true"
+
+# Writer Planning Step
+LANGGRAPH_PLANNING_ENABLED = os.getenv("LANGGRAPH_PLANNING_ENABLED", "true").lower() == "true"
+
 # --- Feedback Presets (Interactive Feedback) ---
 FEEDBACK_PRESETS: dict[str, dict] = {
     "hook_boost": {

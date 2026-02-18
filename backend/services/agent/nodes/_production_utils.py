@@ -46,7 +46,8 @@ async def run_production_step(
                 continue
             raise
 
-        extracted = parsed.get(extract_key, [])
+        # extract_key가 빈 문자열이면 전체 dict 검증 (Phase 10-A Director ReAct)
+        extracted = parsed if extract_key == "" else parsed.get(extract_key, [])
         qc = validate_fn(extracted)
         if qc["ok"]:
             logger.info("[%s] QC 통과 (retry %d)", step_name, retry)

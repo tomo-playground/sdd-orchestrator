@@ -39,6 +39,23 @@ class ReviewResult(TypedDict, total=False):
     narrative_score: NarrativeScore | None
 
 
+class DirectorReActStep(TypedDict):
+    """Director의 각 ReAct 스텝 (Phase 10-A)."""
+
+    step: int  # 1-3
+    observe: str  # 관찰 내용
+    think: str  # 사고 과정
+    act: str  # 행동 결정
+
+
+class WriterPlan(TypedDict):
+    """Writer의 계획 수립 결과 (Phase 10-A)."""
+
+    hook_strategy: str  # Hook 전략
+    emotional_arc: list[str]  # 감정 곡선 (씬별)
+    scene_distribution: dict[str, int]  # 구조별 씬 배분
+
+
 class ScriptState(TypedDict, total=False):
     """Graph 전체에서 공유되는 상태."""
 
@@ -65,6 +82,9 @@ class ScriptState(TypedDict, total=False):
     draft_character_id: int | None
     draft_character_b_id: int | None
 
+    # Writer Planning (Phase 10-A)
+    writer_plan: WriterPlan | None
+
     # Critic 결과 (Full 모드)
     critic_result: dict | None
     scene_reasoning: list[SceneReasoning] | None
@@ -87,6 +107,7 @@ class ScriptState(TypedDict, total=False):
 
     # Review 결과
     review_result: ReviewResult | None
+    review_reflection: str | None  # Phase 10-A: Self-Reflection (실패 원인 분석 + 수정 전략)
 
     # Production 결과 (Full 모드)
     cinematographer_result: dict | None
@@ -98,6 +119,7 @@ class ScriptState(TypedDict, total=False):
     director_decision: str | None
     director_feedback: str | None
     director_revision_count: int
+    director_reasoning_steps: list[DirectorReActStep] | None  # Phase 10-A: ReAct Loop 사고 과정
 
     # Explain 결과 (Full 모드)
     explanation_result: dict | None

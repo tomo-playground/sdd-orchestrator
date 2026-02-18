@@ -172,11 +172,14 @@ async def test_copyright_reviewer_fallback(mock_step, cinema_result):
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
 async def test_director_node_approve(mock_step):
-    """Director 노드가 approve 결과를 반환한다."""
+    """Director 노드가 approve 결과를 반환한다 (Phase 10-A ReAct)."""
     from services.agent.nodes.director import director_node
 
+    # Phase 10-A: ReAct 형식 응답
     mock_step.return_value = {
-        "decision": "approve",
+        "observe": "모든 Production 요소를 검토했습니다.",
+        "think": "Visual-Voice 조화가 잘 이루어지고 IP 문제도 없습니다.",
+        "act": "approve",
         "feedback": "모든 요소가 잘 조화됩니다.",
     }
     state = {
@@ -190,18 +193,31 @@ async def test_director_node_approve(mock_step):
     assert result["director_decision"] == "approve"
     assert result["director_feedback"] == "모든 요소가 잘 조화됩니다."
     assert result["director_revision_count"] == 1
+    # Phase 10-A: reasoning_steps 기록 확인
+    assert "director_reasoning_steps" in result
+    assert len(result["director_reasoning_steps"]) == 1
 
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
 async def test_director_node_revise(mock_step):
-    """Director 노드가 revision 요청을 반환한다."""
+    """Director 노드가 revision 요청을 반환한다 (Phase 10-A ReAct)."""
     from services.agent.nodes.director import director_node
 
-    mock_step.return_value = {
-        "decision": "revise_cinematographer",
-        "feedback": "카메라 앵글이 단조롭습니다.",
-    }
+    # Phase 10-A: ReAct 형식, 최대 3 스텝까지 revise_* 반환
+    mock_step.side_effect = [
+        {
+            "observe": "카메라 앵글이 모든 씬에서 close-up만 사용되었습니다.",
+            "think": "다양한 앵글이 필요합니다.",
+            "act": "revise_cinematographer",
+            "feedback": "카메라 앵글이 단조롭습니다.",
+        },
+        {
+            "observe": "앵글이 개선되었습니다.",
+            "think": "이제 승인 가능합니다.",
+            "act": "approve",
+        },
+    ]
     state = {
         "cinematographer_result": {"scenes": []},
         "tts_designer_result": {"tts_designs": []},
@@ -210,8 +226,11 @@ async def test_director_node_revise(mock_step):
         "director_revision_count": 0,
     }
     result = await director_node(state)
-    assert result["director_decision"] == "revise_cinematographer"
+    # 첫 스텝에서 revise, 두 번째 스텝에서 approve → 최종 approve
+    assert result["director_decision"] == "approve"
     assert result["director_revision_count"] == 1
+    # 2개 스텝 기록
+    assert len(result["director_reasoning_steps"]) == 2
 
 
 @pytest.mark.asyncio
