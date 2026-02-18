@@ -59,35 +59,9 @@
 
 ---
 
-## Phase 7-2: Project/Group System
+## Phase 7-2: Project/Group System - ARCHIVED
 
-**목표**: 채널(Project) + 시리즈(Group) 계층 구조 구현. 설정 상속, 서사 톤 자동 주입, 데이터 기반 태그 추천.
-**선행**: Phase 6-7 일부 (DB 마이그레이션 인프라). Phase 0은 6-7과 병렬 가능.
-
-| Phase | 핵심 | 상태 |
-|-------|------|------|
-| Phase 0: Foundation | DB 마이그레이션, CRUD API, FK 연결 | [x] |
-| Phase 1: Core | FK 강화, 캐릭터 프로젝트 스코핑, 렌더 프리셋 분리, 설정 상속 엔진, 그룹 편집 UI | [x] |
-| Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동, Studio UX Polish | [x] |
-| Phase 1.7: Group Defaults | 그룹 cascade 확장 (language, structure, duration, narrator_voice), Manage 그룹 기본값 편집 UI. [명세](../99_archive/features/GROUP_DEFAULTS.md) | [x] |
-| Phase 2-1: Channel DNA | 그룹별 톤/세계관/가이드라인 JSONB 저장 + Gemini 스토리보드 자동 주입 | [x] |
-| Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
-
-**Phase 1.5 세부 완료 항목** (2026-02-02):
-- Channel Profile → Project 통합 (profileSlice 삭제, avatar_key DB 이관)
-- 캐릭터 글로벌화 (project_id nullable, 전역 유니크)
-- ProjectDropdown 아바타/편집 UI, ProjectFormModal 캐릭터 셀렉터
-- `page.tsx` God Component 분리 (545줄 → 107줄 + StoryboardsSection + CharactersSection)
-- OutputTab 채널 프로필 섹션 제거, Current Style 섹션 제거
-- TabBar 프로젝트 정보 중복 제거
-- PromptSetupPanel Global/Actor A 탭 → 별도 카드 분리
-- Actor A Advanced Settings (SD Parameters) 제거 (Style Profile로 통합)
-- StoryboardActionsBar Reset 버튼 제거
-- StoryboardGeneratorPanel Visual Style 필드 제거, Language select 전환
-- ContextBar breadcrumb chevron 아이콘, Home 아이콘 전환
-- Manage > Assets 표시명 개선 (확장자 제거, flex wrap)
-
-상세: [기능 명세](FEATURES/PROJECT_GROUP.md)
+채널(Project) + 시리즈(Group) 계층 구조 구현 완료. DB 마이그레이션, CRUD API, 설정 상속 엔진(System Default → GroupConfig), 렌더 프리셋 분리, Channel DNA(톤/세계관 자동 주입). 미구현 잔여(Tag/Series Intelligence, 배치 렌더링, 브랜딩, 분석)는 Feature Backlog로 이동. 상세: [기능 명세](FEATURES/PROJECT_GROUP.md)
 
 ---
 
@@ -250,6 +224,9 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | Scene 단위 자연어 이미지 편집 | [명세](FEATURES/SCENE_IMAGE_EDIT.md) |
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
+| 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
+| 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
+| 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | ~~AI BGM Generation~~ | ~~[명세](../99_archive/features/AI_BGM.md)~~ → 6-8 #7-11로 이동 (완료) |
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
@@ -348,7 +325,7 @@ Phase 10 전체 완료. 5대 Agentic 요건 충족 (자율 의사결정, Tool Us
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
 | 11 | 9 P4 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
-| 12 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 대규모 운영 |
+| 12 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | Feature Backlog로 이동 |
 | 13 | 8 | Multi-Style Architecture | Anime 외 화풍 확장 |
 
 **상세 변경 이력**: Phase별 변경사항은 각 Phase의 DoD 및 커밋 로그 참조. Phase 7-1 완료 항목 상세는 [Phase 7-1 커밋 로그](../99_archive/archive/) 참조.
