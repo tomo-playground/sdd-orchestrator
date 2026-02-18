@@ -29,10 +29,8 @@ const NAV_GROUPS: (NavItem[] | "sep")[] = [
     { href: "/library", label: "Library", icon: Library },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
-  //   "sep",
-  //   [
-  //     { href: "/lab", label: "Lab", icon: FlaskConical },
-  //   ], 
+  "sep",
+  [{ href: "/lab", label: "Lab", icon: FlaskConical }],
 ];
 
 function isNavActive(item: NavItem, pathname: string, tab: string | null) {
