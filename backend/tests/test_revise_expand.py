@@ -178,8 +178,8 @@ def test_redistribute_empty_scenes():
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes._revise_expand.gemini_client")
-@patch("services.agent.nodes._revise_expand.template_env")
+@patch("config.gemini_client")
+@patch("config.template_env")
 @patch("services.agent.nodes._revise_expand.postprocess_new_scenes")
 async def test_try_scene_expand_success(mock_postprocess, mock_tenv, mock_gemini):
     """Gemini가 새 씬을 반환하면 기존 씬에 병합한다."""
@@ -213,8 +213,8 @@ async def test_try_scene_expand_success(mock_postprocess, mock_tenv, mock_gemini
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes._revise_expand.gemini_client")
-@patch("services.agent.nodes._revise_expand.template_env")
+@patch("config.gemini_client")
+@patch("config.template_env")
 async def test_try_scene_expand_gemini_error(mock_tenv, mock_gemini):
     """Gemini API 에러 → None 반환 (Tier 3 fallback)."""
     from services.agent.nodes._revise_expand import try_scene_expand
@@ -230,8 +230,8 @@ async def test_try_scene_expand_gemini_error(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes._revise_expand.gemini_client")
-@patch("services.agent.nodes._revise_expand.template_env")
+@patch("config.gemini_client")
+@patch("config.template_env")
 async def test_try_scene_expand_invalid_json(mock_tenv, mock_gemini):
     """잘못된 JSON → None 반환 (Tier 3 fallback)."""
     from services.agent.nodes._revise_expand import try_scene_expand
@@ -254,7 +254,7 @@ async def test_try_scene_expand_no_gemini_client():
     """Gemini 클라이언트 없음 → None."""
     from services.agent.nodes._revise_expand import try_scene_expand
 
-    with patch("services.agent.nodes._revise_expand.gemini_client", None):
+    with patch("config.gemini_client", None):
         result = await try_scene_expand([], {}, deficit=1, target_min=2)
         assert result is None
 

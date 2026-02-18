@@ -8,14 +8,7 @@ from __future__ import annotations
 import json
 import re
 
-from config import (
-    ENABLE_DANBOORU_VALIDATION,
-    GEMINI_TEXT_MODEL,
-    SCENE_DURATION_RANGE,
-    gemini_client,
-    logger,
-    template_env,
-)
+from config import SCENE_DURATION_RANGE, logger
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, extract_selected_concept
 from services.storyboard.helpers import strip_markdown_codeblock
@@ -98,7 +91,7 @@ def redistribute_durations(scenes: list[dict], target_duration: int) -> None:
 
 def postprocess_new_scenes(new_scenes: list[dict]) -> None:
     """새 씬에만 태그 정규화 + negative prompt를 적용한다."""
-    from config import DEFAULT_SCENE_NEGATIVE_PROMPT
+    from config import DEFAULT_SCENE_NEGATIVE_PROMPT, ENABLE_DANBOORU_VALIDATION
     from services.keywords import filter_prompt_tokens
     from services.prompt import (
         normalize_and_fix_tags,
@@ -138,6 +131,8 @@ async def try_scene_expand(
 
     실패 시 None을 반환하여 Tier 3(전체 재생성)으로 fallback.
     """
+    from config import GEMINI_TEXT_MODEL, gemini_client, template_env
+
     if not gemini_client:
         logger.warning("[Revise] Expansion: Gemini 클라이언트 없음, 건너뜀")
         return None
