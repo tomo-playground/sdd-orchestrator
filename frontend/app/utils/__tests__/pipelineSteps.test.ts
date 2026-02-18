@@ -18,6 +18,29 @@ describe("getInitialSteps", () => {
     expect(steps[2].id).toBe("complete");
   });
 
+  it("full 모드: 모든 스텝에 nodes 메타 정보 포함", () => {
+    const steps = getInitialSteps("full");
+    steps.forEach((s) => {
+      expect(s.nodes).toBeDefined();
+      expect(s.nodes!.length).toBeGreaterThan(0);
+    });
+    // production 스텝에 4개 에이전트
+    const production = steps.find((s) => s.id === "production");
+    expect(production!.nodes).toHaveLength(4);
+    expect(production!.nodes).toContain("Cinematographer");
+    expect(production!.nodes).toContain("TTS Designer");
+    expect(production!.nodes).toContain("Sound Designer");
+    expect(production!.nodes).toContain("Copyright Reviewer");
+  });
+
+  it("quick 모드: 모든 스텝에 nodes 메타 정보 포함", () => {
+    const steps = getInitialSteps("quick");
+    steps.forEach((s) => {
+      expect(s.nodes).toBeDefined();
+      expect(s.nodes!.length).toBeGreaterThan(0);
+    });
+  });
+
   it("매 호출 시 독립된 복사본 반환", () => {
     const a = getInitialSteps("full");
     const b = getInitialSteps("full");

@@ -78,7 +78,7 @@ export function useSceneActions() {
       environment_reference_id: referenceScene.image_asset_id,
       environment_reference_weight: 0.3,
     });
-    showToast(`Scene ${referenceScene.order}의 배경을 참조로 설정했습니다.`, "success");
+    showToast(`Scene ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");
   }, [showToast]);
 
   const handleRemoveScene = useCallback(

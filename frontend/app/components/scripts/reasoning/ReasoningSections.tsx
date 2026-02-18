@@ -3,6 +3,12 @@
 import { useState } from "react";
 import NarrativeScoreChart from "../NarrativeScoreChart";
 import type { NarrativeScore } from "../../../types";
+import {
+  CinematographerSection,
+  TtsDesignerSection,
+  SoundDesignerSection,
+  CopyrightReviewerSection,
+} from "./ProductionSections";
 
 function isNarrativeScore(v: unknown): v is NarrativeScore {
   return typeof v === "object" && v !== null && "overall" in v;
@@ -168,6 +174,10 @@ export function ExplainSection({ data }: SectionProps) {
 const SECTION_RENDERERS: Record<string, React.ComponentType<SectionProps>> = {
   critic: CriticSection,
   review: ReviewSection,
+  cinematographer: CinematographerSection,
+  tts_designer: TtsDesignerSection,
+  sound_designer: SoundDesignerSection,
+  copyright_reviewer: CopyrightReviewerSection,
   director: DirectorSection,
   explain: ExplainSection,
 };

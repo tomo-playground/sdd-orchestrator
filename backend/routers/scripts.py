@@ -138,6 +138,10 @@ _NODE_RESULT_KEYS: dict[str, str | list[str]] = {
     "critic": ["critic_result", "debate_log"],  # Phase 10-C-3: 토론 로그 추가
     "concept_gate": ["critic_result"],  # 사용자 선택 반영된 critic_result
     "review": "review_result",
+    "cinematographer": ["cinematographer_result", "cinematographer_tool_logs"],
+    "tts_designer": "tts_designer_result",
+    "sound_designer": "sound_designer_result",
+    "copyright_reviewer": "copyright_reviewer_result",
     "director": ["director_decision", "director_feedback", "agent_messages"],  # Phase 10-C-2: 양방향 메시지
     "explain": "explanation_result",
 }
@@ -149,7 +153,8 @@ def _extract_node_result(node_name: str, node_output: dict) -> dict | None:
     if keys is None:
         return None
     if isinstance(keys, list):
-        result = {k.removeprefix("director_"): node_output.get(k) for k in keys}
+        prefix = f"{node_name}_"
+        result = {k.removeprefix(prefix): node_output.get(k) for k in keys}
         return result if any(result.values()) else None
     return node_output.get(keys) or None
 

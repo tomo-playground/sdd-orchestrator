@@ -38,6 +38,6 @@ export function applyAutoPinAfterGeneration(
 
   return {
     success: true,
-    message: `Scene ${referenceScene.order}의 배경을 참조로 설정했습니다`,
+    message: `Scene ${referenceScene.order + 1}의 배경을 참조로 설정했습니다`,
   };
 }

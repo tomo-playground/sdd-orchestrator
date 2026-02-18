@@ -118,7 +118,7 @@ describe("applyAutoPinAfterGeneration", () => {
 
     expect(result).toEqual({
       success: true,
-      message: "Scene 0의 배경을 참조로 설정했습니다",
+      message: "Scene 1의 배경을 참조로 설정했습니다",
     });
   });
 

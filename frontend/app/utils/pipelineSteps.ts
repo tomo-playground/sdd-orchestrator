@@ -2,20 +2,25 @@ import type { PipelineStep, ScriptStreamEvent } from "../types";
 
 // ── Full 모드 7스텝 ──
 const FULL_STEPS: PipelineStep[] = [
-  { id: "research", label: "리서치", status: "idle" },
-  { id: "concept", label: "컨셉", status: "idle" },
-  { id: "script", label: "대본", status: "idle" },
-  { id: "review", label: "검증", status: "idle" },
-  { id: "production", label: "프로덕션", status: "idle" },
-  { id: "director", label: "디렉터", status: "idle" },
-  { id: "complete", label: "완료", status: "idle" },
+  { id: "research", label: "리서치", status: "idle", nodes: ["Research"] },
+  { id: "concept", label: "컨셉", status: "idle", nodes: ["Critic", "Concept Gate"] },
+  { id: "script", label: "대본", status: "idle", nodes: ["Writer"] },
+  { id: "review", label: "검증", status: "idle", nodes: ["Review", "Revise"] },
+  {
+    id: "production",
+    label: "프로덕션",
+    status: "idle",
+    nodes: ["Cinematographer", "TTS Designer", "Sound Designer", "Copyright Reviewer"],
+  },
+  { id: "director", label: "디렉터", status: "idle", nodes: ["Director", "Human Gate"] },
+  { id: "complete", label: "완료", status: "idle", nodes: ["Finalize", "Explain", "Learn"] },
 ];
 
 // ── Quick 모드 3스텝 ──
 const QUICK_STEPS: PipelineStep[] = [
-  { id: "script", label: "대본", status: "idle" },
-  { id: "review", label: "검증", status: "idle" },
-  { id: "complete", label: "완료", status: "idle" },
+  { id: "script", label: "대본", status: "idle", nodes: ["Writer"] },
+  { id: "review", label: "검증", status: "idle", nodes: ["Review", "Revise"] },
+  { id: "complete", label: "완료", status: "idle", nodes: ["Finalize"] },
 ];
 
 // ── 15 노드 → 논리 스텝 매핑 ──

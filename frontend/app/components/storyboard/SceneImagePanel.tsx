@@ -175,17 +175,7 @@ export default function SceneImagePanel({
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-xs text-zinc-400">No image</p>
-            {onGenerateImage && !scene.isGenerating ? (
-              <button
-                type="button"
-                onClick={onGenerateImage}
-                className="rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-              >
-                Generate Image
-              </button>
-            ) : (
-              <p className="text-[12px] text-zinc-300">Click Generate or Upload</p>
-            )}
+            <p className="text-[12px] text-zinc-300">Generate or Upload</p>
           </div>
         )}
 
@@ -230,12 +220,11 @@ export default function SceneImagePanel({
             .map((candidate, idx) => {
               const isSelected = candidate.image_url === scene.image_url;
               return (
-                <button
+                <div
                   key={`${scene.client_id}-candidate-${idx}`}
-                  type="button"
-                  onClick={() => onCandidateSelect(candidate.image_url!)}
-                  className={`relative overflow-hidden rounded-xl border ${isSelected ? "border-zinc-900" : "border-zinc-200"
+                  className={`group/thumb relative overflow-hidden rounded-xl border cursor-pointer ${isSelected ? "border-zinc-900" : "border-zinc-200"
                     }`}
+                  onClick={() => onImageClick(candidate.image_url!)}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -249,7 +238,20 @@ export default function SceneImagePanel({
                       {Math.round(candidate.match_rate * 100)}%
                     </span>
                   )}
-                </button>
+                  {/* Select button on hover */}
+                  {!isSelected && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCandidateSelect(candidate.image_url!);
+                      }}
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 opacity-0 shadow-sm backdrop-blur transition group-hover/thumb:opacity-100"
+                    >
+                      Use
+                    </button>
+                  )}
+                </div>
               );
             })}
         </div>

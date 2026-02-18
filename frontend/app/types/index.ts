@@ -751,6 +751,7 @@ export type PipelineStep = {
   id: string;
   label: string;
   status: "idle" | "running" | "done" | "error";
+  nodes?: string[];
 };
 
 export type ScriptStreamEvent = {

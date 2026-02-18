@@ -97,7 +97,7 @@ export async function runAutoRunFromStep(
             useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: true });
             let result = await generateSceneCandidates(freshScene, true);
             if (!result?.image_url) {
-              pushAutoRunLog(`Retry (Scene #${scene.order})`);
+              pushAutoRunLog(`Retry (Scene #${scene.order + 1})`);
               const retryScene =
                 useStoryboardStore.getState().scenes.find((s) => s.client_id === scene.client_id) ||
                 freshScene;
@@ -106,7 +106,7 @@ export async function runAutoRunFromStep(
             useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
             if (!result?.image_url) {
               failedSceneOrders.push(scene.order);
-              pushAutoRunLog(`Image failed for Scene #${scene.order}`);
+              pushAutoRunLog(`Image failed for Scene #${scene.order + 1}`);
             } else {
               useStoryboardStore.getState().updateScene(scene.client_id, result);
             }
@@ -146,7 +146,7 @@ export async function runAutoRunFromStep(
               useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: false });
               if (!result?.image_url) {
                 failedSceneOrders.push(target.order);
-                pushAutoRunLog(`Image failed for Scene #${target.order}`);
+                pushAutoRunLog(`Image failed for Scene #${target.order + 1}`);
               } else {
                 useStoryboardStore.getState().updateScene(target.client_id, result);
               }
@@ -167,7 +167,7 @@ export async function runAutoRunFromStep(
           const result = applyAutoPinAfterGeneration(currentScenes, scene.client_id, updateScene);
           if (result?.success) {
             autoPinCount++;
-            pushAutoRunLog(`AutoPin: Scene ${scene.order} - ${result.message}`);
+            pushAutoRunLog(`AutoPin: Scene ${scene.order + 1} - ${result.message}`);
           }
         }
         if (autoPinCount > 0) {
@@ -185,7 +185,7 @@ export async function runAutoRunFromStep(
         // Throw after saving so successful images are preserved
         if (failedSceneOrders.length > 0) {
           throw new Error(
-            `Image failed for Scene #${failedSceneOrders.join(", #")} (${workingScenes.length - failedSceneOrders.length} saved)`
+            `Image failed for Scene #${failedSceneOrders.map((o) => o + 1).join(", #")} (${workingScenes.length - failedSceneOrders.length} saved)`
           );
         }
       }

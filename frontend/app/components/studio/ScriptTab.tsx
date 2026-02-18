@@ -6,11 +6,8 @@ import { FileText } from "lucide-react";
 import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { useUIStore } from "../../store/useUIStore";
 import ManualScriptEditor from "../scripts/ManualScriptEditor";
-import ScriptSceneList from "../scripts/ScriptSceneList";
 import EmptyState from "../ui/EmptyState";
 import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
-import ScriptSidePanel from "./ScriptSidePanel";
-import StudioThreeColumnLayout from "./StudioThreeColumnLayout";
 
 const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 
@@ -56,63 +53,42 @@ export default function ScriptTab() {
   };
 
   return (
-    <StudioThreeColumnLayout
-      leftPanel={
-        editor.scenes.length > 0 ? (
-          <div className="h-full overflow-y-auto p-4">
-            <h3 className="mb-4 block text-[12px] font-medium tracking-wider text-zinc-400 uppercase">
-              Scene Outline
-            </h3>
-            <ScriptSceneList
-              scenes={editor.scenes}
-              isSaving={editor.isSaving}
-              approveLabel="Approve & Edit"
-              onApprove={editor.save}
-              compact
-            />
-          </div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center p-6 text-center text-zinc-400">
-            <FileText className="mb-2 h-8 w-8 opacity-20" />
-            <p className="text-xs">No scenes yet</p>
-          </div>
-        )
-      }
-      centerPanel={
-        <div className="mx-auto w-full max-w-3xl px-6 py-8">
-          {/* Mode tabs */}
-          <div className="mb-6 flex justify-center">
-            <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-              <button
-                className={`${TAB_BASE} ${isFull ? TAB_INACTIVE : TAB_ACTIVE}`}
-                onClick={() => toggleMode("quick")}
-              >
-                Quick
-              </button>
-              <button
-                className={`${TAB_BASE} ${isFull ? TAB_ACTIVE : TAB_INACTIVE}`}
-                onClick={() => toggleMode("full")}
-              >
-                Full
-              </button>
-            </div>
-          </div>
-
-          {/* Editor — both modes use ManualScriptEditor */}
-          <ManualScriptEditor editor={editor} />
-
-          {editor.scenes.length === 0 && !editor.isGenerating && !editor.isWaitingForInput && (
-            <div className="mt-12">
-              <EmptyState
-                icon={FileText}
-                title="Start Writing"
-                description="Enter a topic and click Generate Script, or write your own scenes manually."
-              />
-            </div>
-          )}
+    <div className="mx-auto w-full max-w-5xl">
+      {/* Mode tabs + status badges */}
+      <div className="mb-6 flex items-center justify-center gap-3">
+        <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
+          <button
+            className={`${TAB_BASE} ${isFull ? TAB_INACTIVE : TAB_ACTIVE}`}
+            onClick={() => toggleMode("quick")}
+          >
+            Quick
+          </button>
+          <button
+            className={`${TAB_BASE} ${isFull ? TAB_ACTIVE : TAB_INACTIVE}`}
+            onClick={() => toggleMode("full")}
+          >
+            Full
+          </button>
         </div>
-      }
-      rightPanel={<ScriptSidePanel scenesCount={editor.scenes.length} isFull={isFull} />}
-    />
+        {editor.scenes.length > 0 && (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-500">
+            {editor.scenes.length} scenes
+          </span>
+        )}
+      </div>
+
+      {/* Editor — both modes use ManualScriptEditor */}
+      <ManualScriptEditor editor={editor} />
+
+      {editor.scenes.length === 0 && !editor.isGenerating && !editor.isWaitingForInput && (
+        <div className="mt-12">
+          <EmptyState
+            icon={FileText}
+            title="Start Writing"
+            description="Enter a topic and click Generate Script, or write your own scenes manually."
+          />
+        </div>
+      )}
+    </div>
   );
 }

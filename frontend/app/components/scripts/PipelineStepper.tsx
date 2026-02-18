@@ -13,9 +13,9 @@ type Props = {
 function stepIcon(status: PipelineStep["status"]) {
   switch (status) {
     case "done":
-      return <Check className="h-3 w-3 text-white" />;
+      return <Check className="h-3.5 w-3.5 text-white" />;
     case "error":
-      return <AlertCircle className="h-3 w-3 text-white" />;
+      return <AlertCircle className="h-3.5 w-3.5 text-white" />;
     default:
       return null;
   }
@@ -23,7 +23,7 @@ function stepIcon(status: PipelineStep["status"]) {
 
 function dotClasses(status: PipelineStep["status"]): string {
   const base =
-    "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium transition-all";
+    "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-all";
   switch (status) {
     case "done":
       return `${base} bg-emerald-500`;
@@ -54,15 +54,16 @@ export default function PipelineStepper({ steps, percent, onStepClick }: Props) 
             {/* Step dot + label */}
             <button
               type="button"
-              className="flex flex-col items-center gap-1"
+              className="group relative flex flex-col items-center gap-1"
               onClick={() => onStepClick?.(step.id)}
               disabled={!onStepClick}
+              title={step.nodes?.join(", ")}
             >
               <div className={dotClasses(step.status)}>
-                {stepIcon(step.status) ?? <span className="text-[11px] text-white">{i + 1}</span>}
+                {stepIcon(step.status) ?? <span className="text-xs text-white">{i + 1}</span>}
               </div>
               <span
-                className={`text-[11px] whitespace-nowrap ${
+                className={`text-xs whitespace-nowrap ${
                   step.status === "running"
                     ? "font-semibold text-amber-700"
                     : step.status === "done"
@@ -74,10 +75,16 @@ export default function PipelineStepper({ steps, percent, onStepClick }: Props) 
               >
                 {step.label}
               </span>
+              {/* Agent nodes tooltip */}
+              {step.nodes && step.nodes.length > 0 && (
+                <div className="pointer-events-none absolute -bottom-9 left-1/2 z-10 hidden -translate-x-1/2 rounded bg-zinc-800 px-2.5 py-1 text-xs whitespace-nowrap text-zinc-200 shadow-lg group-hover:block">
+                  {step.nodes.join(" → ")}
+                </div>
+              )}
             </button>
             {/* Connector line */}
             {i < steps.length - 1 && (
-              <div className={`mx-1 h-0.5 w-6 rounded-full ${lineColor(step.status)}`} />
+              <div className={`mx-1.5 h-0.5 w-7 rounded-full ${lineColor(step.status)}`} />
             )}
           </div>
         ))}

@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Brain, Eye, Megaphone, FileText } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Brain,
+  Eye,
+  Megaphone,
+  FileText,
+  Camera,
+  Mic,
+  Music,
+  Shield,
+} from "lucide-react";
 import { renderSectionContent } from "./reasoning/ReasoningSections";
 
 type Props = {
@@ -21,6 +32,10 @@ type SectionDef = {
 const SECTIONS: SectionDef[] = [
   { id: "critic", label: "Critic 컨셉 토론", icon: <Brain className="h-3.5 w-3.5" />, modes: ["full"] },
   { id: "review", label: "Review 구조 검증", icon: <Eye className="h-3.5 w-3.5" />, modes: ["quick", "full"] },
+  { id: "cinematographer", label: "Cinematographer 시각 설계", icon: <Camera className="h-3.5 w-3.5" />, modes: ["full"] },
+  { id: "tts_designer", label: "TTS Designer 음성 설계", icon: <Mic className="h-3.5 w-3.5" />, modes: ["full"] },
+  { id: "sound_designer", label: "Sound Designer BGM 추천", icon: <Music className="h-3.5 w-3.5" />, modes: ["full"] },
+  { id: "copyright_reviewer", label: "Copyright 저작권 검증", icon: <Shield className="h-3.5 w-3.5" />, modes: ["full"] },
   { id: "director", label: "Director 통합 검증", icon: <Megaphone className="h-3.5 w-3.5" />, modes: ["full"] },
   { id: "explain", label: "Explain 결정 설명", icon: <FileText className="h-3.5 w-3.5" />, modes: ["full"] },
 ];
