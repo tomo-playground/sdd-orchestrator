@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from langgraph.store.base import BaseStore
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.agent.nodes.research import research_node
 from services.agent.state import ScriptState
@@ -172,7 +173,7 @@ async def test_get_group_dna_from_store():
 async def test_get_group_dna_from_db():
     """그룹 DNA를 DB에서 조회."""
     mock_store = AsyncMock(spec=BaseStore)
-    mock_db = Mock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     # Store에 없음
@@ -203,7 +204,7 @@ async def test_get_group_dna_from_db():
 async def test_get_group_dna_not_found():
     """그룹 DNA가 없을 때."""
     mock_store = AsyncMock(spec=BaseStore)
-    mock_db = Mock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     mock_store.asearch.return_value = []
@@ -258,17 +259,23 @@ async def test_research_node_tool_calling():
 
 @pytest.mark.asyncio
 async def test_research_node_no_db_session():
-    """DB 세션이 없으면 빈 brief 반환."""
+    """config에 DB 세션이 없으면 get_db_session fallback + 실패 시 빈 brief 반환."""
     mock_store = AsyncMock(spec=BaseStore)
 
     state: ScriptState = {
         "topic": "테스트",
     }
 
-    config = {}  # DB 없음
+    config = {}  # DB 없음 → get_db_session() fallback
 
-    result = await research_node(state, config, store=mock_store)
+    mock_db = MagicMock()
+    with patch("services.agent.nodes.research.get_db_session") as mock_get_db:
+        mock_get_db.return_value.__enter__ = MagicMock(return_value=mock_db)
+        mock_get_db.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("services.agent.tools.base.call_with_tools", side_effect=RuntimeError("No Gemini")):
+            result = await research_node(state, config, store=mock_store)
 
+    mock_get_db.assert_called_once()
     assert result["research_brief"] is None
     assert result["research_tool_logs"] == []
 

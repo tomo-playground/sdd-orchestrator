@@ -181,9 +181,17 @@ async function processSSEStream(
     // Single setState per event to avoid race conditions between renders
     setState((prev) => {
       const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.mode);
-      const nextNodeResults = event.node_result
+      let nextNodeResults = event.node_result
         ? { ...prev.nodeResults, [event.node]: event.node_result as Record<string, unknown> }
         : prev.nodeResults;
+
+      // concept_gate의 사용자 선택을 critic 섹션에 머지
+      if (event.node === "concept_gate" && event.node_result?.critic_result) {
+        nextNodeResults = {
+          ...nextNodeResults,
+          critic: { ...nextNodeResults.critic, critic_result: event.node_result.critic_result },
+        };
+      }
 
       const base = {
         ...prev,

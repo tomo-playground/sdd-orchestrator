@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.agent.nodes.cinematographer import cinematographer_node
 from services.agent.state import ScriptState
@@ -54,7 +55,7 @@ def test_validate_danbooru_tag_tool_definition():
 @pytest.mark.asyncio
 async def test_validate_danbooru_tag_valid():
     """유효한 태그 검증."""
-    mock_db = AsyncMock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     # 태그가 존재함
@@ -78,7 +79,7 @@ async def test_validate_danbooru_tag_valid():
 @pytest.mark.asyncio
 async def test_validate_danbooru_tag_invalid():
     """유효하지 않은 태그 검증."""
-    mock_db = AsyncMock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     # 태그가 없음
@@ -112,7 +113,7 @@ async def test_search_similar_compositions():
 @pytest.mark.asyncio
 async def test_get_character_visual_tags():
     """캐릭터 비주얼 태그 조회."""
-    mock_db = AsyncMock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     # 캐릭터와 태그 존재
@@ -141,7 +142,7 @@ async def test_get_character_visual_tags():
 @pytest.mark.asyncio
 async def test_get_character_visual_tags_not_found():
     """캐릭터가 없을 때."""
-    mock_db = AsyncMock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     mock_result = Mock()
@@ -162,7 +163,7 @@ async def test_get_character_visual_tags_not_found():
 @pytest.mark.asyncio
 async def test_check_tag_compatibility_compatible():
     """호환되는 태그."""
-    mock_db = AsyncMock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     call_count = 0
@@ -191,7 +192,7 @@ async def test_check_tag_compatibility_compatible():
 @pytest.mark.asyncio
 async def test_check_tag_compatibility_conflict():
     """충돌하는 태그."""
-    mock_db = AsyncMock()
+    mock_db = AsyncMock(spec=AsyncSession)
     state = {}
 
     call_count = 0

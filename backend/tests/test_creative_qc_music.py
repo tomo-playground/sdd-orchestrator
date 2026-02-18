@@ -73,8 +73,11 @@ class TestWarnDoesNotFailScripts:
     """WARN checks should keep ok=True (only FAIL triggers retry)."""
 
     def test_duration_warn_ok_true(self):
-        # 6 scenes × 2.5s = 15s vs target 30s → duration_sum WARN, but no FAIL
-        scripts = _make_scripts(6)
+        # 9 scenes × 2.0s = 18s vs target 30s → duration_sum WARN, but no FAIL
+        # min_scenes(30) = ceil(30/3.5) = 9 → scene_count PASS
+        scripts = _make_scripts(9)
+        for s in scripts:
+            s["duration"] = 2.0
         result = validate_scripts(scripts, "Monologue", 30, "Korean")
         assert result["checks"]["duration_sum"] == "WARN"
         assert result["ok"] is True

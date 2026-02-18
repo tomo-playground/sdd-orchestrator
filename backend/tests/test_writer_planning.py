@@ -69,7 +69,7 @@ async def test_create_plan_gemini_error(mock_gemini):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.writer._create_plan", new_callable=AsyncMock)
-@patch("services.script.gemini_generator.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
 async def test_writer_node_calls_planning_in_full_mode(mock_gen, mock_plan):
     """Full 모드에서 Planning을 호출한다."""
     from services.agent.nodes.writer import writer_node
@@ -107,7 +107,7 @@ async def test_writer_node_calls_planning_in_full_mode(mock_gen, mock_plan):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.writer._create_plan", new_callable=AsyncMock)
-@patch("services.script.gemini_generator.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
 async def test_writer_node_skips_planning_in_quick_mode(mock_gen, mock_plan):
     """Quick 모드에서는 Planning을 호출하지 않는다."""
     from services.agent.nodes.writer import writer_node
@@ -136,7 +136,7 @@ async def test_writer_node_skips_planning_in_quick_mode(mock_gen, mock_plan):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.writer._create_plan", new_callable=AsyncMock)
-@patch("services.script.gemini_generator.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
 async def test_writer_node_planning_disabled(mock_gen, mock_plan):
     """LANGGRAPH_PLANNING_ENABLED=False 시 Planning을 호출하지 않는다."""
     from services.agent.nodes.writer import writer_node
