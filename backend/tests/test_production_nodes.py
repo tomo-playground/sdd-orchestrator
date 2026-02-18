@@ -107,7 +107,7 @@ async def test_cinematographer_node(mock_validate, mock_call, mock_scenes):
 ```""",
         [],
     )
-    mock_validate.return_value = {"valid": True}
+    mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
     state = {"draft_scenes": mock_scenes, "mode": "full"}
     config = {"configurable": {"db": AsyncMock()}}
@@ -352,7 +352,7 @@ async def test_cinematographer_passes_director_feedback(mock_validate, mock_call
 ```""",
         [],
     )
-    mock_validate.return_value = {"valid": True}
+    mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
     state = {"draft_scenes": mock_scenes, "director_feedback": "카메라 다양성 부족"}
     config = {"configurable": {"db": AsyncMock()}}

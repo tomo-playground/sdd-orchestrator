@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 from langchain_core.runnables import RunnableConfig
 
@@ -11,13 +12,15 @@ from database import get_db_session
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
 
+_EMPTY_RESULT: dict = {"cinematographer_result": None, "cinematographer_tool_logs": []}
+
 
 async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Tool-Calling Agent로 draft_scenes에 비주얼 디자인을 추가한다.
 
-    LLM이 필요한 도구(태그 검증, 캐릭터 태그 조회, 호환성 체크)를 선택적으로 호출한다.
+    실패 시 error를 설정하지 않고 cinematographer_result=None을 반환하여
+    하위 병렬 노드(tts_designer, sound_designer, copyright_reviewer)가 skip되지 않도록 한다.
     """
-    # DB 세션: config 주입 우선, 없으면 자체 생성 (Writer/Revise와 동일 패턴)
     db_session = config.get("configurable", {}).get("db") if config else None
     if db_session:
         return await _run(state, db_session)
@@ -29,18 +32,18 @@ async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> di
 async def _run(state: ScriptState, db_session: object) -> dict:
     """Cinematographer 핵심 로직. DB 세션이 보장된 상태에서 실행."""
     from ..tools.base import call_with_tools  # noqa: PLC0415
-    from ..tools.cinematographer_tools import create_cinematographer_executors, get_cinematographer_tools  # noqa: PLC0415
+    from ..tools.cinematographer_tools import (  # noqa: PLC0415
+        create_cinematographer_executors,
+        get_cinematographer_tools,
+    )
 
-    # 도구 및 실행 함수 준비
     tools = get_cinematographer_tools()
     executors = create_cinematographer_executors(db_session, state)
 
-    # LLM에게 전달할 초기 프롬프트
     scenes = state.get("draft_scenes") or []
     character_id = state.get("character_id")
     director_feedback = state.get("director_feedback")
 
-    # 템플릿 렌더링
     tmpl = template_env.get_template("creative/cinematographer.j2")
     base_prompt = tmpl.render(scenes=scenes, character_id=character_id)
 
@@ -92,48 +95,42 @@ async def _run(state: ScriptState, db_session: object) -> dict:
             prompt=prompt,
             tools=tools,
             tool_executors=executors,
-            max_calls=10,  # 여러 태그 검증을 위해 10회까지 허용
+            max_calls=10,
             trace_name="cinematographer_tool_calling",
         )
-
-        # JSON 파싱
-        try:
-            import re
-
-            match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
-            json_text = match.group(1) if match else response
-
-            result_data = json.loads(json_text)
-            if not isinstance(result_data, dict):
-                raise ValueError(f"Expected dict, got {type(result_data).__name__}")
-            scenes_output = result_data.get("scenes", [])
-
-            # QC 검증
-            validation_result = validate_visuals({"scenes": scenes_output})
-            if not validation_result["valid"]:
-                logger.error("[Cinematographer] QC 검증 실패: %s", validation_result.get("errors"))
-                return {
-                    "error": f"Visual QC failed: {validation_result.get('errors')}",
-                    "cinematographer_tool_logs": tool_logs,
-                }
-
-            logger.info("[Cinematographer] Tool-Calling 완료 (%d 씬, %d 도구 호출)", len(scenes_output), len(tool_logs))
-
-            return {
-                "cinematographer_result": {"scenes": scenes_output},
-                "cinematographer_tool_logs": tool_logs,
-            }
-
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.error("[Cinematographer] JSON 파싱 실패: %s", e)
-            return {
-                "error": f"JSON parsing failed: {e}",
-                "cinematographer_tool_logs": tool_logs,
-            }
-
     except Exception as e:
-        logger.error("[Cinematographer] Tool-Calling 실패: %s", e)
-        return {
-            "error": f"Cinematographer failed: {e}",
-            "cinematographer_tool_logs": [],
-        }
+        logger.warning("[Cinematographer] Tool-Calling 실패 (graceful): %s", e)
+        return _EMPTY_RESULT
+
+    # JSON 파싱
+    scenes_output = _parse_scenes(response)
+    if scenes_output is None:
+        logger.warning("[Cinematographer] JSON 파싱 실패, cinematographer_result=None으로 진행")
+        return {"cinematographer_result": None, "cinematographer_tool_logs": tool_logs}
+
+    # QC 검증 (WARN은 통과, FAIL만 로깅 후 결과 그대로 반환)
+    qc = validate_visuals(scenes_output)
+    if not qc["ok"]:
+        logger.warning("[Cinematographer] QC WARN/FAIL: %s (결과는 유지)", qc.get("issues"))
+
+    logger.info("[Cinematographer] Tool-Calling 완료 (%d 씬, %d 도구 호출)", len(scenes_output), len(tool_logs))
+    return {
+        "cinematographer_result": {"scenes": scenes_output},
+        "cinematographer_tool_logs": tool_logs,
+    }
+
+
+def _parse_scenes(response: str) -> list[dict] | None:
+    """LLM 응답에서 scenes 배열을 추출한다. 실패 시 None."""
+    try:
+        match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
+        json_text = match.group(1) if match else response
+
+        result_data = json.loads(json_text)
+        if not isinstance(result_data, dict):
+            logger.warning("[Cinematographer] Expected dict, got %s", type(result_data).__name__)
+            return None
+        return result_data.get("scenes", [])
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        logger.warning("[Cinematographer] JSON 파싱 실패: %s", e)
+        return None

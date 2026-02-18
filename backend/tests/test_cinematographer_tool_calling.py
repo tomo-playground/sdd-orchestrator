@@ -258,7 +258,7 @@ async def test_cinematographer_node_tool_calling():
 
         # validate_visuals 모킹
         with patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate:
-            mock_validate.return_value = {"valid": True}
+            mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
             result = await cinematographer_node(state, config)
 
@@ -285,7 +285,7 @@ async def test_cinematographer_node_no_db_in_config():
     ):
         mock_get_db.return_value.__enter__ = MagicMock(return_value=mock_db)
         mock_get_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_validate.return_value = {"valid": True}
+        mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
         mock_call.return_value = (
             '{"scenes": [{"order": 1, "text": "테스트", "visual_tags": ["1girl"], "camera": "close-up", "environment": "indoors"}]}',
             [],
@@ -298,8 +298,8 @@ async def test_cinematographer_node_no_db_in_config():
 
 
 @pytest.mark.asyncio
-async def test_cinematographer_node_json_parsing_failure():
-    """JSON 파싱 실패 시."""
+async def test_cinematographer_node_json_parsing_graceful():
+    """JSON 파싱 실패 → error 미설정, cinematographer_result=None (graceful)."""
     mock_db = AsyncMock()
 
     state: ScriptState = {
@@ -316,13 +316,13 @@ async def test_cinematographer_node_json_parsing_failure():
 
         result = await cinematographer_node(state, config)
 
-    assert "error" in result
-    assert "JSON parsing failed" in result["error"]
+    assert "error" not in result
+    assert result["cinematographer_result"] is None
 
 
 @pytest.mark.asyncio
-async def test_cinematographer_node_qc_validation_failure():
-    """QC 검증 실패 시."""
+async def test_cinematographer_node_qc_failure_still_returns():
+    """QC 검증 실패 → error 미설정, 결과는 그대로 반환 (graceful)."""
     mock_db = AsyncMock()
 
     state: ScriptState = {
@@ -347,9 +347,10 @@ async def test_cinematographer_node_qc_validation_failure():
         )
 
         with patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate:
-            mock_validate.return_value = {"valid": False, "errors": ["Missing visual_tags"]}
+            mock_validate.return_value = {"ok": False, "issues": ["Missing visual_tags"], "checks": {}}
 
             result = await cinematographer_node(state, config)
 
-    assert "error" in result
-    assert "Visual QC failed" in result["error"]
+    assert "error" not in result
+    assert result["cinematographer_result"] is not None
+    assert result["cinematographer_result"]["scenes"] == [{"order": 1, "text": "테스트"}]
