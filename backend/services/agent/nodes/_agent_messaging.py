@@ -73,15 +73,26 @@ async def run_agent_with_message(
         raise ValueError(f"Unsupported target agent: {target_agent}")
 
     # 응답 메시지 생성
+    # 1. Agent가 생성한 response_message 추출 (Phase 10-C-2)
+    response_text = updated_result.get("response_message")
+
+    # 2. response_message가 없으면 기본 메시지 사용
+    if not response_text:
+        response_text = f"{target_agent} 피드백 반영 완료"
+
+    # 3. response_message는 state에 저장하지 않음 (일회성 메시지)
+    if "response_message" in updated_result:
+        del updated_result["response_message"]
+
     response: AgentMessage = {
         "sender": target_agent,
         "recipient": message.get("sender", "director"),
-        "content": f"{target_agent} 피드백 반영 완료",
+        "content": response_text,
         "message_type": "approval",
         "metadata": {"result": updated_result},
     }
 
-    logger.info("[AgentMessaging] Agent %s 응답 완료", target_agent)
+    logger.info("[AgentMessaging] Agent %s 응답 완료: %s", target_agent, response_text[:50])
 
     return updated_result, response
 

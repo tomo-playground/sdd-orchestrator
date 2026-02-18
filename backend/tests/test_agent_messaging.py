@@ -177,3 +177,123 @@ async def test_run_agent_with_message_injects_feedback(monkeypatch):
     # director_feedback가 state에 주입되었는지 확인
     assert captured_state is not None
     assert captured_state["director_feedback"] == "이것은 피드백입니다"
+
+
+# ── Phase 10-C-2: 의미 있는 응답 메시지 생성 테스트 ──────
+
+
+@pytest.mark.asyncio
+async def test_response_message_extraction(monkeypatch):
+    """Agent가 response_message를 생성하면 응답에 포함되는지 확인."""
+    mock_result = {
+        "cinematographer_result": {
+            "scenes": [{"order": 1}],
+            "response_message": "씬 1의 카메라 앵글을 close-up으로 변경했습니다. 감정 표현을 강화하기 위함입니다.",
+        }
+    }
+
+    async def mock_cinematographer_node(state, config):
+        return mock_result
+
+    monkeypatch.setattr(
+        "services.agent.nodes.cinematographer.cinematographer_node",
+        mock_cinematographer_node,
+    )
+
+    state: ScriptState = {}
+    message: AgentMessage = {
+        "sender": "director",
+        "recipient": "cinematographer",
+        "content": "씬 1의 카메라 앵글을 변경하세요",
+        "message_type": "feedback",
+    }
+
+    updated_result, response = await run_agent_with_message(
+        target_agent="cinematographer",
+        state=state,
+        message=message,
+        config=None,
+    )
+
+    # 응답 메시지가 추출되어 포함되는지 확인
+    assert response["content"] == "씬 1의 카메라 앵글을 close-up으로 변경했습니다. 감정 표현을 강화하기 위함입니다."
+
+    # response_message는 결과에서 제거되어야 함 (state에 저장 방지)
+    assert "response_message" not in updated_result
+
+
+@pytest.mark.asyncio
+async def test_response_message_fallback(monkeypatch):
+    """Agent가 response_message를 생성하지 않으면 기본 메시지 사용."""
+    mock_result = {
+        "tts_designer_result": {
+            "scenes": [{"order": 1}]
+            # response_message 없음
+        }
+    }
+
+    async def mock_tts_designer_node(state):
+        return mock_result
+
+    monkeypatch.setattr(
+        "services.agent.nodes.tts_designer.tts_designer_node",
+        mock_tts_designer_node,
+    )
+
+    state: ScriptState = {}
+    message: AgentMessage = {
+        "sender": "director",
+        "recipient": "tts_designer",
+        "content": "감정 표현을 강화하세요",
+        "message_type": "feedback",
+    }
+
+    updated_result, response = await run_agent_with_message(
+        target_agent="tts_designer",
+        state=state,
+        message=message,
+        config=None,
+    )
+
+    # 기본 메시지 사용
+    assert response["content"] == "tts_designer 피드백 반영 완료"
+
+
+@pytest.mark.asyncio
+async def test_response_message_empty_string_fallback(monkeypatch):
+    """Agent가 빈 문자열 response_message를 생성하면 기본 메시지 사용."""
+    mock_result = {
+        "sound_designer_result": {
+            "recommendation": {},
+            "response_message": "",  # 빈 문자열
+        }
+    }
+
+    async def mock_sound_designer_node(state):
+        return mock_result
+
+    monkeypatch.setattr(
+        "services.agent.nodes.sound_designer.sound_designer_node",
+        mock_sound_designer_node,
+    )
+
+    state: ScriptState = {}
+    message: AgentMessage = {
+        "sender": "director",
+        "recipient": "sound_designer",
+        "content": "BGM 분위기를 밝게 변경하세요",
+        "message_type": "feedback",
+    }
+
+    updated_result, response = await run_agent_with_message(
+        target_agent="sound_designer",
+        state=state,
+        message=message,
+        config=None,
+    )
+
+    # 빈 문자열이므로 기본 메시지 사용
+    assert response["content"] == "sound_designer 피드백 반영 완료"
+
+    # response_message는 제거되어야 함
+    assert "response_message" not in updated_result

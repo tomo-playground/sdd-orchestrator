@@ -137,7 +137,7 @@ def _is_graph_interrupt(exc: Exception) -> bool:
 _NODE_RESULT_KEYS: dict[str, str | list[str]] = {
     "critic": "critic_result",
     "review": "review_result",
-    "director": ["director_decision", "director_feedback"],
+    "director": ["director_decision", "director_feedback", "agent_messages"],  # Phase 10-C-2: 양방향 메시지
     "explain": "explanation_result",
 }
 

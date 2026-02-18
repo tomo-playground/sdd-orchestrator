@@ -29,7 +29,8 @@ Fix the issues above in your new recommendation.
     "mood": "melancholic_to_hopeful",
     "duration": {{ duration }},
     "reasoning": "감정 곡선이 우울에서 희망으로 전환되므로..."
-  }
+  }{% if feedback %},
+  "response_message": "Director 피드백에 대한 응답을 여기에 작성하세요. 수정한 BGM 방향성, 이유, 대안을 포함하세요."{% endif %}
 }
 ```
 

@@ -252,3 +252,167 @@ async def test_director_react_error_fallback(mock_run, mock_production_results):
     assert "평가 실패" in result["director_feedback"]
     # reasoning_steps는 빈 리스트
     assert result["director_reasoning_steps"] == []
+
+
+# ── Phase 10-C-2: 양방향 소통 통합 테스트 ────────────────
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_agent_with_message", new_callable=AsyncMock)
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_bidirectional_communication(
+    mock_run_production,
+    mock_run_agent,
+    mock_production_results,
+):
+    """Director가 Production Agent와 양방향 소통을 한다."""
+    # Director가 Step 1에서 revise, Step 2에서 approve
+    mock_run_production.side_effect = [
+        {
+            "observe": "씬 1의 카메라 앵글이 부적절하다.",
+            "think": "close-up으로 변경 필요",
+            "act": "revise_cinematographer",
+            "feedback": "씬 1의 카메라 앵글을 close-up으로 변경하세요",
+        },
+        {
+            "observe": "이제 완벽하다",
+            "think": "승인 가능",
+            "act": "approve",
+        },
+    ]
+
+    # Cinematographer Agent가 응답
+    updated_cinematographer_result = {"scenes": [{"order": 1, "camera": "close-up"}]}
+    response_message = {
+        "sender": "cinematographer",
+        "recipient": "director",
+        "content": "씬 1의 카메라 앵글을 close-up으로 변경했습니다. 감정 표현을 강화하기 위함입니다.",
+        "message_type": "approval",
+        "metadata": {"result": updated_cinematographer_result},
+    }
+    mock_run_agent.return_value = (updated_cinematographer_result, response_message)
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    result = await director_node(state)
+
+    # Agent 메시지 호출 확인
+    assert mock_run_agent.call_count == 1
+    call_args = mock_run_agent.call_args
+    assert call_args.kwargs["target_agent"] == "cinematographer"
+    assert call_args.kwargs["message"]["content"] == "씬 1의 카메라 앵글을 close-up으로 변경하세요"
+
+    # agent_messages가 state에 기록되었는지 확인
+    assert "agent_messages" in result
+    agent_messages = result["agent_messages"]
+    assert len(agent_messages) == 2  # Director → Agent, Agent → Director
+
+    # Director의 피드백 메시지
+    assert agent_messages[0]["sender"] == "director"
+    assert agent_messages[0]["recipient"] == "cinematographer"
+    assert agent_messages[0]["message_type"] == "feedback"
+
+    # Agent의 응답 메시지
+    assert agent_messages[1]["sender"] == "cinematographer"
+    assert agent_messages[1]["recipient"] == "director"
+    assert agent_messages[1]["message_type"] == "approval"
+    assert "close-up으로 변경했습니다" in agent_messages[1]["content"]
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_agent_with_message", new_callable=AsyncMock)
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_multiple_agent_interactions(
+    mock_run_production,
+    mock_run_agent,
+    mock_production_results,
+):
+    """Director가 여러 Production Agent와 순차적으로 소통한다."""
+    # Step 1: revise_cinematographer → approve
+    mock_run_production.side_effect = [
+        {
+            "observe": "시각 디자인 개선 필요",
+            "think": "cinematographer 수정 필요",
+            "act": "revise_cinematographer",
+            "feedback": "시각 디자인을 개선하세요",
+        },
+        {
+            "observe": "모든 요소가 조화롭다",
+            "think": "승인 가능",
+            "act": "approve",
+        },
+    ]
+
+    # Agent 응답
+    mock_run_agent.return_value = (
+        {"scenes": []},
+        {
+            "sender": "cinematographer",
+            "recipient": "director",
+            "content": "시각 디자인을 개선했습니다",
+            "message_type": "approval",
+        },
+    )
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    result = await director_node(state)
+
+    # 2 스텝 실행 (revise → approve)
+    assert len(result["director_reasoning_steps"]) == 2
+    assert result["director_decision"] == "approve"
+
+    # Agent 메시지 2개 (Director → Agent, Agent → Director)
+    assert len(result["agent_messages"]) == 2
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_agent_with_message", new_callable=AsyncMock)
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_agent_error_handling(
+    mock_run_production,
+    mock_run_agent,
+    mock_production_results,
+):
+    """Agent 실행 실패 시에도 Director는 계속 진행한다."""
+    mock_run_production.side_effect = [
+        {
+            "observe": "개선 필요",
+            "think": "수정 필요",
+            "act": "revise_tts",
+            "feedback": "음성 디자인을 개선하세요",
+        },
+        {
+            "observe": "승인",
+            "think": "완료",
+            "act": "approve",
+        },
+    ]
+
+    # Agent 실행 실패
+    mock_run_agent.side_effect = Exception("TTS Designer 에러")
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    result = await director_node(state)
+
+    # 에러에도 불구하고 2 스텝 실행됨
+    assert len(result["director_reasoning_steps"]) == 2
+    # Agent 메시지는 Director의 피드백만 포함 (응답 없음)
+    assert len(result["agent_messages"]) == 1
+    assert result["agent_messages"][0]["sender"] == "director"
