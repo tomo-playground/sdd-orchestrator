@@ -79,6 +79,10 @@ LANGGRAPH_REFLECTION_ENABLED = os.getenv("LANGGRAPH_REFLECTION_ENABLED", "true")
 # Writer Planning Step
 LANGGRAPH_PLANNING_ENABLED = os.getenv("LANGGRAPH_PLANNING_ENABLED", "true").lower() == "true"
 
+# --- Phase 10-B: Tool-Calling Agent ---
+# 노드당 최대 도구 호출 횟수 (비용 가드레일)
+MAX_TOOL_CALLS_PER_NODE = int(os.getenv("MAX_TOOL_CALLS_PER_NODE", "5"))
+
 # --- Feedback Presets (Interactive Feedback) ---
 FEEDBACK_PRESETS: dict[str, dict] = {
     "hook_boost": {

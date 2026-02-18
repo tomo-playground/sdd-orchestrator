@@ -85,6 +85,10 @@ class ScriptState(TypedDict, total=False):
     # Writer Planning (Phase 10-A)
     writer_plan: WriterPlan | None
 
+    # Tool-Calling (Phase 10-B)
+    research_tool_logs: list[dict] | None
+    cinematographer_tool_logs: list[dict] | None
+
     # Critic 결과 (Full 모드)
     critic_result: dict | None
     scene_reasoning: list[SceneReasoning] | None
