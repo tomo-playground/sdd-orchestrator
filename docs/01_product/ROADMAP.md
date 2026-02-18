@@ -244,7 +244,7 @@ Manage→Library+Settings 분리, 공유 레이아웃 시스템(AppThreeColumnLa
 | # | 작업 | 핵심 | 상태 |
 |---|------|------|------|
 | 7 | Agent Message Protocol + State Condensation | AgentMessage TypedDict + 노드별 상태 압축 (컨텍스트 오염 방지). `messages.py`: format/condense/truncate 유틸리티, MAX_MESSAGE_WINDOW=10, MAX_CONTEXT_TOKENS=2000. ScriptState: `agent_messages`, `agent_summary` 필드 추가 | [x] 2026-02-18 |
-| 8 | Director ↔ Production 양방향 소통 | 직접 피드백/응답 메시지 + Speculative Execution (레이턴시 대응) | [ ] |
+| 8 | Director ↔ Production 양방향 소통 | 직접 피드백/응답 메시지 + Speculative Execution (레이턴시 대응) | [x] 2026-02-18 |
 | 9 | Critic 실시간 토론 + KPI 수렴 | 3인 상호 비평 + NarrativeScore 기반 수렴 + Groupthink 방지 + Fallback | [ ] |
 
 **리스크 대응** (Gemini 크로스 리뷰): 예측 불가능성(KPI 수렴+Fallback), 비용 ROI(Phase별 A/B 테스트 필수), 레이턴시(Speculative Execution), State 비대화(Condensation). [상세](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md#6-리스크-대응-gemini-크로스-리뷰-반영)
