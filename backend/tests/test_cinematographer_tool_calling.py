@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -267,18 +267,33 @@ async def test_cinematographer_node_tool_calling():
 
 
 @pytest.mark.asyncio
-async def test_cinematographer_node_no_db_session():
-    """DB 세션이 없으면 에러 반환."""
+async def test_cinematographer_node_no_db_in_config():
+    """config에 DB 세션이 없어도 get_db_session() fallback으로 정상 동작."""
     state: ScriptState = {
         "draft_scenes": [{"order": 1, "text": "테스트"}],
     }
 
-    config = {}  # DB 없음
+    config = {}  # DB 없음 → get_db_session() fallback
 
-    result = await cinematographer_node(state, config)
+    mock_db = MagicMock()
 
-    assert "error" in result
-    assert "DB session" in result["error"]
+    with (
+        patch("services.agent.nodes.cinematographer.get_db_session") as mock_get_db,
+        patch("services.agent.tools.base.call_with_tools") as mock_call,
+        patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate,
+    ):
+        mock_get_db.return_value.__enter__ = MagicMock(return_value=mock_db)
+        mock_get_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_validate.return_value = {"valid": True}
+        mock_call.return_value = (
+            '{"scenes": [{"order": 1, "text": "테스트", "visual_tags": ["1girl"], "camera": "close-up", "environment": "indoors"}]}',
+            [],
+        )
+
+        result = await cinematographer_node(state, config)
+
+    mock_get_db.assert_called_once()
+    assert "cinematographer_result" in result
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ import json
 from langchain_core.runnables import RunnableConfig
 
 from config import logger, template_env
+from database import get_db_session
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
 
@@ -16,14 +17,19 @@ async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> di
 
     LLM이 필요한 도구(태그 검증, 캐릭터 태그 조회, 호환성 체크)를 선택적으로 호출한다.
     """
-    from ..tools.base import call_with_tools
-    from ..tools.cinematographer_tools import create_cinematographer_executors, get_cinematographer_tools
-
-    # DB 세션 추출
+    # DB 세션: config 주입 우선, 없으면 자체 생성 (Writer/Revise와 동일 패턴)
     db_session = config.get("configurable", {}).get("db") if config else None
-    if not db_session:
-        logger.warning("[Cinematographer] DB 세션 없음 — Tool-Calling 불가, 에러 반환")
-        return {"error": "DB session not available"}
+    if db_session:
+        return await _run(state, db_session)
+
+    with get_db_session() as db:
+        return await _run(state, db)
+
+
+async def _run(state: ScriptState, db_session: object) -> dict:
+    """Cinematographer 핵심 로직. DB 세션이 보장된 상태에서 실행."""
+    from ..tools.base import call_with_tools  # noqa: PLC0415
+    from ..tools.cinematographer_tools import create_cinematographer_executors, get_cinematographer_tools  # noqa: PLC0415
 
     # 도구 및 실행 함수 준비
     tools = get_cinematographer_tools()
@@ -92,7 +98,6 @@ async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> di
 
         # JSON 파싱
         try:
-            # ```json ... ``` 블록 제거
             import re
 
             match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)

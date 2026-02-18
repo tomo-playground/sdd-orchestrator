@@ -26,6 +26,7 @@ from config import (
     logger,
     template_env,
 )
+from database import get_db_session
 from services.agent.observability import trace_llm_call  # noqa: E402
 from services.agent.state import ScriptState
 
@@ -224,14 +225,18 @@ async def research_node(state: ScriptState, config: RunnableConfig, *, store: Ba
 
     LLM이 주제를 분석하여 필요한 정보원만 선택적으로 호출한다.
     """
-    from ..tools.base import call_with_tools
-    from ..tools.research_tools import create_research_executors, get_research_tools
-
-    # DB 세션 추출
+    # DB 세션: config 주입 우선, 없으면 자체 생성 (Writer/Revise와 동일 패턴)
     db_session = config.get("configurable", {}).get("db") if config else None
     if not db_session:
-        logger.warning("[Research] DB 세션 없음 — Tool-Calling 불가, 빈 brief 반환")
-        return {"research_brief": None, "research_tool_logs": []}
+        with get_db_session() as db_session:
+            return await _run_research(state, store, db_session)
+    return await _run_research(state, store, db_session)
+
+
+async def _run_research(state: ScriptState, store: BaseStore, db_session: object) -> dict:
+    """Research 핵심 로직. DB 세션이 보장된 상태에서 실행."""
+    from ..tools.base import call_with_tools  # noqa: PLC0415
+    from ..tools.research_tools import create_research_executors, get_research_tools  # noqa: PLC0415
 
     # 도구 및 실행 함수 준비
     tools = get_research_tools()
