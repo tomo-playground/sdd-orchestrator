@@ -220,47 +220,86 @@ def _fallback_brief(materials: list[dict[str, str]]) -> str:
 
 
 async def research_node(state: ScriptState, config: RunnableConfig, *, store: BaseStore) -> dict:
-    """Memory Store에서 관련 히스토리를 수집하여 research_brief를 구성한다."""
-    brief_parts: list[str] = []
+    """Tool-Calling Agent로 research brief를 구성한다.
 
-    # 1) Character history
-    char_id = state.get("character_id")
-    if char_id:
-        result = await _search_namespace(store, ("character", str(char_id)), "캐릭터")
-        if result:
-            brief_parts.append(result)
+    LLM이 주제를 분석하여 필요한 정보원만 선택적으로 호출한다.
+    """
+    from ..tools.base import call_with_tools
+    from ..tools.research_tools import create_research_executors, get_research_tools
 
-    # 2) Topic history
+    # DB 세션 추출
+    db_session = config.get("configurable", {}).get("db") if config else None
+    if not db_session:
+        logger.warning("[Research] DB 세션 없음 — Tool-Calling 불가, 빈 brief 반환")
+        return {"research_brief": None, "research_tool_logs": []}
+
+    # 도구 및 실행 함수 준비
+    tools = get_research_tools()
+    executors = create_research_executors(store, db_session, state)
+
+    # LLM에게 전달할 초기 프롬프트
     topic = state.get("topic", "")
-    if topic:
-        topic_key = _topic_key(topic)
-        result = await _search_namespace(store, ("topic", topic_key), "토픽")
-        if result:
-            brief_parts.append(result)
-
-    # 3) User preferences
-    result = await _search_namespace(store, ("user", "preferences"), "사용자 선호")
-    if result:
-        brief_parts.append(result)
-
-    # 4) Group history
+    description = state.get("description", "")
+    character_id = state.get("character_id")
     group_id = state.get("group_id")
+    language = state.get("language", "Korean")
+    references = state.get("references") or []
+
+    prompt_parts = [
+        "당신은 쇼츠 대본 작성을 위한 Research Agent입니다.",
+        f"주제: {topic}",
+    ]
+    if description:
+        prompt_parts.append(f"설명: {description}")
+    if character_id:
+        prompt_parts.append(f"캐릭터 ID: {character_id}")
     if group_id:
-        result = await _search_namespace(store, ("group", str(group_id)), "그룹")
-        if result:
-            brief_parts.append(result)
+        prompt_parts.append(f"그룹 ID: {group_id}")
+    if language:
+        prompt_parts.append(f"언어: {language}")
+    if references:
+        prompt_parts.append(f"사용자 제공 소재: {', '.join(references[:3])}")
 
-    # 5) References 소재 분석 (신규)
-    refs = state.get("references") or []
-    if refs:
-        material_brief = await _analyze_references(refs, state)
-        if material_brief:
-            brief_parts.append(material_brief)
+    prompt_parts.append("")
+    prompt_parts.append("목표: 이 주제에 대한 최적의 대본 작성을 위해 필요한 정보를 수집하세요.")
+    prompt_parts.append("사용 가능한 도구를 활용하여 필요한 정보만 선택적으로 수집합니다.")
+    prompt_parts.append("")
+    prompt_parts.append("도구 사용 가이드:")
+    prompt_parts.append("- 새 주제이거나 과거 이력이 없을 것 같으면 히스토리 검색을 스킵하세요.")
+    prompt_parts.append("- 사용자가 URL을 제공했을 때만 fetch_url_content를 호출하세요.")
+    prompt_parts.append("- 트렌딩 분석은 최신 이슈/인기 주제일 때만 유용합니다.")
+    prompt_parts.append("- 그룹 ID가 있고 채널 톤/세계관이 중요하다면 get_group_dna를 호출하세요.")
+    prompt_parts.append("")
+    prompt_parts.append("수집한 정보를 바탕으로 대본 작성에 도움이 되는 research brief를 작성하세요.")
 
-    brief = "\n".join(brief_parts) if brief_parts else None
-    if brief:
-        logger.info("[Research] brief 구성 완료 (%d 섹션)", len(brief_parts))
-    else:
-        logger.info("[Research] 저장된 히스토리 없음 — 빈 brief")
+    prompt = "\n".join(prompt_parts)
 
-    return {"research_brief": brief}
+    # Tool-Calling 실행
+    try:
+        logger.info("[Research] Tool-Calling Agent 시작")
+        response, tool_logs = await call_with_tools(
+            prompt=prompt,
+            tools=tools,
+            tool_executors=executors,
+            max_calls=5,  # 최대 5번 도구 호출
+            trace_name="research_tool_calling",
+        )
+
+        brief = response.strip() if response else None
+        if brief:
+            logger.info("[Research] Tool-Calling 완료 (%d 도구 호출)", len(tool_logs))
+        else:
+            logger.info("[Research] Tool-Calling 완료, brief 없음")
+
+        return {
+            "research_brief": brief,
+            "research_tool_logs": tool_logs,
+        }
+
+    except Exception as e:
+        logger.error("[Research] Tool-Calling 실패: %s", e)
+        # Fallback: 빈 brief 반환
+        return {
+            "research_brief": None,
+            "research_tool_logs": [],
+        }

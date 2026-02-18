@@ -105,8 +105,9 @@ class ScriptState(TypedDict, total=False):
     human_action: str | None  # "approve" | "revise"
     human_feedback: str | None
 
-    # Phase 2 스텁
+    # Phase 2 Research & Learn
     research_brief: str | None
+    research_tool_logs: list[dict] | None  # Phase 10-B-2: Tool-Calling 로그
     learn_result: dict | None
 
     # Review 결과
@@ -115,6 +116,7 @@ class ScriptState(TypedDict, total=False):
 
     # Production 결과 (Full 모드)
     cinematographer_result: dict | None
+    cinematographer_tool_logs: list[dict] | None  # Phase 10-B-3: Tool-Calling 로그
     tts_designer_result: dict | None
     sound_designer_result: dict | None
     copyright_reviewer_result: dict | None

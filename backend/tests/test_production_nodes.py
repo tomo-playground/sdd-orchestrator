@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -93,14 +94,25 @@ async def test_run_production_step_retry_on_qc_fail(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.cinematographer.run_production_step", new_callable=AsyncMock)
-async def test_cinematographer_node(mock_step, mock_scenes):
+@patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
+@patch("services.agent.nodes.cinematographer.validate_visuals")
+async def test_cinematographer_node(mock_validate, mock_call, mock_scenes):
     """Cinematographer 노드가 올바른 state를 반환한다."""
     from services.agent.nodes.cinematographer import cinematographer_node
 
-    mock_step.return_value = {"scenes": mock_scenes}
+    # Tool-Calling 결과 모킹
+    mock_call.return_value = (
+        f"""```json
+{{"scenes": {json.dumps(mock_scenes)}}}
+```""",
+        [],
+    )
+    mock_validate.return_value = {"valid": True}
+
     state = {"draft_scenes": mock_scenes, "mode": "full"}
-    result = await cinematographer_node(state)
+    config = {"configurable": {"db": AsyncMock()}}
+
+    result = await cinematographer_node(state, config)
     assert "cinematographer_result" in result
     assert result["cinematographer_result"]["scenes"] == mock_scenes
 
@@ -328,16 +340,31 @@ def test_route_after_cinematographer_error():
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.cinematographer.run_production_step", new_callable=AsyncMock)
-async def test_cinematographer_passes_director_feedback(mock_step, mock_scenes):
-    """Cinematographer가 director_feedback을 template_vars에 전달한다."""
+@patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
+@patch("services.agent.nodes.cinematographer.validate_visuals")
+async def test_cinematographer_passes_director_feedback(mock_validate, mock_call, mock_scenes):
+    """Cinematographer가 director_feedback을 프롬프트에 포함한다."""
     from services.agent.nodes.cinematographer import cinematographer_node
 
-    mock_step.return_value = {"scenes": mock_scenes}
+    mock_call.return_value = (
+        f"""```json
+{{"scenes": {json.dumps(mock_scenes)}}}
+```""",
+        [],
+    )
+    mock_validate.return_value = {"valid": True}
+
     state = {"draft_scenes": mock_scenes, "director_feedback": "카메라 다양성 부족"}
-    await cinematographer_node(state)
-    call_vars = mock_step.call_args[1]["template_vars"]
-    assert call_vars["feedback"] == "카메라 다양성 부족"
+    config = {"configurable": {"db": AsyncMock()}}
+
+    await cinematographer_node(state, config)
+
+    # call_with_tools가 호출되었는지 확인
+    assert mock_call.called
+    # 프롬프트에 director_feedback이 포함되었는지 확인
+    call_args = mock_call.call_args
+    prompt = call_args[1]["prompt"]
+    assert "카메라 다양성 부족" in prompt
 
 
 @pytest.mark.asyncio
