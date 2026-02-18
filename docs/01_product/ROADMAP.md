@@ -207,6 +207,50 @@ Manage→Library+Settings 분리, 공유 레이아웃 시스템(AppThreeColumnLa
 
 ---
 
+## Phase 10: True Agentic Architecture (최우선)
+
+**목표**: DAG Workflow → 진정한 Agentic AI 전환. ReAct Loop, Tool-Calling, Agent Communication 도입.
+**선행**: Phase 9 완료 (LangGraph 파이프라인 안정화) — **충족**.
+**명세**: [TRUE_AGENTIC_ARCHITECTURE.md](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
+
+**진단**: 현재 15노드 파이프라인은 LangGraph를 사용하지만 실질은 "State Machine 기반 DAG Workflow". LLM이 자율적 의사결정, Tool Use, Planning, Self-Reflection, 에이전트 간 소통 **5대 Agentic 요건을 모두 미충족**.
+
+**설계 완료** (2026-02-18): 기능 명세 작성, Gemini 크로스 리뷰 4대 리스크 대응 반영, A/B 벤치마크 샘플 10건 설계 완료. 구현 대기.
+
+### Phase 0: Benchmark Baseline 수집
+
+| # | 작업 | 핵심 | 상태 |
+|---|------|------|------|
+| 0 | 벤치마크 샘플 10건 + 자동화 스크립트 | `scripts/benchmark/` (run_benchmark.py, benchmark_samples.json, compare_results.py). BM-01~10 각 10회 Baseline 실행, LangFuse "baseline" 태그 | [ ] |
+
+### Phase A: ReAct Loop + Self-Reflection (Level 1)
+
+| # | 작업 | 핵심 | 상태 |
+|---|------|------|------|
+| 1 | Director ReAct Loop | Single-shot → Observe→Think→Act 루프 (최대 3 스텝). 사고 과정 기록 | [ ] |
+| 2 | Review Self-Reflection | 실패 시 원인 분석 + 구체적 수정 전략 수립 → revise에 전달 | [ ] |
+| 3 | Writer Planning Step | 즉시 생성 → 계획 수립(Hook 전략, 감정 곡선, 씬 배분) → 계획 기반 생성 | [ ] |
+
+### Phase B: Tool-Calling Agent (Level 2)
+
+| # | 작업 | 핵심 | 상태 |
+|---|------|------|------|
+| 4 | Gemini Function Calling 인프라 | `tools/` 패키지, `@agent_tool` 데코레이터, `call_with_tools()`, MAX_TOOL_CALLS 가드레일 | [ ] |
+| 5 | Research Agent Tool-Calling | 고정 순회 → LLM이 필요한 도구 선택적 호출 (히스토리/URL/트렌딩/채널DNA) | [ ] |
+| 6 | Cinematographer Agent Tool-Calling | 고정 템플릿 → LLM이 태그 검증/호환성 체크/레퍼런스 검색 도구 호출 | [ ] |
+
+### Phase C: Agent Communication (Level 3)
+
+| # | 작업 | 핵심 | 상태 |
+|---|------|------|------|
+| 7 | Agent Message Protocol + State Condensation | AgentMessage TypedDict + 노드별 상태 압축 (컨텍스트 오염 방지) | [ ] |
+| 8 | Director ↔ Production 양방향 소통 | 직접 피드백/응답 메시지 + Speculative Execution (레이턴시 대응) | [ ] |
+| 9 | Critic 실시간 토론 + KPI 수렴 | 3인 상호 비평 + NarrativeScore 기반 수렴 + Groupthink 방지 + Fallback | [ ] |
+
+**리스크 대응** (Gemini 크로스 리뷰): 예측 불가능성(KPI 수렴+Fallback), 비용 ROI(Phase별 A/B 테스트 필수), 레이턴시(Speculative Execution), State 비대화(Condensation). [상세](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md#6-리스크-대응-gemini-크로스-리뷰-반영)
+
+---
+
 ## Phase 8: Multi-Style Architecture (Future)
 
 **목표**: Anime, Realistic, 3D 등 다양한 화풍 지원을 위한 유연한 파이프라인 구축.
@@ -273,11 +317,14 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
                                                                                                                     9 (Agentic Pipeline)
                                                                                                                      LangGraph 전환
                                                                                                                           ↓
+                                                                                                                    10 (True Agentic) ★최우선
+                                                                                                                     ReAct+Tools+Communication
+                                                                                                                          ↓
                                                                                                                     8 (Multi-Style)
                                                                                                                         Future
 ```
 
-**현재 진행 상태** (2026-02-17):
+**현재 진행 상태** (2026-02-18):
 - Phase 6-5 ~ 6-8: **완료** (6-8: AI BGM + TTS 품질 강화)
 - Phase 7-0 (ControlNet): **완료** (ARCHIVED)
 - Phase 6-7: **14/14 완료** (#2 VRT 완료 2026-02-12, #10 WD14 → Tier 1)
@@ -300,25 +347,31 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - **Phase 9-5C AI Transparency UX 완료** (2026-02-17): Backend `_build_node_payload()` → `_extract_node_result()` 매핑 딕셔너리로 critic/review/director/explain의 reasoning 데이터를 `node_result` SSE 필드로 전달. Frontend `pipelineSteps.ts` 순수 함수(15노드→7/3 논리 스텝 매핑), `PipelineStepper` 수평 멀티스텝 인디케이터(done/running/idle/error 상태 + pulse 애니메이션), `NarrativeScoreChart` 5메트릭 바 차트(compact/full 모드), `AgentReasoningPanel` 아코디언(Critic/Review/Director/Explain 섹션, `reasoning/ReasoningSections.tsx` 분리), ReviewApprovalPanel NarrativeScore compact 내장, ManualScriptEditor Progress bar→PipelineStepper 교체 + AgentReasoningPanel 통합 + References 입력(Full mode). `isNarrativeScore()` 타입 가드로 런타임 안전성 강화. 10개 pipelineSteps 단위 테스트 추가
 - **Phase 9-5E Research References 완료** (2026-02-17): Research 노드에 사용자 소재(URL/텍스트) 분석 기능 추가. `references` 필드 API→State 전파(schemas→routers→state). URL fetch: httpx + SSRF 방어(private IP 차단, timeout/size 제한), HTML strip → Gemini 분석 → research_brief 구성, Gemini 실패 시 원문 fallback. `config_pipelines` RESEARCH_* 상수 3개. 테스트 22개 추가(URL 판별, SSRF 12케이스, HTML→text, Gemini mock, fallback)
 - **Langfuse Trace 통합** (2026-02-17): interrupt/resume 별도 trace → 동일 trace 통합. 요청별 `CallbackHandler` 생성(싱글턴→per-request)으로 동시성 안전 보장. generate 시 trace_id를 SSE로 클라이언트 전달 → resume 시 동일 trace_id로 handler 생성. Frontend `traceId` 상태 관리 + `ScriptResumeRequest.trace_id` 필드 추가. **Per-node trace 확장**: review(gemini_evaluate+narrative_evaluate), production(cinematographer/tts/sound/copyright), creative_agent(GeminiProvider), writer(gemini_generator) — 모든 Gemini LLM 호출에 `trace_llm_call` 컨텍스트 매니저 래핑. **v3 SDK 마이그레이션 수정** (02-17): `CallbackHandler(trace_id=)` v2 API → `CallbackHandler(trace_context={"trace_id":})` v3 API 전환, `last_trace_id` 속성 → `trace_context` dict 접근으로 교체. v2 파라미터 TypeError가 except에서 조용히 잡혀 핸들러 None 반환 → 각 Gemini 호출이 개별 트레이스로 분리되던 버그 해소
+- **Phase 10**: True Agentic Architecture — **설계 완료** (2026-02-18). Tech Lead 아키텍처 검토 → 5대 Agentic 요건 미충족 진단 → 3단계 점진 전환 계획(Phase 0/A/B/C). Gemini 크로스 리뷰 4대 리스크 대응 반영(KPI 수렴, A/B ROI, Speculative Execution, State Condensation). A/B 벤치마크 샘플 10건 설계(BM-01~10, 3구조×3언어 커버리지). 다음: Phase 0 Benchmark Baseline 수집. [명세](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
 - **테스트**: Backend 1,597 passed + Frontend 319 passed = **총 1,916개** (Phase 5E Research References 22개 추가)
 
-### 잔여 작업 우선순위 (재정리 2026-02-15)
+### 잔여 작업 우선순위 (재정리 2026-02-18)
 
-**완료된 Tier**: 7-4 Studio (02-11), 7-5 A~C (02-12), VRT Baseline (02-12), 7-6 Scene UX A~G (02-13), Character Builder A~C (02-13), Channel DNA (02-13), 7-X UI Polish (02-14), 7-Y Layout (02-15) — 모두 완료
+**Tier 0 — True Agentic Architecture (최우선)**
 
-**Tier 0 — Script Quality & AI Transparency (최우선)**
-| 순위 | 출처 | 작업 | 기간 | 근거 |
-|------|------|------|------|------|
-| ~~1~~ | ~~9 P5A~~ | ~~Narrative Quality: Hook 구조 가이드 + 서사 품질 평가 + NarrativeScore~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
-| ~~2~~ | ~~9 P5B~~ | ~~Concept Gate: Critic 3컨셉 노출 + concept_gate 노드 + Creator interrupt~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
-| ~~3~~ | ~~9 P5D~~ | ~~Interactive Feedback: 프리셋 피드백 4종 + Concept Gate 피드백~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
-| ~~4~~ | ~~9 P5C~~ | ~~AI Transparency UX: Pipeline Stepper + Reasoning 패널 + Score 시각화~~ | ~~완료~~ | ~~2026-02-17 완료~~ |
+> **Gate 규칙**: 각 Phase 완료 후 A/B 테스트로 품질 효과 검증. 미달 시 롤백/조정 후 다음 Phase 진행.
+
+| 순위 | 출처 | 작업 | 기간 | Gate 조건 |
+|------|------|------|------|----------|
+| 0 | 10 P0 | **Benchmark Baseline 수집** (샘플 10건 × 10회 = 100회, LangFuse 기록) | 1일 | Baseline 데이터 확보 |
+| 1 | 10 A-1 | Director ReAct Loop (Observe→Think→Act) | 2-3일 | — |
+| 2 | 10 A-2 | Review Self-Reflection (실패 원인 분석 + 수정 전략) | 1-2일 | — |
+| 3 | 10 A-3 | Writer Planning Step (계획 → 생성) | 1일 | **Phase A Gate**: NarrativeScore +10% (10회 A/B) |
+| 4 | 10 B-1 | Gemini Function Calling 인프라 | 2일 | — |
+| 5 | 10 B-2 | Research Agent Tool-Calling | 2-3일 | — |
+| 6 | 10 B-3 | Cinematographer Agent Tool-Calling | 2일 | **Phase B Gate**: Match Rate +15% |
+| 7 | 10 C-1~3 | Agent Communication + Speculative Execution + State Condensation | 7-10일 | **Phase C Gate**: 복합 +20%, 레이턴시 120초 이내 |
 
 **Tier 3 — 장기**
 | 순위 | 출처 | 작업 | 근거 |
 |------|------|------|------|
-| 6 | 9 P4 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
-| 7 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 대규모 운영 |
-| 8 | 8 | Multi-Style Architecture | Anime 외 화풍 확장 |
+| 8 | 9 P4 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
+| 9 | 7-2 P3 | 배치 렌더링, 브랜딩, 분석 대시보드 | 대규모 운영 |
+| 10 | 8 | Multi-Style Architecture | Anime 외 화풍 확장 |
 
 **상세 변경 이력**: Phase별 변경사항은 각 Phase의 DoD 및 커밋 로그 참조. Phase 7-1 완료 항목 상세는 [Phase 7-1 커밋 로그](../99_archive/archive/) 참조.
