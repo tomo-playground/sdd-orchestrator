@@ -1,7 +1,7 @@
 # True Agentic Architecture — 상세 설계 (Archive)
 
 > 이 문서는 Phase 10 완료 후 아카이브된 상세 설계입니다.
-> 요약: [FEATURES/TRUE_AGENTIC_ARCHITECTURE.md](../../01_product/FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
+> 요약: [FEATURES/AGENTIC_PIPELINE.md](../../01_product/FEATURES/AGENTIC_PIPELINE.md) (Phase 10 섹션)
 > Phase 10 실행 기록: [ROADMAP_PHASE_10.md](../archive/ROADMAP_PHASE_10.md)
 
 ---

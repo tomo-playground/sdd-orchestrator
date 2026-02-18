@@ -173,5 +173,5 @@ pytest tests/benchmark/test_benchmark_runner.py -v
 
 ## 참고
 
-- 벤치마크 명세: `docs/01_product/FEATURES/TRUE_AGENTIC_ARCHITECTURE.md` 섹션 11
+- 벤치마크 명세: `docs/01_product/FEATURES/AGENTIC_PIPELINE.md` (Phase 10 섹션)
 - Phase 10 로드맵: `docs/01_product/ROADMAP.md` Phase 10

@@ -3,7 +3,7 @@
 **완료일**: 2026-02-18
 **목표**: DAG Workflow → 진정한 Agentic AI 전환. ReAct Loop, Tool-Calling, Agent Communication 도입.
 **선행**: Phase 9 완료 (LangGraph 파이프라인 안정화) — **충족**.
-**명세**: [TRUE_AGENTIC_ARCHITECTURE.md](../../01_product/FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
+**명세**: [AGENTIC_PIPELINE.md](../../01_product/FEATURES/AGENTIC_PIPELINE.md) (Phase 10 섹션)
 
 **진단**: 현재 15노드 파이프라인은 LangGraph를 사용하지만 실질은 "State Machine 기반 DAG Workflow". LLM이 자율적 의사결정, Tool Use, Planning, Self-Reflection, 에이전트 간 소통 **5대 Agentic 요건을 모두 미충족**.
 
@@ -50,7 +50,7 @@
 - **레이턴시**: Speculative Execution
 - **State 비대화**: Condensation
 
-[상세](../../01_product/FEATURES/TRUE_AGENTIC_ARCHITECTURE.md#6-리스크-대응-gemini-크로스-리뷰-반영)
+[상세](../features/TRUE_AGENTIC_ARCHITECTURE_DETAIL.md)
 
 ---
 

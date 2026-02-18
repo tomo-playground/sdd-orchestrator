@@ -1,4 +1,4 @@
-# Shorts Factory - Actionable PRD (v3.1)
+# Shorts Factory - Actionable PRD (v4.0)
 
 이 문서는 추상적인 전략이 아닌, **현재 개발 단계에서 구현 및 검증해야 할 실질적인 요구사항**을 정의합니다. 상세 아키텍처는 [System Overview](../03_engineering/architecture/SYSTEM_OVERVIEW.md)를 참조하세요.
 
@@ -8,27 +8,35 @@
 
 ```mermaid
 graph TD
-    subgraph Planning ["1. 기획 단계"]
-        Topic[주제/캐릭터 설정] --> Gemini[<b>Gemini API</b><br/>스토리보드 기획]
-        Gemini --> Validation[<b>WD14 Tagger</b><br/>태그 정합성 검증]
-        Validation --> DB_Store[<b>PostgreSQL</b><br/>데이터 저장]
+    subgraph Planning ["1. 기획 단계 (Agentic Pipeline)"]
+        Topic[주제/캐릭터/소재 입력] --> Graph["<b>LangGraph 15-노드</b><br/>Agentic Pipeline"]
+        Graph --> Research["<b>Research Agent</b><br/>Tool-Calling (5개 도구)"]
+        Graph --> Writer["<b>Writer Agent</b><br/>Planning + 대본 생성"]
+        Writer --> Critic["<b>Critic Agent</b><br/>3인 토론 + KPI 수렴"]
+        Critic --> ConceptGate["<b>Concept Gate</b><br/>사용자 컨셉 선택"]
+        ConceptGate --> Review["<b>Review Agent</b><br/>Self-Reflection + NarrativeScore"]
+        Review --> Director["<b>Director Agent</b><br/>ReAct Loop 통합 검증"]
+        Director --> DB_Store["<b>PostgreSQL</b><br/>데이터 저장"]
     end
 
     subgraph Production ["2. 생산 단계"]
-        DB_Store --> Prompt[V3 Prompt Engine]
-        Prompt --> SD[<b>SD WebUI API</b><br/>이미지 생성]
-        SD --> Quality[<b>Gemini Vision</b><br/>품질 및 일관성 검수]
+        DB_Store --> Prompt[V3 Prompt Engine<br/>12-Layer Builder]
+        Prompt --> SD["<b>SD WebUI API</b><br/>이미지 생성"]
+        SD --> Quality["<b>Cinematographer</b><br/>Tool-Calling (4개 도구)<br/>+ WD14 검증"]
         Quality -- "낮음 (Fail)" --> AutoEdit[Gemini Auto-Correction]
         AutoEdit --> SD
-        Quality -- "높음 (Pass)" --> Audio[<b>Qwen3 TTS</b><br/>로컬 음성 생성]
+        Quality -- "높음 (Pass)" --> Audio["<b>Qwen3-TTS</b><br/>로컬 음성 생성"]
     end
 
     subgraph Finalization ["3. 완성 단계"]
-        Audio --> BGM[<b>Stable Audio Open</b><br/>AI BGM 생성]
-        BGM --> FFmpeg[<b>FFmpeg Pipeline</b><br/>영상 합성]
-        FFmpeg --> MinIO[<b>MinIO Storage</b><br/>객체 저장]
+        Audio --> BGM["<b>Stable Audio Open</b><br/>AI BGM 생성"]
+        BGM --> FFmpeg["<b>FFmpeg Pipeline</b><br/>영상 합성 (Ken Burns, 전환 효과)"]
+        FFmpeg --> MinIO["<b>MinIO Storage</b><br/>객체 저장"]
         MinIO --> History[활동 로그 및 대시보드 기록]
     end
+
+    %% Observability
+    Graph -.->|트레이싱| LangFuse["<b>LangFuse v3</b><br/>Observability"]
 
     %% Data Connections
     DB_Store -.-> History
@@ -39,7 +47,7 @@ graph TD
 
 ## 2. 에셋 관리 및 데이터 영속화 (Assets & Persistence)
 
-V3에서는 모든 에셋(이미지, 영상, 음성)이 고유 ID를 가지며 채택/기각 여부에 따라 생명 주기가 관리됩니다.
+모든 에셋(이미지, 영상, 음성)이 고유 ID를 가지며 채택/기각 여부에 따라 생명 주기가 관리됩니다.
 
 ```mermaid
 mindmap
@@ -55,58 +63,88 @@ mindmap
             Project[Channel / Project]
             Activity[Action History]
             Evaluation[Quality Scores]
+        AI_State[AI State]
+            Checkpoint[LangGraph Checkpoint]
+            Memory[LangGraph Memory Store]
+            Trace[LangFuse Trace/Span]
 ```
 
 ## 3. 제품 요구사항 및 우선순위
 
 ### 핵심 기능 요약
 
-| # | 기능 | 설명 | Phase | 상태 |
-|---|------|------|-------|------|
-| 1 | AI 스토리보드 생성 | Gemini API 기반 주제→스토리보드 자동 기획 | 6-1 | 완료 |
-| 2 | V3 Prompt Engine | 12-Layer Builder + 4개 런타임 캐시 | 6-2.5 | 완료 |
-| 3 | 캐릭터 시스템 | 다중 캐릭터, LoRA, Tag Autocomplete, IP-Adapter | 6-3~6-4 | 완료 |
-| 4 | 이미지 생성 | SD WebUI API + ControlNet + 포즈 제어 | 6-4/7-0 | 완료 |
-| 5 | 영상 렌더링 | FFmpeg Pipeline, Ken Burns, 전환 효과, Layout | 5-2 | 완료 |
-| 6 | TTS/음성 | Qwen3-TTS 로컬, Voice Preset, Context-Aware | 6-8 | 완료 |
-| 7 | AI BGM | Stable Audio Open, Music Preset | 6-8 | 완료 |
-| 8 | 프로젝트/그룹 | Cascading Config, Group Defaults, Channel DNA | 7-2 | Phase 2-1 완료 |
-| 9 | Agentic AI Pipeline | LangGraph 15-노드, Quick/Full 모드, Revise 루프, Memory, LangFuse | 9 | Phase 0~5E 완료 |
-| 10 | True Agentic Architecture | ReAct Loop, Tool-Calling, Agent Communication | 10 | 완료 |
-| 11 | Studio Coordinator + Script Vertical | Studio 코디네이터 + 대본 버티컬 분리 | 7-4 | 완료 |
-| 12 | Scene UX Enhancement | Figma 기반 씬 편집 개선 (Phase A~G) | 7-6 | 완료 |
-| 13 | Script Quality & AI Transparency | Narrative Score, Concept Gate, Pipeline Stepper | 9-5 | 완료 |
-| 14 | Structure별 Gemini 템플릿 | 5종 전용 J2 템플릿 | Backlog | 미구현 |
-| 15 | 이미지 생성 Progress | SSE 실시간 진행률 | Backlog | 미구현 |
+| # | 기능 | 설명 | 상태 |
+|---|------|------|------|
+| 1 | AI 스토리보드 생성 | Gemini API 기반 주제→스토리보드 자동 기획 | 완료 |
+| 2 | V3 Prompt Engine | 12-Layer Builder + 4개 런타임 캐시 | 완료 |
+| 3 | 캐릭터 시스템 | 다중 캐릭터, LoRA, Tag Autocomplete, IP-Adapter | 완료 |
+| 4 | 이미지 생성 | SD WebUI API + ControlNet + 포즈 제어 (28개 포즈) | 완료 |
+| 5 | 영상 렌더링 | FFmpeg Pipeline, Ken Burns, 13개 전환 효과, Full/Post Layout | 완료 |
+| 6 | TTS/음성 | Qwen3-TTS 로컬, Voice Preset, Context-Aware, 오디오 정규화 | 완료 |
+| 7 | AI BGM | Stable Audio Open, Music Preset, SHA256 캐시 | 완료 |
+| 8 | 프로젝트/그룹 | Cascading Config, Group Defaults, Channel DNA | Phase 2-1 완료 |
+| 9 | Agentic AI Pipeline | LangGraph 15-노드, Quick/Full 모드, Revise 루프, Memory, LangFuse | 완료 |
+| 10 | True Agentic Architecture | ReAct Loop, Tool-Calling, Agent Communication, Self-Reflection | 완료 |
+| 11 | Studio Coordinator + Script Vertical | Studio 코디네이터 + 대본 버티컬 분리 (Zustand 4-Store) | 완료 |
+| 12 | Scene UX Enhancement | Figma 기반 씬 편집 개선 (Phase A~G), 3-Column 레이아웃 | 완료 |
+| 13 | Script Quality & AI Transparency | NarrativeScore, Concept Gate, Pipeline Stepper, Reasoning 패널 | 완료 |
+| 14 | 렌더링 품질 강화 | 얼굴 감지 크롭, 동적 폰트, Safe Zone, 배경 밝기 적응 | 완료 |
+| 15 | Layout & Navigation | 4탭 네비(Home/Studio/Library/Settings), 공유 레이아웃 시스템 | 완료 |
+| 16 | Home Dashboard & Publish UX | 2-Column 대시보드, Continue Working, Publish 3-Column 재배치 | 완료 |
+| 17 | Structure별 Gemini 템플릿 | 5종 전용 J2 템플릿 | 미구현 |
+| 18 | 이미지 생성 Progress | SSE 실시간 진행률 | 미구현 |
 
-### 3.1 AI BGM 생성
+### 3.1 Agentic AI Pipeline (Phase 9-10)
 
-**배경**: 현재 BGM은 정적 파일(File 모드)만 지원. 콘텐츠 분위기에 맞는 배경음악을 매번 수동으로 찾아야 하는 비효율 발생.
+**배경**: 대본 생성을 LangGraph 기반 에이전틱 AI로 전환하여 반복 개선, 자율 판단, 메모리 학습 도입.
 
-**요구사항**:
+**구현 완료 요약**:
 
-| # | 요구사항 | 우선순위 |
-|---|---------|---------|
-| 1 | Stable Audio Open 모델 기반 텍스트-투-뮤직 로컬 생성 (M4 Pro MPS) | P0 |
-| 2 | Music Preset CRUD + 프롬프트 기반 미리듣기/생성 | P0 |
-| 3 | 렌더 설정에서 BGM 모드 선택 (File: 기존 정적 파일 / AI: 프리셋 기반 생성) | P0 |
-| 4 | 시스템 프리셋 10종 기본 제공 (Lo-fi Chill, Epic Cinematic, Dark Ambient 등) | P1 |
-| 5 | SHA256 캐시로 동일 프롬프트 중복 생성 방지 | P1 |
+| # | 요구사항 | 상태 |
+|---|---------|------|
+| 1 | LangGraph 15-노드 조건 분기 그래프 (Quick 6노드 / Full 14노드) | 완료 |
+| 2 | Quick/Full 모드 토글 + Preset 3종 (Balanced, Creative, Efficient) | 완료 |
+| 3 | Revise 루프 (MAX_REVISIONS=2) + Human Gate (Creator 모드 interrupt) | 완료 |
+| 4 | AsyncPostgresStore Memory + LangFuse v3 Docker Observability | 완료 |
+| 5 | Concept Gate (Critic 3컨셉 사용자 선택) + Interactive Feedback 4종 프리셋 | 완료 |
+| 6 | NarrativeScore (Hook 40% + 감정 25% + 반전 20% + 톤 10% + 정합성 5%) | 완료 |
+| 7 | Pipeline Stepper + Agent Reasoning 패널 + Score 시각화 | 완료 |
+| 8 | Research References (URL/텍스트 소재 분석, SSRF 방어) | 완료 |
+| 9 | E2E 자동 체인 (Script→Preflight→AutoRun→Image→Validate→Render) | 완료 |
 
-**기능 명세**: [AI_BGM.md](../99_archive/features/AI_BGM.md)
+**기능 명세**: [AGENTIC_PIPELINE.md](FEATURES/AGENTIC_PIPELINE.md), [SCRIPT_QUALITY_UX.md](FEATURES/SCRIPT_QUALITY_UX.md)
+
+### 3.2 True Agentic Architecture (Phase 10)
+
+**배경**: DAG Workflow → 진정한 Agentic AI 전환. 5대 Agentic 요건 충족.
+
+**구현 완료 요약**:
+
+| # | 요구사항 | 상태 |
+|---|---------|------|
+| 1 | Director ReAct Loop (Observe→Think→Act 3-step) | 완료 |
+| 2 | Review Self-Reflection (실패 원인 분석 + 수정 전략) | 완료 |
+| 3 | Writer Planning Step (계획 → 생성 분리) | 완료 |
+| 4 | Gemini Function Calling 인프라 (Research 5도구 + Cinematographer 4도구) | 완료 |
+| 5 | Agent Message Protocol + Director↔Production 양방향 소통 | 완료 |
+| 6 | Critic 실시간 3인 토론 + KPI 수렴 (Groupthink 감지) | 완료 |
+
+**기능 명세**: [AGENTIC_PIPELINE.md](FEATURES/AGENTIC_PIPELINE.md) (Phase 10 섹션)
 
 ---
 
 ## 4. Definition of Done (DoD)
 
-모든 Phase 완료 판정 시 다음 4개 항목을 검증합니다:
+모든 Phase 완료 판정 시 다음 항목을 검증합니다:
 
 | # | 항목 | 검증 기준 |
 |---|------|----------|
 | 1 | **Autopilot** | 주제 입력 후 '이미지 생성 완료'까지 멈춤 없이 진행되는가? |
-| 2 | **Consistency** | 캐릭터의 머리색/옷이 Base Prompt대로 유지되는가? |
-| 3 | **Rendering** | 최종 비디오 파일 생성, 소리(TTS+BGM) 정상 출력되는가? |
-| 4 | **UI Resilience** | 새로고침해도 Draft가 복구되는가? |
+| 2 | **Agentic Quality** | Quick/Full 모드에서 NarrativeScore ≥ 0.6 이상 달성하는가? |
+| 3 | **Consistency** | 캐릭터의 머리색/옷이 Base Prompt대로 유지되는가? |
+| 4 | **Rendering** | 최종 비디오 파일 생성, 소리(TTS+BGM) 정상 출력되는가? |
+| 5 | **UI Resilience** | 새로고침해도 Draft가 복구되는가? |
+| 6 | **Observability** | LangFuse 트레이스에 전체 파이프라인 기록되는가? |
 
 ---
 
@@ -114,8 +152,27 @@ mindmap
 
 | 항목 | 기준 | 근거 |
 |------|------|------|
-| 테스트 | Backend 1,747 + Frontend 319 = **총 2,066개** 이상 유지 | CONTRIBUTING.md Rule #9 |
+| 테스트 | Backend 1,805 + Frontend 339 = **총 2,144개** 이상 유지 | CONTRIBUTING.md Rule #9 |
 | 코드 크기 | 함수 50줄, 파일 400줄 이하 | CLAUDE.md 가이드라인 |
 | 문서 크기 | 800줄 이하 (초과 시 분할/아카이브) | CLAUDE.md 가이드라인 |
 | 태그 표준 | Danbooru 언더바(_) 형식 통일 | CLAUDE.md Tag Format Standard |
 | 설정 SSOT | 모든 상수/환경변수 `config.py` 관리 | CLAUDE.md Configuration Principles |
+| Observability | LangFuse v3 트레이싱 (per-node trace, Gemini 토큰 추적) | Phase 9-2 |
+| 보안 | SSRF 방어 (private IP 차단), Path Traversal 방어 | Phase 7-5, 9-5E |
+
+---
+
+## 6. 미구현 기능 백로그
+
+| # | 기능 | 설명 | 명세 |
+|---|------|------|------|
+| 1 | Structure별 Gemini 템플릿 | 5종 전용 J2 템플릿 | [명세](FEATURES/GEMINI_TEMPLATES.md) |
+| 2 | 이미지 생성 Progress | SSE 실시간 진행률 | [명세](FEATURES/IMAGE_GENERATION_PROGRESS.md) |
+| 3 | VEO Clip | Video Generation 통합 | [명세](FEATURES/VEO_CLIP.md) |
+| 4 | Visual Tag Browser | 태그별 예시 이미지 | [명세](FEATURES/VISUAL_TAG_BROWSER.md) |
+| 5 | Profile Export/Import | Style Profile 공유 | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
+| 6 | Scene Clothing Override | 장면별 의상 변경 | [명세](FEATURES/SCENE_CLOTHING_OVERRIDE.md) |
+| 7 | Scene 단위 자연어 이미지 편집 | 자연어 기반 씬 이미지 수정 | [명세](FEATURES/SCENE_IMAGE_EDIT.md) |
+| 8 | Multi-Style Architecture | Anime 외 화풍 확장 (Phase 8) | - |
+| 9 | PipelineControl 커스텀 | 사용자 파이프라인 제어 + 분산 큐 | Phase 9-4 잔여 |
+| 10 | 배치 렌더링/브랜딩/분석 | 대규모 운영 기능 | Phase 7-2 P3 |

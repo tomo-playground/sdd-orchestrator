@@ -32,5 +32,4 @@
 | 로드맵 | `docs/01_product/ROADMAP.md` |
 | 에이전트 목록/역할 | `CLAUDE.md` > "Sub Agents" 섹션 |
 | 개발 가이드 | `docs/guides/CONTRIBUTING.md` |
-| Agentic Pipeline 명세 | `docs/01_product/FEATURES/AGENTIC_PIPELINE.md` |
-| True Agentic Architecture | `docs/01_product/FEATURES/TRUE_AGENTIC_ARCHITECTURE.md` |
+| Agentic Pipeline & Architecture | `docs/01_product/FEATURES/AGENTIC_PIPELINE.md` |
