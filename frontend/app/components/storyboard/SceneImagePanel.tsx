@@ -112,8 +112,6 @@ function ValidationOverlay({
   );
 }
 
-
-
 export default function SceneImagePanel({
   scene,
   onImageClick,
@@ -132,9 +130,10 @@ export default function SceneImagePanel({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="group relative aspect-square w-full max-w-[320px] overflow-hidden rounded-2xl border border-zinc-200 bg-white/70"
+        className="group relative aspect-square w-full max-w-[320px] cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white/70"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onClick={() => scene.image_url && onImageClick(scene.image_url)}
       >
         {/* Generating spinner with SSE progress */}
         {scene.isGenerating && (
@@ -145,10 +144,11 @@ export default function SceneImagePanel({
             </p>
             <div className="h-1.5 w-32 overflow-hidden rounded-full bg-zinc-200">
               <div
-                className={`h-full rounded-full transition-all duration-300 ease-out ${genProgress
-                  ? "bg-indigo-500"
-                  : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                  }`}
+                className={`h-full rounded-full transition-all duration-300 ease-out ${
+                  genProgress
+                    ? "bg-indigo-500"
+                    : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                }`}
                 style={{ width: genProgress ? `${genProgress.percent}%` : "100%" }}
               />
             </div>
@@ -166,10 +166,10 @@ export default function SceneImagePanel({
             <img
               src={scene.image_url}
               alt={`Scene ${scene.id}`}
-              onClick={() => onImageClick(scene.image_url)}
               onLoad={() => setIsImageLoading(false)}
-              className={`h-full w-full cursor-pointer object-cover object-top ${isImageLoading ? "opacity-0" : "opacity-100"
-                }`}
+              className={`h-full w-full object-cover object-top ${
+                isImageLoading ? "opacity-0" : "opacity-100"
+              }`}
             />
           </>
         ) : (
@@ -199,12 +199,13 @@ export default function SceneImagePanel({
           scene.image_url && (
             <div className="absolute top-2 right-2">
               <span
-                className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${validationResult.match_rate >= 0.8
-                  ? "bg-emerald-500 text-white"
-                  : validationResult.match_rate >= 0.5
-                    ? "bg-amber-500 text-white"
-                    : "bg-red-500 text-white"
-                  }`}
+                className={`rounded-full px-2 py-0.5 text-[12px] font-bold shadow-sm ${
+                  validationResult.match_rate >= 0.8
+                    ? "bg-emerald-500 text-white"
+                    : validationResult.match_rate >= 0.5
+                      ? "bg-amber-500 text-white"
+                      : "bg-red-500 text-white"
+                }`}
               >
                 {Math.round(validationResult.match_rate * 100)}%
               </span>
@@ -222,8 +223,9 @@ export default function SceneImagePanel({
               return (
                 <div
                   key={`${scene.client_id}-candidate-${idx}`}
-                  className={`group/thumb relative overflow-hidden rounded-xl border cursor-pointer ${isSelected ? "border-zinc-900" : "border-zinc-200"
-                    }`}
+                  className={`group/thumb relative cursor-pointer overflow-hidden rounded-xl border ${
+                    isSelected ? "border-zinc-900" : "border-zinc-200"
+                  }`}
                   onClick={() => onImageClick(candidate.image_url!)}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
