@@ -29,7 +29,9 @@ graph TD
             Research["Research Agent"]
             Cinematographer["Cinematographer"]
             Review["Review Agent"]
-            Production["Production Chain"]
+            SoundDesigner["Sound Designer"]
+            TTSDesigner["TTS Designer"]
+            ConceptGate["Concept Gate"]
         end
 
         subgraph Logic ["Core Logic"]
@@ -74,13 +76,15 @@ graph TD
 
 ## 주요 기능
 
-1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 에이전트가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
+1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer, SoundDesigner 등 15개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
     - ReAct Loop (자율 의사결정), Tool-Calling (Gemini Function Calling), Agent Communication Protocol
+    - Concept Gate (자동 품질 게이트), Graceful Degradation (에이전트 장애 내성)
 2.  **12-Layer Prompt Engine**: 캐릭터의 고유 속성(Trait)과 임시 속성(Outfit)을 분리하여 일관성 있는 이미지를 생성합니다.
 3.  **지능형 검수**:
     - **WD14 Tagger**: 생성 이미지와 프롬프트 키워드 일치 여부를 정량 검증합니다.
     - **Gemini Vision**: 검증 점수가 낮으면 이미지를 시각 분석하여 보정합니다.
-4.  **TTS & 렌더링**: Qwen3-TTS 로컬 음성 합성 + AI BGM + FFmpeg 영상 합성으로 최종 영상을 완성합니다.
+4.  **TTS & 렌더링**: Qwen3-TTS 로컬 음성 합성 (오디오 정규화) + AI BGM + FFmpeg 영상 합성으로 최종 영상을 완성합니다.
+5.  **스마트 렌더링**: 얼굴 감지 기반 크롭, 동적 Scene Text 높이, 플랫폼별 Safe Zone, 배경 밝기 기반 텍스트 색상 자동 조정.
 
 ## 기술 스택
 
@@ -102,10 +106,10 @@ graph TD
 ### Backend (`/backend`)
 ```
 backend/
-├── routers/          # 도메인별 API 엔드포인트 (27개 라우터)
+├── routers/          # 도메인별 API 엔드포인트 (33개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   Director, Writer, Critic, Research 등 14개 노드
+│   │   ├── nodes/    #   Director, Writer, Critic, Research 등 15개 노드
 │   │   ├── tools/    #   Gemini Function Calling 도구
 │   │   ├── state.py  #   Graph State
 │   │   └── routing.py#   조건부 라우팅
@@ -115,7 +119,7 @@ backend/
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
 ├── models/           # SQLAlchemy ORM (V3 Relational Schema)
-├── templates/        # Jinja2 (스토리보드 + Creative 에이전트 프롬프트)
+├── templates/        # Jinja2 (스토리보드 생성 + 리뷰 프롬프트 4개)
 ├── schemas.py        # Pydantic Request/Response 모델
 ├── config.py         # 환경변수/상수 SSOT
 └── main.py           # FastAPI 앱 + Lifespan
@@ -128,12 +132,14 @@ frontend/
 │   ├── (app)/
 │   │   ├── page.tsx       # Home (창작 대시보드)
 │   │   ├── studio/        # Studio (씬 편집 워크스페이스)
-│   │   ├── scripts/       # Script (Manual + AI Agent 대본 생성)
+│   │   ├── scripts/       # Scripts (Manual + AI Agent 대본 생성)
+│   │   ├── storyboards/   # Storyboards (스토리보드 관리)
+│   │   ├── characters/    # Characters (캐릭터 관리)
 │   │   ├── library/       # Library (에셋 통합 관리)
 │   │   ├── settings/      # Settings (프로젝트/시스템 설정)
-│   │   └── ...            # storyboards, characters, voices, music, backgrounds 등
+│   │   └── ...            # voices, music, backgrounds, lab, pipeline-demo 등
 │   ├── components/        # 공유 UI 컴포넌트
-│   ├── hooks/             # Custom Hooks (27개)
+│   ├── hooks/             # Custom Hooks (38개)
 │   ├── store/             # Zustand 4-Store (UI/Context/Storyboard/Render)
 │   └── utils/             # 유틸리티
 ├── tests/                 # Vitest 단위 테스트 + Playwright VRT
@@ -166,10 +172,10 @@ npm run dev
 
 ## Testing
 
-- **Backend**: `cd backend && uv run pytest` (1,760개 테스트)
-- **Frontend**: `cd frontend && npm test` (319개 테스트)
+- **Backend**: `cd backend && uv run pytest` (1,805개 테스트)
+- **Frontend**: `cd frontend && npm test` (339개 테스트)
 - **VRT**: `cd frontend && npm run test:vrt`
-- **총 2,079개 테스트**
+- **총 2,144개 테스트**
 
 ## Documentation
 

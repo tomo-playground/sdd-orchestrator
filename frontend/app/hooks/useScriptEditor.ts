@@ -254,6 +254,21 @@ async function processSSEStream(
   return { finalScenes, isWaiting };
 }
 
+/** Fields that represent user content — changes should mark global store dirty. */
+const CONTENT_FIELDS: ReadonlySet<string> = new Set([
+  "topic",
+  "description",
+  "duration",
+  "language",
+  "structure",
+  "characterId",
+  "characterName",
+  "characterBId",
+  "characterBName",
+  "references",
+  "preset",
+]);
+
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
   const groupId = useContextStore((s) => s.groupId);
   const showToast = useUIStore((s) => s.showToast);
@@ -292,6 +307,31 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     traceId: null,
   });
 
+  // Ref to latest state for unmount sync (avoids stale closure)
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const dirtyRef = useRef(false);
+
+  // Sync to global store on unmount so navigation doesn't lose changes
+  useEffect(() => {
+    return () => {
+      if (!dirtyRef.current) return;
+      const s = stateRef.current;
+      if (!s.topic.trim() && s.scenes.length === 0) return;
+      syncToGlobalStore(s.scenes, {
+        topic: s.topic.trim(),
+        description: s.description.trim(),
+        duration: s.duration,
+        language: s.language,
+        structure: s.structure,
+        characterId: s.characterId,
+        characterName: s.characterName,
+        characterBId: s.characterBId,
+        characterBName: s.characterBName,
+      });
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Lazy-fetch feedback presets when waiting for input
   useEffect(() => {
     if (!state.isWaitingForInput || state.feedbackPresets) return;
@@ -314,6 +354,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   const setField = useCallback(
     <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => {
       setState((prev) => ({ ...prev, [key]: value }));
+      if (CONTENT_FIELDS.has(key as string)) {
+        dirtyRef.current = true;
+        useStoryboardStore.getState().set({ isDirty: true });
+      }
     },
     []
   );
@@ -324,6 +368,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       next[index] = { ...next[index], ...patch };
       return { ...prev, scenes: next };
     });
+    dirtyRef.current = true;
+    useStoryboardStore.getState().set({ isDirty: true });
   }, []);
 
   const generate = useCallback(async () => {
@@ -395,6 +441,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           characterBId: state.characterBId,
           characterBName: state.characterBName,
         });
+        dirtyRef.current = false;
         showToast("Script generated", "success");
       } else {
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
@@ -469,17 +516,19 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
             isWaitingForInput: false,
             justGenerated: true,
           }));
+          const cur = stateRef.current;
           syncToGlobalStore(finalScenes, {
-            topic: state.topic.trim(),
-            description: state.description.trim(),
-            duration: state.duration,
-            language: state.language,
-            structure: state.structure,
-            characterId: state.characterId,
-            characterName: state.characterName,
-            characterBId: state.characterBId,
-            characterBName: state.characterBName,
+            topic: cur.topic.trim(),
+            description: cur.description.trim(),
+            duration: cur.duration,
+            language: cur.language,
+            structure: cur.structure,
+            characterId: cur.characterId,
+            characterName: cur.characterName,
+            characterBId: cur.characterBId,
+            characterBName: cur.characterBName,
           });
+          dirtyRef.current = false;
           showToast("Script generated", "success");
         } else {
           setState((prev) => ({
@@ -566,6 +615,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardTitle: state.topic.trim(),
         });
         syncToGlobalStore(state.scenes, storeMeta);
+        dirtyRef.current = false;
+        useStoryboardStore.getState().set({ isDirty: false });
         showToast("Script saved", "success");
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
@@ -580,6 +631,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardTitle: state.topic.trim(),
         });
         syncToGlobalStore(state.scenes, storeMeta);
+        dirtyRef.current = false;
+        useStoryboardStore.getState().set({ isDirty: false });
         onSavedRef.current?.(newId);
         showToast("Script created", "success");
       }
@@ -637,6 +690,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           storyboardId: id,
           storyboardVersion: data.version ?? null,
         }));
+        dirtyRef.current = false;
         useContextStore.getState().setContext({
           storyboardId: id,
           storyboardTitle: data.title ?? "",
@@ -650,6 +704,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   );
 
   const reset = useCallback(() => {
+    dirtyRef.current = false;
     setState({
       topic: "",
       description: "",
