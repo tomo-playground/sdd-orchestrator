@@ -221,7 +221,7 @@ Manage→Library+Settings 분리, 공유 레이아웃 시스템(AppThreeColumnLa
 
 | # | 작업 | 핵심 | 상태 |
 |---|------|------|------|
-| 0 | 벤치마크 샘플 10건 + 자동화 스크립트 | `scripts/benchmark/` (run_benchmark.py, benchmark_samples.json, compare_results.py). BM-01~10 각 10회 Baseline 실행, LangFuse "baseline" 태그 | [ ] |
+| 0 | 벤치마크 샘플 10건 + 자동화 스크립트 | `scripts/benchmark/` (run_benchmark.py, benchmark_samples.json, compare_results.py). BM-01~10 각 3회 Baseline 실행 (진행 중), LangFuse "baseline" 태그. TDD 18개 테스트, SSE 파싱 수정, Gemini safety filter 해결 완료 (2026-02-18) | [x] |
 
 ### Phase A: ReAct Loop + Self-Reflection (Level 1)
 
