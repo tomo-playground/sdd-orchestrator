@@ -8,8 +8,15 @@ from __future__ import annotations
 import re
 
 from config import LANGGRAPH_MAX_REVISIONS, SCENE_DEFAULT_DURATION, logger
+from config_pipelines import REVISE_EXPANSION_ENABLED, REVISE_MAX_EXPANSION_SCENES
 from database import get_db_session
 from schemas import StoryboardRequest
+from services.agent.nodes._revise_expand import (
+    can_use_expansion,
+    parse_scene_deficit,
+    redistribute_durations,
+    try_scene_expand,
+)
 from services.agent.state import ScriptState, extract_selected_concept
 from services.script.gemini_generator import generate_script
 
@@ -99,11 +106,26 @@ async def revise_node(state: ScriptState) -> dict:
     scenes = [s.copy() for s in (state.get("draft_scenes") or [])]
     errors = (state.get("review_result") or {}).get("errors", [])
 
+    # Tier 1: 규칙 기반 수정
     if errors and _try_rule_fix(scenes, errors):
-        logger.info("[LangGraph] Revise 규칙 수정 완료 (revision=%d)", count + 1)
+        logger.info("[LangGraph] Revise Tier 1 규칙 수정 완료 (revision=%d)", count + 1)
         return {"draft_scenes": scenes, "revision_count": count + 1}
 
-    # 복잡 오류: 피드백 + 현재 대본 주입 후 재생성
+    # Tier 2: 씬 개수 부족 → 타겟 확장 (기존 씬 보존)
+    if REVISE_EXPANSION_ENABLED:
+        deficit_info = parse_scene_deficit(errors)
+        if deficit_info and can_use_expansion(errors):
+            _try_rule_fix(scenes, errors)  # 규칙 수정 가능한 에러 먼저 처리
+            _current, target_min = deficit_info
+            deficit = target_min - len(scenes)
+            if 0 < deficit <= REVISE_MAX_EXPANSION_SCENES:
+                expanded = await try_scene_expand(scenes, state, deficit, target_min)
+                if expanded:
+                    redistribute_durations(expanded, state.get("duration", 10))
+                    logger.info("[LangGraph] Revise Tier 2 확장 완료 (revision=%d)", count + 1)
+                    return {"draft_scenes": expanded, "revision_count": count + 1}
+
+    # Tier 3: 복잡 오류 — 피드백 + 현재 대본 주입 후 전체 재생성
     feedback = _build_feedback(state)
     desc = state.get("description", "")
 
