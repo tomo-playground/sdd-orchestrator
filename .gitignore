@@ -42,3 +42,4 @@ tmp/
 temp/
 backend/.coverage
 .playwright-mcp/
+output/
