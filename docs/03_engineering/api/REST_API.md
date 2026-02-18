@@ -1,4 +1,4 @@
-# API Specification (v3.7)
+# API Specification (v4.0)
 
 프론트엔드와 백엔드 간 데이터 통신을 위한 API 명세서입니다.
 
@@ -6,59 +6,40 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v4.0 | 2026-02-18 | 문서 전체 소스 기반 최신화: Storyboard GET/DELETE 추가, Video render-history/youtube-statuses 추가, Groups Config CRUD 추가, Storage build cleanup 추가, 신규 API 섹션 참조 추가 |
 | v3.8 | 2026-02-13 | Storyboard Optimistic Locking (`version`), Partial Metadata Update (`PATCH`), Material Check (`/materials`), Scene Async Generation (`/scene/generate-async`) |
-| v3.7 | 2026-02-11 | Multi-Character LoRA 지원: Scene Generate/Prompt Compose에 `character_b_id` 추가, Scene 응답에 `scene_mode` 추가, LoRA API에 멀티캐릭터 필드 3개 추가 |
-| v3.6 | 2026-02-10 | Storyboard Soft Delete 엔드포인트 (trash/restore/permanent), Scene 편집 엔드포인트 (validate-and-auto-edit, edit-with-gemini, suggest-edit), Video 유틸리티 (extract-caption, extract-hashtags, transitions), Storyboard `duration`/`language` 필드 추가 |
-| v3.5 | 2026-02-07 | Creative Engine API 추가 (`/lab/creative/sessions`, `/lab/creative/agent-presets`) - AI 멀티 에이전트 토론 기반 창작 |
-| v3.4 | 2026-02-07 | Video 비동기 렌더링 API 추가 (`/video/create-async`, `/video/progress/{task_id}`), Style Profile Ownership 설계 노트 |
-| v3.3 | 2026-02-07 | Music Presets API 추가 (Stable Audio Open AI BGM), `render_presets` 응답에 `bgm_mode`/`music_preset_id` 추가 |
-| v3.2 | 2026-02-06 | `render_presets` 응답에서 `voice_preset_id` 제거, `projects`/`effective-config` 응답에서 `character_id` 제거 |
-| v3.1 | 2026-02-02 | `render_presets`, `voice_presets`, `projects`, `groups` API 추가, 문서 분할 (Core / Domain / Analytics) |
-| v3.0 | 2026-01-30 | V3 아키텍처: Storyboard-Centric 전환, generation-logs->activity-logs, Characters V3 relational tags, Admin/Assets 라우터 추가 |
-| v2.2 | 2026-01-28 | Keywords Service 리팩토링 및 패키지 구조 반영, Character DB 필드 확장 반영 |
-| v2.1 | 2026-01-27 | Characters API, Quality API, Evaluation API 추가 |
-
-## v3.1 주요 변경
-
-- **Projects/Groups API** (`/projects`, `/groups`): 프로젝트-그룹 계층 구조, Cascading Config 지원
-- **Render Presets API** (`/render-presets`): 렌더링 프리셋 CRUD (TTS, BGM, 레이아웃 등 일괄 관리)
-- **Voice Presets API** (`/voice-presets`): 음성 프리셋 CRUD, VoiceDesign 미리듣기, 음성 파일 업로드
-- **문서 분할**: REST_API.md (Core) + REST_API_DOMAIN.md + REST_API_ANALYTICS.md
+| v3.7 | 2026-02-11 | Multi-Character LoRA 지원 |
+| v3.6 | 2026-02-10 | Storyboard Soft Delete, Scene 편집 엔드포인트, Video 유틸리티 |
 
 ---
 
 ## 목차
 
 ### Core API (이 문서)
-1. [Storyboard](#-storyboard) - AI 스토리보드 생성
-2. [Scene](#-scene-이미지-생성검증) - 이미지 생성 및 검증
-3. [Video](#-video-영상-렌더링) - 영상 렌더링
-4. [Presets](#-presets-프리셋-템플릿) - 스토리보드 프리셋
-5. [Storage](#-storage-저장소-관리) - 저장소 관리
-6. [Projects & Groups](#-projects--groups) - 프로젝트/그룹 관리 (NEW)
-7. Presets API (Render / Voice / Music) -> [REST_API_PRESETS.md](./REST_API_PRESETS.md)
-8. [공통 사항](#-공통-사항) - 에러 처리 및 상태 코드
+1. [Storyboard](#storyboard) - AI 스토리보드 생성
+2. [Scene](#scene-이미지-생성검증) - 이미지 생성 및 검증
+3. [Video](#video-영상-렌더링) - 영상 렌더링
+4. [Presets](#presets-프리셋-템플릿) - 스토리보드 프리셋
+5. [Storage](#storage-저장소-관리) - 저장소 관리
+6. [Projects & Groups](#projects--groups) - 프로젝트/그룹 관리
+7. [공통 사항](#공통-사항) - 에러 처리 및 상태 코드
 
-### Domain API -> [REST_API_DOMAIN.md](./REST_API_DOMAIN.md)
-- Tags & Classification, Keywords, ControlNet & IP-Adapter, LoRA Management
-- Avatar, Assets, Backgrounds, Prompt, Stable Diffusion, Characters
-
-### Creative Engine API -> [REST_API_CREATIVE.md](./REST_API_CREATIVE.md)
-- Sessions, Task Types, Agent Presets — AI 멀티 에이전트 토론 기반 창작
-
-### Analytics & Admin API -> [REST_API_ANALYTICS.md](./REST_API_ANALYTICS.md)
-- Quality, Activity Logs, Evaluation, Admin
+### 분할 문서
+- **Presets API** (Render / Voice / Music) -> [REST_API_PRESETS.md](./REST_API_PRESETS.md)
+- **Domain API** -> [REST_API_DOMAIN.md](./REST_API_DOMAIN.md) — Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Backgrounds, Prompt, SD, Characters, Style Profiles, SD Models, Prompt Histories
+- **Creative Engine API** -> [REST_API_CREATIVE.md](./REST_API_CREATIVE.md)
+- **Analytics & Admin API** -> [REST_API_ANALYTICS.md](./REST_API_ANALYTICS.md) — Quality, Activity Logs, Gemini Edit Analytics, Admin, Settings, YouTube, Scripts, Memory
 
 ---
 
 ## Storyboard
 
-> v3.0: Storyboard -> Scene -> CharacterAction 계층 구조. 라우터 prefix: `/storyboards`
+> Storyboard -> Scene -> CharacterAction 계층 구조. 라우터 prefix: `/storyboards`
 
 ### `POST /storyboards/create`
 AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 
-**Request:**
+**Request:** `StoryboardRequest`
 ```json
 {
   "topic": "string",
@@ -70,34 +51,18 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 }
 ```
 
-**Response:**
-```json
-{
-  "scenes": [
-    {
-      "scene_id": 1,
-      "script": "나레이션 텍스트",
-      "speaker": "Narrator",
-      "duration": 3.0,
-      "image_prompt": "1girl, coffee shop...",
-      "image_prompt_ko": "커피숍에 있는 여자..."
-    }
-  ]
-}
-```
+**Response:** Gemini 생성 결과 (scenes 배열)
 
 ### `POST /storyboards`
-스토리보드와 씬을 DB에 저장합니다 (V3 데이터 영속화).
+스토리보드와 씬을 DB에 저장합니다. `response_model=StoryboardSaveResponse`
 
-**Request:**
+**Request:** `StoryboardSave`
 ```json
 {
   "title": "커피숍 일상",
   "description": "카페에서의 하루",
   "character_id": 1,
   "style_profile_id": 1,
-  "caption": "좋아요 6만개\n15분 전",
-  "duration": 10,
   "caption": "좋아요 6만개\n15분 전",
   "duration": 10,
   "language": "Korean",
@@ -107,7 +72,6 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
       "scene_id": 1,
       "script": "나레이션 텍스트",
       "scene_mode": "single",
-      "image_url": "/outputs/images/scene_001.png",  // Response-only: @property에서 media_asset 기반 파생
       "width": 512,
       "height": 768,
       "tags": [{"tag_id": 10, "weight": 1.0}],
@@ -119,119 +83,84 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 }
 ```
 
-**Response:**
+**Response:** `StoryboardSaveResponse`
 ```json
 {"status": "success", "storyboard_id": 1, "version": 1}
 ```
 
-### `GET /storyboards/{storyboard_id}/materials`
-스토리보드의 모든 씬 이미지가 생성되었는지 확인합니다 (Video 생성 전제조건).
+### `GET /storyboards`
+저장된 스토리보드 목록을 조회합니다. `response_model=PaginatedStoryboardList`
 
-**Response:**
-```json
-{
-  "ready": true,
-  "total": 10,
-  "completed": 10,
-  "missing_indices": []
-}
-```
+**Query Parameters:**
+- `group_id`: int (optional) - 특정 그룹의 스토리보드만 필터
+- `project_id`: int (optional) - 특정 프로젝트의 스토리보드만 필터
+- `offset`: int (default: 0)
+- `limit`: int (default: 50)
+
+**Response:** `PaginatedStoryboardList`
+
+### `GET /storyboards/{storyboard_id}`
+스토리보드 상세 정보를 조회합니다. `response_model=StoryboardDetailResponse`
+
+### `PUT /storyboards/{storyboard_id}`
+기존 스토리보드를 업데이트합니다 (씬 전체 교체). `response_model=StoryboardSaveResponse`
+
+**Request:** `StoryboardSave` (`POST /storyboards`와 동일 형식)
+
+> **동작**: 기존 씬을 모두 삭제 후 새 씬으로 교체 (orphaned media_assets 자동 정리). Title은 200자로 자동 truncate.
 
 ### `PATCH /storyboards/{storyboard_id}/metadata`
-스토리보드 메타데이터(제목, 설명, 캡션 등)를 부분 업데이트합니다. Optimistic Locking을 위해 `version` 필드가 필수입니다.
+스토리보드 메타데이터를 부분 업데이트합니다. Optimistic Locking을 위해 `version` 필드 필수. `response_model=StoryboardMetadataUpdateResponse`
 
 **Request:** `StoryboardUpdate`
 ```json
-{
-  "title": "새로운 제목",
-  "version": 1
-}
+{ "title": "새로운 제목", "version": 1 }
 ```
+
+### `DELETE /storyboards/{storyboard_id}`
+스토리보드를 Soft Delete합니다. `response_model=StatusResponse`
+
+### `GET /storyboards/{storyboard_id}/materials`
+스토리보드의 렌더링 준비 상태를 확인합니다. `response_model=MaterialsCheckResponse`
 
 **Response:**
 ```json
 {
-  "id": 1,
-  "title": "새로운 제목",
-  "version": 2
+  "storyboard_id": 1,
+  "script": {"ready": true, "count": 10},
+  "characters": {"ready": true, "count": 2},
+  "voice": {"ready": true},
+  "music": {"ready": false},
+  "background": {"ready": true, "detail": "Optional"}
 }
 ```
-
-### `PUT /storyboards/{storyboard_id}`
-기존 스토리보드를 업데이트합니다 (씬 전체 교체).
-
-**Request:** `POST /storyboards`와 동일 형식
-
-**Response:** Storyboard 전체 객체 (id, title, description, scenes, video_url, recent_videos, created_at, updated_at 포함)
-
-> **동작**: 기존 씬을 모두 삭제 후 새 씬으로 교체 (orphaned media_assets 자동 정리).
-> Title은 200자로 자동 truncate됩니다.
 
 ### `GET /storyboards/trash`
-Soft Delete된 스토리보드 목록을 조회합니다.
-
-**Response:** `GET /storyboards`와 동일 형식 (deleted_at 포함)
+Soft Delete된 스토리보드 목록. `response_model=list[TrashedStoryboardItem]`
 
 ### `POST /storyboards/{storyboard_id}/restore`
-Soft Delete된 스토리보드를 복원합니다.
-
-**Response:**
-```json
-{"status": "restored", "id": 1}
-```
+Soft Delete된 스토리보드를 복원합니다. `response_model=StoryboardRestoreResponse`
 
 ### `DELETE /storyboards/{storyboard_id}/permanent`
-스토리보드를 영구 삭제합니다 (복구 불가).
-
-**Response:**
-```json
-{"status": "permanently_deleted", "id": 1}
-```
-
-### `GET /storyboards`
-저장된 스토리보드 목록을 조회합니다.
-
-**Response:**
-```json
-```json
-[
-  {
-    "id": 1,
-    "title": "커피숍 일상",
-    "description": "카페에서의 하루",
-    "version": 1,
-    "created_at": "2026-01-30T12:00:00",
-    "updated_at": "2026-01-30T12:00:00"
-  }
-]
-```
+스토리보드를 영구 삭제합니다 (복구 불가). `response_model=StatusResponse`
 
 ---
 
 ## Scene (이미지 생성/검증)
 
 ### `POST /scene/generate`
-Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
+Stable Diffusion을 사용하여 씬 이미지를 생성합니다. `response_model=SceneGenerateResponse`
 
 **Request:** `SceneGenerateRequest`
 ```json
 {
   "prompt": "1girl, coffee shop, anime style",
   "negative_prompt": "bad quality, blurry",
-  "steps": 24,
-  "cfg_scale": 7.0,
+  "steps": 24, "cfg_scale": 7.0,
   "sampler_name": "DPM++ 2M Karras",
-  "seed": -1,
-  "width": 512,
-  "height": 768,
-  "clip_skip": 2,
-  "enable_hr": false,
-  "hr_scale": 1.5,
-  "hr_upscaler": "Latent",
-  "hr_second_pass_steps": 10,
-  "denoising_strength": 0.25,
-  "character_id": 8,
-  "character_b_id": null,
+  "seed": -1, "width": 512, "height": 768, "clip_skip": 2,
+  "enable_hr": false, "hr_scale": 1.5, "hr_upscaler": "Latent",
+  "character_id": 8, "character_b_id": null,
   "storyboard_id": 374,
   "prompt_pre_composed": false,
   "style_loras": []
@@ -251,545 +180,172 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다.
 }
 ```
 
-- `used_prompt`: 백엔드가 스타일 프로파일/LoRA/V3 엔진을 적용한 최종 프롬프트. Narrator 씬 등 프론트엔드가 프롬프트를 pre-compose하지 않은 경우, 이 값으로 `image_prompt`를 업데이트한다.
-- `character_b_id`: (optional) 2인 동시 출연 시 두 번째 캐릭터 ID. 지정 시 멀티캐릭터 프롬프트 합성이 적용되며, 각 LoRA의 `multi_char_weight_scale`로 가중치가 축소된다.
-
 ### `POST /scene/generate-batch`
-여러 씬의 이미지를 한 번에 생성합니다.
-
-**Request:** `BatchSceneRequest`
-```json
-{
-  "scenes": [
-    { "prompt": "...", "negative_prompt": "...", "width": 512, "height": 768 },
-    { "prompt": "...", "negative_prompt": "...", "width": 512, "height": 768 }
-  ]
-}
-```
-
-**Response:** `BatchSceneResponse`
-```json
-{
-  "results": [
-    { "index": 0, "status": "success", "data": { "image": "...", "used_prompt": "..." } },
-    { "index": 1, "status": "failed", "error": "SD WebUI timeout" }
-  ],
-  "total": 2,
-  "succeeded": 1,
-  "failed": 1
-}
-```
+여러 씬의 이미지를 한 번에 생성합니다. `response_model=BatchSceneResponse`
 
 ### `POST /image/store`
 생성된 이미지를 서버에 저장합니다.
 
-**Request:**
-```json
-{
-  "image_b64": "data:image/png;base64,..."
-}
-```
-
-**Response:**
-```json
-{
-  "url": "http://localhost:8000/outputs/images/stored/scene_abc123.png"
-}
-```
-
-### `POST /scene/generate-async` (NEW)
-씬 이미지를 비동기로 생성합니다. 배치를 처리하거나 무거운 렌더링 시 사용합니다.
-
-**Request:** `SceneGenerateRequest` (`POST /scene/generate`와 동일)
-
-**Response (202 Accepted):**
-```json
-{
-  "task_id": "scene_gen_abc123"
-}
-```
+### `POST /scene/generate-async`
+씬 이미지를 비동기로 생성합니다. **Response (202):** `{ "task_id": "scene_gen_abc123" }`
 
 ### `GET /scene/progress/{task_id}`
 씬 생성 작업의 진행 상황을 조회합니다.
 
-**Response:**
-```json
-{
-  "task_id": "scene_gen_abc123",
-  "status": "processing",
-  "progress": 50,
-  "result": null,
-  "error": null
-}
-```
-- `status`: `pending`, `processing`, `completed`, `failed`
-- `result`: 완료 시 `SceneGenerateResponse` 객체 포함
-
 ### `POST /scene/validate-and-auto-edit`
-WD14 검증 + 조건부 Gemini 자동 편집. 매치율이 낮으면 Gemini가 프롬프트를 자동 수정합니다.
-
-**Request:** `SceneValidateRequest` (validate_image와 동일)
-
-**Response:** 자동 편집 결과 포함 (edited_prompt, edit_history 등)
+WD14 검증 + 조건부 Gemini 자동 편집.
 
 ### `POST /scene/edit-with-gemini`
 Gemini를 사용하여 이미지 프롬프트를 수동 편집합니다.
 
-**Request:** `GeminiEditRequest`
-```json
-{
-  "prompt": "1girl, coffee shop",
-  "instruction": "배경을 도서관으로 변경",
-  "negative_prompt": "bad quality"
-}
-```
-
-**Response:** `GeminiEditResponse`
-```json
-{
-  "edited_prompt": "1girl, library, bookshelf, reading",
-  "changes_summary": "배경을 커피숍에서 도서관으로 변경"
-}
-```
-
 ### `POST /scene/suggest-edit`
 Gemini가 프롬프트 개선안을 자동 제안합니다.
 
-**Request:** `GeminiSuggestRequest`
-
-**Response:** `GeminiSuggestResponse` (제안 목록)
-
 ### `POST /scene/validate_image`
-이미지 품질 및 프롬프트 일치도를 검증합니다.
-
-**Request:**
-```json
-{
-  "image_b64": "data:image/png;base64,...",
-  "prompt": "1girl, coffee shop",
-  "mode": "wd14"
-}
-```
-- `mode`: `"wd14"` | `"gemini"` | `"both"`
-
-**Response:**
-```json
-{
-  "valid": true,
-  "tags": ["1girl", "coffee", "indoor"],
-  "score": 0.85
-}
-```
+이미지 품질 및 프롬프트 일치도를 검증합니다. `mode`: `"wd14"` | `"gemini"` | `"both"`
 
 ---
 
 ## Video (영상 렌더링)
 
 ### `POST /video/create`
-씬들을 조합하여 최종 비디오를 생성합니다.
+씬들을 조합하여 최종 비디오를 생성합니다 (동기). `response_model=VideoCreateResponse`
 
-**Request:**
-```json
-{
-  "scenes": [
-    {
-      "image_url": "http://localhost:8000/outputs/images/stored/scene_001.png",  // Transient: render-time only, HTTP URL 필수
-      "script": "나레이션 텍스트",
-      "speaker": "Narrator",
-      "duration": 3.0
-    }
-  ],
-  "bgm_file": "bgm_chill.mp3 | random",
-  "width": 1080,
-  "height": 1080,
-  "layout_style": "post",
-  "ken_burns_preset": "zoom_in_center",
-  "ken_burns_intensity": 1.0,
-  "narrator_voice": "ko-KR-SunHiNeural",
-  "speed_multiplier": 1.0,
-  "include_scene_text": true,
-  "scene_text_font": "NanumGothic.ttf",
-  "overlay_settings": {
-    "channel_name": "daily_shorts",
-    "avatar_key": "daily_shorts",
-    "likes_count": "12.5k",
-    "posted_time": "2분 전",
-    "caption": "Amazing video! #shorts",
-    "frame_style": "overlay_minimal.png",
-    "avatar_file": null
-  },
-  "post_card_settings": {
-    "channel_name": "creator",
-    "avatar_key": "creator",
-    "caption": "Check out this video!"
-  },
-  "audio_ducking": true,
-  "bgm_volume": 0.25,
-  "ducking_threshold": 0.01
-}
-```
-
-- `layout_style`: `"post"` | `"full"` (default: `"post"`)
-- `bgm_file`: BGM 파일명 또는 `"random"` (backend에서 랜덤 선택)
-- `ken_burns_preset`: Ken Burns 효과 프리셋 (default: `"none"`)
-  - **기본**: `"none"`, `"zoom_in_center"`, `"zoom_out_center"`
-  - **패닝**: `"pan_left"`, `"pan_right"`, `"pan_up"`, `"pan_down"`
-  - **줌+패닝**: `"zoom_pan_left"`, `"zoom_pan_right"`
-  - **세로 영상 최적화** (9:16 Full Layout):
-    - `"pan_up_vertical"`, `"pan_down_vertical"`
-    - `"zoom_in_bottom"`, `"zoom_in_top"`
-    - `"pan_zoom_up"`, `"pan_zoom_down"`
-  - **랜덤**: `"random"`
-- `ken_burns_intensity`: 효과 강도 0.5~2.0 (default: `1.0`)
-
-**Response:**
-```json
-{
-  "video_url": "http://localhost:8000/outputs/videos/my_shorts_20240115_143022.mp4"
-}
-```
+**Request:** `VideoRequest` — scenes, bgm_file, layout_style, ken_burns 등 포함
 
 ### `POST /video/create-async`
-비동기 영상 생성 (SSE 진행률 스트리밍). 요청 body는 `/video/create`와 동일합니다.
-
-**Request:** `VideoRequest` (`POST /video/create`와 동일)
-
-> **Timeout**: 비동기 렌더링 작업은 최대 **20분**(`API_TIMEOUT.VIDEO_RENDER`)까지 허용됩니다. 초과 시 `failed` 상태로 전환되며 타임아웃 에러가 발생합니다.
-
-**Response (202 Accepted):**
-```json
-{
-  "task_id": "abc123def456"
-}
-```
-
-> 반환된 `task_id`로 `/video/progress/{task_id}`를 구독하여 진행 상황을 확인합니다.
+비동기 영상 생성 (SSE 진행률 스트리밍). `response_model=VideoCreateAccepted` (202)
 
 ### `GET /video/progress/{task_id}`
 SSE(Server-Sent Events) 스트림으로 렌더링 진행 상황을 실시간 전달합니다.
 
-**Response:** `text/event-stream`
-
-**Event Payload (`RenderProgressEvent`):**
-```json
-{
-  "task_id": "abc123def456",
-  "stage": "process_scenes",
-  "percent": 25,
-  "message": "Scene 3/10 TTS",
-  "encode_percent": 0,
-  "current_scene": 3,
-  "total_scenes": 10,
-  "video_url": null,
-  "media_asset_id": null,
-  "render_history_id": null,
-  "error": null
-}
-```
-
-**Stages (순서):**
-`queued` -> `setup_avatars` -> `process_scenes` -> `calculate_durations` -> `prepare_bgm` -> `build_filters` -> `encode` -> `upload` -> `completed`
-
-**완료/실패 이벤트:**
-- `completed` 이벤트: `video_url`, `media_asset_id`, `render_history_id` 포함
-- `failed` 이벤트: `error` 메시지 포함
-
-**Keep-alive:** 15초 주기 comment (`": keep-alive\n\n"`)
+**Stages:** `queued` -> `setup_avatars` -> `process_scenes` -> `calculate_durations` -> `prepare_bgm` -> `build_filters` -> `encode` -> `upload` -> `completed`
 
 ### `POST /video/delete`
-비디오 파일을 삭제합니다. Request: `{"filename": "my_shorts_20240115_143022.mp4"}` / Response: `{"ok": true, "deleted": true}`
+비디오 파일을 삭제합니다. `response_model=VideoDeleteResponse`
 
 ### `GET /video/exists`
-비디오 파일 존재 여부를 확인합니다. Query: `filename` (required) / Response: `{"exists": true}`
+비디오 파일 존재 여부를 확인합니다. `response_model=VideoExistsResponse`
 
-### `GET /video/transitions`
-사용 가능한 전환 효과 목록을 조회합니다.
+### `POST /video/youtube-statuses`
+여러 비디오 URL의 YouTube 업로드 상태를 일괄 조회합니다. `response_model=YouTubeStatusesResponse`
+
+**Request:** `YouTubeStatusesRequest`
+```json
+{ "video_urls": ["http://...video1.mp4", "http://...video2.mp4"] }
+```
 
 **Response:**
 ```json
-["none", "fade", "slide_left", "slide_right", ...]
+{ "statuses": { "http://...video1.mp4": { "video_id": "abc123", "status": "public" } } }
 ```
+
+### `GET /video/render-history`
+렌더링 이력 목록을 조회합니다 (갤러리용, 최신순). `response_model=PaginatedRenderHistoryList`
+
+**Query Parameters:**
+- `project_id`: int (optional)
+- `offset`: int (default: 0)
+- `limit`: int (default: 12, max: 50)
+
+### `GET /video/render-history-lookup`
+video URL로 render_history_id를 조회합니다. `response_model=RenderHistoryLookupResponse`
+
+**Query Parameters:** `video_url` (required)
+
+### `GET /video/transitions`
+사용 가능한 전환 효과 목록을 조회합니다. `response_model=TransitionsResponse`
 
 ### `POST /video/extract-caption`
-텍스트에서 캡션을 LLM으로 추출합니다.
-
-**Request:** `TextExtractRequest`
-```json
-{ "text": "영상 주제 텍스트" }
-```
-
-**Response:** `CaptionExtractResponse`
-```json
-{ "caption": "추출된 캡션 텍스트" }
-```
+텍스트에서 캡션을 LLM으로 추출합니다. `response_model=CaptionExtractResponse`
 
 ### `POST /video/extract-hashtags`
-주제에서 해시태그 3개를 추출합니다.
-
-**Request:** `TextExtractRequest`
-```json
-{ "text": "영상 주제" }
-```
-
-**Response:** `HashtagExtractResponse`
-```json
-{ "hashtags": ["#쇼츠", "#일상", "#카페"] }
-```
+주제에서 해시태그 3개를 추출합니다. `response_model=HashtagExtractResponse`
 
 ---
 
 ## Presets (프리셋 템플릿)
 
 ### `GET /presets`
-사용 가능한 모든 스토리보드 프리셋 목록을 조회합니다.
-
-**Response:**
-```json
-{
-  "presets": [
-    {
-      "id": "monologue",
-      "name": "Monologue",
-      "name_ko": "독백",
-      "description": "Single narrator storytelling",
-      "sample_topics": ["topic1", "topic2"],
-      "default_duration": 10,
-      "default_style": "Anime",
-      "default_language": "Korean"
-    }
-  ]
-}
-```
+사용 가능한 모든 스토리보드 프리셋 목록을 조회합니다. `response_model=PresetListResponse`
 
 ### `GET /presets/{preset_id}`
-특정 프리셋의 상세 정보를 조회합니다. `GET /presets` 항목에 `structure`, `template`, `extra_fields` 추가.
+특정 프리셋의 상세 정보를 조회합니다. `response_model=PresetDetailResponse`
 
 ### `GET /presets/{preset_id}/topics`
-프리셋의 샘플 토픽 목록을 조회합니다. `{"topics": ["topic1", "topic2", ...]}`
+프리셋의 샘플 토픽 목록을 조회합니다. `response_model=PresetTopicsResponse`
 
 ---
 
 ## Storage (저장소 및 에셋 관리)
 
-에셋 파일의 물리적 저장 및 DB 메타데이터 관리를 담당합니다.
-
-### `GET /storage/assets`
-등록된 미디어 에셋 목록을 조회합니다 (owner_type: scene, character 등).
-
-### `DELETE /storage/assets/{asset_id}`
-에셋과 물리적 파일을 삭제합니다.
-
-
 ### `GET /storage/stats`
-저장소 사용량 통계를 조회합니다.
-
-**Response:**
-```json
-{
-  "videos": { "count": 15, "size_mb": 234.5 },
-  "images": { "count": 120, "size_mb": 45.2 },
-  "cache": { "count": 50, "size_mb": 12.3 },
-  "avatars": { "count": 10, "size_mb": 2.1 },
-  "candidates": { "count": 30, "size_mb": 8.7 },
-  "total_mb": 302.8
-}
-```
+저장소 사용량 통계를 조회합니다 (videos, images, cache, build, shared 등).
 
 ### `POST /storage/cleanup`
 저장소 정리를 실행합니다.
 
-**Request:**
+**Request:** `CleanupRequest`
 ```json
 {
   "cleanup_videos": true,
   "video_max_age_days": 7,
   "cleanup_cache": true,
   "cache_max_age_seconds": null,
+  "cleanup_build": true,
+  "build_max_age_hours": 24,
   "cleanup_test_folders": true,
-  "cleanup_candidates": false,
   "dry_run": false
 }
 ```
 
-**Response:**
-```json
-{
-  "deleted_count": 25,
-  "freed_mb": 150.3,
-  "details": {
-    "videos": 5,
-    "cache": 15,
-    "test_folders": 5
-  }
-}
-```
-
 ### `POST /storage/cleanup/preview`
-정리될 파일 목록을 미리 확인합니다. `/storage/cleanup`과 동일 파라미터 (Query Parameters), dry_run=true로 동작.
+정리될 파일 목록을 미리 확인합니다 (Query Parameters, 항상 dry_run=true).
+
+### `GET /storage/assets`
+등록된 미디어 에셋 목록을 조회합니다.
+
+### `DELETE /storage/assets/{asset_id}`
+에셋과 물리적 파일을 삭제합니다.
 
 ---
 
 ## Projects & Groups
 
-> v3.1: 프로젝트-그룹 계층 구조. Cascading Config 지원 (Project < Group < Storyboard).
-
-> **Style Profile Ownership**: Style Profile은 Group-level 설정 (`GroupConfig.style_profile_id`).
-> Storyboard에서는 읽기 전용으로 표시만 하며, 변경은 GroupConfig를 통해서만 가능.
-> Backend 이미지 생성 시 `resolve_effective_config(group.project, group)`로 cascade 조회.
+> 프로젝트-그룹 계층 구조. Cascading Config 지원 (Project < Group < Storyboard).
 
 ### Projects (`/projects`)
 
-#### `GET /projects`
-프로젝트 목록을 조회합니다.
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "일상 쇼츠",
-    "description": "일상 테마 쇼츠 시리즈",
-    "handle": "daily_shorts",
-    "avatar_url": null,
-    "avatar_key": "daily_shorts",
-    "render_preset_id": 1,
-    "style_profile_id": 1,
-    "created_at": "2026-02-01T12:00:00"
-  }
-]
-```
-
-#### `POST /projects`
-프로젝트를 생성합니다.
-
-**Request:**
-```json
-{
-  "name": "일상 쇼츠",
-  "description": "일상 테마 쇼츠 시리즈",
-  "handle": "daily_shorts",
-  "avatar_key": "daily_shorts",
-  "render_preset_id": 1,
-  "style_profile_id": 1
-}
-```
-
-**Response:** (201 Created) `GET /projects` 단일 항목과 동일
-
-#### `GET /projects/{project_id}`
-프로젝트 상세 정보를 조회합니다 (groups 포함).
-
-**Response:** `GET /projects` 단일 항목과 동일 (groups join loaded)
-
-#### `PUT /projects/{project_id}`
-프로젝트를 수정합니다 (부분 업데이트 지원).
-
-**Request:**
-```json
-{
-  "name": "일상 쇼츠 (수정)",
-  "render_preset_id": 2
-}
-```
-
-**Response:** `GET /projects` 단일 항목과 동일
-
-#### `DELETE /projects/{project_id}`
-프로젝트를 삭제합니다.
-
-**Response:**
-```json
-{"status": "deleted", "id": 1}
-```
-
-> **주의**: 하위 그룹이 존재하면 409 Conflict 반환.
-
-#### `GET /projects/{project_id}/effective-config`
-Cascading Config를 조회합니다 (Project 레벨 resolve).
-
-**Response:**
-```json
-{
-  "render_preset_id": 1,
-  "style_profile_id": 1,
-  "render_preset": { "id": 1, "name": "기본 프리셋", "..." : "..." },
-  "sources": {
-    "render_preset_id": "project",
-    "style_profile_id": "project"
-  }
-}
-```
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/projects` | 프로젝트 목록 | `list[ProjectResponse]` |
+| POST | `/projects` | 프로젝트 생성 (201) | `ProjectResponse` |
+| GET | `/projects/{id}` | 프로젝트 상세 (groups 포함) | `ProjectResponse` |
+| PUT | `/projects/{id}` | 프로젝트 수정 (부분 업데이트) | `ProjectResponse` |
+| DELETE | `/projects/{id}` | 프로젝트 삭제 (하위 그룹 존재 시 409) | `StatusResponse` |
+| GET | `/projects/{id}/effective-config` | Cascading Config 조회 | `EffectiveConfigResponse` |
 
 ### Groups (`/groups`)
 
-#### `GET /groups`
-그룹 목록을 조회합니다.
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/groups` | 그룹 목록 (project_id 필터) | `list[GroupResponse]` |
+| POST | `/groups` | 그룹 생성 (201, GroupConfig 자동 생성) | `GroupResponse` |
+| GET | `/groups/{id}` | 그룹 상세 | `GroupResponse` |
+| PUT | `/groups/{id}` | 그룹 수정 (부분 업데이트) | `GroupResponse` |
+| DELETE | `/groups/{id}` | 그룹 삭제 (활성 스토리보드 존재 시 409) | `StatusResponse` |
 
-**Query Parameters:**
-- `project_id`: int (optional) - 특정 프로젝트의 그룹만 필터
+### Group Config (`/groups/{group_id}/config`)
 
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "project_id": 1,
-    "name": "시즌 1",
-    "description": "첫 번째 시즌",
-    "render_preset_id": null,
-    "style_profile_id": null,
-    "render_preset": null,
-    "created_at": "2026-02-01T12:00:00"
-  }
-]
-```
+Group별 1:1 설정 관리. GroupConfig에는 render_preset_id, style_profile_id, narrator_voice_preset_id, SD 생성 설정 등이 포함됩니다.
 
-#### `POST /groups`
-그룹을 생성합니다.
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/groups/{id}/config` | GroupConfig 조회 (없으면 자동 생성) | `GroupConfigResponse` |
+| PUT | `/groups/{id}/config` | GroupConfig 부분 업데이트 | `GroupConfigResponse` |
 
-**Request:**
-```json
-{
-  "project_id": 1,
-  "name": "시즌 1",
-  "description": "첫 번째 시즌",
-  "render_preset_id": null,
-  "style_profile_id": null
-}
-```
-
-**Response:** (201 Created) `GET /groups` 단일 항목과 동일
-
-#### `GET /groups/{group_id}`
-그룹 상세 정보를 조회합니다 (render_preset join loaded).
-
-**Response:** `GET /groups` 단일 항목과 동일
-
-#### `PUT /groups/{group_id}`
-그룹을 수정합니다 (부분 업데이트 지원).
-
-**Request:**
-```json
-{
-  "name": "시즌 1 (수정)",
-  "render_preset_id": 2
-}
-```
-
-**Response:** `GET /groups` 단일 항목과 동일
-
-#### `DELETE /groups/{group_id}`
-그룹을 삭제합니다.
-
-**Response:**
-```json
-{"status": "deleted", "id": 1}
-```
-
-> **주의**: 하위 스토리보드가 존재하면 409 Conflict 반환.
-
-#### `GET /groups/{group_id}/effective-config`
-Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
+### `GET /groups/{group_id}/effective-config`
+Cascading Config를 조회합니다 (Project < Group 레벨 resolve). `response_model=EffectiveConfigResponse`
 
 **Response:**
 ```json
@@ -797,6 +353,14 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
   "render_preset_id": 2,
   "style_profile_id": 1,
   "narrator_voice_preset_id": 1,
+  "language": "Korean",
+  "structure": "Monologue",
+  "duration": 30,
+  "sd_steps": 24,
+  "sd_cfg_scale": 7.0,
+  "sd_sampler_name": "DPM++ 2M Karras",
+  "sd_clip_skip": 2,
+  "channel_dna": null,
   "render_preset": { "id": 2, "name": "그룹 프리셋", "..." : "..." },
   "sources": {
     "render_preset_id": "group",
@@ -810,8 +374,6 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 
 ## Render Presets / Voice Presets / Music Presets -> [REST_API_PRESETS.md](./REST_API_PRESETS.md)
 
-렌더링/음성/음악 프리셋 API 명세. CRUD, 미리듣기, 업로드 등.
-
 ---
 
 ## 공통 사항
@@ -822,9 +384,7 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 
 ### Error Response
 ```json
-{
-  "detail": "Error message here"
-}
+{ "detail": "Error message here" }
 ```
 
 ### HTTP Status Codes
@@ -832,19 +392,15 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 |------|-------------|
 | 200 | 성공 |
 | 201 | 리소스 생성 성공 |
-| 400 | 잘못된 요청 (Invalid input) |
+| 202 | 비동기 작업 접수 |
+| 400 | 잘못된 요청 |
 | 404 | 리소스 없음 |
-| 409 | 충돌 (Conflict) - 하위 리소스 존재 시 삭제 불가 등 |
+| 409 | 충돌 (하위 리소스 존재 시 삭제 불가 등) |
 | 500 | 서버 내부 오류 |
 | 502 | 외부 서비스 연결 오류 (SD WebUI 등) |
 
-### Danbooru 태그 표준 (중요)
-
-**모든 태그는 언더바(_) 형식을 사용합니다. 공백 형식 절대 금지.**
-- 올바른 예: `["brown_hair", "looking_at_viewer", "cowboy_shot"]`
-- 잘못된 예: `["brown hair", "looking at viewer"]`
-- 적용 범위: DB 저장, API 요청/응답, 프롬프트 생성, WD14 검증
-- 예외: 하이픈 태그 유지 (`close-up`), 복합어는 언더바 연결 (`light_brown_hair`)
+### Danbooru 태그 표준
+모든 태그는 언더바(_) 형식을 사용합니다. 공백 형식 절대 금지.
 
 ---
 
@@ -856,14 +412,10 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve).
 | Domain API | [REST_API_DOMAIN.md](./REST_API_DOMAIN.md) |
 | Creative Engine API | [REST_API_CREATIVE.md](./REST_API_CREATIVE.md) |
 | Analytics & Admin API | [REST_API_ANALYTICS.md](./REST_API_ANALYTICS.md) |
-| 프롬프트 설계 | `docs/03_engineering/backend/PROMPT_SPEC_V2.md` |
-| 제품 스펙 | `docs/01_product/PRD.md` |
-| 로드맵 | `docs/01_product/ROADMAP.md` |
-| 개발 가이드 | `docs/guides/CONTRIBUTING.md` |
 
 ---
 
-**Last Updated:** 2026-02-11
-**API Version:** v3.7
+**Last Updated:** 2026-02-18
+**API Version:** v4.0
 **Backend Version:** FastAPI 0.109+
-**Database:** PostgreSQL 14+ (v3.10)
+**Database:** PostgreSQL 14+

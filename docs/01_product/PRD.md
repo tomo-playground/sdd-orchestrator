@@ -70,11 +70,14 @@ mindmap
 | 5 | 영상 렌더링 | FFmpeg Pipeline, Ken Burns, 전환 효과, Layout | 5-2 | 완료 |
 | 6 | TTS/음성 | Qwen3-TTS 로컬, Voice Preset, Context-Aware | 6-8 | 완료 |
 | 7 | AI BGM | Stable Audio Open, Music Preset | 6-8 | 완료 |
-| 8 | 프로젝트/그룹 | Cascading Config, Group Defaults | 7-2 | Phase 1.7 완료 |
-| 9 | Creative Lab | Multi-Agent Creative Engine (9-Agent) | 7-1 | V2 완료 |
-| 10 | Structure별 Gemini 템플릿 | 5종 전용 J2 템플릿 | 7-1 | 미구현 |
-| 11 | 이미지 생성 Progress | SSE 실시간 진행률 | 7-1 | 미구현 |
-| 12 | Multi-Character UI | Studio 다중 캐릭터 생성기 | 7-1 | 미구현 |
+| 8 | 프로젝트/그룹 | Cascading Config, Group Defaults, Channel DNA | 7-2 | Phase 2-1 완료 |
+| 9 | Agentic AI Pipeline | LangGraph 15-노드, Quick/Full 모드, Revise 루프, Memory, LangFuse | 9 | Phase 0~5E 완료 |
+| 10 | True Agentic Architecture | ReAct Loop, Tool-Calling, Agent Communication | 10 | 완료 |
+| 11 | Studio Coordinator + Script Vertical | Studio 코디네이터 + 대본 버티컬 분리 | 7-4 | 완료 |
+| 12 | Scene UX Enhancement | Figma 기반 씬 편집 개선 (Phase A~G) | 7-6 | 완료 |
+| 13 | Script Quality & AI Transparency | Narrative Score, Concept Gate, Pipeline Stepper | 9-5 | 완료 |
+| 14 | Structure별 Gemini 템플릿 | 5종 전용 J2 템플릿 | Backlog | 미구현 |
+| 15 | 이미지 생성 Progress | SSE 실시간 진행률 | Backlog | 미구현 |
 
 ### 3.1 AI BGM 생성
 
@@ -111,7 +114,7 @@ mindmap
 
 | 항목 | 기준 | 근거 |
 |------|------|------|
-| 테스트 | Backend 1,291개 이상 유지 | CONTRIBUTING.md Rule #9 |
+| 테스트 | Backend 1,747 + Frontend 319 = **총 2,066개** 이상 유지 | CONTRIBUTING.md Rule #9 |
 | 코드 크기 | 함수 50줄, 파일 400줄 이하 | CLAUDE.md 가이드라인 |
 | 문서 크기 | 800줄 이하 (초과 시 분할/아카이브) | CLAUDE.md 가이드라인 |
 | 태그 표준 | Danbooru 언더바(_) 형식 통일 | CLAUDE.md Tag Format Standard |

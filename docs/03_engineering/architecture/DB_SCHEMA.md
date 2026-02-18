@@ -1,4 +1,4 @@
-# Database Schema (v3.20)
+# Database Schema (v3.21)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,15 +7,12 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.21 | 2026-02-18 | **Source-Truth Sync**: `active` → `is_active` 문서 반영(tag_rules, tag_aliases, tag_filters, classification_rules). `scenes`에 TTS 필드 3개 추가(voice_design_prompt, head_padding, tail_padding). `group_config`에 `channel_dna`/SD 파라미터 상세화. `creative_sessions.session_type` default 수정(free→shorts). `loras`에 `gender_locked` 누락 복원 |
 | v3.20 | 2026-02-12 | `storyboards`에 `version` (Integer, NOT NULL, default 1) 추가 — Optimistic Locking |
 | v3.19 | 2026-02-12 | `scenes`에 `client_id` (UUID) 추가 — Frontend 안정 식별자, UNIQUE + NOT NULL |
 | v3.18 | 2026-02-12 | `scenes`에 `background_id` FK 추가 (Background 에셋 연동, ControlNet Canny + 태그 자동 주입) |
-| v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
-| v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
-| v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정 |
-| v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine`, `GroupConfig`, `RenderHistory`, `LabExperiments` 추가 |
 
-> v3.13 이전 이력: [DB_SCHEMA_CHANGELOG.md](DB_SCHEMA_CHANGELOG.md)
+> v3.17 이전 이력: [DB_SCHEMA_CHANGELOG.md](DB_SCHEMA_CHANGELOG.md)
 
 ---
 
@@ -103,7 +100,7 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `project_id` | Integer (FK → projects, UNIQUE) | 소속 프로젝트 |
+| `project_id` | Integer (FK → projects, CASCADE, UNIQUE) | 소속 프로젝트 |
 | `channel_id` | String(100) | YouTube Channel ID |
 | `channel_title` | String(200) | 채널명 |
 | `encrypted_token` | Text | 암호화된 OAuth 토큰 |
@@ -134,7 +131,11 @@ Group별 설정 (1:1, 분리된 설정 테이블). 프로젝트 설정을 상속
 | `language` | String(20) | 언어 설정 |
 | `structure` | String(30) | 구조 설정 |
 | `duration` | Integer | 목표 길이 |
-| `sd_steps`, `sd_cfg_scale`, ... | | SD 생성 파라미터 오버라이드 |
+| `sd_steps` | Integer | SD Steps 오버라이드 |
+| `sd_cfg_scale` | Float | SD CFG Scale 오버라이드 |
+| `sd_sampler_name` | String(50) | SD Sampler 오버라이드 |
+| `sd_clip_skip` | Integer | SD Clip Skip 오버라이드 |
+| `channel_dna` | JSONB | 채널 DNA (tone, audience, worldview, guidelines) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `storyboards`
@@ -175,6 +176,10 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `image_prompt_ko` | Text | 한국어 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `context_tags` | JSONB | 씬 컨텍스트 태그 (expression, gaze, pose, action, camera, environment, mood) |
+| **TTS & Pacing** | | |
+| `voice_design_prompt` | Text | Context-Aware TTS Designer 출력 |
+| `head_padding` | Float | 씬 시작 전 무음 간격 (default: 0.0) |
+| `tail_padding` | Float | 씬 종료 후 무음 간격 (default: 0.0) |
 | **Size** | | |
 | `width` | Integer | 이미지 너비 (default: 512) |
 | `height` | Integer | 이미지 높이 (default: 768) |
@@ -332,7 +337,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `target_tag_id` | Integer | 충돌 대상 태그 |
 | `message` | String(200) | 규칙 설명 |
 | `priority` | Integer | 우선순위 |
-| `active` | Boolean | 활성 여부 |
+| `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 > **Removed**: `source_category`, `target_category` (Phase 6-4.26)
@@ -347,7 +352,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `source_tag` | String(100) | 변환 전 (`medium shot`) |
 | `target_tag` | String(100) | 변환 후 (`cowboy_shot`), NULL = 삭제 |
 | `reason` | String(200) | 치환 사유 |
-| `active` | Boolean | 활성 여부 (Known Issue: `is_active`로 변경 예정) |
+| `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `tag_filters`
@@ -359,7 +364,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `tag_name` | String(100) | Unique, 필터 대상 태그 |
 | `filter_type` | String(20) | `ignore` or `skip` |
 | `reason` | String(200) | 필터 사유 |
-| `active` | Boolean | 활성 여부 (Known Issue: `is_active`로 변경 예정) |
+| `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `classification_rules`
@@ -372,7 +377,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `pattern` | String(100) | 매칭 패턴 (`_hair`, `eyes`) |
 | `target_group` | String(50) | 대상 그룹 |
 | `priority` | Integer | 평가 순서 |
-| `active` | Boolean | 활성 여부 (Known Issue: `is_active`로 변경 예정) |
+| `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `tag_effectiveness`
@@ -433,10 +438,6 @@ WD14 피드백 루프 데이터.
   - 캐릭터: `characters/{id}/preview/{file}`
   - 공유 에셋: `shared/{type}/{file}` (audio, fonts, overlay, references, poses)
 
-**마이그레이션**:
-- `ca169902f4a4`: 모든 모델에 `*_asset_id` FK 추가
-- `4249c8f1cd5c`: Legacy `*_url` 컬럼 삭제
-
 **중요**: `storage_key`는 버킷명(`shorts-producer`)을 포함하지 않음. `get_storage().get_url(key)`가 버킷명을 자동 추가.
 
 ### `characters`
@@ -470,8 +471,7 @@ WD14 피드백 루프 데이터.
 
 **Read-only 속성**:
 - `preview_image_url` (`@property`): `preview_image_asset.url` 반환
-
-> v3.5 변경: `voice_preset_id` FK 추가 (旧 `default_voice_preset_id`, v3.7 리네이밍), `deleted_at` Soft Delete 추가
+- `preview_key` (`@property`): `preview_image_asset.storage_key` 반환
 
 **V3 Prompt Pipeline에서의 사용** (→ `PROMPT_PIPELINE_SPEC.md` 참조):
 | 필드 | V3 compose 사용 | 용도 |
@@ -485,10 +485,6 @@ WD14 피드백 루프 데이터.
 | `reference_base_prompt` | X | 레퍼런스 이미지 전용 |
 | `reference_negative_prompt` | X | 레퍼런스 이미지 전용 |
 
-> V3 변경: `identity_tags Integer[]`, `clothing_tags Integer[]` 제거 → `character_tags` 테이블로 이관
-> V3.1 변경: `preview_image_url` 제거 → `preview_image_asset_id` FK로 전환
-> V3.1.1 변경: `preview_locked` 추가 (2026-02-01)
-
 ### `loras`
 Stable Diffusion LoRA 모델.
 
@@ -498,7 +494,7 @@ Stable Diffusion LoRA 모델.
 | `name` | String(100) | Unique, 파일명/키 |
 | `display_name` | String(100) | 표시명 |
 | `lora_type` | String(20) | `character`, `style`, `concept`, `pose` |
-| `gender_locked` | String(10) | 성별 제한 |
+| `gender_locked` | String(10) | 성별 제한 (`female`, `male`, null) |
 | `civitai_id` | Integer | Civitai ID |
 | `civitai_url` | String(500) | |
 | `trigger_words` | Text[] | 트리거 키워드 |
@@ -529,8 +525,9 @@ Stable Diffusion 체크포인트.
 | `civitai_id` | Integer | |
 | `civitai_url` | String(500) | |
 | `description` | Text | |
-| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
+| `preview_image_asset_id` | Integer (FK → media_assets, SET NULL) | 미리보기 이미지 (폴리모픽 참조) |
 | `is_active` | Boolean | |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `preview_image_url` (`@property`): `preview_image_asset.url` 반환
@@ -579,9 +576,6 @@ Model + LoRAs + Embeddings 번들.
 | `ken_burns_intensity` | Float | Ken Burns 강도 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
-> v3.5 변경: `narrator_voice`, `tts_engine`, `voice_design_prompt` 제거 → `voice_preset_id` FK로 대체
-> v3.10 변경: `voice_preset_id` 제거 → `group_config.narrator_voice_preset_id`로 이관 (음성은 GroupConfig에서만 관리)
-> v3.12 변경: `bgm_mode`, `music_preset_id` FK 추가 — AI BGM 생성 지원
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -602,7 +596,7 @@ Model + LoRAs + Embeddings 번들.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `audio_url` (`@property`): `audio_asset.url` 반환 (Known Issue: 별도 DB 세션 생성 안티패턴)
+- `audio_url` (`@property`): `audio_asset.url` 반환
 
 ### `music_presets`
 재사용 가능한 AI BGM 생성 프리셋. `render_presets`에서 참조.
@@ -618,8 +612,6 @@ Model + LoRAs + Embeddings 번들.
 | `audio_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 오디오 파일 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
-> v3.12 추가: AI BGM 생성을 위한 프리셋 테이블. `render_presets.music_preset_id`에서 참조.
 
 ### `embeddings`
 Textual Inversion 임베딩.
@@ -669,12 +661,13 @@ Textual Inversion 임베딩.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `storyboard_id` | Integer (FK) | 소속 스토리보드 |
-| `media_asset_id` | Integer (FK) | 렌더링된 영상 파일 |
+| `storyboard_id` | Integer (FK → storyboards, CASCADE) | 소속 스토리보드 |
+| `media_asset_id` | Integer (FK → media_assets, CASCADE) | 렌더링된 영상 파일 |
 | `label` | String(20) | 버전/라벨 |
 | `youtube_video_id` | String(20) | 업로드된 영상 ID |
 | `youtube_upload_status` | String(20) | 업로드 상태 |
 | `youtube_uploaded_at` | DateTime | 업로드 시각 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `lab_experiments`
 태그 렌더링, 씬 번역 등 실험실 기능 이력 (旧 evaluation_runs 대체).
@@ -759,21 +752,6 @@ Textual Inversion 임베딩.
 **V3 Pipeline 처리**: `lora_type`에 관계없이 현재 모두 LAYER_IDENTITY(2)에 배치.
 → Known Issue: `lora_type=style`은 LAYER_ATMOSPHERE(11)에 배치해야 함.
 
-### `Scene.context_tags`
-```json
-{
-  "expression": ["expressionless"],
-  "gaze": "looking_at_viewer",
-  "pose": ["standing"],
-  "action": ["adjusting_hair"],
-  "camera": "upper_body",
-  "environment": ["office", "indoors"],
-  "mood": ["melancholic"]
-}
-```
-
-**V3 Pipeline 처리**: `_collect_context_tags()`에서 flat list로 변환 후 scene_tags에 병합.
-
 ### `ActivityLog.sd_params`
 ```json
 {"steps": 20, "cfg_scale": 7, "sampler": "DPM++ 2M Karras", "width": 512, "height": 768}
@@ -806,28 +784,11 @@ Textual Inversion 임베딩.
 
 ## 📐 Column Ordering Convention
 
-모든 테이블의 ORM 모델(`models/*.py`)에서 컬럼 선언 순서를 아래 규칙으로 통일합니다.
-
-```
-1. PK          — id
-2. Parent FK   — project_id, group_id, storyboard_id 등 (소속 관계)
-3. Identity    — name, title 등 (사람이 식별하는 필드)
-4. Metadata    — description, gender, is_system 등
-5. Domain      — 도메인 고유 필드 (그룹별로 구분)
-                 예: Render → Audio 그룹, Visual 그룹
-                 예: Character → Prompt, IP-Adapter, Voice
-6. Asset FK    — preview_image_asset_id, video_asset_id 등
-7. Config FK   — voice_preset_id, render_preset_id 등
-8. Flags       — preview_locked, is_active, deleted_at 등
-9. Timestamps  — created_at, updated_at (TimestampMixin)
-```
-
-**참고**: PostgreSQL은 `ALTER TABLE DROP COLUMN` 후 ordinal_position에 구멍이 생길 수 있음.
-물리적 컬럼 순서는 성능에 영향 없으므로, ORM 모델의 선언 순서를 기준으로 합니다.
+ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadata → Domain → Asset FK → Config FK → Flags → Timestamps
 
 ---
 
-**Last Updated:** 2026-02-12
-**Schema Version:** v3.20
+**Last Updated:** 2026-02-18
+**Schema Version:** v3.21
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

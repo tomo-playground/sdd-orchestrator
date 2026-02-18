@@ -1,87 +1,179 @@
 # Render Pipeline Specification
 
-## Abstract
-본 문서는 `backend/services/video.py`의 `VideoBuilder` 클래스를 통해 수행되는 영상 렌더링 파이프라인의 명세를 다룹니다. FFmpeg 필터 구성, Ken Burns 효과, 자막 렌더링 및 레이아웃 관리 로직을 포함합니다.
+**최종 업데이트**: 2026-02-18
 
-## 1. Pipeline Workflow
+## 1. 개요
 
-영상 생성은 설정(Setup)부터 인코딩(Encoding)까지 총 5단계의 파이프라인 프로세스를 거칩니다.
+`backend/services/video/` 패키지의 `VideoBuilder` 클래스를 통해 수행되는 영상 렌더링 파이프라인 명세. FFmpeg 필터 구성, Ken Burns 효과, Scene Text 렌더링, TTS 후처리, 레이아웃 관리 로직을 포함한다.
 
-```mermaid
-graph TD
-    Start([Start Rendering]) --> Step1[<b>Step 1: Setup</b><br/>Temp Dir, Paths, Config]
-    
-    Step1 --> Step2[<b>Step 2: Scene Processing</b><br/>Image Load, Text Wrapping, TTS Generation]
-    
-    subgraph Process ["Scene Level Loop"]
-        Step2 --> TTS[Qwen-Audio TTS]
-        Step2 --> Layout[Pillow Layout Synthesis]
-    end
+---
 
-    TTS & Layout --> Step3[<b>Step 3: Timing & Logic</b><br/>Calculate Duration per Scene]
+## 2. Pipeline Workflow
 
-    Step3 --> Step3b[<b>Step 3b: Prepare BGM</b><br/>File or AI Generation]
-    
-    Step3b --> Step4[<b>Step 4: FFmpeg Filter Build</b><br/>Scale/Crop, Ken Burns, Subtitle Overlay]
-    
-    subgraph FFmpeg ["FFmpeg Filter Chain"]
-        Step4 --> KB[Ken Burns Effect]
-        KB --> Sub[Subtitle Fade In/Out]
-        Sub --> Audio[TTS & BGM Mixed with Ducking]
-    end
+영상 생성은 7단계 파이프라인을 거친다 (`VideoBuilder.build()` 메서드):
 
-    Audio --> Step5[<b>Step 5: Encoding & Finalize</b><br/>Execute FFmpeg, Register DB Asset]
-    
-    Step5 --> End([Result: MP4 Video])
+```
+Step 1: Setup Avatars
+  → 아바타 파일 준비 (Full/Post 레이아웃용)
+
+Step 2: Process Scenes (씬 루프)
+  → 이미지 로드 (MinIO/URL → Pillow)
+  → Scene Text 줄바꿈 + 폰트 크기 계산
+  → TTS 생성 + 후처리 (정규화, 무음 제거)
+  → Post 레이아웃: compose_post_frame (얼굴 감지 크롭 포함)
+  → Full 레이아웃: Scene Text 오버레이 이미지 생성
+
+Step 3: Calculate Durations
+  → 씬별 표시 시간 계산 (TTS 시간 기반)
+
+Step 4: Prepare BGM
+  → File Mode: 정적 파일 / random 선택
+  → AI Mode: Stable Audio Open 실시간 생성 (캐시 우선)
+
+Step 5: Build FFmpeg Filters
+  → Scale/Crop → Ken Burns → Transition → Scene Text Overlay → Audio
+
+Step 6: Encode
+  → FFmpeg 비동기 실행 → MP4 출력
+
+Step 7: Upload
+  → 결과 파일 MinIO 등록 + DB Asset 생성
 ```
 
-## 2. FFmpeg 필터 체인 (Filter Chain) 기술 명세
+---
 
-각 씬의 비디오 트랙은 다음과 같은 순서로 필터링됩니다.
+## 3. 패키지 구조 (`services/video/`)
 
-```mermaid
-graph LR
-    Input[Input Image] --> Scale[Scale / Crop]
-    Scale --> KB[Zoompan / Ken Burns]
-    KB --> Overlay[Subtitle Overlay]
-    Overlay --> Trim[Trim / Fade]
-    
-    subgraph AudioBranch ["Audio Pipeline"]
-        TTS[TTS Audio] --> Ducking[Sidechain Compression]
-        BGM[BGM Track] --> Ducking
-    end
-    
-    Trim & Ducking --> Concat[Final Concatenation]
+```
+services/video/
+├── __init__.py           # 공개 API re-export
+├── builder.py            # VideoBuilder 메인 클래스 + create_video_task
+├── scene_processing.py   # 씬별 이미지/TTS/오버레이 처리
+├── filters.py            # FFmpeg 필터 체인 구성
+├── effects.py            # Ken Burns, 전환 효과
+├── encoding.py           # FFmpeg 인코딩 설정 + 비동기 실행
+├── tts_helpers.py        # TTS 생성 유틸
+├── tts_postprocess.py    # TTS 후처리 (정규화, 무음 제거)
+├── progress.py           # SSE 진행률 (RenderStage, TaskProgress)
+├── upload.py             # 결과 업로드 + DB Asset 등록
+└── utils.py              # 유틸 (durations, speed, filename 등)
 ```
 
--   **Full Layout 크롭 전략**: 2:3 해상도 이미지를 9:16으로 변환 시, 캐릭터의 머리 부분을 보존하기 위해 상단에서 30% 지점을 기준으로 크롭합니다 (`ih-oh)*0.3`).
--   **자막 오버레이**: 자막은 0.3초의 Fade In/Out 애니메이션을 포함하며, 영상 모션과 독립적으로 유지하기 위해 Ken Burns 효과 이후에 합성됩니다. **피사체(얼굴) 보호 및 플랫폼 UI 가독성을 위해 하단 Safe Zone(약 70% 지점)에 배치됩니다.**
+---
 
-## 3. 레이아웃 관리 및 효과 구현 상세
-*(기능 상세 설명 생략 - 기존 문서 내용 유지)*
-...
+## 4. FFmpeg 필터 체인
 
-## 4. BGM Pipeline
+각 씬의 비디오 트랙 필터링 순서:
 
-배경음악 처리는 `bgm_mode` 설정에 따라 두 가지 경로로 나뉩니다.
+```
+Input Image → Scale/Crop → Zoompan(Ken Burns) → Trim/Fade → Subtitle Overlay
+                                                                    ↓
+                                                            Final Concatenation
+                                                                    ↑
+TTS Audio → Ducking ← BGM Track
+```
 
-### 4.1. File Mode vs AI Mode
+- **Full Layout 크롭**: 2:3 이미지를 9:16으로 변환 시 상단 30% 지점 기준 크롭 (얼굴 보존)
+- **Scene Text 오버레이**: 0.3초 Fade In/Out, Ken Burns 이후 합성 (모션 독립)
+- **하단 Safe Zone**: 플랫폼 UI 가독성을 위해 약 70% 지점에 배치
 
-1.  **File Mode (`bgm_mode="file"`)**:
-    -   `bgm_file` 필드에 지정된 정적 오디오 파일을 사용합니다.
-    -   `assets/audio/` 디렉토리 내의 파일을 참조합니다.
-    -   `"random"` 값일 경우, 해당 디렉토리에서 무작위로 파일을 선택합니다.
+---
 
-2.  **AI Mode (`bgm_mode="ai"`)**:
-    -   `music_preset_id`를 통해 `MusicPreset` 정보를 조회합니다.
-    -   **캐시 확인**: 프리셋에 연결된 `audio_asset_id`가 있고 해당 파일이 로컬에 존재하면 즉시 사용합니다.
-    -   **실시간 생성**: 캐시가 없을 경우, `Stable Audio Open` 모델을 통해 즉석에서 BGM을 생성합니다 (약 10-20초 소요).
-    -   생성된 파일은 임시 디렉토리에 저장되어 렌더링에 사용됩니다.
+## 5. 레이아웃 타입
 
-### 4.2. Audio Ducking (Sidechain Compression)
+### 5-1. Full Layout
 
-나레이션(TTS)이 나올 때 배경음악의 볼륨을 자동으로 줄여 목소리를 명확하게 전달합니다.
+전체 화면 이미지 + 하단 Scene Text 오버레이.
 
--   **Threshold**: 0.01 (TTS 신호 감지 임계값)
--   **Ratio**: `bgm_volume` 설정값 비례 (보통 0.2~0.3 수준으로 감소)
--   **Release**: TTS 종료 후 즉시 볼륨 복귀
+- **Safe Zone**: 플랫폼별 하단 회피 (YouTube 15%, TikTok 20%, Instagram 18%)
+- **Scene Text 위치**: `calculate_optimal_scene_text_y()` — platform 파라미터 지원
+- **배경 밝기 기반 텍스트 색상**: `analyze_text_region_brightness()` — 밝은 배경 시 검은 텍스트
+
+### 5-2. Post Layout
+
+Instagram 카드 스타일. 이미지 + Scene Text 영역 + Caption 영역.
+
+- **얼굴 감지 크롭**: OpenCV Haar Cascade → `detect_face()` → `calculate_face_centered_crop()`
+- **Scene Text 영역 동적 높이**: 텍스트 길이별 12-25% 선형 보간
+- **블러 배경**: Box Blur(15) + Gaussian Blur(20) 조합
+- **해시태그 색상**: Instagram Blue (#0095F6)
+
+---
+
+## 6. TTS Pipeline
+
+### 6-1. 생성
+
+`tts_helpers.py` — Qwen-Audio 등 TTS 엔진으로 씬별 음성 생성.
+
+### 6-2. 후처리 (`tts_postprocess.py`)
+
+5단계 파이프라인:
+1. 로드 + 포맷 검증
+2. 선행 무음 제거
+3. 후행 무음 제거
+4. **오디오 정규화** — RMS 기반 dBFS 계산, 타겟 -20dBFS, 클리핑 방지
+5. 최종 export
+
+---
+
+## 7. BGM Pipeline
+
+### 7-1. File Mode (`bgm_mode="file"`)
+
+- `bgm_file` 지정 파일 사용, `"random"` 시 디렉토리에서 무작위 선택
+- `assets/audio/` 디렉토리 참조
+
+### 7-2. AI Mode (`bgm_mode="ai"`)
+
+- `music_preset_id` → `MusicPreset` 조회
+- 캐시 확인: `audio_asset_id` 존재 + 로컬 파일 있으면 즉시 사용
+- 없으면: Stable Audio Open으로 실시간 생성 (~10-20초)
+
+### 7-3. Audio Ducking
+
+TTS 구간에서 BGM 볼륨 자동 감소:
+- Threshold: 0.01
+- Ratio: `bgm_volume` 비례 (0.2-0.3 수준)
+- Release: TTS 종료 후 즉시 복귀
+
+---
+
+## 8. Ken Burns 효과
+
+`effects.py` — 씬별 줌/패닝 효과:
+
+- **프리셋 시스템**: `resolve_preset_name()` → 랜덤/고정 프리셋
+- **intensity 범위**: 0.5 ~ 2.0
+- **zoompan 필터**: FFmpeg `zoompan` 파라미터로 구현
+
+---
+
+## 9. 진행률 추적
+
+`progress.py`:
+
+| Stage | 설명 |
+|-------|------|
+| `SETUP_AVATARS` | 아바타 준비 |
+| `PROCESS_SCENES` | 씬 처리 (가장 오래 걸림) |
+| `CALCULATE_DURATIONS` | 시간 계산 |
+| `PREPARE_BGM` | BGM 준비 |
+| `BUILD_FILTERS` | 필터 구성 |
+| `ENCODE` | FFmpeg 인코딩 |
+| `UPLOAD` | 업로드 |
+| `COMPLETED` | 완료 |
+| `FAILED` | 실패 |
+
+SSE를 통해 Frontend에 실시간 진행률 전달.
+
+---
+
+## 10. 관련 서비스
+
+| 서비스 | 파일 | 역할 |
+|--------|------|------|
+| `rendering.py` | `services/rendering.py` | Post frame 합성, 오버레이, Scene Text 렌더 |
+| `image.py` | `services/image.py` | 이미지 로드, 얼굴 감지, 밝기 분석, Safe Zone |
+| `motion.py` | `services/motion.py` | Ken Burns 프리셋 관리 |
+| `avatar.py` | `services/avatar.py` | 아바타 파일 관리 |

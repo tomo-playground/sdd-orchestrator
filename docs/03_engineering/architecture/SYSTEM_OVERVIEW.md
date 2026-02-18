@@ -22,10 +22,10 @@ graph TB
         Router["API Router (Endpoints)"]
 
         subgraph AgentLayer ["Agentic Pipeline (LangGraph)"]
-            AgentSvc["Script Graph<br/>(Draft→Review→Revise→Finalize)"]
-            DebateNode["Debate Node"]
+            AgentSvc["Script Graph<br/>(Writer→Review→Revise→Director→Finalize)"]
+            CriticNode["Critic / Debate"]
             ResearchNode["Research Node"]
-            LearnNode["Learn Node"]
+            ProductionNodes["Production<br/>(Cinematographer, Sound, TTS)"]
             HumanGate["Human Gate"]
         end
 
@@ -78,9 +78,9 @@ graph TB
     AgentSvc --> Checkpointer
     AgentSvc --> MemoryStore
     AgentSvc -.-> LangFuse
-    DebateNode <--> Gemini
+    CriticNode <--> Gemini
     ResearchNode <--> Gemini
-    LearnNode --> MemoryStore
+    ProductionNodes <--> Gemini
 
     %% Core Services
     StorySvc <--> Gemini
@@ -151,7 +151,7 @@ Router (API 엔드포인트)
     → Repository/ORM (데이터 접근)
 ```
 
-**선택 근거**: 현재 서비스 규모(라우터 34개, 서비스 40개+)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
+**선택 근거**: 현재 서비스 규모(라우터 33개, 서비스 40개+)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
 
 **계층별 역할**:
 
@@ -171,13 +171,18 @@ Router (API 엔드포인트)
 
 ```
 backend/
-├── routers/              # API 엔드포인트 (34개)
+├── routers/              # API 엔드포인트 (33개)
 ├── services/
-│   ├── agent/            # LangGraph Agentic Pipeline (Phase 9)
-│   │   ├── nodes/        # 그래프 노드 (draft, review, revise, finalize, debate, research, learn, human_gate)
+│   ├── agent/            # LangGraph Agentic Pipeline (Phase 9~10)
+│   │   ├── nodes/        # 그래프 노드 (writer, review, revise, finalize, director,
+│   │   │                 #   cinematographer, critic, sound_designer, tts_designer,
+│   │   │                 #   concept_gate, copyright_reviewer, explain, research, learn, human_gate)
+│   │   ├── tools/        # 에이전트 도구 (research_tools, cinematographer_tools)
 │   │   ├── script_graph.py    # LangGraph 그래프 정의
 │   │   ├── state.py           # 그래프 상태 스키마
 │   │   ├── routing.py         # 조건부 라우팅
+│   │   ├── feedback.py        # 사용자 피드백 처리
+│   │   ├── messages.py        # 에이전트 메시지 유틸
 │   │   ├── checkpointer.py    # AsyncPostgresSaver 싱글턴
 │   │   ├── store.py           # AsyncPostgresStore 싱글턴 (Memory)
 │   │   └── observability.py   # LangFuse 콜백 핸들러
@@ -187,20 +192,22 @@ backend/
 │   │   └── helpers.py         # 유틸리티
 │   ├── script/           # 대본 생성 (Gemini 연동)
 │   │   └── gemini_generator.py
-│   ├── keywords/         # 태그 시스템 (core, db, cache, validation)
+│   ├── keywords/         # 태그 시스템 (core, db, db_cache, validation, suggestions 등)
 │   ├── prompt/           # V3 12-Layer Prompt Builder
-│   ├── creative_tasks/   # Creative Lab 작업 (character, dialogue, scenario, visual)
-│   ├── video/            # FFmpeg 렌더링 파이프라인 (builder, effects, filters, encoding)
-│   ├── audio/            # TTS + Music 생성 (Stable Audio Open)
-│   ├── characters/       # 캐릭터 서비스
+│   ├── characters/       # 캐릭터 서비스 (crud, preview, speaker_resolver 등)
+│   ├── video/            # FFmpeg 렌더링 파이프라인 (builder, effects, filters, encoding, tts_postprocess)
+│   ├── audio/            # Music 생성 (Stable Audio Open)
 │   ├── youtube/          # YouTube OAuth + 업로드
 │   ├── image_generation_core.py  # SD WebUI 이미지 생성
-│   ├── creative_*.py     # Creative Engine (agents, debate, studio, pipeline, qc)
+│   ├── creative_*.py     # Creative Engine (agents, debate, qc, utils)
 │   └── rendering.py      # 렌더링 오케스트레이션
-├── models/               # SQLAlchemy ORM (27개)
-├── schemas.py            # Pydantic DTO
-├── config.py             # SSOT 설정
-└── templates/            # Jinja2 (Gemini 프롬프트)
+├── models/               # SQLAlchemy ORM (26개 + wd14/)
+├── schemas.py            # Pydantic DTO (메인)
+├── schemas_creative.py   # Creative Lab DTO
+├── schemas_lab.py        # Lab DTO
+├── config.py             # SSOT 설정 (메인)
+├── config_pipelines.py   # 파이프라인/통합 상수 (YouTube, Lab, LangGraph, Ollama)
+└── templates/            # Jinja2 (Gemini 프롬프트 + Creative 템플릿)
 ```
 
 **향후 전환 시점**: 멀티 테넌트, 마이크로서비스 분리, 외부 API 어댑터 교체(Gemini→GPT 등)가 빈번해지면 Hexagonal 부분 도입 고려.
@@ -245,14 +252,16 @@ components/studio/ScriptTab.tsx   ← UI 이벤트 발생
 
 **서버 동기화 패턴** (Custom Hooks, TanStack Query 미사용):
 ```
-hooks/useCharacters.ts       → axios GET → 로컬 state + Store 업데이트
-hooks/useTags.ts             → axios GET → 캐싱 + 필터링
 hooks/useAutopilot.ts        → 단계별 API 호출 조율
-hooks/useYouTubeUpload.ts    → YouTube OAuth + 업로드 워크플로우
-hooks/useProjectGroups.ts    → Project/Group CRUD + 선택
 hooks/useBackendHealth.ts    → Backend 연결 상태 polling (ConnectionGuard 연동)
+hooks/useCharacters.ts       → axios GET → 로컬 state + Store 업데이트
+hooks/useProjectGroups.ts    → Project/Group CRUD + 선택
+hooks/usePublishRender.ts    → 렌더링 + 퍼블리시 워크플로우
 hooks/useScriptEditor.ts     → 대본 에디터 상태 관리
 hooks/useStudioKanban.ts     → 스튜디오 칸반 뷰 관리
+hooks/useTags.ts             → axios GET → 캐싱 + 필터링
+hooks/useVoicePresets.ts     → 음성 프리셋 CRUD
+hooks/useYouTubeUpload.ts    → YouTube OAuth + 업로드 워크플로우
 ```
 
 ```
@@ -276,19 +285,29 @@ frontend/app/
 │   ├── useStoryboardStore.ts # 스토리보드 데이터
 │   ├── useRenderStore.ts     # 렌더링 상태
 │   ├── resetAllStores.ts     # 전체 스토어 리셋
-│   ├── actions/              # 비동기 액션 (15개)
+│   ├── actions/              # 비동기 액션 (14개)
 │   └── selectors/            # 파생 상태
 ├── components/
 │   ├── home/             # Home 대시보드 (VideoFeed, QuickStats, Showcase 등)
-│   ├── studio/           # 3탭 컨테이너 (ScriptTab, ScenesTab, PublishTab)
+│   ├── studio/           # 3탭 컨테이너 (ScriptTab, ScenesTab, PublishTab) + Kanban
 │   ├── storyboard/       # 씬 편집 UI
 │   ├── video/            # 렌더링 설정 + VideoPreviewHero
 │   ├── setup/            # 캐릭터/스타일 설정
+│   ├── scripts/          # 대본 관리 UI
+│   ├── prompt/           # 프롬프트 에디터
+│   ├── quality/          # 품질 분석 UI
+│   ├── analytics/        # 분석 대시보드
+│   ├── manage/           # 관리 페이지 (태그, LoRA, 모델 등)
+│   ├── voice/            # 음성 프리셋 관리
+│   ├── youtube/          # YouTube 업로드 UI
 │   ├── lab/              # Creative Lab 컴포넌트
 │   ├── shell/            # 앱 레이아웃 (AppShell, ConnectionGuard)
+│   ├── layout/           # 레이아웃 컴포넌트
 │   ├── context/          # 프로젝트/그룹 관리
-│   └── ui/               # 공통 컴포넌트 (Toast, Modal 등)
-├── hooks/                # 서버 동기화 훅 (25개+)
+│   ├── shared/           # 공유 컴포넌트
+│   ├── common/           # 공통 컴포넌트
+│   └── ui/               # 공통 UI (Toast, Modal 등)
+├── hooks/                # 서버 동기화 훅 (26개)
 ├── constants/            # 상수 정의
 ├── types/                # TypeScript 타입
 └── utils/                # 유틸리티 함수
@@ -314,13 +333,13 @@ frontend/app/
 ## 4. 기술 스택 (Tech Stack)
 
 ### Core
-- **Frontend**: Next.js 15 (Turbopack), React 19, TypeScript, Tailwind CSS, Zustand 5
-- **Backend**: FastAPI, Python 3.12, SQLAlchemy 2.0 (ORM)
-- **Pages**: 4개 (Home, Studio, Library, Settings)
+- **Frontend**: Next.js 16 (Turbopack), React 19, TypeScript, Tailwind CSS 4, Zustand 5
+- **Backend**: FastAPI, Python 3.13+, SQLAlchemy 2.0 (ORM), uv (패키지 관리)
+- **Pages**: 4개 (Home, Studio, Library, Settings) + 서브 페이지 (Scripts, Backgrounds, Characters, Voices, Music, Lab, Pipeline Demo)
 
 ### AI & Media
-- **LLM/LVM**: Google Gemini 2.0 Flash (Storyboard, Prompt, Vision), Gemini 2.5 Flash (Image Generation)
-- **Workflow**: LangGraph (Agentic Pipeline: Draft → Review → Revise → Finalize)
+- **LLM/LVM**: Google Gemini 2.5 Flash (Text/Vision/Storyboard), Gemini 2.5 Flash Image (이미지 생성)
+- **Workflow**: LangGraph (Agentic Pipeline: Writer → Review → Revise → Director → Finalize)
 - **Checkpointer**: AsyncPostgresSaver (psycopg v3, LangGraph 체크포인트)
 - **Memory**: AsyncPostgresStore (LangGraph Memory Store)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus
@@ -334,4 +353,5 @@ frontend/app/
 - **Storage**: MinIO (S3 Compatible Object Storage) / Local (개발 모드)
 - **Observability**: LangFuse v3 (셀프호스팅, Docker Compose: PostgreSQL + ClickHouse + Redis + MinIO + Web + Worker)
 - **YouTube**: OAuth 2.0 (영상 업로드)
+- **Local LLM**: Ollama (ExaOne 3.5 등, 선택)
 - **Environment**: Docker, uv (Python Package Manager)

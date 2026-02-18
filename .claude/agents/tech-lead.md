@@ -47,6 +47,7 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__
 | 렌더링 파이프라인 | FFmpeg Expert | Backend Dev (서비스 통합) |
 | 스토리보드 템플릿 | Storyboard Writer | Prompt Engineer (태그 검증) |
 | 로드맵/기능 관리 | PM | Tech Lead (기술 타당성) |
+| Creative Pipeline | Backend Dev (LangGraph) | Prompt Engineer (프롬프트), DBA (스키마) |
 
 ### 5. 장애/이슈 대응 총괄
 에이전트 단독으로 해결이 어려운 크로스커팅 이슈를 조율합니다:
@@ -101,8 +102,8 @@ API 설계 리뷰 시 OAS 스펙을 참조합니다.
 - 사용자가 "완료", "끝", "done" 등으로 작업 완료를 알렸을 때
 - 커밋 요청 전에 반드시 리뷰를 먼저 수행
 
-리뷰 결과에 blocker(🔴)가 있으면 사용자에게 수정 여부를 확인합니다.
-Warning(🟡) 이하는 리포트 후 커밋 진행 가능합니다.
+리뷰 결과에 blocker가 있으면 사용자에게 수정 여부를 확인합니다.
+Warning 이하는 리포트 후 커밋 진행 가능합니다.
 
 ## 활용 Commands
 

@@ -51,22 +51,26 @@ BGM + Audio Ducking
 
 ### 관련 코드
 ```
-backend/services/video/        - FFmpeg 렌더링 패키지
+backend/services/video/        - FFmpeg 렌더링 패키지 (10개 모듈)
 ├── builder.py                 - VideoBuilder 메인 클래스
 ├── effects.py                 - Ken Burns, 전환 효과
 ├── encoding.py                - 인코딩 설정
 ├── filters.py                 - FFmpeg 필터 체인
 ├── scene_processing.py        - 씬별 처리
 ├── tts_helpers.py             - TTS 유틸
-├── tts_postprocess.py         - TTS 후처리
+├── tts_postprocess.py         - TTS 후처리 (normalize_audio 포함)
 ├── progress.py                - 진행률 추적
 ├── upload.py                  - 업로드 처리
 └── utils.py                   - 공통 유틸
 
-backend/services/image.py      - 이미지 처리/오버레이
+backend/services/image.py      - 이미지 처리/오버레이 (얼굴 감지, 블러, 밝기 분석)
+backend/services/rendering.py  - 렌더링 서비스 (Scene Text, 동적 높이/폰트)
+backend/services/motion.py     - 모션/애니메이션 효과
 
 backend/constants/
-└── layout.py                  - 레이아웃 상수 (좌표, 크기, 비율)
+├── layout.py                  - 레이아웃 상수 (좌표, 크기, 비율)
+├── transition.py              - 전환 효과 상수
+└── testing.py                 - 테스트 상수
 ```
 
 ---
@@ -130,10 +134,11 @@ zoompan=z='min(zoom+0.001,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=150:
 - `docs/01_product/FEATURES/VEO_CLIP.md` - Veo 클립 기능 명세
 
 ### 코드 참조
-- `backend/services/video/` - FFmpeg 렌더링 패키지 (VideoBuilder, effects, encoding 등 12개 모듈)
-- `backend/services/rendering.py` - 렌더링 서비스
+- `backend/services/video/` - FFmpeg 렌더링 패키지 (VideoBuilder, effects, encoding 등 10개 모듈)
+- `backend/services/rendering.py` - 렌더링 서비스 (Scene Text 동적 높이/폰트, Safe Zone)
 - `backend/services/motion.py` - 모션/애니메이션 효과
-- `backend/services/image.py` - 이미지 처리/오버레이
+- `backend/services/image.py` - 이미지 처리/오버레이 (얼굴 감지, 블러, 밝기 분석)
+- `backend/services/audio/music_generator.py` - BGM 생성
 - `backend/constants/layout.py` - 레이아웃 상수 (좌표, 크기, 비율)
 - `backend/constants/transition.py` - 전환 효과 상수
 

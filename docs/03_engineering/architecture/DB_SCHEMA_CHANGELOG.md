@@ -5,6 +5,7 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
 | v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
 | v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정. `projects`(avatar_key/render_preset_id/style_profile_id 제거), `storyboards`(character_id 등 5개 제거, structure 추가), `scenes`(SD params 5개 제거, ControlNet/IP-Adapter 6개 추가), `characters`(project_id FK 추가), Creative Engine V2 필드 전체, `lab_experiments` 10개 컬럼 추가 |
 | v3.14 | 2026-02-08 | **Documentation Catch-up**: `Creative Engine` (Agents), `GroupConfig`, `RenderHistory`, `LabExperiments`, `YouTubeCredential` 추가. `evaluation_runs` 제거. `StoryboardCharacter` 추가. |

@@ -1,7 +1,7 @@
 ---
 name: prompt-engineer
 description: SD 프롬프트 최적화 및 Civitai/Danbooru 기반 인사이트 제공
-allowed_tools: ["mcp__civitai__*", "mcp__danbooru-tags__*", "mcp__huggingface__*", "mcp__memory__*", "mcp__postgres__*"]
+allowed_tools: ["mcp__danbooru-tags__*", "mcp__huggingface__*", "mcp__memory__*", "mcp__postgres__*"]
 ---
 
 # SD Prompt Engineer Agent
@@ -44,7 +44,7 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 
 ### 4. 평가 결과 해석 & 에셋 큐레이션
 - **QA Validator**가 실행한 Evaluation Run 결과를 해석하여 개선안 도출
-- LoRA/프리셋 라이브러리 관리 (Civitai 동기화, 효과 검증)
+- LoRA/프리셋 라이브러리 관리 (효과 검증)
 - 캐릭터별 최적 LoRA 세팅 추천
 
 ### 5. ControlNet/IP-Adapter 프롬프트 조합
@@ -158,7 +158,7 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 ### 설계 문서
 - `docs/03_engineering/backend/` - 백엔드 기술 문서
   - `PROMPT_SPEC_V2.md` - 프롬프트 설계 규칙
-  - `PROMPT_PIPELINE.md` - 프롬프트 파이프라인
+  - `AGENT_SPEC.md` - LangGraph Agent 아키텍처
 - `docs/04_operations/SD_WEBUI_SETUP.md` - SD WebUI 설정
 - `docs/01_product/FEATURES/VISUAL_TAG_BROWSER.md` - 비주얼 태그 브라우저 기능 명세
 
@@ -168,13 +168,17 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
   - `v3_multi_character.py` - 2인 동시 출연 Multi-Character Composer
   - `v3_service.py` - V3 서비스 레이어
   - `prompt.py` - 프롬프트 유틸 (split, normalize, apply_optimal_lora_weights)
-- `backend/services/keywords/` - 태그 시스템 패키지 (9개 모듈)
-- `backend/services/generation.py` - 이미지 생성 오케스트레이터 (_prepare_prompt 7개 핸들러 분해)
+- `backend/services/keywords/` - 태그 시스템 패키지 (9개 모듈: core, db, db_cache, formatting, patterns, processing, suggestions, sync, validation)
+- `backend/services/generation.py` - 이미지 생성 오케스트레이터
+- `backend/services/generation_prompt.py` - 프롬프트 생성 전용
+- `backend/services/generation_style.py` - 스타일 생성 전용
 - `backend/services/image_generation_core.py` - Studio+Lab 공유 생성 코어 (compose_scene_with_style)
 - `backend/services/style_context.py` - StyleContext VO (DB cascade → StyleProfile + LoRA resolve SSOT)
 - `backend/services/controlnet.py` - ControlNet + IP-Adapter
 - `backend/services/danbooru.py` - Danbooru 태그 검색
+- `backend/services/tag_classifier.py` - 태그 자동 분류
 - `backend/services/lora_calibration.py` - LoRA 가중치 캘리브레이션
+- `backend/services/agent/nodes/cinematographer.py` - Creative Pipeline 촬영감독 (프롬프트 생성)
 - `backend/config.py` - 상수/환경변수 SSOT
 
 > **참고**: 프롬프트/태그 관련 기술 문서는 `docs/03_engineering/backend/`에 배치합니다.

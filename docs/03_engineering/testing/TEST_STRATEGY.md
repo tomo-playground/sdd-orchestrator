@@ -13,9 +13,9 @@ E2E (Playwright)          ← 유저 플로우 검증
 |------|------|------|----------|
 | **Unit** | pytest / vitest | 서비스 함수, 유틸, 훅 | Mock, 인메모리 |
 | **Integration** | pytest + TestClient | API 라우터 + DB | SQLite 인메모리 |
-| **VRT (Backend)** | pytest + SSIM | 이미지 렌더링 (자막, 오버레이, 프레임) | Golden Master 비교 |
-| **VRT (Frontend)** | Playwright `toHaveScreenshot()` | 페이지별 스크린샷 (8페이지, 24장) | Mock API + baseline PNG |
-| **E2E** | Playwright | Studio/Manage 페이지 유저 플로우 | Mock API 응답 |
+| **VRT (Backend)** | pytest + SSIM | 이미지 렌더링 (자막, 오버레이, 프레임, 결정적 렌더링) | Golden Master 비교 |
+| **VRT (Frontend)** | Playwright `toHaveScreenshot()` | 페이지별 스크린샷 (8 페이지, 24장) | Mock API + baseline PNG |
+| **E2E** | Playwright | Studio/Manage/Home 유저 플로우 | Mock API 응답 |
 
 ---
 
@@ -41,12 +41,13 @@ E2E (Playwright)          ← 유저 플로우 검증
 | `init_tag_caches` | autouse. TagFilter/Rule/Alias/Category/LoRA 캐시 초기화 |
 | `seed_random` | 난수 시드 고정 (결정적 테스트) |
 
-**주요 개선사항 (Phase 6-5)**:
+**주요 개선사항 (Phase 6-5 ~ 10)**:
 - DB Foreign Key 제약 정규화 (CASCADE 전략)
 - validation.py DI 패턴 적용 (conftest.py 통합)
 - Scene Text 네이밍 통일 (`subtitles` → `scene_text`)
 - TagRuleCache 추가 (tag_rules 테이블 캐싱)
 - LoRATriggerCache 추가 (loras 테이블 트리거 워드 캐싱)
+- Phase 10: Creative Script Graph 테스트 94개 추가 (agent, tool calling, graph nodes)
 
 ### Frontend (vitest + Playwright)
 
@@ -115,31 +116,35 @@ npm run test:vrt:ui
 
 | 영역 | 현재 | 목표 |
 |------|------|------|
-| Backend Unit + Integration | 830 tests (60 files) | 80% line coverage |
-| Frontend Unit | 118 tests (10 files) | 70% line coverage |
-| VRT (Backend) | 36 tests (4 files) | 주요 레이아웃 100% |
-| VRT (Frontend) | 24 screenshots (8 specs) | 전체 페이지 커버 |
-| E2E | 3 specs | 핵심 플로우 커버 |
+| Backend Unit | 1,287 tests (99 files) | 80% line coverage |
+| Backend Router | 311 tests (21 files) | 주요 라우터 100% |
+| Backend Integration | 108 tests (9 files) | 핵심 API 100% |
+| Backend VRT | 36 tests (4 files) | 주요 레이아웃 100% |
+| Frontend Unit | 319 tests (29 files) | 70% line coverage |
+| Frontend VRT | 24 screenshots (8 specs) | 전체 페이지 커버 |
+| Frontend E2E | 3 specs | 핵심 플로우 커버 |
 
-**총 테스트**: 948개 (Backend 830 + Frontend 118)
+**총 테스트**: 2,079개 (Backend 1,760 + Frontend 319)
 
-**Backend 구성**:
-- Unit: 429 tests (29 files, `tests/test_*.py`)
-- Integration: 77 tests (7 files, `tests/api/`)
-- Router: 288 tests (20 files, `tests/test_router_*.py`)
+**Backend 구성** (1,760 tests, 133 files):
+- Unit: 1,287 tests (99 files, `tests/test_*.py` — router 제외)
+- Router: 311 tests (21 files, `tests/test_router_*.py`)
+- Integration: 108 tests (9 files, `tests/api/`)
 - VRT: 36 tests (4 files, `tests/vrt/`)
+- Benchmark: 18 tests (`tests/benchmark/`)
 
-**최근 추가된 주요 테스트** (2026-02-01):
-- `test_evaluation.py` - Evaluation 서비스 단위 테스트 (47 tests)
-- `test_router_*.py` - 20개 라우터 통합 테스트 (288 tests, Phase 1-4)
-- `test_v3_composition.py` - V3 Prompt Engine 12-Layer 검증 (41 tests)
-- `test_generation_pipeline.py` - 이미지 생성 파이프라인 통합 테스트
-- `test_image_storage_key.py` - image_storage_key 정규화 검증
-- `test_db_cache.py` - TagRuleCache, LoRATriggerCache 검증
+**Frontend 구성** (319 tests, 29 files):
+- Hooks: useAutopilot(27), useFocusTrap(5), useCharacters(13)
+- Store Actions: storyboardActions(33), narratorGeneration(11), groupActions(12), batchActions(3), autopilotActions(2)
+- Components: Button(15), Modal(13), Badge(9), AnalyticsDashboard(8), ConfirmDialog(8), Skeleton(7), Toast(3), LoadingSpinner(3), TagAutocomplete(4)
+- Utils: validation(34), speakerResolver(24), sceneSettingsResolver(14), autoPin(11), applyAutoPin(8), pinIntegration(8), format(10), pipelineSteps(10), url(7), pinnedSceneOrder(6), videoRestore(5)
+- Store: resetAllStores(6)
 
-**Router 커버리지**: 20/24 라우터 (83%) - DoD 달성
-- 테스트 있음 (20): storyboard, characters, style_profiles, loras, prompt, keywords, evaluation, video, settings, presets, admin, quality, tags, analytics, activity_logs, controlnet, avatar, sd, scene, assets
-- 테스트 없음 (4): cleanup, prompt_histories, sd_models, generation
+**Router 커버리지**: 21/34 라우터 (62%)
+- 테스트 있음 (21): storyboard, characters, style_profiles, loras, prompt, keywords, video, video_async, settings, presets, admin, quality, tags, analytics, activity_logs, controlnet, avatar, sd, scene, assets, music_presets
+- 테스트 없음 (13): cleanup, prompt_histories, sd_models, backgrounds, groups, lab, memory, projects, render_presets, scripts, voice_presets, creative_presets, youtube
+
+**참고**: `tests/api/` 디렉토리의 통합 테스트가 일부 라우터(lab, render_presets, quality, activity_logs 등)를 추가로 커버
 
 ---
 

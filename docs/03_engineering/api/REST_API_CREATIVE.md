@@ -1,9 +1,11 @@
-# Creative Engine API Specification
+# Creative Engine API Specification (v4.0)
 
-> v4.0 (2026-02-10): V2 Shorts Pipeline — Multi-Character, Sound Designer, Copyright Reviewer 추가.
+> v4.0 (2026-02-18): 소스 기반 최신화. V2 Shorts Pipeline — Multi-Character, Sound Designer, Copyright Reviewer.
 
 Creative Engine은 여러 AI 에이전트가 협업하여 콘텐츠를 창작하는 멀티 에이전트 시스템입니다.
 V1(자유형식 debate)과 V2(쇼츠 파이프라인)가 공존하며, `session_type`으로 구분됩니다.
+
+> Agent Presets 라우터 prefix: `/lab/creative` (creative_presets.py)
 
 ## 엔드포인트 요약
 

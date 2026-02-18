@@ -325,3 +325,167 @@
 3. AI 모드 + 경로 없음 → File 모드로 fallthrough 하지 않음 (resolve_bgm_file 미호출)
 4. File 모드 → resolve_bgm_file 사용하여 스토리지 경로 반환
 5. File 모드 + BGM 파일 없음 → None 반환
+
+---
+
+## 10. Creative Script Graph (Phase 10)
+
+### 10.1 Script Graph 실행
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | LangGraph 노드 설정, Gemini Mock |
+| 절차 | Script Graph 전체 실행 (Research → Write → Review → Produce) |
+| 기대결과 | 각 노드 순차 실행, 상태 전이, 최종 스크립트 출력 |
+| 테스트 파일 | `tests/test_script_graph.py` (19 tests) |
+
+### 10.2 Creative Agents
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | Agent 초기화, Gemini Mock |
+| 절차 | Director, Cinematographer, Critic 등 Agent 호출 |
+| 기대결과 | 각 Agent가 역할에 맞는 출력 생성 |
+| 테스트 파일 | `tests/test_creative_agents.py` (11), `tests/test_director_react.py` (13), `tests/test_critic_debate.py` (12) |
+
+### 10.3 Tool Calling
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | Tool 정의, Agent Mock |
+| 절차 | Agent의 tool calling 실행 |
+| 기대결과 | Tool 호출 파라미터 정확, 결과 통합 |
+| 테스트 파일 | `tests/test_tool_calling.py` (8), `tests/test_cinematographer_tool_calling.py` (13), `tests/test_research_tool_calling.py` (15) |
+
+### 10.4 Graph Nodes
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 개별 노드 함수 |
+| 절차 | Research, Learn, Production, Review 노드 단위 실행 |
+| 기대결과 | 노드별 상태 업데이트, 오류 처리, 스냅샷 저장 |
+| 테스트 파일 | `tests/test_research_node.py` (32), `tests/test_learn_node.py` (5), `tests/test_production_nodes.py` (25) |
+
+### 10.5 Narrative Review & Reflection
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 생성된 스크립트 |
+| 절차 | Review → Reflection → 수정 사이클 |
+| 기대결과 | 품질 점수 산출, 수정 제안 생성, 반복 개선 |
+| 테스트 파일 | `tests/test_narrative_review.py` (10), `tests/test_review_reflection.py` (7), `tests/test_review_empty_script.py` (11) |
+
+### 10.6 Script Snapshots & State
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | Graph 실행 중 상태 |
+| 절차 | 스냅샷 저장/복원, 상태 직렬화 |
+| 기대결과 | 중간 상태 보존, 재개 가능 |
+| 테스트 파일 | `tests/test_script_snapshots.py` (23), `tests/test_phase10a_state.py` (5) |
+
+### 10.7 Agent Messaging
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | Agent 간 메시지 구조 |
+| 절차 | 메시지 생성, 직렬화, 전달 |
+| 기대결과 | 메시지 형식 검증, fallback 처리 |
+| 테스트 파일 | `tests/test_agent_messages.py` (13), `tests/test_agent_messaging.py` (13) |
+
+---
+
+## 11. 렌더링 품질
+
+### 11.1 Layout Improvements
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 렌더링 모듈 |
+| 절차 | Post Type 동적 높이, Full Type Safe Zone 계산 |
+| 기대결과 | 텍스트 길이별 높이 조정, 플랫폼별 Safe Zone 적용 |
+| 테스트 파일 | `tests/test_layout_improvements.py` (16 tests) |
+
+### 11.2 Visual Improvements
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 이미지 + 텍스트 렌더링 |
+| 절차 | 배경 밝기 분석, 폰트 크기 동적 조정, 적응형 텍스트 색상 |
+| 기대결과 | 밝기 기반 색상 선택, 텍스트 길이별 폰트 크기 조정 |
+| 테스트 파일 | `tests/test_visual_improvements.py` (14 tests) |
+
+---
+
+## 12. TTS & 오디오
+
+### 12.1 TTS Postprocessing
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | TTS 오디오 파일 |
+| 절차 | 트리밍, 정규화, 포맷 변환 |
+| 기대결과 | 무음 제거, -20dBFS 정규화, 클리핑 방지 |
+| 테스트 파일 | `tests/test_tts_postprocess.py` (12), `tests/test_tts_normalization.py` (6) |
+
+### 12.2 TTS Text Filter
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 텍스트 입력 |
+| 절차 | TTS 부적합 문자/패턴 필터링 |
+| 기대결과 | 특수문자 제거, 발음 불가 텍스트 정리 |
+| 테스트 파일 | `tests/test_tts_text_filter.py` (17 tests) |
+
+---
+
+## 13. 에러 응답 & 보안
+
+### 13.1 사용자용/AI용 에러 분리
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 에러 발생 상황 |
+| 절차 | 에러 핸들링 → 응답 생성 |
+| 기대결과 | user_message (사용자용) + detail (AI용) 분리 |
+| 테스트 파일 | `tests/test_error_responses.py` |
+
+### 13.2 경로 보안
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 파일 경로 입력 |
+| 절차 | Path Traversal 시도 (../, 절대경로 등) |
+| 기대결과 | 악의적 경로 차단, 허용된 디렉토리만 접근 |
+| 테스트 파일 | `tests/test_path_security.py` |
+
+### 13.3 업로드 검증
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | 파일 업로드 요청 |
+| 절차 | 파일 타입/크기/확장자 검증 |
+| 기대결과 | 허용된 타입만 통과, 초과 크기 거부 |
+| 테스트 파일 | `tests/test_upload_validation.py` |
+
+---
+
+## 14. 설정 & 캐시
+
+### 14.1 Config SSOT
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | config.py 설정값 |
+| 절차 | 설정값 참조 및 오버라이드 |
+| 기대결과 | 모든 설정이 config.py에서만 관리됨 |
+| 테스트 파일 | `tests/test_config_ssot.py`, `tests/test_config_validation.py`, `tests/test_config_resolver.py` |
+
+### 14.2 DB Cache
+
+| 항목 | 내용 |
+|------|------|
+| 사전조건 | DB에 tag_rules, tag_aliases, loras 데이터 |
+| 절차 | 캐시 초기화, 조회, 갱신 |
+| 기대결과 | 시작 시 DB 로드, 메모리 캐시 일관성, `/admin/refresh-caches` 동작 |
+| 테스트 파일 | `tests/test_db_cache.py` |

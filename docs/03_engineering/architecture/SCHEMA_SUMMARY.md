@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.20) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.21) 참조.
 
-> **Last Synced:** 2026-02-12 (DB_SCHEMA v3.20 기준)
+> **Last Synced:** 2026-02-18 (DB_SCHEMA v3.21 기준)
 
 ---
 
@@ -24,7 +24,8 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `id` (PK), `group_id` (FK, UNIQUE)
 - `render_preset_id` (FK), `style_profile_id` (FK), `narrator_voice_preset_id` (FK)
 - `language`, `structure`, `duration`
-- `sd_steps`, `sd_cfg_scale` 등 SD 파라미터 오버라이드
+- `sd_steps`, `sd_cfg_scale`, `sd_sampler_name`, `sd_clip_skip` — SD 파라미터 오버라이드
+- `channel_dna` (JSONB) — 채널 DNA (tone, audience, worldview, guidelines)
 
 ### `storyboards` — 개별 에피소드
 - `id` (PK), `group_id` (FK → groups), `title`, `description`
@@ -37,6 +38,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `id` (PK), `client_id` (String(36), UNIQUE, NOT NULL — Frontend UUID 안정 식별자)
 - `storyboard_id` (FK), `order`, `script`, `description`, `speaker`, `duration`
 - **Prompt**: `image_prompt`, `image_prompt_ko`, `negative_prompt`, `context_tags` (JSONB)
+- **TTS & Pacing**: `voice_design_prompt`, `head_padding`, `tail_padding`
 - **Size**: `width`, `height`
 - **Background**: `background_id` (FK → backgrounds, SET NULL)
 - **IP-Adapter/Ref**: `use_reference_only`, `reference_only_weight`, `environment_reference_id` (FK), `environment_reference_weight`, `use_ip_adapter`, `ip_adapter_reference`, `ip_adapter_weight`
@@ -77,13 +79,14 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `preview_image_asset_id` (FK), `preview_locked`, `deleted_at`
 
 ### `loras` — LoRA 모델
-- `id` (PK), `name` (Unique), `display_name`, `lora_type`, `trigger_words`
-- `default_weight`, `optimal_weight`, `calibration_score`
+- `id` (PK), `name` (Unique), `display_name`, `lora_type`, `gender_locked`, `trigger_words`
+- `default_weight`, `weight_min`, `weight_max`, `optimal_weight`, `calibration_score`
+- **Multi-Character**: `is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`
 - `civitai_id`, `civitai_url`, `preview_image_asset_id` (FK)
 
 ### `sd_models` — SD 체크포인트
 - `id` (PK), `name` (Unique), `display_name`, `model_type`, `base_model`
-- `civitai_id`, `preview_image_asset_id` (FK), `is_active`
+- `civitai_id`, `civitai_url`, `description`, `preview_image_asset_id` (FK), `is_active`
 
 ### `style_profiles` — Model + LoRA 번들
 - `id` (PK), `name` (Unique), `display_name`, `description`
@@ -127,13 +130,13 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `tag_rules` — 태그 충돌/의존성 규칙
 - `id` (PK), `rule_type` (`conflict`/`requires`), `source_tag_id`, `target_tag_id`
-- `message`, `priority`, `active`
+- `message`, `priority`, `is_active`
 
 ### `tag_aliases` — 비표준 태그 자동 치환
-- `id` (PK), `source_tag`, `target_tag` (NULL=삭제), `reason`, `active`
+- `id` (PK), `source_tag`, `target_tag` (NULL=삭제), `reason`, `is_active`
 
 ### `tag_filters` — 무시/스킵 태그
-- `id` (PK), `tag_name` (Unique), `filter_type` (`ignore`/`skip`), `reason`, `active`
+- `id` (PK), `tag_name` (Unique), `filter_type` (`ignore`/`skip`), `reason`, `is_active`
 
 ### `tag_effectiveness` — WD14 피드백 루프
 - `id` (PK), `tag_id` (FK), `use_count`, `match_count`, `effectiveness`
@@ -177,8 +180,9 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`
 
 ### `render_history` — 영상 렌더링 이력
-- `id` (PK), `storyboard_id` (FK), `media_asset_id` (FK), `label`
+- `id` (PK), `storyboard_id` (FK → storyboards, CASCADE), `media_asset_id` (FK → media_assets, CASCADE), `label`
 - `youtube_video_id`, `youtube_upload_status`, `youtube_uploaded_at`
+- TimestampMixin
 
 ### `lab_experiments` — 실험실 기능 이력
 - `id` (PK), `batch_id`, `experiment_type`, `status`

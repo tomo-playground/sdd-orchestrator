@@ -39,7 +39,7 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `total_token_usage` | JSONB | 총 토큰 사용량 |
 | `status` | String(20) | 진행 상태 |
 | **V2** | | |
-| `session_type` | String(20) | 세션 유형 (default: `"free"`) |
+| `session_type` | String(20) | 세션 유형 (default: `"shorts"`) |
 | `director_mode` | String(20) | 디렉터 모드 (default: `"advisor"`) |
 | `concept_candidates` | JSONB | 컨셉 후보 목록 |
 | `selected_concept_index` | Integer | 선택된 컨셉 인덱스 |

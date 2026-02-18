@@ -312,24 +312,25 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - **Langfuse Trace 통합** (2026-02-17): interrupt/resume 별도 trace → 동일 trace 통합. 요청별 `CallbackHandler` 생성(싱글턴→per-request)으로 동시성 안전 보장. generate 시 trace_id를 SSE로 클라이언트 전달 → resume 시 동일 trace_id로 handler 생성. Frontend `traceId` 상태 관리 + `ScriptResumeRequest.trace_id` 필드 추가. **Per-node trace 확장**: review(gemini_evaluate+narrative_evaluate), production(cinematographer/tts/sound/copyright), creative_agent(GeminiProvider), writer(gemini_generator) — 모든 Gemini LLM 호출에 `trace_llm_call` 컨텍스트 매니저 래핑. **v3 SDK 마이그레이션 수정** (02-17): `CallbackHandler(trace_id=)` v2 API → `CallbackHandler(trace_context={"trace_id":})` v3 API 전환, `last_trace_id` 속성 → `trace_context` dict 접근으로 교체. v2 파라미터 TypeError가 except에서 조용히 잡혀 핸들러 None 반환 → 각 Gemini 호출이 개별 트레이스로 분리되던 버그 해소
 - **Phase 10**: True Agentic Architecture — **전체 완료 (ARCHIVED)** (2026-02-18). Phase 0: 벤치마크 인프라. **Phase A**: Director ReAct Loop, Review Self-Reflection, Writer Planning Step. **Phase B**: Gemini Function Calling 인프라, Research Agent Tool-Calling (5개 도구), Cinematographer Agent Tool-Calling (4개 도구). **Phase C-1 완료** (2026-02-18): Agent Message Protocol + State Condensation. `messages.py`: AgentMessage TypedDict, format/condense/truncate 유틸리티, MAX_MESSAGE_WINDOW=10, MAX_CONTEXT_TOKENS=2000. ScriptState: `agent_messages`, `agent_summary` 필드. 13개 신규 테스트. **Phase C-2 완료** (2026-02-18): Director ↔ Production 양방향 소통. 4개 Production Agent 템플릿 `response_message` 필드 추가 (cinematographer/tts_designer/sound_designer/copyright_reviewer), `_agent_messaging.py` 응답 메시지 추출 로직 개선, SSE 전달 (`scripts.py` agent_messages 추가). 6개 신규 테스트 (응답 추출/fallback/양방향 통합). **Phase C-3 완료** (2026-02-18): Critic 실시간 토론 + KPI 수렴. 핵심 기능 이미 구현됨 (`critic.py` 3인 Architect 토론 파이프라인, `_debate_utils.py` KPI 기반 수렴 판단/Groupthink 감지, MAX_DEBATE_ROUNDS=2, DEBATE_TIMEOUT_SEC=60, Fallback 경로). SSE debate_log 전달 추가. 12개 기존 테스트 (NarrativeScore/Hook/Groupthink/수렴). 94개 테스트 추가 (Phase A 27 + Phase B 36 + Phase C-1 13 + Phase C-2 6 + Phase C-3 12). **5대 Agentic 요건 충족**: 자율 의사결정, Tool Use, Planning, Self-Reflection, 에이전트 소통. 상세: [Phase 10 아카이브](../99_archive/archive/ROADMAP_PHASE_10.md)
 - **Langfuse 연동 정상화** (2026-02-18): langfuse + langchain 패키지 설치로 CallbackHandler 생성 실패 해소. 전체 파이프라인 trace 기록 확인 (19 observations/trace, Gemini 토큰 사용량 추적). **오류 메시지 개선**: Review 노드 `user_summary` 필드 추가로 사용자용/AI용 메시지 분리 (errors는 Revise 정규식 호환 유지, user_summary는 Frontend 표시용), Gemini 안전 필터 에러를 원인별 구체적 메시지 + 해결 방법으로 분류, Frontend `ReasoningSections` 상세 보기 토글 추가
-- **테스트**: Backend 1,747 passed + Frontend 319 passed = **총 2,066개** (Phase 10: 94개)
+- **테스트**: Backend 1,760 passed + Frontend 319 passed = **총 2,079개** (Phase 10: 94개)
+- **전체 문서 동기화** (2026-02-18): 9개 에이전트 병렬 작업으로 **45개 파일** 소스 기준 최신화 (+2,262줄/-3,422줄). DB_SCHEMA v3.21, REST_API 5개 문서 (엔드포인트 30개+ 추가), AGENT_SPEC v2.0 (15노드/Tool-Calling/Communication), STATE_MANAGEMENT (필드 40개+ 추가), SYSTEM_OVERVIEW (Python 3.13+/Next.js 16), ROADMAP Tier 0 완료 처리, FEATURES 7건 상태 업데이트, TEST_STRATEGY (2,079개 반영), README.md 전면 재작성, CLAUDE.md/GEMINI.md 스택 최신화, .claude/agents/ 11개 정의 동기화
 
 ### 잔여 작업 우선순위 (재정리 2026-02-18)
 
-**Tier 0 — True Agentic Architecture (최우선)**
+**Tier 0 — True Agentic Architecture — 완료 (2026-02-18)**
 
-> **Gate 규칙**: 각 Phase 완료 후 A/B 테스트로 품질 효과 검증. 미달 시 롤백/조정 후 다음 Phase 진행.
+Phase 10 전체 완료. 5대 Agentic 요건 충족 (자율 의사결정, Tool Use, Planning, Self-Reflection, 에이전트 소통). 상세: [Phase 10 아카이브](../99_archive/archive/ROADMAP_PHASE_10.md)
 
-| 순위 | 출처 | 작업 | 기간 | Gate 조건 |
-|------|------|------|------|----------|
-| 0 | 10 P0 | **Benchmark Baseline 수집** (샘플 10건 × 10회 = 100회, LangFuse 기록) | 1일 | Baseline 데이터 확보 |
-| 1 | 10 A-1 | Director ReAct Loop (Observe→Think→Act) | 2-3일 | — |
-| 2 | 10 A-2 | Review Self-Reflection (실패 원인 분석 + 수정 전략) | 1-2일 | — |
-| 3 | 10 A-3 | Writer Planning Step (계획 → 생성) | 1일 | **Phase A Gate**: NarrativeScore +10% (10회 A/B) |
-| 4 | 10 B-1 | Gemini Function Calling 인프라 | 2일 | — |
-| 5 | 10 B-2 | Research Agent Tool-Calling | 2-3일 | — |
-| 6 | 10 B-3 | Cinematographer Agent Tool-Calling | 2일 | **Phase B Gate**: Match Rate +15% |
-| 7 | 10 C-1~3 | Agent Communication + Speculative Execution + State Condensation | 7-10일 | **Phase C Gate**: 복합 +20%, 레이턴시 120초 이내 |
+| 순위 | 출처 | 작업 | 상태 |
+|------|------|------|------|
+| 0 | 10 P0 | Benchmark Baseline 수집 (샘플 10건, TDD 18개 테스트) | [x] |
+| 1 | 10 A-1 | Director ReAct Loop (Observe→Think→Act) | [x] |
+| 2 | 10 A-2 | Review Self-Reflection (실패 원인 분석 + 수정 전략) | [x] |
+| 3 | 10 A-3 | Writer Planning Step (계획 → 생성) | [x] |
+| 4 | 10 B-1 | Gemini Function Calling 인프라 | [x] |
+| 5 | 10 B-2 | Research Agent Tool-Calling (5개 도구) | [x] |
+| 6 | 10 B-3 | Cinematographer Agent Tool-Calling (4개 도구) | [x] |
+| 7 | 10 C-1~3 | Agent Message Protocol + Director↔Production 양방향 + Critic 토론 KPI 수렴 | [x] |
 
 **Tier 3 — 장기**
 | 순위 | 출처 | 작업 | 근거 |

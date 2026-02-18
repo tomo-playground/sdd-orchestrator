@@ -40,7 +40,9 @@ allowed_tools: ["mcp__memory__*", "mcp__postgres__*"]
 
 ### 3. 파일 업로드 보안
 - MIME 타입 화이트리스트, 파일 크기 제한, Path Traversal 방지, 임시 파일 GC
-- 대상: `routers/controlnet.py`, `routers/video.py`, `routers/youtube.py`, `routers/assets.py`, `routers/avatar.py`
+- 대상: `routers/controlnet.py`, `routers/video.py`, `routers/youtube.py`, `routers/assets.py`, `routers/avatar.py`, `routers/backgrounds.py`
+- Path Security: `services/path_security.py` — 경로 검증 유틸
+- Upload Validation: `services/upload_validation.py` — 업로드 검증
 
 ### 4. SQL Injection 방어
 - SQLAlchemy ORM (파라미터 바인딩 자동) + Pydantic 입력 검증
@@ -124,10 +126,14 @@ git log --all --oneline --diff-filter=A -- "*.env" "*.key" "*.pem"
 | `/review` | 보안 관점 코드 검토 (시크릿 노출, 입력 검증) |
 | `/test` | 보안 테스트 케이스 실행 |
 
-## 참조 문서
+## 참조 문서/코드
 
 - `CLAUDE.md` — 프로젝트 규칙 및 에이전트 정의
 - `docs/04_operations/DEPLOYMENT.md` — 배포 보안 설정
+- `docs/04_operations/STORAGE_POLICY.md` — 스토리지 보안 정책
 - `docs/03_engineering/api/REST_API.md` — API 명세
 - `docs/03_engineering/architecture/DB_SCHEMA.md` — DB 스키마 (FK, ondelete 정책)
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/) — 외부 참조
+- `backend/services/path_security.py` — 경로 보안 유틸
+- `backend/services/upload_validation.py` — 업로드 검증
+- `backend/services/youtube/auth.py` — YouTube OAuth 인증
+- `backend/services/error_responses.py` — 에러 응답 (사용자용/AI용 분리)

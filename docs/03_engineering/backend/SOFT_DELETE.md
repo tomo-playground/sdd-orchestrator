@@ -18,7 +18,7 @@ class SoftDeleteMixin:
         return self.deleted_at is not None
 ```
 
-적용 모델: `Storyboard`, `Character`, `PromptHistory`
+적용 모델: `Storyboard`, `Scene`, `Character`, `PromptHistory`, `Background`, `CreativeSession`
 
 ---
 

@@ -1,6 +1,7 @@
-# API Specification - Presets (Render / Voice / Music)
+# API Specification - Presets (Render / Voice / Music) (v4.0)
 
 > REST_API.md에서 분할된 프리셋 API 명세입니다.
+> Last Updated: 2026-02-18
 
 ---
 

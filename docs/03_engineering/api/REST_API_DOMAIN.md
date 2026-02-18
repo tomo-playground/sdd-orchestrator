@@ -1,6 +1,6 @@
-# API Specification - Domain API (v3.2)
+# API Specification - Domain API (v4.0)
 
-Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Prompt, SD, Characters 관련 API 명세입니다.
+Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Backgrounds, Prompt, SD, Characters, Style Profiles, SD Models/Embeddings, Prompt Histories 관련 API 명세입니다.
 
 > 메인 문서: [REST_API.md](./REST_API.md) | Analytics & Admin: [REST_API_ANALYTICS.md](./REST_API_ANALYTICS.md)
 
@@ -8,448 +8,143 @@ Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Prompt, SD, Characters 관련 
 
 ## 목차
 
-1. [Tags & Classification](#-tags--classification-태그-분류-시스템) - 태그 분류
-2. [Keywords](#-keywords-키워드-관리) - 키워드 관리
-3. [ControlNet & IP-Adapter](#-controlnet--ip-adapter) - ControlNet
-4. [LoRA Management](#-lora-management) - LoRA 관리
-5. [Avatar](#-avatar-아바타-관리) - 아바타 관리
-6. [Assets](#-assets-에셋-관리) - 에셋 관리
-7. [Backgrounds](#-backgrounds-배경-관리) - 배경 관리
-8. [Prompt](#-prompt-프롬프트-처리) - 프롬프트 처리
-9. [Stable Diffusion](#-stable-diffusion-sd-webui-프록시) - SD WebUI 프록시
-10. [Characters](#-characters-캐릭터-관리) - 캐릭터 관리
+1. [Tags & Classification](#tags--classification) - 태그 분류/CRUD
+2. [Keywords](#keywords) - 키워드 관리
+3. [ControlNet & IP-Adapter](#controlnet--ip-adapter)
+4. [LoRA Management](#lora-management)
+5. [Avatar](#avatar) - 아바타 관리
+6. [Assets](#assets) - 에셋 관리
+7. [Backgrounds](#backgrounds) - 배경 관리
+8. [Prompt](#prompt) - 프롬프트 처리
+9. [Stable Diffusion](#stable-diffusion) - SD WebUI 프록시
+10. [Characters](#characters) - 캐릭터 관리
+11. [Style Profiles](#style-profiles) - 스타일 프로파일
+12. [SD Models & Embeddings](#sd-models--embeddings) - SD 모델/임베딩 CRUD
+13. [Prompt Histories](#prompt-histories) - 프롬프트 히스토리
 
 ---
 
-## Tags & Classification (태그 분류 시스템)
+## Tags & Classification
 
-### `POST /tags/classify`
-태그를 DB -> Rule -> Danbooru -> LLM 순으로 자동 분류합니다.
+> 라우터 prefix: `/tags`
 
-**Request:**
-```json
-{
-  "tags": ["smile", "starry sky", "unknown_tag"]
-}
-```
+### 태그 CRUD
 
-**Response:**
-```json
-{
-  "results": {
-    "smile": { "group": "expression", "confidence": 1.0, "source": "db" },
-    "starry sky": { "group": "time_weather", "confidence": 1.0, "source": "rule" },
-    "unknown_tag": { "group": null, "confidence": 0.0, "source": "unknown" }
-  },
-  "classified": 2,
-  "unknown": 1
-}
-```
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/tags` | 태그 목록 (category, search, active_only 필터) | 태그 배열 |
+| GET | `/tags/groups` | 태그 그룹 목록 | 그룹 배열 |
+| GET | `/tags/search` | 태그 검색 (query, limit) | 태그 배열 |
+| GET | `/tags/{id}` | 태그 상세 | 태그 객체 |
+| POST | `/tags` | 태그 생성 | 태그 객체 (201) |
+| PUT | `/tags/{id}` | 태그 수정 | 태그 객체 |
+| DELETE | `/tags/{id}` | 태그 삭제 | `{ok, deleted}` |
 
-### `GET /tags/pending`
-분류 승인이 필요한 태그 목록을 조회합니다.
+### 태그 분류
 
-**Query Parameters:**
-- `source`: "danbooru", "llm", "unknown" (optional)
-- `max_confidence`: float (default: 0.9)
-
-**Response:**
-```json
-{
-  "tags": [
-    {
-      "id": 123,
-      "name": "some_tag",
-      "category": "scene",
-      "group_name": "action",
-      "classification_source": "danbooru",
-      "classification_confidence": 0.6
-    }
-  ],
-  "total": 1
-}
-```
-
-### `POST /tags/approve-classification`
-태그 분류를 승인하거나 수정합니다.
-
-**Request:**
-```json
-{
-  "tag_id": 123,
-  "group_name": "pose",
-  "category": "scene"
-}
-```
-
-**Response:**
-```json
-{
-  "ok": true,
-  "tag": "some_tag",
-  "group_name": "pose",
-  "category": "scene"
-}
-```
-
-### `POST /tags/migrate-patterns`
-`CATEGORY_PATTERNS` 코드를 DB 규칙으로 마이그레이션합니다.
-
-**Response:**
-```json
-{
-  "ok": true,
-  "rules_created": 677
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/tags/classify` | 태그를 DB→Rule→Danbooru→LLM 순으로 자동 분류 |
+| GET | `/tags/pending` | 분류 승인 필요한 태그 목록 (source, max_confidence 필터) |
+| POST | `/tags/approve-classification` | 태그 분류 승인/수정 |
+| POST | `/tags/bulk-approve-classifications` | 다수 태그 분류 일괄 승인 |
+| POST | `/tags/migrate-patterns` | CATEGORY_PATTERNS을 DB 규칙으로 마이그레이션 |
 
 ---
 
-## Keywords (키워드 관리)
+## Keywords
 
-### `GET /keywords/suggestions`
-새로운 키워드 제안 목록을 조회합니다.
+> 라우터 prefix: `/keywords`
 
-**Query Parameters:**
-- `min_count`: int (default: 3) - 최소 등장 횟수
-- `limit`: int (default: 50) - 최대 반환 개수
-
-**Response:**
-```json
-{
-  "min_count": 3,
-  "limit": 50,
-  "suggestions": [
-    { "tag": "coffee", "count": 15 },
-    { "tag": "sunset", "count": 8 }
-  ]
-}
-```
-
-### `GET /keywords/categories`
-키워드 카테고리 목록을 조회합니다.
-
-**Response:**
-```json
-{
-  "categories": {
-    "character": ["1girl", "1boy", "couple"],
-    "location": ["indoor", "outdoor", "cafe"],
-    "style": ["anime", "realistic", "watercolor"]
-  }
-}
-```
-
-### `GET /keywords/rules`
-태그 충돌/의존성 규칙 요약을 조회합니다.
-
-**Response:**
-```json
-{
-  "conflict_pairs_count": 57,
-  "required_rules_count": 29
-}
-```
-
-### `POST /keywords/validate`
-태그 리스트의 충돌 및 의존성을 검증합니다.
-
-**Request:**
-```json
-["long hair", "short hair", "twintails"]
-```
-
-**Response:**
-```json
-{
-  "conflicts": [
-    { "tags": ["long hair", "short hair"], "reason": "hair_length conflict" }
-  ],
-  "missing_dependencies": [
-    { "tag": "twintails", "missing": "long hair" }
-  ]
-}
-```
-
-### `POST /keywords/approve`
-제안된 키워드를 승인하여 카테고리에 추가합니다.
-
-**Request:**
-```json
-{
-  "tag": "coffee shop",
-  "category": "location"
-}
-```
-
-**Response:**
-```json
-{
-  "ok": true,
-  "tag": "coffee_shop",
-  "category": "location"
-}
-```
-
-### `POST /keywords/batch-approve`
-태그를 일괄 승인합니다.
-
-**Request:**
-```json
-{
-  "tags": ["tag1", "tag2"],
-  "min_confidence": 0.7
-}
-```
-
-**Response:**
-```json
-{
-  "ok": true,
-  "approved_count": 2,
-  "approved": ["tag1", "tag2"]
-}
-```
-
-### `POST /keywords/sync-lora-triggers`
-LoRA 트리거 워드를 태그 DB와 동기화합니다.
-
-**Response:**
-```json
-{
-  "summary": { "added_count": 5, "updated_count": 2 }
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/keywords/suggestions` | 새로운 키워드 제안 (min_count, limit) |
+| GET | `/keywords/categories` | 키워드 카테고리 목록 |
+| GET | `/keywords/rules` | 태그 충돌/의존성 규칙 요약 |
+| GET | `/keywords/priority` | 카테고리별 우선순위 목록 |
+| GET | `/keywords/tags` | 등록된 태그 목록 (전체) |
+| GET | `/keywords/effectiveness` | 태그 효과성 데이터 |
+| GET | `/keywords/effectiveness/summary` | 효과성 요약 통계 |
+| POST | `/keywords/validate` | 태그 충돌/의존성 검증 |
+| POST | `/keywords/approve` | 제안된 키워드 승인 |
+| POST | `/keywords/batch-approve` | 태그 일괄 승인 |
+| GET | `/keywords/batch-approve/preview` | 일괄 승인 미리보기 |
+| POST | `/keywords/sync-lora-triggers` | LoRA 트리거 워드를 태그 DB와 동기화 |
+| POST | `/keywords/sync-category-patterns` | 카테고리 패턴 동기화 |
 
 ---
 
 ## ControlNet & IP-Adapter
 
-### `GET /controlnet/status`
-ControlNet 사용 가능 여부와 모델 목록을 조회합니다.
+> 라우터 prefix: `/controlnet`
 
-**Response:**
-```json
-{
-  "available": true,
-  "models": ["control_v11p_sd15_openpose", "ip-adapter-plus-face_sd15"],
-  "pose_references": ["standing", "sitting"]
-}
-```
-
-### `POST /controlnet/detect-pose`
-이미지에서 포즈를 추출합니다.
-
-**Request:**
-```json
-{
-  "image_b64": "data:image/png;base64,..."
-}
-```
-
-**Response:**
-```json
-{
-  "pose_image": "data:image/png;base64,...",
-  "success": true
-}
-```
-
-### `POST /controlnet/suggest-pose`
-태그를 기반으로 적절한 포즈 레퍼런스를 제안합니다.
-
-**Request:**
-```json
-["standing", "waving"]
-```
-
-**Response:**
-```json
-{
-  "suggested_pose": "waving",
-  "available": true,
-  "image_b64": "..."
-}
-```
-
-### `GET /controlnet/ip-adapter/references`
-IP-Adapter용 저장된 참조 이미지 목록을 조회합니다.
-
-**Response:**
-```json
-{
-  "references": ["char_a", "char_b"]
-}
-```
-
-### `POST /controlnet/ip-adapter/reference`
-캐릭터 참조 이미지를 등록합니다.
-
-**Request:**
-```json
-{
-  "character_key": "char_a",
-  "image_b64": "..."
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "filename": "char_a.png"
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/controlnet/status` | ControlNet 사용 가능 여부와 모델 목록 |
+| POST | `/controlnet/detect-pose` | 이미지에서 포즈 추출 |
+| POST | `/controlnet/suggest-pose` | 태그 기반 포즈 레퍼런스 제안 |
+| GET | `/controlnet/poses` | 사용 가능한 포즈 레퍼런스 목록 |
+| GET | `/controlnet/pose/{name}` | 특정 포즈 이미지 조회 |
+| GET | `/controlnet/ip-adapter/status` | IP-Adapter 사용 가능 여부 |
+| GET | `/controlnet/ip-adapter/references` | 저장된 참조 이미지 목록 |
+| POST | `/controlnet/ip-adapter/reference` | 캐릭터 참조 이미지 등록 |
+| GET | `/controlnet/ip-adapter/reference/{key}` | 특정 참조 이미지 메타 |
+| GET | `/controlnet/ip-adapter/reference/{key}/image` | 참조 이미지 파일 다운로드 |
+| DELETE | `/controlnet/ip-adapter/reference/{key}` | 참조 이미지 삭제 |
 
 ---
 
 ## LoRA Management
 
-### `GET /loras`
-등록된 LoRA 목록을 조회합니다.
+> 라우터 prefix: `/loras`
 
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "detail_slider",
-    "optimal_weight": 0.5,
-    "calibration_score": 85,
-    "is_multi_character_capable": false,
-    "multi_char_weight_scale": null,
-    "multi_char_trigger_prompt": null
-  }
-]
-```
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/loras` | 등록된 LoRA 목록 | LoRA 배열 |
+| GET | `/loras/{id}` | LoRA 상세 | LoRA 객체 |
+| POST | `/loras` | LoRA 생성 | LoRA 객체 (201) |
+| PUT | `/loras/{id}` | LoRA 수정 | LoRA 객체 |
+| DELETE | `/loras/{id}` | LoRA 삭제 | `{ok, deleted}` |
+| GET | `/loras/search-civitai` | Civitai에서 LoRA 검색 (query) | 검색 결과 |
+| POST | `/loras/import-civitai/{civitai_id}` | Civitai 메타데이터로 LoRA 등록 | LoRA 객체 |
+| POST | `/loras/{id}/calibrate` | LoRA 최적 가중치 보정 | 보정 결과 |
+| POST | `/loras/calibrate-all` | 전체 LoRA 일괄 보정 | 일괄 보정 결과 |
 
+**LoRA 멀티캐릭터 필드:**
 - `is_multi_character_capable`: 2인 동시 출연 시 사용 가능 여부
-- `multi_char_weight_scale`: 멀티캐릭터 씬에서 LoRA weight 축소 비율 (예: `0.70` = 70%)
-- `multi_char_trigger_prompt`: 멀티캐릭터 전용 호출 프롬프트 (nullable)
-
-### `GET /loras/search-civitai`
-Civitai에서 LoRA를 검색합니다.
-
-**Query Parameters:**
-- `query`: 검색어
-
-**Response:**
-```json
-{
-  "results": [
-    {
-      "civitai_id": 12345,
-      "name": "Anime Lineart",
-      "creator": "User1",
-      "preview_image": "https://..."
-    }
-  ]
-}
-```
-
-### `POST /loras/import-civitai/{civitai_id}`
-Civitai 메타데이터를 사용하여 LoRA를 등록합니다.
-
-**Response:**
-```json
-{
-  "id": 2,
-  "name": "anime_lineart",
-  "trigger_words": ["lineart"]
-}
-```
-
-### `POST /loras/{lora_id}/calibrate`
-LoRA의 최적 가중치(optimal weight)를 자동으로 보정합니다.
-
-**Response:**
-```json
-{
-  "lora_name": "anime_lineart",
-  "optimal_weight": 0.6,
-  "calibration_score": 92,
-  "lora_type": "style"
-}
-```
+- `multi_char_weight_scale`: 멀티캐릭터 씬에서 LoRA weight 축소 비율
+- `multi_char_trigger_prompt`: 멀티캐릭터 전용 호출 프롬프트
 
 ---
 
-## Avatar (아바타 관리)
+## Avatar
 
-### `POST /avatar/regenerate`
-아바타 이미지를 재생성합니다.
+> 라우터 prefix: `/avatar`
 
-**Request:**
-```json
-{
-  "avatar_key": "daily_shorts"
-}
-```
-
-**Response:**
-```json
-{
-  "filename": "avatar_daily_shorts.png"
-}
-```
-
-### `POST /avatar/resolve`
-아바타 파일 존재 여부를 확인합니다.
-
-**Request:**
-```json
-{
-  "avatar_key": "daily_shorts"
-}
-```
-
-**Response:**
-```json
-{
-  "filename": "avatar_daily_shorts.png"
-}
-```
-- 존재하지 않으면 `filename: null`
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/avatar/regenerate` | 아바타 이미지 재생성 |
+| POST | `/avatar/resolve` | 아바타 파일 존재 여부 확인 |
 
 ---
 
-## Assets (에셋 관리)
+## Assets
 
-### `GET /audio/list`
-사용 가능한 BGM 파일 목록을 조회합니다.
+> 라우터: prefix 없음, `/audio/*`, `/fonts/*`, `/overlay/*`
 
-**Response:**
-```json
-{
-  "audios": [
-    { "name": "bgm_chill.mp3", "url": "http://localhost:8000/assets/audio/bgm_chill.mp3" },
-    { "name": "bgm_upbeat.mp3", "url": "http://localhost:8000/assets/audio/bgm_upbeat.mp3" }
-  ]
-}
-```
-
-### `GET /fonts/list`
-사용 가능한 폰트 파일 목록을 조회합니다.
-
-**Response:** (v3.1: object array 형식)
-```json
-{
-  "fonts": [
-    {"name": "NanumGothic.ttf"},
-    {"name": "NanumMyeongjo.ttf"},
-    {"name": "Pretendard.otf"}
-  ]
-}
-```
-
-### `GET /fonts/file/{filename}`
-폰트 파일을 다운로드합니다 (브라우저 미리보기용).
-
-**Response:** Font file (binary)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/audio/list` | 사용 가능한 BGM 파일 목록 |
+| GET | `/fonts/list` | 사용 가능한 폰트 파일 목록 |
+| GET | `/fonts/file/{filename}` | 폰트 파일 다운로드 |
+| GET | `/overlay/list` | 오버레이 템플릿 목록 |
+| GET | `/assets/overlay/{filename}` | 오버레이 이미지 파일 |
 
 ---
 
-## Backgrounds (배경 관리)
+## Backgrounds
+
+> 라우터 prefix: `/backgrounds`
 
 배경 프리셋 CRUD. ControlNet Canny 참조 이미지 + 환경 태그 관리.
 
@@ -466,10 +161,21 @@ LoRA의 최적 가중치(optimal weight)를 자동으로 보정합니다.
 
 ---
 
-## Prompt (프롬프트 처리)
+## Prompt
 
-### `POST /prompt/compose`
-V3 12-Layer 프롬프트를 합성합니다.
+> 라우터 prefix: `/prompt`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/prompt/compose` | V3 12-Layer 프롬프트 합성 |
+| POST | `/prompt/rewrite` | 프롬프트 스타일 재작성 |
+| POST | `/prompt/split` | 예시 프롬프트를 base/scene으로 분리 |
+| POST | `/prompt/validate` | 프롬프트 문법 검증 |
+| POST | `/prompt/validate-tags` | 태그 유효성 검증 |
+| POST | `/prompt/auto-replace` | 비활성 태그 자동 대체 |
+| POST | `/prompt/check-conflicts` | 태그 충돌 검사 |
+
+### `POST /prompt/compose` — 상세
 
 **Request:**
 ```json
@@ -481,9 +187,6 @@ V3 12-Layer 프롬프트를 합성합니다.
 }
 ```
 
-- `character_b_id`: (optional) 2인 동시 출연 시 두 번째 캐릭터 ID
-- `scene_id`: (optional) 씬 컨텍스트 태그 자동 로드
-
 **Response:**
 ```json
 {
@@ -492,249 +195,132 @@ V3 12-Layer 프롬프트를 합성합니다.
 }
 ```
 
-### `POST /prompt/rewrite`
-프롬프트를 스타일에 맞게 재작성합니다.
+---
 
-**Request:**
-```json
-{
-  "base_prompt": "1girl, long hair",
-  "scene_prompt": "drinking coffee at cafe",
-  "style": "Anime",
-  "mode": "compose"
-}
-```
+## Stable Diffusion
 
-**Response:**
-```json
-{
-  "prompt": "1girl, long hair, drinking coffee, cafe interior, anime style, detailed"
-}
-```
+> 라우터 prefix: `/sd`
 
-### `POST /prompt/split`
-예시 프롬프트를 분석하여 base/scene으로 분리합니다.
-
-**Request:**
-```json
-{
-  "example_prompt": "1girl, long hair, cafe, drinking coffee, anime style",
-  "style": "Anime"
-}
-```
-
-**Response:**
-```json
-{
-  "base_prompt": "1girl, long hair, anime style",
-  "scene_elements": ["cafe", "drinking coffee"]
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/sd/models` | 사용 가능한 SD 모델 목록 (SD WebUI 프록시) |
+| GET | `/sd/options` | 현재 SD WebUI 설정 |
+| POST | `/sd/options` | SD WebUI 모델 변경 |
+| GET | `/sd/loras` | 사용 가능한 LoRA 목록 (SD WebUI 프록시) |
 
 ---
 
-## Stable Diffusion (SD WebUI 프록시)
+## Characters
 
-### `GET /sd/models`
-사용 가능한 SD 모델 목록을 조회합니다.
+> 라우터 prefix: `/characters`
 
-**Response:**
-```json
-{
-  "models": [
-    { "title": "v1-5-pruned.safetensors", "model_name": "v1-5-pruned" },
-    { "title": "animagine-xl.safetensors", "model_name": "animagine-xl" }
-  ]
-}
-```
+### 캐릭터 CRUD
 
-### `GET /sd/options`
-현재 SD WebUI 설정을 조회합니다.
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/characters` | 캐릭터 목록 (project_id, offset, limit) | `PaginatedCharacterList` |
+| GET | `/characters/{id}` | 캐릭터 상세 (V3 relational tags + LoRA) | `CharacterResponse` |
+| POST | `/characters` | 캐릭터 생성 (201) | `CharacterResponse` |
+| PUT | `/characters/{id}` | 캐릭터 수정 (부분 업데이트) | `CharacterResponse` |
+| DELETE | `/characters/{id}` | 캐릭터 Soft Delete | `{ok, deleted}` |
 
-**Response:**
-```json
-{
-  "options": { "sd_model_checkpoint": "animagine-xl.safetensors", "...": "..." },
-  "model": "animagine-xl.safetensors"
-}
-```
+### 캐릭터 Soft Delete
 
-### `POST /sd/options`
-SD WebUI 모델을 변경합니다.
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/characters/trash` | Soft Delete된 캐릭터 목록 |
+| POST | `/characters/{id}/restore` | 캐릭터 복원 |
+| DELETE | `/characters/{id}/permanent` | 캐릭터 영구 삭제 |
 
-**Request:**
-```json
-{
-  "sd_model_checkpoint": "animagine-xl.safetensors"
-}
-```
+### 참조 이미지/프리뷰
 
-**Response:**
-```json
-{
-  "ok": true,
-  "model": "animagine-xl.safetensors"
-}
-```
-
-### `GET /sd/loras`
-사용 가능한 LoRA 목록을 조회합니다.
-
-**Response:**
-```json
-{
-  "loras": [
-    { "name": "add_detail", "alias": "add_detail" },
-    { "name": "anime_style", "alias": "anime_style" }
-  ]
-}
-```
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| POST | `/characters/preview` | 위저드 임시 프리뷰 생성 (DB 미저장) | `CharacterPreviewResponse` |
+| POST | `/characters/{id}/regenerate-reference` | 참조 이미지 재생성 | 생성 결과 |
+| POST | `/characters/{id}/enhance-preview` | Gemini로 프리뷰 이미지 향상 | 향상 결과 |
+| POST | `/characters/{id}/edit-preview` | 자연어 지시로 프리뷰 편집 | 편집 결과 |
+| POST | `/characters/{id}/assign-preview` | 위저드 프리뷰를 캐릭터에 할당 | `AssignPreviewResponse` |
+| POST | `/characters/batch-regenerate-references` | 전체 캐릭터 참조 이미지 일괄 재생성 | 일괄 결과 |
 
 ---
 
-## Characters (캐릭터 관리)
+## Style Profiles
 
-### `GET /characters`
-등록된 캐릭터 목록을 조회합니다.
+> 라우터 prefix: `/style-profiles`
 
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Midoriya Izuku",
-    "description": "Hero Academia protagonist",
-    "gender": "male",
-    "tags": [
-      {"tag_id": 1, "name": "1boy", "is_permanent": true, "weight": 1.0},
-      {"tag_id": 2, "name": "green_hair", "is_permanent": true, "weight": 1.0}
-    ],
-    "loras": [{"lora_id": 5, "weight": 0.7}],
-    "custom_base_prompt": "1boy, midoriya_izuku, green_hair, freckles",
-    "custom_negative_prompt": "EasyNegative",
-    "prompt_mode": "lora",
-    "ip_adapter_weight": 0.5,
-    "ip_adapter_model": "ip-adapter-plus_sd15",
-    "preview_image_url": "/assets/references/Midoriya.png"
-  }
-]
-```
+SD 모델, LoRA, Embedding 조합으로 구성된 스타일 프로파일 관리.
 
-### `GET /characters/{character_id}`
-특정 캐릭터의 정보를 조회합니다 (V3 relational tags + LoRA 메타데이터 포함).
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/style-profiles` | 목록 (active_only 필터) | `list[StyleProfileResponse]` |
+| GET | `/style-profiles/default` | 기본 프로파일 (full 정보) | `StyleProfileFullResponse` |
+| GET | `/style-profiles/{id}` | 상세 | `StyleProfileResponse` |
+| GET | `/style-profiles/{id}/full` | 상세 + SD 모델/LoRA/Embedding resolved | `StyleProfileFullResponse` |
+| POST | `/style-profiles` | 생성 (201) | `StyleProfileResponse` |
+| PUT | `/style-profiles/{id}` | 수정 | `StyleProfileResponse` |
+| DELETE | `/style-profiles/{id}` | 삭제 | `StyleProfileDeleteResponse` |
 
-**Response:** `GET /characters` 단일 항목과 동일
+---
 
-### `GET /characters/{character_id}/full`
-`GET /{character_id}`의 별칭 (프론트엔드 호환성 유지).
+## SD Models & Embeddings
 
-### `POST /characters`
-새 캐릭터를 생성합니다.
+> 라우터: prefix 없음, `/sd-models/*`, `/embeddings/*`
 
-**Request:**
-```json
-{
-  "name": "New Character",
-  "description": "Character description",
-  "gender": "female",
-  "tags": [
-    {"tag_id": 1, "weight": 1.0, "is_permanent": true},
-    {"tag_id": 15, "weight": 1.0, "is_permanent": false}
-  ],
-  "loras": [{"lora_id": 5, "weight": 0.7}],
-  "custom_base_prompt": "1girl, long_hair",
-  "custom_negative_prompt": "EasyNegative",
-  "prompt_mode": "auto",
-  "ip_adapter_weight": 0.5
-}
-```
+### SD Models
 
-- `tags[].is_permanent`: `true` = identity 태그, `false` = clothing 태그
-- Legacy `identity_tags`/`clothing_tags` (Integer 배열)도 호환 지원
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/sd-models` | SD 모델 목록 (active_only) | `list[SDModelResponse]` |
+| GET | `/sd-models/{id}` | SD 모델 상세 | `SDModelResponse` |
+| POST | `/sd-models` | SD 모델 생성 (201) | `SDModelResponse` |
+| PUT | `/sd-models/{id}` | SD 모델 수정 | `SDModelResponse` |
+| DELETE | `/sd-models/{id}` | SD 모델 삭제 | `{ok, deleted}` |
 
-**Response:** (201 Created) - `GET /characters/{id}` 형식과 동일
+### Embeddings
 
-### `PUT /characters/{character_id}`
-캐릭터 정보를 수정합니다 (부분 업데이트 지원).
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/embeddings` | 임베딩 목록 (embedding_type, active_only) | `list[EmbeddingResponse]` |
+| GET | `/embeddings/{id}` | 임베딩 상세 | `EmbeddingResponse` |
+| POST | `/embeddings` | 임베딩 생성 (201) | `EmbeddingResponse` |
+| PUT | `/embeddings/{id}` | 임베딩 수정 | `EmbeddingResponse` |
+| DELETE | `/embeddings/{id}` | 임베딩 삭제 | `{ok, deleted}` |
 
-**Request:**
-```json
-{
-  "name": "Updated Name",
-  "tags": [
-    {"tag_id": 1, "weight": 1.0, "is_permanent": true},
-    {"tag_id": 20, "weight": 0.8, "is_permanent": false}
-  ],
-  "custom_base_prompt": "1girl, updated_prompt",
-  "prompt_mode": "standard"
-}
-```
+---
 
-- `tags` 전달 시 기존 태그 전체 교체 (DELETE + INSERT)
+## Prompt Histories
 
-**Response:** `GET /characters/{id}` 형식과 동일
+> 라우터 prefix: `/prompt-histories`
 
-### `DELETE /characters/{character_id}`
-캐릭터를 삭제합니다.
+프롬프트 히스토리 CRUD. 사용 횟수, WD14 검증 점수, 즐겨찾기 관리.
 
-**Response:**
-```json
-{
-  "ok": true,
-  "deleted_id": 10
-}
-```
-
-### `POST /characters/{character_id}/regenerate-reference`
-캐릭터의 참조 이미지를 재생성합니다.
-
-**Response:**
-```json
-{
-  "success": true,
-  "image_path": "/assets/references/Character_Name.png",
-  "timestamp": "2026-01-27T12:34:56"
-}
-```
-
-### `POST /characters/suggest-tags`
-Base Prompt에서 태그를 자동 추출하여 카테고리별로 제안합니다 (Phase 6-4.24).
-
-**Request:**
-```json
-{
-  "base_prompt": "1girl, brown_hair, school_uniform, solo"
-}
-```
-
-**Response:**
-```json
-{
-  "identity": [
-    {"tag_id": 1, "name": "1girl", "group_name": "subject"},
-    {"tag_id": 5, "name": "brown_hair", "group_name": "hair_color"},
-    {"tag_id": 8, "name": "solo", "group_name": "subject"}
-  ],
-  "clothing": [
-    {"tag_id": 15, "name": "school_uniform", "group_name": "clothing"}
-  ],
-  "style": [],
-  "expression": []
-}
-```
+| Method | Path | Description | Response Model |
+|--------|------|-------------|----------------|
+| GET | `/prompt-histories` | 목록 (favorite, character_id, search, sort 필터) | `list[PromptHistoryResponse]` |
+| GET | `/prompt-histories/{id}` | 상세 | `PromptHistoryResponse` |
+| POST | `/prompt-histories` | 생성 (201) | `PromptHistoryResponse` |
+| PUT | `/prompt-histories/{id}` | 수정 | `PromptHistoryResponse` |
+| DELETE | `/prompt-histories/{id}` | Soft Delete | `{ok, deleted}` |
+| GET | `/prompt-histories/trash` | Soft Delete된 목록 | 목록 |
+| POST | `/prompt-histories/{id}/restore` | 복원 | `{ok, restored}` |
+| DELETE | `/prompt-histories/{id}/permanent` | 영구 삭제 | `{ok, deleted}` |
+| POST | `/prompt-histories/{id}/toggle-favorite` | 즐겨찾기 토글 | `PromptHistoryResponse` |
+| POST | `/prompt-histories/{id}/apply` | 히스토리 적용 (use_count 증가) | `PromptHistoryApplyResponse` |
+| POST | `/prompt-histories/{id}/update-score` | WD14 점수 업데이트 (match_rate query) | `PromptHistoryResponse` |
 
 ---
 
 ## 참고 문서
 
-- **메인 API (Core)**: [REST_API.md](./REST_API.md) - Storyboard, Scene, Video, Presets, Storage, Projects, Groups, Render Presets, Voice Presets
-- **Analytics & Admin API**: [REST_API_ANALYTICS.md](./REST_API_ANALYTICS.md) - Quality, Activity Logs, Evaluation, Admin
-- **프롬프트 설계**: `docs/03_engineering/backend/PROMPT_SPEC_V2.md`
-- **제품 스펙**: `docs/01_product/PRD.md`
-- **로드맵**: `docs/01_product/ROADMAP.md`
-- **개발 가이드**: `docs/guides/CONTRIBUTING.md`
+| 문서 | 경로 |
+|------|------|
+| Core API | [REST_API.md](./REST_API.md) |
+| Analytics & Admin | [REST_API_ANALYTICS.md](./REST_API_ANALYTICS.md) |
+| Creative Engine | [REST_API_CREATIVE.md](./REST_API_CREATIVE.md) |
+| Presets | [REST_API_PRESETS.md](./REST_API_PRESETS.md) |
 
 ---
 
-**Last Updated:** 2026-02-11
-**API Version:** v3.2
+**Last Updated:** 2026-02-18
+**API Version:** v4.0

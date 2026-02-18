@@ -63,8 +63,12 @@ Gemini 프롬프트와 출력 품질을 개선합니다:
 
 ```
 backend/templates/
-├── create_storyboard.j2    # 메인 스토리보드 생성 템플릿
-└── (Structure별 분기는 템플릿 내부 조건문)
+├── create_storyboard.j2            # 메인 스토리보드 생성 템플릿
+├── create_storyboard_dialogue.j2   # 대화형 스토리보드 템플릿
+├── create_storyboard_narrated.j2   # 나레이션형 스토리보드 템플릿
+├── review_evaluate.j2              # 리뷰/평가 템플릿
+├── _partials/                      # 공유 파셜 템플릿
+└── creative/                       # Creative Pipeline 전용 템플릿
 ```
 
 ### 템플릿 출력 구조
@@ -121,11 +125,14 @@ backend/templates/
 - `docs/03_engineering/backend/PROMPT_PIPELINE.md` - 프롬프트 파이프라인 (Gemini → SD)
 
 ### 코드 참조
-- `backend/templates/` - Jinja2 템플릿 (스토리보드 생성)
+- `backend/templates/` - Jinja2 템플릿 (스토리보드 생성, 대화형, 나레이션형, Creative)
 - `backend/routers/storyboard.py` - 스토리보드 API
-- `backend/services/storyboard.py` - 스토리보드 서비스 (Gemini 연동)
+- `backend/routers/scripts.py` - 스크립트 API
+- `backend/services/storyboard/` - 스토리보드 서비스 패키지 (crud, helpers, scene_builder)
+- `backend/services/script/gemini_generator.py` - Gemini 스크립트 생성
+- `backend/services/agent/` - LangGraph Creative Pipeline (multi-agent 스토리보드 생성)
 - `backend/services/generation.py` - 이미지 생성 오케스트레이터 (스토리보드 후속)
 - `backend/services/image_generation_core.py` - Studio+Lab 공유 생성 코어
-- `backend/services/speaker_resolver.py` - 화자/캐릭터 해석
+- `backend/services/characters/speaker_resolver.py` - 화자/캐릭터 해석
 
 > **참고**: 스토리보드 관련 템플릿은 `backend/templates/`에, 신규 Structure 타입은 템플릿 내부 분기로 추가합니다.

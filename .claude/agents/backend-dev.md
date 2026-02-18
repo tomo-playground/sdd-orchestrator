@@ -56,60 +56,97 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__
 backend/
 ├── main.py               # FastAPI app + lifespan
 ├── config.py             # 상수/환경변수 SSOT
-├── schemas.py            # Pydantic 스키마
-├── routers/              # API 엔드포인트 (32개)
+├── database.py           # DB 엔진/세션 (pool_size=5, max_overflow=10)
+├── schemas.py            # Pydantic 스키마 (메인)
+├── schemas_lab.py        # Lab 전용 스키마
+├── schemas_creative.py   # Creative Pipeline 전용 스키마
+├── routers/              # API 엔드포인트 (34개)
 │   ├── storyboard.py     # 스토리보드 CRUD + 생성
 │   ├── scene.py          # 씬 이미지 생성/편집
 │   ├── characters.py     # 캐릭터 CRUD
 │   ├── prompt.py         # 프롬프트 compose/preview
 │   ├── controlnet.py     # ControlNet + IP-Adapter
-│   ├── creative.py       # Creative Pipeline (Multi-Agent)
-│   ├── creative_presets.py
+│   ├── creative_presets.py # Creative 프리셋
 │   ├── lab.py            # Creative Lab
+│   ├── scripts.py        # 스크립트 관리
 │   ├── groups.py         # 그룹 CRUD
 │   ├── projects.py       # 프로젝트 CRUD
 │   ├── admin.py          # DB 관리, 캐시 리프레시
 │   ├── analytics.py      # 분석 대시보드
 │   ├── youtube.py        # YouTube 업로드
-│   └── ...               # assets, avatar, loras, sd_models, tags 등
+│   ├── video.py          # 비디오 렌더링
+│   ├── assets.py         # 에셋 관리
+│   ├── avatar.py         # 아바타
+│   ├── backgrounds.py    # 배경
+│   ├── keywords.py       # 키워드/태그 검색
+│   ├── loras.py          # LoRA 관리
+│   ├── memory.py         # 메모리
+│   ├── music_presets.py  # 음악 프리셋
+│   ├── presets.py        # 프리셋
+│   ├── prompt_histories.py # 프롬프트 히스토리
+│   ├── quality.py        # 품질 분석
+│   ├── render_presets.py # 렌더 프리셋
+│   ├── sd.py             # SD WebUI 연동
+│   ├── sd_models.py      # SD 모델 관리
+│   ├── settings.py       # 설정
+│   ├── style_profiles.py # 스타일 프로필
+│   ├── tags.py           # 태그 CRUD
+│   ├── voice_presets.py  # 음성 프리셋
+│   └── cleanup.py        # 정리/GC
 ├── services/
-│   ├── prompt/           # V3 12-Layer Prompt Engine
+│   ├── prompt/           # V3 12-Layer Prompt Engine (4개 모듈)
 │   │   ├── v3_composition.py    # V3 PromptBuilder (12-Layer)
 │   │   ├── v3_multi_character.py # 2인 동시 출연 composer
 │   │   ├── v3_service.py        # V3 서비스 레이어
 │   │   └── prompt.py            # 프롬프트 유틸
 │   ├── keywords/         # 태그 시스템 (9개 모듈)
-│   ├── video/            # FFmpeg 렌더링 패키지 (12개 모듈)
+│   ├── video/            # FFmpeg 렌더링 패키지 (10개 모듈)
 │   │   ├── builder.py           # VideoBuilder 메인 클래스
 │   │   ├── effects.py           # Ken Burns, 전환 효과
-│   │   ├── encoding.py          # 인코딩 설정
-│   │   ├── filters.py           # FFmpeg 필터 체인
-│   │   ├── scene_processing.py  # 씬별 처리
-│   │   ├── tts_helpers.py       # TTS 유틸
-│   │   ├── tts_postprocess.py   # TTS 후처리
-│   │   └── ...                  # progress, upload, utils
+│   │   ├── encoding.py, filters.py, scene_processing.py
+│   │   ├── tts_helpers.py, tts_postprocess.py
+│   │   └── progress.py, upload.py, utils.py
+│   ├── storyboard/       # 스토리보드 서비스 패키지 (crud, helpers, scene_builder)
+│   ├── characters/       # 캐릭터 서비스 패키지 (crud, action_resolver, lora_enrichment, preview, speaker_resolver)
+│   ├── script/           # 스크립트 생성 (gemini_generator)
+│   ├── audio/            # 오디오 서비스 (music_generator)
+│   ├── agent/            # LangGraph Creative Pipeline
+│   │   ├── script_graph.py      # 메인 그래프
+│   │   ├── state.py, routing.py # 상태/라우팅
+│   │   ├── nodes/               # 19개 에이전트 노드 (director, writer, critic, cinematographer 등)
+│   │   ├── tools/               # 에이전트 도구 (research, cinematographer)
+│   │   ├── store.py, checkpointer.py
+│   │   └── observability.py     # Langfuse 연동
 │   ├── generation.py            # SD WebUI 이미지 생성 (오케스트레이터)
 │   ├── image_generation_core.py # Studio+Lab 공유 생성 코어
 │   ├── style_context.py         # StyleContext VO (DB cascade SSOT)
 │   ├── config_resolver.py       # Config cascade (Project→Group)
-│   ├── storyboard.py            # Gemini 스토리보드 생성
 │   ├── image.py                 # 이미지 처리/오버레이
 │   ├── controlnet.py            # ControlNet + IP-Adapter
 │   ├── lora_calibration.py      # LoRA 가중치 캘리브레이션
-│   ├── creative_*.py            # Creative Pipeline (8개 모듈)
+│   ├── creative_agents.py       # Creative Agent 로직
+│   ├── creative_debate_agents.py # Creative 토론 에이전트
+│   ├── creative_qc.py           # Creative QC
+│   ├── creative_utils.py        # Creative 유틸
 │   ├── lab.py                   # Creative Lab 서비스
 │   ├── storage.py               # MinIO/S3 스토리지
-│   └── ...                      # avatar, danbooru, quality 등
+│   ├── youtube/                 # YouTube 서비스 (auth, exceptions, upload)
+│   └── ...                      # avatar, danbooru, quality, rendering, motion 등
 ├── models/               # SQLAlchemy ORM (26개)
 │   ├── base.py           # Base, TimestampMixin, SoftDeleteMixin
-│   ├── storyboard.py
-│   ├── scene.py
-│   ├── character.py
+│   ├── storyboard.py, scene.py, character.py
 │   ├── associations.py   # V3 relational tags
 │   ├── creative.py       # Creative Pipeline 모델
-│   ├── group.py / group_config.py
-│   ├── project.py
-│   └── ...               # lora, media_asset, tag, voice_preset 등
+│   ├── group.py, group_config.py, project.py
+│   ├── lora.py, media_asset.py, tag.py, tag_alias.py, tag_filter.py
+│   ├── voice_preset.py, render_preset.py, music_preset.py
+│   ├── background.py, storyboard_character.py
+│   ├── activity_log.py, prompt_history.py, render_history.py
+│   ├── scene_quality.py, sd_model.py, lab.py
+│   ├── youtube_credential.py
+│   └── wd14/             # WD14 Tagger 모델 (ONNX)
+├── constants/            # 상수 (layout.py, transition.py, testing.py)
+├── templates/            # Jinja2 템플릿 (스토리보드, Creative)
 ├── alembic/              # DB 마이그레이션
 └── tests/                # pytest 테스트
 ```
@@ -210,24 +247,35 @@ Apidog OAS 스펙을 조회하여 API 설계 시 참조합니다.
 - `docs/03_engineering/api/REST_API.md` - API 명세
 - `docs/03_engineering/architecture/` - 아키텍처 문서
   - `DB_SCHEMA.md` - DB 스키마
+  - `DB_SCHEMA_CHANGELOG.md` - 스키마 변경 이력
+  - `DB_SCHEMA_CREATIVE.md` - Creative Pipeline 스키마
   - `SCHEMA_SUMMARY.md` - 스키마 요약
   - `SYSTEM_OVERVIEW.md` - 시스템 아키텍처 개요
 - `docs/03_engineering/backend/` - 백엔드 기술 문서 (신규 문서는 여기에 배치)
-  - `PROMPT_PIPELINE.md` - 프롬프트 파이프라인
+  - `AGENT_SPEC.md` - LangGraph Agent 아키텍처
+  - `PROMPT_SPEC_V2.md` - 프롬프트 설계 규칙
   - `RENDER_PIPELINE.md` - 렌더링 파이프라인
   - `SOFT_DELETE.md` - Soft Delete 기술 설계
+  - `API_NO_BASE64_IN_BODY.md` - API Base64 분리 정책
 
 ### 운영 문서
 - `docs/04_operations/STORAGE_POLICY.md` - 스토리지 정책
+- `docs/04_operations/STORAGE_SETUP.md` - 스토리지 설정 (MinIO)
 - `docs/04_operations/SD_WEBUI_SETUP.md` - SD WebUI 설정
+- `docs/04_operations/TTS_SETUP.md` - TTS 설정
+- `docs/04_operations/WD14_SETUP.md` - WD14 Tagger 설정
 - `docs/04_operations/DEPLOYMENT.md` - 배포 가이드
+- `docs/04_operations/TROUBLESHOOTING.md` - 문제 해결
 
 ### 제품 문서
 - `docs/01_product/FEATURES/` - 기능 명세 (구현 시 요구사항 참고)
-  - `SOFT_DELETE.md` - Soft Delete 기능 명세
   - `MULTI_CHARACTER.md` - 다중 캐릭터
   - `SCENE_IMAGE_EDIT.md` - 씬 이미지 편집
   - `PROFILE_EXPORT_IMPORT.md` - 프로필 내보내기/가져오기
+  - `AGENTIC_PIPELINE.md` - Agentic Pipeline
+  - `TRUE_AGENTIC_ARCHITECTURE.md` - True Agentic Architecture
+  - `YOUTUBE_UPLOAD.md` - YouTube 업로드
+  - `PROJECT_GROUP.md` - 프로젝트/그룹
 
 ### 테스트 문서
 - `docs/03_engineering/testing/TEST_STRATEGY.md` - 테스트 전략

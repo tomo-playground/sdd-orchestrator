@@ -1,6 +1,6 @@
 # 프로젝트: Shorts Producer (V3)
 
-AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) + Stable Diffusion (이미지) + FFmpeg (렌더링).
+AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline (Gemini) + Stable Diffusion (이미지) + Qwen3-TTS (음성) + FFmpeg (렌더링).
 
 ## Agent 공통 규칙
 
@@ -14,18 +14,29 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. Gemini (스토리보드) +
 
 | 레이어 | 기술 | 핵심 |
 |--------|------|------|
-| Backend | FastAPI | `routers/` (API), `services/` (로직) |
-| Frontend | Next.js 15 | `app/page.tsx` (스튜디오), `hooks/useAutopilot.ts` |
+| Backend | FastAPI + LangGraph | `routers/` (API), `services/` (로직), `services/agent/` (Agentic Pipeline) |
+| Frontend | Next.js 16, React 19 | `app/(app)/` (Home, Studio, Scripts, Library, Settings), Zustand 4-Store |
 | DB | PostgreSQL | Storyboard → Scene → CharacterAction 계층 구조 |
+| AI | LangGraph + Gemini | 14개 노드 (Director, Writer, Critic, Research 등), Gemini Function Calling |
+| Observability | LangFuse | 셀프호스팅, 파이프라인 트레이싱 |
 
 ### V3 Backend 구조
 ```
 backend/
-├── routers/          # API 엔드포인트 (storyboard, characters, admin, activity_logs 등)
+├── routers/          # API 엔드포인트 (27개 라우터)
 ├── services/
+│   ├── agent/        # LangGraph Agentic Pipeline
+│   │   ├── nodes/    #   14개 노드 (Director, Writer, Critic, Research, Cinematographer 등)
+│   │   ├── tools/    #   Gemini Function Calling 도구
+│   │   ├── state.py  #   Graph State
+│   │   └── routing.py#   조건부 라우팅
+│   ├── video/        # FFmpeg 렌더링 파이프라인
+│   ├── prompt/       # 프롬프트 엔진 (v3_composition.py: 12-Layer Builder)
 │   ├── keywords/     # 태그 시스템 패키지 (core, db, db_cache, processing, validation 등)
-│   └── prompt/       # 프롬프트 엔진 (v3_composition.py: 12-Layer Builder)
+│   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
+│   └── characters/   # 캐릭터 관리, LoRA 연동
 ├── models/           # SQLAlchemy ORM (associations.py: V3 relational tags)
+├── templates/        # Jinja2 (스토리보드 생성 + Creative 에이전트 17개 프롬프트)
 └── config.py         # 모든 상수/환경변수 SSOT
 ```
 

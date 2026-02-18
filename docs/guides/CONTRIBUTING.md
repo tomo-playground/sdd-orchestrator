@@ -1,4 +1,4 @@
-# Shorts Factory - Lean Guide (MVP)
+# Shorts Producer - Lean Guide (MVP)
 
 이 문서는 정책 변화에 유연하게 대응하면서 개발 속도를 유지하기 위한 최소한의 가이드입니다.
 
@@ -60,7 +60,10 @@
     - 새로운 유틸리티 함수
     - 핵심 비즈니스 로직 변경
 *   **예외**: UI 컴포넌트, 단순 설정 변경, 긴급 핫픽스는 사후 테스트 작성 허용
-*   **테스트 파일 위치**: `backend/tests/test_{module}.py`, `frontend/app/**/__tests__/*.test.tsx`
+*   **테스트 파일 위치**:
+    - Backend: `backend/tests/test_{module}.py`, `backend/tests/api/test_{router}.py`
+    - Frontend 단위: `frontend/tests/components/`, `frontend/tests/helpers/`, `frontend/app/**/__tests__/`
+    - Frontend VRT: `frontend/tests/vrt/`
 
 ---
 
@@ -69,10 +72,11 @@
 ### 구조
 ```
 .claude/
-├── agents/      # Sub Agents (판단/분석 담당)
-├── commands/    # Commands (원자적 작업)
-├── hooks/       # Hooks (자동화 스크립트)
-└── settings.json  # Hook 설정 (프로젝트 공유)
+├── agents/          # Sub Agents (11개: tech-lead, shorts-pm, backend-dev, frontend-dev, dba, ...)
+├── commands/        # Commands (10개: test, review, db, docs, roadmap, vrt, pose, ...)
+├── hooks/           # Hooks (자동화 스크립트: auto-lint.sh)
+├── settings.json    # Hook 설정 (프로젝트 공유)
+└── settings.local.json  # 로컬 설정 (git 제외)
 ```
 
 ### 레이어 분리

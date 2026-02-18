@@ -60,13 +60,16 @@ Pass / Fail 판정
 ### 관련 코드
 ```
 backend/services/
-├── quality.py        - 품질 분석 서비스 (WD14 + match rate)
-├── validation.py     - 검증 서비스 (태그 비교)
-├── image.py          - 이미지 생성/처리
-└── generation.py     - 이미지 생성 오케스트레이터
+├── quality.py            - 품질 분석 서비스 (WD14 + match rate)
+├── validation.py         - 검증 서비스 (태그 비교)
+├── image.py              - 이미지 생성/처리
+├── generation.py         - 이미지 생성 오케스트레이터
+├── creative_qc.py        - Creative Pipeline QC
+└── agent/observability.py - Langfuse 연동 (Creative Pipeline 추적)
 
 frontend/app/utils/
-└── validation.ts     - 프론트엔드 검증 유틸
+├── validation.ts         - 프론트엔드 검증 유틸
+└── preflight.ts          - 생성 전 사전 점검
 ```
 
 ---
@@ -149,5 +152,11 @@ browser_navigate → browser_snapshot → browser_click → browser_wait_for →
 - `backend/tests/` - Backend 테스트 (conftest.py, test_*.py)
 - `frontend/vitest.config.ts` - Frontend 테스트 설정
 - `frontend/app/utils/__tests__/` - Frontend 유틸 테스트
+- `frontend/app/hooks/__tests__/` - Frontend 훅 테스트
+- `frontend/app/store/__tests__/` - Frontend 스토어 테스트
+- `frontend/app/store/actions/__tests__/` - Frontend 액션 테스트
+- `frontend/app/components/__tests__/` - Frontend 컴포넌트 테스트
+- `frontend/tests/vrt/` - VRT 테스트
+- `docs/03_engineering/testing/VRT_GUIDE.md` - VRT 가이드
 
 > **참고**: 새 기능 구현 시 `TEST_SCENARIOS.md`에 시나리오를 추가하세요.

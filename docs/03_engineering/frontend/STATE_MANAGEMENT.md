@@ -27,23 +27,39 @@ interface UIState {
   // Toast queue
   toasts: ToastItem[];
   // Navigation
-  activeTab: StudioTab;        // "script" | "edit" | "publish"
+  activeTab: StudioTab;         // "script" | "edit" | "publish"
   rightPanelTab: RightPanelTab; // "image" | "tools" | "insight"
   // Modals / Previews
   imagePreviewSrc: string | null;
+  imagePreviewCandidates: string[] | null;
   videoPreviewSrc: string | null;
   showResumeModal: boolean;
+  resumableCheckpoint: AutopilotCheckpoint | null;
   showPreflightModal: boolean;
+  isHelperOpen: boolean;
+  // Prompt helper
+  examplePrompt: string;
+  suggestedBase: string;
+  suggestedScene: string;
+  isSuggesting: boolean;
+  copyStatus: string;
+  // Setup wizard
   showSetupWizard: boolean;
+  setupWizardInitialStep: 1 | 2;
+  // New storyboard mode
+  isNewStoryboardMode: boolean;
   // Autopilot lock
   isAutoRunning: boolean;
-  // ...
+  pendingAutoRun: boolean;
+  // Preferences
+  showAdvancedSettings: boolean;
+  showLabMenu: boolean;
 }
 ```
 
 ### `useContextStore` 상세
 
-Cascading Config 시스템의 프론트엔드 상태를 관리합니다. `projectId`/`groupId`/`storyboardId`만 localStorage에 영속화하고, effective 설정은 런타임에 API에서 재로드합니다.
+Cascading Config 시스템의 프론트엔드 상태를 관리합니다. `projectId`/`groupId`/`storyboardId`/`storyboardTitle`만 localStorage에 영속화하고, effective 설정은 런타임에 API에서 재로드합니다.
 
 ```typescript
 interface ContextState {
@@ -84,22 +100,53 @@ interface StoryboardStore {
   style: string;
   language: string;
   structure: string;
-  // Character A/B
+  actorAGender: ActorGender;
+  // Character A
   selectedCharacterId: number | null;
-  selectedCharacterBId: number | null;
+  selectedCharacterName: string | null;
+  characterPromptMode: "auto" | "standard" | "lora";
+  loraTriggerWords: string[];
   characterLoras: LoraEntry[];
+  // Character B
+  selectedCharacterBId: number | null;
+  selectedCharacterBName: string | null;
+  characterBLoras: LoraEntry[];
+  basePromptB: string;
+  baseNegativePromptB: string;
   // Prompt settings
   basePromptA: string;
   baseNegativePromptA: string;
   autoComposePrompt: boolean;
   autoRewritePrompt: boolean;
+  autoReplaceRiskyTags: boolean;
+  hiResEnabled: boolean;
+  veoEnabled: boolean;
   // ControlNet / IP-Adapter
   useControlnet: boolean;
+  controlnetWeight: number;
   useIpAdapter: boolean;
+  ipAdapterReference: string;
+  ipAdapterWeight: number;
+  ipAdapterReferenceB: string;
+  ipAdapterWeightB: number;
   // Scenes
   scenes: Scene[];
   currentSceneIndex: number;
   isGenerating: boolean;
+  multiGenEnabled: boolean;
+  referenceImages: ReferenceImage[];
+  // Validation
+  validationResults: Record<string, SceneValidation>;
+  validationSummary: { ok: number; warn: number; error: number };
+  imageValidationResults: Record<string, ImageValidation>;
+  validatingSceneId: string | null;
+  markingStatusSceneId: string | null;
+  // UI state per scene
+  sceneTab: Record<string, "validate" | "debug" | null>;
+  sceneMenuOpen: string | null;
+  advancedExpanded: Record<string, boolean>;
+  suggestionExpanded: Record<string, boolean>;
+  validationExpanded: Record<string, boolean>;
   // Image generation progress (SSE)
   imageGenProgress: Record<string, ImageGenProgress>;
   // Optimistic locking
@@ -109,7 +156,7 @@ interface StoryboardStore {
 }
 ```
 
-**Transient 필드** (persistence 제외): `isDirty`, `isGenerating`, `validatingSceneId`, `validationResults`, `imageGenProgress`, `loraTriggerWords`, `characterLoras`, `characterPromptMode` 등.
+**Transient 필드** (persistence 제외): `isDirty`, `isGenerating`, `validatingSceneId`, `markingStatusSceneId`, `sceneTab`, `sceneMenuOpen`, `advancedExpanded`, `suggestionExpanded`, `validationExpanded`, `validationResults`, `validationSummary`, `imageValidationResults`, `imageGenProgress`, `loraTriggerWords`, `characterLoras`, `characterPromptMode`.
 
 ### `useRenderStore` 상세
 
@@ -118,26 +165,57 @@ interface StoryboardStore {
 ```typescript
 interface RenderStore {
   // Style Profile
-  currentStyleProfile: { id; name; sd_model_name; loras; ... } | null;
+  currentStyleProfile: {
+    id: number;
+    name: string;
+    display_name: string | null;
+    sd_model_name: string | null;
+    loras: { name: string; trigger_words: string[]; weight: number }[];
+    negative_embeddings: { name: string; trigger_word: string }[];
+    positive_embeddings: { name: string; trigger_word: string }[];
+    default_positive: string | null;
+    default_negative: string | null;
+  } | null;
   // Layout & Effects
   layoutStyle: "full" | "post";
+  frameStyle: string;
   kenBurnsPreset: KenBurnsPreset;
+  kenBurnsIntensity: number;
   transitionType: string;
+  isRendering: boolean;
+  includeSceneText: boolean;
   // Audio
+  bgmList: AudioItem[];
   bgmFile: string | null;
   bgmMode: "file" | "ai";
+  audioDucking: boolean;
+  bgmVolume: number;
+  speedMultiplier: number;
   ttsEngine: "qwen";
+  voiceDesignPrompt: string;
   voicePresetId: number | null;
   musicPresetId: number | null;
+  // Font / Scene Text
+  fontList: FontItem[];
+  sceneTextFont: string;
+  loadedFonts: Set<string>;
+  // Caption / Overlay
+  videoCaption: string;
+  videoLikesCount: string;
+  overlaySettings: OverlaySettings;
+  postCardSettings: PostCardSettings;
+  overlayAvatarUrl: string | null;
+  postAvatarUrl: string | null;
   // Output
   videoUrl: string | null;
   videoUrlFull: string | null;
   videoUrlPost: string | null;
   recentVideos: RecentVideo[];
   renderProgress: RenderProgress | null;
-  // ...
 }
 ```
+
+**Transient 필드** (persistence 제외): `isRendering`, `renderProgress`, `bgmList`, `fontList`, `loadedFonts`, `sceneTextFont`, `overlayAvatarUrl`, `postAvatarUrl`.
 
 ### `resetAllStores()` (일괄 초기화)
 
@@ -184,7 +262,7 @@ async function resetAllStores(options?: { reloadGroupDefaults?: boolean }) {
 | `styleProfileActions.ts` | Style Profile 선택/적용 |
 | `youtubeActions.ts` | YouTube OAuth 및 업로드 |
 
-> Phase 7-4에서 `imageActions.ts`가 `imageGeneration.ts` + `imageProcessing.ts`로 분리됨. `imageActions.ts`는 facade로 유지.
+> `imageActions.ts`가 `imageGeneration.ts` + `imageProcessing.ts`로 분리됨. `imageActions.ts`는 facade로 유지.
 
 ---
 
@@ -194,7 +272,7 @@ async function resetAllStores(options?: { reloadGroupDefaults?: boolean }) {
 
 | 파일 | 역할 |
 |------|------|
-| `projectSelectors.ts` | 현재 프로젝트/그룹 관련 파생 상태 (`getCurrentProject`, `hasValidProfile`, `getChannelAvatarUrl`) |
+| `projectSelectors.ts` | 현재 프로젝트/그룹 관련 파생 상태 (`getCurrentProject`, `hasValidProfile`, `getChannelAvatarUrl`, `resolveAvatarUrl`) |
 
 ---
 
@@ -213,6 +291,7 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 | **`useStudioOnboarding`** | 첫 실행 온보딩 가이드 |
 | **`useTagClassifier`** | 태그 자동 분류 |
 | **`useBackendHealth`** | Backend 연결 상태 감지 (10초 polling, 3회 실패 threshold) |
+| **`useTags`** | 태그 목록 조회 및 그룹화 |
 
 ### 도메인 Hooks
 
@@ -225,7 +304,6 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 | **`useProjectGroups`** | Project/Group 목록 로드 및 CRUD |
 | **`useStudioKanban`** | 칸반 보드 스토리보드 목록 (draft/in_prod/rendered/published) |
 | **`useStoryboards`** | 스토리보드 목록 로드 (Library 페이지) |
-| **`useTags`** | 태그 목록 조회 및 그룹화 |
 | **`useTagValidation`** | 태그 충돌/의존성 검증 |
 | **`usePresets`** | 프리셋/언어/스텝 메타데이터 로드 |
 | **`useVoicePresets`** | 음성 프리셋 CRUD 및 TTS 미리듣기 |
@@ -239,24 +317,26 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 
 ---
 
-## 5. 페이지 구조 (Phase 7-Y)
+## 5. 페이지 구조
 
 ```
 (app)/
-  page.tsx              # Home (대시보드)
-  studio/page.tsx       # Studio (3탭: Script / Edit / Publish)
-  library/page.tsx      # Library (스토리보드 목록, 칸반 보드)
-  settings/page.tsx     # Settings (Project/Group 관리)
-  characters/           # 캐릭터 관리 (목록, 상세, 신규)
-  storyboards/page.tsx  # 스토리보드 관리
-  voices/page.tsx       # 음성 프리셋 관리
-  music/page.tsx        # 음악 프리셋 관리
-  backgrounds/page.tsx  # 배경 에셋 관리
-  scripts/page.tsx      # 스크립트 관리
-  lab/page.tsx          # Lab (비활성화)
+  page.tsx                  # Home (대시보드)
+  studio/page.tsx           # Studio (3탭: Script / Edit / Publish)
+  library/page.tsx          # Library (7탭: Characters, Backgrounds, Styles, Voices, Music, Prompts, Tags)
+  settings/page.tsx         # Settings (5탭: General, Memory, Presets, YouTube, Trash)
+  characters/page.tsx       # 캐릭터 목록
+  characters/[id]/page.tsx  # 캐릭터 상세
+  characters/new/page.tsx   # 캐릭터 신규 생성
+  characters/builder/       # 캐릭터 빌더 (위자드 UI)
+  storyboards/page.tsx      # 스토리보드 관리
+  voices/page.tsx           # 음성 프리셋 관리
+  music/page.tsx            # 음악 프리셋 관리
+  backgrounds/page.tsx      # 배경 에셋 관리
+  scripts/page.tsx          # 스크립트 관리
+  lab/page.tsx              # Lab (실험 기능)
+  pipeline-demo/page.tsx    # 파이프라인 데모
 ```
-
-> Phase 7-Y 변경: 기존 `manage/` -> `library/` + `settings/`로 분리. Lab은 비활성화 상태.
 
 ---
 
@@ -300,4 +380,4 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 
 ---
 
-**Last Updated:** 2026-02-16
+**Last Updated:** 2026-02-18

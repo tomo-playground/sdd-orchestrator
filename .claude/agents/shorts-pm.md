@@ -113,17 +113,23 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 
 ```
 docs/
+├── 00_meta/          # 문서 관리 규칙
 ├── 01_product/       # 제품 (PRD, 로드맵, 기능 명세)
 │   ├── ROADMAP.md    # 상태 추적
 │   ├── PRD.md        # 제품 요구사항
-│   └── FEATURES/     # 기능별 what/why
+│   └── FEATURES/     # 기능별 what/why (20개 명세)
+├── 02_design/        # UI/UX 설계
+│   ├── UI_PROPOSAL.md
+│   ├── STUDIO_DESIGN_GUIDE.md
+│   └── wireframes/
 ├── 03_engineering/   # 기술 설계 how
 │   ├── api/          # REST API
-│   ├── architecture/ # DB 스키마
-│   ├── backend/      # 프롬프트, 렌더링
+│   ├── architecture/ # DB 스키마, 시스템 개요
+│   ├── backend/      # 프롬프트, 렌더링, Agent, Soft Delete
 │   ├── frontend/     # 상태 관리
-│   └── testing/      # 테스트 전략/시나리오
-├── 04_operations/    # 운영
+│   └── testing/      # 테스트 전략/시나리오/VRT 가이드
+├── 04_operations/    # 운영 (배포, SD, TTS, 스토리지)
+├── 99_archive/       # 완료 문서 아카이브
 └── guides/           # CONTRIBUTING
 ```
 

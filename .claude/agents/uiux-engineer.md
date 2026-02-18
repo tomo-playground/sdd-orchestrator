@@ -40,22 +40,55 @@ allowed_tools: ["mcp__playwright__*", "mcp__memory__*"]
 ## 현재 UI 구조
 
 ```
-frontend/app/
-├── page.tsx              # Studio 메인 (스토리보드 + 이미지 생성)
-├── studio/page.tsx       # Studio V2
-├── manage/page.tsx       # 관리 (Settings/Assets/Tags/Style/Prompts/Eval)
-└── components/
-    ├── setup/            # PromptSetupPanel
-    ├── storyboard/       # SceneCard
-    ├── studio/           # ScenesTab
-    ├── prompt/           # ComposedPromptPreview
-    ├── analytics/        # AnalyticsDashboard
-    └── quality/          # QualityDashboard
+frontend/app/(app)/            # (app) 라우트 그룹
+├── page.tsx                   # Home
+├── studio/page.tsx            # Studio (메인 작업 공간)
+├── storyboards/page.tsx       # 스토리보드 목록
+├── characters/                # 캐릭터 관리
+│   ├── page.tsx               # 목록
+│   ├── new/page.tsx           # 신규 생성
+│   ├── [id]/page.tsx          # 상세/편집
+│   ├── builder/               # 캐릭터 빌더
+│   └── shared/                # 공유 컴포넌트
+├── library/page.tsx           # 라이브러리 (LoRA, 태그, 스타일, 프롬프트)
+├── settings/page.tsx          # 설정
+├── backgrounds/page.tsx       # 배경 관리
+├── voices/page.tsx            # 음성 관리
+├── scripts/page.tsx           # 스크립트 관리
+├── music/page.tsx             # 음악 관리
+├── lab/page.tsx               # Creative Lab
+└── pipeline-demo/page.tsx     # 파이프라인 데모
+
+frontend/app/components/       # 공유 컴포넌트
+├── analytics/                 # 분석 대시보드
+├── common/                    # 공통 UI
+├── context/                   # Context Provider
+├── home/                      # 홈 화면
+├── lab/                       # Lab 컴포넌트
+├── layout/                    # 레이아웃
+├── manage/                    # 관리 화면
+├── prompt/                    # 프롬프트
+├── quality/                   # 품질 대시보드
+├── scripts/                   # 스크립트
+├── setup/                     # 설정 패널
+├── shared/                    # 공유
+├── shell/                     # 쉘 (NavBar 등)
+├── storyboard/                # 스토리보드
+├── studio/                    # 스튜디오
+├── ui/                        # UI 기본 요소
+├── video/                     # 비디오
+├── voice/                     # 음성
+└── youtube/                   # YouTube
 ```
 
 ### 상태 관리
-- Zustand (`app/store/useStudioStore.ts`)
-- planSlice, scenesSlice로 분리
+- Zustand (4개 스토어로 분리):
+  - `app/store/useStoryboardStore.ts` - 스토리보드/씬 상태
+  - `app/store/useContextStore.ts` - 컨텍스트 상태
+  - `app/store/useRenderStore.ts` - 렌더링 상태
+  - `app/store/useUIStore.ts` - UI 상태
+  - `app/store/actions/` - 14개 액션 모듈
+  - `app/store/selectors/` - 셀렉터
 
 ---
 
@@ -109,6 +142,12 @@ browser_navigate → browser_take_screenshot (전체)
 ### 디자인 문서 (주 관리 영역)
 - `docs/02_design/` - 디자인 디렉토리 (신규 UI 제안서/와이어프레임은 여기에 배치)
   - `UI_PROPOSAL.md` - UI 제안서
+  - `UI_COMPONENTS.md` - UI 컴포넌트 가이드
+  - `STUDIO_DESIGN_GUIDE.md` - Studio 디자인 가이드
+  - `DESIGN_PHILOSOPHY.md` - 디자인 철학
+  - `UX_FLOW_ANALYSIS.md` - UX 플로우 분석
+  - `MANAGE_SIDEBAR_NAV.md` - 사이드바 네비게이션
+  - `HOME_VIDEO_GALLERY_PROPOSAL.md` - 홈 비디오 갤러리
   - `wireframes/` - 와이어프레임
 
 ### 제품 문서
@@ -117,7 +156,11 @@ browser_navigate → browser_take_screenshot (전체)
   - `UX_IMPROVEMENTS.md` - UX 개선 백로그
   - `SCENE_BUILDER_UI.md` - 씬 빌더 UI 명세
   - `CHARACTER_BUILDER.md` - 캐릭터 빌더 명세
+  - `CHARACTER_PAGE.md` - 캐릭터 페이지 명세
   - `VISUAL_TAG_BROWSER.md` - 비주얼 태그 브라우저
+  - `SCENE_UX_ENHANCEMENT.md` - 씬 UX 강화
+  - `SCRIPT_QUALITY_UX.md` - 스크립트 품질 UX
+  - `STUDIO_VERTICAL_ARCHITECTURE.md` - Studio 수직 아키텍처
 
 ### 기술 문서
 - `docs/03_engineering/frontend/STATE_MANAGEMENT.md` - 상태 관리 패턴
