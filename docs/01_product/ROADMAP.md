@@ -71,7 +71,6 @@
 | Phase 1.5: UX 정리 | Channel Profile → Project 통합, 캐릭터 글로벌화, +New Storyboard 그룹 내부 이동, Studio UX Polish | [x] |
 | Phase 1.7: Group Defaults | 그룹 cascade 확장 (language, structure, duration, narrator_voice), Manage 그룹 기본값 편집 UI. [명세](../99_archive/features/GROUP_DEFAULTS.md) | [x] |
 | Phase 2-1: Channel DNA | 그룹별 톤/세계관/가이드라인 JSONB 저장 + Gemini 스토리보드 자동 주입 | [x] |
-| Phase 2-2~3: Intelligence | Tag Intelligence, Series Intelligence → Phase 9 Agentic Pipeline에서 통합 | [ ] |
 | Phase 3: Advanced | 배치 렌더링, 브랜딩, 분석 대시보드 | [ ] |
 
 **Phase 1.5 세부 완료 항목** (2026-02-02):
@@ -201,7 +200,7 @@ Home 페이지 "창작 대시보드" 전환 완료. **전체 5개 항목 완료*
 ## Phase 10: True Agentic Architecture - ARCHIVED
 
 DAG Workflow → Agentic AI 전환 완료. **전체 10개 항목 완료** (2026-02-18).
-**명세**: [TRUE_AGENTIC_ARCHITECTURE.md](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
+**명세**: [AGENTIC_PIPELINE.md](FEATURES/AGENTIC_PIPELINE.md) (Phase 10 섹션)
 
 | 섹션 | 핵심 성과 | 상태 |
 |------|----------|------|
@@ -249,6 +248,8 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Scene Clothing Override (장면별 의상 변경) | [명세](FEATURES/SCENE_CLOTHING_OVERRIDE.md) |
 | Scene 단위 자연어 이미지 편집 | [명세](FEATURES/SCENE_IMAGE_EDIT.md) |
+| Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
+| Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
 | ~~AI BGM Generation~~ | ~~[명세](../99_archive/features/AI_BGM.md)~~ → 6-8 #7-11로 이동 (완료) |
 | Storyboard Version History | - |
 | LoRA Calibration Automation | - |
