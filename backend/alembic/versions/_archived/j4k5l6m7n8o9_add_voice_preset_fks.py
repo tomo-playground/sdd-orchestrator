@@ -8,8 +8,9 @@ Revises: i3j4k5l6m7n8
 Create Date: 2026-02-04
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "j4k5l6m7n8o9"
 down_revision = "i3j4k5l6m7n8"

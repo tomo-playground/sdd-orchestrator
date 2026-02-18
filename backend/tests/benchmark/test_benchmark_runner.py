@@ -11,7 +11,7 @@ run_benchmark.py의 핵심 기능 검증:
 import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 

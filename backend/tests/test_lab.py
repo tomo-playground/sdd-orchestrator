@@ -6,7 +6,7 @@ Phase 1: Updated for V3 Prompt Engine integration.
 
 import base64
 from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from PIL import Image
@@ -49,7 +49,6 @@ class TestRunExperiment:
 
         Phase 1: Uses generate_image_with_v3() instead of direct SD call.
         """
-        from models.group import Group
 
         # Setup: Create a group (required for V3)
         group = _create_test_group(db_session)
@@ -121,7 +120,6 @@ class TestRunExperiment:
 
         Phase 1: Lab mode catches exceptions and continues with partial result.
         """
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -158,7 +156,6 @@ class TestRunExperiment:
 
         Phase 1: Lab mode error handling.
         """
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -191,7 +188,6 @@ class TestRunBatch:
 
         Phase 1: All experiments use the same group_id for consistent Style Profile.
         """
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -222,7 +218,6 @@ class TestRunBatch:
     @pytest.mark.asyncio
     async def test_batch_respects_max_size(self, db_session):
         """Batch count is capped at LAB_BATCH_MAX_SIZE."""
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -255,7 +250,6 @@ class TestAggregateTagEffectiveness:
 
     def test_aggregate_from_experiments(self, db_session):
         """Aggregate match/use counts from completed experiments."""
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -296,7 +290,6 @@ class TestAggregateTagEffectiveness:
 
     def test_aggregate_ignores_failed(self, db_session):
         """Only completed experiments are counted."""
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -321,7 +314,6 @@ class TestAggregateTagEffectiveness:
 
     def test_aggregate_avg_match_rate(self, db_session):
         """Average match rate is computed from completed experiments."""
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)
@@ -353,7 +345,6 @@ class TestSyncToEngine:
 
     def test_sync_creates_effectiveness_records(self, db_session):
         """sync_to_engine creates/updates TagEffectiveness records."""
-        from models.group import Group
         from models.tag import Tag, TagEffectiveness
 
         group = _create_test_group(db_session)
@@ -398,7 +389,6 @@ class TestSyncToEngine:
 
     def test_sync_skips_unknown_tags(self, db_session):
         """Tags not in DB are skipped (no TagEffectiveness created)."""
-        from models.group import Group
 
         group = _create_test_group(db_session)
         db_session.add(group)

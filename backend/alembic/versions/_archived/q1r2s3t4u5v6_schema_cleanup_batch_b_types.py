@@ -10,8 +10,9 @@ Batch B: Type corrections
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "q1r2s3t4u5v6"
 down_revision = "p0q1r2s3t4u5"

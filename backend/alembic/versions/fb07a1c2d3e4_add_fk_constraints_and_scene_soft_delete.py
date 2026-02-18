@@ -14,6 +14,7 @@ Create Date: 2026-02-07
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "fb07a1c2d3e4"

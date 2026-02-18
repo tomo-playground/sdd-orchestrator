@@ -8,9 +8,9 @@ Covers:
 """
 
 import pytest
+from conftest import create_test_storyboard
 from fastapi.testclient import TestClient
 
-from conftest import create_test_storyboard
 from models.media_asset import MediaAsset
 from models.scene import Scene
 from schemas import SceneCandidate, StoryboardScene

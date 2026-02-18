@@ -1,6 +1,9 @@
-from sqlalchemy import text
-from database import engine
 import json
+
+from sqlalchemy import text
+
+from database import engine
+
 
 def get_storyboard_info(storyboard_id):
     with engine.connect() as conn:
@@ -9,7 +12,7 @@ def get_storyboard_info(storyboard_id):
         if not sb_res:
             print(f"Storyboard {storyboard_id} not found.")
             return
-        
+
         sb_data = dict(sb_res._mapping)
         print(f"--- Storyboard {storyboard_id} ---")
         print(json.dumps({k: str(v) for k, v in sb_data.items()}, indent=2, ensure_ascii=False))
@@ -30,7 +33,7 @@ def get_storyboard_info(storyboard_id):
             print(f"Scene {s_data['order']}: match_rate=None, TTS=None, Image={image_url}")
             print(f"  Script: {s_data.get('script')}")
             print(f"  Caption: {s_data.get('caption')}")
-            
+
             # Check for match_rate from activity_logs or scene_quality_scores
             score_res = conn.execute(text("SELECT match_rate FROM scene_quality_scores WHERE scene_id = :sid ORDER BY validated_at DESC LIMIT 1"), {"sid": s_data['id']}).fetchone()
             if score_res:

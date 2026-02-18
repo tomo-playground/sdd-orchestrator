@@ -30,7 +30,7 @@ def api_list_presets(category: str | None = None, db: Session = Depends(get_db))
     if category:
         query = query.filter(CreativeAgentPreset.category == category)
     presets = query.order_by(CreativeAgentPreset.id).all()
-    
+
     from config import BASE_DIR, CREATIVE_AGENT_TEMPLATES
 
     # Attach template content for informational purposes in UI

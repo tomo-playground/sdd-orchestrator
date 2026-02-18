@@ -5,8 +5,9 @@ Revises: h2i3j4k5l6m7
 Create Date: 2026-02-03
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "i3j4k5l6m7n8"
 down_revision = "h2i3j4k5l6m7"

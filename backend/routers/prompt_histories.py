@@ -1,6 +1,6 @@
 """Prompt History CRUD endpoints."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc
@@ -135,7 +135,7 @@ async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
 
-    history.deleted_at = datetime.now(timezone.utc)
+    history.deleted_at = datetime.now(UTC)
     db.commit()
     logger.info("[PromptHistory] Soft deleted: %s (id=%d)", history.name, history_id)
     return {"ok": True, "deleted": history.name}

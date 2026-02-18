@@ -373,7 +373,7 @@ def render_scene_text_image(
 
     # Full layout - 하단 배치 (피사체 보호 및 Safe Zone 확보)
     base_subtitle_size = font_size_override if font_size_override else int(height * 0.042)
-    
+
     # Apply dynamic font sizing based on text length (if not overridden)
     if font_size_override is None and lines:
         # Use first line for font size calculation
@@ -381,7 +381,7 @@ def render_scene_text_image(
         subtitle_size = calculate_optimal_font_size(combined_text, base_subtitle_size)
     else:
         subtitle_size = base_subtitle_size
-    
+
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
     line_height = int(subtitle_size * 1.45)
@@ -401,14 +401,14 @@ def render_scene_text_image(
     text_color = (255, 255, 255, 255)  # Default: white
     stroke_color = (0, 0, 0, 255)  # Default: black stroke
     shadow_color = (0, 0, 0, 120)  # Default: black shadow
-    
+
     if background_image is not None:
         from services.image import analyze_text_region_brightness
-        
+
         # Analyze brightness at text position
         y_ratio = scene_text_y_ratio if scene_text_y_ratio is not None else 0.70
         brightness = analyze_text_region_brightness(background_image, y_ratio)
-        
+
         # Bright background (>180) → black text with white stroke
         if brightness > 180:
             text_color = (0, 0, 0, 255)  # Black text
@@ -1078,7 +1078,7 @@ def compose_post_frame(
 
 
     # Smart crop with face detection
-    from services.image import detect_face, calculate_face_centered_crop
+    from services.image import calculate_face_centered_crop, detect_face
 
     img_w, img_h = image_rgb.size
     face_rect = detect_face(image_rgb)

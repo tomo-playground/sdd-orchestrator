@@ -1,9 +1,9 @@
 
-import os
-import sys
 import json
-from sqlalchemy import create_engine, text
+import os
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
 # Load environment variables
 load_dotenv()
@@ -14,7 +14,7 @@ def get_or_create_tag(conn, tag_name):
     res = conn.execute(text("SELECT id FROM tags WHERE name = :name"), {"name": tag_name}).fetchone()
     if res:
         return res[0]
-    
+
     # Insert new tag with required non-nullable columns
     res = conn.execute(text("""
         INSERT INTO tags (name, is_active, default_layer, priority, wd14_count, wd14_category, usage_scope) 
@@ -39,7 +39,7 @@ def polish_sb_416():
 
         # 2. Add Scene Tags and Character Actions
         scenes = conn.execute(text("SELECT id, \"order\", script FROM scenes WHERE storyboard_id = :id ORDER BY \"order\""), {"id": storyboard_id}).fetchall()
-        
+
         # Clear existing to avoid duplicates during demo
         for s in scenes:
             conn.execute(text("DELETE FROM scene_tags WHERE scene_id = :sid"), {"sid": s[0]})
@@ -48,10 +48,10 @@ def polish_sb_416():
         for s in scenes:
             sid = s[0]
             order = s[1]
-            
+
             tags = []
             char_tags = [] # For scene_character_actions
-            
+
             if order == 0: # Spring
                 tags = ["cherry blossoms", "pollen flying"]
                 char_tags = ["sneezing", "rubbing eyes", "annoyed face"]
@@ -70,27 +70,27 @@ def polish_sb_416():
             elif order >= 6: # Indoor Paradise
                 tags = ["modern living room", "air conditioner", "warm lighting"]
                 char_tags = ["relaxing on sofa", "happy smile", "blissful"]
-            
+
             # Insert scene tags and update context_tags for TTS
             context_data = {
                 "visual_tags": tags,
                 "character_actions": char_tags,
                 "mood": char_tags[0] if char_tags else "neutral"
             }
-            
+
             conn.execute(text("UPDATE scenes SET context_tags = :ctx WHERE id = :sid"), {"ctx": json.dumps(context_data), "sid": sid})
 
             for t_name in tags:
                 tid = get_or_create_tag(conn, t_name)
                 conn.execute(text("INSERT INTO scene_tags (scene_id, tag_id, weight) VALUES (:sid, :tid, 1.0)"), {"sid": sid, "tid": tid})
-            
+
             # Insert character actions (represented as tags in this schema)
             for t_name in char_tags:
                 tid = get_or_create_tag(conn, t_name)
                 conn.execute(text("INSERT INTO scene_character_actions (scene_id, character_id, tag_id, weight) VALUES (:sid, 9, :tid, 1.0)"), {"sid": sid, "tid": tid})
-            
+
             print(f"  Scene {order}: Refined with {len(tags) + len(char_tags)} tags.")
-        
+
         conn.commit()
     print("Polishing data update complete.")
 

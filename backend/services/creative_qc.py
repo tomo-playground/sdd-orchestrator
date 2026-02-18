@@ -214,7 +214,7 @@ def validate_tts_design(tts_designs: list[dict]) -> dict:
         if not d.get("voice_design_prompt"):
             prompt_ok = False
             issues.append(f"Scene {i}: missing voice_design_prompt")
-        
+
         pacing = d.get("pacing", {})
         head = pacing.get("head_padding", 0)
         tail = pacing.get("tail_padding", 0)

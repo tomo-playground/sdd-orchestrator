@@ -1,6 +1,8 @@
+
 from sqlalchemy import text
+
 from database import engine
-import json
+
 
 def analyze_tts(storyboard_id):
     with engine.connect() as conn:
@@ -9,12 +11,12 @@ def analyze_tts(storyboard_id):
             text("SELECT id, title, group_id, language FROM storyboards WHERE id = :id"),
             {"id": storyboard_id}
         ).fetchone()
-        
+
         if not storyboard:
             print(f"Storyboard {storyboard_id} not found.")
             return
 
-        print(f"--- Storyboard Info ---")
+        print("--- Storyboard Info ---")
         print(f"ID: {storyboard.id}")
         print(f"Title: {storyboard.title}")
         print(f"Group ID: {storyboard.group_id}")
@@ -30,8 +32,8 @@ def analyze_tts(storyboard_id):
             """),
             {"group_id": storyboard.group_id}
         ).fetchone()
-        
-        print(f"\n--- Narrator Voice config ---")
+
+        print("\n--- Narrator Voice config ---")
         if group_config:
             print(f"Narrator Voice Preset ID: {group_config.narrator_voice_preset_id}")
             print(f"Voice Name: {group_config.voice_name}")
@@ -51,8 +53,8 @@ def analyze_tts(storyboard_id):
             """),
             {"id": storyboard_id}
         ).fetchall()
-        
-        print(f"\n--- Characters Config ---")
+
+        print("\n--- Characters Config ---")
         for char in characters:
             print(f"Speaker: {char.speaker}")
             print(f"Name: {char.name}")
@@ -73,8 +75,8 @@ def analyze_tts(storyboard_id):
             """),
             {"id": storyboard_id}
         ).fetchall()
-        
-        print(f"\n--- Scenes and TTS Assets ---")
+
+        print("\n--- Scenes and TTS Assets ---")
         for scene in scenes:
             print(f"Scene {scene.order} | Speaker: {scene.speaker} | Duration: {scene.duration}")
             print(f"Script: {scene.script}")
@@ -95,8 +97,8 @@ def analyze_tts(storyboard_id):
             """),
             {"id": storyboard_id}
         ).fetchall()
-        
-        print(f"\n--- Recent Activity Logs ---")
+
+        print("\n--- Recent Activity Logs ---")
         if logs:
             for log in logs:
                 print(f"[{log.created_at}] Status: {log.status} | Prompt: {log.prompt[:50]}...")

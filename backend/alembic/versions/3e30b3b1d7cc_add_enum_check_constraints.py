@@ -5,15 +5,15 @@ Revises: 22e99aa5ecbd
 Create Date: 2026-02-10
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '3e30b3b1d7cc'
-down_revision: Union[str, Sequence[str], None] = '22e99aa5ecbd'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '22e99aa5ecbd'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Existing constraints to drop & recreate with expanded values
 DROP_FIRST = [

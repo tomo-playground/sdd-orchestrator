@@ -11,16 +11,15 @@ Revises: 3230ffab804a
 Create Date: 2026-02-06 17:07:37.528518
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision: str = '86e56cbb96b7'
-down_revision: Union[str, Sequence[str], None] = '3230ffab804a'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '3230ffab804a'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

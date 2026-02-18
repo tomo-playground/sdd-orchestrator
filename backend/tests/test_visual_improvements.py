@@ -1,6 +1,5 @@
 """Tests for visual quality improvements (blur, text color, font size)."""
 
-import io
 
 import pytest
 from PIL import Image
@@ -39,7 +38,7 @@ class TestTextRegionBrightness:
             gray_value = int((y / 768) * 255)
             for x in range(512):
                 pixels[x, y] = (gray_value, gray_value, gray_value)
-        
+
         # Text region at 70% should be relatively bright
         brightness = analyze_text_region_brightness(gradient, 0.7)
         assert brightness > 150, f"Expected brightness > 150 for gradient at 70%, got {brightness}"
@@ -88,7 +87,7 @@ class TestOptimalFontSize:
         # Very large base size should be clamped
         size = calculate_optimal_font_size("short", base_font_size=100)
         assert size == 48, f"Expected 48 (max), got {size}"
-        
+
         # Very small base size should be clamped
         size = calculate_optimal_font_size("this is a very long text with more than sixty characters in total", base_font_size=10)
         assert size == 32, f"Expected 32 (min), got {size}"
@@ -100,10 +99,10 @@ class TestAdaptiveTextColor:
     def test_bright_background_black_text(self):
         """Bright background should render black text."""
         from services.rendering import render_scene_text_image
-        
+
         # Create bright background
         bright_bg = Image.new("RGB", (512, 768), (240, 240, 240))
-        
+
         # Render scene text with bright background
         result = render_scene_text_image(
             lines=["테스트 텍스트"],
@@ -114,7 +113,7 @@ class TestAdaptiveTextColor:
             post_layout_metrics=None,
             background_image=bright_bg,
         )
-        
+
         # Result should be a valid RGBA image
         assert result.mode == "RGBA"
         assert result.size == (512, 768)
@@ -122,10 +121,10 @@ class TestAdaptiveTextColor:
     def test_dark_background_white_text(self):
         """Dark background should render white text (default)."""
         from services.rendering import render_scene_text_image
-        
+
         # Create dark background
         dark_bg = Image.new("RGB", (512, 768), (20, 20, 20))
-        
+
         # Render scene text with dark background
         result = render_scene_text_image(
             lines=["테스트 텍스트"],
@@ -136,7 +135,7 @@ class TestAdaptiveTextColor:
             post_layout_metrics=None,
             background_image=dark_bg,
         )
-        
+
         # Result should be a valid RGBA image
         assert result.mode == "RGBA"
         assert result.size == (512, 768)
@@ -144,7 +143,7 @@ class TestAdaptiveTextColor:
     def test_no_background_image_default_white(self):
         """No background image should use default white text."""
         from services.rendering import render_scene_text_image
-        
+
         # Render scene text without background image
         result = render_scene_text_image(
             lines=["테스트 텍스트"],
@@ -155,7 +154,7 @@ class TestAdaptiveTextColor:
             post_layout_metrics=None,
             background_image=None,  # No background
         )
-        
+
         # Result should be a valid RGBA image
         assert result.mode == "RGBA"
         assert result.size == (512, 768)

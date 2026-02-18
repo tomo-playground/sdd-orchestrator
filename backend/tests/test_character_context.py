@@ -6,13 +6,10 @@ Covers:
 - Jinja2 template: character_context block rendering
 """
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from schemas import StoryboardRequest
 from services.storyboard import _load_character_context
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

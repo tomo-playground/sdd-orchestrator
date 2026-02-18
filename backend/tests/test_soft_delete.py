@@ -8,9 +8,7 @@ Covers:
 - Storyboard soft delete preserves scenes
 """
 
-import pytest
 from tests.conftest import create_test_storyboard
-
 
 # ============================================================
 # Storyboard Soft Delete

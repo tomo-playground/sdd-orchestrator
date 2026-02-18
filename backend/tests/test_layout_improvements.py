@@ -1,6 +1,5 @@
 """Tests for layout improvements (Post Type dynamic height, Full Type safe zones)."""
 
-import io
 
 import pytest
 from PIL import Image

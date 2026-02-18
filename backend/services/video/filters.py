@@ -57,7 +57,7 @@ def add_scene_text_inputs(builder: VideoBuilder) -> None:
         # Calculate dynamic subtitle position based on image content
         scene_img_path = builder.temp_dir / f"scene_{i}.png"
         subtitle_y_ratio = _calc_subtitle_y(builder, scene_img_path, i)
-        
+
         # Load scene image for adaptive text color (Full layout only)
         scene_img = None
         if not builder.use_post_layout and scene_img_path.exists():
@@ -251,11 +251,11 @@ def build_audio_filters(builder: VideoBuilder) -> None:
         clip_dur = builder.scene_durations[i] + (
             builder.transition_dur if i < builder.num_scenes - 1 else 0
         )
-        
+
         # Delay audio start by transition duration + agent-designed head padding
         h_pad = getattr(scene, "head_padding", 0.0) or 0.0
         delay_ms = int((builder.transition_dur + h_pad) * 1000)
-        
+
         builder.filters.append(
             f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,"
             f"adelay={delay_ms}|{delay_ms},apad,"

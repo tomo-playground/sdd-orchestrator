@@ -1,5 +1,7 @@
 from sqlalchemy import text
+
 from database import engine
+
 
 def get_scene_tags(storyboard_id):
     with engine.connect() as conn:
@@ -7,7 +9,7 @@ def get_scene_tags(storyboard_id):
         for s in scenes:
             print(f"\n--- Scene {s.order} ({s.id}) ---")
             print(f"Script: {s.script}")
-            
+
             # Tags from scene_tags
             tags = conn.execute(text("""
                 SELECT t.name, st.weight 

@@ -5,15 +5,15 @@ Revises: 4c37698107e5
 Create Date: 2026-02-10
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '22e99aa5ecbd'
-down_revision: Union[str, Sequence[str], None] = '4c37698107e5'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '4c37698107e5'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Tables that have 'active' column to rename to 'is_active'
 TABLES = ['tag_rules', 'tag_aliases', 'tag_filters', 'classification_rules']
