@@ -83,23 +83,26 @@ async def call_generate_api(
         ) as response:
             response.raise_for_status()
 
-            # SSE 이벤트 파싱 - 모든 이벤트를 수집하고 마지막 completed 이벤트 사용
+            # SSE 이벤트 파싱 - 스크립트 생성 결과를 포함한 마지막 이벤트 사용
             final_result = None
             async for line in response.aiter_lines():
-                if not line.startswith("data: "):
-                    continue
+                if not line.strip():
+                    continue  # 빈 줄 스킵
+
+                # SSE 형식: "data: {...}" 또는 바로 JSON
+                line_data = line[6:] if line.startswith("data: ") else line
 
                 try:
-                    data = json.loads(line[6:])  # "data: " 제거
+                    data = json.loads(line_data)
                 except json.JSONDecodeError:
                     continue  # 잘못된 JSON은 스킵
 
-                # status가 "completed"인 이벤트를 저장 (마지막 것을 사용)
-                if data.get("status") == "completed":
+                # scenes가 있는 데이터를 최종 결과로 저장
+                if "scenes" in data:
                     final_result = data
 
             if final_result is None:
-                raise RuntimeError("No complete event received from SSE stream")
+                raise RuntimeError("No script result received from SSE stream")
 
             return final_result
 
@@ -180,7 +183,8 @@ class BenchmarkRunner:
                 )
 
                 if result["status"] == "success":
-                    score = result.get("narrative_score", {}).get("total", 0)
+                    narrative_score = result.get("narrative_score") or {}
+                    score = narrative_score.get("total", 0) if narrative_score else 0
                     elapsed = result["elapsed_time"]
                     print(f"✓ Score={score:.2f}, Time={elapsed:.1f}s")
                 else:
