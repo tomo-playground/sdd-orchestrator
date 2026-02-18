@@ -120,7 +120,7 @@ backend/
 │   ├── generation.py            # SD WebUI 이미지 생성 (오케스트레이터)
 │   ├── image_generation_core.py # Studio+Lab 공유 생성 코어
 │   ├── style_context.py         # StyleContext VO (DB cascade SSOT)
-│   ├── config_resolver.py       # Config cascade (Project→Group)
+│   ├── config_resolver.py       # Config cascade (System Default→GroupConfig)
 │   ├── image.py                 # 이미지 처리/오버레이
 │   ├── controlnet.py            # ControlNet + IP-Adapter
 │   ├── lora_calibration.py      # LoRA 가중치 캘리브레이션
@@ -272,8 +272,7 @@ Apidog OAS 스펙을 조회하여 API 설계 시 참조합니다.
   - `MULTI_CHARACTER.md` - 다중 캐릭터
   - `SCENE_IMAGE_EDIT.md` - 씬 이미지 편집
   - `PROFILE_EXPORT_IMPORT.md` - 프로필 내보내기/가져오기
-  - `AGENTIC_PIPELINE.md` - Agentic Pipeline
-  - `TRUE_AGENTIC_ARCHITECTURE.md` - True Agentic Architecture
+  - `AGENTIC_PIPELINE.md` - Agentic Pipeline & True Agentic Architecture
   - `YOUTUBE_UPLOAD.md` - YouTube 업로드
   - `PROJECT_GROUP.md` - 프로젝트/그룹
 

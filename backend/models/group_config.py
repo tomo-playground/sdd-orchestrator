@@ -21,7 +21,7 @@ class GroupConfig(Base, TimestampMixin):
     """Separated configuration for a Group (1:1 relationship).
 
     Follows the DB Schema Design Principle: content tables != config tables.
-    Cascade order: System Default < Project < GroupConfig < Storyboard.
+    Cascade order: System Default < GroupConfig (2-level).
     """
 
     __tablename__ = "group_config"

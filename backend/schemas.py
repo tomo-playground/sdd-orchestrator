@@ -182,7 +182,7 @@ class GroupConfigResponse(BaseModel):
 
 
 class EffectiveConfigResponse(BaseModel):
-    """Resolved cascading config: Project < GroupConfig < Storyboard."""
+    """Resolved cascading config: System Default < GroupConfig (2-level)."""
 
     render_preset_id: int | None = None
     render_preset: RenderPresetResponse | None = None  # Full preset for frontend
@@ -196,7 +196,7 @@ class EffectiveConfigResponse(BaseModel):
     sd_sampler_name: str | None = None
     sd_clip_skip: int | None = None
     channel_dna: ChannelDNA | None = None
-    sources: dict[str, str] = {}  # field -> "project" | "group" | "storyboard"
+    sources: dict[str, str] = {}  # field -> "group" | "system_default"
 
 
 # ============================================================

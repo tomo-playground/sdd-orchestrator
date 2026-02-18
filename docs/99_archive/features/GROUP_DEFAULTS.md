@@ -77,10 +77,10 @@ CREATE TABLE group_config (
 ### Cascade 규칙
 
 ```
-System Default < Project Config < Group Config
+System Default < Group Config
 ```
 
-Group이 설정의 최하위 소유자. 스토리보드는 소속 그룹의 설정을 상속받는다.
+GroupConfig가 설정의 최종 소유자. 스토리보드는 소속 그룹의 설정을 상속받는다. (Project 모델에 config 필드는 없음; Identity만 Project에서 cascade)
 
 ## 관련 파일
 

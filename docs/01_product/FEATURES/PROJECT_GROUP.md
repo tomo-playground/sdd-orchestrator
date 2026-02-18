@@ -48,7 +48,7 @@
 | # | 통합 테마 | 원본 아이디어 (에이전트) | 엣지 등급 |
 |---|----------|------------------------|----------|
 | T1 | **계층 CRUD + DB 정합성** | DBA-1(FK+CASCADE), DBA-2(JSONB settings), DBA-7(2단계 마이그레이션) | Foundation |
-| T2 | **설정 상속 체인** | Backend-1(3단계 config 상속), Prompt-1(Style DNA), Prompt-5(Negative 프로필), FFmpeg-1(렌더링 프리셋), FFmpeg-2(BGM 프로필) | **Core Edge** |
+| T2 | **설정 상속 체인** | Backend-1(2단계 config 상속: System Default → GroupConfig), Prompt-1(Style DNA), Prompt-5(Negative 프로필), FFmpeg-1(렌더링 프리셋), FFmpeg-2(BGM 프로필) | **Core Edge** |
 | T3 | **Context Bar + Navigation** | Frontend-1(브레드크럼), UI/UX-1(계층 브레드크럼), UI/UX-2(Quick Switcher), Frontend-5(Cmd+K) | Core |
 | T4 | **프로젝트/그룹 템플릿** | Backend-2(프로젝트 템플릿), Frontend-4(Smart Group Templates), Storyboard-3(Template Story) | **Core Edge** |
 | T5 | **서사 톤 + 세계관 주입** | Storyboard-1(Narrative Tone), Storyboard-4(World Building), Storyboard-2(Recurring Character Pool) | **Top Edge** |
@@ -181,11 +181,11 @@ GET    /storyboards?group_id={id}   # 그룹별 스토리보드 필터
 
 > 원본: Backend-1, Prompt-1, Prompt-5, FFmpeg-1, FFmpeg-2
 
-**핵심 차별화**: 3단계 설정 상속 (Project -> Group -> Storyboard). 개별 스토리보드에서 오버라이드하지 않는 한, 상위 설정이 자동 적용. **다른 쇼츠 도구에는 없는 기능.**
+**핵심 차별화**: 2단계 설정 상속 (System Default → GroupConfig). GroupConfig에 값이 없으면 시스템 기본값 적용. **다른 쇼츠 도구에는 없는 기능.** (Identity — 채널명/아바타는 Project → Group → Storyboard ORM 관계로 전달)
 
 | # | 작업 | 담당 | 상태 |
 |---|------|------|------|
-| 1 | `services/config_resolver.py` - 3단계 설정 병합 엔진 구현 | Backend | [x] |
+| 1 | `services/config_resolver.py` - 2단계 설정 병합 엔진 구현 (System Default → GroupConfig) | Backend | [x] |
 | 2 | `GET /projects/{id}/effective-config` - 프로젝트 유효 설정 반환 | Backend | [x] |
 | 3 | `GET /groups/{id}/effective-config` - 그룹 유효 설정 (프로젝트 + 그룹 병합) | Backend | [x] |
 | 4 | 스토리보드 생성 시 Group의 effective_config 자동 주입 | Backend | [ ] |
@@ -196,15 +196,13 @@ GET    /storyboards?group_id={id}   # 그룹별 스토리보드 필터
 
 **설정 병합 규칙**:
 ```python
-def resolve_config(project_settings, group_settings, storyboard_overrides):
-    """3단계 Cascading: Project < Group < Storyboard (가장 구체적인 것이 우선)"""
+def resolve_config(group_config):
+    """2단계 Cascading: System Default < GroupConfig (GroupConfig 값이 우선)"""
     base = DEFAULT_CONFIG.copy()
-    # Level 1: Project 설정 덮어쓰기
-    deep_merge(base, project_settings or {})
-    # Level 2: Group 설정 덮어쓰기
-    deep_merge(base, group_settings or {})
-    # Level 3: Storyboard 개별 오버라이드
-    deep_merge(base, storyboard_overrides or {})
+    # GroupConfig에 설정된 값으로 덮어쓰기 (None이면 시스템 기본값 유지)
+    for field, value in group_config.items():
+        if value is not None:
+            base[field] = value
     return base
 ```
 
@@ -468,7 +466,7 @@ Phase 3 (Advanced)                       │ depends on Phase 2
 | 기존 storyboard 데이터 깨짐 | P0 | Phase 0에서 nullable FK + seed 데이터로 안전하게 이행 |
 | Settings JSONB 스키마 파편화 | P1 | Pydantic 모델로 JSONB 검증, 마이그레이션 시 스키마 버전 관리 |
 | Gemini 프롬프트 과부하 (톤+세계관+에피소드) | P2 | 토큰 한도 설정, 요약 자동 압축 |
-| 설정 상속 순환 참조 | P1 | 3단계 고정 (Project->Group->Storyboard), 4단계 이상 금지 |
+| 설정 상속 순환 참조 | P1 | 2단계 고정 (System Default → GroupConfig), 추가 단계 금지 |
 | 대량 데이터 성능 (1000+ 스토리보드) | P3 | 복합 인덱스, 페이지네이션, 캐싱 |
 
 ---

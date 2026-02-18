@@ -92,7 +92,7 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 - `avatar_key` (`@property`): `avatar_media_asset.storage_key` 반환
 - `avatar_url` (`@property`): `avatar_media_asset.url` 반환
 
-**Cascading Config 상속 순서**: Project → Group (GroupConfig) → Storyboard (하위가 상위를 오버라이드)
+**Cascading Config 상속 순서**: System Default → GroupConfig (GroupConfig 값이 우선). Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
 
 ### `youtube_credentials`
 프로젝트별 YouTube OAuth 인증 정보 (1:1).

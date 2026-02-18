@@ -107,7 +107,7 @@ docs/
 - **`default_` prefix 금지**: 실제 값에 `default_` 붙이지 않는다. cascade/fallback 문맥에서만 사용.
 - **Boolean은 Boolean**: `Integer`로 boolean 저장 금지. `Boolean` 타입 + `is_`/`_enabled` 네이밍.
 - **JSON은 JSONB**: `Text`에 JSON 문자열 저장 금지. 구조화 데이터는 반드시 `JSONB`.
-- **설정 소유권**: `System Default < Project Config < Group Config`. 콘텐츠 엔티티는 설정을 소유하지 않는다.
+- **설정 소유권**: `System Default < Group Config` (2단계). 콘텐츠 엔티티는 설정을 소유하지 않는다. Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
 - **미디어 참조는 media_asset_id 필수**: 이미지/비디오/오디오 URL을 직접 저장하지 않는다.
   - ❌ `image_url: "http://localhost:9000/..."` — 환경 종속, 이동 불가
   - ✅ `media_asset_id: 123` — `media_assets` 테이블 FK 참조
