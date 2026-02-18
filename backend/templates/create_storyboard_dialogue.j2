@@ -58,7 +58,7 @@ LoRA Trigger Words (MUST include in every scene where speaker=B):
 - Place character tags BEFORE expression/pose/environment tags in image_prompt
 
 ⚠️ DIALOGUE STRUCTURE RULES:
-- STRICT: Create {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
+- STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
 - NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
 - Speaker A gets roughly half the scenes, Speaker B gets the rest
 - Alternate speakers: A → B → A → B → A...
@@ -114,7 +114,7 @@ CRITICAL STYLE CONSISTENCY RULE:
 
 Instructions:
 1. Create a dialogue between Speaker A and Speaker B.
-   - Target: {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - Each scene: 2-3 seconds (for fast pacing)
 2. Alternate speakers: A, B, A, B... (roughly equal distribution).
 3. Each single scene's image shows ONLY the current speaker (1girl or 1boy).

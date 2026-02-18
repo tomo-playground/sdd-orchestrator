@@ -88,7 +88,7 @@ Narrator Position Roles (all examples 10+ chars):
 - Place character tags BEFORE expression/pose/environment tags in image_prompt
 
 ⚠️ NARRATED DIALOGUE STRUCTURE RULES:
-- STRICT: Create {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
+- STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
 - NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
 - Distribute evenly: ~⅓ Narrator, ~⅓ A, ~⅓ B
 - Pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
@@ -145,7 +145,7 @@ CRITICAL STYLE CONSISTENCY RULE:
 
 Instructions:
 1. Create a narrated dialogue with Narrator, Speaker A, and Speaker B.
-   - Target: {{ ((duration / 2.5) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - Each scene: 2-3 seconds (for fast pacing)
 2. Follow pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 3. Narrator scenes:

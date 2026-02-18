@@ -15,6 +15,7 @@ from services.storyboard.helpers import (
     _sanitize_candidates_for_db,
     calculate_auto_pin_flags,
     calculate_max_scenes,
+    calculate_min_scenes,
     normalize_scene_tags_key,
     strip_markdown_codeblock,
     trim_scenes_to_duration,
@@ -56,6 +57,7 @@ __all__ = [
     # helpers
     "strip_markdown_codeblock",
     "normalize_scene_tags_key",
+    "calculate_min_scenes",
     "calculate_max_scenes",
     "trim_scenes_to_duration",
     "truncate_title",

@@ -29,6 +29,19 @@ def normalize_scene_tags_key(scenes: list[dict]) -> list[dict]:
     return scenes
 
 
+def calculate_min_scenes(duration: int) -> int:
+    """Calculate the minimum expected scene count for a given duration.
+
+    Formula: ceil(duration / max_scene_duration) — uses SCENE_DURATION_RANGE[1] (3.5s).
+    This is intentionally lower than the Gemini template's recommended minimum
+    (duration/3) to allow a tolerance buffer for Review validation.
+    Returns at least 1.
+    """
+    from config import SCENE_DURATION_RANGE
+
+    return max(1, math.ceil(duration / SCENE_DURATION_RANGE[1]))
+
+
 def calculate_max_scenes(duration: int) -> int:
     """Calculate the maximum allowed scene count for a given duration.
 

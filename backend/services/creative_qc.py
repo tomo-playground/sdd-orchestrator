@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from config import SCENE_DURATION_RANGE, SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
+from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
 
 
 def validate_scripts(
@@ -18,9 +19,9 @@ def validate_scripts(
     issues: list[str] = []
     checks: dict[str, str] = {}
 
-    # Scene count check
-    min_scenes = max(4, duration // 5)
-    max_scenes = duration // 2
+    # Scene count check (SSOT: storyboard helpers)
+    min_scenes = calculate_min_scenes(duration)
+    max_scenes = calculate_max_scenes(duration)
     count = len(scripts)
     if min_scenes <= count <= max_scenes:
         checks["scene_count"] = "PASS"
@@ -194,6 +195,8 @@ def validate_music(recommendation: list[dict] | dict) -> dict:
     if issues:
         logger.info("[CreativeQC] Music issues: %s", issues)
     return {"ok": len(issues) == 0, "issues": issues, "checks": {"music_recommendation": status}}
+
+
 def validate_tts_design(tts_designs: list[dict]) -> dict:
     """Validate tts designer output for emotional design quality.
 

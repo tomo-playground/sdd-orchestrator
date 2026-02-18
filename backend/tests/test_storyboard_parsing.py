@@ -245,3 +245,55 @@ class TestTrimScenesToDuration:
         scenes = self._make_scenes(10)
         result = trim_scenes_to_duration(scenes, 10)
         assert [s["scene_id"] for s in result] == [1, 2, 3, 4, 5]
+
+
+# ---------------------------------------------------------------------------
+# calculate_min_scenes
+# ---------------------------------------------------------------------------
+
+
+class TestCalculateMinScenes:
+    """Tests for duration-based min scene count calculation (SCENE_DURATION_RANGE[1]=3.5s)."""
+
+    def test_15s_min_5_scenes(self):
+        """15 seconds → min 5 scenes (ceil(15/3.5) = 5)."""
+        from services.storyboard import calculate_min_scenes
+
+        assert calculate_min_scenes(15) == 5
+
+    def test_30s_min_9_scenes(self):
+        """30 seconds → min 9 scenes (ceil(30/3.5) = 9)."""
+        from services.storyboard import calculate_min_scenes
+
+        assert calculate_min_scenes(30) == 9
+
+    def test_45s_min_13_scenes(self):
+        """45 seconds → min 13 scenes (ceil(45/3.5) = 13)."""
+        from services.storyboard import calculate_min_scenes
+
+        assert calculate_min_scenes(45) == 13
+
+    def test_60s_min_18_scenes(self):
+        """60 seconds → min 18 scenes (ceil(60/3.5) ≈ 18)."""
+        from services.storyboard import calculate_min_scenes
+
+        assert calculate_min_scenes(60) == 18
+
+    def test_minimum_1_scene(self):
+        """Very short duration still returns at least 1."""
+        from services.storyboard import calculate_min_scenes
+
+        assert calculate_min_scenes(1) == 1
+
+    def test_min_always_less_than_or_equal_max(self):
+        """Min scenes should never exceed max scenes for any duration."""
+        from services.storyboard import calculate_max_scenes, calculate_min_scenes
+
+        for d in (10, 15, 30, 45, 60):
+            assert calculate_min_scenes(d) <= calculate_max_scenes(d), f"Failed for {d}s"
+
+    def test_10s_min_3_scenes(self):
+        """10 seconds → min 3 scenes (ceil(10/3.5) = 3)."""
+        from services.storyboard import calculate_min_scenes
+
+        assert calculate_min_scenes(10) == 3
