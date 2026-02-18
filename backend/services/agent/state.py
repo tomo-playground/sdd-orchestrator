@@ -6,7 +6,10 @@ StoryboardRequest의 필드를 1:1 매핑하고,
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
+
+if TYPE_CHECKING:
+    pass
 
 
 class SceneReasoning(TypedDict, total=False):
@@ -129,6 +132,10 @@ class ScriptState(TypedDict, total=False):
 
     # Explain 결과 (Full 모드)
     explanation_result: dict | None
+
+    # Agent Communication (Phase 10-C)
+    agent_messages: list[dict] | None  # AgentMessage 타입 (messages.py)
+    agent_summary: str | None  # 압축된 메시지 요약
 
     # 최종 출력
     final_scenes: list[dict] | None
