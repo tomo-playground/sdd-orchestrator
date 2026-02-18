@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import NarrativeScoreChart from "../NarrativeScoreChart";
 import type { NarrativeScore } from "../../../types";
 
@@ -45,6 +46,8 @@ export function ReviewSection({ data }: SectionProps) {
   const narrativeScore = isNarrativeScore(data.narrative_score) ? data.narrative_score : undefined;
   const errors = (data.errors ?? []) as string[];
   const warnings = (data.warnings ?? []) as string[];
+  const userSummary = data.user_summary as string | undefined;
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div className="space-y-2">
@@ -63,6 +66,34 @@ export function ReviewSection({ data }: SectionProps) {
           <span className="text-[11px] text-amber-500">{warnings.length} warnings</span>
         )}
       </div>
+      {userSummary && (
+        <p className="text-xs text-zinc-600">{userSummary}</p>
+      )}
+      {(errors.length > 0 || warnings.length > 0) && (
+        <div>
+          <button
+            type="button"
+            className="text-[11px] text-zinc-400 hover:text-zinc-600"
+            onClick={() => setShowDetails((v) => !v)}
+          >
+            {showDetails ? "상세 접기" : "상세 보기"}
+          </button>
+          {showDetails && (
+            <ul className="mt-1 space-y-0.5">
+              {errors.map((e, i) => (
+                <li key={`e-${i}`} className="text-[11px] text-red-500">
+                  {e}
+                </li>
+              ))}
+              {warnings.map((w, i) => (
+                <li key={`w-${i}`} className="text-[11px] text-amber-500">
+                  {w}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {narrativeScore && <NarrativeScoreChart score={narrativeScore} />}
     </div>
   );

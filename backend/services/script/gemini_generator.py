@@ -255,12 +255,41 @@ async def generate_script(request, db: Session | None = None) -> dict:
         if not res.text:
             # Check why it failed
             error_reason = "Unknown error"
-            if res.prompt_feedback and res.prompt_feedback.block_reason:
-                error_reason = f"Blocked by safety filters: {res.prompt_feedback.block_reason}"
-            elif res.candidates and res.candidates[0].finish_reason:
-                error_reason = f"Finished with reason: {res.candidates[0].finish_reason}"
+            user_message = "시나리오 생성에 실패했습니다."
+            suggestions = []
 
-            raise ValueError(f"Gemini returned empty response. Reason: {error_reason}")
+            if res.prompt_feedback and res.prompt_feedback.block_reason:
+                block_reason = str(res.prompt_feedback.block_reason)
+                error_reason = f"Blocked by safety filters: {block_reason}"
+                user_message = "🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"
+                suggestions = [
+                    "다른 주제로 시도해보세요 (예: 일상, 취미, 지식 공유)",
+                    "폭력적, 성적, 혐오적 표현이 포함되지 않았는지 확인하세요",
+                    "민감한 주제 (정치, 종교, 건강 정보)는 피해주세요",
+                    "캐릭터나 스타일을 변경해보세요",
+                ]
+            elif res.candidates and res.candidates[0].finish_reason:
+                finish_reason = str(res.candidates[0].finish_reason)
+                error_reason = f"Finished with reason: {finish_reason}"
+                if "SAFETY" in finish_reason.upper():
+                    user_message = "🛡️ 생성된 콘텐츠가 안전 정책에 위배됩니다"
+                    suggestions = [
+                        "더 긍정적이고 안전한 주제로 변경해보세요",
+                        "캐릭터 설정이나 스타일을 조정해보세요",
+                    ]
+                elif "MAX_TOKENS" in finish_reason.upper():
+                    user_message = "⚠️ 생성 길이가 제한을 초과했습니다"
+                    suggestions = ["영상 길이를 줄여보세요 (15-30초 권장)"]
+                else:
+                    user_message = f"⚠️ 생성이 중단되었습니다 ({finish_reason})"
+                    suggestions = ["다시 시도하거나, 설정을 변경해보세요"]
+
+            suggestion_text = " / ".join(suggestions[:2]) if suggestions else ""
+            logger.error(
+                "[Gemini Error] %s | Reason: %s | Suggestions: %s",
+                user_message, error_reason, " | ".join(suggestions),
+            )
+            raise ValueError(f"{user_message} ({suggestion_text})" if suggestion_text else user_message)
 
         cleaned = strip_markdown_codeblock(res.text)
         scenes = json.loads(cleaned)

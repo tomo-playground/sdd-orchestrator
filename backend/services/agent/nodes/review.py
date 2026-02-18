@@ -24,12 +24,34 @@ from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 VALID_SPEAKERS = {"Narrator", "A", "B"}
 
 
+def _generate_user_summary(passed: bool, error_count: int, warning_count: int) -> str:
+    """사용자용 요약 메시지를 생성한다.
+
+    - 검증 통과: 긍정적 메시지
+    - 경고만: 개선 중 메시지
+    - 오류 있음: 재생성 안내
+    """
+    if passed:
+        if warning_count > 0:
+            return f"✅ 검증 완료 (경고 {warning_count}개는 자동 개선됩니다)"
+        return "✅ 검증 완료"
+
+    if error_count > 0:
+        return f"🔄 AI가 시나리오를 개선하고 있습니다 (문제 {error_count}개 수정 중)"
+
+    return "🔄 시나리오 품질을 개선하고 있습니다"
+
+
 def _validate_single_scene(
     scene: dict,
     idx: int,
     language: str,
 ) -> tuple[list[str], list[str]]:
-    """단일 씬을 검증하고 (errors, warnings) 튜플을 반환한다."""
+    """단일 씬을 검증하고 (errors, warnings) 튜플을 반환한다.
+
+    errors/warnings는 Revise 노드가 파싱하여 자동 수정에 사용한다.
+    사용자용 메시지는 user_summary로 별도 생성.
+    """
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -49,9 +71,9 @@ def _validate_single_scene(
     if isinstance(script, str):
         stripped = script.replace(".", "").replace(" ", "").strip()
         if not stripped:
-            errors.append(f"씬 {idx}: 빈 스크립트 ('{script}' — TTS 생성 불가, 내레이션으로 대체 필요)")
+            errors.append(f"씬 {idx}: 빈 스크립트 ('{script}')")
         elif len(stripped) < 5:
-            warnings.append(f"씬 {idx}: 스크립트 너무 짧음 ({len(script)}자 — TTS 결함 가능)")
+            warnings.append(f"씬 {idx}: 스크립트 너무 짧음 ({len(script)}자)")
         max_len = SCRIPT_LENGTH_KOREAN[1] if language == "Korean" else REVIEW_SCRIPT_MAX_CHARS_OTHER
         if len(script) > max_len:
             warnings.append(f"씬 {idx}: 스크립트 길이 초과 ({len(script)}자 > {max_len}자)")
@@ -92,7 +114,11 @@ def _validate_scenes(
                 warnings.append(f"Dialogue 구조에서 speaker '{s}'가 등장하지 않음")
 
     passed = len(errors) == 0
-    return ReviewResult(passed=passed, errors=errors, warnings=warnings)
+
+    # 사용자용 요약 메시지 생성
+    user_summary = _generate_user_summary(passed, len(errors), len(warnings))
+
+    return ReviewResult(passed=passed, errors=errors, warnings=warnings, user_summary=user_summary)
 
 
 async def _gemini_evaluate(
@@ -295,6 +321,13 @@ async def review_node(state: ScriptState) -> dict:
     reflection: str | None = None
     if not result.get("passed") and is_full:
         reflection = await _self_reflect(result, topic, language, structure)
+
+    # user_summary 갱신 (narrative_score 실패 등 후속 판정 반영)
+    result["user_summary"] = _generate_user_summary(
+        result.get("passed", False),
+        len(result.get("errors", [])),
+        len(result.get("warnings", [])),
+    )
 
     logger.info(
         "[LangGraph] Review 노드: passed=%s, errors=%d, warnings=%d, gemini=%s, narrative=%.2f, reflection=%s",

@@ -36,10 +36,11 @@ class ReviewResult(TypedDict, total=False):
     """Review 노드의 검증 결과."""
 
     passed: bool
-    errors: list[str]
-    warnings: list[str]
+    errors: list[str]  # AI용 구체적 피드백 (Revise 노드가 사용)
+    warnings: list[str]  # AI용 경고 메시지
     gemini_feedback: str | None
     narrative_score: NarrativeScore | None
+    user_summary: str  # 사용자용 요약 메시지 (Frontend 표시용)
 
 
 class DirectorReActStep(TypedDict):
