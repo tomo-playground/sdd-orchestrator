@@ -83,6 +83,17 @@ LANGGRAPH_PLANNING_ENABLED = os.getenv("LANGGRAPH_PLANNING_ENABLED", "true").low
 # 노드당 최대 도구 호출 횟수 (비용 가드레일)
 MAX_TOOL_CALLS_PER_NODE = int(os.getenv("MAX_TOOL_CALLS_PER_NODE", "5"))
 
+# --- Phase 10-C-3: Critic Debate ---
+# 최대 토론 라운드 (비용 가드레일)
+MAX_DEBATE_ROUNDS = int(os.getenv("MAX_DEBATE_ROUNDS", "2"))
+# 전체 토론 타임아웃 (초)
+DEBATE_TIMEOUT_SEC = int(os.getenv("DEBATE_TIMEOUT_SEC", "60"))
+# KPI 기반 수렴 판단 임계값
+CONVERGENCE_SCORE_THRESHOLD = float(os.getenv("CONVERGENCE_SCORE_THRESHOLD", "0.7"))
+CONVERGENCE_HOOK_THRESHOLD = float(os.getenv("CONVERGENCE_HOOK_THRESHOLD", "0.6"))
+# Groupthink 감지 유사도 임계값
+GROUPTHINK_SIMILARITY_THRESHOLD = float(os.getenv("GROUPTHINK_SIMILARITY_THRESHOLD", "0.85"))
+
 # --- Feedback Presets (Interactive Feedback) ---
 FEEDBACK_PRESETS: dict[str, dict] = {
     "hook_boost": {

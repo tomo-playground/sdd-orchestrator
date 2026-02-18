@@ -136,6 +136,7 @@ class ScriptState(TypedDict, total=False):
     # Agent Communication (Phase 10-C)
     agent_messages: list[dict] | None  # AgentMessage 타입 (messages.py)
     agent_summary: str | None  # 압축된 메시지 요약
+    debate_log: list[dict] | None  # Phase 10-C-3: Critic 토론 기록 (라운드별 비평/개선)
 
     # 최종 출력
     final_scenes: list[dict] | None

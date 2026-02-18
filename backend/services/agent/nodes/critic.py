@@ -1,17 +1,20 @@
-"""Critic 노드 — Architects → Devil's Advocate → Director 파이프라인 래핑."""
+"""Critic 노드 — 3인 Architect 실시간 토론 (Phase 10-C-3)."""
 
 from __future__ import annotations
 
 import json
+import time
 
 from config import CREATIVE_MAX_ROUNDS, logger
+from config_pipelines import DEBATE_TIMEOUT_SEC, MAX_DEBATE_ROUNDS
 from database import get_db_session
 from models.creative import CreativeSession
+from services.agent.nodes._debate_utils import _check_convergence
 from services.agent.state import ScriptState
 from services.creative_debate_agents import (
+    ARCHITECT_PERSPECTIVES,
     DebateContext,
     run_architects,
-    run_devils_advocate,
     run_director_evaluate,
 )
 from services.creative_utils import parse_json_response
@@ -19,6 +22,7 @@ from services.creative_utils import parse_json_response
 
 def _build_debate_context(state: ScriptState) -> DebateContext:
     """ScriptState에서 DebateContext를 생성한다."""
+    research_brief = state.get("research_brief")
     return DebateContext(
         topic=state.get("topic", ""),
         duration=state.get("duration", 10),
@@ -26,7 +30,7 @@ def _build_debate_context(state: ScriptState) -> DebateContext:
         language=state.get("language", "Korean"),
         max_rounds=CREATIVE_MAX_ROUNDS,
         character_name=None,
-        research_brief={"brief": state["research_brief"]} if state.get("research_brief") else None,
+        research_brief={"brief": research_brief} if research_brief else None,
     )
 
 
@@ -75,48 +79,196 @@ def _extract_winner(concepts: list[dict], evaluation: dict) -> dict:
     return concepts[0] if concepts else {}
 
 
+def _build_critique_feedback(concepts: list[dict], critique_for_role: str) -> dict:
+    """특정 Architect가 받을 비평 피드백을 구성한다.
+
+    Args:
+        concepts: 현재 라운드의 전체 컨셉 리스트
+        critique_for_role: 비평을 받을 Architect role (예: "emotional_arc")
+
+    Returns:
+        by_role dict (다른 2인의 비평 요약)
+    """
+    # 다른 2인의 컨셉을 요약하여 전달
+    other_concepts = [c for c in concepts if c.get("agent_role") != critique_for_role]
+
+    critique_text = "다른 Architect들의 컨셉:\n"
+    for c in other_concepts:
+        critique_text += f"- {c.get('agent_role')}: {c.get('title', '')}\n"
+        critique_text += f"  → {c.get('concept', '')[:100]}...\n"
+
+    critique_text += "\n이 컨셉들을 참고하여 당신의 컨셉을 개선하세요. "
+    critique_text += "다른 접근과 차별화하되, 좋은 아이디어는 흡수하세요."
+
+    return {"by_role": {critique_for_role: critique_text}}
+
+
+async def _run_debate_round(
+    db,
+    session: CreativeSession,
+    round_num: int,
+    ctx: DebateContext,
+    prev_concepts: list[dict] | None,
+) -> list[dict]:
+    """단일 토론 라운드를 실행한다.
+
+    Args:
+        db: DB 세션
+        session: CreativeSession
+        round_num: 라운드 번호 (1부터 시작)
+        ctx: DebateContext
+        prev_concepts: 이전 라운드 컨셉 (None이면 첫 라운드)
+
+    Returns:
+        현재 라운드의 컨셉 리스트
+    """
+    # 이전 라운드 컨셉을 역할별로 매핑
+    if prev_concepts:
+        ctx.prev_concepts = {c.get("agent_role"): c for c in prev_concepts}
+
+        # 각 Architect에게 다른 2인의 컨셉을 비평 피드백으로 전달
+        for arch in ARCHITECT_PERSPECTIVES:
+            role = arch["role"]
+            ctx.critic_feedback = _build_critique_feedback(prev_concepts, role)
+
+    # Architects 병렬 실행
+    raw_results = await run_architects(db, session, round_num, ctx)
+
+    # 파싱
+    concepts = _parse_candidates(raw_results)
+
+    return concepts
+
+
 async def critic_node(state: ScriptState) -> dict:
-    """Critic 파이프라인을 실행하고 결과를 state에 기록한다."""
+    """Critic 파이프라인 — 3인 Architect 실시간 토론 (Phase 10-C-3).
+
+    Phase 10-C-3:
+    - Round 1: 각 Architect 독립 컨셉 생성
+    - Round 2+: 상호 비평 및 컨셉 개선 (최대 MAX_DEBATE_ROUNDS)
+    - KPI 기반 수렴 판단 (NarrativeScore, Hook 강도)
+    - Groupthink 방지 (다양성 강제)
+    - Hard Timeout + Fallback
+    """
+    start_time = time.time()
+    debate_log: list[dict] = []
+    concepts: list[dict] = []  # Initialize to avoid unbound variable
+
     with get_db_session() as db:
         try:
             ctx = _build_debate_context(state)
             session = _create_temp_session(db, state)
-            round_number = 1
 
-            # 1) Architects: 3인 병렬 컨셉 생성
-            raw_concepts = await run_architects(db, session, round_number, ctx)
-            if not raw_concepts:
+            # Round 1: 독립 컨셉 생성
+            logger.info("[LangGraph] Critic 토론 Round 1: 독립 컨셉 생성")
+            concepts = await _run_debate_round(db, session, round_num=1, ctx=ctx, prev_concepts=None)
+
+            if not concepts:
                 logger.warning("[LangGraph] Critic: Architects가 컨셉을 생성하지 못함")
                 return {"error": "Critic architects produced no concepts"}
 
-            # 2) Devil's Advocate: 비판적 검토
-            advocate = await run_devils_advocate(db, session, round_number, raw_concepts, ctx)
-            if advocate:
-                ctx.critic_feedback = advocate
+            debate_log.append(
+                {
+                    "round": 1,
+                    "action": "propose",
+                    "concepts": [{"role": c.get("agent_role"), "title": c.get("title")} for c in concepts],
+                }
+            )
 
-            # 3) Director Evaluate: 최종 평가
-            evaluation = await run_director_evaluate(db, session, round_number, raw_concepts, ctx)
+            # Round 2+: 상호 비평 및 개선
+            for round_num in range(2, MAX_DEBATE_ROUNDS + 2):  # +2 because range is exclusive
+                # Timeout 체크
+                elapsed = time.time() - start_time
+                if elapsed > DEBATE_TIMEOUT_SEC:
+                    logger.warning("[Debate] Timeout 도달 (%.1f초) — 현재 최선 선택", elapsed)
+                    debate_log.append(
+                        {
+                            "round": round_num,
+                            "action": "timeout",
+                            "elapsed_sec": elapsed,
+                        }
+                    )
+                    break
 
-            # 4) content JSON 파싱 → Frontend에서 title/concept 표시 가능
-            candidates = _parse_candidates(raw_concepts)
-            winner = _extract_winner(candidates, evaluation)
+                # 수렴 판단
+                converged = await _check_convergence(concepts, debate_log, round_num - 1)
+                if converged:
+                    logger.info("[Debate] 수렴 판단 (Round %d) — 토론 종료", round_num - 1)
+                    debate_log.append(
+                        {
+                            "round": round_num - 1,
+                            "action": "converged",
+                        }
+                    )
+                    break
+
+                # 비평 라운드 실행
+                logger.info("[LangGraph] Critic 토론 Round %d: 상호 비평", round_num)
+                refined_concepts = await _run_debate_round(
+                    db, session, round_num=round_num, ctx=ctx, prev_concepts=concepts
+                )
+
+                debate_log.append(
+                    {
+                        "round": round_num,
+                        "action": "critique_refine",
+                        "concepts": [{"role": c.get("agent_role"), "title": c.get("title")} for c in refined_concepts],
+                    }
+                )
+
+                concepts = refined_concepts
+
+            # Director 최종 평가
+            logger.info("[LangGraph] Critic: Director 최종 평가")
+            # Convert concepts to the format expected by run_director_evaluate
+            formatted_concepts = [
+                {"agent_role": c.get("agent_role"), "content": json.dumps(c, ensure_ascii=False)} for c in concepts
+            ]
+            evaluation = await run_director_evaluate(
+                db,
+                session,
+                round_number=1,
+                concepts=formatted_concepts,
+                ctx=ctx,
+            )
+
+            winner = _extract_winner(concepts, evaluation)
 
             session.status = "completed"
             db.commit()
 
+            elapsed_total = time.time() - start_time
             logger.info(
-                "[LangGraph] Critic 노드 완료: winner=%s, score=%.2f",
+                "[LangGraph] Critic 토론 완료: winner=%s, rounds=%d, elapsed=%.1fs",
                 evaluation.get("best_agent_role", "unknown"),
-                evaluation.get("best_score", 0),
+                len(debate_log),
+                elapsed_total,
             )
 
             return {
                 "critic_result": {
                     "selected_concept": winner,
-                    "candidates": candidates,
+                    "candidates": concepts,
                     "evaluation": evaluation,
-                }
+                },
+                "debate_log": debate_log,  # Phase 10-C-3: 토론 과정 기록
             }
+
+        except TimeoutError:
+            # Hard Timeout — 현재까지의 최선 선택
+            logger.error("[LangGraph] Critic 토론 Timeout — Fallback to existing pipeline")
+            # Fallback: 기존 단순 파이프라인 (single-shot)
+            # 현재까지의 concepts가 있으면 그것으로, 없으면 에러
+            if concepts:
+                return {
+                    "critic_result": {
+                        "selected_concept": concepts[0],
+                        "candidates": concepts,
+                        "evaluation": {"fallback": True, "reason": "timeout"},
+                    },
+                    "debate_log": debate_log,
+                }
+            return {"error": "Critic timeout with no concepts"}
 
         except Exception as e:
             logger.error("[LangGraph] Critic 노드 실패: %s", e)
