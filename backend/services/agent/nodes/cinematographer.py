@@ -11,6 +11,7 @@ from config import logger, template_env
 from database import get_db_session
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
+from services.creative_utils import parse_json_response
 
 _EMPTY_RESULT: dict = {"cinematographer_result": None, "cinematographer_tool_logs": []}
 
@@ -121,12 +122,17 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
 
 def _parse_scenes(response: str) -> list[dict] | None:
-    """LLM 응답에서 scenes 배열을 추출한다. 실패 시 None."""
+    """LLM 응답에서 scenes 배열을 추출한다.
+
+    코드블록 추출 후 parse_json_response()로 이스케이프 복구를 시도한다.
+    실패 시 None.
+    """
     try:
+        # 코드블록이 응답 중간에 있을 수 있으므로 먼저 추출
         match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
         json_text = match.group(1) if match else response
 
-        result_data = json.loads(json_text)
+        result_data = parse_json_response(json_text)
         if not isinstance(result_data, dict):
             logger.warning("[Cinematographer] Expected dict, got %s", type(result_data).__name__)
             return None
