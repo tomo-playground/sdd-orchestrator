@@ -227,9 +227,9 @@ Manage→Library+Settings 분리, 공유 레이아웃 시스템(AppThreeColumnLa
 
 | # | 작업 | 핵심 | 상태 |
 |---|------|------|------|
-| 1 | Director ReAct Loop | Single-shot → Observe→Think→Act 루프 (최대 3 스텝). 사고 과정 기록 | [ ] |
-| 2 | Review Self-Reflection | 실패 시 원인 분석 + 구체적 수정 전략 수립 → revise에 전달 | [ ] |
-| 3 | Writer Planning Step | 즉시 생성 → 계획 수립(Hook 전략, 감정 곡선, 씬 배분) → 계획 기반 생성 | [ ] |
+| 1 | Director ReAct Loop | Single-shot → Observe→Think→Act 루프 (최대 3 스텝). 사고 과정 기록 | [x] 2026-02-18 |
+| 2 | Review Self-Reflection | 실패 시 원인 분석 + 구체적 수정 전략 수립 → revise에 전달 | [x] 2026-02-18 |
+| 3 | Writer Planning Step | 즉시 생성 → 계획 수립(Hook 전략, 감정 곡선, 씬 배분) → 계획 기반 생성 | [x] 2026-02-18 |
 
 ### Phase B: Tool-Calling Agent (Level 2)
 
@@ -347,8 +347,8 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - **Phase 9-5C AI Transparency UX 완료** (2026-02-17): Backend `_build_node_payload()` → `_extract_node_result()` 매핑 딕셔너리로 critic/review/director/explain의 reasoning 데이터를 `node_result` SSE 필드로 전달. Frontend `pipelineSteps.ts` 순수 함수(15노드→7/3 논리 스텝 매핑), `PipelineStepper` 수평 멀티스텝 인디케이터(done/running/idle/error 상태 + pulse 애니메이션), `NarrativeScoreChart` 5메트릭 바 차트(compact/full 모드), `AgentReasoningPanel` 아코디언(Critic/Review/Director/Explain 섹션, `reasoning/ReasoningSections.tsx` 분리), ReviewApprovalPanel NarrativeScore compact 내장, ManualScriptEditor Progress bar→PipelineStepper 교체 + AgentReasoningPanel 통합 + References 입력(Full mode). `isNarrativeScore()` 타입 가드로 런타임 안전성 강화. 10개 pipelineSteps 단위 테스트 추가
 - **Phase 9-5E Research References 완료** (2026-02-17): Research 노드에 사용자 소재(URL/텍스트) 분석 기능 추가. `references` 필드 API→State 전파(schemas→routers→state). URL fetch: httpx + SSRF 방어(private IP 차단, timeout/size 제한), HTML strip → Gemini 분석 → research_brief 구성, Gemini 실패 시 원문 fallback. `config_pipelines` RESEARCH_* 상수 3개. 테스트 22개 추가(URL 판별, SSRF 12케이스, HTML→text, Gemini mock, fallback)
 - **Langfuse Trace 통합** (2026-02-17): interrupt/resume 별도 trace → 동일 trace 통합. 요청별 `CallbackHandler` 생성(싱글턴→per-request)으로 동시성 안전 보장. generate 시 trace_id를 SSE로 클라이언트 전달 → resume 시 동일 trace_id로 handler 생성. Frontend `traceId` 상태 관리 + `ScriptResumeRequest.trace_id` 필드 추가. **Per-node trace 확장**: review(gemini_evaluate+narrative_evaluate), production(cinematographer/tts/sound/copyright), creative_agent(GeminiProvider), writer(gemini_generator) — 모든 Gemini LLM 호출에 `trace_llm_call` 컨텍스트 매니저 래핑. **v3 SDK 마이그레이션 수정** (02-17): `CallbackHandler(trace_id=)` v2 API → `CallbackHandler(trace_context={"trace_id":})` v3 API 전환, `last_trace_id` 속성 → `trace_context` dict 접근으로 교체. v2 파라미터 TypeError가 except에서 조용히 잡혀 핸들러 None 반환 → 각 Gemini 호출이 개별 트레이스로 분리되던 버그 해소
-- **Phase 10**: True Agentic Architecture — **설계 완료** (2026-02-18). Tech Lead 아키텍처 검토 → 5대 Agentic 요건 미충족 진단 → 3단계 점진 전환 계획(Phase 0/A/B/C). Gemini 크로스 리뷰 4대 리스크 대응 반영(KPI 수렴, A/B ROI, Speculative Execution, State Condensation). A/B 벤치마크 샘플 10건 설계(BM-01~10, 3구조×3언어 커버리지). 다음: Phase 0 Benchmark Baseline 수집. [명세](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
-- **테스트**: Backend 1,597 passed + Frontend 319 passed = **총 1,916개** (Phase 5E Research References 22개 추가)
+- **Phase 10**: True Agentic Architecture — **Phase 0+A 완료** (2026-02-18). Phase 0: 벤치마크 인프라 구축 (TDD 18개 테스트, SSE 파싱 수정, Gemini safety filter 해결). **Phase A 완료** (2026-02-18): Director ReAct Loop (Observe→Think→Act 최대 3스텝, reasoning 기록), Review Self-Reflection (근본 원인 분석 + 수정 전략), Writer Planning Step (Hook 전략 + 감정 곡선 + 씬 배분 계획 → 생성). 27개 테스트 추가 (director_react 10 + review_reflection 7 + writer_planning 5 + phase10a_state 5). 다음: Phase A Gate 검증 (NarrativeScore +10%, 10회 A/B 테스트). [명세](FEATURES/TRUE_AGENTIC_ARCHITECTURE.md)
+- **테스트**: Backend 1,624 passed + Frontend 319 passed = **총 1,943개** (Phase 10-A 27개 추가)
 
 ### 잔여 작업 우선순위 (재정리 2026-02-18)
 
