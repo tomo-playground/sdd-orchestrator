@@ -19,6 +19,8 @@ from services.creative_debate_agents import (
 )
 from services.creative_utils import parse_json_response
 
+_EMPTY_RESULT: dict = {"critic_result": None, "debate_log": []}
+
 
 def _build_debate_context(state: ScriptState) -> DebateContext:
     """ScriptState에서 DebateContext를 생성한다."""
@@ -126,10 +128,13 @@ async def _run_debate_round(
     if prev_concepts:
         ctx.prev_concepts = {c.get("agent_role"): c for c in prev_concepts}
 
-        # 각 Architect에게 다른 2인의 컨셉을 비평 피드백으로 전달
+        # 각 Architect에게 다른 2인의 컨셉을 비평 피드백으로 전달 (전 role 누적)
+        all_feedback: dict[str, str] = {}
         for arch in ARCHITECT_PERSPECTIVES:
             role = arch["role"]
-            ctx.critic_feedback = _build_critique_feedback(prev_concepts, role)
+            fb = _build_critique_feedback(prev_concepts, role)
+            all_feedback.update(fb.get("by_role", {}))
+        ctx.critic_feedback = {"by_role": all_feedback}
 
     # Architects 병렬 실행
     raw_results = await run_architects(db, session, round_num, ctx)
@@ -164,8 +169,8 @@ async def critic_node(state: ScriptState) -> dict:
             concepts = await _run_debate_round(db, session, round_num=1, ctx=ctx, prev_concepts=None)
 
             if not concepts:
-                logger.warning("[LangGraph] Critic: Architects가 컨셉을 생성하지 못함")
-                return {"error": "Critic architects produced no concepts"}
+                logger.warning("[LangGraph] Critic: Architects가 컨셉을 생성하지 못함 (graceful)")
+                return _EMPTY_RESULT
 
             debate_log.append(
                 {
@@ -268,8 +273,9 @@ async def critic_node(state: ScriptState) -> dict:
                     },
                     "debate_log": debate_log,
                 }
-            return {"error": "Critic timeout with no concepts"}
+            logger.warning("[LangGraph] Critic timeout + no concepts (graceful)")
+            return _EMPTY_RESULT
 
         except Exception as e:
-            logger.error("[LangGraph] Critic 노드 실패: %s", e)
-            return {"error": f"Critic failed: {e}"}
+            logger.warning("[LangGraph] Critic 노드 실패 (graceful): %s", e)
+            return _EMPTY_RESULT
