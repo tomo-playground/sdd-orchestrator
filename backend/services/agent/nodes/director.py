@@ -1,12 +1,20 @@
 """Director 노드 — Production chain 결과를 ReAct Loop로 통합 검증한다.
 
 Phase 10-A: Observe→Think→Act 루프 (최대 3 스텝)
+Phase 10-C-2: Agent 간 메시지 기반 양방향 소통
 """
 
 from __future__ import annotations
 
+from langchain_core.runnables import RunnableConfig
+
 from config import logger
 from config_pipelines import LANGGRAPH_MAX_REACT_STEPS
+from services.agent.messages import AgentMessage
+from services.agent.nodes._agent_messaging import (
+    extract_target_agent_from_decision,
+    run_agent_with_message,
+)
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import DirectorReActStep, ScriptState
@@ -50,16 +58,23 @@ def _validate_director_react(result: str | dict | list) -> dict:
     return {"ok": True, "issues": [], "checks": {}}
 
 
-async def director_node(state: ScriptState) -> dict:
+async def director_node(state: ScriptState, config: RunnableConfig | None = None) -> dict:
     """Production 결과를 ReAct Loop로 통합 검증한다.
 
     Phase 10-A:
     - Observe→Think→Act 루프 (최대 LANGGRAPH_MAX_REACT_STEPS 스텝)
     - 각 스텝의 reasoning을 director_reasoning_steps에 기록
     - approve 판정 시 즉시 종료
+
+    Phase 10-C-2:
+    - revise 판정 시 타겟 에이전트에 메시지 전송
+    - 에이전트 재실행 및 응답 수집
+    - agent_messages에 메시지 로그 기록
     """
+
     count = state.get("director_revision_count", 0)
     reasoning_steps: list[DirectorReActStep] = []
+    messages: list[AgentMessage] = []
 
     production_results = {
         "cinematographer": state.get("cinematographer_result") or {},
@@ -121,9 +136,57 @@ async def director_node(state: ScriptState) -> dict:
                 logger.info("[LangGraph] Director 승인 (Step %d)", step_num)
                 break
 
-            # revise_* 판정 시 다음 스텝 계속
+            # revise_* 판정 시 타겟 에이전트에 메시지 전송 (Phase 10-C-2)
             final_decision = decision
             final_feedback = feedback
+
+            target_agent = extract_target_agent_from_decision(decision)
+            if target_agent:
+                # Director → Agent 메시지 생성
+                feedback_msg: AgentMessage = {
+                    "sender": "director",
+                    "recipient": target_agent,
+                    "content": feedback,
+                    "message_type": "feedback",
+                }
+                messages.append(feedback_msg)
+
+                logger.info(
+                    "[LangGraph] Director → %s: %s (Step %d)",
+                    target_agent,
+                    feedback[:50],
+                    step_num,
+                )
+
+                # 타겟 에이전트 재실행
+                try:
+                    updated_result, response_msg = await run_agent_with_message(
+                        target_agent=target_agent,
+                        state=state,
+                        message=feedback_msg,
+                        config=config,
+                    )
+
+                    # 응답 메시지 기록
+                    messages.append(response_msg)
+
+                    # Production 결과 업데이트 (다음 스텝에서 사용)
+                    production_results[target_agent] = updated_result
+
+                    logger.info(
+                        "[LangGraph] %s → Director: 응답 완료 (Step %d)",
+                        target_agent,
+                        step_num,
+                    )
+
+                except Exception as e:
+                    logger.warning(
+                        "[LangGraph] %s 재실행 실패 (Step %d): %s",
+                        target_agent,
+                        step_num,
+                        e,
+                    )
+                    # 실패 시에도 계속 진행 (다음 스텝에서 재시도 가능)
 
         except Exception as e:
             logger.warning("[LangGraph] Director ReAct Step %d 실패: %s", step_num, e)
@@ -150,4 +213,5 @@ async def director_node(state: ScriptState) -> dict:
         "director_feedback": final_feedback,
         "director_revision_count": count + 1,
         "director_reasoning_steps": reasoning_steps,
+        "agent_messages": messages,  # Phase 10-C-2: 에이전트 간 메시지 로그
     }
