@@ -16,6 +16,7 @@
 
 ### 최근 작업
 
+- **HOME 레이아웃 재구성** (02-19): 2-column → single-column 전환, WelcomeBar CTA + QuickStatsBar 병합, 중복 위젯 제거, 카드 크기 확대
 - **QA TC 매트릭스** (02-19): 18개 카테고리 130+ TC ID, P1 라우터 테스트 57개 추가, 커버리지 62%→74%
 - **Studio UX 개선** (02-19): 1-column 레이아웃, 프로덕션 에이전트 SSE 노출, 이미지 클릭 팝업, Scene 번호 1-based 표준화
 - **렌더링 품질 개선** (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
