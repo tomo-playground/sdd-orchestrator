@@ -21,8 +21,8 @@ graph TB
     subgraph Backend ["Backend (FastAPI)"]
         Router["API Router (Endpoints)"]
 
-        subgraph AgentLayer ["Agentic Pipeline (LangGraph)"]
-            AgentSvc["Script Graph<br/>(Writer→Review→Revise→Director→Finalize)"]
+        subgraph AgentLayer ["Agentic Pipeline (LangGraph · 17노드)"]
+            AgentSvc["Script Graph<br/>(Director Plan→Writer→Review→<br/>Checkpoint→Cinematographer→Director)"]
             CriticNode["Critic / Debate"]
             ResearchNode["Research Node"]
             ProductionNodes["Production<br/>(Cinematographer, Sound, TTS)"]
@@ -188,9 +188,10 @@ backend/
 ├── routers/              # API 엔드포인트 (33개)
 ├── services/
 │   ├── agent/            # LangGraph Agentic Pipeline (Phase 9~10)
-│   │   ├── nodes/        # 그래프 노드 (writer, review, revise, finalize, director,
-│   │   │                 #   cinematographer, critic, sound_designer, tts_designer,
-│   │   │                 #   concept_gate, copyright_reviewer, explain, research, learn, human_gate)
+│   │   ├── nodes/        # 그래프 노드 17개 (director_plan, writer, review, revise,
+│   │   │                 #   director_checkpoint, cinematographer, tts_designer,
+│   │   │                 #   sound_designer, copyright_reviewer, director, human_gate,
+│   │   │                 #   finalize, explain, learn, critic, concept_gate, research)
 │   │   ├── tools/        # 에이전트 도구 (research_tools, cinematographer_tools)
 │   │   ├── script_graph.py    # LangGraph 그래프 정의
 │   │   ├── state.py           # 그래프 상태 스키마
@@ -338,7 +339,7 @@ frontend/app/
 | 코드 파일 | 300줄 권장, 400줄 최대 |
 | 중첩 깊이 | 3단계 이하 |
 | 매개변수 | 4개 이하 |
-| 테스트 | Backend 1,862 + Frontend 352 = 2,214개 |
+| 테스트 | Backend 1,902 + Frontend 352 = 2,254개 |
 
 **TDD**: 서비스/코어 로직은 테스트 먼저 작성 (Red → Green → Refactor)
 **API 스펙 = 진실**: API/스키마 변경 시 문서 즉시 업데이트 (drift = 버그 취급)
@@ -353,7 +354,7 @@ frontend/app/
 
 ### AI & Media
 - **LLM/LVM**: Google Gemini 2.5 Flash (Text/Vision/Storyboard), Gemini 2.5 Flash Image (이미지 생성)
-- **Workflow**: LangGraph (Agentic Pipeline: Writer → Review → Revise → Director → Finalize)
+- **Workflow**: LangGraph (Agentic Pipeline 17-노드: Director Plan → Writer → Review → Checkpoint → Cinematographer → Director → Finalize)
 - **Checkpointer**: AsyncPostgresSaver (psycopg v3, LangGraph 체크포인트)
 - **Memory**: AsyncPostgresStore (LangGraph Memory Store)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus

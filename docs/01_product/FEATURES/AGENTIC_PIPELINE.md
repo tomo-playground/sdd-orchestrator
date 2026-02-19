@@ -1,6 +1,6 @@
 # Agentic AI Pipeline & True Agentic Architecture
 
-**상태**: 완료 (Phase 9~10 전체 완료, 2026-02-18)
+**상태**: Active (Phase 9~10 완료 + Director-as-Orchestrator 고도화, 2026-02-19)
 **관련**: [AGENT_SPEC.md](../../03_engineering/backend/AGENT_SPEC.md), [SCRIPT_QUALITY_UX.md](SCRIPT_QUALITY_UX.md)
 
 ---
@@ -52,34 +52,44 @@
 
 | 모드 | 설명 | 구현 |
 |------|------|------|
-| **Quick** | Gemini 1회, ~30초 | Graph 6노드 (Research→Writer→Review→Finalize→Learn) |
-| **Full (Creator)** | AI 초안 → 사용자 검토 | Graph 14노드 + Human Gate interrupt |
-| **Full (Auto)** | AI 자동 실행 + 자체 검토 | Graph 14노드, Concept Gate 자동 통과 |
+| **Quick** | Gemini 1회, ~30초 | Graph 6노드 (Writer→Review→Finalize→Learn) |
+| **Full (Creator)** | AI 초안 → 사용자 검토 | Graph 17노드 + Human Gate interrupt |
+| **Full (Auto)** | AI 자동 실행 + 자체 검토 | Graph 17노드, Concept Gate 자동 통과 |
 
 Preset 3종: **Balanced** / **Creative** / **Efficient**
 
-### 2-3. 15-노드 그래프 구조
+### 2-3. 17-노드 그래프 구조
 
+**Full 모드:**
 ```
-START → Research → Critic(3인토론) → concept_gate → Writer(Planning) → Review(Self-Reflection)
-                                                                              ↓
-                                                         score ≥ threshold → Director(ReAct)
-                                                         score < threshold → Revise → Writer
-                                                                              ↓
-                                                                     Director → Explain
-                                                                              ↓
-                                                    Production Fan-out: Cinematographer | TTS | Sound | Copyright
-                                                                              ↓
-                                                                     Finalize → Learn → END
+START → director_plan → Research → Critic → concept_gate → Writer → Review → [Revise]
+  → director_checkpoint(score-based) → Cinematographer | TTS | Sound | Copyright
+  → Director(ReAct) → [human_gate] → Finalize → Explain → Learn → END
 ```
+
+**Quick 모드:** `START → Writer → Review → [Revise] → Finalize → Learn → END`
 
 | 분류 | 에이전트 | Agentic 레벨 |
 |------|---------|-------------|
-| AI Agent | Writer, Critic, Review, Director, Research, Cinematographer, Explain | ReAct/Tool-Calling |
+| AI Agent | Writer, Critic, Review, Director, Research, Cinematographer, Explain, **director_checkpoint** | ReAct/Tool-Calling |
 | Hybrid | Human Gate, Concept Gate | AI + Human interrupt |
-| System | Finalize, Learn, TTS Designer, Sound Designer, Copyright Reviewer | 규칙 기반 |
+| System | Finalize, Learn, TTS Designer, Sound Designer, Copyright Reviewer, **director_plan** | 규칙 기반 |
 
-### 2-4. NarrativeScore 서사 품질 평가
+### 2-4. Director-as-Orchestrator (2026-02-19)
+
+| 노드 | 역할 | 핵심 |
+|------|------|------|
+| **director_plan** | 초기 목표 수립 | creative_goal, target_emotion, quality_criteria, risk_areas, style_direction |
+| **director_checkpoint** | Production 진입 전 품질 게이트 | score(0.0~1.0) 기반 proceed/revise 판정 |
+
+**Score-Based Routing** (director_checkpoint):
+- `score < 0.4` + "proceed" → **override to "revise"** (safety net)
+- `score >= 0.85` + "revise" → **override to "proceed"** (불필요한 재생성 방지)
+- 중간 범위: Director 판단 존중
+
+**Revision History**: `revision_history` 필드에 attempt/errors/reflection/score/tier 누적 기록
+
+### 2-5. NarrativeScore 서사 품질 평가
 
 Review 노드에서 Full 모드 전용 서사 평가 (LANGGRAPH_NARRATIVE_THRESHOLD=0.6):
 
@@ -102,13 +112,13 @@ Review 노드에서 Full 모드 전용 서사 평가 (LANGGRAPH_NARRATIVE_THRESH
 | D3 | 단일 생성도 Graph? | **항상 Graph** | 이원화 방지, Quick=조건 분기로 Review/Revise 스킵 |
 | D4 | Review 평가 | 규칙 + Gemini 혼합 | 규칙 먼저 → 통과 시 Gemini 스킵 (비용 절감) |
 | D5 | Thread ID | `storyboard_id` | 자연스러운 매핑, 별도 ID 관리 불필요 |
-| D6 | Gemini 호출 제한 | 최대 3회 (Draft 1 + Revise 2) | `MAX_REVISIONS=2`, 비용 통제 |
+| D6 | Gemini 호출 제한 | 최대 4회 (Draft 1 + Revise 3) | `MAX_REVISIONS=3`, 비용 통제 |
 | D7 | LangFuse DB | 별도 PostgreSQL | LangFuse 자체 마이그레이션, 비즈니스 DB와 분리 |
 | D8 | Creative Lab | 폐기 (선택지 C) | Script Graph로 대체 가능, Lab UI/라우터는 7-4에서 삭제 완료 |
 | D9 | Multi-draft vs Concept Gate | **Concept Gate** | 같은 템플릿 3x는 다양성 부족, 컨셉 비교가 효율적 |
 | D10 | 전환 원칙 | 점진적, 선택적 Agentic | 핵심 노드(Director, Research, Cinematographer)부터 전환 |
 
-**비용 가드레일**: MAX_TOOL_CALLS=5, MAX_THINKING_STEPS=3, MAX_DEBATE_ROUNDS=2, DEBATE_TIMEOUT_SEC=60
+**비용 가드레일**: MAX_TOOL_CALLS=5, MAX_THINKING_STEPS=3, MAX_DEBATE_ROUNDS=2, DEBATE_TIMEOUT_SEC=60, CHECKPOINT_LOW=0.4, CHECKPOINT_HIGH=0.85
 
 ---
 
@@ -124,13 +134,15 @@ Review 노드에서 Full 모드 전용 서사 평가 (LANGGRAPH_NARRATIVE_THRESH
 | **2. Memory + Obs** | AsyncPostgresStore, LangFuse v3 Docker, Research/Learn 노드, 피드백 UI | [x] |
 | **3. Creative 재평가** | 폐기 결정, creative_utils.py 데드코드 258줄 정리 | [x] |
 | **4A. E2E Pipeline** | Script→Preflight→AutoRun 자동 체인, `pendingAutoRun` 시그널 | [x] |
-| **4B. Agent Spec** | 에이전트 분류 체계 (AI 7/Hybrid 2/System 4), Director Agent, 12→13노드 | [x] |
+| **4B. Agent Spec** | 에이전트 분류 체계, Director Agent, 12→13노드 | [x] |
 | **4C. 고도화** | Director feedback 주입, Production 병렬화 (fan-out), Explain Node, 13→14노드 | [x] |
 | **5A. Narrative** | Hook 구조 가이드, NarrativeScore, Review 3-tier 검증 | [x] |
 | **5B. Concept Gate** | Critic 3컨셉 사용자 선택, concept_gate 노드, 14→15노드 | [x] |
 | **5C. Transparency** | Pipeline Stepper, Agent Reasoning 패널, NarrativeScore 차트 | [x] |
 | **5D. Feedback** | 프리셋 4종, Concept Gate 재생성/직접입력, 파라미터 피드백 | [x] |
 | **5E. References** | URL/텍스트 소재 분석, SSRF 방어, Gemini 분석→research_brief | [x] |
+| **5F. Director-as-Orchestrator** | director_plan + director_checkpoint 노드, Score-Based Routing, 15→17노드 | [x] |
+| **5G. Pipeline 고도화** | MAX_REVISIONS 2→3, revision_history 누적, Checkpoint 임계값 튜닝 | [x] |
 
 ### Phase 10: True Agentic Architecture (2026-02-18)
 

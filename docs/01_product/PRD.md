@@ -9,12 +9,14 @@
 ```mermaid
 graph TD
     subgraph Planning ["1. 기획 단계 (Agentic Pipeline)"]
-        Topic[주제/캐릭터/소재 입력] --> Graph["<b>LangGraph 15-노드</b><br/>Agentic Pipeline"]
-        Graph --> Research["<b>Research Agent</b><br/>Tool-Calling (5개 도구)"]
+        Topic[주제/캐릭터/소재 입력] --> Graph["<b>LangGraph 17-노드</b><br/>Agentic Pipeline"]
+        Graph --> DirPlan["<b>Director Plan</b><br/>창작 목표 수립"]
+        DirPlan --> Research["<b>Research Agent</b><br/>Tool-Calling (5개 도구)"]
         Graph --> Writer["<b>Writer Agent</b><br/>Planning + 대본 생성"]
         Writer --> Critic["<b>Critic Agent</b><br/>3인 토론 + KPI 수렴"]
         Critic --> ConceptGate["<b>Concept Gate</b><br/>사용자 컨셉 선택"]
-        ConceptGate --> Review["<b>Review Agent</b><br/>Self-Reflection + NarrativeScore"]
+        ConceptGate --> DirCheck["<b>Director Checkpoint</b><br/>Score 기반 품질 게이트"]
+        DirCheck --> Review["<b>Review Agent</b><br/>Self-Reflection + NarrativeScore"]
         Review --> Director["<b>Director Agent</b><br/>ReAct Loop 통합 검증"]
         Director --> DB_Store["<b>PostgreSQL</b><br/>데이터 저장"]
     end
@@ -83,8 +85,8 @@ mindmap
 | 6 | TTS/음성 | Qwen3-TTS 로컬, Voice Preset, Context-Aware, 오디오 정규화 | 완료 |
 | 7 | AI BGM | Stable Audio Open, Music Preset, SHA256 캐시 | 완료 |
 | 8 | 프로젝트/그룹 | Cascading Config, Group Defaults, Channel DNA | Phase 2-1 완료 |
-| 9 | Agentic AI Pipeline | LangGraph 15-노드, Quick/Full 모드, Revise 루프, Memory, LangFuse | 완료 |
-| 10 | True Agentic Architecture | ReAct Loop, Tool-Calling, Agent Communication, Self-Reflection | 완료 |
+| 9 | Agentic AI Pipeline | LangGraph 17-노드, Quick/Full 모드, Revise 루프, Memory, LangFuse | 완료 |
+| 10 | True Agentic Architecture | Director-as-Orchestrator, Score 기반 라우팅, Revision History, ReAct Loop | 완료 |
 | 11 | Studio Coordinator + Script Vertical | Studio 코디네이터 + 대본 버티컬 분리 (Zustand 4-Store) | 완료 |
 | 12 | Scene UX Enhancement | Figma 기반 씬 편집 개선 (Phase A~G), 3-Column 레이아웃 | 완료 |
 | 13 | Script Quality & AI Transparency | NarrativeScore, Concept Gate, Pipeline Stepper, Reasoning 패널 | 완료 |
@@ -102,9 +104,9 @@ mindmap
 
 | # | 요구사항 | 상태 |
 |---|---------|------|
-| 1 | LangGraph 15-노드 조건 분기 그래프 (Quick 6노드 / Full 14노드) | 완료 |
+| 1 | LangGraph 17-노드 조건 분기 그래프 (Quick 6노드 / Full 17노드) | 완료 |
 | 2 | Quick/Full 모드 토글 + Preset 3종 (Balanced, Creative, Efficient) | 완료 |
-| 3 | Revise 루프 (MAX_REVISIONS=2) + Human Gate (Creator 모드 interrupt) | 완료 |
+| 3 | Revise 루프 (MAX_REVISIONS=3) + Human Gate (Creator 모드 interrupt) | 완료 |
 | 4 | AsyncPostgresStore Memory + LangFuse v3 Docker Observability | 완료 |
 | 5 | Concept Gate (Critic 3컨셉 사용자 선택) + Interactive Feedback 4종 프리셋 | 완료 |
 | 6 | NarrativeScore (Hook 40% + 감정 25% + 반전 20% + 톤 10% + 정합성 5%) | 완료 |
@@ -123,11 +125,13 @@ mindmap
 | # | 요구사항 | 상태 |
 |---|---------|------|
 | 1 | Director ReAct Loop (Observe→Think→Act 3-step) | 완료 |
-| 2 | Review Self-Reflection (실패 원인 분석 + 수정 전략) | 완료 |
-| 3 | Writer Planning Step (계획 → 생성 분리) | 완료 |
-| 4 | Gemini Function Calling 인프라 (Research 5도구 + Cinematographer 4도구) | 완료 |
-| 5 | Agent Message Protocol + Director↔Production 양방향 소통 | 완료 |
-| 6 | Critic 실시간 3인 토론 + KPI 수렴 (Groupthink 감지) | 완료 |
+| 2 | Director-as-Orchestrator (director_plan + director_checkpoint 2노드 추가) | 완료 |
+| 3 | Score 기반 라우팅 + Decision Override 안전망 (LOW=0.4, HIGH=0.85) | 완료 |
+| 4 | Revision History 누적 (동일 실패 반복 방지, 최대 3회) | 완료 |
+| 5 | Gemini Function Calling 인프라 (Research 5도구 + Cinematographer 4도구) | 완료 |
+| 6 | Agent Message Protocol + Director↔Production 양방향 소통 | 완료 |
+| 7 | Review Self-Reflection + Writer Planning Step | 완료 |
+| 8 | Critic 실시간 3인 토론 + KPI 수렴 (Groupthink 감지) | 완료 |
 
 **기능 명세**: [AGENTIC_PIPELINE.md](FEATURES/AGENTIC_PIPELINE.md) (Phase 10 섹션)
 
@@ -152,7 +156,7 @@ mindmap
 
 | 항목 | 기준 | 근거 |
 |------|------|------|
-| 테스트 | Backend 1,805 + Frontend 339 = **총 2,144개** 이상 유지 | CONTRIBUTING.md Rule #9 |
+| 테스트 | Backend 1,902 + Frontend 352 = **총 2,254개** 이상 유지 | CONTRIBUTING.md Rule #9 |
 | 코드 크기 | 함수 50줄, 파일 400줄 이하 | CLAUDE.md 가이드라인 |
 | 문서 크기 | 800줄 이하 (초과 시 분할/아카이브) | CLAUDE.md 가이드라인 |
 | 태그 표준 | Danbooru 언더바(_) 형식 통일 | CLAUDE.md Tag Format Standard |

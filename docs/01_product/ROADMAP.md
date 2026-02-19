@@ -16,7 +16,7 @@
 
 ### 최근 작업
 
-- **Pipeline 고도화: Revision History + Score-Based Routing** (02-19): revision_history 누적으로 동일 실패 반복 방지, score 기반 decision override 안전망 (low < 0.4 → 강제 revise, high >= 0.85 → 강제 proceed). 7개 테스트 추가
+- **Pipeline 고도화: Revision History + Score-Based Routing** (02-19): revision_history 누적으로 동일 실패 반복 방지, score 기반 decision override 안전망, 리비전 최대 횟수 1→3 상향. 7개 테스트 추가
 - **Tag Effectiveness 안정화** (02-19): identity 태그(hair_color, eye_color) death spiral 방지 — effectiveness 필터 면제. WD14 미지원 태그(anime_style 등) UNMATCHABLE 등록
 - **Agentic Pipeline 안정화** (02-19): Tool-Calling 텍스트 유실 수정, Writer safety retry, Research HTML 파싱 개선, Checkpoint→Writer 라우팅 수정. 33개 테스트 추가
 - **Director-as-Orchestrator** (02-19): Director를 사후 검증자 → 오케스트레이터로 전환. director_plan(목표 수립) + director_checkpoint(스크립트 품질 게이트) 2노드 추가, 15→17노드 그래프

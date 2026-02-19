@@ -23,7 +23,7 @@ graph TB
 
         subgraph Pipeline ["Agentic Pipeline — LangGraph"]
             direction LR
-            Nodes["15 Agent Nodes\nDirector · Writer · Critic\nResearch · Cinematographer\nReview · Sound · TTS ..."]
+            Nodes["17 Agent Nodes\nDirector Plan · Checkpoint · Writer\nCritic · Research · Cinematographer\nReview · Sound · TTS ..."]
             Tools["9 Gemini Tools\nResearch 5 + Cine 4"]
             Nodes --- Tools
         end
@@ -66,15 +66,16 @@ graph TB
 
 ### Agentic Pipeline Flow
 
-15개 에이전트 노드가 **Quick** (6노드) / **Full** (15노드) 모드로 자율 협업합니다. Director가 ReAct Loop로 품질을 관리하고, Critic이 실시간 토론으로 컨셉을 정제합니다.
+17개 에이전트 노드가 **Quick** (6노드) / **Full** (17노드) 모드로 자율 협업합니다. Director가 Plan→Checkpoint→ReAct Loop으로 품질을 관리하고, Score 기반 라우팅으로 안전망을 제공합니다.
 
 ```mermaid
 flowchart TD
     START(("START"))
 
-    START -->|"Full"| research["Research\n5 Tools · Memory Store"]
+    START -->|"Full"| director_plan["Director Plan\n목표 수립"]
     START -->|"Quick"| writer
 
+    director_plan --> research["Research\n5 Tools · Memory Store"]
     research --> critic["Critic\n3-Architect Debate"]
     critic --> concept_gate{"Concept\nGate"}
     concept_gate -->|"Select"| writer["Writer\nPlanning + Script Gen"]
@@ -82,10 +83,13 @@ flowchart TD
 
     writer --> review["Review\nRule + Gemini + NarrativeScore"]
 
-    review -->|"Pass · Full"| cine["Cinematographer\n4 Tools · Danbooru Tags"]
+    review -->|"Pass · Full"| checkpoint["Director Checkpoint\nScore-Based Gate"]
     review -->|"Pass · Quick"| finalize
-    review -->|"Fail"| revise["Revise\nAuto-fix + Re-gen"]
+    review -->|"Fail"| revise["Revise\nHistory 누적 + Re-gen"]
     revise --> review
+
+    checkpoint -->|"Proceed (≥0.7)"| cine["Cinematographer\n4 Tools · Danbooru Tags"]
+    checkpoint -.->|"Revise (<0.7)"| writer
 
     cine --> fan{"Fan-out"}
     fan --> tts["TTS Designer"]
@@ -112,16 +116,18 @@ flowchart TD
     style DONE fill:#4CAF50,color:#fff
     style fan fill:#FF9800,color:#fff
     style concept_gate fill:#2196F3,color:#fff
+    style checkpoint fill:#9C27B0,color:#fff
     style human fill:#2196F3,color:#fff
     style director fill:#9C27B0,color:#fff
+    style director_plan fill:#9C27B0,color:#fff
 ```
 
 ## 주요 기능
 
-1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 15개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
-    - ReAct Loop (자율 의사결정), Tool-Calling (Gemini Function Calling 9개), Agent Communication Protocol
-    - Concept Gate (자동 품질 게이트), Graceful Degradation (에이전트 장애 내성)
-    - 3-Architect Debate (Critic), NarrativeScore (서사 품질 정량 평가)
+1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 17개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
+    - Director-as-Orchestrator (Plan→Checkpoint→ReAct Loop), Score 기반 라우팅 (안전망)
+    - Revision History 누적 (동일 실패 반복 방지), 최대 리비전 3회
+    - Tool-Calling (Gemini Function Calling 9개), 3-Architect Debate, NarrativeScore
 2.  **12-Layer Prompt Engine**: 캐릭터의 고유 속성(Trait)과 임시 속성(Outfit)을 분리하여 일관성 있는 이미지를 생성합니다.
 3.  **지능형 검수**:
     - **WD14 Tagger**: 생성 이미지와 프롬프트 키워드 일치 여부를 정량 검증합니다.
@@ -152,7 +158,7 @@ backend/
 ├── routers/          # 도메인별 API 엔드포인트 (33개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   15개 에이전트 노드 + 4개 유틸리티 모듈
+│   │   ├── nodes/    #   17개 에이전트 노드 + 4개 유틸리티 모듈
 │   │   ├── tools/    #   Gemini Function Calling 9개 도구
 │   │   ├── state.py  #   ScriptState (Graph State)
 │   │   └── routing.py#   8개 조건부 라우팅 함수
@@ -215,10 +221,10 @@ npm run dev
 
 ## Testing
 
-- **Backend**: `cd backend && uv run pytest` (1,862개 테스트)
+- **Backend**: `cd backend && uv run pytest` (1,902개 테스트)
 - **Frontend**: `cd frontend && npm test` (352개 테스트)
 - **VRT**: `cd frontend && npm run test:vrt`
-- **총 2,214개 테스트**
+- **총 2,254개 테스트**
 
 ## Documentation
 

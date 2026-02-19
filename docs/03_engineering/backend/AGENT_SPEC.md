@@ -17,47 +17,49 @@
 
 ---
 
-## 2. 에이전트 목록 (15개)
+## 2. 에이전트 목록 (17개)
 
-### 2-1. AI Agent (6개)
+### 2-1. AI Agent (7개)
 
 | # | 노드명 | 역할 | 입력 | 출력 | QC |
 |---|--------|------|------|------|-----|
 | 1 | `critic` | 3인 Architect 실시간 토론 (Phase 10-C-3). 독립 컨셉 → 상호 비평 → KPI 수렴 → Director 평가 | `topic`, `research_brief` | `critic_result`, `debate_log` | NarrativeScore 추정 + Hook 강도 + Groupthink 감지 |
 | 2 | `writer` | 스크립트 작가. Full에서 Planning Step 추가 (Phase 10-A) | `topic`, `description`, `critic_result`, `revision_feedback` | `draft_scenes`, `writer_plan` | 없음 (review에 위임) |
-| 3 | `tts_designer` | TTS 디자이너 — 씬별 음성 설계 | `cinematographer_result`, `critic_result` | `tts_designer_result` | `validate_tts_design()` + fallback |
-| 4 | `sound_designer` | 사운드 디자이너 — BGM 방향성 추천 | `cinematographer_result`, `critic_result` | `sound_designer_result` | `validate_music()` + fallback |
-| 5 | `copyright_reviewer` | 저작권 검토자 — IP 위험 검토 | `cinematographer_result` | `copyright_reviewer_result` | `validate_copyright()` + fallback PASS |
-| 6 | `explain` | 창작 설명 — 파이프라인 결정을 한국어로 설명 (Full만) | 모든 production 결과 | `explanation_result` | 없음 (실패 시 None) |
+| 3 | `director_checkpoint` | Review 통과 후 스크립트 품질 게이트. score(0.0-1.0) 기반 proceed/revise 결정. Score-based override: proceed+score<0.4→revise, revise+score≥0.85→proceed | `draft_scenes`, `review_result`, `director_plan` | `director_checkpoint_decision`, `director_checkpoint_score`, `director_checkpoint_feedback` | score 기반 자동 보정 |
+| 4 | `tts_designer` | TTS 디자이너 — 씬별 음성 설계 | `cinematographer_result`, `critic_result` | `tts_designer_result` | `validate_tts_design()` + fallback |
+| 5 | `sound_designer` | 사운드 디자이너 — BGM 방향성 추천 | `cinematographer_result`, `critic_result` | `sound_designer_result` | `validate_music()` + fallback |
+| 6 | `copyright_reviewer` | 저작권 검토자 — IP 위험 검토 | `cinematographer_result` | `copyright_reviewer_result` | `validate_copyright()` + fallback PASS |
+| 7 | `explain` | 창작 설명 — 파이프라인 결정을 한국어로 설명 (Full만) | 모든 production 결과 | `explanation_result` | 없음 (실패 시 None) |
 
 ### 2-2. Tool-Calling Agent (2개, Phase 10-B)
 
 | # | 노드명 | 역할 | 도구 | 최대 호출 |
 |---|--------|------|------|----------|
-| 7 | `research` | Research Agent — Memory Store + 소재 분석 + 트렌딩 + 그룹 DNA | `search_topic_history`, `search_character_history`, `fetch_url_content`, `analyze_trending`, `get_group_dna` | 5회 |
-| 8 | `cinematographer` | Cinematographer Agent — Danbooru 태그 검증 + 캐릭터 태그 + 호환성 체크 | `validate_danbooru_tag`, `get_character_visual_tags`, `check_tag_compatibility`, `search_similar_compositions` | 10회 |
+| 8 | `research` | Research Agent — Memory Store + 소재 분석 + 트렌딩 + 그룹 DNA | `search_topic_history`, `search_character_history`, `fetch_url_content`, `analyze_trending`, `get_group_dna` | 5회 |
+| 9 | `cinematographer` | Cinematographer Agent — Danbooru 태그 검증 + 캐릭터 태그 + 호환성 체크 | `validate_danbooru_tag`, `get_character_visual_tags`, `check_tag_compatibility`, `search_similar_compositions` | 10회 |
 
 ### 2-3. Director Agent (1개, Phase 10-A ReAct + Phase 10-C-2 메시지)
 
 | # | 노드명 | 역할 | 특수 기능 |
 |---|--------|------|----------|
-| 9 | `director` | Production chain 통합 검증. ReAct Loop (Observe→Think→Act) + Agent 간 메시지 기반 양방향 소통 | 최대 `LANGGRAPH_MAX_REACT_STEPS`(3) 스텝. revise 판정 시 타겟 에이전트 재실행 |
+| 10 | `director` | Production chain 통합 검증. ReAct Loop (Observe→Think→Act) + Agent 간 메시지 기반 양방향 소통 | 최대 `LANGGRAPH_MAX_REACT_STEPS`(3) 스텝. revise 판정 시 타겟 에이전트 재실행 |
 
 ### 2-4. Hybrid (2개)
 
 | # | 노드명 | 역할 | 전략 |
 |---|--------|------|------|
-| 10 | `review` | 3-tier 검증: 규칙 → Gemini 피드백 → 서사 품질(NarrativeScore). Phase 10-A: Self-Reflection | 규칙 → LLM (비용 절감) |
-| 11 | `revise` | 수정. 규칙 기반 수정 → 복잡 오류는 Gemini 재생성 (Self-Reflection 활용) | 규칙 → LLM |
+| 11 | `review` | 3-tier 검증: 규칙 → Gemini 피드백 → 서사 품질(NarrativeScore). Phase 10-A: Self-Reflection | 규칙 → LLM (비용 절감) |
+| 12 | `revise` | 수정. 규칙 기반 수정 → 복잡 오류는 Gemini 재생성 (Self-Reflection 활용) | 규칙 → LLM |
 
-### 2-5. System (4개)
+### 2-5. System (5개)
 
 | # | 노드명 | 역할 | 동작 |
 |---|--------|------|------|
-| 12 | `concept_gate` | 컨셉 선택 게이트 (Full Auto: pass-through, Creator: `interrupt()`) | 선택/재생성/커스텀 컨셉 지원 |
-| 13 | `human_gate` | 승인 게이트 — `interrupt()` 기반 사용자 대기 | 승인/수정 결정 → `human_action` |
-| 14 | `finalize` | 최종화 — Quick: 패스스루, Full: Production 결과 병합 | cinematographer + tts + sound + copyright → `final_scenes` |
-| 15 | `learn` | 학습 — Memory Store 저장 | topic/character/user 히스토리 업데이트 |
+| 13 | `director_plan` | Director 초기 목표 수립 (creative_goal, target_emotion, quality_criteria, risk_areas, style_direction). Full 모드 첫 노드. Gemini 호출. 실패 시 graceful degradation (None) | Full 모드 START 직후 실행 |
+| 14 | `concept_gate` | 컨셉 선택 게이트 (Full Auto: pass-through, Creator: `interrupt()`) | 선택/재생성/커스텀 컨셉 지원 |
+| 15 | `human_gate` | 승인 게이트 — `interrupt()` 기반 사용자 대기 | 승인/수정 결정 → `human_action` |
+| 16 | `finalize` | 최종화 — Quick: 패스스루, Full: Production 결과 병합 | cinematographer + tts + sound + copyright → `final_scenes` |
+| 17 | `learn` | 학습 — Memory Store 저장 | topic/character/user 히스토리 업데이트 |
 
 ---
 
@@ -183,22 +185,22 @@ START → writer → review → [revise] → finalize → learn → END
 - Gemini 1회 호출 (~30초)
 - Production chain 스킵, explain 스킵
 
-### 6-2. Full 모드 (15노드, 병렬 실행)
+### 6-2. Full 모드 (17노드, 병렬 실행)
 
 ```
-START → research → critic → concept_gate → writer → review → [revise] →
-                                ↑
-                     Creator: interrupt
-                     Full Auto: pass-through
+START → director_plan → research → critic → concept_gate → writer → review → [revise] →
+                                                ↑
+                                     Creator: interrupt
+                                     Full Auto: pass-through
 
-                    ┌→ tts_designer ────┐
-cinematographer ────┤→ sound_designer ──┤→ director → [human_gate] →
-                    └→ copyright_reviewer┘
+                                        ┌→ tts_designer ────┐
+director_checkpoint → cinematographer ──┤→ sound_designer ──┤→ director → [human_gate] →
+                                        └→ copyright_reviewer┘
 
 finalize → explain → learn → END
 ```
 
-- Gemini 7-10회 호출 (~5-15분)
+- Gemini 8-12회 호출 (~5-15분)
 - **tts/sound/copyright 3개 노드 병렬 실행** (LangGraph fan-out/fan-in)
 - Tool-Calling (Research 5회 + Cinematographer 10회)
 
@@ -206,10 +208,11 @@ finalize → explain → learn → END
 
 | 분기점 | 함수 | 로직 |
 |--------|------|------|
-| START | `route_after_start` | quick → writer, full → research |
+| START | `route_after_start` | quick → writer, full → director_plan |
 | writer | `route_after_writer` | 에러 → finalize, 정상 → review |
 | concept_gate | `route_after_concept_gate` | regenerate → critic, 기타 → writer |
-| review | `route_after_review` | passed+full → cinematographer, passed+quick → finalize, failed → revise |
+| review | `route_after_review` | passed+full → director_checkpoint, passed+quick → finalize, failed → revise |
+| director_checkpoint | `route_after_director_checkpoint` | proceed → cinematographer, revise → writer, max reached → cinematographer |
 | cinematographer | `route_after_cinematographer` | 에러 → finalize, 정상 → 3개 병렬 fan-out |
 | director | `route_after_director` | approve → human_gate/finalize, revise → 해당 노드 |
 | human_gate | `route_after_human_gate` | approve → finalize, revise → revise |
@@ -260,7 +263,7 @@ for step in 1..MAX_REACT_STEPS:
 
 ### 7-3. 안전장치
 
-- **최대 Director 재시도**: `LANGGRAPH_MAX_DIRECTOR_REVISIONS = 1`
+- **최대 Director 재시도**: `LANGGRAPH_MAX_DIRECTOR_REVISIONS = 3`
 - **최대 ReAct 스텝**: `LANGGRAPH_MAX_REACT_STEPS = 3`
 - **에러 fallback**: Director 노드 실패 시 `approve` 반환
 
@@ -339,6 +342,9 @@ class ScriptState(TypedDict, total=False):
     # 중간 상태
     draft_scenes, draft_character_id, draft_character_b_id
 
+    # Director Plan
+    director_plan: DirectorPlan | None
+
     # Writer Planning (Phase 10-A)
     writer_plan: WriterPlan | None
 
@@ -371,6 +377,13 @@ class ScriptState(TypedDict, total=False):
     cinematographer_result, tts_designer_result
     sound_designer_result, copyright_reviewer_result
 
+    # Director Checkpoint
+    director_checkpoint_decision: str | None
+    director_checkpoint_score: float | None
+    director_checkpoint_feedback: str | None
+    director_checkpoint_revision_count: int
+    revision_history: list[dict] | None  # attempt, errors, reflection, score, tier
+
     # Director ReAct (Phase 10-A + Phase 10-C-2)
     director_decision, director_feedback, director_revision_count
     director_reasoning_steps: list[DirectorReActStep] | None
@@ -389,8 +402,8 @@ class ScriptState(TypedDict, total=False):
 
 | 상수 | 기본값 | 용도 |
 |------|--------|------|
-| `LANGGRAPH_MAX_REVISIONS` | 2 | Review→Revise 루프 최대 |
-| `LANGGRAPH_MAX_DIRECTOR_REVISIONS` | 1 | Director revision 최대 |
+| `LANGGRAPH_MAX_REVISIONS` | 3 | Review→Revise 루프 최대 |
+| `LANGGRAPH_MAX_DIRECTOR_REVISIONS` | 3 | Director revision 최대 |
 | `LANGGRAPH_MAX_REACT_STEPS` | 3 | Director ReAct 최대 스텝 |
 | `LANGGRAPH_MAX_CONCEPT_REGEN` | 2 | Concept Gate 재생성 최대 |
 | `MAX_TOOL_CALLS_PER_NODE` | 5 | 노드당 도구 호출 최대 |
@@ -400,6 +413,10 @@ class ScriptState(TypedDict, total=False):
 | `CONVERGENCE_HOOK_THRESHOLD` | 0.6 | Hook 강도 수렴 |
 | `GROUPTHINK_SIMILARITY_THRESHOLD` | 0.85 | Groupthink 감지 |
 | `LANGGRAPH_NARRATIVE_THRESHOLD` | 0.6 | 서사 품질 통과 기준 |
+| `LANGGRAPH_MAX_CHECKPOINT_REVISIONS` | 3 | Director Checkpoint 재시도 최대 |
+| `LANGGRAPH_CHECKPOINT_THRESHOLD` | 0.7 | Checkpoint 통과 기준 score |
+| `LANGGRAPH_CHECKPOINT_LOW_THRESHOLD` | 0.4 | proceed override → revise |
+| `LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD` | 0.85 | revise override → proceed |
 | `LANGGRAPH_PLANNING_ENABLED` | true | Writer Planning 활성화 |
 | `LANGGRAPH_REFLECTION_ENABLED` | true | Self-Reflection 활성화 |
 
@@ -411,12 +428,14 @@ class ScriptState(TypedDict, total=False):
 
 | 노드 | 라벨 | percent |
 |------|------|---------|
+| director_plan | 목표 수립 | 3 |
 | research | 리서치 | 5 |
 | critic | 컨셉 토론 | 15 |
 | concept_gate | 컨셉 선택 | 25 |
 | writer | 대본 생성 | 40 |
 | review | 구조 검증 | 55 |
 | revise | 수정 중 | 58 |
+| director_checkpoint | 품질 게이트 | 57 |
 | cinematographer | 비주얼 디자인 | 60 |
 | tts_designer | 음성 디자인 | 75 |
 | sound_designer | BGM 설계 | 75 |
@@ -435,7 +454,7 @@ class ScriptState(TypedDict, total=False):
 backend/services/agent/
 ├── __init__.py           # 공개 API (build_script_graph, ScriptState 등)
 ├── state.py              # ScriptState, ReviewResult, NarrativeScore 등 TypedDict
-├── script_graph.py       # 15노드 StateGraph 구성 (병렬 fan-out)
+├── script_graph.py       # 17노드 StateGraph 구성 (병렬 fan-out)
 ├── routing.py            # 조건 분기 함수 (8개)
 ├── messages.py           # AgentMessage 프로토콜 + State Condensation
 ├── checkpointer.py       # AsyncPostgresSaver 싱글턴
@@ -448,12 +467,15 @@ backend/services/agent/
 │   ├── research_tools.py # Research Agent 도구 5개
 │   └── cinematographer_tools.py # Cinematographer Agent 도구 4개
 └── nodes/
+    ├── director_plan.py      # [System] Director 초기 목표 수립 (Gemini 호출)
     ├── research.py           # [Tool-Calling] Memory + 소재 + 트렌딩 + DNA
     ├── critic.py             # [AI Agent] 3인 Architect 토론 (Phase 10-C-3)
     ├── concept_gate.py       # [System] 컨셉 선택 (interrupt / pass-through)
     ├── writer.py             # [AI Agent] 스크립트 작성 + Planning (Phase 10-A)
     ├── review.py             # [Hybrid] 3-tier 검증 + Self-Reflection (Phase 10-A)
     ├── revise.py             # [Hybrid] 규칙/재생성 수정
+    ├── _revise_expand.py     # Revise 확장 로직
+    ├── director_checkpoint.py # [AI Agent] Review 후 스크립트 품질 게이트
     ├── cinematographer.py    # [Tool-Calling] 비주얼 디자인 (Phase 10-B-3)
     ├── tts_designer.py       # [AI Agent] 음성 디자인
     ├── sound_designer.py     # [AI Agent] BGM 설계
@@ -473,11 +495,4 @@ backend/services/agent/
 ## 16. Script Generation Service
 
 `services/script/gemini_generator.py` — Writer 노드가 호출하는 실제 대본 생성 로직:
-
-1. **캐릭터 컨텍스트 로드**: identity_tags, costume_tags, lora_triggers 분류
-2. **Multi-Character 감지**: 2인 LoRA capable 여부 확인
-3. **채널 DNA 로드**: `GroupConfig.channel_dna`
-4. **Gemini 호출**: 프리셋 템플릿 렌더 → Safety Settings BLOCK_NONE
-5. **태그 파이프라인**: normalize → validate(Danbooru) → filter → negative prompt
-6. **Auto-Pin**: Dialogue: 공유 배경, Monologue: 환경 태그 오버랩 분석
-7. **Character Actions**: Dialogue 구조에서 `auto_populate_character_actions()`
+캐릭터 컨텍스트 로드 → Multi-Character 감지 → 채널 DNA 로드 → Gemini 호출 (프리셋 템플릿 렌더, Safety Settings BLOCK_NONE) → 태그 파이프라인 (normalize → validate → filter → negative prompt) → Auto-Pin (공유 배경/환경 태그 오버랩) → Character Actions (`auto_populate_character_actions()`)
