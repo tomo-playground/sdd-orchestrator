@@ -88,6 +88,15 @@ select:focus {
   background: #a1a1aa;
 }
 
+/* Hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 * {
   box-sizing: border-box;
 }

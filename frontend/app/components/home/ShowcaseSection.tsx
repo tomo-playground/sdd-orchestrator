@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clapperboard, Loader2, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Clapperboard, Loader2, Play, Sparkles } from "lucide-react";
+import Link from "next/link";
 import type { RenderHistoryItem } from "../../types";
 import { useUIStore } from "../../store/useUIStore";
 import { formatRelativeTime } from "../../utils/format";
 
-const DISPLAY_COUNT = 12;
+const DISPLAY_COUNT = 30;
 const EXPANDED_LIMIT = 50;
+const PER_GROUP_LIMIT = 8;
 
 const LABEL_DISPLAY: Record<string, string> = {
   full: "Full Video",
@@ -118,14 +120,20 @@ export default function ShowcaseSection() {
                 </span>
                 <span className="text-[11px] text-zinc-400">({videos.length})</span>
               </div>
-              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-                {videos.map((video) => (
+              <div
+                className={
+                  expanded
+                    ? "scrollbar-hide flex gap-3 overflow-x-auto pb-2"
+                    : "flex flex-wrap gap-3"
+                }
+              >
+                {(expanded ? videos : videos.slice(0, PER_GROUP_LIMIT)).map((video) => (
                   <button
                     key={video.id}
                     onClick={() => setSelectedVideo(video)}
                     className="group w-[160px] shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white text-left transition hover:border-zinc-300 hover:shadow-md"
                   >
-                    <div className="relative h-[240px] w-full overflow-hidden bg-zinc-900">
+                    <div className="relative h-[204px] w-full overflow-hidden bg-zinc-900">
                       <video
                         src={video.url}
                         className="h-full w-full object-cover"
@@ -137,14 +145,14 @@ export default function ShowcaseSection() {
                           <Play className="h-4 w-4 text-zinc-900" />
                         </div>
                       </div>
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                        <p className="truncate text-xs font-medium text-white">
-                          {video.storyboard_title || video.project_name || "Video"}
-                        </p>
-                        <p className="text-[11px] text-white/70">
-                          {formatRelativeTime(video.created_at)}
-                        </p>
-                      </div>
+                    </div>
+                    <div className="px-2 py-1.5">
+                      <p className="truncate text-xs font-medium text-zinc-900">
+                        {video.storyboard_title || video.project_name || "Video"}
+                      </p>
+                      <p className="text-[11px] text-zinc-400">
+                        {formatRelativeTime(video.created_at)}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -193,16 +201,26 @@ export default function ShowcaseSection() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
-                {selectedVideo.label === "full" ? "Full Video" : "Post Format"}
-              </span>
-              {selectedVideo.group_name && (
-                <>
-                  <span className="text-zinc-300">&bull;</span>
-                  <span className="text-xs text-zinc-500">{selectedVideo.group_name}</span>
-                </>
-              )}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
+                  {selectedVideo.label === "full" ? "Full Video" : "Post Format"}
+                </span>
+                {selectedVideo.group_name && (
+                  <>
+                    <span className="text-zinc-300">&bull;</span>
+                    <span className="text-xs text-zinc-500">{selectedVideo.group_name}</span>
+                  </>
+                )}
+              </div>
+              <Link
+                href={`/studio?id=${selectedVideo.storyboard_id}`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 transition hover:text-zinc-900"
+                onClick={() => setSelectedVideo(null)}
+              >
+                Storyboard
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
         </div>
