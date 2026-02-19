@@ -421,3 +421,33 @@ class TestRecommendedTagsSection:
         assert "Allowed Keywords" in result
         assert "smile" in result
         assert "frown" in result
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_tags_from_db")
+    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
+    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
+    @patch("config.RECOMMENDATION_EFFECTIVENESS_THRESHOLD", 0.8)
+    @patch("config.RECOMMENDATION_MIN_USE_COUNT", 10)
+    def test_identity_tags_not_filtered_by_effectiveness(
+        self, mock_load_tags, mock_load_eff
+    ):
+        """Identity tags (hair_color, eye_color) should remain even with 0% effectiveness."""
+        mock_load_tags.return_value = {
+            "expression": ["smile", "surprised"],
+            "layer_2": ["black_hair", "blonde_hair", "blue_eyes"],
+        }
+        mock_load_eff.return_value = {
+            "smile": (0.85, 50),
+            "surprised": (0.0, 100),     # Non-identity → filtered
+            "black_hair": (0.0, 89),     # Identity → kept
+            "blonde_hair": (0.0, 60),    # Identity → kept
+            "blue_eyes": (0.0, 89),      # Identity → kept
+        }
+
+        result = format_keyword_context(filter_by_effectiveness=True)
+
+        assert "smile" in result
+        assert "surprised" not in result  # Non-identity filtered
+        assert "black_hair" in result     # Identity protected
+        assert "blonde_hair" in result    # Identity protected
+        assert "blue_eyes" in result      # Identity protected

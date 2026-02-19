@@ -311,11 +311,11 @@ def test_route_after_review_quick():
 
 
 def test_route_after_review_full():
-    """Full 모드: review 통과 → cinematographer."""
+    """Full 모드: review 통과 → director_checkpoint."""
     from services.agent.routing import route_after_review
 
     state = {"mode": "full", "review_result": {"passed": True}}
-    assert route_after_review(state) == "cinematographer"
+    assert route_after_review(state) == "director_checkpoint"
 
 
 def test_route_after_cinematographer_fanout():

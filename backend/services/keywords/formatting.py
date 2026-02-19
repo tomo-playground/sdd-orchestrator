@@ -6,6 +6,7 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
         RECOMMENDATION_MIN_USE_COUNT,
         TAG_EFFECTIVENESS_THRESHOLD,
         TAG_MIN_USE_COUNT_FOR_FILTERING,
+        get_wd14_identity_tags,
         logger,
     )
     from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY, _SCENE_GROUPS
@@ -44,7 +45,7 @@ def format_keyword_context(filter_by_effectiveness: bool = True) -> str:
                 eff_score, use_count = eff_data
                 if eff_score is None or use_count < TAG_MIN_USE_COUNT_FOR_FILTERING:
                     filtered_values.append((tag, 0.5, use_count))
-                elif eff_score < TAG_EFFECTIVENESS_THRESHOLD:
+                elif eff_score < TAG_EFFECTIVENESS_THRESHOLD and normalized not in get_wd14_identity_tags():
                     continue
                 else:
                     filtered_values.append((tag, eff_score, use_count))

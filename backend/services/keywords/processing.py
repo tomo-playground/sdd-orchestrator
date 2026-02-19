@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING
+from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING, get_wd14_identity_tags
 
 from .core import (
     IGNORE_TOKENS,
@@ -128,8 +128,13 @@ def filter_prompt_tokens(prompt: str) -> str:
         eff_data = eff_map.get(normalized)
         if eff_data:
             eff_score, use_count = eff_data
-            if eff_score is not None and use_count >= TAG_MIN_USE_COUNT_FOR_FILTERING and eff_score < TAG_EFFECTIVENESS_THRESHOLD:
-                # Low effectiveness tag -> Skip
+            if (
+                eff_score is not None
+                and use_count >= TAG_MIN_USE_COUNT_FOR_FILTERING
+                and eff_score < TAG_EFFECTIVENESS_THRESHOLD
+                and normalized not in get_wd14_identity_tags()
+            ):
+                # Low effectiveness tag -> Skip (identity tags exempt)
                 _get_logger().warning(f"⚠️  [Filter] Skipping low-effectiveness tag: '{normalized}' (score: {eff_score:.2f})")
                 filtered_count += 1
                 continue

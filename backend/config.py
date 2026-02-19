@@ -210,7 +210,31 @@ WD14_UNMATCHABLE_TAGS: set[str] = {
     # Abstract composition
     "dynamic_angle",
     "cinematic_composition",
+    # Conceptual / not in WD14 model
+    "anime_style",
+    "bishounen",
+    "anime_coloring",
 }
+
+# Character-identity categories exempt from effectiveness filtering.
+# WD14 may under-detect these in stylised anime art, but removing them
+# from prompts breaks character consistency (→ "death spiral").
+# Tags are resolved lazily from CATEGORY_PATTERNS on first access.
+WD14_IDENTITY_CATEGORIES: frozenset[str] = frozenset({"hair_color", "eye_color"})
+_WD14_IDENTITY_TAGS: set[str] | None = None
+
+
+def get_wd14_identity_tags() -> set[str]:
+    """Return the merged set of tags belonging to WD14_IDENTITY_CATEGORIES."""
+    global _WD14_IDENTITY_TAGS  # noqa: PLW0603
+    if _WD14_IDENTITY_TAGS is None:
+        from services.keywords.patterns import CATEGORY_PATTERNS
+
+        _WD14_IDENTITY_TAGS = set()
+        for cat in WD14_IDENTITY_CATEGORIES:
+            _WD14_IDENTITY_TAGS.update(CATEGORY_PATTERNS.get(cat, []))
+    return _WD14_IDENTITY_TAGS
+
 
 # --- Tag Effectiveness Configuration ---
 # Threshold for filtering low-effectiveness tags in Gemini prompts

@@ -206,6 +206,41 @@ class TestEffectivenessFiltering:
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_synonyms_from_db")
     @patch("services.keywords.load_allowed_tags_from_db")
+    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
+    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
+    def test_identity_tags_exempt_from_filtering(
+        self,
+        mock_load_allowed,
+        mock_load_synonyms,
+        mock_load_eff,
+        mock_allowed_tags,
+        mock_synonyms,
+    ):
+        """Identity tags (hair_color, eye_color) should NOT be filtered even with 0% effectiveness."""
+        allowed = mock_allowed_tags | {"black_hair", "blue_eyes", "brown_eyes"}
+        mock_load_allowed.return_value = allowed
+        mock_load_synonyms.return_value = mock_synonyms
+        mock_load_eff.return_value = {
+            "smile": (0.85, 50),
+            "standing": (0.90, 30),
+            "black_hair": (0.0, 89),  # 0% but identity → keep
+            "blue_eyes": (0.0, 89),   # 0% but identity → keep
+            "brown_eyes": (0.0, 54),  # 0% but identity → keep
+            "surprised": (0.0, 100),  # 0% non-identity → filter
+        }
+
+        prompt = "smile, black_hair, blue_eyes, standing, surprised"
+        result = filter_prompt_tokens(prompt)
+
+        assert "smile" in result
+        assert "standing" in result
+        assert "black_hair" in result   # Identity: protected
+        assert "blue_eyes" in result    # Identity: protected
+        assert "surprised" not in result  # Non-identity: filtered
+
+    @patch("services.keywords.load_tag_effectiveness_map")
+    @patch("services.keywords.load_synonyms_from_db")
+    @patch("services.keywords.load_allowed_tags_from_db")
     def test_no_effectiveness_data_keeps_all_allowed_tags(
         self,
         mock_load_allowed,
