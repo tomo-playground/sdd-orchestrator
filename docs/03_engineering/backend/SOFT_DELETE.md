@@ -1,5 +1,7 @@
 # Soft Delete 기술 설계
 
+**최종 업데이트**: 2026-02-19
+
 > 기능 명세: [FEATURES/SOFT_DELETE.md](../../99_archive/features/SOFT_DELETE.md)
 
 ## 1. SoftDeleteMixin
@@ -18,7 +20,7 @@ class SoftDeleteMixin:
         return self.deleted_at is not None
 ```
 
-적용 모델: `Storyboard`, `Scene`, `Character`, `PromptHistory`, `Background`, `CreativeSession`
+적용 모델: `Storyboard`, `Scene`, `Character`, `PromptHistory`, `Background`, `CreativeSession`, `CreativeAgentPreset`
 
 ---
 

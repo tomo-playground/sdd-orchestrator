@@ -1,13 +1,14 @@
 # Frontend State Management
 
-## Abstract
-본 문서는 Shorts Producer 프론트엔드(Next.js 15)의 상태 관리 전략을 설명합니다. Zustand 5를 이용한 4-Store 구조와 커스텀 훅을 통한 서버 데이터 연동 방식을 다룹니다.
+**최종 업데이트**: 2026-02-19
+
+> Shorts Producer 프론트엔드(Next.js 16, React 19)의 상태 관리 전략. Zustand 5 기반 4-Store 구조와 커스텀 훅을 통한 서버 데이터 연동.
 
 ---
 
 ## 1. 전역 상태 관리 (Zustand 4-Store 구조)
 
-Phase 7-4에서 기존 `useStudioStore` 단일 스토어를 관심사별 4개 독립 스토어로 분할하였습니다. 각 스토어는 독립적인 persistence 정책을 가지며, `resetAllStores()` 유틸리티를 통해 일괄 초기화됩니다.
+관심사별 4개 독립 스토어. 각 스토어는 독립적인 persistence 정책을 가지며, `resetAllStores()` 유틸리티를 통해 일괄 초기화됩니다.
 
 ### Store 구조 개요
 
@@ -328,7 +329,6 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
   characters/page.tsx       # 캐릭터 목록
   characters/[id]/page.tsx  # 캐릭터 상세
   characters/new/page.tsx   # 캐릭터 신규 생성
-  characters/builder/       # 캐릭터 빌더 (위자드 UI)
   storyboards/page.tsx      # 스토리보드 관리
   voices/page.tsx           # 음성 프리셋 관리
   music/page.tsx            # 음악 프리셋 관리
@@ -344,40 +344,93 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 
 ### 기본 흐름
 
-```
-[User Action]
-     |
-[Action Dispatch] (app/store/actions/)
-     |
-[Backend API Call] (axios)
-     |
-[Store Update] (Zustand set())
-     |
-[Re-render] (React)
+```mermaid
+graph TD
+    A[User Action] --> B[Action Dispatch]
+    B --> C[Backend API Call]
+    C --> D[Store Update]
+    D --> E[Re-render]
+
+    B -.-> |app/store/actions/| C
+    C -.-> |axios| D
+    D -.-> |Zustand set| E
+
+    style A fill:#e8f5e9
+    style E fill:#e3f2fd
 ```
 
-### Script -> Edit -> Publish 워크플로우
+### Studio 3-Tab 워크플로우
 
-```
-[Script Tab]                  [Edit Tab]                   [Publish Tab]
-  useScriptEditor               useSceneActions              usePublishRender
-  |                             |                            |
-  Quick/Full 모드 선택          씬별 이미지 생성/편집         렌더링 설정 조정
-  |                             |                            |
-  LangGraph AI Agent (SSE)      Autopilot 워크플로우          렌더 실행 + 결과물
-  |                             |                            |
-  useStoryboardStore            useStoryboardStore           useRenderStore
-  (scenes, topic 등)            (scenes, prompts 등)         (layout, bgm 등)
-       \                        |                           /
-        \                       |                          /
-         +------- useContextStore (projectId, groupId) ---+
+```mermaid
+graph LR
+    subgraph Script["Script Tab"]
+        SE[useScriptEditor]
+        SE --> Q[Quick 모드<br/>직접 API]
+        SE --> F[Full 모드<br/>LangGraph SSE]
+    end
+
+    subgraph Edit["Edit Tab"]
+        SA[useSceneActions]
+        SA --> IG[씬별 이미지 생성]
+        SA --> AP[Autopilot 일괄 생성]
+    end
+
+    subgraph Publish["Publish Tab"]
+        PR[usePublishRender]
+        PR --> RC[렌더링 설정]
+        PR --> RR[렌더 실행 + 결과물]
+    end
+
+    Script --> Edit --> Publish
+
+    SB[(useStoryboardStore)] --> Script
+    SB --> Edit
+    RD[(useRenderStore)] --> Publish
+    CTX[(useContextStore)] --> SB
+    CTX --> RD
+
+    style Script fill:#fff3e0
+    style Edit fill:#e3f2fd
+    style Publish fill:#e8f5e9
 ```
 
-1. **Script Tab**: `useScriptEditor`로 스토리보드 생성. Quick 모드(직접 API) 또는 Full 모드(LangGraph SSE).
-2. **Edit Tab**: `useSceneActions`로 씬별 편집. `useCharacterAutoLoad`로 캐릭터 LoRA 자동 로드. Autopilot으로 일괄 생성.
-3. **Publish Tab**: `usePublishRender`로 렌더링 설정 로드 및 실행. `useMaterialsCheck`로 사전 체크.
-4. **Cascading Config**: Project/Group 선택 시 `useContextStore`에 effective 설정 로드.
+| 탭 | 주요 훅 | 스토어 | 설명 |
+|----|---------|--------|------|
+| Script | `useScriptEditor` | StoryboardStore | Quick(직접 API) / Full(LangGraph SSE) 모드 |
+| Edit | `useSceneActions`, `useCharacterAutoLoad` | StoryboardStore | 씬 편집, LoRA 자동 로드, Autopilot |
+| Publish | `usePublishRender`, `useMaterialsCheck` | RenderStore | 사전 체크 → 렌더 실행 |
+| 공통 | — | ContextStore | Project/Group 선택 → effective 설정 cascade |
 
 ---
 
-**Last Updated:** 2026-02-18
+### 3-Layer 아키텍처
+
+```mermaid
+graph TB
+    subgraph Stores["Store Layer — Zustand 5"]
+        UI[useUIStore<br/>Toast, Modal, Tab]
+        CTX[useContextStore<br/>Project, Group, Config]
+        SB[useStoryboardStore<br/>Scenes, Characters, Validation]
+        RD[useRenderStore<br/>Layout, Audio, Output]
+    end
+
+    subgraph Actions["Actions Layer — 14 modules"]
+        SA[storyboardActions]
+        IA[imageGeneration]
+        PA[promptActions]
+        OA[outputActions]
+        MORE[... 10 more]
+    end
+
+    subgraph Hooks["Hooks Layer — 25 hooks"]
+        CORE[Core 8 hooks<br/>index.ts re-export]
+        DOMAIN[Domain 17 hooks<br/>페이지별 import]
+    end
+
+    Hooks --> Actions --> Stores
+    Stores --> |React re-render| Hooks
+
+    style Stores fill:#e3f2fd
+    style Actions fill:#fff3e0
+    style Hooks fill:#e8f5e9
+```

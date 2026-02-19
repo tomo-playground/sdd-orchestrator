@@ -1,8 +1,8 @@
-# Prompt System Specification (v4.0)
+# Prompt System Specification (v4.4)
 
-SD 이미지 생성을 위한 프롬프트 설계 규칙 + 파이프라인 전체 흐름.
+**최종 업데이트**: 2026-02-19
 
-> 기존 `PROMPT_SPEC_V2.md` + `PROMPT_PIPELINE.md`를 통합한 단일 문서.
+SD 이미지 생성을 위한 프롬프트 설계 규칙 + 파이프라인 전체 흐름. 기존 `PROMPT_SPEC_V2.md` + `PROMPT_PIPELINE.md`를 통합한 단일 문서.
 
 ## 변경 이력
 
