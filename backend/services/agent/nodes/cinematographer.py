@@ -89,25 +89,40 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     prompt = "\n".join(prompt_parts)
 
-    # Tool-Calling 실행
-    try:
-        logger.info("[Cinematographer] Tool-Calling Agent 시작")
-        response, tool_logs = await call_with_tools(
-            prompt=prompt,
-            tools=tools,
-            tool_executors=executors,
-            max_calls=10,
-            trace_name="cinematographer_tool_calling",
-        )
-    except Exception as e:
-        logger.warning("[Cinematographer] Tool-Calling 실패 (graceful): %s", e)
-        return _EMPTY_RESULT
+    # Tool-Calling 실행 (빈 응답 시 1회 재시도)
+    max_attempts = 2
+    tool_logs: list = []
+    scenes_output: list[dict] | None = None
 
-    # JSON 파싱
-    scenes_output = _parse_scenes(response)
-    if scenes_output is None:
-        logger.warning("[Cinematographer] JSON 파싱 실패, cinematographer_result=None으로 진행")
-        return {"cinematographer_result": None, "cinematographer_tool_logs": tool_logs}
+    for attempt in range(1, max_attempts + 1):
+        try:
+            logger.info("[Cinematographer] Tool-Calling Agent 시작 (attempt %d/%d)", attempt, max_attempts)
+            response, attempt_logs = await call_with_tools(
+                prompt=prompt,
+                tools=tools,
+                tool_executors=executors,
+                max_calls=10,
+                trace_name="cinematographer_tool_calling",
+            )
+            tool_logs = attempt_logs
+        except Exception as e:
+            logger.warning("[Cinematographer] Tool-Calling 실패 (graceful): %s", e)
+            return _EMPTY_RESULT
+
+        scenes_output = _parse_scenes(response)
+        if scenes_output is not None:
+            break
+
+        if attempt < max_attempts:
+            logger.warning("[Cinematographer] JSON 파싱 실패 (attempt %d), 재시도", attempt)
+        else:
+            logger.warning(
+                "[Cinematographer] JSON 파싱 실패 (%d회 시도), cinematographer_result=None으로 진행", max_attempts
+            )
+            return {"cinematographer_result": None, "cinematographer_tool_logs": tool_logs}
+
+    # 타입 가드: for 루프는 break(성공) 또는 return(실패)으로 종료되므로 여기에 도달하면 반드시 not None
+    assert scenes_output is not None  # noqa: S101
 
     # QC 검증 (WARN은 통과, FAIL만 로깅 후 결과 그대로 반환)
     qc = validate_visuals(scenes_output)

@@ -99,6 +99,7 @@ async def call_with_tools(
 
     Returns:
         (최종 LLM 응답, 도구 호출 로그). max_calls 도달 시에도 누적 텍스트를 반환.
+        텍스트가 비어있고 도구 호출이 있었으면, 도구 없이 1회 추가 호출(fallback)을 시도한다.
     """
     if not gemini_client:
         raise RuntimeError("Gemini client not initialized")
@@ -253,4 +254,26 @@ async def call_with_tools(
         )
 
     final = "\n".join(accumulated_text).strip()
+
+    # Fallback: tool call만 반복하여 텍스트가 비면, 도구 없이 재호출하여 텍스트 응답 강제
+    if not final and tool_logs:
+        logger.info(
+            "[Tool-Calling] No text after %d tool calls, fallback call without tools",
+            len(tool_logs),
+        )
+        try:
+            async with trace_llm_call(name=f"{trace_name}_fallback", input_text="fallback") as llm:
+                fallback_resp = await gemini_client.aio.models.generate_content(
+                    model=GEMINI_TEXT_MODEL,
+                    contents=contents,  # type: ignore[arg-type]
+                )
+                llm.record(fallback_resp)
+
+            if fallback_resp.candidates and fallback_resp.candidates[0].content:
+                fb_parts = fallback_resp.candidates[0].content.parts or []
+                final = "\n".join(p.text for p in fb_parts if hasattr(p, "text") and p.text).strip()
+                logger.info("[Tool-Calling] Fallback produced %d chars", len(final))
+        except Exception as e:
+            logger.warning("[Tool-Calling] Fallback call failed: %s", e)
+
     return final, tool_logs

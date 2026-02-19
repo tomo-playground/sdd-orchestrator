@@ -299,7 +299,7 @@ async def test_cinematographer_node_no_db_in_config():
 
 @pytest.mark.asyncio
 async def test_cinematographer_node_json_parsing_graceful():
-    """JSON 파싱 실패 → error 미설정, cinematographer_result=None (graceful)."""
+    """JSON 파싱 2회 실패 → error 미설정, cinematographer_result=None (graceful)."""
     mock_db = AsyncMock()
 
     state: ScriptState = {
@@ -309,6 +309,7 @@ async def test_cinematographer_node_json_parsing_graceful():
     config = {"configurable": {"db": mock_db}}
 
     with patch("services.agent.tools.base.call_with_tools") as mock_call:
+        # 2회 모두 파싱 불가 응답
         mock_call.return_value = (
             "This is not valid JSON",
             [],
@@ -318,6 +319,36 @@ async def test_cinematographer_node_json_parsing_graceful():
 
     assert "error" not in result
     assert result["cinematographer_result"] is None
+    # retry 포함 2회 호출
+    assert mock_call.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_cinematographer_node_retry_succeeds_on_second_attempt():
+    """첫 번째 파싱 실패 → 두 번째 성공 (retry)."""
+    mock_db = AsyncMock()
+
+    state: ScriptState = {
+        "draft_scenes": [{"order": 1, "text": "테스트"}],
+    }
+
+    config = {"configurable": {"db": mock_db}}
+
+    valid_json = '{"scenes": [{"order": 1, "text": "테스트", "visual_tags": ["1girl"], "camera": "close-up", "environment": "indoors"}]}'
+
+    with patch("services.agent.tools.base.call_with_tools") as mock_call:
+        mock_call.side_effect = [
+            ("", []),  # 첫 시도: 빈 응답
+            (valid_json, []),  # 두 번째: 성공
+        ]
+
+        with patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate:
+            mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
+            result = await cinematographer_node(state, config)
+
+    assert result["cinematographer_result"] is not None
+    assert len(result["cinematographer_result"]["scenes"]) == 1
+    assert mock_call.call_count == 2
 
 
 @pytest.mark.asyncio

@@ -311,6 +311,157 @@ class TestCallWithTools:
         assert "not found in executors" in logs[0]["error"]
 
     @pytest.mark.asyncio
+    async def test_empty_text_fallback_without_tools(self):
+        """tool call만 반복 → 텍스트 없음 → 도구 없이 fallback 호출."""
+        # 모든 응답이 tool_call만 포함 (텍스트 없음)
+        mock_tool_call = MagicMock()
+        mock_tool_call.name = "loop_tool"
+        mock_tool_call.args = {}
+
+        mock_part = MagicMock()
+        mock_part.function_call = mock_tool_call
+        mock_part.text = None
+
+        mock_tool_response = MagicMock()
+        mock_tool_response.candidates = [
+            MagicMock(content=MagicMock(parts=[mock_part])),
+        ]
+
+        # fallback 응답 (도구 없이 호출 → 텍스트 반환)
+        mock_fallback_response = MagicMock()
+        mock_fallback_response.candidates = [
+            MagicMock(
+                content=MagicMock(
+                    parts=[MagicMock(text='{"scenes": []}', function_call=None)],
+                ),
+            ),
+        ]
+
+        mock_client = MagicMock()
+        # max_calls=2 → 2회 tool_call + 1회 fallback
+        mock_client.aio.models.generate_content = AsyncMock(
+            side_effect=[mock_tool_response, mock_tool_response, mock_fallback_response],
+        )
+
+        def mock_executor() -> str:
+            return "ok"
+
+        with (
+            patch("services.agent.tools.base.gemini_client", mock_client),
+            patch("services.agent.tools.base.trace_llm_call") as mock_trace,
+        ):
+            mock_trace.return_value.__aenter__ = AsyncMock(return_value=MagicMock(record=MagicMock()))
+            mock_trace.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            tools = [define_tool(name="loop_tool", description="Loop", parameters={})]
+            tool_executors = {"loop_tool": mock_executor}
+
+            response, logs = await call_with_tools(
+                prompt="fallback 테스트",
+                tools=tools,
+                tool_executors=tool_executors,
+                max_calls=2,
+            )
+
+        assert response == '{"scenes": []}'
+        assert len(logs) == 2
+        # 총 3회 Gemini 호출 (2회 tool + 1회 fallback)
+        assert mock_client.aio.models.generate_content.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_fallback_not_triggered_when_text_exists(self):
+        """텍스트가 있으면 fallback이 발동하지 않는다."""
+        # 첫 응답: tool_call + 텍스트 혼재
+        mock_tool_call = MagicMock()
+        mock_tool_call.name = "some_tool"
+        mock_tool_call.args = {}
+
+        mock_part_tool = MagicMock()
+        mock_part_tool.function_call = mock_tool_call
+        mock_part_tool.text = None
+
+        mock_part_text = MagicMock()
+        mock_part_text.function_call = None
+        mock_part_text.text = "중간 텍스트"
+
+        mock_response = MagicMock()
+        mock_response.candidates = [
+            MagicMock(content=MagicMock(parts=[mock_part_text, mock_part_tool])),
+        ]
+
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+        def mock_executor() -> str:
+            return "ok"
+
+        with (
+            patch("services.agent.tools.base.gemini_client", mock_client),
+            patch("services.agent.tools.base.trace_llm_call") as mock_trace,
+        ):
+            mock_trace.return_value.__aenter__ = AsyncMock(return_value=MagicMock(record=MagicMock()))
+            mock_trace.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            tools = [define_tool(name="some_tool", description="Some", parameters={})]
+            tool_executors = {"some_tool": mock_executor}
+
+            response, _logs = await call_with_tools(
+                prompt="테스트",
+                tools=tools,
+                tool_executors=tool_executors,
+                max_calls=1,
+            )
+
+        assert response == "중간 텍스트"
+        # fallback 미발동 → 1회만 호출
+        assert mock_client.aio.models.generate_content.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_fallback_failure_returns_empty(self):
+        """fallback 호출 실패 시에도 빈 문자열로 정상 반환."""
+        mock_tool_call = MagicMock()
+        mock_tool_call.name = "loop_tool"
+        mock_tool_call.args = {}
+
+        mock_part = MagicMock()
+        mock_part.function_call = mock_tool_call
+        mock_part.text = None
+
+        mock_tool_response = MagicMock()
+        mock_tool_response.candidates = [
+            MagicMock(content=MagicMock(parts=[mock_part])),
+        ]
+
+        mock_client = MagicMock()
+        # 1회 tool_call + fallback에서 에러
+        mock_client.aio.models.generate_content = AsyncMock(
+            side_effect=[mock_tool_response, RuntimeError("API error")],
+        )
+
+        def mock_executor() -> str:
+            return "ok"
+
+        with (
+            patch("services.agent.tools.base.gemini_client", mock_client),
+            patch("services.agent.tools.base.trace_llm_call") as mock_trace,
+        ):
+            mock_trace.return_value.__aenter__ = AsyncMock(return_value=MagicMock(record=MagicMock()))
+            mock_trace.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            tools = [define_tool(name="loop_tool", description="Loop", parameters={})]
+            tool_executors = {"loop_tool": mock_executor}
+
+            response, logs = await call_with_tools(
+                prompt="실패 테스트",
+                tools=tools,
+                tool_executors=tool_executors,
+                max_calls=1,
+            )
+
+        assert response == ""
+        assert len(logs) == 1
+
+    @pytest.mark.asyncio
     async def test_async_tool_executor(self):
         """비동기 도구 실행 테스트."""
         mock_tool_call = MagicMock()
