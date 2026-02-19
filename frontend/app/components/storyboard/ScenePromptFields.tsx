@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Scene } from "../../types";
 import { useContextStore } from "../../store/useContextStore";
 import useTagValidation from "../../hooks/useTagValidation";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
-import ComposedPromptPreview from "../prompt/ComposedPromptPreview";
+import ComposedPromptPreview, { type NegativeSourceInfo } from "../prompt/ComposedPromptPreview";
 import TagValidationWarning from "../prompt/TagValidationWarning";
 import NegativePromptToggle from "./NegativePromptToggle";
 
@@ -37,6 +37,15 @@ export default function ScenePromptFields({
   onUpdateScene,
 }: ScenePromptFieldsProps) {
   const storyboardId = useContextStore((s) => s.storyboardId);
+
+  // Composed negative state
+  const [composedNegative, setComposedNegative] = useState<string>("");
+  const [negativeSources, setNegativeSources] = useState<NegativeSourceInfo[]>([]);
+
+  const handleNegativeComposed = useCallback((negative: string, sources: NegativeSourceInfo[]) => {
+    setComposedNegative(negative);
+    setNegativeSources(sources);
+  }, []);
 
   // Tag validation
   const { validationResult, validateTags, autoReplaceTags, clearValidation } = useTagValidation();
@@ -118,11 +127,13 @@ export default function ScenePromptFields({
                 .filter(Boolean)}
               characterId={selectedCharacterId}
               storyboardId={storyboardId}
+              sceneId={scene.id}
               basePrompt={basePromptA}
               contextTags={scene.context_tags || undefined}
               loras={characterLoras}
               mode={promptMode}
               useBreak={true}
+              onNegativeComposed={handleNegativeComposed}
               className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3"
             />
           </>
@@ -133,6 +144,8 @@ export default function ScenePromptFields({
       <NegativePromptToggle
         negativePrompt={scene.negative_prompt}
         onChange={(value) => onUpdateScene({ negative_prompt: value })}
+        composedNegative={composedNegative}
+        negativeSources={negativeSources}
       />
     </>
   );

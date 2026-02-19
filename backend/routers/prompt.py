@@ -63,6 +63,69 @@ def check_tag_conflicts(tags: list[str], db) -> dict:
     return {"conflicts": [], "has_conflicts": False, "total_tags": len(tags)}
 
 
+def _compose_negative_preview(
+    storyboard_id: int | None,
+    character_id: int | None,
+    character_b_id: int | None,
+    scene_negative: str,
+    db: Session,
+) -> tuple[str, list[dict]]:
+    """Compose negative prompt preview with per-source tracking.
+
+    Reuses the same logic as image_generation_core.compose_scene_with_style:
+      1. StyleProfile: default_negative + negative_embeddings
+      2. Character(s): custom_negative_prompt + recommended_negative
+      3. Scene: user-entered negative_prompt
+
+    Returns: (final_negative, sources_list)
+    """
+    from models.character import Character
+    from services.prompt import split_prompt_tokens
+    from services.prompt.prompt import normalize_negative_prompt
+    from services.style_context import resolve_style_context
+
+    sources: list[dict] = []
+    parts: list[str] = []
+
+    # 1. StyleProfile negative
+    ctx = resolve_style_context(storyboard_id, db) if storyboard_id else None
+    if ctx:
+        style_tokens: list[str] = []
+        if ctx.default_negative:
+            style_tokens.extend(split_prompt_tokens(ctx.default_negative))
+        if ctx.negative_embeddings:
+            style_tokens.extend(ctx.negative_embeddings)
+        if style_tokens:
+            sources.append({"source": "style_profile", "tokens": style_tokens})
+            parts.append(", ".join(style_tokens))
+
+    # 2. Character negative (both chars for multi-character scenes)
+    for cid in [character_id, character_b_id]:
+        if not cid:
+            continue
+        char = db.query(Character).filter(Character.id == cid).first()
+        if not char:
+            continue
+        char_tokens: list[str] = []
+        if char.custom_negative_prompt:
+            char_tokens.extend(split_prompt_tokens(char.custom_negative_prompt))
+        if char.recommended_negative:
+            char_tokens.extend(char.recommended_negative)
+        if char_tokens:
+            sources.append({"source": f"character:{char.name}", "tokens": char_tokens})
+            parts.append(", ".join(char_tokens))
+
+    # 3. Scene-level negative
+    if scene_negative and scene_negative.strip():
+        scene_tokens = split_prompt_tokens(scene_negative)
+        if scene_tokens:
+            sources.append({"source": "scene", "tokens": scene_tokens})
+            parts.append(", ".join(scene_tokens))
+
+    final = normalize_negative_prompt(", ".join(parts)) if parts else ""
+    return final, sources
+
+
 @router.post("/rewrite")
 async def rewrite_prompt_endpoint(request: PromptRewriteRequest):
     logger.info("📥 [Prompt Rewrite Req] %s", request.model_dump())
@@ -249,11 +312,29 @@ async def compose_prompt(
         elif style_loras:
             lora_weights = {lr["name"]: lr["weight"] for lr in style_loras}
 
+        # 6. Compose negative preview
+        scene_negative = ""
+        if request.scene_id:
+            from models.scene import Scene
+
+            scene_row = db.query(Scene).filter(Scene.id == request.scene_id).first()
+            if scene_row:
+                scene_negative = scene_row.negative_prompt or ""
+
+        neg_prompt, neg_sources = _compose_negative_preview(
+            storyboard_id=request.storyboard_id,
+            character_id=request.character_id,
+            character_b_id=effective_b_id,
+            scene_negative=scene_negative,
+            db=db,
+        )
+
         logger.info(
-            "✅ [Prompt Compose] mode=%s, %d tokens → %d composed",
+            "✅ [Prompt Compose] mode=%s, %d tokens → %d composed, neg_sources=%d",
             effective_mode,
             len(all_tokens),
             len(composed_tokens),
+            len(neg_sources),
         )
 
         return {
@@ -267,6 +348,8 @@ async def compose_prompt(
                 "has_break": "BREAK" in composed_tokens,
                 "quality_tags_added": any(t in composed_tokens for t in ["best_quality", "masterpiece"]),
             },
+            "negative_prompt": neg_prompt or None,
+            "negative_sources": neg_sources or None,
         }
 
     except Exception as e:

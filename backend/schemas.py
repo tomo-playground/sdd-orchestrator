@@ -693,6 +693,13 @@ class PromptComposeRequest(BaseModel):
     context_tags: dict | None = None  # scene.context_tags
 
 
+class NegativeSource(BaseModel):
+    """Origin of negative prompt tokens."""
+
+    source: str  # "style_profile" | "character:<name>" | "scene"
+    tokens: list[str]
+
+
 class PromptComposeResponse(BaseModel):
     """Response from prompt composition."""
 
@@ -702,6 +709,8 @@ class PromptComposeResponse(BaseModel):
     scene_complexity: str  # simple, moderate, complex
     lora_weights: dict[str, float] | None = None  # Calculated weights per LoRA
     meta: dict | None = None  # Additional metadata
+    negative_prompt: str | None = None  # Composed final negative string
+    negative_sources: list[NegativeSource] | None = None  # Per-source token breakdown
 
 
 class SDModelRequest(BaseModel):

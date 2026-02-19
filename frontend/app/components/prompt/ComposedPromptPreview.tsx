@@ -5,10 +5,14 @@ import { API_BASE } from "../../constants";
 import { useTagClassifier } from "../../hooks";
 import CopyButton from "../ui/CopyButton";
 import {
-  SUCCESS_BG, SUCCESS_TEXT,
-  WARNING_BG, WARNING_TEXT,
-  ERROR_BG, ERROR_TEXT,
-  INFO_BG, INFO_TEXT
+  SUCCESS_BG,
+  SUCCESS_TEXT,
+  WARNING_BG,
+  WARNING_TEXT,
+  ERROR_BG,
+  ERROR_TEXT,
+  INFO_BG,
+  INFO_TEXT,
 } from "../ui/variants";
 
 type LoRAInfo = {
@@ -23,13 +27,20 @@ type ComposedPromptPreviewProps = {
   tokens: string[];
   characterId?: number | null;
   storyboardId?: number | null;
+  sceneId?: number | null;
   basePrompt?: string;
   contextTags?: Record<string, unknown>;
   loras?: LoRAInfo[];
   mode?: "auto" | "standard" | "lora";
   useBreak?: boolean;
   onComposed?: (result: ComposeResult) => void;
+  onNegativeComposed?: (negative: string, sources: NegativeSourceInfo[]) => void;
   className?: string;
+};
+
+export type NegativeSourceInfo = {
+  source: string; // "style_profile" | "character:<name>" | "scene"
+  tokens: string[];
 };
 
 type ComposeResult = {
@@ -43,6 +54,8 @@ type ComposeResult = {
     has_break: boolean;
     quality_tags_added: boolean;
   };
+  negative_prompt?: string;
+  negative_sources?: NegativeSourceInfo[];
 };
 
 // Category colors for visual grouping
@@ -124,12 +137,14 @@ export default function ComposedPromptPreview({
   tokens,
   characterId,
   storyboardId,
+  sceneId,
   basePrompt,
   contextTags,
   loras = [],
   mode = "auto",
   useBreak = true,
   onComposed,
+  onNegativeComposed,
   className = "",
 }: ComposedPromptPreviewProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -193,6 +208,7 @@ export default function ComposedPromptPreview({
           tokens,
           character_id: characterId,
           storyboard_id: storyboardId || undefined,
+          scene_id: sceneId || undefined,
           context_tags: contextTags || undefined,
           use_break: useBreak,
         }),
@@ -205,12 +221,24 @@ export default function ComposedPromptPreview({
       const data = await response.json();
       setResult(data);
       onComposed?.(data);
+      if (data.negative_prompt || data.negative_sources) {
+        onNegativeComposed?.(data.negative_prompt ?? "", data.negative_sources ?? []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
-  }, [tokens, characterId, storyboardId, contextTags, useBreak, onComposed]);
+  }, [
+    tokens,
+    characterId,
+    storyboardId,
+    sceneId,
+    contextTags,
+    useBreak,
+    onComposed,
+    onNegativeComposed,
+  ]);
 
   // Auto-compose when tokens change (debounced)
   const prevTokensRef = useRef<string>("");
@@ -277,7 +305,9 @@ export default function ComposedPromptPreview({
             </span>
           )}
           {!isLoading && result && (
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${SUCCESS_BG} ${SUCCESS_TEXT}`}>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${SUCCESS_BG} ${SUCCESS_TEXT}`}
+            >
               Filtered
             </span>
           )}
@@ -288,22 +318,24 @@ export default function ComposedPromptPreview({
           )}
           {result && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${result.effective_mode === "lora"
-                ? `${INFO_BG} ${INFO_TEXT}`
-                : "bg-zinc-100 text-zinc-600"
-                }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                result.effective_mode === "lora"
+                  ? `${INFO_BG} ${INFO_TEXT}`
+                  : "bg-zinc-100 text-zinc-600"
+              }`}
             >
               {result.effective_mode.toUpperCase()}
             </span>
           )}
           {result?.scene_complexity && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${result.scene_complexity === "complex"
-                ? `${ERROR_BG} ${ERROR_TEXT}`
-                : result.scene_complexity === "moderate"
-                  ? `${WARNING_BG} ${WARNING_TEXT}`
-                  : `${SUCCESS_BG} ${SUCCESS_TEXT}`
-                }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                result.scene_complexity === "complex"
+                  ? `${ERROR_BG} ${ERROR_TEXT}`
+                  : result.scene_complexity === "moderate"
+                    ? `${WARNING_BG} ${WARNING_TEXT}`
+                    : `${SUCCESS_BG} ${SUCCESS_TEXT}`
+              }`}
             >
               {result.scene_complexity}
             </span>
