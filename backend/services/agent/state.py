@@ -113,6 +113,7 @@ class ScriptState(TypedDict, total=False):
     # Revision 상태
     revision_count: int
     revision_feedback: str | None
+    revision_history: list[dict] | None  # 누적 히스토리 (attempt, errors, reflection, score, tier)
 
     # Human Gate 상태
     human_action: str | None  # "approve" | "revise"

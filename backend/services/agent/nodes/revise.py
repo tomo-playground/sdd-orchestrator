@@ -41,12 +41,31 @@ def _try_rule_fix(scenes: list[dict], errors: list[str]) -> bool:
     return unresolved == 0
 
 
+def _summarize_history(history: list[dict]) -> str:
+    """revision_history를 최대 3줄로 요약한다 (토큰 절약)."""
+    lines: list[str] = ["[이전 수정 히스토리]"]
+    for entry in history[-3:]:
+        attempt = entry.get("attempt", "?")
+        errs = entry.get("errors", [])
+        tier = entry.get("tier", "unknown")
+        err_summary = ", ".join(errs[:2]) if errs else "없음"
+        lines.append(f"- 시도 {attempt}: errors=[{err_summary}], tier={tier}")
+    lines.append("→ 이전과 다른 접근법을 사용하세요.")
+    return "\n".join(lines)
+
+
 def _build_feedback(state: ScriptState) -> str:
     """human_feedback, revision_feedback, review errors, reflection을 결합.
 
     Phase 10-A: review_reflection (Self-Reflection 근본 원인 분석 + 수정 전략) 추가.
+    Revision History: 이전 시도 요약을 추가하여 동일 실패 반복 방지.
     """
     parts: list[str] = []
+
+    # Revision History 요약 (이전 시도 정보)
+    if history := state.get("revision_history"):
+        parts.append(_summarize_history(history))
+
     if fb := state.get("human_feedback"):
         parts.append(f"[사용자 피드백] {fb}")
     if rf := state.get("revision_feedback"):
@@ -96,6 +115,21 @@ def _make_request(state: ScriptState, desc: str) -> StoryboardRequest:
     )
 
 
+def _append_history(state: ScriptState) -> list[dict]:
+    """현재 review_result + reflection을 revision_history에 추가."""
+    history = list(state.get("revision_history") or [])
+    review = state.get("review_result") or {}
+    entry: dict = {
+        "attempt": len(history) + 1,
+        "errors": review.get("errors", []),
+        "reflection": state.get("review_reflection"),
+        "score": state.get("director_checkpoint_score"),
+        "tier": "pending",  # 아래에서 실제 tier로 업데이트
+    }
+    history.append(entry)
+    return history
+
+
 async def revise_node(state: ScriptState) -> dict:
     """Review 에러를 수정한다. 단순 오류는 직접, 복잡 오류는 재생성."""
     count = state.get("revision_count", 0)
@@ -103,13 +137,17 @@ async def revise_node(state: ScriptState) -> dict:
         logger.warning("[LangGraph] Revise 최대 횟수 도달 (%d)", count)
         return {"revision_count": count}
 
+    # Revision History 누적
+    history = _append_history(state)
+
     scenes = [s.copy() for s in (state.get("draft_scenes") or [])]
     errors = (state.get("review_result") or {}).get("errors", [])
 
     # Tier 1: 규칙 기반 수정
     if errors and _try_rule_fix(scenes, errors):
         logger.info("[LangGraph] Revise Tier 1 규칙 수정 완료 (revision=%d)", count + 1)
-        return {"draft_scenes": scenes, "revision_count": count + 1}
+        history[-1]["tier"] = "rule_fix"
+        return {"draft_scenes": scenes, "revision_count": count + 1, "revision_history": history}
 
     # Tier 2: 씬 개수 부족 → 타겟 확장 (기존 씬 보존)
     if REVISE_EXPANSION_ENABLED:
@@ -123,7 +161,12 @@ async def revise_node(state: ScriptState) -> dict:
                 if expanded:
                     redistribute_durations(expanded, state.get("duration", 10))
                     logger.info("[LangGraph] Revise Tier 2 확장 완료 (revision=%d)", count + 1)
-                    return {"draft_scenes": expanded, "revision_count": count + 1}
+                    history[-1]["tier"] = "expansion"
+                    return {
+                        "draft_scenes": expanded,
+                        "revision_count": count + 1,
+                        "revision_history": history,
+                    }
 
     # Tier 3: 복잡 오류 — 피드백 + 현재 대본 주입 후 전체 재생성
     feedback = _build_feedback(state)
@@ -138,6 +181,7 @@ async def revise_node(state: ScriptState) -> dict:
     if len(desc) > 1900:
         desc = desc[:1900]
 
+    history[-1]["tier"] = "regeneration"
     with get_db_session() as db:
         try:
             result = await generate_script(_make_request(state, desc), db)
@@ -147,7 +191,8 @@ async def revise_node(state: ScriptState) -> dict:
                 "draft_character_id": result.get("character_id"),
                 "draft_character_b_id": result.get("character_b_id"),
                 "revision_count": count + 1,
+                "revision_history": history,
             }
         except Exception as e:
             logger.error("[LangGraph] Revise 재생성 실패: %s", e)
-            return {"error": str(e), "revision_count": count + 1}
+            return {"error": str(e), "revision_count": count + 1, "revision_history": history}

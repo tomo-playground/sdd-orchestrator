@@ -12,11 +12,14 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| 테스트 | Backend 1,862 + Frontend 352 = **총 2,214개** |
+| 테스트 | Backend 1,902 + Frontend 352 = **총 2,254개** |
 
 ### 최근 작업
 
-- **Director-as-Orchestrator** (02-19): Director를 사후 검증자 → 오케스트레이터로 전환. director_plan(목표 수립) + director_checkpoint(스크립트 품질 게이트) 2노드 추가, 15→17노드 그래프. 39개 테스트
+- **Pipeline 고도화: Revision History + Score-Based Routing** (02-19): revision_history 누적으로 동일 실패 반복 방지, score 기반 decision override 안전망 (low < 0.4 → 강제 revise, high >= 0.85 → 강제 proceed). 7개 테스트 추가
+- **Tag Effectiveness 안정화** (02-19): identity 태그(hair_color, eye_color) death spiral 방지 — effectiveness 필터 면제. WD14 미지원 태그(anime_style 등) UNMATCHABLE 등록
+- **Agentic Pipeline 안정화** (02-19): Tool-Calling 텍스트 유실 수정, Writer safety retry, Research HTML 파싱 개선, Checkpoint→Writer 라우팅 수정. 33개 테스트 추가
+- **Director-as-Orchestrator** (02-19): Director를 사후 검증자 → 오케스트레이터로 전환. director_plan(목표 수립) + director_checkpoint(스크립트 품질 게이트) 2노드 추가, 15→17노드 그래프
 - **HOME 레이아웃 재구성** (02-19): 2-column → single-column 전환, WelcomeBar CTA + QuickStatsBar 병합, 중복 위젯 제거, 카드 크기 확대
 - **QA TC 매트릭스** (02-19): 18개 카테고리 130+ TC ID, P1 라우터 테스트 57개 추가, 커버리지 62%→74%
 - **Studio UX 개선** (02-19): 1-column 레이아웃, 프로덕션 에이전트 SSE 노출, 이미지 클릭 팝업, Scene 번호 1-based 표준화
@@ -129,6 +132,16 @@ Phase 9 이후 또는 우선순위 미정 항목.
 ## 잔여 작업 우선순위
 
 **Tier 0~1 — 전체 완료** (2026-02-18). Phase 10 5대 Agentic 요건 충족 + 서사 품질 3건 완료. 상세: [Phase 9 아카이브](../99_archive/archive/ROADMAP_PHASE_9.md), [Phase 10 아카이브](../99_archive/archive/ROADMAP_PHASE_10.md)
+
+**Tier 2 — Pipeline 고도화** (진행 중)
+
+| 순위 | 작업 | 상태 | 근거 |
+|------|------|------|------|
+| 1 | Revision history 누적 (review→revise 루프 히스토리 보존) | [x] 02-19 | 동일 실패 반복 방지, revision 성공률 향상 |
+| 2 | Checkpoint score → routing 연결 (점수 기반 분기) | [x] 02-19 | score 기반 decision override 안전망 |
+| 3 | Human gate snapshot (중간 결과물 정리) | [ ] | Creator 모드 UX 개선 |
+| 4 | Pydantic 모델 전환 (LLM 출력 검증) | [ ] | 검증 함수 중복 제거, 에러 메시지 품질 |
+| 5 | Research 되돌리기 분기 (저점수 → research 재실행) | [ ] | 데이터 분석 후 판단 |
 
 **Tier 3 — 장기**
 

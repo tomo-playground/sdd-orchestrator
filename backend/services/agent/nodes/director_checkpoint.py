@@ -7,7 +7,11 @@ Review 통과 후, Production chain 진입 전에 Director Plan 기준으로
 from __future__ import annotations
 
 from config import logger
-from config_pipelines import LANGGRAPH_CHECKPOINT_THRESHOLD
+from config_pipelines import (
+    LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD,
+    LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
+    LANGGRAPH_CHECKPOINT_THRESHOLD,
+)
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
@@ -34,6 +38,32 @@ def _validate_checkpoint(result: dict | list | str) -> dict:
     return {"ok": True, "issues": [], "checks": {}}
 
 
+def _apply_score_override(decision: str, score: float, feedback: str) -> tuple[str, str]:
+    """Score 기반 decision override (안전망).
+
+    Returns:
+        (overridden_decision, overridden_feedback)
+    """
+    if decision == "proceed" and score < LANGGRAPH_CHECKPOINT_LOW_THRESHOLD:
+        feedback = feedback or "구조 재작성 필요 (score < low threshold)"
+        logger.warning(
+            "[LangGraph] Checkpoint override: proceed→revise (score=%.2f < %.2f)",
+            score,
+            LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
+        )
+        return "revise", feedback
+
+    if decision == "revise" and score >= LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD:
+        logger.warning(
+            "[LangGraph] Checkpoint override: revise→proceed (score=%.2f >= %.2f)",
+            score,
+            LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD,
+        )
+        return "proceed", feedback
+
+    return decision, feedback
+
+
 async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
     """Director Plan 기준으로 스크립트 품질을 점검한다."""
     director_plan = state.get("director_plan") or {}
@@ -56,14 +86,17 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
                 step_name="director_checkpoint",
             )
 
-        decision = result.get("decision", "proceed")
+        raw_decision = result.get("decision", "proceed")
         score = float(result.get("score", 0.0))
         feedback = result.get("feedback", "")
         count = state.get("director_checkpoint_revision_count", 0)
 
+        decision, feedback = _apply_score_override(raw_decision, score, feedback)
+
         logger.info(
-            "[LangGraph] Director Checkpoint: decision=%s, score=%.2f, revision=%d",
+            "[LangGraph] Director Checkpoint: decision=%s%s, score=%.2f, revision=%d",
             decision,
+            f" (overridden from {raw_decision})" if decision != raw_decision else "",
             score,
             count,
         )

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from config import LANGGRAPH_MAX_REVISIONS, logger
 from config_pipelines import (
+    LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
     LANGGRAPH_MAX_DIRECTOR_REVISIONS,
 )
@@ -100,15 +101,19 @@ def route_after_director(state: ScriptState) -> str:
 
 
 def route_after_director_checkpoint(state: ScriptState) -> str:
-    """Director Checkpoint 이후: proceed → cinematographer, revise → writer.
+    """Director Checkpoint 이후: score 기반 분기.
 
-    기존 review-revise 루프와 분리하여 checkpoint가 writer를 직접 호출한다.
-    revision_feedback 을 통해 checkpoint 피드백이 writer에 전달된다.
+    - score < LOW_THRESHOLD (0.4): revise → writer (강한 피드백)
+    - score 0.4-0.7: revise → writer (기본 피드백)
+    - score >= 0.7: proceed → cinematographer
+    기존 revision_count 가드레일 유지.
     """
     if _has_error(state):
         return "finalize"
 
     decision = state.get("director_checkpoint_decision", "proceed")
+    score = state.get("director_checkpoint_score") or 0.0
+
     if decision == "proceed":
         return "cinematographer"
 
@@ -120,6 +125,10 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
             LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
         )
         return "cinematographer"
+
+    # Score 기반 피드백 강도 로깅
+    if score < LANGGRAPH_CHECKPOINT_LOW_THRESHOLD:
+        logger.info("[LangGraph] Checkpoint low score (%.2f): 강한 피드백으로 writer 호출", score)
 
     return "writer"
 

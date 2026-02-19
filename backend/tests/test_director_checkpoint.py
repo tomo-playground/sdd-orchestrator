@@ -227,3 +227,107 @@ def test_validate_checkpoint_missing_reasoning():
     """reasoning 없으면 실패."""
     result = {"decision": "proceed", "score": 0.8}
     assert _validate_checkpoint(result)["ok"] is False
+
+
+# -- Score-Based Decision Override 테스트 --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
+async def test_checkpoint_override_proceed_to_revise_low_score(mock_run):
+    """Gemini proceed인데 score < 0.4 → revise로 override."""
+    mock_run.return_value = {
+        "decision": "proceed",
+        "score": 0.3,
+        "reasoning": "대충 괜찮음",
+    }
+
+    state = {
+        "topic": "테스트",
+        "mode": "full",
+        "duration": 30,
+        "director_plan": {"creative_goal": "목표"},
+        "draft_scenes": [{"script": "씬 1"}],
+        "director_checkpoint_revision_count": 0,
+    }
+    result = await director_checkpoint_node(state)
+
+    assert result["director_checkpoint_decision"] == "revise"
+    assert result["director_checkpoint_score"] == 0.3
+    assert result["director_checkpoint_revision_count"] == 1
+    assert "revision_feedback" in result
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
+async def test_checkpoint_override_revise_to_proceed_high_score(mock_run):
+    """Gemini revise인데 score >= 0.85 → proceed로 override."""
+    mock_run.return_value = {
+        "decision": "revise",
+        "score": 0.9,
+        "reasoning": "약간 아쉬움",
+        "feedback": "조금 더 개선 필요",
+    }
+
+    state = {
+        "topic": "테스트",
+        "mode": "full",
+        "duration": 30,
+        "director_plan": {"creative_goal": "목표"},
+        "draft_scenes": [{"script": "씬 1"}],
+        "director_checkpoint_revision_count": 0,
+    }
+    result = await director_checkpoint_node(state)
+
+    assert result["director_checkpoint_decision"] == "proceed"
+    assert result["director_checkpoint_score"] == 0.9
+    assert result["director_checkpoint_revision_count"] == 0
+    assert "revision_feedback" not in result
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
+async def test_checkpoint_no_override_normal_score(mock_run):
+    """score가 0.4~0.85 범위면 override 없음."""
+    mock_run.return_value = {
+        "decision": "revise",
+        "score": 0.5,
+        "reasoning": "Hook 부족",
+        "feedback": "첫 씬 강화",
+    }
+
+    state = {
+        "topic": "테스트",
+        "mode": "full",
+        "duration": 30,
+        "director_plan": None,
+        "draft_scenes": [],
+        "director_checkpoint_revision_count": 0,
+    }
+    result = await director_checkpoint_node(state)
+
+    assert result["director_checkpoint_decision"] == "revise"
+    assert result["director_checkpoint_score"] == 0.5
+    assert result["revision_feedback"] == "첫 씬 강화"
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
+async def test_checkpoint_override_proceed_low_score_generates_feedback(mock_run):
+    """proceed→revise override 시 feedback이 없으면 기본 피드백 생성."""
+    mock_run.return_value = {
+        "decision": "proceed",
+        "score": 0.2,
+        "reasoning": "ok",
+    }
+
+    state = {
+        "topic": "테스트",
+        "mode": "full",
+        "duration": 30,
+        "director_checkpoint_revision_count": 0,
+    }
+    result = await director_checkpoint_node(state)
+
+    assert result["director_checkpoint_decision"] == "revise"
+    assert "구조 재작성 필요" in result["revision_feedback"]
