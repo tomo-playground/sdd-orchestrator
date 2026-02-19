@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend
 
-## Getting Started
+Next.js 16 + React 19 + Zustand 5 기반 워크스페이스 UI. Studio, Library, Settings 등 11개 페이지.
 
-First, run the development server:
+> 프로젝트 전체 개요: [README.md](../README.md) / 개발 가이드: [CONTRIBUTING.md](../docs/guides/CONTRIBUTING.md)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 구조
+
+```
+frontend/app/
+├── (app)/               # 페이지 (App Router)
+│   ├── page.tsx         #   Home (대시보드)
+│   ├── studio/          #   Studio (Script / Edit / Publish)
+│   ├── scripts/         #   스크립트 관리
+│   ├── storyboards/     #   스토리보드 관리
+│   ├── characters/      #   캐릭터 (목록/상세/신규)
+│   ├── library/         #   Library (7탭)
+│   ├── settings/        #   Settings (5탭)
+│   ├── voices/          #   음성 프리셋
+│   ├── music/           #   음악 프리셋
+│   ├── backgrounds/     #   배경 에셋
+│   ├── lab/             #   Lab (실험)
+│   └── pipeline-demo/   #   파이프라인 데모
+├── store/               # Zustand 4-Store
+│   ├── useUIStore.ts    #   Toast, Modal, Tab
+│   ├── useContextStore.ts   # Project/Group, Config
+│   ├── useStoryboardStore.ts # Scenes, Characters
+│   ├── useRenderStore.ts    # Layout, Audio, Output
+│   ├── actions/         #   비동기 액션 (14개 모듈)
+│   └── selectors/       #   파생 상태
+├── hooks/               # 커스텀 훅 (25개)
+├── components/          # UI 컴포넌트 (19개 디렉토리)
+├── types/               # TypeScript 타입 (73+ 타입)
+└── utils/               # 유틸리티 함수
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 실행
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL 등
+npm run dev                        # http://localhost:3000
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev              # 개발 서버
+npm run build            # 프로덕션 빌드
+npm run start            # 프로덕션 서버
+npm run lint             # ESLint
+npm test                 # 단위 테스트 (vitest)
+npm run test:vrt         # VRT (Playwright 스크린샷 비교)
+npm run test:vrt:update  # VRT baseline 갱신
+npm run test:vrt:ui      # VRT UI 모드
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 상태 관리
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4-Store 구조 (Zustand 5):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Store | 역할 | Persistence |
+|-------|------|-------------|
+| `useUIStore` | Toast, Modal, Tab | 없음 |
+| `useContextStore` | Project/Group, Cascading Config | 부분 |
+| `useStoryboardStore` | Scenes, Characters, Validation | 부분 |
+| `useRenderStore` | Layout, Audio, Output | 부분 |
+
+상세: [STATE_MANAGEMENT.md](../docs/03_engineering/frontend/STATE_MANAGEMENT.md)
+
+---
+
+## 테스트 현황
+
+| 유형 | 테스트 수 | 도구 |
+|------|----------|------|
+| Unit | 352 | vitest |
+| VRT | 24 screenshots (8 specs) | Playwright |
+| E2E | 3 specs | Playwright |
+
+상세: [TEST_STRATEGY.md](../docs/03_engineering/testing/TEST_STRATEGY.md) / [VRT_GUIDE.md](../docs/03_engineering/testing/VRT_GUIDE.md)
