@@ -104,7 +104,7 @@ export default function PersistentContextBar() {
 
   return (
     <>
-      <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 text-xs text-zinc-500">
+      <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-6 text-xs text-zinc-500">
         <div className="flex items-center gap-0.5 truncate">
           <ProjectDropdown
             projects={projects}

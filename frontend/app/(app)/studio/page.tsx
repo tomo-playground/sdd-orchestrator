@@ -172,7 +172,7 @@ function StudioContent() {
     <div className="flex h-[calc(100vh-56px)] flex-col">
       {/* Sub-Nav: 3-zone layout — [Title] | [Pipeline · Materials · Tabs] | [Actions] */}
       <div className={SUB_NAV_CLASSES}>
-        <div className="flex items-center justify-between px-6 py-2">
+        <div className="flex items-center justify-between px-8 py-2">
           {/* Left: Title */}
           <ContextBar title={storyboardTitle || "New Storyboard"} />
 
@@ -200,7 +200,7 @@ function StudioContent() {
 
       {/* No-group banner — inside flex column, before workspace */}
       {groups.length === 0 && (
-        <div className="shrink-0 px-6 pt-3">
+        <div className="shrink-0 px-8 pt-3">
           <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-xs text-amber-800">Create a group to start saving storyboards.</p>
             <button
@@ -215,7 +215,7 @@ function StudioContent() {
 
       {/* AutoRun Status — inside flex column, before workspace */}
       {showAutoRun && (
-        <div className="shrink-0 px-6 pt-3">
+        <div className="shrink-0 px-8 pt-3">
           <AutoRunStatus
             autoRunState={autopilot.autoRunState}
             autoRunLog={autopilot.autoRunLog}

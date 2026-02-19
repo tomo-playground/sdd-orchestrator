@@ -8,7 +8,7 @@ import Footer from "../ui/Footer";
 
 export default function HomeVideoFeed() {
   return (
-    <div className="flex min-h-screen flex-col p-6">
+    <div className="flex min-h-screen flex-col p-8">
       <div className="space-y-6">
         <WelcomeBar />
         <QuickStatsBar />

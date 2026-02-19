@@ -95,7 +95,7 @@ function SettingsContent() {
           <AppMobileTabBar tabs={MOBILE_TABS} activeTab={activeTab} onTabChange={handleTabChange} />
 
           {/* Content */}
-          <div className="px-6 py-6">
+          <div className="px-8 py-6">
             <div className="min-w-0">
               {activeTab === "general" && <GeneralSettingsTab />}
               {activeTab === "presets" && <RenderPresetsTab />}

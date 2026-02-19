@@ -98,12 +98,8 @@ function LibraryContent() {
       center={
         <>
           {/* Mobile tab bar */}
-          <AppMobileTabBar
-            tabs={MOBILE_TABS}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-          />
-          <div className="min-w-0 px-6 py-6">
+          <AppMobileTabBar tabs={MOBILE_TABS} activeTab={activeTab} onTabChange={handleTabChange} />
+          <div className="min-w-0 px-8 py-6">
             {activeTab === "characters" && <CharactersContent />}
             {activeTab === "voices" && <VoicesContent />}
             {activeTab === "music" && <MusicContent />}

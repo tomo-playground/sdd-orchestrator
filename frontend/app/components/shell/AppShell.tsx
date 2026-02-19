@@ -83,7 +83,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const connectionStatus = useBackendHealth();
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
+    <div className="mx-auto flex h-screen max-w-[1440px] flex-col overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100 font-[family-name:var(--font-sans)]">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-lg focus:bg-zinc-900 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
@@ -91,7 +91,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
       {/* Header */}
-      <header className="flex h-[var(--nav-height)] shrink-0 items-center justify-between border-b border-zinc-200/60 bg-white/80 px-6 backdrop-blur-lg">
+      <header className="flex h-[var(--nav-height)] shrink-0 items-center justify-between border-b border-zinc-200/60 bg-white/80 px-8 backdrop-blur-lg">
         <Suspense>
           <NavBar />
         </Suspense>
