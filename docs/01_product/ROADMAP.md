@@ -12,10 +12,11 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| 테스트 | Backend 2,006 + Frontend 352 = **총 2,358개** |
+| 테스트 | Backend 2,014 + Frontend 352 = **총 2,366개** |
 
 ### 최근 작업
 
+- **Composed Negative Preview** (02-20): 씬 편집기에서 StyleProfile + Character + Scene 네거티브 프롬프트 합성 결과를 미리보기. `/prompt/compose` API에 `negative_prompt`/`negative_sources` 필드 추가, NegativePromptToggle에 출처별 read-only UI. 8개 테스트 추가
 - **실사풍 StyleProfile 호환성 + Negative Prompt 수정** (02-20): quality tag fallback을 StyleProfile SSOT로 전환 (하드코딩 제거), 실사 quality 태그 LAYER_QUALITY 분류, MultiCharacterComposer quality 3-tier fallback. Negative Prompt: recommended_negative 씬 병합, char_b negative 누락 수정, 토큰 순서 개선, Reference negative 정합성. 25개 테스트 추가
 - **Video Gallery 개선** (02-19): 타입별 8개 표시 + View All 가로 스크롤 레이아웃, scrollbar-hide 유틸리티 추가
 - **홈 화면 개선** (02-19): Continue Working 가로 스크롤 컴팩트 카드, Video Gallery 타입별(Full/Post) 2줄 레이아웃으로 전환. 동적 그룹핑으로 타입 확장 대응
