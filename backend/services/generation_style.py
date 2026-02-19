@@ -109,11 +109,12 @@ def _compose_positive(ctx, prompt: str, lora_tags: list[str], trigger_words: lis
 
 
 def _compose_negative(ctx, negative_prompt: str) -> str:
-    """Compose final negative prompt with embeddings."""
-    modified = negative_prompt or ""
-    if ctx.negative_embeddings:
-        emb_str = ", ".join(ctx.negative_embeddings)
-        modified = f"{emb_str}, {modified}" if modified else emb_str
+    """Compose final negative prompt: default_negative > embeddings > user input."""
+    parts: list[str] = []
     if ctx.default_negative:
-        modified = f"{modified}, {ctx.default_negative}" if modified else ctx.default_negative
-    return modified
+        parts.append(ctx.default_negative)
+    if ctx.negative_embeddings:
+        parts.append(", ".join(ctx.negative_embeddings))
+    if negative_prompt:
+        parts.append(negative_prompt)
+    return ", ".join(parts)

@@ -22,6 +22,42 @@ from models import Character, CharacterTag, Tag
 from schemas import AssignPreviewRequest, CharacterPreviewRequest, SceneGenerateRequest
 
 
+def _resolve_quality_tags_for_character(character: Character, db: Session) -> list[str] | None:
+    """Resolve StyleProfile quality tags via Character's most recent Storyboard → Group.
+
+    Path: Character → StoryboardCharacter → Storyboard → Group → Config → StyleProfile.
+    Returns parsed default_positive tokens, or None if no StyleProfile is configured.
+    """
+    from models.storyboard import Storyboard
+    from models.storyboard_character import StoryboardCharacter
+    from services.prompt import split_prompt_tokens
+    from services.style_context import resolve_style_context_from_group
+
+    # Find the most recent storyboard using this character
+    sc = (
+        db.query(StoryboardCharacter)
+        .join(Storyboard, StoryboardCharacter.storyboard_id == Storyboard.id)
+        .filter(
+            StoryboardCharacter.character_id == character.id,
+            Storyboard.deleted_at.is_(None),
+        )
+        .order_by(Storyboard.id.desc())
+        .first()
+    )
+    if not sc:
+        return None
+
+    storyboard = db.query(Storyboard).filter(Storyboard.id == sc.storyboard_id).first()
+    if not storyboard or not storyboard.group_id:
+        return None
+
+    ctx = resolve_style_context_from_group(storyboard.group_id, db)
+    if not ctx or not ctx.default_positive:
+        return None
+
+    return split_prompt_tokens(ctx.default_positive)
+
+
 def _get_character_for_preview(db: Session, character_id: int, *, with_tags: bool = False) -> Character:
     """Fetch character with validation for preview operations."""
     query = db.query(Character)
@@ -54,9 +90,16 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
 
     character = _get_character_for_preview(db, character_id, with_tags=True)
 
+    # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
+    quality_tags = _resolve_quality_tags_for_character(character, db)
+
     builder = V3PromptBuilder(db)
-    full_prompt = builder.compose_for_reference(character)
+    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags)
     neg_prompt = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
+    if character.recommended_negative:
+        extras = [n for n in character.recommended_negative if n not in neg_prompt]
+        if extras:
+            neg_prompt += ", " + ", ".join(extras)
 
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()

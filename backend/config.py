@@ -257,6 +257,9 @@ RECOMMENDATION_MIN_USE_COUNT = int(os.getenv("RECOMMENDATION_MIN_USE_COUNT", "10
 # This adds 2-5s for first-time tags, but ensures 95%+ accuracy
 ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").lower() == "true"
 
+# --- Quality Tag Fallback (used when StyleProfile provides no quality tags) ---
+FALLBACK_QUALITY_TAGS: list[str] = ["masterpiece", "best_quality"]
+
 # --- Reference Image Generation Defaults ---
 # Default prompts for generating IP-Adapter reference images
 # Used when creating new characters without custom reference prompts

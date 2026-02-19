@@ -440,3 +440,47 @@ class TestResolveEffectiveCharacterBId:
         )
         result = _resolve_effective_character_b_id(request, db_session)
         assert result is None
+
+
+# ── Phase: Realistic Style Profile quality tag compat ────────────────
+
+
+class TestMultiCharacterComposerQuality:
+    """MultiCharacterComposer should not hardcode anime quality tags."""
+
+    def test_quality_uses_fallback_when_no_style(self, db_session):
+        """No style profile → fallback quality tags (masterpiece, best_quality)."""
+        from services.prompt.v3_composition import V3PromptBuilder
+        from services.prompt.v3_multi_character import MultiCharacterComposer
+
+        char_a = _make_char_with_tags(db_session, "q_a", "male", [("red_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(db_session, "q_b", "female", [("blue_hair", 2, 1.0)])
+
+        builder = V3PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        result = composer.compose(char_a, char_b, ["classroom"])
+
+        assert "masterpiece" in result
+        assert "best_quality" in result
+
+    def test_quality_respects_style_profile_tags(self, db_session):
+        """With realistic quality_tags → no anime tags injected."""
+        from services.prompt.v3_composition import V3PromptBuilder
+        from services.prompt.v3_multi_character import MultiCharacterComposer
+
+        char_a = _make_char_with_tags(db_session, "r_a", "male", [("red_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(db_session, "r_b", "female", [("blue_hair", 2, 1.0)])
+
+        builder = V3PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        result = composer.compose(
+            char_a,
+            char_b,
+            ["classroom"],
+            quality_tags=["photorealistic", "raw_photo"],
+        )
+
+        assert "photorealistic" in result
+        assert "raw_photo" in result
+        assert "masterpiece" not in result
+        assert "best_quality" not in result

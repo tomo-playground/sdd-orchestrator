@@ -389,6 +389,124 @@ class TestComposeSceneWithStyle:
             assert "lowres" in negative
             assert "bad anatomy" in negative
 
+    def test_recommended_negative_merged(self):
+        """Character recommended_negative (list[str]) must be merged into negative."""
+        mock_db = MagicMock()
+        mock_char = MagicMock()
+        mock_char.custom_negative_prompt = None
+        mock_char.recommended_negative = ["verybadimagenegative_v1.3", "easynegative"]
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_char
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+        ):
+            mock_apply.return_value = ("1girl, smile", "lowres")
+            mock_instance = MagicMock()
+            mock_instance.compose_for_character.return_value = "1girl, smile"
+            mock_instance.find_unknown_tags.return_value = []
+            MockBuilder.return_value = mock_instance
+
+            _, negative, _ = compose_scene_with_style(
+                raw_prompt="1girl, smile",
+                negative_prompt="lowres",
+                character_id=10,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+            )
+
+            assert "verybadimagenegative_v1.3" in negative
+            assert "easynegative" in negative
+            assert "lowres" in negative
+
+    def test_char_b_custom_negative_merged(self):
+        """Multi-char scene: char_b's custom_negative_prompt must be merged."""
+        mock_db = MagicMock()
+
+        mock_char_a = MagicMock()
+        mock_char_a.id = 10
+        mock_char_a.custom_negative_prompt = "nsfw"
+        mock_char_a.recommended_negative = None
+
+        mock_char_b = MagicMock()
+        mock_char_b.id = 20
+        mock_char_b.custom_negative_prompt = "muscular, facial_hair"
+        mock_char_b.recommended_negative = None
+
+        # DB query chain: first call → char_a, second → char_b
+        chars_by_call = iter([mock_char_a, mock_char_b])
+        mock_db.query.return_value.filter.return_value.first.side_effect = lambda: next(chars_by_call)
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+            patch("services.prompt.v3_multi_character.MultiCharacterComposer") as MockComposer,
+        ):
+            mock_apply.return_value = ("1boy, 1girl", "lowres")
+            mock_instance = MagicMock()
+            mock_instance.find_unknown_tags.return_value = []
+            MockBuilder.return_value = mock_instance
+            mock_composer_instance = MagicMock()
+            mock_composer_instance.compose.return_value = "1boy, 1girl"
+            MockComposer.return_value = mock_composer_instance
+
+            _, negative, _ = compose_scene_with_style(
+                raw_prompt="1boy, 1girl",
+                negative_prompt="lowres",
+                character_id=10,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+                character_b_id=20,
+            )
+
+            assert "nsfw" in negative
+            assert "muscular" in negative
+            assert "facial_hair" in negative
+            assert "lowres" in negative
+
+
+class TestComposeNegativeOrder:
+    """_compose_negative should place default_negative before user input."""
+
+    def test_default_negative_comes_first(self):
+        """default_negative should precede user negative prompt."""
+        from services.generation_style import _compose_negative
+
+        class FakeCtx:
+            negative_embeddings = []
+            default_negative = "EasyNegative"
+
+        result = _compose_negative(FakeCtx(), "blurry, lowres")
+        tokens = [t.strip() for t in result.split(",")]
+        assert tokens[0] == "EasyNegative"
+
+    def test_embeddings_between_default_and_user(self):
+        """Order: default_negative > embeddings > user negative."""
+        from services.generation_style import _compose_negative
+
+        class FakeCtx:
+            negative_embeddings = ["embedding:negV2"]
+            default_negative = "EasyNegative"
+
+        result = _compose_negative(FakeCtx(), "blurry")
+        tokens = [t.strip() for t in result.split(",")]
+        assert tokens.index("EasyNegative") < tokens.index("embedding:negV2")
+        assert tokens.index("embedding:negV2") < tokens.index("blurry")
+
+    def test_empty_user_negative(self):
+        """No user negative → only default + embeddings."""
+        from services.generation_style import _compose_negative
+
+        class FakeCtx:
+            negative_embeddings = ["embedding:negV2"]
+            default_negative = "lowres"
+
+        result = _compose_negative(FakeCtx(), "")
+        assert "lowres" in result
+        assert "embedding:negV2" in result
+
 
 class TestResolveStyleLorasFromGroup:
     """Test resolve_style_loras_from_group() -- Group Config → Style LoRAs."""

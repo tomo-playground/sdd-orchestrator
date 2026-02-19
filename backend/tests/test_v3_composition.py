@@ -1272,3 +1272,152 @@ class TestApplySceneCharacterActions:
         # Scene actions should appear in output (with :1.1 boost from _flatten_layers)
         assert "(crying:1.1)" in result
         assert "(kneeling:1.1)" in result
+
+
+# ────────────────────────────────────────────
+# Realistic Style Profile quality tag tests
+# ────────────────────────────────────────────
+
+
+class TestEnsureQualityTagsRealistic:
+    """_ensure_quality_tags should respect existing quality tags (no anime fallback)."""
+
+    def test_empty_quality_layer_gets_fallback(self):
+        """Empty LAYER_QUALITY → fallback tags injected."""
+        layers = [[] for _ in range(12)]
+        V3PromptBuilder._ensure_quality_tags(layers)
+
+        quality = layers[LAYER_QUALITY]
+        assert "masterpiece" in quality
+        assert "best_quality" in quality
+
+    def test_realistic_quality_tags_preserved(self):
+        """Realistic tags in LAYER_QUALITY → no anime fallback injected."""
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["photorealistic", "raw_photo", "sharp_focus"]
+
+        V3PromptBuilder._ensure_quality_tags(layers)
+
+        quality = layers[LAYER_QUALITY]
+        assert "photorealistic" in quality
+        assert "raw_photo" in quality
+        assert "masterpiece" not in quality
+        assert "best_quality" not in quality
+
+    def test_anime_quality_tags_preserved(self):
+        """Anime tags already in LAYER_QUALITY → no duplicate injection."""
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
+
+        V3PromptBuilder._ensure_quality_tags(layers)
+
+        quality = layers[LAYER_QUALITY]
+        assert quality.count("masterpiece") == 1
+        assert quality.count("best_quality") == 1
+
+    def test_mixed_quality_tags_not_overridden(self):
+        """Any non-empty LAYER_QUALITY → skip fallback entirely."""
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["high_resolution"]
+
+        V3PromptBuilder._ensure_quality_tags(layers)
+
+        quality = layers[LAYER_QUALITY]
+        assert "high_resolution" in quality
+        assert "masterpiece" not in quality
+
+
+class TestInferLayerQualityKeywords:
+    """_infer_layer_from_pattern should classify realistic quality tags to LAYER_QUALITY."""
+
+    def test_photorealistic(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("photorealistic") == LAYER_QUALITY
+
+    def test_raw_photo(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("raw_photo") == LAYER_QUALITY
+
+    def test_sharp_focus(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("sharp_focus") == LAYER_QUALITY
+
+    def test_film_grain(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("film_grain") == LAYER_QUALITY
+
+    def test_8k_uhd(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("8k_uhd") == LAYER_QUALITY
+
+    def test_dslr(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("dslr") == LAYER_QUALITY
+
+    def test_masterpiece_still_quality(self):
+        """Existing anime quality tags should also classify as LAYER_QUALITY."""
+        assert V3PromptBuilder._infer_layer_from_pattern("masterpiece") == LAYER_QUALITY
+
+    def test_best_quality(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("best_quality") == LAYER_QUALITY
+
+    def test_highres(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("highres") == LAYER_QUALITY
+
+    def test_absurdres(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("absurdres") == LAYER_QUALITY
+
+
+# ────────────────────────────────────────────
+# compose_for_reference quality_tags tests
+# ────────────────────────────────────────────
+
+
+class TestComposeForReferenceQuality:
+    """compose_for_reference should accept quality_tags to avoid anime fallback."""
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_default_quality_fallback(self, mock_alias, mock_filter, mock_rule, builder):
+        """No quality_tags → fallback quality tags."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        char = MagicMock()
+        char.gender = "female"
+        char.tags = []
+        char.loras = []
+        char.custom_base_prompt = "1girl"
+        char.reference_base_prompt = None
+
+        result = builder.compose_for_reference(char)
+
+        assert "masterpiece" in result
+        assert "best_quality" in result
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_realistic_quality_tags_override(self, mock_alias, mock_filter, mock_rule, builder):
+        """Explicit quality_tags → no anime fallback."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        char = MagicMock()
+        char.gender = "female"
+        char.tags = []
+        char.loras = []
+        char.custom_base_prompt = "1girl"
+        char.reference_base_prompt = None
+
+        result = builder.compose_for_reference(
+            char, quality_tags=["photorealistic", "raw_photo"]
+        )
+
+        assert "photorealistic" in result
+        assert "raw_photo" in result
+        assert "masterpiece" not in result
+        assert "best_quality" not in result

@@ -246,6 +246,7 @@ def compose_scene_with_style(
             ]
 
     # Multi-character routing
+    char_b = None
     if character and character_b_id:
         from services.prompt.v3_multi_character import MultiCharacterComposer
 
@@ -270,9 +271,14 @@ def compose_scene_with_style(
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras)
 
-    # 3. Merge character custom_negative_prompt (reuse loaded character)
-    if character and character.custom_negative_prompt:
-        modified_negative = f"{modified_negative}, {character.custom_negative_prompt}"
+    # 3. Merge character negative prompts (custom + recommended, both chars)
+    for char in [character, char_b]:
+        if not char:
+            continue
+        if char.custom_negative_prompt:
+            modified_negative = f"{modified_negative}, {char.custom_negative_prompt}"
+        if char.recommended_negative:
+            modified_negative = f"{modified_negative}, {', '.join(char.recommended_negative)}"
 
     # 4. Detect non-Danbooru tags
     unknown = builder.find_unknown_tags(scene_tags)

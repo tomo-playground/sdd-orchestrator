@@ -28,6 +28,7 @@ from config import (
 )
 from models import Character
 from services.image import load_image_bytes
+from services.prompt import normalize_negative_prompt
 
 # Dynamic import to avoid initialization order issues
 
@@ -675,10 +676,12 @@ async def generate_reference_for_character(
         Saved filename
     """
     # Build prompt using V3 12-Layer system (alias/conflict resolution, batch LoRA query)
+    from services.characters.preview import _resolve_quality_tags_for_character
     from services.prompt.v3_composition import V3PromptBuilder
 
+    quality_tags = _resolve_quality_tags_for_character(character, db)
     builder = V3PromptBuilder(db)
-    full_prompt = builder.compose_for_reference(character)
+    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags)
 
     # Construct negative prompt
     base_negative = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
@@ -696,7 +699,7 @@ async def generate_reference_for_character(
     for attempt in range(max_attempts):
         payload = {
             "prompt": full_prompt,
-            "negative_prompt": base_negative,
+            "negative_prompt": normalize_negative_prompt(base_negative),
             "steps": 25,
             "width": 512,
             "height": 512,

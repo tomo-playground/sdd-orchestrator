@@ -144,6 +144,26 @@ class V3PromptBuilder:
         return frozenset(tag for tags in CATEGORY_PATTERNS.values() for tag in tags)
 
     # Pattern-based fallback constants for _infer_layer_from_pattern
+    _QUALITY_KEYWORDS = frozenset(
+        {
+            # Anime quality
+            "masterpiece",
+            "best_quality",
+            "highres",
+            "absurdres",
+            "incredibly_absurdres",
+            "high_quality",
+            # Realistic quality
+            "photorealistic",
+            "raw_photo",
+            "sharp_focus",
+            "film_grain",
+            "dslr",
+            "8k_uhd",
+            "4k",
+            "ultra_detailed",
+        }
+    )
     _EXPRESSION_KEYWORDS = frozenset(
         {
             "smiling",
@@ -191,6 +211,9 @@ class V3PromptBuilder:
         - Mood/genre keywords → LAYER_ATMOSPHERE
         - Default: LAYER_SUBJECT
         """
+        if tag in V3PromptBuilder._QUALITY_KEYWORDS:
+            return LAYER_QUALITY
+
         if tag in V3PromptBuilder._EXPRESSION_KEYWORDS:
             return LAYER_EXPRESSION
 
@@ -558,13 +581,18 @@ class V3PromptBuilder:
 
     @staticmethod
     def _ensure_quality_tags(layers: list[list[str]]) -> None:
-        """Ensure masterpiece and best_quality are in the quality layer."""
-        quality_tokens = {t.lower().strip("() ").split(":")[0] for t in layers[LAYER_QUALITY]}
-        if "masterpiece" not in quality_tokens:
-            layers[LAYER_QUALITY].insert(0, "masterpiece")
-        if "best_quality" not in quality_tokens:
-            idx = 1 if "masterpiece" in quality_tokens or layers[LAYER_QUALITY] else 0
-            layers[LAYER_QUALITY].insert(idx, "best_quality")
+        """Ensure quality tags exist; skip if StyleProfile already provided them.
+
+        If LAYER_QUALITY is non-empty (e.g. realistic quality tags from StyleProfile),
+        respect those as-is. Only inject FALLBACK_QUALITY_TAGS when the layer is empty.
+        """
+        if layers[LAYER_QUALITY]:
+            return
+
+        from config import FALLBACK_QUALITY_TAGS
+
+        for tag in FALLBACK_QUALITY_TAGS:
+            layers[LAYER_QUALITY].append(tag)
 
     # ── compose (generic, no character) ──────────────────────────────────
 
@@ -890,6 +918,7 @@ class V3PromptBuilder:
         self,
         character: Character,
         reference_extra_tags: list[str] | None = None,
+        quality_tags: list[str] | None = None,
     ) -> str:
         """Compose prompt for character reference image generation.
 
@@ -898,6 +927,7 @@ class V3PromptBuilder:
         - Style LoRA: full weight (not skipped)
         - Environment: white_background fixed
         - No scene_tags (Gemini)
+        - quality_tags: explicit quality tags from StyleProfile (skips anime fallback)
         """
         # 1. Collect character tags (DB + custom_base_prompt)
         char_tags_data = self._collect_character_tags(character)
@@ -914,8 +944,11 @@ class V3PromptBuilder:
         # 4. Get tag info for reference tags
         ref_tag_info = self.get_tag_info(ref_tags) if ref_tags else {}
 
-        # 5. Initialize 12 layers and distribute character tags
+        # 5. Initialize 12 layers; pre-fill quality if provided by StyleProfile
         layers: list[list[str]] = [[] for _ in range(12)]
+        if quality_tags:
+            layers[LAYER_QUALITY].extend(quality_tags)
+
         for ct in char_tags_data:
             name = ct["name"]
             # Skip if already resolved away by alias

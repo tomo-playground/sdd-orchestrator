@@ -12,6 +12,7 @@ from services.prompt.v3_composition import (
     LAYER_CAMERA,
     LAYER_ENVIRONMENT,
     LAYER_IDENTITY,
+    LAYER_QUALITY,
     LAYER_SUBJECT,
     V3PromptBuilder,
 )
@@ -34,6 +35,7 @@ class MultiCharacterComposer:
         scene_tags: list[str],
         style_loras: list[dict] | None = None,
         scene_character_actions: list[dict] | None = None,
+        quality_tags: list[str] | None = None,
     ) -> str:
         """Compose prompt for a 2-character scene."""
         scene_tags = self.builder._resolve_aliases(scene_tags)
@@ -52,8 +54,14 @@ class MultiCharacterComposer:
         # 4. Scene tags → layers (environment, camera, atmosphere only)
         scene_flat = self._flatten_scene_tags(scene_tags)
 
-        # 5. Quality + LoRAs
-        quality = "masterpiece, best_quality"
+        # 5. Quality (explicit > extracted from scene_tags > fallback) + LoRAs
+        effective_quality = quality_tags or self._extract_quality_tags(scene_tags)
+        if effective_quality:
+            quality = ", ".join(effective_quality)
+        else:
+            from config import FALLBACK_QUALITY_TAGS
+
+            quality = ", ".join(FALLBACK_QUALITY_TAGS)
         lora_str = self._build_lora_string(char_a, char_b, style_loras)
 
         # 6. Prefer wide framing for multi-char
@@ -124,6 +132,19 @@ class MultiCharacterComposer:
         for i in range(LAYER_IDENTITY, LAYER_CAMERA):
             tokens.extend(layers[i])
         return ", ".join(tokens) if tokens else ""
+
+    def _extract_quality_tags(self, scene_tags: list[str]) -> list[str]:
+        """Extract LAYER_QUALITY tags from scene_tags (e.g. StyleProfile quality)."""
+        tag_info = self.builder.get_tag_info(scene_tags)
+        quality = []
+        for tag in scene_tags:
+            if tag.strip().startswith("<lora:"):
+                continue
+            norm = tag.lower().replace(" ", "_").strip()
+            info = tag_info.get(norm, {"layer": LAYER_SUBJECT})
+            if info["layer"] == LAYER_QUALITY:
+                quality.append(tag)
+        return quality
 
     def _flatten_scene_tags(self, scene_tags: list[str]) -> str:
         """Flatten scene tags (environment, camera, atmosphere only)."""
